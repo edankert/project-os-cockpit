@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-07T23:00Z"
+updated: "2026-05-08T00:00Z"
 
 template:
   replace_me: false
@@ -40,7 +40,7 @@ counters:
   WF: 0
 
 focus:
-  task: "TASK-0005"
+  task: "TASK-0006"
   feature: "FEAT-0002"
   phase: "[[PHASE-001-MVP]]"
   issue: ""
@@ -74,15 +74,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0005:
-      title: "File watcher (watchdog) emitting change events"
-      status: next
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/live-reload/plan/tasks/TASK-0005-File-Watcher.md"
-      parent: "FEAT-0002"
     TASK-0006:
       title: "SSE channel + client-side soft reload script"
-      status: backlog
+      status: next
       phase: "[[PHASE-001-MVP]]"
       path: "docs/features/live-reload/plan/tasks/TASK-0006-SSE-And-Reload.md"
       parent: "FEAT-0002"
@@ -224,6 +218,12 @@ items:
       path: "docs/changes/CHG-20260507-Auto-Index-Pages.md"
       features: ["FEAT-0001"]
       source_task: "TASK-0004"
+    CHG-20260507-File-Watcher:
+      title: "File watcher + EventBus — index now stays in sync with the docs tree"
+      status: merged
+      path: "docs/changes/CHG-20260507-File-Watcher.md"
+      features: ["FEAT-0002"]
+      source_task: "TASK-0005"
   releases: {}
 
   decisions:
@@ -245,7 +245,7 @@ metrics:
     features_total: 6
     features_done: 1
     tasks_total: 11
-    tasks_done: 4
+    tasks_done: 5
     tests_total: 0
     tests_passing: 0
     tests_failing: 0

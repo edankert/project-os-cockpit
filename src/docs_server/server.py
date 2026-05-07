@@ -23,7 +23,9 @@ from pathlib import Path
 from typing import Iterable
 
 from . import renderer, templates
+from .events import EventBus
 from .index import Index
+from .watcher import Watcher
 
 # URL plural → frontmatter type singular. Project-os IDs and template names
 # disagree in one place: ``/index/decisions`` indexes ``type: [[adr]]``.
@@ -79,26 +81,37 @@ class DocsServer:
             raise NotADirectoryError(f"docs root is not a directory: {self.docs_root}")
         self.bind = bind
         self.port = port
+        self.bus: EventBus = EventBus()
         self.index: Index = Index.build(self.docs_root)
+        # Index subscribes for invalidation; the SSE channel (TASK-0006) and
+        # the cockpit JS re-fetch (TASK-0011) attach later.
+        self.index.subscribe_to(self.bus)
+        self.watcher: Watcher = Watcher(self.docs_root, self.bus)
 
     def run(self) -> None:
         handler_cls = _make_handler(self.docs_root, self.index)
-        with _NoDNSThreadingHTTPServer((self.bind, self.port), handler_cls) as httpd:
-            log.info(
-                "docs-server listening on http://%s:%d (docs root: %s)",
-                self.bind,
-                self.port,
-                self.docs_root,
-            )
-            print(
-                f"docs-server: http://{self.bind}:{self.port}/  "
-                f"(serving {self.docs_root})",
-                flush=True,
-            )
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\ndocs-server: shutting down.", flush=True)
+        self.watcher.start()
+        try:
+            with _NoDNSThreadingHTTPServer(
+                (self.bind, self.port), handler_cls
+            ) as httpd:
+                log.info(
+                    "docs-server listening on http://%s:%d (docs root: %s)",
+                    self.bind,
+                    self.port,
+                    self.docs_root,
+                )
+                print(
+                    f"docs-server: http://{self.bind}:{self.port}/  "
+                    f"(serving {self.docs_root})",
+                    flush=True,
+                )
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    print("\ndocs-server: shutting down.", flush=True)
+        finally:
+            self.watcher.stop()
 
 
 def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]:
