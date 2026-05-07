@@ -11,7 +11,7 @@ updated: 2026-05-07
 source: []
 goal: "When any .md under the served docs/ tree changes, the corresponding browser pages soft-reload within a fraction of a second."
 release: ""
-related: [FEAT-0001, FEAT-0003]
+related: ["[[FEAT-0001]]", "[[FEAT-0003]]"]
 ---
 
 # Live reload via SSE

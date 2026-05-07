@@ -53,3 +53,4 @@ include = ["docs_server*"]
 
 [tool.setuptools.package-data]
 docs_server = ["py.typed", "static/*.css", "static/*.js"]
+# Note: pattern already covers cockpit.css / cockpit.js / sse-reload.js / base.css.

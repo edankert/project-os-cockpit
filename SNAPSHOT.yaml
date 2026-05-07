@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T04:00Z"
+updated: "2026-05-08T04:30Z"
 
 template:
   replace_me: false
@@ -32,16 +32,16 @@ counters:
   FEAT: 6
   ISS: 0
   PHASE: 4
-  REQ: 13
+  REQ: 17
   RISK: 3
   REL: 0
-  TASK: 14
+  TASK: 20
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0013"
-  feature: "FEAT-0006"
+  task: "TASK-0020"
+  feature: "FEAT-0005"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
 
@@ -71,7 +71,7 @@ items:
   tasks:
     TASK-0013:
       title: "Cockpit shell + JS pane renderer (code-driven layout)"
-      status: next
+      status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0013-Cockpit-Shell-And-Renderer.md"
       parent: "FEAT-0006"
@@ -81,6 +81,42 @@ items:
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0014-Cockpit-Sse-Refetch.md"
       parent: "FEAT-0006"
+    TASK-0015:
+      title: "Cockpit left-pane modes (Features / Tasks / Issues / Recent)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0015-Cockpit-Left-Modes.md"
+      parent: "FEAT-0006"
+    TASK-0016:
+      title: "Status palette overhaul (6 buckets) + Hide-completed expansion"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0016-Status-Palette-Overhaul.md"
+      parent: "FEAT-0006"
+    TASK-0017:
+      title: "Cockpit platform filter (auto-discovered)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0017-Cockpit-Platform-Filter.md"
+      parent: "FEAT-0006"
+    TASK-0018:
+      title: "Cockpit landing page (root URL = cockpit shell, SNAPSHOT-driven home)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0018-Cockpit-Landing-Page.md"
+      parent: "FEAT-0006"
+    TASK-0019:
+      title: "Cockpit Library mode + pin button"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0019-Cockpit-Library-And-Pinning.md"
+      parent: "FEAT-0006"
+    TASK-0020:
+      title: "Release docs-server to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
+      status: doing
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/downstream-pilot/plan/tasks/TASK-0020-Release-To-Project-Os.md"
+      parent: "FEAT-0005"
 
   issues: {}
 
@@ -125,6 +161,22 @@ items:
       title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
       status: approved
       path: "docs/requirements/REQ-0013-Cockpit-Layout.md"
+    REQ-0014:
+      title: "Cockpit platform filter — auto-discovered, picker only when used"
+      status: approved
+      path: "docs/requirements/REQ-0014-Cockpit-Platform-Filter.md"
+    REQ-0015:
+      title: "Cockpit landing page — root URL renders the cockpit with a SNAPSHOT-driven home"
+      status: approved
+      path: "docs/requirements/REQ-0015-Cockpit-Landing-Page.md"
+    REQ-0016:
+      title: "Cockpit Library mode + pin button (curated + auto-discovered + rare types)"
+      status: approved
+      path: "docs/requirements/REQ-0016-Cockpit-Library-And-Pinning.md"
+    REQ-0017:
+      title: "Release docs-server into project-os via one-way sync"
+      status: approved
+      path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
     PHASE-001:
@@ -219,6 +271,30 @@ items:
       path: "docs/changes/CHG-20260508-Cockpit-Json-Api.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0012"
+    CHG-20260508-Cockpit-Shell-And-Renderer:
+      title: "Cockpit shell + JS pane renderer; bare-ID frontmatter cleanup"
+      status: merged
+      path: "docs/changes/CHG-20260508-Cockpit-Shell-And-Renderer.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0013"
+    CHG-20260508-Cockpit-Left-Modes-And-Palette:
+      title: "Cockpit left-pane modes (features/tasks/issues/recent) + status palette overhaul"
+      status: merged
+      path: "docs/changes/CHG-20260508-Cockpit-Left-Modes-And-Palette.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0013"
+    CHG-20260508-Cockpit-Platform-Filter:
+      title: "Cockpit platform filter (auto-discovered, picker only when used)"
+      status: merged
+      path: "docs/changes/CHG-20260508-Cockpit-Platform-Filter.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0013"
+    CHG-20260508-Cockpit-Home-And-Library:
+      title: "Cockpit landing (root → cockpit shell + SNAPSHOT-driven home) and Library mode + pin button"
+      status: merged
+      path: "docs/changes/CHG-20260508-Cockpit-Home-And-Library.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0018"
   releases: {}
 
   decisions:
@@ -243,10 +319,12 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 14
-    tasks_done: 8
+    tasks_total: 20
+    tasks_done: 14
     tests_total: 2
     tests_passing: 2
+    test_cases_total: 41
+    test_cases_passing: 41
     tests_failing: 0
     issues_open: 0
     issues_triage: 0

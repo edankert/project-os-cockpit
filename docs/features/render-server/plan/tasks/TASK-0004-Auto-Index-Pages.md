@@ -13,7 +13,7 @@ implements: ["[[FEAT-0001]]", "[[REQ-0007]]"]
 fixes: []
 effort: S
 due: ""
-depends: [TASK-0003]
+depends: ["[[TASK-0003]]"]
 blocks: []
 related: []
 tests: []

@@ -11,7 +11,7 @@ updated: 2026-05-07
 source: []
 goal: "Make the rendered output project-os-aware: status badges, parent-link breadcrumbs, structured backlinks panel, and auto-index pages that match the project-os taxonomy."
 release: ""
-related: [FEAT-0001, FEAT-0005, REQ-0012]
+related: ["[[FEAT-0001]]", "[[FEAT-0005]]", "[[REQ-0012]]"]
 ---
 
 # Project-os adapter

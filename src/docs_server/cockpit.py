@@ -9,50 +9,215 @@ at HTTP-status level.
 Schema is versioned via ``SCHEMA_VERSION`` and surfaced both inline in the
 payload and in an ``X-Cockpit-Schema`` header so the JS client can detect
 bumps and refuse to render an unknown shape.
+
+The nav payload is mode-driven (``?mode=`` on the API). Every mode returns
+the same outer envelope::
+
+    {
+        "schema_version": 2,
+        "mode": "<mode-id>",
+        "groups": [
+            {"key", "label", "url" | None, "status" | None, "items": [...]},
+            ...
+        ]
+    }
+
+Each item carries the same shape regardless of mode::
+
+    {"id", "title", "status", "url", "subtitle"}
+
+so the JS renderer can be one function over four modes.
 """
 
 from __future__ import annotations
 
+import datetime as _dt
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .index import Index, NoteRecord
 
-SCHEMA_VERSION: int = 1
+SCHEMA_VERSION: int = 2
 
-# Stable display order for type groups in the right pane. Anything outside
-# this list lands at the end, alphabetically.
+# Stable display order for type groups in the right pane (relationships).
+# Order is derived from an aggregate analysis of a real project-os corpus
+# (~1,175 notes in ../your-trainer): the most-frequently-linked types come
+# first, so the typical reader sees the densest relationship sets at the
+# top. Types absent from that corpus (risk, workflow, plan, dashboard) are
+# slotted by schema affinity to their nearest neighbour.
 TYPE_ORDER: tuple[str, ...] = (
-    "feature",
     "task",
-    "requirement",
+    "feature",
     "issue",
-    "risk",
-    "adr",
+    "requirement",
     "change",
-    "release",
-    "workflow",
-    "test",
     "phase",
+    "release",
+    "adr",
+    "risk",
+    "test",
+    "workflow",
     "plan",
     "dashboard",
 )
 _TYPE_RANK: dict[str, int] = {t: i for i, t in enumerate(TYPE_ORDER)}
 
+# Order for the "tasks by status" left-pane mode. Items the user is
+# actively touching first; archived states last.
+TASK_STATUS_ORDER: tuple[str, ...] = (
+    "doing", "in-progress", "in-review", "next",
+    "blocked", "failing", "reopened",
+    "ready", "active", "approved", "accepted",
+    "planned", "triage",
+    "todo", "open", "pending", "backlog",
+    "draft", "proposed",
+    "done", "merged", "fixed", "fulfilled", "met", "complete",
+    "verified", "passing", "published", "closed",
+    "obsolete", "retired", "cancelled", "superseded", "wont-fix", "reverted",
+    "reference", "deferred",
+)
+_TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}
 
-def nav_payload(index: Index) -> dict[str, Any]:
-    """Left-pane payload — features grouped by phase."""
-    features = index.notes_by_type("feature")  # already excludes templates
-    # Group by phase target string (e.g. "PHASE-001-MVP"). Notes without a
-    # phase land in a fallback group keyed by None.
+# Issue severity order. Severity vocabulary varies; project-os schema is
+# critical / high / medium / low.
+SEVERITY_ORDER: tuple[str, ...] = ("critical", "high", "medium", "low")
+_SEVERITY_RANK: dict[str, int] = {s: i for i, s in enumerate(SEVERITY_ORDER)}
+
+# Recent-mode time buckets (in render order).
+_RECENT_BUCKETS = (
+    ("today", "Today"),
+    ("yesterday", "Yesterday"),
+    ("week", "This week"),
+    ("month", "This month"),
+    ("earlier", "Earlier"),
+)
+
+NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "recent", "library")
+DEFAULT_MODE = "features"
+
+# Library mode discovery rules.
+_ID_PREFIX_RE = __import__("re").compile(
+    r"^(?:FEAT|TASK|REQ|CHG|ADR|RISK|REL|PHASE|TST|ISS|PLAN|WF)-\d",
+    __import__("re").I,
+)
+# Subdirectories whose contents are NOT surfaced as project handles.
+# Project handles are auto-discovered: any non-ID-prefixed ``*.md`` one
+# level deep under ``docs/`` becomes a handle, except for files in these
+# directories. Dashboards typically hold ``.base`` views which are noise
+# in a navigator. ``__templates__`` and ``__bases__`` are already filtered
+# at the index level (see :data:`docs_server.index.EXCLUDED_DIR_NAMES`).
+LIBRARY_HANDLE_EXCLUDED_DIRS: tuple[str, ...] = ("dashboards",)
+# Note types that get their own group under "By type — rare" in Library mode.
+# Anything covered by a primary nav mode (feature, task, issue) is excluded.
+LIBRARY_RARE_TYPES: tuple[str, ...] = (
+    "adr", "release", "risk", "test", "workflow", "plan",
+)
+
+# Hard cap on items returned by the recent mode. Anything older falls off.
+_RECENT_LIMIT = 60
+
+
+def nav_payload(
+    index: Index,
+    mode: str | None = None,
+    platform: str | None = None,
+    pinned: list[str] | None = None,
+) -> dict[str, Any]:
+    """Left-pane payload for the requested mode.
+
+    Falls back to :data:`DEFAULT_MODE` (``"features"``) if ``mode`` is
+    missing or unknown. When ``platform`` is set (and not ``"all"``),
+    items are filtered to those matching :func:`_platform_match`. The
+    ``available_platforms`` field surfaces the distinct non-empty
+    platform values present in the corpus so the JS client can decide
+    whether to show the picker at all.
+    """
+    m = (mode or DEFAULT_MODE).lower()
+    if m not in NAV_MODES:
+        m = DEFAULT_MODE
+    plat = _normalise_platform(platform)
+
+    if m == "features":
+        groups = _features_groups(index, plat)
+    elif m == "tasks":
+        groups = _tasks_groups(index, plat)
+    elif m == "issues":
+        groups = _issues_groups(index, plat)
+    elif m == "recent":
+        groups = _recent_groups(index, plat)
+    elif m == "library":
+        groups = _library_groups(index, plat, pinned or [])
+    else:  # pragma: no cover — guarded above
+        groups = []
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "mode": m,
+        "platform": plat or "all",
+        "available_platforms": available_platforms(index),
+        "groups": groups,
+    }
+
+
+def context_payload(
+    index: Index,
+    this: str | None,
+    platform: str | None = None,
+) -> dict[str, Any]:
+    """Right-pane payload for an active note.
+
+    ``this`` may be a note ID/alias or a docs-root-relative path. Returns
+    an empty payload (no ``active`` block, empty lists) when ``this`` is
+    missing or unresolvable. ``platform`` filters the linked + backlinks
+    sets the same way :func:`nav_payload` filters its groups.
+    """
+    plat = _normalise_platform(platform)
+
+    record: NoteRecord | None = None
+    if this:
+        path = _resolve_this(index, this)
+        if path is not None:
+            record = index.get(path)
+
+    if record is None:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "platform": plat or "all",
+            "active": None,
+            "linked": [],
+            "backlinks": [],
+        }
+
+    out_paths = index.links_from(record.path)
+    in_paths = index.links_to(record.path) - out_paths
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "platform": plat or "all",
+        "active": {
+            "id": record.note_id,
+            "title": record.title,
+            "url": index.url_for(record.path),
+        },
+        "linked": _grouped_items(index, out_paths, plat),
+        "backlinks": _grouped_items(index, in_paths, plat),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Nav modes
+# ---------------------------------------------------------------------------
+
+
+def _features_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Mode 1: features grouped by phase."""
+    features = [r for r in index.notes_by_type("feature") if _platform_match(r, platform)]
     grouped: dict[str | None, list[NoteRecord]] = {}
     for record in features:
-        target = _phase_target(record)
-        grouped.setdefault(target, []).append(record)
+        grouped.setdefault(_phase_target(record), []).append(record)
 
-    groups: list[dict[str, Any]] = []
-    # Render groups sorted by the phase note's `order` (if known), else by
-    # phase id alphabetically. Unphased features go last.
     sortable: list[tuple[Any, str | None, list[NoteRecord]]] = []
     for target, records in grouped.items():
         if target is None:
@@ -65,76 +230,380 @@ def nav_payload(index: Index) -> dict[str, Any]:
         sortable.append((order if order is not None else float("inf"), target, records))
     sortable.sort(key=lambda t: (t[0], t[1] or ""))
 
+    out: list[dict[str, Any]] = []
     for _order, target, records in sortable:
         phase_record = _resolve_phase(index, target) if target else None
-        groups.append(
+        phase_id = phase_record.note_id if phase_record else None
+        phase_title = (
+            phase_record.title if phase_record and phase_record.title
+            else (target or "Unphased")
+        )
+        label = (
+            f"{phase_id} · {phase_title}" if phase_id and phase_title
+            else phase_id or phase_title
+        )
+        out.append(
             {
-                "phase_id": phase_record.note_id if phase_record else None,
-                "phase_title": (
-                    phase_record.title if phase_record and phase_record.title
-                    else target  # fall back to the wikilink target string
-                ),
-                "phase_url": (
-                    index.url_for(phase_record.path) if phase_record else None
-                ),
+                "key": phase_id or phase_title or "unphased",
+                "label": label,
+                "url": index.url_for(phase_record.path) if phase_record else None,
+                "status": phase_record.status if phase_record else None,
                 "items": [
-                    _nav_item(index, r)
+                    _feature_item(index, r)
                     for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
                 ],
             }
         )
-    return {"schema_version": SCHEMA_VERSION, "groups": groups}
+    return out
 
 
-def context_payload(index: Index, this: str | None) -> dict[str, Any]:
-    """Right-pane payload for an active note.
+def _tasks_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Mode 3: tasks grouped by status."""
+    tasks = [r for r in index.notes_by_type("task") if _platform_match(r, platform)]
+    grouped: dict[str, list[NoteRecord]] = {}
+    for record in tasks:
+        key = (record.status or "unset").lower()
+        grouped.setdefault(key, []).append(record)
 
-    ``this`` may be a note ID/alias or a docs-root-relative path. Returns
-    an empty payload (no ``active`` block, empty lists) when ``this`` is
-    missing or unresolvable.
-    """
-    record: NoteRecord | None = None
-    if this:
-        path = _resolve_this(index, this)
-        if path is not None:
-            record = index.get(path)
-
-    if record is None:
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "active": None,
-            "linked": [],
-            "backlinks": [],
+    ordered_keys = sorted(
+        grouped,
+        key=lambda s: (_TASK_STATUS_RANK.get(s, len(TASK_STATUS_ORDER)), s),
+    )
+    return [
+        {
+            "key": key,
+            "label": key.replace("-", " ").title(),
+            "url": None,
+            "status": key if key != "unset" else None,
+            "items": [
+                _task_item(index, r)
+                for r in sorted(
+                    grouped[key], key=lambda x: (x.note_id or "", x.rel_path)
+                )
+            ],
         }
+        for key in ordered_keys
+    ]
 
-    out_paths = index.links_from(record.path)
-    in_paths = index.links_to(record.path) - out_paths
 
+def _issues_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Mode 4: issues grouped by severity."""
+    issues = [r for r in index.notes_by_type("issue") if _platform_match(r, platform)]
+    grouped: dict[str, list[NoteRecord]] = {}
+    for record in issues:
+        sev = str(record.frontmatter.get("severity") or "unset").lower()
+        grouped.setdefault(sev, []).append(record)
+
+    ordered_keys = sorted(
+        grouped,
+        key=lambda s: (_SEVERITY_RANK.get(s, len(SEVERITY_ORDER)), s),
+    )
+    return [
+        {
+            "key": key,
+            "label": key.title() if key != "unset" else "Severity unset",
+            "url": None,
+            "status": None,
+            "items": [
+                _issue_item(index, r)
+                for r in sorted(
+                    grouped[key], key=lambda x: (x.note_id or "", x.rel_path)
+                )
+            ],
+        }
+        for key in ordered_keys
+    ]
+
+
+def _recent_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Mode 5: recent activity, top N by ``updated`` date.
+
+    Notes without an ``updated`` field fall back to ``created``; notes with
+    neither sort to the bottom and land in the "Earlier" bucket.
+    """
+    today = _dt.date.today()
+
+    candidates: list[tuple[_dt.date | None, NoteRecord]] = []
+    for path in index.paths():
+        record = index.get(path)
+        if record is None:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if record.note_type in (None, "dashboard"):
+            continue
+        if not _platform_match(record, platform):
+            continue
+        candidates.append((_note_updated(record), record))
+
+    # Sort by date desc; None last.
+    candidates.sort(key=lambda t: (t[0] is None, -(t[0].toordinal() if t[0] else 0)))
+    candidates = candidates[:_RECENT_LIMIT]
+
+    buckets: dict[str, list[NoteRecord]] = {k: [] for k, _ in _RECENT_BUCKETS}
+    for date, record in candidates:
+        bucket = _bucket_for_date(date, today)
+        buckets[bucket].append(record)
+
+    out: list[dict[str, Any]] = []
+    for key, label in _RECENT_BUCKETS:
+        records = buckets[key]
+        if not records:
+            continue
+        out.append(
+            {
+                "key": key,
+                "label": label,
+                "url": None,
+                "status": None,
+                "items": [_recent_item(index, r) for r in records],
+            }
+        )
+    return out
+
+
+def _library_groups(
+    index: Index, platform: str | None, pinned: list[str]
+) -> list[dict[str, Any]]:
+    """Mode 5: Library — pinned + project handles + by-type-rare."""
+    out: list[dict[str, Any]] = []
+
+    # ----- Pinned section (status+id+title, "stacked" layout) -----
+    pinned_records: list[NoteRecord] = []
+    seen: set[str] = set()
+    for raw in pinned:
+        path = _resolve_this(index, raw)
+        if path is None:
+            continue
+        record = index.get(path)
+        if record is None or not _platform_match(record, platform):
+            continue
+        if record.rel_path in seen:
+            continue
+        seen.add(record.rel_path)
+        pinned_records.append(record)
+    if pinned_records:
+        out.append(
+            {
+                "key": "pinned",
+                "label": "Pinned",
+                "url": None,
+                "status": None,
+                "item_layout": "stacked",
+                "items": [_rare_item(index, r) for r in pinned_records],
+            }
+        )
+
+    # ----- Project handles (one parent group with optional per-subdir subgroups) -----
+    top_handles, subdir_handles = _split_handles(index, platform)
+    if top_handles or subdir_handles:
+        subgroups: list[dict[str, Any]] = []
+        for dirname in sorted(subdir_handles):
+            records = subdir_handles[dirname]
+            subgroups.append(
+                {
+                    "key": f"handles-dir:{dirname}",
+                    "label": f"{dirname}/",
+                    "url": None,
+                    "status": None,
+                    "item_layout": "compact",
+                    "items": [_handle_item(r) for r in records],
+                }
+            )
+        out.append(
+            {
+                "key": "handles",
+                "label": "Project handles",
+                "url": None,
+                "status": None,
+                "item_layout": "compact",
+                "items": [_handle_item(r) for r in top_handles],
+                "subgroups": subgroups,
+            }
+        )
+
+    # ----- By type — rare (status+id+title, "stacked" layout, no type label) -----
+    for type_name in LIBRARY_RARE_TYPES:
+        records = [
+            r for r in index.notes_by_type(type_name)
+            if _platform_match(r, platform)
+        ]
+        if not records:
+            continue
+        records.sort(key=lambda r: (r.note_id or "", r.rel_path))
+        out.append(
+            {
+                "key": f"rare:{type_name}",
+                "label": _pluralise_for_label(type_name),
+                "url": None,
+                "status": None,
+                "item_layout": "stacked",
+                "items": [_rare_item(index, r) for r in records],
+            }
+        )
+
+    return out
+
+
+def _split_handles(
+    index: Index, platform: str | None
+) -> tuple[list[NoteRecord], dict[str, list[NoteRecord]]]:
+    """Split project handles into (top-level, by-subdir).
+
+    Discovery rule (Option B — auto-discover, opt-out via excludes):
+
+    * Top-level: every non-ID-prefixed ``*.md`` directly under the docs
+      root.
+    * Subdir: every non-ID-prefixed ``*.md`` one level deep in any subdir
+      that isn't in :data:`LIBRARY_HANDLE_EXCLUDED_DIRS`, grouped by
+      subdir name. ``README.md`` files inside subdirs are excluded
+      (they're directory descriptors, not navigation targets).
+
+    Files deeper than one level are not surfaced as handles — pin them
+    if they're worth quick access to.
+    """
+    top_level: list[NoteRecord] = []
+    by_subdir: dict[str, list[NoteRecord]] = {}
+    for path in index.paths():
+        record = index.get(path)
+        if record is None:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if not _platform_match(record, platform):
+            continue
+        if _ID_PREFIX_RE.match(path.stem):
+            continue
+        parts = record.rel_path.split("/")
+        if len(parts) == 1:
+            top_level.append(record)
+        elif len(parts) == 2:
+            if parts[0] in LIBRARY_HANDLE_EXCLUDED_DIRS:
+                continue
+            if path.name.lower() == "readme.md":
+                continue
+            by_subdir.setdefault(parts[0], []).append(record)
+        # Deeper than one level — silently skipped.
+    top_level.sort(key=lambda r: r.rel_path.lower())
+    for records in by_subdir.values():
+        records.sort(key=lambda r: r.rel_path.lower())
+    return top_level, by_subdir
+
+
+def _pluralise_for_label(type_name: str) -> str:
+    """Human-readable plural label for a type group header."""
+    table = {
+        "adr": "Decisions",
+        "release": "Releases",
+        "risk": "Risks",
+        "test": "Tests",
+        "workflow": "Workflows",
+        "plan": "Plans",
+    }
+    return table.get(type_name, type_name.title() + "s")
+
+
+def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Item shape for Pinned + "rare types" sections (ADRs, Tests, etc.).
+
+    Status/id/title only — type label is dropped (the group header already
+    says "Decisions" / "Risks" / etc.). The JS renders this in "stacked"
+    layout: status+id on the top line, title underneath.
+    """
     return {
-        "schema_version": SCHEMA_VERSION,
-        "active": {
-            "id": record.note_id,
-            "title": record.title,
-            "url": index.url_for(record.path),
-        },
-        "linked": _grouped_items(index, out_paths),
-        "backlinks": _grouped_items(index, in_paths),
+        "id": record.note_id or record.path.stem,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": "",
+    }
+
+
+def _handle_item(record: NoteRecord) -> dict[str, Any]:
+    """Item shape for the "Project handles" sections (top-level + per-subdir).
+
+    Filename only — orienting docs are read by their file path. The group
+    header already names the directory for subdir handles, so the row
+    itself just needs the filename.
+    """
+    return {
+        "id": "",
+        "title": record.path.name,
+        "status": None,
+        "url": f"/docs/{record.rel_path}",
+        "subtitle": "",
     }
 
 
 # ---------------------------------------------------------------------------
-# Internals
+# Per-item shapes
 # ---------------------------------------------------------------------------
 
 
-def _nav_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     return {
         "id": record.note_id,
         "title": record.title or record.path.stem,
         "status": record.status,
-        "goal": record.frontmatter.get("goal") or "",
         "url": index.url_for(record.path),
+        "subtitle": record.frontmatter.get("goal") or "",
     }
+
+
+def _task_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    parent = _first_link(record.frontmatter.get("implements")) or record.frontmatter.get("parent")
+    parent_id = _strip_wikilink(parent) if parent else ""
+    effort = record.frontmatter.get("effort") or ""
+    parts = [p for p in (parent_id, effort) if p]
+    return {
+        "id": record.note_id,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": " · ".join(parts),
+    }
+
+
+def _issue_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    affects = _first_link(record.frontmatter.get("affects"))
+    component = record.frontmatter.get("component") or ""
+    parts: list[str] = []
+    if affects:
+        parts.append(_strip_wikilink(affects))
+    if component:
+        parts.append(component)
+    return {
+        "id": record.note_id,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": " · ".join(parts),
+    }
+
+
+def _recent_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    updated = _note_updated(record)
+    parts = [record.note_type or "note"]
+    if updated:
+        parts.append(updated.isoformat())
+    return {
+        "id": record.note_id,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": " · ".join(parts),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Right pane (relationships) — unchanged structurally; reuses TYPE_ORDER.
+# ---------------------------------------------------------------------------
 
 
 def _context_item(index: Index, record: NoteRecord) -> dict[str, Any]:
@@ -147,18 +616,17 @@ def _context_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     }
 
 
-def _grouped_items(index: Index, paths: set[Path]) -> list[dict[str, Any]]:
-    """Group ``paths`` by note type and emit items in stable order.
-
-    Templates are excluded — placeholder IDs in the right pane would be
-    noise. An item with no ``type`` lands under ``"untyped"``.
-    """
+def _grouped_items(
+    index: Index, paths: set[Path], platform: str | None = None
+) -> list[dict[str, Any]]:
     groups: dict[str, list[NoteRecord]] = {}
     for path in paths:
         record = index.get(path)
         if record is None:
             continue
         if record.rel_path.startswith("__templates__/"):
+            continue
+        if not _platform_match(record, platform):
             continue
         bucket = record.note_type or "untyped"
         groups.setdefault(bucket, []).append(record)
@@ -181,22 +649,18 @@ def _grouped_items(index: Index, paths: set[Path]) -> list[dict[str, Any]]:
     ]
 
 
-def _phase_target(record: NoteRecord) -> str | None:
-    """Extract the phase wikilink target from a note's frontmatter.
+# ---------------------------------------------------------------------------
+# Frontmatter helpers
+# ---------------------------------------------------------------------------
 
-    Accepts both scalar (``phase: "[[PHASE-001-MVP]]"``) and list
-    (``phase: ["[[PHASE-001-MVP]]"]``) forms. Returns the bare target
-    string, or ``None`` if no phase is set.
-    """
+
+def _phase_target(record: NoteRecord) -> str | None:
     raw = record.frontmatter.get("phase")
     if isinstance(raw, list):
         raw = raw[0] if raw else None
     if not isinstance(raw, str):
         return None
-    s = raw.strip()
-    if s.startswith("[[") and s.endswith("]]"):
-        s = s[2:-2].strip()
-    return s or None
+    return _strip_wikilink(raw) or None
 
 
 def _resolve_phase(index: Index, target: str) -> NoteRecord | None:
@@ -207,17 +671,9 @@ def _resolve_phase(index: Index, target: str) -> NoteRecord | None:
 
 
 def _resolve_this(index: Index, this: str) -> Path | None:
-    """Resolve the ``this`` query parameter to a note path.
-
-    Tries id/alias/filename/title first (cheap, common case). Falls back
-    to a path-style lookup (treating ``this`` as docs-root-relative) so
-    the JS client can hand over either form.
-    """
     by_id = index.by_id(this)
     if by_id is not None:
         return by_id
-    # Path-style fallback. Strip leading ``/docs/`` if present (the JS
-    # client may pass URLs verbatim).
     rel = this.lstrip("/")
     if rel.startswith("docs/"):
         rel = rel[len("docs/"):]
@@ -226,6 +682,24 @@ def _resolve_this(index: Index, this: str) -> Path | None:
         return None
     record = index.get(candidate)
     return candidate if record is not None else None
+
+
+def _first_link(raw: Any) -> str | None:
+    if isinstance(raw, list):
+        return _first_link(raw[0]) if raw else None
+    if isinstance(raw, str):
+        s = raw.strip()
+        return s or None
+    return None
+
+
+def _strip_wikilink(s: str) -> str:
+    s = s.strip()
+    if s.startswith("[[") and s.endswith("]]"):
+        s = s[2:-2]
+    if "|" in s:
+        s = s.split("|", 1)[0]
+    return s.strip()
 
 
 def _coerce_int(value: Any) -> int | None:
@@ -239,3 +713,95 @@ def _coerce_int(value: Any) -> int | None:
         except ValueError:
             return None
     return None
+
+
+def _note_updated(record: NoteRecord) -> _dt.date | None:
+    for key in ("updated", "created"):
+        value = record.frontmatter.get(key)
+        date = _coerce_date(value)
+        if date is not None:
+            return date
+    return None
+
+
+def _coerce_date(value: Any) -> _dt.date | None:
+    if isinstance(value, _dt.datetime):
+        return value.date()
+    if isinstance(value, _dt.date):
+        return value
+    if isinstance(value, str):
+        try:
+            return _dt.date.fromisoformat(value.strip()[:10])
+        except ValueError:
+            return None
+    return None
+
+
+def _normalise_platform(platform: str | None) -> str | None:
+    """Return ``None`` for "no filter" (missing / blank / "all"), else the lowercase value."""
+    if not platform:
+        return None
+    p = platform.strip().lower()
+    if not p or p == "all":
+        return None
+    return p
+
+
+def _record_platform(record: NoteRecord) -> str:
+    """Lowercased platform value, or ``""`` if absent."""
+    raw = record.frontmatter.get("platform")
+    if raw is None:
+        return ""
+    return str(raw).strip().lower()
+
+
+def available_platforms(index: Index) -> list[str]:
+    """Sorted list of distinct non-empty ``platform`` values in the corpus.
+
+    Templates are excluded. Empty strings (cross-platform / agnostic notes)
+    are excluded — they carry no signal that the project actually uses
+    platform tagging. The JS client hides the picker when this list is
+    empty.
+    """
+    seen: set[str] = set()
+    for path in index.paths():
+        record = index.get(path)
+        if record is None:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        p = _record_platform(record)
+        if p:
+            seen.add(p)
+    return sorted(seen)
+
+
+def _platform_match(record: NoteRecord, platform: str | None) -> bool:
+    """Filter predicate used by every nav mode and the right pane.
+
+    Semantics:
+
+    * ``platform`` is ``None`` / ``"all"`` → always include.
+    * Otherwise, include records whose own ``platform`` is the picked
+      value, ``shared`` (always cross-platform), or empty/missing
+      (platform-agnostic notes — phases, ADRs, etc.).
+    """
+    if platform is None:
+        return True
+    p = _record_platform(record)
+    return p in ("", "shared", platform)
+
+
+def _bucket_for_date(date: _dt.date | None, today: _dt.date) -> str:
+    if date is None:
+        return "earlier"
+    delta = (today - date).days
+    if delta <= 0:
+        return "today"
+    if delta == 1:
+        return "yesterday"
+    if delta <= 7:
+        return "week"
+    if delta <= 31:
+        return "month"
+    return "earlier"

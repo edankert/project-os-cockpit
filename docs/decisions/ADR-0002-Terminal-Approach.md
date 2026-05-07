@@ -7,7 +7,7 @@ status: accepted
 owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
-deciders: [user:edwin]
+deciders: ["user:edwin"]
 related: ["[[FEAT-0003]]"]
 ---
 

@@ -14,7 +14,7 @@ fixes: []
 effort: S
 due: ""
 depends: []
-blocks: [TASK-0002, TASK-0003]
+blocks: ["[[TASK-0002]]", "[[TASK-0003]]"]
 related: []
 tests: []
 ---

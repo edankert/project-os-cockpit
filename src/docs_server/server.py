@@ -89,6 +89,11 @@ class DocsServer:
         # the cockpit JS re-fetch (TASK-0011) attach later.
         self.index.subscribe_to(self.bus)
         self.watcher: Watcher = Watcher(self.docs_root, self.bus)
+        # Header home-link label = repo name (parent of docs/), so users
+        # always see which project they're browsing.
+        templates.set_project_name(
+            self.docs_root.parent.name or self.docs_root.name or "docs"
+        )
 
     def run(self) -> None:
         handler_cls = _make_handler(self.docs_root, self.index, self.bus)
@@ -153,7 +158,7 @@ def _make_handler(
                 return
 
             if path == "/api/cockpit/nav":
-                self._serve_cockpit_nav()
+                self._serve_cockpit_nav(parsed.query)
                 return
 
             if path == "/api/cockpit/context":
@@ -186,12 +191,16 @@ def _make_handler(
 
         def _serve_landing(self) -> None:
             counts = index.type_counts()
-            focus = _read_focus(docs_root)
-            html = templates.landing_page_html(
+            snapshot = _read_snapshot(docs_root)
+            readme_html = _render_readme_if_present(docs_root, index)
+            phase_counts = _feature_count_by_phase(index)
+            html = templates.home_page_html(
+                snapshot=snapshot,
                 type_counts=counts,
                 plural_for={v: k for k, v in INDEX_TYPE_PLURALS.items()},
                 docs_root_name=docs_root.name or "docs",
-                focus=focus,
+                feature_count_by_phase=phase_counts,
+                readme_html=readme_html,
                 resolver=index.resolve,
             )
             self._respond_html(HTTPStatus.OK, html)
@@ -215,15 +224,25 @@ def _make_handler(
 
         # ---- Cockpit JSON API ----
 
-        def _serve_cockpit_nav(self) -> None:
-            payload = cockpit.nav_payload(index)
+        def _serve_cockpit_nav(self, query_string: str) -> None:
+            params = urllib.parse.parse_qs(query_string)
+            mode = (params.get("mode") or [None])[0]
+            platform = (params.get("platform") or [None])[0]
+            pinned_raw = (params.get("pinned") or [None])[0] or ""
+            pinned = [p for p in pinned_raw.split(",") if p] if pinned_raw else []
+            payload = cockpit.nav_payload(
+                index, mode=mode, platform=platform, pinned=pinned
+            )
             self._respond_json(payload)
 
         def _serve_cockpit_context(self, query_string: str) -> None:
             params = urllib.parse.parse_qs(query_string)
             this_values = params.get("this", [])
             this_value = this_values[0] if this_values else None
-            payload = cockpit.context_payload(index, this_value)
+            platform = (params.get("platform") or [None])[0]
+            payload = cockpit.context_payload(
+                index, this_value, platform=platform
+            )
             self._respond_json(payload)
 
         # ---- SSE channel ----
@@ -468,21 +487,61 @@ def _is_under(candidate: Path, root: Path) -> bool:
         return False
 
 
-def _read_focus(docs_root: Path) -> dict[str, str] | None:
-    """Surface ``focus.*`` from SNAPSHOT.yaml on the landing page when present.
+def _render_readme_if_present(docs_root: Path, idx) -> str | None:
+    """Render the docs-root README.md body for the landing fallback.
 
-    Returns ``None`` if the snapshot isn't there or isn't readable — the
-    landing page just omits the focus block in that case.
+    Used only when SNAPSHOT.yaml is absent — the synthetic snapshot home
+    is the preferred landing.
     """
-    # SNAPSHOT.yaml lives at the project root, one level above docs/.
+    readme = docs_root / "README.md"
+    if not readme.is_file():
+        return None
+    try:
+        from . import renderer as _renderer
+
+        return _renderer.render_markdown_body(readme, resolver=idx.resolve)
+    except Exception:
+        return None
+
+
+def _feature_count_by_phase(idx) -> dict[str, int]:
+    """Count features per ``PHASE-NNN`` based on the index's frontmatter."""
+    import re as _re
+
+    counts: dict[str, int] = {}
+    for record in idx.notes_by_type("feature"):
+        raw = record.frontmatter.get("phase")
+        if isinstance(raw, list):
+            raw = raw[0] if raw else None
+        if not isinstance(raw, str):
+            continue
+        m = _re.match(r"PHASE-\d+", raw.replace("[[", "").replace("]]", "").strip().upper())
+        if m:
+            counts[m.group(0)] = counts.get(m.group(0), 0) + 1
+    return counts
+
+
+def _read_snapshot(docs_root: Path) -> dict | None:
+    """Parse SNAPSHOT.yaml from the project root, or ``None`` if absent / broken."""
     snapshot_path = docs_root.parent / "SNAPSHOT.yaml"
     if not snapshot_path.is_file():
         return None
     try:
         import yaml
 
-        data = yaml.safe_load(snapshot_path.read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load(snapshot_path.read_text(encoding="utf-8"))
     except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _read_focus(docs_root: Path) -> dict[str, str] | None:
+    """Subset of :func:`_read_snapshot` returning just the ``focus.*`` block.
+
+    Used by the legacy fallback landing render when no snapshot is available.
+    """
+    data = _read_snapshot(docs_root)
+    if data is None:
         return None
     focus = data.get("focus") or {}
     if not isinstance(focus, dict):

@@ -77,6 +77,13 @@ After completing a task/issue/feature:
    - After implementing a feature: ensure Tier 1 acceptance tests exist for the user-visible behavior.
    - After fixing an issue: create a Tier 2 regression test that reproduces the original bug scenario.
    - After any code change: uncheck acceptance tests whose scope overlaps with the changed code.
+8. **Release docs-server to project-os** (this repo only — see `../../docs/requirements/REQ-0017-Release-To-Project-Os.md`):
+   - If the close-out CHG touches `src/docs_server/` or `pyproject.toml`, the agent MUST run
+     `tools/scripts/release-to-project-os.sh` to refresh the project-os copy at
+     `~/Dev/repos/project-os/tools/docs-server/`, then commit the result inside project-os.
+   - The script refuses to run on a dirty canonical or destination tree, so commit the canonical-side change first.
+   - If the change is documentation-only, schema-only, or any other non-source-touching CHG, skip — sync isn't needed.
+   - Forgetting this step is the failure mode the rule prevents: the canonical source moves forward, the project-os copy stays stale, downstream consumers silently ship old behaviour.
 
 ## Release (must happen before shipping)
 When preparing a release:

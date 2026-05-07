@@ -24,6 +24,7 @@ MARKDOWN_EXTENSIONS_BASE: list[str] = [
     "toc",
     "pymdownx.superfences",
     "pymdownx.highlight",
+    "pymdownx.tasklist",
 ]
 
 MARKDOWN_EXTENSION_CONFIGS: dict[str, dict[str, Any]] = {
@@ -33,7 +34,25 @@ MARKDOWN_EXTENSION_CONFIGS: dict[str, dict[str, Any]] = {
         "noclasses": False,
         "css_class": "codehilite",
     },
+    "pymdownx.tasklist": {
+        # Obsidian-style: render `- [x]` / `- [ ]` as visual checkboxes,
+        # read-only (we're a renderer, not an editor — the source is the
+        # truth, the page is the view).
+        "clickable_checkbox": False,
+        "custom_checkbox": True,
+    },
 }
+
+
+def render_markdown_body(source_path: Path, *, resolver: Resolver | None = None) -> str:
+    """Render just the body of a ``.md`` file to HTML, no page chrome.
+
+    Used by the landing-page fallback to embed a README inside the cockpit
+    shell without re-running the full ``page()`` wrapper.
+    """
+    raw = source_path.read_text(encoding="utf-8")
+    post = frontmatter.loads(raw)
+    return _markdown_to_html(post.content, resolver=resolver)
 
 
 def render_markdown_file(
@@ -57,6 +76,14 @@ def render_markdown_file(
     title = _derive_title(metadata, body_md, source_path)
     body_html = _markdown_to_html(body_md, resolver=resolver)
 
+    note_id = metadata.get("id") if isinstance(metadata.get("id"), str) else None
+    cockpit_active = {
+        "id": note_id,
+        "path": rel_path,
+        "url": f"/docs/{rel_path}",
+        "title": title,
+    }
+
     return templates.page(
         title=title,
         body_html=body_html,
@@ -64,6 +91,7 @@ def render_markdown_file(
         metadata=metadata,
         resolver=resolver,
         reload_source=rel_path,
+        cockpit_active=cockpit_active,
     )
 
 

@@ -11,7 +11,7 @@ updated: 2026-05-07
 source: []
 goal: "Run an AI coding assistant alongside the docs in a single browser window — terminal panel embedded next to the rendered note, locked to the local machine."
 release: ""
-related: [FEAT-0001, FEAT-0002, RISK-0001]
+related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]"]
 ---
 
 # Embedded local-only terminal

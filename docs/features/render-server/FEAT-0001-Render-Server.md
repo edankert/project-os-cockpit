@@ -11,7 +11,7 @@ updated: 2026-05-07
 source: []
 goal: "Render any .md note from a project-os repo as a linked HTML page on request — no build step — with frontmatter as metadata and [[wikilinks]] resolved across the whole tree."
 release: ""
-related: [FEAT-0002, FEAT-0004]
+related: ["[[FEAT-0002]]", "[[FEAT-0004]]"]
 ---
 
 # Markdown render server

@@ -13,8 +13,8 @@ implements: ["[[FEAT-0001]]", "[[REQ-0001]]", "[[REQ-0003]]", "[[REQ-0006]]", "[
 fixes: []
 effort: M
 due: ""
-depends: [TASK-0001]
-blocks: [TASK-0003, TASK-0004]
+depends: ["[[TASK-0001]]"]
+blocks: ["[[TASK-0003]]", "[[TASK-0004]]"]
 related: []
 tests: []
 ---

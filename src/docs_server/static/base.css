@@ -19,15 +19,14 @@
   --accent-link-hover: hsl(212 55% 35%);
   --accent-focus:  hsl(212 60% 50%);
 
-  --status-active:   hsl(140 32% 38%);
-  --status-doing:    hsl(36 50% 40%);
-  --status-done:     hsl(140 22% 42%);
-  --status-verified: hsl(180 32% 36%);
-  --status-blocked:  hsl(5 48% 46%);
-  --status-backlog:  hsl(220 14% 48%);
-  --status-triage:   hsl(285 26% 48%);
-  --status-closed:   hsl(0 0% 50%);
-  --status-default:  hsl(0 0% 45%);
+  /* Status palette — 6 buckets, all ≤60% saturation per REQ-0012. */
+  --status-active:    hsl(140 32% 38%);   /* active / approved / accepted / ready / doing / in-progress / in-review / next */
+  --status-pending:   hsl(220 14% 48%);   /* planned / backlog / todo / open / pending / draft / proposed / triage */
+  --status-done:      hsl(160 28% 38%);   /* done positive: done / merged / fixed / fulfilled / met / complete / verified / passing / published / closed */
+  --status-archived:  hsl(0 0% 48%);      /* done negative: obsolete / retired / cancelled / superseded / wont-fix / reverted */
+  --status-blocked:   hsl(5 48% 46%);     /* blocked / failing / reopened */
+  --status-reference: hsl(180 24% 40%);   /* reference / deferred */
+  --status-default:   hsl(0 0% 45%);
 
   --error-fg: hsl(5 48% 38%);
   --error-bg: hsl(5 38% 96%);
@@ -60,15 +59,13 @@
   --accent-link-hover: hsl(212 55% 72%);
   --accent-focus:  hsl(212 55% 60%);
 
-  --status-active:   hsl(140 32% 60%);
-  --status-doing:    hsl(36 48% 60%);
-  --status-done:     hsl(140 22% 58%);
-  --status-verified: hsl(180 30% 58%);
-  --status-blocked:  hsl(5 50% 65%);
-  --status-backlog:  hsl(220 14% 65%);
-  --status-triage:   hsl(285 26% 66%);
-  --status-closed:   hsl(0 0% 55%);
-  --status-default:  hsl(0 0% 60%);
+  --status-active:    hsl(140 32% 60%);
+  --status-pending:   hsl(220 14% 65%);
+  --status-done:      hsl(160 28% 60%);
+  --status-archived:  hsl(0 0% 58%);
+  --status-blocked:   hsl(5 50% 65%);
+  --status-reference: hsl(180 24% 60%);
+  --status-default:   hsl(0 0% 60%);
 
   --error-fg: hsl(5 50% 70%);
   --error-bg: hsl(5 30% 18%);
@@ -95,6 +92,12 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
+html { height: 100%; }
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
 a {
   color: var(--accent-link);
@@ -111,18 +114,46 @@ a:focus-visible {
 
 .page-header {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 20px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
+.page-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  min-height: 30px;
+}
+.page-header-row-2 {
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.page-header-row-2.is-empty {
+  display: none;   /* synthetic landing or non-cockpit pages */
+}
 
-.page-header .brand {
+.page-header .home-link {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--text-muted);
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: color 80ms ease, border-color 80ms ease, background-color 80ms ease;
+}
+.page-header .home-link:hover {
+  color: var(--accent-link);
+  border-color: var(--border);
+  background: var(--surface-2);
 }
 
 .page-header .breadcrumb {
@@ -137,6 +168,27 @@ a:focus-visible {
 .page-header .breadcrumb .sep {
   margin: 0 6px;
   color: var(--text-faint);
+}
+
+.page-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.page-footer .brand-mark {
+  text-transform: lowercase;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.page-footer .version-mark {
+  font-family: var(--font-mono);
 }
 
 .theme-toggle {
@@ -233,32 +285,49 @@ a:focus-visible {
   color: var(--status-default);
   text-transform: lowercase;
 }
-.status-chip[data-status="active"]   { color: var(--status-active); }
-.status-chip[data-status="doing"]    { color: var(--status-doing); }
-.status-chip[data-status="next"]     { color: var(--status-doing); }
-.status-chip[data-status="in-progress"] { color: var(--status-doing); }
-.status-chip[data-status="done"]     { color: var(--status-done); }
-.status-chip[data-status="verified"] { color: var(--status-verified); }
-.status-chip[data-status="passing"]  { color: var(--status-verified); }
-.status-chip[data-status="approved"] { color: var(--status-active); }
-.status-chip[data-status="accepted"] { color: var(--status-active); }
-.status-chip[data-status="merged"]   { color: var(--status-done); }
-.status-chip[data-status="published"] { color: var(--status-done); }
-.status-chip[data-status="fixed"]    { color: var(--status-done); }
-.status-chip[data-status="blocked"]  { color: var(--status-blocked); }
-.status-chip[data-status="reopened"] { color: var(--status-blocked); }
-.status-chip[data-status="failing"]  { color: var(--status-blocked); }
-.status-chip[data-status="backlog"]  { color: var(--status-backlog); }
-.status-chip[data-status="planned"]  { color: var(--status-backlog); }
-.status-chip[data-status="proposed"] { color: var(--status-backlog); }
-.status-chip[data-status="draft"]    { color: var(--status-backlog); }
-.status-chip[data-status="todo"]     { color: var(--status-backlog); }
-.status-chip[data-status="open"]     { color: var(--status-backlog); }
-.status-chip[data-status="pending"]  { color: var(--status-backlog); }
-.status-chip[data-status="triage"]   { color: var(--status-triage); }
-.status-chip[data-status="closed"]   { color: var(--status-closed); }
-.status-chip[data-status="obsolete"] { color: var(--status-closed); }
-.status-chip[data-status="reference"] { color: var(--status-triage); }
+/* Active bucket */
+.status-chip[data-status="active"]      { color: var(--status-active); }
+.status-chip[data-status="approved"]    { color: var(--status-active); }
+.status-chip[data-status="accepted"]    { color: var(--status-active); }
+.status-chip[data-status="ready"]       { color: var(--status-active); }
+.status-chip[data-status="doing"]       { color: var(--status-active); }
+.status-chip[data-status="in-progress"] { color: var(--status-active); }
+.status-chip[data-status="in-review"]   { color: var(--status-active); }
+.status-chip[data-status="next"]        { color: var(--status-active); }
+/* Pending bucket */
+.status-chip[data-status="planned"]     { color: var(--status-pending); }
+.status-chip[data-status="backlog"]     { color: var(--status-pending); }
+.status-chip[data-status="todo"]        { color: var(--status-pending); }
+.status-chip[data-status="open"]        { color: var(--status-pending); }
+.status-chip[data-status="pending"]     { color: var(--status-pending); }
+.status-chip[data-status="draft"]       { color: var(--status-pending); }
+.status-chip[data-status="proposed"]    { color: var(--status-pending); }
+.status-chip[data-status="triage"]      { color: var(--status-pending); }
+/* Done — positive */
+.status-chip[data-status="done"]        { color: var(--status-done); }
+.status-chip[data-status="merged"]      { color: var(--status-done); }
+.status-chip[data-status="fixed"]       { color: var(--status-done); }
+.status-chip[data-status="fulfilled"]   { color: var(--status-done); }
+.status-chip[data-status="met"]         { color: var(--status-done); }
+.status-chip[data-status="complete"]    { color: var(--status-done); }
+.status-chip[data-status="verified"]    { color: var(--status-done); }
+.status-chip[data-status="passing"]     { color: var(--status-done); }
+.status-chip[data-status="published"]   { color: var(--status-done); }
+.status-chip[data-status="closed"]      { color: var(--status-done); }
+/* Done — negative (terminal without success) */
+.status-chip[data-status="obsolete"]    { color: var(--status-archived); }
+.status-chip[data-status="retired"]     { color: var(--status-archived); }
+.status-chip[data-status="cancelled"]   { color: var(--status-archived); }
+.status-chip[data-status="superseded"]  { color: var(--status-archived); }
+.status-chip[data-status="wont-fix"]    { color: var(--status-archived); }
+.status-chip[data-status="reverted"]    { color: var(--status-archived); }
+/* Blocked */
+.status-chip[data-status="blocked"]     { color: var(--status-blocked); }
+.status-chip[data-status="failing"]     { color: var(--status-blocked); }
+.status-chip[data-status="reopened"]    { color: var(--status-blocked); }
+/* Reference */
+.status-chip[data-status="reference"]   { color: var(--status-reference); }
+.status-chip[data-status="deferred"]    { color: var(--status-reference); }
 
 /* ----- Article ----- */
 
@@ -476,4 +545,71 @@ a:focus-visible {
 .dir-listing .dir::before {
   content: "▸ ";
   color: var(--text-faint);
+}
+
+/* ----- Task-list checkboxes (Obsidian-style, read-only) ----- */
+/* Rendered by pymdownx.tasklist with custom_checkbox=true:
+ *   <li class="task-list-item">
+ *     <label class="task-list-control">
+ *       <input type="checkbox" disabled [checked]>
+ *       <span class="task-list-indicator"></span>
+ *     </label>
+ *     item text
+ *   </li>
+ * We hide the actual <input> and re-paint the indicator span with the
+ * muted REQ-0012 palette. Read-only — source is truth, page is view.
+ */
+.content ul.task-list {
+  list-style: none;
+  padding-left: 1.2em;
+}
+.content ul.task-list ul {
+  list-style: disc;       /* nested non-task lists keep bullets */
+}
+.content .task-list-item {
+  position: relative;
+  padding-left: 0;
+}
+.content .task-list-control {
+  display: inline-flex;
+  align-items: center;
+  margin-left: -1.4em;
+  margin-right: 6px;
+  cursor: default;
+}
+.content .task-list-control input[type="checkbox"] {
+  display: none;
+}
+.content .task-list-indicator {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  position: relative;
+  vertical-align: -2px;
+}
+.content .task-list-control input[type="checkbox"]:checked
+  ~ .task-list-indicator {
+  border-color: var(--status-done);
+  background: var(--status-done);
+}
+.content .task-list-control input[type="checkbox"]:checked
+  ~ .task-list-indicator::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 4px;
+  height: 9px;
+  border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+/* Done items get the muted text + strikethrough that Obsidian shows. */
+.content .task-list-item:has(input[type="checkbox"]:checked) {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
 }

@@ -12,7 +12,7 @@ source:
   - "../your-applications.com/tools/docs-server/"
 goal: "Validate the cross-repo invocation pattern by deploying docs-server in your-applications.com/tools/docs-server/ and using it to browse + author the manual content there."
 release: ""
-related: [FEAT-0001, FEAT-0002, FEAT-0003, FEAT-0004]
+related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0003]]", "[[FEAT-0004]]"]
 ---
 
 # Downstream pilot deployment

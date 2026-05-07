@@ -11,7 +11,7 @@ updated: 2026-05-08
 source: []
 goal: "Render every note as a 3-pane cockpit page: features-by-phase navigator on the left, the rendered note in the centre, and the note's outbound + inbound-only relationships on the right."
 release: ""
-related: [FEAT-0001, FEAT-0002, FEAT-0004, REQ-0012, REQ-0013, ADR-0004]
+related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0004]]", "[[REQ-0012]]", "[[REQ-0013]]", "[[ADR-0004]]"]
 ---
 
 # 3-pane cockpit layout
