@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0002
 aliases: ["FEAT-0002"]
 title: "Live reload via Server-Sent Events"
-status: backlog
+status: done
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
@@ -40,3 +40,7 @@ The render server watches the served `docs/` directory and pushes file-change no
 
 ## Notes
 SSE is the right choice over WebSocket for this scope: simpler, browser auto-reconnects, no library dependency. WebSocket comes back into play with the terminal feature (FEAT-0003) — at that point we may share the same channel for both file events and terminal IO, or keep them separate.
+
+**Status: done (2026-05-08)** — landed across TASK-0005 (file watcher + EventBus) and TASK-0006 (SSE channel + client soft-reload). All four acceptance criteria above are met. See [[CHG-20260507-File-Watcher]], [[CHG-20260508-SSE-Live-Reload]] for the landing trail.
+
+The shared `EventBus` and the SSE infrastructure are also the foundation for TASK-0011 (cockpit JS-side re-fetch on file events), which will extend the event payload with a typed `kind` to distinguish frontmatter vs body vs base changes.

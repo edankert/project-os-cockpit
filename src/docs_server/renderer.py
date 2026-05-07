@@ -63,6 +63,7 @@ def render_markdown_file(
         rel_path=rel_path,
         metadata=metadata,
         resolver=resolver,
+        reload_source=rel_path,
     )
 
 

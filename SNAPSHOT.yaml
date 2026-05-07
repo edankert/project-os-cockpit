@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T00:00Z"
+updated: "2026-05-08T01:00Z"
 
 template:
   replace_me: false
@@ -40,18 +40,13 @@ counters:
   WF: 0
 
 focus:
-  task: "TASK-0006"
-  feature: "FEAT-0002"
-  phase: "[[PHASE-001-MVP]]"
+  task: "TASK-0007"
+  feature: "FEAT-0006"
+  phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
 
 items:
   features:
-    FEAT-0002:
-      title: "Live reload via Server-Sent Events"
-      status: backlog
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/live-reload/FEAT-0002-Live-Reload.md"
     FEAT-0003:
       title: "Embedded local-only terminal (Claude Code / Codex)"
       status: backlog
@@ -74,15 +69,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0006:
-      title: "SSE channel + client-side soft reload script"
-      status: next
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/live-reload/plan/tasks/TASK-0006-SSE-And-Reload.md"
-      parent: "FEAT-0002"
     TASK-0007:
       title: "Note index + backlink graph (shared infrastructure)"
-      status: backlog
+      status: next
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0007-Note-Index-And-Backlinks.md"
       parent: "FEAT-0006"
@@ -224,6 +213,12 @@ items:
       path: "docs/changes/CHG-20260507-File-Watcher.md"
       features: ["FEAT-0002"]
       source_task: "TASK-0005"
+    CHG-20260508-SSE-Live-Reload:
+      title: "SSE channel + client soft-reload — FEAT-0002 done"
+      status: merged
+      path: "docs/changes/CHG-20260508-SSE-Live-Reload.md"
+      features: ["FEAT-0002"]
+      source_task: "TASK-0006"
   releases: {}
 
   decisions:
@@ -243,9 +238,9 @@ items:
 metrics:
   counts:
     features_total: 6
-    features_done: 1
+    features_done: 2
     tasks_total: 11
-    tasks_done: 5
+    tasks_done: 6
     tests_total: 0
     tests_passing: 0
     tests_failing: 0

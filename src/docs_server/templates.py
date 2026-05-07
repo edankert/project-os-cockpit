@@ -81,11 +81,30 @@ def page(
     rel_path: str | None = None,
     metadata: dict[str, Any] | None = None,
     resolver: Resolver | None = None,
+    reload_source: str | None = None,
 ) -> str:
-    """Assemble a full HTML document for a rendered note or status page."""
+    """Assemble a full HTML document for a rendered note or status page.
+
+    ``reload_source`` controls the live-reload behaviour:
+    - a relative ``.md`` path (e.g. ``"features/render-server/FEAT-...md"``)
+      means "reload only when this file changes";
+    - the literal ``"*"`` means "reload on any file event" (used by the
+      landing, index, and directory-listing pages whose content depends on
+      the whole tree);
+    - ``None`` (default) suppresses live reload entirely.
+    """
     breadcrumb = _breadcrumb_html(rel_path) if rel_path else ""
     meta_html = _metadata_strip_html(metadata, resolver) if metadata else ""
     safe_title = escape(title)
+
+    reload_meta = ""
+    reload_script = ""
+    if reload_source:
+        reload_meta = (
+            '<meta name="docs-server:source" '
+            f'content="{escape(reload_source)}">\n'
+        )
+        reload_script = '<script src="/_static/sse-reload.js" defer></script>\n'
 
     return (
         "<!doctype html>\n"
@@ -94,8 +113,10 @@ def page(
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{safe_title} — docs-server</title>\n"
+        f"{reload_meta}"
         '<link rel="stylesheet" href="/_static/base.css">\n'
         f"<script>{THEME_BOOTSTRAP}</script>\n"
+        f"{reload_script}"
         "</head>\n"
         '<body>\n'
         '<header class="page-header">\n'
@@ -272,7 +293,12 @@ def index_page_html(
             f'<p class="meta">No notes of type '
             f'<code>{escape(type_singular)}</code> found.</p>'
         )
-        return page(title=f"index: {type_label}", body_html=body, rel_path=None)
+        return page(
+            title=f"index: {type_label}",
+            body_html=body,
+            rel_path=None,
+            reload_source="*",
+        )
 
     # Group by status.
     groups: dict[str, list] = {}
@@ -317,7 +343,12 @@ def index_page_html(
         f'<code>{escape(docs_root_name)}/</code>, grouped by status.</p>\n'
         + "\n".join(sections)
     )
-    return page(title=f"index: {type_label}", body_html=body_html, rel_path=None)
+    return page(
+        title=f"index: {type_label}",
+        body_html=body_html,
+        rel_path=None,
+        reload_source="*",
+    )
 
 
 def _index_row_html(note) -> str:
@@ -383,7 +414,12 @@ def landing_page_html(
         f'<h2>Indexes</h2>\n'
         f'    {indices_html}\n'
     )
-    return page(title=docs_root_name, body_html=body, rel_path=None)
+    return page(
+        title=docs_root_name,
+        body_html=body,
+        rel_path=None,
+        reload_source="*",
+    )
 
 
 def directory_listing_html(entries: Iterable[tuple[str, str, bool]]) -> str:

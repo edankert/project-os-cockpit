@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+import queue
 import urllib.parse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -89,7 +90,7 @@ class DocsServer:
         self.watcher: Watcher = Watcher(self.docs_root, self.bus)
 
     def run(self) -> None:
-        handler_cls = _make_handler(self.docs_root, self.index)
+        handler_cls = _make_handler(self.docs_root, self.index, self.bus)
         self.watcher.start()
         try:
             with _NoDNSThreadingHTTPServer(
@@ -114,11 +115,16 @@ class DocsServer:
             self.watcher.stop()
 
 
-def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]:
-    """Build a request handler class with ``docs_root`` and ``index`` baked in."""
+def _make_handler(
+    docs_root: Path, index: Index, bus: EventBus
+) -> type[BaseHTTPRequestHandler]:
+    """Build a request handler class with the per-server collaborators baked in."""
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "docs-server/0.1"
+        # HTTP/1.1 lets the SSE channel stay open with chunked semantics; for
+        # other endpoints we still send Content-Length so keep-alive works.
+        protocol_version = "HTTP/1.1"
 
         # ---- routing ----
 
@@ -139,6 +145,10 @@ def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]
 
             if path == "/":
                 self._serve_landing()
+                return
+
+            if path == "/_events":
+                self._serve_sse()
                 return
 
             if path.startswith("/_static/"):
@@ -193,6 +203,49 @@ def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]
                 docs_root_name=docs_root.name or "docs",
             )
             self._respond_html(HTTPStatus.OK, html)
+
+        # ---- SSE channel ----
+
+        def _serve_sse(self) -> None:
+            """Long-lived ``text/event-stream`` for live-reload events.
+
+            Each connection gets its own ``queue.Queue`` and a subscriber on
+            the shared bus; events fan out to all queues, the handler thread
+            drains its queue into the response. Heartbeats every 15 s keep
+            proxies/loadbalancers from idling the connection.
+            """
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-transform")
+            self.send_header("Connection", "keep-alive")
+            self.send_header("X-Accel-Buffering", "no")  # nginx, just in case
+            self.end_headers()
+
+            q: queue.Queue = queue.Queue()
+            unsubscribe = bus.subscribe(lambda ev: q.put(ev))
+
+            def _send(chunk: bytes) -> None:
+                self.wfile.write(chunk)
+                self.wfile.flush()
+
+            try:
+                _send(b": connected\n\n")
+                while True:
+                    try:
+                        ev = q.get(timeout=15.0)
+                    except queue.Empty:
+                        _send(b": heartbeat\n\n")
+                        continue
+                    payload = (
+                        f"event: file-changed\n"
+                        f"data: {ev.rel_path}\n\n"
+                    ).encode("utf-8")
+                    _send(payload)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                # Client disconnected — normal.
+                pass
+            finally:
+                unsubscribe()
 
         # ---- static assets ----
 
@@ -303,6 +356,7 @@ def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]
                     body_html=body_html,
                     rel_path=rel_path,
                     metadata=None,
+                    reload_source="*",
                 ),
             )
 
