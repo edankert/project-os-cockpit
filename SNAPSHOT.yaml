@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T01:30Z"
+updated: "2026-05-08T02:30Z"
 
 template:
   replace_me: false
@@ -28,7 +28,7 @@ docs_system:
 counters:
   ADR: 3
   CHG:
-    last_date: 20260507
+    last_date: 20260508
   FEAT: 6
   ISS: 0
   PHASE: 4
@@ -36,11 +36,11 @@ counters:
   RISK: 3
   REL: 0
   TASK: 11
-  TST: 0
+  TST: 1
   WF: 0
 
 focus:
-  task: "TASK-0007"
+  task: "TASK-0008"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -69,15 +69,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0007:
-      title: "Note index + backlink graph (shared infrastructure)"
-      status: next
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0007-Note-Index-And-Backlinks.md"
-      parent: "FEAT-0006"
     TASK-0008:
       title: ".base parser + DSL evaluator"
-      status: backlog
+      status: next
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0008-Base-Parser-And-Evaluator.md"
       parent: "FEAT-0006"
@@ -184,7 +178,12 @@ items:
       status: open
       path: "docs/risks/RISK-0003-Python-Runtime-Floor.md"
 
-  tests: {}
+  tests:
+    TST-0001:
+      title: "Index — lookup tables, link graph, invalidation"
+      status: passing
+      path: "docs/tests/TST-0001-Index-Lookup-And-Backlinks.md"
+      validates: ["REQ-0002", "REQ-0008"]
   workflows: {}
   changes:
     CHG-20260507-Bootstrap-Python-Project:
@@ -223,6 +222,12 @@ items:
       path: "docs/changes/CHG-20260508-SSE-Live-Reload.md"
       features: ["FEAT-0002"]
       source_task: "TASK-0006"
+    CHG-20260508-Backlink-Graph:
+      title: "Backlink graph + first automated tests (TST-0001)"
+      status: merged
+      path: "docs/changes/CHG-20260508-Backlink-Graph.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0007"
   releases: {}
 
   decisions:
@@ -244,9 +249,9 @@ metrics:
     features_total: 6
     features_done: 2
     tasks_total: 11
-    tasks_done: 6
-    tests_total: 0
-    tests_passing: 0
+    tasks_done: 7
+    tests_total: 1
+    tests_passing: 1
     tests_failing: 0
     issues_open: 0
     issues_triage: 0

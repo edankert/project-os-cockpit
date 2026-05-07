@@ -1,12 +1,16 @@
 """Note index — the in-memory data layer the renderer and cockpit query.
 
-For TASK-0003 (wikilink resolver) we need:
-- target → URL lookup, with the resolution priority spelled out in REQ-0002.
+Provides three things:
 
-This module is also the home of the broader index that TASK-0007 (cockpit
-infra) will extend with frontmatter records and a backlink graph. The
-``NoteRecord`` dataclass is already shaped for that — TASK-0007 just adds
-graph methods alongside the existing lookup tables.
+1. **Lookup tables** for wikilink resolution (``id`` / aliases / filename
+   / title), per the REQ-0002 priority order. Used by the markdown
+   ``WikilinkExtension`` and the metadata-strip resolver.
+2. **Type / status views** for the auto-index pages (``/index/<plural>``).
+3. **Backlink graph** — outbound and inbound link sets keyed by note path,
+   built by scanning each note's frontmatter values *and* body for
+   ``[[Target]]`` patterns and resolving them through the same priority
+   tables. Consumed by FEAT-0004's backlinks panel and FEAT-0006's
+   CONTEXT pane (``file.hasLink(this.file)``).
 """
 
 from __future__ import annotations
@@ -14,11 +18,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 import frontmatter
 
 from .events import is_under_ci, relative_to_ci
+from .wikilinks import WIKILINK_RE
 
 log = logging.getLogger("docs_server.index")
 
@@ -40,6 +45,7 @@ class NoteRecord:
     path: Path
     rel_path: str  # POSIX-style, relative to docs_root
     frontmatter: dict[str, Any] = field(default_factory=dict)
+    body: str = ""
     title: str | None = None
     note_id: str | None = None
     aliases: tuple[str, ...] = ()
@@ -68,21 +74,36 @@ class Index:
         self._by_alias: dict[str, Path] = {}
         self._by_filename: dict[str, Path] = {}
         self._by_title: dict[str, Path] = {}
+        # Backlink graph — populated lazily after the lookup tables exist
+        # because outbound resolution depends on every note being known
+        # already. See ``_rebuild_links`` for the second pass.
+        self._outbound: dict[Path, frozenset[Path]] = {}
+        self._inbound: dict[Path, set[Path]] = {}
 
     # ---- construction ----
 
     @classmethod
     def build(cls, docs_root: Path) -> "Index":
         idx = cls(docs_root)
+        # First pass: populate records + lookup tables. Outbound link
+        # resolution requires every potential target to already be in the
+        # tables, so we don't compute links until after the walk.
         for md_path in idx._walk_markdown():
-            idx._index_path(md_path)
+            idx._index_path(md_path, _build_links=False)
+        # Second pass: now that every note is known, walk each note's
+        # frontmatter + body and compute its outbound link set.
+        for md_path in list(idx._records):
+            idx._rebuild_links(md_path)
         log.info(
-            "index: %d notes (ids:%d aliases:%d filenames:%d titles:%d)",
+            "index: %d notes (ids:%d aliases:%d filenames:%d titles:%d, "
+            "outbound edges:%d, inbound targets:%d)",
             len(idx._records),
             len(idx._by_id),
             len(idx._by_alias),
             len(idx._by_filename),
             len(idx._by_title),
+            sum(len(s) for s in idx._outbound.values()),
+            len(idx._inbound),
         )
         return idx
 
@@ -100,7 +121,14 @@ class Index:
         parts = rel.split("/")[:-1]
         return any(p in EXCLUDED_DIR_NAMES or p.startswith(".") for p in parts)
 
-    def _index_path(self, md_path: Path) -> None:
+    def _index_path(self, md_path: Path, *, _build_links: bool = True) -> None:
+        """Read + parse a single note and populate the lookup tables.
+
+        When ``_build_links`` is true (the default — used by ``invalidate``)
+        the outbound link graph is rebuilt for this path immediately. The
+        ``build`` classmethod sets it false during the initial walk so
+        wikilink resolution can wait until every note is known.
+        """
         try:
             text = md_path.read_text(encoding="utf-8")
         except OSError as exc:
@@ -129,6 +157,7 @@ class Index:
             path=md_path,
             rel_path=rel_path,
             frontmatter=fm,
+            body=post.content,
             title=title,
             note_id=note_id,
             aliases=aliases,
@@ -145,17 +174,41 @@ class Index:
         if title:
             self._by_title.setdefault(title, md_path)
 
+        if _build_links:
+            self._rebuild_links(md_path)
+
     # ---- lookups ----
+
+    def paths(self) -> list[Path]:
+        """All indexed note paths (sorted by POSIX rel_path for determinism)."""
+        return sorted(
+            self._records.keys(),
+            key=lambda p: self._records[p].rel_path,
+        )
+
+    def by_id(self, alias_or_id: str) -> Path | None:
+        """Resolve an ``id`` / alias / filename / title to a path.
+
+        Same priority order as :meth:`resolve`, but returns the path
+        directly rather than a URL.
+        """
+        return self._lookup_path(alias_or_id)
 
     def resolve(self, target: str) -> str | None:
         """Return the docs URL for ``target`` or ``None`` if unresolvable."""
-        target = target.strip()
+        path = self._lookup_path(target)
+        if path is None:
+            return None
+        return self.url_for(path)
+
+    def _lookup_path(self, target: str) -> Path | None:
+        target = (target or "").strip()
         if not target:
             return None
         for table in (self._by_id, self._by_alias, self._by_filename, self._by_title):
             path = table.get(target)
             if path is not None:
-                return self.url_for(path)
+                return path
         return None
 
     def get(self, path: Path) -> NoteRecord | None:
@@ -166,6 +219,14 @@ class Index:
         if rel is None:
             raise ValueError(f"path not under docs root: {path}")
         return f"/docs/{rel}"
+
+    def links_from(self, path: Path) -> frozenset[Path]:
+        """Outbound: paths the note at ``path`` links to (frontmatter + body)."""
+        return self._outbound.get(path.resolve(), frozenset())
+
+    def links_to(self, path: Path) -> frozenset[Path]:
+        """Inbound: paths whose body / frontmatter link to ``path``."""
+        return frozenset(self._inbound.get(path.resolve(), set()))
 
     def __len__(self) -> int:
         return len(self._records)
@@ -201,8 +262,12 @@ class Index:
 
     # ---- mutation (for the watcher in TASK-0005) ----
 
-    def update_path(self, md_path: Path) -> None:
-        """Re-index a single ``.md`` path; remove if it no longer exists."""
+    def invalidate(self, md_path: Path) -> None:
+        """Re-parse a single ``.md`` path and patch the lookup tables + graph.
+
+        Removes the path entirely if it no longer exists or is now excluded.
+        Called by the watcher subscriber on every ``.md`` file event.
+        """
         md_path = md_path.resolve()
         # Records are keyed by Path, so case-mismatch on macOS would let a
         # stale entry linger. Find any existing record under the same path
@@ -220,6 +285,11 @@ class Index:
         ):
             self._index_path(md_path)
 
+    # Backwards-compatible alias — original name was ``update_path`` before
+    # the cockpit task spec adopted ``invalidate``. Kept for any external
+    # callers (currently none in-tree).
+    update_path = invalidate
+
     def subscribe_to(self, bus) -> None:
         """Register an invalidation callback on ``bus``.
 
@@ -233,11 +303,59 @@ class Index:
             if event.abs_path.suffix.lower() != ".md":
                 return
             try:
-                self.update_path(event.abs_path)
+                self.invalidate(event.abs_path)
             except Exception:
-                log.exception("index: update_path failed for %s", event.abs_path)
+                log.exception("index: invalidate failed for %s", event.abs_path)
 
         bus.subscribe(_on_event)
+
+    # ---- backlink graph internals ----
+
+    def _rebuild_links(self, md_path: Path) -> None:
+        """(Re)compute the outbound set for ``md_path`` and patch inbound mirrors.
+
+        Unresolvable wikilinks are logged at DEBUG (most ``[[Foo]]``-style
+        unresolved hits are example syntax in docs/templates/SCHEMAS, not
+        real broken refs). Each unique unresolved target is logged at most
+        once per rebuild for the same file.
+        """
+        record = self._records.get(md_path)
+        if record is None:
+            return
+
+        raw_targets: list[str] = list(_wikilinks_in_frontmatter(record.frontmatter))
+        raw_targets.extend(_wikilinks_in_body(record.body))
+
+        new_targets: set[Path] = set()
+        unresolved_logged: set[str] = set()
+        for raw in raw_targets:
+            target = (raw or "").strip()
+            if not target:
+                continue
+            path = self._lookup_path(target)
+            if path is None:
+                if target not in unresolved_logged:
+                    unresolved_logged.add(target)
+                    log.debug(
+                        "index: unresolved wikilink in %s: [[%s]]",
+                        record.rel_path,
+                        target,
+                    )
+                continue
+            if path == record.path:
+                continue  # ignore self-links
+            new_targets.add(path)
+
+        old_targets = self._outbound.get(md_path, frozenset())
+        for tgt in old_targets - new_targets:
+            inbound = self._inbound.get(tgt)
+            if inbound is not None:
+                inbound.discard(md_path)
+                if not inbound:
+                    self._inbound.pop(tgt, None)
+        for tgt in new_targets - old_targets:
+            self._inbound.setdefault(tgt, set()).add(md_path)
+        self._outbound[md_path] = frozenset(new_targets)
 
     def _remove_path(self, md_path: Path) -> None:
         record = self._records.pop(md_path, None)
@@ -252,6 +370,16 @@ class Index:
             self._by_filename.pop(md_path.stem, None)
         if record.title and self._by_title.get(record.title) == md_path:
             self._by_title.pop(record.title, None)
+        # Drop outbound edges and remove ``md_path`` from each former target's
+        # inbound set. ``_inbound[md_path]`` (who points AT this note) is left
+        # alone — those source notes still claim to link here, and if a new
+        # note appears at the same path the inbound set is already correct.
+        for tgt in self._outbound.pop(md_path, frozenset()):
+            inbound = self._inbound.get(tgt)
+            if inbound is not None:
+                inbound.discard(md_path)
+                if not inbound:
+                    self._inbound.pop(tgt, None)
 
 
 def _extract_h1(body: str) -> str | None:
@@ -287,3 +415,21 @@ def _normalise_status(raw: Any) -> str | None:
 
 def _is_template(record: NoteRecord) -> bool:
     return record.rel_path.startswith("__templates__/")
+
+
+def _wikilinks_in_body(body: str) -> Iterator[str]:
+    for m in WIKILINK_RE.finditer(body or ""):
+        yield m.group(1)
+
+
+def _wikilinks_in_frontmatter(value: Any) -> Iterator[str]:
+    """Walk a frontmatter value (scalar / list / dict) yielding wikilink targets."""
+    if isinstance(value, str):
+        for m in WIKILINK_RE.finditer(value):
+            yield m.group(1)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _wikilinks_in_frontmatter(item)
+    elif isinstance(value, dict):
+        for v in value.values():
+            yield from _wikilinks_in_frontmatter(v)
