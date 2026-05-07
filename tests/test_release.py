@@ -94,7 +94,7 @@ def test_release_happy_path_writes_expected_files(tmp_path: Path) -> None:
         f"sync failed unexpectedly.\nstdout: {result.stdout}\nstderr: {result.stderr}"
     )
 
-    dest = project_os / "tools" / "project-os-cockpit"
+    dest = project_os / "tools" / "cockpit"
     assert (dest / "src" / "project_os_cockpit" / "__init__.py").is_file()
     assert (dest / "pyproject.toml").is_file()
     assert (dest / "README.md").is_file()
