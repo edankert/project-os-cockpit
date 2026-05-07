@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T02:30Z"
+updated: "2026-05-08T03:00Z"
 
 template:
   replace_me: false
@@ -26,21 +26,21 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 3
+  ADR: 4
   CHG:
     last_date: 20260508
   FEAT: 6
   ISS: 0
   PHASE: 4
-  REQ: 12
+  REQ: 13
   RISK: 3
   REL: 0
-  TASK: 11
+  TASK: 14
   TST: 1
   WF: 0
 
 focus:
-  task: "TASK-0008"
+  task: "TASK-0012"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -63,35 +63,29 @@ items:
       phase: "[[PHASE-003-Downstream-Pilot]]"
       path: "docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md"
     FEAT-0006:
-      title: "Bases-driven 3-pane cockpit layout"
-      status: backlog
+      title: "3-pane cockpit layout (code-driven)"
+      status: in-progress
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0008:
-      title: ".base parser + DSL evaluator"
+    TASK-0012:
+      title: "Cockpit JSON API (features-by-phase + links/backlinks)"
       status: next
       phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0008-Base-Parser-And-Evaluator.md"
+      path: "docs/features/cockpit/plan/tasks/TASK-0012-Cockpit-Json-Api.md"
       parent: "FEAT-0006"
-    TASK-0009:
-      title: ".base JSON API endpoint"
+    TASK-0013:
+      title: "Cockpit shell + JS pane renderer (code-driven layout)"
       status: backlog
       phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0009-Base-Json-Api.md"
+      path: "docs/features/cockpit/plan/tasks/TASK-0013-Cockpit-Shell-And-Renderer.md"
       parent: "FEAT-0006"
-    TASK-0010:
-      title: "Cockpit shell + JS pane renderer"
+    TASK-0014:
+      title: "Cockpit SSE-driven pane re-fetch"
       status: backlog
       phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0010-Cockpit-Shell-And-Js-Renderer.md"
-      parent: "FEAT-0006"
-    TASK-0011:
-      title: "Cockpit SSE-driven re-fetch"
-      status: backlog
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0011-Cockpit-Sse-Refetch.md"
+      path: "docs/features/cockpit/plan/tasks/TASK-0014-Cockpit-Sse-Refetch.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -129,22 +123,14 @@ items:
       title: "Backlinks panel showing notes that link to the current page"
       status: approved
       path: "docs/requirements/REQ-0008-Backlinks-Panel.md"
-    REQ-0009:
-      title: ".base files are the source of truth for cockpit pane content"
-      status: approved
-      path: "docs/requirements/REQ-0009-Bases-Source-Of-Truth.md"
-    REQ-0010:
-      title: "Any .base file can mount in any cockpit pane (no hardcoded NAV/CONTEXT)"
-      status: approved
-      path: "docs/requirements/REQ-0010-Configurable-Pane-Bases.md"
-    REQ-0011:
-      title: "Bases referencing this.file re-evaluate when the active note changes"
-      status: approved
-      path: "docs/requirements/REQ-0011-Active-Note-Context.md"
     REQ-0012:
       title: "Muted greyscale palette, semantic-only color, dual light/dark themes"
       status: approved
       path: "docs/requirements/REQ-0012-Visual-Style.md"
+    REQ-0013:
+      title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
+      status: approved
+      path: "docs/requirements/REQ-0013-Cockpit-Layout.md"
 
   phases:
     PHASE-001:
@@ -243,12 +229,16 @@ items:
       title: "Visual style: muted greyscale, semantic-only color, dual themes"
       status: accepted
       path: "docs/decisions/ADR-0003-Visual-Style-Direction.md"
+    ADR-0004:
+      title: "Cockpit data driver: code-emitted JSON vs `.base` evaluator"
+      status: accepted
+      path: "docs/decisions/ADR-0004-Cockpit-Code-Driven-Vs-Bases.md"
 
 metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 11
+    tasks_total: 14
     tasks_done: 7
     tests_total: 1
     tests_passing: 1
@@ -257,4 +247,4 @@ metrics:
     issues_triage: 0
     risks_open: 3
     releases_total: 0
-    decisions_total: 3
+    decisions_total: 4

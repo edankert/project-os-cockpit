@@ -22,6 +22,8 @@ tests: []
 
 # Cockpit shell + JS pane renderer
 
+> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off generic `.base`-mounted panes onto a fixed code-driven layout (features-by-phase left, outbound + inbound-only right). The replacement is [[TASK-0013]]. The `--cockpit-left=<.base>` / multi-base-tabs design captured below is parked for any future generic `.base`-mounting use case.
+
 ## Definition of Done
 - [ ] CLI flags wired:
   - `--cockpit-left=<path-or-list-or-none>` (default `docs/__bases__/NAV.base`)

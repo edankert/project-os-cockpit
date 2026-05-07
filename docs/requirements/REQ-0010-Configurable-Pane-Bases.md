@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0010
 aliases: ["REQ-0010"]
 title: "Any .base file can mount in any cockpit pane (no hardcoded NAV/CONTEXT)"
-status: approved
+status: retired
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
@@ -18,6 +18,8 @@ tests: []
 ---
 
 # REQ-0010 — Configurable pane bases
+
+> **Retired (2026-05-08).** Superseded by [[REQ-0013]] (the cockpit's layout is fixed and code-driven now). See [[ADR-0004]].
 
 ## Statement
 The cockpit SHALL support mounting any `.base` file under the docs root as either the left or the right pane. The filenames `NAV.base` and `CONTEXT.base` are *defaults*, not implementation constants — the codebase MUST NOT special-case those names. Multiple `.base` files MAY mount in a single pane (rendered as tabs).

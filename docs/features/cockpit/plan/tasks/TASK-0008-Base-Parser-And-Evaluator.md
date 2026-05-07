@@ -21,6 +21,8 @@ tests: []
 
 # .base parser + DSL evaluator
 
+> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit to a code-driven JSON layer; this task is no longer required for FEAT-0006. Kept in-tree at `status: backlog` because if a future "render any `.base` as a standalone HTML page" feature is scaffolded, ~70 % of the planned work below is still applicable. Re-activate by setting `status: next` and updating `implements` to point at the new feature.
+
 ## Definition of Done
 - [ ] `docs_server.bases` module with: `parse(path) -> BaseDocument`, `evaluate(base, index, *, this=None) -> EvaluatedBase`.
 - [ ] `BaseDocument` carries: `filters` (AST), `formulas` (dict of name → AST), `properties` (dict of key → display config), `views` (list of view configs).

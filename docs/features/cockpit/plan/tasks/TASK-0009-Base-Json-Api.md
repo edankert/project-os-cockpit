@@ -21,6 +21,8 @@ tests: []
 
 # .base JSON API endpoint
 
+> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off `.base` files; FEAT-0006's JSON layer is now `/api/cockpit/nav` and `/api/cockpit/context` (see [[TASK-0012]]). This task remains in-tree as future scaffolding for a hypothetical `.base`-rendering feature.
+
 ## Definition of Done
 - [ ] `GET /api/base?path=<rel-path-to-.base>&this=<note-id-or-path>` returns 200 with JSON.
 - [ ] `path` is required and must resolve under the configured docs root (path-traversal guard: 400 on `..`).

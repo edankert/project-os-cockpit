@@ -21,6 +21,8 @@ tests: []
 
 # Cockpit SSE-driven re-fetch
 
+> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off `.base`-driven panes; the SSE wiring for the new code-driven cockpit is [[TASK-0014]]. The frontmatter-vs-body-vs-base event-kind discrimination captured below is parked for the future `.base`-rendering use case.
+
 ## Definition of Done
 - [ ] FEAT-0002's SSE channel emits a typed event payload: `{kind: "frontmatter" | "body" | "base", path: "..."}`. (Coordinate with FEAT-0002 — if the channel currently emits a simpler shape, this task extends it.)
 - [ ] `cockpit.js` subscribes to `/_events` (the existing SSE endpoint) and dispatches:

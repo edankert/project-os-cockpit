@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0011
 aliases: ["REQ-0011"]
 title: "Bases referencing this.file re-evaluate when the active note changes"
-status: approved
+status: retired
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
@@ -18,6 +18,8 @@ tests: []
 ---
 
 # REQ-0011 — Active-note context propagation
+
+> **Retired (2026-05-08).** Superseded by [[REQ-0013]] — the active-note re-fetch behaviour is preserved (right pane re-fetches on nav) but the contract is no longer expressed in terms of `this.file` since `.base` files don't drive the cockpit. See [[ADR-0004]].
 
 ## Statement
 A `.base` file whose filters reference `this.file` (the canonical pattern in `CONTEXT.base`: `file.hasLink(this.file)`) SHALL be re-evaluated whenever the centre-pane active note changes, with `this.file` bound to the new active note's path.

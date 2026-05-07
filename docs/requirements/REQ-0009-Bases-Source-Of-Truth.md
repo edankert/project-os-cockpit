@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0009
 aliases: ["REQ-0009"]
 title: ".base files are the source of truth for cockpit pane content"
-status: approved
+status: retired
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
@@ -18,6 +18,8 @@ tests: []
 ---
 
 # REQ-0009 — Bases as source of truth
+
+> **Retired (2026-05-08).** Superseded by [[REQ-0013]]. See [[ADR-0004]] for the design pivot from `.base`-driven to code-driven cockpit. `.base` files remain Obsidian dashboards; they are no longer the cockpit's data source.
 
 ## Statement
 The cockpit's pane content — which notes appear, in what order, with what columns and grouping — SHALL be defined exclusively by `.base` files (Obsidian Bases YAML format) under `docs/__bases__/`. The server SHALL NOT hardcode pane filters, sort orders, or column lists in Python.
