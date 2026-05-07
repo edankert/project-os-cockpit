@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`docs_server.index`.
+"""Unit tests for :mod:`project_os_cockpit.index`.
 
 Validates TASK-0007's DoD:
 - ``Index.build`` walks the docs root and populates lookup tables.
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from docs_server.index import Index, NoteRecord
+from project_os_cockpit.index import Index, NoteRecord
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "index_basic"

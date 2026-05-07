@@ -1,7 +1,7 @@
 """Tiny in-process pub/sub for filesystem events.
 
-Producer: :mod:`docs_server.watcher` (TASK-0005).
-Consumers: :class:`docs_server.index.Index` (cache invalidation), the SSE
+Producer: :mod:`project_os_cockpit.watcher` (TASK-0005).
+Consumers: :class:`project_os_cockpit.index.Index` (cache invalidation), the SSE
 channel (TASK-0006, broadcasts to connected browsers), the cockpit's
 JS-side re-fetch (TASK-0011 extends event payloads with ``kind`` info).
 
@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-log = logging.getLogger("docs_server.events")
+log = logging.getLogger("project_os_cockpit.events")
 
 Subscriber = Callable[["FileEvent"], None]
 

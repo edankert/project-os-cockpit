@@ -22,7 +22,7 @@ from . import __version__ as _VERSION
 from .wikilinks import Resolver, resolve_text_to_html
 
 # Project name shown in the header home-link. Set once at server startup
-# (see :func:`docs_server.server.serve`) from the docs root's parent dir.
+# (see :func:`project_os_cockpit.server.serve`) from the docs root's parent dir.
 # Falls back to the docs root name if no parent is meaningful.
 _PROJECT_NAME: str = "docs-server"
 

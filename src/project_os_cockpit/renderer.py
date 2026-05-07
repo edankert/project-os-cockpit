@@ -2,8 +2,8 @@
 
 Reads a ``.md`` source file, splits frontmatter via ``python-frontmatter``,
 runs Markdown via ``markdown`` + selected ``pymdownx`` extensions and the
-project's own :class:`docs_server.wikilinks.WikilinkExtension`, and wraps
-the result in the shared HTML shell from :mod:`docs_server.templates`.
+project's own :class:`project_os_cockpit.wikilinks.WikilinkExtension`, and wraps
+the result in the shared HTML shell from :mod:`project_os_cockpit.templates`.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def render_markdown_file(
     ``rel_path`` is the docs-root-relative path used for the breadcrumb;
     the actual filesystem read uses ``source_path``. ``resolver`` (when
     provided) is consulted by :class:`WikilinkExtension` and by the
-    metadata-strip wikilink resolver in :mod:`docs_server.templates`.
+    metadata-strip wikilink resolver in :mod:`project_os_cockpit.templates`.
     """
     raw = source_path.read_text(encoding="utf-8")
     post = frontmatter.loads(raw)

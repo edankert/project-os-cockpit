@@ -45,7 +45,7 @@ INDEX_TYPE_PLURALS: dict[str, str] = {
     "phases": "phase",
 }
 
-log = logging.getLogger("docs_server.server")
+log = logging.getLogger("project_os_cockpit.server")
 
 STATIC_DIR: Path = Path(__file__).resolve().parent / "static"
 

@@ -1,6 +1,6 @@
 """Cockpit JSON API payload builders.
 
-Pure functions that take an :class:`docs_server.index.Index` and return the
+Pure functions that take an :class:`project_os_cockpit.index.Index` and return the
 dicts that get serialised on the ``/api/cockpit/nav`` and
 ``/api/cockpit/context`` endpoints. Kept separate from the HTTP handler so
 they're trivially testable: every assertion lives at the dict level, not
@@ -105,7 +105,7 @@ _ID_PREFIX_RE = __import__("re").compile(
 # level deep under ``docs/`` becomes a handle, except for files in these
 # directories. Dashboards typically hold ``.base`` views which are noise
 # in a navigator. ``__templates__`` and ``__bases__`` are already filtered
-# at the index level (see :data:`docs_server.index.EXCLUDED_DIR_NAMES`).
+# at the index level (see :data:`project_os_cockpit.index.EXCLUDED_DIR_NAMES`).
 LIBRARY_HANDLE_EXCLUDED_DIRS: tuple[str, ...] = ("dashboards",)
 # Note types that get their own group under "By type — rare" in Library mode.
 # Anything covered by a primary nav mode (feature, task, issue) is excluded.

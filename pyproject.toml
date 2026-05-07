@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "docs-server"
+name = "project-os-cockpit"
 version = "0.1.0"
-description = "On-the-fly Markdown render server for project-os repos — frontmatter-aware, [[wikilink]] resolution, project-os ID linking, live reload via SSE."
+description = "Three-pane web cockpit for project-os documentation: on-the-fly Markdown render with frontmatter awareness, [[wikilink]] resolution, project-os ID linking, and live reload via SSE."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -41,16 +41,16 @@ dev = [
 ]
 
 [project.scripts]
-docs-server = "docs_server.__main__:main"
+project-os-cockpit = "project_os_cockpit.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/edwindankert/docs-server"
-Repository = "https://github.com/edwindankert/docs-server"
+Homepage = "https://github.com/edankert/project-os-cockpit"
+Repository = "https://github.com/edankert/project-os-cockpit"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["docs_server*"]
+include = ["project_os_cockpit*"]
 
 [tool.setuptools.package-data]
-docs_server = ["py.typed", "static/*.css", "static/*.js"]
-# Note: pattern already covers cockpit.css / cockpit.js / sse-reload.js / base.css.
+project_os_cockpit = ["py.typed", "static/*.css", "static/*.js"]
+# Pattern covers cockpit.css / cockpit.js / sse-reload.js / base.css.

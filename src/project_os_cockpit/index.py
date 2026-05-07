@@ -25,7 +25,7 @@ import frontmatter
 from .events import is_under_ci, relative_to_ci
 from .wikilinks import WIKILINK_RE
 
-log = logging.getLogger("docs_server.index")
+log = logging.getLogger("project_os_cockpit.index")
 
 # Directories whose contents are excluded from index walks.
 # ``__templates__`` is intentionally NOT excluded — it holds the type-stub

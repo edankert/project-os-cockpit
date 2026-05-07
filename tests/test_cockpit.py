@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`docs_server.cockpit`.
+"""Unit tests for :mod:`project_os_cockpit.cockpit`.
 
 Validates the cockpit v2 schema against the shared fixture:
 - ``nav_payload`` returns a generalised ``{schema_version, mode, groups}``
@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from docs_server.cockpit import SCHEMA_VERSION, context_payload, nav_payload
-from docs_server.index import Index
+from project_os_cockpit.cockpit import SCHEMA_VERSION, context_payload, nav_payload
+from project_os_cockpit.index import Index
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "index_basic"

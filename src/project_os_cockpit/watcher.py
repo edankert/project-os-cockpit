@@ -28,7 +28,7 @@ from watchdog.observers import Observer
 
 from .events import EventBus, FileEvent, relative_to_ci
 
-log = logging.getLogger("docs_server.watcher")
+log = logging.getLogger("project_os_cockpit.watcher")
 
 # Coalesce repeats for the same (path, kind) within this window.
 DEBOUNCE_S: float = 0.10

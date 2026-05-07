@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Release the canonical docs-server source into project-os/tools/docs-server/.
+# Release the canonical project-os-cockpit source into project-os/tools/cockpit/.
 #
-# Direction: docs-server (canonical) → project-os (delivery copy). One-way.
+# Direction: project-os-cockpit (canonical) → project-os (delivery copy). One-way.
 # The sync overwrites; nothing flows back. Run after closing any CHG that
-# touches src/docs_server/ or pyproject.toml — the LIFECYCLE.md rule
+# touches src/project_os_cockpit/ or pyproject.toml — the LIFECYCLE.md rule
 # obligates the agent to do so.
 #
 # Guards:
 # - canonical repo must be clean (no staged or unstaged changes)
 # - project-os destination must be clean (no uncommitted local edits)
 # - rsync uses --delete so removed files in the canonical source disappear
-#   from project-os — but only inside tools/docs-server/, scoped tightly.
+#   from project-os — but only inside tools/cockpit/, scoped tightly.
 #
 # Outputs in the project-os copy:
-#   src/docs_server/  — the package source tree (the only thing run at runtime)
+#   src/project_os_cockpit/  — the package source tree (the only thing run at runtime)
 #   pyproject.toml
 #   README.md
 #   CANONICAL_SHA     — canonical commit hash at sync time
@@ -31,7 +31,7 @@ set -euo pipefail
 
 CANONICAL_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_OS_ROOT="${PROJECT_OS_ROOT:-$HOME/Dev/repos/project-os}"
-DEST="$PROJECT_OS_ROOT/tools/docs-server"
+DEST="$PROJECT_OS_ROOT/tools/cockpit"
 
 if [[ ! -d "$PROJECT_OS_ROOT" ]]; then
   echo "error: project-os not found at $PROJECT_OS_ROOT" >&2
@@ -58,11 +58,11 @@ fi
 
 if [[ -d "$DEST" ]]; then
   cd "$PROJECT_OS_ROOT"
-  if [[ -n "$(git status --porcelain -- tools/docs-server)" ]]; then
+  if [[ -n "$(git status --porcelain -- tools/cockpit)" ]]; then
     echo "error: project-os destination has uncommitted edits at" >&2
     echo "       $DEST" >&2
     echo "       review and commit / discard them before re-syncing." >&2
-    git status --short -- "tools/docs-server" >&2
+    git status --short -- "tools/cockpit" >&2
     exit 4
   fi
   cd "$CANONICAL_ROOT"
@@ -75,7 +75,7 @@ mkdir -p "$DEST"
 # -------- run the sync (rsync with explicit include set) ---------------
 
 # Each rsync handles one top-level path so we don't accidentally clobber
-# project-os/tools/docs-server/run.sh (which is project-os-owned, not
+# project-os/tools/cockpit/run.sh (which is project-os-owned, not
 # canonical-owned).
 RSYNC_OPTS=(
   -a --delete
@@ -99,5 +99,5 @@ CANONICAL_DATE="$(date -u +%Y-%m-%d)"
 printf '%s\n' "$CANONICAL_SHA"  > "$DEST/CANONICAL_SHA"
 printf '%s\n' "$CANONICAL_DATE" > "$DEST/CANONICAL_DATE"
 
-echo "synced docs-server $CANONICAL_SHA → $DEST"
+echo "synced project-os-cockpit $CANONICAL_SHA → $DEST"
 echo "remember to commit the result in project-os."

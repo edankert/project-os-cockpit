@@ -5,8 +5,8 @@ template:
   replace_me: false
 
 project:
-  name: "docs-server"
-  summary: "On-the-fly Markdown render server for project-os repos — frontmatter-aware, [[wikilink]] resolution, project-os ID linking, live reload via SSE, optional embedded local-only terminal"
+  name: "project-os-cockpit"
+  summary: "Three-pane web cockpit for project-os documentation — frontmatter-aware Markdown render, [[wikilink]] resolution, project-os ID linking, live reload via SSE, optional embedded local-only terminal."
   repo_root: "."
 
 retention:
@@ -112,7 +112,7 @@ items:
       path: "docs/features/cockpit/plan/tasks/TASK-0019-Cockpit-Library-And-Pinning.md"
       parent: "FEAT-0006"
     TASK-0020:
-      title: "Release docs-server to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
+      title: "Release the cockpit to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
       status: doing
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/downstream-pilot/plan/tasks/TASK-0020-Release-To-Project-Os.md"
@@ -174,7 +174,7 @@ items:
       status: approved
       path: "docs/requirements/REQ-0016-Cockpit-Library-And-Pinning.md"
     REQ-0017:
-      title: "Release docs-server into project-os via one-way sync"
+      title: "Release the cockpit into project-os via one-way sync"
       status: approved
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
