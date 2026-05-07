@@ -4,7 +4,7 @@ id: FEAT-0003
 aliases: ["FEAT-0003"]
 title: "Embedded local-only terminal (Claude Code / Codex)"
 status: backlog
-phase: "[[PHASE-001-MVP]]"
+phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07

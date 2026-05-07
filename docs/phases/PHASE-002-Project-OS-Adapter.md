@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-002
 aliases: ["PHASE-002"]
 title: "Project-os adapter"
-status: backlog
+status: active
 order: 2
 owner: user:edwin
 created: 2026-05-07

@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T01:00Z"
+updated: "2026-05-08T01:30Z"
 
 template:
   replace_me: false
@@ -31,7 +31,7 @@ counters:
     last_date: 20260507
   FEAT: 6
   ISS: 0
-  PHASE: 3
+  PHASE: 4
   REQ: 12
   RISK: 3
   REL: 0
@@ -50,7 +50,7 @@ items:
     FEAT-0003:
       title: "Embedded local-only terminal (Claude Code / Codex)"
       status: backlog
-      phase: "[[PHASE-001-MVP]]"
+      phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/FEAT-0003-Embedded-Terminal.md"
     FEAT-0004:
       title: "Project-os adapter (ID resolution, status badges, backlinks)"
@@ -155,16 +155,20 @@ items:
   phases:
     PHASE-001:
       title: "MVP"
-      status: active
+      status: done
       path: "docs/phases/PHASE-001-MVP.md"
     PHASE-002:
       title: "Project-os adapter"
-      status: backlog
+      status: active
       path: "docs/phases/PHASE-002-Project-OS-Adapter.md"
     PHASE-003:
       title: "Downstream pilot"
       status: backlog
       path: "docs/phases/PHASE-003-Downstream-Pilot.md"
+    PHASE-004:
+      title: "Embedded terminal"
+      status: backlog
+      path: "docs/phases/PHASE-004-Embedded-Terminal.md"
 
   risks:
     RISK-0001:
