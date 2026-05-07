@@ -21,7 +21,7 @@ tests: ["[[TST-0002]]"]
 # REQ-0013 — Cockpit layout
 
 ## Statement
-The web cockpit SHALL render three panes whose content and shape are computed by docs-server in Python (no `.base` evaluator) and delivered to the browser as JSON for client-side rendering. Layout:
+The web cockpit SHALL render three panes whose content and shape are computed by project-os-cockpit in Python (no `.base` evaluator) and delivered to the browser as JSON for client-side rendering. Layout:
 
 ### Left pane — project navigator
 A picker with **four selectable modes** (sticky tabs at the top of the pane):
@@ -31,7 +31,7 @@ A picker with **four selectable modes** (sticky tabs at the top of the pane):
 3. **Issues** — issues grouped by `severity` (`critical → high → medium → low`, then any extras alphabetically). Item card subtitle: affected feature + component.
 4. **Recent** — top 60 notes by `updated` (falls back to `created`). Bucketed into Today / Yesterday / This week / This month / Earlier. Templates and `dashboard` notes are excluded. Item subtitle: type + ISO date.
 
-Mode is persisted in the browser (`localStorage` key `docs-server.cockpit.left-mode`); switching is a single fetch, no full-page reload. Each mode keeps its own collapsed-group state (key prefix `nav:<mode>:<group-key>`). Templates under `__templates__/` (placeholder IDs like `FEAT-0000`) are excluded from every mode.
+Mode is persisted in the browser (`localStorage` key `project-os-cockpit.cockpit.left-mode`); switching is a single fetch, no full-page reload. Each mode keeps its own collapsed-group state (key prefix `nav:<mode>:<group-key>`). Templates under `__templates__/` (placeholder IDs like `FEAT-0000`) are excluded from every mode.
 
 ### Centre pane — active note
 The selected note rendered exactly as it would render at `/docs/<rel-path>` today. The cockpit just hosts the existing renderer's output.
@@ -74,7 +74,7 @@ The page header carries the cockpit-level controls that affect both panes:
 ## Rationale
 The right-pane "outbound + inbound-only" semantics surface both directions of context that matter when reading a project-os note: what the note knows about, AND what knows about the note that the author may not yet be tracking. This is exactly the data the backlink graph from TASK-0007 provides.
 
-The left-pane originally specified only "features-by-phase" because that's how the docs-server author navigates this repo daily. After dogfooding against `../your-trainer` (1,175 notes), the picker grew to four modes: features-by-phase remains the default browse, but tasks-by-status is the daily-driver execution view, issues-by-severity is the triage view, and recent is the "what changed overnight" view. A more general-purpose nav with arbitrary `.base` definitions was tried and rejected (see [[ADR-0004]]); the four code-defined modes cover the observed daily-use traversals.
+The left-pane originally specified only "features-by-phase" because that's how the project-os-cockpit author navigates this repo daily. After dogfooding against `../your-trainer` (1,175 notes), the picker grew to four modes: features-by-phase remains the default browse, but tasks-by-status is the daily-driver execution view, issues-by-severity is the triage view, and recent is the "what changed overnight" view. A more general-purpose nav with arbitrary `.base` definitions was tried and rejected (see [[ADR-0004]]); the four code-defined modes cover the observed daily-use traversals.
 
 The right-pane type ordering was originally an alphabetical-ish guess (`feature, task, requirement, ...`); it was reordered in this amendment based on aggregate link counts in the same `your-trainer` corpus (task: 1,884 links, feature: 1,566, issue: 946, requirement: 671, change: 418, ...). The order is fixed (not context-dependent) so muscle memory works; concrete evidence drives the ranking rather than assumptions about what "should" be relevant.
 

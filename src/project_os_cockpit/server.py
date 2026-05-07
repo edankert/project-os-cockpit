@@ -1,4 +1,4 @@
-"""HTTP server for docs-server.
+"""HTTP server for project-os-cockpit.
 
 A small ``ThreadingHTTPServer`` with a custom request handler that:
 
@@ -103,20 +103,20 @@ class DocsServer:
                 (self.bind, self.port), handler_cls
             ) as httpd:
                 log.info(
-                    "docs-server listening on http://%s:%d (docs root: %s)",
+                    "project-os-cockpit listening on http://%s:%d (docs root: %s)",
                     self.bind,
                     self.port,
                     self.docs_root,
                 )
                 print(
-                    f"docs-server: http://{self.bind}:{self.port}/  "
+                    f"project-os-cockpit: http://{self.bind}:{self.port}/  "
                     f"(serving {self.docs_root})",
                     flush=True,
                 )
                 try:
                     httpd.serve_forever()
                 except KeyboardInterrupt:
-                    print("\ndocs-server: shutting down.", flush=True)
+                    print("\nproject-os-cockpit: shutting down.", flush=True)
         finally:
             self.watcher.stop()
 
@@ -127,7 +127,7 @@ def _make_handler(
     """Build a request handler class with the per-server collaborators baked in."""
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "docs-server/0.1"
+        server_version = "project-os-cockpit/0.1"
         # HTTP/1.1 lets the SSE channel stay open with chunked semantics; for
         # other endpoints we still send Content-Length so keep-alive works.
         protocol_version = "HTTP/1.1"

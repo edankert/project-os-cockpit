@@ -27,10 +27,10 @@ The cockpit SHALL support mounting any `.base` file under the docs root as eithe
 Configuration is via CLI flags `--cockpit-left=<path>[,<path>...]` and `--cockpit-right=<path>[,<path>...]`, each accepting a `.base` path, a comma-separated list of paths, or the literal `none` to hide the pane. Defaults: `--cockpit-left=docs/__bases__/NAV.base`, `--cockpit-right=docs/__bases__/CONTEXT.base`.
 
 ## Acceptance Criteria
-- `python -m docs_server <docs> --cockpit-left=docs/__bases__/Tasks.base` swaps the left pane to the Tasks dashboard with no code changes.
-- `python -m docs_server <docs> --cockpit-right=none` hides the right pane and gives the centre pane the freed width.
-- `python -m docs_server <docs> --cockpit-left=docs/__bases__/NAV.base,docs/__bases__/Issues.base` mounts both bases in the left pane as tabs.
-- A grep for the literal strings `NAV.base` and `CONTEXT.base` in `src/docs_server/` returns matches *only* in default-value definitions and documentation — no logic branches on those names.
+- `python -m project_os_cockpit <docs> --cockpit-left=docs/__bases__/Tasks.base` swaps the left pane to the Tasks dashboard with no code changes.
+- `python -m project_os_cockpit <docs> --cockpit-right=none` hides the right pane and gives the centre pane the freed width.
+- `python -m project_os_cockpit <docs> --cockpit-left=docs/__bases__/NAV.base,docs/__bases__/Issues.base` mounts both bases in the left pane as tabs.
+- A grep for the literal strings `NAV.base` and `CONTEXT.base` in `src/project_os_cockpit/` returns matches *only* in default-value definitions and documentation — no logic branches on those names.
 
 ## Rationale
 Edwin has signalled that the NAV/CONTEXT identifiers may change, and that other `.base` files (Tasks, Issues, Risks, etc.) deserve to be cockpit-mountable. Hardcoding the two names would block that and would make the cockpit fragile to upstream renames.

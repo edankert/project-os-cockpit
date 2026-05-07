@@ -14,7 +14,7 @@ tags: [architecture]
 
 ```
    ┌──────────────────────────────────────────────────────────────────┐
-   │  docs-server (Python)                                            │
+   │  project-os-cockpit (Python)                                            │
    │                                                                  │
    │   ┌────────────────┐    ┌────────────────┐    ┌────────────────┐ │
    │   │  HTTP server   │    │  File watcher  │    │  SSE channel   │ │
@@ -76,7 +76,7 @@ Frontmatter `aliases` are also indexed, so `[[FEAT-0008]]`, `[[Your Trainer manu
 
 ## Deployment shape
 
-- Local-dev (this repo): run from source with `python -m docs_server` against any project-os repo's `docs/`.
-- Downstream project-os repo: a thin shim under `tools/docs-server/` (a `Makefile` target, a `dev.sh` wrapper, or a `pipx`-installed entrypoint) that points at the same source checkout. Per-repo configuration (port, terminal on/off) lives in the shim, not in this upstream.
+- Local-dev (this repo): run from source with `python -m project_os_cockpit` against any project-os repo's `docs/`.
+- Downstream project-os repo: a thin shim under `tools/project-os-cockpit/` (a `Makefile` target, a `dev.sh` wrapper, or a `pipx`-installed entrypoint) that points at the same source checkout. Per-repo configuration (port, terminal on/off) lives in the shim, not in this upstream.
 
 See `docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md` for the deployment plan.

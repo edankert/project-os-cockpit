@@ -41,7 +41,7 @@ tests: []
 ## Notes
 - Sync is intentionally one-way. The script overwrites; it never reads from project-os back into the canonical repo.
 - Provenance stamps are committed plain text — easy to grep across project-os when debugging downstream version mismatches.
-- The run.sh wrapper lives ONLY in project-os, not in this repo's source tree, because it's a project-os concern (how project-os hosts the synced tool). Syncing the wrapper out of docs-server would couple docs-server to a specific deployment shape; better to let project-os own its own bootstrap.
+- The run.sh wrapper lives ONLY in project-os, not in this repo's source tree, because it's a project-os concern (how project-os hosts the synced tool). Syncing the wrapper out of project-os-cockpit would couple project-os-cockpit to a specific deployment shape; better to let project-os own its own bootstrap.
 
 ### To complete the initial sync
 The dirty-tree guard refuses to run while this conversation's canonical-side
@@ -49,7 +49,7 @@ work is uncommitted (which is correct — provenance stamps must trace to
 real commits). Two-step close-out:
 
 ```bash
-# 1. From the docs-server repo, commit the canonical-side work
+# 1. From the project-os-cockpit repo, commit the canonical-side work
 git add -A && git commit -m "Add release-to-project-os mechanism (TASK-0020)"
 
 # 2. Run the sync (now that the tree is clean)
@@ -58,7 +58,7 @@ tools/scripts/release-to-project-os.sh
 # 3. Commit the result in project-os
 cd ~/Dev/repos/project-os
 git add tools/cockpit/
-git commit -m "Bootstrap synced docs-server copy from canonical repo"
+git commit -m "Bootstrap synced project-os-cockpit copy from canonical repo"
 ```
 
 After step 1 the happy-path test (`test_release_happy_path_writes_expected_files`)

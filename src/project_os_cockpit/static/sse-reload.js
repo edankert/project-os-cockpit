@@ -1,7 +1,7 @@
-/* docs-server soft-reload over SSE.
+/* project-os-cockpit soft-reload over SSE.
  *
  * Each rendered page carries:
- *   <meta name="docs-server:source" content="<rel-path-or-*>">
+ *   <meta name="project-os-cockpit:source" content="<rel-path-or-*>">
  *
  * - rel-path: the docs-root-relative .md path. Reload only when that path
  *   changes (note pages render this).
@@ -12,7 +12,7 @@
  * restarts; nothing extra is needed here for that.
  */
 (function () {
-  var meta = document.querySelector('meta[name="docs-server:source"]');
+  var meta = document.querySelector('meta[name="project-os-cockpit:source"]');
   if (!meta) return;
   var source = meta.getAttribute("content") || "";
   if (!source) return;

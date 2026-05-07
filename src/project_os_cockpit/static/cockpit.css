@@ -1,4 +1,4 @@
-/* docs-server cockpit layout — REQ-0013.
+/* project-os-cockpit cockpit layout — REQ-0013.
  *
  * Three columns: features-by-phase nav (left), rendered note (centre),
  * outbound + inbound-only relationships (right). All colors via tokens

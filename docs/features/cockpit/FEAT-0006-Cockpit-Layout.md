@@ -17,7 +17,7 @@ related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0004]]", "[[REQ-0012]]", "[[
 # 3-pane cockpit layout
 
 ## Goal
-Every note rendered by docs-server is wrapped in a 3-pane cockpit:
+Every note rendered by project-os-cockpit is wrapped in a 3-pane cockpit:
 
 - **Left pane** — project navigator: every feature in the docs tree, grouped by phase, with `id` / `title` (link) / `status` chip / `goal` columns.
 - **Centre pane** — the note rendered by FEAT-0001's existing pipeline.
@@ -31,12 +31,12 @@ Layout and column choices come from [[REQ-0013]]. The data layer is the `Index` 
 - New JSON endpoints under `/api/cockpit/`:
   - `GET /api/cockpit/nav` — the left-pane payload (features grouped by phase, with the four columns spelled out in REQ-0013).
   - `GET /api/cockpit/context?this=<note>` — the right-pane payload for an active note: `linked` (outbound) + `backlinks` (inbound minus outbound), each grouped by `type`.
-- A vanilla-JS pane renderer at `src/docs_server/static/cockpit.js` that:
+- A vanilla-JS pane renderer at `src/project_os_cockpit/static/cockpit.js` that:
   - Hydrates each pane from the JSON API on load.
   - Intercepts in-pane row clicks for client-side navigation (push history, fetch new centre HTML, refetch the right pane).
   - Subscribes to `/_events` (FEAT-0002's existing SSE channel) and refetches affected panes on relevant file changes — per-pane 100 ms debounce.
 - A 3-pane HTML shell embedded in every rendered note page (centre pane = the renderer's existing HTML).
-- CSS in `src/docs_server/static/cockpit.css`, all token-driven per [[REQ-0012]].
+- CSS in `src/project_os_cockpit/static/cockpit.css`, all token-driven per [[REQ-0012]].
 - URL state: the active note is the URL path. Refreshing preserves cockpit state.
 - Visual differentiation between "outbound" and "inbound-only" right-pane sections so the reader sees at a glance that "this links here even though the active note doesn't link back."
 
@@ -52,7 +52,7 @@ Layout and column choices come from [[REQ-0013]]. The data layer is the `Index` 
 - Adding more left-pane "tabs" (e.g. a Tasks dashboard alongside Features) — additive, no architectural change.
 
 ## Acceptance
-- Running `python -m docs_server $(pwd)/docs` and opening any note shows a 3-pane layout: features-by-phase navigator on the left, the rendered note centre, the note's relationships on the right.
+- Running `python -m project_os_cockpit $(pwd)/docs` and opening any note shows a 3-pane layout: features-by-phase navigator on the left, the rendered note centre, the note's relationships on the right.
 - `GET /api/cockpit/nav` returns valid JSON; every non-template feature in the repo appears under its phase header.
 - `GET /api/cockpit/context?this=FEAT-0001` returns the active note's outbound and inbound-only sets, both grouped by type, with the four columns (id / title / status / priority).
 - Clicking a feature in the left pane navigates to that feature in the centre (URL changes, browser history works); the right pane re-fetches.

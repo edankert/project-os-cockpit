@@ -18,4 +18,4 @@ When the embedded-terminal feature is active, the terminal endpoint SHALL bind e
 The render server's HTML template SHALL detect non-loopback requests and omit the terminal `<iframe>` from the rendered output for those clients (so a tablet on the LAN never even sees a placeholder).
 
 ## Rationale
-The terminal endpoint allows shell command execution. If reachable across the network, anyone on the LAN can run shell commands as the user running docs-server. The loopback bind is the single most important security control in this system. See [[RISK-0001]].
+The terminal endpoint allows shell command execution. If reachable across the network, anyone on the LAN can run shell commands as the user running project-os-cockpit. The loopback bind is the single most important security control in this system. See [[RISK-0001]].

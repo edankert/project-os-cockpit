@@ -24,7 +24,7 @@ The cockpit left pane SHALL gain a fifth mode, **Library**, that surfaces every 
 
 ### Library mode — three sections
 
-1. **Pinned** — items the user has explicitly pinned (via the pin button), in pin order. Empty when nothing is pinned. Persisted in `localStorage` under `docs-server.cockpit.pinned-paths` (JSON array of docs-root-relative paths).
+1. **Pinned** — items the user has explicitly pinned (via the pin button), in pin order. Empty when nothing is pinned. Persisted in `localStorage` under `project-os-cockpit.cockpit.pinned-paths` (JSON array of docs-root-relative paths).
 
 2. **Project handles** — auto-discovered orienting documents. Discovery rule:
    - Every `*.md` directly under `docs/` whose filename does NOT match a project-os ID prefix (`FEAT-/TASK-/REQ-/CHG-/ADR-/RISK-/REL-/PHASE-/TST-/ISS-/PLAN-/WF-`).

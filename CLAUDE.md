@@ -1,13 +1,13 @@
-# Project: docs-server
+# Project: project-os-cockpit
 
 Read SNAPSHOT.yaml at session start to understand current project state and focus.
 Read CONTEXT.md for the full project-os contract, edit policy, and invariants.
 
 ## What this repo is
 
-`docs-server` is a small Python server that renders Markdown notes from any project-os repo as linked HTML pages — on the fly, no build step. It's the upstream tool; downstream project-os repos consume it via a thin shim under their own `tools/docs-server/`.
+`project-os-cockpit` is a small Python server that renders project-os Markdown notes as a three-pane cockpit UI — on the fly, no build step. It's the upstream tool; downstream project-os repos consume it via a thin shim under their own `tools/project-os-cockpit/`.
 
-The first downstream pilot is `~/Dev/repos/your-applications.com/` — that repo's `tools/docs-server/` is the integration point used to validate this tool against real project-os content.
+The first downstream pilot is `~/Dev/repos/your-applications.com/` — that repo's `tools/project-os-cockpit/` is the integration point used to validate this tool against real project-os content.
 
 ## project-os documentation system (core rules -- always active)
 
@@ -48,6 +48,6 @@ These files contain detailed rules. Read them when performing the related operat
 
 ## Project-specific notes
 
-Stack: Python 3.11+. Dependencies live in `pyproject.toml`. Source under `src/docs_server/`. Run with `python -m docs_server <path-to-docs-dir>`. The render server binds to `0.0.0.0` (so a tablet on the same Wi-Fi can read), the optional terminal endpoint binds to `127.0.0.1` only (Mac-local).
+Stack: Python 3.11+. Dependencies live in `pyproject.toml`. Source under `src/project_os_cockpit/`. Run with `python -m project_os_cockpit <path-to-docs-dir>` or the installed console script `project-os-cockpit <path-to-docs-dir>`. The render server binds to `0.0.0.0` (so a tablet on the same Wi-Fi can read), the optional terminal endpoint binds to `127.0.0.1` only (Mac-local).
 
 Upstream relationship: this repo is downstream of `~/Dev/repos/project-os/` (the canonical project-os template). Run `tools/scripts/sync-project-os.sh ../project-os` to pull template-owned files (`tools/instructions/`, `tools/skills/`, `docs/__templates__/`, `docs/__bases__/`) when the upstream changes.

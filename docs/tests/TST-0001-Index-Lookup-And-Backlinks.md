@@ -23,7 +23,7 @@ related: ["[[TASK-0007]]", "[[FEAT-0006]]"]
 # TST-0001 — Index lookup + backlink graph + invalidation
 
 ## Scope
-Unit tests for `docs_server.index.Index`. Validates the in-memory data layer that every other feature builds on:
+Unit tests for `project_os_cockpit.index.Index`. Validates the in-memory data layer that every other feature builds on:
 
 - Wikilink resolution via the priority order (`id` → aliases → filename → title), implementing [[REQ-0002]].
 - Outbound link extraction from BOTH frontmatter values and body markdown.

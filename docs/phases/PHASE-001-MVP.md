@@ -34,10 +34,10 @@ Validated against this repo's own `docs/` (eat-our-own-dog-food).
 - Search, graph view, full-text indexing — possible future phases.
 
 ## Exit criteria (met 2026-05-08)
-- Running `python -m docs_server $(pwd)/docs` from this repo's root opens a working browser experience that:
+- Running `python -m project_os_cockpit $(pwd)/docs` from this repo's root opens a working browser experience that:
   - Shows every `.md` rendered with frontmatter as metadata. ✓
   - Resolves `[[wikilinks]]` correctly (TASK-#### / FEAT-#### / etc. all work). ✓
   - Reloads pages within 1 second of an external editor saving the source file. ✓ (~100 ms)
 
 ## Open decisions
-- `tools/decisions/ADR-0003-*` — final install mechanism for downstream consumers (`pipx install -e ../docs-server` vs. running from source vs. submodule). Land before PHASE-003.
+- `tools/decisions/ADR-0003-*` — final install mechanism for downstream consumers (`pipx install -e ../project-os-cockpit` vs. running from source vs. submodule). Land before PHASE-003.

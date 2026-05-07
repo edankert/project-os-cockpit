@@ -1,6 +1,6 @@
-# docs-server
+# project-os-cockpit
 
-On-the-fly Markdown render server for project-os repos. Renders any `.md` note as a linked HTML page at request time — no build step, with frontmatter-aware metadata, `[[wikilink]]` resolution, project-os ID linking, and live reload.
+Three-pane web cockpit for project-os documentation. The centre pane renders any `.md` note as a linked HTML page at request time — no build step — with frontmatter-aware metadata, `[[wikilink]]` resolution, project-os ID linking, and live reload via SSE. The left and right panes surface features-by-phase navigation, backlinks, and outbound links.
 
 ## What it gives you
 
@@ -26,11 +26,10 @@ No Node.js, no build step, no static-site generator.
 
 ```bash
 # from this repo, point at any project-os repo
-python -m docs_server /path/to/your/project-os/repo
+python -m project_os_cockpit /path/to/your/project-os/repo/docs
 
-# typical local-dev pairing — render server on LAN, terminal on localhost
-python -m docs_server /path/to/repo --bind 0.0.0.0 --port 8765 \
-  --terminal --terminal-bind 127.0.0.1 --terminal-port 7681
+# or via the installed console script
+project-os-cockpit /path/to/your/project-os/repo/docs --bind 0.0.0.0 --port 8765
 ```
 
 ## Project-os layout

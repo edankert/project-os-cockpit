@@ -50,7 +50,7 @@ The filter SHALL NOT apply to:
 - the auto-index pages (`/index/<plural>`) — those predate the cockpit and stay platform-agnostic
 
 ### Persistence + safety
-Selection SHALL persist in `localStorage` under `docs-server.cockpit.platform`. Default `all`. If a saved selection points at a platform value that no longer exists in `available_platforms` (e.g. the field was removed from the project), the JS client SHALL silently fall back to `all` rather than render an inert pill.
+Selection SHALL persist in `localStorage` under `project-os-cockpit.cockpit.platform`. Default `all`. If a saved selection points at a platform value that no longer exists in `available_platforms` (e.g. the field was removed from the project), the JS client SHALL silently fall back to `all` rather than render an inert pill.
 
 ### Query parameters
 The API SHALL accept `?platform=<value>` on both `/api/cockpit/nav` and `/api/cockpit/context`. Missing or `all` means no filter. Unknown values are passed through and used as the filter target — yielding the cross-platform-only narrowing described above.
@@ -71,7 +71,7 @@ project-os schemas allow `platform` as an optional string (`ios | android | shar
 
 `shared` and platform-agnostic notes (phases, ADRs, project-level requirements) intentionally always pass the filter — the user wants iOS context **plus** the cross-cutting state, not just iOS-tagged items.
 
-The picker is data-driven (rather than a hardcoded "iOS / Android" pair) so the same code works for any platform taxonomy a project might adopt — `web`, `desktop`, `tv`, etc. — without per-project changes to docs-server.
+The picker is data-driven (rather than a hardcoded "iOS / Android" pair) so the same code works for any platform taxonomy a project might adopt — `web`, `desktop`, `tv`, etc. — without per-project changes to project-os-cockpit.
 
 ## Traceability
 - Implements: [[FEAT-0006]]

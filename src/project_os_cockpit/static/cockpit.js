@@ -1,4 +1,4 @@
-/* docs-server cockpit JS — vanilla, no build step.
+/* project-os-cockpit cockpit JS — vanilla, no build step.
  *
  * Drives the left + right panes. The centre pane is server-rendered HTML
  * by the existing markdown renderer; we swap its contents on in-pane
@@ -12,11 +12,11 @@
   "use strict";
 
   var EXPECTED_SCHEMA = 2;
-  var FILTER_KEY = "docs-server.cockpit.hide-completed";
-  var COLLAPSED_KEY = "docs-server.cockpit.collapsed-groups";
-  var MODE_KEY = "docs-server.cockpit.left-mode";
-  var PLATFORM_KEY = "docs-server.cockpit.platform";
-  var PINNED_KEY = "docs-server.cockpit.pinned-paths";
+  var FILTER_KEY = "project-os-cockpit.cockpit.hide-completed";
+  var COLLAPSED_KEY = "project-os-cockpit.cockpit.collapsed-groups";
+  var MODE_KEY = "project-os-cockpit.cockpit.left-mode";
+  var PLATFORM_KEY = "project-os-cockpit.cockpit.platform";
+  var PINNED_KEY = "project-os-cockpit.cockpit.pinned-paths";
 
   // "Project" is first — the orienting mode (project handles + pinned +
   // rare types). The mode id stays "library" for storage compatibility,
@@ -756,8 +756,8 @@
           if (oldConfig) oldConfig.replaceWith(newConfig);
         }
         document.title = doc.title;
-        var newReload = doc.querySelector('meta[name="docs-server:source"]');
-        var oldReload = document.querySelector('meta[name="docs-server:source"]');
+        var newReload = doc.querySelector('meta[name="project-os-cockpit:source"]');
+        var oldReload = document.querySelector('meta[name="project-os-cockpit:source"]');
         if (newReload && oldReload) {
           oldReload.setAttribute("content", newReload.getAttribute("content") || "");
         }

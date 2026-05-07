@@ -24,7 +24,7 @@ tests: []
 ## Statement
 The cockpit's pane content — which notes appear, in what order, with what columns and grouping — SHALL be defined exclusively by `.base` files (Obsidian Bases YAML format) under `docs/__bases__/`. The server SHALL NOT hardcode pane filters, sort orders, or column lists in Python.
 
-Editing a `.base` file SHALL change the rendered cockpit on the next page load (and live, via SSE, when TASK-0011 is in place) — without code changes to docs-server.
+Editing a `.base` file SHALL change the rendered cockpit on the next page load (and live, via SSE, when TASK-0011 is in place) — without code changes to project-os-cockpit.
 
 ## Acceptance Criteria
 - A change to `NAV.base`'s `views[]` (e.g. adding a new tab, renaming a column) is reflected in the cockpit within one page load / SSE roundtrip.

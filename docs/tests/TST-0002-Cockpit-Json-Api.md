@@ -23,7 +23,7 @@ related: ["[[TASK-0012]]", "[[FEAT-0006]]"]
 # TST-0002 — Cockpit JSON API
 
 ## Scope
-Unit tests for `docs_server.cockpit.nav_payload` and `docs_server.cockpit.context_payload`. Validates the data contract the JS client (TASK-0013) consumes:
+Unit tests for `project_os_cockpit.cockpit.nav_payload` and `project_os_cockpit.cockpit.context_payload`. Validates the data contract the JS client (TASK-0013) consumes:
 
 - `nav_payload` groups every non-template feature by its `phase` frontmatter, sorted by phase `order`, items sorted by `id`. Item shape: `{id, title, status, goal, url}`.
 - `context_payload` resolves an active note (by id or by relative path), then returns:

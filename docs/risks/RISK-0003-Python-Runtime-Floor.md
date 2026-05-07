@@ -16,7 +16,7 @@ mitigations: []
 # RISK-0003 — Python 3.11+ runtime floor
 
 ## Hazard
-`pyproject.toml` declares `requires-python = ">=3.11"`. macOS still ships 3.9 in `/usr/bin/python3`, and several Linux LTS distros (Debian 11, Ubuntu 20.04) ship 3.8/3.9 by default. Anyone trying to run `docs-server` against the system interpreter will see an opaque dependency-resolution failure rather than a clear "wrong Python" message.
+`pyproject.toml` declares `requires-python = ">=3.11"`. macOS still ships 3.9 in `/usr/bin/python3`, and several Linux LTS distros (Debian 11, Ubuntu 20.04) ship 3.8/3.9 by default. Anyone trying to run `project-os-cockpit` against the system interpreter will see an opaque dependency-resolution failure rather than a clear "wrong Python" message.
 
 ## Likelihood
 Medium — the very first dev environment for this project hit it (system Python 3.9.6); we needed `brew install python@3.13`. Same will happen for any teammate or CI image without an explicit Python install.

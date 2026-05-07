@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T04:30Z"
+updated: "2026-05-07T00:00Z"
 
 template:
   replace_me: false
@@ -29,6 +29,7 @@ counters:
   ADR: 4
   CHG:
     last_date: 20260508
+    # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 6
   ISS: 0
   PHASE: 4
@@ -295,6 +296,12 @@ items:
       path: "docs/changes/CHG-20260508-Cockpit-Home-And-Library.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0018"
+    CHG-20260507-Rename-To-Project-Os-Cockpit:
+      title: "Rename project from docs-server to project-os-cockpit"
+      status: merged
+      path: "docs/changes/CHG-20260507-Rename-To-Project-Os-Cockpit.md"
+      features: ["FEAT-0005"]
+      source_task: ""
   releases: {}
 
   decisions:

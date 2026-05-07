@@ -1,4 +1,4 @@
-"""CLI entry point for docs-server.
+"""CLI entry point for project-os-cockpit.
 
 Real argument parsing arrives with TASK-0002 (this file). The bootstrap
 (TASK-0001) shipped a ``--help``-only stub; this expands it to the actual
@@ -21,7 +21,7 @@ from .server import DocsServer
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="docs-server",
+        prog="project-os-cockpit",
         description=(
             "On-the-fly Markdown render server for project-os repos. "
             "Renders any .md note as a linked HTML page at request time — "

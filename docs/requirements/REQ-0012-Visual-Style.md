@@ -21,7 +21,7 @@ tests: []
 # REQ-0012 — Visual style
 
 ## Statement
-The docs-server UI is a developer's daily-driver tool, sitting alongside an editor and terminal. The visual style SHALL therefore be:
+The project-os-cockpit UI is a developer's daily-driver tool, sitting alongside an editor and terminal. The visual style SHALL therefore be:
 
 1. **Muted greyscale palette as the foundation.** Backgrounds, surfaces, borders, body text, and table chrome SHALL be drawn from a greyscale ramp. No brand-color fills or decorative accents.
 2. **Color reserved for semantic signals only.** Color is permitted for: links, focus indicators, status chips, error/warning banners, the active/selected row in a pane. Color is NOT permitted for: backgrounds, dividers, headings, table stripes, decorative flourishes.
@@ -52,7 +52,7 @@ Adding a new status alias to one of these buckets SHALL be a single-line change 
 - A page with frontmatter, body, status chip, backlinks panel, and code block looks visually quiet — color used <10% of the page area by quick visual estimate.
 
 ## Rationale
-docs-server runs alongside the user's editor and terminal. A bright, saturated UI competes for visual attention with the work surface; a muted UI fades into the workspace. Light/dark preference varies by user and time-of-day, so picking one is a usability cliff for half the time the tool is in use. The hue-but-desaturated rule preserves the information value of color (you can tell `done` from `blocked` at a glance) without leaning on it as a primary visual driver.
+project-os-cockpit runs alongside the user's editor and terminal. A bright, saturated UI competes for visual attention with the work surface; a muted UI fades into the workspace. Light/dark preference varies by user and time-of-day, so picking one is a usability cliff for half the time the tool is in use. The hue-but-desaturated rule preserves the information value of color (you can tell `done` from `blocked` at a glance) without leaning on it as a primary visual driver.
 
 The 6-bucket status palette balances information density and visual quietness. The earlier 8-bucket scheme collapsed `planned` / `proposed` / `draft` / `todo` / `open` / `pending` / `triage` onto one cool-grey hue (one bucket too coarse for status scanning) but gave `verified`, `triage`, and `closed` their own hues (one bucket too fine for the muted aesthetic). Empirical analysis of the `your-trainer` corpus produced the bucket boundaries — `closed` collapses into Done-positive (terminal = off your radar), `wont-fix` / `cancelled` / `superseded` / `reverted` / `obsolete` / `retired` form the Done-negative bucket (terminal-without-success, desaturated grey), and `in-review` rejoins Active because PR-up-awaiting-review is in flight, not "needs sorting".
 

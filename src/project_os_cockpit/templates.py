@@ -24,7 +24,7 @@ from .wikilinks import Resolver, resolve_text_to_html
 # Project name shown in the header home-link. Set once at server startup
 # (see :func:`project_os_cockpit.server.serve`) from the docs root's parent dir.
 # Falls back to the docs root name if no parent is meaningful.
-_PROJECT_NAME: str = "docs-server"
+_PROJECT_NAME: str = "project-os-cockpit"
 
 
 def set_project_name(name: str) -> None:
@@ -73,7 +73,7 @@ HIDDEN_META_KEYS: frozenset[str] = frozenset({"aliases", "title"})
 THEME_BOOTSTRAP = """\
 (function () {
   try {
-    var saved = localStorage.getItem('docs-server.theme');
+    var saved = localStorage.getItem('project-os-cockpit.theme');
     var dark = saved === 'dark' ||
       (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
@@ -94,7 +94,7 @@ THEME_TOGGLE_SCRIPT = """\
     var current = document.documentElement.getAttribute('data-theme') || 'light';
     var next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('docs-server.theme', next); } catch (e) {}
+    try { localStorage.setItem('project-os-cockpit.theme', next); } catch (e) {}
     update();
   });
   update();
@@ -136,7 +136,7 @@ def page(
     reload_script = ""
     if reload_source:
         reload_meta = (
-            '<meta name="docs-server:source" '
+            '<meta name="project-os-cockpit:source" '
             f'content="{escape(reload_source)}">\n'
         )
         reload_script = '<script src="/_static/sse-reload.js" defer></script>\n'
@@ -172,7 +172,7 @@ def page(
         "<head>\n"
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{safe_title} — docs-server</title>\n"
+        f"<title>{safe_title} — project-os-cockpit</title>\n"
         f"{reload_meta}"
         '<link rel="stylesheet" href="/_static/base.css">\n'
         f"{cockpit_link}"
@@ -202,7 +202,7 @@ def page(
         + "</header>\n"
         f"{body_block}"
         f'<footer class="page-footer">'
-        f'<span class="brand-mark">docs-server</span>'
+        f'<span class="brand-mark">project-os-cockpit</span>'
         f'<span class="version-mark">v{escape(_VERSION)}</span>'
         '</footer>\n'
         f"<script>{THEME_TOGGLE_SCRIPT}</script>\n"

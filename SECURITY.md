@@ -12,10 +12,10 @@ tags: [security]
 
 ## Threat model
 
-`docs-server` runs locally and serves a project-os repo's `docs/` tree as HTML. Two surfaces:
+`project-os-cockpit` runs locally and serves a project-os repo's `docs/` tree as HTML. Two surfaces:
 
 1. **Render endpoint** — read-only HTTP. Intended to be reachable from devices on the same Wi-Fi (e.g. a tablet) for browsing the docs.
-2. **Terminal endpoint** *(optional, off by default)* — wraps a shell or AI coding assistant. Anyone who can reach this URL can run shell commands as the user running `docs-server`.
+2. **Terminal endpoint** *(optional, off by default)* — wraps a shell or AI coding assistant. Anyone who can reach this URL can run shell commands as the user running `project-os-cockpit`.
 
 ## Bindings (MUST)
 

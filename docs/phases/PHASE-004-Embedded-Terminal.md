@@ -30,7 +30,7 @@ Add the optional embedded local-only terminal panel — `ttyd`-driven by default
 - Authentication on the terminal endpoint (loopback bind is the security boundary).
 
 ## Exit criteria
-- `python -m docs_server <docs> --terminal --terminal-bind 127.0.0.1 --terminal-port 7681` starts the docs server and can be paired with `ttyd --interface lo --port 7681 claude`.
+- `python -m project_os_cockpit <docs> --terminal --terminal-bind 127.0.0.1 --terminal-port 7681` starts the docs server and can be paired with `ttyd --interface lo --port 7681 claude`.
 - Host browser sees the docs + iframe; LAN tablet sees the docs only.
 - Editing a `.md` from inside `claude`/`codex` triggers FEAT-0002's soft-reload of the corresponding open page.
 

@@ -16,7 +16,7 @@ mitigations: []
 # RISK-0001 — Terminal exposure
 
 ## Hazard
-The embedded terminal endpoint exposes shell access. If misconfigured to bind to `0.0.0.0` (or any interface other than `127.0.0.1`), anyone reachable on that interface can run shell commands as the user running docs-server. This is a privilege-escalation foothold for any device on the LAN.
+The embedded terminal endpoint exposes shell access. If misconfigured to bind to `0.0.0.0` (or any interface other than `127.0.0.1`), anyone reachable on that interface can run shell commands as the user running project-os-cockpit. This is a privilege-escalation foothold for any device on the LAN.
 
 ## Likelihood
 Low — the default is loopback-only, the feature is off by default, and binding it elsewhere requires deliberate flag changes.

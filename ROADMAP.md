@@ -27,6 +27,6 @@ The detailed plan lives in `docs/PHASES.md` and the per-feature notes under `doc
 
 ## Longer-term — PHASE-003 Downstream pilot
 
-- Deploy to `~/Dev/repos/your-applications.com/tools/docs-server/`.
+- Deploy to `~/Dev/repos/your-applications.com/tools/project-os-cockpit/`.
 - Harden the cross-repo invocation pattern (one upstream, many downstreams).
 - Document the deployment shim so other project-os repos can adopt it cleanly.

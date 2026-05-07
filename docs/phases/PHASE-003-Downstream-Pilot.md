@@ -16,12 +16,12 @@ depends_on: ["[[PHASE-001-MVP]]", "[[PHASE-002-Project-OS-Adapter]]"]
 # Phase 3: Downstream pilot
 
 ## Goal
-Validate the cross-repo invocation pattern by deploying docs-server in `~/Dev/repos/your-applications.com/tools/docs-server/`. Use it day-to-day on real project-os content and harden the pattern so other repos can adopt it.
+Validate the cross-repo invocation pattern by deploying project-os-cockpit in `~/Dev/repos/your-applications.com/tools/project-os-cockpit/`. Use it day-to-day on real project-os content and harden the pattern so other repos can adopt it.
 
 ## Scope
 
 ### In scope
-- Thin shim under `your-applications.com/tools/docs-server/` (wrapper script + README).
+- Thin shim under `your-applications.com/tools/project-os-cockpit/` (wrapper script + README).
 - Decided install mechanism (ADR-0003 — to be authored before this phase ships).
 - Documentation updates in the upstream `docs/ARCHITECTURE.md` reflecting what we learned.
 
