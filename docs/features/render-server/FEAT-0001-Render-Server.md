@@ -27,7 +27,7 @@ A small Python HTTP server that, pointed at any project-os repo's `docs/` direct
   - `[[wikilink]]` resolver supporting `[[Title]]`, `[[Title|Display]]`, `[[ID-####]]`, and frontmatter-defined aliases.
   - Auto-generated index pages by type and status.
   - Path-traversal guard: refuse to serve outside the configured docs root.
-  - Shared HTML template with a brand-aligned CSS file (header, content area, sidebar, footer).
+  - Shared HTML template with a CSS file (header, content area, sidebar, footer) that follows the visual contract in [[REQ-0012]] — muted greyscale palette, semantic-only color, dual light/dark themes via CSS custom properties.
 - **Out of scope:**
   - Live reload — covered by FEAT-0002.
   - Embedded terminal — covered by FEAT-0003.

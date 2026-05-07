@@ -12,7 +12,7 @@ This document is the **semantic source of truth** for development phases. It map
 | Phase | Name | Description | Key Deliverables |
 |---|---|---|---|
 | [PHASE-001](phases/PHASE-001-MVP.md) | MVP | Renderer, live reload, embedded terminal — the smallest useful tool. | FEAT-0001, FEAT-0002, FEAT-0003 |
-| [PHASE-002](phases/PHASE-002-Project-OS-Adapter.md) | Project-os adapter | ID resolution polish, auto-index pages, backlinks panel. | FEAT-0004 |
+| [PHASE-002](phases/PHASE-002-Project-OS-Adapter.md) | Project-os adapter | ID resolution polish, auto-index pages, backlinks panel, bases-driven cockpit layout. | FEAT-0004, FEAT-0006 |
 | [PHASE-003](phases/PHASE-003-Downstream-Pilot.md) | Downstream pilot | Deploy under `your-applications.com/tools/docs-server/`. Validate cross-repo invocation. | FEAT-0005 |
 
 ## Active phase

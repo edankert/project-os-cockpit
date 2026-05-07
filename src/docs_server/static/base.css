@@ -1,0 +1,379 @@
+/* docs-server base stylesheet
+ *
+ * Visual contract: REQ-0012 — muted greyscale palette, semantic-only color,
+ * dual light/dark themes. All colors are CSS custom properties; component
+ * rules use var(--token) only. Accents are ≤60% saturation.
+ */
+
+:root {
+  --bg:            hsl(0 0% 99%);
+  --surface:      hsl(0 0% 96%);
+  --surface-2:    hsl(0 0% 92%);
+  --border:       hsl(0 0% 86%);
+  --border-strong: hsl(0 0% 76%);
+  --text:         hsl(0 0% 13%);
+  --text-muted:   hsl(0 0% 38%);
+  --text-faint:   hsl(0 0% 55%);
+
+  --accent-link:   hsl(212 48% 42%);
+  --accent-link-hover: hsl(212 55% 35%);
+  --accent-focus:  hsl(212 60% 50%);
+
+  --status-active:   hsl(140 32% 38%);
+  --status-doing:    hsl(36 50% 40%);
+  --status-done:     hsl(140 22% 42%);
+  --status-verified: hsl(180 32% 36%);
+  --status-blocked:  hsl(5 48% 46%);
+  --status-backlog:  hsl(220 14% 48%);
+  --status-triage:   hsl(285 26% 48%);
+  --status-closed:   hsl(0 0% 50%);
+  --status-default:  hsl(0 0% 45%);
+
+  --error-fg: hsl(5 48% 38%);
+  --error-bg: hsl(5 38% 96%);
+  --warn-fg:  hsl(36 50% 32%);
+  --warn-bg:  hsl(36 50% 95%);
+
+  --code-bg:    hsl(0 0% 95%);
+  --code-text:  hsl(0 0% 18%);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  --radius:    4px;
+  --radius-lg: 6px;
+
+  --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.04);
+}
+
+[data-theme="dark"] {
+  --bg:           hsl(0 0% 11%);
+  --surface:      hsl(0 0% 14%);
+  --surface-2:    hsl(0 0% 17%);
+  --border:       hsl(0 0% 22%);
+  --border-strong: hsl(0 0% 32%);
+  --text:         hsl(0 0% 87%);
+  --text-muted:   hsl(0 0% 65%);
+  --text-faint:   hsl(0 0% 50%);
+
+  --accent-link:   hsl(212 50% 65%);
+  --accent-link-hover: hsl(212 55% 72%);
+  --accent-focus:  hsl(212 55% 60%);
+
+  --status-active:   hsl(140 32% 60%);
+  --status-doing:    hsl(36 48% 60%);
+  --status-done:     hsl(140 22% 58%);
+  --status-verified: hsl(180 30% 58%);
+  --status-blocked:  hsl(5 50% 65%);
+  --status-backlog:  hsl(220 14% 65%);
+  --status-triage:   hsl(285 26% 66%);
+  --status-closed:   hsl(0 0% 55%);
+  --status-default:  hsl(0 0% 60%);
+
+  --error-fg: hsl(5 50% 70%);
+  --error-bg: hsl(5 30% 18%);
+  --warn-fg:  hsl(36 48% 65%);
+  --warn-bg:  hsl(36 30% 18%);
+
+  --code-bg:   hsl(0 0% 16%);
+  --code-text: hsl(0 0% 88%);
+
+  --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.4);
+}
+
+/* ----- Reset & base ----- */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-link);
+  text-decoration: none;
+}
+a:hover { color: var(--accent-link-hover); text-decoration: underline; }
+a:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ----- Page chrome ----- */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.page-header .brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.page-header .breadcrumb {
+  flex: 1;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page-header .breadcrumb a { color: var(--text-muted); }
+.page-header .breadcrumb a:hover { color: var(--accent-link); }
+.page-header .breadcrumb .sep {
+  margin: 0 6px;
+  color: var(--text-faint);
+}
+
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.theme-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+
+/* ----- Main layout ----- */
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 32px 80px;
+}
+
+/* ----- Metadata strip ----- */
+
+.metadata-strip {
+  margin-bottom: 28px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.metadata-strip dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.metadata-strip dt {
+  font-weight: 500;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  padding-top: 3px;
+}
+
+.metadata-strip dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.metadata-strip dd .meta-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+/* ----- Status chips ----- */
+
+.status-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  vertical-align: middle;
+  color: var(--status-default);
+  text-transform: lowercase;
+}
+.status-chip[data-status="active"]   { color: var(--status-active); }
+.status-chip[data-status="doing"]    { color: var(--status-doing); }
+.status-chip[data-status="next"]     { color: var(--status-doing); }
+.status-chip[data-status="in-progress"] { color: var(--status-doing); }
+.status-chip[data-status="done"]     { color: var(--status-done); }
+.status-chip[data-status="verified"] { color: var(--status-verified); }
+.status-chip[data-status="passing"]  { color: var(--status-verified); }
+.status-chip[data-status="approved"] { color: var(--status-active); }
+.status-chip[data-status="accepted"] { color: var(--status-active); }
+.status-chip[data-status="merged"]   { color: var(--status-done); }
+.status-chip[data-status="published"] { color: var(--status-done); }
+.status-chip[data-status="fixed"]    { color: var(--status-done); }
+.status-chip[data-status="blocked"]  { color: var(--status-blocked); }
+.status-chip[data-status="reopened"] { color: var(--status-blocked); }
+.status-chip[data-status="failing"]  { color: var(--status-blocked); }
+.status-chip[data-status="backlog"]  { color: var(--status-backlog); }
+.status-chip[data-status="planned"]  { color: var(--status-backlog); }
+.status-chip[data-status="proposed"] { color: var(--status-backlog); }
+.status-chip[data-status="draft"]    { color: var(--status-backlog); }
+.status-chip[data-status="todo"]     { color: var(--status-backlog); }
+.status-chip[data-status="open"]     { color: var(--status-backlog); }
+.status-chip[data-status="pending"]  { color: var(--status-backlog); }
+.status-chip[data-status="triage"]   { color: var(--status-triage); }
+.status-chip[data-status="closed"]   { color: var(--status-closed); }
+.status-chip[data-status="obsolete"] { color: var(--status-closed); }
+.status-chip[data-status="reference"] { color: var(--status-triage); }
+
+/* ----- Article ----- */
+
+.content {
+  color: var(--text);
+}
+
+.content h1, .content h2, .content h3,
+.content h4, .content h5, .content h6 {
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.6em 0 0.5em;
+}
+.content h1 { font-size: 1.85em; margin-top: 0.2em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+.content h2 { font-size: 1.4em;  border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+.content h3 { font-size: 1.15em; }
+.content h4 { font-size: 1em; color: var(--text-muted); }
+
+.content p { margin: 0.8em 0; }
+
+.content ul, .content ol { padding-left: 1.4em; margin: 0.6em 0; }
+.content li { margin: 0.15em 0; }
+.content li > p { margin: 0.2em 0; }
+
+.content blockquote {
+  margin: 0.8em 0;
+  padding: 0.4em 1em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-muted);
+  background: var(--surface);
+}
+
+.content hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.6em 0;
+}
+
+.content code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.content pre {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+}
+.content pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.content table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  width: 100%;
+  font-size: 0.95em;
+}
+.content th, .content td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.content th {
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom-color: var(--border-strong);
+}
+
+.content img {
+  max-width: 100%;
+  border-radius: var(--radius);
+}
+
+/* ----- Error / not-found / placeholder pages ----- */
+
+.notice {
+  margin: 24px auto;
+  max-width: 640px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+.notice.error  { border-color: var(--error-fg); background: var(--error-bg); color: var(--error-fg); }
+.notice h2 { margin-top: 0; }
+.notice code { background: var(--surface-2); }
+
+/* ----- Directory listing (used for index pages) ----- */
+
+.dir-listing {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.dir-listing li {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.dir-listing li:last-child { border-bottom: 0; }
+.dir-listing li:hover { background: var(--surface); }
+.dir-listing .meta {
+  margin-left: 8px;
+  color: var(--text-faint);
+  font-size: 0.9em;
+}
+.dir-listing .dir::before {
+  content: "▸ ";
+  color: var(--text-faint);
+}

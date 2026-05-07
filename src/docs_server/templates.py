@@ -1,0 +1,234 @@
+"""HTML page assembly: shell, metadata strip, breadcrumb, status chips.
+
+The shell follows REQ-0012 — theme tokens live in ``base.css``; the inline
+``<head>`` script resolves the theme before stylesheet apply so the user
+never sees a wrong-theme flash on first paint.
+"""
+
+from __future__ import annotations
+
+from html import escape
+from pathlib import PurePosixPath
+from typing import Any, Iterable
+
+# Frontmatter keys that get top billing in the metadata strip, in display order.
+# Anything else in frontmatter is folded into a generic "other" row at the end.
+PRIMARY_META_KEYS: tuple[str, ...] = (
+    "id",
+    "type",
+    "status",
+    "phase",
+    "owner",
+    "parent",
+    "implements",
+    "specifies",
+    "fixes",
+    "validates",
+    "blocks",
+    "depends",
+    "related",
+    "source",
+    "tags",
+    "created",
+    "updated",
+    "due",
+    "effort",
+    "priority",
+    "platform",
+)
+
+# Hidden in the strip (noise / housekeeping).
+HIDDEN_META_KEYS: frozenset[str] = frozenset({"aliases", "title"})
+
+THEME_BOOTSTRAP = """\
+(function () {
+  try {
+    var saved = localStorage.getItem('docs-server.theme');
+    var dark = saved === 'dark' ||
+      (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  } catch (e) {}
+})();
+"""
+
+THEME_TOGGLE_SCRIPT = """\
+(function () {
+  var btn = document.querySelector('.theme-toggle');
+  if (!btn) return;
+  function update() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+    btn.textContent = t === 'dark' ? '\\u25D1' : '\\u25D0';
+  }
+  btn.addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('docs-server.theme', next); } catch (e) {}
+    update();
+  });
+  update();
+})();
+"""
+
+
+def page(
+    *,
+    title: str,
+    body_html: str,
+    rel_path: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> str:
+    """Assemble a full HTML document for a rendered note or status page."""
+    breadcrumb = _breadcrumb_html(rel_path) if rel_path else ""
+    meta_html = _metadata_strip_html(metadata) if metadata else ""
+    safe_title = escape(title)
+
+    return (
+        "<!doctype html>\n"
+        '<html lang="en">\n'
+        "<head>\n"
+        '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        f"<title>{safe_title} — docs-server</title>\n"
+        '<link rel="stylesheet" href="/_static/base.css">\n'
+        f"<script>{THEME_BOOTSTRAP}</script>\n"
+        "</head>\n"
+        '<body>\n'
+        '<header class="page-header">\n'
+        '  <span class="brand">docs-server</span>\n'
+        f'  <nav class="breadcrumb" aria-label="Breadcrumb">{breadcrumb}</nav>\n'
+        '  <button class="theme-toggle" type="button" aria-label="Toggle light / dark theme" aria-pressed="false">◐</button>\n'
+        "</header>\n"
+        '<main class="page">\n'
+        f"{meta_html}"
+        f'<article class="content">\n{body_html}\n</article>\n'
+        "</main>\n"
+        f"<script>{THEME_TOGGLE_SCRIPT}</script>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+
+def notice_page(
+    *,
+    title: str,
+    heading: str,
+    body_html: str,
+    error: bool = False,
+) -> str:
+    """Minimal page for 403 / 404 / placeholder content."""
+    cls = "notice error" if error else "notice"
+    body = (
+        f'<div class="{cls}">\n'
+        f"<h2>{escape(heading)}</h2>\n"
+        f"{body_html}\n"
+        "</div>\n"
+    )
+    return page(title=title, body_html=body)
+
+
+# ---------------------------------------------------------------------------
+# Internals
+# ---------------------------------------------------------------------------
+
+
+def _breadcrumb_html(rel_path: str) -> str:
+    parts = [p for p in PurePosixPath(rel_path).parts if p not in (".", "/")]
+    if not parts:
+        return f'<a href="/">root</a>'
+
+    crumbs: list[str] = [f'<a href="/">root</a>']
+    accum = ""
+    for i, part in enumerate(parts):
+        accum = f"{accum}/{part}" if accum else part
+        is_last = i == len(parts) - 1
+        if is_last:
+            crumbs.append(f"<span>{escape(part)}</span>")
+        else:
+            href = f"/docs/{accum}/"
+            crumbs.append(f'<a href="{escape(href)}">{escape(part)}</a>')
+    return '<span class="sep">/</span>'.join(crumbs)
+
+
+def _metadata_strip_html(meta: dict[str, Any]) -> str:
+    if not meta:
+        return ""
+
+    pairs: list[tuple[str, str]] = []
+    seen: set[str] = set()
+
+    for key in PRIMARY_META_KEYS:
+        if key in HIDDEN_META_KEYS:
+            continue
+        if key in meta and meta[key] not in (None, "", [], {}):
+            pairs.append((key, _render_meta_value(key, meta[key])))
+            seen.add(key)
+
+    for key, value in meta.items():
+        if key in HIDDEN_META_KEYS or key in seen:
+            continue
+        if value in (None, "", [], {}):
+            continue
+        pairs.append((key, _render_meta_value(key, value)))
+
+    if not pairs:
+        return ""
+
+    rows = "\n".join(
+        f"  <dt>{escape(k)}</dt>\n  <dd>{v}</dd>"
+        for k, v in pairs
+    )
+    return f'<aside class="metadata-strip"><dl>\n{rows}\n</dl></aside>\n'
+
+
+def _render_meta_value(key: str, value: Any) -> str:
+    """Render a single frontmatter value as HTML.
+
+    Status renders as a chip; lists render as comma-separated entries inside
+    a wrapping span; scalar values render as escaped text. Wikilink-shaped
+    strings (``[[Target]]`` / ``[[Target|Display]]``) render as plain text
+    here; TASK-0003 turns them into resolved anchors.
+    """
+    if key == "status":
+        return _status_chip(value)
+    if isinstance(value, list):
+        if not value:
+            return ""
+        items = [_render_scalar(v) for v in value]
+        return '<span class="meta-list">' + ", ".join(items) + "</span>"
+    if isinstance(value, dict):
+        items = [f"{escape(str(k))}: {_render_scalar(v)}" for k, v in value.items()]
+        return '<span class="meta-list">' + ", ".join(items) + "</span>"
+    return _render_scalar(value)
+
+
+def _render_scalar(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value)
+    return escape(text)
+
+
+def _status_chip(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(_status_chip(v) for v in value if v)
+    text = str(value).strip()
+    if not text:
+        return ""
+    slug = text.lower().replace(" ", "-")
+    return f'<span class="status-chip" data-status="{escape(slug)}">{escape(text)}</span>'
+
+
+def directory_listing_html(entries: Iterable[tuple[str, str, bool]]) -> str:
+    """Render a simple directory listing.
+
+    ``entries`` is an iterable of ``(href, label, is_dir)`` tuples.
+    """
+    items: list[str] = []
+    for href, label, is_dir in entries:
+        cls = "dir" if is_dir else "file"
+        items.append(
+            f'<li class="{cls}"><a href="{escape(href)}">{escape(label)}</a></li>'
+        )
+    return '<ul class="dir-listing">\n' + "\n".join(items) + "\n</ul>"

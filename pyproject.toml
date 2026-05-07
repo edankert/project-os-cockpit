@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docs-server"
+version = "0.1.0"
+description = "On-the-fly Markdown render server for project-os repos — frontmatter-aware, [[wikilink]] resolution, project-os ID linking, live reload via SSE."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Edwin Dankert", email = "edankert@gmail.com" },
+]
+keywords = ["markdown", "obsidian", "wikilinks", "project-os", "documentation", "live-reload"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
+dependencies = [
+    "markdown>=3.6",
+    "pymdown-extensions>=10.7",
+    "python-frontmatter>=1.1",
+    "pyyaml>=6.0",
+    "watchdog>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+docs-server = "docs_server.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/edwindankert/docs-server"
+Repository = "https://github.com/edwindankert/docs-server"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["docs_server*"]
+
+[tool.setuptools.package-data]
+docs_server = ["py.typed", "static/*.css", "static/*.js"]

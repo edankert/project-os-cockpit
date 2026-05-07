@@ -10,13 +10,14 @@ created: 2026-05-07
 updated: 2026-05-07
 features:
   - "[[FEAT-0004-Project-OS-Adapter]]"
+  - "[[FEAT-0006-Cockpit-Layout]]"
 depends_on: ["[[PHASE-001-MVP]]"]
 ---
 
 # Phase 2: Project-os adapter
 
 ## Goal
-Polish the rendering for project-os specifically: status badges from frontmatter, parent-link breadcrumbs, structured backlinks panel, and auto-index pages following the project-os taxonomy. Turn the basic renderer into a project-os dashboard.
+Polish the rendering for project-os specifically: status badges from frontmatter, parent-link breadcrumbs, structured backlinks panel, auto-index pages following the project-os taxonomy, *and* a bases-driven 3-pane cockpit layout that mirrors Edwin's Obsidian workflow in the browser. Turn the basic renderer into a project-os dashboard.
 
 ## Scope
 
@@ -26,9 +27,9 @@ Polish the rendering for project-os specifically: status badges from frontmatter
 - Backlinks panel listing notes that link to the current page, grouped by note type.
 - Surfacing `SNAPSHOT.yaml` `focus` on the landing page.
 - Cross-repo references rendered as plain links without breaking page rendering.
+- **Bases-driven 3-pane cockpit (FEAT-0006):** any `.base` file mountable as a pane, JSON API + vanilla-JS client renderer, `this.file` propagation for right-pane re-evaluation on active-note change, SSE-driven re-fetch on edits.
 
 ### Out of scope
-- Bases (`.base` files) rendering — separate future phase.
 - Edit-via-web (read-only stays read-only).
 - Full-text search.
 
@@ -36,6 +37,7 @@ Polish the rendering for project-os specifically: status badges from frontmatter
 - A FEAT-#### note's rendered page shows: status badge, breadcrumb, backlinks list.
 - `/index/features` and friends are usefully grouped and linked.
 - Landing page surfaces `focus.task` / `focus.feature` / `focus.phase` from SNAPSHOT.
+- Default cockpit (NAV.base left / rendered note centre / CONTEXT.base right) works against this repo's own `docs/`; non-default cockpits (any `.base` in any pane via CLI flags) work without code changes.
 
 ## Dependencies
 PHASE-001 must be complete before this starts — there's no project-os adapter to layer onto without a working renderer.
