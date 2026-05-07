@@ -33,11 +33,10 @@ A script `tools/scripts/release-to-project-os.sh` in this repo SHALL:
 1. Refuse to run if `git status` in the canonical repo is dirty (forces deliberate sync moments).
 2. Refuse to run if the project-os destination has uncommitted local edits (prevents silent overwrites of any drift the LLM didn't authorise).
 3. Copy the deployable source set into `~/Dev/repos/project-os/tools/docs-server/`:
-   - `src/docs_server/` (Python package)
+   - `src/docs_server/` (Python package — the only thing run at runtime)
    - `pyproject.toml`
    - `README.md`
-   - `tests/` (so downstream consumers can verify their copy passes)
-   - Excluded: `.venv/`, `__pycache__`, `.pytest_cache`, `dist/`, `build/`, `*.egg-info`, editor temp files.
+   - Excluded: `tests/` (dev-only — lives in the canonical repo, not the delivery copy), `.venv/`, `__pycache__`, `.pytest_cache`, `dist/`, `build/`, `*.egg-info`, editor temp files.
 4. Stamp a `CANONICAL_SHA` text file in the project-os copy carrying the canonical-repo commit SHA at sync time, for one-line provenance.
 5. Stamp a `CANONICAL_DATE` text file with the ISO date of the sync, so a `cat` reveals when the copy was last refreshed.
 
@@ -61,7 +60,7 @@ This is the discipline that makes dual-repo viable. Forgetting to sync is the fa
 - Running when the project-os copy has uncommitted local edits fails fast with a clear error pointing at `git status`.
 - `project-os/tools/docs-server/run.sh <docs-path>` from inside any downstream project starts the docs-server cockpit against the given docs path, after a one-time venv bootstrap.
 - LIFECYCLE.md (or equivalent) carries a rule that obligates the agent to run the sync as part of close-out for any CHG that touches docs-server source.
-- A unit test in `tests/test_release.py` verifies the sync against a temp dir: dirty-tree refusal, expected file set after a clean sync, presence of stamps.
+- A unit test in `tests/test_release.py` verifies the sync against a temp dir: dirty-tree refusal, expected file set after a clean sync, presence of stamps, AND the absence of `tests/` in the destination (delivery artefacts must not ship the test suite).
 
 ## Rationale
 Two sources of truth become unmaintainable when sync is a human-attention task. With LLM-managed close-out, "always run the sync after a touching-docs-server CHG" is reliable — humans skip steps; agents under a rule do not. This pattern lets us:

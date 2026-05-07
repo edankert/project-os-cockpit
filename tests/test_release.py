@@ -96,11 +96,15 @@ def test_release_happy_path_writes_expected_files(tmp_path: Path) -> None:
 
     dest = project_os / "tools" / "docs-server"
     assert (dest / "src" / "docs_server" / "__init__.py").is_file()
-    assert (dest / "tests" / "test_index.py").is_file()
     assert (dest / "pyproject.toml").is_file()
     assert (dest / "README.md").is_file()
     assert (dest / "CANONICAL_SHA").is_file()
     assert (dest / "CANONICAL_DATE").is_file()
+    # tests/ is a dev-only artefact and must NOT ship to project-os.
+    assert not (dest / "tests").exists(), (
+        "tests/ leaked into the synced copy — delivery artefacts shouldn't "
+        "carry the test suite; that lives in the canonical repo."
+    )
 
     # Provenance stamps look right.
     sha = (dest / "CANONICAL_SHA").read_text().strip()

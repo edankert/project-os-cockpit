@@ -22,13 +22,13 @@ tests: []
 # TASK-0020 — Release docs-server to project-os
 
 ## Definition of Done
-- [x] `tools/scripts/release-to-project-os.sh` syncs the deployable source set (`src/docs_server/`, `pyproject.toml`, `README.md`, `tests/`) into `~/Dev/repos/project-os/tools/docs-server/`, with the standard exclude set (`.venv`, `__pycache__`, `.pytest_cache`, `dist`, `build`, `*.egg-info`).
+- [x] `tools/scripts/release-to-project-os.sh` syncs the deployable source set (`src/docs_server/`, `pyproject.toml`, `README.md`) into `~/Dev/repos/project-os/tools/docs-server/`, with the standard exclude set (`.venv`, `__pycache__`, `.pytest_cache`, `dist`, `build`, `*.egg-info`). `tests/` is intentionally NOT synced — delivery artefact, not a dev environment.
 - [x] Script refuses to run on a dirty canonical-repo working tree (`git diff --quiet && git diff --cached --quiet` gates the sync).
 - [x] Script refuses to run when the project-os destination has uncommitted local edits (forces deliberate review of any drift).
 - [x] Script stamps `CANONICAL_SHA` (canonical commit hash) and `CANONICAL_DATE` (ISO date) into the project-os copy for one-line provenance.
 - [x] `~/Dev/repos/project-os/tools/docs-server/run.sh` is a ~30-line bash wrapper that ensures a venv exists, `pip install -e .`'s the synced source, then `exec python -m docs_server "$@"`.
 - [x] LIFECYCLE.md (this repo's `tools/instructions/LIFECYCLE.md`) carries a close-out rule: when a CHG touches `src/docs_server/` or `pyproject.toml`, the agent runs the sync and commits the result.
-- [x] `tests/test_release.py` verifies the sync against a temp dir: dirty-tree refusal (PASS) + happy-path file set / stamps (auto-skips when canonical is dirty; runs the assertions when clean — see below).
+- [x] `tests/test_release.py` verifies the sync against a temp dir: dirty-tree refusal (PASS) + happy-path file set / stamps + asserts `tests/` is absent from the destination (auto-skips when canonical is dirty; runs the assertions when clean — see below).
 - [ ] Initial sync run executed; project-os/tools/docs-server/ committed with the bootstrap copy. **(Pending: requires committing the canonical-side work first so the script's dirty-tree guard passes; see Notes.)**
 
 ## Steps

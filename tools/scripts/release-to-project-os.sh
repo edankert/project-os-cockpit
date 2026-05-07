@@ -13,12 +13,15 @@
 #   from project-os — but only inside tools/docs-server/, scoped tightly.
 #
 # Outputs in the project-os copy:
-#   src/docs_server/  — the package source tree
-#   tests/            — the unit tests (downstream consumers can run them)
+#   src/docs_server/  — the package source tree (the only thing run at runtime)
 #   pyproject.toml
 #   README.md
 #   CANONICAL_SHA     — canonical commit hash at sync time
 #   CANONICAL_DATE    — ISO date of the sync
+#
+# tests/ is intentionally NOT synced — the project-os copy is a delivery
+# artefact, not a dev environment. Tests live in the canonical repo where
+# development happens.
 #
 # Spec: REQ-0017. Implemented by TASK-0020.
 
@@ -80,9 +83,11 @@ RSYNC_OPTS=(
 )
 
 rsync "${RSYNC_OPTS[@]}" "$CANONICAL_ROOT/src/"        "$DEST/src/"
-rsync "${RSYNC_OPTS[@]}" "$CANONICAL_ROOT/tests/"      "$DEST/tests/"
 cp "$CANONICAL_ROOT/pyproject.toml"                    "$DEST/pyproject.toml"
 cp "$CANONICAL_ROOT/README.md"                         "$DEST/README.md"
+
+# Remove any previously-synced tests/ directory from older runs.
+rm -rf "$DEST/tests"
 
 # -------- write provenance stamps --------------------------------------
 
