@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-08T03:00Z"
+updated: "2026-05-08T04:00Z"
 
 template:
   replace_me: false
@@ -36,11 +36,11 @@ counters:
   RISK: 3
   REL: 0
   TASK: 14
-  TST: 1
+  TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0012"
+  task: "TASK-0013"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -69,15 +69,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0012:
-      title: "Cockpit JSON API (features-by-phase + links/backlinks)"
-      status: next
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0012-Cockpit-Json-Api.md"
-      parent: "FEAT-0006"
     TASK-0013:
       title: "Cockpit shell + JS pane renderer (code-driven layout)"
-      status: backlog
+      status: next
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0013-Cockpit-Shell-And-Renderer.md"
       parent: "FEAT-0006"
@@ -170,6 +164,11 @@ items:
       status: passing
       path: "docs/tests/TST-0001-Index-Lookup-And-Backlinks.md"
       validates: ["REQ-0002", "REQ-0008"]
+    TST-0002:
+      title: "Cockpit JSON API — nav + context payloads"
+      status: passing
+      path: "docs/tests/TST-0002-Cockpit-Json-Api.md"
+      validates: ["REQ-0013"]
   workflows: {}
   changes:
     CHG-20260507-Bootstrap-Python-Project:
@@ -214,6 +213,12 @@ items:
       path: "docs/changes/CHG-20260508-Backlink-Graph.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0007"
+    CHG-20260508-Cockpit-Json-Api:
+      title: "Cockpit JSON API: /api/cockpit/{nav,context}"
+      status: merged
+      path: "docs/changes/CHG-20260508-Cockpit-Json-Api.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0012"
   releases: {}
 
   decisions:
@@ -239,9 +244,9 @@ metrics:
     features_total: 6
     features_done: 2
     tasks_total: 14
-    tasks_done: 7
-    tests_total: 1
-    tests_passing: 1
+    tasks_done: 8
+    tests_total: 2
+    tests_passing: 2
     tests_failing: 0
     issues_open: 0
     issues_triage: 0

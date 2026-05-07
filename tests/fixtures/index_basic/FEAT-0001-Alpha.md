@@ -4,6 +4,8 @@ id: FEAT-0001
 aliases: ["FEAT-0001"]
 title: "Alpha feature"
 status: active
+phase: "[[PHASE-001-Foundation]]"
+goal: "Demonstrate the alpha"
 related: ["[[FEAT-0002]]"]
 ---
 

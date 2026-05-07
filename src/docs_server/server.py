@@ -14,6 +14,7 @@ shell (FEAT-0006) layer on top of this in later tasks.
 
 from __future__ import annotations
 
+import json
 import logging
 import mimetypes
 import queue
@@ -21,9 +22,9 @@ import urllib.parse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
-from . import renderer, templates
+from . import cockpit, renderer, templates
 from .events import EventBus
 from .index import Index
 from .watcher import Watcher
@@ -151,6 +152,14 @@ def _make_handler(
                 self._serve_sse()
                 return
 
+            if path == "/api/cockpit/nav":
+                self._serve_cockpit_nav()
+                return
+
+            if path == "/api/cockpit/context":
+                self._serve_cockpit_context(parsed.query)
+                return
+
             if path.startswith("/_static/"):
                 self._serve_static(path[len("/_static/"):])
                 return
@@ -203,6 +212,19 @@ def _make_handler(
                 docs_root_name=docs_root.name or "docs",
             )
             self._respond_html(HTTPStatus.OK, html)
+
+        # ---- Cockpit JSON API ----
+
+        def _serve_cockpit_nav(self) -> None:
+            payload = cockpit.nav_payload(index)
+            self._respond_json(payload)
+
+        def _serve_cockpit_context(self, query_string: str) -> None:
+            params = urllib.parse.parse_qs(query_string)
+            this_values = params.get("this", [])
+            this_value = this_values[0] if this_values else None
+            payload = cockpit.context_payload(index, this_value)
+            self._respond_json(payload)
 
         # ---- SSE channel ----
 
@@ -377,6 +399,20 @@ def _make_handler(
             data = html.encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _respond_json(
+            self, payload: Any, status: HTTPStatus = HTTPStatus.OK
+        ) -> None:
+            data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header(
+                "X-Cockpit-Schema", str(cockpit.SCHEMA_VERSION)
+            )
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()

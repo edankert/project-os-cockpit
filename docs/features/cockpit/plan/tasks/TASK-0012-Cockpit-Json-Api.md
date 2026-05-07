@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0012
 aliases: ["TASK-0012"]
 title: "Cockpit JSON API (features-by-phase + links/backlinks)"
-status: next
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
@@ -16,26 +16,30 @@ due: ""
 depends: [TASK-0007]
 blocks: [TASK-0013]
 related: ["[[ADR-0004]]"]
-tests: []
+tests: ["[[TST-0002]]"]
 ---
 
 # Cockpit JSON API
 
 ## Definition of Done
-- [ ] `GET /api/cockpit/nav` returns the left-pane payload — every feature note grouped by phase, with `id` / `title` / `status` / `goal` per row plus the phase note's URL for the group header link.
-- [ ] `GET /api/cockpit/context?this=<note-id-or-rel-path>` returns the right-pane payload for the given active note: `linked` (outbound) + `backlinks` (inbound minus outbound), each section a list of `{type, items}` groups; every item carries `id` / `title` / `status` / `priority` / `url`.
-- [ ] When `this` is missing or unresolvable, `/api/cockpit/context` returns 200 with empty `linked` and `backlinks` lists (no error).
-- [ ] Both endpoints set `Content-Type: application/json; charset=utf-8` and an `X-Cockpit-Schema: 1` header so the JS client can detect schema bumps.
-- [ ] Unit tests covering: the nav payload includes every non-template feature grouped by their `phase` value; the context payload's `backlinks` excludes any item already in `linked`; templates are excluded; an unknown `this` yields empty lists.
+- [x] `GET /api/cockpit/nav` returns features grouped by phase with `id` / `title` / `status` / `goal` per row + phase metadata (`phase_id`, `phase_title`, `phase_url`).
+- [x] `GET /api/cockpit/context?this=<note-id-or-rel-path>` returns `linked` (outbound) + `backlinks` (inbound minus outbound), each grouped by `type`, with `id` / `title` / `status` / `priority` / `url` per item.
+- [x] Missing or unresolvable `this` returns 200 with `active: null` + empty lists — no exception.
+- [x] Both endpoints set `Content-Type: application/json; charset=utf-8` and `X-Cockpit-Schema: 1`.
+- [x] 13 unit tests in `tests/test_cockpit.py` ([[TST-0002]]) cover both endpoints' shape, type-grouping, the inbound-only exclusion logic, template filtering, the `this`-by-id and `this`-by-path resolution paths, and the empty-payload contract. All passing in <100 ms.
 
 ## Steps
-- [ ] Add `Index.features_by_phase()` (or equivalent helper) that returns a stable-sorted `dict[phase_label, list[NoteRecord]]` for every non-template `type: feature` note.
-- [ ] Add `/api/cockpit/nav` and `/api/cockpit/context` route handlers in `server.py` next to the existing `/index/<plural>` and SSE handlers.
-- [ ] JSON serialiser: `{id, title, status, priority, url}` for items; phase headers carry the resolved phase note URL via `Index.by_id`.
-- [ ] Plug into the existing path-traversal and case-folding helpers from `events.py` for any incoming path-shaped `this` parameter.
-- [ ] Tests in `tests/test_cockpit_api.py` against an extended fixture (a feature with outbound + inbound + a unique-inbound case).
+- [x] Built `src/docs_server/cockpit.py` with pure functions `nav_payload(index)` and `context_payload(index, this)`. Pure-function shape keeps the unit tests at the dict level, no HTTP plumbing.
+- [x] Added route handlers `_serve_cockpit_nav` and `_serve_cockpit_context` in `server.py` next to the existing `/index/<plural>` and `/_events` routes.
+- [x] Added `_respond_json(payload, status)` helper next to `_respond_html`. Sets `X-Cockpit-Schema` automatically; clients can detect schema bumps without parsing the body.
+- [x] `_resolve_this` accepts both id/alias forms (`FEAT-0001`) and path forms (`FEAT-0001-Alpha.md`, `/docs/FEAT-0001-Alpha.md`) — the JS client can hand over either.
+- [x] Phase grouping uses the `order` frontmatter field for predictable sequencing; phases without `order` land at the end. Items within a phase sort by `id`.
+- [x] Right-pane type ordering uses the `TYPE_ORDER` tuple in `cockpit.py` (feature → task → requirement → … → plan → dashboard); types outside that list go alphabetically at the end.
+- [x] Templates under `__templates__/` are filtered out of both endpoints' lists (so `FEAT-0000`, `TASK-0000`, etc. don't pollute the cockpit).
 
 ## Notes
+**Verified against this repo's `docs/`:** `/api/cockpit/nav` returns 4 phase groups (PHASE-001 / 002 / 003 / 004) with the right features under each; `/api/cockpit/context?this=FEAT-0001` returns 6 outbound items (1 requirement, 4 changes, 1 phase) and 15 inbound-only items (5 tasks, 5 requirements, 2 risks, 2 ADRs, 1 change) with zero overlap.
+
 **Schema (v1):**
 
 ```json
