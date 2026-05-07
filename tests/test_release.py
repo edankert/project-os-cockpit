@@ -64,7 +64,7 @@ def test_release_refuses_dirty_canonical_tree(tmp_path: Path) -> None:
             "expected dirty-tree refusal, got success.\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert "uncommitted" in result.stderr.lower()
+        assert "not clean" in result.stderr.lower()
     finally:
         sentinel.unlink(missing_ok=True)
 

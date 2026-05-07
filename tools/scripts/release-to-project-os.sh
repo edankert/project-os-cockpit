@@ -41,11 +41,15 @@ fi
 
 # -------- guard: canonical repo must be clean --------------------------
 
+# Use `git status --porcelain` rather than `git diff --quiet` so untracked
+# files (work-in-progress not yet `git add`-ed) also block. The project-os
+# copy stamps CANONICAL_SHA=HEAD; if HEAD doesn't represent the working
+# tree, the stamp lies.
 cd "$CANONICAL_ROOT"
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "error: canonical repo ($CANONICAL_ROOT) has uncommitted changes." >&2
-  echo "       commit or stash before releasing — the project-os copy" >&2
-  echo "       must trace to a real canonical commit." >&2
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "error: canonical repo ($CANONICAL_ROOT) is not clean." >&2
+  echo "       commit (or .gitignore) before releasing — the project-os" >&2
+  echo "       copy must trace to a real canonical commit." >&2
   git status --short >&2
   exit 3
 fi
@@ -54,8 +58,7 @@ fi
 
 if [[ -d "$DEST" ]]; then
   cd "$PROJECT_OS_ROOT"
-  if ! git diff --quiet -- "tools/docs-server" \
-      || ! git diff --cached --quiet -- "tools/docs-server"; then
+  if [[ -n "$(git status --porcelain -- tools/docs-server)" ]]; then
     echo "error: project-os destination has uncommitted edits at" >&2
     echo "       $DEST" >&2
     echo "       review and commit / discard them before re-syncing." >&2
