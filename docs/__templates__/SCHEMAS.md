@@ -214,3 +214,36 @@ Fields:
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.workflows`) for agent context and linked from workflow notes.
+
+## `plan.md` (`type: [[plan]]`)
+
+Purpose: per-feature delivery sequence — the ordered list of tasks that land the feature, plus dependencies and open questions to pin during implementation.
+
+Naming:
+- Filename should be `PLAN.md`, located under `docs/features/<slug>/plan/PLAN.md`.
+- `id` should be `PLAN-FEAT-####` matching the parent feature's ID.
+
+Fields:
+- (required) `implements` (list of links): The feature this plan delivers (`[[FEAT-...]]`). Typically a single entry.
+- (optional) `related` (list of links): Other features/plans this plan touches.
+
+Statuses: `draft`, `active`, `done`.
+
+Where used:
+- Read alongside the feature note before any task starts.
+- Not tracked individually in `SNAPSHOT.yaml`; the parent feature's tasks carry the status the snapshot reports.
+
+## `dashboard.md` (`type: [[dashboard]]`)
+
+Purpose: a curated overview page — typically embedded `.base` views and narrative pointers — that a human uses as a landing page for a slice of the project.
+
+Naming:
+- No fixed filename pattern. Singletons (`DASHBOARD.md` at the repo's docs root) and per-area dashboards (`docs/dashboards/Features.md` etc.) are both fine.
+
+Fields:
+- Minimal frontmatter — `type` and `title` are typically the only required keys.
+- (optional) `id` / `aliases`: only when the dashboard needs to be wikilink-targetable beyond its filename.
+
+Where used:
+- Not tracked in `SNAPSHOT.yaml` — dashboards are presentation, not artefacts.
+- Bases dashboards (`docs/__bases__/*.base`) carry their own filter logic; a `dashboard.md` is the human-readable wrapper that embeds them.

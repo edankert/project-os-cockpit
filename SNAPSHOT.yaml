@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-07T21:00Z"
+updated: "2026-05-07T22:00Z"
 
 template:
   replace_me: false
@@ -40,7 +40,7 @@ counters:
   WF: 0
 
 focus:
-  task: "TASK-0003"
+  task: "TASK-0004"
   feature: "FEAT-0001"
   phase: "[[PHASE-001-MVP]]"
   issue: ""
@@ -79,15 +79,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0003:
-      title: "Implement [[wikilink]] resolver (titles + aliases + project-os IDs)"
-      status: next
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/render-server/plan/tasks/TASK-0003-Wikilink-Resolver.md"
-      parent: "FEAT-0001"
     TASK-0004:
       title: "Auto-generated index pages (features, tasks, requirements, etc. by status)"
-      status: backlog
+      status: next
       phase: "[[PHASE-001-MVP]]"
       path: "docs/features/render-server/plan/tasks/TASK-0004-Auto-Index-Pages.md"
       parent: "FEAT-0001"
@@ -229,6 +223,12 @@ items:
       path: "docs/changes/CHG-20260507-Render-Pipeline-Online.md"
       features: ["FEAT-0001"]
       source_task: "TASK-0002"
+    CHG-20260507-Wikilink-Resolver:
+      title: "Wikilink resolver + Obsidian-aligned rendering + plan/dashboard templates upstream"
+      status: merged
+      path: "docs/changes/CHG-20260507-Wikilink-Resolver.md"
+      features: ["FEAT-0001"]
+      source_task: "TASK-0003"
   releases: {}
 
   decisions:
@@ -250,7 +250,7 @@ metrics:
     features_total: 6
     features_done: 0
     tasks_total: 11
-    tasks_done: 2
+    tasks_done: 3
     tests_total: 0
     tests_passing: 0
     tests_failing: 0

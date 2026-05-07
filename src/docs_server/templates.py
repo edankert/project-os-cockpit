@@ -11,6 +11,8 @@ from html import escape
 from pathlib import PurePosixPath
 from typing import Any, Iterable
 
+from .wikilinks import Resolver, resolve_text_to_html
+
 # Frontmatter keys that get top billing in the metadata strip, in display order.
 # Anything else in frontmatter is folded into a generic "other" row at the end.
 PRIMARY_META_KEYS: tuple[str, ...] = (
@@ -78,10 +80,11 @@ def page(
     body_html: str,
     rel_path: str | None = None,
     metadata: dict[str, Any] | None = None,
+    resolver: Resolver | None = None,
 ) -> str:
     """Assemble a full HTML document for a rendered note or status page."""
     breadcrumb = _breadcrumb_html(rel_path) if rel_path else ""
-    meta_html = _metadata_strip_html(metadata) if metadata else ""
+    meta_html = _metadata_strip_html(metadata, resolver) if metadata else ""
     safe_title = escape(title)
 
     return (
@@ -151,7 +154,7 @@ def _breadcrumb_html(rel_path: str) -> str:
     return '<span class="sep">/</span>'.join(crumbs)
 
 
-def _metadata_strip_html(meta: dict[str, Any]) -> str:
+def _metadata_strip_html(meta: dict[str, Any], resolver: Resolver | None) -> str:
     if not meta:
         return ""
 
@@ -162,7 +165,7 @@ def _metadata_strip_html(meta: dict[str, Any]) -> str:
         if key in HIDDEN_META_KEYS:
             continue
         if key in meta and meta[key] not in (None, "", [], {}):
-            pairs.append((key, _render_meta_value(key, meta[key])))
+            pairs.append((key, _render_meta_value(key, meta[key], resolver)))
             seen.add(key)
 
     for key, value in meta.items():
@@ -170,7 +173,7 @@ def _metadata_strip_html(meta: dict[str, Any]) -> str:
             continue
         if value in (None, "", [], {}):
             continue
-        pairs.append((key, _render_meta_value(key, value)))
+        pairs.append((key, _render_meta_value(key, value, resolver)))
 
     if not pairs:
         return ""
@@ -182,31 +185,38 @@ def _metadata_strip_html(meta: dict[str, Any]) -> str:
     return f'<aside class="metadata-strip"><dl>\n{rows}\n</dl></aside>\n'
 
 
-def _render_meta_value(key: str, value: Any) -> str:
+def _render_meta_value(key: str, value: Any, resolver: Resolver | None) -> str:
     """Render a single frontmatter value as HTML.
 
-    Status renders as a chip; lists render as comma-separated entries inside
-    a wrapping span; scalar values render as escaped text. Wikilink-shaped
-    strings (``[[Target]]`` / ``[[Target|Display]]``) render as plain text
-    here; TASK-0003 turns them into resolved anchors.
+    Status renders as a chip; lists render as comma-separated entries
+    inside a wrapping span; scalar values render as text with wikilinks
+    resolved when a ``resolver`` is provided. Wikilink-shaped strings go
+    through the resolver like any other — including ``type: "[[feature]]"``,
+    which will render as an unresolved (broken) wikilink unless a
+    corresponding type-stub note exists. This matches Obsidian's behaviour.
     """
     if key == "status":
         return _status_chip(value)
     if isinstance(value, list):
         if not value:
             return ""
-        items = [_render_scalar(v) for v in value]
+        items = [_render_scalar(v, resolver) for v in value]
         return '<span class="meta-list">' + ", ".join(items) + "</span>"
     if isinstance(value, dict):
-        items = [f"{escape(str(k))}: {_render_scalar(v)}" for k, v in value.items()]
+        items = [
+            f"{escape(str(k))}: {_render_scalar(v, resolver)}"
+            for k, v in value.items()
+        ]
         return '<span class="meta-list">' + ", ".join(items) + "</span>"
-    return _render_scalar(value)
+    return _render_scalar(value, resolver)
 
 
-def _render_scalar(value: Any) -> str:
+def _render_scalar(value: Any, resolver: Resolver | None) -> str:
     if value is None:
         return ""
     text = str(value)
+    if resolver is not None and "[[" in text:
+        return resolve_text_to_html(text, resolver)
     return escape(text)
 
 

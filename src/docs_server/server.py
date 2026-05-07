@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Iterable
 
 from . import renderer, templates
+from .index import Index
 
 log = logging.getLogger("docs_server.server")
 
@@ -62,9 +63,10 @@ class DocsServer:
             raise NotADirectoryError(f"docs root is not a directory: {self.docs_root}")
         self.bind = bind
         self.port = port
+        self.index: Index = Index.build(self.docs_root)
 
     def run(self) -> None:
-        handler_cls = _make_handler(self.docs_root)
+        handler_cls = _make_handler(self.docs_root, self.index)
         with _NoDNSThreadingHTTPServer((self.bind, self.port), handler_cls) as httpd:
             log.info(
                 "docs-server listening on http://%s:%d (docs root: %s)",
@@ -83,8 +85,8 @@ class DocsServer:
                 print("\ndocs-server: shutting down.", flush=True)
 
 
-def _make_handler(docs_root: Path) -> type[BaseHTTPRequestHandler]:
-    """Build a request handler class with ``docs_root`` baked in."""
+def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]:
+    """Build a request handler class with ``docs_root`` and ``index`` baked in."""
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "docs-server/0.1"
@@ -195,7 +197,11 @@ def _make_handler(docs_root: Path) -> type[BaseHTTPRequestHandler]:
 
         def _render_markdown(self, source_path: Path, rel_path: str) -> None:
             try:
-                html = renderer.render_markdown_file(source_path, rel_path=rel_path)
+                html = renderer.render_markdown_file(
+                    source_path,
+                    rel_path=rel_path,
+                    resolver=index.resolve,
+                )
             except Exception as exc:  # pragma: no cover - dev-only safety net
                 log.exception("render failure for %s", source_path)
                 self._respond_html(

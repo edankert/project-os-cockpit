@@ -1,12 +1,9 @@
 """Markdown -> HTML render pipeline.
 
 Reads a ``.md`` source file, splits frontmatter via ``python-frontmatter``,
-runs Markdown via ``markdown`` + selected ``pymdownx`` extensions, and wraps
+runs Markdown via ``markdown`` + selected ``pymdownx`` extensions and the
+project's own :class:`docs_server.wikilinks.WikilinkExtension`, and wraps
 the result in the shared HTML shell from :mod:`docs_server.templates`.
-
-Wikilink resolution is intentionally out of scope here — TASK-0003 layers
-that on top of this pipeline by post-processing the rendered HTML (or by
-adding a markdown extension) using the index built in TASK-0007.
 """
 
 from __future__ import annotations
@@ -18,9 +15,10 @@ import frontmatter
 import markdown
 
 from . import templates
+from .wikilinks import Resolver, WikilinkExtension
 
 
-MARKDOWN_EXTENSIONS: list[str] = [
+MARKDOWN_EXTENSIONS_BASE: list[str] = [
     "tables",
     "fenced_code",
     "toc",
@@ -38,11 +36,18 @@ MARKDOWN_EXTENSION_CONFIGS: dict[str, dict[str, Any]] = {
 }
 
 
-def render_markdown_file(source_path: Path, *, rel_path: str) -> str:
+def render_markdown_file(
+    source_path: Path,
+    *,
+    rel_path: str,
+    resolver: Resolver | None = None,
+) -> str:
     """Render a single ``.md`` file to a complete HTML document.
 
     ``rel_path`` is the docs-root-relative path used for the breadcrumb;
-    the actual filesystem read uses ``source_path``.
+    the actual filesystem read uses ``source_path``. ``resolver`` (when
+    provided) is consulted by :class:`WikilinkExtension` and by the
+    metadata-strip wikilink resolver in :mod:`docs_server.templates`.
     """
     raw = source_path.read_text(encoding="utf-8")
     post = frontmatter.loads(raw)
@@ -50,19 +55,23 @@ def render_markdown_file(source_path: Path, *, rel_path: str) -> str:
     body_md = post.content
 
     title = _derive_title(metadata, body_md, source_path)
-    body_html = _markdown_to_html(body_md)
+    body_html = _markdown_to_html(body_md, resolver=resolver)
 
     return templates.page(
         title=title,
         body_html=body_html,
         rel_path=rel_path,
         metadata=metadata,
+        resolver=resolver,
     )
 
 
-def _markdown_to_html(text: str) -> str:
+def _markdown_to_html(text: str, *, resolver: Resolver | None) -> str:
+    extensions: list[Any] = list(MARKDOWN_EXTENSIONS_BASE)
+    if resolver is not None:
+        extensions.append(WikilinkExtension(resolver))
     md = markdown.Markdown(
-        extensions=MARKDOWN_EXTENSIONS,
+        extensions=extensions,
         extension_configs=MARKDOWN_EXTENSION_CONFIGS,
         output_format="html5",
         tab_length=2,

@@ -1,5 +1,5 @@
 ---
-type: "[[decision]]"
+type: "[[adr]]"
 id: ADR-0002
 aliases: ["ADR-0002"]
 title: "Embedded terminal: ttyd via iframe vs xterm.js+pty bridge"

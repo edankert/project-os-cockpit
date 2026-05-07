@@ -1,5 +1,5 @@
 ---
-type: "[[decision]]"
+type: "[[adr]]"
 id: ADR-0001
 aliases: ["ADR-0001"]
 title: "Custom Python doc-server vs Quartz/mkdocs"

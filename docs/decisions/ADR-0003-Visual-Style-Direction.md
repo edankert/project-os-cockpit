@@ -1,5 +1,5 @@
 ---
-type: "[[decision]]"
+type: "[[adr]]"
 id: ADR-0003
 aliases: ["ADR-0003"]
 title: "Visual style: muted greyscale, semantic-only color, dual themes"

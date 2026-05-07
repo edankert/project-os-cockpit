@@ -205,6 +205,19 @@ a:focus-visible {
   gap: 6px 10px;
 }
 
+/* ----- Wikilinks ----- */
+
+/* Resolved [[X]] is intentionally indistinguishable from a regular markdown
+ * link — same anchor styling — to match Obsidian's behaviour. */
+
+.broken-wikilink {
+  /* Unresolved [[X]] — Obsidian-aligned: faded text with a dotted underline,
+   * still readable but visibly "this didn't resolve". */
+  color: var(--text-faint);
+  text-decoration: underline dotted var(--text-faint);
+  text-underline-offset: 2px;
+}
+
 /* ----- Status chips ----- */
 
 .status-chip {
