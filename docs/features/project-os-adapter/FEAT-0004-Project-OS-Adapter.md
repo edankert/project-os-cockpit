@@ -1,0 +1,43 @@
+---
+type: "[[feature]]"
+id: FEAT-0004
+aliases: ["FEAT-0004"]
+title: "Project-os adapter (ID resolution, status badges, backlinks)"
+status: backlog
+phase: "[[PHASE-002-Project-OS-Adapter]]"
+owner: user:edwin
+created: 2026-05-07
+updated: 2026-05-07
+source: []
+goal: "Make the rendered output project-os-aware: status badges, parent-link breadcrumbs, structured backlinks panel, and auto-index pages that match the project-os taxonomy."
+release: ""
+related: [FEAT-0001, FEAT-0005]
+---
+
+# Project-os adapter
+
+## Goal
+Once the basic renderer (FEAT-0001) works, polish the rendering for project-os specifically: visual status badges from the frontmatter `status:` field, parent-link breadcrumbs (`parent: "[[FEAT-0008]]"` → breadcrumb to FEAT-0008), structured backlinks panel showing notes that link in, and auto-index pages following the project-os taxonomy (`/index/features` grouped by status, `/index/tasks` grouped by parent feature, etc.).
+
+## Scope
+- **In scope:**
+  - Status badges (colour-coded chips for `active`, `doing`, `done`, `verified`, `blocked`, `backlog`, `triage`).
+  - Parent-link breadcrumbs, derived from `parent:` in frontmatter.
+  - Structured backlinks panel: every page lists which other notes link to it. Built from a reverse-link index that's invalidated by the file watcher.
+  - Auto-index pages: `/index/features`, `/index/tasks`, `/index/requirements`, `/index/issues`, `/index/risks`, `/index/decisions`, `/index/changes`, `/index/releases`, `/index/workflows`, `/index/tests`, `/index/phases`. Each grouped by status by default; query params override the grouping.
+  - Cross-repo references: `../your-applications.com/...` style frontmatter sources rendered as plain links (or skipped on render-time errors) without breaking the page.
+  - Read SNAPSHOT.yaml at startup; surface its `focus.task` / `focus.feature` / `focus.phase` on the landing page.
+- **Out of scope:**
+  - Bases (`.base` files) — kept as plain text for now; if rendering becomes valuable, separate feature.
+  - Edit-via-web (read-only viewer; editing happens in your editor or in the embedded terminal).
+  - Full-text search — separate feature.
+  - Graph view (Obsidian-style node graph).
+
+## Acceptance
+- A FEAT-#### note's rendered page shows: status badge in colour, breadcrumb (`Feature › <title>`), and a backlinks section listing every note that links to it.
+- `/index/features` returns a grouped list (Active / Doing / Backlog / Done) with each item linked to its detail page.
+- The landing page shows the current focus from `SNAPSHOT.yaml` if one is set.
+- A note with `parent: "[[FEAT-0008]]"` shows "Parent: [[FEAT-0008]]" rendered as a working link in the metadata strip.
+
+## Notes
+This is what turns the renderer from "browseable Markdown" into "project-os dashboard". The work is mostly templating + indexing on top of FEAT-0001's pipeline.

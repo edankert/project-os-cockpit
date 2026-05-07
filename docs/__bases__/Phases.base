@@ -1,0 +1,48 @@
+formulas:
+  display_title: 'if(title, title, file.name)'
+filters:
+  and:
+    - file.ext == "md"
+    - type == "[[phase]]"
+    - not:
+        - file.inFolder("__templates__")
+        - file.inFolder(".trash")
+        - file.inFolder(".obsidian")
+properties:
+  file.name:
+    displayName: Note
+  formula.display_title:
+    displayName: Title
+  id:
+    displayName: ID
+  status:
+    displayName: Status
+  order:
+    displayName: Order
+  goal:
+    displayName: Goal
+  file.mtime:
+    displayName: Updated
+views:
+  - type: table
+    name: All
+    order:
+      - formula.display_title
+      - status
+      - order
+      - goal
+      - file.mtime
+    sort:
+      - property: order
+        direction: ASC
+  - type: table
+    name: Active
+    filters: 'status == "active"'
+    order:
+      - formula.display_title
+      - order
+      - goal
+      - file.mtime
+    sort:
+      - property: order
+        direction: ASC

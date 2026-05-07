@@ -1,0 +1,42 @@
+---
+type: "[[feature]]"
+id: FEAT-0002
+aliases: ["FEAT-0002"]
+title: "Live reload via Server-Sent Events"
+status: backlog
+phase: "[[PHASE-001-MVP]]"
+owner: user:edwin
+created: 2026-05-07
+updated: 2026-05-07
+source: []
+goal: "When any .md under the served docs/ tree changes, the corresponding browser pages soft-reload within a fraction of a second."
+release: ""
+related: [FEAT-0001, FEAT-0003]
+---
+
+# Live reload via SSE
+
+## Goal
+The render server watches the served `docs/` directory and pushes file-change notifications to connected browsers over a Server-Sent Events channel. Each rendered page subscribes via a tiny client-side script and reloads itself when the change matches the page's source file. Result: edit a note and the corresponding browser page updates within a few hundred milliseconds.
+
+## Scope
+- **In scope:**
+  - File watcher built on `watchdog` observing the configured docs root recursively.
+  - Single SSE endpoint at `/events`. Each connected browser holds a long-lived response.
+  - Broadcast on file create/modify/delete: `event: file-changed\ndata: <relative-path>\n\n`.
+  - Client-side JS snippet appended to every rendered page. Subscribes to `/events`, calls `location.reload()` if the changed path matches the current page's source.
+  - Throttle: coalesce rapid bursts of changes (editor saves often emit several events per save).
+  - Graceful disconnect handling — the SSE handler tolerates client closes without hanging the server.
+- **Out of scope:**
+  - WebSocket-based bidirectional channel (SSE is enough; WebSocket only matters when we add the terminal panel — FEAT-0003).
+  - Differential page updates (the soft-reload picks up edits without partial-update complexity).
+  - Real-time index regeneration optimisation (rebuild on change is fine for typical project-os repo sizes).
+
+## Acceptance
+- Edit `docs/ARCHITECTURE.md` in an external editor; the open browser tab on `/docs/ARCHITECTURE.md` reloads within ~500 ms of the editor saving.
+- Edit a different file; the page on the unrelated tab does NOT reload (only the affected page does).
+- Tablet and Mac browsers both receive events when both have the page open.
+- Closing the browser tab cleanly disconnects the SSE channel without server-side errors.
+
+## Notes
+SSE is the right choice over WebSocket for this scope: simpler, browser auto-reconnects, no library dependency. WebSocket comes back into play with the terminal feature (FEAT-0003) — at that point we may share the same channel for both file events and terminal IO, or keep them separate.

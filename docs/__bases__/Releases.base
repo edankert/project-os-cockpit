@@ -1,0 +1,43 @@
+formulas:
+  display_title: 'if(title, title, file.name)'
+filters:
+  and:
+    - file.ext == "md"
+    - type == "[[release]]"
+    - not:
+        - file.inFolder("__templates__")
+        - file.inFolder(".trash")
+        - file.inFolder(".obsidian")
+properties:
+  file.name:
+    displayName: Note
+  formula.display_title:
+    displayName: Title
+  id:
+    displayName: ID
+  status:
+    displayName: Status
+  version:
+    displayName: Version
+  tag:
+    displayName: Tag
+  date:
+    displayName: Date
+  previous_release:
+    displayName: Previous
+  file.mtime:
+    displayName: Updated
+views:
+  - type: table
+    name: All
+    order:
+      - formula.display_title
+      - status
+      - version
+      - tag
+      - date
+      - previous_release
+      - file.mtime
+    sort:
+      - property: date
+        direction: DESC

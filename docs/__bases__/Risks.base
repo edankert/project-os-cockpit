@@ -1,0 +1,51 @@
+formulas:
+  display_title: 'if(title, title, file.name)'
+filters:
+  and:
+    - file.ext == "md"
+    - type == "[[risk]]"
+    - not:
+        - file.inFolder("__templates__")
+        - file.inFolder(".trash")
+        - file.inFolder(".obsidian")
+properties:
+  file.name:
+    displayName: Note
+  formula.display_title:
+    displayName: Title
+  id:
+    displayName: ID
+  status:
+    displayName: Status
+  impact:
+    displayName: Impact
+  likelihood:
+    displayName: Likelihood
+  file.mtime:
+    displayName: Updated
+views:
+  - type: table
+    name: Active
+    filters: 'status != "closed"'
+    order:
+      - formula.display_title
+      - status
+      - impact
+      - likelihood
+      - file.mtime
+    sort:
+      - property: impact
+        direction: DESC
+      - property: likelihood
+        direction: DESC
+  - type: table
+    name: Closed
+    filters: 'status == "closed"'
+    order:
+      - formula.display_title
+      - impact
+      - likelihood
+      - file.mtime
+    sort:
+      - property: file.mtime
+        direction: DESC
