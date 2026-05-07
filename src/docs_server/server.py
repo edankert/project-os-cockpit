@@ -25,6 +25,22 @@ from typing import Iterable
 from . import renderer, templates
 from .index import Index
 
+# URL plural → frontmatter type singular. Project-os IDs and template names
+# disagree in one place: ``/index/decisions`` indexes ``type: [[adr]]``.
+INDEX_TYPE_PLURALS: dict[str, str] = {
+    "features": "feature",
+    "tasks": "task",
+    "requirements": "requirement",
+    "issues": "issue",
+    "risks": "risk",
+    "decisions": "adr",
+    "changes": "change",
+    "releases": "release",
+    "workflows": "workflow",
+    "tests": "test",
+    "phases": "phase",
+}
+
 log = logging.getLogger("docs_server.server")
 
 STATIC_DIR: Path = Path(__file__).resolve().parent / "static"
@@ -109,11 +125,19 @@ def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]
                 return
 
             if path == "/":
-                self._redirect("/docs/")
+                self._serve_landing()
                 return
 
             if path.startswith("/_static/"):
                 self._serve_static(path[len("/_static/"):])
+                return
+
+            if path == "/index" or path == "/index/":
+                self._redirect("/")
+                return
+
+            if path.startswith("/index/"):
+                self._serve_index(path[len("/index/"):].rstrip("/"))
                 return
 
             if path == "/docs" or path == "/docs/":
@@ -125,6 +149,37 @@ def _make_handler(docs_root: Path, index: Index) -> type[BaseHTTPRequestHandler]
                 return
 
             self._respond_not_found(path)
+
+        # ---- landing + indexes ----
+
+        def _serve_landing(self) -> None:
+            counts = index.type_counts()
+            focus = _read_focus(docs_root)
+            html = templates.landing_page_html(
+                type_counts=counts,
+                plural_for={v: k for k, v in INDEX_TYPE_PLURALS.items()},
+                docs_root_name=docs_root.name or "docs",
+                focus=focus,
+                resolver=index.resolve,
+            )
+            self._respond_html(HTTPStatus.OK, html)
+
+        def _serve_index(self, plural: str) -> None:
+            if not plural:
+                self._redirect("/")
+                return
+            type_singular = INDEX_TYPE_PLURALS.get(plural.lower())
+            if type_singular is None:
+                self._respond_not_found(self.path)
+                return
+            notes = index.notes_by_type(type_singular)
+            html = templates.index_page_html(
+                type_label=plural.lower(),
+                type_singular=type_singular,
+                notes=notes,
+                docs_root_name=docs_root.name or "docs",
+            )
+            self._respond_html(HTTPStatus.OK, html)
 
         # ---- static assets ----
 
@@ -308,6 +363,28 @@ def _is_under(candidate: Path, root: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _read_focus(docs_root: Path) -> dict[str, str] | None:
+    """Surface ``focus.*`` from SNAPSHOT.yaml on the landing page when present.
+
+    Returns ``None`` if the snapshot isn't there or isn't readable — the
+    landing page just omits the focus block in that case.
+    """
+    # SNAPSHOT.yaml lives at the project root, one level above docs/.
+    snapshot_path = docs_root.parent / "SNAPSHOT.yaml"
+    if not snapshot_path.is_file():
+        return None
+    try:
+        import yaml
+
+        data = yaml.safe_load(snapshot_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return None
+    focus = data.get("focus") or {}
+    if not isinstance(focus, dict):
+        return None
+    return {str(k): str(v) for k, v in focus.items() if v}
 
 
 def _directory_entries(

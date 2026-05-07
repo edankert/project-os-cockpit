@@ -41,6 +41,8 @@ class NoteRecord:
     title: str | None = None
     note_id: str | None = None
     aliases: tuple[str, ...] = ()
+    note_type: str | None = None  # normalised ("feature", "adr", ...) — never wikilink form
+    status: str | None = None
 
 
 class Index:
@@ -128,6 +130,8 @@ class Index:
             title=title,
             note_id=note_id,
             aliases=aliases,
+            note_type=_normalise_type(fm.get("type")),
+            status=_normalise_status(fm.get("status")),
         )
         self._records[md_path] = record
 
@@ -162,6 +166,35 @@ class Index:
     def __len__(self) -> int:
         return len(self._records)
 
+    # ---- type / status views ----
+
+    def notes_by_type(
+        self, note_type: str, *, include_templates: bool = False
+    ) -> list[NoteRecord]:
+        """All notes whose normalised ``type`` matches (case-insensitive).
+
+        Templates under ``__templates__/`` are excluded by default — they
+        carry placeholder IDs (``FEAT-0000`` etc.) that shouldn't appear
+        in browseable indexes alongside real notes.
+        """
+        wanted = note_type.lower()
+        return [
+            r for r in self._records.values()
+            if r.note_type and r.note_type.lower() == wanted
+            and (include_templates or not _is_template(r))
+        ]
+
+    def type_counts(self, *, include_templates: bool = False) -> dict[str, int]:
+        """``{normalised type: count}`` across the index."""
+        counts: dict[str, int] = {}
+        for record in self._records.values():
+            if not record.note_type:
+                continue
+            if not include_templates and _is_template(record):
+                continue
+            counts[record.note_type] = counts.get(record.note_type, 0) + 1
+        return counts
+
     # ---- mutation (for the watcher in TASK-0005) ----
 
     def update_path(self, md_path: Path) -> None:
@@ -193,3 +226,30 @@ def _extract_h1(body: str) -> str | None:
         if s.startswith("# "):
             return s[2:].strip() or None
     return None
+
+
+def _normalise_type(raw: Any) -> str | None:
+    """Normalise a frontmatter ``type:`` value to a lowercase string.
+
+    Accepts the wikilink form (``"[[feature]]"``) and bare strings
+    (``"feature"`` / ``"reference"``); strips brackets, lowercases.
+    """
+    if not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s:
+        return None
+    if s.startswith("[[") and s.endswith("]]"):
+        s = s[2:-2].strip()
+    return s.lower() or None
+
+
+def _normalise_status(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    s = raw.strip().lower()
+    return s or None
+
+
+def _is_template(record: NoteRecord) -> bool:
+    return record.rel_path.startswith("__templates__/")

@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-07T22:00Z"
+updated: "2026-05-07T23:00Z"
 
 template:
   replace_me: false
@@ -40,18 +40,13 @@ counters:
   WF: 0
 
 focus:
-  task: "TASK-0004"
-  feature: "FEAT-0001"
+  task: "TASK-0005"
+  feature: "FEAT-0002"
   phase: "[[PHASE-001-MVP]]"
   issue: ""
 
 items:
   features:
-    FEAT-0001:
-      title: "Markdown render server (frontmatter + wikilinks + on-the-fly)"
-      status: active
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/render-server/FEAT-0001-Render-Server.md"
     FEAT-0002:
       title: "Live reload via Server-Sent Events"
       status: backlog
@@ -79,15 +74,9 @@ items:
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
 
   tasks:
-    TASK-0004:
-      title: "Auto-generated index pages (features, tasks, requirements, etc. by status)"
-      status: next
-      phase: "[[PHASE-001-MVP]]"
-      path: "docs/features/render-server/plan/tasks/TASK-0004-Auto-Index-Pages.md"
-      parent: "FEAT-0001"
     TASK-0005:
       title: "File watcher (watchdog) emitting change events"
-      status: backlog
+      status: next
       phase: "[[PHASE-001-MVP]]"
       path: "docs/features/live-reload/plan/tasks/TASK-0005-File-Watcher.md"
       parent: "FEAT-0002"
@@ -229,6 +218,12 @@ items:
       path: "docs/changes/CHG-20260507-Wikilink-Resolver.md"
       features: ["FEAT-0001"]
       source_task: "TASK-0003"
+    CHG-20260507-Auto-Index-Pages:
+      title: "Auto-index pages (/index/<type>) + landing page with focus + FEAT-0001 done"
+      status: merged
+      path: "docs/changes/CHG-20260507-Auto-Index-Pages.md"
+      features: ["FEAT-0001"]
+      source_task: "TASK-0004"
   releases: {}
 
   decisions:
@@ -248,9 +243,9 @@ items:
 metrics:
   counts:
     features_total: 6
-    features_done: 0
+    features_done: 1
     tasks_total: 11
-    tasks_done: 3
+    tasks_done: 4
     tests_total: 0
     tests_passing: 0
     tests_failing: 0

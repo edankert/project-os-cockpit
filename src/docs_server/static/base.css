@@ -364,6 +364,93 @@ a:focus-visible {
 .notice h2 { margin-top: 0; }
 .notice code { background: var(--surface-2); }
 
+/* ----- Index pages (landing + /index/<plural>) ----- */
+
+.muted-count {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+.index-list {
+  margin: 0.4em 0;
+  padding-left: 1.2em;
+  list-style: none;
+}
+.index-list li {
+  padding: 4px 0;
+  font-size: 1.05em;
+}
+.index-list li::before {
+  content: "▸ ";
+  color: var(--text-faint);
+}
+
+.index-group {
+  margin: 0 0 14px;
+}
+.index-group > details > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+.index-group > details > summary::-webkit-details-marker { display: none; }
+.index-group > details > summary::before {
+  content: "▸";
+  color: var(--text-faint);
+  display: inline-block;
+  width: 0.8em;
+  transition: transform 80ms ease;
+}
+.index-group > details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.index-group > details > summary:hover {
+  border-color: var(--border-strong);
+}
+.index-group > details > summary > .count {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.index-items {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--border);
+  margin-left: 12px;
+  padding-left: 14px;
+}
+.index-items li {
+  padding: 3px 0;
+  font-size: 0.95em;
+}
+.index-id {
+  display: inline-block;
+  min-width: 6em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.meta-heading {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin: 0 0 6px;
+}
+
 /* ----- Directory listing (used for index pages) ----- */
 
 .dir-listing {

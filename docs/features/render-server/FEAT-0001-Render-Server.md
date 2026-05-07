@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0001
 aliases: ["FEAT-0001"]
 title: "Markdown render server (frontmatter + wikilinks + on-the-fly)"
-status: active
+status: done
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
@@ -44,3 +44,7 @@ A small Python HTTP server that, pointed at any project-os repo's `docs/` direct
 
 ## Notes
 This is the minimum-viable surface — once it can browse a project-os repo coherently, FEAT-0002 layers in live reload and FEAT-0003 layers in the terminal panel. FEAT-0004 polishes the project-os-aware UI bits.
+
+**Status: done (2026-05-07)** — landed across TASK-0001 (bootstrap), TASK-0002 (render pipeline), TASK-0003 (wikilink resolver), TASK-0004 (auto-index pages). All four acceptance criteria above are met. See [[CHG-20260507-Bootstrap-Python-Project]], [[CHG-20260507-Render-Pipeline-Online]], [[CHG-20260507-Wikilink-Resolver]], [[CHG-20260507-Auto-Index-Pages]] for the landing trail.
+
+Open follow-up: no `TST-*` acceptance tests exist for any of FEAT-0001's behaviours. Verification has been render sweeps + endpoint probes throughout. Worth retro-fitting Tier 1 tests before / alongside FEAT-0002.
