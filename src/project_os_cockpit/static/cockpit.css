@@ -154,33 +154,38 @@
   color: var(--accent-link);
 }
 
-/* ----- Right-pane toggle (mounted in the page header, TASK-0032) ----- */
+/* ----- Right-pane toggle (mounted in the page header, TASK-0032/0033) -----
+ * Far-right control on row 1 (after the theme toggle). Uses the Lucide
+ * panel-right-close / panel-right-open SVGs — same shape Obsidian uses
+ * for its sidebar toggle. */
 
 .cockpit-right-toggle-slot {
   display: flex;
   align-items: center;
-  margin-right: 8px;
+  margin-left: 8px;
 }
 .right-pane-toggle {
-  font: inherit;
-  font-size: 13px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius);
-  padding: 2px 8px;
+  padding: 4px;
   cursor: pointer;
-  transition: background-color 80ms ease, color 80ms ease, border-color 80ms ease;
+  line-height: 0;
+  transition: background-color 80ms ease, color 80ms ease;
 }
 .right-pane-toggle:hover {
   color: var(--text);
-  border-color: var(--border-strong);
+  background: var(--surface);
 }
 .right-pane-toggle.is-collapsed {
-  background: var(--surface-2);
   color: var(--text);
-  border-color: var(--border-strong);
+}
+.panel-right-icon {
+  display: block;
 }
 
 /* ----- Filter pill (mounted in the page header) ----- */

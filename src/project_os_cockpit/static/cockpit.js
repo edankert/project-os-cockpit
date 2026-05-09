@@ -453,6 +453,34 @@
     cockpitEl.classList.toggle("right-collapsed", rightPaneCollapsed);
   }
 
+  // Lucide panel-right icons — the shape Obsidian uses for its sidebar
+  // toggle. Chevron points inward when the pane is open ("click to
+  // close") and outward when collapsed ("click to open").
+  var PANEL_RIGHT_CLOSE_PATHS =
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
+    '<line x1="15" x2="15" y1="3" y2="21"/>' +
+    '<path d="m8 9 3 3-3 3"/>';
+  var PANEL_RIGHT_OPEN_PATHS =
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
+    '<line x1="15" x2="15" y1="3" y2="21"/>' +
+    '<path d="m11 9-3 3 3 3"/>';
+
+  function panelRightIconSvg(collapsed) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "panel-right-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.75");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = collapsed ? PANEL_RIGHT_OPEN_PATHS : PANEL_RIGHT_CLOSE_PATHS;
+    return svg;
+  }
+
   function mountRightPaneToggle() {
     var slot = document.getElementById("cockpit-right-toggle-slot");
     if (!slot) return;
@@ -462,8 +490,8 @@
       "aria-pressed": rightPaneCollapsed ? "true" : "false",
       title: rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane",
       "aria-label": rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane",
-      text: rightPaneCollapsed ? "⇤" : "⇥",
     });
+    btn.appendChild(panelRightIconSvg(rightPaneCollapsed));
     btn.addEventListener("click", function () {
       rightPaneCollapsed = !rightPaneCollapsed;
       saveRightPaneCollapsed(rightPaneCollapsed);
@@ -473,7 +501,7 @@
       var label = rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane";
       btn.title = label;
       btn.setAttribute("aria-label", label);
-      btn.textContent = rightPaneCollapsed ? "⇤" : "⇥";
+      btn.replaceChildren(panelRightIconSvg(rightPaneCollapsed));
     });
     slot.replaceChildren(btn);
   }

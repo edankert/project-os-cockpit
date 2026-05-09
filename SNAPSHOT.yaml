@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-09T13:00Z"
+updated: "2026-05-09T13:15Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 32
+  TASK: 33
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0032"
+  task: "TASK-0033"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -189,6 +189,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0032-Collapsible-Metadata-And-Right-Pane.md"
+      parent: "FEAT-0006"
+    TASK-0033:
+      title: "Cockpit: right-pane toggle uses Obsidian-style panel-right SVG, moved to far right"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0033-Panel-Right-Icon.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -416,6 +422,12 @@ items:
       path: "docs/changes/CHG-20260509-Cockpit-Collapsible-Metadata-And-Right-Pane.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0032"
+    CHG-20260509-Cockpit-Panel-Right-Icon:
+      title: "Cockpit: right-pane toggle uses Obsidian-style panel-right SVG, moved to far right"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Panel-Right-Icon.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0033"
   releases: {}
 
   decisions:
@@ -440,8 +452,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 32
-    tasks_done: 26
+    tasks_total: 33
+    tasks_done: 27
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41
