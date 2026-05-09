@@ -15,7 +15,7 @@ tags: [skills, backlog]
 - Tasks are too large or ambiguous.
 
 ## Inputs
-- Bases dashboards and the underlying notes; use `../../../SNAPSHOT.yaml` for canonical agent state.
+- Bases views and the underlying notes; use `../../../SNAPSHOT.yaml` for canonical agent state.
 
 ## Outputs
 - A prioritized `next` set and better-scoped tasks/issues.

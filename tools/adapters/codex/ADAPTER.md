@@ -1,53 +1,37 @@
 ---
 type: adapter
 tool: codex
-status: draft
+status: active
 owner: group:maintainers
 created: 2026-03-08
-updated: 2026-03-08
+updated: 2026-05-05
 ---
 
-# Codex Adapter (Stub)
+# Codex adapter
 
 ## Overview
 
-OpenAI Codex reads project instructions from `AGENTS.md` in the repo root. It does not support file imports — all instructions must be inlined.
+Codex reads project instructions from `AGENTS.md` in the repository root. It can also read referenced files on demand, but `AGENTS.md` should remain self-contained enough to define the startup contract, docs-first gate, canonical state file, and close-out expectations.
 
-## Native instruction format
+## Native instruction files
 
-- **File**: `AGENTS.md` (repo root)
-- **Syntax**: Markdown (no import mechanism)
-- **Limit**: Single file, all instructions must be self-contained
+- `AGENTS.md`: mandatory startup contract and docs-first gate.
+- `LLM_BRIEF.md`: compact project identity, important paths, and common commands.
+- `CONTEXT.md`: tool-agnostic project-os contract.
+- `SNAPSHOT.yaml`: canonical machine-readable work state.
 
-## Import strategy
+## Codex hook equivalents
 
-Since Codex does not support `@file` imports, the adapter must **inline** the relevant project-os rules into `AGENTS.md`. This means:
+Codex does not require a checked-in native hook configuration for this template. Use these repository scripts as Codex-compatible enforcement points:
 
-1. Core rules (LIFECYCLE, STATUSES, QUALITY) should be included directly
-2. Condensed versions of reference instructions can be appended as sections
-3. Skill playbook references can be listed as file paths (Codex can read files on demand)
+| Contract | Entrypoint | Purpose |
+|---|---|---|
+| Startup preflight | `bash tools/agents/bootstrap.sh` | Verify required files, snapshot focus, branch, and basic tooling. |
+| Docs-first intake | `bash tools/agents/start-change.sh "<short title>"` | Scaffold a change note when downstream projects require docs-first change records. |
+| Docs-first validation | `bash tools/agents/check-docs-first.sh` | Check that code changes have documentation coverage and snapshot updates. |
 
-### Generating AGENTS.md
+See `tools/instructions/HOOKS.md` for the Codex hook-equivalent contracts.
 
-Use the `adapter-sync` skill (`tools/skills/adapter-sync/SKILL.md`) to regenerate `AGENTS.md` from the project-os instruction files:
+## Synchronizing the adapter
 
-```
-"Run tools/skills/adapter-sync/SKILL.md for the codex adapter"
-```
-
-The generated file should contain:
-- The project-os operating rule (document-first, then implement, then close-out)
-- SNAPSHOT.yaml as the canonical state file
-- Status lifecycle definitions
-- Quality/verification rules
-- Paths to skill playbooks for on-demand reading
-
-## Hook support
-
-Codex does not currently support shell hooks. Enforcement relies on instruction-based rules only. When Codex adds hook support, implement the hook contracts from `tools/instructions/HOOKS.md`.
-
-## Limitations
-
-- No file import mechanism — instructions must be regenerated when rules change
-- No hook support — enforcement is prescriptive only
-- Parallel agent coordination is handled by Codex's native orchestration
+Run `tools/skills/adapter-sync/SKILL.md` when shared lifecycle, status, quality, snapshot, or skill rules change. The sync should update Codex-facing guidance without introducing tool-specific files for unsupported agents.

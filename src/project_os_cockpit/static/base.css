@@ -28,6 +28,12 @@
   --status-reference: hsl(180 24% 40%);   /* reference / deferred */
   --status-default:   hsl(0 0% 45%);
 
+  /* Severity palette — used by issue group icons + (future) issue badges. */
+  --severity-critical: hsl(5 60% 46%);
+  --severity-high:     hsl(20 60% 46%);
+  --severity-medium:   hsl(45 55% 42%);
+  --severity-low:      hsl(0 0% 50%);
+
   --error-fg: hsl(5 48% 38%);
   --error-bg: hsl(5 38% 96%);
   --warn-fg:  hsl(36 50% 32%);
@@ -66,6 +72,11 @@
   --status-blocked:   hsl(5 50% 65%);
   --status-reference: hsl(180 24% 60%);
   --status-default:   hsl(0 0% 60%);
+
+  --severity-critical: hsl(5 60% 65%);
+  --severity-high:     hsl(20 60% 65%);
+  --severity-medium:   hsl(45 55% 60%);
+  --severity-low:      hsl(0 0% 62%);
 
   --error-fg: hsl(5 50% 70%);
   --error-bg: hsl(5 30% 18%);

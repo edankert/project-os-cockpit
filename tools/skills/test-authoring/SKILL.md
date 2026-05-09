@@ -29,7 +29,7 @@ tags: [skills, tests]
 2. Update `../../../SNAPSHOT.yaml`:
    - choose `scope: feature|system`
    - add `items.tests.<TST-####>` with `file`, `title`, `status`, `owner`, `scope`, `kind`, `level`, `entrypoint`
-   - set `validates: [FEAT-xxxx]`, `validates: [REQ-xxxx]`, or similar to link the test to impacted items, and link those IDs back from the test
+   - link the test from impacted items (requirement/feature/task/issue) and link those IDs back from the test
 3. Create/update the test note from `../../../docs/__templates__/test.md`:
    - Store the note based on scope:
      - `scope: feature`: under `../../../docs/features/<feature-slug>/plan/tests/`

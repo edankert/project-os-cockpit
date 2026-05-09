@@ -1,25 +1,34 @@
 ---
 type: "[[phase]]"
-id: PHASE-000
-aliases: ["PHASE-000"]
+id: PHASE-0000
 title: ""
-status: draft
-order: 0
+status: planned
+order:
 owner: unassigned
-created: 2026-01-26
-updated: 2026-01-26
-source: []
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 goal: ""
+features: []
+requirements: []
+tasks: []
+issues: []
 related: []
+tags: []
 ---
 
-# <Phase Name>
+# {{title}}
 
 ## Goal
-<What this phase delivers>
+<What milestone outcome does this phase deliver?>
 
 ## Scope
-<In/out of scope for this phase>
+- <in-scope work>
+
+## Out of Scope
+- <explicitly deferred work>
 
 ## Exit Criteria
-- <criteria to consider this phase complete>
+- [ ] <measurable completion condition>
+
+## Notes
+- <planning notes, dependencies, sequencing constraints>

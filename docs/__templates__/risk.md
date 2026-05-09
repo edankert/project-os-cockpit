@@ -1,10 +1,8 @@
 ---
 type: "[[risk]]"
 id: RISK-0000
-aliases: ["RISK-0000"]
 title: ""
 status: open
-platform:
 owner: unassigned
 created: 2026-01-26
 updated: 2026-01-26

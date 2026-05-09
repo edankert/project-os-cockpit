@@ -41,14 +41,11 @@ views:
       - formula.display_title
       - status
       - priority
-      - platform
       - effort
       - phase
     sort:
       - property: priority
         direction: DESC
-      - property: platform
-        direction: ASC
       - property: status
         direction: DESC
     columnSize:
@@ -79,7 +76,6 @@ views:
       - status
       - priority
       - phase
-      - platform
     sort:
       - property: status
         direction: DESC
@@ -115,17 +111,12 @@ views:
       - formula.display_title
       - status
       - priority
-      - platform
       - effort
       - phase
     sort:
       - property: priority
         direction: DESC
-      - property: platform
-        direction: ASC
       - property: status
         direction: DESC
     columnSize:
-      formula.display_title: 307
-      note.type: 88
       note.status: 74

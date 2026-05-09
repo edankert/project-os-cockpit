@@ -32,10 +32,16 @@ so the JS renderer can be one function over four modes.
 from __future__ import annotations
 
 import datetime as _dt
+import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .index import Index, NoteRecord
+
+_HEADING_RE = re.compile(r"^#{1,6}\s")
+_WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+_INLINE_FMT_RE = re.compile(r"(\*\*|__|\*|_|`)([^*_`\n]+?)\1")
 
 SCHEMA_VERSION: int = 2
 
@@ -46,7 +52,10 @@ PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
 )
 
 # Project mode indexes ``docs/``. The only non-docs Markdown surfaced by
-# default is selected top-level human-facing project documentation.
+# default is selected top-level human-facing project documentation; those
+# files render at the root of the Docs tree group (TASK-0021), not as a
+# separate "Top-level docs" group. The server still uses these constants
+# to allowlist what may be served from outside ``docs/``.
 PROJECT_SUPPORT_DIRS: tuple[tuple[str, str, int], ...] = ()
 
 # Stable display order for type groups in the right pane (relationships).
@@ -224,8 +233,26 @@ def context_payload(
 def _features_groups(
     index: Index, platform: str | None = None
 ) -> list[dict[str, Any]]:
-    """Mode 1: features grouped by phase."""
+    """Mode 1: features grouped by phase, with each feature carrying its
+    requirements as ``children`` (collapsed-by-default in the UI).
+
+    Requirements that don't link to any feature via ``specifies`` /
+    ``scope`` surface in a final "Unattached requirements" group so they
+    don't disappear from the navigator.
+    """
     features = [r for r in index.notes_by_type("feature") if _platform_match(r, platform)]
+    requirements = [
+        r for r in index.notes_by_type("requirement") if _platform_match(r, platform)
+    ]
+
+    reqs_by_feature: dict[str, list[NoteRecord]] = {}
+    attached_req_paths: set[Path] = set()
+    for req in requirements:
+        feat_ids = _requirement_feature_ids(index, req)
+        for fid in feat_ids:
+            reqs_by_feature.setdefault(fid, []).append(req)
+            attached_req_paths.add(req.path)
+
     grouped: dict[str | None, list[NoteRecord]] = {}
     for record in features:
         grouped.setdefault(_phase_target(record), []).append(record)
@@ -254,19 +281,88 @@ def _features_groups(
             f"{phase_id} · {phase_title}" if phase_id and phase_title
             else phase_id or phase_title
         )
+        items: list[dict[str, Any]] = []
+        for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path)):
+            item = _feature_item(index, r)
+            child_reqs = reqs_by_feature.get(r.note_id or "", [])
+            if child_reqs:
+                child_reqs_sorted = sorted(
+                    child_reqs, key=lambda x: (x.note_id or "", x.rel_path)
+                )
+                item["children"] = [
+                    _requirement_child_item(index, c) for c in child_reqs_sorted
+                ]
+            items.append(item)
         out.append(
             {
                 "key": phase_id or phase_title or "unphased",
                 "label": label,
                 "url": index.url_for(phase_record.path) if phase_record else None,
                 "status": phase_record.status if phase_record else None,
-                "items": [
-                    _feature_item(index, r)
-                    for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
-                ],
+                "items": items,
             }
         )
+
+    orphans = [r for r in requirements if r.path not in attached_req_paths]
+    if orphans:
+        orphans.sort(key=lambda x: (x.note_id or "", x.rel_path))
+        out.append(
+            {
+                "key": "unattached-reqs",
+                "label": "Unattached requirements",
+                "url": None,
+                "status": None,
+                "items": [_requirement_child_item(index, r) for r in orphans],
+            }
+        )
+
     return out
+
+
+def _requirement_feature_ids(
+    index: Index, record: NoteRecord
+) -> set[str]:
+    """Resolve a requirement's `specifies` + `scope` links to canonical
+    feature IDs (FEAT-####). Anything that doesn't resolve to a feature
+    record is dropped silently — feeds into the orphan-group fallback.
+    """
+    candidates: list[str] = []
+    raw = record.frontmatter.get("specifies")
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, str):
+                candidates.append(_strip_wikilink(item))
+    elif isinstance(raw, str):
+        candidates.append(_strip_wikilink(raw))
+    scope = record.frontmatter.get("scope")
+    if isinstance(scope, str):
+        candidates.append(_strip_wikilink(scope))
+
+    ids: set[str] = set()
+    for candidate in candidates:
+        candidate = candidate.strip()
+        if not candidate:
+            continue
+        path = index.by_id(candidate)
+        if path is None:
+            continue
+        rec = index.get(path)
+        if rec is not None and rec.note_type == "feature" and rec.note_id:
+            ids.add(rec.note_id)
+    return ids
+
+
+def _requirement_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Compact item shape for requirements nested under a feature card and
+    for the Unattached-requirements fallback group."""
+    return {
+        "id": record.note_id or record.path.stem,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": "",
+        "type": record.note_type or "requirement",
+    }
 
 
 def _tasks_groups(
@@ -422,15 +518,18 @@ def _library_groups(
         label="Docs tree",
         excluded_roots=DOC_TREE_EXCLUDED_ROOTS,
         untyped_only=True,
+        extra_root_items=_project_root_tree_items(project_root),
     )
     if docs_tree is not None:
         out.append(docs_tree)
 
-    support_group = _project_support_group(project_root)
-    if support_group is not None:
-        out.append(support_group)
-
-    # ----- By type — rare (status+id+title, "stacked" layout, no type label) -----
+    # ----- By type — rare (stacked layout, no type label) -----
+    # Typed-structured types (decisions, releases, risks, tests, workflows,
+    # plans) keep the original ``id + human title`` shape — these notes have
+    # meaningful frontmatter titles and IDs, and live in well-known
+    # subdirs so a path subtitle adds no signal. References are different:
+    # they're loose docs that often lack a useful ID, so the filename takes
+    # the ID slot.
     for type_name in LIBRARY_RARE_TYPES:
         records = [
             r for r in index.notes_by_type(type_name)
@@ -439,6 +538,7 @@ def _library_groups(
         if not records:
             continue
         records.sort(key=lambda r: (r.note_id or "", r.rel_path))
+        item_fn = _reference_item if type_name == "reference" else _rare_item
         out.append(
             {
                 "key": f"rare:{type_name}",
@@ -446,94 +546,36 @@ def _library_groups(
                 "url": None,
                 "status": None,
                 "item_layout": "stacked",
-                "items": [_rare_item(index, r) for r in records],
+                "items": [item_fn(index, r) for r in records],
             }
         )
 
     return out
 
 
-def _project_support_group(project_root: Path | None) -> dict[str, Any] | None:
-    if project_root is None:
-        return None
-    root = project_root.resolve()
+def _project_root_tree_items(project_root: Path | None) -> list[dict[str, Any]]:
+    """Items for top-level project files (README/ROADMAP/SECURITY).
 
-    root_items = [
-        _project_support_item(root / rel, rel)
+    Rendered at the root of the Docs tree group so users see them alongside
+    the rest of the file tree rather than in a separate "Top-level docs"
+    section. Filename is the title; URL is ``/<filename>`` (the server
+    allowlists these via :data:`PROJECT_SUPPORT_ROOT_FILES`).
+    """
+    if project_root is None:
+        return []
+    root = project_root.resolve()
+    return [
+        {
+            "id": "",
+            "title": rel,
+            "status": None,
+            "url": f"/{rel}",
+            "subtitle": "",
+            "type": "",
+        }
         for rel in PROJECT_SUPPORT_ROOT_FILES
         if (root / rel).is_file()
     ]
-
-    subgroups: list[dict[str, Any]] = []
-    for rel_dir, label, max_depth in PROJECT_SUPPORT_DIRS:
-        area = root / rel_dir
-        if not area.is_dir():
-            continue
-        items = [
-            _project_support_item(path, path.relative_to(root).as_posix())
-            for path in _iter_support_markdown(area, max_depth=max_depth)
-        ]
-        if not items:
-            continue
-        subgroups.append(
-            {
-                "key": f"support:{rel_dir}",
-                "label": label,
-                "url": f"/{rel_dir}/",
-                "status": None,
-                "item_layout": "compact",
-                "items": items,
-            }
-        )
-
-    if not root_items and not subgroups:
-        return None
-    return {
-        "key": "project-support",
-        "label": "Top-level docs",
-        "url": None,
-        "status": None,
-        "item_layout": "compact",
-        "items": root_items,
-        "subgroups": subgroups,
-    }
-
-
-def _iter_support_markdown(root: Path, *, max_depth: int) -> Iterable[Path]:
-    base = root.resolve()
-    for path in sorted(base.rglob("*.md"), key=lambda p: p.relative_to(base).as_posix().lower()):
-        try:
-            rel_parts = path.relative_to(base).parts
-        except ValueError:
-            continue
-        if len(rel_parts) > max_depth:
-            continue
-        if any(part.startswith(".") or part == "__pycache__" for part in rel_parts):
-            continue
-        yield path
-
-
-def _project_support_item(path: Path, rel_path: str) -> dict[str, Any]:
-    return {
-        "id": "",
-        "title": _support_title(path),
-        "status": None,
-        "url": f"/{rel_path}",
-        "subtitle": rel_path,
-    }
-
-
-def _support_title(path: Path) -> str:
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines()[:80]:
-            stripped = line.strip()
-            if stripped.startswith("# "):
-                return stripped[2:].strip()
-    except OSError:
-        pass
-    if path.name == "SKILL.md":
-        return path.parent.name
-    return path.name
 
 
 def _markdown_tree_group(
@@ -545,8 +587,15 @@ def _markdown_tree_group(
     root_prefix: str = "",
     excluded_roots: tuple[str, ...] = (),
     untyped_only: bool = False,
+    extra_root_items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
-    """Build a recursive directory tree for indexed Markdown notes."""
+    """Build a recursive directory tree for indexed Markdown notes.
+
+    ``extra_root_items`` are merged into the root-level items list (sorted
+    alongside the indexed entries by the standard tree sort). Used to
+    surface project-root files (README, ROADMAP, SECURITY) inside the
+    Docs tree rather than as a sibling group.
+    """
     prefix = root_prefix.strip("/")
     root: dict[str, Any] = {
         "key": key,
@@ -602,6 +651,9 @@ def _markdown_tree_group(
             parent_key = node_key
         nodes[parent_key]["items"].append(_tree_item(record))
 
+    if extra_root_items:
+        root["items"].extend(extra_root_items)
+
     _sort_tree_group(root)
     if not root["items"] and not root["subgroups"]:
         return None
@@ -647,11 +699,13 @@ def _pluralise_for_label(type_name: str) -> str:
 
 
 def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:
-    """Item shape for Pinned + "rare types" sections (ADRs, Tests, etc.).
+    """Item shape for Pinned + typed-structured rare-type sections
+    (Decisions, Releases, Risks, Tests, Workflows, Plans).
 
-    Status/id/title only — type label is dropped (the group header already
-    says "Decisions" / "Risks" / etc.). The JS renders this in "stacked"
-    layout: status+id on the top line, title underneath.
+    These notes carry meaningful frontmatter ``title`` and ``id`` fields
+    and live under conventional subdirs (``decisions/``, ``risks/``...),
+    so the JS renders the standard ``[icon][id][title]`` stacked shape
+    without any path subtitle.
     """
     return {
         "id": record.note_id or record.path.stem,
@@ -659,6 +713,29 @@ def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "status": record.status,
         "url": index.url_for(record.path),
         "subtitle": "",
+        "type": record.note_type or "",
+    }
+
+
+def _reference_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Item shape for the References group.
+
+    References are loose docs without meaningful project-os IDs, so the
+    filename takes the ``id`` slot. The title row is dropped (the filename
+    is identifying enough); the relative parent directory is shown as a
+    mono subtitle so the user can tell at a glance where the file lives.
+    """
+    if "/" in record.rel_path:
+        parent_dir = record.rel_path.rsplit("/", 1)[0] + "/"
+    else:
+        parent_dir = ""
+    return {
+        "id": record.path.name,
+        "title": "",
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": parent_dir,
+        "type": record.note_type or "reference",
     }
 
 
@@ -670,12 +747,46 @@ def _tree_item(record: NoteRecord) -> dict[str, Any]:
         "status": None,
         "url": f"/docs/{record.rel_path}",
         "subtitle": "",
+        "type": record.note_type or "",
     }
 
 
 # ---------------------------------------------------------------------------
 # Per-item shapes
 # ---------------------------------------------------------------------------
+
+
+def _first_body_paragraph(body: str, *, max_chars: int = 220) -> str:
+    """Return the first paragraph of body text, skipping the H1 and any
+    leading section headings (``## Problem``, ``## Goal``, ...).
+
+    Used as the inline description on Tasks and Issues cards so the user
+    can scan the substance of a note without opening it. Heuristic on
+    purpose — we collect the first non-heading paragraph and stop at the
+    next blank line or heading.
+    """
+    if not body:
+        return ""
+    para: list[str] = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            if para:
+                break
+            continue
+        if _HEADING_RE.match(stripped):
+            if para:
+                break
+            continue
+        para.append(stripped)
+    text = " ".join(para)
+    text = _WIKILINK_RE.sub(lambda m: m.group(2) or m.group(1), text)
+    text = _MD_LINK_RE.sub(r"\1", text)
+    text = _INLINE_FMT_RE.sub(r"\2", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) > max_chars:
+        text = text[: max_chars - 1].rstrip() + "…"
+    return text
 
 
 def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
@@ -685,37 +796,29 @@ def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "status": record.status,
         "url": index.url_for(record.path),
         "subtitle": record.frontmatter.get("goal") or "",
+        "type": record.note_type or "feature",
     }
 
 
 def _task_item(index: Index, record: NoteRecord) -> dict[str, Any]:
-    parent = _first_link(record.frontmatter.get("implements")) or record.frontmatter.get("parent")
-    parent_id = _strip_wikilink(parent) if parent else ""
-    effort = record.frontmatter.get("effort") or ""
-    parts = [p for p in (parent_id, effort) if p]
     return {
         "id": record.note_id,
         "title": record.title or record.path.stem,
         "status": record.status,
         "url": index.url_for(record.path),
-        "subtitle": " · ".join(parts),
+        "subtitle": _first_body_paragraph(record.body),
+        "type": record.note_type or "task",
     }
 
 
 def _issue_item(index: Index, record: NoteRecord) -> dict[str, Any]:
-    affects = _first_link(record.frontmatter.get("affects"))
-    component = record.frontmatter.get("component") or ""
-    parts: list[str] = []
-    if affects:
-        parts.append(_strip_wikilink(affects))
-    if component:
-        parts.append(component)
     return {
         "id": record.note_id,
         "title": record.title or record.path.stem,
         "status": record.status,
         "url": index.url_for(record.path),
-        "subtitle": " · ".join(parts),
+        "subtitle": _first_body_paragraph(record.body),
+        "type": record.note_type or "issue",
     }
 
 
@@ -730,6 +833,7 @@ def _recent_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "status": record.status,
         "url": index.url_for(record.path),
         "subtitle": " · ".join(parts),
+        "type": record.note_type or "",
     }
 
 
@@ -745,6 +849,7 @@ def _context_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "status": record.status,
         "priority": record.frontmatter.get("priority"),
         "url": index.url_for(record.path),
+        "type": record.note_type or "",
     }
 
 

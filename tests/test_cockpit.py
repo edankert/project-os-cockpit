@@ -76,8 +76,57 @@ def test_nav_payload_features_item_shape(index: Index) -> None:
 
 def test_nav_payload_features_excludes_template_features(index: Index) -> None:
     payload = nav_payload(index, mode="features")
-    item_ids = {i["id"] for g in payload["groups"] for i in g["items"]}
+    item_ids = {
+        i["id"]
+        for g in payload["groups"]
+        for i in g["items"]
+        if g["key"] != "unattached-reqs"
+    }
     assert "FEAT-0000" not in item_ids
+
+
+def test_nav_payload_features_attaches_requirements_as_children(
+    index: Index,
+) -> None:
+    """Each feature carries its requirements as `children` for the
+    nested-collapsed render under the feature card (TASK-0030).
+
+    Fixture: REQ-0001 has `specifies: ["[[FEAT-0001]]"]`, so it should
+    surface under FEAT-0001's children.
+    """
+    payload = nav_payload(index, mode="features")
+    feat1 = next(
+        i for g in payload["groups"]
+        for i in g["items"] if i["id"] == "FEAT-0001"
+    )
+    assert "children" in feat1, "FEAT-0001 should carry its requirements as children"
+    child_ids = {c["id"] for c in feat1["children"]}
+    assert "REQ-0001" in child_ids
+    sample = next(c for c in feat1["children"] if c["id"] == "REQ-0001")
+    assert sample["type"] == "requirement"
+    assert sample["status"]  # populated from frontmatter
+
+
+def test_nav_payload_features_orphan_requirements_group(
+    index: Index, docs_root: Path
+) -> None:
+    """Requirements with no resolvable feature link surface in a final
+    "Unattached requirements" group at the bottom of Features mode."""
+    # Synthesise a requirement that doesn't link to any feature.
+    (docs_root / "REQ-0099-Orphan.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-0099\ntitle: "Orphan req"\n'
+        'status: approved\n---\n# Orphan\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="features")
+    orphans = next(
+        (g for g in payload["groups"] if g["key"] == "unattached-reqs"), None
+    )
+    assert orphans is not None, "orphan group should appear when any req has no specifies/scope"
+    ids = {i["id"] for i in orphans["items"]}
+    assert "REQ-0099" in ids
+    assert "REQ-0001" not in ids  # REQ-0001 specifies FEAT-0001, not an orphan
 
 
 # ---- nav payload (mode = tasks) ----------------------------------------
@@ -96,15 +145,20 @@ def test_nav_payload_tasks_groups_by_status(index: Index) -> None:
     assert "TASK-0001" in item_ids
 
 
-def test_nav_payload_tasks_item_subtitle_carries_parent(index: Index) -> None:
+def test_nav_payload_tasks_item_subtitle_is_body_description(
+    index: Index,
+) -> None:
+    """Tasks subtitle is the first paragraph of body text, with wikilinks
+    stripped (TASK-0029). The fixture's TASK-0001 body says
+    "Implements [[FEAT-0001]]." — wikilinks resolve to "FEAT-0001"."""
     payload = nav_payload(index, mode="tasks")
     t1 = next(
         i for g in payload["groups"]
         for i in g["items"] if i["id"] == "TASK-0001"
     )
-    # Parent feature + effort, joined by " · ".
+    assert t1["subtitle"]
     assert "FEAT-0001" in t1["subtitle"]
-    assert "M" in t1["subtitle"]
+    assert "[[" not in t1["subtitle"]  # wikilink markup stripped
 
 
 # ---- nav payload (mode = issues) ---------------------------------------
@@ -121,16 +175,18 @@ def test_nav_payload_issues_groups_by_severity(index: Index) -> None:
     assert {i["id"] for i in high["items"]} == {"ISS-0001"}
 
 
-def test_nav_payload_issues_item_subtitle_has_affects_and_component(
+def test_nav_payload_issues_item_subtitle_is_body_description(
     index: Index,
 ) -> None:
+    """Issues subtitle is the first paragraph of body text (TASK-0029).
+    The fixture's ISS-0001 body has only an H1, so the subtitle is empty
+    — the contract is "non-trivial body text or empty"."""
     payload = nav_payload(index, mode="issues")
     iss1 = next(
         i for g in payload["groups"]
         for i in g["items"] if i["id"] == "ISS-0001"
     )
-    assert "FEAT-0001" in iss1["subtitle"]
-    assert "alpha" in iss1["subtitle"]
+    assert iss1["subtitle"] == ""
 
 
 # ---- nav payload (mode = recent) ---------------------------------------
@@ -209,73 +265,120 @@ def test_context_payload_platform_drops_other_platform(index: Index) -> None:
 # ---- nav payload (mode = library) --------------------------------------
 
 
-def test_nav_payload_library_top_level_handles_group(index: Index) -> None:
-    """Top-level non-ID *.md files appear in the 'handles' group with filename
-    as title and the compact layout flag."""
-    payload = nav_payload(index, mode="library")
-    assert payload["mode"] == "library"
-    handles = next((g for g in payload["groups"] if g["key"] == "handles"), None)
-    assert handles is not None, "fixture has README.md, expected handles group"
-    assert handles["item_layout"] == "compact"
-    titles = {i["title"] for i in handles["items"]}
-    assert "README.md" in titles
-    # Subdir handles are NOT in this group — they get their own group below.
-    assert "ACCEPTANCE_TESTS.md" not in titles
-    sample = next(i for i in handles["items"] if i["title"] == "README.md")
-    assert sample["id"] == ""
-    assert sample["status"] is None
-    assert sample["subtitle"] == ""
-
-
-def test_nav_payload_library_subdir_handles_nest_under_handles_parent(
+def test_nav_payload_library_no_legacy_handles_or_support_groups(
     index: Index,
 ) -> None:
-    """Subdir handle groups are nested as ``subgroups`` inside the parent
-    "Project handles" group — NOT siblings of the rare-types groups.
+    """The legacy ``handles`` and ``project-support`` groups are gone.
 
-    This way the user sees subdirs as children of the project-handles
-    section both visually (indented) and structurally (collapse the
-    parent → subdirs collapse with it).
+    Top-level project files are merged into the ``docs-tree`` group root
+    (TASK-0021); subdir-handle groups are no longer surfaced as siblings.
     """
     payload = nav_payload(index, mode="library")
-    # Subdirs should NOT be top-level groups any more.
-    top_level_keys = [g["key"] for g in payload["groups"]]
-    assert not any(k.startswith("handles-dir:") for k in top_level_keys)
-    # They should live under the handles parent's `subgroups`.
-    handles = next(g for g in payload["groups"] if g["key"] == "handles")
-    sub_keys = [sg["key"] for sg in handles.get("subgroups", [])]
-    assert "handles-dir:tests" in sub_keys
-    tests_sub = next(sg for sg in handles["subgroups"] if sg["key"] == "handles-dir:tests")
-    assert tests_sub["label"] == "tests/"
-    assert tests_sub["item_layout"] == "compact"
-    assert "ACCEPTANCE_TESTS.md" in [i["title"] for i in tests_sub["items"]]
+    keys = [g["key"] for g in payload["groups"]]
+    assert "handles" not in keys
+    assert "project-support" not in keys
+    assert not any(k.startswith("handles-dir:") for k in keys)
 
 
-def test_nav_payload_library_rare_types_drop_subtitle(index: Index) -> None:
-    """Rare-types items use the stacked layout and carry no type label."""
-    # Add an ADR fixture-style note via direct frontmatter inspection: the
-    # base fixture doesn't include one, so this test just guards the schema.
-    payload = nav_payload(index, mode="library")
-    rare_groups = [g for g in payload["groups"] if g["key"].startswith("rare:")]
-    for g in rare_groups:
-        assert g["item_layout"] == "stacked"
-        for item in g["items"]:
-            assert item["subtitle"] == "", (
-                "rare-type items must drop the type label — group header carries it"
-            )
+def test_nav_payload_library_docs_tree_merges_project_root_files(
+    index: Index, tmp_path: Path
+) -> None:
+    """README.md / ROADMAP.md / SECURITY.md at the project root render as
+    files at the root of the ``docs-tree`` group — not as a separate
+    "Top-level docs" group (TASK-0021)."""
+    project_root = tmp_path / "fake-project"
+    project_root.mkdir()
+    (project_root / "README.md").write_text("# stub\n", encoding="utf-8")
+    (project_root / "ROADMAP.md").write_text("# stub\n", encoding="utf-8")
+
+    payload = nav_payload(index, mode="library", project_root=project_root)
+    docs_tree = next((g for g in payload["groups"] if g["key"] == "docs-tree"), None)
+    assert docs_tree is not None, (
+        "Docs tree should appear when project_root has at least one allowed root file"
+    )
+    assert docs_tree["item_layout"] == "compact"
+    titles = [i["title"] for i in docs_tree["items"]]
+    assert "README.md" in titles
+    assert "ROADMAP.md" in titles
+    # SECURITY.md was not created → must not surface even though it's allowed.
+    assert "SECURITY.md" not in titles
+    # README.md sorts to the top of the items list.
+    assert titles[0] == "README.md"
 
 
-def test_nav_payload_library_excludes_id_prefixed_files_from_handles(
+def test_nav_payload_library_references_show_filename_in_id_slot(
     index: Index,
 ) -> None:
-    """FEAT-0001-Alpha.md is ID-prefixed → must NOT appear in handles."""
+    """References render with the filename in the ``id`` slot, the title
+    row dropped (filename is identifying enough), and the parent
+    directory in the subtitle slot when the file lives in a subdir
+    (TASK-0029). At-root references emit an empty subtitle."""
     payload = nav_payload(index, mode="library")
-    handles = next((g for g in payload["groups"] if g["key"] == "handles"), None)
-    assert handles is not None
-    ids = {i["id"] for i in handles["items"]}
-    assert "FEAT-0001" not in ids
-    assert "TASK-0001" not in ids
-    assert "REQ-0001" not in ids
+    refs = next((g for g in payload["groups"] if g["key"] == "rare:reference"), None)
+    assert refs is not None, "fixture has reference-type notes"
+    assert refs["item_layout"] == "stacked"
+    for item in refs["items"]:
+        assert item["id"].endswith(".md")
+        assert item["title"] == ""              # title row dropped
+        # Subtitle is either parent dir ("tests/") or empty (at docs root).
+        assert item["subtitle"] == "" or item["subtitle"].endswith("/")
+        assert item["type"] == "reference"
+    # Fixture has README.md at docs-root and tests/ACCEPTANCE_TESTS.md.
+    by_id = {i["id"]: i for i in refs["items"]}
+    assert by_id["README.md"]["subtitle"] == ""
+    assert by_id["ACCEPTANCE_TESTS.md"]["subtitle"] == "tests/"
+
+
+def test_nav_payload_library_typed_rare_keeps_id_and_title(
+    index: Index, tmp_path: Path
+) -> None:
+    """Typed-structured rare-type groups (decisions/releases/risks/tests/
+    workflows/plans) keep the original ``id + human title`` shape — these
+    notes have meaningful frontmatter titles and IDs (TASK-0025)."""
+    # Synthesise an ADR fixture so the assertion has something to bind to.
+    adr_dir = docs_root_for(index) / "decisions"
+    adr_dir.mkdir(parents=True, exist_ok=True)
+    (adr_dir / "ADR-0099-Sample.md").write_text(
+        '---\ntype: "[[adr]]"\nid: ADR-0099\ntitle: "Sample ADR"\nstatus: accepted\n---\n# Sample\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root_for(index))
+    payload = nav_payload(fresh, mode="library")
+    adrs = next((g for g in payload["groups"] if g["key"] == "rare:adr"), None)
+    assert adrs is not None, "synthetic ADR should produce the rare:adr group"
+    for item in adrs["items"]:
+        # Id is a project-os ID, NOT a filename.
+        assert item["id"].startswith("ADR-")
+        assert not item["id"].endswith(".md")
+        # Title is the frontmatter human title.
+        assert not item["title"].endswith(".md"), (
+            f"typed-rare title should be the human title, got {item['title']!r}"
+        )
+        assert item["subtitle"] == ""
+        assert item["type"] == "adr"
+
+
+def docs_root_for(index: Index) -> Path:
+    return index.docs_root
+
+
+def test_nav_payload_items_carry_type_for_icons(index: Index) -> None:
+    """Every item across modes carries a ``type`` field so the JS can
+    render a per-type icon (TASK-0023). Untyped tree items may use ``""``."""
+    for mode in ("features", "tasks", "issues", "recent", "library"):
+        payload = nav_payload(index, mode=mode)
+        for g in payload["groups"]:
+            for item in g["items"]:
+                assert "type" in item, f"mode={mode} item missing 'type': {item}"
+
+
+def test_context_payload_items_carry_type_for_icons(index: Index) -> None:
+    """Right-pane (linked + backlinks) items also carry ``type``."""
+    payload = context_payload(index, "FEAT-0001")
+    for bucket in ("linked", "backlinks"):
+        for g in payload[bucket]:
+            for item in g["items"]:
+                assert "type" in item, f"{bucket} item missing 'type': {item}"
 
 
 def test_nav_payload_library_pinned_section_resolves_paths(

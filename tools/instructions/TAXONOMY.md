@@ -20,14 +20,11 @@ See `OWNERSHIP.md` for allowed formats and the canonical registry.
 ## `severity` (issues)
 - `low`, `medium`, `high`, `critical`
 
-## `category` (issues)
-- `bug` — something is broken
-- `enhancement` — something works but could be better
-- `feedback` — product insight from a user, no specific fix expected
-- `ux` — usability or design concern
-
 ## `priority` (requirements)
 - `low`, `medium`, `high`
+
+## `order` (phases)
+Positive integer sort order for roadmap sequencing.
 
 ## `effort` (tasks)
 - `XS`, `S`, `M`, `L`, `XL`
@@ -46,10 +43,7 @@ Project-defined free text label, but keep it stable. Examples:
 - `manual`, `automated`
 
 ## `level` (tests)
-- `unit`, `integration`, `system`, `e2e`, `acceptance`
+- `unit`, `integration`, `system`, `e2e`
 
 ## `scope` (tests)
 - `feature`, `system`
-
-## `platform` (all notes except adr, change — optional)
-- `ios`, `android`, `shared`, `""` (empty = not platform-specific)

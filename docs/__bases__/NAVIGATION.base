@@ -5,7 +5,6 @@ filters:
         - type == link("feature")
         - type == link("phase")
         - type == link("issue")
-        - type == link("release")
     - not:
         - file.inFolder("docs/__templates__")
         - file.inFolder(".trash")
@@ -44,8 +43,6 @@ views:
       - status
       - goal
       - phase
-      - platform
-      - priority
     sort:
       - property: status
         direction: DESC
@@ -53,8 +50,6 @@ views:
         direction: ASC
       - property: id
         direction: ASC
-      - property: platform
-        direction: DESC
     columnSize:
       note.id: 92
       formula.display_title: 153
@@ -91,8 +86,6 @@ views:
       - formula.display_title
       - status
       - severity
-      - priority
-      - platform
     sort:
       - property: formula.display_title
         direction: DESC
@@ -115,21 +108,16 @@ views:
       - formula.display_title
       - status
       - goal
-      - platform
-      - priority
     sort:
       - property: id
         direction: ASC
       - property: status
         direction: DESC
-      - property: platform
-        direction: DESC
     columnSize:
       note.id: 86
-      formula.display_title: 184
-      note.status: 69
+      formula.display_title: 230
+      note.status: 147
       note.goal: 273
-      note.phase: 240
   - type: table
     name: Issues (Open)
     filters:
@@ -145,8 +133,6 @@ views:
       - formula.display_title
       - status
       - severity
-      - platform
-      - priority
     sort:
       - property: id
         direction: ASC
@@ -156,30 +142,8 @@ views:
         direction: DESC
     columnSize:
       note.id: 79
+      formula.display_title: 420
       note.status: 69
-  - type: table
-    name: Releases (All)
-    filters:
-      and:
-        - type == link("release")
-    order:
-      - id
-      - formula.display_title
-      - status
-      - platform
-    sort:
-      - property: formula.display_title
-        direction: ASC
-      - property: status
-        direction: DESC
-      - property: id
-        direction: ASC
-      - property: platform
-        direction: DESC
-    columnSize:
-      note.id: 92
-      formula.display_title: 245
-      note.goal: 435
   - type: table
     name: Phases (Open)
     filters:

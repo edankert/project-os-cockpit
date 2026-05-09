@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-07T00:00Z"
+updated: "2026-05-09T12:00Z"
 
 template:
   replace_me: false
@@ -28,7 +28,7 @@ docs_system:
 counters:
   ADR: 4
   CHG:
-    last_date: 20260508
+    last_date: 20260509
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 6
   ISS: 0
@@ -36,13 +36,13 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 20
+  TASK: 30
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0020"
-  feature: "FEAT-0005"
+  task: "TASK-0030"
+  feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
 
@@ -118,6 +118,66 @@ items:
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/downstream-pilot/plan/tasks/TASK-0020-Release-To-Project-Os.md"
       parent: "FEAT-0005"
+    TASK-0021:
+      title: "Cockpit: merge top-level docs into Docs tree root"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0021-Top-Level-Docs-In-Tree.md"
+      parent: "FEAT-0006"
+    TASK-0022:
+      title: "Cockpit: rare/pinned items show filename + parent dir"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0022-Rare-Item-Filename-Subtitle.md"
+      parent: "FEAT-0006"
+    TASK-0023:
+      title: "Cockpit: inline SVG type icons across panes"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0023-Type-Icons.md"
+      parent: "FEAT-0006"
+    TASK-0024:
+      title: "Cockpit: Obsidian-style file tree styling for compact trees"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0024-Obsidian-File-Tree.md"
+      parent: "FEAT-0006"
+    TASK-0025:
+      title: "Cockpit: split rare-item shapes (typed-rare keep id+title; references show filename in id slot); right-align status chip"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0025-Rare-Item-Layout-Split.md"
+      parent: "FEAT-0006"
+    TASK-0026:
+      title: "Cockpit: default nav items use stacked layout (id+status row 1, title row 2, subtitle row 3)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0026-Default-Nav-Stacked.md"
+      parent: "FEAT-0006"
+    TASK-0027:
+      title: "Cockpit: right-pane canonical type order applied to merged linked + inbound-only"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0027-Right-Pane-Canonical-Order.md"
+      parent: "FEAT-0006"
+    TASK-0028:
+      title: "Cockpit: type-aware group icons in left-pane group headers"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0028-Group-Icons.md"
+      parent: "FEAT-0006"
+    TASK-0029:
+      title: "Cockpit: vertical-centre group icons; tasks/issues subtitles use body description; references show parent dir; per-status/severity/bucket icons"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0029-Card-Subtitles-And-Bucket-Icons.md"
+      parent: "FEAT-0006"
+    TASK-0030:
+      title: "Cockpit: requirements nested under features (collapsed by default) + 'Unattached requirements' fallback"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0030-Nested-Requirements.md"
+      parent: "FEAT-0006"
 
   issues: {}
 
@@ -302,6 +362,36 @@ items:
       path: "docs/changes/CHG-20260507-Rename-To-Project-Os-Cockpit.md"
       features: ["FEAT-0005"]
       source_task: ""
+    CHG-20260509-Cockpit-Library-Refinements:
+      title: "Cockpit Library refinements: tree-merged top-level docs, filename-first rare items, type icons, Obsidian-style file tree"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Library-Refinements.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0021"
+    CHG-20260509-Cockpit-Item-Layout-Refinements:
+      title: "Cockpit item-layout refinements: typed-rare reverted to id+title, references show filename, right-aligned status chip"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Item-Layout-Refinements.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0025"
+    CHG-20260509-Cockpit-Stacked-Items-Right-Pane-Order-And-Group-Icons:
+      title: "Cockpit: stacked default items, canonical right-pane type order on merge, type-aware group icons"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Stacked-Items-Right-Pane-Order-And-Group-Icons.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0026"
+    CHG-20260509-Cockpit-Card-Subtitles-And-Bucket-Icons:
+      title: "Cockpit: card-subtitle rework (body descriptions for tasks/issues, parent dir for references), per-status/severity/bucket group icons, vertical-centred icons"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Card-Subtitles-And-Bucket-Icons.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0029"
+    CHG-20260509-Cockpit-Nested-Requirements:
+      title: "Cockpit: requirements nested under features (collapsed by default) + Unattached fallback"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Nested-Requirements.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0030"
   releases: {}
 
   decisions:
@@ -326,8 +416,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 20
-    tasks_done: 14
+    tasks_total: 30
+    tasks_done: 24
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

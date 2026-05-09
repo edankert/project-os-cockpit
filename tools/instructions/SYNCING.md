@@ -4,7 +4,7 @@ id: INSTR-SYNCING
 status: active
 owner: group:maintainers
 created: 2026-01-29
-updated: 2026-01-29
+updated: 2026-05-08
 tags: [instructions, sync]
 ---
 
@@ -15,13 +15,21 @@ Use this when the project-os template lives outside the dev repo and you want to
 ## Template-owned (safe to sync)
 - `tools/instructions/`
 - `tools/skills/`
+- `tools/agents/`
 - `tools/adapters/`
+- `tools/cockpit/`
+- `tools/scripts/`
 - `docs/__templates__/`
 - `docs/__bases__/`
+- `docs/phases/`
 - `docs/README.md`
 - `docs/INDEX.md`
+- `docs/PHASES.md`
 - `CONTEXT.md`
+- `AGENTS.md`
+- `LLM_BRIEF.md`
 - Optional: `SECURITY.md`, `ROADMAP.md`
+- Optional seed only: `docs/reference/README.md` when the downstream file does not already exist
 
 ## Project-owned (do NOT overwrite)
 - `SNAPSHOT.yaml`
@@ -32,6 +40,14 @@ Use this when the project-os template lives outside the dev repo and you want to
 - `docs/changes/`
 - `docs/decisions/`
 - `docs/workflows/` (except template updates you explicitly choose to merge)
+- `docs/reference/`
+- `docs/research/`
+- Other project-specific docs subdirectories
+- Runtime artifacts produced by `tools/cockpit/run.sh`, such as `tools/cockpit/.venv/`
+
+`docs/changes/` is intentionally project-owned: upstream template change notes describe the evolution of project-os itself, while downstream change notes describe the downstream project after init. Keep those histories separate unless a downstream project deliberately imports upstream template history for audit purposes.
+
+`docs/reference/` and other non-lifecycle docs areas are intentionally project-owned: upstream may provide a starter README, but downstream projects use these areas for source, evidence, registry, background, research, and publication material. Template sync must not overwrite them.
 
 ## Recommended flow
 1. Pull latest upstream project-os.

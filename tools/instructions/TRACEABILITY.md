@@ -13,27 +13,24 @@ tags: [instructions, traceability]
 This documentation system relies on explicit link graphs so agents can follow relationships reliably.
 
 ## Required links (minimum)
-
-Child items link **upward** to their parent via named relationship fields. Features do not maintain child lists.
-
 - Task (`[[task]]`)
-  - Must have at least one of `implements` (feature links) or `fixes` (issue links).
+  - Must have exactly one `parent` (feature or issue).
 - Feature (`[[feature]]`)
-  - No child lists required — tasks link up via `implements`, requirements via `specifies`, tests via `validates`.
+  - Should link its `requirements` and `tasks` (frontmatter lists).
+- Phase (`[[phase]]`)
+  - Should link planned `features`, `requirements`, `tasks`, and `issues` when phase-gated development is used.
+  - Items with a `phase` value should link back to the corresponding `PHASE-*` note where possible.
 - Issue (`[[issue]]`)
-  - Should have `affects` linking to the feature(s) where the issue was found.
+  - Should link impacted `features` and/or planned `tasks` (frontmatter or `related`).
 - Requirement (`[[requirement]]`)
   - Must have `acceptance` criteria.
-  - Should have `specifies` linking to the feature(s) it constrains.
+  - Should link implementing features and verifying scripts/workflows.
 - Test (`[[test]]`)
-  - Should have `validates` linking to the feature(s) or requirement(s) it verifies.
+  - Should link the requirements it verifies (`requirements`) and any relevant features/issues/tasks.
 - Risk (`[[risk]]`)
-  - Should link mitigation tasks or the items it impacts via `related`.
+  - Should link mitigation tasks or the items it impacts.
 - Change (`[[change]]`)
   - Should link `issues` and `features` impacted by the change.
-- Release (`[[release]]`)
-  - Must link `features` included and `tests_verified` for the release.
-  - Should link `changes` and `previous_release` for continuity.
 - Decision (`[[adr]]`)
   - Should link related items and use `supersedes`/`superseded` when applicable.
 

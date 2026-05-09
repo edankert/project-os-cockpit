@@ -173,6 +173,121 @@
     });
   }
 
+  // ------------------------------------------------------------------ type ordering
+  // Mirror of cockpit.py TYPE_ORDER (REQ-0013) — controls right-pane
+  // group ordering after the merge of linked + inbound-only.
+  var TYPE_ORDER = [
+    "task", "feature", "issue", "requirement", "change", "phase",
+    "release", "adr", "risk", "test", "workflow", "plan", "reference",
+  ];
+  var TYPE_RANK = {};
+  TYPE_ORDER.forEach(function (t, i) { TYPE_RANK[t] = i; });
+
+  // ------------------------------------------------------------------ type icons
+  // Inline Lucide-style monochrome SVGs keyed by note type. Stroke uses
+  // currentColor so the per-type color tokens (CSS) drive the hue.
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var TYPE_ICONS = {
+    feature:     '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/>',
+    task:        '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    issue:       '<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    requirement: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    phase:       '<path d="M3 9h18"/><path d="M3 15h18"/><path d="M5 4v16"/><path d="M19 4v16"/><path d="M9 9v6"/><path d="M15 9v6"/>',
+    change:      '<line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/><circle cx="12" cy="12" r="3"/>',
+    adr:         '<path d="m16 16 3-8 3 8c-2 1-4 1-6 0z"/><path d="m2 16 3-8 3 8c-2 1-4 1-6 0z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    decision:    '<path d="m16 16 3-8 3 8c-2 1-4 1-6 0z"/><path d="m2 16 3-8 3 8c-2 1-4 1-6 0z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    risk:        '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    test:        '<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',
+    workflow:    '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
+    release:     '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="m7.5 4.27 9 5.15"/>',
+    reference:   '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    plan:        '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15"/><path d="M15 6v15"/>',
+    _default:    '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  };
+  function typeIcon(type, size) {
+    if (!type) return null;
+    var key = String(type).toLowerCase();
+    var paths = TYPE_ICONS[key] || TYPE_ICONS._default;
+    var px = size ? String(size) : "14";
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "type-icon");
+    svg.setAttribute("data-type", key);
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", px);
+    svg.setAttribute("height", px);
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = paths;
+    return svg;
+  }
+
+  // ------------------------------------------------------------------ group icons
+  // Used in left-pane group headers to give each group a fast visual hook.
+  // Library mode reuses the type-icon for rare:<type> groups; everything
+  // else uses one of these section-flavoured Lucide-style icons.
+  var GROUP_ICONS = {
+    star:          '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    folder_tree:   '<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M3 5a2 2 0 0 0 2 2h3"/><path d="M3 3v13a2 2 0 0 0 2 2h3"/>',
+    layers:        '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.18-9.43 4.27a2 2 0 0 1-1.66 0L2 12.18"/><path d="m22 17.18-9.43 4.27a2 2 0 0 1-1.66 0L2 17.18"/>',
+    list_checks:   '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+    alert_octagon: '<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    sun:           '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    moon:          '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    calendar_days: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
+    calendar:      '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+    history:       '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  };
+  var RECENT_BUCKET_ICONS = {
+    today:     GROUP_ICONS.sun,
+    yesterday: GROUP_ICONS.moon,
+    week:      GROUP_ICONS.calendar_days,
+    month:     GROUP_ICONS.calendar,
+    earlier:   GROUP_ICONS.history,
+  };
+  function makeGroupIconSvg(paths, size) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "group-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", String(size || 13));
+    svg.setAttribute("height", String(size || 13));
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = paths;
+    return svg;
+  }
+  function groupIcon(mode, group) {
+    if (!group) return null;
+    var key = String(group.key || "");
+    if (key === "pinned")    return makeGroupIconSvg(GROUP_ICONS.star);
+    if (key === "docs-tree") return makeGroupIconSvg(GROUP_ICONS.folder_tree);
+    if (key.indexOf("rare:") === 0) {
+      return typeIcon(key.slice(5), 13);
+    }
+    if (mode === "features") return makeGroupIconSvg(GROUP_ICONS.layers);
+    if (mode === "tasks") {
+      var t = makeGroupIconSvg(GROUP_ICONS.list_checks);
+      t.setAttribute("data-status", key);
+      return t;
+    }
+    if (mode === "issues") {
+      var i = makeGroupIconSvg(GROUP_ICONS.alert_octagon);
+      i.setAttribute("data-severity", key);
+      return i;
+    }
+    if (mode === "recent") {
+      return makeGroupIconSvg(RECENT_BUCKET_ICONS[key] || GROUP_ICONS.history);
+    }
+    return null;
+  }
+
   function thisParam() {
     return active.id || active.path || "";
   }
@@ -364,47 +479,131 @@
     slot.replaceChildren(bar);
   }
 
-  // Default layout: status + id + title on a single line, optional subtitle below.
-  // Used by Features / Tasks / Issues / Recent modes.
+  // Default layout (Features / Tasks / Issues / Recent):
+  //   row 1: [icon] [id (mono, truncates)] [spacer] [status chip right-aligned]
+  //   row 2: [title]
+  //   row 3: [subtitle] when present (goal / parent · effort / type · date / ...)
+  // Optional children render as a sibling collapsible <details> below the
+  // card — used for nested requirements under features.
   function navItem(item) {
-    var titleSpan = el("span", {
-      class: "nav-title",
-      text: item.title || item.id || "",
-      title: item.title || "",
-    });
     var topLine = el("div", { class: "nav-line" }, [
+      typeIcon(item.type),
+      item.id
+        ? el("span", { class: "nav-id mono", text: item.id, title: item.id })
+        : null,
+      el("span", { class: "nav-line-spacer" }),
       statusChip(item.status),
-      item.id ? el("span", { class: "nav-id mono", text: item.id }) : null,
-      titleSpan,
     ]);
-    var subtitle = item.subtitle
-      ? el("p", { class: "nav-subtitle", text: item.subtitle, title: item.subtitle })
+    var titleNode = item.title
+      ? el("p", {
+          class: "nav-title",
+          text: item.title,
+          title: item.title,
+        })
+      : null;
+    var subtitleNode = item.subtitle
+      ? el("p", {
+          class: "nav-subtitle",
+          text: item.subtitle,
+          title: item.subtitle,
+        })
       : null;
     var card = el("a", {
       class: "nav-item" + (item.url === active.url ? " is-active" : ""),
       href: item.url,
-    }, [topLine, subtitle]);
+    }, [topLine, titleNode, subtitleNode]);
+    var childrenNode = (item.children && item.children.length)
+      ? renderItemChildren(item)
+      : null;
+    return el("li", null, [card, childrenNode]);
+  }
+
+  // Collapsible nested children list (used for requirements under features).
+  // Default = collapsed. The persisted-collapse-set storage is repurposed
+  // as a persisted-OPEN set (key "nav:item-children-open:<id>") so the
+  // default is the inverse of the rest of the cockpit.
+  function renderItemChildren(item) {
+    var openedKey = "nav:item-children-open:" + (item.id || item.url || "");
+    var startOpen = isCollapsed(openedKey);
+    var details = el("details", {
+      class: "nav-item-children",
+      open: startOpen ? "" : null,
+    });
+    var label = item.children.length === 1
+      ? "1 requirement"
+      : item.children.length + " requirements";
+    var summary = el("summary", { class: "nav-item-children-toggle" }, [
+      el("span", { class: "nav-children-chevron", "aria-hidden": "true" }),
+      el("span", { text: label }),
+    ]);
+    details.appendChild(summary);
+    var list = el("ul", { class: "nav-item-children-list" });
+    item.children.forEach(function (child) {
+      list.appendChild(navItemNested(child));
+    });
+    details.appendChild(list);
+    details.addEventListener("toggle", function () {
+      // Mirror the "user opened it" state into collapsed storage so it
+      // survives reload. Open => store key; closed => remove.
+      var stored = isCollapsed(openedKey);
+      if (details.open !== stored) toggleCollapsed(openedKey);
+    });
+    return details;
+  }
+
+  // Compact stacked card used for items nested under another card (reqs
+  // under features). Smaller padding, single-line title with ellipsis.
+  function navItemNested(item) {
+    var topLine = el("div", { class: "nav-line" }, [
+      typeIcon(item.type, 12),
+      item.id ? el("span", { class: "nav-id mono", text: item.id }) : null,
+      el("span", { class: "nav-line-spacer" }),
+      statusChip(item.status),
+    ]);
+    var titleNode = item.title
+      ? el("p", {
+          class: "nav-title-nested",
+          text: item.title,
+          title: item.title,
+        })
+      : null;
+    var card = el("a", {
+      class: "nav-item nav-item-nested"
+        + (item.url === active.url ? " is-active" : ""),
+      href: item.url,
+    }, [topLine, titleNode]);
     return el("li", null, [card]);
   }
 
-  // Stacked layout: status + id on the top line, title on a second line.
-  // Used by Project mode's pinned and rare-types sections — same shape as
-  // the right pane's relationship items.
+  // Stacked layout: icon + id on the top line (status right-aligned),
+  // human title on a second line, optional path/parent-dir subtitle on a
+  // third. Used by Project mode's pinned and rare-types sections.
   function navItemStacked(item) {
     var topLine = el("div", { class: "nav-line" }, [
-      statusChip(item.status),
+      typeIcon(item.type),
       item.id ? el("span", { class: "nav-id mono", text: item.id }) : null,
+      el("span", { class: "nav-line-spacer" }),
+      statusChip(item.status),
     ]);
-    var titleNode = el("p", {
-      class: "nav-title-stacked",
-      text: item.title || item.id || "",
-      title: item.title || "",
-    });
+    var titleNode = item.title
+      ? el("p", {
+          class: "nav-title-stacked",
+          text: item.title,
+          title: item.title,
+        })
+      : null;
+    var subtitleNode = item.subtitle
+      ? el("p", {
+          class: "nav-subtitle-stacked mono",
+          text: item.subtitle,
+          title: item.subtitle,
+        })
+      : null;
     var card = el("a", {
       class: "nav-item nav-item-stacked"
         + (item.url === active.url ? " is-active" : ""),
       href: item.url,
-    }, [topLine, titleNode]);
+    }, [topLine, titleNode, subtitleNode]);
     return el("li", null, [card]);
   }
 
@@ -455,15 +654,21 @@
 
     var subKey = "nav:" + mode + ":" + (group.key || "");
     var sectionExtra = group.item_layout ? " nav-group-" + group.item_layout : "";
-    return collapsibleGroup({
+    var indentStyle = "--tree-indent:" + String((depth || 0) * 12) + "px";
+    var node = collapsibleGroup({
       key: subKey,
       sectionClass: "nav-subgroup" + sectionExtra,
       headerClass: "nav-subgroup-header",
-      headerStyle: "--tree-indent:" + String((depth || 0) * 12) + "px",
-      bodyStyle: "--tree-indent:" + String((depth || 0) * 12) + "px",
+      headerStyle: indentStyle,
+      bodyStyle: indentStyle,
       headerChildren: [el("span", { text: group.label || group.key || "" })],
       bodyChildren: bodyChildren,
     });
+    // Mirror the indent on the <details> itself so CSS selectors targeting
+    // the section (e.g. indent guides) can read --tree-indent there too.
+    node.style.setProperty("--tree-indent", String((depth || 0) * 12) + "px");
+    node.dataset.depth = String(depth || 0);
+    return node;
   }
 
   function renderLeftPane(payload) {
@@ -496,7 +701,7 @@
             title: "Open " + label,
           })
         : el("span", { text: label });
-      var headerChildren = [titleNode];
+      var headerChildren = [groupIcon(mode, g), titleNode];
       if (g.status) {
         headerChildren.push(el("span", { class: "nav-group-spacer" }));
         headerChildren.push(statusChip(g.status));
@@ -577,9 +782,11 @@
         })
       : null;
     var topLine = el("div", { class: "ctx-line" }, [
-      statusChip(item.status),
+      typeIcon(item.type),
       item.id ? el("span", { class: "ctx-id mono", text: item.id }) : null,
+      el("span", { class: "nav-line-spacer" }),
       priority,
+      statusChip(item.status),
     ]);
     var titleNode = el("p", {
       class: "ctx-title",
@@ -596,23 +803,28 @@
   // Merge `linked` (outbound) and `backlinks` (inbound-only) into one
   // per-type structure. Outbound items render first; inbound-only items
   // follow underneath the same type group, visually distinguished.
+  // Final order matches the canonical TYPE_ORDER (REQ-0013) — first-
+  // appearance order from server-side payloads would put inbound-only
+  // types after outbound ones regardless of their rank, which violates
+  // the spec.
   function mergeContext(linked, backlinks) {
     var byType = {};
-    var order = [];
     function pushGroup(group, kind) {
       if (!group || !group.items) return;
       var t = String(group.type || "").toLowerCase();
-      if (!byType[t]) {
-        byType[t] = { type: t, linked: [], inbound: [] };
-        order.push(t);
-      }
-      group.items.forEach(function (it) {
-        byType[t][kind].push(it);
-      });
+      if (!byType[t]) byType[t] = { type: t, linked: [], inbound: [] };
+      group.items.forEach(function (it) { byType[t][kind].push(it); });
     }
     (linked || []).forEach(function (g) { pushGroup(g, "linked"); });
     (backlinks || []).forEach(function (g) { pushGroup(g, "inbound"); });
-    return order.map(function (t) { return byType[t]; });
+    var types = Object.keys(byType);
+    types.sort(function (a, b) {
+      var ra = TYPE_RANK.hasOwnProperty(a) ? TYPE_RANK[a] : TYPE_ORDER.length;
+      var rb = TYPE_RANK.hasOwnProperty(b) ? TYPE_RANK[b] : TYPE_ORDER.length;
+      if (ra !== rb) return ra - rb;
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+    return types.map(function (t) { return byType[t]; });
   }
 
   function renderRelationships(merged, container) {
@@ -627,8 +839,10 @@
       var typeLabel = el("span", {
         class: "ctx-type-label",
         "data-type": typeName,
-        text: pluralizeType(typeName),
-      });
+      }, [
+        typeIcon(typeName, 13),
+        el("span", { text: pluralizeType(typeName) }),
+      ]);
       var list = el("ul", { class: "ctx-items" });
       visibleLinked.forEach(function (item) { list.appendChild(ctxItem(item, "linked")); });
       if (visibleLinked.length && visibleInbound.length) {

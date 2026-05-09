@@ -228,7 +228,7 @@ details:not([open]) > summary .group-chevron {
 
 .group-header-inner {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
@@ -272,7 +272,7 @@ details:not([open]) > summary .group-chevron {
 .nav-group-header .group-header-inner {
   flex: 1 1 auto;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
 }
 .nav-group-spacer {
@@ -304,10 +304,6 @@ details:not([open]) > summary .group-chevron {
 .nav-item.is-active {
   background: var(--surface-2);
 }
-.nav-item.is-active .nav-title {
-  color: var(--accent-link);
-  font-weight: 600;
-}
 
 .nav-line {
   display: flex;
@@ -320,20 +316,33 @@ details:not([open]) > summary .group-chevron {
 .nav-id {
   color: var(--text-faint);
   font-size: 11px;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Title is a row-2 paragraph in the stacked default layout — block element,
+ * 2-line clamp with ellipsis, regular weight. */
 .nav-title {
+  margin: 4px 0 0;
   color: var(--text);
+  font-size: 13px;
   font-weight: 500;
-  flex: 1 1 auto;
-  min-width: 0;
+  line-height: 1.35;
   word-break: break-word;
-  /* Two-line clamp with ellipsis. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.nav-item:hover .nav-title {
+  color: var(--accent-link);
+}
+.nav-item.is-active .nav-title {
+  color: var(--accent-link);
+  font-weight: 600;
 }
 
 .nav-subtitle {
@@ -347,31 +356,126 @@ details:not([open]) > summary .group-chevron {
   overflow: hidden;
 }
 
-/* ----- Nested directory-tree subgroups ----- */
-/* Used by Project mode's docs/reference trees. Subgroups are recursive, so
- * indentation is driven by the --tree-indent custom property set by the JS
- * renderer rather than fixed to a single nesting level.
- */
-.nav-subgroup {
+/* ----- Nested children under a card (reqs under features, TASK-0030) ----- */
+
+.nav-item-children {
   margin: 0;
-  border-top: 1px dashed var(--border);
   background: var(--bg);
 }
+.nav-item-children > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Left padding aligns the chevron with where the feature card's id text
+   * starts (card padding 14px + icon ~14px + gap 8px ≈ 36px). */
+  padding: 4px 14px 4px 30px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  background: transparent;
+}
+/* Suppress the feature card's bottom border when it has an immediately-
+ * following children block — the line read as separation between the
+ * card and its own collapsed reqs. */
+.nav-item:has(+ .nav-item-children) {
+  border-bottom: 0;
+}
+.nav-item-children > summary::-webkit-details-marker { display: none; }
+.nav-item-children > summary:hover {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.nav-children-chevron {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 100ms ease;
+  opacity: 0.7;
+}
+.nav-item-children:not([open]) > summary .nav-children-chevron {
+  transform: translateY(1px) rotate(-45deg);
+}
+.nav-item-children-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-item-nested {
+  padding: 5px 14px 6px 30px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-item-nested:last-child {
+  border-bottom: 0;
+}
+.nav-title-nested {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-item-nested:hover .nav-title-nested {
+  color: var(--accent-link);
+}
+
+/* ----- Obsidian-style file tree (compact tree groups in Project mode) -----
+ *
+ * Folder/file icons are inline SVGs encoded as data URLs; we mask-image them
+ * so `background-color: currentColor` recolors with theme + per-row state
+ * (hover, active). Indent guides come from a left border on each subgroup.
+ * Indentation depth is driven by the --tree-indent custom property the JS
+ * renderer sets on each header/body.
+ */
+
+:root {
+  --icon-folder: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/></svg>");
+  --icon-file: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'/><path d='M14 2v6h6'/></svg>");
+}
+
+.nav-subgroup {
+  margin: 0;
+  border-top: 0;
+  background: var(--bg);
+  position: relative;
+}
+/* Indent guide: a thin vertical line at the indent depth, drawn behind the
+ * content so it doesn't push it. Only nested subgroups (depth > 0) show one. */
+.nav-group-compact .nav-subgroup[data-depth]:not([data-depth="0"])::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: calc(14px + var(--tree-indent, 0px) - 6px);
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
 .nav-subgroup > .nav-subgroup-header {
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 4px 14px 4px calc(14px + var(--tree-indent, 0px));
+  padding: 3px 14px 3px calc(14px + var(--tree-indent, 0px));
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
   background: transparent;
   border: 0;
-  text-transform: none;            /* lowercase, NOT uppercase like top-level group headers */
+  text-transform: none;
   letter-spacing: 0;
 }
 .nav-subgroup > .nav-subgroup-header:hover {
+  background: var(--surface);
   color: var(--text);
 }
 .nav-subgroup > .nav-subgroup-header .group-chevron {
@@ -380,9 +484,60 @@ details:not([open]) > summary .group-chevron {
   margin-right: 6px;
   border-width: 1.5px;
 }
-/* Compact file rows inside tree dirs sit under the directory header. */
+/* Folder icon between chevron and label (mask-image, recolored to currentColor). */
+.nav-subgroup > .nav-subgroup-header .group-header-inner::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  background-color: currentColor;
+  mask-image: var(--icon-folder);
+  -webkit-mask-image: var(--icon-folder);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  opacity: 0.7;
+  flex-shrink: 0;
+  vertical-align: -2px;
+}
+
+/* Compact file rows: file icon + filename. Full-width hover band, no
+ * dividers between rows. Padding accounts for the icon column. */
 .nav-subgroup .nav-item-compact {
-  padding-left: calc(26px + var(--tree-indent, 0px));
+  padding-left: calc(28px + var(--tree-indent, 0px));
+}
+.nav-item-compact {
+  position: relative;
+  padding: 3px 14px 3px 28px;
+  border-bottom: 0;
+  color: var(--text-muted);
+}
+.nav-item-compact::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask-image: var(--icon-file);
+  -webkit-mask-image: var(--icon-file);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  opacity: 0.55;
+  vertical-align: -2px;
+}
+.nav-item-compact:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.nav-item-compact.is-active {
+  background: var(--surface-2);
+  color: var(--accent-link);
 }
 
 /* ----- Stacked layout: status+id top, title underneath ----- */
@@ -404,6 +559,15 @@ details:not([open]) > summary .group-chevron {
 }
 .nav-item-stacked:hover .nav-title-stacked {
   color: var(--accent-link);
+}
+.nav-subtitle-stacked {
+  margin: 2px 0 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ----- Compact layout: filename only, tight padding ----- */
@@ -601,8 +765,12 @@ details:not([open]) > summary .group-chevron {
   color: var(--accent-link);
 }
 
+/* Flex spacer used in the stacked nav line and ctx line so the trailing
+ * status chip (and priority chip on ctx) sit at the right edge regardless
+ * of how short the id/title is. */
+.nav-line-spacer { flex: 1 1 auto; }
+
 .ctx-priority {
-  margin-left: auto;          /* push to the right end of the top line */
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -614,6 +782,102 @@ details:not([open]) > summary .group-chevron {
 .ctx-priority[data-priority="high"]   { color: var(--status-blocked);  border-color: currentColor; }
 .ctx-priority[data-priority="medium"] { color: var(--status-active);   border-color: currentColor; }
 .ctx-priority[data-priority="low"]    { color: var(--status-pending);  border-color: currentColor; }
+
+/* ----- Type icons (Lucide-style SVG, recolored via per-type tokens) ----- */
+
+.type-icon {
+  flex-shrink: 0;
+  color: var(--type-default);
+  vertical-align: -2px;
+}
+.type-icon[data-type="feature"]     { color: var(--type-feature); }
+.type-icon[data-type="task"]        { color: var(--type-task); }
+.type-icon[data-type="requirement"] { color: var(--type-requirement); }
+.type-icon[data-type="issue"]       { color: var(--type-issue); }
+.type-icon[data-type="risk"]        { color: var(--type-risk); }
+.type-icon[data-type="adr"]         { color: var(--type-adr); }
+.type-icon[data-type="decision"]    { color: var(--type-adr); }
+.type-icon[data-type="change"]      { color: var(--type-change); }
+.type-icon[data-type="release"]     { color: var(--type-release); }
+.type-icon[data-type="workflow"]    { color: var(--type-workflow); }
+.type-icon[data-type="test"]        { color: var(--type-test); }
+.type-icon[data-type="phase"]       { color: var(--type-phase); }
+.type-icon[data-type="plan"]        { color: var(--type-plan); }
+.type-icon[data-type="reference"]   { color: var(--type-reference); }
+
+/* In a type-label group header, tighten the gap between icon and text. */
+.ctx-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Left-pane group-header icons (TASK-0028). Type icons in rare:* groups
+ * keep their per-type colour via the .type-icon rules above; the rest of
+ * the group icons (star, folder-tree, layers, list-checks, alert-octagon,
+ * sun/moon/calendar/history) sit in a muted neutral by default and
+ * recolour for tasks (data-status) / issues (data-severity) groups. */
+.group-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+/* Tasks-mode group icons: colour-coded by status, mirroring the same
+ * status-bucket palette used by .status-chip[data-status=...]. */
+.group-icon[data-status="active"],
+.group-icon[data-status="approved"],
+.group-icon[data-status="accepted"],
+.group-icon[data-status="ready"],
+.group-icon[data-status="doing"],
+.group-icon[data-status="in-progress"],
+.group-icon[data-status="in-review"],
+.group-icon[data-status="next"]       { color: var(--status-active); }
+
+.group-icon[data-status="planned"],
+.group-icon[data-status="backlog"],
+.group-icon[data-status="todo"],
+.group-icon[data-status="open"],
+.group-icon[data-status="pending"],
+.group-icon[data-status="draft"],
+.group-icon[data-status="proposed"],
+.group-icon[data-status="triage"]     { color: var(--status-pending); }
+
+.group-icon[data-status="done"],
+.group-icon[data-status="merged"],
+.group-icon[data-status="fixed"],
+.group-icon[data-status="fulfilled"],
+.group-icon[data-status="met"],
+.group-icon[data-status="complete"],
+.group-icon[data-status="verified"],
+.group-icon[data-status="passing"],
+.group-icon[data-status="published"],
+.group-icon[data-status="closed"]     { color: var(--status-done); }
+
+.group-icon[data-status="blocked"],
+.group-icon[data-status="failing"],
+.group-icon[data-status="reopened"]   { color: var(--status-blocked); }
+
+.group-icon[data-status="obsolete"],
+.group-icon[data-status="retired"],
+.group-icon[data-status="cancelled"],
+.group-icon[data-status="superseded"],
+.group-icon[data-status="wont-fix"],
+.group-icon[data-status="reverted"]   { color: var(--status-archived); }
+
+.group-icon[data-status="reference"],
+.group-icon[data-status="deferred"]   { color: var(--status-reference); }
+
+/* Issues-mode group icons: colour by severity. */
+.group-icon[data-severity="critical"] { color: var(--severity-critical); }
+.group-icon[data-severity="high"]     { color: var(--severity-high); }
+.group-icon[data-severity="medium"]   { color: var(--severity-medium); }
+.group-icon[data-severity="low"]      { color: var(--severity-low); }
+.group-header-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* ----- Monospace bits (ids) ----- */
 

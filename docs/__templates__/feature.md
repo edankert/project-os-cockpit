@@ -1,18 +1,19 @@
 ---
 type: "[[feature]]"
 id: FEAT-0000
-aliases: ["FEAT-0000"]
 title: ""
 status: backlog
-phase: []
-platform:
+phase:
 owner: unassigned
 created: 2026-01-26
 updated: 2026-01-26
 source: []
 goal: ""
+requirements: []
+tasks: []
 release: ""
 related: []
+tests: []
 ---
 
 # <Feature>
@@ -27,4 +28,6 @@ related: []
 - <observable criteria>
 
 ## Links
+- Requirements: use `[[REQ-####-...]]` links
+- Tasks: use `[[TASK-####-...]]` links
 - Workflows/Repo paths: <links>

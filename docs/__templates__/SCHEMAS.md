@@ -4,7 +4,7 @@ id: TEMPLATES-SCHEMAS
 status: active
 owner: team:docs
 created: 2026-01-27
-updated: 2026-01-27
+updated: 2026-05-08
 tags: [templates, schema]
 ---
 
@@ -20,19 +20,13 @@ Conventions (naming, linking, property rules): `../../tools/instructions/OBSIDIA
   - Used by tools/automation to classify notes; the snapshot references these types.
 - (required) `id` (string): Stable identifier (should match the filename prefix).
   - Used for traceability and for `SNAPSHOT.yaml` keys.
-- (required) `aliases` (list of strings): Must contain the `id` value. Enables Obsidian to resolve `[[FEAT-0007]]` to `FEAT-0007-Relationship-Model.md`.
-  - When creating a note, set `aliases: ["<id>"]` (e.g., `aliases: ["FEAT-0007"]`).
-  - Agents and skills must set this when creating notes from templates.
-- (recommended) `title` (string): Human-friendly title for dashboards and summaries.
+- (recommended) `title` (string): Human-friendly title for views and summaries.
   - Keep short; no need to repeat the ID.
   - Keep it consistent with `SNAPSHOT.yaml` where possible.
 - (required) `status` (string): Lifecycle state; each note type has its own allowed values.
-- (optional) `phase` (list of links): Development phase(s) for milestone grouping. Link to phase notes, e.g. `phase: ["[[PHASE-001-Foundation]]"]`.
-  - Enables machine-filtering, automated progress tracking, and dashboard grouping.
-  - Leave as empty list for items not tied to a specific phase.
-- (optional) `platform` (string): Target platform for multi-platform projects.
-  Allowed: `ios`, `android`, `shared`, `""` (empty = not platform-specific).
-  Use `shared` for items spanning all platforms. Leave empty for platform-agnostic items.
+- (optional) `phase` (link or integer): Development phase for milestone grouping. Prefer `[[PHASE-####]]` links when using first-class phase notes; legacy integer values may be used during migration. See `[[PHASES]]` for definitions.
+  - Enables machine-filtering, automated progress tracking, and phase grouping.
+  - Leave empty/omit for items not tied to a specific phase.
 - (required) `owner` (string): Accountable person/team (can be `unassigned`).
   - Values must be defined in `[[OWNERSHIP]]` (or be `unassigned`).
 - (required) `created` (date string): Creation date; keep stable.
@@ -77,15 +71,36 @@ Where used:
 
 ## `feature.md` (`type: [[feature]]`)
 
-Purpose: a work package describing a capability. Child items (tasks, requirements, tests) link back to the feature via their relationship fields — the feature note does not maintain child lists.
+Purpose: a work package describing a capability, with traceability to requirements and tasks.
 
 Fields:
 - (required) `goal` (string): Short outcome statement.
+- (optional) `requirements` (list of links): `[[REQ-...]]` links implemented by this feature.
+- (optional) `tasks` (list of links): `[[TASK-...]]` links that deliver the feature.
+- (optional) `tests` (list of links): `[[TST-...]]` links used to verify the feature.
 - (optional) `release` (string): Milestone/release label.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.features`) for agent context and linked from feature notes.
-- Related tasks use `implements`, requirements use `specifies`, tests use `validates`, issues use `affects` to link back.
+
+## `phase.md` (`type: [[phase]]`)
+
+Purpose: define a delivery milestone with explicit scope, linked work, and exit criteria.
+
+Naming:
+- Filename should be `PHASE-####-Short-Name.md`.
+- `id` should match the filename prefix.
+
+Fields:
+- (required) `order` (integer): Sort order for roadmap sequencing.
+- (required) `goal` (string): Short outcome statement for the milestone.
+- (optional) `features` (list of links): Features planned for this phase.
+- (optional) `requirements` (list of links): Requirements introduced or verified in this phase.
+- (optional) `tasks` (list of links): Active or key tasks in this phase.
+- (optional) `issues` (list of links): Issues tied to this phase.
+
+Where used:
+- Tracked in `SNAPSHOT.yaml` (`items.phases`) for agent context and linked from phase-aware items.
 
 ## `issue.md` (`type: [[issue]]`)
 
@@ -94,7 +109,7 @@ Purpose: canonical problem report / gap / bug.
 Fields:
 - (required) `severity` (string): e.g. `low|medium|high|critical` (project-defined).
 - (recommended) `component` (string): Subsystem/area label (project-defined).
-- (optional) `affects` (list of links): Feature(s) where this issue was found (`[[FEAT-...]]`).
+- (optional) `parent` (string/link): Link to a parent feature/epic note.
 - (optional) `tests` (list of links): `[[TST-...]]` links used to reproduce/verify the issue.
 
 Where used:
@@ -108,12 +123,25 @@ Fields:
 - (required) `priority` (string): e.g. `low|medium|high` (project-defined).
 - (optional) `scope` (string): Short scoping label (area/domain).
 - (required) `acceptance` (list): Acceptance criteria statements (strings).
-- (optional) `specifies` (list of links): Feature(s) this requirement constrains (`[[FEAT-...]]`).
+- (optional) `implements` (list of links): Notes implementing the requirement (usually features).
 - (optional) `verifies` (list of links/paths): Proof/verification pointers (workflows/tests/repo paths).
 - (optional) `tests` (list of links): `[[TST-...]]` links that verify this requirement.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.requirements`) for agent context and linked from requirement notes.
+
+## `reference.md` (`type: [[reference]]`)
+
+Purpose: durable explanatory, registry, or background material that supports project understanding but is not itself a task, feature, workflow, decision, test, issue, requirement, phase, risk, or change.
+
+Fields:
+- (recommended) `scope` (string): Short scope label such as `project`, `docs`, `tooling`, or a domain-specific area.
+- (optional) `related` (list of links/strings): Related notes or repo paths.
+- (optional) `source` (list of strings/links): Provenance or upstream/source documents.
+
+Where used:
+- Surfaced by the cockpit project mode under References and by `/index/references`.
+- Not normally tracked in `SNAPSHOT.yaml` unless a downstream project deliberately promotes a reference collection into active state.
 
 ## `risk.md` (`type: [[risk]]`)
 
@@ -132,15 +160,12 @@ Where used:
 Purpose: actionable unit of work with a Definition of Done.
 
 Fields:
-- (optional) `implements` (list of links): Feature(s) this task delivers (`[[FEAT-...]]`).
-- (optional) `fixes` (list of links): Issue(s) this task resolves (`[[ISS-...]]`).
+- (required) `parent` (link): Link to a feature or issue note this task belongs to.
 - (optional) `effort` (string): Size label (e.g. `XS|S|M|L`).
 - (optional) `due` (string/date): Due date.
 - (optional) `depends` (list of links): Tasks/issues that must complete first.
 - (optional) `blocks` (list of links): Tasks/issues blocked by this task.
 - (optional) `tests` (list of links): `[[TST-...]]` links used to verify completion.
-
-Note: A task should have at least one of `implements` or `fixes` set.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.tasks`) for agent context and linked from task notes.
@@ -154,53 +179,16 @@ Fields:
 - (required) `kind` (string): `manual|automated`.
 - (recommended) `level` (string): `unit|integration|system|e2e`.
 - (optional) `entrypoint` (string): Repo-relative command/script to run (or blank for purely manual tests).
-- (optional) `validates` (list of links): Feature(s) or requirement(s) this test verifies (`[[FEAT-...]]`, `[[REQ-...]]`).
+- (recommended) `requirements` (list of links): Requirements verified by this test (`[[REQ-...]]`).
+- (optional) `features` (list of links): Related features (`[[FEAT-...]]`).
+- (optional) `issues` (list of links): Related issues (`[[ISS-...]]`).
+- (optional) `tasks` (list of links): Related tasks (`[[TASK-...]]`).
 - (optional) `artifacts` (list): Expected artifacts/logs.
 - (optional) `evidence` (list): Evidence from the last run (paths/log excerpts).
 - (optional) `last_run` (string): Timestamp/label for the last execution.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.
-
-## `release.md` (`type: [[release]]`)
-
-Purpose: record what was shipped, when, and with what verification evidence.
-
-Naming:
-- Filename should be `REL-####-Short-Name.md`.
-- `id` should match the filename without `.md`.
-
-Fields:
-- (required) `version` (string): Semantic version or release label (e.g. `1.2.0`).
-- (recommended) `tag` (string): Git tag for the release (e.g. `v1.2.0`).
-- (recommended) `date` (string): Release date (ISO 8601).
-- (required) `features` (list of links): Features included in this release (`[[FEAT-...]]`).
-- (optional) `changes` (list of links): Change notes included (`[[CHG-...]]`).
-- (required) `tests_verified` (list of links): Acceptance tests verified for this release (`[[TST-...]]`).
-- (optional) `previous_release` (string/link): Link to the prior release note (`[[REL-...]]`).
-
-Where used:
-- Tracked in `SNAPSHOT.yaml` (`items.releases`) for agent context and linked from release notes.
-- The release-verification skill creates/updates REL-* notes as part of the release gating workflow.
-
-## `phase.md` (`type: [[phase]]`)
-
-Purpose: a development milestone grouping features, tasks, and other items into a coherent delivery stage.
-
-Naming:
-- Filename should be `PHASE-###-Short-Name.md`.
-- `id` should match the filename without `.md`.
-
-Fields:
-- (required) `order` (integer): Sort order for dashboards (1, 2, 3...).
-- (required) `goal` (string): What this phase delivers.
-
-Statuses: `draft`, `active`, `completed`.
-
-Where used:
-- Tracked in `SNAPSHOT.yaml` (`items.phases`) for agent context.
-- Other notes link to phase notes via `phase: ["[[PHASE-001-...]]"]`.
-- The CONTEXT.base sidebar filters on `phase contains this.file` to show all items in a selected phase.
 
 ## `workflow.md` (`type: [[workflow]]`)
 
@@ -214,36 +202,3 @@ Fields:
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.workflows`) for agent context and linked from workflow notes.
-
-## `plan.md` (`type: [[plan]]`)
-
-Purpose: per-feature delivery sequence — the ordered list of tasks that land the feature, plus dependencies and open questions to pin during implementation.
-
-Naming:
-- Filename should be `PLAN.md`, located under `docs/features/<slug>/plan/PLAN.md`.
-- `id` should be `PLAN-FEAT-####` matching the parent feature's ID.
-
-Fields:
-- (required) `implements` (list of links): The feature this plan delivers (`[[FEAT-...]]`). Typically a single entry.
-- (optional) `related` (list of links): Other features/plans this plan touches.
-
-Statuses: `draft`, `active`, `done`.
-
-Where used:
-- Read alongside the feature note before any task starts.
-- Not tracked individually in `SNAPSHOT.yaml`; the parent feature's tasks carry the status the snapshot reports.
-
-## `dashboard.md` (`type: [[dashboard]]`)
-
-Purpose: a curated overview page — typically embedded `.base` views and narrative pointers — that a human uses as a landing page for a slice of the project.
-
-Naming:
-- No fixed filename pattern. Singletons (`DASHBOARD.md` at the repo's docs root) and per-area dashboards (`docs/dashboards/Features.md` etc.) are both fine.
-
-Fields:
-- Minimal frontmatter — `type` and `title` are typically the only required keys.
-- (optional) `id` / `aliases`: only when the dashboard needs to be wikilink-targetable beyond its filename.
-
-Where used:
-- Not tracked in `SNAPSHOT.yaml` — dashboards are presentation, not artefacts.
-- Bases dashboards (`docs/__bases__/*.base`) carry their own filter logic; a `dashboard.md` is the human-readable wrapper that embeds them.
