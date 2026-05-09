@@ -17,6 +17,8 @@
   var MODE_KEY = "project-os-cockpit.cockpit.left-mode";
   var PLATFORM_KEY = "project-os-cockpit.cockpit.platform";
   var PINNED_KEY = "project-os-cockpit.cockpit.pinned-paths";
+  var META_STRIP_KEY = "project-os-cockpit.cockpit.meta-strip-collapsed";
+  var RIGHT_PANE_KEY = "project-os-cockpit.cockpit.right-pane-collapsed";
 
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
@@ -66,6 +68,21 @@
     try { localStorage.setItem(FILTER_KEY, v ? "1" : "0"); } catch (e) {}
   }
   var hideCompleted = loadHideCompleted();
+
+  function loadMetaStripCollapsed() {
+    try { return localStorage.getItem(META_STRIP_KEY) === "1"; } catch (e) { return false; }
+  }
+  function saveMetaStripCollapsed(v) {
+    try { localStorage.setItem(META_STRIP_KEY, v ? "1" : "0"); } catch (e) {}
+  }
+
+  function loadRightPaneCollapsed() {
+    try { return localStorage.getItem(RIGHT_PANE_KEY) === "1"; } catch (e) { return false; }
+  }
+  function saveRightPaneCollapsed(v) {
+    try { localStorage.setItem(RIGHT_PANE_KEY, v ? "1" : "0"); } catch (e) {}
+  }
+  var rightPaneCollapsed = loadRightPaneCollapsed();
 
   function loadMode() {
     try {
@@ -405,6 +422,58 @@
         navCache = null;
         loadLeftPane().then(highlightActiveInLeftPane);
       }
+    });
+    slot.replaceChildren(btn);
+  }
+
+  function applyMetaStripState() {
+    // Server renders <details class="metadata-strip" open>; we strip the
+    // open attribute when the user previously collapsed it. Wire up the
+    // toggle listener once per element so navigations don't accumulate
+    // duplicate handlers.
+    var collapsed = loadMetaStripCollapsed();
+    document.querySelectorAll(".metadata-strip").forEach(function (el) {
+      if (el._metaWired) {
+        // already wired; just re-sync open state.
+        if (collapsed) el.removeAttribute("open");
+        else el.setAttribute("open", "");
+        return;
+      }
+      el._metaWired = true;
+      if (collapsed) el.removeAttribute("open");
+      el.addEventListener("toggle", function () {
+        saveMetaStripCollapsed(!el.open);
+      });
+    });
+  }
+
+  function applyRightPaneState() {
+    var cockpitEl = document.querySelector(".cockpit");
+    if (!cockpitEl) return;
+    cockpitEl.classList.toggle("right-collapsed", rightPaneCollapsed);
+  }
+
+  function mountRightPaneToggle() {
+    var slot = document.getElementById("cockpit-right-toggle-slot");
+    if (!slot) return;
+    var btn = el("button", {
+      class: "right-pane-toggle" + (rightPaneCollapsed ? " is-collapsed" : ""),
+      type: "button",
+      "aria-pressed": rightPaneCollapsed ? "true" : "false",
+      title: rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane",
+      "aria-label": rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane",
+      text: rightPaneCollapsed ? "⇤" : "⇥",
+    });
+    btn.addEventListener("click", function () {
+      rightPaneCollapsed = !rightPaneCollapsed;
+      saveRightPaneCollapsed(rightPaneCollapsed);
+      applyRightPaneState();
+      btn.classList.toggle("is-collapsed", rightPaneCollapsed);
+      btn.setAttribute("aria-pressed", rightPaneCollapsed ? "true" : "false");
+      var label = rightPaneCollapsed ? "Show relationships pane" : "Hide relationships pane";
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.textContent = rightPaneCollapsed ? "⇤" : "⇥";
     });
     slot.replaceChildren(btn);
   }
@@ -1008,6 +1077,7 @@
         syncActiveFromCentre();
         highlightActiveInLeftPane();
         mountPinButton();
+        applyMetaStripState();
         centreEl.scrollTop = 0;
         return loadRightPane();
       })
@@ -1040,7 +1110,10 @@
 
   mountModeTabs();
   mountFilterBar();
+  mountRightPaneToggle();
   mountPinButton();
+  applyRightPaneState();
+  applyMetaStripState();
   loadLeftPane().then(highlightActiveInLeftPane);
   loadRightPane();
 })();

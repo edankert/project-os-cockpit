@@ -240,6 +240,45 @@ a:focus-visible {
   font-size: 13px;
   color: var(--text-muted);
 }
+/* Collapsible <details> form (TASK-0032). The summary is a tiny header
+ * row; the body is the existing <dl>. Open by default; JS strips the
+ * open attribute when the user has previously collapsed it. */
+details.metadata-strip > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+details.metadata-strip > summary::-webkit-details-marker { display: none; }
+details.metadata-strip[open] > summary {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.metadata-strip-chevron {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 100ms ease;
+  opacity: 0.7;
+}
+details.metadata-strip:not([open]) > summary .metadata-strip-chevron {
+  transform: translateY(1px) rotate(-45deg);
+}
+details.metadata-strip > summary:hover {
+  color: var(--text-muted);
+}
 
 .metadata-strip dl {
   display: grid;

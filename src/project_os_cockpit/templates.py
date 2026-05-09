@@ -187,6 +187,7 @@ def page(
         '    <div id="cockpit-mode-slot" class="cockpit-mode-slot"></div>\n'
         '    <div id="cockpit-platform-slot" class="cockpit-platform-slot"></div>\n'
         '    <div id="cockpit-filter-slot" class="cockpit-filter-slot"></div>\n'
+        '    <div id="cockpit-right-toggle-slot" class="cockpit-right-toggle-slot"></div>\n'
         '    <button class="theme-toggle" type="button" aria-label="Toggle light / dark theme" aria-pressed="false">◐</button>\n'
         '  </div>\n'
         + (
@@ -282,7 +283,18 @@ def _metadata_strip_html(meta: dict[str, Any], resolver: Resolver | None) -> str
         f"  <dt>{escape(k)}</dt>\n  <dd>{v}</dd>"
         for k, v in pairs
     )
-    return f'<aside class="metadata-strip"><dl>\n{rows}\n</dl></aside>\n'
+    # Rendered as <details open> so the strip is collapsible — JS persists
+    # the open/closed state under the cockpit's collapsed-set mechanism so
+    # toggling on one note carries over to subsequent navigations.
+    return (
+        '<details class="metadata-strip" open>\n'
+        '  <summary class="metadata-strip-summary">'
+        '<span class="metadata-strip-chevron" aria-hidden="true"></span>'
+        '<span>Frontmatter</span>'
+        '</summary>\n'
+        f'  <dl>\n{rows}\n</dl>\n'
+        '</details>\n'
+    )
 
 
 def _render_meta_value(key: str, value: Any, resolver: Resolver | None) -> str:
