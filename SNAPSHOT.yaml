@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-09T13:15Z"
+updated: "2026-05-09T13:30Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 33
+  TASK: 34
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0033"
+  task: "TASK-0034"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -195,6 +195,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0033-Panel-Right-Icon.md"
+      parent: "FEAT-0006"
+    TASK-0034:
+      title: "Cockpit: left-pane toggle (panel-left SVG) at far left, bigger icons (16→20px)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0034-Left-Pane-Toggle.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -428,6 +434,12 @@ items:
       path: "docs/changes/CHG-20260509-Cockpit-Panel-Right-Icon.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0033"
+    CHG-20260509-Cockpit-Left-Pane-Toggle:
+      title: "Cockpit: left-pane toggle (panel-left SVG) + bigger pane-toggle icons"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-Left-Pane-Toggle.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0034"
   releases: {}
 
   decisions:
@@ -452,8 +464,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 33
-    tasks_done: 27
+    tasks_total: 34
+    tasks_done: 28
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

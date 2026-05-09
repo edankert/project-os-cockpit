@@ -183,6 +183,7 @@ def page(
         '<body>\n'
         '<header class="page-header">\n'
         '  <div class="page-header-row page-header-row-1">\n'
+        '    <div id="cockpit-left-toggle-slot" class="cockpit-left-toggle-slot"></div>\n'
         f'    <a class="home-link" href="/" title="Home — {escape(_PROJECT_NAME)}">{escape(_PROJECT_NAME)}</a>\n'
         '    <div id="cockpit-mode-slot" class="cockpit-mode-slot"></div>\n'
         '    <div id="cockpit-platform-slot" class="cockpit-platform-slot"></div>\n'

@@ -58,6 +58,17 @@
 .cockpit.right-collapsed .cockpit-right {
   display: none;
 }
+/* Mirror for the left navigator pane. */
+.cockpit.left-collapsed {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.cockpit.left-collapsed .cockpit-left {
+  display: none;
+}
+/* Both collapsed → centre pane fills the whole cockpit. */
+.cockpit.left-collapsed.right-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
 
 .cockpit-pane {
   overflow-y: auto;
@@ -154,17 +165,23 @@
   color: var(--accent-link);
 }
 
-/* ----- Right-pane toggle (mounted in the page header, TASK-0032/0033) -----
- * Far-right control on row 1 (after the theme toggle). Uses the Lucide
- * panel-right-close / panel-right-open SVGs — same shape Obsidian uses
- * for its sidebar toggle. */
+/* ----- Pane toggles (mounted in the page header, TASK-0032/0033/0034) -----
+ * Left toggle = leftmost control on row 1; right toggle = rightmost.
+ * Both use Lucide's panel-left / panel-right SVGs — same shape Obsidian
+ * uses for its sidebar toggles. */
 
 .cockpit-right-toggle-slot {
   display: flex;
   align-items: center;
   margin-left: 8px;
 }
-.right-pane-toggle {
+.cockpit-left-toggle-slot {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.right-pane-toggle,
+.left-pane-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -177,14 +194,17 @@
   line-height: 0;
   transition: background-color 80ms ease, color 80ms ease;
 }
-.right-pane-toggle:hover {
+.right-pane-toggle:hover,
+.left-pane-toggle:hover {
   color: var(--text);
   background: var(--surface);
 }
-.right-pane-toggle.is-collapsed {
+.right-pane-toggle.is-collapsed,
+.left-pane-toggle.is-collapsed {
   color: var(--text);
 }
-.panel-right-icon {
+.panel-right-icon,
+.panel-left-icon {
   display: block;
 }
 

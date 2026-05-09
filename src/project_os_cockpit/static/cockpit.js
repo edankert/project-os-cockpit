@@ -19,6 +19,7 @@
   var PINNED_KEY = "project-os-cockpit.cockpit.pinned-paths";
   var META_STRIP_KEY = "project-os-cockpit.cockpit.meta-strip-collapsed";
   var RIGHT_PANE_KEY = "project-os-cockpit.cockpit.right-pane-collapsed";
+  var LEFT_PANE_KEY  = "project-os-cockpit.cockpit.left-pane-collapsed";
 
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
@@ -83,6 +84,14 @@
     try { localStorage.setItem(RIGHT_PANE_KEY, v ? "1" : "0"); } catch (e) {}
   }
   var rightPaneCollapsed = loadRightPaneCollapsed();
+
+  function loadLeftPaneCollapsed() {
+    try { return localStorage.getItem(LEFT_PANE_KEY) === "1"; } catch (e) { return false; }
+  }
+  function saveLeftPaneCollapsed(v) {
+    try { localStorage.setItem(LEFT_PANE_KEY, v ? "1" : "0"); } catch (e) {}
+  }
+  var leftPaneCollapsed = loadLeftPaneCollapsed();
 
   function loadMode() {
     try {
@@ -453,9 +462,15 @@
     cockpitEl.classList.toggle("right-collapsed", rightPaneCollapsed);
   }
 
-  // Lucide panel-right icons — the shape Obsidian uses for its sidebar
-  // toggle. Chevron points inward when the pane is open ("click to
-  // close") and outward when collapsed ("click to open").
+  function applyLeftPaneState() {
+    var cockpitEl = document.querySelector(".cockpit");
+    if (!cockpitEl) return;
+    cockpitEl.classList.toggle("left-collapsed", leftPaneCollapsed);
+  }
+
+  // Lucide panel-right / panel-left icons — the shapes Obsidian uses for
+  // its sidebar toggles. Chevron points inward when the pane is open
+  // ("click to close") and outward when collapsed ("click to open").
   var PANEL_RIGHT_CLOSE_PATHS =
     '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
     '<line x1="15" x2="15" y1="3" y2="21"/>' +
@@ -464,21 +479,66 @@
     '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
     '<line x1="15" x2="15" y1="3" y2="21"/>' +
     '<path d="m11 9-3 3 3 3"/>';
+  var PANEL_LEFT_CLOSE_PATHS =
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
+    '<line x1="9" x2="9" y1="3" y2="21"/>' +
+    '<path d="m16 15-3-3 3-3"/>';
+  var PANEL_LEFT_OPEN_PATHS =
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>' +
+    '<line x1="9" x2="9" y1="3" y2="21"/>' +
+    '<path d="m13 15 3-3-3-3"/>';
 
-  function panelRightIconSvg(collapsed) {
+  function panelIconSvg(klass, paths) {
     var svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("class", "panel-right-icon");
+    svg.setAttribute("class", klass);
     svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("width", "16");
-    svg.setAttribute("height", "16");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
     svg.setAttribute("fill", "none");
     svg.setAttribute("stroke", "currentColor");
     svg.setAttribute("stroke-width", "1.75");
     svg.setAttribute("stroke-linecap", "round");
     svg.setAttribute("stroke-linejoin", "round");
     svg.setAttribute("aria-hidden", "true");
-    svg.innerHTML = collapsed ? PANEL_RIGHT_OPEN_PATHS : PANEL_RIGHT_CLOSE_PATHS;
+    svg.innerHTML = paths;
     return svg;
+  }
+  function panelRightIconSvg(collapsed) {
+    return panelIconSvg(
+      "panel-right-icon",
+      collapsed ? PANEL_RIGHT_OPEN_PATHS : PANEL_RIGHT_CLOSE_PATHS
+    );
+  }
+  function panelLeftIconSvg(collapsed) {
+    return panelIconSvg(
+      "panel-left-icon",
+      collapsed ? PANEL_LEFT_OPEN_PATHS : PANEL_LEFT_CLOSE_PATHS
+    );
+  }
+
+  function mountLeftPaneToggle() {
+    var slot = document.getElementById("cockpit-left-toggle-slot");
+    if (!slot) return;
+    var btn = el("button", {
+      class: "left-pane-toggle" + (leftPaneCollapsed ? " is-collapsed" : ""),
+      type: "button",
+      "aria-pressed": leftPaneCollapsed ? "true" : "false",
+      title: leftPaneCollapsed ? "Show navigator pane" : "Hide navigator pane",
+      "aria-label": leftPaneCollapsed ? "Show navigator pane" : "Hide navigator pane",
+    });
+    btn.appendChild(panelLeftIconSvg(leftPaneCollapsed));
+    btn.addEventListener("click", function () {
+      leftPaneCollapsed = !leftPaneCollapsed;
+      saveLeftPaneCollapsed(leftPaneCollapsed);
+      applyLeftPaneState();
+      btn.classList.toggle("is-collapsed", leftPaneCollapsed);
+      btn.setAttribute("aria-pressed", leftPaneCollapsed ? "true" : "false");
+      var label = leftPaneCollapsed ? "Show navigator pane" : "Hide navigator pane";
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.replaceChildren(panelLeftIconSvg(leftPaneCollapsed));
+    });
+    slot.replaceChildren(btn);
   }
 
   function mountRightPaneToggle() {
@@ -1138,8 +1198,10 @@
 
   mountModeTabs();
   mountFilterBar();
+  mountLeftPaneToggle();
   mountRightPaneToggle();
   mountPinButton();
+  applyLeftPaneState();
   applyRightPaneState();
   applyMetaStripState();
   loadLeftPane().then(highlightActiveInLeftPane);
