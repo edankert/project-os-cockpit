@@ -170,14 +170,20 @@
  * Both use Lucide's panel-left / panel-right SVGs — same shape Obsidian
  * uses for its sidebar toggles. */
 
+/* Both slots use a negative outer margin to pull the icon past the
+ * page-header row's 20px side padding, leaving ~4px from the viewport
+ * edge. The inner margin (margin-left for right slot / margin-right
+ * for left slot) preserves the 8px gap to the neighbouring control. */
 .cockpit-right-toggle-slot {
   display: flex;
   align-items: center;
   margin-left: 8px;
+  margin-right: -16px;
 }
 .cockpit-left-toggle-slot {
   display: flex;
   align-items: center;
+  margin-left: -16px;
   margin-right: 8px;
 }
 .right-pane-toggle,
