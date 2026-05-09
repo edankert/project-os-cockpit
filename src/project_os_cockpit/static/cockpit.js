@@ -931,18 +931,27 @@
   // ------------------------------------------------------------------ right pane
 
   function ctxItem(item, kind) {
-    var priority = item.priority
-      ? el("span", {
-          class: "ctx-priority",
-          "data-priority": String(item.priority).toLowerCase(),
-          text: item.priority,
-        })
-      : null;
+    var priorityChip = null;
+    if (item.severity) {
+      // Issues surface severity (TASK-0035). Reuse the --severity-* token
+      // palette also used by the left-pane issue group icons.
+      priorityChip = el("span", {
+        class: "ctx-severity",
+        "data-severity": String(item.severity).toLowerCase(),
+        text: item.severity,
+      });
+    } else if (item.priority) {
+      priorityChip = el("span", {
+        class: "ctx-priority",
+        "data-priority": String(item.priority).toLowerCase(),
+        text: item.priority,
+      });
+    }
     var topLine = el("div", { class: "ctx-line" }, [
       typeIcon(item.type),
       item.id ? el("span", { class: "ctx-id mono", text: item.id }) : null,
       el("span", { class: "nav-line-spacer" }),
-      priority,
+      priorityChip,
       statusChip(item.status),
     ]);
     var titleNode = el("p", {

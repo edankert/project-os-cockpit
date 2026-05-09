@@ -851,6 +851,22 @@ details:not([open]) > summary .group-chevron {
 .ctx-priority[data-priority="medium"] { color: var(--status-active);   border-color: currentColor; }
 .ctx-priority[data-priority="low"]    { color: var(--status-pending);  border-color: currentColor; }
 
+/* Severity chip — same shape as priority, recoloured via the --severity-*
+ * tokens shared with the issue group icons (TASK-0035). */
+.ctx-severity {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.ctx-severity[data-severity="critical"] { color: var(--severity-critical); border-color: currentColor; }
+.ctx-severity[data-severity="high"]     { color: var(--severity-high);     border-color: currentColor; }
+.ctx-severity[data-severity="medium"]   { color: var(--severity-medium);   border-color: currentColor; }
+.ctx-severity[data-severity="low"]      { color: var(--severity-low);      border-color: currentColor; }
+
 /* ----- Type icons (Lucide-style SVG, recolored via per-type tokens) ----- */
 
 .type-icon {

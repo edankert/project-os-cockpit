@@ -843,11 +843,26 @@ def _recent_item(index: Index, record: NoteRecord) -> dict[str, Any]:
 
 
 def _context_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Right-pane item shape.
+
+    Issues show ``severity`` (defaulting to ``"low"`` when frontmatter
+    lacks one) instead of ``priority`` — severity is the issue-vocabulary
+    field and is meaningful even when unset. Other types continue to
+    surface ``priority`` (relevant on requirements).
+    """
+    priority = record.frontmatter.get("priority")
+    severity: str | None = None
+    if record.note_type == "issue":
+        raw = record.frontmatter.get("severity")
+        sev = raw.strip().lower() if isinstance(raw, str) and raw.strip() else "low"
+        severity = sev
+        priority = None
     return {
         "id": record.note_id,
         "title": record.title or record.path.stem,
         "status": record.status,
-        "priority": record.frontmatter.get("priority"),
+        "priority": priority,
+        "severity": severity,
         "url": index.url_for(record.path),
         "type": record.note_type or "",
     }

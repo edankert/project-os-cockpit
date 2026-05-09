@@ -484,7 +484,45 @@ def test_context_payload_item_columns(index: Index) -> None:
     assert req["status"] == "approved"
     # priority is unset in the fixture's REQ-0001 — should be None, not "".
     assert req["priority"] is None
+    # Non-issue items have no severity field populated.
+    assert req["severity"] is None
     assert req["url"] == "/docs/REQ-0001-Some-Req.md"
+
+
+def test_context_payload_issue_carries_severity_with_default(
+    index: Index,
+) -> None:
+    """Issue right-pane items show ``severity`` (default 'low' when
+    frontmatter lacks one) and suppress ``priority`` — TASK-0035."""
+    payload = context_payload(index, "FEAT-0001")
+    issue_items = [
+        i for g in payload["backlinks"]
+        for i in g["items"] if i["id"] == "ISS-0001"
+    ]
+    assert issue_items, "ISS-0001 should appear in FEAT-0001 backlinks"
+    item = issue_items[0]
+    # Fixture has severity: high explicitly set.
+    assert item["severity"] == "high"
+    assert item["priority"] is None
+
+
+def test_context_payload_issue_default_severity_low(
+    index: Index, docs_root: Path
+) -> None:
+    """An issue without a frontmatter severity defaults to 'low'."""
+    (docs_root / "ISS-0099-Mystery.md").write_text(
+        '---\ntype: "[[issue]]"\nid: ISS-0099\ntitle: "Mystery"\n'
+        'status: open\naffects: ["[[FEAT-0001]]"]\n---\n# Mystery\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = context_payload(fresh, "FEAT-0001")
+    iss = next(
+        i for g in payload["backlinks"]
+        for i in g["items"] if i["id"] == "ISS-0099"
+    )
+    assert iss["severity"] == "low"
+    assert iss["priority"] is None
 
 
 def test_context_payload_resolves_by_path(index: Index, docs_root: Path) -> None:
