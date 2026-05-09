@@ -43,6 +43,7 @@ INDEX_TYPE_PLURALS: dict[str, str] = {
     "workflows": "workflow",
     "tests": "test",
     "phases": "phase",
+    "references": "reference",
 }
 
 log = logging.getLogger("project_os_cockpit.server")
@@ -125,6 +126,7 @@ def _make_handler(
     docs_root: Path, index: Index, bus: EventBus
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
+    project_root = docs_root.parent.resolve()
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "project-os-cockpit/0.1"
@@ -185,6 +187,11 @@ def _make_handler(
                 self._serve_docs_path(path[len("/docs/"):])
                 return
 
+            support_rel = _project_support_rel(path)
+            if support_rel is not None:
+                self._serve_project_support_path(support_rel)
+                return
+
             self._respond_not_found(path)
 
         # ---- landing + indexes ----
@@ -231,7 +238,11 @@ def _make_handler(
             pinned_raw = (params.get("pinned") or [None])[0] or ""
             pinned = [p for p in pinned_raw.split(",") if p] if pinned_raw else []
             payload = cockpit.nav_payload(
-                index, mode=mode, platform=platform, pinned=pinned
+                index,
+                mode=mode,
+                platform=platform,
+                pinned=pinned,
+                project_root=project_root,
             )
             self._respond_json(payload)
 
@@ -243,6 +254,10 @@ def _make_handler(
             payload = cockpit.context_payload(
                 index, this_value, platform=platform
             )
+            if payload.get("active") is None and this_value:
+                active = _project_support_active(project_root, this_value)
+                if active is not None:
+                    payload["active"] = active
             self._respond_json(payload)
 
         # ---- SSE channel ----
@@ -317,7 +332,7 @@ def _make_handler(
         # ---- docs content ----
 
         def _serve_docs_path(self, rel: str) -> None:
-            rel = rel.lstrip("/")
+            rel = urllib.parse.unquote(rel.lstrip("/"))
             # Trim trailing slash for resolution; remember it for dir handling.
             had_trailing_slash = rel.endswith("/") or rel == ""
             rel_clean = rel.rstrip("/")
@@ -346,7 +361,7 @@ def _make_handler(
                     # Canonicalise: dirs get a trailing slash so relative links work.
                     self._redirect(f"/docs/{rel_clean}/")
                     return
-                self._render_directory(target, rel_clean)
+                self._render_directory(target, rel_clean, url_prefix="/docs")
                 return
 
             if target.suffix.lower() == ".md":
@@ -357,12 +372,64 @@ def _make_handler(
             # and the .base files which are plain YAML).
             self._serve_raw_file(target)
 
-        def _render_markdown(self, source_path: Path, rel_path: str) -> None:
+        def _serve_project_support_path(self, rel: str) -> None:
+            rel = urllib.parse.unquote(rel.lstrip("/"))
+            had_trailing_slash = rel.endswith("/") or rel == ""
+            rel_clean = rel.rstrip("/")
+
+            if any(part == ".." for part in rel_clean.split("/")):
+                self._respond_forbidden("path traversal blocked")
+                return
+
+            target = (project_root / rel_clean).resolve() if rel_clean else project_root
+            if not _is_allowed_project_support_path(project_root, target):
+                self._respond_forbidden("resolved path escapes project support roots")
+                return
+
+            if not target.exists():
+                self._respond_not_found(self.path)
+                return
+
+            if target.is_dir():
+                readme = target / "README.md"
+                if readme.is_file():
+                    readme_rel = readme.relative_to(project_root).as_posix()
+                    self._redirect(f"/{readme_rel}")
+                    return
+                if not had_trailing_slash and rel_clean:
+                    self._redirect(f"/{rel_clean}/")
+                    return
+                self._render_directory(target, rel_clean, url_prefix="")
+                return
+
+            if target.suffix.lower() == ".md":
+                support_rel = target.relative_to(project_root).as_posix()
+                self._render_markdown(
+                    target,
+                    support_rel,
+                    url_prefix="",
+                    reload_source="",
+                )
+                return
+
+            self._serve_raw_file(target)
+
+        def _render_markdown(
+            self,
+            source_path: Path,
+            rel_path: str,
+            *,
+            url_prefix: str = "/docs",
+            reload_source: str | None = None,
+        ) -> None:
             try:
                 html = renderer.render_markdown_file(
                     source_path,
                     rel_path=rel_path,
                     resolver=index.resolve,
+                    asset_resolver=index.resolve_asset,
+                    url_prefix=url_prefix,
+                    reload_source=reload_source,
                 )
             except Exception as exc:  # pragma: no cover - dev-only safety net
                 log.exception("render failure for %s", source_path)
@@ -379,8 +446,14 @@ def _make_handler(
                 return
             self._respond_html(HTTPStatus.OK, html)
 
-        def _render_directory(self, target: Path, rel_path: str) -> None:
-            entries = _directory_entries(target, rel_path)
+        def _render_directory(
+            self,
+            target: Path,
+            rel_path: str,
+            *,
+            url_prefix: str,
+        ) -> None:
+            entries = _directory_entries(target, rel_path, url_prefix=url_prefix)
             listing_html = templates.directory_listing_html(entries)
             title = rel_path or docs_root.name or "docs"
             body_html = (
@@ -487,6 +560,64 @@ def _is_under(candidate: Path, root: Path) -> bool:
         return False
 
 
+def _project_support_rel(path: str) -> str | None:
+    rel = path.lstrip("/")
+    if not rel:
+        return None
+    if any(part == ".." for part in rel.split("/")):
+        return rel
+    if rel in cockpit.PROJECT_SUPPORT_ROOT_FILES:
+        return rel
+    for root_rel, _label, _max_depth in cockpit.PROJECT_SUPPORT_DIRS:
+        if rel == root_rel or rel.startswith(root_rel + "/"):
+            return rel
+    return None
+
+
+def _is_allowed_project_support_path(project_root: Path, target: Path) -> bool:
+    if not _is_under(target, project_root):
+        return False
+    for root_file in cockpit.PROJECT_SUPPORT_ROOT_FILES:
+        if target == (project_root / root_file).resolve():
+            return True
+    for root_rel, _label, max_depth in cockpit.PROJECT_SUPPORT_DIRS:
+        support_root = (project_root / root_rel).resolve()
+        if _is_under(target, support_root):
+            try:
+                rel_parts = target.relative_to(support_root).parts
+            except ValueError:
+                return False
+            return len(rel_parts) <= max_depth
+    return False
+
+
+def _project_support_active(project_root: Path, this: str) -> dict[str, str | None] | None:
+    rel = _project_support_rel("/" + this.lstrip("/"))
+    if rel is None:
+        return None
+    target = (project_root / rel).resolve()
+    if not target.is_file() or target.suffix.lower() != ".md":
+        return None
+    if not _is_allowed_project_support_path(project_root, target):
+        return None
+    return {
+        "id": None,
+        "title": _markdown_title(target),
+        "url": f"/{rel}",
+    }
+
+
+def _markdown_title(path: Path) -> str:
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines()[:80]:
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                return stripped[2:].strip()
+    except OSError:
+        pass
+    return path.stem
+
+
 def _render_readme_if_present(docs_root: Path, idx) -> str | None:
     """Render the docs-root README.md body for the landing fallback.
 
@@ -499,7 +630,11 @@ def _render_readme_if_present(docs_root: Path, idx) -> str | None:
     try:
         from . import renderer as _renderer
 
-        return _renderer.render_markdown_body(readme, resolver=idx.resolve)
+        return _renderer.render_markdown_body(
+            readme,
+            resolver=idx.resolve,
+            asset_resolver=idx.resolve_asset,
+        )
     except Exception:
         return None
 
@@ -552,16 +687,24 @@ def _read_focus(docs_root: Path) -> dict[str, str] | None:
 def _directory_entries(
     target: Path,
     rel_path: str,
+    *,
+    url_prefix: str,
 ) -> Iterable[tuple[str, str, bool]]:
     children = sorted(
         (p for p in target.iterdir() if not _is_hidden(p.name)),
         key=lambda p: (not p.is_dir(), p.name.lower()),
     )
-    base_url = f"/docs/{rel_path}/" if rel_path else "/docs/"
+    prefix = url_prefix.rstrip("/")
+    base_url = f"{prefix}/{rel_path}/" if prefix else f"/{rel_path}/"
+    if not rel_path:
+        base_url = f"{prefix}/" if prefix else "/"
     if rel_path:
-        parent_url = f"/docs/{'/'.join(rel_path.split('/')[:-1])}/".replace("//", "/")
-        if parent_url == "/docs/":
-            yield ("/docs/", "..", True)
+        parent_rel = "/".join(rel_path.split("/")[:-1])
+        parent_url = f"{prefix}/{parent_rel}/" if prefix else f"/{parent_rel}/"
+        parent_url = parent_url.replace("//", "/")
+        root_url = f"{prefix}/" if prefix else "/"
+        if parent_url == root_url:
+            yield (root_url, "..", True)
         else:
             yield (parent_url, "..", True)
     for child in children:

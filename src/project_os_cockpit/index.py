@@ -16,6 +16,8 @@ Provides three things:
 from __future__ import annotations
 
 import logging
+import posixpath
+import urllib.parse
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Iterator
@@ -23,7 +25,7 @@ from typing import Any, Iterable, Iterator
 import frontmatter
 
 from .events import is_under_ci, relative_to_ci
-from .wikilinks import WIKILINK_RE
+from .wikilinks import IMAGE_EMBED_RE, WIKILINK_RE
 
 log = logging.getLogger("project_os_cockpit.index")
 
@@ -35,6 +37,16 @@ log = logging.getLogger("project_os_cockpit.index")
 # to index — listing it here is belt-and-braces.
 EXCLUDED_DIR_NAMES: frozenset[str] = frozenset(
     {"__bases__", ".obsidian", ".trash", ".git"}
+)
+IMAGE_EXTENSIONS: frozenset[str] = frozenset(
+    {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif"}
+)
+ATTACHMENT_DIR_NAMES: tuple[str, ...] = (
+    "__attachments__",
+    "__attachments",
+    "attachments",
+    "assets",
+    "images",
 )
 
 
@@ -74,6 +86,9 @@ class Index:
         self._by_alias: dict[str, Path] = {}
         self._by_filename: dict[str, Path] = {}
         self._by_title: dict[str, Path] = {}
+        self._assets_by_path: dict[Path, str] = {}
+        self._assets_by_name: dict[str, list[Path]] = {}
+        self._assets_by_stem: dict[str, list[Path]] = {}
         # Backlink graph — populated lazily after the lookup tables exist
         # because outbound resolution depends on every note being known
         # already. See ``_rebuild_links`` for the second pass.
@@ -90,6 +105,8 @@ class Index:
         # tables, so we don't compute links until after the walk.
         for md_path in idx._walk_markdown():
             idx._index_path(md_path, _build_links=False)
+        for asset_path in idx._walk_assets():
+            idx._index_asset(asset_path)
         # Second pass: now that every note is known, walk each note's
         # frontmatter + body and compute its outbound link set.
         for md_path in list(idx._records):
@@ -113,11 +130,24 @@ class Index:
                 continue
             yield md
 
+    def _walk_assets(self) -> Iterable[Path]:
+        for path in self.docs_root.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in IMAGE_EXTENSIONS:
+                continue
+            if self._is_excluded_path(path):
+                continue
+            yield path
+
     def _is_excluded(self, md: Path) -> bool:
-        rel = relative_to_ci(md, self.docs_root)
+        return self._is_excluded_path(md)
+
+    def _is_excluded_path(self, path: Path) -> bool:
+        rel = relative_to_ci(path, self.docs_root)
         if rel is None:
             return True
-        # Exclude on parent dirs only; allow leaf .md.
+        # Exclude on parent dirs only; allow leaf files.
         parts = rel.split("/")[:-1]
         return any(p in EXCLUDED_DIR_NAMES or p.startswith(".") for p in parts)
 
@@ -177,6 +207,31 @@ class Index:
         if _build_links:
             self._rebuild_links(md_path)
 
+    def _index_asset(self, asset_path: Path) -> None:
+        asset_path = asset_path.resolve()
+        rel = relative_to_ci(asset_path, self.docs_root)
+        if rel is None:
+            return
+        self._assets_by_path[asset_path] = rel
+        self._assets_by_name.setdefault(asset_path.name.lower(), []).append(asset_path)
+        self._assets_by_stem.setdefault(asset_path.stem.lower(), []).append(asset_path)
+
+    def _remove_asset(self, asset_path: Path) -> None:
+        asset_path = asset_path.resolve()
+        rel = self._assets_by_path.pop(asset_path, None)
+        if rel is None:
+            return
+        for table, key in (
+            (self._assets_by_name, asset_path.name.lower()),
+            (self._assets_by_stem, asset_path.stem.lower()),
+        ):
+            paths = table.get(key)
+            if not paths:
+                continue
+            table[key] = [p for p in paths if p != asset_path]
+            if not table[key]:
+                table.pop(key, None)
+
     # ---- lookups ----
 
     def paths(self) -> list[Path]:
@@ -201,6 +256,53 @@ class Index:
             return None
         return self.url_for(path)
 
+    def resolve_asset(self, target: str, source_path: Path | None = None) -> str | None:
+        """Return a ``/docs/...`` URL for an image asset target.
+
+        Supports normal Markdown image paths and Obsidian embeds. Resolution
+        stays inside ``docs_root`` and prefers paths near the source note:
+        explicit relative paths first, common attachment directories next, then
+        a filename/stem search across the docs tree.
+        """
+        raw = (target or "").strip()
+        if not raw:
+            return None
+        path_part, suffix = _split_url_suffix(raw)
+        if _is_external_or_anchor(path_part):
+            return None
+        wanted = urllib.parse.unquote(path_part).strip()
+        if not wanted:
+            return None
+        if wanted.startswith("/docs/"):
+            wanted = wanted[len("/docs/"):]
+        elif wanted.startswith("/"):
+            wanted = wanted[1:]
+        wanted = posixpath.normpath(wanted.replace("\\", "/"))
+        if wanted in ("", "."):
+            return None
+        parent_relative = wanted == ".." or wanted.startswith("../")
+
+        source = source_path.resolve() if source_path is not None else None
+        for candidate in self._explicit_asset_candidates(wanted, source):
+            path = self._asset_path_if_valid(candidate)
+            if path is not None:
+                return self.url_for_asset(path) + suffix
+        if parent_relative:
+            return None
+
+        matches = self._asset_matches(wanted)
+        if not matches and "/" in wanted:
+            suffix_key = "/" + wanted.lower()
+            matches = [
+                p
+                for p, rel in self._assets_by_path.items()
+                if ("/" + rel.lower()).endswith(suffix_key)
+            ]
+        best = self._best_asset_match(matches, source)
+        if best is None:
+            return None
+        return self.url_for_asset(best) + suffix
+
     def _lookup_path(self, target: str) -> Path | None:
         target = (target or "").strip()
         if not target:
@@ -219,6 +321,69 @@ class Index:
         if rel is None:
             raise ValueError(f"path not under docs root: {path}")
         return f"/docs/{rel}"
+
+    def url_for_asset(self, path: Path) -> str:
+        rel = relative_to_ci(path.resolve(), self.docs_root)
+        if rel is None:
+            raise ValueError(f"path not under docs root: {path}")
+        return f"/docs/{urllib.parse.quote(rel, safe='/')}"
+
+    def _explicit_asset_candidates(
+        self, target: str, source_path: Path | None
+    ) -> Iterator[Path]:
+        if source_path is not None:
+            source_dir = source_path.parent
+            yield source_dir / target
+            if "/" not in target:
+                for dirname in ATTACHMENT_DIR_NAMES:
+                    yield source_dir / dirname / target
+        yield self.docs_root / target
+
+    def _asset_path_if_valid(self, path: Path) -> Path | None:
+        try:
+            candidate = path.resolve()
+        except OSError:
+            return None
+        if candidate.suffix.lower() not in IMAGE_EXTENSIONS:
+            return None
+        if not candidate.is_file():
+            return None
+        if not is_under_ci(candidate, self.docs_root):
+            return None
+        if self._is_excluded_path(candidate):
+            return None
+        return candidate
+
+    def _asset_matches(self, target: str) -> list[Path]:
+        key = posixpath.basename(target).lower()
+        if not key:
+            return []
+        if Path(key).suffix.lower() in IMAGE_EXTENSIONS:
+            return list(self._assets_by_name.get(key, ()))
+        return list(self._assets_by_stem.get(key, ()))
+
+    def _best_asset_match(
+        self, matches: Iterable[Path], source_path: Path | None
+    ) -> Path | None:
+        candidates = sorted({p.resolve() for p in matches}, key=lambda p: self._assets_by_path.get(p, ""))
+        if not candidates:
+            return None
+        if source_path is None:
+            return candidates[0]
+        source_rel = relative_to_ci(source_path.parent, self.docs_root)
+        source_parts = tuple(source_rel.split("/")) if source_rel else ()
+
+        def score(path: Path) -> tuple[int, int, str]:
+            rel = self._assets_by_path.get(path) or relative_to_ci(path, self.docs_root) or ""
+            parent_parts = tuple(rel.split("/")[:-1])
+            common = 0
+            for left, right in zip(source_parts, parent_parts):
+                if left != right:
+                    break
+                common += 1
+            return (-common, abs(len(parent_parts) - len(source_parts)), rel)
+
+        return min(candidates, key=score)
 
     def links_from(self, path: Path) -> frozenset[Path]:
         """Outbound: paths the note at ``path`` links to (frontmatter + body)."""
@@ -262,13 +427,22 @@ class Index:
 
     # ---- mutation (for the watcher in TASK-0005) ----
 
-    def invalidate(self, md_path: Path) -> None:
-        """Re-parse a single ``.md`` path and patch the lookup tables + graph.
+    def invalidate(self, changed_path: Path) -> None:
+        """Re-parse a changed docs path and patch lookup tables + graph.
 
         Removes the path entirely if it no longer exists or is now excluded.
-        Called by the watcher subscriber on every ``.md`` file event.
+        Called by the watcher subscriber on Markdown and image asset events.
         """
-        md_path = md_path.resolve()
+        changed_path = changed_path.resolve()
+        if changed_path.suffix.lower() in IMAGE_EXTENSIONS:
+            self._remove_asset(changed_path)
+            if changed_path.exists() and not self._is_excluded_path(changed_path):
+                self._index_asset(changed_path)
+            return
+        if changed_path.suffix.lower() != ".md":
+            return
+
+        md_path = changed_path
         # Records are keyed by Path, so case-mismatch on macOS would let a
         # stale entry linger. Find any existing record under the same path
         # case-insensitively and remove it before re-indexing.
@@ -294,13 +468,13 @@ class Index:
         """Register an invalidation callback on ``bus``.
 
         Called by the server at startup so the index stays in sync with
-        the watcher (TASK-0005). ``.md`` events trigger a re-index of
-        the affected path; non-``.md`` events are ignored.
+        the watcher (TASK-0005). Markdown events trigger a note re-index;
+        image events trigger an asset-index refresh; other events are ignored.
         """
         from .events import FileEvent  # local import to avoid cycle at module load
 
         def _on_event(event: "FileEvent") -> None:
-            if event.abs_path.suffix.lower() != ".md":
+            if event.abs_path.suffix.lower() != ".md" and event.abs_path.suffix.lower() not in IMAGE_EXTENSIONS:
                 return
             try:
                 self.invalidate(event.abs_path)
@@ -413,12 +587,34 @@ def _normalise_status(raw: Any) -> str | None:
     return s or None
 
 
+def _split_url_suffix(target: str) -> tuple[str, str]:
+    parsed = urllib.parse.urlsplit(target)
+    if parsed.scheme or parsed.netloc:
+        return target, ""
+    suffix = ""
+    if parsed.query:
+        suffix += "?" + parsed.query
+    if parsed.fragment:
+        suffix += "#" + parsed.fragment
+    return parsed.path, suffix
+
+
+def _is_external_or_anchor(target: str) -> bool:
+    if target.startswith("#") or target.startswith("//"):
+        return True
+    parsed = urllib.parse.urlsplit(target)
+    return bool(parsed.scheme or parsed.netloc)
+
+
 def _is_template(record: NoteRecord) -> bool:
     return record.rel_path.startswith("__templates__/")
 
 
 def _wikilinks_in_body(body: str) -> Iterator[str]:
+    image_embed_starts = {m.start() + 1 for m in IMAGE_EMBED_RE.finditer(body or "")}
     for m in WIKILINK_RE.finditer(body or ""):
+        if m.start() in image_embed_starts:
+            continue
         yield m.group(1)
 
 

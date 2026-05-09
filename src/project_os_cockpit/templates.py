@@ -110,6 +110,7 @@ def page(
     metadata: dict[str, Any] | None = None,
     resolver: Resolver | None = None,
     reload_source: str | None = None,
+    path_prefix: str = "/docs",
     cockpit_active: dict[str, Any] | None = None,
 ) -> str:
     """Assemble a full HTML document for a rendered note or status page.
@@ -128,7 +129,7 @@ def page(
     Pages without ``cockpit_active`` render in the non-cockpit single-pane
     layout (landing, index pages, directory listings, 403/404 notices).
     """
-    breadcrumb = _breadcrumb_html(rel_path) if rel_path else ""
+    breadcrumb = _breadcrumb_html(rel_path, path_prefix=path_prefix) if rel_path else ""
     meta_html = _metadata_strip_html(metadata, resolver) if metadata else ""
     safe_title = escape(title)
 
@@ -234,12 +235,13 @@ def notice_page(
 # ---------------------------------------------------------------------------
 
 
-def _breadcrumb_html(rel_path: str) -> str:
+def _breadcrumb_html(rel_path: str, *, path_prefix: str = "/docs") -> str:
     parts = [p for p in PurePosixPath(rel_path).parts if p not in (".", "/")]
     if not parts:
-        return f'<a href="/">root</a>'
+        return f'<a href="/">docs</a>'
 
-    crumbs: list[str] = [f'<a href="/">root</a>']
+    crumbs: list[str] = [f'<a href="/">docs</a>']
+    prefix = path_prefix.rstrip("/")
     accum = ""
     for i, part in enumerate(parts):
         accum = f"{accum}/{part}" if accum else part
@@ -247,7 +249,7 @@ def _breadcrumb_html(rel_path: str) -> str:
         if is_last:
             crumbs.append(f"<span>{escape(part)}</span>")
         else:
-            href = f"/docs/{accum}/"
+            href = f"{prefix}/{accum}/" if prefix else f"/{accum}/"
             crumbs.append(f'<a href="{escape(href)}">{escape(part)}</a>')
     return '<span class="sep">/</span>'.join(crumbs)
 
@@ -463,7 +465,7 @@ def home_page_html(
 
     Priority:
 
-    1. ``snapshot`` (parsed SNAPSHOT.yaml) → render the project dashboard
+    1. ``snapshot`` (parsed SNAPSHOT.yaml) → render the project overview
        (focus + phase progress + at-a-glance counts + recent changes).
     2. ``readme_html`` → use the rendered README if no snapshot.
     3. Minimal type-counts summary → never let ``/`` 404.

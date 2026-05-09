@@ -36,9 +36,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--bind",
-        default="0.0.0.0",
-        help="Address to bind the render endpoint to (default: 0.0.0.0 — "
-        "LAN-readable; use 127.0.0.1 to lock to loopback).",
+        default="127.0.0.1",
+        help="Address to bind the render endpoint to (default: 127.0.0.1; "
+        "use 0.0.0.0 to expose it on your LAN).",
     )
     parser.add_argument(
         "--port",

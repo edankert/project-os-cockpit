@@ -39,11 +39,21 @@ from .index import Index, NoteRecord
 
 SCHEMA_VERSION: int = 2
 
+PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
+    "README.md",
+    "ROADMAP.md",
+    "SECURITY.md",
+)
+
+# Project mode indexes ``docs/``. The only non-docs Markdown surfaced by
+# default is selected top-level human-facing project documentation.
+PROJECT_SUPPORT_DIRS: tuple[tuple[str, str, int], ...] = ()
+
 # Stable display order for type groups in the right pane (relationships).
 # Order is derived from an aggregate analysis of a real project-os corpus
 # (~1,175 notes in ../your-trainer): the most-frequently-linked types come
 # first, so the typical reader sees the densest relationship sets at the
-# top. Types absent from that corpus (risk, workflow, plan, dashboard) are
+# top. Types absent from that corpus (risk, workflow, plan, reference) are
 # slotted by schema affinity to their nearest neighbour.
 TYPE_ORDER: tuple[str, ...] = (
     "task",
@@ -58,7 +68,7 @@ TYPE_ORDER: tuple[str, ...] = (
     "test",
     "workflow",
     "plan",
-    "dashboard",
+    "reference",
 )
 _TYPE_RANK: dict[str, int] = {t: i for i, t in enumerate(TYPE_ORDER)}
 
@@ -96,21 +106,22 @@ NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "recent", "library"
 DEFAULT_MODE = "features"
 
 # Library mode discovery rules.
-_ID_PREFIX_RE = __import__("re").compile(
-    r"^(?:FEAT|TASK|REQ|CHG|ADR|RISK|REL|PHASE|TST|ISS|PLAN|WF)-\d",
-    __import__("re").I,
+DOC_TREE_EXCLUDED_PREFIXES: tuple[str, ...] = ("__templates__/",)
+DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
+    "changes",
+    "decisions",
+    "features",
+    "issues",
+    "phases",
+    "requirements",
+    "risks",
+    "tests",
+    "workflows",
 )
-# Subdirectories whose contents are NOT surfaced as project handles.
-# Project handles are auto-discovered: any non-ID-prefixed ``*.md`` one
-# level deep under ``docs/`` becomes a handle, except for files in these
-# directories. Dashboards typically hold ``.base`` views which are noise
-# in a navigator. ``__templates__`` and ``__bases__`` are already filtered
-# at the index level (see :data:`project_os_cockpit.index.EXCLUDED_DIR_NAMES`).
-LIBRARY_HANDLE_EXCLUDED_DIRS: tuple[str, ...] = ("dashboards",)
 # Note types that get their own group under "By type — rare" in Library mode.
 # Anything covered by a primary nav mode (feature, task, issue) is excluded.
 LIBRARY_RARE_TYPES: tuple[str, ...] = (
-    "adr", "release", "risk", "test", "workflow", "plan",
+    "adr", "release", "risk", "test", "workflow", "plan", "reference",
 )
 
 # Hard cap on items returned by the recent mode. Anything older falls off.
@@ -122,6 +133,7 @@ def nav_payload(
     mode: str | None = None,
     platform: str | None = None,
     pinned: list[str] | None = None,
+    project_root: Path | None = None,
 ) -> dict[str, Any]:
     """Left-pane payload for the requested mode.
 
@@ -146,7 +158,7 @@ def nav_payload(
     elif m == "recent":
         groups = _recent_groups(index, plat)
     elif m == "library":
-        groups = _library_groups(index, plat, pinned or [])
+        groups = _library_groups(index, plat, pinned or [], project_root)
     else:  # pragma: no cover — guarded above
         groups = []
 
@@ -336,7 +348,7 @@ def _recent_groups(
             continue
         if record.rel_path.startswith("__templates__/"):
             continue
-        if record.note_type in (None, "dashboard"):
+        if record.note_type is None:
             continue
         if not _platform_match(record, platform):
             continue
@@ -369,9 +381,12 @@ def _recent_groups(
 
 
 def _library_groups(
-    index: Index, platform: str | None, pinned: list[str]
+    index: Index,
+    platform: str | None,
+    pinned: list[str],
+    project_root: Path | None = None,
 ) -> list[dict[str, Any]]:
-    """Mode 5: Library — pinned + project handles + by-type-rare."""
+    """Mode 5: Library — pinned + directory trees + by-type-rare."""
     out: list[dict[str, Any]] = []
 
     # ----- Pinned section (status+id+title, "stacked" layout) -----
@@ -400,33 +415,20 @@ def _library_groups(
             }
         )
 
-    # ----- Project handles (one parent group with optional per-subdir subgroups) -----
-    top_handles, subdir_handles = _split_handles(index, platform)
-    if top_handles or subdir_handles:
-        subgroups: list[dict[str, Any]] = []
-        for dirname in sorted(subdir_handles):
-            records = subdir_handles[dirname]
-            subgroups.append(
-                {
-                    "key": f"handles-dir:{dirname}",
-                    "label": f"{dirname}/",
-                    "url": None,
-                    "status": None,
-                    "item_layout": "compact",
-                    "items": [_handle_item(r) for r in records],
-                }
-            )
-        out.append(
-            {
-                "key": "handles",
-                "label": "Project handles",
-                "url": None,
-                "status": None,
-                "item_layout": "compact",
-                "items": [_handle_item(r) for r in top_handles],
-                "subgroups": subgroups,
-            }
-        )
+    docs_tree = _markdown_tree_group(
+        index,
+        platform,
+        key="docs-tree",
+        label="Docs tree",
+        excluded_roots=DOC_TREE_EXCLUDED_ROOTS,
+        untyped_only=True,
+    )
+    if docs_tree is not None:
+        out.append(docs_tree)
+
+    support_group = _project_support_group(project_root)
+    if support_group is not None:
+        out.append(support_group)
 
     # ----- By type — rare (status+id+title, "stacked" layout, no type label) -----
     for type_name in LIBRARY_RARE_TYPES:
@@ -451,49 +453,183 @@ def _library_groups(
     return out
 
 
-def _split_handles(
-    index: Index, platform: str | None
-) -> tuple[list[NoteRecord], dict[str, list[NoteRecord]]]:
-    """Split project handles into (top-level, by-subdir).
+def _project_support_group(project_root: Path | None) -> dict[str, Any] | None:
+    if project_root is None:
+        return None
+    root = project_root.resolve()
 
-    Discovery rule (Option B — auto-discover, opt-out via excludes):
+    root_items = [
+        _project_support_item(root / rel, rel)
+        for rel in PROJECT_SUPPORT_ROOT_FILES
+        if (root / rel).is_file()
+    ]
 
-    * Top-level: every non-ID-prefixed ``*.md`` directly under the docs
-      root.
-    * Subdir: every non-ID-prefixed ``*.md`` one level deep in any subdir
-      that isn't in :data:`LIBRARY_HANDLE_EXCLUDED_DIRS`, grouped by
-      subdir name. ``README.md`` files inside subdirs are excluded
-      (they're directory descriptors, not navigation targets).
+    subgroups: list[dict[str, Any]] = []
+    for rel_dir, label, max_depth in PROJECT_SUPPORT_DIRS:
+        area = root / rel_dir
+        if not area.is_dir():
+            continue
+        items = [
+            _project_support_item(path, path.relative_to(root).as_posix())
+            for path in _iter_support_markdown(area, max_depth=max_depth)
+        ]
+        if not items:
+            continue
+        subgroups.append(
+            {
+                "key": f"support:{rel_dir}",
+                "label": label,
+                "url": f"/{rel_dir}/",
+                "status": None,
+                "item_layout": "compact",
+                "items": items,
+            }
+        )
 
-    Files deeper than one level are not surfaced as handles — pin them
-    if they're worth quick access to.
-    """
-    top_level: list[NoteRecord] = []
-    by_subdir: dict[str, list[NoteRecord]] = {}
+    if not root_items and not subgroups:
+        return None
+    return {
+        "key": "project-support",
+        "label": "Top-level docs",
+        "url": None,
+        "status": None,
+        "item_layout": "compact",
+        "items": root_items,
+        "subgroups": subgroups,
+    }
+
+
+def _iter_support_markdown(root: Path, *, max_depth: int) -> Iterable[Path]:
+    base = root.resolve()
+    for path in sorted(base.rglob("*.md"), key=lambda p: p.relative_to(base).as_posix().lower()):
+        try:
+            rel_parts = path.relative_to(base).parts
+        except ValueError:
+            continue
+        if len(rel_parts) > max_depth:
+            continue
+        if any(part.startswith(".") or part == "__pycache__" for part in rel_parts):
+            continue
+        yield path
+
+
+def _project_support_item(path: Path, rel_path: str) -> dict[str, Any]:
+    return {
+        "id": "",
+        "title": _support_title(path),
+        "status": None,
+        "url": f"/{rel_path}",
+        "subtitle": rel_path,
+    }
+
+
+def _support_title(path: Path) -> str:
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines()[:80]:
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                return stripped[2:].strip()
+    except OSError:
+        pass
+    if path.name == "SKILL.md":
+        return path.parent.name
+    return path.name
+
+
+def _markdown_tree_group(
+    index: Index,
+    platform: str | None,
+    *,
+    key: str,
+    label: str,
+    root_prefix: str = "",
+    excluded_roots: tuple[str, ...] = (),
+    untyped_only: bool = False,
+) -> dict[str, Any] | None:
+    """Build a recursive directory tree for indexed Markdown notes."""
+    prefix = root_prefix.strip("/")
+    root: dict[str, Any] = {
+        "key": key,
+        "label": label,
+        "url": None,
+        "status": None,
+        "item_layout": "compact",
+        "items": [],
+        "subgroups": [],
+    }
+    nodes: dict[str, dict[str, Any]] = {"": root}
+
     for path in index.paths():
         record = index.get(path)
         if record is None:
             continue
-        if record.rel_path.startswith("__templates__/"):
-            continue
         if not _platform_match(record, platform):
             continue
-        if _ID_PREFIX_RE.match(path.stem):
+        if untyped_only and record.note_type is not None:
             continue
-        parts = record.rel_path.split("/")
-        if len(parts) == 1:
-            top_level.append(record)
-        elif len(parts) == 2:
-            if parts[0] in LIBRARY_HANDLE_EXCLUDED_DIRS:
+        if _exclude_from_docs_tree(record.rel_path, excluded_roots=excluded_roots):
+            continue
+        if prefix:
+            if record.rel_path == prefix:
+                display_rel = record.path.name
+            elif record.rel_path.startswith(f"{prefix}/"):
+                display_rel = record.rel_path[len(prefix) + 1:]
+            else:
                 continue
-            if path.name.lower() == "readme.md":
-                continue
-            by_subdir.setdefault(parts[0], []).append(record)
-        # Deeper than one level — silently skipped.
-    top_level.sort(key=lambda r: r.rel_path.lower())
-    for records in by_subdir.values():
-        records.sort(key=lambda r: r.rel_path.lower())
-    return top_level, by_subdir
+        else:
+            display_rel = record.rel_path
+
+        parts = display_rel.split("/")
+        if not parts:
+            continue
+        parent_key = ""
+        for dir_name in parts[:-1]:
+            node_key = f"{parent_key}/{dir_name}" if parent_key else dir_name
+            parent = nodes[parent_key]
+            node = nodes.get(node_key)
+            if node is None:
+                node = {
+                    "key": f"{key}:{node_key}",
+                    "label": f"{dir_name}/",
+                    "url": None,
+                    "status": None,
+                    "item_layout": "compact",
+                    "items": [],
+                    "subgroups": [],
+                }
+                nodes[node_key] = node
+                parent["subgroups"].append(node)
+            parent_key = node_key
+        nodes[parent_key]["items"].append(_tree_item(record))
+
+    _sort_tree_group(root)
+    if not root["items"] and not root["subgroups"]:
+        return None
+    return root
+
+
+def _exclude_from_docs_tree(
+    rel_path: str,
+    *,
+    excluded_roots: tuple[str, ...] = (),
+) -> bool:
+    if any(rel_path.startswith(prefix) for prefix in DOC_TREE_EXCLUDED_PREFIXES):
+        return True
+    root = rel_path.split("/", 1)[0]
+    return root in excluded_roots
+
+
+def _sort_tree_group(group: dict[str, Any]) -> None:
+    group["items"].sort(
+        key=lambda item: (
+            0 if item["title"].lower() == "readme.md" else 1,
+            item["title"].lower(),
+            item["url"].lower(),
+        )
+    )
+    group["subgroups"].sort(key=lambda subgroup: subgroup["label"].lower())
+    for subgroup in group["subgroups"]:
+        _sort_tree_group(subgroup)
 
 
 def _pluralise_for_label(type_name: str) -> str:
@@ -505,6 +641,7 @@ def _pluralise_for_label(type_name: str) -> str:
         "test": "Tests",
         "workflow": "Workflows",
         "plan": "Plans",
+        "reference": "References",
     }
     return table.get(type_name, type_name.title() + "s")
 
@@ -525,13 +662,8 @@ def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     }
 
 
-def _handle_item(record: NoteRecord) -> dict[str, Any]:
-    """Item shape for the "Project handles" sections (top-level + per-subdir).
-
-    Filename only — orienting docs are read by their file path. The group
-    header already names the directory for subdir handles, so the row
-    itself just needs the filename.
-    """
+def _tree_item(record: NoteRecord) -> dict[str, Any]:
+    """Compact file item for recursive directory-tree navigation."""
     return {
         "id": "",
         "title": record.path.name,

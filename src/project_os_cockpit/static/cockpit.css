@@ -20,7 +20,7 @@
   --type-test:        hsl(100 35% 38%);
   --type-phase:       hsl(285 35% 48%);
   --type-plan:        hsl(225 25% 48%);
-  --type-dashboard:   hsl(0 0% 42%);
+  --type-reference:   hsl(205 20% 38%);
   --type-default:     hsl(0 0% 45%);
 }
 [data-theme="dark"] {
@@ -36,7 +36,7 @@
   --type-test:        hsl(100 35% 58%);
   --type-phase:       hsl(285 35% 68%);
   --type-plan:        hsl(225 25% 65%);
-  --type-dashboard:   hsl(0 0% 62%);
+  --type-reference:   hsl(205 20% 68%);
   --type-default:     hsl(0 0% 60%);
 }
 
@@ -347,11 +347,10 @@ details:not([open]) > summary .group-chevron {
   overflow: hidden;
 }
 
-/* ----- Nested subgroup (one level under a parent group) ----- */
-/* Used by Project mode's per-subdirectory groups (tests/, references/, ...)
- * which live INSIDE the "Project handles" parent. Visually subordinate to
- * top-level groups so the user can see at a glance that they're children
- * of the section above, not siblings of rare-type groups (Decisions, etc.).
+/* ----- Nested directory-tree subgroups ----- */
+/* Used by Project mode's docs/reference trees. Subgroups are recursive, so
+ * indentation is driven by the --tree-indent custom property set by the JS
+ * renderer rather than fixed to a single nesting level.
  */
 .nav-subgroup {
   margin: 0;
@@ -362,7 +361,7 @@ details:not([open]) > summary .group-chevron {
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 4px 14px 4px 22px;     /* indented from parent items */
+  padding: 4px 14px 4px calc(14px + var(--tree-indent, 0px));
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 500;
@@ -381,10 +380,9 @@ details:not([open]) > summary .group-chevron {
   margin-right: 6px;
   border-width: 1.5px;
 }
-/* Compact item rows inside a subgroup get an extra left indent so they
- * sit visually under the subgroup header. */
+/* Compact file rows inside tree dirs sit under the directory header. */
 .nav-subgroup .nav-item-compact {
-  padding-left: 30px;
+  padding-left: calc(26px + var(--tree-indent, 0px));
 }
 
 /* ----- Stacked layout: status+id top, title underneath ----- */
@@ -409,7 +407,7 @@ details:not([open]) > summary .group-chevron {
 }
 
 /* ----- Compact layout: filename only, tight padding ----- */
-/* Used by Project mode's "Project handles" + per-subdir handle groups. */
+/* Used by Project mode's docs/reference directory trees. */
 .nav-item-compact {
   padding: 3px 14px;
   display: flex;
@@ -545,7 +543,7 @@ details:not([open]) > summary .group-chevron {
 .ctx-type-label[data-type="test"]        { color: var(--type-test); }
 .ctx-type-label[data-type="phase"]       { color: var(--type-phase); }
 .ctx-type-label[data-type="plan"]        { color: var(--type-plan); }
-.ctx-type-label[data-type="dashboard"]   { color: var(--type-dashboard); }
+.ctx-type-label[data-type="reference"]   { color: var(--type-reference); }
 
 .ctx-items {
   list-style: none;
