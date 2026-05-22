@@ -35,41 +35,58 @@ log = logging.getLogger(__name__)
 # RFC 6455 magic GUID used to compute the WebSocket accept value.
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-# Muted scrollbar CSS injected into ttyd's index HTML. Mirrors the
-# styling we apply to the cockpit's three side panes — transparent
-# track, thin thumb that fades in on hover.
+# Muted scrollbar CSS injected into ttyd's index HTML. Always visible
+# but subtle — a faint thumb (white at 18% alpha) on the terminal's
+# dark surface, growing slightly on hover. `-webkit-appearance: none`
+# is the magic that overrides the OS-native scrollbar on macOS / Linux
+# — without it, system scrollbars (especially with "Always show
+# scrollbars" set or an external mouse plugged in) ignore the
+# background/color rules and stay fully white/grey.
 _SCROLLBAR_CSS = b"""
 <style>
 .xterm .xterm-viewport {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 120ms ease;
-}
-.xterm .xterm-viewport:hover {
-  scrollbar-color: #6a6d70 transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 .xterm .xterm-viewport::-webkit-scrollbar {
   width: 10px;
   height: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
 }
 .xterm .xterm-viewport::-webkit-scrollbar-track {
-  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
+  box-shadow: none;
+  border: 0;
 }
 .xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.18);
   border: 2px solid transparent;
   border-radius: 6px;
   background-clip: padding-box;
   transition: background-color 120ms ease;
-}
-.xterm .xterm-viewport:hover::-webkit-scrollbar-thumb {
-  background-color: #4a4d50;
+  min-height: 30px;
 }
 .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background-color: #7d8084;
+  background-color: rgba(255, 255, 255, 0.32);
+}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.45);
 }
 .xterm .xterm-viewport::-webkit-scrollbar-corner {
-  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 </style>
 """
