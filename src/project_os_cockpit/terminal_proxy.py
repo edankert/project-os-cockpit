@@ -43,7 +43,7 @@ _SCROLLBAR_CSS = b"""
 <style>
 html, body, .xterm, .xterm-viewport {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent !important;
+  scrollbar-color: rgba(255, 0, 0, 1.0) transparent !important;
 }
 *::-webkit-scrollbar,
 *::-webkit-scrollbar:horizontal,
@@ -67,7 +67,7 @@ html, body, .xterm, .xterm-viewport {
 *::-webkit-scrollbar-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
-  background-color: rgba(255, 255, 255, 0.22) !important;
+  background-color: rgba(255, 0, 0, 1.0) !important;
   border: 2px solid transparent !important;
   border-radius: 6px !important;
   background-clip: padding-box !important;
@@ -75,10 +75,10 @@ html, body, .xterm, .xterm-viewport {
   transition: background-color 120ms ease !important;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.38) !important;
+  background-color: rgba(0, 255, 0, 1.0) !important;
 }
 *::-webkit-scrollbar-thumb:active {
-  background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(0, 0, 255, 1.0) !important;
 }
 *::-webkit-scrollbar-corner {
   -webkit-appearance: none !important;
