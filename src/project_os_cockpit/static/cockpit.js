@@ -20,6 +20,8 @@
   var META_STRIP_KEY = "project-os-cockpit.cockpit.meta-strip-collapsed";
   var RIGHT_PANE_KEY = "project-os-cockpit.cockpit.right-pane-collapsed";
   var LEFT_PANE_KEY  = "project-os-cockpit.cockpit.left-pane-collapsed";
+  var BOTTOM_COLLAPSED_KEY = "project-os-cockpit.cockpit.bottom-collapsed";
+  var BOTTOM_HEIGHT_KEY    = "project-os-cockpit.cockpit.bottom-height";
 
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
@@ -92,6 +94,26 @@
     try { localStorage.setItem(LEFT_PANE_KEY, v ? "1" : "0"); } catch (e) {}
   }
   var leftPaneCollapsed = loadLeftPaneCollapsed();
+
+  function loadBottomCollapsed() {
+    try {
+      var raw = localStorage.getItem(BOTTOM_COLLAPSED_KEY);
+      return raw === null ? true : raw === "1";  // collapsed by default
+    } catch (e) { return true; }
+  }
+  function saveBottomCollapsed(v) {
+    try { localStorage.setItem(BOTTOM_COLLAPSED_KEY, v ? "1" : "0"); } catch (e) {}
+  }
+  function loadBottomHeight() {
+    try {
+      var raw = localStorage.getItem(BOTTOM_HEIGHT_KEY);
+      var n = parseInt(raw || "", 10);
+      return (n > 80 && n < 1200) ? n : 280;
+    } catch (e) { return 280; }
+  }
+  function saveBottomHeight(px) {
+    try { localStorage.setItem(BOTTOM_HEIGHT_KEY, String(px)); } catch (e) {}
+  }
 
   function loadMode() {
     try {
@@ -474,6 +496,108 @@
     var cockpitEl = document.querySelector(".cockpit");
     if (!cockpitEl) return;
     cockpitEl.classList.toggle("left-collapsed", leftPaneCollapsed);
+  }
+
+  // ------------------------------------------------------------------ bottom panel
+
+  var bottomTerminalMounted = false;
+
+  function mountBottomPanel() {
+    var panel = document.getElementById("cockpit-bottom-panel");
+    if (!panel) return;
+    var toggle = panel.querySelector(".cockpit-bottom-toggle");
+    var body = document.getElementById("cockpit-bottom-body");
+    var resizer = document.getElementById("cockpit-bottom-resizer");
+
+    // Apply persisted height (when expanded) and collapsed state.
+    var savedHeight = loadBottomHeight();
+    panel.style.height = savedHeight + "px";
+    setBottomCollapsed(loadBottomCollapsed());
+
+    toggle.addEventListener("click", function () {
+      var isCollapsed = panel.classList.contains("is-collapsed");
+      setBottomCollapsed(!isCollapsed);
+    });
+
+    // Drag-to-resize on the top splitter.
+    if (resizer) {
+      resizer.addEventListener("mousedown", function (downEvt) {
+        if (panel.classList.contains("is-collapsed")) return;
+        downEvt.preventDefault();
+        resizer.classList.add("is-dragging");
+        var startY = downEvt.clientY;
+        var startH = panel.getBoundingClientRect().height;
+        function onMove(moveEvt) {
+          var delta = startY - moveEvt.clientY;
+          var next = Math.max(80, Math.min(window.innerHeight - 120, startH + delta));
+          panel.style.height = next + "px";
+        }
+        function onUp() {
+          resizer.classList.remove("is-dragging");
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          saveBottomHeight(panel.getBoundingClientRect().height);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+    }
+  }
+
+  function setBottomCollapsed(collapsed) {
+    var panel = document.getElementById("cockpit-bottom-panel");
+    var toggle = panel && panel.querySelector(".cockpit-bottom-toggle");
+    if (!panel) return;
+    panel.classList.toggle("is-collapsed", collapsed);
+    if (collapsed) {
+      panel.style.height = "26px";
+    } else {
+      panel.style.height = loadBottomHeight() + "px";
+      // Lazy-mount the terminal iframe the first time the user opens
+      // the panel — avoids spawning ttyd on every page load.
+      if (!bottomTerminalMounted) {
+        bottomTerminalMounted = true;
+        mountTerminalIframe();
+      }
+    }
+    if (toggle) {
+      toggle.textContent = collapsed ? "▴" : "▾";
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      toggle.setAttribute(
+        "aria-label", collapsed ? "Expand panel" : "Collapse panel"
+      );
+    }
+    saveBottomCollapsed(collapsed);
+  }
+
+  function mountTerminalIframe() {
+    var body = document.getElementById("cockpit-bottom-body");
+    if (!body) return;
+    fetch("/api/terminal", { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (info) {
+        if (!info || !info.enabled) {
+          var hint = el("div", { class: "cockpit-bottom-placeholder" });
+          hint.innerHTML = (info && info.reason)
+            ? String(info.reason).replace(/`([^`]+)`/g,
+                function (_, c) { return '<code>' + c + '</code>'; })
+            : "Terminal not available.";
+          body.replaceChildren(hint);
+          return;
+        }
+        var iframe = el("iframe", {
+          src: info.url,
+          title: "Terminal",
+          allow: "clipboard-read; clipboard-write",
+        });
+        body.replaceChildren(iframe);
+      })
+      .catch(function (err) {
+        body.replaceChildren(el("div", {
+          class: "cockpit-bottom-placeholder",
+          text: "Terminal endpoint failed: " + err.message,
+        }));
+      });
   }
 
   // Lucide panel-right / panel-left icons — the shapes Obsidian uses for
@@ -1223,6 +1347,7 @@
   mountLeftPaneToggle();
   mountRightPaneToggle();
   mountPinButton();
+  mountBottomPanel();
   applyLeftPaneState();
   applyRightPaneState();
   applyMetaStripState();

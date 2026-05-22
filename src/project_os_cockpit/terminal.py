@@ -1,0 +1,123 @@
+"""Embedded local-only terminal via ttyd (FEAT-0003).
+
+Spawns ``ttyd`` as a child process bound to ``127.0.0.1`` (REQ-0005), on
+a free local port, running the user's ``$SHELL`` by default. The
+cockpit's JS client fetches ``/api/terminal`` to learn the URL and
+renders an iframe in the bottom panel.
+
+``ttyd`` is **not** a pip dependency — it's a separate binary the user
+installs via their package manager (``brew install ttyd`` on macOS).
+When the binary is missing, the endpoint returns ``enabled: false`` and
+the JS shows a small install hint.
+"""
+
+from __future__ import annotations
+
+import atexit
+import logging
+import os
+import shutil
+import socket
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+log = logging.getLogger(__name__)
+
+
+class TerminalProcess:
+    """Manages a ttyd child process scoped to the cockpit's lifetime."""
+
+    def __init__(self, working_dir: Path, command: Optional[list[str]] = None) -> None:
+        self.working_dir: Path = Path(working_dir).resolve()
+        # Default to the user's interactive shell. Project-os config may
+        # override later (e.g. ["claude-code"] or ["codex"]).
+        shell = os.environ.get("SHELL", "/bin/bash")
+        self.command: list[str] = command or [shell]
+        self.process: Optional[subprocess.Popen[bytes]] = None
+        self.port: Optional[int] = None
+        self.url: Optional[str] = None
+
+    @staticmethod
+    def is_available() -> bool:
+        """ttyd binary present on PATH?"""
+        return shutil.which("ttyd") is not None
+
+    @staticmethod
+    def _free_port() -> int:
+        """Ask the OS for an available loopback port."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+    def start(self) -> None:
+        """Spawn ttyd if not already running. Idempotent."""
+        if self.process is not None and self.process.poll() is None:
+            return
+        if not self.is_available():
+            raise RuntimeError("ttyd binary not found on PATH")
+        port = self._free_port()
+        # -p <port>: listen on the picked free port.
+        # -i 127.0.0.1: bind to loopback only — enforces REQ-0005 even
+        #   when the cockpit's render endpoint is on 0.0.0.0.
+        # -W: writable terminal (default is read-only since ttyd 1.6).
+        argv = [
+            "ttyd",
+            "-p", str(port),
+            "-i", "127.0.0.1",
+            "-W",
+            *self.command,
+        ]
+        log.info(
+            "terminal: starting ttyd port=%d cwd=%s argv=%s",
+            port, self.working_dir, argv,
+        )
+        self.process = subprocess.Popen(
+            argv,
+            cwd=str(self.working_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.port = port
+        self.url = f"http://127.0.0.1:{port}"
+        atexit.register(self.stop)
+
+    def stop(self) -> None:
+        """Terminate the ttyd subprocess. Idempotent."""
+        if self.process is None:
+            return
+        if self.process.poll() is not None:
+            self.process = None
+            return
+        log.info("terminal: stopping ttyd (pid %s)", self.process.pid)
+        try:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+        except Exception:
+            log.exception("terminal: stop failed")
+        self.process = None
+        self.port = None
+        self.url = None
+
+    def info(self) -> dict[str, object]:
+        """Return the JSON payload for ``/api/terminal``."""
+        if not self.is_available():
+            return {
+                "enabled": False,
+                "reason": "ttyd binary not found. Install with `brew install ttyd` (macOS) or your package manager.",
+            }
+        # Lazy start on first info() call. If start fails, surface the
+        # reason rather than crashing the endpoint.
+        try:
+            self.start()
+        except Exception as exc:  # pragma: no cover — runtime failure
+            log.exception("terminal: start failed")
+            return {"enabled": False, "reason": f"ttyd start failed: {exc}"}
+        return {
+            "enabled": True,
+            "url": self.url,
+            "command": self.command,
+        }

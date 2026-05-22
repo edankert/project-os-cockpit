@@ -81,10 +81,118 @@
   border-right: 1px solid var(--border);
 }
 
+/* Centre column = centre pane (top) + optional bottom panel (terminal /
+ * preview). Vertical flex so the centre fills remaining height; the
+ * bottom panel is a fixed-height sibling with its own scroll. */
+.cockpit-centre-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
 .cockpit-centre {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px 32px 80px;
   background: var(--bg);
+}
+
+/* ----- Bottom panel (TASK-0043) ----- */
+
+.cockpit-bottom-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: 280px;
+  min-height: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.cockpit-bottom-panel.is-collapsed {
+  height: 26px;
+}
+.cockpit-bottom-panel.is-collapsed .cockpit-bottom-body {
+  display: none;
+}
+
+.cockpit-bottom-header {
+  flex: 0 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.cockpit-bottom-panel.is-collapsed .cockpit-bottom-header {
+  border-bottom: 0;
+}
+.cockpit-bottom-title {
+  font-weight: 600;
+}
+.cockpit-bottom-toggle {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+.cockpit-bottom-toggle:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.cockpit-bottom-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  background: var(--bg);
+}
+.cockpit-bottom-body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.cockpit-bottom-placeholder {
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.cockpit-bottom-placeholder code {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Resizer — 4px-tall draggable splitter between centre and bottom panel.
+ * Hidden when the bottom panel is collapsed. */
+.cockpit-bottom-resizer {
+  flex: 0 0 4px;
+  cursor: ns-resize;
+  background: transparent;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
+  transition: background-color 80ms ease;
+}
+.cockpit-bottom-resizer:hover,
+.cockpit-bottom-resizer.is-dragging {
+  background: var(--accent-link);
+  opacity: 0.4;
+}
+.cockpit-centre-column:has(.cockpit-bottom-panel.is-collapsed) > .cockpit-bottom-resizer {
+  display: none;
 }
 
 /* Mobile-narrow: hide the side panes, centre takes full width. */

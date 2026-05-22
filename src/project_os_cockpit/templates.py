@@ -149,10 +149,20 @@ def page(
             f'<script type="application/json" id="cockpit-config">{cockpit_config}</script>\n'
             '<div class="cockpit">\n'
             '  <aside id="cockpit-left" class="cockpit-pane cockpit-left" aria-label="Features by phase"></aside>\n'
-            '  <main id="cockpit-centre" class="cockpit-centre">\n'
+            '  <div class="cockpit-centre-column">\n'
+            '    <main id="cockpit-centre" class="cockpit-centre">\n'
             f"{meta_html}"
             f'<article class="content">\n{body_html}\n</article>\n'
-            "  </main>\n"
+            "    </main>\n"
+            '    <div id="cockpit-bottom-resizer" class="cockpit-bottom-resizer" aria-hidden="true"></div>\n'
+            '    <section id="cockpit-bottom-panel" class="cockpit-bottom-panel" aria-label="Embedded tools">\n'
+            '      <header class="cockpit-bottom-header">\n'
+            '        <span class="cockpit-bottom-title">Terminal</span>\n'
+            '        <button class="cockpit-bottom-toggle" type="button" aria-label="Collapse panel" aria-expanded="true">▾</button>\n'
+            '      </header>\n'
+            '      <div id="cockpit-bottom-body" class="cockpit-bottom-body"></div>\n'
+            '    </section>\n'
+            '  </div>\n'
             '  <aside id="cockpit-right" class="cockpit-pane cockpit-right" aria-label="Relationships"></aside>\n'
             "</div>\n"
             '<script src="/_static/cockpit.js" defer></script>\n'

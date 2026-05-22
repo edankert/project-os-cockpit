@@ -27,6 +27,7 @@ from typing import Any, Iterable
 from . import cockpit, renderer, templates
 from .events import EventBus
 from .index import Index
+from .terminal import TerminalProcess
 from .watcher import Watcher
 
 # URL plural → frontmatter type singular. Project-os IDs and template names
@@ -127,6 +128,10 @@ def _make_handler(
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     project_root = docs_root.parent.resolve()
+    # Lazy-instantiated; ttyd doesn't actually spawn until the first
+    # /api/terminal request (the JS client only fetches when the user
+    # opens the bottom panel).
+    terminal = TerminalProcess(working_dir=project_root)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "project-os-cockpit/0.1"
@@ -165,6 +170,10 @@ def _make_handler(
 
             if path == "/api/cockpit/context":
                 self._serve_cockpit_context(parsed.query)
+                return
+
+            if path == "/api/terminal":
+                self._serve_terminal_info()
                 return
 
             if path.startswith("/_static/"):
@@ -259,6 +268,15 @@ def _make_handler(
                 if active is not None:
                     payload["active"] = active
             self._respond_json(payload)
+
+        def _serve_terminal_info(self) -> None:
+            """Return ttyd availability + URL for the embedded terminal.
+
+            Lazy-spawns ttyd on first call (the JS client only fetches
+            this when the user opens the bottom panel for the first
+            time). Subsequent calls reuse the running process.
+            """
+            self._respond_json(terminal.info())
 
         # ---- SSE channel ----
 

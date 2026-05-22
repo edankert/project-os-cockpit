@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T18:00Z"
+updated: "2026-05-22T18:30Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 45
+  TASK: 46
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0041"
+  task: "TASK-0046"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -50,7 +50,7 @@ items:
   features:
     FEAT-0003:
       title: "Embedded local-only terminal (Claude Code / Codex)"
-      status: backlog
+      status: in-progress
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/FEAT-0003-Embedded-Terminal.md"
     FEAT-0004:
@@ -252,13 +252,13 @@ items:
       parent: "FEAT-0006"
     TASK-0043:
       title: "Cockpit: bottom-panel layout in centre column (resizer + collapse + persisted height)"
-      status: backlog
+      status: done
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0043-Bottom-Panel-Layout.md"
       parent: "FEAT-0003"
     TASK-0044:
       title: "Cockpit: ttyd integration — embedded LLM CLI terminal in the bottom panel"
-      status: backlog
+      status: done
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0044-Ttyd-Integration.md"
       parent: "FEAT-0003"
@@ -268,6 +268,12 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0045-Preview-Config-Tab.md"
       parent: "FEAT-0003"
+    TASK-0046:
+      title: "Cockpit: browser tab activity indicator (title + favicon dot when hidden)"
+      status: backlog
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0046-Browser-Tab-Activity-Indicator.md"
+      parent: "FEAT-0006"
 
   issues: {}
 
@@ -548,6 +554,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Sparse-Month-Flat.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0041"
+    CHG-20260522-Cockpit-Embedded-Terminal:
+      title: "Cockpit: embedded ttyd terminal in centre-column bottom panel"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Embedded-Terminal.md"
+      features: ["FEAT-0003"]
+      source_task: "TASK-0044"
   releases: {}
 
   decisions:
@@ -572,8 +584,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 45
-    tasks_done: 35
+    tasks_total: 46
+    tasks_done: 37
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

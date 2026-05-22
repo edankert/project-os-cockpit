@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0043
 aliases: ["TASK-0043"]
 title: "Cockpit: bottom-panel layout in centre column (resizer + collapse + persisted height)"
-status: backlog
+status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-22

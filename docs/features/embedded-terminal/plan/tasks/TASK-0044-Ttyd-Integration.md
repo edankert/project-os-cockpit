@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0044
 aliases: ["TASK-0044"]
 title: "Cockpit: ttyd integration — embedded LLM CLI terminal in the bottom panel"
-status: backlog
+status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-22
