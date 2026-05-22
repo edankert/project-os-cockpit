@@ -85,6 +85,50 @@
   border-right: 1px solid var(--border);
 }
 
+/* ----- Quiet scrollbars in the three scrolling surfaces -----
+ * Default: thin + transparent (effectively invisible). Hovering the
+ * pane reveals a muted thumb; hovering the thumb itself nudges it a
+ * shade darker for affordance. Both Firefox + WebKit covered. */
+.cockpit-pane,
+.cockpit-centre {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 120ms ease;
+}
+.cockpit-pane:hover,
+.cockpit-centre:hover {
+  scrollbar-color: var(--border-strong) transparent;
+}
+.cockpit-pane::-webkit-scrollbar,
+.cockpit-centre::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.cockpit-pane::-webkit-scrollbar-track,
+.cockpit-centre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cockpit-pane::-webkit-scrollbar-thumb,
+.cockpit-centre::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: padding-box;
+  transition: background-color 120ms ease;
+}
+.cockpit-pane:hover::-webkit-scrollbar-thumb,
+.cockpit-centre:hover::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+}
+.cockpit-pane::-webkit-scrollbar-thumb:hover,
+.cockpit-centre::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-faint);
+}
+.cockpit-pane::-webkit-scrollbar-corner,
+.cockpit-centre::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Centre column = centre pane (top) + optional bottom panel (terminal /
  * preview). Vertical flex so the centre fills remaining height; the
  * bottom panel is a fixed-height sibling with its own scroll. */
