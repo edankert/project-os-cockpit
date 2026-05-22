@@ -14,6 +14,7 @@ the JS shows a small install hint.
 from __future__ import annotations
 
 import atexit
+import json
 import logging
 import os
 import shutil
@@ -23,6 +24,42 @@ from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
+
+
+# xterm.js theme tuned to sit quietly next to the cockpit's muted greyscale
+# (REQ-0012). Dark surface; semantic ANSI colours pulled to the same
+# saturation band as the cockpit type-colour palette. ttyd applies this
+# at spawn time, so it doesn't follow the cockpit's light/dark toggle —
+# treat the terminal as a fixed dark surface, like most editors.
+_TERMINAL_THEME: dict[str, str] = {
+    "background": "#1b1d1f",
+    "foreground": "#d6d6d6",
+    "cursor": "#7da6ff",
+    "cursorAccent": "#1b1d1f",
+    "selectionBackground": "#33373b",
+    "selectionForeground": "#ffffff",
+    "black":         "#1b1d1f",
+    "red":           "#cc6f6f",
+    "green":         "#8ab886",
+    "yellow":        "#d5b878",
+    "blue":          "#7da6ff",
+    "magenta":       "#b48ead",
+    "cyan":          "#86c1b9",
+    "white":         "#c5c8c6",
+    "brightBlack":   "#5c5f63",
+    "brightRed":     "#d68a8a",
+    "brightGreen":   "#a6c898",
+    "brightYellow":  "#e0c895",
+    "brightBlue":    "#9bb8ff",
+    "brightMagenta": "#c8a4c6",
+    "brightCyan":    "#a5d3cc",
+    "brightWhite":   "#f0f0f0",
+}
+_TERMINAL_FONT_SIZE = 13
+_TERMINAL_FONT_FAMILY = (
+    'ui-monospace, "SF Mono", Menlo, Monaco, Consolas, '
+    '"Liberation Mono", monospace'
+)
 
 
 class TerminalProcess:
@@ -61,11 +98,19 @@ class TerminalProcess:
         # -i 127.0.0.1: bind to loopback only — enforces REQ-0005 even
         #   when the cockpit's render endpoint is on 0.0.0.0.
         # -W: writable terminal (default is read-only since ttyd 1.6).
+        # xterm.js client options ttyd forwards via -t key=value. Theme
+        # values must be a JSON string per ttyd's --client-option docs.
         argv = [
             "ttyd",
             "-p", str(port),
             "-i", "127.0.0.1",
             "-W",
+            "-t", f"fontSize={_TERMINAL_FONT_SIZE}",
+            "-t", f"fontFamily={_TERMINAL_FONT_FAMILY}",
+            "-t", f"theme={json.dumps(_TERMINAL_THEME, separators=(',', ':'))}",
+            "-t", "cursorBlink=true",
+            "-t", "scrollback=5000",
+            "-t", "disableLeaveAlert=true",
             *self.command,
         ]
         log.info(

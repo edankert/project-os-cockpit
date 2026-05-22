@@ -158,32 +158,43 @@
   flex-direction: column;
   height: 280px;
   min-height: 0;
-  background: var(--bg);
+  /* Same dark surface ttyd's theme uses inside — gives the panel a
+   * single visual identity (header strip + terminal blend together). */
+  background: #1b1d1f;
   border-top: 1px solid var(--border);
 }
 .cockpit-bottom-panel.is-collapsed {
-  height: 26px;
+  height: 28px;
+  background: var(--surface);
 }
 .cockpit-bottom-panel.is-collapsed .cockpit-bottom-body {
   display: none;
 }
 
 .cockpit-bottom-header {
-  flex: 0 0 26px;
+  flex: 0 0 28px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-faint);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  color: hsl(0 0% 65%);
+  background: hsl(0 0% 14%);
+  border-bottom: 1px solid hsl(0 0% 22%);
   user-select: none;
 }
 .cockpit-bottom-panel.is-collapsed .cockpit-bottom-header {
   border-bottom: 0;
+  /* When collapsed, match the surrounding chrome rather than the
+   * terminal's dark surface — quieter at rest. */
+  color: var(--text-faint);
+  background: var(--surface);
+}
+.cockpit-bottom-icon {
+  flex-shrink: 0;
+  opacity: 0.75;
 }
 .cockpit-bottom-title {
   font-weight: 600;
@@ -192,14 +203,22 @@
   margin-left: auto;
   background: transparent;
   border: 0;
-  color: var(--text-muted);
-  font-size: 14px;
+  color: hsl(0 0% 65%);
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: var(--radius);
+  transition: background-color 80ms ease, color 80ms ease;
+}
+.cockpit-bottom-panel.is-collapsed .cockpit-bottom-toggle {
+  color: var(--text-muted);
 }
 .cockpit-bottom-toggle:hover {
+  color: #ffffff;
+  background: hsl(0 0% 22%);
+}
+.cockpit-bottom-panel.is-collapsed .cockpit-bottom-toggle:hover {
   color: var(--text);
   background: var(--surface-2);
 }
@@ -207,24 +226,29 @@
   flex: 1 1 auto;
   min-height: 0;
   position: relative;
-  background: var(--bg);
+  background: #1b1d1f;
+  /* Tiny inner padding so the terminal's first line doesn't touch the
+   * header divider — gives the iframe a small breathing room. */
+  padding: 4px 0 0;
 }
 .cockpit-bottom-body iframe {
   width: 100%;
   height: 100%;
   border: 0;
   display: block;
+  background: #1b1d1f;
 }
 .cockpit-bottom-placeholder {
-  padding: 14px 16px;
+  padding: 14px 18px;
   font-size: 12px;
-  color: var(--text-faint);
+  color: hsl(0 0% 65%);
 }
 .cockpit-bottom-placeholder code {
-  background: var(--code-bg);
-  color: var(--code-text);
-  padding: 1px 5px;
+  background: hsl(0 0% 22%);
+  color: hsl(0 0% 90%);
+  padding: 1px 6px;
   border-radius: 3px;
+  font-size: 11px;
 }
 
 /* Resizer — 4px-tall draggable splitter between centre and bottom panel.
