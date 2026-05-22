@@ -61,6 +61,13 @@ _TERMINAL_FONT_FAMILY = (
     '"Liberation Mono", monospace'
 )
 
+# ttyd is reverse-proxied through the cockpit so the terminal iframe
+# ends up same-origin with the cockpit page. ``-b /_terminal/`` makes
+# ttyd's bundled JS construct URLs (including the WebSocket) relative
+# to this prefix, so all client-side requests come back to the cockpit
+# server at ``/_terminal/*`` and we forward them.
+TERMINAL_BASE_PATH = "/_terminal/"
+
 
 class TerminalProcess:
     """Manages a ttyd child process scoped to the cockpit's lifetime."""
@@ -105,6 +112,7 @@ class TerminalProcess:
             "-p", str(port),
             "-i", "127.0.0.1",
             "-W",
+            "-b", TERMINAL_BASE_PATH.rstrip("/"),
             "-t", f"fontSize={_TERMINAL_FONT_SIZE}",
             "-t", f"fontFamily={_TERMINAL_FONT_FAMILY}",
             "-t", f"theme={json.dumps(_TERMINAL_THEME, separators=(',', ':'))}",
@@ -163,6 +171,9 @@ class TerminalProcess:
             return {"enabled": False, "reason": f"ttyd start failed: {exc}"}
         return {
             "enabled": True,
-            "url": self.url,
+            # Same-origin URL — the iframe loads through the cockpit's
+            # /_terminal/* proxy (TASK-0047). The actual ttyd port lives
+            # in self.port but isn't reachable directly from the browser.
+            "url": TERMINAL_BASE_PATH,
             "command": self.command,
         }

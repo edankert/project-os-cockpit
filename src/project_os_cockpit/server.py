@@ -24,10 +24,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import cockpit, renderer, templates
+from . import cockpit, renderer, templates, terminal_proxy
 from .events import EventBus
 from .index import Index
-from .terminal import TerminalProcess
+from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .watcher import Watcher
 
 # URL plural → frontmatter type singular. Project-os IDs and template names
@@ -176,6 +176,10 @@ def _make_handler(
                 self._serve_terminal_info()
                 return
 
+            if path == TERMINAL_BASE_PATH.rstrip("/") or path.startswith(TERMINAL_BASE_PATH):
+                self._proxy_terminal(path)
+                return
+
             if path.startswith("/_static/"):
                 self._serve_static(path[len("/_static/"):])
                 return
@@ -277,6 +281,37 @@ def _make_handler(
             time). Subsequent calls reuse the running process.
             """
             self._respond_json(terminal.info())
+
+        def _proxy_terminal(self, path: str) -> None:
+            """Reverse-proxy a request to ttyd (TASK-0047).
+
+            Lazy-starts ttyd if needed (mirrors /api/terminal); HTTP +
+            WebSocket forwarding lives in :mod:`terminal_proxy`. Same-
+            origin proxying lets us inject custom CSS into ttyd's
+            index HTML and (later) a JS bridge for terminal ↔ cockpit
+            communication.
+            """
+            if not TerminalProcess.is_available():
+                self._respond_status(HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            try:
+                terminal.start()
+            except Exception:
+                log.exception("terminal proxy: lazy start failed")
+                self._respond_status(HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            port = terminal.port
+            if port is None:
+                self._respond_status(HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            # Normalise: an iframe with src="/_terminal/" hits us at
+            # "/_terminal/" (with trailing slash); ttyd's -b expects
+            # the prefix verbatim.
+            upstream = path if path.startswith(TERMINAL_BASE_PATH) else TERMINAL_BASE_PATH
+            if self.headers.get("Upgrade", "").lower() == "websocket":
+                terminal_proxy.proxy_websocket(self, port, upstream)
+            else:
+                terminal_proxy.proxy_http(self, port, upstream)
 
         # ---- SSE channel ----
 

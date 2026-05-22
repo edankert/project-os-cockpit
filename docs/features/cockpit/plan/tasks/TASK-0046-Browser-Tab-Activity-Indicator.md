@@ -39,5 +39,5 @@ When the project-os-cockpit browser tab is in the background and the cockpit obs
 
 ## Notes
 - **v1 signal**: file-watcher SSE — captures any LLM CLI / editor action that touches a `.md`. Close enough to "agent returned an answer" for the common case.
-- **v2 enhancement** (separate task): PTY-level detection of terminal output. Would need either ttyd output snooping (named pipe / tee), or pivoting to xterm.js + Python PTY bridge. Defer until v1 proves too noisy or imprecise.
+- **v2 enhancement** (separate task — easier now that TASK-0047 landed): postMessage bridge inside the proxied ttyd iframe. xterm.js `onData` → `parent.postMessage({type:"terminal:data"})` → cockpit fires the indicator on actual terminal output, not just file changes. Strictly better signal than the v1 file-watcher proxy.
 - Independent of TASK-0043/0044 — works the moment a file is edited, with or without the embedded terminal.
