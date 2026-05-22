@@ -117,13 +117,21 @@ DEFAULT_MODE = "features"
 # Library mode discovery rules.
 DOC_TREE_EXCLUDED_PREFIXES: tuple[str, ...] = ("__templates__/",)
 DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
+    # Canonical project-os container dirs — each houses lifecycle-managed
+    # notes that already have a dedicated nav surface (Features mode,
+    # Tasks mode, rare-type groups, etc.). Hide them from the Docs tree
+    # so the tree only carries non-project-os user content. __templates__/
+    # is separately blocked via DOC_TREE_EXCLUDED_PREFIXES.
     "changes",
     "decisions",
     "features",
     "issues",
     "phases",
+    "plans",
+    "releases",
     "requirements",
     "risks",
+    "tasks",
     "tests",
     "workflows",
 )
@@ -626,13 +634,12 @@ def _markdown_tree_group(
         is_extra_type = record.note_type in extra_types_set if extra_types_set else False
         if untyped_only and record.note_type is not None and not is_extra_type:
             continue
-        # __templates__/ etc. are always excluded — even inline-type
-        # references shouldn't surface from there. Canonical subdirs
-        # (decisions/, tests/, ...) are bypassed for inline-type notes
-        # so a reference living inside one of them still shows.
-        if _excluded_by_prefix(record.rel_path):
-            continue
-        if not is_extra_type and _excluded_by_root(record.rel_path, excluded_roots):
+        # Path-based exclusions apply to every type: __templates__/ is
+        # always blocked; the canonical project-os container dirs
+        # (decisions/, tests/, ...) are blocked too — references inside
+        # them are deliberately hidden since those dirs are owned by
+        # other nav surfaces (TASK-0037).
+        if _exclude_from_docs_tree(record.rel_path, excluded_roots=excluded_roots):
             continue
         if prefix:
             if record.rel_path == prefix:

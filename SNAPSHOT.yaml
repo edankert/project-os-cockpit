@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T15:30Z"
+updated: "2026-05-22T15:45Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 36
+  TASK: 37
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0036"
+  task: "TASK-0037"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -213,6 +213,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0036-Inline-References.md"
+      parent: "FEAT-0006"
+    TASK-0037:
+      title: "Cockpit: hide all canonical project-os container dirs from the Docs tree"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0037-Exclude-Canonical-Container-Dirs.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -464,6 +470,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Inline-References.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0036"
+    CHG-20260522-Cockpit-Exclude-Canonical-Container-Dirs:
+      title: "Cockpit: hide all canonical project-os container dirs from the Docs tree"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Exclude-Canonical-Container-Dirs.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0037"
   releases: {}
 
   decisions:
@@ -488,8 +500,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 36
-    tasks_done: 30
+    tasks_total: 37
+    tasks_done: 31
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

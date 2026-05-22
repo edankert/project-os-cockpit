@@ -314,16 +314,15 @@ def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:
     assert "rare:reference" not in keys
 
 
-def test_nav_payload_library_docs_tree_includes_references(
+def test_nav_payload_library_docs_tree_includes_root_references(
     index: Index,
 ) -> None:
-    """Reference-typed notes show up directly in the Docs tree group,
-    carrying ``type: "reference"`` so the JS picks the book-open icon.
-    Filename is the title; no status, no id (TASK-0036)."""
+    """Reference-typed notes at the docs root show in the Docs tree with
+    ``type: "reference"`` so the JS picks the book-open icon (TASK-0036).
+    Filename is the title; no status, no id."""
     payload = nav_payload(index, mode="library")
     docs_tree = next((g for g in payload["groups"] if g["key"] == "docs-tree"), None)
     assert docs_tree is not None
-    # Fixture's README.md (docs-root) is reference-typed.
     titles_root = {i["title"] for i in docs_tree["items"]}
     assert "README.md" in titles_root
     readme = next(i for i in docs_tree["items"] if i["title"] == "README.md")
@@ -331,16 +330,27 @@ def test_nav_payload_library_docs_tree_includes_references(
     assert readme["id"] == ""
     assert readme["status"] is None
     assert readme["subtitle"] == ""
-    # tests/ACCEPTANCE_TESTS.md (reference) shows under the tests/ subgroup.
-    tests_sub = next(
-        (sg for sg in docs_tree.get("subgroups", []) if sg["label"] == "tests/"),
-        None,
-    )
-    assert tests_sub is not None, "tests/ subgroup should appear once references are inlined"
-    sub_titles = {i["title"] for i in tests_sub["items"]}
-    assert "ACCEPTANCE_TESTS.md" in sub_titles
-    acceptance = next(i for i in tests_sub["items"] if i["title"] == "ACCEPTANCE_TESTS.md")
-    assert acceptance["type"] == "reference"
+
+
+def test_nav_payload_library_docs_tree_excludes_canonical_container_dirs(
+    index: Index,
+) -> None:
+    """All canonical project-os container dirs (changes/, decisions/,
+    tests/, ...) are hidden from the Docs tree, even for inline-type
+    notes living inside them (TASK-0037). __templates__/ also stays
+    excluded by the prefix filter."""
+    payload = nav_payload(index, mode="library")
+    docs_tree = next((g for g in payload["groups"] if g["key"] == "docs-tree"), None)
+    assert docs_tree is not None
+    subgroup_labels = {sg["label"] for sg in docs_tree.get("subgroups", [])}
+    for canonical in (
+        "changes/", "decisions/", "features/", "issues/", "phases/",
+        "plans/", "releases/", "requirements/", "risks/", "tasks/",
+        "tests/", "workflows/", "__templates__/",
+    ):
+        assert canonical not in subgroup_labels, (
+            f"{canonical} should not appear as a Docs tree subgroup"
+        )
 
 
 def test_nav_payload_library_typed_rare_keeps_id_and_title(
