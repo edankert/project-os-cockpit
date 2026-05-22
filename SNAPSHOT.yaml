@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T15:45Z"
+updated: "2026-05-22T16:00Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 37
+  TASK: 38
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0037"
+  task: "TASK-0038"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -219,6 +219,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0037-Exclude-Canonical-Container-Dirs.md"
+      parent: "FEAT-0006"
+    TASK-0038:
+      title: "Cockpit: add Changes group to Project (Library) rare-types"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0038-Library-Changes-Group.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -476,6 +482,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Exclude-Canonical-Container-Dirs.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0037"
+    CHG-20260522-Cockpit-Library-Changes-Group:
+      title: "Cockpit: add Changes group to Project (Library) rare-types"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Library-Changes-Group.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0038"
   releases: {}
 
   decisions:
@@ -500,8 +512,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 37
-    tasks_done: 31
+    tasks_total: 38
+    tasks_done: 32
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

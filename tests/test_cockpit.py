@@ -306,6 +306,19 @@ def test_nav_payload_library_docs_tree_merges_project_root_files(
     assert titles[0] == "README.md"
 
 
+def test_nav_payload_library_includes_changes_group(index: Index) -> None:
+    """The Project section surfaces a Changes group as a rare-type
+    (TASK-0038). Items use the standard id+title shape."""
+    payload = nav_payload(index, mode="library")
+    changes = next((g for g in payload["groups"] if g["key"] == "rare:change"), None)
+    assert changes is not None, "fixture has at least one change note"
+    assert changes["label"] == "Changes"
+    assert changes["item_layout"] == "stacked"
+    for item in changes["items"]:
+        assert item["id"].startswith("CHG-")
+        assert item["type"] == "change"
+
+
 def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:
     """Reference-typed notes no longer have their own rare-type group
     (TASK-0036) — they're inlined into the Docs tree."""

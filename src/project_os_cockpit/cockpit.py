@@ -139,8 +139,10 @@ DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
 # Anything covered by a primary nav mode (feature, task, issue) is excluded.
 # Reference is NOT in this list — references render inline in the Docs tree
 # alongside untyped Markdown (TASK-0036), using the book-open type icon.
+# "change" leads the list (TASK-0038) — change notes are the most-active
+# log surface; everything below it is referenced occasionally.
 LIBRARY_RARE_TYPES: tuple[str, ...] = (
-    "adr", "release", "risk", "test", "workflow", "plan",
+    "change", "adr", "release", "risk", "test", "workflow", "plan",
 )
 # Types that join the untyped Markdown tree in Library mode's Docs-tree group.
 DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference",)
