@@ -320,12 +320,19 @@
 
   // Generic collapsible group via <details>/<summary>. Native browser toggling;
   // persists open/closed state under `collapsed[key]` in localStorage.
+  //
+  // opts.defaultOpen flips the storage semantics: when true (the default),
+  // storage-bit-set means the user collapsed the group; when false, the
+  // bit means the user opened a default-closed group (used for the
+  // month buckets under Changes — TASK-0039). Single storage map, two
+  // semantics — bit set ≡ user diverged from default.
   function collapsibleGroup(opts) {
-    // opts: { key, headerClass, headerStyle, headerChildren, bodyStyle, bodyChildren, sectionClass }
-    var startCollapsed = isCollapsed(opts.key);
+    var defaultOpen = opts.defaultOpen !== false;
+    var diverged = isCollapsed(opts.key);
+    var startOpen = defaultOpen ? !diverged : diverged;
     var details = el("details", {
       class: opts.sectionClass || "",
-      open: startCollapsed ? null : "",
+      open: startOpen ? "" : null,
     });
     var chevron = el("span", { class: "group-chevron", "aria-hidden": "true" });
     var headerInner = el("span", { class: "group-header-inner" }, opts.headerChildren || []);
@@ -340,9 +347,10 @@
     }, opts.bodyChildren || []);
     details.appendChild(body);
     details.addEventListener("toggle", function () {
-      var nowCollapsed = !details.open;
+      var isNowOpen = details.open;
+      var nowDiverged = defaultOpen ? !isNowOpen : isNowOpen;
       var stored = isCollapsed(opts.key);
-      if (nowCollapsed !== stored) toggleCollapsed(opts.key);
+      if (nowDiverged !== stored) toggleCollapsed(opts.key);
     });
     return details;
   }
@@ -824,6 +832,7 @@
       bodyStyle: indentStyle,
       headerChildren: [el("span", { text: group.label || group.key || "" })],
       bodyChildren: bodyChildren,
+      defaultOpen: group.default_open !== false,
     });
     // Mirror the indent on the <details> itself so CSS selectors targeting
     // the section (e.g. indent guides) can read --tree-indent there too.

@@ -38,6 +38,12 @@ from typing import Any
 
 from .index import Index, NoteRecord
 
+_CHG_DATE_RE = re.compile(r"^CHG-(\d{4})(\d{2})\d{2}")
+_MONTH_NAMES = (
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+)
+
 _HEADING_RE = re.compile(r"^#{1,6}\s")
 _WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
@@ -552,18 +558,76 @@ def _library_groups(
         if not records:
             continue
         records.sort(key=lambda r: (r.note_id or "", r.rel_path))
-        out.append(
+        group: dict[str, Any] = {
+            "key": f"rare:{type_name}",
+            "label": _pluralise_for_label(type_name),
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [_rare_item(index, r) for r in records],
+        }
+        if type_name == "change":
+            # CHG notes accumulate fast — bucket by calendar month so the
+            # group stays scannable. Most-recent month opens by default;
+            # older months stay collapsed unless the user opens them.
+            group["items"] = []
+            group["subgroups"] = _changes_month_subgroups(index, records)
+        out.append(group)
+
+    return out
+
+
+def _changes_month_subgroups(
+    index: Index, records: list[NoteRecord]
+) -> list[dict[str, Any]]:
+    """Bucket change records by calendar month (YYYY-MM) and emit nested
+    subgroups sorted reverse-chronological. The topmost month carries
+    ``default_open: True`` so the JS opens it on first render."""
+    by_month: dict[str, list[NoteRecord]] = {}
+    for record in records:
+        ym = _extract_year_month(record)
+        by_month.setdefault(ym, []).append(record)
+    months_sorted = sorted(by_month.keys(), reverse=True)
+    subgroups: list[dict[str, Any]] = []
+    for idx, ym in enumerate(months_sorted):
+        month_records = sorted(
+            by_month[ym], key=lambda r: r.note_id or "", reverse=True
+        )
+        subgroups.append(
             {
-                "key": f"rare:{type_name}",
-                "label": _pluralise_for_label(type_name),
+                "key": f"rare:change:{ym}",
+                "label": _format_month_label(ym),
                 "url": None,
                 "status": None,
                 "item_layout": "stacked",
-                "items": [_rare_item(index, r) for r in records],
+                "items": [_rare_item(index, r) for r in month_records],
+                "default_open": idx == 0,
             }
         )
+    return subgroups
 
-    return out
+
+def _extract_year_month(record: NoteRecord) -> str:
+    """Return ``YYYY-MM`` for a record. Prefers the date embedded in the
+    CHG-YYYYMMDD-… id, then falls back to frontmatter ``updated`` /
+    ``created``. ``"unknown"`` only when neither is present."""
+    match = _CHG_DATE_RE.match(record.note_id or "")
+    if match:
+        return f"{match.group(1)}-{match.group(2)}"
+    for key in ("updated", "created"):
+        date = _coerce_date(record.frontmatter.get(key))
+        if date is not None:
+            return f"{date.year:04d}-{date.month:02d}"
+    return "unknown"
+
+
+def _format_month_label(ym: str) -> str:
+    """``"2026-05"`` → ``"May 2026"``; falls back to the raw string."""
+    try:
+        year, month = ym.split("-")
+        return f"{_MONTH_NAMES[int(month)]} {year}"
+    except (ValueError, IndexError):
+        return ym
 
 
 def _project_root_tree_items(project_root: Path | None) -> list[dict[str, Any]]:

@@ -306,17 +306,34 @@ def test_nav_payload_library_docs_tree_merges_project_root_files(
     assert titles[0] == "README.md"
 
 
-def test_nav_payload_library_includes_changes_group(index: Index) -> None:
-    """The Project section surfaces a Changes group as a rare-type
-    (TASK-0038). Items use the standard id+title shape."""
+def test_nav_payload_library_changes_grouped_by_month(index: Index) -> None:
+    """The Changes group buckets CHG notes by calendar month (TASK-0039).
+
+    Top-level ``items`` is empty (all items live in month subgroups).
+    Subgroups are sorted reverse-chronological and the topmost carries
+    ``default_open: True`` so the JS opens it on first render."""
     payload = nav_payload(index, mode="library")
     changes = next((g for g in payload["groups"] if g["key"] == "rare:change"), None)
     assert changes is not None, "fixture has at least one change note"
     assert changes["label"] == "Changes"
     assert changes["item_layout"] == "stacked"
-    for item in changes["items"]:
-        assert item["id"].startswith("CHG-")
-        assert item["type"] == "change"
+    assert changes["items"] == [], "items live inside month subgroups"
+    subs = changes.get("subgroups", [])
+    assert subs, "month subgroups should be present"
+    # Each subgroup is a month bucket with the standard stacked layout.
+    for sg in subs:
+        assert sg["key"].startswith("rare:change:")
+        assert sg["item_layout"] == "stacked"
+        for item in sg["items"]:
+            assert item["id"].startswith("CHG-")
+            assert item["type"] == "change"
+    # Reverse-chronological — first subgroup's key should sort >= the rest.
+    keys = [sg["key"] for sg in subs]
+    assert keys == sorted(keys, reverse=True)
+    # Only the topmost subgroup defaults open.
+    assert subs[0]["default_open"] is True
+    for sg in subs[1:]:
+        assert sg["default_open"] is False
 
 
 def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:

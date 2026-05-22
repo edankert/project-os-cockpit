@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T16:00Z"
+updated: "2026-05-22T16:30Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 38
+  TASK: 39
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0038"
+  task: "TASK-0039"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -225,6 +225,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0038-Library-Changes-Group.md"
+      parent: "FEAT-0006"
+    TASK-0039:
+      title: "Cockpit: bucket Changes group by calendar month (most-recent month open by default)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0039-Changes-Month-Buckets.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -488,6 +494,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Library-Changes-Group.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0038"
+    CHG-20260522-Cockpit-Changes-Month-Buckets:
+      title: "Cockpit: bucket Changes group by calendar month"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Changes-Month-Buckets.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0039"
   releases: {}
 
   decisions:
@@ -512,8 +524,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 38
-    tasks_done: 32
+    tasks_total: 39
+    tasks_done: 33
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41
