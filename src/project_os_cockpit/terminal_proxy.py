@@ -35,58 +35,60 @@ log = logging.getLogger(__name__)
 # RFC 6455 magic GUID used to compute the WebSocket accept value.
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-# Muted scrollbar CSS injected into ttyd's index HTML. Always visible
-# but subtle — a faint thumb (white at 18% alpha) on the terminal's
-# dark surface, growing slightly on hover. `-webkit-appearance: none`
-# is the magic that overrides the OS-native scrollbar on macOS / Linux
-# — without it, system scrollbars (especially with "Always show
-# scrollbars" set or an external mouse plugged in) ignore the
-# background/color rules and stay fully white/grey.
+# Muted scrollbar CSS injected into ttyd's index HTML. The iframe
+# contains only the terminal, so we style *every* scrollbar inside it
+# with !important + appearance: none — that beats any OS-native styling
+# Chrome / Safari / Firefox might apply.
 _SCROLLBAR_CSS = b"""
 <style>
-.xterm .xterm-viewport {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+html, body, .xterm, .xterm-viewport {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: transparent;
+*::-webkit-scrollbar,
+*::-webkit-scrollbar:horizontal,
+*::-webkit-scrollbar:vertical {
+  width: 10px !important;
+  height: 10px !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-track {
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: transparent;
-  box-shadow: none;
-  border: 0;
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track-piece {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: rgba(255, 255, 255, 0.18);
-  border: 2px solid transparent;
-  border-radius: 6px;
-  background-clip: padding-box;
-  transition: background-color 120ms ease;
-  min-height: 30px;
+*::-webkit-scrollbar-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  border: 2px solid transparent !important;
+  border-radius: 6px !important;
+  background-clip: padding-box !important;
+  min-height: 30px !important;
+  transition: background-color 120ms ease !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.32);
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.38) !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-thumb:active {
-  background-color: rgba(255, 255, 255, 0.45);
+*::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.5) !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-corner {
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: transparent;
+*::-webkit-scrollbar-corner {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: transparent !important;
 }
-.xterm .xterm-viewport::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 </style>
 """
@@ -150,15 +152,26 @@ def proxy_http(
             pass
 
     content_type = (resp.getheader("Content-Type") or "").lower()
-    if "html" in content_type:
+    is_html = "html" in content_type
+    if is_html:
         body = inject_html_extras(body)
 
     handler.send_response(resp.status)
+    skip_lower = {
+        "transfer-encoding", "connection", "content-length", "keep-alive",
+    }
+    # Force no-store on the injected HTML so the browser always re-fetches
+    # — otherwise CSS / JS injection changes get masked by Chrome's
+    # heuristic iframe cache.
+    if is_html:
+        skip_lower.update({"cache-control", "etag", "last-modified"})
     for header, value in resp.getheaders():
-        if header.lower() in ("transfer-encoding", "connection",
-                              "content-length", "keep-alive"):
+        if header.lower() in skip_lower:
             continue
         handler.send_header(header, value)
+    if is_html:
+        handler.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        handler.send_header("Pragma", "no-cache")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
