@@ -103,11 +103,18 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
-html { height: 100%; }
+html, body { height: 100%; }
+/* Body is the flex-column shell: page-header at top, cockpit fills the
+ * middle, page-footer at the bottom. Lock to viewport height + hide
+ * overflow so the three panes (and the centre column's terminal) can
+ * scroll INTERNALLY. Without this, a long left/right pane stretches the
+ * grid row and the body scroll takes over, dragging the terminal with
+ * it. */
 body {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 a {
