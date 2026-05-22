@@ -45,6 +45,10 @@
 .cockpit {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr) 340px;
+  /* Single row constrained to the cockpit's allocated flex height —
+   * without this, the row auto-sizes to content and the bottom panel
+   * pushes off-screen / drags the centre pane along on body scroll. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 0;
   flex: 1 1 auto;
   min-height: 0;
@@ -89,6 +93,9 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+  /* Explicit overflow guard so a long centre pane can't push the
+   * bottom panel out of the column. */
+  overflow: hidden;
 }
 
 .cockpit-centre {
