@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T17:15Z"
+updated: "2026-05-22T18:00Z"
 
 template:
   replace_me: false
@@ -36,7 +36,7 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 41
+  TASK: 45
   TST: 2
   WF: 0
 
@@ -244,6 +244,30 @@ items:
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0041-Sparse-Month-Flat.md"
       parent: "FEAT-0006"
+    TASK-0042:
+      title: "Cockpit: interactive markdown checkboxes (click to toggle, file write-back)"
+      status: backlog
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0042-Interactive-Checkboxes.md"
+      parent: "FEAT-0006"
+    TASK-0043:
+      title: "Cockpit: bottom-panel layout in centre column (resizer + collapse + persisted height)"
+      status: backlog
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0043-Bottom-Panel-Layout.md"
+      parent: "FEAT-0003"
+    TASK-0044:
+      title: "Cockpit: ttyd integration — embedded LLM CLI terminal in the bottom panel"
+      status: backlog
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0044-Ttyd-Integration.md"
+      parent: "FEAT-0003"
+    TASK-0045:
+      title: "Cockpit: project preview tab (config-driven iframe or log-tail)"
+      status: backlog
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0045-Preview-Config-Tab.md"
+      parent: "FEAT-0003"
 
   issues: {}
 
@@ -548,7 +572,7 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 41
+    tasks_total: 45
     tasks_done: 35
     tests_total: 2
     tests_passing: 2
