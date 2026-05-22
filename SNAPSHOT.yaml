@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T16:30Z"
+updated: "2026-05-22T17:00Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 39
+  TASK: 40
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0039"
+  task: "TASK-0040"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -231,6 +231,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0039-Changes-Month-Buckets.md"
+      parent: "FEAT-0006"
+    TASK-0040:
+      title: "Cockpit: hybrid Changes buckets (current week / last week / earlier this month + past months with weekly sub-buckets)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0040-Changes-Hybrid-Buckets.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -500,6 +506,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Changes-Month-Buckets.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0039"
+    CHG-20260522-Cockpit-Changes-Hybrid-Buckets:
+      title: "Cockpit: hybrid Changes buckets (current week / last week / earlier this month + past months with weekly sub-buckets)"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Changes-Hybrid-Buckets.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0040"
   releases: {}
 
   decisions:
@@ -524,8 +536,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 39
-    tasks_done: 33
+    tasks_total: 40
+    tasks_done: 34
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

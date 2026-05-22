@@ -38,10 +38,14 @@ from typing import Any
 
 from .index import Index, NoteRecord
 
-_CHG_DATE_RE = re.compile(r"^CHG-(\d{4})(\d{2})\d{2}")
+_CHG_DATE_RE = re.compile(r"^CHG-(\d{4})(\d{2})(\d{2})")
 _MONTH_NAMES = (
     "", "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
+)
+_MONTH_ABBR = (
+    "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 )
 
 _HEADING_RE = re.compile(r"^#{1,6}\s")
@@ -567,67 +571,202 @@ def _library_groups(
             "items": [_rare_item(index, r) for r in records],
         }
         if type_name == "change":
-            # CHG notes accumulate fast — bucket by calendar month so the
-            # group stays scannable. Most-recent month opens by default;
-            # older months stay collapsed unless the user opens them.
+            # CHG notes accumulate fast — bucket by Current week / Last
+            # week / Earlier this month for the current month, and by
+            # calendar month + per-week date ranges for past months.
+            # Only Current week opens by default.
             group["items"] = []
-            group["subgroups"] = _changes_month_subgroups(index, records)
+            group["subgroups"] = _changes_subgroups(index, records)
         out.append(group)
 
     return out
 
 
-def _changes_month_subgroups(
+def _changes_subgroups(
     index: Index, records: list[NoteRecord]
 ) -> list[dict[str, Any]]:
-    """Bucket change records by calendar month (YYYY-MM) and emit nested
-    subgroups sorted reverse-chronological. The topmost month carries
-    ``default_open: True`` so the JS opens it on first render."""
-    by_month: dict[str, list[NoteRecord]] = {}
+    """Hybrid bucketing for the Changes group.
+
+    Current month (no "May 2026" wrapper):
+      • Current week                (Mon–Sun including today)
+      • Last week                   — only when items exist earlier than
+                                      last week in the current month
+      • Earlier this month          — only when items older than current
+                                      week exist in the current month;
+                                      absorbs last week's items if no
+                                      even-older content (so the
+                                      Last-week bucket isn't redundant)
+
+    Past months (one bucket per month, no wrapper around the current
+    month's three buckets):
+      • "Month Year"                — collapsed by default
+        • per-week date ranges      — clipped to month boundaries,
+                                      reverse-chronological
+
+    Only the Current week bucket carries ``default_open: True``.
+    """
+    today = _dt.date.today()
+    this_monday = today - _dt.timedelta(days=today.weekday())
+    last_monday = this_monday - _dt.timedelta(days=7)
+    current_month_start = today.replace(day=1)
+
+    # Bucket records by date.
+    cw_records: list[NoteRecord] = []
+    lw_records: list[NoteRecord] = []
+    em_records: list[NoteRecord] = []
+    past_by_month: dict[tuple[int, int], list[NoteRecord]] = {}
     for record in records:
-        ym = _extract_year_month(record)
-        by_month.setdefault(ym, []).append(record)
-    months_sorted = sorted(by_month.keys(), reverse=True)
+        date = _record_change_date(record)
+        if date is None:
+            # No usable date — drop into earlier-this-month for visibility
+            # rather than orphan; rare in practice.
+            em_records.append(record)
+            continue
+        if date >= current_month_start:
+            if date >= this_monday:
+                cw_records.append(record)
+            elif date >= last_monday:
+                lw_records.append(record)
+            else:
+                em_records.append(record)
+        else:
+            past_by_month.setdefault((date.year, date.month), []).append(record)
+
     subgroups: list[dict[str, Any]] = []
-    for idx, ym in enumerate(months_sorted):
-        month_records = sorted(
-            by_month[ym], key=lambda r: r.note_id or "", reverse=True
+
+    def _stacked(key: str, label: str, recs: list[NoteRecord],
+                 *, default_open: bool, subs: list[dict[str, Any]] | None = None
+                 ) -> dict[str, Any]:
+        recs_sorted = sorted(recs, key=_record_sort_key, reverse=True)
+        out: dict[str, Any] = {
+            "key": key,
+            "label": label,
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [_rare_item(index, r) for r in recs_sorted],
+            "default_open": default_open,
+        }
+        if subs is not None:
+            out["items"] = []
+            out["subgroups"] = subs
+        return out
+
+    if cw_records:
+        subgroups.append(_stacked(
+            "rare:change:current-week", "Current week",
+            cw_records, default_open=True,
+        ))
+    # Conditional rendering of Last week vs Earlier this month — per the
+    # user's rule, Last week only appears when something even older
+    # exists in the current month; otherwise last-week items absorb
+    # into Earlier this month.
+    if lw_records and em_records:
+        subgroups.append(_stacked(
+            "rare:change:last-week", "Last week",
+            lw_records, default_open=False,
+        ))
+        subgroups.append(_stacked(
+            "rare:change:earlier-this-month", "Earlier this month",
+            em_records, default_open=False,
+        ))
+    elif em_records:
+        subgroups.append(_stacked(
+            "rare:change:earlier-this-month", "Earlier this month",
+            em_records, default_open=False,
+        ))
+    elif lw_records:
+        subgroups.append(_stacked(
+            "rare:change:earlier-this-month", "Earlier this month",
+            lw_records, default_open=False,
+        ))
+
+    for (year, month) in sorted(past_by_month.keys(), reverse=True):
+        month_recs = past_by_month[(year, month)]
+        month_start = _dt.date(year, month, 1)
+        if month == 12:
+            month_end = _dt.date(year + 1, 1, 1) - _dt.timedelta(days=1)
+        else:
+            month_end = _dt.date(year, month + 1, 1) - _dt.timedelta(days=1)
+        week_subs = _past_month_week_subgroups(
+            index, month_recs, month_start, month_end
         )
-        subgroups.append(
-            {
-                "key": f"rare:change:{ym}",
-                "label": _format_month_label(ym),
-                "url": None,
-                "status": None,
-                "item_layout": "stacked",
-                "items": [_rare_item(index, r) for r in month_records],
-                "default_open": idx == 0,
-            }
-        )
+        subgroups.append(_stacked(
+            f"rare:change:{year:04d}-{month:02d}",
+            f"{_MONTH_NAMES[month]} {year}",
+            month_recs, default_open=False, subs=week_subs,
+        ))
+
     return subgroups
 
 
-def _extract_year_month(record: NoteRecord) -> str:
-    """Return ``YYYY-MM`` for a record. Prefers the date embedded in the
-    CHG-YYYYMMDD-… id, then falls back to frontmatter ``updated`` /
-    ``created``. ``"unknown"`` only when neither is present."""
+def _past_month_week_subgroups(
+    index: Index,
+    records: list[NoteRecord],
+    month_start: _dt.date,
+    month_end: _dt.date,
+) -> list[dict[str, Any]]:
+    """Bucket past-month records by ISO week clipped to month boundaries.
+    Reverse-chronological. Returns at most ~5 sub-subgroups per month."""
+    by_monday: dict[_dt.date, list[NoteRecord]] = {}
+    for record in records:
+        date = _record_change_date(record)
+        if date is None:
+            # Should be rare here (caller already filtered to past months).
+            continue
+        monday = date - _dt.timedelta(days=date.weekday())
+        by_monday.setdefault(monday, []).append(record)
+    subgroups: list[dict[str, Any]] = []
+    for monday in sorted(by_monday.keys(), reverse=True):
+        start = max(month_start, monday)
+        end = min(month_end, monday + _dt.timedelta(days=6))
+        label = _format_week_range(start, end)
+        recs_sorted = sorted(by_monday[monday], key=_record_sort_key, reverse=True)
+        subgroups.append({
+            "key": f"rare:change:{month_start.year:04d}-{month_start.month:02d}:wk-{monday.isoformat()}",
+            "label": label,
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [_rare_item(index, r) for r in recs_sorted],
+            "default_open": False,
+        })
+    return subgroups
+
+
+def _format_week_range(start: _dt.date, end: _dt.date) -> str:
+    """``Apr 1``, ``Apr 6–12``, or ``Apr 27–30`` for a clipped week."""
+    if start == end:
+        return f"{_MONTH_ABBR[start.month]} {start.day}"
+    if start.month == end.month:
+        return f"{_MONTH_ABBR[start.month]} {start.day}–{end.day}"
+    return (
+        f"{_MONTH_ABBR[start.month]} {start.day}–"
+        f"{_MONTH_ABBR[end.month]} {end.day}"
+    )
+
+
+def _record_change_date(record: NoteRecord) -> _dt.date | None:
+    """Extract a date from a CHG record. Prefers the CHG-YYYYMMDD- id;
+    falls back to frontmatter ``updated`` / ``created``."""
     match = _CHG_DATE_RE.match(record.note_id or "")
     if match:
-        return f"{match.group(1)}-{match.group(2)}"
+        try:
+            return _dt.date(
+                int(match.group(1)), int(match.group(2)), int(match.group(3))
+            )
+        except ValueError:
+            pass
     for key in ("updated", "created"):
         date = _coerce_date(record.frontmatter.get(key))
         if date is not None:
-            return f"{date.year:04d}-{date.month:02d}"
-    return "unknown"
+            return date
+    return None
 
 
-def _format_month_label(ym: str) -> str:
-    """``"2026-05"`` → ``"May 2026"``; falls back to the raw string."""
-    try:
-        year, month = ym.split("-")
-        return f"{_MONTH_NAMES[int(month)]} {year}"
-    except (ValueError, IndexError):
-        return ym
+def _record_sort_key(record: NoteRecord) -> tuple[str, str]:
+    """Sort changes by id (date-prefixed) then rel_path for stability."""
+    return (record.note_id or "", record.rel_path)
 
 
 def _project_root_tree_items(project_root: Path | None) -> list[dict[str, Any]]:

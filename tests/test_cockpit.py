@@ -11,6 +11,7 @@ Validates the cockpit v2 schema against the shared fixture:
 
 from __future__ import annotations
 
+import datetime as _dt
 import shutil
 from pathlib import Path
 
@@ -306,34 +307,43 @@ def test_nav_payload_library_docs_tree_merges_project_root_files(
     assert titles[0] == "README.md"
 
 
-def test_nav_payload_library_changes_grouped_by_month(index: Index) -> None:
-    """The Changes group buckets CHG notes by calendar month (TASK-0039).
+def test_nav_payload_library_changes_hybrid_buckets(index: Index) -> None:
+    """The Changes group renders hybrid buckets (TASK-0040):
 
-    Top-level ``items`` is empty (all items live in month subgroups).
-    Subgroups are sorted reverse-chronological and the topmost carries
-    ``default_open: True`` so the JS opens it on first render."""
+    - Current month buckets (Current week / Last week / Earlier this
+      month) are emitted at the top level, NOT under a wrapping
+      "current month" subgroup.
+    - Past months wrap their own week sub-subgroups, labeled
+      ``"Month Year"`` (e.g. ``"April 2026"``).
+    - Only Current week (when present) defaults open.
+
+    The fixture's only CHG (`CHG-20260508-Inbound`) is from 2026-05-08;
+    today is 2026-05-22 in this session, so it falls in "Earlier this
+    month" (older than last Monday but inside current month)."""
     payload = nav_payload(index, mode="library")
     changes = next((g for g in payload["groups"] if g["key"] == "rare:change"), None)
-    assert changes is not None, "fixture has at least one change note"
-    assert changes["label"] == "Changes"
-    assert changes["item_layout"] == "stacked"
-    assert changes["items"] == [], "items live inside month subgroups"
+    assert changes is not None
+    assert changes["items"] == [], "items live inside subgroups"
     subs = changes.get("subgroups", [])
-    assert subs, "month subgroups should be present"
-    # Each subgroup is a month bucket with the standard stacked layout.
+    assert subs, "fixture has at least one CHG"
+    labels = [sg["label"] for sg in subs]
+    # Each subgroup carries the standard stacked layout, items are CHG
+    # type, and only Current week defaults open.
     for sg in subs:
         assert sg["key"].startswith("rare:change:")
         assert sg["item_layout"] == "stacked"
-        for item in sg["items"]:
-            assert item["id"].startswith("CHG-")
-            assert item["type"] == "change"
-    # Reverse-chronological — first subgroup's key should sort >= the rest.
-    keys = [sg["key"] for sg in subs]
-    assert keys == sorted(keys, reverse=True)
-    # Only the topmost subgroup defaults open.
-    assert subs[0]["default_open"] is True
-    for sg in subs[1:]:
-        assert sg["default_open"] is False
+        if sg["label"] == "Current week":
+            assert sg["default_open"] is True
+        else:
+            assert sg["default_open"] is False
+    # No "Current month" wrapper — current-month buckets must not be
+    # nested under an extra month group.
+    current_month_label = (
+        f"{_dt.date.today().strftime('%B')} {_dt.date.today().year}"
+    )
+    assert current_month_label not in labels, (
+        "current month should not appear as a wrapper subgroup"
+    )
 
 
 def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:
