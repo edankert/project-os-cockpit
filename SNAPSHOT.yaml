@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T17:00Z"
+updated: "2026-05-22T17:15Z"
 
 template:
   replace_me: false
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 40
+  TASK: 41
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0040"
+  task: "TASK-0041"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -237,6 +237,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0040-Changes-Hybrid-Buckets.md"
+      parent: "FEAT-0006"
+    TASK-0041:
+      title: "Cockpit: skip weekly sub-buckets for sparse past months (<10 CHGs)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0041-Sparse-Month-Flat.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -512,6 +518,12 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Changes-Hybrid-Buckets.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0040"
+    CHG-20260522-Cockpit-Sparse-Month-Flat:
+      title: "Cockpit: skip weekly sub-buckets for sparse past months (<10 CHGs)"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Sparse-Month-Flat.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0041"
   releases: {}
 
   decisions:
@@ -536,8 +548,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 40
-    tasks_done: 34
+    tasks_total: 41
+    tasks_done: 35
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

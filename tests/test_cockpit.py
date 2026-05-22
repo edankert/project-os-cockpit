@@ -346,6 +346,37 @@ def test_nav_payload_library_changes_hybrid_buckets(index: Index) -> None:
     )
 
 
+def test_nav_payload_library_changes_sparse_past_month_is_flat(
+    docs_root: Path,
+) -> None:
+    """A past month with fewer than 10 CHGs renders flat — items live
+    directly under the month label, no weekly sub-buckets (TASK-0041)."""
+    # Two CHGs in January 2026; current month gets one too so the loop
+    # runs over a past month.
+    (docs_root / "CHG-20260105-One.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260105-One\ntitle: "One"\n'
+        'status: merged\n---\n# One\n',
+        encoding="utf-8",
+    )
+    (docs_root / "CHG-20260112-Two.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260112-Two\ntitle: "Two"\n'
+        'status: merged\n---\n# Two\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="library")
+    changes = next(g for g in payload["groups"] if g["key"] == "rare:change")
+    jan = next(
+        (sg for sg in changes["subgroups"] if sg["label"] == "January 2026"),
+        None,
+    )
+    assert jan is not None
+    assert jan.get("subgroups", []) == [], (
+        "sparse past month should render flat — no week sub-buckets"
+    )
+    assert len(jan["items"]) >= 2, "items should live directly under the month"
+
+
 def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:
     """Reference-typed notes no longer have their own rare-type group
     (TASK-0036) — they're inlined into the Docs tree."""

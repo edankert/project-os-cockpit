@@ -39,6 +39,10 @@ from typing import Any
 from .index import Index, NoteRecord
 
 _CHG_DATE_RE = re.compile(r"^CHG-(\d{4})(\d{2})(\d{2})")
+# Past months with fewer than this many CHGs render flat (items directly
+# under the month label) — splitting into 1-item week sub-buckets is
+# noise. Densely-populated months keep the weekly split (TASK-0041).
+_CHG_PAST_MONTH_WEEK_SPLIT_MIN = 10
 _MONTH_NAMES = (
     "", "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
@@ -683,19 +687,26 @@ def _changes_subgroups(
 
     for (year, month) in sorted(past_by_month.keys(), reverse=True):
         month_recs = past_by_month[(year, month)]
-        month_start = _dt.date(year, month, 1)
-        if month == 12:
-            month_end = _dt.date(year + 1, 1, 1) - _dt.timedelta(days=1)
+        key = f"rare:change:{year:04d}-{month:02d}"
+        label = f"{_MONTH_NAMES[month]} {year}"
+        if len(month_recs) >= _CHG_PAST_MONTH_WEEK_SPLIT_MIN:
+            month_start = _dt.date(year, month, 1)
+            if month == 12:
+                month_end = _dt.date(year + 1, 1, 1) - _dt.timedelta(days=1)
+            else:
+                month_end = _dt.date(year, month + 1, 1) - _dt.timedelta(days=1)
+            week_subs = _past_month_week_subgroups(
+                index, month_recs, month_start, month_end
+            )
+            subgroups.append(_stacked(
+                key, label, month_recs, default_open=False, subs=week_subs,
+            ))
         else:
-            month_end = _dt.date(year, month + 1, 1) - _dt.timedelta(days=1)
-        week_subs = _past_month_week_subgroups(
-            index, month_recs, month_start, month_end
-        )
-        subgroups.append(_stacked(
-            f"rare:change:{year:04d}-{month:02d}",
-            f"{_MONTH_NAMES[month]} {year}",
-            month_recs, default_open=False, subs=week_subs,
-        ))
+            # Sparse month — render items directly under the month label,
+            # skip the weekly sub-bucket layer.
+            subgroups.append(_stacked(
+                key, label, month_recs, default_open=False,
+            ))
 
     return subgroups
 
