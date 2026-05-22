@@ -131,6 +131,13 @@ a:focus-visible {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: 13px;
+  /* Pin both rows to the top so they stay visible if the body scrolls
+   * (mobile layout, long centre-pane content, …). On desktop the
+   * cockpit's internal overflow:hidden already keeps the header
+   * visible, so sticky is a no-op there. */
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .page-header-row {
   display: flex;
