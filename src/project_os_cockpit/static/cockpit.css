@@ -599,6 +599,14 @@ details:not([open]) > summary .group-chevron {
   opacity: 0.55;
   vertical-align: -2px;
 }
+/* Suppress the default file ::before mask when the row already carries a
+ * type icon (e.g. References use the book-open icon). */
+.nav-item-compact.has-type-icon::before {
+  content: none;
+}
+.nav-item-compact .type-icon {
+  margin-right: 8px;
+}
 .nav-item-compact:hover {
   background: var(--surface);
   color: var(--text);

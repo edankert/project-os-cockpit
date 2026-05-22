@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-09T13:45Z"
+updated: "2026-05-22T15:30Z"
 
 template:
   replace_me: false
@@ -28,7 +28,7 @@ docs_system:
 counters:
   ADR: 4
   CHG:
-    last_date: 20260509
+    last_date: 20260522
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 6
   ISS: 0
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 35
+  TASK: 36
   TST: 2
   WF: 0
 
 focus:
-  task: "TASK-0035"
+  task: "TASK-0036"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -207,6 +207,12 @@ items:
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0035-Right-Pane-Issue-Severity.md"
+      parent: "FEAT-0006"
+    TASK-0036:
+      title: "Cockpit: references inlined into Docs tree (book icon, filename only, no rare:reference group)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0036-Inline-References.md"
       parent: "FEAT-0006"
 
   issues: {}
@@ -452,6 +458,12 @@ items:
       path: "docs/changes/CHG-20260509-Cockpit-Right-Pane-Issue-Severity.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0035"
+    CHG-20260522-Cockpit-Inline-References:
+      title: "Cockpit: references inlined into Docs tree, no rare:reference group"
+      status: merged
+      path: "docs/changes/CHG-20260522-Cockpit-Inline-References.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0036"
   releases: {}
 
   decisions:
@@ -476,8 +488,8 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 35
-    tasks_done: 29
+    tasks_total: 36
+    tasks_done: 30
     tests_total: 2
     tests_passing: 2
     test_cases_total: 41

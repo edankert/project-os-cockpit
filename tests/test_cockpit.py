@@ -306,27 +306,41 @@ def test_nav_payload_library_docs_tree_merges_project_root_files(
     assert titles[0] == "README.md"
 
 
-def test_nav_payload_library_references_show_filename_in_id_slot(
+def test_nav_payload_library_no_rare_reference_group(index: Index) -> None:
+    """Reference-typed notes no longer have their own rare-type group
+    (TASK-0036) — they're inlined into the Docs tree."""
+    payload = nav_payload(index, mode="library")
+    keys = [g["key"] for g in payload["groups"]]
+    assert "rare:reference" not in keys
+
+
+def test_nav_payload_library_docs_tree_includes_references(
     index: Index,
 ) -> None:
-    """References render with the filename in the ``id`` slot, the title
-    row dropped (filename is identifying enough), and the parent
-    directory in the subtitle slot when the file lives in a subdir
-    (TASK-0029). At-root references emit an empty subtitle."""
+    """Reference-typed notes show up directly in the Docs tree group,
+    carrying ``type: "reference"`` so the JS picks the book-open icon.
+    Filename is the title; no status, no id (TASK-0036)."""
     payload = nav_payload(index, mode="library")
-    refs = next((g for g in payload["groups"] if g["key"] == "rare:reference"), None)
-    assert refs is not None, "fixture has reference-type notes"
-    assert refs["item_layout"] == "stacked"
-    for item in refs["items"]:
-        assert item["id"].endswith(".md")
-        assert item["title"] == ""              # title row dropped
-        # Subtitle is either parent dir ("tests/") or empty (at docs root).
-        assert item["subtitle"] == "" or item["subtitle"].endswith("/")
-        assert item["type"] == "reference"
-    # Fixture has README.md at docs-root and tests/ACCEPTANCE_TESTS.md.
-    by_id = {i["id"]: i for i in refs["items"]}
-    assert by_id["README.md"]["subtitle"] == ""
-    assert by_id["ACCEPTANCE_TESTS.md"]["subtitle"] == "tests/"
+    docs_tree = next((g for g in payload["groups"] if g["key"] == "docs-tree"), None)
+    assert docs_tree is not None
+    # Fixture's README.md (docs-root) is reference-typed.
+    titles_root = {i["title"] for i in docs_tree["items"]}
+    assert "README.md" in titles_root
+    readme = next(i for i in docs_tree["items"] if i["title"] == "README.md")
+    assert readme["type"] == "reference"
+    assert readme["id"] == ""
+    assert readme["status"] is None
+    assert readme["subtitle"] == ""
+    # tests/ACCEPTANCE_TESTS.md (reference) shows under the tests/ subgroup.
+    tests_sub = next(
+        (sg for sg in docs_tree.get("subgroups", []) if sg["label"] == "tests/"),
+        None,
+    )
+    assert tests_sub is not None, "tests/ subgroup should appear once references are inlined"
+    sub_titles = {i["title"] for i in tests_sub["items"]}
+    assert "ACCEPTANCE_TESTS.md" in sub_titles
+    acceptance = next(i for i in tests_sub["items"] if i["title"] == "ACCEPTANCE_TESTS.md")
+    assert acceptance["type"] == "reference"
 
 
 def test_nav_payload_library_typed_rare_keeps_id_and_title(

@@ -129,9 +129,13 @@ DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
 )
 # Note types that get their own group under "By type — rare" in Library mode.
 # Anything covered by a primary nav mode (feature, task, issue) is excluded.
+# Reference is NOT in this list — references render inline in the Docs tree
+# alongside untyped Markdown (TASK-0036), using the book-open type icon.
 LIBRARY_RARE_TYPES: tuple[str, ...] = (
-    "adr", "release", "risk", "test", "workflow", "plan", "reference",
+    "adr", "release", "risk", "test", "workflow", "plan",
 )
+# Types that join the untyped Markdown tree in Library mode's Docs-tree group.
+DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference",)
 
 # Hard cap on items returned by the recent mode. Anything older falls off.
 _RECENT_LIMIT = 60
@@ -518,6 +522,7 @@ def _library_groups(
         label="Docs tree",
         excluded_roots=DOC_TREE_EXCLUDED_ROOTS,
         untyped_only=True,
+        extra_types=DOC_TREE_INLINE_TYPES,
         extra_root_items=_project_root_tree_items(project_root),
     )
     if docs_tree is not None:
@@ -525,11 +530,10 @@ def _library_groups(
 
     # ----- By type — rare (stacked layout, no type label) -----
     # Typed-structured types (decisions, releases, risks, tests, workflows,
-    # plans) keep the original ``id + human title`` shape — these notes have
-    # meaningful frontmatter titles and IDs, and live in well-known
-    # subdirs so a path subtitle adds no signal. References are different:
-    # they're loose docs that often lack a useful ID, so the filename takes
-    # the ID slot.
+    # plans) keep the standard ``id + human title`` shape — these notes have
+    # meaningful frontmatter titles and IDs, and live in well-known subdirs
+    # so a path subtitle adds no signal. Reference-typed notes do not appear
+    # here — they merge into the Docs tree above via DOC_TREE_INLINE_TYPES.
     for type_name in LIBRARY_RARE_TYPES:
         records = [
             r for r in index.notes_by_type(type_name)
@@ -538,7 +542,6 @@ def _library_groups(
         if not records:
             continue
         records.sort(key=lambda r: (r.note_id or "", r.rel_path))
-        item_fn = _reference_item if type_name == "reference" else _rare_item
         out.append(
             {
                 "key": f"rare:{type_name}",
@@ -546,7 +549,7 @@ def _library_groups(
                 "url": None,
                 "status": None,
                 "item_layout": "stacked",
-                "items": [item_fn(index, r) for r in records],
+                "items": [_rare_item(index, r) for r in records],
             }
         )
 
@@ -587,6 +590,7 @@ def _markdown_tree_group(
     root_prefix: str = "",
     excluded_roots: tuple[str, ...] = (),
     untyped_only: bool = False,
+    extra_types: tuple[str, ...] = (),
     extra_root_items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Build a recursive directory tree for indexed Markdown notes.
@@ -595,6 +599,10 @@ def _markdown_tree_group(
     alongside the indexed entries by the standard tree sort). Used to
     surface project-root files (README, ROADMAP, SECURITY) inside the
     Docs tree rather than as a sibling group.
+
+    ``extra_types`` widens the ``untyped_only`` filter so notes of these
+    types are also included (used to inline reference-typed notes into
+    the Docs tree — TASK-0036).
     """
     prefix = root_prefix.strip("/")
     root: dict[str, Any] = {
@@ -607,6 +615,7 @@ def _markdown_tree_group(
         "subgroups": [],
     }
     nodes: dict[str, dict[str, Any]] = {"": root}
+    extra_types_set = set(extra_types)
 
     for path in index.paths():
         record = index.get(path)
@@ -614,9 +623,16 @@ def _markdown_tree_group(
             continue
         if not _platform_match(record, platform):
             continue
-        if untyped_only and record.note_type is not None:
+        is_extra_type = record.note_type in extra_types_set if extra_types_set else False
+        if untyped_only and record.note_type is not None and not is_extra_type:
             continue
-        if _exclude_from_docs_tree(record.rel_path, excluded_roots=excluded_roots):
+        # __templates__/ etc. are always excluded — even inline-type
+        # references shouldn't surface from there. Canonical subdirs
+        # (decisions/, tests/, ...) are bypassed for inline-type notes
+        # so a reference living inside one of them still shows.
+        if _excluded_by_prefix(record.rel_path):
+            continue
+        if not is_extra_type and _excluded_by_root(record.rel_path, excluded_roots):
             continue
         if prefix:
             if record.rel_path == prefix:
@@ -665,8 +681,17 @@ def _exclude_from_docs_tree(
     *,
     excluded_roots: tuple[str, ...] = (),
 ) -> bool:
-    if any(rel_path.startswith(prefix) for prefix in DOC_TREE_EXCLUDED_PREFIXES):
-        return True
+    return _excluded_by_prefix(rel_path) or _excluded_by_root(rel_path, excluded_roots)
+
+
+def _excluded_by_prefix(rel_path: str) -> bool:
+    """Always-excluded prefixes (templates, etc.) regardless of note type."""
+    return any(rel_path.startswith(prefix) for prefix in DOC_TREE_EXCLUDED_PREFIXES)
+
+
+def _excluded_by_root(rel_path: str, excluded_roots: tuple[str, ...]) -> bool:
+    """Type-canonical root dirs (decisions/, risks/, …) — bypassed for
+    inline-type notes so a reference living inside one still surfaces."""
     root = rel_path.split("/", 1)[0]
     return root in excluded_roots
 

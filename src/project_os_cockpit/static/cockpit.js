@@ -765,8 +765,11 @@
   }
 
   // Compact layout: filename only, single line, tight padding.
-  // Used by Project mode's docs/reference directory trees.
+  // Used by Project mode's Docs tree. Typed entries (references) render
+  // their type icon instead of the default file mask; untyped entries
+  // keep the generic file icon (CSS ::before).
   function navItemCompact(item) {
+    var iconNode = item.type ? typeIcon(item.type, 12) : null;
     var titleSpan = el("span", {
       class: "nav-title-compact",
       text: item.title || "",
@@ -774,9 +777,10 @@
     });
     var card = el("a", {
       class: "nav-item nav-item-compact"
+        + (item.type ? " has-type-icon" : "")
         + (item.url === active.url ? " is-active" : ""),
       href: item.url,
-    }, [titleSpan]);
+    }, [iconNode, titleSpan]);
     return el("li", null, [card]);
   }
 
