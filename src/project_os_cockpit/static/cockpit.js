@@ -1233,21 +1233,39 @@
 
   // ------------------------------------------------------------------ navigation
 
+  // Intercept any same-origin link that renders inside the cockpit shell
+  // so we do an in-pane swap (preserves the terminal session, side-pane
+  // scroll positions, etc.) instead of a full page reload. The explicit
+  // deny-list keeps URLs that should NOT route through navigateTo:
+  // static assets, the terminal proxy, the SSE channel, the cockpit JSON
+  // API, the favicon. Everything else (/, /docs/*, /README.md, /index/*,
+  // ...) gets in-pane treatment; navigateTo falls back to a full
+  // navigation if a target's response doesn't contain #cockpit-centre.
   function isInternalNoteLink(href) {
     if (!href) return false;
-    if (href.indexOf("#") === 0) return false;
-    var pathOnly = href.split(/[?#]/)[0];
-    if (!/\.md$/i.test(pathOnly)) return false;
-    if (/^\/docs\//.test(pathOnly)) return true;
-    return /^\/(README|ROADMAP|SECURITY)\.md$/.test(pathOnly);
+    if (href.charAt(0) === "#") return false;       // fragment-only, no nav
+    var url;
+    try { url = new URL(href, document.location.href); }
+    catch (e) { return false; }
+    if (url.origin !== document.location.origin) return false;
+    var path = url.pathname;
+    if (path.indexOf("/_static/") === 0) return false;
+    if (path === "/_terminal" || path.indexOf("/_terminal/") === 0) return false;
+    if (path === "/_events") return false;
+    if (path.indexOf("/api/") === 0) return false;
+    if (path === "/favicon.ico") return false;
+    return true;
   }
 
   function setActiveFromUrl(url) {
     var u = new URL(url, document.location.origin);
     active.url = u.pathname;
+    // active.path should only be set for URLs that map to a real note —
+    // not for the landing page, type indexes, etc. (which intercept via
+    // isInternalNoteLink purely so we keep the cockpit shell mounted).
     if (/^\/docs\//.test(u.pathname)) {
       active.path = u.pathname.replace(/^\/docs\//, "");
-    } else if (isInternalNoteLink(u.pathname)) {
+    } else if (/^\/(README|ROADMAP|SECURITY)\.md$/i.test(u.pathname)) {
       active.path = u.pathname.replace(/^\//, "");
     } else {
       active.path = "";
