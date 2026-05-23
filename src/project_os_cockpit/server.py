@@ -15,10 +15,14 @@ shell (FEAT-0006) layer on top of this in later tasks.
 from __future__ import annotations
 
 import atexit
+import collections
+import datetime as _dt
 import json
 import logging
 import mimetypes
 import queue
+import threading
+import time
 import urllib.parse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -51,6 +55,99 @@ INDEX_TYPE_PLURALS: dict[str, str] = {
 log = logging.getLogger("project_os_cockpit.server")
 
 STATIC_DIR: Path = Path(__file__).resolve().parent / "static"
+
+# Tabs whose last_seen heartbeat is older than this are pruned from the
+# state snapshot. The cockpit JS sends a heartbeat every 15 s
+# (TASK-0055); 45 s allows two missed pings before we declare the tab
+# gone.
+_TAB_STALE_SECONDS: int = 45
+_HISTORY_MAX: int = 50
+
+
+def _utc_now_iso() -> str:
+    return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="milliseconds")
+
+
+def _parse_iso(ts: str) -> float:
+    try:
+        return _dt.datetime.fromisoformat(ts).timestamp()
+    except (ValueError, TypeError):
+        return 0.0
+
+
+class CockpitState:
+    """In-memory snapshot of cockpit activity for the bi-directional
+    awareness API (TASK-0053).
+
+    Tracks three things:
+
+    * ``agent_focus`` — the most recent ``cockpit focus`` call.
+    * ``tabs`` — currently-alive cockpit tabs, keyed by client-generated
+      ``tab_id``, each carrying ``url``, ``following``, ``last_seen``.
+    * ``history`` — a bounded deque of recent navigation events from
+      both the agent (``cockpit focus``) and the user (manual nav in a
+      tab), newest first.
+
+    All mutation goes through a lock — the HTTP server is multi-threaded
+    and the SSE thread, the focus POST handler, and the tab-state POST
+    handler can all touch this concurrently.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._agent_focus: dict[str, Any] | None = None
+        self._tabs: dict[str, dict[str, Any]] = {}
+        self._history: collections.deque[dict[str, Any]] = collections.deque(
+            maxlen=_HISTORY_MAX
+        )
+
+    def record_agent_focus(self, target: str, url: str) -> None:
+        ts = _utc_now_iso()
+        with self._lock:
+            self._agent_focus = {"target": target, "url": url, "ts": ts}
+            self._history.appendleft(
+                {"url": url, "ts": ts, "source": "agent", "target": target}
+            )
+
+    def update_tab(
+        self, tab_id: str, url: str, following: bool
+    ) -> None:
+        ts = _utc_now_iso()
+        with self._lock:
+            prev = self._tabs.get(tab_id)
+            self._tabs[tab_id] = {
+                "url": url,
+                "following": bool(following),
+                "last_seen": ts,
+            }
+            # Only record into history when the URL actually changed —
+            # heartbeats don't create history noise.
+            if not prev or prev.get("url") != url:
+                self._history.appendleft(
+                    {"url": url, "ts": ts, "source": "user", "tab_id": tab_id}
+                )
+
+    def snapshot(self) -> dict[str, Any]:
+        now = time.time()
+        with self._lock:
+            alive = {
+                tid: info
+                for tid, info in self._tabs.items()
+                if now - _parse_iso(info["last_seen"]) <= _TAB_STALE_SECONDS
+            }
+            self._tabs = alive
+            user_view: dict[str, Any] | None = None
+            for info in alive.values():
+                if user_view is None or info["last_seen"] > user_view["ts"]:
+                    user_view = {"url": info["url"], "ts": info["last_seen"]}
+            return {
+                "agent_focus": self._agent_focus,
+                "user_view": user_view,
+                "tabs": [
+                    {"tab_id": tid, **info} for tid, info in alive.items()
+                ],
+                "history": list(self._history),
+            }
 
 # Hidden from directory listings — VCS / editor / OS metadata.
 HIDDEN_NAME_PREFIXES: tuple[str, ...] = (".",)
@@ -92,6 +189,7 @@ class DocsServer:
         # the cockpit JS re-fetch (TASK-0011) attach later.
         self.index.subscribe_to(self.bus)
         self.watcher: Watcher = Watcher(self.docs_root, self.bus)
+        self.cockpit_state: CockpitState = CockpitState()
         # Header home-link label = repo name (parent of docs/), so users
         # always see which project they're browsing.
         templates.set_project_name(
@@ -112,6 +210,7 @@ class DocsServer:
         handler_cls = _make_handler(
             self.docs_root, self.index, self.bus,
             cockpit_url=self._cockpit_url(),
+            cockpit_state=self.cockpit_state,
         )
         self.watcher.start()
         # Write the discovery file so the `cockpit` CLI (from any
@@ -145,9 +244,11 @@ class DocsServer:
 def _make_handler(
     docs_root: Path, index: Index, bus: EventBus,
     *, cockpit_url: str = "",
+    cockpit_state: CockpitState | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     project_root = docs_root.parent.resolve()
+    state = cockpit_state or CockpitState()
     # Lazy-instantiated; ttyd doesn't actually spawn until the first
     # /api/terminal request (the JS client only fetches when the user
     # opens the bottom panel). cockpit_url is propagated into the
@@ -183,7 +284,30 @@ def _make_handler(
             if path == "/api/cockpit/focus":
                 self._serve_cockpit_focus()
                 return
+            if path == "/api/cockpit/tab-state":
+                self._serve_cockpit_tab_state()
+                return
+            # Unknown POST. Drain the request body before responding so
+            # HTTP/1.1 keep-alive framing stays intact: an undrained body
+            # bleeds into the next request line on the same TCP socket,
+            # which the server then parses as a bogus method (the
+            # symptom: ``501 Unsupported method`` for innocent
+            # subsequent GETs of CSS/JS/favicon).
+            self._drain_request_body()
             self._respond_status(HTTPStatus.NOT_FOUND)
+
+        def _drain_request_body(self) -> None:
+            """Read and discard ``Content-Length`` bytes from the socket."""
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                return
+            if length <= 0:
+                return
+            try:
+                self.rfile.read(length)
+            except (OSError, ValueError):
+                pass
 
         def _route(self) -> None:
             parsed = urllib.parse.urlsplit(self.path)
@@ -207,6 +331,10 @@ def _make_handler(
 
             if path == "/api/cockpit/context":
                 self._serve_cockpit_context(parsed.query)
+                return
+
+            if path == "/api/cockpit/state":
+                self._serve_cockpit_state()
                 return
 
             if path == "/api/terminal":
@@ -351,8 +479,50 @@ def _make_handler(
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
+            state.record_agent_focus(target, url)
             bus.publish(ControlEvent("cockpit:focus", {"url": url, "target": target}))
             self._respond_json({"ok": True, "url": url})
+
+        def _serve_cockpit_tab_state(self) -> None:
+            """``POST /api/cockpit/tab-state`` — per-tab heartbeat (TASK-0053).
+
+            Body: ``{"tab_id": "<uuid>", "url": "/docs/...", "following": true}``.
+            Updates the in-memory tabs table; the snapshot
+            (``GET /api/cockpit/state``) prunes tabs that haven't
+            pinged in ``_TAB_STALE_SECONDS``.
+            """
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length) if length else b""
+            try:
+                body = json.loads(raw.decode("utf-8")) if raw else {}
+            except (ValueError, UnicodeDecodeError):
+                self._respond_json({"ok": False, "error": "invalid JSON"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            tab_id = (body.get("tab_id") or "").strip()
+            url = (body.get("url") or "").strip()
+            following = bool(body.get("following", True))
+            if not tab_id or not url:
+                self._respond_json(
+                    {"ok": False, "error": "missing 'tab_id' or 'url'"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            state.update_tab(tab_id, url, following)
+            self._respond_json({"ok": True})
+
+        def _serve_cockpit_state(self) -> None:
+            """``GET /api/cockpit/state`` — read-only snapshot (TASK-0053).
+
+            Returns ``{agent_focus, user_view, tabs, history}``. The
+            agent uses this to know where the user is currently
+            looking before / after work, complementing the
+            agent-drives-cockpit direction.
+            """
+            self._respond_json(state.snapshot())
 
         def _proxy_terminal(self, path: str) -> None:
             """Reverse-proxy a request to ttyd (TASK-0047).

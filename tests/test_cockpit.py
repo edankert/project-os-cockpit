@@ -130,6 +130,43 @@ def test_nav_payload_features_orphan_requirements_group(
     assert "REQ-0001" not in ids  # REQ-0001 specifies FEAT-0001, not an orphan
 
 
+def test_nav_payload_features_attaches_via_implements(
+    docs_root: Path,
+) -> None:
+    """REQs that use ``implements:`` (the requirement-template field)
+    instead of ``specifies:`` must still be recognised as attached.
+    Regression for the silent orphaning that happened after every REQ
+    was given an ``implements: ["[[FEAT-####]]"]`` link — the cockpit
+    only read ``specifies`` + ``scope`` and threw them all into the
+    Unattached group.
+    """
+    (docs_root / "REQ-9001-Via-Implements.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-9001\ntitle: "Via implements"\n'
+        'status: approved\nimplements: ["[[FEAT-0001]]"]\n---\n# x\n',
+        encoding="utf-8",
+    )
+    (docs_root / "REQ-9002-Via-Scope.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-9002\ntitle: "Via scope"\n'
+        'status: approved\nscope: "FEAT-0001"\n---\n# x\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="features")
+    feat1 = next(
+        i for g in payload["groups"]
+        for i in g["items"] if i["id"] == "FEAT-0001"
+    )
+    child_ids = {c["id"] for c in feat1.get("children", [])}
+    assert "REQ-9001" in child_ids, "implements: should attach the REQ"
+    assert "REQ-9002" in child_ids, "scope: should attach the REQ"
+    orphans = next(
+        (g for g in payload["groups"] if g["key"] == "unattached-reqs"), None
+    )
+    orphan_ids = {i["id"] for i in (orphans["items"] if orphans else [])}
+    assert "REQ-9001" not in orphan_ids
+    assert "REQ-9002" not in orphan_ids
+
+
 # ---- nav payload (mode = tasks) ----------------------------------------
 
 

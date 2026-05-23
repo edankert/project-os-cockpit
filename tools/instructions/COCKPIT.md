@@ -37,6 +37,31 @@ target.
 Output is one line: `cockpit -> <resolved-url>`. Non-zero exit on
 failure (unresolved target, no cockpit running, server error).
 
+### `cockpit state` and `cockpit history`
+
+Read where the user is currently looking. `cockpit state` prints a
+compact summary; add `--json` for machine-parseable output. `cockpit
+history` shows recent navigation events (default 10, `--limit N` to
+override), interleaving your own `cockpit focus` calls (`source:
+agent`) with the user's manual nav (`source: user`).
+
+These are read-only — no side effects on the cockpit. Use them to
+align with the user's context, not to broadcast anything.
+
+Example `state` output:
+
+```
+agent focus : TASK-0053  (/docs/.../TASK-0053-Cockpit-State-Endpoint.md)  @ 2026-05-23T10:45:10+00:00
+user view   : /docs/features/cockpit/FEAT-0006-Cockpit-Layout.md         @ 2026-05-23T10:46:02+00:00
+tabs        : 2 live
+  - 7a3f1c9a  follow  /docs/.../FEAT-0006-Cockpit-Layout.md  @ 2026-05-23T10:46:02+00:00
+  - 9b8d2e44  manual  /docs/changes/CHG-...md                 @ 2026-05-23T10:45:30+00:00
+history     : 14 events (showing 5)
+  - agent  /docs/.../TASK-0053-Cockpit-State-Endpoint.md  [TASK-0053]
+  - user   /docs/features/cockpit/FEAT-0006-Cockpit-Layout.md
+  ...
+```
+
 ## When to focus
 
 Focus on **context changes**, not file accesses:
@@ -68,6 +93,38 @@ hint.
 
 A single `cockpit focus` call drives every tab connected to the same
 server (laptop + iPad + …). Useful for pair-programming and demos.
+
+## Reading the user's view
+
+`cockpit focus` is one half of the loop; `cockpit state` is the other.
+The agent both drives and reads the cockpit, so you can stay aligned
+with the user instead of working in the dark.
+
+**When to read state:**
+
+- ✅ Before significant work — `cockpit state`, then decide:
+  - User is on the same item you're about to work on → no orientation
+    needed; just proceed.
+  - User is on a related item (same feature, parent / child) → mention
+    it ("you're on FEAT-0006; I'll work on its TASK-0030").
+  - User is on something unrelated → describe what you're about to do in
+    text rather than silently jumping their view.
+- ✅ After a long-running step — re-check; they may have moved on while
+  you were running tests or building.
+- ✅ When the user says "what about this?" or "look at that" without a
+  noun — `cockpit state` resolves the ambiguity (their current view is
+  almost always the referent).
+- ❌ Don't poll. Once per meaningful checkpoint is plenty.
+- ❌ Don't read state mid-batch (e.g., inside a multi-file edit loop).
+
+**Respect Following=OFF.** If a tab is in Manual mode the user has
+explicitly opted out of your focus calls. You can still report state
+in text ("I worked on TASK-0030; you've been on FEAT-0006") but don't
+push them around.
+
+**Don't over-react to user nav.** Seeing the user move to another note
+isn't a request to abandon your work. It's context. Continue unless
+the move + a verbal signal together indicate a redirect.
 
 ## Multi-project
 

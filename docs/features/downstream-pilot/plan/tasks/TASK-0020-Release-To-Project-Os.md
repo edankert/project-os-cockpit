@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0020
 aliases: ["TASK-0020"]
 title: "Release the cockpit to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
-status: doing
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0005]]", "[[REQ-0017]]"]
 fixes: []
@@ -29,14 +29,14 @@ tests: []
 - [x] `~/Dev/repos/project-os/tools/cockpit/run.sh` is a ~30-line bash wrapper that ensures a venv exists, `pip install -e .`'s the synced source, then `exec python -m project_os_cockpit "$@"`.
 - [x] LIFECYCLE.md (this repo's `tools/instructions/LIFECYCLE.md`) carries a close-out rule: when a CHG touches `src/project_os_cockpit/` or `pyproject.toml`, the agent runs the sync and commits the result.
 - [x] `tests/test_release.py` verifies the sync against a temp dir: dirty-tree refusal (PASS) + happy-path file set / stamps + asserts `tests/` is absent from the destination (auto-skips when canonical is dirty; runs the assertions when clean — see below).
-- [ ] Initial sync run executed; project-os/tools/cockpit/ committed with the bootstrap copy. **(Pending: requires committing the canonical-side work first so the script's dirty-tree guard passes; see Notes.)**
+- [x] Initial sync run executed; project-os/tools/cockpit/ committed with the bootstrap copy. (Multiple subsequent syncs have landed; provenance stamps trace back to canonical commits.)
 
 ## Steps
 - [x] Write `tools/scripts/release-to-project-os.sh` (bash, ~80 lines including comments + guards).
 - [x] Write `~/Dev/repos/project-os/tools/cockpit/run.sh` (committed to project-os, not synced).
 - [x] Add the close-out rule to LIFECYCLE.md.
 - [x] Add `tests/test_release.py` exercising the script via `subprocess.run` against a temp dir target.
-- [ ] Run the initial sync; commit the result in project-os. **(See Notes.)**
+- [x] Run the initial sync; commit the result in project-os. (Multiple syncs have landed since 2026-05-08.)
 
 ## Notes
 - Sync is intentionally one-way. The script overwrites; it never reads from project-os back into the canonical repo.

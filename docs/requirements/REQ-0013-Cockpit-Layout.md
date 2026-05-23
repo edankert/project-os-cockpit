@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0013
 aliases: ["REQ-0013"]
 title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
-status: approved
+status: verified
+implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 amended: 2026-05-08
 source: []
 priority: high
@@ -86,3 +87,6 @@ See [[ADR-0004]] for the full architectural decision context.
 - Implements: [[FEAT-0006]]
 - Related: [[ADR-0004]], [[REQ-0014]]
 - Verified by: [[TST-0002]] (cockpit JSON API contract — nav modes, context payload, type grouping); manual browser smoke documented in [[TASK-0013]], [[TASK-0015]].
+
+## Verification
+- 2026-05-23: marked `verified` — 3-pane cockpit layout shipped (TASK-0013); JSON API contract covered by TST-0002.

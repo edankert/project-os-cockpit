@@ -3,15 +3,17 @@ type: "[[feature]]"
 id: FEAT-0003
 aliases: ["FEAT-0003"]
 title: "Embedded local-only terminal (Claude Code / Codex)"
-status: backlog
+status: in-progress
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 goal: "Run an AI coding assistant alongside the docs in a single browser window — terminal panel embedded next to the rendered note, locked to the local machine."
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]"]
+requirements: ["[[REQ-0005]]"]
+tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]"]
 ---
 
 # Embedded local-only terminal

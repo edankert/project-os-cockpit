@@ -7,14 +7,14 @@ status: done
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0001]]"]
 fixes: []
 effort: S
 due: ""
 depends: []
-blocks: ["[[TASK-0002]]", "[[TASK-0003]]"]
+blocks: ["[[TASK-0002]]", "[[TASK-0003]]", "[[TASK-0005]]"]
 related: []
 tests: []
 ---

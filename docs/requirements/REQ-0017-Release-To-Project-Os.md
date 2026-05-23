@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0017
 aliases: ["REQ-0017"]
 title: "Release the cockpit into project-os via one-way sync"
-status: approved
+status: verified
+implements: ["[[FEAT-0005]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 priority: medium
 scope: "FEAT-0005"
@@ -74,3 +75,6 @@ The provenance stamps mean any version drift is visible in two `cat` commands; t
 ## Traceability
 - Implements: [[FEAT-0005]] (downstream-pilot deployment)
 - Implemented by: [[TASK-0020]]
+
+## Verification
+- 2026-05-23: marked `verified` — Release-to-project-os mechanism shipped (TASK-0020 done); multiple syncs have landed.

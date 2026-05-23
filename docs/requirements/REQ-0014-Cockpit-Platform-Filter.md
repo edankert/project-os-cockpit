@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0014
 aliases: ["REQ-0014"]
 title: "Cockpit platform filter — auto-discovered, picker only when used"
-status: approved
+status: verified
+implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 priority: medium
 scope: "FEAT-0006"
@@ -78,3 +79,6 @@ The picker is data-driven (rather than a hardcoded "iOS / Android" pair) so the 
 - Related: [[REQ-0013]] (cockpit layout — header controls section)
 - Implemented by: [[TASK-0017]]
 - Verified by: [[TST-0002]] — test cases `test_nav_payload_surfaces_available_platforms`, `test_nav_payload_platform_ios_filters_tasks`, `test_nav_payload_platform_unknown_falls_back_to_all`, `test_context_payload_platform_filters_relationships`, `test_context_payload_platform_drops_other_platform`.
+
+## Verification
+- 2026-05-23: marked `verified` — Platform filter shipped (TASK-0017, CHG-20260508-Cockpit-Platform-Filter).

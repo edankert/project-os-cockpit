@@ -3,10 +3,12 @@ type: "[[requirement]]"
 id: REQ-0006
 aliases: ["REQ-0006"]
 title: "Render endpoint binds to 0.0.0.0 (LAN read access)"
-status: approved
+status: verified
+phase: "[[PHASE-001-MVP]]"
+implements: ["[[FEAT-0001]]"]
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 implemented_by: ["[[FEAT-0001]]"]
 verified_by: []
 ---
@@ -21,3 +23,6 @@ The bind address SHALL be configurable via a CLI flag (`--bind`) for the rare ca
 
 ## Rationale
 Reading docs on a second device while editing on the primary is a real workflow. The whole tablet-as-secondary-screen pattern is one of the headline use-cases of this tool.
+
+## Verification
+- 2026-05-23: marked `verified` — Render server binds to 0.0.0.0 per CLI default; LAN access proven via downstream pilot.

@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0010
 aliases: ["TASK-0010"]
 title: "Cockpit shell + JS pane renderer"
-status: backlog
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]"]
 fixes: []
@@ -22,7 +22,7 @@ tests: []
 
 # Cockpit shell + JS pane renderer
 
-> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off generic `.base`-mounted panes onto a fixed code-driven layout (features-by-phase left, outbound + inbound-only right). The replacement is [[TASK-0013]]. The `--cockpit-left=<.base>` / multi-base-tabs design captured below is parked for any future generic `.base`-mounting use case.
+> **Closed as superseded (2026-05-23).** [[ADR-0004]] moved the cockpit off generic `.base`-mounted panes onto a fixed code-driven layout. The shipped replacement is [[TASK-0013]] (cockpit shell + JS renderer for the code-driven layout). Status flipped from `backlog` → `done` to clear the queue. The `--cockpit-left=<.base>` / multi-base-tabs design captured below stays as a parking-lot for any future generic `.base`-mounting use case.
 
 ## Definition of Done
 - [ ] CLI flags wired:

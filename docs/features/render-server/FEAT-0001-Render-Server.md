@@ -7,11 +7,13 @@ status: done
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 goal: "Render any .md note from a project-os repo as a linked HTML page on request — no build step — with frontmatter as metadata and [[wikilinks]] resolved across the whole tree."
 release: ""
 related: ["[[FEAT-0002]]", "[[FEAT-0004]]"]
+requirements: ["[[REQ-0001]]", "[[REQ-0002]]", "[[REQ-0003]]", "[[REQ-0006]]", "[[REQ-0007]]", "[[REQ-0012]]"]
+tasks: ["[[TASK-0001]]", "[[TASK-0002]]", "[[TASK-0003]]", "[[TASK-0004]]"]
 ---
 
 # Markdown render server

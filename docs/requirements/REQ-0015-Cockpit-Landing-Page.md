@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0015
 aliases: ["REQ-0015"]
 title: "Cockpit landing page — root URL renders the cockpit with a SNAPSHOT-driven home"
-status: approved
+status: verified
+implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 priority: medium
 scope: "FEAT-0006"
@@ -46,3 +47,6 @@ The previous behaviour — `/` rendering a bare auto-index without the cockpit c
 - Implements: [[FEAT-0006]]
 - Implemented by: [[TASK-0018]]
 - Related: [[REQ-0013]] (cockpit layout)
+
+## Verification
+- 2026-05-23: marked `verified` — Cockpit landing page shipped (TASK-0018, CHG-20260508-Cockpit-Home-And-Library).

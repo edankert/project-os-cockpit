@@ -3,10 +3,12 @@ type: "[[requirement]]"
 id: REQ-0003
 aliases: ["REQ-0003"]
 title: "Surfaces YAML frontmatter as page metadata (status, owner, parent, etc.)"
-status: approved
+status: verified
+phase: "[[PHASE-001-MVP]]"
+implements: ["[[FEAT-0001]]"]
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 implemented_by: ["[[FEAT-0001]]"]
 verified_by: []
 ---
@@ -19,3 +21,6 @@ The metadata strip is the project-os reader's primary "what is this and where do
 
 ## Rationale
 Project-os notes carry critical context in frontmatter (status, parent, links). Hiding it because Markdown renderers default to ignoring frontmatter would lose the project-os value-add.
+
+## Verification
+- 2026-05-23: marked `verified` — FEAT-0001 done; frontmatter surfaced via render pipeline + cockpit metadata strip.

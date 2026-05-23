@@ -7,11 +7,13 @@ status: done
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 goal: "When any .md under the served docs/ tree changes, the corresponding browser pages soft-reload within a fraction of a second."
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0003]]"]
+requirements: ["[[REQ-0004]]"]
+tasks: ["[[TASK-0005]]", "[[TASK-0006]]"]
 ---
 
 # Live reload via SSE

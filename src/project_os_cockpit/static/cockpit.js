@@ -23,6 +23,8 @@
   var BOTTOM_COLLAPSED_KEY = "project-os-cockpit.cockpit.bottom-collapsed";
   var BOTTOM_HEIGHT_KEY    = "project-os-cockpit.cockpit.bottom-height";
   var FOLLOW_AGENT_KEY     = "project-os-cockpit.cockpit.follow-agent";
+  var TAB_ID_KEY           = "project-os-cockpit.cockpit.tab-id";
+  var TAB_HEARTBEAT_MS     = 15000;  // see _TAB_STALE_SECONDS (45s) on the server
 
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
@@ -106,6 +108,41 @@
     try { localStorage.setItem(FOLLOW_AGENT_KEY, v ? "1" : "0"); } catch (e) {}
   }
   var followAgent = loadFollowAgent();
+
+  // Per-tab identifier reported to /api/cockpit/tab-state so the server
+  // can surface "what is the user looking at" via /api/cockpit/state
+  // (TASK-0055). Persists in localStorage so a refresh keeps the same
+  // tab identity; new tabs naturally get a fresh ID because the new tab
+  // executes the script before localStorage is touched (we only fall
+  // back to a fresh one when nothing is stored).
+  function loadOrCreateTabId() {
+    try {
+      var existing = sessionStorage.getItem(TAB_ID_KEY);
+      if (existing) return existing;
+    } catch (e) {}
+    var fresh = (typeof crypto !== "undefined" && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : ("t-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10));
+    try { sessionStorage.setItem(TAB_ID_KEY, fresh); } catch (e) {}
+    return fresh;
+  }
+  var tabId = loadOrCreateTabId();
+
+  function postTabState() {
+    var payload = {
+      tab_id: tabId,
+      url: window.location.pathname + window.location.search,
+      following: followAgent,
+    };
+    try {
+      fetch("/api/cockpit/tab-state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(function () {});
+    } catch (e) {}
+  }
 
   function loadBottomCollapsed() {
     try {
@@ -737,6 +774,7 @@
       followAgent = !followAgent;
       saveFollowAgent(followAgent);
       render(btn);
+      postTabState();
     });
     slot.replaceChildren(btn);
   }
@@ -928,22 +966,30 @@
   // as a persisted-OPEN set (key "nav:item-children-open:<id>") so the
   // default is the inverse of the rest of the cockpit.
   function renderItemChildren(item) {
+    // Apply the Hide-completed filter to nested children too. Without
+    // this the filter only hits top-level group items (features /
+    // tasks / etc.), leaving verified / retired requirements visible
+    // under their feature card.
+    var visibleChildren = (item.children || []).filter(function (c) {
+      return !isHidden(c.status);
+    });
+    if (!visibleChildren.length) return null;
     var openedKey = "nav:item-children-open:" + (item.id || item.url || "");
     var startOpen = isCollapsed(openedKey);
     var details = el("details", {
       class: "nav-item-children",
       open: startOpen ? "" : null,
     });
-    var label = item.children.length === 1
+    var label = visibleChildren.length === 1
       ? "1 requirement"
-      : item.children.length + " requirements";
+      : visibleChildren.length + " requirements";
     var summary = el("summary", { class: "nav-item-children-toggle" }, [
       el("span", { class: "nav-children-chevron", "aria-hidden": "true" }),
       el("span", { text: label }),
     ]);
     details.appendChild(summary);
     var list = el("ul", { class: "nav-item-children-list" });
-    item.children.forEach(function (child) {
+    visibleChildren.forEach(function (child) {
       list.appendChild(navItemNested(child));
     });
     details.appendChild(list);
@@ -1447,6 +1493,7 @@
         mountPinButton();
         applyMetaStripState();
         centreEl.scrollTop = 0;
+        postTabState();
         return loadRightPane();
       })
       .catch(function (err) {
@@ -1487,6 +1534,13 @@
   applyLeftPaneState();
   applyRightPaneState();
   applyMetaStripState();
+
+  // Tell the server we're here, then ping on a 15s cadence so
+  // /api/cockpit/state can show this tab in its live-tabs list. The
+  // server prunes anything that hasn't pinged in 45s (TASK-0053).
+  postTabState();
+  setInterval(postTabState, TAB_HEARTBEAT_MS);
+  window.addEventListener("pagehide", postTabState);
   loadLeftPane().then(highlightActiveInLeftPane);
   loadRightPane();
 })();

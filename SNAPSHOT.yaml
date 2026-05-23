@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-22T19:00Z"
+updated: "2026-05-23T11:30Z"
 
 template:
   replace_me: false
@@ -28,7 +28,7 @@ docs_system:
 counters:
   ADR: 4
   CHG:
-    last_date: 20260522
+    last_date: 20260523
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 6
   ISS: 0
@@ -36,12 +36,12 @@ counters:
   REQ: 17
   RISK: 3
   REL: 0
-  TASK: 47
-  TST: 2
+  TASK: 57
+  TST: 3
   WF: 0
 
 focus:
-  task: "TASK-0047"
+  task: "TASK-0057"
   feature: "FEAT-0006"
   phase: "[[PHASE-002-Project-OS-Adapter]]"
   issue: ""
@@ -114,7 +114,7 @@ items:
       parent: "FEAT-0006"
     TASK-0020:
       title: "Release the cockpit to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
-      status: doing
+      status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/downstream-pilot/plan/tasks/TASK-0020-Release-To-Project-Os.md"
       parent: "FEAT-0005"
@@ -280,65 +280,120 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0047-Reverse-Proxy-Ttyd.md"
       parent: "FEAT-0003"
+    TASK-0048:
+      title: "Cockpit: agent-drives-cockpit — POST /api/cockpit/focus + SSE fan-out"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      parent: "FEAT-0006"
+    TASK-0049:
+      title: "Cockpit: `cockpit` CLI helper (focus subcommand)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      parent: "FEAT-0006"
+    TASK-0050:
+      title: "Cockpit: per-tab Following toggle (default ON, localStorage-persisted)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      parent: "FEAT-0006"
+    TASK-0051:
+      title: "Cockpit: discoverable URL via .cockpit/url + CLI walk-up + LLM directives"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      parent: "FEAT-0006"
+    TASK-0052:
+      title: "Cockpit: follow-mode auto-switches nav so the agent's focus is highlighted in the left nav"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      parent: "FEAT-0006"
+    TASK-0053:
+      title: "Cockpit: server-side state — agent_focus, per-tab state, history (GET /api/cockpit/state, POST /api/cockpit/tab-state)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0053-Cockpit-State-Endpoint.md"
+      parent: "FEAT-0006"
+    TASK-0054:
+      title: "Cockpit: `cockpit state` + `cockpit history` CLI subcommands"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0054-Cockpit-State-CLI.md"
+      parent: "FEAT-0006"
+    TASK-0055:
+      title: "Cockpit: JS tab-state pings (nav events + 15s heartbeat + tab_id in localStorage)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0055-Cockpit-Tab-State-Pings.md"
+      parent: "FEAT-0006"
+    TASK-0056:
+      title: "Cockpit: LLM directives for reading the user's view (COCKPIT.md + cockpit-driving SKILL)"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0056-Cockpit-Awareness-Directives.md"
+      parent: "FEAT-0006"
+    TASK-0057:
+      title: "Cockpit: drain unknown-POST body to prevent HTTP/1.1 keep-alive desync"
+      status: done
+      phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0057-Drain-Unknown-Post-Body.md"
+      parent: "FEAT-0006"
 
   issues: {}
 
   requirements:
     REQ-0001:
       title: "Renders any .md under target docs/ as HTML on request — no build step"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0001-On-The-Fly-Rendering.md"
     REQ-0002:
       title: "Resolves Obsidian-style [[wikilinks]] including project-os IDs"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0002-Wikilink-Resolution.md"
     REQ-0003:
       title: "Surfaces YAML frontmatter as page metadata (status, owner, parent, etc.)"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0003-Frontmatter-As-Metadata.md"
     REQ-0004:
       title: "Real-time soft reload when source .md changes"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0004-Live-Reload.md"
     REQ-0005:
       title: "Terminal endpoint binds to 127.0.0.1 only"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0005-Terminal-Local-Only.md"
     REQ-0006:
       title: "Render endpoint binds to 0.0.0.0 (LAN read access)"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0006-Render-Lan-Access.md"
     REQ-0007:
       title: "Auto-generated index pages by status / parent / type"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0007-Auto-Index.md"
     REQ-0008:
       title: "Backlinks panel showing notes that link to the current page"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0008-Backlinks-Panel.md"
     REQ-0012:
       title: "Muted greyscale palette, semantic-only color, dual light/dark themes"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0012-Visual-Style.md"
     REQ-0013:
       title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0013-Cockpit-Layout.md"
     REQ-0014:
       title: "Cockpit platform filter — auto-discovered, picker only when used"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0014-Cockpit-Platform-Filter.md"
     REQ-0015:
       title: "Cockpit landing page — root URL renders the cockpit with a SNAPSHOT-driven home"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0015-Cockpit-Landing-Page.md"
     REQ-0016:
       title: "Cockpit Library mode + pin button (curated + auto-discovered + rare types)"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0016-Cockpit-Library-And-Pinning.md"
     REQ-0017:
       title: "Release the cockpit into project-os via one-way sync"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
@@ -358,6 +413,11 @@ items:
       title: "Embedded terminal"
       status: backlog
       path: "docs/phases/PHASE-004-Embedded-Terminal.md"
+    PHASE-999:
+      title: "Future / Unphased"
+      status: planned
+      path: "docs/phases/PHASE-999-Future.md"
+      # Sentinel parking-lot — does NOT advance the PHASE counter above.
 
   risks:
     RISK-0001:
@@ -384,6 +444,11 @@ items:
       status: passing
       path: "docs/tests/TST-0002-Cockpit-Json-Api.md"
       validates: ["REQ-0013"]
+    TST-0003:
+      title: "Unknown POST drains body — HTTP/1.1 keep-alive stays synced"
+      status: passing
+      path: "docs/features/cockpit/plan/tests/TST-0003-Unknown-Post-Drains-Body.md"
+      validates: ["TASK-0057", "FEAT-0006"]
   workflows: {}
   changes:
     CHG-20260507-Bootstrap-Python-Project:
@@ -572,6 +637,19 @@ items:
       path: "docs/changes/CHG-20260522-Cockpit-Reverse-Proxy-Ttyd.md"
       features: ["FEAT-0003"]
       source_task: "TASK-0047"
+    CHG-20260509-Cockpit-LLM-Drives-Cockpit:
+      title: "Cockpit: agent drives cockpit — focus endpoint, CLI, Following toggle, discoverable URL"
+      status: merged
+      path: "docs/changes/CHG-20260509-Cockpit-LLM-Drives-Cockpit.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0048"
+      note: "Back-filled 2026-05-23; original work shipped via commits 19746cc..3044dc0."
+    CHG-20260523-Cockpit-Bi-Directional-State:
+      title: "Cockpit: bi-directional awareness — agent can read what the user is looking at"
+      status: merged
+      path: "docs/changes/CHG-20260523-Cockpit-Bi-Directional-State.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0053"
   releases: {}
 
   decisions:
@@ -596,12 +674,12 @@ metrics:
   counts:
     features_total: 6
     features_done: 2
-    tasks_total: 47
-    tasks_done: 38
-    tests_total: 2
-    tests_passing: 2
-    test_cases_total: 41
-    test_cases_passing: 41
+    tasks_total: 57
+    tasks_done: 53
+    tests_total: 3
+    tests_passing: 3
+    test_cases_total: 76
+    test_cases_passing: 76
     tests_failing: 0
     issues_open: 0
     issues_triage: 0

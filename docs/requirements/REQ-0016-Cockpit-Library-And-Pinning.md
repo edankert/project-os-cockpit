@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0016
 aliases: ["REQ-0016"]
 title: "Cockpit Library mode + pin button (curated + auto-discovered + rare types)"
-status: approved
+status: verified
+implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 priority: medium
 scope: "FEAT-0006"
@@ -63,3 +64,6 @@ The naming-convention discovery rule is intentional: project-os IDs are `<TYPE>-
 - Implements: [[FEAT-0006]]
 - Implemented by: [[TASK-0019]]
 - Related: [[REQ-0013]] (cockpit layout — header controls section)
+
+## Verification
+- 2026-05-23: marked `verified` — Library mode + pin button shipped (TASK-0019, CHG-20260508-Cockpit-Home-And-Library).

@@ -13,10 +13,25 @@ for the always-on rules of the road.
 
 ## Pattern
 
-A typical task threads three focus calls — one on **start**, optional
-ones on **material progress**, one on **close-out**.
+A typical task threads four cockpit calls — **read state** at the top,
+**focus** on start, optional focus on **material progress**, **focus**
+on close-out.
 
-### Start
+### 0. Read state (optional, recommended)
+
+Before significant work, check where the user is:
+
+```bash
+cockpit state
+```
+
+If their `user view` matches the item you're about to work on, no
+orientation needed. If it doesn't, decide whether the difference is
+worth mentioning ("you're on FEAT-0006; I'll work on its TASK-0030").
+Skip this step for trivial tasks where it would be more noise than
+signal.
+
+### 1. Start
 
 After preflight (SNAPSHOT.yaml updated, item note created/updated):
 
@@ -27,7 +42,7 @@ cockpit focus <id>   # e.g. cockpit focus TASK-0030
 Brings the item the user can now watch you work on into the centre
 pane.
 
-### Material progress
+### 2. Material progress
 
 If you create a new artefact mid-task (a child task, a sample HTML
 preview, a draft ADR, etc.) and want the user to see it:
@@ -39,7 +54,7 @@ cockpit focus <new-id>
 Don't fire on every edit — only when the new artefact is a meaningful
 addition the user would want to look at.
 
-### Close-out
+### 3. Close-out
 
 After writing the CHG note and updating statuses:
 
@@ -74,3 +89,7 @@ ergonomics signal, not a hard dependency.
 
 Exit code 0 on success, non-zero on failure (unresolved, no cockpit
 found, server error). The output is a single line: `cockpit -> <url>`.
+
+`cockpit state` (and `cockpit history --limit N`) is read-only. Use it
+to align with the user's current view; don't poll. See
+[`COCKPIT.md`](../../instructions/COCKPIT.md#reading-the-users-view).

@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0008
 aliases: ["TASK-0008"]
 title: ".base parser + DSL evaluator"
-status: backlog
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]"]
 fixes: []
@@ -21,7 +21,7 @@ tests: []
 
 # .base parser + DSL evaluator
 
-> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit to a code-driven JSON layer; this task is no longer required for FEAT-0006. Kept in-tree at `status: backlog` because if a future "render any `.base` as a standalone HTML page" feature is scaffolded, ~70 % of the planned work below is still applicable. Re-activate by setting `status: next` and updating `implements` to point at the new feature.
+> **Closed as superseded (2026-05-23).** [[ADR-0004]] moved the cockpit to a code-driven JSON layer; this task is no longer required for FEAT-0006. Status flipped from `backlog` → `done` so it stops cluttering the active queue. The scoping below is preserved as scaffolding for a hypothetical future "render any `.base` as a standalone HTML page" feature — if that lands, re-open this work by creating a fresh `TASK-####` that links back here as `related`.
 
 ## Definition of Done
 - [ ] `docs_server.bases` module with: `parse(path) -> BaseDocument`, `evaluate(base, index, *, this=None) -> EvaluatedBase`.

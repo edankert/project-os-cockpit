@@ -7,11 +7,14 @@ status: in-progress
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 goal: "Render every note as a 3-pane cockpit page: features-by-phase navigator on the left, the rendered note in the centre, and the note's outbound + inbound-only relationships on the right."
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0004]]", "[[REQ-0012]]", "[[REQ-0013]]", "[[ADR-0004]]"]
+requirements: ["[[REQ-0008]]", "[[REQ-0009]]", "[[REQ-0010]]", "[[REQ-0011]]", "[[REQ-0013]]", "[[REQ-0014]]", "[[REQ-0015]]", "[[REQ-0016]]"]
+tests: ["[[TST-0003]]"]
+tasks: ["[[TASK-0007]]", "[[TASK-0008]]", "[[TASK-0009]]", "[[TASK-0010]]", "[[TASK-0011]]", "[[TASK-0012]]", "[[TASK-0013]]", "[[TASK-0014]]", "[[TASK-0015]]", "[[TASK-0016]]", "[[TASK-0017]]", "[[TASK-0018]]", "[[TASK-0019]]", "[[TASK-0021]]", "[[TASK-0022]]", "[[TASK-0023]]", "[[TASK-0024]]", "[[TASK-0025]]", "[[TASK-0026]]", "[[TASK-0027]]", "[[TASK-0028]]", "[[TASK-0029]]", "[[TASK-0030]]", "[[TASK-0031]]", "[[TASK-0032]]", "[[TASK-0033]]", "[[TASK-0034]]", "[[TASK-0035]]", "[[TASK-0036]]", "[[TASK-0037]]", "[[TASK-0038]]", "[[TASK-0039]]", "[[TASK-0040]]", "[[TASK-0041]]", "[[TASK-0042]]", "[[TASK-0046]]", "[[TASK-0048]]", "[[TASK-0049]]", "[[TASK-0050]]", "[[TASK-0051]]", "[[TASK-0052]]", "[[TASK-0053]]", "[[TASK-0054]]", "[[TASK-0055]]", "[[TASK-0056]]", "[[TASK-0057]]"]
 ---
 
 # 3-pane cockpit layout

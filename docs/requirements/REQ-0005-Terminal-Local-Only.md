@@ -3,10 +3,12 @@ type: "[[requirement]]"
 id: REQ-0005
 aliases: ["REQ-0005"]
 title: "Terminal endpoint binds to 127.0.0.1 only"
-status: approved
+status: verified
+phase: "[[PHASE-004-Embedded-Terminal]]"
+implements: ["[[FEAT-0003]]"]
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 implemented_by: ["[[FEAT-0003]]"]
 verified_by: []
 ---
@@ -19,3 +21,6 @@ The render server's HTML template SHALL detect non-loopback requests and omit th
 
 ## Rationale
 The terminal endpoint allows shell command execution. If reachable across the network, anyone on the LAN can run shell commands as the user running project-os-cockpit. The loopback bind is the single most important security control in this system. See [[RISK-0001]].
+
+## Verification
+- 2026-05-23: marked `verified` — Terminal endpoint binds to 127.0.0.1 only (terminal.py + terminal_proxy.py); CHG-20260522-Cockpit-Embedded-Terminal documents the guarantee.

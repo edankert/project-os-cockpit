@@ -7,14 +7,14 @@ status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0003]]", "[[REQ-0005]]"]
 fixes: []
 effort: M
 due: ""
 depends: ["[[TASK-0043]]"]
-blocks: []
+blocks: ["[[TASK-0047]]"]
 related: ["[[ADR-0002]]"]
 tests: []
 ---

@@ -49,8 +49,9 @@ When a prompt implies work (bugfix, feature, refactor, behavior change):
    - If conflicts are found, stop and present resolution options before implementation.
 6. Ensure note frontmatter is consistent with the snapshot (IDs/statuses/links) so Bases views reflect reality.
 7. **Cockpit focus** (when a cockpit server is running — `cockpit` CLI succeeds):
+   - Optional but recommended: run `cockpit state` first to align with where the user is looking.
    - After the snapshot + note(s) are saved, run `cockpit focus <new-id>` to bring the work into the user's view.
-   - See `COCKPIT.md` for the always-on directive (when to focus, when not to).
+   - See `COCKPIT.md` for the always-on directive (when to focus, when to read state, when not to).
    - If the CLI errors with "no running cockpit found", proceed without focus calls — the work matters more than the UI hint.
 
 If the prompt is purely a question/explanation (no work requested), you may skip preflight.

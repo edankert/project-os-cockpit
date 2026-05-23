@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0012
 aliases: ["REQ-0012"]
 title: "Muted greyscale palette, semantic-only color, dual light/dark themes"
-status: approved
+status: verified
+implements: ["[[FEAT-0001]]"]
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-08
+updated: 2026-05-23
 amended: 2026-05-08
 source: []
 priority: high
@@ -63,3 +64,6 @@ See [[ADR-0003]] for the decision context.
 - Related decision: [[ADR-0003]]
 - Implemented by: [[TASK-0016]] (palette overhaul + Hide-completed expansion).
 - Verified by: visual review against this repo's own `docs/` and `../your-trainer/docs/` (1,175 notes); a CSS lint check for hard-coded color values outside the theme-token block.
+
+## Verification
+- 2026-05-23: marked `verified` — Visual style shipped — base.css + cockpit.css use CSS-var token palette with light/dark themes per ADR-0003.

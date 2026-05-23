@@ -7,12 +7,14 @@ status: backlog
 phase: "[[PHASE-003-Downstream-Pilot]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source:
   - "../your-applications.com/tools/project-os-cockpit/"
 goal: "Validate the cross-repo invocation pattern by deploying project-os-cockpit in your-applications.com/tools/project-os-cockpit/ and using it to browse + author the manual content there."
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0003]]", "[[FEAT-0004]]"]
+requirements: ["[[REQ-0017]]"]
+tasks: ["[[TASK-0020]]"]
 ---
 
 # Downstream pilot deployment

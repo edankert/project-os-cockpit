@@ -350,18 +350,23 @@ def _features_groups(
 def _requirement_feature_ids(
     index: Index, record: NoteRecord
 ) -> set[str]:
-    """Resolve a requirement's `specifies` + `scope` links to canonical
-    feature IDs (FEAT-####). Anything that doesn't resolve to a feature
-    record is dropped silently — feeds into the orphan-group fallback.
+    """Resolve a requirement's parent-feature links to canonical feature
+    IDs (FEAT-####). Reads ``specifies`` / ``implements`` / ``scope`` —
+    the requirement template uses ``implements`` (REQ "implements" /
+    is-implemented-by FEAT), older notes use ``specifies``, and ``scope``
+    is a legacy single-feature pointer. Anything that doesn't resolve to
+    a feature record is dropped silently and feeds the orphan-group
+    fallback.
     """
     candidates: list[str] = []
-    raw = record.frontmatter.get("specifies")
-    if isinstance(raw, list):
-        for item in raw:
-            if isinstance(item, str):
-                candidates.append(_strip_wikilink(item))
-    elif isinstance(raw, str):
-        candidates.append(_strip_wikilink(raw))
+    for field in ("specifies", "implements"):
+        raw = record.frontmatter.get(field)
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, str):
+                    candidates.append(_strip_wikilink(item))
+        elif isinstance(raw, str):
+            candidates.append(_strip_wikilink(raw))
     scope = record.frontmatter.get("scope")
     if isinstance(scope, str):
         candidates.append(_strip_wikilink(scope))

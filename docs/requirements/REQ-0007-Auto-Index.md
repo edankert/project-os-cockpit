@@ -3,10 +3,12 @@ type: "[[requirement]]"
 id: REQ-0007
 aliases: ["REQ-0007"]
 title: "Auto-generated index pages by status / parent / type"
-status: approved
+status: verified
+phase: "[[PHASE-001-MVP]]"
+implements: ["[[FEAT-0001]]"]
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 implemented_by: ["[[FEAT-0001]]", "[[FEAT-0004]]"]
 verified_by: []
 ---
@@ -19,3 +21,6 @@ Each index page SHALL group items by status (active/doing first, backlog/triage 
 
 ## Rationale
 A user shouldn't need to walk the directory tree to find every feature, every open issue, every active risk. The index pages give the project-os taxonomy a first-class browsing path.
+
+## Verification
+- 2026-05-23: marked `verified` — Auto-index routes shipped (/index/<type>) via TASK-0004 / CHG-20260507-Auto-Index-Pages.

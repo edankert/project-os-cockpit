@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0011
 aliases: ["TASK-0011"]
 title: "Cockpit SSE-driven re-fetch"
-status: backlog
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]"]
 fixes: []
@@ -21,7 +21,7 @@ tests: []
 
 # Cockpit SSE-driven re-fetch
 
-> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off `.base`-driven panes; the SSE wiring for the new code-driven cockpit is [[TASK-0014]]. The frontmatter-vs-body-vs-base event-kind discrimination captured below is parked for the future `.base`-rendering use case.
+> **Closed as superseded (2026-05-23).** [[ADR-0004]] moved the cockpit off `.base`-driven panes; the SSE wiring for the new code-driven cockpit lives in [[TASK-0014]] (still `backlog` — the live cockpit currently uses the FEAT-0002 full-reload path, which is sufficient). Status flipped from `backlog` → `done` to clear the queue. The frontmatter-vs-body-vs-base event-kind discrimination captured below is parked for the future `.base`-rendering use case.
 
 ## Definition of Done
 - [ ] FEAT-0002's SSE channel emits a typed event payload: `{kind: "frontmatter" | "body" | "base", path: "..."}`. (Coordinate with FEAT-0002 — if the channel currently emits a simpler shape, this task extends it.)

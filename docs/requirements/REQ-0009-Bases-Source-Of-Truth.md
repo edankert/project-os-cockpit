@@ -4,10 +4,11 @@ id: REQ-0009
 aliases: ["REQ-0009"]
 title: ".base files are the source of truth for cockpit pane content"
 status: retired
+implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 priority: high
 scope: "FEAT-0006"

@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0009
 aliases: ["TASK-0009"]
 title: ".base JSON API endpoint"
-status: backlog
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]"]
 fixes: []
@@ -21,7 +21,7 @@ tests: []
 
 # .base JSON API endpoint
 
-> **Deferred (2026-05-08).** [[ADR-0004]] moved the cockpit off `.base` files; FEAT-0006's JSON layer is now `/api/cockpit/nav` and `/api/cockpit/context` (see [[TASK-0012]]). This task remains in-tree as future scaffolding for a hypothetical `.base`-rendering feature.
+> **Closed as superseded (2026-05-23).** [[ADR-0004]] moved the cockpit off `.base` files; FEAT-0006's JSON layer is `/api/cockpit/nav` and `/api/cockpit/context` (see [[TASK-0012]]). Status flipped from `backlog` → `done` to clear the queue. The scoping below stays as scaffolding for a future `.base`-rendering feature if one is ever pursued.
 
 ## Definition of Done
 - [ ] `GET /api/base?path=<rel-path-to-.base>&this=<note-id-or-path>` returns 200 with JSON.

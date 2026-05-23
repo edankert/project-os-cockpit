@@ -7,14 +7,14 @@ status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: ["[[CHG-20260508-Cockpit-Left-Modes-And-Palette]]"]
 implements: ["[[FEAT-0006]]", "[[REQ-0013]]"]
 fixes: []
 effort: M
 due: ""
 depends: ["[[TASK-0013]]"]
-blocks: []
+blocks: ["[[TASK-0017]]", "[[TASK-0019]]"]
 related: ["[[REQ-0013]]", "[[TST-0002]]"]
 tests: ["[[TST-0002]]"]
 ---

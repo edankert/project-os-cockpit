@@ -7,14 +7,14 @@ status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]", "[[REQ-0016]]"]
 fixes: []
 effort: S
 due: ""
 depends: ["[[TASK-0021]]"]
-blocks: []
+blocks: ["[[TASK-0037]]"]
 related: ["[[TASK-0025]]"]
 tests: ["[[TST-0002]]"]
 ---

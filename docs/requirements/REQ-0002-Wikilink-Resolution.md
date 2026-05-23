@@ -3,12 +3,15 @@ type: "[[requirement]]"
 id: REQ-0002
 aliases: ["REQ-0002"]
 title: "Resolves Obsidian-style [[wikilinks]] including project-os IDs"
-status: approved
+status: verified
+phase: "[[PHASE-001-MVP]]"
+implements: ["[[FEAT-0001]]"]
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-23
 implemented_by: ["[[FEAT-0001]]"]
 verified_by: []
+tests: ["[[TST-0001]]"]
 ---
 
 # REQ-0002 — Wikilink resolution
@@ -25,3 +28,6 @@ Targets that cannot be resolved SHALL render as a visually distinct "broken link
 
 ## Rationale
 Project-os notes link heavily via wikilinks. Without this, every internal reference reads as plain text.
+
+## Verification
+- 2026-05-23: marked `verified` — FEAT-0001 done; wikilink resolution shipped (TASK-0003) and covered by TST-0001.
