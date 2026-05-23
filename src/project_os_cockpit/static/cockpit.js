@@ -585,8 +585,15 @@
           body.replaceChildren(hint);
           return;
         }
+        // Cache-bust the iframe URL — Chrome aggressively memoises
+        // iframe responses even with Cache-Control: no-store, so a
+        // changed URL each mount is the reliable way to force a fresh
+        // fetch (which picks up CSS injection / proxy changes).
+        var bustedUrl = info.url
+          + (info.url.indexOf("?") === -1 ? "?" : "&")
+          + "_t=" + Date.now();
         var iframe = el("iframe", {
-          src: info.url,
+          src: bustedUrl,
           title: "Terminal",
           allow: "clipboard-read; clipboard-write",
         });

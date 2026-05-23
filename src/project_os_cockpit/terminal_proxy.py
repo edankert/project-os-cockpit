@@ -35,60 +35,30 @@ log = logging.getLogger(__name__)
 # RFC 6455 magic GUID used to compute the WebSocket accept value.
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-# Muted scrollbar CSS injected into ttyd's index HTML. The iframe
-# contains only the terminal, so we style *every* scrollbar inside it
-# with !important + appearance: none — that beats any OS-native styling
-# Chrome / Safari / Firefox might apply.
+# Best-effort CSS injection inside the iframe to hide the scrollbar.
+# Chrome aggressively memoises the iframe load even with
+# Cache-Control: no-store, so this often doesn't land on return visits.
+# The real defence is the iframe-overshoot trick in cockpit.css
+# (.cockpit-bottom-body { overflow: hidden } + iframe
+# width: calc(100% + 16px)). This block stays as belt-and-suspenders
+# for Firefox / fresh sessions where the injection does reach.
 _SCROLLBAR_CSS = b"""
 <style>
-html, body, .xterm, .xterm-viewport {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 0, 0, 1.0) transparent !important;
+html, body, .xterm, .xterm-viewport, * {
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
 }
 *::-webkit-scrollbar,
-*::-webkit-scrollbar:horizontal,
-*::-webkit-scrollbar:vertical {
-  width: 10px !important;
-  height: 10px !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  background-color: transparent !important;
-  background: transparent !important;
-}
 *::-webkit-scrollbar-track,
-*::-webkit-scrollbar-track-piece {
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  background-color: transparent !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: 0 !important;
-}
-*::-webkit-scrollbar-thumb {
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  background-color: rgba(255, 0, 0, 1.0) !important;
-  border: 2px solid transparent !important;
-  border-radius: 6px !important;
-  background-clip: padding-box !important;
-  min-height: 30px !important;
-  transition: background-color 120ms ease !important;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 255, 0, 1.0) !important;
-}
-*::-webkit-scrollbar-thumb:active {
-  background-color: rgba(0, 0, 255, 1.0) !important;
-}
-*::-webkit-scrollbar-corner {
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  background-color: transparent !important;
-}
+*::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-corner,
 *::-webkit-scrollbar-button {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
 }
 </style>
 """

@@ -230,9 +230,14 @@
   /* Tiny inner padding so the terminal's first line doesn't touch the
    * header divider — gives the iframe a small breathing room. */
   padding: 4px 0 0;
+  /* Clip the iframe overshoot (see iframe rule below) so the terminal's
+   * own scrollbar — which sits at the iframe's right edge — is hidden
+   * from view. xterm.js still reserves space for the scrollbar in its
+   * column-grid calculation, so no terminal text is lost. */
+  overflow: hidden;
 }
 .cockpit-bottom-body iframe {
-  width: 100%;
+  width: calc(100% + 16px);
   height: 100%;
   border: 0;
   display: block;
