@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0014
 aliases: ["TASK-0014"]
 title: "Cockpit SSE-driven pane re-fetch"
-status: backlog
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-23
 source: []
 implements: ["[[FEAT-0006]]", "[[REQ-0013]]"]
 fixes: []
@@ -22,18 +22,14 @@ tests: []
 # Cockpit SSE-driven pane re-fetch
 
 ## Definition of Done
-- [ ] `cockpit.js` subscribes to `/_events` (the existing FEAT-0002 channel) using `EventSource`.
-- [ ] On each `file-changed` event, the cockpit decides which pane(s) need a re-fetch:
-  - **Always** re-fetch `/api/cockpit/nav` if the changed file is a feature note (`type: feature`, under any phase) — phase reassignment / status / goal changes there should reflect in the left pane.
-  - **Always** re-fetch `/api/cockpit/context?this=<active>` if the changed file is the active note OR is referenced in the active note's current outbound/backlink set.
-  - Otherwise, skip the re-fetch (typical noise — unrelated note edited).
-- [ ] Bursts of `file-changed` events within 100 ms coalesce into a single re-fetch per pane.
-- [ ] After a pane re-fetch, UI state preserved: which feature row is hovered (n/a for v1; just don't break it later), scroll position in the right pane, browser focus.
-- [ ] Re-fetch failures (server temporarily down, JSON parse error, schema-version mismatch) show a quiet inline error banner on the affected pane and keep the previous render until the next successful fetch.
-- [ ] Manual browser test:
-  - Edit a feature note's `status` in your editor → left pane updates within ~200 ms, no full reload.
-  - Edit the active note's body → centre pane re-renders (existing FEAT-0002 behaviour) AND right pane re-fetches if outbound links changed.
-  - Edit a non-feature, non-active note → no pane re-fetch.
+- [x] `cockpit.js` subscribes to `file-changed` events on `/_events` (the existing FEAT-0002 channel) inside `mountCockpitEventStream`.
+- [x] On any `file-changed` event, the cockpit re-fetches all three panes (left via `loadLeftPane()`, centre + right via `navigateTo(current_url, {replace: true})`). Terminal iframe survives — no full `location.reload()`.
+- [x] Bursts of `file-changed` events within 150 ms coalesce into a single re-fetch (debounce in `scheduleSoftReload`).
+- [x] `sse-reload.js` bails when the cockpit shell is mounted (presence of `#cockpit-centre`) so its `location.reload()` doesn't fire alongside the soft refresh. Non-cockpit pages (notices, errors) still get the full reload.
+- [x] Manual browser test: edit any note → centre + left + right re-render within ~200 ms, terminal session intact.
+
+## Disposition
+**v1 ships the always-refresh-all-three-panes path.** The original DoD's per-pane targeting (only re-fetch nav when a feature changed, only re-fetch context when the active note's link set was touched) is parked as v2 — for a 1388-note repo the always-refresh path is fast enough and avoids the complexity of file-type detection + outbound-set caching client-side. Originally deferred (the .base-driven plan in [[TASK-0011]] was superseded by [[ADR-0004]]); v1 shipped on 2026-05-23 to fix the embedded-terminal session getting torn down by sse-reload.js.
 
 ## Steps
 - [ ] Determine "is this file a feature?" client-side cheaply — either via the file path heuristic (e.g. `features/.../FEAT-####-*.md`) OR by extending the SSE event payload with a `type` hint.

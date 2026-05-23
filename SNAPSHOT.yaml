@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-23T11:30Z"
+updated: "2026-05-23T12:30Z"
 
 template:
   replace_me: false
@@ -78,7 +78,7 @@ items:
       parent: "FEAT-0006"
     TASK-0014:
       title: "Cockpit SSE-driven pane re-fetch"
-      status: backlog
+      status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0014-Cockpit-Sse-Refetch.md"
       parent: "FEAT-0006"
@@ -650,6 +650,12 @@ items:
       path: "docs/changes/CHG-20260523-Cockpit-Bi-Directional-State.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0053"
+    CHG-20260523-Cockpit-Soft-Live-Reload:
+      title: "Cockpit: soft live-reload — file changes refresh panes without tearing down the terminal"
+      status: merged
+      path: "docs/changes/CHG-20260523-Cockpit-Soft-Live-Reload.md"
+      features: ["FEAT-0006"]
+      source_task: "TASK-0014"
   releases: {}
 
   decisions:
@@ -675,7 +681,7 @@ metrics:
     features_total: 6
     features_done: 2
     tasks_total: 57
-    tasks_done: 53
+    tasks_done: 54
     tests_total: 3
     tests_passing: 3
     test_cases_total: 76

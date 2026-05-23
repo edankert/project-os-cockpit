@@ -811,6 +811,25 @@
         scrollActiveIntoLeftPaneView();
       });
     });
+    // Soft live-reload (TASK-0014). Replaces sse-reload.js's full
+    // `location.reload()` for cockpit pages — refreshes the three panes
+    // in place so the embedded terminal session survives. Debounced so
+    // a save-burst from an editor collapses into a single refresh.
+    var softReloadTimer = null;
+    function scheduleSoftReload() {
+      if (softReloadTimer) clearTimeout(softReloadTimer);
+      softReloadTimer = setTimeout(function () {
+        softReloadTimer = null;
+        // Centre re-fetches the current URL; navigateTo also refreshes
+        // the right pane internally.
+        var here = window.location.pathname + window.location.search;
+        navigateTo(here, { replace: true });
+        // Left pane — clear cache so the fetch always goes out.
+        navCache = null;
+        loadLeftPane().then(highlightActiveInLeftPane);
+      }, 150);
+    }
+    es.addEventListener("file-changed", scheduleSoftReload);
     window.addEventListener("beforeunload", function () {
       try { es.close(); } catch (e) {}
     });
