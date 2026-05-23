@@ -755,9 +755,23 @@
       catch (e) { return; }
       var url = payload && payload.url;
       if (!url) return;
-      // Navigate to the agent-driven target via the same in-pane swap
-      // we use for ordinary link clicks — preserves the terminal session.
-      navigateTo(url);
+      // Auto-switch left-pane mode so the agent's focus is visible in
+      // the nav (TASK-0052) — otherwise the centre updates but the nav
+      // still shows whatever mode the user happened to be in, and the
+      // selected/highlighted item doesn't move.
+      var nextMode = inferNavModeForTarget(payload.target, url);
+      var navPromise = (nextMode && nextMode !== navMode)
+        ? switchNavMode(nextMode)
+        : Promise.resolve();
+      navigateTo(url).then(function () {
+        return navPromise;
+      }).then(function () {
+        // After both nav-mode-switch + navigateTo complete, re-highlight
+        // and ensure the active item is in view (might be far down a
+        // long list).
+        highlightActiveInLeftPane();
+        scrollActiveIntoLeftPaneView();
+      });
     });
     window.addEventListener("beforeunload", function () {
       try { es.close(); } catch (e) {}
@@ -817,21 +831,57 @@
         text: mode.label,
       });
       btn.addEventListener("click", function () {
-        if (mode.id === navMode) return;
-        navMode = mode.id;
-        saveMode(navMode);
-        navCache = null;
-        // Update the active-tab styling in place; loadLeftPane re-renders the pane only.
-        bar.querySelectorAll(".nav-mode-tab").forEach(function (b) {
-          var isActive = b.getAttribute("data-mode") === navMode;
-          b.classList.toggle("is-active", isActive);
-          b.setAttribute("aria-selected", isActive ? "true" : "false");
-        });
-        loadLeftPane().then(highlightActiveInLeftPane);
+        switchNavMode(mode.id);
       });
       bar.appendChild(btn);
     });
     slot.replaceChildren(bar);
+  }
+
+  function refreshModeTabsUI() {
+    var bar = document.querySelector(".nav-mode-bar");
+    if (!bar) return;
+    bar.querySelectorAll(".nav-mode-tab").forEach(function (b) {
+      var isActive = b.getAttribute("data-mode") === navMode;
+      b.classList.toggle("is-active", isActive);
+      b.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+
+  // Programmatic mode switch (used both by tab clicks and by the
+  // follow-agent auto-switch). Returns a Promise that resolves once
+  // the left pane has been re-rendered.
+  function switchNavMode(nextMode) {
+    if (nextMode === navMode) return Promise.resolve();
+    navMode = nextMode;
+    saveMode(navMode);
+    navCache = null;
+    refreshModeTabsUI();
+    return loadLeftPane().then(highlightActiveInLeftPane);
+  }
+
+  // Infer the most useful nav mode for a focus target so the agent's
+  // selection is visible + highlightable in the left pane. TASK-0052.
+  function inferNavModeForTarget(target, url) {
+    var probe = (target || "").trim().toUpperCase();
+    if (/^TASK-\d/.test(probe)) return "tasks";
+    if (/^ISS-\d/.test(probe))  return "issues";
+    if (/^FEAT-\d/.test(probe)) return "features";
+    // REQ / PHASE live inside the Features mode (nested under their feature).
+    if (/^(REQ|PHASE)-/.test(probe)) return "features";
+    // Library "rare" types: ADR, CHG, REL, RISK, TST, WF, PLAN.
+    if (/^(ADR|CHG|REL|RISK|TST|WF|PLAN)-/.test(probe)) return "library";
+    // URLs without an ID hint — keep the current mode (don't yank the
+    // user just because the agent opened a generic doc).
+    return null;
+  }
+
+  function scrollActiveIntoLeftPaneView() {
+    if (!leftEl) return;
+    var node = leftEl.querySelector(".nav-item.is-active");
+    if (node && typeof node.scrollIntoView === "function") {
+      node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
   }
 
   // Default layout (Features / Tasks / Issues / Recent):
