@@ -402,6 +402,36 @@
   display: block;
 }
 
+/* ----- Follow-agent toggle (TASK-0050) ----- */
+
+.cockpit-follow-slot {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.follow-agent-toggle {
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
+}
+.follow-agent-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.follow-agent-toggle.is-active {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
 /* ----- Filter pill (mounted in the page header) ----- */
 
 .cockpit-filter-slot {

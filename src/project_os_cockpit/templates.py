@@ -203,6 +203,7 @@ def page(
         '    <div id="cockpit-mode-slot" class="cockpit-mode-slot"></div>\n'
         '    <div id="cockpit-platform-slot" class="cockpit-platform-slot"></div>\n'
         '    <div id="cockpit-filter-slot" class="cockpit-filter-slot"></div>\n'
+        '    <div id="cockpit-follow-slot" class="cockpit-follow-slot"></div>\n'
         '    <button class="theme-toggle" type="button" aria-label="Toggle light / dark theme" aria-pressed="false">◐</button>\n'
         '    <div id="cockpit-right-toggle-slot" class="cockpit-right-toggle-slot"></div>\n'
         '  </div>\n'

@@ -72,12 +72,21 @@ TERMINAL_BASE_PATH = "/_terminal/"
 class TerminalProcess:
     """Manages a ttyd child process scoped to the cockpit's lifetime."""
 
-    def __init__(self, working_dir: Path, command: Optional[list[str]] = None) -> None:
+    def __init__(
+        self,
+        working_dir: Path,
+        command: Optional[list[str]] = None,
+        cockpit_url: Optional[str] = None,
+    ) -> None:
         self.working_dir: Path = Path(working_dir).resolve()
         # Default to the user's interactive shell. Project-os config may
         # override later (e.g. ["claude-code"] or ["codex"]).
         shell = os.environ.get("SHELL", "/bin/bash")
         self.command: list[str] = command or [shell]
+        # The cockpit's own HTTP URL — passed into ttyd's child shell as
+        # COCKPIT_URL so the `cockpit` CLI knows where to POST focus
+        # commands. Set by the server at construction time.
+        self.cockpit_url: Optional[str] = cockpit_url
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.port: Optional[int] = None
         self.url: Optional[str] = None
@@ -125,11 +134,17 @@ class TerminalProcess:
             "terminal: starting ttyd port=%d cwd=%s argv=%s",
             port, self.working_dir, argv,
         )
+        env = os.environ.copy()
+        if self.cockpit_url:
+            # The `cockpit` CLI (TASK-0049) reads COCKPIT_URL to know
+            # where to POST focus / pin / toggle commands.
+            env["COCKPIT_URL"] = self.cockpit_url
         self.process = subprocess.Popen(
             argv,
             cwd=str(self.working_dir),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env=env,
         )
         self.port = port
         self.url = f"http://127.0.0.1:{port}"

@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from . import cockpit, renderer, templates, terminal_proxy
-from .events import EventBus
+from .events import ControlEvent, EventBus, FileEvent
 from .index import Index
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .watcher import Watcher
@@ -97,8 +97,21 @@ class DocsServer:
             self.docs_root.parent.name or self.docs_root.name or "docs"
         )
 
+    def _cockpit_url(self) -> str:
+        """Base URL ttyd's child shell uses for COCKPIT_URL.
+
+        When the cockpit binds to 0.0.0.0 (LAN exposure), the terminal's
+        child shell still talks to it via loopback — both run on the
+        same host.
+        """
+        host = self.bind if self.bind not in ("0.0.0.0", "::") else "127.0.0.1"
+        return f"http://{host}:{self.port}"
+
     def run(self) -> None:
-        handler_cls = _make_handler(self.docs_root, self.index, self.bus)
+        handler_cls = _make_handler(
+            self.docs_root, self.index, self.bus,
+            cockpit_url=self._cockpit_url(),
+        )
         self.watcher.start()
         try:
             with _NoDNSThreadingHTTPServer(
@@ -124,14 +137,18 @@ class DocsServer:
 
 
 def _make_handler(
-    docs_root: Path, index: Index, bus: EventBus
+    docs_root: Path, index: Index, bus: EventBus,
+    *, cockpit_url: str = "",
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     project_root = docs_root.parent.resolve()
     # Lazy-instantiated; ttyd doesn't actually spawn until the first
     # /api/terminal request (the JS client only fetches when the user
-    # opens the bottom panel).
-    terminal = TerminalProcess(working_dir=project_root)
+    # opens the bottom panel). cockpit_url is propagated into the
+    # shell's env as COCKPIT_URL for the `cockpit` CLI (TASK-0049).
+    terminal = TerminalProcess(
+        working_dir=project_root, cockpit_url=cockpit_url,
+    )
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "project-os-cockpit/0.1"
@@ -147,6 +164,20 @@ def _make_handler(
             except BrokenPipeError:
                 # Client disconnected mid-response; nothing to do.
                 pass
+
+        def do_POST(self) -> None:  # noqa: N802 — http.server API
+            try:
+                self._route_post()
+            except BrokenPipeError:
+                pass
+
+        def _route_post(self) -> None:
+            parsed = urllib.parse.urlsplit(self.path)
+            path = urllib.parse.unquote(parsed.path)
+            if path == "/api/cockpit/focus":
+                self._serve_cockpit_focus()
+                return
+            self._respond_status(HTTPStatus.NOT_FOUND)
 
         def _route(self) -> None:
             parsed = urllib.parse.urlsplit(self.path)
@@ -282,6 +313,41 @@ def _make_handler(
             """
             self._respond_json(terminal.info())
 
+        def _serve_cockpit_focus(self) -> None:
+            """``POST /api/cockpit/focus`` — agent-driven cockpit navigation.
+
+            Body: ``{"target": "<note-id | docs-rel-path | cockpit-url>"}``.
+            Resolves the target to a cockpit URL, broadcasts a
+            ``cockpit:focus`` SSE event, returns ``{ok, url}``. All open
+            cockpit tabs that have "follow agent" enabled jump to the
+            resolved URL. TASK-0048.
+            """
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length) if length else b""
+            try:
+                body = json.loads(raw.decode("utf-8")) if raw else {}
+            except (ValueError, UnicodeDecodeError):
+                self._respond_json({"ok": False, "error": "invalid JSON"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            target = (body.get("target") or "").strip()
+            if not target:
+                self._respond_json({"ok": False, "error": "missing 'target'"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            url = _resolve_focus_target(target, index)
+            if url is None:
+                self._respond_json(
+                    {"ok": False, "error": f"could not resolve target: {target!r}"},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            bus.publish(ControlEvent("cockpit:focus", {"url": url, "target": target}))
+            self._respond_json({"ok": True, "url": url})
+
         def _proxy_terminal(self, path: str) -> None:
             """Reverse-proxy a request to ttyd (TASK-0047).
 
@@ -345,10 +411,18 @@ def _make_handler(
                     except queue.Empty:
                         _send(b": heartbeat\n\n")
                         continue
-                    payload = (
-                        f"event: file-changed\n"
-                        f"data: {ev.rel_path}\n\n"
-                    ).encode("utf-8")
+                    if isinstance(ev, FileEvent):
+                        payload = (
+                            f"event: file-changed\n"
+                            f"data: {ev.rel_path}\n\n"
+                        ).encode("utf-8")
+                    elif isinstance(ev, ControlEvent):
+                        payload = (
+                            f"event: {ev.event_type}\n"
+                            f"data: {json.dumps(ev.data, ensure_ascii=False)}\n\n"
+                        ).encode("utf-8")
+                    else:
+                        continue
                     _send(payload)
             except (BrokenPipeError, ConnectionResetError, OSError):
                 # Client disconnected — normal.
@@ -611,6 +685,45 @@ def _is_under(candidate: Path, root: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _resolve_focus_target(target: str, index: Index) -> str | None:
+    """Resolve a focus target to a cockpit URL.
+
+    Accepted shapes (most-specific first):
+      * a full cockpit URL like ``/docs/foo/bar.md`` or ``/``
+      * a project-os note ID like ``FEAT-0006`` (resolved via index)
+      * a docs-root-relative path like ``features/cockpit/foo.md``
+      * a top-level support file like ``README.md`` / ``ROADMAP.md``
+
+    Returns ``None`` when the target can't be mapped to anything the
+    cockpit knows how to render.
+    """
+    t = target.strip()
+    if not t:
+        return None
+    # Already an absolute path? Accept anything that looks like a cockpit
+    # route — the cockpit deals with non-renderable URLs by falling back
+    # to a full navigation if its in-pane swap doesn't find #cockpit-centre.
+    if t.startswith("/"):
+        return t
+    # ID lookup via the index (handles FEAT-####, ADR-####, etc.).
+    path = index.by_id(t)
+    if path is not None:
+        rel = index.get(path)
+        if rel is not None:
+            return f"/docs/{rel.rel_path}"
+    # docs-root-relative path?
+    rel_candidate = t
+    if rel_candidate.startswith("docs/"):
+        rel_candidate = rel_candidate[len("docs/"):]
+    abs_candidate = (index.docs_root / rel_candidate).resolve()
+    if _is_under(abs_candidate, index.docs_root) and abs_candidate.is_file():
+        return f"/docs/{rel_candidate}"
+    # Top-level project file (README.md, ROADMAP.md, SECURITY.md)?
+    if t in cockpit.PROJECT_SUPPORT_ROOT_FILES:
+        return f"/{t}"
+    return None
 
 
 def _project_support_rel(path: str) -> str | None:

@@ -22,6 +22,7 @@
   var LEFT_PANE_KEY  = "project-os-cockpit.cockpit.left-pane-collapsed";
   var BOTTOM_COLLAPSED_KEY = "project-os-cockpit.cockpit.bottom-collapsed";
   var BOTTOM_HEIGHT_KEY    = "project-os-cockpit.cockpit.bottom-height";
+  var FOLLOW_AGENT_KEY     = "project-os-cockpit.cockpit.follow-agent";
 
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
@@ -94,6 +95,17 @@
     try { localStorage.setItem(LEFT_PANE_KEY, v ? "1" : "0"); } catch (e) {}
   }
   var leftPaneCollapsed = loadLeftPaneCollapsed();
+
+  function loadFollowAgent() {
+    try {
+      var raw = localStorage.getItem(FOLLOW_AGENT_KEY);
+      return raw === null ? true : raw === "1";  // default ON
+    } catch (e) { return true; }
+  }
+  function saveFollowAgent(v) {
+    try { localStorage.setItem(FOLLOW_AGENT_KEY, v ? "1" : "0"); } catch (e) {}
+  }
+  var followAgent = loadFollowAgent();
 
   function loadBottomCollapsed() {
     try {
@@ -703,6 +715,53 @@
       btn.replaceChildren(panelRightIconSvg(rightPaneCollapsed));
     });
     slot.replaceChildren(btn);
+  }
+
+  function mountFollowAgentToggle() {
+    var slot = document.getElementById("cockpit-follow-slot");
+    if (!slot) return;
+    function render(btn) {
+      btn.textContent = followAgent ? "Following" : "Manual";
+      btn.title = followAgent
+        ? "Cockpit follows agent navigation events (click to opt out)"
+        : "Cockpit ignores agent navigation events (click to follow)";
+      btn.setAttribute("aria-pressed", followAgent ? "true" : "false");
+      btn.classList.toggle("is-active", followAgent);
+    }
+    var btn = el("button", {
+      class: "follow-agent-toggle",
+      type: "button",
+    });
+    render(btn);
+    btn.addEventListener("click", function () {
+      followAgent = !followAgent;
+      saveFollowAgent(followAgent);
+      render(btn);
+    });
+    slot.replaceChildren(btn);
+  }
+
+  function mountCockpitEventStream() {
+    // Listen for control events broadcast by the cockpit server
+    // (cockpit:focus today; pin / toggle / etc. later). Browser-native
+    // EventSource auto-reconnects after server restart.
+    var es;
+    try { es = new EventSource("/_events"); }
+    catch (e) { return; }
+    es.addEventListener("cockpit:focus", function (ev) {
+      if (!followAgent) return;
+      var payload;
+      try { payload = JSON.parse(ev.data); }
+      catch (e) { return; }
+      var url = payload && payload.url;
+      if (!url) return;
+      // Navigate to the agent-driven target via the same in-pane swap
+      // we use for ordinary link clicks — preserves the terminal session.
+      navigateTo(url);
+    });
+    window.addEventListener("beforeunload", function () {
+      try { es.close(); } catch (e) {}
+    });
   }
 
   function mountFilterBar() {
@@ -1369,10 +1428,12 @@
 
   mountModeTabs();
   mountFilterBar();
+  mountFollowAgentToggle();
   mountLeftPaneToggle();
   mountRightPaneToggle();
   mountPinButton();
   mountBottomPanel();
+  mountCockpitEventStream();
   applyLeftPaneState();
   applyRightPaneState();
   applyMetaStripState();
