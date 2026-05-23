@@ -14,6 +14,7 @@ shell (FEAT-0006) layer on top of this in later tasks.
 
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import mimetypes
@@ -113,6 +114,11 @@ class DocsServer:
             cockpit_url=self._cockpit_url(),
         )
         self.watcher.start()
+        # Write the discovery file so the `cockpit` CLI (from any
+        # terminal under the project tree) can auto-find this server.
+        _write_discovery_file(
+            self.docs_root.parent, self._cockpit_url(),
+        )
         try:
             with _NoDNSThreadingHTTPServer(
                 (self.bind, self.port), handler_cls
@@ -685,6 +691,30 @@ def _is_under(candidate: Path, root: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+# ---- Cockpit discovery file (TASK-0051) ----
+# So that an LLM running in any terminal under the project tree (not just
+# the cockpit's embedded ttyd) can find the running cockpit and drive it
+# via the `cockpit` CLI, the server writes its URL to <project>/.cockpit/url
+# on startup and removes the file on shutdown. The CLI walks up from cwd
+# looking for that file.
+
+def _write_discovery_file(project_root: Path, url: str) -> None:
+    try:
+        cockpit_dir = project_root / ".cockpit"
+        cockpit_dir.mkdir(exist_ok=True)
+        (cockpit_dir / "url").write_text(url + "\n", encoding="utf-8")
+        atexit.register(_remove_discovery_file, project_root)
+    except OSError as exc:
+        log.warning("discovery file write failed for %s: %s", project_root, exc)
+
+
+def _remove_discovery_file(project_root: Path) -> None:
+    try:
+        (project_root / ".cockpit" / "url").unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def _resolve_focus_target(target: str, index: Index) -> str | None:

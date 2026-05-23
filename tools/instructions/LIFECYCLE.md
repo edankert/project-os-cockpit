@@ -48,6 +48,10 @@ When a prompt implies work (bugfix, feature, refactor, behavior change):
    - Also run it for new features or issues that touch existing constrained areas.
    - If conflicts are found, stop and present resolution options before implementation.
 6. Ensure note frontmatter is consistent with the snapshot (IDs/statuses/links) so Bases views reflect reality.
+7. **Cockpit focus** (when a cockpit server is running — `cockpit` CLI succeeds):
+   - After the snapshot + note(s) are saved, run `cockpit focus <new-id>` to bring the work into the user's view.
+   - See `COCKPIT.md` for the always-on directive (when to focus, when not to).
+   - If the CLI errors with "no running cockpit found", proceed without focus calls — the work matters more than the UI hint.
 
 If the prompt is purely a question/explanation (no work requested), you may skip preflight.
 
@@ -83,6 +87,7 @@ After completing a task/issue/feature:
 4. If new hazards were introduced (new dependency, env var, contract), add/update a `RISK-*` and link it.
 5. Do not delete completed notes; use status + links to preserve history.
 6. Apply verification gating (see `QUALITY.md`): only close/verify/done when required `[[test]]` notes are `status: passing`.
+7. **Cockpit focus** (when a cockpit server is running): after writing the change note, run `cockpit focus <CHG-id>` to surface what was delivered. See `COCKPIT.md`.
 
 ## Snapshot retention (active + recent)
 - Keep `../../SNAPSHOT.yaml` focused on active + recent items.

@@ -24,19 +24,52 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
+
+
+def _walk_up_for_discovery(start: Path) -> str:
+    """Walk up from ``start`` looking for ``.cockpit/url`` — the file the
+    cockpit server writes on startup so any-terminal CLIs can find it.
+
+    Returns the URL string (without trailing slash) or ``""`` if no
+    discovery file is found before reaching the filesystem root.
+    """
+    here = start.resolve()
+    while True:
+        candidate = here / ".cockpit" / "url"
+        if candidate.is_file():
+            try:
+                return candidate.read_text(encoding="utf-8").strip().rstrip("/")
+            except OSError:
+                return ""
+        parent = here.parent
+        if parent == here:
+            return ""
+        here = parent
 
 
 def _default_base_url() -> str:
-    """Cockpit URL, from COCKPIT_URL env (set when ttyd is spawned)."""
-    return os.environ.get("COCKPIT_URL", "").rstrip("/")
+    """Cockpit URL, discovered in priority order:
+
+    1. ``COCKPIT_URL`` env (set automatically when the embedded ttyd
+       spawns its shell).
+    2. ``<ancestor>/.cockpit/url`` walking up from CWD (lets an LLM in
+       any terminal under the project tree drive a running cockpit).
+    """
+    env = os.environ.get("COCKPIT_URL", "").strip().rstrip("/")
+    if env:
+        return env
+    return _walk_up_for_discovery(Path.cwd())
 
 
 def _post_json(base: str, path: str, body: dict) -> tuple[int, dict]:
     """POST JSON to the cockpit; return (status, parsed-body)."""
     if not base:
         print(
-            "cockpit: COCKPIT_URL is not set. Are you running this inside "
-            "the embedded terminal?",
+            "cockpit: no running cockpit found. Either:\n"
+            "  - run this from inside a directory served by a cockpit "
+            "(it writes .cockpit/url at startup), or\n"
+            "  - set COCKPIT_URL=http://host:port explicitly.",
             file=sys.stderr,
         )
         return 0, {}

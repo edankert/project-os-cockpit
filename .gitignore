@@ -27,6 +27,10 @@ ENV/
 .obsidian/
 .trash/
 
+# Cockpit runtime discovery file (written by the server, used by the
+# `cockpit` CLI to find a running cockpit from any terminal).
+.cockpit/
+
 # Tooling caches
 .pytest_cache/
 .mypy_cache/

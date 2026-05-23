@@ -28,6 +28,7 @@ These files contain detailed rules. Read them when performing the related operat
 - Importing from existing projects: tools/instructions/IMPORTING.md
 - Syncing template updates: tools/instructions/SYNCING.md
 - Hook contracts: tools/instructions/HOOKS.md
+- Cockpit driving (LLM in any terminal): tools/instructions/COCKPIT.md
 
 ## Skill playbooks (read before performing these operations)
 
@@ -45,6 +46,7 @@ These files contain detailed rules. Read them when performing the related operat
 - Risk mitigation: tools/skills/risk-mitigation-planning/SKILL.md
 - Impact analysis: tools/skills/impact-analysis/SKILL.md
 - Adapter sync: tools/skills/adapter-sync/SKILL.md
+- Cockpit driving: tools/skills/cockpit-driving/SKILL.md
 
 ## Project-specific notes
 
