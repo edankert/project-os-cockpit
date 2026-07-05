@@ -116,4 +116,8 @@ fi
 # but never overwrite downstream reference/source packages.
 copy_file_if_missing "docs/reference/README.md"
 
+# Optional CI seed: wire the docs validator into CI once, but never overwrite
+# downstream CI config.
+copy_file_if_missing ".github/workflows/validate-docs.yml"
+
 echo "Sync complete. Review changes and run tools/skills/snapshot-sync/SKILL.md."

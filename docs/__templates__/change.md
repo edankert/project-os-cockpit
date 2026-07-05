@@ -12,6 +12,9 @@ pr: ""
 impacts: []
 issues: []
 features: []
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
 related: []
 ---
 

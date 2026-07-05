@@ -41,6 +41,8 @@ These files contain detailed rules. Read them when performing the related operat
 - Snapshot sync: tools/skills/snapshot-sync/SKILL.md
 - ADR authoring: tools/skills/adr-authoring/SKILL.md
 - Risk scan: tools/skills/risk-scan/SKILL.md
+- Independent review: tools/skills/independent-review/SKILL.md
+- Docs audit: tools/skills/docs-audit/SKILL.md
 - Ad-hoc intake: tools/skills/ad-hoc-intake/SKILL.md
 - Backlog grooming: tools/skills/backlog-grooming/SKILL.md
 - Risk mitigation: tools/skills/risk-mitigation-planning/SKILL.md

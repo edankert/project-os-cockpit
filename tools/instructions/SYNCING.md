@@ -30,6 +30,7 @@ Use this when the project-os template lives outside the dev repo and you want to
 - `LLM_BRIEF.md`
 - Optional: `SECURITY.md`, `ROADMAP.md`
 - Optional seed only: `docs/reference/README.md` when the downstream file does not already exist
+- Optional seed only: `.github/workflows/validate-docs.yml` when the downstream file does not already exist (downstream repos own their CI config; the seed just wires up the docs validator)
 
 ## Project-owned (do NOT overwrite)
 - `SNAPSHOT.yaml`
@@ -53,4 +54,6 @@ Use this when the project-os template lives outside the dev repo and you want to
 1. Pull latest upstream project-os.
 2. Run `tools/scripts/sync-project-os.sh <path-to-upstream>`.
 3. Review changes (git diff).
-4. Run `tools/skills/snapshot-sync/SKILL.md`.
+4. Run `bash tools/scripts/validate-docs.sh`, then `tools/skills/snapshot-sync/SKILL.md` for anything it reports.
+5. Re-run `bash tools/scripts/install-git-hooks.sh` (hook scripts may have changed) and, for Claude Code, re-copy `tools/adapters/claude-code/hooks.json` into `.claude/settings.json` if it changed.
+6. After large syncs, run `tools/skills/docs-audit/SKILL.md` — template sync is a known source of stale cross-document references.

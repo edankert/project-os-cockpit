@@ -40,6 +40,9 @@ tags: [skills, release]
 - If any cannot be completed: ask user to mark as **release exception** with justification.
 - Tier 3 tests do not block — note their status for post-release cleanup.
 
+### 2b. Docs consistency audit
+- Run `bash tools/scripts/validate-docs.sh` (mechanical) and `../docs-audit/SKILL.md` (cross-document, to quiescence) before drafting the release note — releases are the last chance to catch stale references before they ship as documentation.
+
 ### 3. Create release note
 1. Allocate `REL-####` from `counters.REL` in SNAPSHOT.
 2. Create `../../../docs/releases/REL-####-v<version>.md` from `../../../docs/__templates__/release.md`.

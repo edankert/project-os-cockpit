@@ -28,7 +28,7 @@ This documentation system is designed to be maintained by an LLM across the full
 
 ## Preflight (must happen before code changes)
 When a prompt implies work (bugfix, feature, refactor, behavior change):
-1. **Classify** the prompt as one (or more) of: issue, feature, requirement, risk, chore/docs-only.
+1. **Classify** the prompt as one (or more) of: issue, feature, requirement, risk, chore/docs-only. Run the spec-ambiguity check from `../skills/issue-intake/SKILL.md` (step 1) before allocating IDs — ambiguity is upstream of documentation and cannot be fixed by tracking.
 2. **Orchestration check**:
    - If Codex or another orchestration layer assigns a specific task, verify it exists in `../../SNAPSHOT.yaml` and that its status allows work (for example, `backlog`, `next`, or `doing`, not already `done`).
    - If working without an assigned item, select work based on `focus` and item statuses.
@@ -88,7 +88,9 @@ After completing a task/issue/feature:
 4. If new hazards were introduced (new dependency, env var, contract), add/update a `RISK-*` and link it.
 5. Do not delete completed notes; use status + links to preserve history.
 6. Apply verification gating (see `QUALITY.md`): only close/verify/done when required `[[test]]` notes are `status: passing`.
-7. **Cockpit focus** (when a cockpit server is running): after writing the change note, run `cockpit focus <CHG-id>` to surface what was delivered. See `COCKPIT.md`.
+7. Run `bash tools/scripts/validate-docs.sh` and fix anything it reports — the same validator runs at pre-commit and in CI, so drift left behind here becomes a build failure there.
+8. If the work created/updated a `TST-*` or `CHG-*` note, or transitions a requirement to `verified` / feature to `done`, run the independent review pass (`../skills/independent-review/SKILL.md`).
+9. **Cockpit focus** (when a cockpit server is running): after writing the change note, run `cockpit focus <CHG-id>` to surface what was delivered. See `COCKPIT.md`.
 
 ## Snapshot retention (active + recent)
 - Keep `../../SNAPSHOT.yaml` focused on active + recent items.

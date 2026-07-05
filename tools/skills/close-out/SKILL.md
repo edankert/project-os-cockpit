@@ -42,7 +42,11 @@ tags: [skills, closeout]
    - Review the completed work against risk scan triggers in `../../instructions/LIFECYCLE.md`.
    - If any trigger applies, run `../risk-scan/SKILL.md` and create/update `RISK-*` notes.
    - If no trigger applies, record that no new risks were identified in the relevant task/issue note or final summary.
-6. **Retention enforcement:**
+6. **Mechanical validation:**
+   - Run `bash tools/scripts/validate-docs.sh` and fix every reported error before finishing — the same validator gates pre-commit and CI.
+7. **Independent review:**
+   - If this close-out created/updated a `TST-*` or `CHG-*` note, or sets a requirement to `verified` / feature to `done`, run `../independent-review/SKILL.md` before applying the terminal status.
+8. **Retention enforcement:**
    - Apply `retention` settings from `../../../SNAPSHOT.yaml`.
    - Preserve notes under `../../../docs/`; prune only snapshot entries when policy says to keep the snapshot active/recent.
    - Update `metrics` after pruning.

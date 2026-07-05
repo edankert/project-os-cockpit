@@ -33,6 +33,8 @@ Reusable playbooks for an LLM (or other agents) to keep this documentation syste
 - Risk scan: `risk-scan/SKILL.md`
 - Change note: `change-note/SKILL.md`
 - Snapshot sync: `snapshot-sync/SKILL.md`
+- Independent review: `independent-review/SKILL.md`
+- Docs audit: `docs-audit/SKILL.md`
 - Status transition: `status-transition/SKILL.md`
 - Close-out: `close-out/SKILL.md`
 - Workflow authoring: `workflow-authoring/SKILL.md`

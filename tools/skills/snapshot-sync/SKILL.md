@@ -22,7 +22,7 @@ tags: [skills, snapshot]
 - A consistent snapshot and notes (IDs, statuses, relationships aligned).
 
 ## Checklist
-1. Validate `../../../SNAPSHOT.yaml` invariants (see `../../instructions/SNAPSHOT.md`).
+1. Run `bash tools/scripts/validate-docs.sh` first — it mechanically checks file existence, id/status/type agreement, counters, link resolution, and the verification invariant, so you only spend judgment on what it cannot decide. Then validate the remaining `../../../SNAPSHOT.yaml` invariants (see `../../instructions/SNAPSHOT.md`).
 2. For each item in the snapshot:
    - ensure `items.<type>.<ID>.file` exists on disk
    - ensure note frontmatter `id` matches `<ID>`

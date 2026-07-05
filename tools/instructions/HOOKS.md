@@ -49,7 +49,8 @@ These contracts define the checks that a Codex workflow should perform at key po
 - Check logic:
   - Find linked `TST-*` IDs from the snapshot and note frontmatter.
   - Confirm every required test is `status: passing`.
-- On failure: block the terminal status transition unless the user explicitly waives verification.
+- On failure: block the terminal status transition unless an explicit `verification_waiver: <reason>` is recorded in the note frontmatter (the waiver is a logged artifact, not a silent skip).
+- Enforcement: this gate must be mechanical, not advisory. The Claude Code adapter implements it as a blocking PreToolUse hook (`../adapters/claude-code/hooks/verification-gate.py`); other adapters must run `tools/scripts/validate-docs.sh` before close-out and at pre-commit/CI, which enforces the same invariant repo-wide.
 
 ## CHC-005: Close-out check
 
@@ -60,3 +61,15 @@ These contracts define the checks that a Codex workflow should perform at key po
   - Metrics and relationships are updated.
   - Required `CHG-*` and `RISK-*` notes exist when behavior, paths, contracts, or hazards changed.
 - On failure: complete the missing close-out work before stopping.
+
+## CHC-006: Mechanical docs validation
+
+- Trigger: before final response after implementation work, at git pre-commit, and in CI.
+- Entrypoint: `bash tools/scripts/validate-docs.sh` (install the git hook once with `bash tools/scripts/install-git-hooks.sh`).
+- Check logic (deterministic, exit non-zero on violation):
+  - Every `items.*` entry's `file` exists and its frontmatter id/status/type agree with the snapshot.
+  - Status values are within the allowed taxonomy (`STATUSES.md`).
+  - No allocated ID exceeds its `counters` value.
+  - Every ID referenced from snapshot relationship fields or active-note frontmatter resolves to a snapshot item or note.
+  - No terminal status without passing linked tests (or a recorded `verification_waiver`).
+- On failure: fix the drift before stopping/committing. Rationale: convention-only rules are demonstrably bypassed by agents under context pressure; the three layers (session hook, pre-commit, CI) exist because the first two can be skipped and CI cannot.
