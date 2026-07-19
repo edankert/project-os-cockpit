@@ -10,7 +10,6 @@ owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
 related: ["[[FEAT-0001]]", "[[FEAT-0004]]", "[[REQ-0002]]"]
-mitigations: []
 ---
 
 # RISK-0002 — Schema drift

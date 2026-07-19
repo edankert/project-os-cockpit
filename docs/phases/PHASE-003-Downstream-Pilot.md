@@ -3,14 +3,14 @@ type: "[[phase]]"
 id: PHASE-003
 aliases: ["PHASE-003"]
 title: "Downstream pilot"
-status: backlog
+status: planned
 order: 3
 owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
 features:
   - "[[FEAT-0005-Downstream-Pilot]]"
-depends_on: ["[[PHASE-001-MVP]]", "[[PHASE-002-Project-OS-Adapter]]"]
+depends: ["[[PHASE-001-MVP]]", "[[PHASE-002-Project-OS-Adapter]]"]
 ---
 
 # Phase 3: Downstream pilot

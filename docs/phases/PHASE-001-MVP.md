@@ -11,7 +11,6 @@ updated: 2026-05-08
 features:
   - "[[FEAT-0001-Render-Server]]"
   - "[[FEAT-0002-Live-Reload]]"
-depends_on: []
 ---
 
 # Phase 1: MVP

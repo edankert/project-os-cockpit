@@ -3,14 +3,15 @@ type: "[[feature]]"
 id: FEAT-0018
 aliases: ["FEAT-0018"]
 title: "Verification health surface — validator status, drift panel, waiver/review badges"
-status: backlog
+status: in-review
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-17
 goal: "Make the project-os verification state visible while browsing: a live health badge backed by tools/scripts/validate-docs.py, a drift panel deep-linking each violation to the offending note, and badges for verification waivers, review verdicts, and test adequacy."
 related: ["[[FEAT-0017-Overview-Dashboard]]"]
 tasks: ["[[TASK-0111]]", "[[TASK-0112]]", "[[TASK-0113]]"]
+tests: ["[[TST-0016]]"]
 ---
 
 # Verification health surface
@@ -36,3 +37,6 @@ While browsing any project-os repo in the cockpit, the user can see at a glance 
 - Each drift-panel row navigates the centre pane to the offending note.
 - A note with `verification_waiver` shows an amber chip in the metadata strip area and in list rows; `review_verdict` renders green/red; TST notes without adequacy evidence are visually distinct in test views.
 - Zero new Python dependencies; the validator remains the single source of validation logic (no reimplementation in the cockpit).
+
+## Status (2026-07-17 — in-review)
+All three tasks are implemented and `done`; see the per-task Verification sections for the file-level breakdown. Automated coverage is [[TST-0016]] (`tests/test_validation.py`, 11 passed with mutation-run adequacy evidence; full suite 201 passed / 1 skipped), which exercises the endpoint's three states, drift deep-links, debounced SSE fan-out (including burst coalescing), the waiver/verdict/adequacy payload flags, and the metadata-strip chip render; the endpoint was additionally smoke-tested by curl against this repo's own docs (`state: "ok"`, `X-Cockpit-Schema: 3`, health slot present in the served chrome). Held at `in-review` pending a human visual pass of the mode-1 UI: badge green→red flip on live drift without reload, drift-panel row navigation, and chip rendering on waived/verdict/adequacy fixtures. The desktop (mode-3) renderer intentionally has no badge yet — the payload and SSE event are renderer-agnostic, so porting the chrome is a follow-up.

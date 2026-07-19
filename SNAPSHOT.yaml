@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-05-23T12:30Z"
+updated: "2026-07-17T21:20Z"
 
 template:
   replace_me: false
@@ -26,28 +26,54 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 4
+  ADR: 5
   CHG:
-    last_date: 20260523
+    last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 6
-  ISS: 0
-  PHASE: 4
-  REQ: 17
-  RISK: 3
+  FEAT: 33
+  ISS: 10
+  PHASE: 7
+  REQ: 19
+  RISK: 4
   REL: 0
-  TASK: 57
-  TST: 3
-  WF: 0
+  TASK: 157
+  TST: 17
+  WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0057"
-  feature: "FEAT-0006"
-  phase: "[[PHASE-002-Project-OS-Adapter]]"
+  task: "TASK-0151"
+  feature: "FEAT-0032"
+  phase: "[[PHASE-007-Agent-Instrumentation]]"
   issue: ""
 
 items:
   features:
+    FEAT-0030:
+      title: "Agent inbox — docked attention panel at the bottom of the nav pane, with a sane attention lifecycle"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-inbox/FEAT-0030-Agent-Inbox.md"
+      requirements: ["REQ-0018"]
+      tasks: ["TASK-0147", "TASK-0156", "TASK-0157"]
+    FEAT-0031:
+      title: "Ambient status consolidation — one agent-status surface per scope"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/ambient-status/FEAT-0031-Ambient-Status-Consolidation.md"
+      tasks: ["TASK-0148", "TASK-0149"]
+    FEAT-0032:
+      title: "Agents screen (~agents) — cross-workspace fleet view: sessions, cost, queues, rate limits"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-screen/FEAT-0032-Agents-Screen.md"
+      requirements: ["REQ-0019"]
+      tasks: ["TASK-0150", "TASK-0151"]
+    FEAT-0033:
+      title: "Agent signal hygiene — dedup double ingestion, align semantics, unify decay, fix surface rots"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/FEAT-0033-Agent-Signal-Hygiene.md"
+      tasks: ["TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155"]
     FEAT-0003:
       title: "Embedded local-only terminal (Claude Code / Codex)"
       status: in-progress
@@ -68,8 +94,202 @@ items:
       status: in-progress
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
+    FEAT-0007:
+      title: "Electron desktop shell (multi-project, Python sidecar)"
+      status: in-progress
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/FEAT-0007-Desktop-Shell.md"
+    FEAT-0008:
+      title: "Cockpit API hardening (Python side) for the native renderer"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-api-hardening/FEAT-0008-Cockpit-API-Hardening.md"
+    FEAT-0009:
+      title: "Native shell layout (3-pane grid, title bar, theme, status bar)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-shell-layout/FEAT-0009-Native-Shell-Layout.md"
+    FEAT-0010:
+      title: "Native nav surface — workspace rail (with agent-state dots) + in-workspace nav + right pane"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/FEAT-0010-Native-Nav-Right-Pane.md"
+    FEAT-0011:
+      title: "Native centre pane + routing (rendered Markdown, history, anchors, checkboxes)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/FEAT-0011-Native-Center-Pane.md"
+    FEAT-0012:
+      title: "Native UX wins (Cmd+P, Cmd+F, context menus, drag-drop, multi-window)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/FEAT-0012-Native-UX.md"
+    FEAT-0013:
+      title: "Agent state signal — `cockpit signal <state>` + per-workspace state pipe"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/agent-state-signal/FEAT-0013-Agent-State-Signal.md"
+    FEAT-0014:
+      title: "Cockpit IA rework — workspace tabs, mode ribbon, item-render port"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-rework/FEAT-0014-Cockpit-IA-Rework.md"
+    FEAT-0015:
+      title: "Cockpit IA v2 — mini-rail, modes-on-top, per-workspace terminal"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/FEAT-0015-Cockpit-IA-V2.md"
+    FEAT-0016:
+      title: "Project management — manual add, rename, custom icon, remove"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/project-management/FEAT-0016-Project-Management.md"
+    FEAT-0017:
+      title: "Overview dashboard — project stats in diagrams"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/overview-dashboard/FEAT-0017-Overview-Dashboard.md"
+
+    FEAT-0018:
+      title: "Verification health surface — validator status, drift panel, waiver/review badges"
+      status: in-review
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/verification-health/FEAT-0018-Verification-Health-Surface.md"
+      tasks: ["TASK-0111", "TASK-0112", "TASK-0113"]
+      tests: ["TST-0016"]
+    FEAT-0019:
+      title: "Agent hook ingestion — auto-instrumented terminal sessions"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/FEAT-0019-Agent-Hook-Ingestion.md"
+      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117"]
+    FEAT-0020:
+      title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-activity/FEAT-0020-Agent-Activity-Surfaces.md"
+      tasks: ["TASK-0118", "TASK-0119", "TASK-0120"]
+    FEAT-0021:
+      title: "Task dispatch — start agent work from the task board"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/task-dispatch/FEAT-0021-Task-Dispatch.md"
+      tasks: ["TASK-0121", "TASK-0122"]
+    FEAT-0022:
+      title: "Session insight — history browser, doc-traceability guardrail, CHG linking"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/FEAT-0022-Session-Insight-And-Traceability.md"
+      tasks: ["TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127"]
+    FEAT-0023:
+      title: "Overview scopes — drill-down dashboard with pane contract restored"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
+      tasks: ["TASK-0128", "TASK-0129", "TASK-0130"]
+    FEAT-0024:
+      title: "Agent verbs — drive the docs system from any note"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-verbs/FEAT-0024-Agent-Verbs.md"
+      tasks: ["TASK-0131", "TASK-0132", "TASK-0133"]
+    FEAT-0025:
+      title: "Dispatch runtime — main-process queue, dispatch ledger, CLI"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/dispatch-runtime/FEAT-0025-Dispatch-Runtime.md"
+      tasks: ["TASK-0134", "TASK-0135", "TASK-0136"]
+    FEAT-0026:
+      title: "Verb polish — status-aware menus, palette verbs, type-from-data"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/verb-polish/FEAT-0026-Verb-Polish.md"
+      tasks: ["TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140"]
+    FEAT-0027:
+      title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
+      status: in-review
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/external-signal/FEAT-0027-External-Session-Signal.md"
+      tasks: ["TASK-0141", "TASK-0142", "TASK-0143"]
+
+    FEAT-0028:
+      title: "Fleet health surface — per-workspace validator badges across all discovered repos"
+      status: backlog
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/fleet-health/FEAT-0028-Fleet-Health-Surface.md"
+    FEAT-0029:
+      title: "Cockpit MCP server — expose the cockpit HTTP API to MCP-capable agents"
+      status: backlog
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0147:
+      title: "Docked attention panel — bottom of the nav pane, needs-input + waiting + finished one-liner; bell deleted"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-inbox/plan/tasks/TASK-0147-Inbox-Attention-Model.md"
+      parent: "FEAT-0030"
+    TASK-0156:
+      title: "Severity remap — idle_prompt means waiting, not needs-input; red reserved for blocked-mid-work"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-inbox/plan/tasks/TASK-0156-Idle-Prompt-Severity-Remap.md"
+      parent: "FEAT-0030"
+    TASK-0157:
+      title: "Seen-acknowledgement — pulse means unseen; focusing the workspace calms it to static"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-inbox/plan/tasks/TASK-0157-Seen-Acknowledgement.md"
+      parent: "FEAT-0030"
+    TASK-0148:
+      title: "Remove the footer agent dot; demote the Overview Now card to a one-liner"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/ambient-status/plan/tasks/TASK-0148-Footer-And-Now-Slimming.md"
+      parent: "FEAT-0031"
+    TASK-0149:
+      title: "Rate-limit pip in the agent strip — surface the 5h budget already collected"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/ambient-status/plan/tasks/TASK-0149-Rate-Limit-Pip.md"
+      parent: "FEAT-0031"
+    TASK-0150:
+      title: "Fleet state proxy — main-process aggregation of per-workspace agent snapshots"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-screen/plan/tasks/TASK-0150-Fleet-State-Proxy.md"
+      parent: "FEAT-0032"
+    TASK-0151:
+      title: "~agents virtual page — fleet rows, aggregate header, jump actions"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-screen/plan/tasks/TASK-0151-Agents-Virtual-Page.md"
+      parent: "FEAT-0032"
+    TASK-0152:
+      title: "Hook ingestion dedup — one event, one record, whichever capture paths fire"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/plan/tasks/TASK-0152-Ingestion-Dedup.md"
+      parent: "FEAT-0033"
+    TASK-0153:
+      title: "External hook adopts the Notification subtype gate"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/plan/tasks/TASK-0153-Notification-Semantics-Align.md"
+      parent: "FEAT-0033"
+    TASK-0154:
+      title: "One decay window — collapse the three independent 600s constants"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/plan/tasks/TASK-0154-Decay-Constant-Unify.md"
+      parent: "FEAT-0033"
+    TASK-0155:
+      title: "Surface rots batch — transcript link, queue tooltip, undocumented wording, feed staleness"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/plan/tasks/TASK-0155-Surface-Rots-Batch.md"
+      parent: "FEAT-0033"
     TASK-0013:
       title: "Cockpit shell + JS pane renderer (code-driven layout)"
       status: done
@@ -284,26 +504,31 @@ items:
       title: "Cockpit: agent-drives-cockpit — POST /api/cockpit/focus + SSE fan-out"
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0048-Cockpit-Focus-Endpoint.md"
       parent: "FEAT-0006"
     TASK-0049:
       title: "Cockpit: `cockpit` CLI helper (focus subcommand)"
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0049-Cockpit-Cli-Helper.md"
       parent: "FEAT-0006"
     TASK-0050:
       title: "Cockpit: per-tab Following toggle (default ON, localStorage-persisted)"
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0050-Follow-Agent-Toggle.md"
       parent: "FEAT-0006"
     TASK-0051:
       title: "Cockpit: discoverable URL via .cockpit/url + CLI walk-up + LLM directives"
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0051-Discoverable-Url.md"
       parent: "FEAT-0006"
     TASK-0052:
       title: "Cockpit: follow-mode auto-switches nav so the agent's focus is highlighted in the left nav"
       status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0052-Follow-Mode-Auto-Switch-Nav.md"
       parent: "FEAT-0006"
     TASK-0053:
       title: "Cockpit: server-side state — agent_focus, per-tab state, history (GET /api/cockpit/state, POST /api/cockpit/tab-state)"
@@ -335,10 +560,629 @@ items:
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0057-Drain-Unknown-Post-Body.md"
       parent: "FEAT-0006"
+    TASK-0058:
+      title: "Electron shell scaffold (desktop/ package, BrowserWindow + preload)"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0058-Electron-Shell-Scaffold.md"
+      parent: "FEAT-0007"
+    TASK-0059:
+      title: "Python sidecar contract: --no-open, /healthz, COCKPIT_DESKTOP env var"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0059-Python-Sidecar-Contract.md"
+      parent: "FEAT-0007"
+    TASK-0060:
+      title: "Workspace discovery + persistence + switcher UI"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0060-Workspace-Discovery.md"
+      parent: "FEAT-0007"
+    TASK-0061:
+      title: "Python sidecar lifecycle (spawn, health-poll, loadURL, shutdown)"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0061-Sidecar-Lifecycle.md"
+      parent: "FEAT-0007"
+    TASK-0062:
+      title: "Bundled Python runtime (python-build-standalone)"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0062-Bundled-Python-Runtime.md"
+      parent: "FEAT-0007"
+    TASK-0063:
+      title: "Native terminal pane (node-pty + xterm.js) for desktop mode"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0063-Native-Terminal.md"
+      parent: "FEAT-0007"
+    TASK-0064:
+      title: "App chrome — menu, single-instance, deep links, agent-focus bridge, window memory"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0064-App-Chrome.md"
+      parent: "FEAT-0007"
+    TASK-0065:
+      title: "Build pipeline — electron-forge makers, code signing, notarization, auto-update"
+      status: blocked
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0065-Build-Sign-Distribute.md"
+      parent: "FEAT-0007"
+      blocked_reason: "Parked 2026-05-25 — defer until the app needs to be handed to someone other than the developer. Dev loop (npm start) covers current use."
+    TASK-0066:
+      title: "Document existing cockpit API contract (docs/references/COCKPIT-API.md)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0066-Document-API-Contract.md"
+      parent: "FEAT-0008"
+    TASK-0067:
+      title: "Add GET /api/render — rendered Markdown HTML fragment for the native centre pane"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0067-Add-Render-Endpoint.md"
+      parent: "FEAT-0008"
+    TASK-0068:
+      title: "Codify schema-versioning rule + X-Cockpit-Schema header assertion test"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0068-Schema-Versioning-Rule.md"
+      parent: "FEAT-0008"
+    TASK-0069:
+      title: "Fill regression test gaps (focus POST, tab-state POST, SSE event shape)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0069-Fill-Regression-Test-Gaps.md"
+      parent: "FEAT-0008"
+    TASK-0070:
+      title: "Replace iframe with /api/render-driven mount + ship cockpit.css to the renderer"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0070-Render-Driven-Mount.md"
+      parent: "FEAT-0011"
+    TASK-0071:
+      title: "Internal link interception + soft nav + external openExternal"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0071-Internal-Link-Interception.md"
+      parent: "FEAT-0011"
+    TASK-0072:
+      title: "History stack (back / forward) + mouse buttons + menu accelerators"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0072-History-Stack.md"
+      parent: "FEAT-0011"
+    TASK-0073:
+      title: "Per-note scroll preservation + hash anchors"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0073-Scroll-Preservation-Hash-Anchors.md"
+      parent: "FEAT-0011"
+    TASK-0074:
+      title: "Interactive checkboxes — POST /api/notes/check-toggle + renderer click handler"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0074-Interactive-Checkboxes.md"
+      parent: "FEAT-0011"
+    TASK-0075:
+      title: "Pre-rendered metadata_html field in /api/render"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-center-pane/plan/tasks/TASK-0075-Pre-Rendered-Metadata-Strip.md"
+      parent: "FEAT-0011"
+    TASK-0076:
+      title: "CockpitState.agent_state storage + lazy decay in snapshot()"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/agent-state-signal/plan/tasks/TASK-0076-Agent-State-Storage.md"
+      parent: "FEAT-0013"
+    TASK-0077:
+      title: "POST /api/cockpit/agent-state + cockpit:agent-state SSE + decay thread"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/agent-state-signal/plan/tasks/TASK-0077-Endpoint-And-SSE.md"
+      parent: "FEAT-0013"
+    TASK-0078:
+      title: "`cockpit signal <state>` CLI subcommands"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/agent-state-signal/plan/tasks/TASK-0078-CLI-Signal-Subcommands.md"
+      parent: "FEAT-0013"
+    TASK-0079:
+      title: "Pretty-print agent_state in `cockpit state` + COCKPIT-API.md updates"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/agent-state-signal/plan/tasks/TASK-0079-State-Pretty-Print-And-Docs.md"
+      parent: "FEAT-0013"
+    TASK-0080:
+      title: "Activity-bar layout shell — rail + in-workspace nav + stage"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0080-Activity-Bar-Layout.md"
+      parent: "FEAT-0010"
+    TASK-0081:
+      title: "Persist agent-state to .cockpit/agent-state.json"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0081-Agent-State-File-Persistence.md"
+      parent: "FEAT-0010"
+    TASK-0082:
+      title: "Workspace rail rendering + agent-state dot polling"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0082-Workspace-Rail-With-Dots.md"
+      parent: "FEAT-0010"
+    TASK-0083:
+      title: "In-workspace nav framework + Features-by-phase mode"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0083-In-Workspace-Nav-Framework.md"
+      parent: "FEAT-0010"
+    TASK-0084:
+      title: "Other nav modes (Tasks / Issues / Library / Recent) + mode toggle"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0084-Other-Nav-Modes.md"
+      parent: "FEAT-0010"
+    TASK-0085:
+      title: "Right pane — linked + backlinks via /api/cockpit/context"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0085-Right-Pane.md"
+      parent: "FEAT-0010"
+    TASK-0086:
+      title: "SSE soft-reload + tab heartbeat + drop temporary Browse panel"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0086-Sse-Reload-Tab-Heartbeat-Cleanup.md"
+      parent: "FEAT-0010"
+    TASK-0087:
+      title: "OS notification when a workspace's agent-state flips to `waiting`"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0087-OS-Notification-On-Waiting.md"
+      parent: "FEAT-0012"
+    TASK-0088:
+      title: "Cmd+P quick-switch — fuzzy note search palette"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0088-Cmd-P-Quick-Switch.md"
+      parent: "FEAT-0012"
+    TASK-0089:
+      title: "Cmd+F find-in-doc"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0089-Cmd-F-Find.md"
+      parent: "FEAT-0012"
+    TASK-0090:
+      title: "Native context menus on nav rows + doc links + rail pills"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0090-Native-Context-Menus.md"
+      parent: "FEAT-0012"
+    TASK-0091:
+      title: "Drag-and-drop `.md` file → navigate (or offer to add workspace)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0091-Drag-Drop-Note.md"
+      parent: "FEAT-0012"
+    TASK-0092:
+      title: "Multi-window + per-workspace window state"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-ux/plan/tasks/TASK-0092-Multi-Window.md"
+      parent: "FEAT-0012"
+    TASK-0093:
+      title: "hiddenInset title bar (integrated macOS traffic lights)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-shell-layout/plan/tasks/TASK-0093-Hidden-Inset-Title-Bar.md"
+      parent: "FEAT-0009"
+    TASK-0094:
+      title: "Status bar (footer)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-shell-layout/plan/tasks/TASK-0094-Status-Bar.md"
+      parent: "FEAT-0009"
+    TASK-0095:
+      title: "Theme picker — system / light / dark"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-shell-layout/plan/tasks/TASK-0095-Theme-Picker.md"
+      parent: "FEAT-0009"
+    TASK-0096:
+      title: "Resizable column splitters"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/native-shell-layout/plan/tasks/TASK-0096-Splitters.md"
+      parent: "FEAT-0009"
+    TASK-0097:
+      title: "Workspace tabs (top strip, replacing the rail pills)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0097-Workspace-Tabs.md"
+      parent: "FEAT-0014"
+    TASK-0098:
+      title: "Mode ribbon (52 px vertical icon strip on the left)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0098-Mode-Ribbon.md"
+      parent: "FEAT-0014"
+    TASK-0099:
+      title: "Port item-render conventions from cockpit.js to renderer.ts (full)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0099-Item-Render-Port.md"
+      parent: "FEAT-0014"
+    TASK-0100:
+      title: "Discord-style workspace mini-rail (far-left)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0100-Workspace-Mini-Rail.md"
+      parent: "FEAT-0015"
+    TASK-0101:
+      title: "Modes-on-top toolbar with inner-edge collapse"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0101-Modes-On-Top-Toolbar.md"
+      parent: "FEAT-0015"
+    TASK-0102:
+      title: "Platform pill row under the modes toolbar"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0102-Platform-Pills.md"
+      parent: "FEAT-0015"
+    TASK-0103:
+      title: "Right-pane collapse caret on the inner (left) edge"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0103-Right-Pane-Inner-Collapse.md"
+      parent: "FEAT-0015"
+    TASK-0104:
+      title: "Per-workspace terminal sessions"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0104-Per-Workspace-Terminal.md"
+      parent: "FEAT-0015"
+    TASK-0105:
+      title: "Bug fixes — light theme override + Cmd+P selection"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0105-Bug-Fixes-Theme-And-Palette.md"
+      parent: "FEAT-0015"
+    TASK-0106:
+      title: "Manual add via directory picker"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/project-management/plan/tasks/TASK-0106-Manual-Add.md"
+      parent: "FEAT-0016"
+    TASK-0107:
+      title: "Project settings popover"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/project-management/plan/tasks/TASK-0107-Settings-Popover.md"
+      parent: "FEAT-0016"
+    TASK-0108:
+      title: "Workspace override fields + CRUD IPC"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/project-management/plan/tasks/TASK-0108-Override-Fields-And-CRUD.md"
+      parent: "FEAT-0016"
+    TASK-0109:
+      title: "Server stats endpoint (/api/cockpit/stats)"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/overview-dashboard/plan/tasks/TASK-0109-Stats-Endpoint.md"
+      parent: "FEAT-0017"
+    TASK-0110:
+      title: "Overview mode + dashboard renderer"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/overview-dashboard/plan/tasks/TASK-0110-Overview-Mode.md"
+      parent: "FEAT-0017"
 
-  issues: {}
+    TASK-0111:
+      title: "Validation health endpoint — run validate-docs on watcher events, cache result, SSE notify"
+      status: done
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/verification-health/plan/tasks/TASK-0111-Validation-Health-Endpoint.md"
+      parent: "FEAT-0018"
+      tests: ["TST-0016"]
+    TASK-0112:
+      title: "Health badge + drift panel UI — chrome badge, error list deep-linked to offending notes"
+      status: done
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/verification-health/plan/tasks/TASK-0112-Health-Badge-And-Drift-Panel.md"
+      parent: "FEAT-0018"
+    TASK-0113:
+      title: "Waiver/review-verdict badges + adequacy surfacing in note and index views"
+      status: done
+      phase: "[[PHASE-999-Future]]"
+      path: "docs/features/verification-health/plan/tasks/TASK-0113-Waiver-Review-Adequacy-Badges.md"
+      parent: "FEAT-0018"
+      tests: ["TST-0016"]
+
+    TASK-0114:
+      title: "Agent-hook ingestion endpoint — /api/agent-hook + state mapping + SSE fan-out"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/plan/tasks/TASK-0114-Agent-Hook-Endpoint.md"
+      parent: "FEAT-0019"
+    TASK-0115:
+      title: "Claude Code hook injection at PTY spawn"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/plan/tasks/TASK-0115-Claude-Hook-Injection.md"
+      parent: "FEAT-0019"
+    TASK-0116:
+      title: "Codex CLI hooks.json + notify injection"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/plan/tasks/TASK-0116-Codex-Hook-Injection.md"
+      parent: "FEAT-0019"
+    TASK-0117:
+      title: "Statusline forwarder — cost/context/rate-limit feed"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/plan/tasks/TASK-0117-Statusline-Forwarder.md"
+      parent: "FEAT-0019"
+    TASK-0118:
+      title: "Activity strip above the terminal — prompt, tool, file, cost/context meters"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-activity/plan/tasks/TASK-0118-Activity-Strip.md"
+      parent: "FEAT-0020"
+    TASK-0119:
+      title: "Needs-input inbox — cross-workspace bell + jump-to-terminal"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-activity/plan/tasks/TASK-0119-Needs-Input-Inbox.md"
+      parent: "FEAT-0020"
+    TASK-0120:
+      title: "Live nav attribution trail + needs-input rail-dot vocabulary"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-activity/plan/tasks/TASK-0120-Nav-Trail-And-Rail-Dots.md"
+      parent: "FEAT-0020"
+    TASK-0121:
+      title: "Dispatch action — templates, context menu, agent picker, PTY input"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/task-dispatch/plan/tasks/TASK-0121-Dispatch-Action.md"
+      parent: "FEAT-0021"
+    TASK-0122:
+      title: "Dispatch round-trip — focus hint + follow-mode integration"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/task-dispatch/plan/tasks/TASK-0122-Dispatch-Follow-Mode.md"
+      parent: "FEAT-0021"
+    TASK-0123:
+      title: "Session index — per-workspace session metadata persistence"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0123-Session-Index.md"
+      parent: "FEAT-0022"
+    TASK-0124:
+      title: "Session history browser — list + detail view"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0124-Session-Browser.md"
+      parent: "FEAT-0022"
+    TASK-0125:
+      title: "Undocumented-work badge — live doc-traceability guardrail"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0125-Undocumented-Work-Badge.md"
+      parent: "FEAT-0022"
+    TASK-0126:
+      title: "CHG ↔ session linking — provenance enrichment"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0126-CHG-Session-Linking.md"
+      parent: "FEAT-0022"
+    TASK-0127:
+      title: "Overview sessions redesign — live banner, feeds column, virtual detail page"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0127-Overview-Sessions-Redesign.md"
+      parent: "FEAT-0022"
+    TASK-0128:
+      title: "Scoped stats endpoint + payload cache"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0128-Scoped-Stats-Endpoint.md"
+      parent: "FEAT-0023"
+    TASK-0129:
+      title: "Scope panes — left scope list, scoped centre dashboard, right Now + context"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0129-Scope-Panes.md"
+      parent: "FEAT-0023"
+    TASK-0130:
+      title: "Overview lifecycle fixes — history, refresh churn, fetch fan-out, live ticks"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0130-Overview-Lifecycle-Fixes.md"
+      parent: "FEAT-0023"
+    TASK-0131:
+      title: "Verb registry — per-type actions, YAML override, /api/cockpit/actions"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-verbs/plan/tasks/TASK-0131-Verb-Registry.md"
+      parent: "FEAT-0024"
+    TASK-0132:
+      title: "Verb UI — Agent submenu, verb-aware dispatch button, agent preference"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-verbs/plan/tasks/TASK-0132-Verb-UI.md"
+      parent: "FEAT-0024"
+    TASK-0133:
+      title: "Dispatch queue — enqueue when busy, auto-type on Stop/SessionEnd"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-verbs/plan/tasks/TASK-0133-Dispatch-Queue.md"
+      parent: "FEAT-0024"
+    TASK-0134:
+      title: "Main-process dispatch queue — persisted, workspace-independent delivery"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0134-Main-Process-Queue.md"
+      parent: "FEAT-0025"
+    TASK-0135:
+      title: "Dispatch ledger — record, session stamping, provenance UI"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0135-Dispatch-Ledger.md"
+      parent: "FEAT-0025"
+    TASK-0136:
+      title: "cockpit dispatch CLI — queue work from any terminal"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0136-Dispatch-CLI.md"
+      parent: "FEAT-0025"
+    TASK-0137:
+      title: "Status-aware verbs — when-lists in the registry, filtered menus"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/verb-polish/plan/tasks/TASK-0137-Status-Aware-Verbs.md"
+      parent: "FEAT-0026"
+    TASK-0138:
+      title: "Palette verbs — ⌘P understands 'refine TASK-0115'"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/verb-polish/plan/tasks/TASK-0138-Palette-Verbs.md"
+      parent: "FEAT-0026"
+    TASK-0139:
+      title: "Type-from-data + hardening — data attrs, agent-mismatch warning, dead code"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/verb-polish/plan/tasks/TASK-0139-Type-From-Data.md"
+      parent: "FEAT-0026"
+    TASK-0140:
+      title: "Doc header bar — note identity, path, verb buttons on every note"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/verb-polish/plan/tasks/TASK-0140-Doc-Header-Bar.md"
+      parent: "FEAT-0026"
+    TASK-0141:
+      title: "External agent-state hook + managed ~/.claude install/uninstall"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/external-signal/plan/tasks/TASK-0141-External-Hook-Install.md"
+      parent: "FEAT-0027"
+    TASK-0142:
+      title: "Settings panel — enable the rail button, external-hook toggle"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
+      parent: "FEAT-0027"
+    TASK-0143:
+      title: "Desktop discovery files + poller-side decay"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/external-signal/plan/tasks/TASK-0143-Discovery-And-Decay.md"
+      parent: "FEAT-0027"
+    TASK-0144:
+      title: "tmux-backed terminal survivability — agents outlive the desktop app"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0144-Tmux-Terminal-Survivability.md"
+      parent: "FEAT-0007"
+    TASK-0145:
+      title: "Quit guard for live agents + resume hint after an unclean terminal death"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/desktop-shell/plan/tasks/TASK-0145-Quit-Guard-And-Death-Hint.md"
+      parent: "FEAT-0007"
+    TASK-0146:
+      title: "Sidecar identity guard — reject foreign-cwd hook events, identity endpoint, stale-url janitor"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/external-signal/plan/tasks/TASK-0146-Sidecar-Identity-Guard.md"
+      parent: "FEAT-0027"
+
+
+
+  issues:
+    ISS-0010:
+      title: "Agent strip (and its files view) vanishes the moment a session ends — regression from ISS-0009"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0010-Agent-Strip-Files-Vanish-When-Idle.md"
+      component: renderer-chrome
+    ISS-0009:
+      title: "Inbox and queue popovers never visually close — CSS display:flex overrides the hidden attribute"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0009-Popovers-Never-Hide.md"
+      component: renderer-chrome
+    ISS-0008:
+      title: "Embedded terminal agents die with the desktop app — no survivability or reattach after an app exit"
+      status: fixed
+      severity: high
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0008-Terminal-Sessions-Die-With-App.md"
+      component: terminal
+    ISS-0007:
+      title: "Stale .cockpit/url + port reuse routes one workspace's hook events into another workspace's sidecar"
+      status: fixed
+      severity: high
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0007-Stale-Url-Cross-Workspace-Poisoning.md"
+      component: agent-instrument
+    ISS-0006:
+      title: "Rail agent-state dot clipped by ws-square overflow; active bar never visible; busy/done greens indistinguishable"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0006-Rail-Marker-Clipping.md"
+      component: renderer-rail
+    ISS-0002:
+      title: "Instrumented .zshrc breaks when the user aliases claude/codex"
+      status: fixed
+      severity: high
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0002-Zshrc-Alias-Collision.md"
+      component: agent-instrument
+    ISS-0003:
+      title: "Hook commands failed silently — unquoted userData path contains a space"
+      status: fixed
+      severity: critical
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0003-Hook-Path-Space.md"
+      component: agent-instrument
+    ISS-0005:
+      title: "Row context menu + agent-touch trail never fired — selector matched a class the <li> doesn't carry"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0005-Nav-Row-Selector-Rot.md"
+      component: renderer-nav
+    ISS-0004:
+      title: "Overview squares for fulfilled/met requirements render unfilled"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0004-Requirement-Squares-Unfilled.md"
+      component: cockpit-stats
+    ISS-0001:
+      title: "Watcher-indexed paths poison _records under a mismatched case on macOS, so /api/render returns empty frontmatter for files created/modified after cockpit start"
+      status: triage
+      severity: high
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/issues/ISS-0001-WatcherIndexedPathCaseMismatch.md"
+      component: index/watcher
 
   requirements:
+    REQ-0018:
+      title: "Every agent state that needs the user is discoverable in-app, across all workspaces, until acted on or dismissed"
+      status: approved
+      path: "docs/requirements/REQ-0018-Agent-Attention-Completeness.md"
+    REQ-0019:
+      title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — on one dedicated screen"
+      status: implemented
+      path: "docs/requirements/REQ-0019-Agent-Fleet-Visibility.md"
     REQ-0001:
       title: "Renders any .md under target docs/ as HTML on request — no build step"
       status: verified
@@ -407,12 +1251,25 @@ items:
       path: "docs/phases/PHASE-002-Project-OS-Adapter.md"
     PHASE-003:
       title: "Downstream pilot"
-      status: backlog
+      status: planned
       path: "docs/phases/PHASE-003-Downstream-Pilot.md"
     PHASE-004:
       title: "Embedded terminal"
-      status: backlog
+      status: planned
       path: "docs/phases/PHASE-004-Embedded-Terminal.md"
+    PHASE-005:
+      title: "Desktop shell (Electron + Python sidecar)"
+      status: active
+      path: "docs/phases/PHASE-005-Desktop-Shell.md"
+    PHASE-006:
+      title: "Native cockpit UI (TypeScript rewrite)"
+      status: done
+      path: "docs/phases/PHASE-006-Native-Cockpit-UI.md"
+    PHASE-007:
+      title: "Agent instrumentation (hooks-aware terminal)"
+      status: active
+      path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
+      features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027"]
     PHASE-999:
       title: "Future / Unphased"
       status: planned
@@ -432,6 +1289,10 @@ items:
       title: "Python 3.11+ runtime requirement excludes default macOS / common LTS"
       status: open
       path: "docs/risks/RISK-0003-Python-Runtime-Floor.md"
+    RISK-0004:
+      title: "Hook injection modifies agent CLI configuration surfaces"
+      status: open
+      path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
     TST-0001:
@@ -449,8 +1310,150 @@ items:
       status: passing
       path: "docs/features/cockpit/plan/tests/TST-0003-Unknown-Post-Drains-Body.md"
       validates: ["TASK-0057", "FEAT-0006"]
+    TST-0004:
+      title: "Sidecar contract — /healthz, COCKPIT_DESKTOP gating, mode-1 regression guard"
+      status: passing
+      path: "docs/features/desktop-shell/plan/tests/TST-0004-Sidecar-Contract.md"
+      validates: ["TASK-0059", "FEAT-0007"]
+    TST-0005:
+      title: "GET /api/render — HTML fragment + metadata, error shapes, path-traversal guard"
+      status: passing
+      path: "docs/features/cockpit-api-hardening/plan/tests/TST-0005-Render-Endpoint.md"
+      validates: ["TASK-0067", "FEAT-0008"]
+    TST-0006:
+      title: "Every JSON endpoint emits X-Cockpit-Schema matching cockpit.SCHEMA_VERSION"
+      status: passing
+      path: "docs/features/cockpit-api-hardening/plan/tests/TST-0006-Schema-Header.md"
+      validates: ["TASK-0068", "FEAT-0008"]
+    TST-0007:
+      title: "Wire-level coverage for focus POST, tab-state POST, and SSE event shapes"
+      status: passing
+      path: "docs/features/cockpit-api-hardening/plan/tests/TST-0007-Focus-Tab-State-SSE.md"
+      validates: ["TASK-0069", "FEAT-0008"]
+    TST-0008:
+      title: "POST /api/notes/check-toggle — write-back, error shapes, nested tasks"
+      status: passing
+      path: "docs/features/native-center-pane/plan/tests/TST-0008-Check-Toggle.md"
+      validates: ["TASK-0074", "FEAT-0011"]
+    TST-0009:
+      title: "Agent-state pipe — storage, endpoint, SSE delivery, decay, CLI"
+      status: passing
+      path: "docs/features/agent-state-signal/plan/tests/TST-0009-Agent-State.md"
+      validates: ["TASK-0076", "TASK-0077", "TASK-0078", "FEAT-0013"]
+    TST-0010:
+      title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
+      status: passing
+      path: "docs/features/agent-hooks/plan/tests/TST-0010-Agent-Hook-Ingestion.md"
+    TST-0011:
+      title: "Live-session instrumentation + activity surfaces — manual checklist"
+      status: ready
+      path: "docs/features/agent-hooks/plan/tests/TST-0011-Live-Session-Instrumentation.md"
+    TST-0012:
+      title: "Scoped stats payload + cache"
+      status: passing
+      path: "docs/features/overview-scopes/plan/tests/TST-0012-Scoped-Stats.md"
+    TST-0013:
+      title: "Agent verb registry — defaults, YAML override, endpoint"
+      status: passing
+      path: "docs/features/agent-verbs/plan/tests/TST-0013-Verb-Registry.md"
+    TST-0014:
+      title: "Dispatch ledger, queue-requests, status-aware verbs, CLI"
+      status: passing
+      path: "docs/features/dispatch-runtime/plan/tests/TST-0014-Dispatch-Ledger.md"
+    TST-0015:
+      title: "External agent-state hook — no-op scoping, state mapping, sidecar POST, fallback"
+      status: passing
+      path: "docs/features/external-signal/plan/tests/TST-0015-External-Hook.md"
+    TST-0016:
+      title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
+      status: passing
+      path: "docs/features/verification-health/plan/tests/TST-0016-Validation-Health.md"
+      validates: ["TASK-0111", "TASK-0113", "FEAT-0018"]
+    TST-0017:
+      title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
+      status: passing
+      path: "docs/features/external-signal/plan/tests/TST-0017-Sidecar-Identity-Guard.md"
+      validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260719-Agents-Screen:
+      title: "Agents screen (~agents) — cross-workspace fleet view + main-process fleet proxy"
+      status: merged
+      path: "docs/changes/CHG-20260719-Agents-Screen.md"
+      features: ["FEAT-0032"]
+    CHG-20260719-Ambient-Consolidation:
+      title: "Ambient status consolidation — footer dot removed, Now card demoted, rate-limit pip added"
+      status: merged
+      path: "docs/changes/CHG-20260719-Ambient-Consolidation.md"
+      features: ["FEAT-0031"]
+    CHG-20260719-Signal-Hygiene:
+      title: "Agent signal hygiene — ingestion dedup, unified decay, surface rots"
+      status: merged
+      path: "docs/changes/CHG-20260719-Signal-Hygiene.md"
+      features: ["FEAT-0033"]
+    CHG-20260719-Agent-Strip-Persist-Last-Session:
+      title: "Agent strip persists the last session (files included) between runs"
+      status: merged
+      path: "docs/changes/CHG-20260719-Agent-Strip-Persist-Last-Session.md"
+      issues: ["ISS-0010"]
+    CHG-20260719-Agent-Attention-Panel:
+      title: "Docked agent attention panel + honest severity + seen-acknowledgement (bell removed)"
+      status: merged
+      path: "docs/changes/CHG-20260719-Agent-Attention-Panel.md"
+      features: ["FEAT-0030"]
+    CHG-20260719-Popover-Hide-Fix:
+      title: "Inbox + queue popovers actually close — [hidden] display rule restored"
+      status: merged
+      path: "docs/changes/CHG-20260719-Popover-Hide-Fix.md"
+      issues: ["ISS-0009"]
+    CHG-20260719-Terminal-Survivability-And-Identity-Guard:
+      title: "tmux-backed terminal survivability + sidecar identity guard"
+      status: merged
+      path: "docs/changes/CHG-20260719-Terminal-Survivability-And-Identity-Guard.md"
+      issues: ["ISS-0007", "ISS-0008"]
+      features: ["FEAT-0007", "FEAT-0027"]
+    CHG-20260718-Rail-Marker-Notch:
+      title: "Rail agent-state markers — corner notch, accent busy, needs-input ring, revived active bar"
+      status: merged
+      path: "docs/changes/CHG-20260718-Rail-Marker-Notch.md"
+      issues: ["ISS-0006"]
+      features: ["FEAT-0020"]
+    CHG-20260717-Verification-Health-Surface:
+      title: "Verification health surface — /api/cockpit/validation, health badge + drift panel, waiver/verdict/adequacy chips"
+      status: merged
+      path: "docs/changes/CHG-20260717-Verification-Health-Surface.md"
+      features: ["FEAT-0018"]
+      source_task: "TASK-0111..TASK-0113"
+    CHG-20260706-External-Signal:
+      title: "External session signal — settings panel with opt-in ~/.claude hook, desktop discovery files, poller decay"
+      status: merged
+      path: "docs/changes/CHG-20260706-External-Signal.md"
+      features: ["FEAT-0027"]
+    CHG-20260706-Header-And-Hook-Fixes:
+      title: "Doc header bar with verb buttons + hook-injection fixes (alias collision, path quoting, requirement squares)"
+      status: merged
+      path: "docs/changes/CHG-20260706-Header-And-Hook-Fixes.md"
+      features: ["FEAT-0026", "FEAT-0019"]
+    CHG-20260706-Dispatch-Runtime:
+      title: "Dispatch runtime + verb polish — main-process queue, ledger, CLI, status-aware verbs, palette"
+      status: merged
+      path: "docs/changes/CHG-20260706-Dispatch-Runtime.md"
+      features: ["FEAT-0025", "FEAT-0026"]
+    CHG-20260706-Agent-Verbs:
+      title: "Agent verbs — drive the docs system from any note, with a dispatch queue"
+      status: merged
+      path: "docs/changes/CHG-20260706-Agent-Verbs.md"
+      features: ["FEAT-0024"]
+    CHG-20260706-Overview-Scopes:
+      title: "Overview scopes — drill-down phase dashboards, pane contract restored, lifecycle fixes"
+      status: merged
+      path: "docs/changes/CHG-20260706-Overview-Scopes.md"
+      features: ["FEAT-0023"]
+    CHG-20260705-Agent-Instrumentation:
+      title: "PHASE-007: hook-fed agent instrumentation — /api/agent-hook, PTY injection, activity strip, needs-input inbox, task dispatch, session insight"
+      status: merged
+      path: "docs/changes/CHG-20260705-Agent-Instrumentation.md"
+      features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022"]
     CHG-20260507-Bootstrap-Python-Project:
       title: "Bootstrap Python project: pyproject.toml + src/docs_server/ scaffold"
       status: merged
@@ -656,6 +1659,95 @@ items:
       path: "docs/changes/CHG-20260523-Cockpit-Soft-Live-Reload.md"
       features: ["FEAT-0006"]
       source_task: "TASK-0014"
+    CHG-20260524-Desktop-Shell-Scaffold:
+      title: "Desktop shell scaffold — Electron + Python sidecar, multi-project workspace switcher"
+      status: merged
+      path: "docs/changes/CHG-20260524-Desktop-Shell-Scaffold.md"
+      features: ["FEAT-0007"]
+      source_task: "TASK-0058..TASK-0061"
+    CHG-20260524-Desktop-Shell-Runtime-Terminal-Chrome:
+      title: "Desktop shell: bundled Python runtime, native terminal pane, app chrome"
+      status: merged
+      path: "docs/changes/CHG-20260524-Desktop-Shell-Runtime-Terminal-Chrome.md"
+      features: ["FEAT-0007"]
+      source_task: "TASK-0062..TASK-0064"
+    CHG-20260525-Cockpit-API-Hardening:
+      title: "Cockpit API hardening: contract doc, GET /api/render, schema-header coverage, wire-level focus/tab-state/SSE tests"
+      status: merged
+      path: "docs/changes/CHG-20260525-Cockpit-API-Hardening.md"
+      features: ["FEAT-0008"]
+      source_task: "TASK-0066..TASK-0069"
+    CHG-20260525-Native-Center-Pane:
+      title: "Native centre pane: /api/render mount, link interception, history, scroll/anchors, interactive checkboxes"
+      status: merged
+      path: "docs/changes/CHG-20260525-Native-Center-Pane.md"
+      features: ["FEAT-0011"]
+      source_task: "TASK-0070..TASK-0074"
+    CHG-20260525-Native-Metadata-Strip:
+      title: "Native centre: server-rendered metadata strip, base.css copied, grid-child sizing fix"
+      status: merged
+      path: "docs/changes/CHG-20260525-Native-Metadata-Strip.md"
+      features: ["FEAT-0011"]
+      source_task: "TASK-0075"
+    CHG-20260525-Agent-State-Signal:
+      title: "Agent state signal: `cockpit signal` CLI + POST /api/cockpit/agent-state + SSE + decay timer + schema bump 2→3"
+      status: merged
+      path: "docs/changes/CHG-20260525-Agent-State-Signal.md"
+      features: ["FEAT-0013"]
+      source_task: "TASK-0076..TASK-0079"
+    CHG-20260525-Native-Nav-Surface:
+      title: "Native nav surface: activity-bar rail with agent-state dots + in-workspace nav (5 modes) + right pane + SSE soft-reload"
+      status: merged
+      path: "docs/changes/CHG-20260525-Native-Nav-Surface.md"
+      features: ["FEAT-0010"]
+      source_task: "TASK-0080..TASK-0086"
+    CHG-20260525-Agent-Waiting-Notification:
+      title: "OS notification on agent `waiting` — first FEAT-0012 task"
+      status: merged
+      path: "docs/changes/CHG-20260525-Agent-Waiting-Notification.md"
+      features: ["FEAT-0012"]
+      source_task: "TASK-0087"
+    CHG-20260525-Native-UX-Wins:
+      title: "Native UX wins: ⌘P, ⌘F, native context menus, drag-drop, multi-window + hiddenInset title bar"
+      status: merged
+      path: "docs/changes/CHG-20260525-Native-UX-Wins.md"
+      features: ["FEAT-0012", "FEAT-0009"]
+      source_task: "TASK-0088..TASK-0093"
+    CHG-20260525-FEAT-0009-Chrome-Polish:
+      title: "FEAT-0009 done: status footer, theme picker, resizable column splitters"
+      status: merged
+      path: "docs/changes/CHG-20260525-FEAT-0009-Chrome-Polish.md"
+      features: ["FEAT-0009"]
+      source_task: "TASK-0094..TASK-0096"
+    CHG-20260525-Cockpit-IA-Rework:
+      title: "Cockpit IA rework: workspace tabs, mode ribbon, full item-render port"
+      status: merged
+      path: "docs/changes/CHG-20260525-Cockpit-IA-Rework.md"
+      features: ["FEAT-0014"]
+      source_task: "TASK-0097..TASK-0099"
+    CHG-20260525-Cockpit-IA-V2:
+      title: "Cockpit IA v2: Discord-style rail, modes-on-top, per-workspace terminal, palette/theme bug fixes, project header, custom combobox"
+      status: merged
+      path: "docs/changes/CHG-20260525-Cockpit-IA-V2.md"
+      features: ["FEAT-0015"]
+      source_task: "TASK-0100..TASK-0105"
+    CHG-20260525-Project-Management:
+      title: "Project management: manual add, rename, custom icon, remove; auto-discovery dropped; per-workspace sidecar persistence + port-exhaustion fix"
+      status: merged
+      path: "docs/changes/CHG-20260525-Project-Management.md"
+      features: ["FEAT-0016"]
+      source_task: "TASK-0106..TASK-0108"
+    CHG-20260525-Overview-Dashboard:
+      title: "Overview dashboard: hero strip, phase progress, status donuts, activity histogram + recent CHG feed; plus identicons / colour swatches / emoji icon picks, ⌘P paste-a-path fix, header height alignment, top-bar back/forward + search bar + star pin"
+      status: merged
+      path: "docs/changes/CHG-20260525-Overview-Dashboard.md"
+      features: ["FEAT-0017"]
+      source_task: "TASK-0109..TASK-0110"
+    CHG-20260705-Adopt-Mechanical-Verification:
+      title: "Adopt project-os mechanical verification: docs validator + blocking hooks + pre-commit/CI, independent-review and docs-audit skills; fixed snapshot drift the validator caught"
+      status: merged
+      path: "docs/changes/CHG-20260705-Adopt-Mechanical-Verification.md"
+      features: ["FEAT-0018"]
   releases: {}
 
   decisions:
@@ -675,20 +1767,27 @@ items:
       title: "Cockpit data driver: code-emitted JSON vs `.base` evaluator"
       status: accepted
       path: "docs/decisions/ADR-0004-Cockpit-Code-Driven-Vs-Bases.md"
+    ADR-0005:
+      title: "Desktop shell: Electron + Python sidecar (additive, multi-project)"
+      status: accepted
+      path: "docs/decisions/ADR-0005-Electron-Plus-Python-Sidecar.md"
 
 metrics:
   counts:
-    features_total: 6
-    features_done: 2
-    tasks_total: 57
-    tasks_done: 54
-    tests_total: 3
-    tests_passing: 3
-    test_cases_total: 76
-    test_cases_passing: 76
+    # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
+    # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
+    # lands with that phase's own close-out.
+    features_total: 20
+    features_done: 12
+    tasks_total: 113
+    tasks_done: 109
+    tests_total: 10
+    tests_passing: 10
+    test_cases_total: 167
+    test_cases_passing: 166
     tests_failing: 0
     issues_open: 0
     issues_triage: 0
     risks_open: 3
     releases_total: 0
-    decisions_total: 4
+    decisions_total: 5

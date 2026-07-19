@@ -3,14 +3,14 @@ type: "[[phase]]"
 id: PHASE-004
 aliases: ["PHASE-004"]
 title: "Embedded terminal"
-status: backlog
+status: planned
 order: 4
 owner: user:edwin
 created: 2026-05-08
 updated: 2026-05-08
 features:
   - "[[FEAT-0003-Embedded-Terminal]]"
-depends_on: ["[[PHASE-001-MVP]]"]
+depends: ["[[PHASE-001-MVP]]"]
 ---
 
 # Phase 4: Embedded terminal

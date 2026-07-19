@@ -7,9 +7,8 @@ status: planned
 order: 999
 owner: user:edwin
 created: 2026-05-23
-updated: 2026-05-23
-features: []
-depends_on: []
+updated: 2026-07-17
+features: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0028-Fleet-Health-Surface]]", "[[FEAT-0029-Cockpit-MCP-Server]]"]
 ---
 
 # Phase 999: Future / Unphased

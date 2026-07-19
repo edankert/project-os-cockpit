@@ -393,6 +393,43 @@ details.metadata-strip > summary:hover {
 .status-chip[data-status="reference"]   { color: var(--status-reference); }
 .status-chip[data-status="deferred"]    { color: var(--status-reference); }
 
+/* ----- Verification-surface chips (FEAT-0018 / TASK-0113) ----- */
+/* Same pill shape as .status-chip; hues reuse existing tokens only:
+ * the warn (amber) pair for waivers / missing adequacy evidence, and
+ * the status palette for review verdicts. */
+
+.waiver-chip,
+.verdict-chip,
+.adequacy-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  vertical-align: middle;
+  text-transform: lowercase;
+}
+
+/* Amber "waived" — a waived terminal status must not read as verified. */
+.waiver-chip {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+}
+
+/* Review verdict: green approved / red changes-requested. */
+.verdict-chip { color: var(--status-default); }
+.verdict-chip[data-verdict="approved"]         { color: var(--status-active); }
+.verdict-chip[data-verdict="changes-requested"] { color: var(--status-blocked); }
+
+/* TST notes without adequacy evidence — dashed amber marker. */
+.adequacy-chip {
+  color: var(--warn-fg);
+  border-style: dashed;
+}
+
 /* ----- Article ----- */
 
 .content {

@@ -9,7 +9,7 @@ owner: user:edwin
 created: 2026-05-08
 updated: 2026-05-08
 source: ["[[CHG-20260508-Cockpit-Platform-Filter]]"]
-implements: ["[[FEAT-0006]]", "[[REQ-0014]]"]
+parent: "[[FEAT-0006]]"
 fixes: []
 effort: S
 due: ""

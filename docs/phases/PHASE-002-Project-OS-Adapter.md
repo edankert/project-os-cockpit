@@ -11,7 +11,7 @@ updated: 2026-05-07
 features:
   - "[[FEAT-0004-Project-OS-Adapter]]"
   - "[[FEAT-0006-Cockpit-Layout]]"
-depends_on: ["[[PHASE-001-MVP]]"]
+depends: ["[[PHASE-001-MVP]]"]
 ---
 
 # Phase 2: Project-os adapter

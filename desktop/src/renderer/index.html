@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*;" />
+  <title>project-os-cockpit</title>
+  <link rel="stylesheet" href="./xterm.css" />
+  <link rel="stylesheet" href="./base.css" />
+  <link rel="stylesheet" href="./cockpit.css" />
+  <link rel="stylesheet" href="./renderer.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <!-- Window-wide top bar. Left zone reserves space for the macOS
+         traffic lights (hiddenInset). Then: mode icons, spacer, the
+         two pane-collapse toggles flush right. Background is a window
+         drag region except where a button overrides it. -->
+    <header id="top-bar" class="top-bar" aria-label="Toolbar">
+      <!-- Left zone mirrors the rail+nav columns below. Modes left-
+           align after the macOS traffic-light reserve; the left-
+           collapse button is absolute-positioned flush against the
+           right edge so it always sits adjacent to splitter-nav and
+           overlays the modes when the nav is dragged narrow. -->
+      <div class="top-bar-left">
+        <div class="top-bar-modes" role="tablist" aria-label="Nav modes">
+          <button type="button" class="top-bar-btn" data-mode="overview" title="Overview" role="tab" aria-label="Overview"></button>
+          <button type="button" class="top-bar-btn" data-mode="features" title="Features (by phase)" role="tab" aria-label="Features"></button>
+          <button type="button" class="top-bar-btn" data-mode="tasks"    title="Tasks"               role="tab" aria-label="Tasks"></button>
+          <button type="button" class="top-bar-btn" data-mode="issues"   title="Issues"              role="tab" aria-label="Issues"></button>
+          <button type="button" class="top-bar-btn" data-mode="library"  title="Library"             role="tab" aria-label="Library"></button>
+          <button type="button" class="top-bar-btn" data-mode="recent"   title="Recent"              role="tab" aria-label="Recent"></button>
+        </div>
+        <button id="left-pane-collapse" type="button" class="top-bar-btn" title="Collapse left pane" aria-label="Collapse left pane"></button>
+      </div>
+      <!-- Centered controls: back / forward / global search. The
+           search button looks like an input but is just a button —
+           clicking opens the existing Cmd+P quick-switch palette. -->
+      <div class="top-bar-stage">
+        <button id="top-bar-back" type="button" class="top-bar-btn top-bar-nav-btn"
+                title="Back (⌘[)" aria-label="Back" disabled>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <button id="top-bar-fwd" type="button" class="top-bar-btn top-bar-nav-btn"
+                title="Forward (⌘])" aria-label="Forward" disabled>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+        <button id="top-bar-search" type="button" class="top-bar-search"
+                title="Search files, IDs, or commands (⌘P)" aria-label="Search">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <span class="top-bar-search-label">Search files, IDs, or commands…</span>
+          <span class="top-bar-search-shortcut">⌘P</span>
+        </button>
+        <button id="top-bar-star" type="button" class="top-bar-btn top-bar-star"
+                title="Pin to Library" aria-label="Pin to Library"
+                aria-pressed="false" disabled></button>
+      </div>
+      <!-- Right zone mirrors the right-pane column. Collapse button
+           sits flush against the left edge (adjacent to splitter-right). -->
+      <div class="top-bar-right">
+        <button id="right-pane-toggle" type="button" class="top-bar-btn" title="Collapse right pane" aria-label="Collapse right pane"></button>
+      </div>
+    </header>
+
+    <!-- Workspace mini-rail (FEAT-0015 / TASK-0100). 44 px far-left.
+         Top: workspaces + add. Bottom: tools (hide-completed,
+         terminal, settings). -->
+    <aside id="ws-rail" class="ws-rail" aria-label="Workspaces">
+      <ul id="workspace-list" class="workspace-list" role="list"></ul>
+      <button id="ws-rail-add" type="button" class="ws-rail-action" title="Rescan / add workspace">+</button>
+      <div class="ws-rail-spacer"></div>
+      <div class="ws-rail-tools">
+        <button id="search-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Search (⌘P)" aria-label="Search"></button>
+        <button id="hide-completed-toggle" type="button" class="ws-rail-action ws-rail-tool" title="Hide completed" aria-pressed="false" aria-label="Hide completed"></button>
+        <button id="terminal-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Toggle terminal (⌘`)" aria-label="Toggle terminal"></button>
+        <button id="agents-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Agents — all sessions" aria-label="Agents"></button>
+        <button id="settings-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Settings" aria-label="Settings" aria-expanded="false"></button>
+      </div>
+    </aside>
+
+    <!-- In-workspace nav. The mode/collapse/etc. toolbar has moved
+         to the window-wide top bar; this column now hosts only the
+         platform pill row (when applicable) and the nav list. -->
+    <aside id="ws-nav" class="ws-nav" aria-label="In-workspace navigation">
+      <!-- Project header — icon + name of the active workspace.
+           Populated on openWorkspace; hidden when no workspace active. -->
+      <header id="ws-nav-project" class="ws-nav-project" hidden>
+        <span id="ws-nav-project-icon" class="ws-nav-project-icon" aria-hidden="true"></span>
+        <span id="ws-nav-project-name" class="ws-nav-project-name"></span>
+        <button id="project-settings-btn" type="button" class="project-settings-btn"
+                title="Project settings" aria-label="Project settings"
+                aria-haspopup="menu" aria-expanded="false">⋮</button>
+        <div id="project-settings-menu" class="project-settings-menu" hidden role="menu">
+          <div class="psm-row">
+            <label class="psm-label" for="psm-name">Name</label>
+            <input id="psm-name" class="psm-input" type="text"
+                   autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="psm-row">
+            <label class="psm-label">Icon</label>
+            <div class="psm-icon-row">
+              <button id="psm-pick-icon" type="button" class="psm-mini">Image…</button>
+              <input id="psm-emoji" class="psm-emoji" type="text"
+                     placeholder="emoji" maxlength="4"
+                     autocomplete="off" spellcheck="false" />
+            </div>
+            <div id="psm-swatches" class="psm-swatches" role="group" aria-label="Identicon colour">
+              <button type="button" class="psm-swatch psm-swatch-auto" data-color="" title="Auto (hash-derived)"></button>
+              <button type="button" class="psm-swatch" data-color="#ef4444" style="background:#ef4444" title="Red"></button>
+              <button type="button" class="psm-swatch" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
+              <button type="button" class="psm-swatch" data-color="#10b981" style="background:#10b981" title="Green"></button>
+              <button type="button" class="psm-swatch" data-color="#0ea5e9" style="background:#0ea5e9" title="Sky"></button>
+              <button type="button" class="psm-swatch" data-color="#6366f1" style="background:#6366f1" title="Indigo"></button>
+              <button type="button" class="psm-swatch" data-color="#a855f7" style="background:#a855f7" title="Purple"></button>
+              <button type="button" class="psm-swatch" data-color="#ec4899" style="background:#ec4899" title="Pink"></button>
+              <button type="button" class="psm-swatch" data-color="#6b7280" style="background:#6b7280" title="Gray"></button>
+            </div>
+          </div>
+          <button id="psm-reset-icon" type="button" class="psm-action">Reset to identicon</button>
+          <button id="psm-reveal"     type="button" class="psm-action">Reveal in Finder</button>
+          <div class="psm-divider" aria-hidden="true"></div>
+          <button id="psm-remove"     type="button" class="psm-action psm-danger">Remove from list…</button>
+        </div>
+      </header>
+      <div id="platform-bar" class="ws-platform-bar" hidden>
+        <div id="platform-combo" class="platform-combo" tabindex="0"
+             role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-label="Platform filter">
+          <span id="platform-label" class="platform-combo-label">all</span>
+          <svg class="platform-combo-chevron" viewBox="0 0 24 24" width="14" height="14"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </div>
+        <ul id="platform-menu" class="platform-menu" role="listbox" hidden></ul>
+      </div>
+      <div id="ws-nav-placeholder" class="ws-nav-placeholder">
+        <p>Pick a workspace from the rail on the left.</p>
+      </div>
+      <div id="ws-nav-content" class="ws-nav-content cockpit-pane" hidden></div>
+      <!-- Agent attention panel (FEAT-0030 / TASK-0147): docked below
+           the tree, cross-workspace, zero-height when empty. Populated
+           by renderAttentionPanel(). -->
+      <div id="ws-attention" class="ws-attention" hidden aria-label="Agents needing attention"></div>
+      <div id="splitter-nav" class="splitter splitter-nav" data-axis="nav" title="Drag to resize"></div>
+    </aside>
+
+    <main id="stage" class="stage">
+      <div id="find-bar" class="find-bar" hidden>
+        <input id="find-input" type="text" class="find-input"
+               placeholder="Find in document…"
+               autocomplete="off" spellcheck="false" />
+        <span id="find-count" class="find-count">0 / 0</span>
+        <button id="find-prev" type="button" class="find-button" title="Previous (Shift+Enter)">↑</button>
+        <button id="find-next" type="button" class="find-button" title="Next (Enter)">↓</button>
+        <button id="find-close" type="button" class="find-button" title="Close (Esc)">×</button>
+      </div>
+      <div id="stage-main" class="stage-main">
+        <div id="placeholder" class="placeholder">
+          <h2>Pick a workspace</h2>
+          <p>Select a project on the left rail to launch its cockpit.</p>
+        </div>
+        <article id="doc-view" class="doc-view cockpit-centre" hidden aria-label="Note"></article>
+        <div id="status-bar" class="status-bar" hidden></div>
+      </div>
+      <!-- Agent activity strip (FEAT-0020 / TASK-0118). Visible while
+           an instrumented agent session is live in this workspace. -->
+      <div id="agent-strip" class="agent-strip" hidden>
+        <span id="agent-strip-dot" class="agent-strip-dot" data-state="idle" aria-hidden="true"></span>
+        <span id="agent-strip-agent" class="agent-strip-agent"></span>
+        <span id="agent-strip-text" class="agent-strip-text" title=""></span>
+        <span id="agent-strip-undoc" class="agent-strip-undoc" hidden
+              title="Source files edited this session without touching a TASK/ISS/CHG note">undocumented</span>
+        <span class="agent-strip-spacer"></span>
+        <span id="agent-strip-ctx" class="agent-strip-meter" hidden title="Context window used"></span>
+        <span id="agent-strip-rl" class="agent-strip-meter" hidden title="5-hour rate-limit budget used"></span>
+        <span id="agent-strip-cost" class="agent-strip-meter" hidden title="Session cost"></span>
+        <button id="agent-strip-queue" type="button" class="agent-strip-queue" hidden
+                title="Queued dispatches (click to manage)"></button>
+        <button id="agent-strip-expand" type="button" class="agent-strip-expand"
+                title="Session details" aria-expanded="false">files</button>
+      </div>
+      <div id="agent-strip-detail" class="agent-strip-detail" hidden></div>
+      <div id="terminal-pane" class="terminal-pane" hidden>
+        <div id="terminal-divider" class="terminal-divider" title="Drag to resize"></div>
+        <div id="terminal-mount" class="terminal-mount"></div>
+      </div>
+    </main>
+
+    <div id="settings-popover" class="settings-popover" hidden aria-label="Cockpit settings">
+      <h3 class="settings-title">Settings</h3>
+      <label class="settings-row" for="setting-external-hook">
+        <input type="checkbox" id="setting-external-hook" />
+        <span class="settings-row-main">
+          <span class="settings-row-label">Signal agent state from external terminals</span>
+          <span class="settings-row-desc">Installs a hook into <code>~/.claude/settings.json</code> (backup kept, removed on disable). Claude sessions in any terminal then light the workspace dots — via the running cockpit when one exists, else by writing <code>.cockpit/agent-state.json</code>. Only acts inside project-os repos.</span>
+        </span>
+      </label>
+      <p id="settings-status" class="settings-status" hidden></p>
+    </div>
+
+    <div id="quick-switch" class="quick-switch" hidden>
+      <div class="quick-switch-modal">
+        <input id="quick-switch-input" type="text" class="quick-switch-input"
+               placeholder="Type to find a note — ID, title, or path…"
+               autocomplete="off" spellcheck="false" />
+        <ul id="quick-switch-results" class="quick-switch-results" role="listbox"></ul>
+        <div class="quick-switch-hint">↑↓ to navigate · Enter to open · Esc to close</div>
+      </div>
+    </div>
+
+    <aside id="right-pane" class="right-pane" aria-label="Context">
+      <div id="splitter-right" class="splitter splitter-right" data-axis="right" title="Drag to resize"></div>
+      <header class="right-pane-header">
+        <h2>Context</h2>
+      </header>
+      <div id="right-pane-content" class="right-pane-content cockpit-pane">
+        <p class="meta">No note selected yet.</p>
+      </div>
+    </aside>
+
+    <footer id="status-footer" class="status-footer" aria-label="Status">
+      <span id="sf-sidecar" class="sf-cell sf-sidecar" data-state="idle">
+        <span class="sf-dot" aria-hidden="true"></span>
+        <span class="sf-label">idle</span>
+      </span>
+      <span class="sf-sep" aria-hidden="true">·</span>
+      <span id="sf-path" class="sf-cell sf-path" title="Click to copy"></span>
+      <span class="sf-spacer"></span>
+      <span class="sf-cell sf-theme" role="group" aria-label="Theme">
+        <button type="button" class="sf-theme-btn" data-theme="system" title="Use system theme">Sys</button>
+        <button type="button" class="sf-theme-btn" data-theme="light"  title="Light theme">Lt</button>
+        <button type="button" class="sf-theme-btn" data-theme="dark"   title="Dark theme">Dk</button>
+      </span>
+    </footer>
+  </div>
+  <script src="./xterm.js"></script>
+  <script src="./addon-fit.js"></script>
+  <script src="./renderer.js"></script>
+</body>
+</html>

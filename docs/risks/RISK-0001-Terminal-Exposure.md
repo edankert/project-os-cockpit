@@ -10,7 +10,6 @@ owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
 related: ["[[FEAT-0003]]", "[[REQ-0005]]"]
-mitigations: []
 ---
 
 # RISK-0001 — Terminal exposure

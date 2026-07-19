@@ -10,7 +10,6 @@ owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
 related: ["[[FEAT-0001]]", "[[FEAT-0005]]", "[[CHG-20260507-Bootstrap-Python-Project]]"]
-mitigations: []
 ---
 
 # RISK-0003 — Python 3.11+ runtime floor

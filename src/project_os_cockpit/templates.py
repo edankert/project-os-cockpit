@@ -204,6 +204,7 @@ def page(
         '    <div id="cockpit-platform-slot" class="cockpit-platform-slot"></div>\n'
         '    <div id="cockpit-filter-slot" class="cockpit-filter-slot"></div>\n'
         '    <div id="cockpit-follow-slot" class="cockpit-follow-slot"></div>\n'
+        '    <div id="cockpit-health-slot" class="cockpit-health-slot"></div>\n'
         '    <button class="theme-toggle" type="button" aria-label="Toggle light / dark theme" aria-pressed="false">◐</button>\n'
         '    <div id="cockpit-right-toggle-slot" class="cockpit-right-toggle-slot"></div>\n'
         '  </div>\n'
@@ -283,7 +284,14 @@ def _metadata_strip_html(meta: dict[str, Any], resolver: Resolver | None) -> str
         if key in HIDDEN_META_KEYS:
             continue
         if key in meta and meta[key] not in (None, "", [], {}):
-            pairs.append((key, _render_meta_value(key, meta[key], resolver)))
+            rendered = _render_meta_value(key, meta[key], resolver)
+            if key == "status" and meta.get("verification_waiver") not in (
+                None, "", [], {},
+            ):
+                # Waived terminal status must be visually distinct from a
+                # verified one (FEAT-0018 / TASK-0113).
+                rendered += " " + _waiver_chip()
+            pairs.append((key, rendered))
             seen.add(key)
 
     for key, value in meta.items():
@@ -326,6 +334,14 @@ def _render_meta_value(key: str, value: Any, resolver: Resolver | None) -> str:
     """
     if key == "status":
         return _status_chip(value)
+    if key == "review_verdict":
+        # Independent-review verdict chip (FEAT-0018 / TASK-0113):
+        # green `approved`, red `changes-requested` (CSS keys off
+        # data-verdict; unknown verdicts fall back to the default hue).
+        return _verdict_chip(value)
+    if key == "verification_waiver":
+        # Amber "waived" chip + the recorded reason.
+        return _waiver_chip() + " " + _render_meta_value("", value, resolver)
     if isinstance(value, list):
         if not value:
             return ""
@@ -355,6 +371,27 @@ def _render_scalar(value: Any, resolver: Resolver | None) -> str:
         if url is not None:
             return f'<a href="{escape(url)}">{escape(text)}</a>'
     return escape(text)
+
+
+def _waiver_chip() -> str:
+    """Amber chip marking a recorded verification waiver (TASK-0113)."""
+    return (
+        '<span class="waiver-chip" '
+        'title="Terminal status held under a recorded verification waiver">'
+        'waived</span>'
+    )
+
+
+def _verdict_chip(value: Any) -> str:
+    """Review-verdict chip — green approved / red changes-requested."""
+    text = str(value).strip()
+    if not text:
+        return ""
+    slug = text.lower().replace(" ", "-")
+    return (
+        f'<span class="verdict-chip" data-verdict="{escape(slug)}">'
+        f'{escape(text)}</span>'
+    )
 
 
 def _status_chip(value: Any) -> str:

@@ -9,7 +9,7 @@ owner: user:edwin
 created: 2026-05-09
 updated: 2026-05-23
 source: []
-implements: ["[[FEAT-0006]]", "[[REQ-0016]]"]
+parent: "[[FEAT-0006]]"
 fixes: []
 effort: S
 due: ""

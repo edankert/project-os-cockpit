@@ -13,7 +13,7 @@ scope: "system"
 kind: "automated"
 level: "unit"
 entrypoint: "tests/test_index.py"
-validates: ["[[REQ-0002]]", "[[REQ-0008]]"]
+verifies: ["[[REQ-0002]]", "[[REQ-0008]]"]
 artifacts: []
 evidence: ["12 passed in 0.06s (2026-05-08)"]
 last_run: "2026-05-08"

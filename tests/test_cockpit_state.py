@@ -1,7 +1,9 @@
-"""Unit tests for ``CockpitState`` (TASK-0053).
+"""Unit tests for ``CockpitState`` (TASK-0053 + TASK-0076).
 
 The class lives in ``project_os_cockpit.server``; we exercise it directly
 instead of via HTTP to keep the tests fast and free of port allocation.
+TASK-0076 adds the agent-state slice — recording, snapshot inclusion,
+lazy decay, and decay-tick semantics.
 """
 
 from __future__ import annotations
@@ -80,6 +82,160 @@ def test_following_flag_round_trips():
     state.update_tab("t1", "/docs/a.md", True)
     snap = state.snapshot()
     assert snap["tabs"][0]["following"] is True
+
+
+# ----------------------------------------------------------------------
+# FEAT-0013 / TASK-0076 — agent_state slice
+# ----------------------------------------------------------------------
+
+def test_agent_state_initially_none():
+    state = CockpitState()
+    assert state.snapshot()["agent_state"] is None
+
+
+def test_record_agent_state_basic():
+    state = CockpitState()
+    payload = state.record_agent_state("busy", target="FEAT-0013", agent="claude")
+    # Method returns the canonical payload so the caller can fan it
+    # out as an SSE event without re-reading the snapshot.
+    assert payload["state"] == "busy"
+    assert payload["target"] == "FEAT-0013"
+    assert payload["agent"] == "claude"
+    assert "ts" in payload
+    snap = state.snapshot()
+    assert snap["agent_state"] == payload
+
+
+def test_record_agent_state_optional_fields_elided():
+    state = CockpitState()
+    payload = state.record_agent_state("done")
+    assert payload == {"state": "done", "ts": payload["ts"]}
+    # Keys for unsupplied optional fields must NOT appear.
+    assert "target" not in payload
+    assert "agent" not in payload
+    assert "message" not in payload
+
+
+def test_agent_state_pushes_to_history():
+    state = CockpitState()
+    state.record_agent_state("waiting", message="review my PR")
+    history = state.snapshot()["history"]
+    assert history[0]["source"] == "agent-state"
+    assert history[0]["state"] == "waiting"
+    assert history[0]["message"] == "review my PR"
+
+
+def test_lazy_decay_flips_busy_to_idle_after_window(monkeypatch):
+    state = CockpitState()
+    # Shrink the decay window so the test doesn't sleep for 10 min.
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state.record_agent_state("busy", target="FEAT-0013")
+    time.sleep(0.01)
+    eff = state.snapshot()["agent_state"]
+    assert eff["state"] == "idle"
+    assert eff["decayed_from"] == "busy"
+
+
+def test_lazy_decay_does_not_touch_done_or_error(monkeypatch):
+    """`done` and `error` are explicit terminal states — they should
+    survive the decay window unchanged, not get flipped to idle."""
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state = CockpitState()
+    state.record_agent_state("done")
+    time.sleep(0.01)
+    assert state.snapshot()["agent_state"]["state"] == "done"
+
+
+def test_lazy_decay_preserves_stored_value(monkeypatch):
+    """Snapshot reports `idle` but the stored value stays — a fresh
+    `record_agent_state` clears the decay-observed flag so a
+    subsequent decay can fire its own SSE."""
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state = CockpitState()
+    state.record_agent_state("busy")
+    time.sleep(0.01)
+    state.snapshot()  # observation only — should not mutate stored
+    # decay_tick (TASK-0077) emits exactly one synthetic event.
+    first = state.decay_tick()
+    assert first is not None and first["state"] == "idle"
+    second = state.decay_tick()
+    assert second is None, "decay_tick must be idempotent until next record"
+
+
+def test_state_file_written_on_record(tmp_path):
+    """TASK-0081 — record_agent_state mirrors to disk so cross-
+    workspace readers can poll without a live SSE subscription."""
+    state_path = tmp_path / ".cockpit" / "agent-state.json"
+    state = CockpitState(state_path=state_path)
+    state.record_agent_state("busy", target="FEAT-0010", agent="claude")
+    import json as _json
+    on_disk = _json.loads(state_path.read_text(encoding="utf-8"))
+    assert on_disk["state"] == "busy"
+    assert on_disk["target"] == "FEAT-0010"
+    assert on_disk["agent"] == "claude"
+
+
+def test_state_file_rewritten_on_decay(tmp_path, monkeypatch):
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state_path = tmp_path / ".cockpit" / "agent-state.json"
+    state = CockpitState(state_path=state_path)
+    state.record_agent_state("busy")
+    time.sleep(0.01)
+    payload = state.decay_tick()
+    assert payload is not None and payload["state"] == "idle"
+    import json as _json
+    on_disk = _json.loads(state_path.read_text(encoding="utf-8"))
+    assert on_disk["state"] == "idle"
+    assert on_disk["decayed_from"] == "busy"
+
+
+def test_state_file_seeds_on_construction(tmp_path):
+    """Restart scenario — a CockpitState constructed with an existing
+    state file pre-populates `agent_state` so the rail dot doesn't
+    blink off on cockpit restart."""
+    import datetime as _dt
+    import json as _json
+    state_path = tmp_path / ".cockpit" / "agent-state.json"
+    state_path.parent.mkdir()
+    # A fresh timestamp — a hardcoded past date would (correctly) read
+    # back as decayed-to-idle once older than the decay window.
+    fresh_ts = _dt.datetime.now(_dt.timezone.utc).isoformat(
+        timespec="milliseconds"
+    )
+    state_path.write_text(_json.dumps({
+        "state": "waiting",
+        "target": "FEAT-0010",
+        "message": "review my PR",
+        "ts": fresh_ts,
+    }), encoding="utf-8")
+    state = CockpitState(state_path=state_path)
+    snap = state.snapshot()
+    assert snap["agent_state"] is not None
+    assert snap["agent_state"]["state"] == "waiting"
+    assert snap["agent_state"]["target"] == "FEAT-0010"
+
+
+def test_state_file_tolerates_missing_and_malformed(tmp_path):
+    missing = tmp_path / ".cockpit" / "missing.json"
+    state = CockpitState(state_path=missing)
+    assert state.snapshot()["agent_state"] is None
+    garbled = tmp_path / "junk.json"
+    garbled.write_text("not json", encoding="utf-8")
+    state2 = CockpitState(state_path=garbled)
+    assert state2.snapshot()["agent_state"] is None
+
+
+def test_record_agent_state_resets_decay_observed(monkeypatch):
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state = CockpitState()
+    state.record_agent_state("busy")
+    time.sleep(0.01)
+    assert state.decay_tick() is not None
+    assert state.decay_tick() is None
+    # Fresh declaration must unlatch the flag so a NEW decay observable.
+    state.record_agent_state("busy")
+    time.sleep(0.01)
+    assert state.decay_tick() is not None
 
 
 def test_unknown_post_drains_body_to_keep_connection_synced(tmp_path):

@@ -35,6 +35,13 @@ Conventions (naming, linking, property rules): `../../tools/instructions/OBSIDIA
   - Prefer links (`[[...]]`) when pointing to other notes in this docs set.
 - (optional) `source` (list of strings/links): Provenance for imported/derived items.
   - Use for links to external trackers, changelogs, or source documents.
+- (optional) `aliases` (list of strings): Obsidian-style alternate names for wikilink resolution.
+  - Typically just `["<ID>"]` so `[[ID]]` resolves even when the filename has a slug.
+- (optional) `platform` (string or list): Cross-cutting platform tag (e.g. `android`, `ios`, `web`, `desktop`, `all`).
+  - The cockpit honours this via its platform filter on `/api/cockpit/nav?platform=…`.
+  - Leave empty/omit for cross-platform items.
+- (optional) `tags` (list of strings): Free-form Obsidian-style tags for search and grouping.
+  - Single-word, lowercase preferred; multi-word tags discouraged.
 
 ## `adr.md` (`type: [[adr]]`)
 
@@ -47,6 +54,7 @@ Fields:
 - (optional) `consequences` (list): Key impacts/tradeoffs (strings or links).
 - (optional) `supersedes` (string/link): Link to the ADR replaced by this one (prefer `[[ADR-....]]`).
 - (optional) `superseded` (string/link): Link to the ADR that replaces this one (prefer `[[ADR-....]]`).
+- (optional) `deciders` (list of strings): People/teams in the decision (MADR convention).
 
 Where used:
 - Referenced from `../decisions/README.md` for organization.
@@ -65,6 +73,9 @@ Fields:
 - (recommended) `impacts` (list of strings): Affected areas/paths/flows (keep short).
 - (optional) `issues` (list of links): Issues associated with the change.
 - (optional) `features` (list of links): Features associated with the change.
+- (optional) `reviewed_by` (string): Independent reviewer identity (`model:...` or `user:...`), per `tools/skills/independent-review/SKILL.md`.
+- (optional) `review_date` (string/date): Date of the independent review.
+- (optional) `review_verdict` (string): `approved | changes-requested`.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.changes`) for agent context and linked from change notes.
@@ -98,6 +109,7 @@ Fields:
 - (optional) `requirements` (list of links): Requirements introduced or verified in this phase.
 - (optional) `tasks` (list of links): Active or key tasks in this phase.
 - (optional) `issues` (list of links): Issues tied to this phase.
+- (optional) `depends` (list of links): Phases that must complete before this one (prefer `[[PHASE-####]]`).
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.phases`) for agent context and linked from phase-aware items.
@@ -186,6 +198,11 @@ Fields:
 - (optional) `artifacts` (list): Expected artifacts/logs.
 - (optional) `evidence` (list): Evidence from the last run (paths/log excerpts).
 - (optional) `last_run` (string): Timestamp/label for the last execution.
+- (optional) `adequacy` (string): Evidence the test actually guards (see `tools/instructions/TESTING.md`, "Test adequacy").
+- (optional) `mutation_score` (string): Mutation-testing score for the code this test guards, when measured.
+- (optional) `reviewed_by` (string): Independent reviewer identity (`model:...` or `user:...`), per `tools/skills/independent-review/SKILL.md`.
+- (optional) `review_date` (string/date): Date of the independent review.
+- (optional) `review_verdict` (string): `approved | changes-requested`.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.

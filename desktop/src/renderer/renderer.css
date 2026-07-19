@@ -1,0 +1,2529 @@
+/* Muted greyscale — same palette idea as the browser cockpit
+ * (REQ-0012). Light is the default; dark is opted-in via
+ * [data-theme="dark"] (matches base.css). The JS in renderer.ts
+ * sets data-theme based on the user's pref + OS preference, so
+ * the theme picker in the status footer (TASK-0095) can override
+ * the OS setting. */
+
+:root {
+  color-scheme: light dark;
+  --bg:           #f7f7f8;
+  --bg-elevated:  #ffffff;
+  --fg:           #1c1d1f;
+  --fg-muted:     #6b6e73;
+  --fg-faint:     #95989d;
+  --border:       #e3e3e6;
+  --accent:       #3b6ea8;
+  --accent-soft:  #e9eef5;
+  --row-hover:    #eef0f3;
+  --row-active:   #dfe6ee;
+}
+
+:root[data-theme="dark"] {
+  --bg:           #1b1d1f;
+  --bg-elevated:  #232629;
+  --fg:           #d6d6d6;
+  --fg-muted:     #9b9ea3;
+  --fg-faint:     #6b6e73;
+  --border:       #33373b;
+  --accent:       #7da6ff;
+  --accent-soft:  #2a3548;
+  --row-hover:    #2a2d31;
+  --row-active:   #33373b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Override base.css's flex-column body — it expected a
+ * (header + cockpit + footer) page structure that the native shell
+ * doesn't have, and the resulting flex sizing broke the centre
+ * pane's scroll containment. Native shell uses .app as the root grid. */
+body {
+  display: block;
+  overflow: hidden;
+}
+
+.app {
+  display: grid;
+  /* FEAT-0015 / iteration 2: 3-row grid.
+   *   row 1: window-wide top bar (modes + collapse toggles + traffic-light reserve)
+   *   row 2: 4-column IDE surface (rail · nav · stage · right pane)
+   *   row 3: status footer
+   * Splitter widths drive cols 2 + 4 of row 2 (TASK-0096). */
+  --nav-width: 240px;
+  --right-width: 280px;
+  /* Shared header strip height — applied to the project header, the
+   * find bar, and the right-pane header so the panes' top rows line
+   * up horizontally. */
+  --pane-header-height: 44px;
+  grid-template-columns: 44px var(--nav-width) 1fr var(--right-width);
+  grid-template-rows: 36px 1fr 24px;
+  grid-template-areas:
+    "top    top   top   top"
+    "rail   nav   stage right"
+    "footer footer footer footer";
+  height: 100vh;
+}
+
+.app.right-collapsed {
+  grid-template-columns: 44px var(--nav-width) 1fr 0;
+}
+
+#top-bar       { grid-area: top; }
+#ws-rail       { grid-area: rail; }
+#ws-nav        { grid-area: nav; }
+#stage         { grid-area: stage; }
+#right-pane    { grid-area: right; }
+#status-footer { grid-area: footer; }
+
+/* Splitters (FEAT-0009 / TASK-0096). Each is a thin absolute strip
+ * anchored to the column boundary. Position-relative on the parent
+ * column so the splitter follows resize. */
+
+.ws-nav { position: relative; }
+.right-pane { position: relative; }
+
+.splitter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 50;
+  user-select: none;
+}
+
+.splitter:hover, .splitter.is-dragging {
+  background: var(--accent-soft);
+}
+
+.splitter-nav { right: -3px; }
+.splitter-right { left: -3px; }
+
+.app.right-collapsed .splitter-right { display: none; }
+
+/* ---- Workspace mini-rail (FEAT-0015 / TASK-0100) ----
+ * Discord/Slack-style 44 px column on the far left. Square per
+ * workspace; agent-state dot overlays each square. Top padding
+ * reserves space for the macOS traffic lights in hiddenInset. */
+
+.ws-rail {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+.ws-rail-tl-space { height: 28px; flex-shrink: 0; }
+.ws-rail-spacer { flex: 1 1 auto; min-height: 8px; }
+
+.ws-rail-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.ws-rail-tool {
+  border: 1px solid transparent;
+  border-style: solid;
+  color: var(--text-muted);
+}
+.ws-rail-tool:hover {
+  border-color: var(--border);
+}
+.ws-rail-tool svg { width: 18px; height: 18px; }
+.ws-rail-tool[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+.ws-rail-tool[disabled]:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.workspace-list {
+  list-style: none;
+  margin: 0;
+  /* Room for marker overhang (ISS-0006): the ul's overflow-y:auto
+   * clips on all sides, so the first square's needs-input ring (4px
+   * up) and the last square's dot + notch (6px down) need padding. */
+  padding: 4px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  flex: 0 1 auto;
+  -webkit-app-region: no-drag;
+}
+.workspace-list::-webkit-scrollbar { display: none; }
+
+.ws-square {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  /* No overflow:hidden here (ISS-0006) — it clipped the agent-state
+   * dot and the active bar. The icon clips itself via border-radius. */
+  -webkit-app-region: no-drag;
+  transition: border-radius 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+/* When a workspace has a real icon, fill the square with it. */
+.ws-square img.ws-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+/* Colored letter fallback (no icon found in project dir). The
+ * background-color is set inline from a name-hash by the renderer
+ * so each workspace gets a stable tint. */
+.ws-square.ws-square-letter {
+  color: #fff;
+  font-size: 13px;
+  border-color: transparent;
+}
+.ws-square:hover {
+  background: var(--row-hover);
+  color: var(--text);
+  border-radius: 10px;
+}
+.ws-square.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  border-radius: 10px;
+}
+/* Active indicator bar — short vertical accent line on the rail edge.
+ * −6px puts it flush with the list's left edge (squares sit 6px in);
+ * further left and the list's overflow clips it (ISS-0006). */
+.ws-square.active::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+}
+
+.workspace-list li.empty {
+  color: var(--text-faint);
+  font-size: 9px;
+  font-style: italic;
+  cursor: default;
+  width: 36px;
+  height: auto;
+  text-align: center;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  line-height: 1.2;
+}
+
+/* Agent-state dot — overlaps the square's bottom-right corner with a
+ * box-shadow ring in the rail colour, punching a Discord-style notch
+ * out of both letter tiles and icon artwork (ISS-0006). */
+.ws-square .ws-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  box-shadow: 0 0 0 3px var(--bg-elevated);
+}
+/* busy = accent, not green — at 10px the status-active/status-done
+ * greens are indistinguishable, and accent already means "actively
+ * driving" everywhere else in the cockpit. */
+.ws-square.state-busy    .ws-dot { background: var(--accent); }
+.ws-square.state-waiting .ws-dot {
+  background: var(--severity-medium);
+  animation: ws-waiting-pulse 1.4s ease-in-out infinite;
+}
+.ws-square.state-done    .ws-dot { background: var(--status-done); }
+.ws-square.state-idle    .ws-dot { background: var(--text-faint); }
+.ws-square.state-error   .ws-dot { background: var(--severity-critical); }
+
+.ws-rail-action {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-faint);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+.ws-rail-action:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+
+/* Dashed outline only for the "add workspace" affordance — visually
+ * distinct from the workspace squares + tool buttons. */
+#ws-rail-add {
+  border: 1px dashed var(--border);
+}
+
+/* Active state for togglable rail tools (e.g. hide-completed). */
+.ws-rail-tool[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@keyframes ws-waiting-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.85); }
+}
+
+/* ---- Window-wide top bar (FEAT-0015 / iteration 3) ----
+ * Three flex zones: left (rail+nav width), stage (flex 1, drag),
+ * right (right-pane width). Each pane-collapse button is absolute-
+ * positioned at the inner edge of its zone — so the left-collapse
+ * sits adjacent to splitter-nav, the right-collapse adjacent to
+ * splitter-right. The left zone overlays its collapse button on
+ * top of the mode icons when the nav is dragged narrow. */
+
+.top-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  min-height: 0;
+  -webkit-app-region: drag;
+}
+
+.top-bar-left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* Mirror rail (44 px) + nav column width. Min-width keeps the
+   * collapse button past the traffic-light strip when collapsed
+   * or when the nav is dragged very narrow. */
+  width: calc(44px + var(--nav-width));
+  min-width: 110px;
+  padding-left: 78px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.top-bar-modes {
+  display: inline-flex;
+  gap: 1px;
+  -webkit-app-region: no-drag;
+}
+.app.left-collapsed .top-bar-modes { display: none; }
+
+/* Centered controls cluster: back, forward, and the command-palette
+ * search button. Lives inside .top-bar-stage so its width tracks the
+ * stage column underneath. */
+.top-bar-stage {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 12px;
+}
+
+.top-bar-nav-btn { padding: 0; }
+.top-bar-nav-btn[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+.top-bar-nav-btn[disabled]:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.top-bar-search {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 480px;
+  flex: 1 1 280px;
+  min-width: 120px;
+  padding: 4px 10px;
+  height: 26px;
+  margin-left: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: text;
+  text-align: left;
+  -webkit-app-region: no-drag;
+}
+.top-bar-search:hover {
+  background: var(--row-hover);
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+.top-bar-search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.top-bar-search-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar-search-shortcut {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  flex-shrink: 0;
+}
+
+/* Star (pin-current-doc) toggle, right of the search field. */
+.top-bar-star { padding: 0; }
+.top-bar-star[disabled] { opacity: 0.35; cursor: default; }
+.top-bar-star[disabled]:hover { background: transparent; color: var(--text-muted); }
+.top-bar-star[aria-pressed="true"] {
+  color: var(--severity-medium);  /* warm amber for the active star */
+}
+.top-bar-star[aria-pressed="true"] svg { fill: currentColor; }
+
+.top-bar-right {
+  position: relative;
+  width: var(--right-width);
+  /* Min-width = button (28) + 4 px left gutter + 8 px right gutter
+   * so the expand button doesn't hug the window edge when the right
+   * pane is collapsed (FEAT-0015 user feedback). */
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.top-bar-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-app-region: no-drag;
+}
+.top-bar-btn:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+.top-bar-btn.active,
+.top-bar-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.top-bar-btn svg { width: 16px; height: 16px; }
+.top-bar-btn[disabled] { opacity: 0.35; cursor: default; }
+
+/* Collapse buttons sit absolute on the splitter side of their zone.
+ * z-index above mode icons + opaque background lets the left button
+ * overlay any mode icons that get clipped when nav is narrow. */
+#left-pane-collapse {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: var(--bg-elevated);
+}
+#right-pane-toggle {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: var(--bg-elevated);
+}
+
+/* When the right pane is collapsed the column shrinks to 28 px;
+ * the toggle is the only visible content there. */
+
+.app.left-collapsed #ws-nav { display: none; }
+.app.left-collapsed .splitter-nav { display: none; }
+.app.right-collapsed #right-pane { display: none; }
+.app.right-collapsed .splitter-right { display: none; }
+
+/* ---- Project header at the top of the nav (FEAT-0015) ---- */
+
+.ws-nav-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: var(--pane-header-height);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.ws-nav-project[hidden] { display: none !important; }
+
+.ws-nav-project-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--text-faint);
+}
+.ws-nav-project-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ws-nav-project-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Project settings ⋮ button + popover (FEAT-0016 / TASK-0107) */
+
+.ws-nav-project { position: relative; }
+
+.project-settings-btn {
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+.project-settings-btn:hover {
+  background: var(--row-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+.project-settings-btn[aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.project-settings-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 8px;
+  z-index: 200;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.12),
+              0 2px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.project-settings-menu[hidden] { display: none !important; }
+:root[data-theme="dark"] .project-settings-menu {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.55),
+              0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.psm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 8px;
+}
+.psm-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+.psm-input {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.psm-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+
+.psm-action {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 3px;
+}
+.psm-action:hover { background: var(--row-hover); }
+.psm-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.psm-danger { color: var(--severity-critical); }
+.psm-danger:hover { background: var(--severity-critical); color: #fff; }
+
+.psm-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Icon-row helpers in the project settings popover. */
+
+.psm-icon-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.psm-mini {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.psm-mini:hover { border-color: var(--text-faint); background: var(--row-hover); }
+.psm-emoji {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: center;
+}
+.psm-emoji:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+
+.psm-swatches {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+.psm-swatch {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+}
+.psm-swatch:hover { transform: scale(1.1); }
+.psm-swatch.is-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.psm-swatch-auto {
+  background: linear-gradient(135deg, #ef4444, #f59e0b, #10b981, #0ea5e9, #6366f1, #a855f7);
+  position: relative;
+}
+.psm-swatch-auto::after {
+  content: "○";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Square + header containers that hold an emoji glyph. */
+.ws-square.ws-has-emoji,
+.ws-nav-project-icon.ws-has-emoji {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ws-square .ws-identicon,
+.ws-nav-project-icon .ws-identicon {
+  width: 70%;
+  height: 70%;
+}
+
+/* ---- Platform filter (FEAT-0015 / TASK-0102) ----
+ * Custom dropdown — button + popover. Matches the rest of the chrome
+ * (themed colours, accent on hover/open) and scales to any number
+ * of platforms without inheriting native select styling. */
+
+/* Edge-to-edge wrapper. No padding so the combobox fills the full
+ * column width between the project header above and the nav-group
+ * cards below. (Renamed from `.platform-bar` to dodge cockpit.css's
+ * `.platform-bar` rule, which painted a pill border around the
+ * children.) */
+.ws-platform-bar {
+  position: relative;
+  flex-shrink: 0;
+}
+.ws-platform-bar[hidden] { display: none !important; }
+
+/* Custom combobox — `<select>` on macOS Electron keeps its native
+ * popup-button chrome (rounded gray pill) regardless of
+ * `appearance: none`, so we build a button + popover that looks
+ * like a real combobox: squared border, themed bg, inline chevron. */
+
+/* Full-bleed strip — fills the column, no border on the sides, just
+ * a separator at the bottom from the nav cards below (the project
+ * header above already provides the top separator). */
+.platform-combo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.25;
+  transition: background 120ms ease;
+  user-select: none;
+}
+.platform-combo:hover { background: var(--row-hover); }
+.platform-combo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* Open state: neutral row-active bg with accent text/chevron, so the
+ * combobox flows visually into the menu (which uses the same elevated
+ * bg) instead of jumping from a tinted strip to a white tray. */
+.platform-combo[aria-expanded="true"] {
+  background: var(--row-active);
+  color: var(--text);
+  border-bottom-color: transparent;
+}
+
+.platform-combo-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+.platform-combo-chevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: transform 160ms ease, color 120ms ease;
+}
+.platform-combo:hover .platform-combo-chevron { color: var(--text-muted); }
+.platform-combo[aria-expanded="true"] .platform-combo-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+.platform-menu {
+  position: absolute;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-top: 0;                           /* seam with the combobox above */
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.12),
+              0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+:root[data-theme="dark"] .platform-menu {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.55),
+              0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.platform-menu[hidden] { display: none !important; }
+
+.platform-menu li {
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.platform-menu li:hover { background: var(--row-hover); }
+.platform-menu li.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ---- In-workspace nav column (FEAT-0010 / TASK-0083 placeholder) ---- */
+
+.ws-nav {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ws-nav-placeholder {
+  padding: 24px 16px;
+  color: var(--fg-faint);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ws-nav-placeholder p {
+  margin: 0 0 6px;
+}
+
+.ws-nav-placeholder .meta {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+.ws-nav-placeholder code {
+  background: var(--row-hover);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10.5px;
+}
+
+.ws-nav-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+
+.ws-nav-content[hidden] {
+  display: none !important;
+}
+
+/* Additional layering on top of cockpit.css's .nav-* styles so the
+ * native nav reads like the mode-1 cockpit's left pane (FEAT-0010 /
+ * TASK-0083). Subtitle + children-wrap are native-only refinements
+ * because the original cockpit JS produced different markup. */
+
+.ws-nav-content .nav-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.3;
+}
+
+.ws-nav-content .nav-children-wrap {
+  margin-top: 4px;
+}
+
+.ws-nav-content .nav-children-summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-faint);
+  padding: 2px 4px;
+  user-select: none;
+}
+
+.ws-nav-content .nav-children-summary::-webkit-details-marker { display: none; }
+.ws-nav-content .nav-children-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 4px;
+  transition: transform 100ms ease;
+}
+.ws-nav-content .nav-children-wrap[open] > .nav-children-summary::before {
+  transform: rotate(90deg);
+}
+
+.ws-nav-content .nav-items-nested {
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+  margin-left: 4px;
+}
+
+.ws-nav-content .nav-item .nav-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-nav-content .nav-item.is-active {
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent);
+}
+
+/* ---- Stage ---- */
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* Same grid-child rule as .switcher — without min-height: 0 a tall
+   * doc-view stretches the grid row, pushing the terminal panel and
+   * status bar below the viewport and breaking inner scroll. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage-main {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.placeholder {
+  margin: auto;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.placeholder h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.placeholder p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.doc-view {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-elevated);
+  padding: 28px 48px;
+  /* The mounted HTML comes from cockpit.css selectors; we just need
+   * the viewport to scroll. */
+}
+
+.doc-view[hidden] {
+  display: none !important;
+}
+
+.doc-view h1:first-child {
+  margin-top: 0;
+}
+
+/* (Dead CSS removed in TASK-0086: the hand-built `.frontmatter-card`
+ * styles were superseded by `_metadata_strip_html` in TASK-0075;
+ * the `.browse-panel` scaffold was superseded by the native ws-nav
+ * in FEAT-0010 / TASK-0083.) */
+
+.status-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-bar.error {
+  border-color: #cc6f6f;
+  color: #cc6f6f;
+}
+
+/* ---- Drop overlay (FEAT-0012 / TASK-0091) ---- */
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 4px dashed var(--accent);
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.drop-overlay[hidden] { display: none !important; }
+
+/* ---- Find bar (FEAT-0012 / TASK-0089) ---- */
+
+.find-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  min-height: var(--pane-header-height);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.find-bar[hidden] { display: none !important; }
+
+.find-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.find-input:focus {
+  border-color: var(--accent);
+}
+
+.find-count {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 0 6px;
+}
+
+.find-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.find-button:hover {
+  background: var(--row-hover);
+  color: var(--fg);
+}
+
+/* Highlight styles for found matches inside the rendered doc. */
+.doc-view mark.find-match {
+  background: rgba(255, 213, 0, 0.45);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0;
+}
+.doc-view mark.find-match.is-current {
+  background: rgba(255, 153, 0, 0.7);
+  outline: 1px solid rgba(255, 153, 0, 1);
+}
+
+/* ---- Quick-switch palette (FEAT-0012 / TASK-0088) ---- */
+
+.quick-switch {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+  z-index: 1000;
+}
+
+.quick-switch[hidden] { display: none !important; }
+
+.quick-switch-modal {
+  width: 560px;
+  max-width: 92vw;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.quick-switch-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 14px 16px;
+  outline: none;
+}
+
+.quick-switch-results {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.quick-switch-results li {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid transparent;
+}
+
+.quick-switch-results li:hover { background: var(--row-hover); }
+.quick-switch-results li.is-selected {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.quick-switch-results .qs-line-1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+.quick-switch-results .qs-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+.quick-switch-results .qs-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-switch-results .qs-path { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+
+.quick-switch-results .qs-empty {
+  padding: 14px 16px;
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: default;
+}
+
+.quick-switch-hint {
+  border-top: 1px solid var(--border);
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---- Right pane (FEAT-0010 / TASK-0085) ---- */
+
+.right-pane {
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.right-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  min-height: var(--pane-header-height);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.right-pane-header h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* The right-pane-toggle now lives in the window top bar (FEAT-0015
+ * iteration 2). When the right pane is collapsed, the column is
+ * 28 px so its content hides; nothing here needs to position the
+ * toggle anymore. */
+
+.app.right-collapsed .right-pane-header h2,
+.app.right-collapsed .right-pane-content {
+  display: none;
+}
+
+.app.right-collapsed .right-pane-header {
+  padding: 8px 3px;
+  justify-content: center;
+  border-bottom: none;
+}
+
+.right-pane-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+.right-pane-content > p.meta {
+  color: var(--text-faint);
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.right-pane-group {
+  margin-bottom: 16px;
+}
+
+.right-pane-group h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.right-pane-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.right-pane-group li {
+  padding: 4px 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.right-pane-group li:hover {
+  background: var(--row-hover);
+}
+
+.right-pane-group .ctx-id {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.right-pane-group .ctx-title {
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Terminal-toggle base styles now come from `.rail-action` (the
+ * button lives in the rail footer). The `.terminal-toggle.active`
+ * variant below provides the green-accent-while-open look. */
+
+.terminal-toggle.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Status footer (FEAT-0009 / TASK-0094 + 0095) ---- */
+
+.status-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-faint);
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  min-height: 22px;
+  flex-shrink: 0;
+}
+
+.sf-cell { display: inline-flex; align-items: center; gap: 6px; }
+.sf-spacer { flex: 1; }
+
+.sf-sidecar .sf-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-faint); flex-shrink: 0;
+}
+.sf-sidecar[data-state="spawning"] .sf-dot { background: var(--severity-medium); }
+.sf-sidecar[data-state="ready"]    .sf-dot { background: var(--status-done); }
+.sf-sidecar[data-state="failed"]   .sf-dot { background: var(--severity-critical); }
+.sf-sidecar[data-state="exited"]   .sf-dot { background: var(--text-faint); }
+
+.sf-path {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  cursor: pointer;
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sf-path:hover { color: var(--text); }
+
+/* (footer agent dot removed — FEAT-0031/TASK-0148; agent state reads
+   from the rail, strip, and attention panel) */
+
+.sf-theme { display: inline-flex; gap: 1px; margin-left: 4px; }
+.sf-theme-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 0;
+}
+.sf-theme-btn:first-child { border-radius: 3px 0 0 3px; }
+.sf-theme-btn:last-child  { border-radius: 0 3px 3px 0; }
+.sf-theme-btn:hover { color: var(--text); background: var(--row-hover); }
+.sf-theme-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  z-index: 1;
+}
+
+/* ---- Overview dashboard (FEAT-0017 / TASK-0110) ----
+ * Mounted in #doc-view when the user picks the Overview mode. The
+ * `overview-pane` class swaps the centre pane from prose to a tiled
+ * dashboard; navigateTo() strips the class on the next doc load. */
+
+.doc-view.overview-pane {
+  padding: 24px 28px;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.doc-view.overview-pane h3 {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Hero strip — equal-width cells with a big number + label. */
+.ov-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.ov-hero-cell {
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+}
+.ov-hero-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-hero-label {
+  margin-top: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+.ov-hero-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ov-hero-last .ov-hero-last-title { font-size: 13px; }
+.ov-hero-last:hover { border-color: var(--accent); }
+
+/* Phase progress — horizontal stacked bars. */
+.ov-section { background: transparent; }
+.ov-phase { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.ov-phase-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.ov-phase-title { color: var(--text); }
+a.ov-phase-title {
+  text-decoration: none;
+  color: var(--text);
+}
+a.ov-phase-title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Per-phase bar: flex row of feature-groups, each group is a small
+ * cluster of squares (one per item, coloured by status). A "loose"
+ * trailing group bundles items in the phase without a parent feature. */
+.ov-phase-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  min-height: 22px;
+  align-items: center;
+}
+
+.ov-phase-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.ov-phase-group:hover { background: var(--row-hover); }
+.ov-phase-group-loose {
+  border: 1px dashed var(--border);
+}
+
+/* Squares are coloured by item TYPE (same palette as the nav-row
+ * icons) and filled iff the item is done. Anything not done renders
+ * as an outline — gives a "what's left to ship" read at a glance. */
+.ov-phase-sq {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.ov-phase-sq.is-feature {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border-width: 2px;
+}
+.ov-phase-sq[data-bucket="done"] {
+  background: currentColor;
+}
+
+.ov-phase-sq[data-type="feature"]     { color: var(--type-feature); }
+.ov-phase-sq[data-type="task"]        { color: var(--type-task); }
+.ov-phase-sq[data-type="requirement"] { color: var(--type-requirement); }
+.ov-phase-sq[data-type="issue"]       { color: var(--type-issue); }
+.ov-phase-sq[data-type="risk"]        { color: var(--type-risk); }
+.ov-phase-sq[data-type="test"]        { color: var(--type-test); }
+.ov-phase-sq[data-type="adr"],
+.ov-phase-sq[data-type="decision"]    { color: var(--type-adr); }
+.ov-phase-sq[data-type="release"]     { color: var(--type-release); }
+.ov-phase-sq[data-type="workflow"]    { color: var(--type-workflow); }
+.ov-phase-sq[data-type="plan"]        { color: var(--type-plan); }
+
+.ov-phase-empty {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* Bottom grid: activity histogram + donut row, side-by-side. */
+.ov-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.ov-tile {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.ov-act-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100px;
+}
+.ov-act-bar {
+  flex: 1 1 0;
+  min-width: 4px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+.ov-act-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.ov-donut-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.ov-donut-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ov-donut {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+.ov-donut-hole {
+  position: absolute;
+  inset: 8px;
+  background: var(--bg-elevated);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.ov-donut-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* Recent activity feed. */
+.ov-feed-list { list-style: none; margin: 0; padding: 0; }
+.ov-feed-list li {
+  display: grid;
+  grid-template-columns: 88px 64px 90px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+.ov-feed-list li:hover { background: var(--row-hover); }
+.ov-feed-date {
+  color: var(--text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+}
+.ov-feed-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--row-active);
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-feed-type-feature      { color: var(--type-feature); }
+.ov-feed-type-task         { color: var(--type-task); }
+.ov-feed-type-issue        { color: var(--type-issue); }
+.ov-feed-type-requirement  { color: var(--type-requirement); }
+.ov-feed-type-change       { color: var(--type-change); }
+.ov-feed-type-risk         { color: var(--type-risk); }
+.ov-feed-type-test         { color: var(--type-test); }
+.ov-feed-type-adr,
+.ov-feed-type-decision     { color: var(--type-adr); }
+.ov-feed-type-release      { color: var(--type-release); }
+.ov-feed-type-workflow     { color: var(--type-workflow); }
+.ov-feed-type-plan         { color: var(--type-plan); }
+.ov-feed-id {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.ov-feed-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ov-feed-tag {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+/* ---- Terminal pane ---- */
+
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  height: 280px;
+  min-height: 80px;
+  /* Match the xterm's own background so any padding around the
+   * embedded xterm doesn't show as a black band when the user
+   * picks the light theme (FEAT-0015 user feedback). */
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+
+:root[data-theme="dark"] .terminal-pane {
+  background: #1b1d1f;
+}
+
+.terminal-pane[hidden] {
+  display: none !important;
+}
+
+.terminal-divider {
+  height: 5px;
+  cursor: ns-resize;
+  background: transparent;
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.terminal-divider:hover {
+  background: var(--accent-soft);
+}
+
+.terminal-mount {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.terminal-mount .xterm,
+.terminal-mount .xterm-viewport,
+.terminal-mount .xterm-screen {
+  height: 100% !important;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  width: 10px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: #33373b;
+  border-radius: 5px;
+}
+
+/* ----------------------------------------------------------------------
+   Agent instrumentation surfaces (PHASE-007)
+   ---------------------------------------------------------------------- */
+
+/* needs-input rail dot (TASK-0120): urgent — red, faster pulse than
+   waiting so "answer me now" reads differently from "done, review". */
+.ws-square.state-needs-input .ws-dot {
+  background: var(--severity-critical);
+  animation: ws-needs-input-pulse 0.9s ease-in-out infinite;
+}
+@keyframes ws-needs-input-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.25); opacity: 0.65; }
+}
+/* needs-input additionally rings the whole square (ISS-0006) —
+   urgency alone earns the loud treatment; calm states stay a dot. */
+.ws-square.state-needs-input {
+  animation: ws-needs-input-ring 0.9s ease-in-out infinite;
+}
+@keyframes ws-needs-input-ring {
+  0%, 100% {
+    box-shadow: 0 0 0 2px var(--bg-elevated),
+                0 0 0 4px var(--severity-critical);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--bg-elevated),
+                0 0 0 4px color-mix(in srgb, var(--severity-critical) 30%, transparent);
+  }
+}
+/* Seen-acknowledgement (TASK-0157): an acknowledged alert goes static —
+   the pulse stops, the colour stays. Pins the needs-input ring to its
+   solid frame so it doesn't collapse to no-ring. */
+.ws-square.acked .ws-dot { animation: none !important; }
+.ws-square.acked.state-needs-input {
+  animation: none !important;
+  box-shadow: 0 0 0 2px var(--bg-elevated),
+              0 0 0 4px var(--severity-critical);
+}
+.ws-attention-row.acked .ws-attention-dot { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-square.state-needs-input {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--bg-elevated),
+                0 0 0 4px var(--severity-critical);
+  }
+  /* All marker pulses go static — colour still carries the state. */
+  .ws-square .ws-dot,
+  .agent-strip-dot,
+  .agents-row-dot { animation: none !important; }
+}
+
+/* ----- Activity strip (TASK-0118) ----- */
+
+.agent-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 12px;
+  color: var(--text-muted);
+  min-height: 26px;
+  flex: none;
+}
+.agent-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex: none;
+}
+.agent-strip-dot[data-state="busy"] { background: var(--accent); }
+.agent-strip-dot[data-state="waiting"] { background: var(--severity-medium); }
+.agent-strip-dot[data-state="needs-input"] {
+  background: var(--severity-critical);
+  animation: ws-needs-input-pulse 0.9s ease-in-out infinite;
+}
+.agent-strip-dot[data-state="error"] { background: var(--severity-critical); }
+/* Persisted last-session view (idle): reads as past, not active. */
+.agent-strip.is-ended .agent-strip-dot { opacity: 0.55; }
+.agent-strip.is-ended .agent-strip-text { color: var(--text-muted); }
+.agent-strip-agent {
+  font-weight: 600;
+  color: var(--text);
+  flex: none;
+}
+.agent-strip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.agent-strip-spacer { flex: 1; }
+.agent-strip-undoc,
+.ov-session-undoc {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--severity-medium);
+  border: 1px solid var(--severity-medium);
+}
+.agent-strip-meter {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.agent-strip-meter.meter-hot { color: var(--severity-critical); font-weight: 600; }
+.agent-strip-expand {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.agent-strip-expand:hover { color: var(--text); border-color: var(--text-faint); }
+.agent-strip-detail {
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  padding: 6px 12px 10px;
+  font-size: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  flex: none;
+}
+.agent-detail-head { color: var(--text-faint); margin-bottom: 4px; }
+.agent-detail-files { list-style: none; margin: 0; padding: 0; }
+.agent-detail-files li {
+  padding: 1px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.agent-detail-files a { color: var(--accent); text-decoration: none; }
+.agent-detail-files a:hover { text-decoration: underline; }
+.agent-detail-empty { color: var(--text-faint); }
+
+/* An author `display` beats the UA's `[hidden] { display: none }`
+ * rule, so every element toggled via the hidden attribute whose class
+ * sets a display needs the hidden state spelled out (ISS-0009). The
+ * queue popover + agent strip declare flex; settings-popover is
+ * defensive (it hides today only because it declares no display). */
+.queue-popover[hidden],
+.settings-popover[hidden],
+.agent-strip[hidden] { display: none !important; }
+
+/* ----- Agent attention panel (FEAT-0030 / TASK-0147) -----
+ * Docked at the bottom of the nav pane, below the tree behind a hard
+ * separator. flex:none so it takes only the height it needs while the
+ * tree scrolls above; the [hidden] rule collapses it to nothing. */
+.ws-attention {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  max-height: 45%;
+  overflow-y: auto;
+  padding: 4px;
+  gap: 1px;
+}
+.ws-attention[hidden] { display: none !important; }
+.ws-attention-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 4px 8px 2px;
+}
+.ws-attention-row {
+  display: flex;
+  align-items: stretch;
+  border-radius: 6px;
+}
+.ws-attention-row:hover { background: var(--row-hover); }
+.ws-attention-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px 6px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.ws-attention-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+}
+.kind-needs-input .ws-attention-dot {
+  background: var(--severity-critical);
+  animation: ws-needs-input-pulse 0.9s ease-in-out infinite;
+}
+.kind-waiting .ws-attention-dot {
+  background: var(--severity-medium);
+  animation: ws-waiting-pulse 1.4s ease-in-out infinite;
+}
+.ws-attention-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ws-attention-name {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-attention-msg {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-attention-meta {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ws-attention-dismiss {
+  flex: none;
+  width: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.ws-attention-dismiss:hover { color: var(--text); background: var(--accent-soft); }
+.ws-attention-finished {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  margin-top: 2px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: left;
+}
+.ws-attention-finished:hover { color: var(--text); }
+.ws-attention-arrow { margin-left: auto; color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .ws-attention-dot { animation: none !important; }
+}
+
+/* ----- Live nav trail (TASK-0120) ----- */
+
+li[data-rel].agent-touched {
+  background: var(--accent-soft);
+  transition: background 0.4s ease;
+}
+.agent-touched-chip {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  flex: none;
+}
+
+/* ----- Dispatch button + CHG provenance ----- */
+
+.top-bar-dispatch { color: var(--status-active); }
+.chg-provenance {
+  margin: 0 0 10px;
+  padding: 4px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ----- Sessions in Overview (TASK-0124 + TASK-0127) ----- */
+
+.ov-session-live {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--status-active);
+  border: 1px solid var(--status-active);
+}
+
+/* Live-session banner under the hero. */
+.ov-live-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin: 10px 0 4px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-active);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.ov-live-agent { font-weight: 600; color: var(--text); flex: none; }
+.ov-live-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ov-live-jump {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.ov-live-jump:hover { color: var(--text); border-color: var(--text-faint); }
+
+/* Two-column feeds: Recent activity | Agent sessions. */
+.ov-feeds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.ov-feeds > .ov-section { margin: 0; }
+@media (max-width: 900px) {
+  .ov-feeds { grid-template-columns: 1fr; }
+}
+.ov-agent-pill {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: transparent;
+}
+.ov-session-row-meta {
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+/* Session detail virtual page (~session/<id>). */
+/* ----- Agents fleet screen (FEAT-0032 / TASK-0151) ----- */
+.doc-view.agents-page { padding: 20px 24px; }
+.agents-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.agents-head h1 { font-size: 20px; margin: 0; }
+.agents-head-sub { color: var(--text-muted); font-size: 13px; }
+.agents-head-budget {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 10px;
+}
+.agents-head-budget.meter-hot { color: var(--severity-critical); border-color: var(--severity-critical); }
+.agents-list { display: flex; flex-direction: column; }
+.agents-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2.2fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.agents-row.is-dormant { opacity: 0.6; }
+.agents-row-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.agents-row-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--text-faint); }
+.agents-row-dot[data-state="busy"] { background: var(--accent); }
+.agents-row-dot[data-state="waiting"] { background: var(--severity-medium); animation: ws-waiting-pulse 1.4s ease-in-out infinite; }
+.agents-row-dot[data-state="needs-input"] { background: var(--severity-critical); animation: ws-needs-input-pulse 0.9s ease-in-out infinite; }
+.agents-row-dot[data-state="done"] { background: var(--status-done); }
+.agents-row-dot[data-state="error"] { background: var(--severity-critical); }
+.agents-row-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents-row-sess { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.agents-row-line1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents-row-line2 { font-size: 11.5px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents-row-undoc { color: var(--severity-medium); }
+.agents-row-meters { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.agents-row-acts { display: flex; gap: 6px; }
+.agents-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.agents-btn:hover { background: var(--row-hover); color: var(--text); }
+.agents-btn.primary { border-color: var(--accent); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .agents-row-dot { animation: none !important; }
+}
+
+.session-page-head { margin-bottom: 14px; }
+.session-page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.session-page-meta { color: var(--text-faint); font-size: 12.5px; margin: 0; }
+.session-page-undoc {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--severity-medium);
+  background: var(--bg-elevated);
+  border-radius: 0 6px 6px 0;
+  color: var(--severity-medium);
+  font-size: 12.5px;
+}
+.session-page-section { margin: 14px 0; }
+.session-page-section h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin: 0 0 6px;
+}
+.session-page-section ol,
+.session-page-section ul { margin: 0; padding-left: 20px; }
+.session-page-section li { padding: 2px 0; font-size: 13px; color: var(--text-muted); }
+.session-page-section a { color: var(--accent); text-decoration: none; }
+.session-page-section a:hover { text-decoration: underline; }
+
+/* ----------------------------------------------------------------------
+   Overview scopes (FEAT-0023)
+   ---------------------------------------------------------------------- */
+
+.scope-pane { display: flex; flex-direction: column; gap: 1px; padding: 4px 2px; }
+.scope-heading {
+  margin: 10px 4px 4px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint);
+}
+.scope-pane .scope-heading:first-child { margin-top: 2px; }
+.scope-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px; border: none; border-radius: 6px;
+  background: transparent; color: var(--text-muted);
+  font-size: 12.5px; text-align: left; cursor: pointer; width: 100%;
+}
+.scope-row:hover { background: var(--bg-hover, rgba(125, 166, 255, 0.08)); color: var(--text); }
+.scope-row.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.scope-name {
+  flex: none; max-width: 55%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scope-bar {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: var(--border); overflow: hidden;
+}
+.scope-bar > span { display: block; height: 100%; background: var(--accent); }
+.scope-pct {
+  flex: none; width: 34px; text-align: right;
+  font-size: 10.5px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scoped dashboard header */
+.scoped-head {
+  display: flex; align-items: baseline; gap: 10px;
+  margin: 0 0 14px; flex-wrap: wrap;
+}
+.scoped-crumb { color: var(--text-faint); font-size: 12.5px; text-decoration: none; }
+.scoped-crumb:hover { color: var(--accent); text-decoration: underline; }
+.scoped-sep { color: var(--text-faint); font-size: 11px; }
+.scoped-title { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
+.scoped-open-note { margin-left: auto; color: var(--accent); font-size: 12px; text-decoration: none; }
+.scoped-open-note:hover { text-decoration: underline; }
+
+/* Scoped feature rows */
+.scoped-feat {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.scoped-feat:last-child { border-bottom: none; }
+.scoped-feat-name {
+  flex: none; width: 260px; color: var(--text);
+  font-size: 13px; text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cursor: pointer; }
+.scoped-feat-sqs { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; align-items: center; }
+.scoped-loose .scoped-feat-name { color: var(--text-faint); font-style: italic; }
+
+/* Exit criteria */
+.scoped-exit-list { list-style: none; margin: 0; padding: 0; }
+.scoped-exit-list li { padding: 3px 0; font-size: 13px; color: var(--text-muted); }
+.scoped-exit-list li.done { color: var(--text-faint); }
+
+/* Right pane Now column */
+.ov-now { margin-bottom: 12px; }
+/* Demoted Now section — a one-line pointer to the ~agents screen
+   (FEAT-0031 / TASK-0148). */
+.now-oneliner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.now-oneliner:hover { background: var(--row-hover); }
+.now-oneliner-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-oneliner-arrow { margin-left: auto; color: var(--accent); flex: none; }
+.now-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-active);
+  border-radius: 8px; padding: 9px 11px; margin: 4px 0 8px;
+}
+.now-line { display: flex; align-items: center; gap: 7px; }
+.now-agent { font-weight: 600; font-size: 13px; }
+.now-state { color: var(--text-faint); font-size: 12px; }
+.now-prompt {
+  color: var(--text-muted); font-size: 12px; margin: 5px 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.now-meters {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 11.5px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.now-jump {
+  margin-left: auto; background: transparent;
+  border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text-muted); font-size: 11px; padding: 2px 8px; cursor: pointer;
+}
+.now-jump:hover { color: var(--text); border-color: var(--text-faint); }
+.now-undoc {
+  margin-top: 6px; font-size: 11px; font-weight: 600;
+  color: var(--severity-medium);
+}
+.now-needs { display: flex; flex-direction: column; gap: 4px; }
+.now-needs-row {
+  text-align: left; background: var(--bg-elevated);
+  border: 1px solid var(--severity-critical); border-radius: 7px;
+  color: var(--text-muted); font-size: 12px; padding: 6px 10px; cursor: pointer;
+}
+.now-needs-row:hover { color: var(--text); }
+
+/* Dispatch queue chip (FEAT-0024 / TASK-0133) */
+.agent-strip-queue {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 8px;
+  cursor: pointer;
+}
+.agent-strip-queue:hover { background: var(--accent-soft); }
+
+/* Dispatch runtime (FEAT-0025) + verb polish (FEAT-0026) */
+.queue-popover {
+  position: fixed;
+  z-index: 320;
+  min-width: 240px;
+  max-width: 340px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.queue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.queue-row:hover { background: var(--accent-soft); }
+.queue-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.queue-row-remove {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.queue-row-remove:hover { color: var(--severity-critical); }
+.queue-clear {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.queue-clear:hover { color: var(--text); }
+
+.dispatch-provenance { border-left-color: var(--status-active); }
+
+.ov-session-dispatch { color: var(--accent); flex: none; }
+
+.qs-action-badge {
+  flex: none;
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--status-active);
+  border: 1px solid var(--status-active);
+}
+.quick-switch-results li.is-action { display: flex; align-items: center; }
+
+/* Doc header bar (FEAT-0026 / TASK-0140) */
+.doc-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  margin: -8px 0 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.doc-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.doc-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.doc-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin-left: auto;
+}
+.doc-header-id {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  flex: none;
+}
+.doc-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.doc-header-path {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  text-align: left;
+}
+.doc-header-path:hover { color: var(--text-muted); background: var(--bg-elevated); }
+.doc-header-verb {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.doc-header-verb:hover { color: var(--text); border-color: var(--text-faint); }
+.doc-header-verb.is-default {
+  color: var(--status-active);
+  border-color: var(--status-active);
+  font-weight: 600;
+}
+.doc-header-verb.is-default:hover { background: var(--accent-soft); }
+
+/* Settings popover (FEAT-0027 / TASK-0142) */
+.settings-popover {
+  position: fixed;
+  z-index: 340;
+  width: 340px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  padding: 14px 16px;
+}
+.settings-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.settings-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+.settings-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.settings-row-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.settings-row-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+.settings-row-desc code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+.settings-status {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--status-active);
+}
+.settings-status.is-error { color: var(--severity-critical); }

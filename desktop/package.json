@@ -1,0 +1,28 @@
+{
+  "name": "project-os-cockpit-desktop",
+  "productName": "project-os-cockpit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron shell for project-os-cockpit (FEAT-0007 / PHASE-005). System-wide install; discovers all SNAPSHOT.yaml-bearing repos and spawns the Python cockpit sidecar per workspace.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "fetch-python": "node scripts/fetch-python.mjs"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "electron": "^32.0.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "js-yaml": "^4.1.0",
+    "node-pty": "^1.0.0",
+    "portfinder": "^1.0.32"
+  }
+}

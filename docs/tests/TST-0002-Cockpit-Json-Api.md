@@ -13,7 +13,7 @@ scope: "system"
 kind: "automated"
 level: "unit"
 entrypoint: "tests/test_cockpit.py"
-validates: ["[[REQ-0013]]"]
+verifies: ["[[REQ-0013]]"]
 artifacts: []
 evidence: ["13 passed in 0.06s (2026-05-08)"]
 last_run: "2026-05-08"
