@@ -1408,6 +1408,27 @@ function ensureXterm(): void {
   term.open(terminalMount);
   fitAddon.fit();
 
+  // Keep xterm's geometry in sync with its container (ISS-0016). Toggling
+  // the pane visible (hidden→shown on a view switch), a window/monitor
+  // resize, or a divider drag all change the mount's size; without a
+  // re-fit xterm keeps a stale row count (the prompt and lines below it
+  // clip off-screen under the mount's overflow:hidden) and a stale scroll
+  // viewport (mouse-wheel dead until a manual resize). A ResizeObserver
+  // catches every case — including the hidden→visible transition, which
+  // reports a 0→real size change. rAF-debounced; fit() only resizes xterm
+  // *within* the mount, so it can't re-trigger the observer into a loop.
+  let fitPending = false;
+  const refit = (): void => {
+    if (fitPending) return;
+    fitPending = true;
+    requestAnimationFrame(() => {
+      fitPending = false;
+      if (terminalPane.hidden) return;
+      try { fitAddon?.fit(); } catch { /* xterm not ready yet */ }
+    });
+  };
+  new ResizeObserver(refit).observe(terminalMount);
+
   term.onData((data) => {
     if (attachedTerminalId) cockpitApi.terminal.write(attachedTerminalId, data);
   });
@@ -1666,11 +1687,18 @@ terminalDivider.addEventListener('mousedown', (downEv) => {
   document.addEventListener('mouseup', onUp);
 });
 
-// Window resize → re-fit.
+// Window resize → re-clamp a dragged-tall pane so it can't exceed a
+// now-smaller window (moving to a smaller screen would otherwise push the
+// prompt off the bottom — ISS-0016), then re-fit. The ResizeObserver also
+// catches the fit, but the height clamp is a policy the observer can't do.
 window.addEventListener('resize', () => {
-  if (!terminalPane.hidden) {
-    try { fitAddon?.fit(); } catch { /* ignore */ }
+  if (terminalPane.hidden) return;
+  if (terminalPane.style.height) {
+    const h = terminalPane.getBoundingClientRect().height;
+    terminalPane.style.height =
+      `${Math.min(window.innerHeight - 120, Math.max(80, h))}px`;
   }
+  try { fitAddon?.fit(); } catch { /* ignore */ }
 });
 
 void loadWorkspaces();

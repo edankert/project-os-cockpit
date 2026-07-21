@@ -31,19 +31,19 @@ counters:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 37
-  ISS: 15
+  ISS: 16
   PHASE: 7
   REQ: 20
   RISK: 4
   REL: 0
-  TASK: 184
+  TASK: 185
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0023"
-  phase: "[[PHASE-003-Downstream-Pilot]]"
+  feature: "FEAT-0003"
+  phase: "[[PHASE-004-Embedded-Terminal]]"
   issue: "ISS-0011"
 
 items:
@@ -249,6 +249,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0185:
+      title: "Fix: embedded terminal keeps stale dimensions after a view switch — content clipped below the prompt and mouse-scroll dead until a manual resize"
+      status: done
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0185-Terminal-Refit-On-Visibility.md"
+      parent: "FEAT-0003"
     TASK-0184:
       title: "Fix: agent strip leaks the previous workspace's last prompt across a workspace switch"
       status: done
@@ -1290,6 +1296,10 @@ items:
 
 
   issues:
+    ISS-0016:
+      title: "Embedded terminal: content runs off-screen below the prompt and mouse-scroll stops working after switching to the console"
+      status: fixed
+      path: "docs/issues/ISS-0016-Terminal-Stale-Dimensions.md"
     ISS-0015:
       title: "Agent strip shows another project's prompt after switching workspaces (stale stripLastPrompt)"
       status: fixed
