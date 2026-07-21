@@ -82,6 +82,12 @@ _EDIT_TOOLS = frozenset(
 # Docs-note filename prefixes that satisfy the documentation contract
 # for the undocumented-work rule (TASK-0125).
 _DOC_NOTE_PREFIXES = ("TASK-", "ISS-", "CHG-")
+# Broader set — every trackable note type — for the live-work views
+# (FEAT-0036): "what items is this session touching", independent of the
+# narrower undocumented-work contract above.
+_WORK_NOTE_PREFIXES = (
+    "TASK-", "ISS-", "FEAT-", "REQ-", "PHASE-", "RISK-", "CHG-", "ADR-", "TST-",
+)
 
 
 def _utc_now_iso() -> str:
@@ -255,6 +261,10 @@ class AgentSessionTracker:
             if name.upper().startswith(_DOC_NOTE_PREFIXES):
                 if rel not in sess["docs_notes"]:
                     sess["docs_notes"].append(rel)
+            if name.upper().startswith(_WORK_NOTE_PREFIXES):
+                work = sess.setdefault("work_notes", [])
+                if rel not in work:
+                    work.append(rel)
         self._refresh_undocumented_locked(sess)
         return rel
 
@@ -323,6 +333,20 @@ class AgentSessionTracker:
                     }
             sess = self._session_locked(sid, agent, ts)
             sess["last_event"] = ts
+            # A session receiving fresh activity is alive again — clear a
+            # stale `ended` marker (ISS-0014). `_seed` stamps `ended` on
+            # every persisted-live session at startup so a dead one can't
+            # ghost as live; but the soft live-reload (TASK-0014) restarts
+            # the sidecar under a still-running terminal, so its live
+            # session would otherwise stay `ended` forever and never show
+            # its cost/ctx. `SessionEnd` is the only event that ends a
+            # session; a truly dead one gets no further events and still
+            # ages out via `_live_ttl`. (A late event buffered after a
+            # legitimate SessionEnd would briefly re-live the session, but
+            # the CLI has already exited so no more arrive and it ages out
+            # via the TTL — tolerated as purely cosmetic.)
+            if event != "SessionEnd" and sess.get("ended") is not None:
+                sess["ended"] = None
             for key in ("cwd", "transcript_path"):
                 val = body.get(key)
                 if isinstance(val, str) and val:
@@ -423,6 +447,10 @@ class AgentSessionTracker:
                     if slim_rl:
                         snap["rate_limits"] = slim_rl
                 if snap:
+                    # When this reading was captured — lets the UI keep
+                    # the freshest account-global usage across workspaces
+                    # (TASK-0169).
+                    snap["captured_at"] = ts
                     sess["cost"] = snap
                     activity["cost"] = snap
                 else:
@@ -589,12 +617,39 @@ class AgentSessionTracker:
             "last_prompt": prompts[-1]["text"] if prompts else None,
             "files": list(sess.get("files") or []),
             "docs_notes": list(sess.get("docs_notes") or []),
+            "work_notes": list(sess.get("work_notes") or []),
             "cost": sess.get("cost"),
             "chg_ids": list(sess.get("chg_ids") or []),
             "dispatches": [dict(d) for d in sess.get("dispatches") or []],
             "undocumented": bool(sess.get("undocumented")),
             "transcript_path": sess.get("transcript_path"),
         }
+
+    def _latest_rate_limits_locked(self) -> dict[str, Any] | None:
+        """Freshest account-global rate-limit reading across every
+        session, by ``captured_at`` (TASK-0171). Rate limits are
+        account-global, so the most recently captured reading wins
+        regardless of which session recorded it; readings without a
+        ``captured_at`` (freshness unknown) are ignored."""
+        best: tuple[float, dict[str, Any], str] | None = None
+        for sess in self._sessions.values():
+            cost = sess.get("cost") or {}
+            rl = cost.get("rate_limits")
+            cap = cost.get("captured_at")
+            if not isinstance(rl, dict) or not isinstance(cap, str):
+                continue
+            ts = _parse_iso(cap)
+            if ts <= 0:
+                continue
+            if best is None or ts > best[0]:
+                best = (ts, rl, cap)
+        if best is None:
+            return None
+        return {"rate_limits": best[1], "rate_limits_at": best[2]}
+
+    def latest_rate_limits(self) -> dict[str, Any] | None:
+        with self._lock:
+            return self._latest_rate_limits_locked()
 
     def snapshot(self) -> dict[str, Any]:
         """Live-activity block merged into ``/api/cockpit/state``.
@@ -603,19 +658,27 @@ class AgentSessionTracker:
         live, so the agent strip can keep showing what the agent last
         did here — including the files it touched — between runs
         instead of vanishing the moment a session ends.
+
+        ``rate_limits`` / ``rate_limits_at`` carry the freshest
+        account-global usage reading across ALL sessions (TASK-0171).
         """
         with self._lock:
             live = self._live_session_locked()
             last = None
             if live is None and self._order:
                 last = self._sessions[self._order[-1]]
-            return {
+            out: dict[str, Any] = {
                 "activity": self._activity,
                 "session": self._slim(live, live=True) if live else None,
                 "last_session": (
                     self._slim(last, live=False) if last is not None else None
                 ),
             }
+            lrl = self._latest_rate_limits_locked()
+            if lrl:
+                out["rate_limits"] = lrl["rate_limits"]
+                out["rate_limits_at"] = lrl["rate_limits_at"]
+            return out
 
     def sessions_payload(self) -> list[dict[str, Any]]:
         """Newest-first slim session list for ``/api/cockpit/sessions``

@@ -27,7 +27,7 @@ Coarse agent state now appears once per scope instead of up to four times.
 
 **TASK-0148.** The status-footer agent dot (`#sf-agent`, `refreshFooterAgent`, and its CSS — the styling-incomplete duplicate that lacked a needs-input style) is removed; the footer keeps only sidecar-process health. The Overview "Now" card is demoted from a rich card (which duplicated the strip + attention panel) to a single line summarising the live session or attention count, linking to `~agents`.
 
-**TASK-0149.** The agent strip gains a `5h N%` rate-limit pip (amber ≥80%, reset time in the tooltip) from the `rate_limits.five_hour` statusline data the tracker already stored but never surfaced — the number to check before dispatching more work.
+**TASK-0149.** The agent strip gains a `5h N%` rate-limit pip (amber ≥80%, reset time in the tooltip) from the `rate_limits.five_hour` statusline data the tracker already stored but never surfaced — the number to check before dispatching more work. (Later relocated to the left-pane budget block by FEAT-0035/TASK-0160; the strip pip was superseded.)
 
 ## Verification
 

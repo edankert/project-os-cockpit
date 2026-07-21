@@ -172,3 +172,151 @@ def test_generation_increments_on_invalidate(tmp_path: Path):
     target = docs / "features" / "a" / "FEAT-0001-A.md"
     index.invalidate(target)
     assert index.generation == g0 + 1
+
+
+def test_retired_and_superseded_count_as_done(tmp_path: Path) -> None:
+    """TASK-0176: terminal-resolved items complete the progress bar — a
+    superseded feature, a retired requirement, and a cancelled task are
+    done (not backlog), and the hero tiles agree with the phase bar (no
+    hero-vs-bar disagreement), so a phase of only-resolved items is 100%."""
+    docs = tmp_path / "docs"
+    _note(docs / "phases" / "PHASE-001-Alpha.md", {
+        "type": "[[phase]]", "id": "PHASE-001", "title": "Alpha",
+        "status": "active", "order": 1,
+    })
+    _note(docs / "features" / "s" / "FEAT-0001-Sup.md", {
+        "type": "[[feature]]", "id": "FEAT-0001", "title": "Sup",
+        "status": "superseded", "phase": "[[PHASE-001]]",
+    })
+    _note(docs / "requirements" / "REQ-0001-Ret.md", {
+        "type": "[[requirement]]", "id": "REQ-0001", "title": "Ret",
+        "status": "retired", "phase": "[[PHASE-001]]",
+    })
+    # A cancelled task under the superseded feature — must count done in
+    # BOTH the hero tile and the phase bar (the review's harmonisation).
+    _note(docs / "features" / "s" / "plan" / "tasks" / "TASK-0001-C.md", {
+        "type": "[[task]]", "id": "TASK-0001", "title": "Cancelled",
+        "status": "cancelled", "parent": "[[FEAT-0001]]",
+    })
+    idx = Index.build(docs)
+    pay = cockpit.stats_payload(idx, scope="PHASE-001")
+    hero = pay["hero"]
+    assert hero["features"] == {"total": 1, "done": 1}
+    assert hero["requirements"] == {"total": 1, "done": 1}
+    assert hero["tasks"] == {"total": 1, "done": 1}  # cancelled counts done
+    # Phase progress bucket: the superseded feature counts done, no backlog.
+    phase = next((p for p in pay["phases"] if p.get("key") == "PHASE-001"), None)
+    assert phase is not None
+    assert phase["tasks"]["backlog"] == 0
+    assert phase["tasks"]["done"] >= 1
+    # Drill-down: the feature + the (loose) requirement both bucket done.
+    buckets = {c["id"]: c["bucket"]
+               for f in phase["features"]
+               for c in ([f] + f.get("children", []))}
+    buckets.update({c["id"]: c["bucket"] for c in phase.get("loose", [])})
+    assert buckets["FEAT-0001"] == "done"
+    assert buckets["REQ-0001"] == "done"
+
+
+def test_boxes_agree_with_hero_per_type(tmp_path: Path) -> None:
+    """TASK-0181: the phase boxes and the hero counts consult ONE per-type
+    done set, so a status that's terminal for one type but not another can't
+    render a filled box while the count disagrees. `accepted` is done for a
+    requirement but NOT for a task — the old type-agnostic union bucketed
+    BOTH done, diverging from the per-type hero. Now both agree per type."""
+    docs = tmp_path / "docs"
+    _note(docs / "phases" / "PHASE-001-Alpha.md", {
+        "type": "[[phase]]", "id": "PHASE-001", "title": "Alpha",
+        "status": "active", "order": 1,
+    })
+    _note(docs / "features" / "x" / "FEAT-0001-X.md", {
+        "type": "[[feature]]", "id": "FEAT-0001", "title": "X",
+        "status": "in-progress", "phase": "[[PHASE-001]]",
+    })
+    # `accepted` requirement → done for a requirement (DONE_REQ).
+    _note(docs / "requirements" / "REQ-0001-Acc.md", {
+        "type": "[[requirement]]", "id": "REQ-0001", "title": "Acc",
+        "status": "accepted", "phase": "[[PHASE-001]]",
+    })
+    # `accepted` task → NOT done for a task (not in DONE_TASK). Under the old
+    # union this rendered a filled box while the hero task count said 0/1.
+    _note(docs / "features" / "x" / "plan" / "tasks" / "TASK-0001-A.md", {
+        "type": "[[task]]", "id": "TASK-0001", "title": "Acc task",
+        "status": "accepted", "parent": "[[FEAT-0001]]",
+    })
+    idx = Index.build(docs)
+    pay = cockpit.stats_payload(idx, scope="PHASE-001")
+    hero = pay["hero"]
+    # Hero: the requirement counts done, the task does NOT.
+    assert hero["requirements"] == {"total": 1, "done": 1}
+    assert hero["tasks"] == {"total": 1, "done": 0}
+    # Boxes agree with the hero, per type.
+    phase = next(p for p in pay["phases"] if p.get("key") == "PHASE-001")
+    buckets = {c["id"]: c["bucket"]
+               for f in phase["features"]
+               for c in ([f] + f.get("children", []))}
+    buckets.update({c["id"]: c["bucket"] for c in phase.get("loose", [])})
+    assert buckets["REQ-0001"] == "done"      # accepted requirement → filled
+    assert buckets["TASK-0001"] == "backlog"  # accepted task → NOT filled
+    # And the phase task bar counts the accepted task as backlog, not done.
+    assert phase["tasks"]["done"] == 0
+    assert phase["tasks"]["backlog"] == 1
+
+
+def test_child_phase_placement_agrees_across_views(tmp_path: Path) -> None:
+    """TASK-0182: a task whose own `phase:` differs from its parent feature's
+    phase (a deferred task parked in a future phase) must appear in the SAME
+    place on the project overview and on every scoped phase page — under its
+    OWN phase (loose), never under its parent's phase section. A normal child
+    that inherits its parent's phase still nests under the parent."""
+    docs = tmp_path / "docs"
+    _note(docs / "phases" / "PHASE-001-Alpha.md", {
+        "type": "[[phase]]", "id": "PHASE-001", "title": "Alpha",
+        "status": "active", "order": 1,
+    })
+    _note(docs / "phases" / "PHASE-002-Future.md", {
+        "type": "[[phase]]", "id": "PHASE-002", "title": "Future",
+        "status": "planned", "order": 2,
+    })
+    _note(docs / "features" / "f" / "FEAT-0001-F.md", {
+        "type": "[[feature]]", "id": "FEAT-0001", "title": "F",
+        "status": "done", "phase": "[[PHASE-001]]",
+    })
+    # Parked task: parent is in PHASE-001 but the task itself is in PHASE-002.
+    _note(docs / "features" / "f" / "plan" / "tasks" / "TASK-0001-Parked.md", {
+        "type": "[[task]]", "id": "TASK-0001", "title": "Parked",
+        "status": "deferred", "parent": "[[FEAT-0001]]",
+        "phase": "[[PHASE-002]]",
+    })
+    # Normal task: no own phase → inherits PHASE-001 from the parent.
+    _note(docs / "features" / "f" / "plan" / "tasks" / "TASK-0002-Normal.md", {
+        "type": "[[task]]", "id": "TASK-0002", "title": "Normal",
+        "status": "done", "parent": "[[FEAT-0001]]",
+    })
+    idx = Index.build(docs)
+
+    def _feat_children(pay, phase_key, feat_id):
+        ph = next(p for p in pay["phases"] if p.get("key") == phase_key)
+        feat = next(f for f in ph["features"] if f["id"] == feat_id)
+        return {c["id"] for c in feat.get("children", [])}
+
+    def _loose_ids(pay, phase_key):
+        ph = next((p for p in pay["phases"] if p.get("key") == phase_key), None)
+        return {c["id"] for c in (ph or {}).get("loose", [])}
+
+    # --- project overview (unscoped) ---
+    full = cockpit.stats_payload(idx)
+    # FEAT-0001 (PHASE-001) nests only the phase-inheriting child, NOT the
+    # parked one — the parked task surfaces loose under its own PHASE-002.
+    assert _feat_children(full, "PHASE-001", "FEAT-0001") == {"TASK-0002"}
+    assert "TASK-0001" in _loose_ids(full, "PHASE-002")
+    assert "TASK-0001" not in _loose_ids(full, "PHASE-001")
+
+    # --- scoped parent-phase page (PHASE-001) agrees: no parked task ---
+    p1 = cockpit.stats_payload(idx, scope="PHASE-001")
+    assert _feat_children(p1, "PHASE-001", "FEAT-0001") == {"TASK-0002"}
+    assert "TASK-0001" not in _loose_ids(p1, "PHASE-001")
+
+    # --- scoped own-phase page (PHASE-002) shows the parked task loose ---
+    p2 = cockpit.stats_payload(idx, scope="PHASE-002")
+    assert "TASK-0001" in _loose_ids(p2, "PHASE-002")

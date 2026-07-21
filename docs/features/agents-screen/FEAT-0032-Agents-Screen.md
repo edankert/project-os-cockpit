@@ -3,11 +3,14 @@ type: "[[feature]]"
 id: FEAT-0032
 aliases: ["FEAT-0032"]
 title: "Agents screen (~agents) — cross-workspace fleet view: sessions, cost, queues, rate limits"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 goal: "A dedicated virtual page (~agents, reachable from the rail and the inbox header) with one row per workspace: live state + elapsed, current prompt, last file, dispatch origin, queue depth, ctx/$ meters, and jump actions (terminal / session / queue); a header aggregating total burn, active count, and the rate-limit budget. Session history and ~session pages become children of this screen instead of hiding inside ~overview."
 requirements: ["[[REQ-0019-Agent-Fleet-Visibility]]"]
 tests: []

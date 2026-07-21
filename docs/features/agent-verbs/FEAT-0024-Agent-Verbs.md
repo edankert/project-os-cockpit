@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0024
 aliases: ["FEAT-0024"]
 title: "Agent verbs — drive the docs system from any note"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Any project-os note becomes a command surface: select a phase/feature/requirement/task/issue/risk, pick a verb (implement, fix, refine, break down, groom, mitigate, …), and the agent starts that work in the terminal — with the verbs defined by the project-os skill playbooks, and dispatches queued automatically when the agent is busy."
 requirements: []
 tests: ["[[TST-0013]]", "[[TST-0011]]"]

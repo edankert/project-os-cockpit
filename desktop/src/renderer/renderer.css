@@ -989,8 +989,56 @@ body {
   position: relative;
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-height: 0;
 }
+
+/* Centre tab strip (FEAT-0034 / TASK-0159) — doc + pinned Agents. */
+.center-tabs {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}
+.center-tabs[hidden] { display: none; }
+.center-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.center-tab:hover { background: var(--row-hover); color: var(--fg); }
+.center-tab.on {
+  color: var(--fg);
+  background: var(--bg);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.center-tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex: none;
+}
+.center-tab-close {
+  color: var(--fg-faint);
+  border-radius: 4px;
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.center-tab-close:hover { background: var(--row-hover); color: var(--fg); }
 
 .placeholder {
   margin: auto;
@@ -1052,6 +1100,20 @@ body {
   border-color: #cc6f6f;
   color: #cc6f6f;
 }
+.status-bar.is-actionable { border-color: var(--accent); }
+.status-bar-action {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Active state for the follow rail toggle (aria-pressed). */
+.ws-rail-tool#follow-toggle[aria-pressed="false"] { opacity: 0.5; }
 
 /* ---- Drop overlay (FEAT-0012 / TASK-0091) ---- */
 
@@ -1675,7 +1737,12 @@ a.ov-phase-title:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
+/* Scoped (phase) activity rows have no id/tag cells — date · type · title
+   only. Without this the title inherits the 5-column template and lands
+   in the fixed id column, truncating early (TASK-0173). */
+.ov-feed-scoped li { grid-template-columns: 88px 64px 1fr; }
 .ov-feed-tag {
   color: var(--accent);
   font-size: 11px;
@@ -1885,6 +1952,30 @@ a.ov-phase-title:hover {
 .agent-detail-files a:hover { text-decoration: underline; }
 .agent-detail-empty { color: var(--text-faint); }
 
+/* Session detail tabs: work | files (TASK-0163). */
+.agent-detail-tabs { display: flex; gap: 12px; margin: 2px 0 6px; }
+.agent-detail-tab {
+  background: transparent; border: none; padding: 0 0 2px;
+  color: var(--text-faint); cursor: pointer; font-size: 11px;
+  border-bottom: 2px solid transparent;
+}
+.agent-detail-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.agent-detail-work { display: flex; flex-direction: column; gap: 2px; }
+.agent-detail-work-row {
+  display: flex; align-items: center; gap: 7px;
+  background: transparent; border: none; padding: 2px 0;
+  cursor: pointer; text-align: left; color: var(--text);
+}
+.agent-detail-work-row:hover .work-id { color: var(--accent); }
+.work-box {
+  width: 10px; height: 10px; border-radius: 2px; flex: none;
+  border: 1px solid var(--text-faint); background: transparent;
+}
+.work-box.doing { background: var(--accent); border-color: var(--accent); }
+.work-box.done  { background: var(--status-done); border-color: var(--status-done); }
+.work-id { font-size: 11px; }
+.work-status { font-size: 10px; color: var(--text-faint); margin-left: auto; }
+
 /* An author `display` beats the UA's `[hidden] { display: none }`
  * rule, so every element toggled via the hidden attribute whose class
  * sets a display needs the hidden state spelled out (ISS-0009). The
@@ -2004,8 +2095,74 @@ a.ov-phase-title:hover {
 }
 .ws-attention-finished:hover { color: var(--text); }
 .ws-attention-arrow { margin-left: auto; color: var(--accent); }
+
+/* Account budget block (FEAT-0035 / TASK-0160) — 5h/7d usage bars. */
+.ws-budget {
+  border-top: 1px solid var(--border);
+  padding: 6px 9px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ws-budget-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.ws-budget-asof {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ws-budget-asof.stale { color: var(--severity-medium); }
+.ws-budget-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ws-budget-label { width: 18px; flex: none; }
+.ws-budget-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.ws-budget-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--status-done);
+  transition: width 300ms ease;
+}
+.ws-budget-fill.warn { background: var(--severity-medium); }
+.ws-budget-fill.crit { background: var(--severity-critical); }
+.ws-budget-val {
+  width: 34px;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ws-budget-val.warn { color: var(--severity-medium); }
+.ws-budget-val.crit { color: var(--severity-critical); }
+.ws-budget-reset {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ws-attention-dot { animation: none !important; }
+  .ws-budget-fill { transition: none; }
 }
 
 /* ----- Live nav trail (TASK-0120) ----- */
@@ -2024,6 +2181,105 @@ li[data-rel].agent-touched {
   color: var(--accent);
   border: 1px solid var(--accent);
   flex: none;
+}
+
+/* Terminal context menu (FEAT-0037 / TASK-0167). */
+.term-menu {
+  position: fixed;
+  z-index: 400;
+  min-width: 150px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.term-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.term-menu-item:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.term-menu-item:disabled { color: var(--text-faint); cursor: default; }
+.term-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+/* Phase-less Now board (TASK-0165). */
+.ov-now-board { }
+.now-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.now-col {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.now-col-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 2px 4px 4px;
+}
+.now-card-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  min-width: 0;
+}
+.now-card-item:hover { border-color: var(--accent); }
+.now-card-id { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-card-item .status-chip { margin-left: auto; }
+@keyframes now-card-flash { 0% { background: var(--accent-soft); } 100% { background: var(--bg); } }
+.now-card-item.now-card-flash { animation: now-card-flash 1.6s ease-out; }
+@media (prefers-reduced-motion: reduce) { .now-card-item.now-card-flash { animation: none; } }
+@media (max-width: 900px) { .now-board { grid-template-columns: 1fr; } }
+
+/* Agent chip on nav rows a live session is touching (TASK-0164). */
+.nav-agent-chip {
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  flex: none;
+  margin-right: 4px;
+}
+/* Brief flash when an item migrates on a status transition (TASK-0164). */
+@keyframes nav-status-flash {
+  0% { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+.nav-status-flash .nav-item { animation: nav-status-flash 1.6s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-status-flash .nav-item { animation: none; }
 }
 
 /* ----- Dispatch button + CHG provenance ----- */
@@ -2091,9 +2347,14 @@ li[data-rel].agent-touched {
   align-items: start;
 }
 .ov-feeds > .ov-section { margin: 0; }
+/* Sessions moved to ~agents (TASK-0178) — the overview feeds are a single
+   full-width Recent activity column. */
+.ov-feeds-single { grid-template-columns: 1fr; }
 @media (max-width: 900px) {
   .ov-feeds { grid-template-columns: 1fr; }
 }
+/* Session-history list on the ~agents screen (TASK-0178). */
+.agents-page .agents-sessions { margin-top: 20px; }
 .ov-agent-pill {
   color: var(--accent);
   border: 1px solid var(--accent);
@@ -2265,63 +2526,6 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 .scoped-exit-list { list-style: none; margin: 0; padding: 0; }
 .scoped-exit-list li { padding: 3px 0; font-size: 13px; color: var(--text-muted); }
 .scoped-exit-list li.done { color: var(--text-faint); }
-
-/* Right pane Now column */
-.ov-now { margin-bottom: 12px; }
-/* Demoted Now section — a one-line pointer to the ~agents screen
-   (FEAT-0031 / TASK-0148). */
-.now-oneliner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-  text-align: left;
-  color: var(--text);
-  font-size: 12.5px;
-}
-.now-oneliner:hover { background: var(--row-hover); }
-.now-oneliner-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.now-oneliner-arrow { margin-left: auto; color: var(--accent); flex: none; }
-.now-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--status-active);
-  border-radius: 8px; padding: 9px 11px; margin: 4px 0 8px;
-}
-.now-line { display: flex; align-items: center; gap: 7px; }
-.now-agent { font-weight: 600; font-size: 13px; }
-.now-state { color: var(--text-faint); font-size: 12px; }
-.now-prompt {
-  color: var(--text-muted); font-size: 12px; margin: 5px 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.now-meters {
-  display: flex; gap: 10px; align-items: center;
-  font-size: 11.5px; color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.now-jump {
-  margin-left: auto; background: transparent;
-  border: 1px solid var(--border); border-radius: 4px;
-  color: var(--text-muted); font-size: 11px; padding: 2px 8px; cursor: pointer;
-}
-.now-jump:hover { color: var(--text); border-color: var(--text-faint); }
-.now-undoc {
-  margin-top: 6px; font-size: 11px; font-weight: 600;
-  color: var(--severity-medium);
-}
-.now-needs { display: flex; flex-direction: column; gap: 4px; }
-.now-needs-row {
-  text-align: left; background: var(--bg-elevated);
-  border: 1px solid var(--severity-critical); border-radius: 7px;
-  color: var(--text-muted); font-size: 12px; padding: 6px 10px; cursor: pointer;
-}
-.now-needs-row:hover { color: var(--text); }
 
 /* Dispatch queue chip (FEAT-0024 / TASK-0133) */
 .agent-strip-queue {

@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0020
 aliases: ["FEAT-0020"]
 title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Make the instrumented agent visible: a live activity strip above the terminal (current prompt, tool, file, cost/context meters), a cross-workspace needs-input inbox, and live attribution badges in the nav for notes the agent just touched."
 requirements: []
 tests: ["[[TST-0011]]"]

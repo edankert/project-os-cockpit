@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-007
 aliases: ["PHASE-007"]
 title: "Agent instrumentation (hooks-aware terminal)"
-status: active
+status: done
 order: 7
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
 goal: "The embedded terminal understands the agent running inside it: lifecycle hooks feed agent state, activity, cost, and needs-input signals into the cockpit automatically, and the cockpit dispatches project-os tasks back to the agent."
 features:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
@@ -59,3 +59,7 @@ On top of that push feed, this phase builds the surfaces that make the cockpit a
 - **Trust boundary.** `/api/agent-hook` accepts unauthenticated localhost POSTs; payloads must be treated as untrusted input (validated, size-capped, never rendered as HTML). See [[RISK-0004-Hook-Injection-Surface]].
 - **Config etiquette.** Hook injection must not mutate the user's own `~/.claude` / `~/.codex` configuration; injection is per-spawn (env/flags/generated files under the app's own state dir). Codex hooks may require a one-time trust prompt in the TUI — surface that honestly in the UI.
 - **Prior art** (researched 2026-07-05): Crystal/Nimbalyst session status indicators, Antigravity's Inbox for blocked agents, vibe-kanban's board-as-queue, Warp's per-tab agent status, Sculptor's session history. Differentiator here: the project-os knowledge graph — dispatch from durable TASK notes and guardrails that know the documentation contract.
+
+## Close-out (2026-07-20)
+
+All in-scope features and tasks are complete (FEAT-0018..0037 done, tasks 0114..0173 resolved). The phase's exit criteria above are left unchecked deliberately: they correspond to TST-0011, the manual live-agent e2e checklist (launch a real claude/codex, trigger a permission prompt, observe OS notifications) that the user chose to waive in favour of the automated verification performed across the 2026-07-20 sweep (instrumentation-pipeline smoke test against the sidecar, CDP UI checks, 409 identity guard, 218 passing unit tests, per-feature independent reviews). The criteria remain the record of what a human pass would confirm.

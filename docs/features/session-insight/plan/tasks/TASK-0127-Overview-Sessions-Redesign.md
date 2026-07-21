@@ -3,11 +3,12 @@ type: "[[task]]"
 id: TASK-0127
 aliases: ["TASK-0127"]
 title: "Overview sessions redesign — live banner, feeds column, virtual detail page"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
+verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
 parent: "[[FEAT-0022-Session-Insight-And-Traceability]]"
 effort: "M"
 depends: ["[[TASK-0124]]"]
@@ -37,3 +38,7 @@ The first cut (TASK-0124) appended an accordion-style sessions section at the ve
 ## Notes
 
 Chosen over alternatives (fold-into-recent-feed, dedicated nav mode) in review on 2026-07-05 — keeps Overview the single dashboard while giving live state prime placement and detail proper room.
+
+## Verification
+
+CDP: Overview renders `.ov-feeds` (two-column feeds grid) and `.ov-sessions-body` (sessions column); `buildLiveSessionBanner`/`renderSessionDetailPage` and the `~session/` nav branch are present. Redesign shipped; the live-banner + detail states are exercised by the manual live-session checklist.

@@ -3,11 +3,14 @@ type: "[[feature]]"
 id: FEAT-0030
 aliases: ["FEAT-0030"]
 title: "Agent inbox — docked attention panel at the bottom of the nav pane, with a sane attention lifecycle"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 goal: "A docked attention panel at the bottom of the left nav pane answers 'what needs me?' at a glance: zero-height when empty, it materialises with needs-input rows (act now) and waiting rows (turn finished — review, with cost) across all workspaces, plus a one-line 'N finished today' link onward; the top-bar bell is deleted. The attention lifecycle stops crying wolf: a normally-finished turn stays amber (idle_prompt no longer escalates to red), and pulses calm to static once seen — pulse means unseen, static means known-and-pending, gone means resolved."
 requirements: ["[[REQ-0018-Agent-Attention-Completeness]]"]
 tests: []

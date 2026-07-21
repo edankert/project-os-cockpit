@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0023
 aliases: ["FEAT-0023"]
 title: "Overview scopes — drill-down dashboard with pane contract restored"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Overview mode keeps the app-wide pane contract: the left pane lists scopes (project + phases), selecting one renders that scope's dashboard in the centre (scoped hero, feature squares, exit criteria, scoped activity), and the right pane shows the scope's context plus a live agent Now column — with the mode's lifecycle bugs (history dead-end, re-render churn, fetch fan-out, stale right pane, static live numbers, uncached stats) fixed."
 requirements: []
 tests: ["[[TST-0012]]", "[[TST-0011]]"]

@@ -34,6 +34,7 @@ from typing import Any, Iterable
 from . import cockpit, renderer, templates, terminal_proxy
 from .agent_actions import load_actions
 from .agent_hooks import AgentSessionTracker
+from .status_diff import StatusTracker
 from .agent_hooks import MAX_BODY_BYTES as _AGENT_HOOK_MAX_BYTES
 from .events import ControlEvent, EventBus, FileEvent
 from .index import Index
@@ -103,9 +104,13 @@ _AGENT_STATE_DECAY_SECONDS: int = int(
 _AGENT_STATES: frozenset[str] = frozenset(
     {"busy", "waiting", "needs-input", "done", "error", "idle"}
 )
-_AGENT_DECAYABLE_STATES: frozenset[str] = frozenset(
-    {"busy", "waiting", "needs-input"}
-)
+# Only `busy` decays: a working agent that goes silent is a dead worker,
+# so idling its rail dot is correct. Attention states (`waiting`,
+# `needs-input`) must NOT decay — REQ-0018 requires they persist until the
+# user acts or dismisses, since a blocked agent sends no further events
+# and would otherwise vanish from the inbox while still needing you
+# (TASK-0175). The ack/read-state (static-once-seen) handles staleness.
+_AGENT_DECAYABLE_STATES: frozenset[str] = frozenset({"busy"})
 
 
 def _utc_now_iso() -> str:
@@ -400,6 +405,12 @@ class DocsServer:
             self.docs_root.parent, self.bus, resolver=self.index.resolve,
         )
         self.bus.subscribe(self.validation.on_event)
+        # Status-diff layer (FEAT-0036 / TASK-0162): note saves become
+        # cockpit:status-change events feeding the live-work views.
+        # Seeded from the current index so the first scan is silent.
+        self.status_tracker: StatusTracker = StatusTracker(self.docs_root, self.bus)
+        self.status_tracker.seed(self.index)
+        self.bus.subscribe(self.status_tracker.on_event)
         # Decay thread shutdown flag — flipped in `run`'s `finally`.
         self._decay_stop: threading.Event = threading.Event()
         # Header home-link label = repo name (parent of docs/), so users
@@ -425,6 +436,7 @@ class DocsServer:
             cockpit_state=self.cockpit_state,
             agent_tracker=self.agent_tracker,
             validation_runner=self.validation,
+            status_tracker=self.status_tracker,
         )
         self.watcher.start()
         # SNAPSHOT.yaml sits above the docs root — the validation runner
@@ -538,11 +550,13 @@ def _make_handler(
     cockpit_state: CockpitState | None = None,
     agent_tracker: AgentSessionTracker | None = None,
     validation_runner: ValidationRunner | None = None,
+    status_tracker: "StatusTracker | None" = None,
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     project_root = docs_root.parent.resolve()
     state = cockpit_state or CockpitState()
     tracker = agent_tracker or AgentSessionTracker(docs_root=docs_root)
+    status_diff = status_tracker
     validation = validation_runner
     if validation is None:
         # Standalone-handler path (tests spin handlers up without a
@@ -666,6 +680,12 @@ def _make_handler(
 
             if path == "/api/cockpit/identity":
                 self._serve_cockpit_identity()
+                return
+
+            if path == "/api/cockpit/transitions":
+                self._respond_json({
+                    "transitions": status_diff.transitions() if status_diff else [],
+                })
                 return
 
             if path == "/api/cockpit/stats":

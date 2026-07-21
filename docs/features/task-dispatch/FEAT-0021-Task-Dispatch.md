@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0021
 aliases: ["FEAT-0021"]
 title: "Task dispatch — start agent work from the task board"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Dispatch a TASK or ISS note to the agent directly from the nav: a context-menu action types a templated, note-aware prompt into the workspace terminal, and follow mode makes the resulting work observable end-to-end."
 requirements: []
 tests: ["[[TST-0011]]"]

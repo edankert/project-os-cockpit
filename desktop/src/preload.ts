@@ -89,10 +89,18 @@ const api = {
       ipcRenderer.on('agent:focus', handler);
       return () => ipcRenderer.removeListener('agent:focus', handler);
     },
+    onDispatchSelection: (cb: (text: string) => void): (() => void) => {
+      const handler = (_: unknown, text: string): void => cb(text);
+      ipcRenderer.on('menu:dispatch-selection', handler);
+      return () => ipcRenderer.removeListener('menu:dispatch-selection', handler);
+    },
   },
   agents: {
     // Cross-workspace fleet snapshot for the ~agents screen (FEAT-0032).
     fleet: (): Promise<unknown> => ipcRenderer.invoke('agents:fleet'),
+    // Session history for one workspace (TASK-0180 / ISS-0013).
+    sessions: (workspaceId: string): Promise<unknown> =>
+      ipcRenderer.invoke('agents:sessions', workspaceId),
   },
   app: {
     openExternal: (url: string): Promise<{ ok: boolean; error?: string }> =>

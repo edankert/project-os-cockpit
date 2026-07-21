@@ -59,7 +59,11 @@ const POLL_INTERVAL_MS = 5_000;
 // the two decay clocks disagreeing.
 const DECAY_SECONDS = Number(process.env.COCKPIT_AGENT_STATE_DECAY_SECONDS) || 600;
 const DECAY_MS = DECAY_SECONDS * 1_000;
-const DECAYABLE = new Set(['busy', 'waiting', 'needs-input']);
+// Only `busy` decays; attention states persist until acted/dismissed
+// (REQ-0018 / TASK-0175) — a blocked agent sends no further events and
+// must not vanish from the rail. Kept in sync with the sidecar's
+// `_AGENT_DECAYABLE_STATES`.
+const DECAYABLE = new Set(['busy']);
 
 function applyDecay(payload: AgentStatePayload | null): AgentStatePayload | null {
   if (!payload || !DECAYABLE.has(payload.state)) return payload;

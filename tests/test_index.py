@@ -264,6 +264,36 @@ def test_invalidate_after_recreate_re_indexes(
     assert new_path in index.links_to(feat1)
 
 
+def test_invalidate_folds_path_case_to_docs_root(
+    index: Index, docs_root: Path
+) -> None:
+    """ISS-0001: a watcher event whose parent path-case differs from the
+    docs root (macOS fsevents reports /Users/Edwin vs the walk's
+    /Users/edwin) must still leave the record findable under the walk's
+    case. ``.resolve()`` does not fold case on case-insensitive volumes,
+    so ``Index.invalidate`` re-roots the path under ``docs_root`` before
+    indexing; ``Index.get((docs_root / rel).resolve())`` must then hit.
+    Without the re-rooting the record is re-keyed under (or dropped for)
+    the reported case and the render endpoint returns empty frontmatter.
+    """
+    feat1 = docs_root / "FEAT-0001-Alpha.md"
+    assert index.get(feat1) is not None  # present from the initial walk
+
+    # A differently-cased abs path denoting the same file — uppercase the
+    # docs root's final component. relative_to_ci folds case, so this maps
+    # back to feat1 regardless of the filesystem's case sensitivity.
+    mixed = docs_root.parent / docs_root.name.upper() / "FEAT-0001-Alpha.md"
+    assert str(mixed) != str(feat1)
+
+    index.invalidate(mixed)
+
+    assert index.get(feat1) is not None
+    assert index.by_id("FEAT-0001") is not None
+    # No stale wrong-case duplicate left behind.
+    dupes = [p for p in index._records if str(p).lower() == str(feat1).lower()]
+    assert len(dupes) == 1
+
+
 # ---- excluded directories ----------------------------------------------
 
 

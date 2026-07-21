@@ -96,10 +96,12 @@ TYPE_ORDER: tuple[str, ...] = (
 _TYPE_RANK: dict[str, int] = {t: i for i, t in enumerate(TYPE_ORDER)}
 
 # Order for the "tasks by status" left-pane mode. Items the user is
-# actively touching first; archived states last.
+# actively touching first; archived states last. `deferred` sits in the
+# parked band with blocked — it is descoped-but-still-wanted work, not
+# archived history (project-os STATUSES.md, "Deferral and re-adoption").
 TASK_STATUS_ORDER: tuple[str, ...] = (
     "doing", "in-progress", "in-review", "next",
-    "blocked", "failing", "reopened",
+    "blocked", "failing", "reopened", "deferred",
     "ready", "active", "approved", "accepted",
     "planned", "triage",
     "todo", "open", "pending", "backlog",
@@ -107,7 +109,7 @@ TASK_STATUS_ORDER: tuple[str, ...] = (
     "done", "merged", "fixed", "fulfilled", "met", "complete",
     "verified", "passing", "published", "closed",
     "obsolete", "retired", "cancelled", "superseded", "wont-fix", "reverted",
-    "reference", "deferred",
+    "reference",
 )
 _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}
 
@@ -125,7 +127,20 @@ _RECENT_BUCKETS = (
     ("earlier", "Earlier"),
 )
 
-NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "recent", "library")
+NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "active", "recent", "library")
+
+# Active mode (FEAT-0036 / TASK-0164) — in-flight items across all types.
+_ACTIVE_DOING: frozenset[str] = frozenset({
+    "doing", "in-progress", "in_progress", "in-review", "active",
+    "mitigating", "reproducing", "reopened", "blocked", "failing",
+})
+_ACTIVE_NEXT: frozenset[str] = frozenset({
+    "next", "ready", "planned", "approved", "accepted", "triage",
+})
+_ACTIVE_DONE: frozenset[str] = frozenset({
+    "done", "merged", "fixed", "fulfilled", "met", "complete",
+    "verified", "closed", "passing", "published", "resolved",
+})
 DEFAULT_MODE = "features"
 
 # Library mode discovery rules.
@@ -263,15 +278,50 @@ def stats_payload(
     changes      = index.notes_by_type("change")
     phase_recs   = index.notes_by_type("phase")
 
-    DONE_FEAT  = {"done", "released", "merged", "verified", "complete"}
-    DONE_TASK  = {"done", "merged", "verified", "closed", "fixed"}
-    DONE_REQ   = {"verified", "met", "fulfilled", "accepted"}
+    # Terminal-resolved statuses count as done for progress — the bar
+    # measures resolved-vs-open, and a `superseded` feature (delivered,
+    # then replaced), a `retired`/`superseded` requirement, or a
+    # `cancelled` item (will-not-be-done) is resolved, not open work
+    # (TASK-0176). These per-type sets are the single source of truth for
+    # both the hero tiles and the phase boxes (via `_is_done`, TASK-0181),
+    # so the two never disagree. `deferred` (parked, still
+    # intended) is deliberately NOT here — it stays open work. A
+    # requirement can be `any → superseded` without being built; that is
+    # accepted for a resolved-vs-open bar (the successor carries the work).
+    DONE_FEAT  = {"done", "released", "merged", "verified", "complete", "superseded", "cancelled"}
+    DONE_TASK  = {"done", "merged", "verified", "closed", "fixed", "cancelled"}
+    DONE_REQ   = {"verified", "met", "fulfilled", "accepted", "retired", "superseded", "cancelled"}
     OPEN_ISS   = {"open", "doing", "in-progress", "triage", "backlog"}
     PASSING    = {"passing"}
     OPEN_RISK  = {"open", "doing"}
+    DONE_ISS   = {"fixed", "closed", "wont-fix", "resolved", "cancelled"}
+
+    # Single per-type "done" definition (TASK-0181). The hero tiles and the
+    # phase progress boxes MUST agree — an item is a filled box iff it also
+    # counts done in the summary. Both now consult the SAME per-type set via
+    # `_is_done`, so a status that's terminal for one type (e.g. requirement
+    # `accepted`) can't render done in a box while the count says otherwise.
+    # Replaces the old type-agnostic union `DONE_PHASE_BUCKET`, which mixed
+    # every type's vocabulary and diverged from the per-type hero counts.
+    DONE_BY_TYPE = {
+        "feature": DONE_FEAT,
+        "task": DONE_TASK,
+        "requirement": DONE_REQ,
+        "issue": DONE_ISS,
+        "test": PASSING,
+        "risk": {"closed"},
+        "change": {"merged"},
+        "phase": {"done"},
+    }
+    # Fallback for any other type: the union of every terminal vocabulary.
+    _DONE_ANY = set().union(*DONE_BY_TYPE.values())
 
     def _norm(s: object) -> str:
         return str(s or "").lower().strip()
+
+    def _is_done(rec: Any) -> bool:
+        done_set = DONE_BY_TYPE.get(_norm(getattr(rec, "note_type", "")), _DONE_ANY)
+        return _norm(rec.status) in done_set
 
     def _hero_count(records, done_set):
         total = len(records)
@@ -456,13 +506,6 @@ def stats_payload(
         "requirements": _mix(requirements),
     }
 
-    DONE_PHASE_BUCKET = {
-        "done", "merged", "verified", "closed", "fixed", "cancelled",
-        "released", "complete", "accepted", "passing",
-        # Requirement done-vocabulary (ISS-0004) — squares for
-        # fulfilled/met requirements were rendering unfilled.
-        "fulfilled", "met",
-    }
     DOING_PHASE_BUCKET = {"doing", "in-progress", "active", "in_progress"}
 
     # Include features alongside tasks in the phase progress bars —
@@ -471,9 +514,8 @@ def stats_payload(
     phase_buckets: dict[str, Counter[str]] = {}
     for record in [*tasks, *features]:
         pid = _phase_id_of(record) or "unphased"
-        st = _norm(record.status)
-        bucket = ("done" if st in DONE_PHASE_BUCKET
-                  else "in_progress" if st in DOING_PHASE_BUCKET
+        bucket = ("done" if _is_done(record)
+                  else "in_progress" if _norm(record.status) in DOING_PHASE_BUCKET
                   else "backlog")
         phase_buckets.setdefault(pid, Counter())[bucket] += 1
 
@@ -483,9 +525,8 @@ def stats_payload(
     # as "loose" so they still show up.
 
     def _status_bucket(rec: Any) -> str:
-        st = _norm(rec.status)
-        if st in DONE_PHASE_BUCKET: return "done"
-        if st in DOING_PHASE_BUCKET: return "in_progress"
+        if _is_done(rec): return "done"
+        if _norm(rec.status) in DOING_PHASE_BUCKET: return "in_progress"
         return "backlog"
 
     def _slim(rec: Any, kind: str) -> dict[str, Any]:
@@ -498,12 +539,26 @@ def stats_payload(
             "type": kind,
         }
 
+    # Nest a child under its parent feature only when they share a phase.
+    # A child explicitly moved to a different phase (e.g. a deferred task
+    # parked in PHASE-999 whose parent feature lives in PHASE-004) must not
+    # render under its parent's phase section — otherwise the project
+    # overview shows it there while a scoped phase page (which filters by
+    # the child's OWN phase) omits it. Such a child surfaces as loose under
+    # its own phase instead (`loose_by_phase` below already places it), so
+    # both views agree on where it lives (TASK-0182).
     children_by_parent_id: dict[str, list[Any]] = {}
     child_records = [*tasks, *requirements, *issues]
     for c in child_records:
         fid = _parent_feature_id(c)
-        if fid:
-            children_by_parent_id.setdefault(fid, []).append(c)
+        if not fid:
+            continue
+        parent = records_by_id.get(fid)
+        if parent is not None and (
+            (_phase_id_of(c) or "unphased") != (_phase_id_of(parent) or "unphased")
+        ):
+            continue
+        children_by_parent_id.setdefault(fid, []).append(c)
 
     # Index features by phase so we can list them per phase below.
     features_by_phase: dict[str, list[Any]] = {}
@@ -680,6 +735,8 @@ def nav_payload(
         groups = _tasks_groups(index, plat)
     elif m == "issues":
         groups = _issues_groups(index, plat)
+    elif m == "active":
+        groups = _active_groups(index, plat)
     elif m == "recent":
         groups = _recent_groups(index, plat)
     elif m == "library":
@@ -947,6 +1004,54 @@ def _issues_groups(
         }
         for key in ordered_keys
     ]
+
+
+def _active_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Active mode (TASK-0164): in-flight items across every type,
+    grouped Doing / Next / Done today, newest activity first. This is
+    the honest landing view for phase-less projects."""
+    today = _dt.date.today()
+    doing: list[NoteRecord] = []
+    nxt: list[NoteRecord] = []
+    done_today: list[NoteRecord] = []
+    for path in index.paths():
+        record = index.get(path)
+        if record is None or record.note_type is None:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if not _platform_match(record, platform):
+            continue
+        st = (record.status or "").strip().lower()
+        if st in _ACTIVE_DOING:
+            doing.append(record)
+        elif st in _ACTIVE_NEXT:
+            nxt.append(record)
+        elif st in _ACTIVE_DONE and _note_updated(record) == today:
+            done_today.append(record)
+    for lst in (doing, nxt, done_today):
+        lst.sort(
+            key=lambda r: (_note_updated(r) or _dt.date.min),
+            reverse=True,
+        )
+    out: list[dict[str, Any]] = []
+    for key, label, records in (
+        ("doing", "Doing", doing),
+        ("next", "Next", nxt),
+        ("done", "Done today", done_today),
+    ):
+        if not records:
+            continue
+        out.append({
+            "key": key,
+            "label": label,
+            "url": None,
+            "status": None,
+            "items": [_recent_item(index, r) for r in records],
+        })
+    return out
 
 
 def _recent_groups(

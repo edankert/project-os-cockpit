@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0027
 aliases: ["FEAT-0027"]
 title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Claude sessions in ANY terminal light the rail dots: a cockpit-managed hook installed into the user's ~/.claude/settings.json — gated by an explicit enable/disable toggle in the new cockpit settings panel — POSTs to the workspace sidecar when one runs (full pipeline) and writes .cockpit/agent-state.json directly otherwise; desktop sidecars now write discovery files (fixing cockpit CLI against the desktop app), and the poller decays stale external state."
 requirements: []
 tests: ["[[TST-0015]]", "[[TST-0011]]"]

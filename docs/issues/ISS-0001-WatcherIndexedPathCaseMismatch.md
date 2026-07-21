@@ -2,16 +2,16 @@
 type: "[[issue]]"
 id: ISS-0001
 title: "Watcher-indexed paths poison the in-memory _records under a different case than the initial walk on case-insensitive filesystems, so /api/render returns empty frontmatter for any file created or modified after cockpit start"
-status: triage
+status: closed
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-07-20
 source: [diagnosis_session_2026-06-01]
 severity: high
 component: index/watcher
 parent: ""
-related: []
+related: ["[[TASK-0174]]", "[[CHG-20260720-Index-Case-Canonicalisation]]"]
 tests: []
 ---
 
@@ -121,13 +121,17 @@ finds the record.
 
 ## Next Actions
 
-- [ ] Decide Option A vs B (A recommended).
-- [ ] Implement + unit test the canonicalisation.
-- [ ] Add a regression test that constructs an Index with a
+- [x] Decide Option A vs B (A recommended).
+- [x] Implement + unit test the canonicalisation.
+- [x] Add a regression test that constructs an Index with a
       lowercase docs_root, invokes `invalidate` with a mixed-case
       abs_path, and asserts `index.get(lowercase_path)` returns the
       record.
-- [ ] Note in CHANGELOG / CHG once shipped: "Watcher-indexed files
+- [x] Note in CHANGELOG / CHG once shipped: "Watcher-indexed files
       now resolve under both case variants on macOS — fixes empty
       metadata strip on `/api/render` for files created after
       cockpit start (ISS-0001)."
+
+## Resolution (2026-07-20)
+
+Fixed via Option A applied in `Index.invalidate` (TASK-0174): after `.resolve()`, the changed path is re-rooted under `docs_root` via `relative_to_ci`, so records are always keyed under the walk's case regardless of the case fsevents reports for a parent component. Confirmed still live before the fix (reproduced: `mixed.resolve() != canonical`, `get(canonical)` MISS after a mixed-case invalidate) and verified fixed by regression test `test_invalidate_folds_path_case_to_docs_root` (passes with the fix, fails without it). See [[CHG-20260720-Index-Case-Canonicalisation]].

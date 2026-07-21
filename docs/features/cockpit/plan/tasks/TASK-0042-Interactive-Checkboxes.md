@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0042
 aliases: ["TASK-0042"]
 title: "Cockpit: interactive markdown checkboxes (click to toggle, file write-back)"
-status: backlog
+status: cancelled
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-07-20
 source: []
 parent: "[[FEAT-0006]]"
 fixes: []
@@ -43,3 +43,7 @@ Let the user (or an LLM) emit `- [ ] item` / `- [x] item` lines in `.md` notes a
 - This is the lingua franca for LLM ↔ user interactions in markdown — every editor supports it.
 - File-write happens on every click. Acceptable for v1 because the file watcher coalesces rapid changes; we can add request debouncing later if needed.
 - Future: structured form notes (`type: review` frontmatter with `options:` list) for radio / multi-select interactions. Deferred until checkboxes prove too weak.
+
+## Verification
+
+Superseded: interactive task-list checkbox click-to-toggle shipped under FEAT-0011 / TASK-0074 via `POST /api/notes/check-toggle` (path-validated, atomic single-char flip), verified by TST-0008 (passing). This FEAT-0006 backlog duplicate is redundant and closed as cancelled.

@@ -146,6 +146,23 @@ def test_lazy_decay_does_not_touch_done_or_error(monkeypatch):
     assert state.snapshot()["agent_state"]["state"] == "done"
 
 
+@pytest.mark.parametrize("attention", ["needs-input", "waiting"])
+def test_lazy_decay_does_not_touch_attention_states(monkeypatch, attention):
+    """REQ-0018 / TASK-0175: attention states must persist until the user
+    acts or dismisses — a blocked agent sends no further events, so if
+    `needs-input`/`waiting` decayed to idle it would silently vanish from
+    the inbox while still needing the user. Only `busy` decays."""
+    monkeypatch.setattr(server_module, "_AGENT_STATE_DECAY_SECONDS", 0)
+    state = CockpitState()
+    state.record_agent_state(attention)
+    time.sleep(0.01)
+    eff = state.snapshot()["agent_state"]
+    assert eff["state"] == attention, "attention state must not decay away"
+    assert "decayed_from" not in eff
+    # decay_tick must also stay silent — nothing to decay.
+    assert state.decay_tick() is None
+
+
 def test_lazy_decay_preserves_stored_value(monkeypatch):
     """Snapshot reports `idle` but the stored value stays — a fresh
     `record_agent_state` clears the decay-observed flag so a

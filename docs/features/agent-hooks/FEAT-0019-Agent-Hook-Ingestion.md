@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0019
 aliases: ["FEAT-0019"]
 title: "Agent hook ingestion — auto-instrumented terminal sessions"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Agent lifecycle signals (busy/waiting/needs-input, current prompt, files touched, cost/context) flow into the cockpit automatically when Claude Code or Codex runs inside the embedded terminal — no voluntary cockpit-signal calls needed."
 requirements: []
 tests: ["[[TST-0010]]", "[[TST-0011]]"]

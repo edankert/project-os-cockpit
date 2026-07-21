@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0144
 aliases: ["TASK-0144"]
 title: "tmux-backed terminal survivability — agents outlive the desktop app"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
 source: ["[[ISS-0008-Terminal-Sessions-Die-With-App]]"]
 parent: "FEAT-0007"
 effort: ""

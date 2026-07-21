@@ -30,58 +30,83 @@ counters:
   CHG:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 33
-  ISS: 10
+  FEAT: 37
+  ISS: 15
   PHASE: 7
-  REQ: 19
+  REQ: 20
   RISK: 4
   REL: 0
-  TASK: 157
-  TST: 17
+  TASK: 184
+  TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0151"
-  feature: "FEAT-0032"
-  phase: "[[PHASE-007-Agent-Instrumentation]]"
-  issue: ""
+  task: ""
+  feature: "FEAT-0023"
+  phase: "[[PHASE-003-Downstream-Pilot]]"
+  issue: "ISS-0011"
 
 items:
   features:
+    FEAT-0034:
+      title: "Agents centre tab + follow control — the fleet view survives; following becomes consentful"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-tab-follow/FEAT-0034-Agents-Tab-And-Follow-Control.md"
+      requirements: ["REQ-0020"]
+      tasks: ["TASK-0158", "TASK-0159"]
+    FEAT-0035:
+      title: "Account budget surface — 5h/7d rate limits in the left pane with reset countdown; session rail goes scope-pure"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/FEAT-0035-Account-Budget-Surface.md"
+      tasks: ["TASK-0160", "TASK-0161", "TASK-0169", "TASK-0170", "TASK-0171", "TASK-0172"]
+    FEAT-0036:
+      title: "Live work views — session work tab, Active nav mode, phase-less Now board"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/live-work/FEAT-0036-Live-Work-Views.md"
+      tasks: ["TASK-0162", "TASK-0163", "TASK-0164", "TASK-0165"]
+    FEAT-0037:
+      title: "Context menus & clipboard — cut/copy/paste and standard right-click everywhere, including the terminal"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/context-menus/FEAT-0037-Context-Menus-And-Clipboard.md"
+      tasks: ["TASK-0166", "TASK-0167", "TASK-0168"]
     FEAT-0030:
       title: "Agent inbox — docked attention panel at the bottom of the nav pane, with a sane attention lifecycle"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-inbox/FEAT-0030-Agent-Inbox.md"
       requirements: ["REQ-0018"]
       tasks: ["TASK-0147", "TASK-0156", "TASK-0157"]
     FEAT-0031:
       title: "Ambient status consolidation — one agent-status surface per scope"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/ambient-status/FEAT-0031-Ambient-Status-Consolidation.md"
       tasks: ["TASK-0148", "TASK-0149"]
     FEAT-0032:
       title: "Agents screen (~agents) — cross-workspace fleet view: sessions, cost, queues, rate limits"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agents-screen/FEAT-0032-Agents-Screen.md"
       requirements: ["REQ-0019"]
       tasks: ["TASK-0150", "TASK-0151"]
     FEAT-0033:
       title: "Agent signal hygiene — dedup double ingestion, align semantics, unify decay, fix surface rots"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/signal-hygiene/FEAT-0033-Agent-Signal-Hygiene.md"
       tasks: ["TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155"]
     FEAT-0003:
       title: "Embedded local-only terminal (Claude Code / Codex)"
-      status: in-progress
+      status: done
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/FEAT-0003-Embedded-Terminal.md"
     FEAT-0004:
       title: "Project-os adapter (ID resolution, status badges, backlinks)"
-      status: backlog
+      status: superseded
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/project-os-adapter/FEAT-0004-Project-OS-Adapter.md"
     FEAT-0005:
@@ -91,12 +116,12 @@ items:
       path: "docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md"
     FEAT-0006:
       title: "3-pane cockpit layout (code-driven)"
-      status: in-progress
+      status: done
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
     FEAT-0007:
       title: "Electron desktop shell (multi-project, Python sidecar)"
-      status: in-progress
+      status: done
       phase: "[[PHASE-005-Desktop-Shell]]"
       path: "docs/features/desktop-shell/FEAT-0007-Desktop-Shell.md"
     FEAT-0008:
@@ -159,55 +184,55 @@ items:
       tests: ["TST-0016"]
     FEAT-0019:
       title: "Agent hook ingestion — auto-instrumented terminal sessions"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/FEAT-0019-Agent-Hook-Ingestion.md"
       tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117"]
     FEAT-0020:
       title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-activity/FEAT-0020-Agent-Activity-Surfaces.md"
       tasks: ["TASK-0118", "TASK-0119", "TASK-0120"]
     FEAT-0021:
       title: "Task dispatch — start agent work from the task board"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/task-dispatch/FEAT-0021-Task-Dispatch.md"
       tasks: ["TASK-0121", "TASK-0122"]
     FEAT-0022:
       title: "Session insight — history browser, doc-traceability guardrail, CHG linking"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/session-insight/FEAT-0022-Session-Insight-And-Traceability.md"
       tasks: ["TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127"]
     FEAT-0023:
       title: "Overview scopes — drill-down dashboard with pane contract restored"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
-      tasks: ["TASK-0128", "TASK-0129", "TASK-0130"]
+      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173"]
     FEAT-0024:
       title: "Agent verbs — drive the docs system from any note"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-verbs/FEAT-0024-Agent-Verbs.md"
       tasks: ["TASK-0131", "TASK-0132", "TASK-0133"]
     FEAT-0025:
       title: "Dispatch runtime — main-process queue, dispatch ledger, CLI"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/dispatch-runtime/FEAT-0025-Dispatch-Runtime.md"
       tasks: ["TASK-0134", "TASK-0135", "TASK-0136"]
     FEAT-0026:
       title: "Verb polish — status-aware menus, palette verbs, type-from-data"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/verb-polish/FEAT-0026-Verb-Polish.md"
       tasks: ["TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140"]
     FEAT-0027:
       title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
-      status: in-review
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/FEAT-0027-External-Session-Signal.md"
       tasks: ["TASK-0141", "TASK-0142", "TASK-0143"]
@@ -224,6 +249,162 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0184:
+      title: "Fix: agent strip leaks the previous workspace's last prompt across a workspace switch"
+      status: done
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      path: "docs/features/agent-inbox/plan/tasks/TASK-0184-Strip-Prompt-Bleed-On-Switch.md"
+      parent: "FEAT-0030"
+    TASK-0183:
+      title: "Fix: a session that survives a sidecar restart is stuck ended — revive on fresh activity so its live cost/ctx shows"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-hooks/plan/tasks/TASK-0183-Revive-Ended-Session-On-Activity.md"
+      parent: "FEAT-0019"
+    TASK-0182:
+      title: "Nest phase drill-down children by shared phase — a task parked in another phase no longer shows under its parent's phase section"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0182-Nest-Children-By-Shared-Phase.md"
+      parent: "FEAT-0023"
+    TASK-0181:
+      title: "Unify done interpretation — phase boxes use the same per-type done sets as the hero counts"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0181-Unify-Done-Interpretation.md"
+      parent: "FEAT-0023"
+    TASK-0179:
+      title: "Displayed agent follows the live signal, not a stale last-session (ISS-0012)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/signal-hygiene/plan/tasks/TASK-0179-Agent-Label-Live-Signal.md"
+      parent: "FEAT-0033"
+    TASK-0180:
+      title: "Agents screen: select a project to see its session history (ISS-0013)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-screen/plan/tasks/TASK-0180-Selectable-Project-Sessions.md"
+      parent: "FEAT-0032"
+    TASK-0178:
+      title: "Overview declutter — drop agent surfaces; session history moves to the ~agents screen"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/session-insight/plan/tasks/TASK-0178-Overview-Declutter-Sessions-To-Agents.md"
+      parent: "FEAT-0022"
+    TASK-0177:
+      title: "Overview: stale phase scope across workspaces errors (Unknown phase) on phase-less projects"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0177-Stale-Scope-Fallback.md"
+      parent: "FEAT-0023"
+    TASK-0176:
+      title: "Overview progress counts terminal-resolved items — retired requirements + superseded features are complete"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0176-Progress-Counts-Retired-Superseded.md"
+      parent: "FEAT-0023"
+    TASK-0175:
+      title: "Attention states must not decay — needs-input/waiting persist until acted or dismissed (REQ-0018)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agent-inbox/plan/tasks/TASK-0175-Attention-No-Decay.md"
+      parent: "FEAT-0030"
+    TASK-0174:
+      title: "Fix ISS-0001 — canonicalise watcher path-case in Index.invalidate so /api/render finds post-start files"
+      status: done
+      phase: "[[PHASE-006-Native-Cockpit-UI]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0174-Index-Case-Canonicalisation.md"
+      parent: "FEAT-0006"
+    TASK-0158:
+      title: "Following/Manual toggle in the desktop + follow never evicts a virtual page"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-tab-follow/plan/tasks/TASK-0158-Follow-Toggle-And-Eviction-Guard.md"
+      parent: "FEAT-0034"
+    TASK-0159:
+      title: "Centre tab strip — doc tab + pinned Agents tab while ~agents is open"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/agents-tab-follow/plan/tasks/TASK-0159-Agents-Center-Tab.md"
+      parent: "FEAT-0034"
+    TASK-0160:
+      title: "Budget block at the attention-panel foot — 5h/7d bars + reset clock; strip pip removed"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0160-Attention-Panel-Budget-Block.md"
+      parent: "FEAT-0035"
+    TASK-0161:
+      title: "Burn-rate projection — time left at current burn from recent usage samples"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0161-Burn-Rate-Projection.md"
+      parent: "FEAT-0035"
+    TASK-0169:
+      title: "Usage freshness — 2-min fleet poll, manual refresh, as-of label"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0169-Usage-Freshness.md"
+      parent: "FEAT-0035"
+    TASK-0170:
+      title: "Usage block always-visible — persist the last reading, load on startup"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0170-Usage-Always-Visible.md"
+      parent: "FEAT-0035"
+    TASK-0171:
+      title: "Usage source — expose the freshest rate-limit reading across ALL sessions, not just the last"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0171-Usage-Freshest-Across-Sessions.md"
+      parent: "FEAT-0035"
+    TASK-0172:
+      title: "Remove the Usage refresh button — no on-demand source, so it was decorative"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/account-budget/plan/tasks/TASK-0172-Remove-Usage-Refresh-Button.md"
+      parent: "FEAT-0035"
+    TASK-0162:
+      title: "Status-diff layer — note saves become transition events (cockpit:status-change)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/live-work/plan/tasks/TASK-0162-Status-Diff-Layer.md"
+      parent: "FEAT-0036"
+    TASK-0163:
+      title: "Session rail 'work' tab — status boxes per touched note, filling live"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/live-work/plan/tasks/TASK-0163-Strip-Work-Tab.md"
+      parent: "FEAT-0036"
+    TASK-0164:
+      title: "'Active' nav mode — in-flight items only, live row migration, default for phase-less projects"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/live-work/plan/tasks/TASK-0164-Active-Nav-Mode.md"
+      parent: "FEAT-0036"
+    TASK-0165:
+      title: "Phase-less Now board — overview centre renders the Active data full-width"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/live-work/plan/tasks/TASK-0165-Phaseless-Now-Board.md"
+      parent: "FEAT-0036"
+    TASK-0166:
+      title: "Generic role-based text context menu — Cut/Copy/Paste/Select All everywhere"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/context-menus/plan/tasks/TASK-0166-Generic-Text-Context-Menu.md"
+      parent: "FEAT-0037"
+    TASK-0167:
+      title: "Terminal context menu + ⌘C/⌘V + copy-on-select setting"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/context-menus/plan/tasks/TASK-0167-Terminal-Context-Menu.md"
+      parent: "FEAT-0037"
+    TASK-0168:
+      title: "Doc-pane menu extras — Copy ID/path unification, Copy as quote, Dispatch selection as prompt"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/context-menus/plan/tasks/TASK-0168-Doc-Pane-Menu-Extras.md"
+      parent: "FEAT-0037"
     TASK-0147:
       title: "Docked attention panel — bottom of the nav pane, needs-input + waiting + finished one-liner; bell deleted"
       status: done
@@ -466,7 +647,7 @@ items:
       parent: "FEAT-0006"
     TASK-0042:
       title: "Cockpit: interactive markdown checkboxes (click to toggle, file write-back)"
-      status: backlog
+      status: cancelled
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0042-Interactive-Checkboxes.md"
       parent: "FEAT-0006"
@@ -484,13 +665,13 @@ items:
       parent: "FEAT-0003"
     TASK-0045:
       title: "Cockpit: project preview tab (config-driven iframe or log-tail)"
-      status: backlog
-      phase: "[[PHASE-004-Embedded-Terminal]]"
+      status: deferred
+      phase: "[[PHASE-999-Future]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0045-Preview-Config-Tab.md"
       parent: "FEAT-0003"
     TASK-0046:
       title: "Cockpit: browser tab activity indicator (title + favicon dot when hidden)"
-      status: backlog
+      status: cancelled
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0046-Browser-Tab-Activity-Indicator.md"
       parent: "FEAT-0006"
@@ -604,8 +785,8 @@ items:
       parent: "FEAT-0007"
     TASK-0065:
       title: "Build pipeline — electron-forge makers, code signing, notarization, auto-update"
-      status: blocked
-      phase: "[[PHASE-005-Desktop-Shell]]"
+      status: deferred
+      phase: "[[PHASE-999-Future]]"
       path: "docs/features/desktop-shell/plan/tasks/TASK-0065-Build-Sign-Distribute.md"
       parent: "FEAT-0007"
       blocked_reason: "Parked 2026-05-25 — defer until the app needs to be handed to someone other than the developer. Dev loop (npm start) covers current use."
@@ -909,13 +1090,13 @@ items:
       parent: "FEAT-0019"
     TASK-0115:
       title: "Claude Code hook injection at PTY spawn"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/plan/tasks/TASK-0115-Claude-Hook-Injection.md"
       parent: "FEAT-0019"
     TASK-0116:
       title: "Codex CLI hooks.json + notify injection"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/plan/tasks/TASK-0116-Codex-Hook-Injection.md"
       parent: "FEAT-0019"
@@ -981,7 +1162,7 @@ items:
       parent: "FEAT-0022"
     TASK-0127:
       title: "Overview sessions redesign — live banner, feeds column, virtual detail page"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/session-insight/plan/tasks/TASK-0127-Overview-Sessions-Redesign.md"
       parent: "FEAT-0022"
@@ -1003,6 +1184,12 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/overview-scopes/plan/tasks/TASK-0130-Overview-Lifecycle-Fixes.md"
       parent: "FEAT-0023"
+    TASK-0173:
+      title: "Fix phase-activity title truncation — scoped feed rows land the title in the id column"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/overview-scopes/plan/tasks/TASK-0173-Phase-Activity-Truncation.md"
+      parent: "FEAT-0023"
     TASK-0131:
       title: "Verb registry — per-type actions, YAML override, /api/cockpit/actions"
       status: done
@@ -1023,7 +1210,7 @@ items:
       parent: "FEAT-0024"
     TASK-0134:
       title: "Main-process dispatch queue — persisted, workspace-independent delivery"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/dispatch-runtime/plan/tasks/TASK-0134-Main-Process-Queue.md"
       parent: "FEAT-0025"
@@ -1059,7 +1246,7 @@ items:
       parent: "FEAT-0026"
     TASK-0140:
       title: "Doc header bar — note identity, path, verb buttons on every note"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/verb-polish/plan/tasks/TASK-0140-Doc-Header-Bar.md"
       parent: "FEAT-0026"
@@ -1071,7 +1258,7 @@ items:
       parent: "FEAT-0027"
     TASK-0142:
       title: "Settings panel — enable the rail button, external-hook toggle"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
@@ -1083,19 +1270,19 @@ items:
       parent: "FEAT-0027"
     TASK-0144:
       title: "tmux-backed terminal survivability — agents outlive the desktop app"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/desktop-shell/plan/tasks/TASK-0144-Tmux-Terminal-Survivability.md"
       parent: "FEAT-0007"
     TASK-0145:
       title: "Quit guard for live agents + resume hint after an unclean terminal death"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/desktop-shell/plan/tasks/TASK-0145-Quit-Guard-And-Death-Hint.md"
       parent: "FEAT-0007"
     TASK-0146:
       title: "Sidecar identity guard — reject foreign-cwd hook events, identity endpoint, stale-url janitor"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/plan/tasks/TASK-0146-Sidecar-Identity-Guard.md"
       parent: "FEAT-0027"
@@ -1103,6 +1290,31 @@ items:
 
 
   issues:
+    ISS-0015:
+      title: "Agent strip shows another project's prompt after switching workspaces (stale stripLastPrompt)"
+      status: fixed
+      path: "docs/issues/ISS-0015-Strip-Prompt-Bleed.md"
+    ISS-0014:
+      title: "Agent session strip shows no current session / ctx / $ after a sidecar soft-reload (session stuck ended)"
+      status: fixed
+      path: "docs/issues/ISS-0014-Session-Stuck-Ended-After-Reload.md"
+    ISS-0012:
+      title: "Workspace agent/framework label is poisoned by a stale last-session — shows codex while live agent is claude"
+      status: fixed
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0012-Stale-Session-Poisons-Framework.md"
+    ISS-0013:
+      title: "Session history is undiscoverable after moving to the ~agents screen"
+      status: fixed
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0013-Session-History-Discoverability.md"
+    ISS-0011:
+      title: "Follow mode evicts the user's chosen view (incl. ~agents) — always-on in desktop, no Following/Manual toggle"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0011-Follow-Mode-Evicts-Chosen-View.md"
+      component: agent-focus
     ISS-0010:
       title: "Agent strip (and its files view) vanishes the moment a session ends — regression from ISS-0009"
       status: fixed
@@ -1168,16 +1380,20 @@ items:
       component: cockpit-stats
     ISS-0001:
       title: "Watcher-indexed paths poison _records under a mismatched case on macOS, so /api/render returns empty frontmatter for files created/modified after cockpit start"
-      status: triage
+      status: closed
       severity: high
       phase: "[[PHASE-006-Native-Cockpit-UI]]"
       path: "docs/issues/ISS-0001-WatcherIndexedPathCaseMismatch.md"
       component: index/watcher
 
   requirements:
+    REQ-0020:
+      title: "View sovereignty — the user's chosen view is never evicted without consent"
+      status: implemented
+      path: "docs/requirements/REQ-0020-View-Sovereignty.md"
     REQ-0018:
       title: "Every agent state that needs the user is discoverable in-app, across all workspaces, until acted on or dismissed"
-      status: approved
+      status: verified
       path: "docs/requirements/REQ-0018-Agent-Attention-Completeness.md"
     REQ-0019:
       title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — on one dedicated screen"
@@ -1247,7 +1463,7 @@ items:
       path: "docs/phases/PHASE-001-MVP.md"
     PHASE-002:
       title: "Project-os adapter"
-      status: active
+      status: done
       path: "docs/phases/PHASE-002-Project-OS-Adapter.md"
     PHASE-003:
       title: "Downstream pilot"
@@ -1255,11 +1471,11 @@ items:
       path: "docs/phases/PHASE-003-Downstream-Pilot.md"
     PHASE-004:
       title: "Embedded terminal"
-      status: planned
+      status: done
       path: "docs/phases/PHASE-004-Embedded-Terminal.md"
     PHASE-005:
       title: "Desktop shell (Electron + Python sidecar)"
-      status: active
+      status: done
       path: "docs/phases/PHASE-005-Desktop-Shell.md"
     PHASE-006:
       title: "Native cockpit UI (TypeScript rewrite)"
@@ -1267,7 +1483,7 @@ items:
       path: "docs/phases/PHASE-006-Native-Cockpit-UI.md"
     PHASE-007:
       title: "Agent instrumentation (hooks-aware terminal)"
-      status: active
+      status: done
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027"]
     PHASE-999:
@@ -1295,6 +1511,11 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0018:
+      title: "Status-diff layer transitions emit once; non-changes and cold seed silent"
+      status: passing
+      path: "docs/features/live-work/plan/tests/TST-0018-Status-Diff-Layer.md"
+      validates: ["TASK-0162"]
     TST-0001:
       title: "Index — lookup tables, link graph, invalidation"
       status: passing
@@ -1376,6 +1597,59 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260721-Agent-Label-And-Per-Project-Sessions:
+      title: "Agent label follows live signal; ~agents per-project session history"
+      status: merged
+      path: "docs/changes/CHG-20260721-Agent-Label-And-Per-Project-Sessions.md"
+      issues: ["ISS-0012","ISS-0013"]
+      features: ["FEAT-0032","FEAT-0033"]
+    CHG-20260721-Overview-Declutter:
+      title: "Overview project-focused; session history to ~agents"
+      status: merged
+      path: "docs/changes/CHG-20260721-Overview-Declutter.md"
+      features: ["FEAT-0022"]
+    CHG-20260720-Progress-Counts-Terminal-Resolved:
+      title: "Overview progress counts terminal-resolved items (retired/superseded)"
+      status: merged
+      path: "docs/changes/CHG-20260720-Progress-Counts-Terminal-Resolved.md"
+      features: ["FEAT-0023"]
+    CHG-20260720-Attention-No-Decay:
+      title: "Attention states no longer decay (REQ-0018)"
+      status: merged
+      path: "docs/changes/CHG-20260720-Attention-No-Decay.md"
+      features: ["FEAT-0030"]
+    CHG-20260720-Index-Case-Canonicalisation:
+      title: "Index re-roots watcher paths to docs_root case (ISS-0001)"
+      status: merged
+      path: "docs/changes/CHG-20260720-Index-Case-Canonicalisation.md"
+      issues: ["ISS-0001"]
+      features: ["FEAT-0006"]
+    CHG-20260720-Usage-Freshness:
+      title: "Usage block account-global + self-refreshing - freshest wins, poll, manual refresh, as-of"
+      status: merged
+      path: "docs/changes/CHG-20260720-Usage-Freshness.md"
+      features: ["FEAT-0035"]
+    CHG-20260719-Context-Menus:
+      title: "Context menus & clipboard - native edit menu, terminal menu, dispatch-selection"
+      status: merged
+      path: "docs/changes/CHG-20260719-Context-Menus.md"
+      features: ["FEAT-0037"]
+    CHG-20260719-Live-Work-Views:
+      title: "Live work views - status-diff layer, work tab, Active mode, Now board"
+      status: merged
+      path: "docs/changes/CHG-20260719-Live-Work-Views.md"
+      features: ["FEAT-0036"]
+    CHG-20260719-Account-Budget-Surface:
+      title: "Account budget surface — 5h/7d bars in the left pane, burn projection; strip goes session-pure"
+      status: merged
+      path: "docs/changes/CHG-20260719-Account-Budget-Surface.md"
+      features: ["FEAT-0035"]
+    CHG-20260719-Agents-Tab-And-Follow:
+      title: "Agents centre tab + follow control — fleet survives navigation; following is consentful"
+      status: merged
+      path: "docs/changes/CHG-20260719-Agents-Tab-And-Follow.md"
+      issues: ["ISS-0011"]
+      features: ["FEAT-0034"]
     CHG-20260719-Agents-Screen:
       title: "Agents screen (~agents) — cross-workspace fleet view + main-process fleet proxy"
       status: merged
@@ -1777,17 +2051,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 20
-    features_done: 12
-    tasks_total: 113
-    tasks_done: 109
-    tests_total: 10
-    tests_passing: 10
+    features_total: 35
+    features_done: 30
+    tasks_total: 162
+    tasks_done: 164
+    tests_total: 18
+    tests_passing: 17
     test_cases_total: 167
     test_cases_passing: 166
     tests_failing: 0
     issues_open: 0
     issues_triage: 0
-    risks_open: 3
+    risks_open: 4
     releases_total: 0
     decisions_total: 5

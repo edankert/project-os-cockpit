@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0065
 aliases: ["TASK-0065"]
 title: "Build pipeline — electron-forge makers, code signing, notarization, auto-update"
-status: blocked
-phase: "[[PHASE-005-Desktop-Shell]]"
+status: deferred
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-20
 source: []
 parent: "FEAT-0007"
 effort: ""
@@ -48,3 +48,7 @@ tests: []
 Signing keys live outside the repo; CI secrets handle them. `BUILD.md`
 captures the secrets-required list so future contributors know what's
 needed to cut a release.
+
+## Deferred (2026-07-20)
+
+Signing / notarization / installers are parked until external distribution matters. The desktop shell runs locally from source (`npm start`); packaging is out of scope for the current single-user workflow. Revisit when sharing the app outside this machine.

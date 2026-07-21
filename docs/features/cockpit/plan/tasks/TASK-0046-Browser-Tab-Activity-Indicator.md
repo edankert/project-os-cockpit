@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0046
 aliases: ["TASK-0046"]
 title: "Cockpit: browser tab activity indicator (title + favicon dot when hidden)"
-status: backlog
+status: cancelled
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-07-20
 source: []
 parent: "[[FEAT-0006]]"
 fixes: []
@@ -41,3 +41,7 @@ When the project-os-cockpit browser tab is in the background and the cockpit obs
 - **v1 signal**: file-watcher SSE — captures any LLM CLI / editor action that touches a `.md`. Close enough to "agent returned an answer" for the common case.
 - **v2 enhancement** (separate task — easier now that TASK-0047 landed): postMessage bridge inside the proxied ttyd iframe. xterm.js `onData` → `parent.postMessage({type:"terminal:data"})` → cockpit fires the indicator on actual terminal output, not just file changes. Strictly better signal than the v1 file-watcher proxy.
 - Independent of TASK-0043/0044 — works the moment a file is edited, with or without the embedded terminal.
+
+## Cancelled (2026-07-20)
+
+Obsolete: the browser-tab activity indicator (title `●` prefix + favicon dot for a hidden tab) was designed for the browser-served cockpit. The desktop Electron shell — now the primary surface — already delivers this signal natively and better via the rail dots (busy / needs-input pulse) and OS notifications (FEAT-0020). A favicon dot would be a strictly weaker duplicate, so this is cancelled rather than built.

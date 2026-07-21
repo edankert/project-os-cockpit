@@ -3,11 +3,14 @@ type: "[[feature]]"
 id: FEAT-0003
 aliases: ["FEAT-0003"]
 title: "Embedded local-only terminal (Claude Code / Codex)"
-status: in-progress
+status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-23
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 source: []
 goal: "Run an AI coding assistant alongside the docs in a single browser window — terminal panel embedded next to the rendered note, locked to the local machine."
 release: ""

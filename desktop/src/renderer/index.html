@@ -28,6 +28,7 @@
           <button type="button" class="top-bar-btn" data-mode="features" title="Features (by phase)" role="tab" aria-label="Features"></button>
           <button type="button" class="top-bar-btn" data-mode="tasks"    title="Tasks"               role="tab" aria-label="Tasks"></button>
           <button type="button" class="top-bar-btn" data-mode="issues"   title="Issues"              role="tab" aria-label="Issues"></button>
+          <button type="button" class="top-bar-btn" data-mode="active"   title="Active — work in flight" role="tab" aria-label="Active"></button>
           <button type="button" class="top-bar-btn" data-mode="library"  title="Library"             role="tab" aria-label="Library"></button>
           <button type="button" class="top-bar-btn" data-mode="recent"   title="Recent"              role="tab" aria-label="Recent"></button>
         </div>
@@ -87,6 +88,7 @@
         <button id="hide-completed-toggle" type="button" class="ws-rail-action ws-rail-tool" title="Hide completed" aria-pressed="false" aria-label="Hide completed"></button>
         <button id="terminal-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Toggle terminal (⌘`)" aria-label="Toggle terminal"></button>
         <button id="agents-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Agents — all sessions" aria-label="Agents"></button>
+        <button id="follow-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Follow agent navigation" aria-label="Follow agent navigation" aria-pressed="true"></button>
         <button id="settings-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Settings" aria-label="Settings" aria-expanded="false"></button>
       </div>
     </aside>
@@ -169,6 +171,9 @@
         <button id="find-close" type="button" class="find-button" title="Close (Esc)">×</button>
       </div>
       <div id="stage-main" class="stage-main">
+        <!-- Centre tab strip (FEAT-0034 / TASK-0159): appears only while
+             the Agents fleet is pinned open — doc tab + Agents tab. -->
+        <div id="center-tabs" class="center-tabs" hidden role="tablist"></div>
         <div id="placeholder" class="placeholder">
           <h2>Pick a workspace</h2>
           <p>Select a project on the left rail to launch its cockpit.</p>
@@ -186,7 +191,6 @@
               title="Source files edited this session without touching a TASK/ISS/CHG note">undocumented</span>
         <span class="agent-strip-spacer"></span>
         <span id="agent-strip-ctx" class="agent-strip-meter" hidden title="Context window used"></span>
-        <span id="agent-strip-rl" class="agent-strip-meter" hidden title="5-hour rate-limit budget used"></span>
         <span id="agent-strip-cost" class="agent-strip-meter" hidden title="Session cost"></span>
         <button id="agent-strip-queue" type="button" class="agent-strip-queue" hidden
                 title="Queued dispatches (click to manage)"></button>

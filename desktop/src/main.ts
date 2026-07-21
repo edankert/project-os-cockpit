@@ -20,6 +20,7 @@ import {
 } from './ipc/terminal';
 import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
+import { attachContextMenu } from './ipc/context-menu';
 import { registerSettingsIpc } from './ipc/app-settings';
 import {
   getLastAgentStates,
@@ -136,6 +137,8 @@ function createWindow(): BrowserWindow {
   win.once('ready-to-show', () => { win.show(); });
 
   win.on('focus', () => { mainWindow = win; });
+
+  attachContextMenu(win);
 
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
     const sigil = ['v', 'i', 'w', 'e'][level] ?? '?';

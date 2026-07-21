@@ -55,3 +55,5 @@ Unit tests for `project_os_cockpit.index.Index`. Validates the in-memory data la
 
 ## Last result
 2026-05-08 — 12 passed in 0.06s.
+
+- Added `test_invalidate_folds_path_case_to_docs_root` — regression for [[ISS-0001]] (watcher path-case re-rooted to docs_root so `Index.get` finds post-start files).

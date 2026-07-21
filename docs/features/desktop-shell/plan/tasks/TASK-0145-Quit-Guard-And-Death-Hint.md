@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0145
 aliases: ["TASK-0145"]
 title: "Quit guard for live agents + resume hint after an unclean terminal death"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
 source: ["[[ISS-0008-Terminal-Sessions-Die-With-App]]"]
 parent: "FEAT-0007"
 effort: ""

@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-004
 aliases: ["PHASE-004"]
 title: "Embedded terminal"
-status: planned
+status: done
 order: 4
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-07-20
 features:
   - "[[FEAT-0003-Embedded-Terminal]]"
 depends: ["[[PHASE-001-MVP]]"]
@@ -39,3 +39,7 @@ PHASE-001 (renderer + live reload). Independent of PHASE-002 (cockpit) and PHASE
 
 ## Notes
 Originally scoped under PHASE-001 (MVP). Pulled out to a dedicated phase so PHASE-001 could close cleanly on the renderer + live-reload combination, which is the genuinely-MVP useful tool. The terminal is high-value but optional sugar.
+
+## Close-out (2026-07-20)
+
+The embedded local-only terminal is complete and closed (FEAT-0003): xterm + per-workspace local PTY (loopback-only by construction), tmux survivability, and the ttyd reverse-proxy path. The preview-tab nice-to-have (TASK-0045) is deferred to PHASE-999. No open items remain.

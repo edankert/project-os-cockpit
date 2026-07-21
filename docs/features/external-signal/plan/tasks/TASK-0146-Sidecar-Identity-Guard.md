@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0146
 aliases: ["TASK-0146"]
 title: "Sidecar identity guard — reject foreign-cwd hook events, identity endpoint, stale-url janitor"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
 source: ["[[ISS-0007-Stale-Url-Cross-Workspace-Poisoning]]"]
 parent: "FEAT-0027"
 effort: ""
@@ -31,3 +31,7 @@ Close ISS-0007 (one workspace's hook events landing in another workspace's sidec
 ## Residual (accepted)
 
 `cockpit focus/state` CLI calls between two *live* mismatched servers in the janitor's blind window are still possible in principle; the guard + janitor eliminate the observed failure mode (stale url after unclean app exit + port reuse).
+
+## Verification
+
+Automated: `POST /api/agent-hook` with a foreign `cwd` returns HTTP 409; `GET /api/cockpit/identity` returns `{root, pid}`; the startup stale-url janitor is wired in `main.ts`. Covered by the automated test TST-0017 (passing).

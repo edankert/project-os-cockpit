@@ -194,6 +194,36 @@ def test_normalize_reset_to_iso():
     assert _normalize_reset({}) is None
 
 
+def test_latest_rate_limits_is_freshest_across_sessions(tmp_path: Path):
+    """The account-global reading is the newest captured_at across ALL
+    sessions — a later session without a reading can't mask an earlier
+    one that has it (TASK-0171)."""
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        # Session A: real reading with a captured_at.
+        _hook(port, {"hook_event_name": "UserPromptSubmit",
+                     "session_id": "A", "prompt": "a"})
+        _hook(port, {"hook_event_name": "Statusline", "session_id": "A",
+                     "cost": {"total_cost_usd": 1},
+                     "rate_limits": {
+                         "five_hour": {"used_percentage": 17},
+                         "seven_day": {"used_percentage": 58},
+                     }})
+        # Session B (later): no rate_limits at all.
+        _hook(port, {"hook_event_name": "UserPromptSubmit",
+                     "session_id": "B", "prompt": "b"})
+        _hook(port, {"hook_event_name": "SessionEnd", "session_id": "B"})
+        snap = _get(port, "/api/cockpit/state")
+        assert snap.get("rate_limits") is not None
+        assert snap["rate_limits"]["five_hour"]["used_percentage"] == 17
+        assert snap["rate_limits"]["seven_day"]["used_percentage"] == 58
+        assert isinstance(snap.get("rate_limits_at"), str)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_double_capture_is_deduped(tmp_path: Path):
     """The terminal + external hooks post the same payload ~100ms apart;
     the tracker records it once (TASK-0152). A genuinely different
@@ -499,6 +529,42 @@ def test_session_persistence_and_seed(tmp_path: Path):
     tracker2 = AgentSessionTracker(docs_root=docs, sessions_path=sessions_path)
     assert tracker2.has_live_session() is False
     assert tracker2.sessions_payload()[0]["ended"] is not None
+
+
+def test_seeded_session_revives_on_fresh_activity(tmp_path: Path):
+    """ISS-0014 / TASK-0183: the soft live-reload (TASK-0014) restarts the
+    sidecar under a still-running terminal, so `_seed` stamps the live
+    session `ended`. A subsequent hook from that still-alive session must
+    revive it — otherwise its live cost/context never shows in the strip.
+    A `SessionEnd` must NOT revive."""
+    docs = _make_workspace(tmp_path)
+    sessions_path = tmp_path / ".cockpit" / "sessions.json"
+    t1 = AgentSessionTracker(docs_root=docs, sessions_path=sessions_path)
+    t1.ingest(_ev("SessionStart"))
+    t1.ingest(_ev("Statusline",
+                  cost={"total_cost_usd": 12.3},
+                  context_window={"used_percentage": 40}))
+    t1._persist_locked(force=True)
+    assert t1.has_live_session() is True
+
+    # Sidecar restarts while the terminal survives → seed marks it ended.
+    t2 = AgentSessionTracker(docs_root=docs, sessions_path=sessions_path)
+    assert t2.has_live_session() is False
+
+    # The still-alive session posts a fresh statusline (no new SessionStart).
+    t2.ingest(_ev("Statusline",
+                  cost={"total_cost_usd": 13.4},
+                  context_window={"used_percentage": 41}))
+    assert t2.has_live_session() is True
+    snap = t2.snapshot()
+    assert snap.get("session") is not None          # shown as the LIVE session
+    cost = snap["session"]["cost"]
+    assert cost["total_cost_usd"] == 13.4           # fresh cost surfaced
+    assert cost["used_percentage"] == 41            # fresh ctx surfaced
+
+    # A SessionEnd genuinely ends it again.
+    t2.ingest(_ev("SessionEnd"))
+    assert t2.has_live_session() is False
 
 
 def test_chg_provenance_via_render(tmp_path: Path):

@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0022
 aliases: ["FEAT-0022"]
 title: "Session insight — history browser, doc-traceability guardrail, CHG linking"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Turn agent sessions into part of the project record: browse past sessions per workspace (prompts, duration, cost, files touched), flag undocumented work live, and link CHG notes to the sessions that produced them."
 requirements: []
 tests: ["[[TST-0010]]", "[[TST-0011]]"]

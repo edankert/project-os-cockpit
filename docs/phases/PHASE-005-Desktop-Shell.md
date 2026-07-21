@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-005
 aliases: ["PHASE-005"]
 title: "Desktop shell (Electron + Python sidecar)"
-status: active
+status: done
 order: 5
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-20
 features:
   - "[[FEAT-0007-Desktop-Shell]]"
 depends: ["[[PHASE-002-Project-OS-Adapter]]"]
@@ -82,3 +82,7 @@ project-os-adapter logic stays in one place and is not re-implemented.
   the **Codex Desktop shape** — Electron + language-foreign sidecar — because the
   existing ~1.6 kloc of Python (renderer, index, SSE, wikilink, project-os
   adapter) is load-bearing and a JS rewrite buys nothing.
+
+## Close-out (2026-07-20)
+
+The Electron desktop shell is complete and closed (FEAT-0007): per-workspace Python sidecar lifecycle, multi-workspace discovery/persistence, native window/menus/deep-links, tmux survivability + quit guard. Distribution (signing/notarization, TASK-0065) is deferred until external sharing matters. No open items remain.

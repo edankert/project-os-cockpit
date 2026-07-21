@@ -3,11 +3,14 @@ type: "[[feature]]"
 id: FEAT-0006
 aliases: ["FEAT-0006"]
 title: "3-pane cockpit layout (code-driven)"
-status: in-progress
+status: done
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-23
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 source: []
 goal: "Render every note as a 3-pane cockpit page: features-by-phase navigator on the left, the rendered note in the centre, and the note's outbound + inbound-only relationships on the right."
 release: ""

@@ -3,11 +3,12 @@ type: "[[task]]"
 id: TASK-0140
 aliases: ["TASK-0140"]
 title: "Doc header bar — note identity, path, verb buttons on every note"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-20
+verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
 parent: "[[FEAT-0026-Verb-Polish]]"
 effort: "M"
 depends: []
@@ -30,3 +31,7 @@ tests: ["[[TST-0011]]"]
 
 ## Notes
 User request 2026-07-06 (items 2+3): "current active page name type and location visible at the top" + "buttons on the current active page to run the available agent tasks".
+
+## Verification
+
+CDP: `.doc-header` renders with the docs-relative path and the old `#top-bar-dispatch` button is removed; `.doc-header-id`/`.doc-header-verb` are built by `buildDocHeader`; header is correctly absent on virtual pages.

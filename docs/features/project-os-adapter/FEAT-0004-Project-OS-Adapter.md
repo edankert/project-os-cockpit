@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0004
 aliases: ["FEAT-0004"]
 title: "Project-os adapter (ID resolution, status badges, backlinks)"
-status: backlog
+status: superseded
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-07-20
 source: []
 goal: "Make the rendered output project-os-aware: status badges, parent-link breadcrumbs, structured backlinks panel, and auto-index pages that match the project-os taxonomy."
 release: ""
@@ -43,3 +43,7 @@ All UI added by this feature follows the visual contract in [[REQ-0012]] — mut
 
 ## Notes
 This is what turns the renderer from "browseable Markdown" into "project-os dashboard". The work is mostly templating + indexing on top of FEAT-0001's pipeline.
+
+## Superseded (2026-07-20)
+
+The adapter's scope — ID resolution, status badges, backlinks — shipped as core cockpit capability: the index provides ID/alias/backlink resolution and the renderer draws status badges (FEAT-0006 + the index/render work). No distinct adapter layer is needed, so this feature is superseded by [[FEAT-0006-Cockpit-Layout]].

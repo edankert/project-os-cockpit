@@ -99,9 +99,11 @@ interface CockpitApi {
   };
   agent: {
     onFocus: (cb: (payload: unknown) => void) => () => void;
+    onDispatchSelection: (cb: (text: string) => void) => () => void;
   };
   agents: {
     fleet: () => Promise<FleetPayload>;
+    sessions: (workspaceId: string) => Promise<AgentSessionSlim[]>;
   };
   app: {
     openExternal: (url: string) => Promise<{ ok: boolean; error?: string }>;
@@ -168,6 +170,11 @@ interface XtermTerminal {
   dispose(): void;
   focus(): void;
   reset(): void;
+  clear(): void;
+  getSelection(): string;
+  hasSelection(): boolean;
+  selectAll(): void;
+  onSelectionChange(cb: () => void): void;
   /** xterm.js: mutating `options.theme` re-paints the visible buffer. */
   options: { theme?: Record<string, string> };
 }
@@ -242,6 +249,7 @@ const listEl       = $<HTMLUListElement>('#workspace-list');
 const wsRailAdd    = $<HTMLButtonElement>('#ws-rail-add');
 const leftPaneCollapseBtn = $<HTMLButtonElement>('#left-pane-collapse');
 const hideCompletedBtn    = $<HTMLButtonElement>('#hide-completed-toggle');
+const followBtn           = document.getElementById('follow-toggle') as HTMLButtonElement | null;
 const platformBarEl       = $<HTMLDivElement>('#platform-bar');
 const platformCombo       = $<HTMLDivElement>('#platform-combo');
 const platformLabel       = $<HTMLSpanElement>('#platform-label');
@@ -296,14 +304,47 @@ let sidecarBaseUrl: string | null = null;
 // placeholder is showing.
 let currentRel: string | null = null;
 
+// One shared auto-hide timer so a newer toast always cancels an older
+// toast's pending hide (TASK-0158 — overlapping toasts used to hide
+// each other early). Callers use scheduleHide() rather than their own
+// setTimeout(hideStatus, …).
+let statusHideTimer: number | null = null;
+
 function showStatus(text: string, kind: 'info' | 'error' = 'info'): void {
-  statusBar.textContent = text;
+  if (statusHideTimer != null) { clearTimeout(statusHideTimer); statusHideTimer = null; }
+  statusBar.replaceChildren(document.createTextNode(text));
   statusBar.classList.toggle('error', kind === 'error');
+  statusBar.classList.remove('is-actionable');
+  statusBar.onclick = null;
+  statusBar.hidden = false;
+}
+
+function scheduleHide(ms: number): void {
+  if (statusHideTimer != null) clearTimeout(statusHideTimer);
+  statusHideTimer = window.setTimeout(hideStatus, ms);
+}
+
+// A status toast with a click action — used for suppressed agent-focus
+// jumps (TASK-0158): "Agent focus → TARGET · open".
+function showActionStatus(text: string, action: string, onClick: () => void): void {
+  if (statusHideTimer != null) { clearTimeout(statusHideTimer); statusHideTimer = null; }
+  statusBar.replaceChildren(document.createTextNode(`${text} · `));
+  const link = document.createElement('button');
+  link.type = 'button';
+  link.className = 'status-bar-action';
+  link.textContent = action;
+  link.addEventListener('click', (e) => { e.stopPropagation(); hideStatus(); onClick(); });
+  statusBar.appendChild(link);
+  statusBar.classList.remove('error');
+  statusBar.classList.add('is-actionable');
   statusBar.hidden = false;
 }
 
 function hideStatus(): void {
+  if (statusHideTimer != null) { clearTimeout(statusHideTimer); statusHideTimer = null; }
   statusBar.hidden = true;
+  statusBar.onclick = null;
+  statusBar.classList.remove('is-actionable');
 }
 
 function renderWorkspaceRail(): void {
@@ -412,7 +453,7 @@ async function rescanWorkspaces(): Promise<void> {
     workspaces = await cockpitApi.workspaces.rescan();
     renderWorkspaceRail();
     showStatus(`Found ${workspaces.length} workspace${workspaces.length === 1 ? '' : 's'}.`);
-    setTimeout(hideStatus, 1500);
+    scheduleHide(1500);
   } catch (err) {
     showStatus(`Rescan failed: ${String(err)}`, 'error');
   } finally {
@@ -537,6 +578,7 @@ async function openWorkspace(id: string): Promise<void> {
   // workspace's PTY (FEAT-0015 / TASK-0104).
   if (!terminalPane.hidden) void attachTerminalTo(id);
   renderWorkspaceRail();
+  refreshFollowButton();  // reflect the new workspace's follow mode
   scheduleAck();  // looking at this workspace may acknowledge its alert
   placeholder.hidden = true;
   docView.hidden = true;
@@ -549,6 +591,23 @@ async function openWorkspace(id: string): Promise<void> {
   // fails to spawn (review finding F3).
   lastAgentSnap = null;
   showAgentStrip(null, null);
+  // `stripLastPrompt` and `workTransitions` are sticky *within* a
+  // workspace (the strip keeps showing the last prompt / touched notes
+  // between runs), but must not survive a switch — otherwise a project
+  // whose current session has no prompt of its own renders the previous
+  // workspace's prompt (ISS-0015). Clear them so the strip starts clean.
+  stripLastPrompt = '';
+  workTransitions.clear();
+  // Centre tabs are per-workspace context — reset on switch (TASK-0159).
+  agentsTabOpen = false;
+  lastDocRel = null;
+  docTabChanged = false;
+  // Overview scope is per-project — a phase from the previous workspace
+  // won't exist here (a phase-less project would 404 on ~overview/PHASE-…).
+  // Reset so a new workspace starts at the unscoped project overview (TASK-0177).
+  overviewScope = null;
+  scopePhaseList = null;
+  renderCenterTabs();
   currentRel = null;
   setSidecarStatus('spawning');
   refreshFooterPath();
@@ -744,6 +803,14 @@ async function navigateTo(
   rel: string,
   opts: { replace?: boolean; fromHistory?: boolean } = {},
 ): Promise<void> {
+  await navigateToInner(rel, opts);
+  renderCenterTabs();
+}
+
+async function navigateToInner(
+  rel: string,
+  opts: { replace?: boolean; fromHistory?: boolean } = {},
+): Promise<void> {
   if (!sidecarBaseUrl) return;
   // Capture the current scroll position before we replace innerHTML;
   // back / forward restore from this map.
@@ -788,6 +855,8 @@ async function navigateTo(
       currentRel = '~agents';
       currentDispatchHistory = null;
       currentNoteStatus = null;
+      agentsTabOpen = true;   // pin the fleet tab (TASK-0159)
+      docTabChanged = false;  // switching to agents clears the doc dot
       pushHistory('~agents', opts.replace ?? false);
       refreshFooterPath();
     }
@@ -825,6 +894,7 @@ async function navigateTo(
   docView.hidden = false;
   placeholder.hidden = true;
   currentRel = normalised;
+  lastDocRel = normalised;   // the doc tab points here (TASK-0159)
 
   currentDispatchHistory = data.dispatch_history ?? null;
   currentNoteStatus = typeof data.frontmatter?.status === 'string'
@@ -928,12 +998,12 @@ docView.addEventListener('change', async (e) => {
       tgt.checked = !desired; // revert optimistic update
       const reason = await resp.text();
       showStatus(`Checkbox toggle failed: ${reason}`, 'error');
-      setTimeout(hideStatus, 2500);
+      scheduleHide(2500);
     }
   } catch (err) {
     tgt.checked = !desired;
     showStatus(`Checkbox toggle failed: ${String(err)}`, 'error');
-    setTimeout(hideStatus, 2500);
+    scheduleHide(2500);
   }
 });
 
@@ -1344,7 +1414,86 @@ function ensureXterm(): void {
   term.onResize(({ cols, rows }) => {
     if (attachedTerminalId) cockpitApi.terminal.resize(attachedTerminalId, cols, rows);
   });
+  // Copy-on-select (TASK-0167, opt-in) — PuTTY convention for the
+  // terminally-inclined.
+  term.onSelectionChange(() => {
+    if (!copyOnSelect || !term?.hasSelection()) return;
+    const s = term.getSelection();
+    if (s) void navigator.clipboard.writeText(s);
+  });
+  // Terminal context menu (TASK-0167) — xterm's selection isn't a DOM
+  // selection, so the native menu can't see it; build our own.
+  terminalMount.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showTerminalMenu(e.clientX, e.clientY);
+  });
   wireTerminalListenersOnce();
+}
+
+// ----- Terminal context menu + clipboard (TASK-0167) -------------------
+let copyOnSelect = false;
+try { copyOnSelect = localStorage.getItem('cockpit:copy-on-select') === '1'; }
+catch { /* ignore */ }
+let termMenuEl: HTMLElement | null = null;
+
+function closeTerminalMenu(): void {
+  if (termMenuEl) { termMenuEl.remove(); termMenuEl = null; }
+}
+
+// Multi-line pastes are wrapped in bracketed-paste markers so a shell /
+// REPL treats them as one block instead of running each line.
+function bracketedPaste(text: string): string {
+  return text.includes('\n') ? `\x1b[200~${text}\x1b[201~` : text;
+}
+
+async function pasteIntoTerminal(): Promise<void> {
+  if (!attachedTerminalId) return;
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) cockpitApi.terminal.write(attachedTerminalId, bracketedPaste(text));
+  } catch { /* clipboard blocked — ignore */ }
+}
+
+function copyTerminalSelection(): void {
+  const s = term?.hasSelection() ? term.getSelection() : '';
+  if (s) void navigator.clipboard.writeText(s);
+}
+
+function showTerminalMenu(x: number, y: number): void {
+  closeTerminalMenu();
+  const menu = document.createElement('div');
+  menu.className = 'term-menu';
+  const hasSel = !!term?.hasSelection();
+  const add = (label: string, enabled: boolean, fn: () => void): void => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'term-menu-item';
+    b.textContent = label;
+    b.disabled = !enabled;
+    b.addEventListener('click', () => { closeTerminalMenu(); fn(); });
+    menu.appendChild(b);
+  };
+  add('Copy', hasSel, copyTerminalSelection);
+  add('Paste', true, () => { void pasteIntoTerminal(); });
+  add('Select All', true, () => term?.selectAll());
+  add('Clear', true, () => term?.clear());
+  const sep = document.createElement('div');
+  sep.className = 'term-menu-sep';
+  menu.appendChild(sep);
+  add(copyOnSelect ? '✓ Copy on select' : 'Copy on select', true, () => {
+    copyOnSelect = !copyOnSelect;
+    try { localStorage.setItem('cockpit:copy-on-select', copyOnSelect ? '1' : '0'); } catch { /* ignore */ }
+  });
+  menu.style.visibility = 'hidden';
+  document.body.appendChild(menu);
+  // Keep the menu on-screen.
+  const r = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(x, window.innerWidth - r.width - 4)}px`;
+  menu.style.top = `${Math.min(y, window.innerHeight - r.height - 4)}px`;
+  menu.style.visibility = 'visible';
+  termMenuEl = menu;
+  window.setTimeout(() => document.addEventListener('mousedown', closeTerminalMenu, { once: true }), 0);
 }
 
 // Attach the xterm to a workspace's PTY: spawn it if not yet alive,
@@ -1406,6 +1555,18 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     toggleTerminal();
   }
+  // Terminal clipboard keys (TASK-0167): ⌘C copies the xterm selection
+  // when one exists (otherwise falls through to the shell's own binding);
+  // ⌘V pastes into the PTY. Only while the terminal is focused.
+  if (e.metaKey && !terminalPane.hidden && terminalMount.contains(document.activeElement)) {
+    if (e.key === 'c' && term?.hasSelection()) {
+      e.preventDefault();
+      copyTerminalSelection();
+    } else if (e.key === 'v') {
+      e.preventDefault();
+      void pasteIntoTerminal();
+    }
+  }
 });
 
 cockpitApi.menu.onRescan(() => { void rescanWorkspaces(); });
@@ -1415,23 +1576,68 @@ cockpitApi.agent.onFocus((payload) => {
   if (!payload || typeof payload !== 'object') return;
   const p = payload as { url?: unknown; target?: unknown };
   const target = typeof p.target === 'string' ? p.target : '?';
-  showStatus(`Agent focus → ${target}`);
-  setTimeout(hideStatus, 1500);
-  // Now that the centre pane is native, route the agent's focus
-  // request through navigateTo so the doc actually changes (FEAT-0011).
   // The URL the server resolves is shaped like `/docs/features/…md`
   // (or `/README.md` for top-level support files); only the former
   // is renderable here.
   const url = typeof p.url === 'string' ? p.url : '';
-  if (url.startsWith('/docs/')) {
-    void navigateTo(url.slice('/docs/'.length));
+  const rel = url.startsWith('/docs/') ? url.slice('/docs/'.length) : null;
+  // Follow gate (TASK-0158 / REQ-0020): navigate only when this
+  // workspace is in Following mode AND the user isn't parked on a
+  // virtual page they opened deliberately. Otherwise the jump is
+  // offered, never forced.
+  // While the fleet is pinned and visible AND this workspace is
+  // following, a follow updates the doc tab in the background rather
+  // than evicting the fleet (TASK-0159). In Manual mode the focus is
+  // ignored (falls through to the actionable toast) — the Manual
+  // contract wins over the tab convenience.
+  if (rel && isFollowing(activeId) && maybeBackgroundDocNav(rel)) {
+    return;
+  }
+  const onVirtual = !!currentRel && currentRel.startsWith('~');
+  const mayFollow = isFollowing(activeId) && !onVirtual;
+  if (rel && mayFollow) {
+    showStatus(`Agent focus → ${target}`);
+    scheduleHide(1500);
+    void navigateTo(rel);
+  } else if (rel) {
+    showActionStatus(`Agent focus → ${target}`, 'open', () => { void navigateTo(rel); });
+    scheduleHide(6000);
+  } else {
+    showStatus(`Agent focus → ${target}`);
+    scheduleHide(1500);
   }
 });
+
+// Dispatch a doc-pane text selection as an agent prompt (TASK-0168).
+cockpitApi.agent.onDispatchSelection((text) => { void dispatchSelectionAsPrompt(text); });
+
+async function dispatchSelectionAsPrompt(text: string): Promise<void> {
+  const wsId = activeId;
+  const trimmed = (text || '').trim();
+  if (!wsId || !trimmed) return;
+  const chosen = loadDispatchAgent();
+  const preview = trimmed.length > 140 ? `${trimmed.slice(0, 140)}…` : trimmed;
+  if (!window.confirm(`Dispatch the selected text to ${chosen}?\n\n${preview}`)) return;
+  const item: QueuedDispatch = {
+    id: currentFrontmatterId() || 'selection',
+    rel: currentRel && !currentRel.startsWith('~') ? currentRel : '',
+    agent: chosen,
+    prompt: trimmed,
+    ts: new Date().toISOString(),
+  };
+  const freshPty = !liveTerminals.has(wsId);
+  showTerminal();
+  await new Promise((r) => setTimeout(r, freshPty ? 600 : 150));
+  const res = await cockpitApi.dispatch.execute(wsId, item);
+  if ('error' in res && res.error) { showStatus(`Dispatch failed: ${res.error}`, 'error'); return; }
+  showStatus(res.queued ? 'Queued selection' : `Dispatched selection (${res.delivered})`);
+  scheduleHide(2000);
+}
 
 cockpitApi.deeplink.onUrl((url) => {
   // cockpit://<workspace-id>/<target>
   showStatus(`Deeplink received: ${url}`);
-  setTimeout(hideStatus, 2000);
+  scheduleHide(2000);
   try {
     const u = new URL(url);
     const wsId = u.host;
@@ -1563,7 +1769,7 @@ psmPickIcon.addEventListener('click', async () => {
   if (!pick.ok) {
     if (pick.error && pick.error !== 'cancelled') {
       showStatus(`Icon: ${pick.error}`, 'error');
-      setTimeout(hideStatus, 3000);
+      scheduleHide(3000);
     }
     return;
   }
@@ -1656,7 +1862,7 @@ async function addWorkspaceFlow(): Promise<void> {
     if (res.cancelled) { hideStatus(); return; }
     if (res.error) {
       showStatus(res.error, 'error');
-      setTimeout(hideStatus, 3000);
+      scheduleHide(3000);
       return;
     }
     workspaces = res.workspaces;
@@ -1665,7 +1871,7 @@ async function addWorkspaceFlow(): Promise<void> {
       ? `Added ${res.added}; skipped ${res.skipped} duplicate${res.skipped === 1 ? '' : 's'}.`
       : `Added ${res.added} project${res.added === 1 ? '' : 's'}.`;
     showStatus(msg);
-    setTimeout(hideStatus, 2000);
+    scheduleHide(2000);
   } catch (err) {
     showStatus(`Add failed: ${String(err)}`, 'error');
   } finally {
@@ -1728,7 +1934,7 @@ interface NavPayload {
   groups?: NavGroupData[];
 }
 
-const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'library', 'recent'] as const;
+const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -1744,6 +1950,159 @@ const COMPLETED_STATUSES = new Set([
 let hideCompleted = false;
 try { hideCompleted = localStorage.getItem('cockpit:hide-completed') === '1'; }
 catch { /* ignore */ }
+
+// ----- Follow mode (FEAT-0034 / TASK-0158) -----------------------------
+// Per-workspace: whether the centre pane follows agent `cockpit focus`
+// events. Default following (matches mode-1). Even when following, a
+// deliberately-opened virtual page (~agents/~overview/~session) is never
+// evicted (REQ-0020) — the suppressed jump stays available via a
+// clickable toast.
+function followKey(wsId: string): string { return `cockpit:follow:${wsId}`; }
+function isFollowing(wsId: string | null): boolean {
+  if (!wsId) return true;
+  try { return localStorage.getItem(followKey(wsId)) !== 'manual'; }
+  catch { return true; }
+}
+function setFollowing(wsId: string, following: boolean): void {
+  try { localStorage.setItem(followKey(wsId), following ? 'following' : 'manual'); }
+  catch { /* storage unavailable — mode resets next launch */ }
+}
+function refreshFollowButton(): void {
+  if (!followBtn) return;
+  const following = isFollowing(activeId);
+  followBtn.setAttribute('aria-pressed', following ? 'true' : 'false');
+  followBtn.title = following
+    ? 'Following agent navigation (click for Manual)'
+    : 'Manual — ignoring agent navigation (click to Follow)';
+}
+
+// Ids of docs notes the active session is touching — drives the nav
+// "agent" chip (TASK-0164). Derived from the session's docs_notes.
+const sessionTouchedIds = new Set<string>();
+// Numbered types stop at the numeric id (FEAT-0034, not the slug that
+// follows); CHG ids are the full dated slug.
+const ID_RE = /((?:TASK|ISS|FEAT|REQ|PHASE|RISK|TST|ADR)-\d+|CHG-[0-9A-Za-z-]+)/;
+function refreshSessionTouched(): void {
+  sessionTouchedIds.clear();
+  const s = lastAgentSnap?.session ?? lastAgentSnap?.last_session;
+  const notes = s?.work_notes ?? s?.docs_notes ?? [];
+  for (const n of notes) {
+    const m = String(n).match(ID_RE);
+    if (m) sessionTouchedIds.add(m[1]);
+  }
+}
+
+// Live-migrate the Active nav mode on a status transition (TASK-0164):
+// reload the mode so the row moves to its new group, then flash it.
+function handleStatusChange(c: { id?: string; to?: string }): void {
+  if (currentNavMode === 'active' && sidecarBaseUrl) {
+    void loadWsNav().then(() => { if (c.id) flashNavItem(c.id); });
+  }
+  // Phase-less Now board live-migration (TASK-0165).
+  const board = docView.querySelector<HTMLElement>('.now-board');
+  if (board && currentRel && currentRel.startsWith('~overview')) {
+    void fillNowBoard(board).then(() => {
+      if (!c.id) return;
+      const card = board.querySelector<HTMLElement>(`.now-card-item[data-id="${CSS.escape(c.id)}"]`);
+      if (card) {
+        card.classList.add('now-card-flash');
+        window.setTimeout(() => card.classList.remove('now-card-flash'), 1600);
+      }
+    });
+  }
+  noteWorkTransition(c);  // session "work" tab (TASK-0163)
+}
+
+function flashNavItem(id: string): void {
+  const li = wsNavContent.querySelector<HTMLElement>(`li[data-id="${CSS.escape(id)}"]`);
+  if (!li) return;
+  li.classList.add('nav-status-flash');
+  window.setTimeout(() => li.classList.remove('nav-status-flash'), 1600);
+}
+
+// ----- Centre tabs: doc + pinned Agents (FEAT-0034 / TASK-0159) --------
+// A two-tab strip appears only while the Agents fleet is pinned open.
+// The doc tab holds the last real note; follow/agent navigation updates
+// it in the background (a dot) without leaving the fleet view.
+const centerTabs = document.getElementById('center-tabs') as HTMLDivElement | null;
+let agentsTabOpen = false;
+let lastDocRel: string | null = null;
+let docTabChanged = false;
+
+function docTabLabel(): string {
+  if (!lastDocRel) return 'Doc';
+  const m = lastDocRel.match(/(?:^|\/)((?:TASK|ISS|FEAT|REQ|PHASE|RISK|CHG|ADR|TST)-[0-9A-Za-z-]+)/);
+  if (m) return m[1].split('-').slice(0, 2).join('-');
+  const base = lastDocRel.split('/').pop() || lastDocRel;
+  return base.replace(/\.md$/, '');
+}
+
+function renderCenterTabs(): void {
+  if (!centerTabs) return;
+  if (!agentsTabOpen) { centerTabs.hidden = true; centerTabs.replaceChildren(); return; }
+  centerTabs.hidden = false;
+  centerTabs.replaceChildren();
+  const onAgents = currentRel === '~agents';
+
+  const docTab = document.createElement('button');
+  docTab.type = 'button';
+  docTab.className = 'center-tab' + (onAgents ? '' : ' on');
+  docTab.setAttribute('role', 'tab');
+  docTab.setAttribute('aria-selected', onAgents ? 'false' : 'true');
+  docTab.textContent = docTabLabel();
+  if (docTabChanged && onAgents) {
+    const dot = document.createElement('span');
+    dot.className = 'center-tab-dot';
+    dot.title = 'updated in the background';
+    docTab.appendChild(dot);
+  }
+  docTab.addEventListener('click', () => {
+    docTabChanged = false;
+    if (lastDocRel) void navigateTo(lastDocRel);
+    else void navigateTo('~overview');
+  });
+
+  const agentsTab = document.createElement('button');
+  agentsTab.type = 'button';
+  agentsTab.className = 'center-tab' + (onAgents ? ' on' : '');
+  agentsTab.setAttribute('role', 'tab');
+  agentsTab.setAttribute('aria-selected', onAgents ? 'true' : 'false');
+  const label = document.createElement('span');
+  label.textContent = 'Agents';
+  agentsTab.appendChild(label);
+  const close = document.createElement('span');
+  close.className = 'center-tab-close';
+  close.textContent = '×';
+  close.title = 'Close Agents tab';
+  close.setAttribute('role', 'button');
+  close.addEventListener('click', (e) => { e.stopPropagation(); closeAgentsTab(); });
+  agentsTab.appendChild(close);
+  agentsTab.addEventListener('click', () => { if (currentRel !== '~agents') void navigateTo('~agents'); });
+
+  centerTabs.append(docTab, agentsTab);
+}
+
+function closeAgentsTab(): void {
+  agentsTabOpen = false;
+  renderCenterTabs();
+  if (currentRel === '~agents') {
+    if (lastDocRel) void navigateTo(lastDocRel);
+    else void navigateTo('~overview');
+  }
+}
+
+// Follow/agent navigation targeting a doc while the fleet is pinned and
+// visible updates the doc tab in the background instead of evicting the
+// fleet (TASK-0159). Returns true if it consumed the navigation.
+function maybeBackgroundDocNav(rel: string): boolean {
+  if (agentsTabOpen && currentRel === '~agents') {
+    lastDocRel = rel;
+    docTabChanged = true;
+    renderCenterTabs();
+    return true;
+  }
+  return false;
+}
 
 function isCompletedStatus(status: string | undefined): boolean {
   if (!status) return false;
@@ -1832,6 +2191,15 @@ async function renderOverviewPage(scope: string | null): Promise<boolean> {
     return false;
   }
   if (resp.status === 404) {
+    // The requested scope doesn't exist in this project (a remembered
+    // phase from another workspace, a phase-less project, or a stale
+    // deep link). Degrade to the unscoped project overview instead of
+    // erroring (TASK-0177).
+    if (scope !== null) {
+      overviewScope = null;
+      scopePhaseList = null;
+      return renderOverviewPage(null);
+    }
     showStatus(`Unknown phase: ${scope}`, 'error');
     return false;
   }
@@ -1866,15 +2234,83 @@ async function renderOverviewPage(scope: string | null): Promise<boolean> {
 function renderProjectOverview(data: StatsPayload): void {
   docView.classList.add('overview-pane');
   docView.classList.remove('agents-page');
+  // Phase-less projects get a live Now board instead of an empty phase
+  // grid (TASK-0165) — the same in-flight data as the Active nav mode.
+  const middle = data.phases.length === 0
+    ? buildNowBoard()
+    : buildPhaseSection(data.phases);
   docView.replaceChildren(
     buildHero(data.hero),
-    buildPhaseSection(data.phases),
+    middle,
     buildBottomGrid(data),
     buildFeedsGrid(data),
   );
   docView.hidden = false;
   placeholder.hidden = true;
   refreshFooterPath();
+}
+
+// Now board (TASK-0165): Doing / Next / Done-today columns rendered
+// from the Active-mode data, live-migrating on status transitions.
+function buildNowBoard(): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-now-board';
+  const h = document.createElement('h3');
+  h.textContent = 'Now — work in flight';
+  wrap.appendChild(h);
+  const board = document.createElement('div');
+  board.className = 'now-board';
+  wrap.appendChild(board);
+  void fillNowBoard(board);
+  return wrap;
+}
+
+async function fillNowBoard(board: HTMLElement): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/nav?mode=active`);
+    if (!resp.ok) return;
+    const data = await resp.json() as { groups: NavGroupData[] };
+    board.replaceChildren();
+    if (data.groups.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'meta';
+      empty.textContent = 'Nothing in flight right now.';
+      board.appendChild(empty);
+      return;
+    }
+    for (const g of data.groups) {
+      const items = g.items ?? [];
+      const col = document.createElement('div');
+      col.className = 'now-col';
+      const head = document.createElement('div');
+      head.className = 'now-col-head';
+      head.textContent = `${g.label} · ${items.length}`;
+      col.appendChild(head);
+      for (const it of items) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'now-card-item';
+        if (it.id) card.dataset.id = String(it.id);
+        appendIf(card, typeIcon(it.type));
+        const idl = document.createElement('span');
+        idl.className = 'now-card-id mono';
+        idl.textContent = it.id || '';
+        card.appendChild(idl);
+        if (it.id && sessionTouchedIds.has(it.id)) {
+          const chip = document.createElement('span');
+          chip.className = 'nav-agent-chip';
+          chip.textContent = 'agent';
+          card.appendChild(chip);
+        }
+        appendIf(card, statusChip(it.status));
+        const rel = extractRel(it.url);
+        if (rel) card.addEventListener('click', () => void navigateTo(rel));
+        col.appendChild(card);
+      }
+      board.appendChild(col);
+    }
+  } catch { /* transient — ignore */ }
 }
 
 function buildHero(hero: StatsHero): HTMLElement {
@@ -2125,6 +2561,8 @@ function initNavToolbar(): void {
     features: TYPE_ICONS.feature,
     tasks:    TYPE_ICONS.task,
     issues:   TYPE_ICONS.issue,
+    // Active: a "pulse/activity" line — work in motion.
+    active:   '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     library:  TYPE_ICONS.reference,
     recent:   GROUP_ICONS.history,
   };
@@ -2164,6 +2602,18 @@ function initNavToolbar(): void {
     agentsBtn.addEventListener('click', () => {
       if (!sidecarBaseUrl) return;  // need a workspace open to host the page
       void navigateTo('~agents');
+    });
+  }
+  if (followBtn) {
+    followBtn.replaceChildren(makeSvg(GROUP_ICONS.follow, 18, {}));
+    refreshFollowButton();
+    followBtn.addEventListener('click', () => {
+      if (!activeId) return;
+      const next = !isFollowing(activeId);
+      setFollowing(activeId, next);
+      refreshFollowButton();
+      showStatus(next ? 'Following agent navigation' : 'Manual — agent navigation ignored');
+      scheduleHide(1500);
     });
   }
   const settingsBtn = document.getElementById('settings-toggle');
@@ -2368,6 +2818,7 @@ const TYPE_ICONS: Record<string, string> = {
 
 const GROUP_ICONS: Record<string, string> = {
   agents:        '<rect width="16" height="10" x="4" y="10" rx="2"/><path d="M12 6v4"/><circle cx="12" cy="4" r="1.5"/><path d="M9 14h.01"/><path d="M15 14h.01"/><path d="M2 14h2"/><path d="M20 14h2"/>',
+  follow:        '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/>',
   star:          '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
   folder_tree:   '<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M3 5a2 2 0 0 0 2 2h3"/><path d="M3 3v13a2 2 0 0 0 2 2h3"/>',
   layers:        '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.18-9.43 4.27a2 2 0 0 1-1.66 0L2 12.18"/><path d="m22 17.18-9.43 4.27a2 2 0 0 1-1.66 0L2 17.18"/>',
@@ -2490,6 +2941,7 @@ function navItem(item: NavItem): HTMLLIElement {
   const li = document.createElement('li');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
+  if (item.id) li.dataset.id = String(item.id);
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
@@ -2506,6 +2958,14 @@ function navItem(item: NavItem): HTMLLIElement {
     line.appendChild(idSpan);
   }
   line.appendChild(navLineSpacer());
+  // Agent chip (TASK-0164): a live session is touching this note.
+  if (item.id && sessionTouchedIds.has(item.id)) {
+    const chip = document.createElement('span');
+    chip.className = 'nav-agent-chip';
+    chip.textContent = 'agent';
+    chip.title = 'A live agent session is working on this';
+    line.appendChild(chip);
+  }
   appendIf(line, statusChip(item.status));
   card.appendChild(line);
 
@@ -2545,6 +3005,7 @@ function navItemStacked(item: NavItem): HTMLLIElement {
   const li = document.createElement('li');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
+  if (item.id) li.dataset.id = String(item.id);
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
@@ -2592,6 +3053,7 @@ function navItemCompact(item: NavItem): HTMLLIElement {
   const li = document.createElement('li');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
+  if (item.id) li.dataset.id = String(item.id);
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
@@ -2617,6 +3079,7 @@ function navItemNested(item: NavItem): HTMLLIElement {
   const li = document.createElement('li');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
+  if (item.id) li.dataset.id = String(item.id);
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
@@ -3259,13 +3722,13 @@ document.addEventListener('drop', async (e) => {
     }
     case 'offer-add-workspace': {
       showStatus(`That file is in ${result.root} — add it as a workspace? (Use Rescan to discover.)`);
-      setTimeout(hideStatus, 4000);
+      scheduleHide(4000);
       break;
     }
     case 'ignored':
     default: {
       showStatus(`Not a project-os note (${result.reason ?? 'unknown'}).`, 'error');
-      setTimeout(hideStatus, 2500);
+      scheduleHide(2500);
       break;
     }
   }
@@ -3589,6 +4052,14 @@ function attachSidecarEventStream(baseUrl: string): void {
   es.addEventListener('file-changed', () => {
     scheduleSoftReload();
   });
+  // Status transitions (FEAT-0036 / TASK-0162): live-migrate rows in the
+  // Active nav mode and flash the changed item.
+  es.addEventListener('cockpit:status-change', (e) => {
+    try {
+      const c = JSON.parse((e as MessageEvent).data) as { id?: string; to?: string };
+      handleStatusChange(c);
+    } catch { /* malformed — ignore */ }
+  });
   // Hook-fed activity feed (FEAT-0019/0020): live strip + nav trail.
   es.addEventListener('cockpit:agent-activity', (e) => {
     try {
@@ -3671,7 +4142,7 @@ async function sendTabState(): Promise<void> {
       body: JSON.stringify({
         tab_id: getTabId(),
         url,
-        following: true,
+        following: isFollowing(activeId),
       }),
     });
   } catch {
@@ -3706,6 +4177,7 @@ interface AgentCostSnapshot {
   total_lines_removed?: number;
   used_percentage?: number;
   rate_limits?: Record<string, { used_percentage: number; resets_at?: string }>;
+  captured_at?: string;
 }
 
 interface AgentSessionSlim {
@@ -3718,6 +4190,7 @@ interface AgentSessionSlim {
   last_prompt: string | null;
   files: string[];
   docs_notes: string[];
+  work_notes?: string[];
   cost: AgentCostSnapshot | null;
   chg_ids: string[];
   undocumented: boolean;
@@ -3731,7 +4204,6 @@ const agentStripAgent = $<HTMLSpanElement>('#agent-strip-agent');
 const agentStripText = $<HTMLSpanElement>('#agent-strip-text');
 const agentStripUndoc = $<HTMLSpanElement>('#agent-strip-undoc');
 const agentStripCtx = $<HTMLSpanElement>('#agent-strip-ctx');
-const agentStripRl = $<HTMLSpanElement>('#agent-strip-rl');
 const agentStripCost = $<HTMLSpanElement>('#agent-strip-cost');
 const agentStripExpand = $<HTMLButtonElement>('#agent-strip-expand');
 const agentStripDetail = $<HTMLDivElement>('#agent-strip-detail');
@@ -3762,19 +4234,10 @@ function renderAgentStripCost(cost: AgentCostSnapshot | null | undefined): void 
   } else {
     agentStripCtx.hidden = true;
   }
-  // 5-hour rate-limit budget (TASK-0149) — the number to check before
-  // dispatching more work. Data already flows via the statusline.
-  const fiveHour = cost?.rate_limits?.five_hour;
-  if (fiveHour && typeof fiveHour.used_percentage === 'number') {
-    agentStripRl.textContent = `5h ${Math.round(fiveHour.used_percentage)}%`;
-    agentStripRl.hidden = false;
-    agentStripRl.classList.toggle('meter-hot', fiveHour.used_percentage >= 80);
-    agentStripRl.title = fiveHour.resets_at
-      ? `5-hour rate-limit budget used · resets ${new Date(fiveHour.resets_at).toLocaleTimeString()}`
-      : '5-hour rate-limit budget used';
-  } else {
-    agentStripRl.hidden = true;
-  }
+  // Rate-limit budgets moved out of the session strip to the account
+  // budget block in the left pane (FEAT-0035/TASK-0160) — the strip is
+  // session-scoped only. Capture the freshest sample for that block.
+  if (cost?.rate_limits) noteRateLimits(cost.rate_limits, cost.captured_at);
   if (cost && typeof cost.total_cost_usd === 'number') {
     agentStripCost.textContent = `$${cost.total_cost_usd.toFixed(2)}`;
     agentStripCost.hidden = false;
@@ -3804,7 +4267,11 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
     ? (activity?.state || agentStates.get(activeId || '')?.state || 'busy')
     : 'idle';
   agentStripDot.dataset.state = state;
-  agentStripAgent.textContent = session.agent || 'agent';
+  // Prefer the live hook agent over a stale last_session agent so the
+  // strip and rail dot never disagree (ISS-0012) — a one-off codex run
+  // must not relabel a live claude workspace.
+  agentStripAgent.textContent =
+    activity?.agent || agentStates.get(activeId || '')?.agent || session.agent || 'agent';
   if (live && activity?.prompt) stripLastPrompt = activity.prompt;
   else if (session.last_prompt) stripLastPrompt = session.last_prompt;
   let detail = '';
@@ -3825,6 +4292,27 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
   renderAgentStripCost(session.cost || (live ? activity?.cost : undefined));
 }
 
+// Session "work" tab (TASK-0163): status boxes per docs note this
+// session touched, filled live as the agent closes them.
+const DONE_STATUSES = new Set(['done', 'merged', 'fixed', 'fulfilled', 'met', 'complete', 'verified', 'closed', 'passing', 'published', 'resolved']);
+const workTransitions = new Map<string, string>();  // id -> latest status seen
+let stripDetailTab: 'work' | 'files' = 'work';
+
+function noteWorkTransition(c: { id?: string; to?: string }): void {
+  if (c.id && typeof c.to === 'string') workTransitions.set(c.id, c.to);
+  if (!agentStripDetail.hidden && stripDetailTab === 'work') renderAgentStripDetail();
+}
+
+function sessionWorkIds(): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const n of stripSession?.work_notes ?? stripSession?.docs_notes ?? []) {
+    const m = String(n).match(ID_RE);
+    if (m && !seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
+  }
+  return out;
+}
+
 function renderAgentStripDetail(): void {
   if (!stripSession) { agentStripDetail.hidden = true; return; }
   agentStripDetail.replaceChildren();
@@ -3832,33 +4320,84 @@ function renderAgentStripDetail(): void {
   head.className = 'agent-detail-head';
   head.textContent = `session ${stripSession.session_id.slice(0, 8)} · ${stripSession.prompt_count} prompt${stripSession.prompt_count === 1 ? '' : 's'}`;
   agentStripDetail.appendChild(head);
-  const list = document.createElement('ul');
-  list.className = 'agent-detail-files';
-  const files = stripSession.files.slice(-20).reverse();
-  if (files.length === 0) {
-    const li = document.createElement('li');
-    li.className = 'agent-detail-empty';
-    li.textContent = 'No files touched yet.';
-    list.appendChild(li);
+
+  const workIds = sessionWorkIds();
+  // Tab bar: work | files.
+  const tabs = document.createElement('div');
+  tabs.className = 'agent-detail-tabs';
+  for (const [key, label] of [['work', 'work'], ['files', 'files']] as const) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'agent-detail-tab' + (stripDetailTab === key ? ' on' : '');
+    b.textContent = label;
+    b.addEventListener('click', () => { stripDetailTab = key; renderAgentStripDetail(); });
+    tabs.appendChild(b);
   }
-  for (const f of files) {
-    const li = document.createElement('li');
-    const isDocs = !f.startsWith('/');
-    if (isDocs) {
-      const a = document.createElement('a');
-      a.href = '#';
-      a.textContent = f;
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        void navigateTo(f);
-      });
-      li.appendChild(a);
-    } else {
-      li.textContent = f;
+  agentStripDetail.appendChild(tabs);
+
+  if (stripDetailTab === 'work') {
+    const list = document.createElement('div');
+    list.className = 'agent-detail-work';
+    if (workIds.length === 0) {
+      const e = document.createElement('div');
+      e.className = 'agent-detail-empty';
+      e.textContent = 'No documented work yet.';
+      list.appendChild(e);
     }
-    list.appendChild(li);
+    for (const id of workIds) {
+      const status = workTransitions.get(id);
+      const st = (status || '').toLowerCase();
+      // A note the session is touching is "doing" until it goes done.
+      const tier = DONE_STATUSES.has(st) ? 'done' : 'doing';
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'agent-detail-work-row';
+      const box = document.createElement('span');
+      box.className = 'work-box' + (tier ? ` ${tier}` : '');
+      const idEl = document.createElement('span');
+      idEl.className = 'work-id mono';
+      idEl.textContent = id;
+      row.append(box, idEl);
+      if (status) {
+        const stEl = document.createElement('span');
+        stEl.className = 'work-status';
+        stEl.textContent = status;
+        row.appendChild(stEl);
+      }
+      row.addEventListener('click', () => {
+        const notes = stripSession?.work_notes ?? stripSession?.docs_notes ?? [];
+        const rel = notes.find((n) => String(n).includes(id));
+        if (rel) void navigateTo(rel);
+      });
+      list.appendChild(row);
+    }
+    agentStripDetail.appendChild(list);
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'agent-detail-files';
+    const files = stripSession.files.slice(-20).reverse();
+    if (files.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'agent-detail-empty';
+      li.textContent = 'No files touched yet.';
+      list.appendChild(li);
+    }
+    for (const f of files) {
+      const li = document.createElement('li');
+      const isDocs = !f.startsWith('/');
+      if (isDocs) {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = f;
+        a.addEventListener('click', (e) => { e.preventDefault(); void navigateTo(f); });
+        li.appendChild(a);
+      } else {
+        li.textContent = f;
+      }
+      list.appendChild(li);
+    }
+    agentStripDetail.appendChild(list);
   }
-  agentStripDetail.appendChild(list);
   agentStripDetail.hidden = false;
 }
 
@@ -3869,6 +4408,9 @@ interface AgentSnap {
   session?: AgentSessionSlim | null;
   last_session?: AgentSessionSlim | null;
   agent_state?: { state?: string } | null;
+  // Freshest account-global usage across all sessions (TASK-0171).
+  rate_limits?: Record<string, { used_percentage: number; resets_at?: string }>;
+  rate_limits_at?: string;
 }
 let lastAgentSnap: AgentSnap | null = null;
 let agentSnapTimer: number | null = null;
@@ -3879,6 +4421,14 @@ async function refreshAgentSnapshot(): Promise<void> {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/state`);
     if (!resp.ok) return;
     lastAgentSnap = await resp.json() as AgentSnap;
+    // Account-global usage: adopt the freshest reading across all of
+    // this workspace's sessions (TASK-0171), through the adopt-if-newer
+    // gate — so the real reading isn't masked by a later session that
+    // lacked one.
+    if (lastAgentSnap.rate_limits && lastAgentSnap.rate_limits_at) {
+      noteRateLimits(lastAgentSnap.rate_limits, lastAgentSnap.rate_limits_at);
+    }
+    refreshSessionTouched();
     // Fall back to the most-recent (ended) session so the strip — and
     // its files view — persists between runs instead of vanishing.
     showAgentStrip(
@@ -3886,7 +4436,6 @@ async function refreshAgentSnapshot(): Promise<void> {
       lastAgentSnap.session ?? lastAgentSnap.last_session ?? null,
     );
     if (!agentStripDetail.hidden) renderAgentStripDetail();
-    updateOverviewNowCard();
   } catch { /* agent surfaces are best-effort */ }
 }
 
@@ -3895,8 +4444,6 @@ function scheduleAgentSnapshotRefresh(): void {
   agentSnapTimer = window.setTimeout(() => {
     agentSnapTimer = null;
     void refreshAgentSnapshot();
-    // Sessions feed only re-fetches while the project dashboard is up.
-    if (currentRel === '~overview') void refreshSessionsFeed();
   }, 300);
 }
 
@@ -4063,10 +4610,217 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   return row;
 }
 
+// ----- Account budget block (FEAT-0035 / TASK-0160) --------------------
+// The 5h/7d rate limits are account-scoped, so they live at the foot of
+// the attention panel (left pane), not in the session strip. The
+// freshest sample from any live session is authoritative.
+interface RateWindow { used_percentage: number; resets_at?: string }
+let latestRateLimits: Record<string, RateWindow> | null = null;
+// Epoch ms of the currently-displayed reading. Rate limits are
+// account-global, so we keep the FRESHEST reading from any source /
+// workspace and never downgrade — switching projects can't change the
+// number (TASK-0169).
+let rateLimitsAsOf = 0;
+
+// Persist the freshest account-global reading so the Usage block is
+// visible immediately on launch and across workspace switches — it's an
+// account fact, not a per-session one (TASK-0170).
+const USAGE_KEY = 'cockpit:usage';
+function persistUsage(): void {
+  try {
+    if (latestRateLimits) {
+      localStorage.setItem(USAGE_KEY, JSON.stringify({ rl: latestRateLimits, at: rateLimitsAsOf }));
+    }
+  } catch { /* storage unavailable — in-memory only */ }
+}
+function loadPersistedUsage(): void {
+  try {
+    const raw = localStorage.getItem(USAGE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw) as { rl?: Record<string, RateWindow>; at?: number };
+    if (obj.rl && typeof obj.at === 'number' && Number.isFinite(obj.at)) {
+      latestRateLimits = obj.rl;
+      rateLimitsAsOf = obj.at;
+    }
+  } catch { /* corrupt — ignore */ }
+}
+
+// Burn-rate samples per window (TASK-0161): a short ring of (ts, pct)
+// so the block can project time-to-cap from the recent slope.
+const BUDGET_SAMPLE_WINDOW_MS = 15 * 60_000;
+const budgetSamples: Record<string, Array<[number, number]>> = {};
+
+function recordBudgetSample(key: string, pct: number): void {
+  const arr = budgetSamples[key] ?? (budgetSamples[key] = []);
+  const now = Date.now();
+  // Skip duplicate timestamps/values so a resent statusline doesn't
+  // skew the slope.
+  if (arr.length && arr[arr.length - 1][1] === pct && now - arr[arr.length - 1][0] < 1000) return;
+  arr.push([now, pct]);
+  const cutoff = now - BUDGET_SAMPLE_WINDOW_MS;
+  while (arr.length && arr[0][0] < cutoff) arr.shift();
+  if (arr.length > 60) arr.shift();
+}
+
+function adoptRateLimits(rl: Record<string, RateWindow>, capturedAtMs: number): void {
+  // Only strictly-newer readings adopt: never downgrade, and don't
+  // re-push identical-timestamp samples that would dilute the burn slope
+  // while idle (review F1); NaN never poisons rateLimitsAsOf (F3).
+  if (!Number.isFinite(capturedAtMs) || capturedAtMs <= rateLimitsAsOf) return;
+  latestRateLimits = rl;
+  rateLimitsAsOf = capturedAtMs;
+  for (const key of ['five_hour', 'seven_day']) {
+    const w = rl[key];
+    if (w && typeof w.used_percentage === 'number') recordBudgetSample(key, w.used_percentage);
+  }
+  persistUsage();
+  refreshAttention();
+}
+
+// Live statusline path (active workspace). A missing captured_at means
+// "just arrived", so stamp it now.
+function noteRateLimits(rl: Record<string, RateWindow>, capturedAt?: string): void {
+  // A reading with no captured_at (only pre-change on-disk snapshots) is
+  // of unknown freshness — treat it as oldest (0) so it can't downgrade
+  // or falsely-freshen the account-global reading (review F2).
+  const ms = capturedAt ? Date.parse(capturedAt) : 0;
+  adoptRateLimits(rl, Number.isFinite(ms) ? ms : 0);
+}
+
+// Poll the fleet for the freshest account-global reading across all
+// workspaces (TASK-0171) — a silent backstop; there is no on-demand
+// refresh because the statusline is the only usage source (TASK-0172).
+async function pollUsage(): Promise<void> {
+  try {
+    const payload = await cockpitApi.agents.fleet();
+    let best: { rl: Record<string, RateWindow>; at: number } | null = null;
+    for (const row of payload.rows) {
+      if (!row.rateLimits) continue;
+      const at = row.rateLimitsAt ? Date.parse(row.rateLimitsAt) : 0;
+      if (!best || at > best.at) best = { rl: row.rateLimits, at };
+    }
+    if (best && best.at > 0) adoptRateLimits(best.rl, best.at);
+  } catch { /* transient — keep the last reading */ }
+  finally {
+    // Always repaint so the "as of" age ticks even without new data.
+    refreshAttention();
+  }
+}
+// Show the last-known usage immediately on launch, then refresh from any
+// live sidecar shortly after (TASK-0170).
+loadPersistedUsage();
+refreshAttention();
+window.setInterval(() => { void pollUsage(); }, 120_000);
+window.setTimeout(() => { void pollUsage(); }, 3_000);
+
+function fmtMsShort(ms: number): string {
+  const mins = Math.max(1, Math.round(ms / 60_000));
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+function budgetRow(label: string, w: RateWindow): HTMLElement {
+  const pct = Math.max(0, Math.min(100, w.used_percentage));
+  const tier = pct >= 85 ? 'crit' : pct >= 60 ? 'warn' : '';
+  const row = document.createElement('div');
+  row.className = 'ws-budget-row';
+  const lab = document.createElement('span');
+  lab.className = 'ws-budget-label';
+  lab.textContent = label;
+  const track = document.createElement('span');
+  track.className = 'ws-budget-track';
+  const fill = document.createElement('span');
+  fill.className = 'ws-budget-fill' + (tier ? ` ${tier}` : '');
+  fill.style.width = `${pct}%`;
+  track.appendChild(fill);
+  const val = document.createElement('span');
+  val.className = 'ws-budget-val' + (tier ? ` ${tier}` : '');
+  val.textContent = `${Math.round(pct)}%`;
+  row.append(lab, track, val);
+  if (w.resets_at) {
+    const d = new Date(w.resets_at);
+    if (!Number.isNaN(d.getTime())) row.title = `resets ${d.toLocaleTimeString()}`;
+  }
+  return row;
+}
+
+function buildBudgetBlock(): HTMLElement | null {
+  const rl = latestRateLimits;
+  if (!rl) return null;
+  const rows: HTMLElement[] = [];
+  const five = rl.five_hour;
+  const seven = rl.seven_day;
+  if (five && typeof five.used_percentage === 'number') rows.push(budgetRow('5h', five));
+  if (seven && typeof seven.used_percentage === 'number') rows.push(budgetRow('7d', seven));
+  if (rows.length === 0) return null;
+  const block = document.createElement('div');
+  block.className = 'ws-budget';
+  // Header: "Usage" + as-of freshness (TASK-0169; refresh button removed in TASK-0172).
+  const head = document.createElement('div');
+  head.className = 'ws-budget-head';
+  const title = document.createElement('span');
+  title.textContent = 'Usage';
+  head.appendChild(title);
+  const asOf = document.createElement('span');
+  asOf.className = 'ws-budget-asof';
+  if (rateLimitsAsOf > 0) {
+    const ageMin = Math.floor((Date.now() - rateLimitsAsOf) / 60_000);
+    asOf.textContent = ageMin < 1 ? 'just now' : `${ageMin}m ago`;
+    if (ageMin >= 10) asOf.classList.add('stale');
+    asOf.title = `Reading captured ${new Date(rateLimitsAsOf).toLocaleTimeString()}`;
+  }
+  head.appendChild(asOf);
+  block.appendChild(head);
+  for (const r of rows) block.appendChild(r);
+  // Reset caption for the binding (5h) window.
+  if (five?.resets_at) {
+    const d = new Date(five.resets_at);
+    if (!Number.isNaN(d.getTime())) {
+      const cap = document.createElement('div');
+      cap.className = 'ws-budget-reset';
+      cap.textContent = `5h resets ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const proj = budgetProjection('five_hour', five);
+      if (proj) {
+        const p = document.createElement('span');
+        p.className = 'ws-budget-proj';
+        p.textContent = ` · ${proj}`;
+        cap.appendChild(p);
+      }
+      block.appendChild(cap);
+    }
+  }
+  return block;
+}
+
+// Project time-to-cap from the recent burn slope (TASK-0161). Returns
+// null when there's too little data, the slope is flat/negative, or the
+// window resets before you'd hit the cap (the reset caption wins).
+function budgetProjection(key: string, w: RateWindow): string | null {
+  const arr = budgetSamples[key];
+  if (!arr || arr.length < 3) return null;
+  const first = arr[0];
+  const last = arr[arr.length - 1];
+  const dtMs = last[0] - first[0];
+  const dPct = last[1] - first[1];
+  if (dtMs < 60_000 || dPct <= 0.5) return null;   // too little data / flat
+  const slope = dPct / dtMs;                         // % per ms
+  const remaining = 100 - last[1];
+  if (remaining <= 0) return null;
+  const msToFull = remaining / slope;
+  let resetMs = Infinity;
+  if (w.resets_at) {
+    const r = new Date(w.resets_at).getTime();
+    if (!Number.isNaN(r)) resetMs = r - Date.now();
+  }
+  if (resetMs <= msToFull) return null;              // resets first — no alarm
+  return `~${fmtMsShort(msToFull)} left at this rate`;
+}
+
 function refreshAttention(): void {
   const entries = attentionEntries();
   const finished = finishedTodayCount();
-  if (entries.length === 0 && finished === 0) {
+  const budget = buildBudgetBlock();
+  if (entries.length === 0 && finished === 0 && !budget) {
     attentionPanel.hidden = true;
     attentionPanel.replaceChildren();
     return;
@@ -4091,6 +4845,7 @@ function refreshAttention(): void {
     foot.addEventListener('click', () => { void navigateTo('~agents'); });
     attentionPanel.appendChild(foot);
   }
+  if (budget) attentionPanel.appendChild(budget);
   attentionPanel.hidden = false;
 }
 
@@ -4468,48 +5223,53 @@ async function fetchSessions(): Promise<AgentSessionSlim[]> {
   }
 }
 
-// ----- Feeds grid: Recent activity | Agent sessions (TASK-0127) --------
+// ----- Recent activity feed (TASK-0127; sessions moved to ~agents in
+// TASK-0178 — the overview is project-focused). --------------------------
 
 function buildFeedsGrid(data: StatsPayload): HTMLElement {
   const grid = document.createElement('section');
-  grid.className = 'ov-feeds';
-  grid.append(buildRecentFeed(data.activity.recent), buildSessionsFeed());
+  grid.className = 'ov-feeds ov-feeds-single';
+  grid.append(buildRecentFeed(data.activity.recent));
   return grid;
 }
 
-function buildSessionsFeed(): HTMLElement {
+// Per-project session history on the ~agents screen (TASK-0180 / ISS-0013):
+// driven by the selected fleet row, sourced from that workspace's sidecar
+// or its persisted .cockpit/sessions.json (via the agents:sessions IPC).
+function buildAgentsSessionSection(workspaceId: string | null, name: string): HTMLElement {
   const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-feed ov-sessions-feed';
-  wrap.innerHTML = '<h3>Agent sessions</h3>';
+  wrap.className = 'ov-section ov-feed ov-sessions-feed agents-sessions';
+  const h = document.createElement('h3');
+  h.textContent = name ? `Recent sessions — ${name}` : 'Recent sessions';
+  wrap.appendChild(h);
   const body = document.createElement('div');
-  body.id = 'ov-sessions-body';
   body.className = 'ov-sessions-body';
   wrap.appendChild(body);
-  void refreshSessionsFeed();
+  if (workspaceId) void fillAgentsSessions(body, workspaceId);
   return wrap;
 }
 
-async function refreshSessionsFeed(): Promise<void> {
-  const body = document.getElementById('ov-sessions-body');
-  if (!body) return;
-  const sessions = await fetchSessions();
+async function fillAgentsSessions(body: HTMLElement, workspaceId: string): Promise<void> {
+  let sessions: AgentSessionSlim[] = [];
+  try { sessions = await cockpitApi.agents.sessions(workspaceId); } catch { /* empty */ }
+  sessions = [...sessions].sort((a, b) => (b.started || '').localeCompare(a.started || ''));
   if (sessions.length === 0) {
-    body.replaceChildren();
     const empty = document.createElement('p');
     empty.className = 'meta';
-    empty.textContent = 'No agent sessions yet — run claude or codex in the terminal.';
-    body.appendChild(empty);
+    empty.textContent = 'No sessions recorded for this project yet.';
+    body.replaceChildren(empty);
     return;
   }
+  // The ~session detail page reads the ACTIVE sidecar, so rows only
+  // deep-link when the selected project is the active one.
+  const navigable = workspaceId === activeId;
   const ul = document.createElement('ul');
   ul.className = 'ov-feed-list';
-  for (const s of sessions.slice(0, 15)) {
-    ul.appendChild(buildSessionFeedRow(s));
-  }
+  for (const s of sessions.slice(0, 20)) ul.appendChild(buildSessionFeedRow(s, navigable));
   body.replaceChildren(ul);
 }
 
-function buildSessionFeedRow(s: AgentSessionSlim): HTMLLIElement {
+function buildSessionFeedRow(s: AgentSessionSlim, navigable = true): HTMLLIElement {
   const li = document.createElement('li');
   const date = document.createElement('span');
   date.className = 'ov-feed-date';
@@ -4548,11 +5308,15 @@ function buildSessionFeedRow(s: AgentSessionSlim): HTMLLIElement {
     undoc.textContent = 'undocumented';
     li.appendChild(undoc);
   }
-  li.style.cursor = 'pointer';
-  li.title = `session ${s.session_id}`;
-  li.addEventListener('click', () => {
-    void navigateTo(`~session/${s.session_id}`);
-  });
+  if (navigable) {
+    li.style.cursor = 'pointer';
+    li.title = `session ${s.session_id}`;
+    li.addEventListener('click', () => {
+      void navigateTo(`~session/${s.session_id}`);
+    });
+  } else {
+    li.title = `session ${s.session_id} — open this project to view detail`;
+  }
   return li;
 }
 
@@ -4706,6 +5470,8 @@ interface FleetRow {
   ctx?: number;
   fiveHourPct?: number;
   fiveHourResetsAt?: string;
+  rateLimits?: Record<string, { used_percentage: number; resets_at?: string }>;
+  rateLimitsAt?: string;
   dispatchOrigin?: string;
   queueDepth: number;
   sessionId?: string;
@@ -4721,6 +5487,10 @@ function fleetRank(r: FleetRow): number {
   };
   return order[r.state ?? 'idle'] ?? 6;
 }
+
+// Selected project on the ~agents screen — drives the session-history
+// section (TASK-0180). Persists across live rebuilds.
+let agentsSelectedWs: string | null = null;
 
 async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   let payload: FleetPayload;
@@ -4770,10 +5540,37 @@ async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   }
   docView.appendChild(head);
 
+  // Which project's session history to show below (TASK-0180): the
+  // selected fleet row, else the active workspace, else the top row.
+  const has = (id: string | null): boolean => !!id && rows.some((r) => r.workspaceId === id);
+  const selected = has(agentsSelectedWs) ? agentsSelectedWs
+    : has(activeId) ? activeId
+    : rows[0]?.workspaceId ?? null;
+
   const list = document.createElement('div');
   list.className = 'agents-list';
-  for (const r of rows) list.appendChild(buildFleetRow(r));
+  for (const r of rows) {
+    const el = buildFleetRow(r);
+    if (r.workspaceId === selected) el.classList.add('is-selected');
+    // Click the name to select this project's session history below
+    // (the action buttons keep their own behaviour).
+    const idcol = el.querySelector<HTMLElement>('.agents-row-id');
+    if (idcol) {
+      idcol.style.cursor = 'pointer';
+      idcol.title = "Show this project's session history";
+      idcol.addEventListener('click', () => {
+        if (agentsSelectedWs === r.workspaceId) return;
+        agentsSelectedWs = r.workspaceId;
+        void renderAgentsPage(true);
+      });
+    }
+    list.appendChild(el);
+  }
   docView.appendChild(list);
+
+  // Session history for the selected project (TASK-0180 / ISS-0013).
+  const selName = rows.find((r) => r.workspaceId === selected)?.name ?? '';
+  docView.appendChild(buildAgentsSessionSection(selected, selName));
 
   docView.hidden = false;
   placeholder.hidden = true;
@@ -5059,12 +5856,16 @@ function buildScopedTiles(data: StatsPayload): HTMLElement {
     act.appendChild(empty);
   } else {
     const ul = document.createElement('ul');
-    ul.className = 'ov-feed-list';
+    // Scoped rows carry only date + type + title (no id/tag cells), so
+    // they use a 3-column template — otherwise the title lands in the
+    // fixed id column and truncates early (TASK-0173). The type cell is
+    // always emitted (empty when absent) to keep placement deterministic.
+    ul.className = 'ov-feed-list ov-feed-scoped';
     for (const r of recent.slice(0, 8)) {
       const li = document.createElement('li');
       const typeTag = r.type
         ? `<span class="ov-feed-type ov-feed-type-${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>`
-        : '';
+        : '<span class="ov-feed-type ov-feed-type-empty"></span>';
       li.innerHTML = `<span class="ov-feed-date">${escapeHtml(r.date)}</span>${typeTag}<span class="ov-feed-title">${escapeHtml(r.title)}</span>`;
       li.style.cursor = 'pointer';
       li.addEventListener('click', () => { if (r.rel) void navigateTo(r.rel); });
@@ -5091,55 +5892,11 @@ function renderScopedOverview(data: StatsPayload): void {
 
 // ----- Right pane: Now column + scope context ---------------------------
 
-function buildNowSection(): HTMLElement {
-  // Demoted to a compact line (FEAT-0031 / TASK-0148): live agent state
-  // already reads from the strip + rail + attention panel, and the full
-  // cross-workspace picture lives on the ~agents screen. The overview is
-  // about the project, not the worker — so this is just a pointer.
-  const wrap = document.createElement('div');
-  wrap.id = 'ov-right-now';
-  wrap.className = 'ov-now';
-  const h = document.createElement('h4');
-  h.className = 'scope-heading';
-  h.textContent = 'Agents';
-  wrap.appendChild(h);
-
-  const line = document.createElement('button');
-  line.type = 'button';
-  line.className = 'now-oneliner';
-  const session = lastAgentSnap?.session;
-  const attention = attentionEntries();
-  let summary: string;
-  if (session && session.live) {
-    const st = agentStateLabel(lastAgentSnap?.agent_state?.state);
-    summary = `${session.agent || 'agent'} ${st}${session.last_prompt ? ` — ${session.last_prompt}` : ''}`;
-  } else if (attention.length > 0) {
-    const n = attention.length;
-    summary = `${n} ${n === 1 ? 'agent needs' : 'agents need'} you`;
-  } else {
-    summary = 'No active agents';
-  }
-  const text = document.createElement('span');
-  text.className = 'now-oneliner-text';
-  text.textContent = summary;
-  const arrow = document.createElement('span');
-  arrow.className = 'now-oneliner-arrow';
-  arrow.textContent = 'open agents ›';
-  line.append(text, arrow);
-  line.title = 'Open the agents fleet screen';
-  line.addEventListener('click', () => { void navigateTo('~agents'); });
-  wrap.appendChild(line);
-  return wrap;
-}
-
-function updateOverviewNowCard(): void {
-  const existing = document.getElementById('ov-right-now');
-  if (!existing) return;
-  existing.replaceWith(buildNowSection());
-}
 
 async function renderOverviewRightPane(scopeRel: string | null): Promise<void> {
-  rightPaneContent.replaceChildren(buildNowSection());
+  // Overview right pane is project-focused (TASK-0178): agent state lives
+  // on the rail, strip, attention inbox, and the ~agents screen — not here.
+  rightPaneContent.replaceChildren();
   if (scopeRel && sidecarBaseUrl) {
     try {
       const resp = await fetch(
@@ -5198,7 +5955,6 @@ function updateLiveDurations(): void {
       ? el.textContent.slice(el.textContent.indexOf('$')) : '';
     el.textContent = cost ? `${dur} · ${cost}` : dur;
   });
-  if (session?.live) updateOverviewNowCard();
 }
 
 window.setInterval(updateLiveDurations, 30_000);

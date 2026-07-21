@@ -3,19 +3,22 @@ type: "[[requirement]]"
 id: REQ-0018
 aliases: ["REQ-0018"]
 title: "Every agent state that needs the user is discoverable in-app, across all workspaces, until acted on or dismissed"
-status: approved
+status: verified
 implements: []
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
 source: []
 priority: high
 scope: "FEAT-0030"
 specifies: ["[[FEAT-0030-Agent-Inbox]]"]
 verifies: []
 related: ["[[FEAT-0020-Agent-Activity-Surfaces]]"]
-tests: []
+tests: ["[[TST-0009]]"]
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 ---
 
 # REQ-0018 — agent attention completeness
@@ -33,3 +36,7 @@ Today the inbox lists only `needs-input`; `waiting` exists solely as a missable 
 ## Impact analysis (2026-07-19, re-checked after the read-state addition)
 
 Touches FEAT-0020's inbox surface (extension, no contradiction) and the severity mapping in FEAT-0019's ingest table (idle_prompt remap — deliberate semantic correction, tracked as TASK-0156 with external-hook parity via TASK-0153). No conflict with existing REQ-0001..0017 (rendering/adapter/landing concerns). Confirmed no tensions.
+
+## Verification (2026-07-20)
+
+Verified after closing the decay gap (TASK-0175 / [[CHG-20260720-Attention-No-Decay]]): the first review found `needs-input`/`waiting` decayed to idle after 600s, dropping a blocked agent from every surface. Fixed so only `busy` decays; attention states now persist until a later hook event supersedes them, `SessionEnd` clears them, or the user dismisses via the ✕ control. Re-review confirmed all four surfaces (inbox, rail dot, OS notification, taxonomy) complete and the persistence invariant is test-guarded (`test_lazy_decay_does_not_touch_attention_states`).

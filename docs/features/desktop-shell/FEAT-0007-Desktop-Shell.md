@@ -3,16 +3,19 @@ type: "[[feature]]"
 id: FEAT-0007
 aliases: ["FEAT-0007"]
 title: "Electron desktop shell (multi-project, Python sidecar)"
-status: in-progress
+status: done
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 source: []
 goal: "Wrap the existing Python cockpit in an Electron app that can be pointed at all project-os repos on a system — without breaking the per-project Flask-style install or the Obsidian Bases workflow."
 related: ["[[FEAT-0003-Embedded-Terminal]]", "[[FEAT-0006-Cockpit-Layout]]", "[[ADR-0005-Electron-Plus-Python-Sidecar]]"]
 requirements: []
-tasks: ["[[TASK-0058]]", "[[TASK-0059]]", "[[TASK-0060]]", "[[TASK-0061]]", "[[TASK-0062]]", "[[TASK-0063]]", "[[TASK-0064]]", "[[TASK-0065]]"]
+tasks: ["[[TASK-0058]]", "[[TASK-0059]]", "[[TASK-0060]]", "[[TASK-0061]]", "[[TASK-0062]]", "[[TASK-0063]]", "[[TASK-0064]]", "[[TASK-0065]]", "[[TASK-0144]]", "[[TASK-0145]]"]
 release: ""
 tests: []
 ---
@@ -76,3 +79,7 @@ Antigravity.
 - Sidecar this wraps: [[FEAT-0006-Cockpit-Layout]]
 - Existing browser-terminal it replaces in desktop mode: [[FEAT-0003-Embedded-Terminal]]
 - Implementation plan: see `plan/PLAN.md`
+
+## Close-out (2026-07-20)
+
+Desktop shell is functionally complete and independently reviewed: per-workspace Python sidecar lifecycle, multi-workspace discovery/persistence/CRUD, native window + menus + deep links, tmux survivability (TASK-0144) and quit guard (TASK-0145). The renderer evolved from the early "load the sidecar HTML directly" plan into a native renderer that consumes the cockpit JSON API (the FEAT-0009..0017 work) — a superseding evolution, not a gap. Distribution (signing/notarization/installers, TASK-0065) is deferred until external sharing matters.

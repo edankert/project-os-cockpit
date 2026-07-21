@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0045
 aliases: ["TASK-0045"]
 title: "Cockpit: project preview tab (config-driven iframe or log-tail)"
-status: backlog
-phase: "[[PHASE-004-Embedded-Terminal]]"
+status: deferred
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-07-20
 source: []
 parent: "[[FEAT-0003]]"
 fixes: []
@@ -52,3 +52,7 @@ Sibling tab to the Terminal in the bottom panel. Renders project-generated conte
 - The cockpit doesn't run the user's dev server — that's the user's responsibility. The Preview tab just embeds what's there. (Bun-/Vite-style projects already have `npm run dev` running externally.)
 - For native (iOS / Android) projects, log-mode is the only useful preview. Configure to tail the build/simulator log.
 - v2: project-type auto-detection (look for `package.json`, `Cargo.toml`, `Package.swift`, etc.) to suggest a sensible default config.
+
+## Deferred (2026-07-20)
+
+Parked to [[PHASE-999-Future]]: a preview/log panel beside the terminal (iframe a running dev server, or tail a build log) is a genuine future enhancement nothing else covers — just not near-term. Kept on record rather than cancelled.

@@ -3,11 +3,14 @@ type: "[[feature]]"
 id: FEAT-0031
 aliases: ["FEAT-0031"]
 title: "Ambient status consolidation — one agent-status surface per scope"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
 goal: "Coarse agent state appears exactly once per scope: rail dots for the fleet, the agent strip for the active workspace. The status-footer agent dot (a styling-incomplete duplicate of the strip) is removed — the footer keeps sidecar health only — and the Overview 'Now' card shrinks to a one-liner linking onward. The strip gains a rate-limit pip (5h budget %, amber above 80) from already-collected statusline data."
 requirements: []
 tests: []

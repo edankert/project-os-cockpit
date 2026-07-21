@@ -3,11 +3,15 @@ type: "[[feature]]"
 id: FEAT-0026
 aliases: ["FEAT-0026"]
 title: "Verb polish — status-aware menus, palette verbs, type-from-data"
-status: in-review
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-20
+reviewed_by: "model:claude-opus"
+review_date: 2026-07-20
+review_verdict: approved
+verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Verbs respect the lifecycle (menus filtered by the note's status via `when:` lists in the registry), are keyboard-reachable (⌘P understands 'refine TASK-0115'), and resolve the note type from row data instead of hardcoded ID prefixes so downstream verb types work."
 requirements: []
 tests: ["[[TST-0014]]", "[[TST-0011]]"]
