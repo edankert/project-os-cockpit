@@ -36,7 +36,7 @@ counters:
   REQ: 20
   RISK: 4
   REL: 0
-  TASK: 185
+  TASK: 186
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -249,6 +249,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0186:
+      title: "Fix: restore per-workspace mouse-tracking mode on console re-attach so wheel scrolling survives a workspace switch"
+      status: done
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0186-Terminal-Force-Resize-On-Show.md"
+      parent: "FEAT-0003"
     TASK-0185:
       title: "Fix: embedded terminal keeps stale dimensions after a view switch — content clipped below the prompt and mouse-scroll dead until a manual resize"
       status: done

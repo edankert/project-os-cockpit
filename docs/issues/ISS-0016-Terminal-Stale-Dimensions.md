@@ -31,3 +31,11 @@ Both symptoms are one root cause: xterm's dimensions are recomputed (`fitAddon.f
 ## Fix
 
 See [[TASK-0185]]: observe the terminal mount with a `ResizeObserver` that re-fits (debounced) on any size change — including the hidden→visible transition — and re-clamp a dragged pane height on window resize so it can't exceed a smaller window.
+
+## Reopened 2026-07-21
+
+The first fix ([[TASK-0185]], `ResizeObserver` + `fit()`) resolved the content-clipped-below-the-prompt overflow but NOT the dead mouse-scroll: a hidden→visible toggle at an unchanged pixel size makes `fit()` a no-op, so xterm never re-syncs its scroll viewport. Real fix: force a genuine resize on show ([[TASK-0186]]).
+
+## Resolved 2026-07-22
+
+The dead mouse-scroll was mouse-mode forwarding, not xterm scrollback. One xterm is shared across workspaces; a workspace switch calls `term.reset()`, which wipes xterm's `mouseTrackingMode`, and the raw backlog can't restore it. Fixed by snapshotting each workspace's mouse-tracking mode and re-asserting it on re-attach ([[TASK-0186]]). Confirmed working live by the user. The content-clipped-below-the-prompt half was fixed earlier by [[TASK-0185]].

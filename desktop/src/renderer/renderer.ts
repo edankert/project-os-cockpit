@@ -165,8 +165,13 @@ interface XtermTerminal {
   loadAddon(addon: unknown): void;
   onData(cb: (data: string) => void): void;
   onResize(cb: (size: { cols: number; rows: number }) => void): void;
+  resize(cols: number, rows: number): void;
   readonly cols: number;
   readonly rows: number;
+  /** xterm.js public mode state — `mouseTrackingMode` is 'none' | 'x10' |
+   *  'vt200' | 'drag' | 'any'. Wiped by reset(); we snapshot + restore it
+   *  per workspace so wheel forwarding survives a switch (ISS-0016). */
+  readonly modes: { mouseTrackingMode?: string };
   dispose(): void;
   focus(): void;
   reset(): void;
@@ -1519,10 +1524,27 @@ function showTerminalMenu(x: number, y: number): void {
 
 // Attach the xterm to a workspace's PTY: spawn it if not yet alive,
 // otherwise replay the backlog so the screen resumes in-place.
+// Per-workspace mouse-tracking mode (ISS-0016). One xterm is shared across
+// workspaces; switching calls term.reset(), which wipes the app's mouse-
+// tracking mode, and the raw backlog can't restore it (the enable sequence
+// predates the ring buffer). We snapshot the mode when leaving a workspace
+// and re-assert it on return so wheel forwarding to a TUI (e.g. Claude Code)
+// resumes immediately instead of waiting — maybe forever — for the app to
+// redraw. A plain shell stays 'none', so its native scrollback still works.
+const workspaceMouseMode = new Map<string, string>();
+const MOUSE_TRACK_DECSET: Record<string, string> = {
+  x10: '9', vt200: '1000', drag: '1002', any: '1003',
+};
+
 async function attachTerminalTo(workspaceId: string): Promise<void> {
   ensureXterm();
   if (!term) return;
   if (attachedTerminalId === workspaceId) return;
+  // Snapshot the mouse-tracking mode of the workspace we're leaving, before
+  // reset() wipes it, so we can restore it when the user comes back.
+  if (attachedTerminalId) {
+    workspaceMouseMode.set(attachedTerminalId, term.modes?.mouseTrackingMode || 'none');
+  }
   attachedTerminalId = workspaceId;
   term.reset();
   const cwd = workspaces.find((w) => w.id === workspaceId)?.root;
@@ -1541,17 +1563,50 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   // the captured backlog so the user sees the previous screen.
   const res = await cockpitApi.terminal.attach(workspaceId);
   if (res.ok && res.backlog) term.write(res.backlog);
+  // Restore this workspace's mouse-tracking mode (ISS-0016). reset() above
+  // wiped it; re-assert it (with SGR encoding, which modern TUIs use) so
+  // xterm resumes forwarding wheel events to the app and scrolling works
+  // immediately. Written to xterm only — it changes xterm's mode, not the
+  // PTY. Skipped for 'none' (plain shells keep native scrollback scroll).
+  // Known limitation: if the app exited to a plain shell in this same PTY
+  // while we were detached, we'll briefly re-assert the stale tracking mode
+  // until the next redraw disables it — recoverable, and rare.
+  const savedMode = workspaceMouseMode.get(workspaceId);
+  const decset = savedMode ? MOUSE_TRACK_DECSET[savedMode] : undefined;
+  if (decset) term.write(`\x1b[?${decset}h\x1b[?1006h`);
   // Re-send our current geometry; main may have lost track if the
   // window resized while detached.
   cockpitApi.terminal.resize(workspaceId, term.cols, term.rows);
 }
 
-function showTerminal(): void {
+// Force a genuine terminal resize so the PTY gets a real SIGWINCH and the
+// running app (e.g. Claude Code) fully redraws. A workspace switch calls
+// `term.reset()` (see attachTerminalTo), which wipes xterm's mode state —
+// including mouse-tracking mode — and the replayed backlog does NOT restore
+// it (the app's enable sequence predates the backlog window). Until the app
+// redraws and re-enables mouse tracking, xterm won't forward wheel events,
+// so scrolling is dead — the exact repair a divider drag performs. A
+// same-size fit() no-ops (xterm's resize early-returns on identical
+// cols/rows), so round-trip rows-1 → true rows to guarantee a real resize
+// (ISS-0016). Also rebuilds the scroll viewport / fixes clip on show.
+function forceRefitTerminal(): void {
+  if (!term || !fitAddon || terminalPane.hidden) return;
+  try {
+    if (term.rows > 2) term.resize(term.cols, term.rows - 1);
+    fitAddon.fit();
+  } catch { /* xterm not ready yet */ }
+}
+
+async function showTerminal(): Promise<void> {
   terminalPane.hidden = false;
   terminalBtn.classList.add('active');
-  if (activeId) void attachTerminalTo(activeId);
+  // Attach FIRST (a workspace switch resets xterm + replays the backlog),
+  // and only THEN force the real resize — otherwise the resize's SIGWINCH
+  // races ahead of the reset and the app never gets prompted to re-enable
+  // mouse tracking, leaving the wheel dead until a manual drag (ISS-0016).
+  if (activeId) await attachTerminalTo(activeId);
   requestAnimationFrame(() => {
-    try { fitAddon?.fit(); } catch { /* xterm not ready yet */ }
+    forceRefitTerminal();
     term?.focus();
   });
   scheduleAck();  // terminal now visible — start the seen-timer (TASK-0157)
