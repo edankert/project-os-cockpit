@@ -31,12 +31,12 @@ counters:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 37
-  ISS: 16
+  ISS: 17
   PHASE: 7
   REQ: 20
   RISK: 4
   REL: 0
-  TASK: 186
+  TASK: 187
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -249,6 +249,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0187:
+      title: "Add a Restart console action — kill the workspace PTY + tmux session and respawn, to recover a stuck/broken console"
+      status: done
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
+      parent: "FEAT-0003"
     TASK-0186:
       title: "Fix: restore per-workspace mouse-tracking mode on console re-attach so wheel scrolling survives a workspace switch"
       status: done
@@ -1302,6 +1308,10 @@ items:
 
 
   issues:
+    ISS-0017:
+      title: "No way to recover a stuck/broken console (e.g. a TUI wedged on a picker) — need a restart action"
+      status: fixed
+      path: "docs/issues/ISS-0017-No-Console-Restart.md"
     ISS-0016:
       title: "Embedded terminal: content runs off-screen below the prompt and mouse-scroll stops working after switching to the console"
       status: fixed

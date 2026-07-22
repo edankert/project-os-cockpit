@@ -237,6 +237,13 @@ function spawnPty(window: BrowserWindow, opts: SpawnOpts): PtyRecord {
     if (target) send(target, 'terminal:data', { workspaceId: record.workspaceId, data });
   });
   proc.onExit(({ exitCode, signal }) => {
+    // Identity guard (same pattern as the deathHint above): a restart
+    // disposes then immediately respawns the same workspace, and node-pty's
+    // onExit is async — it can fire AFTER the fresh record is installed. If
+    // we deleted by key unconditionally we'd remove the new PTY and emit a
+    // spurious exit into the fresh console. Only act if this is still the
+    // current record (TASK-0187).
+    if (ptys.get(record.workspaceId) !== record) return;
     ptys.delete(record.workspaceId);
     const target = BrowserWindow.fromId(record.windowId);
     if (target) send(target, 'terminal:exit', { workspaceId: record.workspaceId, exitCode, signal });
@@ -244,18 +251,25 @@ function spawnPty(window: BrowserWindow, opts: SpawnOpts): PtyRecord {
   return record;
 }
 
-function killPty(workspaceId: string): void {
+async function killPty(workspaceId: string): Promise<void> {
   const record = ptys.get(workspaceId);
   if (!record) return;
   ptys.delete(workspaceId);
   try { record.pty.kill(); } catch { /* already gone */ }
   // Explicit dispose means "close this terminal", so the backing tmux
-  // session goes too — otherwise it would linger invisibly forever.
+  // session goes too — otherwise it would linger invisibly forever. AWAIT
+  // the kill so the wedged session is provably gone before any respawn: a
+  // restart's `tmux new-session -A` (attach-if-exists) would otherwise race
+  // the async kill and reattach the very session we're trying to destroy
+  // (TASK-0187).
   if (record.viaTmux) {
     const tmux = tmuxBinary();
     if (tmux) {
-      execFile(tmux, ['-L', TMUX_SOCKET, 'kill-session', '-t', tmuxSessionName(workspaceId)],
-        () => { /* best-effort — session may already be gone */ });
+      await new Promise<void>((resolve) => {
+        execFile(tmux, ['-L', TMUX_SOCKET, 'kill-session', '-t', tmuxSessionName(workspaceId)],
+          { timeout: 3000 },
+          () => resolve() /* best-effort — session may already be gone / hung */);
+      });
     }
   }
 }
@@ -326,9 +340,9 @@ export function registerTerminalIpc(_deps: TerminalIpcDeps): void {
     catch { /* PTY may have already died; ignore */ }
   });
 
-  ipcMain.handle('terminal:dispose', (_evt, payload: { workspaceId: string }) => {
+  ipcMain.handle('terminal:dispose', async (_evt, payload: { workspaceId: string }) => {
     if (!payload?.workspaceId) return { ok: false };
-    killPty(payload.workspaceId);
+    await killPty(payload.workspaceId);
     return { ok: true };
   });
 }

@@ -1504,6 +1504,7 @@ function showTerminalMenu(x: number, y: number): void {
   add('Paste', true, () => { void pasteIntoTerminal(); });
   add('Select All', true, () => term?.selectAll());
   add('Clear', true, () => term?.clear());
+  add('Restart console', !!(attachedTerminalId ?? activeId), () => { void restartTerminal(); });
   const sep = document.createElement('div');
   sep.className = 'term-menu-sep';
   menu.appendChild(sep);
@@ -1595,6 +1596,34 @@ function forceRefitTerminal(): void {
     if (term.rows > 2) term.resize(term.cols, term.rows - 1);
     fitAddon.fit();
   } catch { /* xterm not ready yet */ }
+}
+
+// Recover a wedged console (ISS-0017 / TASK-0187): dispose the active
+// workspace's PTY — killPty also kills its backing tmux session, so a stuck
+// TUI can't survive — clear our per-workspace state, then re-attach, which
+// spawns a fresh shell because the workspace is no longer live.
+async function restartTerminal(): Promise<void> {
+  const wsId = attachedTerminalId ?? activeId;
+  if (!wsId || !term) return;
+  if (!window.confirm(
+    'Restart this console? The current shell (and any process running in it, '
+    + 'including a Claude/codex session) will be killed and a fresh shell started.',
+  )) return;
+  await cockpitApi.terminal.dispose(wsId);
+  liveTerminals.delete(wsId);
+  workspaceMouseMode.delete(wsId);
+  attachedTerminalId = null;
+  term.reset();
+  await attachTerminalTo(wsId);
+  requestAnimationFrame(() => { forceRefitTerminal(); term?.focus(); });
+  // attachTerminalTo only adds to liveTerminals on a successful spawn, so
+  // it's our signal for whether the fresh shell actually came up.
+  if (liveTerminals.has(wsId)) {
+    showStatus('Console restarted');
+    scheduleHide(2000);
+  } else {
+    showStatus('Failed to restart console', 'error');
+  }
 }
 
 async function showTerminal(): Promise<void> {
