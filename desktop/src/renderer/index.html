@@ -190,12 +190,20 @@
         <span id="agent-strip-undoc" class="agent-strip-undoc" hidden
               title="Source files edited this session without touching a TASK/ISS/CHG note">undocumented</span>
         <span class="agent-strip-spacer"></span>
+        <!-- In-flight boxes (FEAT-0038 / TASK-0192): the docs items being
+             worked for the CURRENT prompt, inline before ctx, filling as
+             they complete. -->
+        <span id="agent-strip-inflight" class="agent-strip-inflight" hidden></span>
         <span id="agent-strip-ctx" class="agent-strip-meter" hidden title="Context window used"></span>
         <span id="agent-strip-cost" class="agent-strip-meter" hidden title="Session cost"></span>
         <button id="agent-strip-queue" type="button" class="agent-strip-queue" hidden
                 title="Queued dispatches (click to manage)"></button>
         <button id="agent-strip-expand" type="button" class="agent-strip-expand"
-                title="Session details" aria-expanded="false">files</button>
+                title="Session details" aria-expanded="false" aria-label="Session details">
+          <svg class="agent-strip-caret" width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M2 3.5 L8 3.5 L5 7.5 Z" fill="currentColor"></path>
+          </svg>
+        </button>
       </div>
       <div id="agent-strip-detail" class="agent-strip-detail" hidden></div>
       <div id="terminal-pane" class="terminal-pane" hidden>

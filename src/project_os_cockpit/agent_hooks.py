@@ -224,6 +224,8 @@ class AgentSessionTracker:
                 "prompts": [],
                 "files": [],
                 "docs_notes": [],
+                "work_ts": {},
+                "prompt_started": None,
                 "cost": None,
                 "chg_ids": [],
                 "dispatches": [],
@@ -265,6 +267,11 @@ class AgentSessionTracker:
                 work = sess.setdefault("work_notes", [])
                 if rel not in work:
                     work.append(rel)
+                # Last edit-touch per work note (TASK-0191) — drives the
+                # prompt-scoped in-flight set and the active-item pulse.
+                sess.setdefault("work_ts", {})[rel] = (
+                    sess.get("last_event") or _utc_now_iso()
+                )
         self._refresh_undocumented_locked(sess)
         return rel
 
@@ -365,6 +372,9 @@ class AgentSessionTracker:
                     sess["prompts"].append({"ts": ts, "text": clipped})
                     del sess["prompts"][:-PROMPTS_MAX]
                     activity["prompt"] = clipped
+                # Prompt boundary (TASK-0191): work-note touches at/after
+                # this stamp are "in flight for the current prompt".
+                sess["prompt_started"] = ts
                 state = "busy"
             elif event in ("PreToolUse", "PostToolUse"):
                 tool = body.get("tool_name")
@@ -618,6 +628,10 @@ class AgentSessionTracker:
             "files": list(sess.get("files") or []),
             "docs_notes": list(sess.get("docs_notes") or []),
             "work_notes": list(sess.get("work_notes") or []),
+            # Per-note last-touch timestamps + the current prompt boundary
+            # (TASK-0191) — the server enriches these into work_items.
+            "work_ts": dict(sess.get("work_ts") or {}),
+            "prompt_started": sess.get("prompt_started"),
             "cost": sess.get("cost"),
             "chg_ids": list(sess.get("chg_ids") or []),
             "dispatches": [dict(d) for d in sess.get("dispatches") or []],

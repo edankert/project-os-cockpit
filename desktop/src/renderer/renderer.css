@@ -1603,6 +1603,7 @@ a.ov-phase-title:hover {
 .ov-phase-sq[data-type="test"]        { color: var(--type-test); }
 .ov-phase-sq[data-type="adr"],
 .ov-phase-sq[data-type="decision"]    { color: var(--type-adr); }
+.ov-phase-sq[data-type="change"]      { color: var(--type-change); }
 .ov-phase-sq[data-type="release"]     { color: var(--type-release); }
 .ov-phase-sq[data-type="workflow"]    { color: var(--type-workflow); }
 .ov-phase-sq[data-type="plan"]        { color: var(--type-plan); }
@@ -1929,7 +1930,40 @@ a.ov-phase-title:hover {
   padding: 1px 7px;
   cursor: pointer;
 }
-.agent-strip-expand:hover { color: var(--text); border-color: var(--text-faint); }
+/* Expand button is now a borderless SVG caret that rotates when the detail
+   panel opens (TASK-0192, replacing the bordered ⌄ glyph). */
+.agent-strip-expand {
+  flex: none;
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.agent-strip-expand:hover { color: var(--text); }
+.agent-strip-caret { transition: transform 0.12s ease; display: block; }
+.agent-strip-expand[aria-expanded="true"] .agent-strip-caret { transform: rotate(180deg); }
+
+/* In-flight boxes (FEAT-0038 / TASK-0192): the current prompt's work items,
+   inline in the strip line before ctx, using the overview block notation. */
+.agent-strip-inflight {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  overflow: hidden;
+}
+.agent-strip-inflight[hidden] { display: none; }
+.agent-strip-inflight .ov-phase-sq { cursor: pointer; }
+.agent-strip-inflight .ov-phase-sq.is-active,
+.agent-detail-work-row.is-active .ov-phase-sq {
+  animation: prog-pulse 1.2s ease-in-out infinite;
+}
+@keyframes prog-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.prog-more { font-size: 10px; color: var(--text-faint); flex: none; }
+
 .agent-strip-detail {
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -1967,14 +2001,17 @@ a.ov-phase-title:hover {
   cursor: pointer; text-align: left; color: var(--text);
 }
 .agent-detail-work-row:hover .work-id { color: var(--accent); }
-.work-box {
-  width: 10px; height: 10px; border-radius: 2px; flex: none;
-  border: 1px solid var(--text-faint); background: transparent;
+/* The active-now item is pinned to the top and pulses (TASK-0189). */
+.agent-detail-work-row.is-active .ov-phase-sq { animation: prog-pulse 1.2s ease-in-out infinite; }
+.agent-detail-work-row .ov-phase-sq { flex: none; }
+.work-id { font-size: 11px; flex: none; }
+/* Rich rows (TASK-0192): title fills, status + time trail on the right. */
+.work-title {
+  font-size: 11px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1;
 }
-.work-box.doing { background: var(--accent); border-color: var(--accent); }
-.work-box.done  { background: var(--status-done); border-color: var(--status-done); }
-.work-id { font-size: 11px; }
-.work-status { font-size: 10px; color: var(--text-faint); margin-left: auto; }
+.work-time { font-size: 10px; color: var(--text-faint); flex: none; min-width: 2.2em; text-align: right; }
+.work-status { font-size: 10px; color: var(--text-faint); margin-left: auto; flex: none; }
 
 /* An author `display` beats the UA's `[hidden] { display: none }`
  * rule, so every element toggled via the hidden attribute whose class

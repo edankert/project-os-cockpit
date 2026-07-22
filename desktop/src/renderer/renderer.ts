@@ -2106,7 +2106,7 @@ function refreshSessionTouched(): void {
 
 // Live-migrate the Active nav mode on a status transition (TASK-0164):
 // reload the mode so the row moves to its new group, then flash it.
-function handleStatusChange(c: { id?: string; to?: string }): void {
+function handleStatusChange(c: { id?: string; to?: string; from?: string; ts?: string; title?: string; type?: string }): void {
   if (currentNavMode === 'active' && sidecarBaseUrl) {
     void loadWsNav().then(() => { if (c.id) flashNavItem(c.id); });
   }
@@ -4168,7 +4168,9 @@ function attachSidecarEventStream(baseUrl: string): void {
   // Active nav mode and flash the changed item.
   es.addEventListener('cockpit:status-change', (e) => {
     try {
-      const c = JSON.parse((e as MessageEvent).data) as { id?: string; to?: string };
+      const c = JSON.parse((e as MessageEvent).data) as {
+        id?: string; to?: string; from?: string; ts?: string; title?: string; type?: string;
+      };
       handleStatusChange(c);
     } catch { /* malformed — ignore */ }
   });
@@ -4303,6 +4305,8 @@ interface AgentSessionSlim {
   files: string[];
   docs_notes: string[];
   work_notes?: string[];
+  // Index-enriched work items for the current session (TASK-0191).
+  work_items?: WorkItem[];
   cost: AgentCostSnapshot | null;
   chg_ids: string[];
   undocumented: boolean;
@@ -4319,6 +4323,7 @@ const agentStripCtx = $<HTMLSpanElement>('#agent-strip-ctx');
 const agentStripCost = $<HTMLSpanElement>('#agent-strip-cost');
 const agentStripExpand = $<HTMLButtonElement>('#agent-strip-expand');
 const agentStripDetail = $<HTMLDivElement>('#agent-strip-detail');
+const agentStripInflight = $<HTMLSpanElement>('#agent-strip-inflight');
 const attentionPanel = $<HTMLDivElement>('#ws-attention');
 
 let stripSession: AgentSessionSlim | null = null;
@@ -4370,6 +4375,7 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
     agentStrip.hidden = activeQueueItems.length === 0;
     agentStripDetail.hidden = true;
     agentStripExpand.setAttribute('aria-expanded', 'false');
+    renderInflightBoxes();  // hides the boxes when there is no session
     return;
   }
   const live = session.live;
@@ -4402,27 +4408,116 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
   agentStripText.title = stripLastPrompt;
   agentStripUndoc.hidden = !((live && activity?.undocumented) || session.undocumented);
   renderAgentStripCost(session.cost || (live ? activity?.cost : undefined));
+  renderInflightBoxes();  // inline in-flight boxes before ctx (FEAT-0038)
 }
 
-// Session "work" tab (TASK-0163): status boxes per docs note this
-// session touched, filled live as the agent closes them.
+// Session progress views (FEAT-0036 / FEAT-0038): the block notation per
+// docs item worked, filling live as the agent completes them.
 const DONE_STATUSES = new Set(['done', 'merged', 'fixed', 'fulfilled', 'met', 'complete', 'verified', 'closed', 'passing', 'published', 'resolved']);
-const workTransitions = new Map<string, string>();  // id -> latest status seen
+
+// Index-enriched work item served by the sidecar (TASK-0191).
+interface WorkItem {
+  id: string; rel: string; title: string; status: string; type: string;
+  done: boolean; ts?: string | null; current_prompt: boolean;
+}
+// A status transition seen this session — the cockpit:status-change payload,
+// keyed by note id. Overlays instant fill/transition text onto work_items.
+interface WorkTransition { from?: string; to: string; ts?: string; title?: string; }
+const workTransitions = new Map<string, WorkTransition>();
 let stripDetailTab: 'work' | 'files' = 'work';
 
-function noteWorkTransition(c: { id?: string; to?: string }): void {
-  if (c.id && typeof c.to === 'string') workTransitions.set(c.id, c.to);
-  if (!agentStripDetail.hidden && stripDetailTab === 'work') renderAgentStripDetail();
+// Note type from an id prefix — fallback when a work_item lacks a type.
+function typeForId(id: string): string {
+  const prefix = id.split('-')[0];
+  return ({
+    TASK: 'task', ISS: 'issue', FEAT: 'feature', REQ: 'requirement',
+    RISK: 'risk', TST: 'test', ADR: 'adr', CHG: 'change', PHASE: 'plan',
+  } as Record<string, string>)[prefix] ?? 'task';
 }
 
-function sessionWorkIds(): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const n of stripSession?.work_notes ?? stripSession?.docs_notes ?? []) {
-    const m = String(n).match(ID_RE);
-    if (m && !seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
+// Compact relative time ("now", "4m", "2h", "3d") from an ISO string.
+function relTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 45) return 'now';
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  if (s < 86400) return `${Math.round(s / 3600)}h`;
+  return `${Math.round(s / 86400)}d`;
+}
+
+function navToWorkItem(it: WorkItem): void {
+  if (it.rel) void navigateTo(it.rel);
+}
+
+// The session's enriched work items, or [] when the sidecar predates them.
+function sessionWorkItems(): WorkItem[] {
+  return stripSession?.work_items ?? [];
+}
+
+// Done state: the server's per-type `done`, plus an instant overlay from a
+// status-change we may have seen before the next snapshot lands.
+function itemDone(it: WorkItem): boolean {
+  if (it.done) return true;
+  const to = workTransitions.get(it.id)?.to?.toLowerCase();
+  return !!to && DONE_STATUSES.has(to);
+}
+
+// The item being worked on right now: the newest-touched, not-yet-done item
+// in the current prompt while the session is live (pulsed).
+function activeWorkItemId(items: WorkItem[]): string | null {
+  if (!stripSession?.live) return null;
+  let best: WorkItem | null = null;
+  for (const it of items) {
+    if (!it.current_prompt || itemDone(it) || !it.ts) continue;
+    if (!best || (best.ts && it.ts > best.ts)) best = it;
   }
-  return out;
+  return best?.id ?? null;
+}
+
+// In-flight boxes: the CURRENT prompt's work items, inline before ctx,
+// filling as they complete (TASK-0192, replaces the second rail).
+function renderInflightBoxes(): void {
+  const items = stripSession && !agentStrip.hidden
+    ? sessionWorkItems().filter((it) => it.current_prompt) : [];
+  if (items.length === 0) {
+    agentStripInflight.hidden = true; agentStripInflight.replaceChildren(); return;
+  }
+  agentStripInflight.replaceChildren();
+  const activeId = activeWorkItemId(items);
+  const CAP = 12;
+  for (const it of items.slice(0, CAP)) {
+    const sq = document.createElement('span');
+    sq.className = 'ov-phase-sq';
+    sq.dataset.type = it.type || typeForId(it.id);
+    if (itemDone(it)) sq.dataset.bucket = 'done';
+    else if (it.id === activeId) sq.classList.add('is-active');
+    sq.title = `${it.id}${it.title ? ` ${it.title}` : ''}${it.status ? ` (${it.status})` : ''}`;
+    sq.addEventListener('click', () => navToWorkItem(it));
+    agentStripInflight.appendChild(sq);
+  }
+  if (items.length > CAP) {
+    const more = document.createElement('span');
+    more.className = 'prog-more';
+    more.textContent = `+${items.length - CAP}`;
+    agentStripInflight.appendChild(more);
+  }
+  agentStripInflight.hidden = false;
+}
+
+function noteWorkTransition(c: { id?: string; to?: string; from?: string; ts?: string; title?: string; type?: string }): void {
+  if (c.id && typeof c.to === 'string') {
+    const prev = workTransitions.get(c.id);
+    workTransitions.set(c.id, {
+      from: prev?.from ?? c.from,  // earliest from across moves this session
+      to: c.to,
+      ts: c.ts,
+      title: c.title ?? prev?.title,
+    });
+  }
+  renderInflightBoxes();
+  if (!agentStripDetail.hidden && stripDetailTab === 'work') renderAgentStripDetail();
 }
 
 function renderAgentStripDetail(): void {
@@ -4433,11 +4528,11 @@ function renderAgentStripDetail(): void {
   head.textContent = `session ${stripSession.session_id.slice(0, 8)} · ${stripSession.prompt_count} prompt${stripSession.prompt_count === 1 ? '' : 's'}`;
   agentStripDetail.appendChild(head);
 
-  const workIds = sessionWorkIds();
-  // Tab bar: work | files.
+  const items = sessionWorkItems();
+  // Tab bar: progress | files (TASK-0190 renamed 'work' → 'progress').
   const tabs = document.createElement('div');
   tabs.className = 'agent-detail-tabs';
-  for (const [key, label] of [['work', 'work'], ['files', 'files']] as const) {
+  for (const [key, label] of [['work', 'progress'], ['files', 'files']] as const) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'agent-detail-tab' + (stripDetailTab === key ? ' on' : '');
@@ -4450,37 +4545,57 @@ function renderAgentStripDetail(): void {
   if (stripDetailTab === 'work') {
     const list = document.createElement('div');
     list.className = 'agent-detail-work';
-    if (workIds.length === 0) {
+    if (items.length === 0) {
       const e = document.createElement('div');
       e.className = 'agent-detail-empty';
       e.textContent = 'No documented work yet.';
       list.appendChild(e);
     }
-    for (const id of workIds) {
-      const status = workTransitions.get(id);
-      const st = (status || '').toLowerCase();
-      // A note the session is touching is "doing" until it goes done.
-      const tier = DONE_STATUSES.has(st) ? 'done' : 'doing';
+    // Rich rows from the enriched work_items (TASK-0192): current-prompt
+    // items first, then the rest by most-recent touch; the active item
+    // pinned to the very top.
+    const activeId = activeWorkItemId(items);
+    const rank = (it: WorkItem): number => {
+      if (it.id === activeId) return Number.POSITIVE_INFINITY;
+      const parsed = it.ts ? Date.parse(it.ts) : 0;
+      const base = Number.isNaN(parsed) ? 0 : parsed;
+      return it.current_prompt ? base + 1e13 : base;  // current prompt sorts above the rest
+    };
+    const ordered = [...items].sort((a, b) => rank(b) - rank(a));
+    for (const it of ordered) {
+      const done = itemDone(it);
+      const isActive = it.id === activeId;
       const row = document.createElement('button');
       row.type = 'button';
-      row.className = 'agent-detail-work-row';
-      const box = document.createElement('span');
-      box.className = 'work-box' + (tier ? ` ${tier}` : '');
+      row.className = 'agent-detail-work-row' + (isActive ? ' is-active' : '');
+      const sq = document.createElement('span');
+      sq.className = 'ov-phase-sq';
+      sq.dataset.type = it.type || typeForId(it.id);
+      if (done) sq.dataset.bucket = 'done';
       const idEl = document.createElement('span');
       idEl.className = 'work-id mono';
-      idEl.textContent = id;
-      row.append(box, idEl);
-      if (status) {
-        const stEl = document.createElement('span');
-        stEl.className = 'work-status';
-        stEl.textContent = status;
-        row.appendChild(stEl);
+      idEl.textContent = it.id;
+      row.append(sq, idEl);
+      if (it.title) {
+        const titleEl = document.createElement('span');
+        titleEl.className = 'work-title';
+        titleEl.textContent = it.title;
+        row.appendChild(titleEl);
       }
-      row.addEventListener('click', () => {
-        const notes = stripSession?.work_notes ?? stripSession?.docs_notes ?? [];
-        const rel = notes.find((n) => String(n).includes(id));
-        if (rel) void navigateTo(rel);
-      });
+      // Status: the observed from→to transition when we saw one, else the
+      // note's current status. Active items get a "· working" marker.
+      const t = workTransitions.get(it.id);
+      const statusEl = document.createElement('span');
+      statusEl.className = 'work-status';
+      if (t?.from && t.from !== t.to) statusEl.textContent = `${t.from} → ${t.to}`;
+      else statusEl.textContent = it.status || t?.to || '';
+      if (isActive) statusEl.textContent += ' · working';
+      row.appendChild(statusEl);
+      const time = document.createElement('span');
+      time.className = 'work-time';
+      time.textContent = relTime(it.ts ?? t?.ts);
+      row.appendChild(time);
+      row.addEventListener('click', () => navToWorkItem(it));
       list.appendChild(row);
     }
     agentStripDetail.appendChild(list);

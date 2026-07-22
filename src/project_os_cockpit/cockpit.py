@@ -222,6 +222,77 @@ _NON_PARENT_FIELDS: frozenset[str] = frozenset({
 _RECENT_LIMIT = 60
 
 
+# Per-type "done" vocabulary (TASK-0176 / TASK-0181), module-level so the
+# stats payload AND the agent work-item enrichment (TASK-0191) share one
+# definition. Terminal-resolved statuses (superseded/retired/cancelled)
+# count done; `deferred` (parked, still intended) stays open work.
+DONE_FEAT = {"done", "released", "merged", "verified", "complete", "superseded", "cancelled"}
+DONE_TASK = {"done", "merged", "verified", "closed", "fixed", "cancelled"}
+DONE_REQ  = {"verified", "met", "fulfilled", "accepted", "retired", "superseded", "cancelled"}
+DONE_ISS  = {"fixed", "closed", "wont-fix", "resolved", "cancelled"}
+PASSING   = {"passing"}
+DONE_BY_TYPE: dict[str, set[str]] = {
+    "feature": DONE_FEAT,
+    "task": DONE_TASK,
+    "requirement": DONE_REQ,
+    "issue": DONE_ISS,
+    "test": PASSING,
+    "risk": {"closed"},
+    "change": {"merged"},
+    "phase": {"done"},
+}
+# Fallback for any other type: the union of every terminal vocabulary.
+_DONE_ANY: set[str] = set().union(*DONE_BY_TYPE.values())
+
+
+def is_done_status(note_type: object, status: object) -> bool:
+    """One per-type done definition for boxes, counts, and work items."""
+    nt = str(note_type or "").lower().strip()
+    st = str(status or "").lower().strip()
+    return st in DONE_BY_TYPE.get(nt, _DONE_ANY)
+
+
+def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str, Any]]:
+    """Enrich a slim session's ``work_notes`` into work items (TASK-0191).
+
+    Each item resolves the note's id/title/current status/type from the
+    live index, computes ``done`` with the same per-type sets as the
+    overview boxes, and carries the last edit-touch ``ts`` plus
+    ``current_prompt`` — touched at/after the session's latest prompt
+    boundary. A seeded session with no prompt boundary yet counts any
+    timestamped touch, so the in-flight set survives a sidecar reload.
+    """
+    rels = [r for r in (sess.get("work_notes") or []) if isinstance(r, str)]
+    if not rels:
+        return []
+    wanted = set(rels)
+    by_rel: dict[str, Any] = {}
+    for rec in index.iter_records():
+        if rec.rel_path in wanted:
+            by_rel[rec.rel_path] = rec
+    work_ts = sess.get("work_ts") or {}
+    prompt_started = sess.get("prompt_started")
+    items: list[dict[str, Any]] = []
+    for rel in rels:
+        rec = by_rel.get(rel)
+        ts = work_ts.get(rel)
+        current = bool(ts) and (
+            not isinstance(prompt_started, str) or str(ts) >= prompt_started
+        )
+        nid = (rec.note_id if rec else None) or rel.rsplit("/", 1)[-1].removesuffix(".md")
+        items.append({
+            "id": nid,
+            "rel": rel,
+            "title": (rec.title if rec else None) or "",
+            "status": (rec.status if rec else None) or "",
+            "type": (rec.note_type if rec else None) or "",
+            "done": is_done_status(rec.note_type, rec.status) if rec else False,
+            "ts": ts,
+            "current_prompt": current,
+        })
+    return items
+
+
 def _exit_criteria_from_body(body: str) -> list[dict[str, Any]]:
     """Parse ``- [ ] / - [x]`` checkbox lines from a phase note's
     "Exit Criteria" section (FEAT-0023). Tolerates heading level and
@@ -278,50 +349,17 @@ def stats_payload(
     changes      = index.notes_by_type("change")
     phase_recs   = index.notes_by_type("phase")
 
-    # Terminal-resolved statuses count as done for progress — the bar
-    # measures resolved-vs-open, and a `superseded` feature (delivered,
-    # then replaced), a `retired`/`superseded` requirement, or a
-    # `cancelled` item (will-not-be-done) is resolved, not open work
-    # (TASK-0176). These per-type sets are the single source of truth for
-    # both the hero tiles and the phase boxes (via `_is_done`, TASK-0181),
-    # so the two never disagree. `deferred` (parked, still
-    # intended) is deliberately NOT here — it stays open work. A
-    # requirement can be `any → superseded` without being built; that is
-    # accepted for a resolved-vs-open bar (the successor carries the work).
-    DONE_FEAT  = {"done", "released", "merged", "verified", "complete", "superseded", "cancelled"}
-    DONE_TASK  = {"done", "merged", "verified", "closed", "fixed", "cancelled"}
-    DONE_REQ   = {"verified", "met", "fulfilled", "accepted", "retired", "superseded", "cancelled"}
-    OPEN_ISS   = {"open", "doing", "in-progress", "triage", "backlog"}
-    PASSING    = {"passing"}
-    OPEN_RISK  = {"open", "doing"}
-    DONE_ISS   = {"fixed", "closed", "wont-fix", "resolved", "cancelled"}
-
-    # Single per-type "done" definition (TASK-0181). The hero tiles and the
-    # phase progress boxes MUST agree — an item is a filled box iff it also
-    # counts done in the summary. Both now consult the SAME per-type set via
-    # `_is_done`, so a status that's terminal for one type (e.g. requirement
-    # `accepted`) can't render done in a box while the count says otherwise.
-    # Replaces the old type-agnostic union `DONE_PHASE_BUCKET`, which mixed
-    # every type's vocabulary and diverged from the per-type hero counts.
-    DONE_BY_TYPE = {
-        "feature": DONE_FEAT,
-        "task": DONE_TASK,
-        "requirement": DONE_REQ,
-        "issue": DONE_ISS,
-        "test": PASSING,
-        "risk": {"closed"},
-        "change": {"merged"},
-        "phase": {"done"},
-    }
-    # Fallback for any other type: the union of every terminal vocabulary.
-    _DONE_ANY = set().union(*DONE_BY_TYPE.values())
+    # Per-type done sets are module-level (TASK-0176/0181/0191) so the hero
+    # tiles, the phase boxes, and the agent work-item enrichment all share
+    # one definition — an item is a filled box iff it also counts done.
+    OPEN_ISS  = {"open", "doing", "in-progress", "triage", "backlog"}
+    OPEN_RISK = {"open", "doing"}
 
     def _norm(s: object) -> str:
         return str(s or "").lower().strip()
 
     def _is_done(rec: Any) -> bool:
-        done_set = DONE_BY_TYPE.get(_norm(getattr(rec, "note_type", "")), _DONE_ANY)
-        return _norm(rec.status) in done_set
+        return is_done_status(getattr(rec, "note_type", ""), rec.status)
 
     def _hero_count(records, done_set):
         total = len(records)

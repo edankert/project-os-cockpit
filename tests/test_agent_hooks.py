@@ -594,3 +594,24 @@ def test_chg_provenance_via_render(tmp_path: Path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_work_ts_and_prompt_boundary(tmp_path: Path):
+    """TASK-0191: a UserPromptSubmit stamps prompt_started, and an edit-tool
+    touch of a work note records its rel → last-touch ts. Both ride the slim
+    session so the server can compute the prompt-scoped in-flight set."""
+    docs = _make_workspace(tmp_path)
+    tracker = AgentSessionTracker(docs_root=docs)
+    (docs / "issues").mkdir(exist_ok=True)
+    note = docs / "issues" / "ISS-0001-X.md"
+    note.write_text("---\nid: ISS-0001\n---\n", encoding="utf-8")
+
+    tracker.ingest(_ev("SessionStart"))
+    tracker.ingest(_ev("UserPromptSubmit", prompt="do the thing"))
+    tracker.ingest(_ev("PostToolUse", tool_name="Edit",
+                       tool_input={"file_path": str(note)}))
+    snap = tracker.snapshot()
+    sess = snap["session"]
+    assert isinstance(sess["prompt_started"], str) and sess["prompt_started"]
+    assert "issues/ISS-0001-X.md" in sess["work_ts"]
+    assert sess["work_ts"]["issues/ISS-0001-X.md"]  # non-empty ts

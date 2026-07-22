@@ -1370,6 +1370,12 @@ def _make_handler(
             """
             snap = state.snapshot()
             snap.update(tracker.snapshot())
+            # Enrich the live / last session's work notes into prompt-scoped
+            # work items with real title/status/done from the index (TASK-0191).
+            for key in ("session", "last_session"):
+                sess = snap.get(key)
+                if isinstance(sess, dict) and sess.get("work_notes"):
+                    sess["work_items"] = cockpit.work_items_for_session(index, sess)
             self._respond_json(snap)
 
         def _serve_cockpit_validation(self) -> None:

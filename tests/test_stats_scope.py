@@ -320,3 +320,65 @@ def test_child_phase_placement_agrees_across_views(tmp_path: Path) -> None:
     # --- scoped own-phase page (PHASE-002) shows the parked task loose ---
     p2 = cockpit.stats_payload(idx, scope="PHASE-002")
     assert "TASK-0001" in _loose_ids(p2, "PHASE-002")
+
+
+def test_work_items_enrichment(tmp_path: Path) -> None:
+    """TASK-0191: work_notes enrich into items with real title/status/type,
+    per-type `done`, and `current_prompt` gated on the prompt boundary."""
+    docs = tmp_path / "docs"
+    _note(docs / "requirements" / "REQ-0001-A.md", {
+        "type": "[[requirement]]", "id": "REQ-0001", "title": "Req A",
+        "status": "accepted",  # accepted requirement → done
+    })
+    _note(docs / "features" / "f" / "plan" / "tasks" / "TASK-0001-B.md", {
+        "type": "[[task]]", "id": "TASK-0001", "title": "Task B",
+        "status": "accepted",  # accepted task → NOT done (per-type)
+    })
+    _note(docs / "issues" / "ISS-0001-C.md", {
+        "type": "[[issue]]", "id": "ISS-0001", "title": "Iss C", "status": "open",
+    })
+    idx = Index.build(docs)
+    sess = {
+        "work_notes": [
+            "requirements/REQ-0001-A.md",
+            "features/f/plan/tasks/TASK-0001-B.md",
+            "issues/ISS-0001-C.md",
+        ],
+        "work_ts": {
+            "requirements/REQ-0001-A.md": "2026-07-22T10:00:00+00:00",   # after prompt
+            "features/f/plan/tasks/TASK-0001-B.md": "2026-07-22T09:00:00+00:00",  # before
+            # ISS has no touch timestamp at all
+        },
+        "prompt_started": "2026-07-22T09:30:00+00:00",
+    }
+    items = cockpit.work_items_for_session(idx, sess)
+    by_id = {i["id"]: i for i in items}
+
+    assert by_id["REQ-0001"]["title"] == "Req A"
+    assert by_id["REQ-0001"]["type"] == "requirement"
+    assert by_id["REQ-0001"]["done"] is True            # accepted req = done
+    assert by_id["TASK-0001"]["done"] is False           # accepted task ≠ done
+    assert by_id["ISS-0001"]["status"] == "open"
+
+    # current_prompt: touched at/after the prompt boundary only.
+    assert by_id["REQ-0001"]["current_prompt"] is True    # 10:00 ≥ 09:30
+    assert by_id["TASK-0001"]["current_prompt"] is False   # 09:00 < 09:30
+    assert by_id["ISS-0001"]["current_prompt"] is False    # no touch ts
+
+
+def test_work_items_seeded_session_without_prompt(tmp_path: Path) -> None:
+    """A seeded session (sidecar reloaded, no prompt boundary yet) counts any
+    timestamped touch as current, so the in-flight set survives a reload."""
+    docs = tmp_path / "docs"
+    _note(docs / "issues" / "ISS-0002-D.md", {
+        "type": "[[issue]]", "id": "ISS-0002", "title": "D", "status": "fixed",
+    })
+    idx = Index.build(docs)
+    sess = {
+        "work_notes": ["issues/ISS-0002-D.md"],
+        "work_ts": {"issues/ISS-0002-D.md": "2026-07-22T08:00:00+00:00"},
+        "prompt_started": None,
+    }
+    items = cockpit.work_items_for_session(idx, sess)
+    assert items[0]["current_prompt"] is True
+    assert items[0]["done"] is True   # fixed issue = done

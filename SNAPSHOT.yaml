@@ -30,13 +30,13 @@ counters:
   CHG:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 37
-  ISS: 17
+  FEAT: 38
+  ISS: 18
   PHASE: 7
-  REQ: 20
+  REQ: 21
   RISK: 4
   REL: 0
-  TASK: 187
+  TASK: 192
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -48,6 +48,13 @@ focus:
 
 items:
   features:
+    FEAT-0038:
+      title: "Console progress rail — live work-blocks under the session strip + enriched progress panel"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/FEAT-0038-Console-Progress-Rail.md"
+      requirements: ["REQ-0021"]
+      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192"]
     FEAT-0034:
       title: "Agents centre tab + follow control — the fleet view survives; following becomes consentful"
       status: done
@@ -249,6 +256,36 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0191:
+      title: "Sidecar: prompt-scoped, index-enriched work items (id/title/status/type/done/ts) in the state payload"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0191-Prompt-Scoped-Work-Items.md"
+      parent: "FEAT-0038"
+    TASK-0192:
+      title: "Renderer: in-flight boxes inline before ctx, enriched progress rows (title/status/active), SVG triangle expand icon"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0192-Inline-Blocks-And-Enriched-Rows.md"
+      parent: "FEAT-0038"
+    TASK-0188:
+      title: "Progress rail — second thin row under the collapsed session strip with live type-coloured work blocks"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0188-Progress-Rail-Under-Strip.md"
+      parent: "FEAT-0038"
+    TASK-0189:
+      title: "Progress panel — rich recency-ordered rows (block + id + title + from→to + relative time, active item pinned)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0189-Rich-Progress-Panel-Rows.md"
+      parent: "FEAT-0038"
+    TASK-0190:
+      title: "Rename work tab to progress; replace the files expand button with a rotating chevron"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0190-Progress-Rename-And-Chevron.md"
+      parent: "FEAT-0038"
     TASK-0187:
       title: "Add a Restart console action — kill the workspace PTY + tmux session and respawn, to recover a stuck/broken console"
       status: done
@@ -1308,6 +1345,10 @@ items:
 
 
   issues:
+    ISS-0018:
+      title: "Progress blocks show the whole session's touched notes (reads as all-project), on a second line, without titles/status — should be prompt-scoped, inline before ctx, enriched"
+      status: fixed
+      path: "docs/issues/ISS-0018-Progress-Blocks-Wrong-Scope.md"
     ISS-0017:
       title: "No way to recover a stuck/broken console (e.g. a TUI wedged on a picker) — need a restart action"
       status: fixed
@@ -1413,6 +1454,10 @@ items:
       component: index/watcher
 
   requirements:
+    REQ-0021:
+      title: "Live progress visibility at the console — session work items shown as the coloured block notation, filling in as the agent completes them"
+      status: implemented
+      path: "docs/requirements/REQ-0021-Live-Progress-Visibility.md"
     REQ-0020:
       title: "View sovereignty — the user's chosen view is never evicted without consent"
       status: implemented
