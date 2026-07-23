@@ -56,6 +56,7 @@ DISPATCH_STAMP_WINDOW_SECONDS = 900.0
 PROMPTS_MAX = 50       # prompts kept per session
 PROMPT_CLIP = 500      # chars kept per prompt
 FILES_MAX = 200        # touched files kept per session
+STATUS_TOUCHED_MAX = 60  # notes whose status changed, kept per session (TASK-0194)
 MESSAGE_CLIP = 300     # chars kept for notification/stop messages
 PERSIST_INTERVAL_SECONDS = 5.0
 # A cockpit-terminal session with the opt-in external hook enabled fires
@@ -226,6 +227,7 @@ class AgentSessionTracker:
                 "docs_notes": [],
                 "work_ts": {},
                 "prompt_started": None,
+                "status_touched": {},
                 "cost": None,
                 "chg_ids": [],
                 "dispatches": [],
@@ -576,6 +578,37 @@ class AgentSessionTracker:
             self._refresh_undocumented_locked(sess)
             self._persist_locked(force=True)
 
+    def record_status_change(self, payload: dict[str, Any]) -> None:
+        """Stamp a note whose status changed onto the live session
+        (TASK-0194). Fed from the watcher's ``cockpit:status-change`` events,
+        so it captures shell-tool writes the PostToolUse touch-tracker misses,
+        and — being persisted on the session — survives a sidecar restart.
+        Bounded; created-but-unchanged notes emit no transition so the
+        untouched backlog never lands here.
+        """
+        rel = payload.get("rel")
+        nid = payload.get("id")
+        if not isinstance(rel, str) or not rel:
+            return
+        with self._lock:
+            sess = self._live_session_locked()
+            if sess is None:
+                return
+            touched = sess.setdefault("status_touched", {})
+            touched[rel] = {
+                "id": nid if isinstance(nid, str) else None,
+                "status": payload.get("to"),
+                "ts": payload.get("ts") or sess.get("last_event") or _utc_now_iso(),
+                "title": payload.get("title"),
+            }
+            # Bound to the most recent changes by timestamp.
+            if len(touched) > STATUS_TOUCHED_MAX:
+                for k in sorted(touched, key=lambda r: str(touched[r].get("ts") or ""))[
+                    : len(touched) - STATUS_TOUCHED_MAX
+                ]:
+                    touched.pop(k, None)
+            self._persist_locked()
+
     def chg_provenance(self, chg_id: str) -> dict[str, Any] | None:
         """Which session produced this CHG note (if known)?"""
         with self._lock:
@@ -632,6 +665,8 @@ class AgentSessionTracker:
             # (TASK-0191) — the server enriches these into work_items.
             "work_ts": dict(sess.get("work_ts") or {}),
             "prompt_started": sess.get("prompt_started"),
+            # Notes whose status changed this session (TASK-0194).
+            "status_touched": dict(sess.get("status_touched") or {}),
             "cost": sess.get("cost"),
             "chg_ids": list(sess.get("chg_ids") or []),
             "dispatches": [dict(d) for d in sess.get("dispatches") or []],

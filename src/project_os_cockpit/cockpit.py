@@ -303,11 +303,12 @@ def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str,
     counts any timestamped touch, so the set survives a sidecar reload.
     """
     work_ts = sess.get("work_ts") or {}
+    status_touched = sess.get("status_touched") or {}
     prompt_started = sess.get("prompt_started")
     rels = [r for r in (sess.get("work_notes") or []) if isinstance(r, str)]
 
-    # Resolve every rel we may need (touched notes) up front.
-    wanted_rels = set(rels)
+    # Resolve every rel we may need (touched + status-changed notes) up front.
+    wanted_rels = set(rels) | set(status_touched)
     by_rel: dict[str, Any] = {}
     for rec in index.iter_records():
         if rec.rel_path in wanted_rels:
@@ -328,18 +329,37 @@ def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str,
     by_id: dict[str, dict[str, Any]] = {}
     order: list[str] = []
 
-    # 1) Focus items first — always current-prompt (the declared active work).
+    def _add(nid: str, rec: Any, rel: str, ts: object, current: bool) -> None:
+        existing = by_id.get(nid)
+        if existing is not None:  # de-dup across sources
+            if ts and (not existing["ts"] or str(ts) > str(existing["ts"])):
+                existing["ts"] = ts
+            existing["current_prompt"] = existing["current_prompt"] or current
+            if rec and not existing["rel"]:
+                existing.update(_item(nid, rec, rel, existing["ts"], existing["current_prompt"]))
+            return
+        by_id[nid] = _item(nid, rec, rel, ts, current)
+        order.append(nid)
+
+    # 1) SNAPSHOT focus — the declared active work (always current).
     for fid in _focus_ids(index.docs_root):
-        if fid in by_id:
-            continue
         path = index.by_id(fid)
         rec = index.get(path) if path else None
         rel = (rec.rel_path if rec else "") or ""
-        ts = work_ts.get(rel)
-        by_id[fid] = _item(fid, rec, rel, ts, True)
-        order.append(fid)
+        ts = work_ts.get(rel) or (status_touched.get(rel) or {}).get("ts")
+        _add(fid, rec, rel, ts, True)
 
-    # 2) Notes touched this session — current-prompt when at/after the boundary.
+    # 2) Notes whose status changed this session — the implemented/moved work
+    #    (captures shell-tool writes, survives a restart; always current).
+    for rel, info in sorted(
+        status_touched.items(), key=lambda kv: str(kv[1].get("ts") or "")
+    ):
+        rec = by_rel.get(rel)
+        nid = (rec.note_id if rec else None) or info.get("id") \
+            or rel.rsplit("/", 1)[-1].removesuffix(".md")
+        _add(nid, rec, rel, info.get("ts"), True)
+
+    # 3) Notes touched this prompt — current when at/after the boundary.
     for rel in rels:
         rec = by_rel.get(rel)
         nid = (rec.note_id if rec else None) or rel.rsplit("/", 1)[-1].removesuffix(".md")
@@ -347,15 +367,7 @@ def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str,
         current = bool(ts) and (
             not isinstance(prompt_started, str) or str(ts) >= prompt_started
         )
-        if nid in by_id:
-            # Already a focus item — keep it current, adopt the touch ts.
-            existing = by_id[nid]
-            if ts:
-                existing["ts"] = ts
-            existing["current_prompt"] = existing["current_prompt"] or current
-            continue
-        by_id[nid] = _item(nid, rec, rel, ts, current)
-        order.append(nid)
+        _add(nid, rec, rel, ts, current)
 
     return [by_id[i] for i in order]
 

@@ -447,3 +447,53 @@ def test_work_items_focus_union_dedupes_touched(tmp_path: Path) -> None:
     assert [i["id"] for i in items] == ["ISS-0022"]      # appears exactly once
     assert items[0]["current_prompt"] is True
     assert items[0]["ts"] == "2026-07-23T18:00:00+00:00"  # adopted the touch ts
+
+
+def test_work_items_include_session_status_changes(tmp_path: Path) -> None:
+    """TASK-0194: a note whose status changed this session surfaces as a
+    current work item even if it was never a `work_note` touch (e.g. edited
+    by a shell tool), while a created-but-unchanged note stays out."""
+    docs = tmp_path / "docs"
+    _note(docs / "features" / "f" / "plan" / "tasks" / "TASK-0200-Done.md", {
+        "type": "[[task]]", "id": "TASK-0200", "title": "Shipped", "status": "done",
+    })
+    _note(docs / "requirements" / "REQ-0100-Backlog.md", {
+        "type": "[[requirement]]", "id": "REQ-0100", "title": "Backlog", "status": "draft",
+    })
+    idx = Index.build(docs)
+    sess = {
+        "work_notes": [],          # nothing touched via an edit tool
+        "work_ts": {},
+        "prompt_started": "2026-07-23T17:00:00+00:00",
+        # TASK-0200 changed status this session (via the watcher); REQ-0100
+        # was only created (no transition) so it must NOT appear.
+        "status_touched": {
+            "features/f/plan/tasks/TASK-0200-Done.md": {
+                "id": "TASK-0200", "status": "done",
+                "ts": "2026-07-23T16:30:00+00:00", "title": "Shipped",
+            },
+        },
+    }
+    items = cockpit.work_items_for_session(idx, sess)
+    by_id = {i["id"]: i for i in items}
+    assert by_id["TASK-0200"]["current_prompt"] is True   # shown despite no touch
+    assert by_id["TASK-0200"]["done"] is True
+    assert by_id["TASK-0200"]["title"] == "Shipped"       # enriched from index
+    assert "REQ-0100" not in by_id                         # created ≠ worked
+
+
+def test_record_status_change_stamps_live_session(tmp_path: Path) -> None:
+    """TASK-0194: record_status_change stamps the live session and rides the
+    slim `status_touched`; no live session → no-op."""
+    from project_os_cockpit.agent_hooks import AgentSessionTracker
+    tr = AgentSessionTracker(docs_root=tmp_path / "docs")
+    payload = {"id": "ISS-0050", "rel": "issues/ISS-0050-X.md",
+               "to": "fixed", "ts": "2026-07-23T18:00:00+00:00", "title": "X"}
+    # No live session yet → no-op.
+    tr.record_status_change(payload)
+    tr.ingest({"hook_event_name": "SessionStart", "session_id": "S1", "agent": "claude"})
+    tr.record_status_change(payload)
+    sess = tr.snapshot()["session"]
+    st = sess["status_touched"]
+    assert "issues/ISS-0050-X.md" in st
+    assert st["issues/ISS-0050-X.md"]["status"] == "fixed"

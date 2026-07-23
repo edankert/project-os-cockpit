@@ -11,7 +11,7 @@ updated: 2026-07-22
 goal: "The coloured block notation becomes visible at the console: a thin always-visible rail under the collapsed session strip shows one type-coloured block per documented item the session touches, filling live as the agent completes them; the expanded panel's work tab becomes a rich, recency-ordered 'progress' list (block + id + title + from→to transition + relative time, active item pinned); the 'files' text expand button becomes a rotating chevron."
 requirements: ["[[REQ-0021]]"]
 tests: []
-tasks: ["[[TASK-0188]]", "[[TASK-0189]]", "[[TASK-0190]]", "[[TASK-0191]]", "[[TASK-0192]]", "[[TASK-0193]]"]
+tasks: ["[[TASK-0188]]", "[[TASK-0189]]", "[[TASK-0190]]", "[[TASK-0191]]", "[[TASK-0192]]", "[[TASK-0193]]", "[[TASK-0194]]"]
 related: ["[[FEAT-0036]]", "[[FEAT-0023]]", "[[FEAT-0022]]"]
 ---
 

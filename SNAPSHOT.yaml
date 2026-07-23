@@ -31,12 +31,12 @@ counters:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 38
-  ISS: 19
+  ISS: 20
   PHASE: 7
   REQ: 21
   RISK: 4
   REL: 0
-  TASK: 193
+  TASK: 194
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -54,7 +54,7 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/progress-rail/FEAT-0038-Console-Progress-Rail.md"
       requirements: ["REQ-0021"]
-      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193"]
+      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193", "TASK-0194"]
     FEAT-0034:
       title: "Agents centre tab + follow control — the fleet view survives; following becomes consentful"
       status: done
@@ -256,6 +256,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0194:
+      title: "Record per-session status changes from the watcher and include them (durably) in the in-flight work set"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0194-Session-Status-Changes.md"
+      parent: "FEAT-0038"
     TASK-0193:
       title: "Sidecar: drive the in-flight work set from SNAPSHOT focus ∪ notes-touched-this-prompt"
       status: done
@@ -1351,6 +1357,10 @@ items:
 
 
   issues:
+    ISS-0020:
+      title: "Strip misses the session’s implemented tasks — status changes (esp. via non-Edit-tool writes) and cross-prompt completions never surface"
+      status: fixed
+      path: "docs/issues/ISS-0020-Strip-Misses-Session-Completions.md"
     ISS-0019:
       title: "Console in-flight blocks miss the work when the agent edits code, not notes — the declared SNAPSHOT focus is ignored"
       status: fixed

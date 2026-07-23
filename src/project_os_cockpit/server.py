@@ -411,6 +411,17 @@ class DocsServer:
         self.status_tracker: StatusTracker = StatusTracker(self.docs_root, self.bus)
         self.status_tracker.seed(self.index)
         self.bus.subscribe(self.status_tracker.on_event)
+
+        # Correlate status changes to the live session (TASK-0194): the
+        # watcher sees every note status change regardless of how the file
+        # was written, so this captures shell-tool edits the PostToolUse
+        # touch-tracker misses. Subscribed after the status tracker, which
+        # publishes the cockpit:status-change events this consumes.
+        def _tracker_status_event(ev) -> None:
+            if isinstance(ev, ControlEvent) and ev.event_type == "cockpit:status-change":
+                self.agent_tracker.record_status_change(ev.data)
+
+        self.bus.subscribe(_tracker_status_event)
         # Decay thread shutdown flag — flipped in `run`'s `finally`.
         self._decay_stop: threading.Event = threading.Event()
         # Header home-link label = repo name (parent of docs/), so users
