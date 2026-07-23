@@ -31,12 +31,12 @@ counters:
     last_date: 20260719
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 38
-  ISS: 18
+  ISS: 19
   PHASE: 7
   REQ: 21
   RISK: 4
   REL: 0
-  TASK: 192
+  TASK: 193
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -54,7 +54,7 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/progress-rail/FEAT-0038-Console-Progress-Rail.md"
       requirements: ["REQ-0021"]
-      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192"]
+      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193"]
     FEAT-0034:
       title: "Agents centre tab + follow control — the fleet view survives; following becomes consentful"
       status: done
@@ -256,6 +256,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0193:
+      title: "Sidecar: drive the in-flight work set from SNAPSHOT focus ∪ notes-touched-this-prompt"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/progress-rail/plan/tasks/TASK-0193-Focus-Driven-Inflight.md"
+      parent: "FEAT-0038"
     TASK-0191:
       title: "Sidecar: prompt-scoped, index-enriched work items (id/title/status/type/done/ts) in the state payload"
       status: done
@@ -1345,6 +1351,10 @@ items:
 
 
   issues:
+    ISS-0019:
+      title: "Console in-flight blocks miss the work when the agent edits code, not notes — the declared SNAPSHOT focus is ignored"
+      status: fixed
+      path: "docs/issues/ISS-0019-Inflight-Ignores-Focus.md"
     ISS-0018:
       title: "Progress blocks show the whole session's touched notes (reads as all-project), on a second line, without titles/status — should be prompt-scoped, inline before ctx, enriched"
       status: fixed

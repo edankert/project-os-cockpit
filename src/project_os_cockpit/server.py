@@ -1370,11 +1370,14 @@ def _make_handler(
             """
             snap = state.snapshot()
             snap.update(tracker.snapshot())
-            # Enrich the live / last session's work notes into prompt-scoped
-            # work items with real title/status/done from the index (TASK-0191).
+            # Enrich the live / last session into prompt-scoped work items —
+            # the declared SNAPSHOT focus unioned with notes touched this
+            # prompt, with real title/status/done from the index (TASK-0191 /
+            # TASK-0193). Runs even with no touched notes, so the focus set
+            # still shows.
             for key in ("session", "last_session"):
                 sess = snap.get(key)
-                if isinstance(sess, dict) and sess.get("work_notes"):
+                if isinstance(sess, dict):
                     sess["work_items"] = cockpit.work_items_for_session(index, sess)
             self._respond_json(snap)
 

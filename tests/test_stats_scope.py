@@ -382,3 +382,68 @@ def test_work_items_seeded_session_without_prompt(tmp_path: Path) -> None:
     items = cockpit.work_items_for_session(idx, sess)
     assert items[0]["current_prompt"] is True
     assert items[0]["done"] is True   # fixed issue = done
+
+
+def test_work_items_include_snapshot_focus(tmp_path: Path) -> None:
+    """TASK-0193: the in-flight set includes the SNAPSHOT `focus` items even
+    when no note was touched this prompt, unioned + deduped with touched."""
+    docs = tmp_path / "docs"
+    _note(docs / "features" / "f" / "plan" / "tasks" / "TASK-0116-Rebrand.md", {
+        "type": "[[task]]", "id": "TASK-0116", "title": "Rebrand", "status": "doing",
+    })
+    _note(docs / "issues" / "ISS-0022-Trends.md", {
+        "type": "[[issue]]", "id": "ISS-0022", "title": "Trends review", "status": "fixed",
+    })
+    _note(docs / "phases" / "PHASE-0007-V2.md", {
+        "type": "[[phase]]", "id": "PHASE-0007", "title": "Trends V2", "status": "active",
+    })
+    # SNAPSHOT.yaml lives at docs_root.parent.
+    (tmp_path / "SNAPSHOT.yaml").write_text(
+        'counters:\n  TASK: 116\n'
+        'focus:\n'
+        '  task: "TASK-0116"\n'
+        '  issue: "ISS-0022"\n'
+        '  feature: ""\n'
+        '  phase: "[[PHASE-0007-V2]]"\n'
+        '  note: "some free text mentioning TASK-9999 which must be ignored"\n'
+        'items:\n  features: {}\n',
+        encoding="utf-8",
+    )
+    idx = Index.build(docs)
+
+    # Session touched NOTHING this prompt (agent edited code, not notes).
+    sess = {"work_notes": [], "work_ts": {}, "prompt_started": "2026-07-23T17:14:00+00:00"}
+    items = cockpit.work_items_for_session(idx, sess)
+    by_id = {i["id"]: i for i in items}
+
+    # Focus items surface as current-prompt, enriched from the index.
+    assert by_id["TASK-0116"]["current_prompt"] is True
+    assert by_id["TASK-0116"]["title"] == "Rebrand"
+    assert by_id["TASK-0116"]["done"] is False          # doing task
+    assert by_id["ISS-0022"]["done"] is True             # fixed issue
+    assert by_id["PHASE-0007"]["title"] == "Trends V2"   # wikilink id resolved
+    # The `note` free-text id is NOT pulled in.
+    assert "TASK-9999" not in by_id
+    # Empty focus field contributes nothing.
+    assert all(i["id"] for i in items)
+
+
+def test_work_items_focus_union_dedupes_touched(tmp_path: Path) -> None:
+    """A focus item that was ALSO touched this prompt appears once, carrying
+    the touch timestamp (TASK-0193)."""
+    docs = tmp_path / "docs"
+    _note(docs / "issues" / "ISS-0022-Trends.md", {
+        "type": "[[issue]]", "id": "ISS-0022", "title": "T", "status": "doing",
+    })
+    (tmp_path / "SNAPSHOT.yaml").write_text(
+        'focus:\n  issue: "ISS-0022"\n', encoding="utf-8")
+    idx = Index.build(docs)
+    sess = {
+        "work_notes": ["issues/ISS-0022-Trends.md"],
+        "work_ts": {"issues/ISS-0022-Trends.md": "2026-07-23T18:00:00+00:00"},
+        "prompt_started": "2026-07-23T17:00:00+00:00",
+    }
+    items = cockpit.work_items_for_session(idx, sess)
+    assert [i["id"] for i in items] == ["ISS-0022"]      # appears exactly once
+    assert items[0]["current_prompt"] is True
+    assert items[0]["ts"] == "2026-07-23T18:00:00+00:00"  # adopted the touch ts

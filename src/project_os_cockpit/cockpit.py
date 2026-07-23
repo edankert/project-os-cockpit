@@ -252,35 +252,69 @@ def is_done_status(note_type: object, status: object) -> bool:
     return st in DONE_BY_TYPE.get(nt, _DONE_ANY)
 
 
-def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str, Any]]:
-    """Enrich a slim session's ``work_notes`` into work items (TASK-0191).
+# Canonical short id (prefix + number), e.g. PHASE-0007 out of a bare id or
+# a `[[PHASE-0007-Trends-V2]]` wikilink. The focus fields never hold CHG ids.
+_FOCUS_ID_RE = re.compile(r"[A-Z]+-\d+")
 
-    Each item resolves the note's id/title/current status/type from the
-    live index, computes ``done`` with the same per-type sets as the
-    overview boxes, and carries the last edit-touch ``ts`` plus
-    ``current_prompt`` — touched at/after the session's latest prompt
-    boundary. A seeded session with no prompt boundary yet counts any
-    timestamped touch, so the in-flight set survives a sidecar reload.
+
+def _focus_ids(docs_root: Path) -> list[str]:
+    """Ids declared in the ``focus`` block of the workspace SNAPSHOT
+    (TASK-0193) — the doc-first workflow's "what's being worked on now".
+
+    Reads the top-level ``focus:`` mapping's ``task``/``issue``/
+    ``feature``/``phase``/``requirement`` fields (values may be bare ids
+    or ``[[wikilinks]]``); the free-text ``note`` field is ignored.
     """
-    rels = [r for r in (sess.get("work_notes") or []) if isinstance(r, str)]
-    if not rels:
+    path = docs_root.parent / "SNAPSHOT.yaml"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
         return []
-    wanted = set(rels)
-    by_rel: dict[str, Any] = {}
-    for rec in index.iter_records():
-        if rec.rel_path in wanted:
-            by_rel[rec.rel_path] = rec
+    ids: list[str] = []
+    in_focus = False
+    for line in text.splitlines():
+        if re.match(r"^focus:\s*(#.*)?$", line):
+            in_focus = True
+            continue
+        if in_focus:
+            # The block ends at the next non-indented, non-blank line.
+            if line and not line[0].isspace():
+                break
+            m = re.match(r"^\s+(task|issue|feature|phase|requirement)\s*:\s*(.+)$", line)
+            if m:
+                hit = _FOCUS_ID_RE.search(m.group(2))
+                if hit:
+                    ids.append(hit.group(0))
+    # De-dup, preserve declaration order.
+    seen: set[str] = set()
+    return [i for i in ids if not (i in seen or seen.add(i))]
+
+
+def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str, Any]]:
+    """Enrich a session's work into work items (TASK-0191 / TASK-0193).
+
+    The in-flight set is the workspace's declared ``focus`` items UNIONED
+    with the notes touched this prompt. Each item resolves id/title/current
+    status/type from the live index and computes ``done`` with the same
+    per-type sets as the overview boxes. ``current_prompt`` is true for a
+    focus item (declared active work) or a note edited at/after the latest
+    prompt boundary. Focus items lead (declared work first), then touched
+    items by first-touch order. A seeded session with no prompt boundary
+    counts any timestamped touch, so the set survives a sidecar reload.
+    """
     work_ts = sess.get("work_ts") or {}
     prompt_started = sess.get("prompt_started")
-    items: list[dict[str, Any]] = []
-    for rel in rels:
-        rec = by_rel.get(rel)
-        ts = work_ts.get(rel)
-        current = bool(ts) and (
-            not isinstance(prompt_started, str) or str(ts) >= prompt_started
-        )
-        nid = (rec.note_id if rec else None) or rel.rsplit("/", 1)[-1].removesuffix(".md")
-        items.append({
+    rels = [r for r in (sess.get("work_notes") or []) if isinstance(r, str)]
+
+    # Resolve every rel we may need (touched notes) up front.
+    wanted_rels = set(rels)
+    by_rel: dict[str, Any] = {}
+    for rec in index.iter_records():
+        if rec.rel_path in wanted_rels:
+            by_rel[rec.rel_path] = rec
+
+    def _item(nid: str, rec: Any, rel: str, ts: object, current: bool) -> dict[str, Any]:
+        return {
             "id": nid,
             "rel": rel,
             "title": (rec.title if rec else None) or "",
@@ -289,8 +323,41 @@ def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str,
             "done": is_done_status(rec.note_type, rec.status) if rec else False,
             "ts": ts,
             "current_prompt": current,
-        })
-    return items
+        }
+
+    by_id: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+
+    # 1) Focus items first — always current-prompt (the declared active work).
+    for fid in _focus_ids(index.docs_root):
+        if fid in by_id:
+            continue
+        path = index.by_id(fid)
+        rec = index.get(path) if path else None
+        rel = (rec.rel_path if rec else "") or ""
+        ts = work_ts.get(rel)
+        by_id[fid] = _item(fid, rec, rel, ts, True)
+        order.append(fid)
+
+    # 2) Notes touched this session — current-prompt when at/after the boundary.
+    for rel in rels:
+        rec = by_rel.get(rel)
+        nid = (rec.note_id if rec else None) or rel.rsplit("/", 1)[-1].removesuffix(".md")
+        ts = work_ts.get(rel)
+        current = bool(ts) and (
+            not isinstance(prompt_started, str) or str(ts) >= prompt_started
+        )
+        if nid in by_id:
+            # Already a focus item — keep it current, adopt the touch ts.
+            existing = by_id[nid]
+            if ts:
+                existing["ts"] = ts
+            existing["current_prompt"] = existing["current_prompt"] or current
+            continue
+        by_id[nid] = _item(nid, rec, rel, ts, current)
+        order.append(nid)
+
+    return [by_id[i] for i in order]
 
 
 def _exit_criteria_from_body(body: str) -> list[dict[str, Any]]:
