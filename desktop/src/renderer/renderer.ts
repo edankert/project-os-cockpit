@@ -2050,13 +2050,19 @@ const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'active', 'library
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
-// Mirror of cockpit.js COMPLETED_STATUSES so the desktop renderer
-// matches the browser cockpit's idea of "done".
+// Mirror of cockpit.js COMPLETED_STATUSES (itself derived from
+// statuses.py COMPLETED_STATUSES) so the desktop renderer matches the
+// browser cockpit's idea of "done".
+//
+// `implemented` is terminal since ADR-0007 (it is the requirement's final
+// status; `verified` was retired). The non-terminal delivered band —
+// `staged`, `monitoring` — is deliberately absent: that work is shipped but
+// not signed off and must stay visible when completed items are hidden.
 const COMPLETED_STATUSES = new Set([
-  'done', 'merged', 'fixed', 'fulfilled', 'met', 'complete',
-  'verified', 'passing', 'published', 'closed',
+  'done', 'merged', 'fixed', 'resolved', 'fulfilled', 'met', 'complete',
+  'implemented', 'verified', 'passing', 'published', 'released', 'closed',
   'obsolete', 'retired', 'cancelled', 'superseded',
-  'wont-fix', 'reverted', 'accepted',
+  'wont-fix', 'reverted', 'rolled-back', 'deprecated',
 ]);
 
 let hideCompleted = false;
@@ -2545,14 +2551,20 @@ function buildPhaseLooseGroup(loose: PhaseItem[]): HTMLElement {
 }
 
 const STATUS_COLOR_BY_KEY: Record<string, string> = {
-  // Done family
+  // Done family (`implemented` is terminal since ADR-0007)
   done: 'var(--status-done)', merged: 'var(--status-done)', verified: 'var(--status-done)',
   closed: 'var(--status-done)', fixed: 'var(--status-done)', complete: 'var(--status-done)',
-  passing: 'var(--status-done)', accepted: 'var(--status-done)',
+  passing: 'var(--status-done)',
+  implemented: 'var(--status-done)', resolved: 'var(--status-done)',
+  released: 'var(--status-done)',
+  // Delivered — shipped, not signed off (non-terminal)
+  staged: 'var(--status-delivered)', monitoring: 'var(--status-delivered)',
   // Active family
   active: 'var(--status-active)', doing: 'var(--status-active)',
   'in-progress': 'var(--status-active)', in_progress: 'var(--status-active)',
-  proposed: 'var(--status-active)', draft: 'var(--status-active)',
+  accepted: 'var(--status-active)', approved: 'var(--status-active)',
+  // Pending family — matches base.css and statuses.py (not 'active')
+  proposed: 'var(--status-pending)', draft: 'var(--status-pending)',
   // Blocked / negative
   blocked: 'var(--severity-high)', failed: 'var(--severity-critical)',
   cancelled: 'var(--text-faint)', superseded: 'var(--text-faint)',
@@ -4413,7 +4425,9 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
 
 // Session progress views (FEAT-0036 / FEAT-0038): the block notation per
 // docs item worked, filling live as the agent completes them.
-const DONE_STATUSES = new Set(['done', 'merged', 'fixed', 'fulfilled', 'met', 'complete', 'verified', 'closed', 'passing', 'published', 'resolved']);
+// Terminal statuses for the session progress views. Kept in step with
+// COMPLETED_STATUSES above; `implemented` is terminal since ADR-0007.
+const DONE_STATUSES = new Set(['done', 'merged', 'fixed', 'fulfilled', 'met', 'complete', 'implemented', 'verified', 'closed', 'passing', 'published', 'released', 'resolved']);
 
 // Index-enriched work item served by the sidecar (TASK-0191).
 interface WorkItem {

@@ -50,6 +50,22 @@ Neither is fixed. Both are narrow (they require someone to add a colour literal 
 
 **This issue stays `open`** for §2 above, which is not fixed.
 
-## 4. `test_collapsed_by_default_is_terminal_only` is parity-by-construction (noted)
+## 4. The Electron desktop renderer had three more unguarded tables (FIXED)
+
+Found on a second sweep, after the first one claimed the cockpit was fully covered. It was not: `desktop/src/renderer/renderer.ts` is the mode-3 UI and carries its **own** status vocabulary, which no test and no Python constant reached. All three tables were stale:
+
+| Table | Was | Effect |
+|---|---|---|
+| `COMPLETED_STATUSES` (Hide-completed) | `verified`, no `implemented` | every migrated requirement stayed on screen as unfinished — the ISS-0023 symptom, on the desktop |
+| `DONE_STATUSES` (session progress views) | same omission | progress blocks never filled for requirements |
+| `STATUS_COLOR_BY_KEY` | no `implemented` | fell through to the default ink |
+
+Fixed, and the same pass caught two further disagreements the guard now forbids: the desktop coloured **`accepted`** as done (an ADR's live state — `active` in `statuses.py` and in `base.css`) and put it in Hide-completed, and coloured **`proposed`/`draft`** as active where every other surface says pending.
+
+**Guarded**: three new tests parse `renderer.ts` — completed-set superset + no delivered members, `DONE_STATUSES` covers `implemented`, and every colour key agrees with its band. Adequacy proven by mutation (removing `implemented` from the desktop completed set fails the suite). `base.css` is copied from the Python static dir at build time, so `--status-delivered` needed no separate definition.
+
+**Count correction**: the surface tally is **ten**, not the nine claimed when §1 was written. The desktop was simply never looked at.
+
+## 5. `test_collapsed_by_default_is_terminal_only` is parity-by-construction (noted)
 
 `COLLAPSED_BY_DEFAULT` is defined as an alias of `statuses.COMPLETED_STATUSES` (`templates.py`), so that surface *cannot* drift and the test pins a definition rather than checking an independent literal. Not a defect — but TST-0019's "six surfaces held to it" framing overstates by one.

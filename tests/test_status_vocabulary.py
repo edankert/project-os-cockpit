@@ -13,6 +13,7 @@ the JS/CSS surfaces to prove they still agree with it.
 
 from __future__ import annotations
 
+import pathlib
 import re
 from pathlib import Path
 
@@ -24,6 +25,10 @@ STATIC = Path(statuses.__file__).parent / "static"
 COCKPIT_JS = STATIC / "cockpit.js"
 BASE_CSS = STATIC / "base.css"
 COCKPIT_CSS = STATIC / "cockpit.css"
+DESKTOP_TS = (
+    pathlib.Path(statuses.__file__).resolve().parent.parent.parent
+    / "desktop" / "src" / "renderer" / "renderer.ts"
+)
 
 
 # ---------------------------------------------------------------- vocabulary
@@ -203,3 +208,52 @@ def test_bundled_validator_matches_the_canonical_one() -> None:
         "validate_docs_bundled.py has drifted from tools/scripts/validate-docs.py; "
         "re-copy it (it is a verbatim bundle, not a fork)"
     )
+
+
+# ----------------------------------------------------- desktop (mode 3) surface
+
+def _ts_set(name: str) -> set[str]:
+    """Extract a `const NAME = new Set([...])` literal from the desktop renderer."""
+    src = DESKTOP_TS.read_text(encoding="utf-8")
+    m = re.search(rf"const {name} = new Set\(\[(.*?)\]\)", src, re.DOTALL)
+    assert m, f"{name} literal not found in renderer.ts"
+    body = re.sub(r"//[^\n]*", "", m.group(1))
+    return set(re.findall(r"'([a-z][a-z-]*)'", body))
+
+
+def test_desktop_completed_set_matches_python() -> None:
+    """The Electron renderer keeps its own Hide-completed vocabulary.
+
+    It is a third copy (after statuses.py and cockpit.js) and nothing guarded
+    it until ADR-0007 — it still had `verified` and no `implemented`, so on the
+    desktop every migrated requirement stayed visible as unfinished work.
+    """
+    assert _ts_set("COMPLETED_STATUSES") >= set(statuses.COMPLETED_STATUSES), (
+        "desktop COMPLETED_STATUSES is missing: "
+        f"{set(statuses.COMPLETED_STATUSES) - _ts_set('COMPLETED_STATUSES')}"
+    )
+    assert not (_ts_set("COMPLETED_STATUSES") & statuses.DELIVERED_STATUSES)
+
+
+def test_desktop_done_statuses_cover_the_done_band() -> None:
+    """Session progress views use a separate DONE_STATUSES set."""
+    done = _ts_set("DONE_STATUSES")
+    assert "implemented" in done
+    assert not (done & statuses.DELIVERED_STATUSES)
+
+
+def test_desktop_status_colours_agree_with_the_bands() -> None:
+    """`STATUS_COLOR_BY_KEY` must not colour a status into the wrong band."""
+    src = DESKTOP_TS.read_text(encoding="utf-8")
+    m = re.search(r"const STATUS_COLOR_BY_KEY: Record<string, string> = \{(.*?)\n\};", src, re.DOTALL)
+    assert m, "STATUS_COLOR_BY_KEY literal not found"
+    body = re.sub(r"//[^\n]*", "", m.group(1))
+    mapped = dict(re.findall(r"'?([a-z][a-z_-]*)'?\s*:\s*'var\((--status-[a-z-]+)\)'", body))
+    for status, token in mapped.items():
+        band = statuses.STATUS_BAND.get(status)
+        if band is None:
+            continue          # desktop-only aliases (in_progress, …) are fine
+        assert token == statuses.BAND_TOKEN[band], (
+            f"desktop colours {status} as {token}, band says {statuses.BAND_TOKEN[band]}"
+        )
+    assert mapped.get("implemented") == "--status-done"
