@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0024
 aliases: ["ISS-0024"]
 title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
-status: fixed
+status: open
 severity: medium
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -65,7 +65,7 @@ The general lesson, which is the same one that produced the wrong counts elsewhe
 
 **Fixed**: re-copied verbatim from the canonical validator, and `TST-0019` gains `test_bundled_validator_matches_the_canonical_one` asserting byte-equality — closing the "consider a sync-script check" follow-up left open by `CHG-20260717-Verification-Health-Surface`.
 
-All four sections are now fixed; the issue is closed.
+§1–§4 are fixed. §6 (below) is the reason the fixes were invisible in the running app.
 
 ## 4. The Electron desktop renderer had three more unguarded tables (FIXED)
 
@@ -86,3 +86,24 @@ Fixed, and the same pass caught two further disagreements the guard now forbids:
 ## 5. `test_collapsed_by_default_is_terminal_only` is parity-by-construction (noted)
 
 `COLLAPSED_BY_DEFAULT` is defined as an alias of `statuses.COMPLETED_STATUSES` (`templates.py`), so that surface *cannot* drift and the test pins a definition rather than checking an independent literal. Not a defect — but TST-0019's "six surfaces held to it" framing overstates by one.
+
+## 6. The shipped desktop build was never rebuilt — every §4 fix was invisible (FIXED)
+
+Reported by the user after §4 landed: *"I still see the implemented requirements when I hide completed items, and it still shows as a not-filled square."* Both were true, and neither was a logic bug — the fixes were real in source and absent from what was running.
+
+| | |
+|---|---|
+| `desktop/src/renderer/renderer.ts` | 6 occurrences of `implemented`, edited 22:27 |
+| `desktop/dist/renderer/renderer.js` | **0** occurrences, built **09:46** |
+| Electron process | running since **09:46** |
+| `dist/renderer/*.css` | also from 09:46, so the palette work was missing too |
+
+The Electron app loads `dist/`, produced by `npm run build` (`tsc` + `copy-assets.mjs`). That step was never run, so the mode-3 UI kept enforcing the pre-ADR-0007 vocabulary.
+
+The second symptom has a different path but the same cause: an overview square's fill comes from `PhaseItem.bucket`, computed **server-side** by `is_done_status` in `cockpit.py`. That code was already correct on disk (the bundled Python runtime carries an editable install pointing at `src/`), but the sidecar process had been up since 09:46 with the old module loaded.
+
+**Fixed**: rebuilt (`dist` now carries the current vocabulary and CSS). Requires an app restart to load — both the Electron renderer and the Python sidecars.
+
+**Guarded**: `test_desktop_build_is_not_stale` asserts the shipped bundle contains every status in `COMPLETED_STATUSES` and is no older than its source, skipping when `dist/` is absent (fresh clone / CI without a build). Adequacy proven by stripping `implemented` from the built bundle — the test fails.
+
+**Why the suite did not catch it.** Every other test here reads TypeScript *source*. The artifact that actually runs was unguarded, so 252 green tests coexisted with a stale app. That is the same shape as §2's blind spots and the miscounts elsewhere in this cycle: **the check was pointed at the thing that was correct, not the thing that was used.**

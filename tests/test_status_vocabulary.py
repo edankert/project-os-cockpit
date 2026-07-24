@@ -17,6 +17,8 @@ import pathlib
 import re
 from pathlib import Path
 
+import pytest
+
 from project_os_cockpit import statuses
 from project_os_cockpit.cockpit import _ACTIVE_DONE, DONE_BY_TYPE, TASK_STATUS_ORDER, is_done_status
 from project_os_cockpit.templates import COLLAPSED_BY_DEFAULT, STATUS_RANK
@@ -307,3 +309,38 @@ def test_desktop_status_colours_agree_with_the_bands() -> None:
             f"desktop colours {status} as {token}, band says {statuses.BAND_TOKEN[band]}"
         )
     assert mapped.get("implemented") == "--status-done"
+
+
+# ------------------------------------------------- shipped desktop artifact
+
+DESKTOP_DIST = (
+    pathlib.Path(statuses.__file__).resolve().parent.parent.parent
+    / "desktop" / "dist" / "renderer" / "renderer.js"
+)
+
+
+def test_desktop_build_is_not_stale() -> None:
+    """The Electron app loads `dist/`, not `src/` — a stale build ships old rules.
+
+    Every other test here reads TypeScript source, so the suite stayed green
+    while the running app was on a build predating the ADR-0007 status work:
+    `dist/renderer/renderer.js` had zero occurrences of `implemented` while the
+    source had six, and Hide-completed therefore kept showing implemented
+    requirements. Guard the artifact, not just its source.
+
+    Skipped when `dist/` is absent (fresh clone, CI without a build step) —
+    there is nothing shipped to be stale.
+    """
+    if not DESKTOP_DIST.is_file():
+        pytest.skip("desktop not built (no dist/renderer/renderer.js)")
+    built = DESKTOP_DIST.read_text(encoding="utf-8", errors="replace")
+    for status in sorted(statuses.COMPLETED_STATUSES):
+        assert f"'{status}'" in built or f'"{status}"' in built, (
+            f"desktop build is stale: {status!r} is in the canonical completed set "
+            f"but absent from dist/renderer/renderer.js — run `npm run build` in desktop/"
+        )
+    src_mtime = DESKTOP_TS.stat().st_mtime
+    assert DESKTOP_DIST.stat().st_mtime >= src_mtime, (
+        "dist/renderer/renderer.js is older than src/renderer/renderer.ts — "
+        "run `npm run build` in desktop/"
+    )
