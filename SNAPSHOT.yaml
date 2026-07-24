@@ -1742,6 +1742,10 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260724-Verification-Record-Backfill:
+      title: "Requirement verification records made machine-readable — criteria of record in frontmatter, criteria as checkboxes, `tests:` key present"
+      status: merged
+      file: "docs/changes/CHG-20260724-Verification-Record-Backfill.md"
     CHG-20260724-Delivered-Status-Band:
       title: "Seventh palette bucket — `implemented` becomes Delivered (amber, non-terminal) and one canonical vocabulary now backs all six status surfaces"
       status: merged
