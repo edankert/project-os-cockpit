@@ -69,10 +69,20 @@ Re-review of the fixes confirmed 8 of 9 resolved and found four more:
 
 Two observations were accepted as-is: `reopened` routing to the planning branch (defensible — a regression usually does want re-triage), and the fact that requirement/phase statuses map to branches unreachable via `focus` keys (harmless completeness).
 
-## Open follow-up
+## Follow-up D — resolved 2026-07-24
 
-**D — the model-pin format is unverified end-to-end.** The pins moved from the `fable` alias to the full `claude-fable-5` ID. Upstream already used a full ID (`claude-opus-4-8`) before this work, so the convention is established, but nothing in either repo proves Claude Code honours a full model ID in subagent frontmatter. If it silently ignored it, the subagents would inherit the session model and the routing would be inert with no signal. Confirm once with `/agents` in a fresh session before the fleet rollout.
+**The pin format is confirmed accepted.** A fresh headless session in this repo (`claude -p`, which builds its agent registry from disk exactly as any new process does) enumerated `planner` and `independent-reviewer` alongside the built-ins and reported the planner's pin as `MODEL: claude-fable-5`. The CLI's own `--model` help documents `claude-fable-5` as a valid full model name, and the subagent docs state that `model:` frontmatter accepts the same values as `--model`. So the pin is parsed and carried into the registry rather than silently dropped.
+
+Two residual failure modes to recognise if they ever appear: a model with a scheduled retirement produces a startup warning naming it, and a model excluded by an `availableModels` allowlist falls back to the session model **silently** (no error — unlike main-session selection, which warns). Neither applies here; no allowlist is configured.
+
+Still unverified, and only observable in use: whether description-based delegation actually fires — that Claude routes preflight to `planner` unprompted rather than merely being hinted at. The pins are loaded; the routing behaviour is behavioural.
+
+## Operational caveats learned while verifying D
+
+- **Resumed sessions keep the model saved in the transcript, regardless of the `model` key in `.claude/settings.json`.** Resuming a Fable session therefore lands you on Fable even though this repo pins `opus` — which silently produces the reviewer-equals-session-model state finding 1 is about. Start a fresh session to get the pinned default, or `/model opus` immediately after resuming.
+- **The agent-file watcher only covers directories that existed at session start.** Claude Code otherwise hot-reloads `.claude/agents/` within seconds of an edit, but because this work created that directory mid-session, the new subagents were invisible to the authoring session and needed a new process. Now that the directory exists and is committed, later agent files hot-reload normally.
+- **`/agents` no longer displays agent metadata** (the interactive wizard was removed; it prints a reminder to edit the files directly), so it cannot be used to confirm a pin. Use the headless probe above instead.
 
 ## Resolution
 
-Findings 1–9 plus A/B/C/E addressed under [[TASK-0197-Upstream-And-Adopt]]; see [[CHG-20260724-Model-Routing-Upstreamed]] for what changed and the re-review verdict. D remains open as a manual check.
+Findings 1–9 plus A/B/C/E addressed under [[TASK-0197-Upstream-And-Adopt]]; see [[CHG-20260724-Model-Routing-Upstreamed]] for what changed and the re-review verdict. Follow-up D was verified and closed on 2026-07-24 (above). The only thing still owed is a genuinely independent (cross-vendor or human) review — every pass on this work has been Claude reviewing Claude.

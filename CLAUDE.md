@@ -56,6 +56,8 @@ Models are pinned to lifecycle phases via subagents (FEAT-0039, upstreamed as pr
 
 Keeping the session model off the reviewer's pin is harm reduction, not independence: QUALITY.md requires a different model *family* or a human, and Claude Code subagents can only pin Claude models. A same-family review does not close that gate — record a cross-vendor or human pass manually when it matters.
 
+Watch out on resume: a resumed session keeps the model its transcript was saved with, *regardless* of the `model` pin above. Resuming a Fable session leaves you on Fable — same model as the reviewer's pin, which is the case the previous paragraph warns about. Check with `/model` after resuming, or start a fresh session to get the pinned default.
+
 Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are byte-identical to upstream's, but note that `sync-project-os.sh` copies `tools/` and never touches `.claude/`, and this repo carries no generator — so the agent files can only be refreshed by re-copying them, and nothing here detects drift.
 
 ## Project-specific notes

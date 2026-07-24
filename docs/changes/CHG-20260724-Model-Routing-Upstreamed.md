@@ -50,6 +50,7 @@ Both pins are now `claude-fable-5` (previously the reviewer was `claude-opus-4-8
 
 ## Follow-ups
 
-- [ ] Confirm Claude Code honours a full model ID (`claude-fable-5`) in subagent frontmatter — run `/agents` in a fresh session and check both subagents report the pinned model, not the session model. If full IDs were ignored the routing would be inert with no signal (ISS-0021 follow-up D).
+- [x] Confirm Claude Code honours a full model ID (`claude-fable-5`) in subagent frontmatter — **done 2026-07-24**: a fresh headless session (`claude -p`) lists both subagents and reports the planner's pin as `claude-fable-5`, so the ID is parsed into the registry rather than silently dropped. Note `/agents` cannot be used for this check (it no longer displays agent metadata), and resumed sessions keep their saved model regardless of the settings pin — see the operational caveats in [[ISS-0021-Model-Routing-Review-Findings]].
+- [ ] Observe in real use whether description-based delegation actually fires — that preflight goes to `planner` unprompted. The pins are confirmed loaded; the routing behaviour is not yet demonstrated.
 - [ ] Run a full `tools/scripts/sync-project-os.sh ../project-os` once the upstream working tree is committed and clean — deliberately skipped here to avoid pulling unrelated in-flight upstream churn (see TASK-0197 notes).
 - [ ] Owed on both change notes: a genuinely independent (cross-vendor or human) review. Every pass so far has been Claude reviewing Claude.
