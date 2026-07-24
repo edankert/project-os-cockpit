@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0003
 aliases: ["REQ-0003"]
 title: "Surfaces YAML frontmatter as page metadata (status, owner, parent, etc.)"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0001]]"]
 owner: user:edwin

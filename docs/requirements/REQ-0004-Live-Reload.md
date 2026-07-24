@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0004
 aliases: ["REQ-0004"]
 title: "Real-time soft reload when source .md changes"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0002]]"]
 owner: user:edwin

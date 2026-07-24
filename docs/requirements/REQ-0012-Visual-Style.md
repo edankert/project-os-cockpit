@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0012
 aliases: ["REQ-0012"]
 title: "Muted greyscale palette, semantic-only color, dual light/dark themes"
-status: verified
+status: implemented
 implements: ["[[FEAT-0001]]"]
 phase: "[[PHASE-001-MVP]]"
 owner: user:edwin
@@ -35,8 +35,8 @@ The project-os-cockpit UI is a developer's daily-driver tool, sitting alongside 
 |---|---|---|---|
 | **Active** | 140 32% 38 | 140 32% 60 (green) | active, approved, accepted, ready, doing, in-progress, in-review, next, mitigating |
 | **Pending** | 220 14% 48 | 220 14% 65 (cool grey) | planned, backlog, todo, open, pending, draft, proposed, triage |
-| **Delivered** | 42 46% 34 | 42 46% 60 (amber) | implemented, staged, monitoring |
-| **Done — positive** | 160 28% 38 | 160 28% 60 (teal-green) | done, merged, fixed, resolved, fulfilled, met, complete, verified, passing, published, released, closed |
+| **Delivered** | 42 46% 34 | 42 46% 60 (amber) | staged, monitoring |
+| **Done — positive** | 160 28% 38 | 160 28% 60 (teal-green) | done, merged, fixed, resolved, fulfilled, met, complete, implemented, verified, passing, published, released, closed |
 | **Done — negative** | 0 0% 48 | 0 0% 58 (muted grey) | obsolete, retired, cancelled, superseded, wont-fix, reverted, rolled-back, deprecated |
 | **Blocked** | 5 48% 46 | 5 50% 65 (red) | blocked, failing, reopened |
 | **Reference** | 180 24% 40 | 180 24% 60 (cyan-grey) | reference, deferred |
@@ -51,7 +51,7 @@ Bucket **membership** is canonical in `src/project_os_cockpit/statuses.py` (`BAN
 - A grep for `#[0-9a-fA-F]{3,6}` and `rgb(`, `rgba(`, `hsl(`, `hsla(` in the served CSS returns matches *only* inside the `:root` / `[data-theme="dark"]` definition blocks. Component rules use `var(--token)` exclusively.
 - The UI renders correctly with `prefers-color-scheme: light` and `prefers-color-scheme: dark` without user intervention.
 - A theme-toggle control is present in the cockpit header and persists across reloads.
-- Status chips render in their bucket's hue per the table above; e.g. `fulfilled` (Done-positive) reads teal-green, `wont-fix` (Done-negative) reads muted grey, `planned` (Pending) reads cool-grey, `implemented` (Delivered) reads amber, `blocked` reads red. All chips are ≤60% saturation in HSL.
+- Status chips render in their bucket's hue per the table above; e.g. `fulfilled` (Done-positive) reads teal-green, `wont-fix` (Done-negative) reads muted grey, `planned` (Pending) reads cool-grey, `staged` (Delivered) reads amber, `blocked` reads red. All chips are ≤60% saturation in HSL.
 - Every status in the canonical vocabulary resolves to its own bucket's token on all palette surfaces — chips, group icons, both ordering tables, and the Hide-completed set — with no status unmapped and none mapped to a bucket it does not belong to.
 - Turning on **Hide completed** removes only terminal work; items in the Delivered bucket remain visible.
 - No greyscale-vs-color contrast in the rendered page comes from anything other than: a link, a focus ring, a status chip, an error/warning banner, or the active row indicator.
@@ -65,6 +65,15 @@ The status palette balances information density and visual quietness. (This para
 See [[ADR-0003]] for the decision context.
 
 ## Amendments
+
+### 2026-07-24 (later) — `implemented` leaves Delivered for Done
+
+project-os `ADR-0007` (in `../project-os-dev`) retired the requirement `verified` status and made `implemented` **terminal**. The Delivered bucket was introduced hours earlier precisely because `implemented` was *non*-terminal (test-gated on `implemented → verified`); with that gate gone, the reason to hold it out of Done goes with it.
+
+`implemented` therefore moves to Done — positive: teal chip, done-band rank, collapsed by default, and hidden by Hide-completed. The bucket itself stays: `staged` (a release verified and ready but not live) and `monitoring` (a risk mitigated but still watched) are still genuinely non-terminal, so the seven-bucket structure and its exclusion from Hide-completed remain correct — with two members instead of three.
+
+Net effect on the original complaint that produced [[ISS-0023-Implemented-Status-Band-Drift]] ("implemented requirements never show as completed"): they now *do*, because upstream decided they genuinely are completed. The palette was right to distinguish delivered from done; the taxonomy changed under it.
+
 
 ### 2026-07-24 — seventh bucket: Delivered
 

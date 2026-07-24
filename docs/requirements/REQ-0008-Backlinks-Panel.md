@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0008
 aliases: ["REQ-0008"]
 title: "Backlinks panel showing notes that link to the current page"
-status: verified
+status: implemented
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 implements: ["[[FEAT-0006]]"]
 owner: user:edwin

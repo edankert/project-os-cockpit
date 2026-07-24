@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0002
 aliases: ["REQ-0002"]
 title: "Resolves Obsidian-style [[wikilinks]] including project-os IDs"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0001]]"]
 owner: user:edwin

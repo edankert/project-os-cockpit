@@ -311,15 +311,15 @@ def test_paths_includes_template_notes_for_resolution(
 # --- status ordering ------------------------------------------------------
 
 
-def test_implemented_status_sorts_after_backlog_but_stays_expanded() -> None:
-    """`implemented` sorts past the backlog band but does NOT join the done family.
+def test_implemented_status_sorts_and_collapses_with_the_done_family() -> None:
+    """`implemented` ranks in the done band and collapses by default.
 
-    Supersedes the earlier contract, which put it in the done band and
-    collapsed it by default. project-os defines `implemented` as "built but
-    not yet formally verified" and gates `implemented → verified` on passing
-    test notes, so collapsing it hides the population that still owes a
-    verification record — the defect reported as ISS-0023. It now occupies
-    its own Delivered band (see tests/test_status_vocabulary.py).
+    History: it started in the done band, moved to a non-terminal Delivered
+    band under ISS-0023 (because `implemented → verified` was test-gated, so
+    collapsing it hid work still owing verification), and returned to done
+    when ADR-0007 retired the requirement `verified` status and made
+    `implemented` itself terminal. Delivered still exists for `staged` /
+    `monitoring` — see tests/test_status_vocabulary.py.
     """
     from project_os_cockpit.templates import (
         COLLAPSED_BY_DEFAULT,
@@ -329,5 +329,6 @@ def test_implemented_status_sorts_after_backlog_but_stays_expanded() -> None:
 
     assert "implemented" in STATUS_RANK, "implemented must have an explicit rank"
     assert STATUS_RANK["implemented"] != STATUS_RANK_DEFAULT
-    assert STATUS_RANK["backlog"] < STATUS_RANK["implemented"] < STATUS_RANK["done"]
-    assert "implemented" not in COLLAPSED_BY_DEFAULT
+    assert STATUS_RANK["done"] <= STATUS_RANK["implemented"] <= STATUS_RANK["verified"]
+    assert STATUS_RANK["implemented"] > STATUS_RANK["backlog"]
+    assert "implemented" in COLLAPSED_BY_DEFAULT

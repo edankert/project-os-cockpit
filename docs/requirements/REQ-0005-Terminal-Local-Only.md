@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0005
 aliases: ["REQ-0005"]
 title: "Terminal endpoint binds to 127.0.0.1 only"
-status: verified
+status: implemented
 phase: "[[PHASE-004-Embedded-Terminal]]"
 implements: ["[[FEAT-0003]]"]
 owner: user:edwin

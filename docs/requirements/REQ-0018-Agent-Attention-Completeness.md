@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0018
 aliases: ["REQ-0018"]
 title: "Every agent state that needs the user is discoverable in-app, across all workspaces, until acted on or dismissed"
-status: verified
+status: implemented
 implements: []
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin

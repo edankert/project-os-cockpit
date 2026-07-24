@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0017
 aliases: ["REQ-0017"]
 title: "Release the cockpit into project-os via one-way sync"
-status: verified
+status: implemented
 implements: ["[[FEAT-0005]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin

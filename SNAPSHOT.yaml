@@ -1533,7 +1533,7 @@ items:
       path: "docs/requirements/REQ-0020-View-Sovereignty.md"
     REQ-0018:
       title: "Every agent state that needs the user is discoverable in-app, across all workspaces, until acted on or dismissed"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0018-Agent-Attention-Completeness.md"
     REQ-0019:
       title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — on one dedicated screen"
@@ -1541,59 +1541,59 @@ items:
       path: "docs/requirements/REQ-0019-Agent-Fleet-Visibility.md"
     REQ-0001:
       title: "Renders any .md under target docs/ as HTML on request — no build step"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0001-On-The-Fly-Rendering.md"
     REQ-0002:
       title: "Resolves Obsidian-style [[wikilinks]] including project-os IDs"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0002-Wikilink-Resolution.md"
     REQ-0003:
       title: "Surfaces YAML frontmatter as page metadata (status, owner, parent, etc.)"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0003-Frontmatter-As-Metadata.md"
     REQ-0004:
       title: "Real-time soft reload when source .md changes"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0004-Live-Reload.md"
     REQ-0005:
       title: "Terminal endpoint binds to 127.0.0.1 only"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0005-Terminal-Local-Only.md"
     REQ-0006:
       title: "Render endpoint binds to 0.0.0.0 (LAN read access)"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0006-Render-Lan-Access.md"
     REQ-0007:
       title: "Auto-generated index pages by status / parent / type"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0007-Auto-Index.md"
     REQ-0008:
       title: "Backlinks panel showing notes that link to the current page"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0008-Backlinks-Panel.md"
     REQ-0012:
       title: "Muted greyscale palette, semantic-only color, dual light/dark themes"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0012-Visual-Style.md"
     REQ-0013:
       title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0013-Cockpit-Layout.md"
     REQ-0014:
       title: "Cockpit platform filter — auto-discovered, picker only when used"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0014-Cockpit-Platform-Filter.md"
     REQ-0015:
       title: "Cockpit landing page — root URL renders the cockpit with a SNAPSHOT-driven home"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0015-Cockpit-Landing-Page.md"
     REQ-0016:
       title: "Cockpit Library mode + pin button (curated + auto-discovered + rare types)"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0016-Cockpit-Library-And-Pinning.md"
     REQ-0017:
       title: "Release the cockpit into project-os via one-way sync"
-      status: verified
+      status: implemented
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
@@ -1742,6 +1742,11 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260724-Implemented-Rejoins-Done:
+      title: "`implemented` rejoins the Done band — ADR-0007 made it the terminal requirement status; Delivered keeps `staged` and `monitoring`"
+      status: merged
+      path: "docs/changes/CHG-20260724-Implemented-Rejoins-Done.md"
+      features: ["FEAT-0006"]
     CHG-20260724-Verification-Record-Backfill:
       title: "Requirement verification records made machine-readable — criteria of record in frontmatter, criteria as checkboxes, `tests:` key present"
       status: merged

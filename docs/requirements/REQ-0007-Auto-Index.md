@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0007
 aliases: ["REQ-0007"]
 title: "Auto-generated index pages by status / parent / type"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0001]]"]
 owner: user:edwin

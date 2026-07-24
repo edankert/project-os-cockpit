@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0014
 aliases: ["REQ-0014"]
 title: "Cockpit platform filter — auto-discovered, picker only when used"
-status: verified
+status: implemented
 implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin

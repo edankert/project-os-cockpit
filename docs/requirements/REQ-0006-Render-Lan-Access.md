@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0006
 aliases: ["REQ-0006"]
 title: "Render endpoint binds to 0.0.0.0 (LAN read access)"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0001]]"]
 owner: user:edwin

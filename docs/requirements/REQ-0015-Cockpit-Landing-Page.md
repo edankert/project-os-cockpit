@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0015
 aliases: ["REQ-0015"]
 title: "Cockpit landing page — root URL renders the cockpit with a SNAPSHOT-driven home"
-status: verified
+status: implemented
 implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin

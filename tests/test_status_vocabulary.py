@@ -44,12 +44,19 @@ def test_every_band_has_a_palette_token() -> None:
 
 
 def test_delivered_is_not_completed() -> None:
-    """The crux of ISS-0023 — regressing this re-hides unverified work."""
+    """The crux of ISS-0023 — delivered-but-unsigned-off work stays visible.
+
+    `implemented` was the founding member of this band; ADR-0007 retired the
+    requirement `verified` status and made `implemented` terminal, so it moved
+    to `done`. The band still holds `staged` (release ready, not live) and
+    `monitoring` (risk mitigated, still watched), which remain non-terminal.
+    """
     assert not (statuses.DELIVERED_STATUSES & statuses.COMPLETED_STATUSES)
-    assert "implemented" in statuses.DELIVERED_STATUSES
-    assert not statuses.is_completed("implemented")
-    assert statuses.is_completed("verified")
-    assert statuses.band_of("IMPLEMENTED") == "delivered"
+    assert "staged" in statuses.DELIVERED_STATUSES
+    assert not statuses.is_completed("staged")
+    assert statuses.is_completed("implemented")   # terminal since ADR-0007
+    assert statuses.band_of("STAGED") == "delivered"
+    assert statuses.band_of("implemented") == "done"
     assert statuses.band_of("nonsense") is None
 
 
@@ -76,7 +83,8 @@ def test_delivered_ranks_between_pending_and_done() -> None:
 
 def test_collapsed_by_default_is_terminal_only() -> None:
     assert COLLAPSED_BY_DEFAULT == statuses.COMPLETED_STATUSES
-    assert "implemented" not in COLLAPSED_BY_DEFAULT
+    assert "staged" not in COLLAPSED_BY_DEFAULT      # delivered, not terminal
+    assert "implemented" in COLLAPSED_BY_DEFAULT     # terminal since ADR-0007
 
 
 # ---------------------------------------------------------------- js surface

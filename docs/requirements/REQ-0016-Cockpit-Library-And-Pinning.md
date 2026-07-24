@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0016
 aliases: ["REQ-0016"]
 title: "Cockpit Library mode + pin button (curated + auto-discovered + rare types)"
-status: verified
+status: implemented
 implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin

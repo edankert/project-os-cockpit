@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0001
 aliases: ["REQ-0001"]
 title: "Renders any .md under target docs/ as HTML on request — no build step"
-status: verified
+status: implemented
 phase: "[[PHASE-001-MVP]]"
 implements: ["[[FEAT-0001]]"]
 owner: user:edwin

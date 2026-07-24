@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0013
 aliases: ["REQ-0013"]
 title: "Code-driven 3-pane cockpit layout (features-by-phase + outbound + inbound-only)"
-status: verified
+status: implemented
 implements: ["[[FEAT-0006]]"]
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
