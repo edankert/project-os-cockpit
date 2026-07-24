@@ -12,9 +12,10 @@ pr: ""
 impacts: ["src/project_os_cockpit/statuses.py", "src/project_os_cockpit/cockpit.py", "src/project_os_cockpit/templates.py", "src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "src/project_os_cockpit/static/cockpit.js", "tests/test_status_vocabulary.py", "tests/test_index.py"]
 issues: ["[[ISS-0023-Implemented-Status-Band-Drift]]"]
 features: ["[[FEAT-0006-Cockpit-Layout]]"]
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "model:claude-fable-5"
+review_date: 2026-07-24
+review_verdict: approved
+review_note: "Same-family review (authored by Claude-family Opus, reviewed by model:claude-fable-5) — NOT independent per QUALITY.md; a cross-vendor or human pass is still owed. Findings were accepted and acted on; see the note body."
 related: ["[[CHG-20260724-Implemented-Status-Rank]]", "[[REQ-0012-Visual-Style]]", "[[TST-0019-Status-Vocabulary-Parity]]"]
 ---
 

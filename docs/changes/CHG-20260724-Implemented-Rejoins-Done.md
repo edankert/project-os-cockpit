@@ -9,12 +9,13 @@ updated: 2026-07-24
 source: ["upstream:project-os-dev ADR-0007"]
 commit: ""
 pr: ""
-impacts: ["src/project_os_cockpit/statuses.py", "src/project_os_cockpit/cockpit.py", "src/project_os_cockpit/templates.py", "src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "src/project_os_cockpit/static/cockpit.js", "tests/test_status_vocabulary.py", "tests/test_index.py"]
+impacts: ["src/project_os_cockpit/statuses.py", "src/project_os_cockpit/cockpit.py", "src/project_os_cockpit/templates.py", "src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "src/project_os_cockpit/static/cockpit.js", "tests/test_status_vocabulary.py", "tests/test_index.py", "tools/ (ADR-0007 template sync)", "docs/requirements/ (16 status demotions)"]
 issues: []
 features: ["[[FEAT-0006-Cockpit-Layout]]"]
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "model:claude-fable-5"
+review_date: 2026-07-24
+review_verdict: approved
+review_note: "Same-family review (authored by Claude-family Opus, reviewed by model:claude-fable-5) — NOT independent per QUALITY.md; a cross-vendor or human pass is still owed. Findings were accepted and acted on; see the note body."
 related: ["[[CHG-20260724-Delivered-Status-Band]]", "[[REQ-0012-Visual-Style]]", "[[TST-0019-Status-Vocabulary-Parity]]"]
 ---
 
@@ -36,7 +37,7 @@ Both fixes were right about the same underlying fault: `implemented` was rendere
 
 ## What caught the drift
 
-[[TST-0019-Status-Vocabulary-Parity]] — authored with the Delivered band — failed on **7 of 13** cases the moment `statuses.py` changed, naming every surface still treating `implemented` as delivered: the JS Hide-completed set, both stylesheets' rules, the two ordering tables, and the collapse set. That is exactly the job it was written for; without it this change would have re-created the six-way drift the band was introduced to fix.
+[[TST-0019-Status-Vocabulary-Parity]] — authored with the Delivered band — failed the moment `statuses.py` changed, naming the surfaces still treating `implemented` as delivered: the JS Hide-completed set, both stylesheets' rules, the `STATUS_RANK` band ordering, and the collapse set. (An earlier version of this note said "7 of 13" and included `TASK_STATUS_ORDER`; independent review re-ran the scenario and measured **6 of 13**, with `TASK_STATUS_ORDER` passing because `implemented` was still present, merely in the delivered position. Corrected.) That is exactly the job it was written for; without it this change would have re-created the six-way drift the band was introduced to fix.
 
 ## Impact
 

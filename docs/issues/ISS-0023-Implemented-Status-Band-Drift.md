@@ -54,3 +54,9 @@ Seven previously unmapped statuses were swept up in the same pass: `resolved`, `
 - Guarded by: [[TST-0019-Status-Vocabulary-Parity]]
 - Change note: [[CHG-20260724-Delivered-Status-Band]]
 - Partially reverses: [[CHG-20260724-Implemented-Status-Rank]]
+
+## Superseded in part (2026-07-24, same day)
+
+The fix above put `implemented` in the Delivered band. Hours later `ADR-0007` retired the requirement `verified` status and made `implemented` **terminal**, so it moved to Done — see [[CHG-20260724-Implemented-Rejoins-Done]]. The Delivered band itself stands, holding `staged` and `monitoring`.
+
+What this issue actually fixed and what survived: the six-way vocabulary drift, the canonical `statuses.py`, the parity test, and seven previously unmapped statuses. Only the placement of `implemented` was reversed.

@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 39
-  ISS: 23
+  ISS: 24
   PHASE: 7
   REQ: 21
   RISK: 4
@@ -1390,6 +1390,11 @@ items:
 
 
   issues:
+    ISS-0024:
+      title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
+      status: open
+      severity: medium
+      path: "docs/issues/ISS-0024-Status-Surfaces-Outside-The-Parity-Guard.md"
     ISS-0023:
       title: "Six status tables disagree about `implemented`: green chip, done-band rank, collapsed by default — yet never hidden by Hide-completed and unranked in the tasks pane"
       status: fixed
@@ -2217,10 +2222,10 @@ metrics:
     tasks_done: 194
     tests_total: 19
     tests_passing: 18
-    test_cases_total: 180
-    test_cases_passing: 179
+    test_cases_total: 182
+    test_cases_passing: 181
     tests_failing: 0
-    issues_open: 0
+    issues_open: 1
     issues_triage: 0
     risks_open: 4
     releases_total: 0

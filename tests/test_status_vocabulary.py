@@ -17,7 +17,7 @@ import re
 from pathlib import Path
 
 from project_os_cockpit import statuses
-from project_os_cockpit.cockpit import TASK_STATUS_ORDER
+from project_os_cockpit.cockpit import _ACTIVE_DONE, DONE_BY_TYPE, TASK_STATUS_ORDER, is_done_status
 from project_os_cockpit.templates import COLLAPSED_BY_DEFAULT, STATUS_RANK
 
 STATIC = Path(statuses.__file__).parent / "static"
@@ -85,6 +85,32 @@ def test_collapsed_by_default_is_terminal_only() -> None:
     assert COLLAPSED_BY_DEFAULT == statuses.COMPLETED_STATUSES
     assert "staged" not in COLLAPSED_BY_DEFAULT      # delivered, not terminal
     assert "implemented" in COLLAPSED_BY_DEFAULT     # terminal since ADR-0007
+
+
+def test_done_by_type_recognises_terminal_requirement_status() -> None:
+    """`DONE_BY_TYPE` is a seventh surface the original parity test missed.
+
+    It drifted exactly the way ISS-0023 described: after ADR-0007 made
+    `implemented` the terminal requirement status, `DONE_REQ` still keyed on
+    the retired `verified` and omitted `implemented`, so the cockpit's own
+    progress boxes counted every migrated requirement as unfinished. Found by
+    independent review, not by this suite — hence this test.
+    """
+    assert is_done_status("requirement", "implemented")
+    assert not is_done_status("requirement", "staged")   # delivered, not terminal
+    # No per-type done vocabulary may treat a delivered (non-terminal) status
+    # as done — that is the ISS-0023 failure mode expressed per type.
+    for members in DONE_BY_TYPE.values():
+        assert not (set(members) & statuses.DELIVERED_STATUSES), (
+            f"a done vocabulary claims a delivered status: {set(members) & statuses.DELIVERED_STATUSES}"
+        )
+
+
+def test_active_done_is_the_completed_set() -> None:
+    """The Active-mode done set derives from the canonical vocabulary."""
+    assert _ACTIVE_DONE == statuses.COMPLETED_STATUSES
+    assert "implemented" in _ACTIVE_DONE
+    assert not (_ACTIVE_DONE & statuses.DELIVERED_STATUSES)
 
 
 # ---------------------------------------------------------------- js surface
@@ -159,3 +185,21 @@ def test_status_tokens_stay_muted() -> None:
     for token in statuses.BAND_TOKEN.values():
         for sat in re.findall(rf"{token}:\s*hsl\(\d+ (\d+)%", src):
             assert int(sat) <= 60, f"{token} is {sat}% saturated"
+
+
+def test_bundled_validator_matches_the_canonical_one() -> None:
+    """`validate_docs_bundled.py` is a verbatim copy — drift ships a stale taxonomy.
+
+    It fell behind ADR-0007 (still allowing requirement `verified` after the
+    canonical validator dropped it), which is how a repo validating through the
+    cockpit's fallback path would have accepted a retired status. The
+    CHG-20260717 follow-up asked for a sync check; this is it.
+    """
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    canonical = (root / "tools" / "scripts" / "validate-docs.py").read_text(encoding="utf-8")
+    bundled = (root / "src" / "project_os_cockpit" / "validate_docs_bundled.py").read_text(encoding="utf-8")
+    assert bundled == canonical, (
+        "validate_docs_bundled.py has drifted from tools/scripts/validate-docs.py; "
+        "re-copy it (it is a verbatim bundle, not a fork)"
+    )
