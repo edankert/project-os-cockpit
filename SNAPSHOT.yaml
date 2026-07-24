@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 39
-  ISS: 21
+  ISS: 22
   PHASE: 7
   REQ: 21
   RISK: 4
@@ -759,7 +759,7 @@ items:
       status: deferred
       phase: "[[PHASE-999-Future]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0045-Preview-Config-Tab.md"
-      parent: "FEAT-0003"
+      origin: "FEAT-0003"
     TASK-0046:
       title: "Cockpit: browser tab activity indicator (title + favicon dot when hidden)"
       status: cancelled
@@ -879,7 +879,7 @@ items:
       status: deferred
       phase: "[[PHASE-999-Future]]"
       path: "docs/features/desktop-shell/plan/tasks/TASK-0065-Build-Sign-Distribute.md"
-      parent: "FEAT-0007"
+      origin: "FEAT-0007"
       blocked_reason: "Parked 2026-05-25 — defer until the app needs to be handed to someone other than the developer. Dev loop (npm start) covers current use."
     TASK-0066:
       title: "Document existing cockpit API contract (docs/references/COCKPIT-API.md)"
@@ -1389,6 +1389,11 @@ items:
       title: "Console in-flight blocks miss the work when the agent edits code, not notes — the declared SNAPSHOT focus is ignored"
       status: fixed
       path: "docs/issues/ISS-0019-Inflight-Ignores-Focus.md"
+    ISS-0022:
+      title: "Repo is behind the project-os template: its vendored validator cannot see 8 real errors (deferral provenance + stale metrics), and it never adopted the generated adapter surface"
+      status: fixed
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0022-Behind-Template.md"
     ISS-0021:
       title: "Independent review of the model-routing upstreaming returned changes-requested — independence rule weakened, opusplan claim wrong, downstream hooks.json not updated"
       status: fixed
@@ -2172,10 +2177,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 35
-    features_done: 30
-    tasks_total: 162
-    tasks_done: 164
+    features_total: 39
+    features_done: 34
+    tasks_total: 197
+    tasks_done: 193
     tests_total: 18
     tests_passing: 17
     test_cases_total: 167

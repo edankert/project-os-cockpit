@@ -9,7 +9,7 @@ owner: user:edwin
 created: 2026-05-24
 updated: 2026-07-20
 source: []
-parent: "FEAT-0007"
+origin: "FEAT-0007"
 effort: ""
 due: ""
 depends: ["[[TASK-0062]]", "[[TASK-0064]]"]

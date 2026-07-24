@@ -9,7 +9,7 @@ owner: user:edwin
 created: 2026-05-22
 updated: 2026-07-20
 source: []
-parent: "[[FEAT-0003]]"
+origin: "FEAT-0003"
 fixes: []
 effort: M
 due: ""
