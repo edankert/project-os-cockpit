@@ -19,6 +19,7 @@ from pathlib import PurePosixPath
 from typing import Any, Iterable
 
 from . import __version__ as _VERSION
+from .statuses import COMPLETED_STATUSES
 from .wikilinks import Resolver, resolve_text_to_html
 
 # Project name shown in the header home-link. Set once at server startup
@@ -410,27 +411,36 @@ def _status_chip(value: Any) -> str:
 
 # Lower rank = earlier in the page. Tuned to satisfy REQ-0007:
 #   active/doing/in-progress first → backlog/triage middle → done/closed last.
+# Membership is checked against statuses.VOCABULARY by
+# tests/test_status_vocabulary.py; the ranks themselves are a reading-order
+# judgement and stay explicit here.
 STATUS_RANK: dict[str, int] = {
     # active / in-progress
-    "active": 10, "doing": 11, "in-progress": 11, "next": 12,
-    "approved": 13, "accepted": 13,
+    "active": 10, "doing": 11, "in-progress": 11, "in-review": 11, "next": 12,
+    "approved": 13, "accepted": 13, "ready": 13, "mitigating": 14,
     # backlog
     "backlog": 30, "planned": 31, "proposed": 31, "draft": 32,
     "todo": 32, "open": 33, "pending": 33, "triage": 34, "reference": 35,
+    # delivered — shipped, not yet signed off (ISS-0023). Ranks between the
+    # backlog and done bands: no longer work-to-do, not yet finished.
+    "implemented": 50, "staged": 51, "monitoring": 52,
     # done
-    "done": 60, "fixed": 60, "merged": 60, "published": 60,
-    "implemented": 62,
+    "done": 60, "fixed": 60, "merged": 60, "published": 60, "resolved": 60,
+    "fulfilled": 61, "met": 61, "complete": 61, "released": 61,
     "verified": 65, "passing": 65,
     # dead / blocked
-    "closed": 80, "obsolete": 81, "blocked": 90, "reopened": 91, "failing": 92,
+    "closed": 80, "obsolete": 81,
+    "retired": 82, "cancelled": 82, "superseded": 82, "wont-fix": 82,
+    "reverted": 82, "rolled-back": 82, "deprecated": 82, "deferred": 83,
+    "blocked": 90, "reopened": 91, "failing": 92,
 }
-STATUS_RANK_DEFAULT: int = 50
+STATUS_RANK_DEFAULT: int = 55
 
-# Statuses whose collapsible group defaults to closed (still expandable).
-COLLAPSED_BY_DEFAULT: frozenset[str] = frozenset(
-    {"done", "fixed", "merged", "published", "implemented", "verified", "passing",
-     "closed", "obsolete"}
-)
+# Statuses whose collapsible group defaults to closed (still expandable) —
+# the terminal ones only. `implemented` is NOT among them: it is delivered
+# but unverified, and collapsing it away hides the work that still owes a
+# verification record (ISS-0023).
+COLLAPSED_BY_DEFAULT: frozenset[str] = COMPLETED_STATUSES
 
 
 def index_page_html(

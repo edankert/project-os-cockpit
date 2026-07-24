@@ -31,20 +31,21 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 39
-  ISS: 22
+  ISS: 23
   PHASE: 7
   REQ: 21
   RISK: 4
   REL: 0
-  TASK: 197
-  TST: 18
+  TASK: 198
+  TST: 19
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: "FEAT-0039"
+  task: "TASK-0198"
+  feature: "FEAT-0006"
   phase: "[[PHASE-007-Agent-Instrumentation]]"
-  issue: ""
+  issue: "ISS-0023"
+  note: "2026-07-24 ISS-0023 — six palette surfaces disagree about `implemented`; introducing a Delivered band backed by a single canonical vocabulary (statuses.py) and a cross-surface parity test. Reported from ../your-sudoku (97 requirements at `implemented` that never clear under Hide-completed). Ships to project-os via release-to-project-os.sh, then syncs to the nine downstream repos."
 
 items:
   features:
@@ -262,6 +263,14 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0198:
+      title: "Delivered status band — one canonical status vocabulary, applied across all six palette surfaces"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/cockpit/plan/tasks/TASK-0198-Delivered-Status-Band.md"
+      parent: "FEAT-0006"
+      fixes: ["ISS-0023"]
+      tests: ["TST-0019"]
     TASK-0197:
       title: "Upstream the routing to project-os and adopt it here — template-owned hook + generated subagents replace the local prototype"
       status: done
@@ -1381,6 +1390,11 @@ items:
 
 
   issues:
+    ISS-0023:
+      title: "Six status tables disagree about `implemented`: green chip, done-band rank, collapsed by default — yet never hidden by Hide-completed and unranked in the tasks pane"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0023-Implemented-Status-Band-Drift.md"
     ISS-0020:
       title: "Strip misses the session’s implemented tasks — status changes (esp. via non-Edit-tool writes) and cross-prompt completions never surface"
       status: fixed
@@ -1637,6 +1651,11 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0019:
+      title: "Status vocabulary parity — one canonical band map, six surfaces held to it"
+      status: passing
+      path: "docs/features/cockpit/plan/tests/TST-0019-Status-Vocabulary-Parity.md"
+      validates: ["TASK-0198", "ISS-0023", "REQ-0012"]
     TST-0018:
       title: "Status-diff layer transitions emit once; non-changes and cold seed silent"
       status: passing
@@ -1723,6 +1742,12 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260724-Delivered-Status-Band:
+      title: "Seventh palette bucket — `implemented` becomes Delivered (amber, non-terminal) and one canonical vocabulary now backs all six status surfaces"
+      status: merged
+      path: "docs/changes/CHG-20260724-Delivered-Status-Band.md"
+      issues: ["ISS-0023"]
+      features: ["FEAT-0006"]
     CHG-20260721-Agent-Label-And-Per-Project-Sessions:
       title: "Agent label follows live signal; ~agents per-project session history"
       status: merged
@@ -2179,12 +2204,12 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 39
     features_done: 34
-    tasks_total: 197
-    tasks_done: 193
-    tests_total: 18
-    tests_passing: 17
-    test_cases_total: 167
-    test_cases_passing: 166
+    tasks_total: 198
+    tasks_done: 194
+    tests_total: 19
+    tests_passing: 18
+    test_cases_total: 180
+    test_cases_passing: 179
     tests_failing: 0
     issues_open: 0
     issues_triage: 0

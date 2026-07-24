@@ -99,16 +99,25 @@ _TYPE_RANK: dict[str, int] = {t: i for i, t in enumerate(TYPE_ORDER)}
 # actively touching first; archived states last. `deferred` sits in the
 # parked band with blocked — it is descoped-but-still-wanted work, not
 # archived history (project-os STATUSES.md, "Deferral and re-adoption").
+#
+# This is attention priority, which is finer-grained than the colour bands
+# in `statuses.py` — hence an explicit tuple rather than a derivation. The
+# two are kept in step by tests/test_status_vocabulary.py, which fails if
+# any vocabulary status is missing here. `implemented` / `staged` /
+# `monitoring` sit in their own delivered band just above the done family:
+# shipped, but still owing verification, so they outrank finished work.
 TASK_STATUS_ORDER: tuple[str, ...] = (
     "doing", "in-progress", "in-review", "next",
     "blocked", "failing", "reopened", "deferred",
-    "ready", "active", "approved", "accepted",
+    "ready", "active", "approved", "accepted", "mitigating",
     "planned", "triage",
     "todo", "open", "pending", "backlog",
     "draft", "proposed",
-    "done", "merged", "fixed", "fulfilled", "met", "complete",
-    "verified", "passing", "published", "closed",
+    "implemented", "staged", "monitoring",
+    "done", "merged", "fixed", "resolved", "fulfilled", "met", "complete",
+    "verified", "passing", "published", "released", "closed",
     "obsolete", "retired", "cancelled", "superseded", "wont-fix", "reverted",
+    "rolled-back", "deprecated",
     "reference",
 )
 _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}

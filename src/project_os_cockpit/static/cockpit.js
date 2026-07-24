@@ -41,13 +41,25 @@
 
   // Statuses that "Hide completed" filters out. Mirrors the Done-positive
   // and Done-negative palette buckets — anything terminal disappears.
+  //
+  // Canonical membership lives in src/project_os_cockpit/statuses.py
+  // (COMPLETED_STATUSES); tests/test_status_vocabulary.py parses this
+  // object and fails if the two drift apart.
+  //
+  // NOTE: `implemented` / `staged` / `monitoring` are deliberately NOT here
+  // (ISS-0023). They are the Delivered band — shipped but not yet signed
+  // off — and project-os gates `implemented → verified` on passing test
+  // notes (STATUSES.md, QUALITY.md). Hiding them would conceal exactly the
+  // population that still owes a verification record. Do not "fix" this by
+  // adding them; they carry their own amber chip instead.
   var COMPLETED_STATUSES = {
-    // Done — positive (delivered / accepted / verified)
-    done: 1, merged: 1, fixed: 1, fulfilled: 1, met: 1, complete: 1,
-    verified: 1, passing: 1, published: 1, closed: 1,
+    // Done — positive (accepted / verified / shipped)
+    done: 1, merged: 1, fixed: 1, resolved: 1, fulfilled: 1, met: 1,
+    complete: 1, verified: 1, passing: 1, published: 1, released: 1,
+    closed: 1,
     // Done — negative (terminal without success)
     obsolete: 1, retired: 1, cancelled: 1, superseded: 1,
-    "wont-fix": 1, reverted: 1,
+    "wont-fix": 1, reverted: 1, "rolled-back": 1, deprecated: 1,
   };
 
   // ------------------------------------------------------------------ state
