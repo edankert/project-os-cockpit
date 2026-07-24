@@ -374,6 +374,7 @@ details.metadata-strip > summary:hover {
 .status-chip[data-status="fulfilled"]   { color: var(--status-done); }
 .status-chip[data-status="met"]         { color: var(--status-done); }
 .status-chip[data-status="complete"]    { color: var(--status-done); }
+.status-chip[data-status="implemented"] { color: var(--status-done); }
 .status-chip[data-status="verified"]    { color: var(--status-done); }
 .status-chip[data-status="passing"]     { color: var(--status-done); }
 .status-chip[data-status="published"]   { color: var(--status-done); }

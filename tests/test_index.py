@@ -306,3 +306,24 @@ def test_paths_includes_template_notes_for_resolution(
     assert index.by_id("FEAT-0000") == template
     # And the type wikilink resolves through the filename table.
     assert index.resolve("feature") == "/docs/__templates__/feature.md"
+
+
+# --- status ordering ------------------------------------------------------
+
+
+def test_implemented_status_sorts_and_collapses_with_the_done_family() -> None:
+    """`implemented` is a delivered-work status (project-os STATUSES.md), so it must
+    sort into the done band and collapse by default — not fall through to
+    STATUS_RANK_DEFAULT, which would strand it between backlog and done."""
+    from project_os_cockpit.templates import (
+        COLLAPSED_BY_DEFAULT,
+        STATUS_RANK,
+        STATUS_RANK_DEFAULT,
+    )
+
+    assert "implemented" in STATUS_RANK, "implemented must have an explicit rank"
+    assert STATUS_RANK["implemented"] != STATUS_RANK_DEFAULT
+    # done band: after in-progress/backlog, alongside done/verified
+    assert STATUS_RANK["done"] <= STATUS_RANK["implemented"] <= STATUS_RANK["verified"]
+    assert STATUS_RANK["implemented"] > STATUS_RANK["backlog"]
+    assert "implemented" in COLLAPSED_BY_DEFAULT

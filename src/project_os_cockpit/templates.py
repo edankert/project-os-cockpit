@@ -419,6 +419,7 @@ STATUS_RANK: dict[str, int] = {
     "todo": 32, "open": 33, "pending": 33, "triage": 34, "reference": 35,
     # done
     "done": 60, "fixed": 60, "merged": 60, "published": 60,
+    "implemented": 62,
     "verified": 65, "passing": 65,
     # dead / blocked
     "closed": 80, "obsolete": 81, "blocked": 90, "reopened": 91, "failing": 92,
@@ -427,7 +428,7 @@ STATUS_RANK_DEFAULT: int = 50
 
 # Statuses whose collapsible group defaults to closed (still expandable).
 COLLAPSED_BY_DEFAULT: frozenset[str] = frozenset(
-    {"done", "fixed", "merged", "published", "verified", "passing",
+    {"done", "fixed", "merged", "published", "implemented", "verified", "passing",
      "closed", "obsolete"}
 )
 
