@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0024
 aliases: ["ISS-0024"]
 title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
-status: open
+status: fixed
 severity: medium
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -33,14 +33,31 @@ Since `CHG-20260724-Implemented-Rejoins-Done` demoted all 16 of this repo's requ
 
 **Guarded**: TST-0019 gains `test_done_by_type_recognises_terminal_requirement_status` and `test_active_done_is_the_completed_set`. Adequacy confirmed by mutation — reverting `DONE_REQ` to the old set fails the new test (1 failed, 14 passed).
 
-## 2. Two CSS constructs still pass a broken palette (open)
+## 2. Two CSS constructs still pass a broken palette (FIXED)
 
 Review demonstrated both, each with the suite green:
 
 - **Later same-specificity override** — appending `.status-chip[data-status="staged"] { color: hsl(0, 100%, 50%); }` at the end of `base.css` renders the chip pure red. `_css_status_map` skips any block without `var(--status-…)`, keeps the earlier mapping, and passes.
 - **Token redefinition in comma syntax** — `--status-delivered: hsl(340, 90%, 50%)` is hot pink at 90% saturation. `test_status_tokens_stay_muted`'s regex expects space-separated `hsl(H S% L%)`, so the saturation assertion silently skips.
 
-Neither is fixed. Both are narrow (they require someone to add a colour literal rather than a token, which REQ-0012 criterion 1 forbids anyway — but that criterion is a manual grep, not automated). Hardening would be: assert no `color:` declaration on a `data-status` selector resolves to anything but a `var(--status-…)` token, and widen the saturation regex to accept comma syntax.
+Both are now closed, and both root causes were the same shape: **a check that silently matched nothing counted as a pass.**
+
+- `_css_status_map` did `if not token: continue` — any rule without a `var(--status-…)` was skipped rather than judged, so a literal override was invisible. Replaced by `_css_status_rules`, which returns **every** `[data-status=…]` rule in source order (the cascade is last-wins, so seeing them all is required), plus a new `test_no_literal_colour_on_status_selectors` asserting each `color:` resolves through a palette token.
+- `test_status_tokens_stay_muted`'s regex only matched space-syntax `hsl(H S% L%)`. On comma syntax `re.findall` returned `[]`, the loop body never ran, and a 90%-saturated token passed **by matching nothing**. The regex now accepts both syntaxes, and — the real fix — asserts each token was actually found and parsed, so an unmatched token fails instead of passing.
+
+Adequacy proven against five constructs, each of which passed before and fails now:
+
+| Attack | Result |
+|---|---|
+| Later same-specificity `color: hsl(0, 100%, 50%)` override (the reviewer's exact case) | caught |
+| `--status-delivered: hsl(340, 90%, 50%)` comma-syntax hot pink | caught — "is 90% saturated" |
+| `color: red` keyword on a group-icon rule | caught |
+| Token deleted from `base.css` entirely | caught — "is not defined" |
+| `color: #ff0000` hex override | caught |
+
+No false positives: the real stylesheets pass unchanged (252 passed, 1 skipped).
+
+The general lesson, which is the same one that produced the wrong counts elsewhere in this cycle: **an assertion inside a loop over a possibly-empty match set is not an assertion.** Assert the match set is non-empty first.
 
 ## 3. `validate_docs_bundled.py` is behind (FIXED)
 
@@ -48,7 +65,7 @@ Neither is fixed. Both are narrow (they require someone to add a colour literal 
 
 **Fixed**: re-copied verbatim from the canonical validator, and `TST-0019` gains `test_bundled_validator_matches_the_canonical_one` asserting byte-equality — closing the "consider a sync-script check" follow-up left open by `CHG-20260717-Verification-Health-Surface`.
 
-**This issue stays `open`** for §2 above, which is not fixed.
+All four sections are now fixed; the issue is closed.
 
 ## 4. The Electron desktop renderer had three more unguarded tables (FIXED)
 

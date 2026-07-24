@@ -34,10 +34,10 @@ path: "tests/test_status_vocabulary.py"
 
 ```
 $ .venv/bin/pytest tests/test_status_vocabulary.py -q
-16 passed in 0.05s
+20 passed in 0.03s
 
 $ .venv/bin/pytest -q
-248 passed, 1 skipped
+252 passed, 1 skipped
 ```
 
 Full-suite run includes the superseded contract in `tests/test_index.py::test_implemented_status_sorts_after_backlog_but_stays_expanded`, rewritten from the previous done-band assertion.
@@ -61,4 +61,4 @@ Not covered: visual rendering of the new amber `--status-delivered` hue in a rea
 
 **Current (16 tests).** Independent review re-verified each guard by mutation rather than by re-reading: poisoning `DONE_REQ` with `staged` fails the delivered/done separation assertion; poisoning `DONE_ISS` with `monitoring` fails the per-type loop (a case the direct assertions do not reach); appending two bytes to `validate_docs_bundled.py` fails the byte-identity guard. All mutations restored byte-identically.
 
-Two blind spots are known and **not** guarded — a later same-specificity CSS override with a colour literal, and a token redefined in comma-syntax `hsl()` which the saturation regex skips. Both were demonstrated live against this suite. Tracked in [[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]] §2.
+**Both previously-known CSS blind spots are now closed** ([[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]] §2). A later same-specificity rule with a colour literal, and a token redefined in comma-syntax `hsl()`, both used to pass. Five constructs were tried against the hardened suite — literal `hsl()` override, comma-syntax 90%-saturated token, `color: red` keyword, deleted token, hex override — and all five now fail. The real defect in both cases was the same: a loop over an empty match set asserted nothing, so the check passed by finding nothing. The suite now asserts the match set is non-empty before judging it.

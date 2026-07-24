@@ -138,21 +138,51 @@ def test_js_never_hides_delivered_work() -> None:
 
 # --------------------------------------------------------------- css surfaces
 
-def _css_status_map(path: Path, selector: str) -> dict[str, str]:
-    """Map data-status value -> the --status-* token its rule resolves to."""
+def _css_status_rules(path: Path, selector: str) -> list[tuple[list[str], str]]:
+    """Every `[data-status=…]` rule for `selector`, in source order.
+
+    Source order matters: CSS resolves same-specificity conflicts last-wins,
+    so a later rule silently overrides an earlier one. The parser must see
+    *all* rules, not only the ones that happen to use a token (ISS-0024 §2).
+    """
     src = path.read_text(encoding="utf-8")
-    out: dict[str, str] = {}
-    # Rules are written as one-or-more comma-separated selectors then a block.
-    for chunk in re.findall(
+    rules: list[tuple[list[str], str]] = []
+    for selectors, block in re.findall(
         rf"((?:\.{selector}\[data-status=\"[a-z-]+\"\],?\s*)+)\{{([^}}]*)\}}", src
     ):
-        selectors, block = chunk
+        rules.append((re.findall(r'data-status="([a-z-]+)"', selectors), block))
+    return rules
+
+
+def _css_status_map(path: Path, selector: str) -> dict[str, str]:
+    """Map data-status value -> the --status-* token its rule resolves to.
+
+    Last-wins, mirroring the cascade.
+    """
+    out: dict[str, str] = {}
+    for statuses_in_rule, block in _css_status_rules(path, selector):
         token = re.search(r"var\((--status-[a-z-]+)\)", block)
         if not token:
             continue
-        for status in re.findall(r'data-status="([a-z-]+)"', selectors):
+        for status in statuses_in_rule:
             out[status] = token.group(1)
     return out
+
+
+# A `color:` on a status selector must resolve through a palette token. A raw
+# literal renders a colour the parity map cannot see — the first ISS-0024 §2
+# blind spot, where appending one red rule left the whole suite green.
+_COLOUR_DECL_RE = re.compile(r"(?<![-\w])color\s*:\s*([^;}]+)")
+
+
+def _literal_colour_rules(path: Path, selector: str) -> list[tuple[list[str], str]]:
+    bad = []
+    for statuses_in_rule, block in _css_status_rules(path, selector):
+        for decl in _COLOUR_DECL_RE.findall(block):
+            value = decl.strip()
+            if not re.fullmatch(r"var\(--status-[a-z-]+\)", value):
+                bad.append((statuses_in_rule, value))
+    return bad
 
 
 def test_chip_css_covers_the_vocabulary_with_the_right_tokens() -> None:
@@ -185,11 +215,31 @@ def test_every_band_token_is_defined_in_both_themes() -> None:
 
 
 def test_status_tokens_stay_muted() -> None:
-    """REQ-0012: every semantic hue is ≤60% saturation."""
+    """REQ-0012: every semantic hue is ≤60% saturation.
+
+    Accepts both `hsl(H S% L%)` and legacy `hsl(H, S%, L%)`, and asserts each
+    token was actually matched. The comma form used to slip past the regex
+    entirely, so a 90%-saturated token passed by matching nothing at all —
+    the second ISS-0024 §2 blind spot.
+    """
     src = BASE_CSS.read_text(encoding="utf-8")
     for token in statuses.BAND_TOKEN.values():
-        for sat in re.findall(rf"{token}:\s*hsl\(\d+ (\d+)%", src):
-            assert int(sat) <= 60, f"{token} is {sat}% saturated"
+        decls = re.findall(rf"{token}\s*:\s*([^;}}]+)", src)
+        assert decls, f"{token} is not defined in base.css"
+        for value in decls:
+            m = re.search(r"hsl\(\s*[\d.]+\s*,?\s+([\d.]+)%", value)
+            assert m, f"{token} is not a parseable hsl() value: {value.strip()!r}"
+            assert float(m.group(1)) <= 60, f"{token} is {m.group(1)}% saturated"
+
+
+def test_no_literal_colour_on_status_selectors() -> None:
+    """Every status rule paints through a palette token, never a raw literal."""
+    for path, selector in ((BASE_CSS, "status-chip"), (COCKPIT_CSS, "group-icon")):
+        bad = _literal_colour_rules(path, selector)
+        assert not bad, (
+            f"{path.name}: status rules set a non-token colour — "
+            + "; ".join(f"{s} -> {v!r}" for s, v in bad)
+        )
 
 
 def test_bundled_validator_matches_the_canonical_one() -> None:
