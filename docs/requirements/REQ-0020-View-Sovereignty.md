@@ -4,7 +4,7 @@ id: REQ-0020
 aliases: ["REQ-0020"]
 title: "View sovereignty — the user's chosen view is never evicted without consent"
 status: implemented
-implements: []
+implements: ["[[FEAT-0034-Agents-Tab-And-Follow-Control]]"]
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-07-19

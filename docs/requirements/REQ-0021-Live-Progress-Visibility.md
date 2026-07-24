@@ -4,6 +4,7 @@ id: REQ-0021
 aliases: ["REQ-0021"]
 title: "Live progress visibility at the console — session work items shown as the coloured block notation, filling in as the agent completes them"
 status: implemented
+implements: ["[[FEAT-0038-Console-Progress-Rail]]"]
 owner: user:edwin
 created: 2026-07-22
 acceptance:
