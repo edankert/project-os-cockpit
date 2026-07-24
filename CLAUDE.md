@@ -50,6 +50,14 @@ These files contain detailed rules. Read them when performing the related operat
 - Adapter sync: tools/skills/adapter-sync/SKILL.md
 - Cockpit driving: tools/skills/cockpit-driving/SKILL.md
 
+## Model routing (lifecycle phase → model)
+
+Models are pinned to lifecycle phases via subagents (FEAT-0039, upstreamed as project-os HC-008). The main session runs on Opus (`model` in `.claude/settings.json`) and does the implementation. Preflight/planning (LIFECYCLE steps 1–5) is delegated to the `planner` subagent (`.claude/agents/planner.md`, pinned to `claude-fable-5`). Close-out review (LIFECYCLE step 8) and ad-hoc review requests are delegated to the `independent-reviewer` subagent (`.claude/agents/independent-reviewer.md`, same pin). The `UserPromptSubmit` hook `tools/adapters/claude-code/hooks/model-routing-hint.sh` injects a routing hint derived from the SNAPSHOT focus item's status; follow it unless the prompt clearly says otherwise.
+
+Keeping the session model off the reviewer's pin is harm reduction, not independence: QUALITY.md requires a different model *family* or a human, and Claude Code subagents can only pin Claude models. A same-family review does not close that gate — record a cross-vendor or human pass manually when it matters.
+
+Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are byte-identical to upstream's, but note that `sync-project-os.sh` copies `tools/` and never touches `.claude/`, and this repo carries no generator — so the agent files can only be refreshed by re-copying them, and nothing here detects drift.
+
 ## Project-specific notes
 
 Stack: Python 3.11+. Dependencies live in `pyproject.toml`. Source under `src/project_os_cockpit/`. Run with `python -m project_os_cockpit <path-to-docs-dir>` or the installed console script `project-os-cockpit <path-to-docs-dir>`. The render server binds to `0.0.0.0` (so a tablet on the same Wi-Fi can read), the optional terminal endpoint binds to `127.0.0.1` only (Mac-local).

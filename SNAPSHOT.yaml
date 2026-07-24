@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-07-17T21:20Z"
+updated: "2026-07-24T09:19Z"
 
 template:
   replace_me: false
@@ -28,26 +28,32 @@ docs_system:
 counters:
   ADR: 5
   CHG:
-    last_date: 20260719
+    last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 38
-  ISS: 20
+  FEAT: 39
+  ISS: 21
   PHASE: 7
   REQ: 21
   RISK: 4
   REL: 0
-  TASK: 194
+  TASK: 197
   TST: 18
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0003"
-  phase: "[[PHASE-004-Embedded-Terminal]]"
-  issue: "ISS-0011"
+  feature: "FEAT-0039"
+  phase: "[[PHASE-007-Agent-Instrumentation]]"
+  issue: ""
 
 items:
   features:
+    FEAT-0039:
+      title: "Model routing — phase-pinned Claude Code subagents (planner/reviewer on Fable) + snapshot-driven routing-hint hook"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/model-routing/FEAT-0039-Model-Routing-Subagents.md"
+      tasks: ["TASK-0195", "TASK-0196", "TASK-0197"]
     FEAT-0038:
       title: "Console progress rail — live work-blocks under the session strip + enriched progress panel"
       status: done
@@ -256,6 +262,24 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0197:
+      title: "Upstream the routing to project-os and adopt it here — template-owned hook + generated subagents replace the local prototype"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/model-routing/plan/tasks/TASK-0197-Upstream-And-Adopt.md"
+      parent: "FEAT-0039"
+    TASK-0196:
+      title: "Snapshot-driven routing hint — UserPromptSubmit hook + settings wiring (main loop pinned to Opus)"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/model-routing/plan/tasks/TASK-0196-Routing-Hint-Hook.md"
+      parent: "FEAT-0039"
+    TASK-0195:
+      title: "Phase-pinned subagents — planner + independent-reviewer on Fable under .claude/agents/"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/features/model-routing/plan/tasks/TASK-0195-Phase-Pinned-Subagents.md"
+      parent: "FEAT-0039"
     TASK-0194:
       title: "Record per-session status changes from the watcher and include them (durably) in the in-flight work set"
       status: done
@@ -1365,6 +1389,12 @@ items:
       title: "Console in-flight blocks miss the work when the agent edits code, not notes — the declared SNAPSHOT focus is ignored"
       status: fixed
       path: "docs/issues/ISS-0019-Inflight-Ignores-Focus.md"
+    ISS-0021:
+      title: "Independent review of the model-routing upstreaming returned changes-requested — independence rule weakened, opusplan claim wrong, downstream hooks.json not updated"
+      status: fixed
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      path: "docs/issues/ISS-0021-Model-Routing-Review-Findings.md"
+      related: ["FEAT-0039"]
     ISS-0018:
       title: "Progress blocks show the whole session's touched notes (reads as all-project), on a second line, without titles/status — should be prompt-scoped, inline before ctx, enriched"
       status: fixed
