@@ -1,0 +1,417 @@
+<!doctype html>
+<!--
+  Renderer visual harness (FEAT-0040).
+
+  Loads the REAL built bundle (dist/renderer/renderer.js + renderer.css)
+  in a plain browser, with the Electron preload bridge and the sidecar
+  HTTP API stubbed out. It exists because the overview surfaces are pure
+  DOM composition over two payloads, and the only way to see them
+  otherwise is to launch the app against a live workspace.
+
+  Serve the repo root over http and open:
+    /desktop/harness/overview-harness.html            → project overview
+    /desktop/harness/overview-harness.html#scope      → phase detail
+
+  Fixtures below are trimmed captures of this repo's own payloads, so the
+  harness shows the states the FEAT-0040 states audit actually found:
+  a terminal focus chain, one open issue, four open risks, a never-run
+  test, and a phase finished but not closed out.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cockpit overview harness</title>
+  <!-- Same stylesheet order as dist/renderer/index.html — base.css owns the
+       status/severity tokens, cockpit.css the type tokens, renderer.css the
+       shell. Loading only renderer.css leaves every token unresolved. -->
+  <link rel="stylesheet" href="../dist/renderer/base.css" />
+  <link rel="stylesheet" href="../dist/renderer/cockpit.css" />
+  <link rel="stylesheet" href="../dist/renderer/renderer.css" />
+</head>
+<body>
+<script>
+// ---- stub the preload bridge -------------------------------------------
+// The preload exposes the bridge as `window.cockpit` (renderer.ts:194).
+const noopOff = () => {};
+const on = () => noopOff;
+window.cockpit = {
+  workspaces: {
+    list: async () => [{
+      id: 'ws1', name: 'project-os-cockpit', root: '/repo',
+      icon: null, state: 'idle',
+    }],
+    open: async () => ({ ok: true }),
+    rescan: async () => [], pickAndAdd: async () => null,
+    pickIcon: async () => null, remove: async () => ({ ok: true }),
+    notifyActiveChanged: () => {}, onAgentState: on, onSwitchTo: on,
+  },
+  sidecar: { onEvent: (cb) => { window.__sidecarCb = cb; return noopOff; } },
+  agent: { onFocus: on, onDispatchSelection: on },
+  agents: { fleet: async () => [], sessions: async () => [] },
+  dispatch: {
+    list: async () => [], execute: async () => ({ ok: true }),
+    clear: async () => ({ ok: true }), remove: async () => ({ ok: true }),
+    poke: async () => ({ ok: true }), onDelivered: on, onQueueChanged: on,
+  },
+  menu: { onBack: on, onForward: on, onRescan: on, onToggleTerminal: on },
+  deeplink: { onUrl: on },
+  settings: { get: async () => ({}), set: async () => ({ ok: true, settings: {} }) },
+  terminal: {
+    spawn: async () => ({ ok: false }), attach: async () => ({ ok: false }),
+    write: () => {}, resize: () => {}, dispose: () => {},
+    onData: on, onExit: on,
+  },
+  app: {
+    openExternal: () => {}, revealInFinder: () => {},
+    resolveDroppedFile: async () => null, showContextMenu: async () => {},
+    onMenuDispatch: on,
+  },
+};
+
+// ---- fixtures ----------------------------------------------------------
+const scoped = location.hash === '#scope';
+
+const item = (id, title, status, type, bucket, extra = {}) =>
+  ({ id, title, rel: `docs/${type}s/${id}.md`, status, bucket, type, ...extra });
+
+// Stress case: the unphased bucket in a mature repo (your-sudoku holds
+// 94 loose issues) — the group must wrap inside its card.
+// `?stress` renders the pathological unphased bucket (94 loose issues,
+// matching your-sudoku) to prove groups wrap inside their card.
+const STRESS_N = location.search.includes('stress') ? 94 : 6;
+const STRESS_LOOSE = Array.from({length: STRESS_N}, (_, i) => item(
+  `ISS-${String(i+1).padStart(4,'0')}`, `Issue ${i+1}`,
+  i % 3 ? 'open' : 'fixed', 'issue', i % 3 ? 'backlog' : 'done'));
+
+const STATS = {
+  schema_version: 4,
+  scope: scoped ? {
+    id: 'PHASE-007', title: 'Agent Instrumentation',
+    status: 'doing', rel: 'docs/phases/PHASE-007.md',
+  } : null,
+  exit_criteria: scoped ? [
+    { text: 'Hook ingestion auto-instruments sessions — TST-0010', done: true },
+    { text: 'Attention inbox with a sane lifecycle', done: true },
+    { text: 'Fleet view with cost, queues, rate limits', done: true },
+    { text: 'Dispatch from the board, durable ledger — TST-0014', done: true },
+    { text: 'Model routing pinned per lifecycle phase', done: false },
+    { text: 'Status vocabulary parity, six surfaces — TST-0019', done: true },
+  ] : null,
+  focus: {
+    items: {
+      phase: { id: 'PHASE-008', title: 'State & review surfaces', status: 'active', type: 'phase', rel: 'docs/phases/PHASE-008.md', done: false },
+      feature: { id: 'FEAT-0040', title: 'Overview rework', status: 'backlog', type: 'feature', rel: 'docs/features/FEAT-0040.md', done: false },
+      task: { id: 'TASK-0199', title: 'Sidecar payload additions', status: 'doing', type: 'task', rel: 'docs/tasks/TASK-0199.md', done: false },
+    },
+    note: '2026-07-26 preflight for the approved overview-redesign dossier.',
+    note_date: '2026-07-26',
+  },
+  hero: {
+    features: { total: 41, done: 35 }, tasks: { total: 210, done: 193 },
+    issues: { total: 26, open: 1 }, tests: { total: 19, passing: 18 },
+    risks: { total: 4, open: 4 }, requirements: { total: 22, done: 21 },
+    last_change: { id: 'CHG-20260724', title: 'Delivered status band', rel: 'docs/changes/CHG.md', date: '2026-07-24' },
+  },
+  phases: scoped ? [{
+    key: 'PHASE-007', title: 'Agent Instrumentation', status: 'doing',
+    rel: 'docs/phases/PHASE-007.md',
+    tasks: { done: 58, in_progress: 1, backlog: 2 },
+    features: [
+      { ...item('FEAT-0039', 'Model routing — phase-pinned subagents', 'doing', 'feature', 'in_progress'), children: [
+        item('TASK-0195', 'Phase-pinned subagents', 'done', 'task', 'done'),
+        item('TASK-0196', 'Routing-hint hook + settings wiring', 'doing', 'task', 'in_progress'),
+        item('TASK-0197', 'Upstream and adopt', 'backlog', 'task', 'backlog'),
+      ] },
+      { ...item('FEAT-0038', 'Console progress rail', 'done', 'feature', 'done'), children: [
+        item('REQ-0021', 'Live progress visibility', 'implemented', 'requirement', 'done'),
+        item('TASK-0188', 'Progress rail under strip', 'done', 'task', 'done'),
+        item('TASK-0189', 'Rich progress rows', 'done', 'task', 'done'),
+      ] },
+      { ...item('FEAT-0030', 'Agent inbox', 'done', 'feature', 'done'), children: [
+        item('TASK-0147', 'Docked attention panel', 'done', 'task', 'done'),
+        item('TASK-0156', 'Idle-prompt severity remap', 'done', 'task', 'done'),
+      ] },
+    ],
+    loose: [
+      item('ISS-0023', 'Palette surfaces disagree on `implemented`', 'triage', 'issue', 'backlog', { severity: 'high' }),
+      item('TST-0011', 'Live session instrumentation', 'ready', 'test', 'backlog'),
+    ],
+  }] : [
+    { key: 'PHASE-000', title: 'Unphased', status: 'active', rel: null,
+      tasks: { done: 20, in_progress: 4, backlog: 70 },
+      features: [], loose: STRESS_LOOSE },
+    { key: 'PHASE-008', title: 'State & review surfaces', status: 'active', rel: 'docs/phases/PHASE-008.md',
+      tasks: { done: 1, in_progress: 1, backlog: 12 },
+      features: [
+        { ...item('FEAT-0040', 'Overview rework', 'backlog', 'feature', 'backlog'), children: [
+          item('REQ-0022', 'State above history', 'draft', 'requirement', 'backlog'),
+          item('TASK-0199', 'Sidecar payload additions', 'doing', 'task', 'in_progress'),
+          item('TASK-0200', 'Overview stage rework', 'backlog', 'task', 'backlog'),
+        ] },
+        { ...item('FEAT-0041', 'Review desk', 'backlog', 'feature', 'backlog'), children: [
+          item('TASK-0205', 'Approval-gate decision', 'backlog', 'task', 'backlog'),
+          item('TASK-0209', 'Manual test runner', 'backlog', 'task', 'backlog'),
+        ] },
+      ], loose: [] },
+    { key: 'PHASE-007', title: 'Agent Instrumentation', status: 'doing', rel: 'docs/phases/PHASE-007.md',
+      tasks: { done: 61, in_progress: 0, backlog: 0 },
+      features: [
+        { ...item('FEAT-0039', 'Model routing', 'done', 'feature', 'done'), children: [
+          item('TASK-0195', 'Subagents', 'done', 'task', 'done'),
+          item('TASK-0196', 'Routing hint', 'done', 'task', 'done'),
+        ] },
+      ], loose: [] },
+    { key: 'PHASE-003', title: 'Downstream Pilot', status: 'backlog', rel: 'docs/phases/PHASE-003.md',
+      tasks: { done: 1, in_progress: 0, backlog: 2 },
+      features: [
+        { ...item('FEAT-0005', 'Downstream pilot deployment', 'backlog', 'feature', 'backlog'), children: [
+          item('TASK-0020', 'Release to project-os', 'done', 'task', 'done'),
+        ] },
+      ], loose: [] },
+    { key: 'PHASE-999', title: 'Future', status: 'active', rel: 'docs/phases/PHASE-999.md',
+      tasks: { done: 2, in_progress: 1, backlog: 6 },
+      features: [
+        { ...item('FEAT-0018', 'Verification health surface', 'in-review', 'feature', 'in_progress'), children: [
+          item('TASK-0111', 'Validator runner', 'done', 'task', 'done'),
+          item('TST-0016', 'Validation health', 'passing', 'test', 'done'),
+        ] },
+      ],
+      loose: [ item('TASK-0065', 'Build pipeline — signing, notarization', 'deferred', 'task', 'backlog') ] },
+    { key: 'PHASE-006', title: 'Native Cockpit UI', status: 'done', rel: 'docs/phases/PHASE-006.md',
+      tasks: { done: 52, in_progress: 0, backlog: 0 },
+      features: [
+        { ...item('FEAT-0011', 'Native centre pane', 'done', 'feature', 'done'), children: [
+          item('TASK-0070', 'Render-driven mount', 'done', 'task', 'done'),
+          item('TASK-0071', 'Link interception', 'done', 'task', 'done'),
+        ] },
+      ], loose: [] },
+    { key: 'PHASE-005', title: 'Desktop Shell', status: 'done', rel: 'docs/phases/PHASE-005.md',
+      tasks: { done: 9, in_progress: 0, backlog: 0 }, features: [], loose: [] },
+  ],
+  status_mix: {
+    features: { done: 35, backlog: 5, 'in-review': 1 },
+    tasks: { done: 193, backlog: 16, doing: 1 },
+    issues: { fixed: 25, open: 1 },
+    requirements: { implemented: 21, draft: 1 },
+    tests: { passing: 18, ready: 1 },
+    risks: { open: 4 },
+  },
+  status_buckets: {
+    features: { done: 35, doing: 1, attention: 0, backlog: 5 },
+    tasks: { done: 193, doing: 1, attention: 0, backlog: 16 },
+    issues: { done: 25, doing: 0, attention: 1, backlog: 0 },
+    requirements: { done: 21, doing: 0, attention: 0, backlog: 1 },
+    tests: { done: 18, doing: 0, attention: 0, backlog: 1 },
+    risks: { done: 0, doing: 0, attention: 4, backlog: 0 },
+  },
+  activity: {
+    weekly: [18, 30, 12, 38, 55, 42, 70, 47, 84, 62, 95, 78, 34].map((count, i) => ({
+      week_iso: `2026-W${20 + i}`, start_date: `2026-0${4 + Math.floor(i / 6)}-01`, count,
+    })),
+    recent: [
+      { id: 'CHG-20260724', title: 'Cockpit CSS parity guards', rel: 'docs/changes/CHG-1.md', date: '2026-07-24', type: 'change' },
+      { id: 'TASK-0198', title: 'Delivered status band', rel: 'docs/tasks/TASK-0198.md', date: '2026-07-24', type: 'task' },
+      { id: 'ADR-0006', title: 'Retire the delivered band', rel: 'docs/decisions/ADR-0006.md', date: '2026-07-25', type: 'adr' },
+      { id: 'TST-0019', title: 'Status vocabulary parity', rel: 'docs/tests/TST-0019.md', date: '2026-07-24', type: 'test' },
+    ],
+  },
+};
+
+const COMMITS = {
+  schema_version: 4, available: true,
+  commits: [
+    { sha: 'e281eaa', full_sha: 'e281eaa0', date: '2026-07-25', author: 'Edwin',
+      subject: 'chore(project-os): sync — requirements gated on criteria', items: [], undocumented: true },
+    { sha: '381aa96', full_sha: '381aa960', date: '2026-07-24', author: 'Edwin',
+      subject: 'cockpit: rebuild the desktop bundle; guard against a stale build',
+      items: [ { id: 'ISS-0024', title: 'Status surfaces outside the parity guard', rel: 'docs/issues/ISS-0024.md', type: 'issue', status: 'open', done: false } ],
+      undocumented: false },
+    { sha: 'd075b84', full_sha: 'd075b840', date: '2026-07-24', author: 'Edwin',
+      subject: '`implemented` reads as done on every surface',
+      items: [
+        { id: 'ISS-0023', title: 'Palette drift', rel: 'docs/issues/ISS-0023.md', type: 'issue', status: 'fixed', done: true },
+        { id: 'TST-0019', title: 'Vocabulary parity', rel: 'docs/tests/TST-0019.md', type: 'test', status: 'passing', done: true },
+        { id: 'CHG-20260724', title: 'Delivered band', rel: 'docs/changes/CHG-1.md', type: 'change', status: 'merged', done: true },
+        { id: 'TASK-0198', title: 'Delivered status band', rel: 'docs/tasks/TASK-0198.md', type: 'task', status: 'done', done: true },
+        { id: 'REQ-0018', title: 'Attention completeness', rel: 'docs/requirements/REQ-0018.md', type: 'requirement', status: 'implemented', done: true },
+      ], undocumented: false },
+  ],
+};
+
+const NAV_LIBRARY = {
+  schema_version: 4, mode: 'library', platform: 'all',
+  groups: [
+    { key: 'adr', label: 'Decisions', items: [
+      { id: 'ADR-0006', title: 'Retire the delivered band', url: '/docs/decisions/ADR-0006.md', status: 'accepted', type: 'adr' },
+      { id: 'ADR-0007', title: 'Planning-artifact approval gate', url: '/docs/decisions/ADR-0007.md', status: 'proposed', type: 'adr' },
+      { id: 'ADR-0005', title: 'Electron + Python sidecar', url: '/docs/decisions/ADR-0005.md', status: 'accepted', type: 'adr' },
+      { id: 'ADR-0004', title: 'Code-driven cockpit vs Bases', url: '/docs/decisions/ADR-0004.md', status: 'accepted', type: 'adr' },
+      { id: 'ADR-0003', title: 'Visual style direction', url: '/docs/decisions/ADR-0003.md', status: 'accepted', type: 'adr' },
+    ] },
+    { key: 'test', label: 'Tests', items: [
+      { id: 'TST-0019', title: 'Status vocabulary parity', url: '/docs/tests/TST-0019.md', status: 'passing', type: 'test' },
+      { id: 'TST-0011', title: 'Live session instrumentation', url: '/docs/tests/TST-0011.md', status: 'ready', type: 'test' },
+      { id: 'TST-0010', title: 'Agent hook ingestion', url: '/docs/tests/TST-0010.md', status: 'passing', type: 'test' },
+    ] },
+    { key: 'reference', label: 'References', items: [
+      { id: 'DESIGN', title: 'DESIGN.md', url: '/docs/DESIGN.md', status: '', type: 'reference' },
+      { id: 'API', title: 'COCKPIT-API.md', url: '/docs/references/COCKPIT-API.md', status: '', type: 'reference' },
+    ] },
+  ],
+};
+
+const NAV_EMPTY = { schema_version: 4, mode: 'features', platform: 'all', groups: [] };
+
+
+// Review desk fixtures — trimmed from this repo's live queue (the real
+// endpoint output is verified by tests/test_review_desk.py).
+const REVIEW_QUEUE = {
+  schema_version: 4, total: 4,
+  groups: [
+    { key: 'decisions', label: 'Decisions', items: [
+      { id: 'ADR-0007', title: 'Planning-artifact approval gate', kind: 'decide',
+        rel: 'decisions/ADR-0007-Planning-Artifact-Approval-Gate.md', type: 'adr', status: 'proposed' } ] },
+    { key: 'proposals', label: 'Proposals', items: [
+      { request_id: 'req1', kind: 'review', title: 'Overview rework — 1 REQ · 5 tasks',
+        body: 'State-first overview surfaces.', ts: new Date(Date.now() - 7.2e6).toISOString(),
+        agent: 'claude', session_id: '7c31aa02', items: [] },
+      { id: 'REQ-0022', title: 'Overview surfaces state, not history', kind: 'review',
+        rel: 'requirements/REQ-0022-Overview-State-Above-History.md', type: 'requirement', status: 'draft' } ] },
+    { key: 'questions', label: 'Questions', items: [
+      { request_id: 'q1', kind: 'answer', title: 'Commits panel on every scope?',
+        body: 'Should the commits panel also render on the phase detail page?',
+        ts: new Date(Date.now() - 2.4e6).toISOString(), agent: 'claude' } ] },
+    { key: 'runs', label: 'Test runs', items: [
+      { id: 'TST-0011', title: 'Live session instrumentation', kind: 'run',
+        rel: 'docs/tests/TST-0011.md', type: 'test', status: 'ready', steps: 13 } ] },
+  ],
+};
+
+const REVIEW_DETAIL = {
+  req1: {
+    schema_version: 4, kind: 'review',
+    request: { request_id: 'req1', title: 'Overview rework — 1 REQ · 5 tasks',
+      body: 'Overview surfaces rebuilt around state-before-history: quiet-first focus band, mix-bar stat tiles, phase accordion with a Completed band, Waiting-on-you, full-width activity + commits, record column.',
+      ts: new Date(Date.now() - 7.2e6).toISOString(), agent: 'claude', session_id: '7c31aa02' },
+    items: [
+      { id: 'REQ-0022', title: 'Overview surfaces state, not history', rel: 'requirements/REQ-0022-Overview-State-Above-History.md', type: 'requirement', status: 'draft' },
+      { id: 'TASK-0199', title: 'Sidecar payload additions', rel: 'docs/tasks/TASK-0199.md', type: 'task', status: 'backlog' },
+      { id: 'TASK-0200', title: 'Overview stage rework', rel: 'docs/tasks/TASK-0200.md', type: 'task', status: 'backlog' },
+      { id: 'TASK-0201', title: 'Phase accordion + Completed band', rel: 'docs/tasks/TASK-0201.md', type: 'task', status: 'backlog' },
+      { id: 'TASK-0203', title: 'Record column', rel: 'docs/tasks/TASK-0203.md', type: 'task', status: 'backlog' },
+    ],
+  },
+  q1: {
+    schema_version: 4, kind: 'question',
+    request: { request_id: 'q1', title: 'Commits panel on every scope?',
+      body: 'Should the commits panel also render on the phase detail page, filtered to that phase, or stay project-only?',
+      ts: new Date(Date.now() - 2.4e6).toISOString(), agent: 'claude' },
+    items: [],
+  },
+  'TST-0011': {
+    schema_version: 4, kind: 'note',
+    note: { id: 'TST-0011', title: 'Live session instrumentation',
+      rel: 'docs/tests/TST-0011.md', type: 'test', status: 'ready' },
+    mtime: 1785000000.0, last_run: '', verifies: ['FEAT-0019', 'REQ-0021'],
+    steps: [
+      { n: 1, text: 'Claude Code injection (TASK-0115). Open a workspace, open the terminal, run claude, submit a prompt', expected: 'rail dot flips to busy within ~1s, activity strip appears above the terminal' },
+      { n: 2, text: 'needs-input (TASK-0114). Trigger a permission prompt inside the session', expected: 'red pulsing rail dot, OS notification, inbox row jumps to the terminal' },
+      { n: 3, text: 'Statusline meters (TASK-0117). During the session the strip shows ctx % and $ cost within ~10s' },
+      { n: 4, text: 'Live nav trail (TASK-0120). Have the agent edit a docs note', expected: 'the matching nav row flashes an agent chip that decays after ~8s' },
+    ],
+  },
+  'REQ-0022': {
+    schema_version: 4, kind: 'note',
+    note: { id: 'REQ-0022', title: 'Overview surfaces state, not history',
+      rel: 'requirements/REQ-0022-Overview-State-Above-History.md',
+      type: 'requirement', status: 'draft' },
+  },
+  'ADR-0007': {
+    schema_version: 4, kind: 'note',
+    note: { id: 'ADR-0007', title: 'Planning-artifact approval gate',
+      rel: 'decisions/ADR-0007-Planning-Artifact-Approval-Gate.md', type: 'adr', status: 'proposed' },
+  },
+  _default: { schema_version: 4, kind: 'note',
+    note: { id: '?', title: 'Unknown', rel: '', type: '', status: '' } },
+};
+
+const SCOPE_TESTS = {
+  schema_version: 4,
+  tests: [
+    { id: 'TST-0010', title: 'Agent hook ingestion', rel: 'docs/tests/TST-0010.md', status: 'passing', last_run: '2026-07-12', manual: false, steps: 0 },
+    { id: 'TST-0011', title: 'Live session instrumentation', rel: 'docs/tests/TST-0011.md', status: 'ready', last_run: '', manual: true, steps: 13 },
+    { id: 'TST-0014', title: 'Dispatch ledger', rel: 'docs/tests/TST-0014.md', status: 'passing', last_run: '2026-05-02', manual: true, steps: 6 },
+  ],
+};
+
+const RENDERED = {"decisions/ADR-0007-Planning-Artifact-Approval-Gate.md": {"metadata_html": "<details class=\"metadata-strip\" open>\n  <summary class=\"metadata-strip-summary\"><span class=\"metadata-strip-chevron\" aria-hidden=\"true\"></span><span>Frontmatter</span></summary>\n  <dl>\n  <dt>id</dt>\n  <dd><a href=\"/docs/decisions/ADR-0007-Planning-Artifact-Approval-Gate.md\">ADR-0007</a></dd>\n  <dt>type</dt>\n  <dd><a href=\"/docs/__templates__/adr.md\">adr</a></dd>\n  <dt>status</dt>\n  <dd><span class=\"status-chip\" data-status=\"proposed\">proposed</span></dd>\n  <dt>owner</dt>\n  <dd>user:edwin</dd>\n  <dt>related</dt>\n  <dd><span class=\"meta-list\"><a href=\"/docs/features/review-desk/FEAT-0041-Review-Desk.md\">FEAT-0041-Review-Desk</a>, <a href=\"/docs/features/review-desk/plan/tasks/TASK-0205-Approval-Gate-Decision.md\">TASK-0205</a>, <a href=\"/docs/features/dispatch-runtime/FEAT-0025-Dispatch-Runtime.md\">FEAT-0025-Dispatch-Runtime</a>, <a href=\"/docs/decisions/ADR-0006-Retire-Delivered-Band.md\">ADR-0006-Retire-Delivered-Band</a></span></dd>\n  <dt>source</dt>\n  <dd><span class=\"meta-list\">https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be</span></dd>\n  <dt>created</dt>\n  <dd>2026-07-26</dd>\n  <dt>updated</dt>\n  <dd>2026-07-26</dd>\n  <dt>decision</dt>\n  <dd>Adopt an advisory review flow first: every planning artifact set the agent produces is reviewable in ~review, nothing is blocked on acceptance, and the desk records how often review actually changes a plan. The mechanism introduces no new states: FEAT/TASK proposal sets enter the queue as dispatch-ledger review requests while their notes stay at plain `backlog`; accepting a set stamps the existing independent-review frontmatter (`reviewed_by`, `review_date`, `review_verdict`) into each note and clears the ledger request; rejecting flips the set to the existing `cancelled` status; ADR/REQ/TST queue groups use their existing intake states (`proposed`/`draft`/`ready`). Only after measurement decide whether to promote the gate to gated-by-type \u2014 and if so, the gate predicate is &#x27;has an accepting review_verdict&#x27;, not a status check.</dd>\n  <dt>context</dt>\n  <dd>Today LIFECYCLE lets preflight create planning artifacts and proceed straight to implementation; the review desk (FEAT-0041) introduces a surface where a human can accept, amend, or reject a proposal set before work starts. Making review a hard gate \u2014 dispatch refusing a set that has not been accepted \u2014 would be a lifecycle change, and the fleet&#x27;s own history (ADR-0006: a band nobody ever wrote; upstream ADR-0008: statuses measured before deletion) argues for measuring before legislating. The queue/record split follows ADR-0009 and the REQ-0018 attention model: pending-ness is transient runtime state (the dispatch ledger), the durable outcome lives in the note (review fields, or a real status transition)</dd>\n  <dt>alternatives</dt>\n  <dd><span class=\"meta-list\">Introduce `proposed` for feature/task vocabularies (the dossier&#x27;s original sketch) \u2014 rejected 2026-07-26, owner preference: no new states; the dispatch ledger + existing review fields cover both the queue (transient pending-ness) and the record (durable outcome) without touching STATUSES/TAXONOMY or the upstream template, Gated by type from day one \u2014 FEAT / REQ / ADR require acceptance before dispatch; TASK breakdowns under an accepted FEAT auto-accept. Rejected for now: adds a human bottleneck to every feature before any evidence that review changes outcomes; revisit with the advisory-phase measurements in hand, Fully gated \u2014 every planning artifact requires acceptance. Rejected: turns the docs system&#x27;s strength (agents keep documentation current without friction) into a queue, and contradicts the bursty session pattern the states audit documents, No review surface at all (status quo) \u2014 rejected: the asks already exist (proposal sets, questions, never-executed manual tests like TST-0011) and currently live in terminal scrollback where they decay</span></dd>\n  <dt>consequences</dt>\n  <dd><span class=\"meta-list\">No LIFECYCLE change is needed for the advisory phase, and no vocabulary change anywhere: notes stay on their existing statuses, so STATUSES.md/TAXONOMY.md and the upstream template are untouched, The split is ADR-0009-clean: the ledger carries the transient review request (runtime state, like REQ-0018 attention items), the note carries the durable outcome \u2014 stamped review fields on accept, a statuses.py-guarded flip to `cancelled` on reject; snapshot sync at pre-commit is unchanged, The write mechanism is a review write-back endpoint (TASK-0207) \u2014 a deliberate, narrow relaxation of the &#x27;cockpit is a viewer&#x27; constraint (PHASE-007 out-of-scope list), extending the TASK-0074 checkbox precedent: it writes only the three review fields and guarded status transitions, nothing else, If gating is later adopted, dispatch&#x27;s gate predicate is &#x27;set has an accepting review_verdict&#x27; \u2014 a frontmatter check, not a status check, so gating still introduces no vocabulary, The review fields do double duty: today they record close-out independent review (e.g. FEAT-0023), now also plan acceptance. The desk must not let a plan-acceptance stamp satisfy the close-out review gate \u2014 distinguish by verdict value (decide the exact value in TASK-0207), The advisory phase must actually measure: the desk records per-set outcomes (accepted unchanged / accepted amended / changes requested / rejected) so the gating decision is evidence-based, the same lesson ADR-0006 codified</span></dd>\n</dl>\n</details>\n", "html": "<h1 id=\"approval-gate-for-planning-artifacts\">Approval gate for planning artifacts</h1>\n<h2 id=\"context\">Context</h2>\n<p>The project-os lifecycle currently has no human checkpoint between planning and implementation: preflight classifies, allocates IDs, writes the notes, and the agent proceeds. That is by design \u2014 the system's value is that documentation keeps up with the work \u2014 but it means the moments where a human <em>should</em> weigh in (a new feature's shape, a requirement's acceptance criteria, a decision like this one) have no surface. FEAT-0041 builds that surface (~review). What it must not do silently is change the lifecycle's default: whether an unaccepted proposal set may be implemented at all.</p>\n<p>Two defensible shapes exist for the policy. <strong>Advisory:</strong> everything is reviewable, nothing is blocked \u2014 the desk is a lens, and acceptance is a recorded opinion. <strong>Gated by type:</strong> FEAT / REQ / ADR require acceptance before dispatch; TASK breakdowns under an already-accepted FEAT auto-accept, so day-to-day flow keeps its speed.</p>\n<p>Orthogonal to the policy is the mechanism, and there the owner's constraint is fixed (2026-07-26): <strong>no new states, anywhere.</strong> Pending-ness is not note state \u2014 the same philosophy as REQ-0018's attention items, which live in the runtime, not in frontmatter.</p>\n<h2 id=\"decision\">Decision</h2>\n<p>Start advisory, with a stateless-queue mechanism:</p>\n<ul>\n<li><strong>Queue:</strong> FEAT/TASK proposal sets enter ~review as <strong>dispatch-ledger review requests</strong> (FEAT-0025 runtime); the notes themselves stay at plain <code>backlog</code>. ADR, REQ, and TST queue groups are driven by their existing intake states (<code>proposed</code>, <code>draft</code>, <code>ready</code>).</li>\n<li><strong>Accept:</strong> stamps the existing independent-review convention \u2014 <code>reviewed_by</code>, <code>review_date</code>, <code>review_verdict</code> \u2014 into each note in the set and clears the ledger request. Durable outcome in the note, transient queue in the runtime (ADR-0009-clean).</li>\n<li><strong>Reject:</strong> flips the set to the existing <code>cancelled</code> status through a statuses.py-guarded transition.</li>\n<li><strong>Request changes:</strong> a dispatch round-trip back to the originating session (comment + unticked rows), leaving the ledger request open.</li>\n</ul>\n<p>Nothing refuses to run for lack of acceptance. The desk records review outcomes per set. After a measurement period (suggested: revisit when ~20 sets have passed through the desk, or at the PHASE-008 close-out \u2014 whichever is later), decide gating with data: if review regularly changes plans before implementation, promote to gated-by-type \u2014 where the gate predicate is \"set has an accepting <code>review_verdict</code>\", a frontmatter check, never a status check. If it rubber-stamps, stay advisory and say so here.</p>\n<p>This mirrors the fleet's best recent lesson (ADR-0006 / upstream ADR-0008): vocabulary and process should follow what the corpus actually does, measured, not what a design wishes it did.</p>\n<h2 id=\"alternatives\">Alternatives</h2>\n<p>See frontmatter \u2014 introducing <code>proposed</code> for features/tasks (rejected: owner preference, no new states; ledger + existing review fields cover both queue and record), gated-by-type from day one, fully gated, and status quo, with rejection reasons.</p>\n<h2 id=\"verdict-values-recorded-from-task-0207-2026-07-26\">Verdict values (recorded from TASK-0207, 2026-07-26)</h2>\n<p>The desk writes <strong><code>plan-accepted</code></strong> on acceptance and <strong><code>plan-rejected</code></strong> on rejection. Neither is close-out's vocabulary (<code>approved</code> / <code>changes-requested</code>, QUALITY.md), and the write-back endpoint refuses those strings outright, so a plan approval can never read as a verification sign-off.</p>\n<p>Refusing the string turned out to be only half the guard. Independent review (2026-07-26) observed that the mechanical close-out check accepts <em>any</em> verdict other than <code>changes-requested</code>, so a <code>plan-accepted</code> stamp landing on a TST or CHG note would silence a gate it never satisfied \u2014 and review requests accept arbitrary ids. The endpoint therefore also refuses to stamp <strong>gate-bearing note types</strong> (<code>test</code>, <code>change</code>) at all: those are reviewed through close-out, not through the desk. Both guards are asserted in <a href=\"/docs/features/review-desk/plan/tests/TST-0021-Review-Desk.md\">TST-0021-Review-Desk</a>.</p>\n<h2 id=\"consequences\">Consequences</h2>\n<p>See frontmatter. The two that need active tracking: the review-field double duty (plan acceptance vs close-out independent review share <code>reviewed_by</code>/<code>review_date</code>/<code>review_verdict</code> \u2014 the desk must distinguish by verdict value so a plan-acceptance stamp never satisfies the close-out gate; exact value decided in TASK-0207), and the measurement obligation (the advisory phase is an experiment, not a resting place; TASK-0205 carries the decision, and the revisit is part of PHASE-008's close-out).</p>"}, "requirements/REQ-0022-Overview-State-Above-History.md": {"metadata_html": "<details class=\"metadata-strip\" open>\n  <summary class=\"metadata-strip-summary\"><span class=\"metadata-strip-chevron\" aria-hidden=\"true\"></span><span>Frontmatter</span></summary>\n  <dl>\n  <dt>id</dt>\n  <dd><a href=\"/docs/requirements/REQ-0022-Overview-State-Above-History.md\">REQ-0022</a></dd>\n  <dt>type</dt>\n  <dd><a href=\"/docs/__templates__/requirement.md\">requirement</a></dd>\n  <dt>status</dt>\n  <dd><span class=\"status-chip\" data-status=\"implemented\">implemented</span></dd>\n  <dt>phase</dt>\n  <dd><a href=\"/docs/phases/PHASE-008-State-And-Review-Surfaces.md\">PHASE-008-State-And-Review-Surfaces</a></dd>\n  <dt>owner</dt>\n  <dd>user:edwin</dd>\n  <dt>implements</dt>\n  <dd><a href=\"/docs/features/overview-rework/FEAT-0040-Overview-Rework.md\">FEAT-0040-Overview-Rework</a></dd>\n  <dt>related</dt>\n  <dd><span class=\"meta-list\"><a href=\"/docs/requirements/REQ-0013-Cockpit-Layout.md\">REQ-0013-Cockpit-Layout</a>, <a href=\"/docs/requirements/REQ-0012-Visual-Style.md\">REQ-0012-Visual-Style</a>, <a href=\"/docs/decisions/ADR-0006-Retire-Delivered-Band.md\">ADR-0006-Retire-Delivered-Band</a></span></dd>\n  <dt>source</dt>\n  <dd><span class=\"meta-list\">https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be</span></dd>\n  <dt>created</dt>\n  <dd>2026-07-26</dd>\n  <dt>updated</dt>\n  <dd>2026-07-26</dd>\n  <dt>priority</dt>\n  <dd>high</dd>\n  <dt>scope</dt>\n  <dd><a href=\"/docs/features/overview-rework/FEAT-0040-Overview-Rework.md\">FEAT-0040</a></dd>\n  <dt>acceptance</dt>\n  <dd><span class=\"meta-list\">state-only above the fold at 900px, requirements tile rendered, quiet state fully designed, history never outranks state on any overview scope</span></dd>\n</dl>\n</details>\n", "html": "<h1 id=\"req-0022-overview-state-above-history\">REQ-0022 \u2014 Overview state above history</h1>\n<h2 id=\"statement\">Statement</h2>\n<p>The overview surfaces (~overview and ~overview/PHASE-####) SHALL prioritise current project state over historical record: every section rendered above the fold in a 900 px window states what <em>is</em> (focus, status mixes, phase liveness, items waiting on the user), and historical sections (activity chart, commits/changes feeds) are the only content the user must scroll for. State surfaces must be honest about quiet: when nothing is in flight, the screens show the audited resting state (last-completed focus with note age, durable attention items, \"All clear\" when empty) rather than empty live-state placeholders.</p>\n<h2 id=\"acceptance-criteria\">Acceptance Criteria</h2>\n<ul class=\"task-list\">\n<li class=\"task-list-item\"><label class=\"task-list-control\"><input type=\"checkbox\" disabled checked/><span class=\"task-list-indicator\"></span></label> In a 900 px window on this repo's corpus, every ~overview section above the fold (focus band, stat tiles, phase rows, Waiting-on-you) presents current-state facts; the activity sparkbar and commits panel are the only sections that may begin below the fold. \u2014 evidence: measured 2026-07-26 in <code>desktop/harness/overview-harness.html</code> against the built bundle (stage offsets, phase accordion expanded, 8 Waiting-on-you rows): focus band 20\u201367 px, stat tiles 85\u2013173, phases 191\u2013556, Waiting-on-you 574\u2013721 \u2014 the four state sections close at 721 px, inside a 900 px stage. Activity begins at 739 and Commits at 867, so the two history sections are the only ones that can reach the fold, and neither precedes any state section. Note the honest nuance: with a very long phase list Activity can still appear above the fold \u2014 what is guaranteed is the ordering (criterion 4), not that history always falls below it.</li>\n<li class=\"task-list-item\"><label class=\"task-list-control\"><input type=\"checkbox\" disabled checked/><span class=\"task-list-indicator\"></span></label> The Requirements stat tile renders from <code>hero.requirements</code> (computed by <code>stats_payload</code> today but never rendered by <code>buildHero</code>). \u2014 evidence: <code>desktop/src/renderer/renderer.ts</code> <code>buildStatTiles()</code> emits the Reqs tile from <code>hero.requirements</code>; visible as \"REQS 21/22\" in the harness capture.</li>\n<li class=\"task-list-item\"><label class=\"task-list-control\"><input type=\"checkbox\" disabled checked/><span class=\"task-list-indicator\"></span></label> The quiet (no live session) state is fully designed: the focus band reads as \"last completed\" with the focus note's age; Waiting-on-you lists only durable states the corpus actually holds (open issues, in-review stalls, ready-never-executed tests, parked tasks, open risks, done-but-unclosed phases) and renders \"All clear\" when empty. \u2014 evidence: <code>buildFocusBand()</code> adds the pulse/NOW label only when a slot is genuinely active and always renders the note's age (<code>daysSince</code>); the empty case renders \"All clear \u2014 nothing is blocked on a human.\" <strong>Corrected after independent review (2026-07-26):</strong> the first implementation put all six states in <code>collectAttention()</code>, but the phases payload carries no test items (<code>child_records</code> is tasks/requirements/issues), so the failing-test and ready-test branches were unreachable \u2014 two of the six states could never appear. Tests are now sourced separately in <code>appendTestAttentionRows()</code> and the dead branches were removed; the other four states come from <code>collectAttention()</code> as before.</li>\n<li class=\"task-list-item\"><label class=\"task-list-control\"><input type=\"checkbox\" disabled checked/><span class=\"task-list-indicator\"></span></label> On both overview scopes, no history surface (activity, commits, recent feeds) renders above a state surface. \u2014 evidence: <code>renderProjectOverview()</code> composes focus \u2192 tiles \u2192 phases \u2192 Waiting-on-you \u2192 activity \u2192 commits, and <code>renderScopedOverview()</code> composes header \u2192 health band \u2192 features \u2192 exit criteria/Remaining \u2192 activity; the note feed and donut section were removed rather than relocated.</li>\n</ul>\n<h2 id=\"traceability\">Traceability</h2>\n<ul>\n<li>Implements: <a href=\"/docs/features/overview-rework/FEAT-0040-Overview-Rework.md\">FEAT-0040-Overview-Rework</a></li>\n<li>Verified by: to be defined at implementation (TST-* per test-authoring; the fold criterion is a manual/CDP check, the tile and ordering criteria are unit-checkable).</li>\n</ul>"}};
+
+// ---- stub the sidecar --------------------------------------------------
+const realFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  const url = String(typeof input === 'string' ? input : input.url);
+  const json = (body) => new Response(JSON.stringify(body), {
+    status: 200, headers: { 'Content-Type': 'application/json', 'X-Cockpit-Schema': '4' },
+  });
+  if (url.includes('/api/render')) {
+    const rel = decodeURIComponent((url.split('path=')[1] || '').split('&')[0]);
+    return json(RENDERED[rel] || { metadata_html: '', html: '<p>(not in fixtures)</p>' });
+  }
+  if (url.includes('/api/cockpit/review-queue')) return json(REVIEW_QUEUE);
+  if (url.includes('/api/cockpit/review/')) {
+    const key = url.split('/api/cockpit/review/')[1].split('?')[0];
+    return json(REVIEW_DETAIL[key] || REVIEW_DETAIL._default);
+  }
+  if (url.includes('/api/cockpit/scope-tests')) return json(SCOPE_TESTS);
+  if (url.includes('/api/notes/')) return json({ ok: true, result: {} });
+  if (url.includes('/api/cockpit/review-resolve')) return json({ ok: true });
+  if (url.includes('/api/cockpit/stats'))    return json(STATS);
+  if (url.includes('/api/cockpit/commits'))  return json(COMMITS);
+  if (url.includes('mode=library'))          return json(NAV_LIBRARY);
+  if (url.includes('/api/cockpit/nav'))      return json(NAV_EMPTY);
+  if (url.includes('/api/cockpit/context'))  return json({ schema_version: 4, platform: 'all', linked: [], backlinks: [] });
+  if (url.includes('/api/cockpit/state'))    return json({ schema_version: 4 });
+  if (url.includes('/api/cockpit/actions'))  return json({ actions: [] });
+  if (url.includes('/api/cockpit/validation')) return json({ schema_version: 4, ok: true, state: 'ok', errors: [], warnings: [] });
+  if (url.includes('/api/cockpit/dispatch-requests')) return json({ requests: [] });
+  if (url.includes('/api/cockpit/sessions')) return json({ sessions: [] });
+  if (url.includes('/_events')) return new Response('', { status: 200 });
+  return realFetch(input, init);
+};
+class FakeES { constructor() { this.readyState = 1; } addEventListener() {} close() {} }
+window.EventSource = FakeES;
+
+// The renderer reads the active workspace's sidecar URL from IPC events;
+// the harness shortcuts that by pre-seeding localStorage and letting the
+// bootstrap below drive the overview directly.
+try {
+  localStorage.setItem('cockpit:nav-mode', 'overview');
+  localStorage.setItem('cockpit:active-workspace', 'ws1');
+} catch {}
+</script>
+
+<!-- The shell markup the renderer expects, copied from index.html at build
+     time by harness/sync-shell.mjs so the two cannot drift. -->
+<div id="harness-shell"></div>
+
+<script type="module">
+  const shellHtml = await (await fetch('../dist/renderer/index.html')).text();
+  const doc = new DOMParser().parseFromString(shellHtml, 'text/html');
+  const app = doc.querySelector('.app');
+  document.getElementById('harness-shell').replaceWith(app);
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = '../dist/renderer/renderer.js';
+  document.body.appendChild(script);
+
+  // Drive the overview: emit the sidecar:ready event the shell would
+  // normally send once the Python process answers /healthz.
+  window.setTimeout(() => {
+    window.__sidecarCb?.({
+      kind: 'ready', payload: { workspaceId: 'ws1', url: 'http://stub.local' },
+    });
+  }, 300);
+</script>
+</body>
+</html>

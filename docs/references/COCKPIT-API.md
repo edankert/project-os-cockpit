@@ -3,7 +3,7 @@ type: "[[reference]]"
 id: REF-COCKPIT-API
 aliases: ["COCKPIT-API"]
 title: "Cockpit HTTP API contract"
-status: draft
+status: active
 owner: user:edwin
 created: 2026-05-25
 updated: 2026-07-17
@@ -51,11 +51,9 @@ assertion test then fails for every endpoint until both ends agree;
 fix by updating client cached-schema constants and the contract doc
 in this file.
 
-Current value: **3** (bumped when `cockpit:agent-state` was added in
-FEAT-0013, before the add-vs-remove distinction above was codified).
-Event *additions* since then have been additive at schema 3:
-`cockpit:agent-activity` (FEAT-0019), `cockpit:dispatch-request`
-(FEAT-0025), `cockpit:validation` (FEAT-0018).
+Current value: **4** (FEAT-0040 / TASK-0199). Schema 3 was set when `cockpit:agent-state` was added in FEAT-0013, before the add-vs-remove distinction above was codified; event *additions* stayed at 3 as the table allows: `cockpit:agent-activity` (FEAT-0019), `cockpit:dispatch-request` (FEAT-0025), `cockpit:validation` (FEAT-0018).
+
+The move to 4 is likewise strictly additive by the table above — `stats` gains a `focus` block, slim issue items gain `severity`, and `/api/cockpit/commits` joins the surface — so it is a *deliberate* bump rather than a required one. TASK-0199 bumped it anyway because the desktop renderer caches payload shapes across sidecar restarts, and the bump is the cheap signal that a bundle predating these fields is running against a newer sidecar (ISS-0024 §6's stale-bundle lesson).
 
 ---
 
@@ -248,6 +246,41 @@ should listen rather than poll.
 
 **Consumers**: mode-1 `cockpit.js` health badge + drift panel
 (TASK-0112).
+
+---
+
+### `GET /api/cockpit/commits[?limit=N]` *(new in FEAT-0040)*
+Recent commits as **documentation** events: each commit lists the doc notes it touched, resolved through the live index by `rel_path`, with each item's current status. Powers the overview's commits panel (TASK-0200), which answers "what shipped" in items rather than diffs.
+
+`limit` defaults to 20 and clamps to 1..100. It is the only caller-derived value and is coerced to `int` before use; the `git` subprocess runs with a fixed argv (no shell, no client string reaches git), is bounded by a 5 s timeout, and every failure mode — not a repo, git absent, timeout, empty history — returns `available: false` rather than an error status.
+
+**Response 200**
+```json
+{
+  "schema_version": 4,
+  "available": true,
+  "commits": [
+    {
+      "sha": "d075b84",
+      "full_sha": "d075b84…",
+      "date": "2026-07-24",
+      "subject": "cockpit: `implemented` reads as done on every surface",
+      "author": "Edwin Dankert",
+      "items": [
+        {"id": "ISS-0023", "title": "…", "rel": "docs/issues/ISS-0023-….md",
+         "type": "issue", "status": "fixed", "done": true}
+      ],
+      "undocumented": false
+    }
+  ]
+}
+```
+
+`items` is ordered by type (feature → requirement → task → issue → …) and de-duplicated per commit. `done` uses the same per-type terminal vocabulary as the hero counts and phase boxes (`is_done_status`), so a completion reads identically everywhere. `undocumented: true` marks a commit that touched no notes — FEAT-0022's traceability guardrail applied per commit rather than per session. Merge commits are excluded.
+
+Responses are cached on (HEAD, index generation, limit); HEAD is read from `.git` on the filesystem, not via a subprocess.
+
+**Consumers**: desktop overview commits panel (TASK-0200).
 
 ---
 

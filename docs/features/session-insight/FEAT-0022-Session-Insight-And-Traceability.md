@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0010]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0123]]", "[[TASK-0124]]", "[[TASK-0125]]", "[[TASK-0126]]", "[[TASK-0127]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0018-Verification-Health-Surface]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Session insight and traceability

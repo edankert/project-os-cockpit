@@ -652,6 +652,8 @@ cockpitApi.sidecar.onEvent((ev) => {
       void loadAgentActions();
       void refreshQueueItems();
       void drainDispatchRequests();
+      // Reopen the console if it was open when the app last closed.
+      restoreTerminalPanel();
       break;
     }
     case 'failed': {
@@ -845,6 +847,24 @@ async function navigateToInner(
     }
     return;
   }
+  // ~review — the desk (FEAT-0041). `~review` is the queue with nothing
+  // selected; `~review/<id>` a proposal/decision; `~review/<TST>/run` a
+  // manual test run in progress.
+  if (normalised === '~review' || normalised.startsWith('~review/')) {
+    const rest = normalised === '~review'
+      ? '' : normalised.slice('~review/'.length);
+    const running = rest.endsWith('/run');
+    const target = running ? rest.slice(0, -'/run'.length) : rest;
+    const ok = await renderReviewPage(target, { run: running });
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
   if (normalised.startsWith('~session/')) {
     const ok = await renderSessionDetailPage(normalised.slice('~session/'.length));
     if (ok) {
@@ -904,6 +924,22 @@ async function navigateToInner(
   currentDispatchHistory = data.dispatch_history ?? null;
   currentNoteStatus = typeof data.frontmatter?.status === 'string'
     ? (data.frontmatter.status as string) : null;
+  // Design input (TASK-0212): dossiers, mockups and research that shaped
+  // this note, linked via the `design:` frontmatter field. Placed above
+  // the metadata strip because the question it answers — "why does this
+  // look the way it does?" — is asked before the frontmatter's, and
+  // because design input is otherwise reachable only by knowing it exists.
+  const designStrip = buildDesignStrip(data.frontmatter || {});
+  if (designStrip) docView.prepend(designStrip);
+  // Verification panel (TASK-0211) on the scopes that get validated.
+  // Appended, not prepended: the note's own words come first, then the
+  // evidence that it works.
+  const scopeType = noteTypeFromFrontmatter(data.frontmatter || {}) || '';
+  const scopeId = typeof data.frontmatter?.id === 'string'
+    ? (data.frontmatter.id as string) : '';
+  if (scopeId && ['feature', 'phase', 'release'].includes(scopeType)) {
+    docView.appendChild(buildVerificationPanel(scopeId));
+  }
   // Doc header bar (FEAT-0026 / TASK-0140): identity + path + verbs.
   docView.prepend(buildDocHeader(data, pathOnly));
   // Dispatch provenance (FEAT-0025 / TASK-0135).
@@ -1626,6 +1662,48 @@ async function restartTerminal(): Promise<void> {
   }
 }
 
+// Console panel persistence. The panel is part of how the window is set
+// up, not a transient view — reopening it and re-dragging it after every
+// restart is the kind of small tax that makes a restart feel expensive.
+const TERMINAL_OPEN_KEY = 'cockpit:terminal-open';
+const TERMINAL_HEIGHT_KEY = 'cockpit:terminal-height';
+
+function rememberTerminalOpen(open: boolean): void {
+  try { localStorage.setItem(TERMINAL_OPEN_KEY, open ? '1' : '0'); }
+  catch { /* localStorage unavailable — the panel just won't persist */ }
+}
+
+function rememberTerminalHeight(px: number): void {
+  try { localStorage.setItem(TERMINAL_HEIGHT_KEY, String(Math.round(px))); }
+  catch { /* ignore */ }
+}
+
+function storedTerminalHeight(): number | null {
+  try {
+    const raw = localStorage.getItem(TERMINAL_HEIGHT_KEY);
+    if (!raw) return null;
+    const px = Number(raw);
+    if (!Number.isFinite(px)) return null;
+    // Re-clamp on read: the stored height may come from a larger display.
+    return Math.min(window.innerHeight - 120, Math.max(80, px));
+  } catch { return null; }
+}
+
+// Restore once a workspace is live — showTerminal attaches to activeId,
+// so restoring before the sidecar is ready would attach to nothing.
+let terminalRestored = false;
+
+function restoreTerminalPanel(): void {
+  if (terminalRestored) return;
+  terminalRestored = true;
+  const height = storedTerminalHeight();
+  if (height !== null) terminalPane.style.height = `${height}px`;
+  let wanted = false;
+  try { wanted = localStorage.getItem(TERMINAL_OPEN_KEY) === '1'; }
+  catch { /* default closed */ }
+  if (wanted && terminalPane.hidden) void showTerminal();
+}
+
 async function showTerminal(): Promise<void> {
   terminalPane.hidden = false;
   terminalBtn.classList.add('active');
@@ -1639,11 +1717,13 @@ async function showTerminal(): Promise<void> {
     term?.focus();
   });
   scheduleAck();  // terminal now visible — start the seen-timer (TASK-0157)
+  rememberTerminalOpen(true);
 }
 
 function hideTerminal(): void {
   terminalPane.hidden = true;
   terminalBtn.classList.remove('active');
+  rememberTerminalOpen(false);
 }
 
 function toggleTerminal(): void {
@@ -1766,6 +1846,7 @@ terminalDivider.addEventListener('mousedown', (downEv) => {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     try { fitAddon?.fit(); } catch { /* ignore */ }
+    rememberTerminalHeight(terminalPane.getBoundingClientRect().height);
   };
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
@@ -2046,7 +2127,7 @@ interface NavPayload {
   groups?: NavGroupData[];
 }
 
-const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'active', 'library', 'recent'] as const;
+const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -2062,7 +2143,7 @@ const COMPLETED_STATUSES = new Set([
   'done', 'merged', 'fixed', 'resolved', 'fulfilled', 'met', 'complete',
   'implemented', 'verified', 'passing', 'published', 'released', 'closed',
   'obsolete', 'retired', 'cancelled', 'superseded',
-  'wont-fix', 'reverted', 'rolled-back', 'deprecated',
+  'declined', 'reverted', 'deprecated',
 ]);
 
 let hideCompleted = false;
@@ -2231,9 +2312,26 @@ function isItemHidden(item: { status?: string }): boolean {
   return hideCompleted && isCompletedStatus(item.status);
 }
 
+// Modes with a button in the top bar. `active` and `recent` stay in
+// NAV_MODES — the server still serves them and the Now board and strip
+// still consume `mode=active` — but they lost their buttons in
+// TASK-0204, so a stored preference pointing at one must migrate or the
+// user lands in a mode they cannot see is selected and cannot leave by
+// clicking the (now absent) button.
+const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent'];
+const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
+  active: 'overview',   // in-flight work is ambient on the overview now
+  recent: 'overview',   // "what changed" is the commits panel
+};
+
 function loadStoredNavMode(): NavMode {
   try {
     const v = localStorage.getItem('cockpit:nav-mode');
+    if (v && RETIRED_NAV_MODES.includes(v)) {
+      const fallback = RETIRED_MODE_FALLBACK[v] ?? 'features';
+      try { localStorage.setItem('cockpit:nav-mode', fallback); } catch { /* ignore */ }
+      return fallback;
+    }
     if (v && (NAV_MODES as readonly string[]).includes(v)) return v as NavMode;
   } catch { /* localStorage unavailable */ }
   return 'features';
@@ -2270,6 +2368,7 @@ interface PhaseItem {
   id?: string; title: string; rel?: string;
   status: string; bucket: 'done' | 'in_progress' | 'backlog';
   type: string;
+  severity?: string;              // issues only (TASK-0199)
 }
 interface PhaseFeature extends PhaseItem { children: PhaseItem[] }
 interface StatsPhase {
@@ -2279,13 +2378,41 @@ interface StatsPhase {
   loose: PhaseItem[];
 }
 interface StatsRecent { id?: string; title: string; rel: string; date: string; type?: string; features?: string[] }
+
+// SNAPSHOT focus block (TASK-0199). Slots resolve against the index; a
+// slot pointing at a deleted note degrades to `{id}` alone.
+interface FocusItem {
+  id: string; title?: string; status?: string; type?: string;
+  rel?: string; done?: boolean;
+}
+interface FocusBlock {
+  items: Partial<Record<'task' | 'feature' | 'phase' | 'issue' | 'requirement', FocusItem>>;
+  note: string;
+  note_date: string;
+}
+
+// One commit as a documentation event (TASK-0199).
+interface CommitItem {
+  id: string; title: string; rel: string; type: string;
+  status: string; done: boolean;
+}
+interface CommitRow {
+  sha: string; full_sha: string; date: string; subject: string;
+  author: string; items: CommitItem[]; undocumented: boolean;
+}
+interface CommitsPayload {
+  schema_version: number; available: boolean; commits: CommitRow[];
+}
+
 interface StatsPayload {
   schema_version: number;
   scope?: { id: string; title: string; status: string; rel: string } | null;
   exit_criteria?: Array<{ text: string; done: boolean }> | null;
+  focus?: FocusBlock | null;
   hero: StatsHero;
   phases: StatsPhase[];
   status_mix: Record<string, Record<string, number>>;
+  status_buckets?: Record<string, MixBuckets>;
   activity: {
     weekly: Array<{ week_iso: string; start_date: string; count: number }>;
     recent: StatsRecent[];
@@ -2296,6 +2423,12 @@ interface StatsPayload {
 // PHASE-#### id. The scope list for the left pane is cached from the
 // last unscoped payload (server-side stats cache makes refetch cheap).
 let overviewScope: string | null = null;
+// Completed band starts closed — finished phases are history until asked for,
+// the same default the centre-pane accordion uses.
+let scopeCompletedOpen = (() => {
+  try { return localStorage.getItem('cockpit:scope-completed-open') === '1'; }
+  catch { return false; }
+})();
 let scopePhaseList: StatsPhase[] | null = null;
 
 async function renderOverviewPage(scope: string | null): Promise<boolean> {
@@ -2345,7 +2478,7 @@ async function renderOverviewPage(scope: string | null): Promise<boolean> {
   renderOverviewScopePane();
   if (scope && data.scope) renderScopedOverview(data);
   else renderProjectOverview(data);
-  void renderOverviewRightPane(scope && data.scope ? data.scope.rel : null);
+  void renderOverviewRightPane(scope && data.scope ? data.scope.rel : null, data);
   return true;
 }
 
@@ -2357,15 +2490,1253 @@ function renderProjectOverview(data: StatsPayload): void {
   const middle = data.phases.length === 0
     ? buildNowBoard()
     : buildPhaseSection(data.phases);
-  docView.replaceChildren(
-    buildHero(data.hero),
+  // State above the fold, history below it (REQ-0022): focus → counts →
+  // phases → what's waiting on a human; activity and commits last.
+  const parts: HTMLElement[] = [];
+  const focus = data.focus ? buildFocusBand(data.focus) : null;
+  if (focus) parts.push(focus);
+  parts.push(
+    buildStatTiles(data),
     middle,
-    buildBottomGrid(data),
-    buildFeedsGrid(data),
+    buildWaitingOnYou(data),
+    buildActivityTile(data),
+    buildCommitsTile(),
   );
+  docView.replaceChildren(...parts);
   docView.hidden = false;
   placeholder.hidden = true;
   refreshFooterPath();
+}
+
+// ----- Verification panel (TASK-0211) -----------------------------------
+// The durable counterpart to the desk's queue. It lives on the scope
+// being validated — a feature note, a phase page, a release — and reads
+// only note data (status, last_run, the `## Runs` log), never the queue.
+// The queue's "run" row is a reminder; this panel is the record, and it
+// is still here after the reminder is gone.
+//
+// FEAT-0018 coordination: that feature owns validator/waiver health at
+// *project* scope (its badges live in the record column). This panel is
+// deliberately per-scope and test-centric so the two compose rather than
+// overlap — same surface family, different question.
+
+interface ScopeTest {
+  id: string; title: string; rel: string; status: string;
+  last_run: string; manual: boolean; steps: number;
+}
+
+// Staleness threshold for a manual test: STATUSES.md treats a manual
+// pass as evidence that decays, unlike an automated one that reruns in
+// CI. 60 days is the point at which "it passed once" stops being an
+// answer to "does it pass?".
+const MANUAL_TEST_STALE_DAYS = 60;
+
+async function fetchScopeTests(noteId: string): Promise<ScopeTest[]> {
+  if (!sidecarBaseUrl) return [];
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/scope-tests?id=${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as { tests?: ScopeTest[] };
+    return data.tests ?? [];
+  } catch { return []; }
+}
+
+function buildVerificationPanel(noteId: string): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile verification-panel';
+  const head = document.createElement('div');
+  head.className = 'scoped-exit-head';
+  const h = document.createElement('h3');
+  h.textContent = 'Verification';
+  head.appendChild(h);
+  wrap.appendChild(head);
+  const body = document.createElement('div');
+  wrap.appendChild(body);
+  void fillVerificationPanel(noteId, head, body);
+  return wrap;
+}
+
+async function fillVerificationPanel(
+  noteId: string, head: HTMLElement, body: HTMLElement,
+): Promise<void> {
+  const tests = await fetchScopeTests(noteId);
+  if (tests.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'meta';
+    empty.textContent = 'No acceptance tests link to this scope yet.';
+    body.replaceChildren(empty);
+    return;
+  }
+  const passing = tests.filter(
+    (t) => (t.status || '').toLowerCase() === 'passing',
+  ).length;
+
+  const frac = document.createElement('span');
+  frac.className = 'scoped-exit-frac num';
+  frac.textContent = `${passing}/${tests.length}`;
+  const bar = document.createElement('span');
+  bar.className = 'scoped-exit-bar';
+  const fill = document.createElement('i');
+  fill.style.width = `${Math.round((passing / tests.length) * 100)}%`;
+  bar.appendChild(fill);
+  head.append(frac, bar);
+
+  const runnable = tests.filter((t) => t.manual && t.steps > 0);
+  if (runnable.length > 0) {
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'review-btn is-primary verification-runall';
+    all.textContent = `Validate this scope · ${runnable.length} manual`;
+    all.title = runnable.map((t) => `${t.id} ${t.title}`).join('\n');
+    // Sequential by construction: the runner is a stepper, so "run all"
+    // means "start the first and come back", not a parallel fan-out.
+    all.addEventListener('click', () => {
+      void navigateTo(`~review/${runnable[0].id}/run`);
+    });
+    head.appendChild(all);
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'ov-waiting-list verification-list';
+  for (const test of tests) {
+    const li = document.createElement('li');
+    const id = document.createElement('span');
+    id.className = 'ov-waiting-id mono ov-typed';
+    id.dataset.type = 'test';
+    id.textContent = test.id;
+    const title = document.createElement('span');
+    title.className = 'ov-waiting-title';
+    title.textContent = test.title;
+    li.append(id, title);
+
+    const meta = document.createElement('span');
+    meta.className = 'verification-meta';
+    const stale = isStaleRun(test);
+    meta.textContent = test.last_run
+      ? `${test.manual ? 'manual' : 'auto'} · ran ${test.last_run}`
+      : `${test.manual ? 'manual' : 'auto'} · never run`;
+    if (stale) {
+      meta.classList.add('is-stale');
+      meta.title = `Last manual run is older than ${MANUAL_TEST_STALE_DAYS} days`;
+    }
+    li.appendChild(meta);
+
+    if (test.manual && test.steps > 0) {
+      const run = document.createElement('button');
+      run.type = 'button';
+      run.className = 'verification-run';
+      run.textContent = 'Run ▸';
+      run.title = `${test.steps} steps`;
+      run.addEventListener('click', (e) => {
+        e.stopPropagation();
+        void navigateTo(`~review/${test.id}/run`);
+      });
+      li.appendChild(run);
+    }
+    appendIf(li, statusChip(test.status));
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => void navigateTo(test.rel));
+    list.appendChild(li);
+  }
+  body.replaceChildren(list);
+}
+
+function isStaleRun(test: ScopeTest): boolean {
+  if (!test.manual) return false;
+  if (!test.last_run) return (test.status || '').toLowerCase() === 'passing';
+  const days = daysSince(test.last_run);
+  return days !== null && days > MANUAL_TEST_STALE_DAYS;
+}
+
+// ----------------------------------------------------------------------
+// Review desk — ~review (FEAT-0041)
+// ----------------------------------------------------------------------
+// The desk is a *queue*: proposals to accept, questions to answer, tests
+// to run. Queues empty, so nothing durable lives here — accepting stamps
+// the note's review fields, a run writes its log into the test note, and
+// the record surfaces (verification panel, design references) are where
+// those outcomes are read afterwards.
+
+interface ReviewQueueItem {
+  id?: string; request_id?: string; title?: string; body?: string;
+  rel?: string; type?: string; status?: string; kind?: string;
+  ts?: string; steps?: number; agent?: string; session_id?: string;
+  items?: Array<{ id: string; title?: string; rel?: string; type?: string; status?: string }>;
+}
+interface ReviewQueueGroup { key: string; label: string; items: ReviewQueueItem[] }
+interface ReviewQueuePayload {
+  schema_version: number; total: number; groups: ReviewQueueGroup[];
+}
+interface ReviewDetail {
+  kind: string;
+  request?: ReviewQueueItem;
+  items?: Array<{ id: string; title?: string; rel?: string; type?: string; status?: string }>;
+  note?: { id: string; title: string; rel: string; type: string; status: string };
+  steps?: Array<{ n: number; text: string; expected?: string }>;
+  mtime?: number;
+  last_run?: string;
+  verifies?: string[];
+}
+
+let reviewQueue: ReviewQueuePayload | null = null;
+let reviewSelection = '';
+
+const KIND_LABEL: Record<string, string> = {
+  decide: 'decide', review: 'review', answer: 'answer', run: 'run',
+};
+
+async function fetchReviewQueue(): Promise<ReviewQueuePayload | null> {
+  if (!sidecarBaseUrl) return null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/review-queue`);
+    if (!resp.ok) return null;
+    return (await resp.json()) as ReviewQueuePayload;
+  } catch { return null; }
+}
+
+// The badge is the desk's only claim on the user's attention, so it
+// counts only things a human must act on, and it never decays (REQ-0018).
+async function refreshReviewBadge(): Promise<void> {
+  const payload = await fetchReviewQueue();
+  reviewQueue = payload;
+  const btn = document.querySelector<HTMLButtonElement>('.top-bar-btn[data-mode="review"]');
+  if (!btn) return;
+  btn.querySelector('.mode-badge')?.remove();
+  const total = payload?.total ?? 0;
+  if (total <= 0) return;
+  const badge = document.createElement('span');
+  badge.className = 'mode-badge';
+  badge.textContent = String(total);
+  btn.appendChild(badge);
+  btn.title = `Review — ${total} waiting on you`;
+}
+
+async function renderReviewPage(
+  target: string, opts: { run?: boolean } = {},
+): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  const payload = await fetchReviewQueue();
+  if (!payload) {
+    showStatus('Review queue unavailable', 'error');
+    return false;
+  }
+  reviewQueue = payload;
+  reviewSelection = target;
+  renderReviewQueuePane(payload);
+  void refreshReviewBadge();
+
+  docView.classList.remove('overview-pane', 'agents-page');
+  docView.classList.add('review-page');
+  rightPaneContent.replaceChildren();
+
+  if (!target) {
+    docView.replaceChildren(buildReviewEmpty(payload));
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return true;
+  }
+
+  let detail: ReviewDetail | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/review/${encodeURIComponent(target)}`,
+    );
+    if (resp.ok) detail = (await resp.json()) as ReviewDetail;
+  } catch { /* handled below */ }
+  if (!detail) {
+    docView.replaceChildren(buildReviewEmpty(payload, `Nothing found for ${target}.`));
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return true;
+  }
+
+  if (opts.run && detail.note) {
+    docView.replaceChildren(buildTestRunner(detail));
+  } else if (detail.kind === 'question') {
+    docView.replaceChildren(buildQuestionView(detail));
+  } else if (detail.request) {
+    docView.replaceChildren(buildProposalView(detail));
+  } else if (detail.note) {
+    docView.replaceChildren(buildSingleNoteReview(detail));
+  }
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildReviewEmpty(
+  payload: ReviewQueuePayload, message?: string,
+): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'review-empty';
+  const h = document.createElement('h2');
+  h.textContent = payload.total > 0
+    ? 'Pick something from the queue' : 'Nothing waiting on you';
+  const p = document.createElement('p');
+  p.className = 'meta';
+  p.textContent = message ?? (payload.total > 0
+    ? `${payload.total} item${payload.total === 1 ? '' : 's'} need a human.`
+    : 'Proposals, questions and pending test runs appear here as they arrive.');
+  wrap.append(h, p);
+  return wrap;
+}
+
+function renderReviewQueuePane(payload: ReviewQueuePayload): void {
+  wsNavPlaceholder.hidden = true;
+  wsNavContent.hidden = false;
+  const wrap = document.createElement('div');
+  wrap.className = 'scope-pane review-queue';
+
+  const head = document.createElement('h4');
+  head.className = 'scope-heading';
+  head.textContent = payload.total > 0 ? `Queue · ${payload.total}` : 'Queue';
+  wrap.appendChild(head);
+
+  for (const group of payload.groups) {
+    if (group.items.length === 0) continue;
+    const label = document.createElement('h4');
+    label.className = 'scope-heading';
+    label.textContent = `${group.label} · ${group.items.length}`;
+    wrap.appendChild(label);
+    for (const item of group.items) {
+      wrap.appendChild(buildQueueRow(item, group.key));
+    }
+  }
+  if (payload.total === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'meta review-queue-empty';
+    empty.textContent = 'All clear.';
+    wrap.appendChild(empty);
+  }
+  wsNavContent.replaceChildren(wrap);
+}
+
+function buildQueueRow(item: ReviewQueueItem, groupKey: string): HTMLElement {
+  const key = item.request_id || item.id || '';
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'queue-row' + (key === reviewSelection ? ' current' : '');
+
+  const kind = document.createElement('span');
+  const kindKey = item.kind || (groupKey === 'runs' ? 'run' : 'review');
+  kind.className = `queue-kind is-${kindKey}`;
+  kind.textContent = KIND_LABEL[kindKey] || kindKey;
+  row.appendChild(kind);
+
+  const title = document.createElement('span');
+  title.className = 'queue-title';
+  title.textContent = item.id
+    ? `${item.id} ${item.title ?? ''}`.trim()
+    : (item.title || '(untitled)');
+  row.appendChild(title);
+
+  const age = document.createElement('span');
+  age.className = 'queue-age';
+  age.textContent = item.ts ? relativeAge(item.ts) : (item.status || '');
+  row.appendChild(age);
+
+  row.addEventListener('click', () => {
+    const suffix = kindKey === 'run' ? '/run' : '';
+    void navigateTo(`~review/${key}${suffix}`);
+  });
+  return row;
+}
+
+function relativeAge(iso: string): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return '';
+  const mins = Math.max(0, Math.round((Date.now() - then) / 60000));
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
+// ----- Proposal set review (TASK-0207) ----------------------------------
+
+function buildReviewHeader(
+  kind: string, title: string, status: string | undefined,
+  actions: HTMLElement | null, sub?: string,
+): HTMLElement {
+  const head = document.createElement('header');
+  head.className = 'review-head';
+  const kindEl = document.createElement('span');
+  kindEl.className = `queue-kind is-${kind}`;
+  kindEl.textContent = KIND_LABEL[kind] || kind;
+  const h = document.createElement('h2');
+  h.textContent = title;
+  head.append(kindEl, h);
+  appendIf(head, statusChip(status));
+  if (actions) head.appendChild(actions);
+  const wrap = document.createElement('div');
+  wrap.appendChild(head);
+  if (sub) {
+    const p = document.createElement('p');
+    p.className = 'review-sub';
+    p.textContent = sub;
+    wrap.appendChild(p);
+  }
+  return wrap;
+}
+
+function buildProposalView(detail: ReviewDetail): HTMLElement {
+  const request = detail.request!;
+  const items = detail.items ?? [];
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body';
+
+  const ticks = new Map<string, boolean>();
+  for (const item of items) ticks.set(item.id, true);
+
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  const accept = document.createElement('button');
+  accept.type = 'button';
+  accept.className = 'review-btn is-good';
+  accept.textContent = 'Accept set';
+  const changes = document.createElement('button');
+  changes.type = 'button';
+  changes.className = 'review-btn is-primary';
+  changes.textContent = 'Request changes';
+  const reject = document.createElement('button');
+  reject.type = 'button';
+  reject.className = 'review-btn is-bad';
+  reject.textContent = 'Reject';
+  actions.append(accept, changes, reject);
+
+  const provenance = [
+    request.agent ? `proposed by ${request.agent}` : '',
+    request.session_id ? `session ${String(request.session_id).slice(0, 8)}` : '',
+    request.ts ? `${relativeAge(request.ts)} ago` : '',
+    'review requested via the dispatch ledger',
+  ].filter(Boolean).join(' · ');
+
+  wrap.appendChild(buildReviewHeader(
+    'review', request.title || 'Proposal set', undefined, actions, provenance,
+  ));
+
+  if (request.body) {
+    const blurb = document.createElement('p');
+    blurb.className = 'review-blurb';
+    blurb.textContent = request.body;
+    wrap.appendChild(blurb);
+  }
+
+  const list = document.createElement('section');
+  list.className = 'review-set';
+  const listHead = document.createElement('h3');
+  listHead.className = 'review-set-head';
+  const listLabel = document.createElement('span');
+  listLabel.textContent = `Proposed set · ${items.length} item${items.length === 1 ? '' : 's'}`;
+  listHead.appendChild(listLabel);
+  list.appendChild(listHead);
+
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'review-set-row';
+    const box = document.createElement('button');
+    box.type = 'button';
+    box.className = 'review-tick is-on';
+    box.setAttribute('aria-pressed', 'true');
+    box.textContent = '✓';
+    box.addEventListener('click', () => {
+      const next = !ticks.get(item.id);
+      ticks.set(item.id, next);
+      box.classList.toggle('is-on', next);
+      box.setAttribute('aria-pressed', String(next));
+      row.classList.toggle('is-off', !next);
+    });
+    const id = document.createElement('span');
+    id.className = 'mono ov-typed';
+    if (item.type) id.dataset.type = item.type;
+    id.textContent = item.id;
+    const title = document.createElement('span');
+    title.className = 'review-set-title';
+    title.textContent = item.title || '';
+    row.append(box, id, title);
+    appendIf(row, statusChip(item.status));
+
+    // Every row expands to the note it proposes. Accepting a set of five
+    // tasks means reading five task notes; the first cut showed titles
+    // and tick-boxes only, so a set was approved as blind as a lone note
+    // was (reported 2026-07-26).
+    const peek = document.createElement('button');
+    peek.type = 'button';
+    peek.className = 'review-peek';
+    peek.setAttribute('aria-expanded', 'false');
+    peek.title = 'Show this note';
+    const noteBody = document.createElement('div');
+    noteBody.className = 'review-note review-note-inline';
+    noteBody.hidden = true;
+    let loaded = false;
+    peek.addEventListener('click', () => {
+      const opening = noteBody.hidden;
+      noteBody.hidden = !opening;
+      peek.classList.toggle('is-open', opening);
+      peek.setAttribute('aria-expanded', String(opening));
+      if (opening && !loaded && item.rel) {
+        loaded = true;
+        void fillReviewNoteBody(noteBody, item.rel);
+      }
+    });
+    row.appendChild(peek);
+    if (item.rel) {
+      title.style.cursor = 'pointer';
+      title.addEventListener('click', () => void navigateTo(item.rel!));
+    }
+    list.append(row, noteBody);
+  }
+
+  // Reading five notes one click at a time is worse than reading five
+  // notes; offer the whole set at once.
+  const expandAll = document.createElement('button');
+  expandAll.type = 'button';
+  expandAll.className = 'review-expand-all';
+  expandAll.textContent = 'Show all notes';
+  expandAll.addEventListener('click', () => {
+    const opening = expandAll.textContent === 'Show all notes';
+    list.querySelectorAll<HTMLButtonElement>('.review-peek').forEach((btn) => {
+      if (btn.classList.contains('is-open') !== opening) btn.click();
+    });
+    expandAll.textContent = opening ? 'Hide all notes' : 'Show all notes';
+  });
+  listHead.appendChild(expandAll);
+  wrap.appendChild(list);
+
+  const comment = document.createElement('textarea');
+  comment.className = 'review-comment';
+  comment.rows = 2;
+  comment.placeholder =
+    'Optional note back to the agent — sent with Request changes, recorded with Accept.';
+  wrap.appendChild(comment);
+
+  const feedback = document.createElement('p');
+  feedback.className = 'review-feedback';
+  feedback.hidden = true;
+  wrap.appendChild(feedback);
+
+  const setBusy = (busy: boolean): void => {
+    for (const btn of [accept, changes, reject]) btn.disabled = busy;
+  };
+  const say = (text: string, error = false): void => {
+    feedback.textContent = text;
+    feedback.hidden = false;
+    feedback.classList.toggle('is-error', error);
+  };
+
+  accept.addEventListener('click', () => {
+    const ticked = items.filter((i) => ticks.get(i.id));
+    if (ticked.length === 0) { say('Nothing ticked to accept.', true); return; }
+    setBusy(true);
+    void acceptProposalSet(request, ticked, comment.value, items.length)
+      .then((msg) => { say(msg); void refreshReviewBadge(); })
+      .catch((err: Error) => { say(err.message, true); setBusy(false); });
+  });
+  reject.addEventListener('click', () => {
+    setBusy(true);
+    void rejectProposalSet(request, items, comment.value)
+      .then((msg) => { say(msg); void refreshReviewBadge(); })
+      .catch((err: Error) => { say(err.message, true); setBusy(false); });
+  });
+  changes.addEventListener('click', () => {
+    const unticked = items.filter((i) => !ticks.get(i.id));
+    setBusy(true);
+    void requestChanges(request, unticked, comment.value)
+      .then((msg) => { say(msg); void refreshReviewBadge(); })
+      .catch((err: Error) => { say(err.message, true); setBusy(false); });
+  });
+  return wrap;
+}
+
+async function postJson(path: string, body: unknown): Promise<Record<string, unknown>> {
+  const resp = await fetch(`${sidecarBaseUrl}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!resp.ok || data.ok === false) {
+    throw new Error(String(data.error || `HTTP ${resp.status}`));
+  }
+  return data;
+}
+
+async function acceptProposalSet(
+  request: ReviewQueueItem,
+  ticked: Array<{ id: string }>,
+  note: string,
+  total: number,
+): Promise<string> {
+  for (const item of ticked) {
+    await postJson('/api/notes/review', {
+      id: item.id,
+      reviewer: 'user:edwin',
+      // Deliberately NOT `approved`: that is close-out's verdict, and a
+      // plan acceptance must never satisfy the verification gate.
+      verdict: 'plan-accepted',
+    });
+  }
+  const amended = ticked.length < total;
+  if (request.request_id) {
+    await postJson('/api/cockpit/review-resolve', {
+      request_id: request.request_id,
+      outcome: amended ? 'accepted-amended' : 'accepted',
+      note,
+    });
+  }
+  return amended
+    ? `Accepted ${ticked.length} of ${total} — the rest were left untouched.`
+    : `Accepted all ${total} items.`;
+}
+
+async function rejectProposalSet(
+  request: ReviewQueueItem,
+  items: Array<{ id: string }>,
+  note: string,
+): Promise<string> {
+  for (const item of items) {
+    await postJson('/api/notes/review', {
+      id: item.id, reviewer: 'user:edwin',
+      // A rejection records a rejection. An earlier cut stamped
+      // `plan-accepted` alongside `cancelled` because the endpoint took
+      // only one verdict, which left the durable record reading as an
+      // acceptance (independent review, 2026-07-26).
+      verdict: 'plan-rejected', status: 'cancelled',
+    });
+  }
+  if (request.request_id) {
+    await postJson('/api/cockpit/review-resolve', {
+      request_id: request.request_id, outcome: 'rejected', note,
+    });
+  }
+  return `Rejected — ${items.length} item${items.length === 1 ? '' : 's'} cancelled.`;
+}
+
+async function requestChanges(
+  request: ReviewQueueItem,
+  unticked: Array<{ id: string; title?: string }>,
+  note: string,
+): Promise<string> {
+  // The round-trip is the dispatch queue (TASK-0208): the comment plus
+  // the rows that were not accepted go back to the session as a prompt.
+  const lines = [
+    `Review of "${request.title || 'proposal set'}": changes requested.`,
+    note.trim(),
+    unticked.length
+      ? `Not accepted: ${unticked.map((i) => i.id).join(', ')}`
+      : '',
+  ].filter(Boolean);
+  await cockpitApi.dispatch.execute(activeId || '', {
+    id: request.items?.[0]?.id || request.request_id || '',
+    verb: 'revise',
+    prompt: lines.join('\n\n'),
+    agent: loadDispatchAgent(),
+  }).catch(() => undefined);
+  return 'Sent back to the agent — the request stays open until it returns.';
+}
+
+function buildQuestionView(detail: ReviewDetail): HTMLElement {
+  const request = detail.request!;
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body';
+
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  const send = document.createElement('button');
+  send.type = 'button';
+  send.className = 'review-btn is-primary';
+  send.textContent = 'Send answer';
+  actions.appendChild(send);
+
+  wrap.appendChild(buildReviewHeader(
+    'answer', request.title || 'Question', undefined, actions,
+    [request.agent ? `asked by ${request.agent}` : '',
+     request.ts ? `${relativeAge(request.ts)} ago` : ''].filter(Boolean).join(' · '),
+  ));
+
+  if (request.body) {
+    const body = document.createElement('p');
+    body.className = 'review-blurb';
+    body.textContent = request.body;
+    wrap.appendChild(body);
+  }
+  const answer = document.createElement('textarea');
+  answer.className = 'review-comment';
+  answer.rows = 3;
+  answer.placeholder = 'Your answer — dispatched back to the asking session.';
+  wrap.appendChild(answer);
+
+  const feedback = document.createElement('p');
+  feedback.className = 'review-feedback';
+  feedback.hidden = true;
+  wrap.appendChild(feedback);
+
+  send.addEventListener('click', () => {
+    if (!answer.value.trim()) {
+      feedback.textContent = 'Write an answer first.';
+      feedback.hidden = false;
+      feedback.classList.add('is-error');
+      return;
+    }
+    send.disabled = true;
+    void cockpitApi.dispatch.execute(activeId || '', {
+      id: request.items?.[0]?.id || '',
+      verb: 'answer',
+      prompt: `Answer to "${request.title}":\n\n${answer.value.trim()}`,
+      agent: loadDispatchAgent(),
+    }).catch(() => undefined);
+    void postJson('/api/cockpit/review-resolve', {
+      request_id: request.request_id, outcome: 'answered',
+      note: answer.value.slice(0, 400),
+    }).then(() => {
+      feedback.textContent = 'Answer dispatched.';
+      feedback.hidden = false;
+      void refreshReviewBadge();
+    }).catch((err: Error) => {
+      feedback.textContent = err.message;
+      feedback.classList.add('is-error');
+      feedback.hidden = false;
+      send.disabled = false;
+    });
+  });
+  return wrap;
+}
+
+// A proposed ADR / draft requirement: one note, same accept vocabulary.
+// Accept/decline wording per type — the vocabulary STATUSES.md defines,
+// not a generic yes/no. Types absent here are not decided from the desk.
+const DECIDE_LABELS: Record<string, { accept: string; decline: string }> = {
+  adr:         { accept: 'Accept decision', decline: 'Supersede' },
+  decision:    { accept: 'Accept decision', decline: 'Supersede' },
+  requirement: { accept: 'Approve', decline: 'Cancel' },
+};
+
+function buildSingleNoteReview(detail: ReviewDetail): HTMLElement {
+  const note = detail.note!;
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body';
+  const isTest = note.type === 'test';
+
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  if (isTest) {
+    const run = document.createElement('button');
+    run.type = 'button';
+    run.className = 'review-btn is-primary';
+    run.textContent = `Run ▸ ${detail.steps?.length ?? 0} steps`;
+    run.addEventListener('click', () => void navigateTo(`~review/${note.id}/run`));
+    actions.appendChild(run);
+  }
+
+  // Decide buttons. Their absence is why a proposed ADR or draft
+  // requirement could be opened from the queue but never acted on — the
+  // set-review path had actions, the single-note path had none
+  // (reported 2026-07-26). Labels come from the type's own vocabulary:
+  // an ADR is accepted or superseded, never "rejected" (STATUSES.md).
+  const decide = DECIDE_LABELS[note.type];
+  let feedback: HTMLElement | null = null;
+  if (decide) {
+    const accept = document.createElement('button');
+    accept.type = 'button';
+    accept.className = 'review-btn is-good';
+    accept.textContent = decide.accept;
+    const decline = document.createElement('button');
+    decline.type = 'button';
+    decline.className = 'review-btn is-bad';
+    decline.textContent = decide.decline;
+
+    const run = (isAccept: boolean, btn: HTMLButtonElement): void => {
+      accept.disabled = true;
+      decline.disabled = true;
+      void postJson('/api/notes/decide', {
+        id: note.id, reviewer: 'user:edwin', accept: isAccept,
+      }).then((res) => {
+        const status = (res.result as { status?: string } | undefined)?.status;
+        if (feedback) {
+          feedback.textContent = `${note.id} is now ${status ?? 'updated'}.`;
+          feedback.hidden = false;
+        }
+        void refreshReviewBadge();
+        void navigateTo(note.rel);
+      }).catch((err: Error) => {
+        if (feedback) {
+          feedback.textContent = err.message;
+          feedback.classList.add('is-error');
+          feedback.hidden = false;
+        }
+        accept.disabled = false;
+        decline.disabled = false;
+        void btn;
+      });
+    };
+    accept.addEventListener('click', () => run(true, accept));
+    decline.addEventListener('click', () => run(false, decline));
+    actions.append(accept, decline);
+  }
+
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'review-btn';
+  open.textContent = 'Open note ↗';
+  open.addEventListener('click', () => void navigateTo(note.rel));
+  actions.appendChild(open);
+
+  wrap.appendChild(buildReviewHeader(
+    isTest ? 'run' : 'decide', `${note.id} · ${note.title}`, note.status, actions,
+    isTest && detail.last_run ? `last run ${detail.last_run}`
+      : isTest ? 'defined, never executed' : 'awaiting a decision',
+  ));
+
+  feedback = document.createElement('p');
+  feedback.className = 'review-feedback';
+  feedback.hidden = true;
+  wrap.appendChild(feedback);
+
+  // The note itself. Deciding an ADR means reading its decision, context
+  // and alternatives; approving a requirement means reading its
+  // acceptance criteria. The first cut rendered a header, buttons and
+  // nothing else — asking for approval of content it never showed
+  // (reported 2026-07-26). Mounted inline rather than linked out so the
+  // decision and the evidence stay on one screen.
+  const body = document.createElement('section');
+  body.className = 'review-note';
+  wrap.appendChild(body);
+  void fillReviewNoteBody(body, note.rel);
+
+  if (isTest && detail.steps?.length) {
+    const preview = document.createElement('section');
+    preview.className = 'review-set';
+    const h = document.createElement('h3');
+    h.textContent = 'Steps';
+    preview.appendChild(h);
+    for (const step of detail.steps) {
+      const row = document.createElement('div');
+      row.className = 'run-step';
+      const n = document.createElement('span');
+      n.className = 'run-step-n';
+      n.textContent = String(step.n);
+      const text = document.createElement('span');
+      text.textContent = step.text;
+      row.append(n, text);
+      preview.appendChild(row);
+    }
+    wrap.appendChild(preview);
+  }
+  return wrap;
+}
+
+// Render the queued note into the review page. Reuses `/api/render`, so
+// wikilinks, checkboxes and the metadata strip behave exactly as they do
+// in the centre pane — a reviewer reads the real note, not a summary of it.
+async function fillReviewNoteBody(target: HTMLElement, rel: string): Promise<void> {
+  if (!sidecarBaseUrl || !rel) return;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/render?path=${encodeURIComponent(rel)}`,
+    );
+    if (!resp.ok) {
+      target.innerHTML = '<p class="meta">Could not load the note — open it to review.</p>';
+      return;
+    }
+    const data = (await resp.json()) as RenderResponse;
+    // Same mount as the centre pane: metadata strip then body.
+    target.innerHTML = (data.metadata_html || '') + data.html;
+    // Links inside a reviewed note stay navigable; the doc-view click
+    // handler only covers #doc-view, so wire this subtree explicitly.
+    target.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
+      const href = a.getAttribute('href') || '';
+      if (!href.startsWith('/docs/')) return;
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        void navigateTo(href.slice('/docs/'.length));
+      });
+    });
+  } catch {
+    target.innerHTML = '<p class="meta">Could not load the note — open it to review.</p>';
+  }
+}
+
+// ----- Manual test runner (TASK-0209) -----------------------------------
+
+function buildTestRunner(detail: ReviewDetail): HTMLElement {
+  const note = detail.note!;
+  const steps = detail.steps ?? [];
+  const results = steps.map((s) => ({
+    n: s.n, text: s.text, expected: s.expected,
+    result: '' as '' | 'pass' | 'fail' | 'skip', evidence: '',
+  }));
+  let current = 0;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body run-view';
+  const stage = document.createElement('div');
+
+  const rerender = (): void => {
+    stage.replaceChildren();
+
+    const actions = document.createElement('div');
+    actions.className = 'review-actions';
+    const counter = document.createElement('span');
+    counter.className = 'run-counter';
+    counter.textContent = current < steps.length
+      ? `step ${current + 1} of ${steps.length}` : 'all steps recorded';
+    const abort = document.createElement('button');
+    abort.type = 'button';
+    abort.className = 'review-btn';
+    abort.textContent = 'Abort run';
+    abort.addEventListener('click', () => void finish(true));
+    actions.append(counter, abort);
+
+    stage.appendChild(buildReviewHeader(
+      'run', `${note.id} · ${note.title}`, note.status, actions,
+      [detail.verifies?.length ? `verifies ${detail.verifies.join(', ')}` : '',
+       detail.last_run ? `last run ${detail.last_run}` : 'first execution',
+      ].filter(Boolean).join(' · '),
+    ));
+
+    const bar = document.createElement('div');
+    bar.className = 'run-progress';
+    const fill = document.createElement('i');
+    fill.style.width = `${steps.length ? (current / steps.length) * 100 : 0}%`;
+    bar.appendChild(fill);
+    stage.appendChild(bar);
+
+    results.forEach((step, i) => {
+      if (i < current) {
+        const row = document.createElement('div');
+        row.className = `run-step is-done is-${step.result || 'skip'}`;
+        const n = document.createElement('span');
+        n.className = 'run-step-n';
+        n.textContent = step.result === 'pass' ? '✓' : step.result === 'fail' ? '✕' : '–';
+        const text = document.createElement('span');
+        text.textContent = step.text;
+        const ev = document.createElement('span');
+        ev.className = 'run-step-ev';
+        ev.textContent = step.evidence;
+        row.append(n, text, ev);
+        stage.appendChild(row);
+        return;
+      }
+      if (i === current) {
+        stage.appendChild(buildCurrentStep(step, i));
+        return;
+      }
+      const row = document.createElement('div');
+      row.className = 'run-step';
+      const n = document.createElement('span');
+      n.className = 'run-step-n';
+      n.textContent = String(step.n);
+      const text = document.createElement('span');
+      text.textContent = step.text;
+      row.append(n, text);
+      stage.appendChild(row);
+    });
+
+    if (current >= steps.length && steps.length > 0) {
+      stage.appendChild(buildRunSummary());
+    }
+    if (steps.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'meta';
+      empty.textContent =
+        'This test has no parsable ## Steps section — add numbered steps to run it here.';
+      stage.appendChild(empty);
+    }
+  };
+
+  const buildCurrentStep = (
+    step: typeof results[number], index: number,
+  ): HTMLElement => {
+    const card = document.createElement('div');
+    card.className = 'run-step-current';
+    const title = document.createElement('div');
+    title.className = 'run-step-title';
+    const n = document.createElement('span');
+    n.className = 'run-step-n is-current';
+    n.textContent = String(step.n);
+    const text = document.createElement('span');
+    text.textContent = step.text;
+    title.append(n, text);
+    card.appendChild(title);
+
+    if (step.expected) {
+      const exp = document.createElement('p');
+      exp.className = 'run-expected';
+      exp.textContent = `Expected: ${step.expected}`;
+      card.appendChild(exp);
+    }
+    const row = document.createElement('div');
+    row.className = 'run-controls';
+    const evidence = document.createElement('input');
+    evidence.type = 'text';
+    evidence.className = 'run-evidence';
+    evidence.placeholder = 'evidence — what you observed…';
+
+    const advance = (result: 'pass' | 'fail' | 'skip'): void => {
+      results[index].result = result;
+      results[index].evidence = evidence.value.trim();
+      current = index + 1;
+      rerender();
+    };
+    for (const [label, kind] of [
+      ['Pass', 'pass'], ['Fail', 'fail'], ['Skip', 'skip'],
+    ] as const) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `review-btn is-${kind === 'pass' ? 'good' : kind === 'fail' ? 'bad' : ''}`;
+      btn.textContent = label;
+      btn.addEventListener('click', () => advance(kind));
+      row.appendChild(btn);
+    }
+    row.appendChild(evidence);
+    card.appendChild(row);
+    return card;
+  };
+
+  const buildRunSummary = (): HTMLElement => {
+    const failed = results.filter((r) => r.result === 'fail');
+    const outcome = failed.length > 0 ? 'failing' : 'passing';
+    const box = document.createElement('div');
+    box.className = 'run-summary';
+    const line = document.createElement('p');
+    line.className = 'run-summary-line';
+    line.textContent = failed.length > 0
+      ? `${failed.length} step${failed.length === 1 ? '' : 's'} failed — the test will be recorded as failing.`
+      : 'Every step passed — the test will be recorded as passing.';
+    box.appendChild(line);
+
+    const actions = document.createElement('div');
+    actions.className = 'review-actions';
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = `review-btn ${outcome === 'passing' ? 'is-good' : 'is-bad'}`;
+    save.textContent = `Record run (${outcome})`;
+    save.addEventListener('click', () => void finish(false));
+    actions.appendChild(save);
+    box.appendChild(actions);
+
+    if (failed.length > 0) {
+      const draft = document.createElement('p');
+      draft.className = 'run-draft';
+      draft.textContent =
+        'An issue draft will be offered for the first failing step — filing it stays your call.';
+      box.appendChild(draft);
+    }
+    const feedback = document.createElement('p');
+    feedback.className = 'review-feedback';
+    feedback.hidden = true;
+    feedback.id = 'run-feedback';
+    box.appendChild(feedback);
+    return box;
+  };
+
+  const finish = async (aborted: boolean): Promise<void> => {
+    const recorded = results.filter((r) => r.result);
+    const failed = results.filter((r) => r.result === 'fail');
+    const outcome = failed.length > 0 ? 'failing' : 'passing';
+    const feedback = stage.querySelector<HTMLElement>('#run-feedback');
+    try {
+      await postJson('/api/notes/test-run', {
+        id: note.id,
+        outcome: aborted ? '' : outcome,
+        aborted,
+        runner: 'user:edwin',
+        mtime: detail.mtime,
+        steps: recorded.map((r) => ({
+          n: r.n, text: r.text, result: r.result, evidence: r.evidence,
+        })),
+      });
+    } catch (err) {
+      const message = (err as Error).message;
+      if (feedback) {
+        feedback.textContent = message;
+        feedback.classList.add('is-error');
+        feedback.hidden = false;
+      } else {
+        showStatus(`Run not recorded: ${message}`, 'error');
+      }
+      return;
+    }
+    void refreshReviewBadge();
+    showStatus(
+      aborted ? 'Run aborted — partial log kept in the note.'
+        : `Run recorded: ${note.id} is ${outcome}.`,
+    );
+    void navigateTo(note.rel);
+  };
+
+  wrap.appendChild(stage);
+  rerender();
+  return wrap;
+}
+
+// ----- Design input strip (TASK-0212) -----------------------------------
+// `design:` holds wikilinks to reference notes wrapping committed
+// dossiers under docs/references/design/. Existing machinery throughout:
+// an existing note type, an indexed link field, the normal resolver.
+
+const WIKILINK_TARGET_RE = /\[\[([^\]|]+?)(?:\|[^\]]*)?\]\]/g;
+
+function designLinksFrom(frontmatter: Record<string, unknown>): string[] {
+  const raw = frontmatter.design;
+  if (!raw) return [];
+  const values = Array.isArray(raw) ? raw : [raw];
+  const out: string[] = [];
+  for (const value of values) {
+    const text = String(value);
+    let matched = false;
+    for (const m of text.matchAll(WIKILINK_TARGET_RE)) {
+      out.push(m[1].trim());
+      matched = true;
+    }
+    if (!matched && text.trim()) out.push(text.trim());
+  }
+  return out;
+}
+
+function buildDesignStrip(
+  frontmatter: Record<string, unknown>,
+): HTMLElement | null {
+  const targets = designLinksFrom(frontmatter);
+  if (targets.length === 0) return null;
+
+  const strip = document.createElement('div');
+  strip.className = 'doc-design-strip';
+  const label = document.createElement('span');
+  label.className = 'doc-design-label';
+  label.textContent = targets.length === 1 ? 'Design input' : `Design input · ${targets.length}`;
+  strip.appendChild(label);
+
+  for (const target of targets) {
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'doc-design-item';
+    const icon = document.createElement('span');
+    icon.className = 'doc-design-icon';
+    icon.textContent = '▣';
+    const name = document.createElement('span');
+    name.textContent = target.replace(/^REF-\d+-/, '').replace(/-/g, ' ');
+    link.append(icon, name);
+    link.title = target;
+    // Resolution goes through the sidecar so a renamed note still opens
+    // — the same path a [[wikilink]] in the body takes.
+    link.addEventListener('click', () => void navigateToId(target));
+    strip.appendChild(link);
+  }
+  return strip;
+}
+
+async function navigateToId(target: string): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/context?this=${encodeURIComponent(target)}`,
+    );
+    if (resp.ok) {
+      const data = (await resp.json()) as ContextPayload;
+      const rel = extractRel(data.active?.url);
+      if (rel) { void navigateTo(rel); return; }
+    }
+  } catch { /* fall through to the literal form */ }
+  void navigateTo(target.endsWith('.md') ? target : `${target}.md`);
+}
+
+// ----- Focus band (TASK-0200) -------------------------------------------
+// The SNAPSHOT focus chain. It is always set but usually terminal — work
+// here is bursty (an agent sets `doing` and clears it at close-out), so
+// the resting state reads "what just finished" rather than pretending
+// something is live. The note's age is shown because a stale focus note
+// is itself worth seeing.
+
+const FOCUS_ORDER: Array<'phase' | 'feature' | 'requirement' | 'issue' | 'task'> =
+  ['phase', 'feature', 'requirement', 'issue', 'task'];
+
+function buildFocusBand(focus: FocusBlock): HTMLElement | null {
+  const slots = FOCUS_ORDER
+    .map((k) => focus.items?.[k])
+    .filter((it): it is FocusItem => !!it && !!it.id);
+  if (slots.length === 0 && !focus.note) return null;
+
+  const band = document.createElement('section');
+  band.className = 'ov-focus';
+  const label = document.createElement('span');
+  label.className = 'ov-focus-label';
+  const live = slots.some((s) => isActiveStatus(s.status));
+  band.classList.toggle('is-live', live);
+  label.textContent = live ? 'NOW' : 'FOCUS';
+  band.appendChild(label);
+
+  slots.forEach((slot, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'ov-focus-sep';
+      sep.textContent = '▸';
+      band.appendChild(sep);
+    }
+    band.appendChild(buildFocusChip(slot));
+  });
+
+  if (focus.note_date) {
+    const age = document.createElement('span');
+    age.className = 'ov-focus-age';
+    const days = daysSince(focus.note_date);
+    age.textContent = days === null ? focus.note_date
+      : days <= 0 ? 'note today'
+      : `note ${days}d old`;
+    age.title = focus.note;
+    if (days !== null && days >= 7) age.classList.add('is-stale');
+    band.appendChild(age);
+  }
+  return band;
+}
+
+function buildFocusChip(slot: FocusItem): HTMLElement {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'ov-focus-chip';
+  if (isActiveStatus(slot.status)) {
+    const pulse = document.createElement('span');
+    pulse.className = 'ov-focus-pulse';
+    chip.appendChild(pulse);
+  }
+  const id = document.createElement('span');
+  id.className = 'ov-focus-id mono ov-typed';
+  id.textContent = slot.id;
+  if (slot.type) id.dataset.type = slot.type;
+  chip.appendChild(id);
+  if (slot.title) {
+    const title = document.createElement('span');
+    title.className = 'ov-focus-title';
+    title.textContent = slot.title;
+    chip.appendChild(title);
+  }
+  appendIf(chip, statusChip(slot.status));
+  if (slot.rel) {
+    chip.addEventListener('click', () => void navigateTo(slot.rel!));
+  } else {
+    chip.classList.add('is-dangling');
+    chip.title = `${slot.id} — no note resolves for this id`;
+    chip.disabled = true;
+  }
+  return chip;
+}
+
+function isActiveStatus(status?: string): boolean {
+  const s = (status || '').toLowerCase().trim();
+  return s === 'doing' || s === 'in-progress' || s === 'in_progress'
+    || s === 'active' || s === 'review';
+}
+
+function daysSince(isoDate: string): number | null {
+  const then = Date.parse(`${isoDate}T00:00:00`);
+  if (Number.isNaN(then)) return null;
+  const today = new Date();
+  const midnight = new Date(
+    today.getFullYear(), today.getMonth(), today.getDate(),
+  ).getTime();
+  return Math.round((midnight - then) / 86_400_000);
 }
 
 // Now board (TASK-0165): Doing / Next / Done-today columns rendered
@@ -2431,6 +3802,129 @@ async function fillNowBoard(board: HTMLElement): Promise<void> {
   } catch { /* transient — ignore */ }
 }
 
+// ----- Stat tiles (TASK-0200) -------------------------------------------
+// Six counts, each with the status composition inline. This is what
+// retires the donut row: the mix a donut drew without labels is stated
+// here in situ, next to the number it decomposes, at a third the height.
+
+// Mix segments in reading order. The *bucketing* is deliberately not done
+// here: which bucket a status belongs to is a vocabulary question, and
+// ISS-0023 is what happens when a surface answers that locally. The
+// sidecar sends `status_buckets` (computed from statuses.py) and this
+// draws the widths. Colours resolve to existing status tokens — no new
+// palette, no new vocabulary (ADR-0006 / TST-0019).
+type MixKey = 'done' | 'doing' | 'attention' | 'backlog';
+const MIX_KEYS: MixKey[] = ['done', 'doing', 'attention', 'backlog'];
+
+const MIX_LABEL: Record<MixKey, string> = {
+  done: 'done', doing: 'in flight', attention: 'attention', backlog: 'backlog',
+};
+
+type MixBuckets = Partial<Record<MixKey, number>>;
+
+function buildMixBar(
+  buckets: MixBuckets | undefined,
+  raw?: Record<string, number>,
+): HTMLElement {
+  const bar = document.createElement('div');
+  bar.className = 'ov-mixbar';
+  const total = MIX_KEYS.reduce((n, k) => n + (buckets?.[k] ?? 0), 0);
+  if (total === 0) {
+    bar.classList.add('is-empty');
+    return bar;
+  }
+  for (const key of MIX_KEYS) {
+    const count = buckets?.[key] ?? 0;
+    if (count === 0) continue;
+    const seg = document.createElement('i');
+    seg.dataset.seg = key;
+    seg.style.flex = String(count);
+    bar.appendChild(seg);
+  }
+  // The tooltip keeps the raw per-status detail the buckets summarise.
+  const detail = Object.entries(raw || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([status, count]) => `${count} ${status}`)
+    .join(' · ');
+  bar.title = detail || MIX_KEYS
+    .filter((k) => (buckets?.[k] ?? 0) > 0)
+    .map((k) => `${buckets?.[k]} ${MIX_LABEL[k]}`)
+    .join(' · ');
+  return bar;
+}
+
+function buildStatTile(
+  label: string, value: string, sub: string,
+  buckets: MixBuckets | undefined, raw: Record<string, number> | undefined,
+  navMode?: NavMode,
+): HTMLElement {
+  const tile = document.createElement(navMode ? 'button' : 'div');
+  tile.className = 'ov-stat';
+  if (navMode) {
+    (tile as HTMLButtonElement).type = 'button';
+    tile.addEventListener('click', () => setNavMode(navMode));
+  }
+  const head = document.createElement('div');
+  head.className = 'ov-stat-label';
+  head.textContent = label;
+  const val = document.createElement('div');
+  val.className = 'ov-stat-value num';
+  val.textContent = value;
+  if (sub) {
+    const small = document.createElement('small');
+    small.textContent = ` ${sub}`;
+    val.appendChild(small);
+  }
+  tile.append(head, val, buildMixBar(buckets, raw));
+  return tile;
+}
+
+function buildStatTiles(data: StatsPayload): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-stats';
+  const strip = document.createElement('div');
+  strip.className = 'ov-stat-strip';
+  const hero = data.hero;
+  const mix = data.status_mix || {};
+  const buckets = data.status_buckets || {};
+
+  strip.append(
+    buildStatTile('Features', String(hero.features.done),
+      `/${hero.features.total}`, buckets.features, mix.features, 'features'),
+    buildStatTile('Tasks', String(hero.tasks.done),
+      `/${hero.tasks.total}`, buckets.tasks, mix.tasks, 'tasks'),
+  );
+  // Requirements were computed by the sidecar all along and never
+  // rendered — the tile strip is where they finally show (TASK-0200).
+  if (hero.requirements) {
+    strip.appendChild(buildStatTile(
+      'Reqs', String(hero.requirements.done),
+      `/${hero.requirements.total}`, buckets.requirements, mix.requirements,
+    ));
+  }
+  strip.append(
+    buildStatTile('Tests', String(hero.tests.passing),
+      `/${hero.tests.total}`, buckets.tests, mix.tests),
+    buildStatTile('Issues', String(hero.issues.open),
+      `open /${hero.issues.total}`, buckets.issues, mix.issues, 'issues'),
+    buildStatTile('Risks', String(hero.risks.open),
+      `open /${hero.risks.total}`, buckets.risks, mix.risks),
+  );
+  wrap.appendChild(strip);
+
+  const key = document.createElement('div');
+  key.className = 'ov-mix-key';
+  for (const k of ['done', 'doing', 'attention', 'backlog'] as MixKey[]) {
+    const item = document.createElement('span');
+    const swatch = document.createElement('i');
+    swatch.dataset.seg = k;
+    item.append(swatch, document.createTextNode(MIX_LABEL[k]));
+    key.appendChild(item);
+  }
+  wrap.appendChild(key);
+  return wrap;
+}
+
 function buildHero(hero: StatsHero): HTMLElement {
   const wrap = document.createElement('section');
   wrap.className = 'ov-hero';
@@ -2466,55 +3960,236 @@ function buildHero(hero: StatsHero): HTMLElement {
   return wrap;
 }
 
+// ----- Phase section (TASK-0201) ----------------------------------------
+// Live phases lead and carry their metadata on the row; finished phases
+// group under a "Completed" band. Every row is an accordion — expanded
+// state is per-phase and remembered for the session, so opening a
+// delivered phase to inspect it is one click and stays put across the
+// SSE-driven re-renders.
+//
+// "Completed" is a *view* over done phases, never a status: ADR-0006
+// retired the `delivered` band after measuring zero writes of its
+// members, and `test_delivered_band_is_retired` guards its return.
+
+const phaseOpenState = new Map<string, boolean>();
+
+function phaseIsComplete(p: StatsPhase): boolean {
+  // The phase's own status wins when it is terminal. `superseded` is the case
+  // that made this necessary: your-trainer's PHASE-012 (iOS Launch) was
+  // superseded by PHASE-019 (iOS Parity), and a purely count-based predicate
+  // would call it live again the moment any child was reopened — the authored
+  // decision "this phase was replaced" outranks arithmetic over its tasks.
+  //
+  // COMPLETED_STATUSES is the shared vocabulary (statuses.py -> cockpit.js ->
+  // here), so `done`, `superseded` and `cancelled` all resolve without this
+  // function keeping its own list. `deferred` is deliberately NOT in it: parked
+  // work is still wanted (ADR-0005).
+  if (isCompletedStatus(p.status ?? undefined)) return true;
+  const t = p.tasks;
+  const total = t.done + t.in_progress + t.backlog;
+  return total > 0 && t.done === total;
+}
+
+// Live phases sort active-first: an `active` phase is where work is happening,
+// and burying it under `planned` ones ordered by `order:` is the same "shouting
+// as loudly as the live one" problem the Completed band fixed, one level down.
+const PHASE_LIVE_RANK: Record<string, number> = {
+  active: 0, doing: 0,
+  planned: 1, backlog: 1, draft: 1,
+};
+
+function sortLivePhases(phases: StatsPhase[]): StatsPhase[] {
+  return phases
+    .map((p, i) => ({ p, i }))                    // keep `order:` as the tiebreak
+    .sort((a, b) => {
+      const ra = PHASE_LIVE_RANK[(a.p.status ?? '').toLowerCase()] ?? 2;
+      const rb = PHASE_LIVE_RANK[(b.p.status ?? '').toLowerCase()] ?? 2;
+      return ra !== rb ? ra - rb : a.i - b.i;
+    })
+    .map((x) => x.p);
+}
+
+function phaseIsOpen(p: StatsPhase, complete: boolean): boolean {
+  const stored = phaseOpenState.get(p.key);
+  // Default: live phases open (their detail is the point), completed
+  // phases closed (they're history until asked for).
+  return stored === undefined ? !complete : stored;
+}
+
 function buildPhaseSection(phases: StatsPhase[]): HTMLElement {
   const wrap = document.createElement('section');
   wrap.className = 'ov-section';
-  wrap.innerHTML = '<h3>Progress by phase</h3>';
-  for (const p of phases) {
-    const total = p.tasks.done + p.tasks.in_progress + p.tasks.backlog;
-    const row = document.createElement('div');
-    row.className = 'ov-phase';
-    const titleHtml = p.rel
-      ? `<a class="ov-phase-title" href="#" data-rel="${escapeHtml(p.rel)}">${escapeHtml(p.title)}</a>`
-      : `<span class="ov-phase-title">${escapeHtml(p.title)}</span>`;
-    const meta = document.createElement('div');
-    meta.className = 'ov-phase-meta';
-    meta.innerHTML = `${titleHtml}<span class="ov-phase-count">${p.tasks.done}/${total}</span>`;
-    row.appendChild(meta);
+  const heading = document.createElement('h3');
+  heading.textContent = 'Phases';
+  wrap.appendChild(heading);
 
-    const bar = document.createElement('div');
-    bar.className = 'ov-phase-bar';
-    bar.title = `${p.tasks.done} done · ${p.tasks.in_progress} in progress · ${p.tasks.backlog} backlog`;
-    // Per-feature group: feature square (slightly larger) followed by
-    // its child squares (smaller). Loose items get their own trailing
-    // group with a distinct dashed border.
-    for (const feat of p.features) {
-      bar.appendChild(buildPhaseFeatureGroup(feat));
-    }
-    if (p.loose.length > 0) {
-      bar.appendChild(buildPhaseLooseGroup(p.loose));
-    }
-    if (p.features.length === 0 && p.loose.length === 0) {
-      const empty = document.createElement('span');
-      empty.className = 'ov-phase-empty';
-      empty.textContent = '(no items)';
-      bar.appendChild(empty);
-    }
-    row.appendChild(bar);
+  const live = sortLivePhases(phases.filter((p) => !phaseIsComplete(p)));
+  const complete = phases.filter((p) => phaseIsComplete(p));
 
-    // Selecting a phase drills into its scoped dashboard (FEAT-0023) —
-    // the note itself is reachable from the scoped header's "open note".
-    if (/^PHASE-/i.test(p.key)) {
-      const link = meta.querySelector<HTMLAnchorElement>('a.ov-phase-title');
-      (link ?? meta).addEventListener('click', (e) => {
-        e.preventDefault();
-        void navigateTo(`~overview/${p.key}`);
-      });
-      meta.style.cursor = 'pointer';
-    }
-    wrap.appendChild(row);
+  for (const p of live) wrap.appendChild(buildPhaseRow(p, false));
+
+  if (complete.length > 0) {
+    const items = complete.reduce(
+      (n, p) => n + p.tasks.done + p.tasks.in_progress + p.tasks.backlog, 0,
+    );
+    const band = document.createElement('div');
+    band.className = 'ov-completed-head';
+    const chev = document.createElement('span');
+    chev.className = 'ov-chev';
+    const label = document.createElement('span');
+    label.textContent = `Completed · ${complete.length} phase${complete.length === 1 ? '' : 's'} · ${items} items`;
+    const rule = document.createElement('span');
+    rule.className = 'ov-rule';
+    band.append(chev, label, rule);
+
+    const body = document.createElement('div');
+    body.className = 'ov-completed-body';
+    for (const p of complete) body.appendChild(buildPhaseRow(p, true));
+
+    const open = completedBandOpen;
+    band.classList.toggle('is-open', open);
+    body.hidden = !open;
+    band.addEventListener('click', () => {
+      completedBandOpen = !completedBandOpen;
+      band.classList.toggle('is-open', completedBandOpen);
+      body.hidden = !completedBandOpen;
+    });
+    wrap.append(band, body);
   }
   return wrap;
+}
+
+let completedBandOpen = false;
+
+function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
+  const t = p.tasks;
+  const total = t.done + t.in_progress + t.backlog;
+  const pct = total > 0 ? Math.round((t.done / total) * 100) : 0;
+  const open = phaseIsOpen(p, complete);
+
+  const row = document.createElement('div');
+  row.className = 'ov-phase' + (complete ? ' is-complete' : '');
+  row.classList.toggle('is-open', open);
+
+  const head = document.createElement('div');
+  head.className = 'ov-phase-head';
+
+  const chev = document.createElement('button');
+  chev.type = 'button';
+  chev.className = 'ov-chev';
+  chev.setAttribute('aria-expanded', String(open));
+  chev.setAttribute('aria-label', `${open ? 'Collapse' : 'Expand'} ${p.title}`);
+
+  const title = document.createElement('span');
+  title.className = 'ov-phase-title';
+  title.textContent = p.title;
+
+  head.append(chev, title);
+  appendIf(head, statusChip(p.status || undefined));
+
+  const frac = document.createElement('span');
+  frac.className = 'ov-phase-count num';
+  frac.textContent = total > 0 ? `${t.done}/${total} · ${pct}%` : '(no items)';
+  head.appendChild(frac);
+
+  const meta = buildPhaseMeta(p, complete);
+  if (meta) head.appendChild(meta);
+  row.appendChild(head);
+
+  if (!complete && total > 0) {
+    const under = document.createElement('div');
+    under.className = 'ov-phase-under';
+    const fill = document.createElement('i');
+    fill.style.width = `${pct}%`;
+    under.appendChild(fill);
+    row.appendChild(under);
+  }
+
+  const bar = document.createElement('div');
+  bar.className = 'ov-phase-bar';
+  bar.title = `${t.done} done · ${t.in_progress} in progress · ${t.backlog} backlog`;
+  for (const feat of p.features) bar.appendChild(buildPhaseFeatureGroup(feat));
+  if (p.loose.length > 0) bar.appendChild(buildPhaseLooseGroup(p.loose));
+  if (p.features.length === 0 && p.loose.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'ov-phase-empty';
+    empty.textContent = '(no items)';
+    bar.appendChild(empty);
+  }
+  bar.hidden = !open;
+  row.appendChild(bar);
+
+  const toggle = (): void => {
+    const next = !row.classList.contains('is-open');
+    phaseOpenState.set(p.key, next);
+    row.classList.toggle('is-open', next);
+    bar.hidden = !next;
+    chev.setAttribute('aria-expanded', String(next));
+  };
+  chev.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+
+  // The title drills into the scoped dashboard (FEAT-0023); the chevron
+  // expands in place. Two affordances, two outcomes, both discoverable.
+  if (/^PHASE-/i.test(p.key)) {
+    title.classList.add('is-link');
+    title.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void navigateTo(`~overview/${p.key}`);
+    });
+    head.addEventListener('click', toggle);
+    head.style.cursor = 'pointer';
+  }
+  return row;
+}
+
+// Row-level metadata: what is live here, and what wants a human. Both
+// derived from the children the payload already carries.
+function buildPhaseMeta(p: StatsPhase, complete: boolean): HTMLElement | null {
+  const children: PhaseItem[] = [];
+  for (const feature of p.features) children.push(feature, ...feature.children);
+  children.push(...p.loose);
+
+  const inFlight = children.filter((c) => isActiveStatus(c.status)).length;
+  const attention: string[] = [];
+  const triage = children.filter((c) => (c.status || '').toLowerCase() === 'triage').length;
+  const failing = children.filter(
+    (c) => c.type === 'test' && (c.status || '').toLowerCase() === 'failing',
+  ).length;
+  const review = children.filter(
+    (c) => (c.status || '').toLowerCase() === 'review',
+  ).length;
+  if (failing) attention.push(`${failing} failing test${failing === 1 ? '' : 's'}`);
+  if (triage) attention.push(`${triage} triage`);
+  if (review) attention.push(`${review} in review`);
+
+  const t = p.tasks;
+  const total = t.done + t.in_progress + t.backlog;
+  const unclosed = total > 0 && t.done === total
+    && (p.status || '').toLowerCase() !== 'done';
+
+  if (inFlight === 0 && attention.length === 0 && !unclosed) return null;
+
+  const meta = document.createElement('span');
+  meta.className = 'ov-phase-rowmeta';
+  if (inFlight > 0) {
+    const el = document.createElement('span');
+    el.className = 'ov-phase-inflight';
+    el.textContent = `${inFlight} in flight`;
+    meta.appendChild(el);
+  }
+  if (unclosed && !complete) {
+    const el = document.createElement('span');
+    el.className = 'ov-phase-attention';
+    el.textContent = 'awaiting close-out';
+    meta.appendChild(el);
+  }
+  if (attention.length > 0) {
+    const el = document.createElement('span');
+    el.className = 'ov-phase-attention';
+    el.textContent = attention.join(' · ');
+    meta.appendChild(el);
+  }
+  return meta;
 }
 
 function makePhaseSquare(item: PhaseItem, isFeature: boolean): HTMLElement {
@@ -2557,11 +4232,8 @@ const STATUS_COLOR_BY_KEY: Record<string, string> = {
   passing: 'var(--status-done)',
   implemented: 'var(--status-done)', resolved: 'var(--status-done)',
   released: 'var(--status-done)',
-  // Delivered — shipped, not signed off (non-terminal)
-  staged: 'var(--status-delivered)', monitoring: 'var(--status-delivered)',
   // Active family
   active: 'var(--status-active)', doing: 'var(--status-active)',
-  'in-progress': 'var(--status-active)', in_progress: 'var(--status-active)',
   accepted: 'var(--status-active)', approved: 'var(--status-active)',
   // Pending family — matches base.css and statuses.py (not 'active')
   proposed: 'var(--status-pending)', draft: 'var(--status-pending)',
@@ -2589,6 +4261,338 @@ function donutGradient(mix: Record<string, number>): string {
     parts.push(`${color} ${start}% ${end}%`);
   }
   return `conic-gradient(${parts.join(', ')})`;
+}
+
+// ----- Waiting on you (TASK-0200) ---------------------------------------
+// Only states the corpus actually holds and holds *durably*. The states
+// audit behind FEAT-0040 found `doing`/`triage` empty between sessions
+// (they clear at close-out), while these persist until a human acts:
+// open issues, review stalls, defined-but-never-executed tests, parked
+// work, open risks, and phases finished but never closed out.
+
+interface AttentionRow {
+  id: string; title: string; rel?: string; type: string;
+  chip: string; chipKind: string; rank: number; note?: string;
+  kind?: string;      // decide/review/answer/run — desk rows only
+  target?: string;    // virtual-page destination for desk rows
+}
+
+const SEVERITY_RANK: Record<string, number> = {
+  critical: 0, high: 1, medium: 2, low: 3,
+};
+
+function collectAttention(data: StatsPayload): AttentionRow[] {
+  const rows: AttentionRow[] = [];
+  const seen = new Set<string>();
+  const push = (row: AttentionRow): void => {
+    if (row.id && seen.has(row.id)) return;
+    if (row.id) seen.add(row.id);
+    rows.push(row);
+  };
+
+  // Phases whose work is finished but which nobody closed out — a real
+  // situation with no owner status, so it would otherwise stay invisible.
+  for (const phase of data.phases) {
+    if (!/^PHASE-/i.test(phase.key)) continue;
+    const t = phase.tasks;
+    const total = t.done + t.in_progress + t.backlog;
+    const closed = (phase.status || '').toLowerCase() === 'done';
+    if (total > 0 && t.done === total && !closed) {
+      push({
+        id: phase.key, title: `${phase.title} — all ${total} items done, phase not closed`,
+        rel: phase.rel || undefined, type: 'phase',
+        chip: 'close-out', chipKind: 'active', rank: 1,
+      });
+    }
+  }
+
+  const everyItem: PhaseItem[] = [];
+  for (const phase of data.phases) {
+    for (const feature of phase.features) {
+      everyItem.push(feature, ...feature.children);
+    }
+    everyItem.push(...phase.loose);
+  }
+
+  for (const item of everyItem) {
+    const status = (item.status || '').toLowerCase().trim();
+    const id = item.id || '';
+    if (!id) continue;
+    const base = { id, title: item.title, rel: item.rel, type: item.type };
+    // Tests are handled by appendTestAttentionRows — the phases payload
+    // never carries them here (independent review, 2026-07-26).
+    if (status === 'blocked') {
+      push({ ...base, chip: 'blocked', chipKind: 'fail', rank: 0 });
+    } else if (item.type === 'issue' && (status === 'open' || status === 'triage')) {
+      push({
+        ...base, chip: status, chipKind: status === 'triage' ? 'triage' : 'pending',
+        rank: 2 + (SEVERITY_RANK[item.severity || 'low'] ?? 3) / 10,
+      });
+    } else if (status === 'review') {
+      push({ ...base, chip: 'review', chipKind: 'active', rank: 3 });
+    } else if (status === 'deferred' || status === 'parked') {
+      push({ ...base, chip: 'parked', chipKind: 'faint', rank: 5 });
+    }
+  }
+  rows.sort((a, b) => a.rank - b.rank || a.id.localeCompare(b.id));
+  return rows;
+}
+
+function buildWaitingOnYou(data: StatsPayload): HTMLElement {
+  const rows = collectAttention(data);
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile ov-waiting';
+  const h = document.createElement('h3');
+  h.textContent = rows.length
+    ? `Waiting on you · ${rows.length}` : 'Waiting on you';
+  wrap.appendChild(h);
+
+  const list = document.createElement('ul');
+  list.className = 'ov-waiting-list';
+  wrap.appendChild(list);
+
+  if (rows.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'meta ov-waiting-clear';
+    empty.textContent = 'All clear — nothing is blocked on a human.';
+    wrap.appendChild(empty);
+  }
+  for (const row of rows) list.appendChild(buildWaitingRow(row));
+
+  // Tests and the desk's queue are appended together, in one pass, so
+  // they can dedupe: a ready manual test is both a durable state and a
+  // queued run, and two independent appenders listed it twice
+  // (re-review, 2026-07-26). The queue row wins — it deep-links into
+  // the runner, which is the action the row exists to offer.
+  void appendAsyncWaitingRows(wrap, list, h, rows.map((r) => r.id));
+  return wrap;
+}
+
+function buildWaitingRow(row: AttentionRow): HTMLLIElement {
+  const li = document.createElement('li');
+  if (row.kind) {
+    const kind = document.createElement('span');
+    kind.className = `queue-kind is-${row.kind}`;
+    kind.textContent = KIND_LABEL[row.kind] || row.kind;
+    li.appendChild(kind);
+  }
+  const id = document.createElement('span');
+  id.className = 'ov-waiting-id mono ov-typed';
+  id.dataset.type = row.type;
+  id.textContent = row.id;
+  const title = document.createElement('span');
+  title.className = 'ov-waiting-title';
+  title.textContent = row.title;
+  const chip = document.createElement('span');
+  chip.className = 'status-chip';
+  chip.dataset.kind = row.chipKind;
+  chip.textContent = row.chip;
+  li.append(id, title, chip);
+  if (row.rel) {
+    li.style.cursor = 'pointer';
+    li.title = row.rel;
+    li.addEventListener('click', () => void navigateTo(row.rel!));
+  }
+  if (row.target) {
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => void navigateTo(row.target!));
+  }
+  return li;
+}
+
+async function appendAsyncWaitingRows(
+  wrap: HTMLElement, list: HTMLElement, heading: HTMLElement,
+  alreadyListed: string[],
+): Promise<void> {
+  const [tests, queue] = await Promise.all([
+    fetchRecordNotes('library'),
+    fetchReviewQueue(),
+  ]);
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+
+  const seen = new Set(alreadyListed.filter(Boolean));
+  const rows: AttentionRow[] = [];
+
+  // Queue rows first so they claim their ids before the test scan runs.
+  for (const group of queue?.groups ?? []) {
+    for (const item of group.items) {
+      const key = item.request_id || item.id || '';
+      const kind = item.kind || (group.key === 'runs' ? 'run' : 'review');
+      if (item.id) seen.add(item.id);
+      rows.push({
+        id: item.id || '',
+        title: item.title || '(untitled)',
+        type: item.type || 'plan',
+        chip: item.status || (item.ts ? relativeAge(item.ts) : 'queued'),
+        chipKind: kind === 'run' ? 'pending' : 'active',
+        rank: 0,
+        kind,
+        target: `~review/${key}${kind === 'run' ? '/run' : ''}`,
+      });
+    }
+  }
+
+  for (const note of tests) {
+    if (note.type !== 'test') continue;
+    if (seen.has(note.id)) continue;   // already offered as a queue row
+    const status = (note.status || '').toLowerCase();
+    if (status === 'failing') {
+      rows.push({
+        id: note.id, title: note.title, rel: note.rel, type: 'test',
+        chip: 'failing', chipKind: 'fail', rank: 0,
+      });
+    } else if (status === 'ready') {
+      rows.push({
+        id: note.id, title: `${note.title} — defined, never executed`,
+        rel: note.rel, type: 'test', chip: 'ready', chipKind: 'pending',
+        rank: 4,
+      });
+    }
+  }
+  if (rows.length === 0) return;
+  wrap.querySelector('.ov-waiting-clear')?.remove();
+  for (const row of rows) list.appendChild(buildWaitingRow(row));
+  heading.textContent = `Waiting on you · ${list.childElementCount}`;
+}
+
+// ----- Activity + commits (TASK-0200) -----------------------------------
+
+function buildActivityTile(data: StatsPayload): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile ov-activity-tile';
+  const h = document.createElement('h3');
+  h.textContent = 'Activity';
+  wrap.appendChild(h);
+
+  const weeks = data.activity.weekly || [];
+  const max = Math.max(1, ...weeks.map((w) => w.count));
+  const chart = document.createElement('div');
+  chart.className = 'ov-spark';
+  weeks.forEach((w, i) => {
+    const bar = document.createElement('i');
+    bar.style.height = `${Math.max(2, (w.count / max) * 100)}%`;
+    if (i === weeks.length - 1) bar.classList.add('is-now');
+    bar.title = `${w.week_iso} · ${w.count} touch${w.count === 1 ? '' : 'es'}`;
+    chart.appendChild(bar);
+  });
+  wrap.appendChild(chart);
+
+  const sub = document.createElement('p');
+  sub.className = 'ov-spark-sub num';
+  const thisWeek = weeks.length ? weeks[weeks.length - 1].count : 0;
+  const busiest = Math.max(...weeks.map((w) => w.count), 0);
+  sub.textContent = `${thisWeek} touch${thisWeek === 1 ? '' : 'es'} this week`
+    + (weeks.length ? ` · 13-week peak ${busiest}` : '');
+  wrap.appendChild(sub);
+  return wrap;
+}
+
+// Commits as documentation events: which items each commit moved, not
+// which lines it changed. Fetched separately so a slow/absent git never
+// delays the rest of the overview.
+function buildCommitsTile(): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile ov-commits';
+  const h = document.createElement('h3');
+  h.textContent = 'Commits';
+  wrap.appendChild(h);
+  const body = document.createElement('div');
+  body.className = 'ov-commits-body';
+  wrap.appendChild(body);
+  void fillCommits(body);
+  return wrap;
+}
+
+async function fillCommits(body: HTMLElement): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: CommitsPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/commits?limit=8`);
+    if (!resp.ok) return;
+    data = (await resp.json()) as CommitsPayload;
+  } catch { return; }
+
+  if (!data.available) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'No git history for this workspace.';
+    body.replaceChildren(p);
+    return;
+  }
+  if (data.commits.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'No commits yet.';
+    body.replaceChildren(p);
+    return;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'ov-commit-list';
+  for (const commit of data.commits) list.appendChild(buildCommitRow(commit));
+  body.replaceChildren(list);
+}
+
+function buildCommitRow(commit: CommitRow): HTMLLIElement {
+  const li = document.createElement('li');
+  if (commit.undocumented) li.classList.add('is-undocumented');
+
+  const sha = document.createElement('span');
+  sha.className = 'ov-commit-sha mono';
+  sha.textContent = commit.sha;
+  sha.title = commit.full_sha;
+  const date = document.createElement('span');
+  date.className = 'ov-commit-date mono';
+  date.textContent = commit.date.slice(5);      // MM-DD
+  date.title = `${commit.date} · ${commit.author}`;
+  const subject = document.createElement('span');
+  subject.className = 'ov-commit-subject';
+  subject.textContent = commit.subject;
+  subject.title = commit.subject;
+  li.append(sha, date, subject);
+
+  const chips = document.createElement('span');
+  chips.className = 'ov-commit-items';
+  if (commit.undocumented) {
+    // FEAT-0022's traceability guardrail, per commit: code moved and no
+    // note recorded it.
+    const flag = document.createElement('span');
+    flag.className = 'ov-commit-flag';
+    flag.textContent = 'no doc items';
+    flag.title = 'This commit touched no project-os notes';
+    chips.appendChild(flag);
+  }
+  for (const item of commit.items.slice(0, 4)) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'ov-commit-chip';
+    const id = document.createElement('span');
+    id.className = 'mono ov-typed';
+    id.dataset.type = item.type;
+    id.textContent = item.id;
+    chip.appendChild(id);
+    if (item.done) {
+      const tick = document.createElement('span');
+      tick.className = 'ov-commit-tick';
+      tick.textContent = '✓';
+      chip.appendChild(tick);
+    }
+    chip.title = `${item.id} ${item.title} (${item.status || '—'})`;
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void navigateTo(item.rel);
+    });
+    chips.appendChild(chip);
+  }
+  if (commit.items.length > 4) {
+    const more = document.createElement('span');
+    more.className = 'ov-commit-more mono';
+    more.textContent = `+${commit.items.length - 4}`;
+    more.title = commit.items.slice(4).map((i) => `${i.id} ${i.title}`).join('\n');
+    chips.appendChild(more);
+  }
+  li.appendChild(chips);
+  return li;
 }
 
 function buildBottomGrid(data: StatsPayload): HTMLElement {
@@ -2685,8 +4689,14 @@ function initNavToolbar(): void {
     features: TYPE_ICONS.feature,
     tasks:    TYPE_ICONS.task,
     issues:   TYPE_ICONS.issue,
-    // Active: a "pulse/activity" line — work in motion.
+    // Active: a "pulse/activity" line — work in motion. Retired from the
+    // strip in TASK-0204; the entry stays so a stored preference or a
+    // deep link still resolves an icon.
     active:   '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    // Review: a clipboard with a tick — the desk's queue (FEAT-0041).
+    review:   '<rect x="8" y="2" width="8" height="4" rx="1"/>'
+      + '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'
+      + '<path d="m9 14 2 2 4-4"/>',
     library:  TYPE_ICONS.reference,
     recent:   GROUP_ICONS.history,
   };
@@ -2852,6 +4862,13 @@ async function loadWsNav(): Promise<void> {
     // Overview is a virtual page (FEAT-0023 / TASK-0130): route through
     // navigateTo so it lands in history and back/forward can reach it.
     const target = overviewScope ? `~overview/${overviewScope}` : '~overview';
+    void navigateTo(target, { replace: currentRel === target });
+    return;
+  }
+  if (currentNavMode === 'review') {
+    // Same virtual-page treatment for the desk (FEAT-0041 / TASK-0206).
+    const target = currentRel && currentRel.startsWith('~review')
+      ? currentRel : '~review';
     void navigateTo(target, { replace: currentRel === target });
     return;
   }
@@ -5909,7 +7926,7 @@ function buildFleetRow(r: FleetRow): HTMLElement {
 
 function buildScopeRow(
   label: string, target: string, current: boolean,
-  pct: number | null,
+  pct: number | null, doneCount?: number,
 ): HTMLElement {
   const row = document.createElement('button');
   row.type = 'button';
@@ -5918,7 +7935,15 @@ function buildScopeRow(
   name.className = 'scope-name';
   name.textContent = label;
   row.appendChild(name);
-  if (pct != null) {
+  // Completed phases carry a tick + item count instead of a 100% bar (dossier
+  // plate C, pin 9): a full progress bar on five finished phases is exactly the
+  // "shouting as loudly as the live one" the redesign set out to stop.
+  if (doneCount != null) {
+    const tick = document.createElement('span');
+    tick.className = 'scope-done';
+    tick.textContent = `✓ ${doneCount}`;
+    row.appendChild(tick);
+  } else if (pct != null) {
     const bar = document.createElement('span');
     bar.className = 'scope-bar';
     const fill = document.createElement('span');
@@ -5947,19 +7972,56 @@ function renderOverviewScopePane(): void {
   h.textContent = 'Scope';
   wrap.appendChild(h);
   wrap.appendChild(buildScopeRow('⌂ Project', '~overview', overviewScope === null, null));
+
+  // Plate C, pin 9: live phases lead under "In flight"; finished ones collapse
+  // into a "Completed · N" band. `phaseIsComplete` is shared with the centre
+  // pane's accordion deliberately — two panes disagreeing about which phase is
+  // finished is the drift this codebase keeps paying for.
   const phases = (scopePhaseList || []).filter((p) => /^PHASE-/i.test(p.key));
-  if (phases.length > 0) {
+  const live = sortLivePhases(phases.filter((p) => !phaseIsComplete(p)));
+  const complete = phases.filter((p) => phaseIsComplete(p));
+
+  if (live.length > 0) {
     const ph = document.createElement('h4');
     ph.className = 'scope-heading';
-    ph.textContent = 'Phases';
+    ph.textContent = 'In flight';
     wrap.appendChild(ph);
-    for (const p of phases) {
+    for (const p of live) {
       const total = p.tasks.done + p.tasks.in_progress + p.tasks.backlog;
       const pct = total > 0 ? (p.tasks.done / total) * 100 : 0;
       wrap.appendChild(buildScopeRow(
         p.title, `~overview/${p.key}`, overviewScope === p.key, pct,
       ));
     }
+  }
+
+  if (complete.length > 0) {
+    const head = document.createElement('button');
+    head.type = 'button';
+    head.className = 'scope-heading scope-band'
+      + (scopeCompletedOpen ? ' is-open' : '');
+    const chev = document.createElement('span');
+    chev.className = 'scope-chev';
+    const label = document.createElement('span');
+    label.textContent = `Completed · ${complete.length}`;
+    head.append(chev, label);
+    const body = document.createElement('div');
+    body.className = 'scope-band-body';
+    body.hidden = !scopeCompletedOpen;
+    for (const p of complete) {
+      const items = p.tasks.done + p.tasks.in_progress + p.tasks.backlog;
+      body.appendChild(buildScopeRow(
+        p.title, `~overview/${p.key}`, overviewScope === p.key, null, items,
+      ));
+    }
+    head.addEventListener('click', () => {
+      scopeCompletedOpen = !scopeCompletedOpen;
+      try { localStorage.setItem('cockpit:scope-completed-open', scopeCompletedOpen ? '1' : '0'); }
+      catch { /* ignore */ }
+      head.classList.toggle('is-open', scopeCompletedOpen);
+      body.hidden = !scopeCompletedOpen;
+    });
+    wrap.append(head, body);
   }
   wsNavContent.replaceChildren(wrap);
 }
@@ -5986,6 +8048,39 @@ function buildScopedHeader(data: StatsPayload): HTMLElement {
   title.textContent = `${scope.id} · ${scope.title}`;
   head.append(crumb, sep, title);
   appendIf(head, statusChip(scope.status));
+
+  // How far, and what gates it — the two questions a phase page should
+  // answer before anything else (TASK-0202). No extra row spent.
+  const stats = document.createElement('span');
+  stats.className = 'scoped-head-stats';
+  const p = data.phases[0];
+  if (p) {
+    const t = p.tasks;
+    const total = t.done + t.in_progress + t.backlog;
+    if (total > 0) {
+      const frac = document.createElement('span');
+      frac.className = 'scoped-frac num';
+      frac.textContent = `${t.done}/${total} · ${Math.round((t.done / total) * 100)}%`;
+      stats.appendChild(frac);
+    }
+  }
+  const criteria = data.exit_criteria || [];
+  if (criteria.length > 0) {
+    const met = criteria.filter((c) => c.done).length;
+    const gates = document.createElement('a');
+    gates.href = '#exit-criteria';
+    gates.className = 'scoped-gates mono';
+    gates.textContent = `gates ${met}/${criteria.length}`;
+    gates.title = `${met} of ${criteria.length} exit criteria met`;
+    if (met < criteria.length) gates.classList.add('is-open');
+    gates.addEventListener('click', (e) => {
+      e.preventDefault();
+      docView.querySelector('#exit-criteria')?.scrollIntoView({
+        behavior: 'smooth', block: 'start',
+      });
+    });
+    stats.appendChild(gates);
+  }
   const open = document.createElement('a');
   open.href = '#';
   open.className = 'scoped-open-note';
@@ -5994,137 +8089,462 @@ function buildScopedHeader(data: StatsPayload): HTMLElement {
     e.preventDefault();
     void navigateTo(scope.rel);
   });
-  head.appendChild(open);
+  stats.appendChild(open);
+  head.appendChild(stats);
   return head;
+}
+
+// ----- Scoped health band (TASK-0202) -----------------------------------
+// One line of scoped counts with inline mix-bars, replacing the repeated
+// six-tile hero. Same facts, ~40 px instead of ~230 px, and it doesn't
+// make a phase page look like a second project dashboard.
+
+function buildScopedHealthBand(data: StatsPayload): HTMLElement {
+  const band = document.createElement('section');
+  band.className = 'ov-health';
+  const hero = data.hero;
+  const mix = data.status_mix || {};
+  const buckets = data.status_buckets || {};
+
+  const cell = (
+    value: string, label: string,
+    buckets?: MixBuckets, raw?: Record<string, number>,
+  ): HTMLElement => {
+    const el = document.createElement('span');
+    el.className = 'ov-health-cell';
+    const v = document.createElement('b');
+    v.className = 'num';
+    v.textContent = value;
+    el.append(v, document.createTextNode(label));
+    if (buckets) el.appendChild(buildMixBar(buckets, raw));
+    return el;
+  };
+  const divider = (): HTMLElement => {
+    const d = document.createElement('span');
+    d.className = 'ov-health-div';
+    return d;
+  };
+
+  band.append(
+    cell(`${hero.features.done}/${hero.features.total}`, 'features', buckets.features, mix.features),
+    divider(),
+    cell(`${hero.tasks.done}/${hero.tasks.total}`, 'tasks', buckets.tasks, mix.tasks),
+    divider(),
+    cell(`${hero.tests.passing}/${hero.tests.total}`, 'tests'),
+    divider(),
+    cell(String(hero.issues.open), hero.issues.open === 1 ? 'issue open' : 'issues open'),
+  );
+  if (hero.requirements && hero.requirements.total > 0) {
+    band.append(
+      divider(),
+      cell(`${hero.requirements.done}/${hero.requirements.total}`, 'reqs'),
+    );
+  }
+
+  // Live/attention flags, computed from the same children the rows use.
+  const p = data.phases[0];
+  if (p) {
+    const children: PhaseItem[] = [];
+    for (const f of p.features) children.push(f, ...f.children);
+    children.push(...p.loose);
+    const inFlight = children.filter((c) => isActiveStatus(c.status)).length;
+    const triage = children.filter((c) => (c.status || '').toLowerCase() === 'triage').length;
+    if (inFlight > 0) {
+      const el = document.createElement('span');
+      el.className = 'ov-health-flag is-live';
+      el.textContent = `${inFlight} in flight`;
+      band.appendChild(el);
+    }
+    if (triage > 0) {
+      const el = document.createElement('span');
+      el.className = 'ov-health-flag is-attention';
+      el.textContent = `${triage} triage`;
+      band.appendChild(el);
+    }
+  }
+  return band;
+}
+
+// ----- Scoped feature rows (TASK-0202) ----------------------------------
+// Every row states its fraction; rows with live work name the item that
+// is moving and the one queued behind it; a row containing an open issue
+// flags it. Answering "what's left in this feature?" no longer requires
+// hovering squares one at a time.
+
+function isDoneItem(item: PhaseItem): boolean {
+  return item.bucket === 'done';
+}
+
+function buildFeatureNextLine(children: PhaseItem[]): HTMLElement | null {
+  const doing = children.find((c) => isActiveStatus(c.status));
+  const triage = children.find(
+    (c) => c.type === 'issue'
+      && ['triage', 'open'].includes((c.status || '').toLowerCase()),
+  );
+  const failing = children.find(
+    (c) => c.type === 'test' && (c.status || '').toLowerCase() === 'failing',
+  );
+  const next = children.find(
+    (c) => !isDoneItem(c) && !isActiveStatus(c.status) && c !== triage && c !== failing,
+  );
+  if (!doing && !triage && !failing) return null;
+
+  const line = document.createElement('div');
+  line.className = 'scoped-feat-next';
+  const add = (
+    lead: string, leadClass: string, item: PhaseItem,
+  ): void => {
+    const l = document.createElement('span');
+    l.className = `scoped-next-lead ${leadClass}`;
+    l.textContent = lead;
+    const id = document.createElement('span');
+    id.className = 'mono ov-typed';
+    id.dataset.type = item.type;
+    id.textContent = item.id || '';
+    const title = document.createElement('span');
+    title.className = 'scoped-next-title';
+    title.textContent = item.title;
+    const group = document.createElement('span');
+    group.className = 'scoped-next-item';
+    group.append(l, id, title);
+    if (item.rel) {
+      group.style.cursor = 'pointer';
+      group.addEventListener('click', (e) => {
+        e.stopPropagation();
+        void navigateTo(item.rel!);
+      });
+    }
+    line.appendChild(group);
+  };
+  if (failing) add('▸ failing', 'is-fail', failing);
+  if (doing) add('▸ doing', 'is-live', doing);
+  if (triage) add(`▸ ${(triage.status || '').toLowerCase()}`, 'is-attention', triage);
+  if (doing && next) add('next', 'is-next', next);
+  return line;
+}
+
+function buildScopedFeatureRow(
+  feat: PhaseFeature | { id?: string; title: string; rel?: string; status: string; children: PhaseItem[] },
+  opts: { loose?: boolean } = {},
+): HTMLElement {
+  const children = feat.children;
+  const done = children.filter(isDoneItem).length;
+  const row = document.createElement('div');
+  row.className = 'scoped-feat' + (opts.loose ? ' scoped-loose' : '');
+  if (children.length > 0 && done === children.length) row.classList.add('is-done');
+
+  const top = document.createElement('div');
+  top.className = 'scoped-feat-top';
+
+  const name = document.createElement(feat.rel ? 'a' : 'span');
+  name.className = 'scoped-feat-name';
+  name.textContent = `${feat.id ?? ''} ${feat.title}`.trim();
+  if (feat.rel) {
+    (name as HTMLAnchorElement).href = '#';
+    name.addEventListener('click', (e) => {
+      e.preventDefault();
+      void navigateTo(feat.rel!);
+    });
+    name.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const fid = feat.id || '';
+      void cockpitApi.app.showContextMenu('nav-row', {
+        id: fid, rel: feat.rel || '',
+        workspaceId: activeId || '', root: '',
+        verbs: verbsForId(fid, { type: 'feature', status: feat.status })
+          .map((v) => ({ key: v.key, label: v.label })),
+        currentAgent: loadDispatchAgent(),
+      });
+    });
+  }
+  top.appendChild(name);
+
+  if (children.length > 0) {
+    const frac = document.createElement('span');
+    frac.className = 'scoped-feat-frac num';
+    frac.textContent = `${done}/${children.length}`;
+    top.appendChild(frac);
+  }
+
+  const sqs = document.createElement('span');
+  sqs.className = 'scoped-feat-sqs';
+  for (const c of children) sqs.appendChild(makePhaseSquare(c, false));
+  if (children.length === 0) {
+    const none = document.createElement('span');
+    none.className = 'ov-phase-empty';
+    none.textContent = '(no children)';
+    sqs.appendChild(none);
+  }
+  top.appendChild(sqs);
+  if (!opts.loose) appendIf(top, statusChip(feat.status));
+  row.appendChild(top);
+
+  const next = buildFeatureNextLine(children);
+  if (next) row.appendChild(next);
+  return row;
 }
 
 function buildScopedFeatures(p: StatsPhase): HTMLElement {
   const wrap = document.createElement('section');
   wrap.className = 'ov-section';
-  wrap.innerHTML = '<h3>Features in this phase</h3>';
+  const h = document.createElement('h3');
+  h.textContent = `Features · ${p.features.length}`;
+  wrap.appendChild(h);
+
   if (p.features.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'meta';
     empty.textContent = 'No features assigned to this phase yet.';
     wrap.appendChild(empty);
   }
-  for (const feat of p.features) {
-    const row = document.createElement('div');
-    row.className = 'scoped-feat';
-    const name = document.createElement('a');
-    name.href = '#';
-    name.className = 'scoped-feat-name';
-    name.textContent = `${feat.id ?? ''} ${feat.title}`.trim();
-    if (feat.rel) {
-      name.addEventListener('click', (e) => {
-        e.preventDefault();
-        void navigateTo(feat.rel!);
-      });
-      name.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const fid = feat.id || '';
-        void cockpitApi.app.showContextMenu('nav-row', {
-          id: fid, rel: feat.rel || '',
-          workspaceId: activeId || '', root: '',
-          verbs: verbsForId(fid, { type: 'feature', status: feat.status })
-            .map((v) => ({ key: v.key, label: v.label })),
-          currentAgent: loadDispatchAgent(),
-        });
-      });
-    }
-    const sqs = document.createElement('span');
-    sqs.className = 'scoped-feat-sqs';
-    for (const c of feat.children) sqs.appendChild(makePhaseSquare(c, false));
-    if (feat.children.length === 0) {
-      const none = document.createElement('span');
-      none.className = 'ov-phase-empty';
-      none.textContent = '(no children)';
-      sqs.appendChild(none);
-    }
-    row.append(name, sqs);
-    appendIf(row, statusChip(feat.status));
-    wrap.appendChild(row);
-  }
+
+  // Live features first; finished ones fold behind a disclosure so a
+  // long-delivered phase doesn't bury the two rows that still move.
+  const isFeatureDone = (f: PhaseFeature): boolean =>
+    isDoneItem(f) && f.children.every(isDoneItem);
+  const live = p.features.filter((f) => !isFeatureDone(f));
+  const finished = p.features.filter(isFeatureDone);
+
+  for (const feat of live) wrap.appendChild(buildScopedFeatureRow(feat));
+
   if (p.loose.length > 0) {
-    const row = document.createElement('div');
-    row.className = 'scoped-feat scoped-loose';
-    const name = document.createElement('span');
-    name.className = 'scoped-feat-name';
-    name.textContent = 'Loose items';
-    const sqs = document.createElement('span');
-    sqs.className = 'scoped-feat-sqs';
-    for (const c of p.loose) sqs.appendChild(makePhaseSquare(c, false));
-    row.append(name, sqs);
-    wrap.appendChild(row);
+    wrap.appendChild(buildScopedFeatureRow(
+      { title: 'Loose items', status: '', children: p.loose }, { loose: true },
+    ));
+  }
+
+  if (finished.length > 0) {
+    const disc = document.createElement('button');
+    disc.type = 'button';
+    disc.className = 'scoped-disclosure';
+    const chev = document.createElement('span');
+    chev.className = 'ov-chev';
+    const label = document.createElement('span');
+    label.textContent = `${finished.length} delivered feature${finished.length === 1 ? '' : 's'}`;
+    disc.append(chev, label);
+    const body = document.createElement('div');
+    body.hidden = true;
+    for (const feat of finished) body.appendChild(buildScopedFeatureRow(feat));
+    disc.addEventListener('click', () => {
+      body.hidden = !body.hidden;
+      disc.classList.toggle('is-open', !body.hidden);
+    });
+    wrap.append(disc, body);
   }
   return wrap;
 }
 
-function buildScopedTiles(data: StatsPayload): HTMLElement {
-  const grid = document.createElement('section');
-  grid.className = 'ov-feeds';
+// ----- Remaining work (TASK-0202) ---------------------------------------
+// What would finish this phase, spelled out. Previously only obtainable
+// by hovering each unfilled square in turn.
 
+const REMAINING_RANK: Record<string, number> = {
+  failing: 0, blocked: 1, doing: 2, review: 3,
+  triage: 4, open: 5, draft: 6, ready: 6, backlog: 7, planned: 7,
+  deferred: 9, parked: 9,
+};
+
+function buildRemainingList(p: StatsPhase): HTMLElement {
+  const items: PhaseItem[] = [];
+  for (const feature of p.features) {
+    if (!isDoneItem(feature)) items.push(feature);
+    items.push(...feature.children.filter((c) => !isDoneItem(c)));
+  }
+  items.push(...p.loose.filter((c) => !isDoneItem(c)));
+
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile';
+  const h = document.createElement('h3');
+  h.textContent = items.length ? `Remaining · ${items.length}` : 'Remaining';
+  wrap.appendChild(h);
+
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'meta ov-waiting-clear';
+    empty.textContent = 'Nothing left — every item in this phase is done.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  items.sort((a, b) => {
+    const ra = REMAINING_RANK[(a.status || '').toLowerCase()] ?? 8;
+    const rb = REMAINING_RANK[(b.status || '').toLowerCase()] ?? 8;
+    return ra - rb || (a.id || '').localeCompare(b.id || '');
+  });
+
+  const list = document.createElement('ul');
+  list.className = 'ov-waiting-list';
+  for (const item of items) {
+    const li = document.createElement('li');
+    const id = document.createElement('span');
+    id.className = 'ov-waiting-id mono ov-typed';
+    id.dataset.type = item.type;
+    id.textContent = item.id || '';
+    const title = document.createElement('span');
+    title.className = 'ov-waiting-title';
+    title.textContent = item.title;
+    li.append(id, title);
+    appendIf(li, statusChip(item.status));
+    if (item.rel) {
+      li.style.cursor = 'pointer';
+      li.addEventListener('click', () => void navigateTo(item.rel!));
+    }
+    list.appendChild(li);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// Criteria frequently name their evidence inline ("… verified by
+// TST-0010"). Lifting that id out and joining it to the live index turns
+// a flat checklist into a gate with proof attached. Client-side regex is
+// the cheap form; parsing it in `_exit_criteria_from_body` would make the
+// link durable (recorded as a FEAT-0040 open question).
+const EVIDENCE_ID_RE = /\b((?:TST|TASK|ISS|CHG|ADR|REQ)-\d+)\b/g;
+
+function buildExitCriteria(data: StatsPayload, p?: StatsPhase): HTMLElement {
   const exit = document.createElement('section');
-  exit.className = 'ov-section';
-  exit.innerHTML = '<h3>Exit criteria</h3>';
+  exit.className = 'ov-section ov-tile';
+  exit.id = 'exit-criteria';
   const criteria = data.exit_criteria || [];
+
+  const head = document.createElement('div');
+  head.className = 'scoped-exit-head';
+  const h = document.createElement('h3');
+  h.textContent = 'Exit criteria';
+  head.appendChild(h);
+
   if (criteria.length === 0) {
+    exit.appendChild(head);
     const empty = document.createElement('p');
     empty.className = 'meta';
     empty.textContent = 'No exit criteria recorded in the phase note.';
     exit.appendChild(empty);
-  } else {
-    const ul = document.createElement('ul');
-    ul.className = 'scoped-exit-list';
-    for (const c of criteria) {
-      const li = document.createElement('li');
-      li.className = c.done ? 'done' : '';
-      li.textContent = `${c.done ? '☑' : '☐'} ${c.text}`;
-      ul.appendChild(li);
-    }
-    exit.appendChild(ul);
+    return exit;
   }
 
+  const met = criteria.filter((c) => c.done).length;
+  const frac = document.createElement('span');
+  frac.className = 'scoped-exit-frac num';
+  frac.textContent = `${met}/${criteria.length}`;
+  const bar = document.createElement('span');
+  bar.className = 'scoped-exit-bar';
+  const fill = document.createElement('i');
+  fill.style.width = `${Math.round((met / criteria.length) * 100)}%`;
+  bar.appendChild(fill);
+  head.append(frac, bar);
+  exit.appendChild(head);
+
+  // Index the scope's items so an id mentioned in a criterion can carry
+  // that item's *live* status rather than a restated one.
+  const byId = new Map<string, PhaseItem>();
+  if (p) {
+    for (const feature of p.features) {
+      if (feature.id) byId.set(feature.id, feature);
+      for (const child of feature.children) {
+        if (child.id) byId.set(child.id, child);
+      }
+    }
+    for (const item of p.loose) if (item.id) byId.set(item.id, item);
+  }
+
+  const ul = document.createElement('ul');
+  ul.className = 'scoped-exit-list';
+  for (const c of criteria) {
+    const li = document.createElement('li');
+    if (c.done) li.classList.add('done');
+    const box = document.createElement('span');
+    box.className = 'scoped-exit-box';
+    box.textContent = c.done ? '☑' : '☐';
+    const text = document.createElement('span');
+    text.className = 'scoped-exit-text';
+    text.textContent = c.text;
+    li.append(box, text);
+
+    const seen = new Set<string>();
+    for (const match of c.text.matchAll(EVIDENCE_ID_RE)) {
+      const id = match[1];
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const item = byId.get(id);
+      if (!item) continue;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'scoped-exit-evidence';
+      const idEl = document.createElement('span');
+      idEl.className = 'mono ov-typed';
+      idEl.dataset.type = item.type;
+      idEl.textContent = id;
+      chip.appendChild(idEl);
+      appendIf(chip, statusChip(item.status));
+      chip.title = `${id} ${item.title} (${item.status || '—'})`;
+      if (item.rel) {
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          void navigateTo(item.rel!);
+        });
+      }
+      li.appendChild(chip);
+    }
+    ul.appendChild(li);
+  }
+  exit.appendChild(ul);
+  return exit;
+}
+
+function buildScopedActivity(data: StatsPayload): HTMLElement {
   const act = document.createElement('section');
-  act.className = 'ov-section ov-feed';
-  act.innerHTML = '<h3>Activity in this phase</h3>';
+  act.className = 'ov-section ov-feed ov-tile';
+  const h = document.createElement('h3');
+  h.textContent = 'Activity in this phase';
+  act.appendChild(h);
+
   const recent = data.activity.recent;
   if (recent.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'meta';
     empty.textContent = 'No recorded activity yet.';
     act.appendChild(empty);
-  } else {
-    const ul = document.createElement('ul');
-    // Scoped rows carry only date + type + title (no id/tag cells), so
-    // they use a 3-column template — otherwise the title lands in the
-    // fixed id column and truncates early (TASK-0173). The type cell is
-    // always emitted (empty when absent) to keep placement deterministic.
-    ul.className = 'ov-feed-list ov-feed-scoped';
-    for (const r of recent.slice(0, 8)) {
-      const li = document.createElement('li');
-      const typeTag = r.type
-        ? `<span class="ov-feed-type ov-feed-type-${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>`
-        : '<span class="ov-feed-type ov-feed-type-empty"></span>';
-      li.innerHTML = `<span class="ov-feed-date">${escapeHtml(r.date)}</span>${typeTag}<span class="ov-feed-title">${escapeHtml(r.title)}</span>`;
-      li.style.cursor = 'pointer';
-      li.addEventListener('click', () => { if (r.rel) void navigateTo(r.rel); });
-      ul.appendChild(li);
-    }
-    act.appendChild(ul);
+    return act;
   }
-
-  grid.append(exit, act);
-  return grid;
+  const ul = document.createElement('ul');
+  // Scoped rows regain the id column the 3-column template dropped in
+  // TASK-0173 — without it two rows from the same day and type are
+  // indistinguishable. The template below matches the project feed.
+  ul.className = 'ov-feed-list';
+  for (const r of recent.slice(0, 8)) {
+    const li = document.createElement('li');
+    const typeTag = r.type
+      ? `<span class="ov-feed-type ov-feed-type-${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>`
+      : '<span class="ov-feed-type ov-feed-type-empty"></span>';
+    li.innerHTML = `<span class="ov-feed-date">${escapeHtml(r.date)}</span>`
+      + typeTag
+      + `<span class="ov-feed-id">${escapeHtml(r.id || '')}</span>`
+      + `<span class="ov-feed-title">${escapeHtml(r.title)}</span>`;
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => { if (r.rel) void navigateTo(r.rel); });
+    ul.appendChild(li);
+  }
+  act.appendChild(ul);
+  return act;
 }
 
 function renderScopedOverview(data: StatsPayload): void {
   docView.classList.add('overview-pane');
-  const parts: HTMLElement[] = [buildScopedHeader(data), buildHero(data.hero)];
   const p = data.phases[0];
+  const parts: HTMLElement[] = [
+    buildScopedHeader(data),
+    buildScopedHealthBand(data),
+  ];
   if (p) parts.push(buildScopedFeatures(p));
-  parts.push(buildScopedTiles(data));
+  const grid = document.createElement('section');
+  grid.className = 'ov-feeds';
+  grid.appendChild(buildExitCriteria(data, p));
+  if (p) grid.appendChild(buildRemainingList(p));
+  parts.push(grid);
+  if (data.scope?.id) parts.push(buildVerificationPanel(data.scope.id));
+  parts.push(buildScopedActivity(data));
   docView.replaceChildren(...parts);
   docView.hidden = false;
   placeholder.hidden = true;
@@ -6134,45 +8554,397 @@ function renderScopedOverview(data: StatsPayload): void {
 // ----- Right pane: Now column + scope context ---------------------------
 
 
-async function renderOverviewRightPane(scopeRel: string | null): Promise<void> {
-  // Overview right pane is project-focused (TASK-0178): agent state lives
-  // on the rail, strip, attention inbox, and the ~agents screen — not here.
+// ----- Record column (TASK-0203) ----------------------------------------
+// The overview right pane had no job: pinned-or-nothing at project scope,
+// a raw link-graph dump at phase scope. It becomes the *record* column —
+// decisions, verification, library — because those are populated by
+// construction and never go stale, unlike the live state a "meanwhile"
+// column would have shown (which the FEAT-0040 states audit found empty
+// most of the time). It is also the only surface where ADRs and
+// acceptance tests are reachable without browsing the Library tree.
+
+function buildRecordCard(heading: string, right?: string): {
+  card: HTMLElement; body: HTMLElement;
+} {
+  const card = document.createElement('div');
+  card.className = 'ctx-card';
+  const head = document.createElement('div');
+  head.className = 'ctx-card-head';
+  const h = document.createElement('span');
+  h.textContent = heading;
+  head.appendChild(h);
+  if (right) {
+    const r = document.createElement('span');
+    r.className = 'ctx-card-right';
+    r.textContent = right;
+    head.appendChild(r);
+  }
+  const body = document.createElement('div');
+  card.append(head, body);
+  return { card, body };
+}
+
+function buildRecordRow(
+  id: string, title: string, rel?: string, type?: string,
+  status?: string,
+): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'ctx-kv';
+  if (id) {
+    const idEl = document.createElement('span');
+    idEl.className = 'mono ctx-kv-id ov-typed';
+    if (type) idEl.dataset.type = type;
+    idEl.textContent = id;
+    row.appendChild(idEl);
+  }
+  const titleEl = document.createElement('span');
+  titleEl.className = 'ctx-kv-title';
+  titleEl.textContent = title;
+  titleEl.title = title;
+  row.appendChild(titleEl);
+  appendIf(row, statusChip(status));
+  if (rel) {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => void navigateTo(rel));
+  }
+  return row;
+}
+
+interface RecordNote {
+  id: string; title: string; rel: string; status: string; type: string;
+}
+
+// Which decisions reach a scope is a link-graph question, so the sidecar
+// answers it (`scope-tests` returns `decisions` resolved through the same
+// frontmatter link fields the graph uses). An earlier cut matched ids
+// inside ADR titles here; it happened to work on this corpus and would
+// have silently missed any ADR whose title didn't name its subject.
+async function fetchScopeDecisions(noteId: string): Promise<RecordNote[]> {
+  if (!sidecarBaseUrl || !noteId) return [];
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/scope-tests?id=${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as {
+      decisions?: Array<{ id: string; title: string; rel: string; status: string }>;
+    };
+    return (data.decisions ?? []).map((d) => ({ ...d, type: 'adr' }));
+  } catch { return []; }
+}
+
+async function fetchRecordNotes(mode: string): Promise<RecordNote[]> {
+  if (!sidecarBaseUrl) return [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/nav?mode=${mode}`);
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as NavPayload;
+    const out: RecordNote[] = [];
+    const walk = (groups: NavGroupData[]): void => {
+      for (const g of groups) {
+        for (const item of g.items ?? []) {
+          const rel = extractRel(item.url);
+          if (!item.id || !rel) continue;
+          out.push({
+            id: String(item.id), title: item.title || String(item.id),
+            rel, status: item.status || '', type: (item.type || '').toLowerCase(),
+          });
+        }
+        if (g.subgroups) walk(g.subgroups);
+      }
+    };
+    walk(data.groups ?? []);
+    return out;
+  } catch { return []; }
+}
+
+async function renderOverviewRightPane(
+  scopeRel: string | null, data?: StatsPayload,
+): Promise<void> {
+  // Agent state deliberately stays out of here (TASK-0178): the rail,
+  // strip, attention inbox, and ~agents screen already own it.
   rightPaneContent.replaceChildren();
-  if (scopeRel && sidecarBaseUrl) {
-    try {
-      const resp = await fetch(
-        `${sidecarBaseUrl}/api/cockpit/context?this=${encodeURIComponent(scopeRel)}`,
-      );
-      if (!resp.ok) return;
-      const data = (await resp.json()) as ContextPayload;
-      // Guard: user may have navigated away while we fetched.
-      if (!currentRel || !currentRel.startsWith('~overview/')) return;
-      const linked = renderContextSection('Linked', data.linked || []);
-      if (linked) rightPaneContent.appendChild(linked);
-      const back = renderContextSection('Backlinks', data.backlinks || []);
-      if (back) rightPaneContent.appendChild(back);
-    } catch { /* context is best-effort */ }
-    return;
+  const scoped = Boolean(scopeRel);
+
+  // Transient cards first — in-flight and attention *here*. They are
+  // often empty (the states audit found `doing` clears within a session),
+  // which is why the durable record sits underneath rather than beside.
+  if (scoped && data) {
+    const transient = buildScopedTransientCards(data);
+    for (const card of transient) rightPaneContent.appendChild(card);
   }
-  // Project scope: pinned notes as quick jumps.
-  const pins = activeId ? loadPinned(activeId) : [];
-  if (pins.length > 0) {
-    const h = document.createElement('h4');
-    h.className = 'scope-heading';
-    h.textContent = 'Pinned';
-    rightPaneContent.appendChild(h);
-    const ul = document.createElement('ul');
-    ul.className = 'ov-feed-list';
-    for (const rel of pins) {
-      const li = document.createElement('li');
-      li.textContent = rel.split('/').pop() || rel;
-      li.title = rel;
-      li.style.cursor = 'pointer';
-      li.addEventListener('click', () => void navigateTo(rel));
-      ul.appendChild(li);
+  void fillRecordColumn(scoped, data);
+  if (scoped && sidecarBaseUrl) void fillScopedContext(scopeRel!);
+}
+
+// In-flight / attention for the scoped phase — the two questions a
+// reviewer asks on arrival, answered before the durable record.
+function buildScopedTransientCards(data: StatsPayload): HTMLElement[] {
+  const p = data.phases[0];
+  if (!p) return [];
+  const children: PhaseItem[] = [];
+  for (const feature of p.features) children.push(feature, ...feature.children);
+  children.push(...p.loose);
+
+  const out: HTMLElement[] = [];
+  const inFlight = children.filter((c) => isActiveStatus(c.status));
+  if (inFlight.length > 0) {
+    const { card, body } = buildRecordCard('In flight here');
+    for (const item of inFlight.slice(0, 5)) {
+      body.appendChild(buildRecordRow(
+        item.id || '', item.title, item.rel, item.type, item.status,
+      ));
     }
-    rightPaneContent.appendChild(ul);
+    out.push(card);
   }
+  const attention = children.filter((c) => {
+    const s = (c.status || '').toLowerCase();
+    return s === 'triage' || s === 'blocked' || s === 'failing'
+      || (c.type === 'issue' && s === 'open');
+  });
+  if (attention.length > 0) {
+    const { card, body } = buildRecordCard('Attention here');
+    for (const item of attention.slice(0, 5)) {
+      body.appendChild(buildRecordRow(
+        item.id || '', item.title, item.rel, item.type, item.status,
+      ));
+    }
+    out.push(card);
+  }
+  return out;
+}
+
+async function fillRecordColumn(
+  scoped: boolean, data?: StatsPayload,
+): Promise<void> {
+  const library = await fetchRecordNotes('library');
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+
+  const adrs = library.filter((n) => n.type === 'adr' || n.type === 'decision');
+  const tests = library.filter((n) => n.type === 'test');
+  const refs = library.filter((n) => n.type === 'reference');
+
+  // On a phase, narrow the record to what reaches *this* phase: ADRs the
+  // scope's items reference, and the phase's own acceptance tests. On the
+  // project scope everything is in scope by definition.
+  const scopeIds = new Set<string>();
+  if (scoped && data) {
+    const p = data.phases[0];
+    if (p) {
+      for (const f of p.features) {
+        if (f.id) scopeIds.add(f.id);
+        for (const c of f.children) if (c.id) scopeIds.add(c.id);
+      }
+      for (const l of p.loose) if (l.id) scopeIds.add(l.id);
+      if (data.scope?.id) scopeIds.add(data.scope.id);
+    }
+  }
+  // Tests reach a scope through their own link fields, which the sidecar
+  // resolves — they are never children of a feature in the phase payload,
+  // so filtering the library list against `scopeIds` produced an always
+  // empty card (independent review, 2026-07-26).
+  const scopedAdrs = scoped
+    ? await fetchScopeDecisions(data?.scope?.id || '')
+    : adrs;
+  const scopedTests = scoped
+    ? (await fetchScopeTests(data?.scope?.id || '')).map((t) => ({
+        id: t.id, title: t.title, rel: t.rel, status: t.status, type: 'test',
+      }))
+    : tests;
+
+  if (scopedAdrs.length > 0) {
+    const accepted = scopedAdrs.filter(
+      (a) => ['accepted', 'approved'].includes((a.status || '').toLowerCase()),
+    ).length;
+    const { card, body } = buildRecordCard(
+      scoped ? 'Decisions here' : 'Decisions',
+      accepted === scopedAdrs.length ? `${scopedAdrs.length} · all accepted`
+        : `${accepted}/${scopedAdrs.length} accepted`,
+    );
+    const sorted = [...scopedAdrs].sort((a, b) => b.id.localeCompare(a.id));
+    for (const adr of sorted.slice(0, 4)) {
+      const proposed = (adr.status || '').toLowerCase() === 'proposed';
+      body.appendChild(buildRecordRow(
+        adr.id, adr.title, adr.rel, 'adr', proposed ? adr.status : undefined,
+      ));
+    }
+    if (sorted.length > 4) {
+      body.appendChild(buildRecordDisclosure(
+        `${sorted.length - 4} older`, sorted.slice(4), 'adr',
+      ));
+    }
+    rightPaneContent.appendChild(card);
+  }
+
+  if (scopedTests.length > 0) {
+    const passing = scopedTests.filter(
+      (t) => (t.status || '').toLowerCase() === 'passing',
+    ).length;
+    const { card, body } = buildRecordCard(
+      scoped ? 'Verification here' : 'Verification',
+      `${passing}/${scopedTests.length}`,
+    );
+    const mix: Record<string, number> = {};
+    const testBuckets: MixBuckets = { done: passing, backlog: 0, attention: 0 };
+    for (const t of scopedTests) {
+      const key = (t.status || 'unknown').toLowerCase();
+      mix[key] = (mix[key] || 0) + 1;
+      if (key === 'passing') continue;
+      if (key === 'failing') testBuckets.attention = (testBuckets.attention ?? 0) + 1;
+      else testBuckets.backlog = (testBuckets.backlog ?? 0) + 1;
+    }
+    body.appendChild(buildMixBar(testBuckets, mix));
+    // Only the tests that aren't passing are worth naming here; the
+    // rest are the denominator.
+    const attention = scopedTests.filter(
+      (t) => (t.status || '').toLowerCase() !== 'passing',
+    );
+    for (const t of attention.slice(0, 4)) {
+      body.appendChild(buildRecordRow(t.id, t.title, t.rel, 'test', t.status));
+    }
+    if (attention.length === 0) {
+      const p = document.createElement('p');
+      p.className = 'ctx-note';
+      p.textContent = 'Every recorded test is passing.';
+      body.appendChild(p);
+    }
+    // Waivers and validator state complete the verification picture: a
+    // green test count means little if the corpus is failing validation
+    // or the coverage was waived rather than earned (FEAT-0018's data).
+    const health = document.createElement('p');
+    health.className = 'ctx-note';
+    body.appendChild(health);
+    void fillVerificationHealth(health);
+    rightPaneContent.appendChild(card);
+  }
+
+  if (refs.length > 0) {
+    const { card, body } = buildRecordCard('Library');
+    // Design inputs lead — they're the "why" behind the work
+    // (TASK-0212 puts dossiers here).
+    const design = refs.filter((r) => r.rel.includes('/design/'));
+    const rest = refs.filter((r) => !r.rel.includes('/design/'));
+    for (const ref of [...design, ...rest].slice(0, 5)) {
+      body.appendChild(buildRecordRow('', ref.title, ref.rel, 'reference'));
+    }
+    rightPaneContent.appendChild(card);
+  }
+
+  if (data && !scoped) {
+    // Corpus size, in the ID vocabulary the notes themselves use.
+    const h = data.hero;
+    const counts = document.createElement('div');
+    counts.className = 'ctx-counters mono';
+    const parts = [
+      `FEAT ${h.features.total}`, `TASK ${h.tasks.total}`,
+      `ISS ${h.issues.total}`, `TST ${h.tests.total}`,
+    ];
+    if (h.requirements) parts.push(`REQ ${h.requirements.total}`);
+    parts.push(`RISK ${h.risks.total}`);
+    counts.textContent = parts.join(' · ');
+    counts.title = 'Notes of each type in this corpus';
+    rightPaneContent.appendChild(counts);
+  }
+
+  if (!scoped) {
+    const pins = activeId ? loadPinned(activeId) : [];
+    if (pins.length > 0) {
+      const { card, body } = buildRecordCard('Pinned');
+      for (const rel of pins) {
+        body.appendChild(buildRecordRow(
+          '', rel.split('/').pop() || rel, rel,
+        ));
+      }
+      rightPaneContent.appendChild(card);
+    }
+  }
+}
+
+// Waiver count + validator state for the Verification card. Waivers come
+// from the corpus (`verification_waiver` frontmatter, surfaced by the
+// context payload's `waived` flag); validator state from FEAT-0018's
+// endpoint. Best-effort: an older sidecar simply leaves the line off.
+async function fillVerificationHealth(target: HTMLElement): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let validator = '';
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/validation`);
+    if (resp.ok) {
+      const v = (await resp.json()) as {
+        state?: string; errors?: unknown[]; warnings?: unknown[];
+      };
+      const errors = v.errors?.length ?? 0;
+      validator = v.state === 'ok' ? 'validator clean'
+        : v.state === 'unavailable' ? 'validator unavailable'
+        : `validator: ${errors} error${errors === 1 ? '' : 's'}`;
+    }
+  } catch { /* best-effort */ }
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+  target.textContent = validator;
+  target.classList.toggle(
+    'is-warn', validator.startsWith('validator:'),
+  );
+}
+
+function buildRecordDisclosure(
+  label: string, notes: RecordNote[], type: string,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ctx-disclosure';
+  const chev = document.createElement('span');
+  chev.className = 'ov-chev';
+  const text = document.createElement('span');
+  text.textContent = label;
+  btn.append(chev, text);
+  const body = document.createElement('div');
+  body.hidden = true;
+  for (const note of notes) {
+    body.appendChild(buildRecordRow(note.id, note.title, note.rel, type));
+  }
+  btn.addEventListener('click', () => {
+    body.hidden = !body.hidden;
+    btn.classList.toggle('is-open', !body.hidden);
+  });
+  wrap.append(btn, body);
+  return wrap;
+}
+
+// Phase scope keeps its link graph, demoted to disclosures so it informs
+// without dominating (FEAT-0023's pane contract is preserved, not dropped).
+async function fillScopedContext(scopeRel: string): Promise<void> {
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/context?this=${encodeURIComponent(scopeRel)}`,
+    );
+    if (!resp.ok) return;
+    const data = (await resp.json()) as ContextPayload;
+    if (!currentRel || !currentRel.startsWith('~overview/')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'ctx-graph';
+    const linked = renderContextSection('Linked', data.linked || []);
+    const back = renderContextSection('Backlinks', data.backlinks || []);
+    for (const [label, node] of [['Linked', linked], ['Backlinks', back]] as const) {
+      if (!node) continue;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ctx-disclosure';
+      const chev = document.createElement('span');
+      chev.className = 'ov-chev';
+      const count = node.querySelectorAll('.ctx-row, li').length;
+      const text = document.createElement('span');
+      text.textContent = count ? `${label} · ${count}` : label;
+      btn.append(chev, text);
+      node.hidden = true;
+      btn.addEventListener('click', () => {
+        node.hidden = !node.hidden;
+        btn.classList.toggle('is-open', !node.hidden);
+      });
+      wrap.append(btn, node);
+    }
+    if (wrap.childElementCount > 0) rightPaneContent.appendChild(wrap);
+  } catch { /* context is best-effort */ }
 }
 
 // ----- Lifecycle: in-place refresh + live-duration tick (TASK-0130) -----

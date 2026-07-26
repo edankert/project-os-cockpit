@@ -14,6 +14,8 @@ level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_agent_hooks.py"
 features: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 tasks: ["[[TASK-0114]]", "[[TASK-0123]]", "[[TASK-0125]]", "[[TASK-0126]]"]
+last_verified: 2026-07-05
+
 ---
 
 # TST-0010 — Agent-hook ingestion

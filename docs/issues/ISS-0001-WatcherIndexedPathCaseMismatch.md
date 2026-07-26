@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0001
 title: "Watcher-indexed paths poison the in-memory _records under a different case than the initial walk on case-insensitive filesystems, so /api/render returns empty frontmatter for any file created or modified after cockpit start"
-status: closed
+status: fixed
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-06-01

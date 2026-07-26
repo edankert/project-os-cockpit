@@ -11,6 +11,8 @@ updated: 2026-05-23
 source: ["[[TASK-0057]]"]
 verifies: ["[[TASK-0057]]", "[[FEAT-0006]]"]
 path: "tests/test_cockpit_state.py::test_unknown_post_drains_body_to_keep_connection_synced"
+last_verified: 2026-05-23
+
 ---
 
 # TST-0003 — Unknown POST drains body

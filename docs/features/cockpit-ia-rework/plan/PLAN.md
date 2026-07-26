@@ -1,9 +1,7 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0014
-aliases: ["PLAN-FEAT-0014"]
 title: "Plan — FEAT-0014 cockpit IA rework"
-status: doing
+status: done
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25

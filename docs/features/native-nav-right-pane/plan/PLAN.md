@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0010
-aliases: ["PLAN-FEAT-0010"]
 title: "Plan: Native nav surface (workspace rail + in-workspace nav + right pane)"
 status: active
 owner: user:edwin

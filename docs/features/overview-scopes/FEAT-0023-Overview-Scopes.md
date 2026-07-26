@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0012]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0022-Session-Insight-And-Traceability]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Overview scopes

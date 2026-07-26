@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0007
-aliases: ["PLAN-FEAT-0007"]
 title: "Plan: Electron desktop shell with Python sidecar"
 status: draft
 owner: user:edwin

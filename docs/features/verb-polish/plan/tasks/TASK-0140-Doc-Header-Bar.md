@@ -15,6 +15,8 @@ depends: []
 blocks: []
 related: ["[[TASK-0132]]"]
 tests: ["[[TST-0011]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Doc header bar

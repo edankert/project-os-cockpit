@@ -31,13 +31,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import cockpit, renderer, templates, terminal_proxy
+from . import cockpit, note_writes, renderer, templates, terminal_proxy
 from .agent_actions import load_actions
 from .agent_hooks import AgentSessionTracker
 from .status_diff import StatusTracker
 from .agent_hooks import MAX_BODY_BYTES as _AGENT_HOOK_MAX_BYTES
 from .events import ControlEvent, EventBus, FileEvent
 from .index import Index
+from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .validation import ValidationRunner
 from .watcher import Watcher
@@ -580,6 +581,14 @@ def _make_handler(
     # Stats payload cache (TASK-0128): scope key → (index generation,
     # payload). Invalidation is generation comparison, nothing to evict.
     _stats_cache: dict[str, tuple[int, dict]] = {}
+    # Commits payload cache (TASK-0199): single slot keyed on
+    # (HEAD, index generation, limit) — a new commit or a note edit
+    # invalidates it, so SSE refetches don't re-shell out to git.
+    _commits_cache: dict[str, tuple[tuple[str, int, int], dict]] = {}
+    # Review desk queue (FEAT-0041). Durable across sidecar restarts —
+    # a proposal can wait days — and deliberately separate from note
+    # state: pending-ness is runtime, verdicts live in the notes.
+    review_store = ReviewStore(project_root)
     # Lazy-instantiated; ttyd doesn't actually spawn until the first
     # /api/terminal request (the JS client only fetches when the user
     # opens the bottom panel). cockpit_url is propagated into the
@@ -629,6 +638,21 @@ def _make_handler(
                 return
             if path == "/api/cockpit/dispatch":
                 self._serve_cockpit_dispatch()
+                return
+            if path == "/api/cockpit/review-request":
+                self._serve_review_request()
+                return
+            if path == "/api/cockpit/review-resolve":
+                self._serve_review_resolve()
+                return
+            if path == "/api/notes/review":
+                self._serve_note_review()
+                return
+            if path == "/api/notes/decide":
+                self._serve_note_decide()
+                return
+            if path == "/api/notes/test-run":
+                self._serve_test_run()
                 return
             # Unknown POST. Drain the request body before responding so
             # HTTP/1.1 keep-alive framing stays intact: an undrained body
@@ -701,6 +725,27 @@ def _make_handler(
 
             if path == "/api/cockpit/stats":
                 self._serve_cockpit_stats(parsed.query)
+                return
+
+            if path == "/api/cockpit/review-queue":
+                self._respond_json(
+                    cockpit.review_queue_payload(index, review_store)
+                )
+                return
+
+            if path == "/api/cockpit/scope-tests":
+                params = urllib.parse.parse_qs(parsed.query)
+                self._respond_json(cockpit.scope_tests_payload(
+                    index, (params.get("id") or [""])[0],
+                ))
+                return
+
+            if path.startswith("/api/cockpit/review/"):
+                self._serve_review_detail(path[len("/api/cockpit/review/"):])
+                return
+
+            if path == "/api/cockpit/commits":
+                self._serve_cockpit_commits(parsed.query)
                 return
 
             if path == "/api/cockpit/sessions":
@@ -831,6 +876,31 @@ def _make_handler(
                 )
                 return
             _stats_cache[cache_key] = (generation, payload)
+            self._respond_json(payload)
+
+        def _serve_cockpit_commits(self, query_string: str = "") -> None:
+            """``GET /api/cockpit/commits[?limit=N]`` — recent commits with
+            the doc items each one touched (TASK-0199).
+
+            ``limit`` is the only caller-supplied value and is clamped to an
+            int inside :func:`cockpit.commits_payload`; the git subprocess
+            itself runs with a fixed argv. Cached on (HEAD, index
+            generation, limit) so SSE-driven refetches don't re-shell.
+            """
+            params = urllib.parse.parse_qs(query_string)
+            raw_limit = (params.get("limit") or [""])[0]
+            try:
+                limit = int(raw_limit)
+            except (TypeError, ValueError):
+                limit = cockpit.COMMITS_DEFAULT_LIMIT
+            head = _git_head(project_root)
+            cache_key = (head, index.generation, limit)
+            cached = _commits_cache.get("k")
+            if cached is not None and cached[0] == cache_key:
+                self._respond_json(cached[1])
+                return
+            payload = cockpit.commits_payload(project_root, index, limit=limit)
+            _commits_cache["k"] = (cache_key, payload)
             self._respond_json(payload)
 
         def _serve_cockpit_context(self, query_string: str) -> None:
@@ -1082,6 +1152,261 @@ def _make_handler(
             if enqueue:
                 bus.publish(ControlEvent("cockpit:dispatch-request", rec))
             self._respond_json({"ok": True, "recorded": rec})
+
+        # ---- review desk (FEAT-0041) ----
+
+        def _is_loopback(self) -> bool:
+            """Mutation endpoints are Mac-local only.
+
+            The render server binds 0.0.0.0 so a tablet on the Wi-Fi can
+            *read* the notes; writing them is not part of that bargain.
+            Same split the terminal endpoint draws (RISK-0001).
+            """
+            host = (self.client_address[0] if self.client_address else "") or ""
+            return host in _LOOPBACK_HOSTS
+
+        def _read_json_body(self) -> dict[str, Any] | None:
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            if length > _AGENT_HOOK_MAX_BYTES:
+                self._respond_json({"ok": False, "error": "body too large"},
+                                   status=HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                return None
+            raw = self.rfile.read(length) if length else b""
+            try:
+                body = json.loads(raw.decode("utf-8")) if raw else {}
+            except (ValueError, UnicodeDecodeError):
+                self._respond_json({"ok": False, "error": "invalid JSON"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return None
+            return body if isinstance(body, dict) else {}
+
+        def _require_loopback(self) -> bool:
+            if self._is_loopback():
+                return True
+            self._respond_json(
+                {"ok": False, "error": "mutations are loopback-only"},
+                status=HTTPStatus.FORBIDDEN,
+            )
+            return False
+
+        def _serve_review_detail(self, request_id: str) -> None:
+            """``GET /api/cockpit/review/<request-id|NOTE-ID>`` — one
+            queue entry expanded: the proposal set with its items, or the
+            note behind a decide/run row."""
+            request_id = request_id.strip().strip("/")
+            request = review_store.get(request_id)
+            if request is not None:
+                items = []
+                for note_id in request.get("items") or []:
+                    path = index.by_id(note_id)
+                    record = index.get(path) if path else None
+                    items.append(
+                        cockpit._slim_note(record) if record else {"id": note_id}
+                    )
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    "kind": request.get("kind"),
+                    "request": request,
+                    "items": items,
+                })
+                return
+            # Fall back to a note id (a proposed ADR / ready test row).
+            path = index.by_id(request_id)
+            record = index.get(path) if path else None
+            if record is None:
+                self._respond_json({"ok": False, "error": "unknown review target"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+            payload: dict[str, Any] = {
+                "schema_version": cockpit.SCHEMA_VERSION,
+                "kind": "note",
+                "note": cockpit._slim_note(record),
+            }
+            if (record.note_type or "").lower() == "test":
+                payload["steps"] = cockpit.manual_test_steps(record.body)
+                payload["mtime"] = record.path.stat().st_mtime
+                fm = record.frontmatter
+                payload["last_run"] = str(fm.get("last_run") or "")
+                payload["verifies"] = [
+                    str(v) for v in (fm.get("features") or fm.get("verifies") or [])
+                ]
+            self._respond_json(payload)
+
+        def _serve_review_request(self) -> None:
+            """``POST /api/cockpit/review-request`` — file a review or
+            question request (the agent side of the desk).
+
+            Loopback-only like the other mutations: it writes
+            `.cockpit/review-requests.json`, records ledger entries and
+            fires SSE, so a LAN reader on the 0.0.0.0 render port must
+            not reach it (independent review, 2026-07-26).
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            kind = str(body.get("kind") or "review")
+            if kind not in ("review", "question"):
+                self._respond_json({"ok": False, "error": f"unknown kind: {kind}"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            items = body.get("items")
+            record = review_store.add(
+                kind,
+                items=[str(i) for i in items] if isinstance(items, list) else [],
+                title=str(body.get("title") or ""),
+                body=str(body.get("body") or ""),
+                session_id=body.get("session_id"),
+                prompt=body.get("prompt"),
+                agent=body.get("agent"),
+            )
+            # Provenance: the ledger keeps the prompt→session→request
+            # chain the proposal view shows (FEAT-0025 + FEAT-0019).
+            for note_id in record.get("items") or []:
+                tracker.record_dispatch(note_id, verb=f"review:{kind}")
+            bus.publish(ControlEvent("cockpit:review-request", record))
+            self._respond_json({"ok": True, "request": record})
+
+        def _serve_review_resolve(self) -> None:
+            """``POST /api/cockpit/review-resolve`` — close a queue entry
+            with an outcome (recorded for ADR-0007's measurement)."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            request_id = str(body.get("request_id") or "")
+            outcome = str(body.get("outcome") or "")
+            try:
+                resolved = review_store.resolve(
+                    request_id, outcome, note=str(body.get("note") or ""),
+                )
+            except ValueError as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            if resolved is None:
+                self._respond_json({"ok": False, "error": "unknown request"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+            bus.publish(ControlEvent("cockpit:review-request", resolved))
+            self._respond_json({"ok": True, "request": resolved})
+
+        def _serve_note_review(self) -> None:
+            """``POST /api/notes/review`` — stamp the independent-review
+            fields (and optionally a guarded status) on one note."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            # Field allow-list: the caller may not name any other key.
+            extra = set(body) - note_writes.REVIEW_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False,
+                     "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = note_writes.stamp_review(
+                    index,
+                    str(body.get("id") or ""),
+                    reviewer=str(body.get("reviewer") or ""),
+                    verdict=str(body.get("verdict") or ""),
+                    status=(str(body["status"]) if body.get("status") else None),
+                    mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_note_decide(self) -> None:
+            """``POST /api/notes/decide`` — advance or decline one queued
+            note (a proposed ADR, a draft requirement).
+
+            Separate from ``/api/notes/review`` because the two do
+            different things: review records a verdict on a set and leaves
+            the notes put; this performs the lifecycle move the note is
+            queued for, guarded by that type's own vocabulary.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.DECIDE_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = note_writes.stamp_decision(
+                    index,
+                    str(body.get("id") or ""),
+                    reviewer=str(body.get("reviewer") or ""),
+                    accept=bool(body.get("accept")),
+                    mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_test_run(self) -> None:
+            """``POST /api/notes/test-run`` — record a manual test run."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.TEST_RUN_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False,
+                     "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            steps = body.get("steps")
+            try:
+                result = note_writes.stamp_test_run(
+                    index,
+                    str(body.get("id") or ""),
+                    outcome=str(body.get("outcome") or ""),
+                    steps=[s for s in steps if isinstance(s, dict)]
+                    if isinstance(steps, list) else [],
+                    runner=str(body.get("runner") or ""),
+                    mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
+                    aborted=bool(body.get("aborted")),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
 
         def _serve_dispatch_requests(self) -> None:
             """``GET /api/cockpit/dispatch-requests`` — hand queued CLI
@@ -1989,6 +2314,34 @@ def _feature_count_by_phase(idx) -> dict[str, int]:
         if m:
             counts[m.group(0)] = counts.get(m.group(0), 0) + 1
     return counts
+
+
+#: Peer addresses treated as Mac-local for the desk's mutation endpoints.
+#: Named so a test can assert the set rather than parse the predicate.
+_LOOPBACK_HOSTS: frozenset[str] = frozenset({
+    "127.0.0.1", "::1", "::ffff:127.0.0.1",
+})
+
+
+def _git_head(project_root: Path) -> str:
+    """Current HEAD sha, read from the filesystem (no subprocess).
+
+    Used only as a cache key for ``/api/cockpit/commits``; an unreadable or
+    non-git workspace returns "" and simply caches on index generation.
+    """
+    git_dir = project_root / ".git"
+    try:
+        if git_dir.is_file():  # worktree: ".git" is a pointer file
+            pointer = git_dir.read_text(encoding="utf-8").strip()
+            if pointer.startswith("gitdir:"):
+                git_dir = Path(pointer[len("gitdir:"):].strip())
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref:"):
+            ref = head[len("ref:"):].strip()
+            return (git_dir / ref).read_text(encoding="utf-8").strip()
+        return head
+    except OSError:
+        return ""
 
 
 def _read_snapshot(docs_root: Path) -> dict | None:

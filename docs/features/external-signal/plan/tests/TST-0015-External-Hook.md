@@ -14,6 +14,8 @@ level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_external_hook.py"
 features: ["[[FEAT-0027-External-Session-Signal]]"]
 tasks: ["[[TASK-0141]]", "[[TASK-0143]]"]
+last_verified: 2026-07-06
+
 ---
 
 # TST-0015 — External hook

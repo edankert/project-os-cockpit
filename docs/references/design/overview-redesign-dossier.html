@@ -1,0 +1,1445 @@
+<title>Cockpit Overview — Redesign Proposal</title>
+<style>
+/* ================= dossier wrapper ================= */
+:root {
+  --paper:#fafaf9; --card:#ffffff; --ink:#202124; --ink-2:#5f6165; --ink-3:#8a8c90;
+  --line:#e8e7e3; --vio:#7a4fd0; --vio-soft:#f1ebfb; --vio-ink:#ffffff;
+  --src-ok:#3e7059; --src-ok-bg:#e9f2ee; --src-dv:#4a6b8a; --src-dv-bg:#eaf0f5; --src-add:#9a6b24; --src-add-bg:#f7efe1;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:#141518; --card:#1d1f23; --ink:#e7e6e3; --ink-2:#a8a9ad; --ink-3:#7c7e82;
+    --line:#2c2e33; --vio:#a98be8; --vio-soft:#2a2440; --vio-ink:#17131f;
+    --src-ok:#8ec7ae; --src-ok-bg:#22322b; --src-dv:#9dbcd8; --src-dv-bg:#232d36; --src-add:#d9b06a; --src-add-bg:#372e1d;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#141518; --card:#1d1f23; --ink:#e7e6e3; --ink-2:#a8a9ad; --ink-3:#7c7e82;
+  --line:#2c2e33; --vio:#a98be8; --vio-soft:#2a2440; --vio-ink:#17131f;
+  --src-ok:#8ec7ae; --src-ok-bg:#22322b; --src-dv:#9dbcd8; --src-dv-bg:#232d36; --src-add:#d9b06a; --src-add-bg:#372e1d;
+}
+:root[data-theme="light"] {
+  --paper:#fafaf9; --card:#ffffff; --ink:#202124; --ink-2:#5f6165; --ink-3:#8a8c90;
+  --line:#e8e7e3; --vio:#7a4fd0; --vio-soft:#f1ebfb; --vio-ink:#ffffff;
+  --src-ok:#3e7059; --src-ok-bg:#e9f2ee; --src-dv:#4a6b8a; --src-dv-bg:#eaf0f5; --src-add:#9a6b24; --src-add-bg:#f7efe1;
+}
+html { scroll-behavior:smooth; }
+body {
+  background:var(--paper); color:var(--ink);
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+  font-size:14.5px; line-height:1.55; margin:0;
+}
+.wrap { max-width:1240px; margin:0 auto; padding:0 28px 96px; }
+.dossier-head { padding:56px 0 8px; max-width:760px; }
+.eyebrow {
+  font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--vio); margin:0 0 14px;
+}
+h1 {
+  font-family:ui-serif, "New York", Georgia, serif;
+  font-size:40px; line-height:1.12; font-weight:600; letter-spacing:-.01em;
+  margin:0 0 16px; text-wrap:balance;
+}
+.lede { color:var(--ink-2); font-size:16px; max-width:64ch; margin:0 0 10px; }
+.head-meta { font-size:12.5px; color:var(--ink-3); font-family:ui-monospace, "SF Mono", Menlo, monospace; }
+
+/* sticky toc */
+.toc {
+  position:sticky; top:0; z-index:60; display:flex; align-items:center; gap:4px;
+  background:color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line); margin:28px -28px 40px; padding:10px 28px;
+}
+.toc a {
+  color:var(--ink-2); text-decoration:none; font-size:13px; padding:5px 11px; border-radius:6px;
+  white-space:nowrap;
+}
+.toc a:hover { color:var(--ink); background:var(--vio-soft); }
+.toc a.on { color:var(--vio); background:var(--vio-soft); font-weight:600; }
+.toc a:focus-visible, button:focus-visible { outline:2px solid var(--vio); outline-offset:2px; }
+.toc .toc-spacer { flex:1; }
+.seg { display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+.seg button {
+  border:0; background:transparent; color:var(--ink-2); font:inherit; font-size:12.5px;
+  padding:4px 12px; cursor:pointer;
+}
+.seg button.on { background:var(--vio); color:var(--vio-ink); font-weight:600; }
+.seg-label { font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em; margin-right:8px; }
+
+/* plates */
+section.plate { margin:0 0 84px; }
+.plate-kicker {
+  font-size:11px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; margin:0 0 6px;
+}
+.plate-kicker.cur { color:var(--ink-3); }
+.plate-kicker.pro { color:var(--vio); }
+h2.plate-title {
+  font-family:ui-serif, "New York", Georgia, serif; font-weight:600;
+  font-size:27px; margin:0 0 10px; letter-spacing:-.005em;
+}
+.plate-blurb { color:var(--ink-2); max-width:70ch; margin:0 0 22px; }
+.window { border:1px solid var(--line); border-radius:10px; background:var(--card); overflow-x:auto; box-shadow:0 1px 2px rgba(0,0,0,.05), 0 10px 34px -18px rgba(0,0,0,.18); }
+
+/* legend */
+.legend { display:grid; grid-template-columns:1fr 1fr; gap:4px 32px; margin:20px 0 0; padding:0; list-style:none; }
+@media (max-width:840px){ .legend { grid-template-columns:1fr; } }
+.legend li { display:flex; gap:11px; padding:9px 8px; border-radius:8px; align-items:baseline; }
+.legend li:hover { background:var(--vio-soft); }
+.legend .n {
+  flex:none; width:20px; height:20px; border-radius:50%; background:var(--vio); color:var(--vio-ink);
+  font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center;
+  transform:translateY(3px); font-family:ui-monospace, "SF Mono", Menlo, monospace;
+}
+.legend .t { font-size:13.5px; color:var(--ink-2); }
+.legend .t b { color:var(--ink); font-weight:600; }
+.src {
+  display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.03em;
+  border-radius:4px; padding:1px 6px; margin-left:6px; white-space:nowrap;
+  font-family:ui-monospace, "SF Mono", Menlo, monospace; transform:translateY(-1px);
+}
+.src-ok  { color:var(--src-ok);  background:var(--src-ok-bg); }
+.src-dv  { color:var(--src-dv);  background:var(--src-dv-bg); }
+.src-add { color:var(--src-add); background:var(--src-add-bg); }
+
+/* annotation pins */
+.annot { position:relative; }
+.annot::after {
+  content:attr(data-pin); position:absolute; top:-9px; right:-9px; z-index:40;
+  width:19px; height:19px; border-radius:50%; background:var(--vio); color:var(--vio-ink);
+  font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  font-family:ui-monospace, "SF Mono", Menlo, monospace;
+  box-shadow:0 0 0 2px var(--card);
+}
+.annot.hl { outline:2px dashed var(--vio); outline-offset:3px; border-radius:4px; }
+
+/* notes section */
+#notes h2, #states h2 { font-family:ui-serif, "New York", Georgia, serif; font-size:27px; font-weight:600; margin:0 0 10px; }
+#notes h3, #states h3 { font-size:15px; font-weight:700; margin:34px 0 8px; }
+#notes p, #states p { color:var(--ink-2); max-width:74ch; }
+#notes .tbl-scroll, #states .tbl-scroll { overflow-x:auto; border:1px solid var(--line); border-radius:9px; }
+#notes table, #states table { border-collapse:collapse; width:100%; font-size:13px; min-width:720px; }
+#notes th, #states th {
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3);
+  padding:9px 14px; border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--paper) 55%, var(--card));
+}
+#notes td, #states td { padding:9px 14px; border-bottom:1px solid var(--line); color:var(--ink-2); vertical-align:top; }
+#notes tr:last-child td, #states tr:last-child td { border-bottom:0; }
+#notes td:first-child, #states td:first-child { color:var(--ink); font-weight:600; white-space:nowrap; }
+#notes code, #states code, .mono { font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:.92em; }
+#notes code { background:var(--vio-soft); border-radius:4px; padding:.08em .35em; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } * { transition:none !important; } }
+
+/* ================= mock design system (cockpit tokens, verbatim) ================= */
+.mock {
+  --m-bg:#f7f7f8; --m-elev:#ffffff; --m-text:#1c1d1f; --m-muted:#6b6e73; --m-faint:#95989d;
+  --m-border:#e3e3e6; --m-accent:#3b6ea8; --m-accent-soft:#e9eef5; --m-hover:#eef0f3; --m-active:#dfe6ee;
+  --m-done:hsl(160 28% 38%); --m-act:hsl(140 32% 38%); --m-pend:hsl(220 14% 48%);
+  --m-crit:hsl(5 60% 46%); --m-high:hsl(20 60% 46%); --m-med:hsl(45 55% 42%);
+  --t-feature:hsl(210 50% 42%); --t-task:hsl(140 35% 38%); --t-requirement:hsl(270 35% 48%);
+  --t-issue:hsl(5 50% 46%); --t-risk:hsl(25 50% 42%); --t-adr:hsl(190 40% 38%);
+  --t-change:hsl(45 50% 38%); --t-test:hsl(100 35% 38%); --t-phase:hsl(285 35% 48%); --t-reference:hsl(205 20% 38%);
+  --seg-done:#35604f; --seg-doing:#4f83c2; --seg-back:#9a9aa0; --seg-warn:#bc5e2f;
+  min-width:1240px; display:grid;
+  grid-template-columns:44px 220px minmax(0,1fr) 264px;
+  grid-template-rows:36px auto 24px;
+  grid-template-areas:"top top top top" "rail nav stage right" "foot foot foot foot";
+  background:var(--m-bg); color:var(--m-text);
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+  font-size:13px; line-height:1.45; border-radius:9px;
+}
+main.mocks-dark .mock {
+  --m-bg:#1b1d1f; --m-elev:#232629; --m-text:#d6d6d6; --m-muted:#9b9ea3; --m-faint:#6b6e73;
+  --m-border:#33373b; --m-accent:#7da6ff; --m-accent-soft:#2a3548; --m-hover:#2a2d31; --m-active:#33373b;
+  --m-done:hsl(160 28% 60%); --m-act:hsl(140 32% 60%); --m-pend:hsl(220 14% 65%);
+  --m-crit:hsl(5 60% 65%); --m-high:hsl(20 60% 65%); --m-med:hsl(45 55% 60%);
+  --t-feature:hsl(210 50% 65%); --t-task:hsl(140 35% 60%); --t-requirement:hsl(270 35% 68%);
+  --t-issue:hsl(5 50% 65%); --t-risk:hsl(25 50% 60%); --t-adr:hsl(190 40% 60%);
+  --t-change:hsl(45 50% 58%); --t-test:hsl(100 35% 58%); --t-phase:hsl(285 35% 68%); --t-reference:hsl(205 20% 68%);
+  --seg-done:#6fae9a; --seg-doing:#8caeff; --seg-back:#87878d; --seg-warn:#d98f66;
+}
+.mock * { box-sizing:border-box; }
+.mock .num, .mock .mono { font-variant-numeric:tabular-nums; }
+
+/* chrome */
+.m-top { grid-area:top; display:flex; align-items:center; gap:3px; padding:0 10px; border-bottom:1px solid var(--m-border); }
+.tl { width:11px; height:11px; border-radius:50%; margin-right:3px; }
+.tl-r{background:#f45f57;} .tl-y{background:#f5bd4e;} .tl-g{background:#5ec454;}
+.m-modes { display:flex; gap:2px; margin-left:14px; }
+.m-modes .mb {
+  width:28px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  color:var(--m-muted);
+}
+.m-modes .mb.on { background:var(--m-accent-soft); color:var(--m-accent); }
+.m-modes svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.m-top-right { margin-left:auto; display:flex; gap:6px; color:var(--m-faint); font-size:11px; align-items:center; }
+.m-rail { grid-area:rail; border-right:1px solid var(--m-border); display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0; }
+.ws-sq {
+  width:30px; height:30px; border-radius:8px; background:var(--m-active); color:var(--m-muted);
+  font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; position:relative;
+}
+.ws-sq.on { background:var(--m-accent-soft); color:var(--m-accent); box-shadow:0 0 0 1.5px var(--m-accent); }
+.ws-dot { position:absolute; right:-2px; bottom:-2px; width:9px; height:9px; border-radius:50%; border:2px solid var(--m-bg); background:var(--m-act); }
+.m-nav { grid-area:nav; border-right:1px solid var(--m-border); padding:8px 8px 12px; }
+.m-stage { grid-area:stage; padding:20px 24px 28px; position:relative; display:flex; flex-direction:column; gap:24px; min-width:0; }
+.m-right { grid-area:right; border-left:1px solid var(--m-border); padding:12px 12px 16px; }
+.m-foot {
+  grid-area:foot; border-top:1px solid var(--m-border); display:flex; align-items:center; gap:10px;
+  padding:0 12px; color:var(--m-faint); font-size:11px;
+}
+.m-foot .fdot { width:7px; height:7px; border-radius:50%; background:var(--m-done); }
+.m-foot .spring { flex:1; }
+
+/* fold marker (dossier annotation, not app UI) */
+.fold { position:absolute; left:0; right:0; border-top:2px dashed var(--vio); opacity:.55; z-index:30; pointer-events:none; }
+.fold em {
+  position:absolute; right:8px; top:-9px; font-style:normal; font-size:10px; font-weight:700;
+  color:var(--vio-ink); background:var(--vio); border-radius:4px; padding:1px 7px; letter-spacing:.05em;
+}
+
+/* shared app atoms */
+.m-h3 { margin:0 0 12px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--m-faint); }
+.chip {
+  display:inline-block; padding:0 8px; border:1px solid currentColor; border-radius:999px;
+  font-size:10.5px; font-weight:500; letter-spacing:.02em; line-height:1.6; white-space:nowrap;
+}
+.c-done{color:var(--m-done);} .c-act{color:var(--m-act);} .c-pend{color:var(--m-pend);}
+.c-tri{color:var(--m-med);} .c-fail{color:var(--m-crit);} .c-faint{color:var(--m-faint);} .c-high{color:var(--m-high);}
+.idm { font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; white-space:nowrap; }
+.i-feature{color:var(--t-feature);} .i-task{color:var(--t-task);} .i-issue{color:var(--t-issue);}
+.i-test{color:var(--t-test);} .i-change{color:var(--t-change);} .i-adr{color:var(--t-adr);}
+.i-requirement{color:var(--t-requirement);} .i-risk{color:var(--t-risk);} .i-phase{color:var(--t-phase);}
+
+/* identity squares */
+.sqs { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.sq-g { display:inline-flex; align-items:center; gap:2px; padding:1px 3px; border-radius:3px; }
+.sq-g:hover { background:var(--m-hover); }
+.sq-g.loose { border:1px dashed var(--m-border); }
+.sq { width:9px; height:9px; border-radius:2px; border:1.5px solid currentColor; background:transparent; flex-shrink:0; }
+.sq.f { width:12px; height:12px; border-radius:3px; border-width:2px; }
+.sq.d { background:currentColor; }
+
+/* scope pane (left nav) */
+.scope-h { margin:10px 4px 4px; font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--m-faint); }
+.scope-h:first-child { margin-top:2px; }
+.srow {
+  display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:6px;
+  color:var(--m-muted); font-size:12.5px; cursor:default;
+}
+.srow:hover { background:var(--m-hover); color:var(--m-text); }
+.srow.cur { background:var(--m-accent-soft); color:var(--m-accent); font-weight:600; }
+.srow .nm { flex:none; max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.srow .bar { flex:1; height:4px; border-radius:2px; background:var(--m-border); overflow:hidden; }
+.srow .bar i { display:block; height:100%; background:var(--m-accent); }
+.srow .pct { flex:none; width:34px; text-align:right; font-size:10.5px; color:var(--m-faint); font-variant-numeric:tabular-nums; }
+.srow .live { flex:none; width:7px; height:7px; border-radius:50%; background:var(--m-act); }
+
+/* ---------- CURRENT components ---------- */
+.ov-hero { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+.hero-cell { padding:14px 16px; background:var(--m-elev); border:1px solid var(--m-border); border-radius:6px; min-width:0; }
+.hero-v { font-size:22px; font-weight:600; line-height:1.1; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.hero-v.sm { font-size:13px; white-space:normal; line-height:1.3; }
+.hero-l { margin-top:4px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--m-faint); }
+.hero-s { margin-top:2px; font-size:11px; color:var(--m-muted); }
+.ph-row { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+.ph-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--m-muted); }
+.ph-meta .pt { color:var(--m-text); }
+.ph-meta .pt.lnk { color:var(--m-text); text-decoration:none; }
+.ph-meta .pt.lnk:hover { color:var(--m-accent); text-decoration:underline; }
+.ph-bar {
+  display:flex; flex-wrap:wrap; gap:5px; padding:4px 6px; background:var(--m-bg);
+  border:1px solid var(--m-border); border-radius:3px; min-height:22px; align-items:center;
+}
+.ov-bottom { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.tile { background:var(--m-elev); border:1px solid var(--m-border); border-radius:6px; padding:14px 16px; min-width:0; }
+.act-chart { display:flex; align-items:flex-end; gap:4px; height:100px; }
+.act-chart i { flex:1 1 0; min-width:4px; background:var(--m-accent); border-radius:2px 2px 0 0; min-height:2px; }
+.act-axis { display:flex; justify-content:space-between; margin-top:6px; font-size:10.5px; color:var(--m-faint); }
+.donut-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.donut-cell { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.donut { width:64px; height:64px; border-radius:50%; position:relative; }
+.donut b { position:absolute; inset:8px; background:var(--m-elev); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; }
+.donut-l { font-size:11px; color:var(--m-muted); text-transform:capitalize; }
+.feed { list-style:none; margin:0; padding:0; }
+.feed li { display:grid; grid-template-columns:78px 74px 92px 1fr; gap:10px; align-items:center; padding:8px 10px; border-radius:4px; font-size:13px; }
+.feed li:hover { background:var(--m-hover); }
+.feed.f3 li { grid-template-columns:78px 74px 1fr; }
+.feed .d { color:var(--m-faint); font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11.5px; }
+.feed .ty {
+  font-size:10px; text-transform:uppercase; letter-spacing:.04em; padding:2px 6px; border-radius:3px;
+  background:var(--m-active); text-align:center; white-space:nowrap;
+}
+.feed .ti { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.scoped-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.scoped-head .crumb { color:var(--m-accent); font-size:13px; }
+.scoped-head .sep { color:var(--m-faint); }
+.scoped-head h2 { font-size:17px; margin:0; font-weight:600; }
+.scoped-head .open { margin-left:auto; color:var(--m-accent); font-size:12px; }
+.sfeat { display:flex; align-items:center; gap:12px; padding:7px 4px; border-bottom:1px solid var(--m-border); }
+.sfeat:last-child { border-bottom:0; }
+.sfeat .fn { color:var(--m-text); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46%; }
+.sfeat .fn:hover { color:var(--m-accent); }
+.sfeat .chip { margin-left:auto; }
+.exit li { padding:3px 0; font-size:13px; color:var(--m-muted); list-style:none; }
+.exit li.dn { color:var(--m-faint); }
+.exit { margin:0; padding:0; }
+.ctx-h { margin:10px 4px 6px; font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--m-faint); }
+.ctx-row { display:flex; align-items:center; gap:7px; padding:4px 6px; border-radius:4px; font-size:12px; color:var(--m-muted); }
+.ctx-row:hover { background:var(--m-hover); }
+.ctx-row .idm { color:var(--m-faint); flex:none; }
+.ctx-row .tt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.m-empty { color:var(--m-faint); font-style:italic; font-size:12px; }
+
+/* ---------- PROPOSED components ---------- */
+.focus-band {
+  display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--m-elev);
+  border:1px solid var(--m-border); border-left:3px solid var(--m-accent); border-radius:6px; min-width:0;
+}
+.focus-band .fl { font-size:10px; font-weight:700; letter-spacing:.09em; color:var(--m-accent); flex:none; }
+.fchip {
+  display:inline-flex; align-items:center; gap:5px; border:1px solid var(--m-border); border-radius:5px;
+  padding:2px 8px; font-size:12px; background:var(--m-bg); white-space:nowrap;
+}
+.fchip .idm { color:var(--m-muted); }
+.fchip .pulse { width:7px; height:7px; border-radius:50%; background:var(--m-act); }
+.fsep { color:var(--m-faint); flex:none; }
+.fnote { color:var(--m-faint); font-size:12px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:60px; }
+.flast { margin-left:auto; flex:none; color:var(--m-faint); font-size:11.5px; }
+.flast .idm { color:var(--m-muted); }
+
+.stat-strip { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
+.stat {
+  background:var(--m-elev); border:1px solid var(--m-border); border-radius:6px;
+  padding:9px 11px 10px; min-width:0; display:flex; flex-direction:column; gap:5px;
+}
+.stat .sl { display:flex; align-items:baseline; gap:6px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--m-faint); }
+.stat .delta { margin-left:auto; font-size:10px; color:var(--m-done); font-variant-numeric:tabular-nums; letter-spacing:0; text-transform:none; }
+.stat .delta.warn { color:var(--m-high); }
+.stat .sv { font-size:17px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+.stat .sv small { font-size:11px; font-weight:500; color:var(--m-faint); }
+.mixbar { display:flex; gap:2px; height:5px; border-radius:3px; overflow:hidden; }
+.mixbar i { display:block; height:100%; border-radius:1px; }
+.mixbar .g-done{background:var(--seg-done);} .mixbar .g-doing{background:var(--seg-doing);}
+.mixbar .g-back{background:var(--seg-back); opacity:.55;} .mixbar .g-warn{background:var(--seg-warn);}
+.mix-key { display:flex; gap:14px; justify-content:flex-end; font-size:10px; color:var(--m-faint); margin-top:6px; }
+.mix-key i { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:4px; transform:translateY(.5px); }
+
+.php { border:1px solid var(--m-border); border-radius:6px; background:var(--m-elev); padding:10px 12px; margin-bottom:8px; }
+.php-top { display:flex; align-items:center; gap:9px; min-width:0; }
+.php-top .pn { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.php-top .frac { font-size:11.5px; color:var(--m-muted); font-variant-numeric:tabular-nums; flex:none; }
+.php-top .meta { margin-left:auto; flex:none; font-size:11.5px; color:var(--m-muted); display:flex; gap:10px; align-items:center; }
+.php-top .meta .att { color:var(--m-med); }
+.php-top .meta .inf { color:var(--m-accent); }
+.php-under { height:3px; border-radius:2px; background:var(--m-border); margin:7px 0 9px; overflow:hidden; }
+.php-under i { display:block; height:100%; background:var(--m-accent); }
+.php-slim { display:flex; align-items:center; gap:9px; padding:5px 12px; border-radius:5px; font-size:12.5px; color:var(--m-muted); }
+.php-slim:hover { background:var(--m-hover); }
+.php-slim .tick { color:var(--m-done); font-size:12px; flex:none; }
+.php-slim .pn { color:var(--m-muted); }
+.php-slim .cnt { margin-left:auto; font-size:11px; color:var(--m-faint); font-variant-numeric:tabular-nums; }
+.dlv-head { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--m-faint); margin:12px 0 4px; }
+.dlv-head .chev { font-size:9px; }
+.dlv-head .rule { flex:1; border-top:1px solid var(--m-border); }
+
+.bottom2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+.att-list { list-style:none; margin:0; padding:0; }
+.att-list li { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:4px; font-size:12.5px; }
+.att-list li:hover { background:var(--m-hover); }
+.att-list .ti { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; color:var(--m-muted); }
+.att-list .chip { margin-left:auto; flex:none; }
+.spark { display:flex; align-items:flex-end; gap:3px; height:30px; margin:2px 0 4px; }
+.spark i { flex:1 1 0; background:var(--m-accent); opacity:.45; border-radius:1.5px 1.5px 0 0; min-height:2px; }
+.spark i.nowk { opacity:1; }
+.spark-sub { font-size:11px; color:var(--m-faint); margin-bottom:8px; }
+
+/* proposed right pane cards */
+.ctx-card { border:1px solid var(--m-border); border-radius:6px; background:var(--m-elev); padding:9px 10px; margin-bottom:10px; }
+.ctx-card .ch { font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--m-faint); margin:0 0 7px; display:flex; align-items:center; }
+.ctx-card .ch .r { margin-left:auto; font-weight:500; text-transform:none; letter-spacing:0; font-size:10.5px; }
+.ctx-card p.fx { font-size:12px; color:var(--m-muted); margin:0 0 8px; line-height:1.5; }
+.ctx-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.kv { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--m-muted); padding:3px 0; }
+.kv .idm { flex:none; }
+.kv .tt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kv .chip { margin-left:auto; flex:none; }
+.counters { font-size:10.5px; color:var(--m-faint); font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+.disc { font-size:12px; color:var(--m-muted); padding:4px 2px; }
+.disc .chev { color:var(--m-faint); font-size:9px; margin-right:5px; }
+
+/* v3 additions: review desk (~review) — queue, proposal set, actions, test runner */
+.m-modes .mb { position:relative; }
+.mode-badge { position:absolute; top:-3px; right:-3px; min-width:13px; height:13px; border-radius:7px; background:var(--m-accent); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+.kind { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:1px 6px; border-radius:3px; border:1px solid currentColor; flex:none; }
+.k-decide { color:var(--t-adr); } .k-review { color:var(--t-feature); } .k-answer { color:var(--m-accent); } .k-run { color:var(--t-test); }
+.qrow { display:flex; gap:7px; padding:5px 8px; border-radius:6px; font-size:12px; color:var(--m-muted); align-items:center; min-width:0; }
+.qrow:hover { background:var(--m-hover); }
+.qrow.cur { background:var(--m-accent-soft); color:var(--m-accent); font-weight:600; }
+.qrow .tt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.qrow .age { margin-left:auto; flex:none; font-size:10.5px; color:var(--m-faint); font-variant-numeric:tabular-nums; }
+.rev-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.rev-head h2 { font-size:16px; margin:0; font-weight:600; }
+.rev-head .btnrow { margin-left:auto; }
+.rev-sub { font-size:11.5px; color:var(--m-faint); margin:4px 0 0; }
+.btnrow { display:flex; gap:8px; align-items:center; }
+.btn { border:1px solid var(--m-border); background:var(--m-elev); color:var(--m-muted); border-radius:6px; padding:4px 12px; font-size:12px; white-space:nowrap; }
+.btn.primary { border-color:var(--m-accent); color:var(--m-accent); }
+.btn.good { border-color:var(--m-done); color:var(--m-done); }
+.btn.bad { border-color:var(--m-crit); color:var(--m-crit); }
+.setrow { display:flex; align-items:center; gap:10px; padding:6px 8px; border-bottom:1px solid var(--m-border); font-size:12.5px; min-width:0; }
+.setrow:last-child { border-bottom:0; }
+.setrow .ti { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; color:var(--m-muted); }
+.setrow .chip { margin-left:auto; flex:none; }
+.cb { flex:none; width:14px; height:14px; border-radius:3px; border:1.5px solid var(--m-border); display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:transparent; }
+.cb.on { background:var(--m-accent); border-color:var(--m-accent); color:#fff; }
+.compose { border:1px dashed var(--m-border); border-radius:6px; padding:8px 12px; color:var(--m-faint); font-size:12px; background:var(--m-bg); font-style:italic; }
+.impact { border-left:3px solid var(--m-accent); background:var(--m-bg); border-radius:0 6px 6px 0; padding:7px 12px; font-size:12px; color:var(--m-muted); }
+.attach { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--m-accent); padding:2px 0; }
+.prog { height:3px; border-radius:2px; background:var(--m-border); overflow:hidden; margin:10px 0 14px; }
+.prog i { display:block; height:100%; background:var(--m-accent); }
+.step { display:flex; gap:10px; padding:6px 10px; font-size:12.5px; color:var(--m-muted); align-items:baseline; }
+.step .sno { flex:none; width:18px; height:18px; border-radius:50%; border:1.5px solid var(--m-border); display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:var(--m-faint); transform:translateY(3px); }
+.step.done .sno { background:var(--m-done); border-color:var(--m-done); color:#fff; }
+.step.done { color:var(--m-faint); }
+.step .ev { margin-left:auto; flex:none; font-size:11px; color:var(--m-faint); font-style:italic; }
+.step-cur { border:1px solid var(--m-accent); background:var(--m-accent-soft); border-radius:8px; padding:11px 14px; margin:4px 0; }
+.step-cur .st-title { font-size:13px; font-weight:600; display:flex; gap:10px; align-items:baseline; }
+.step-cur .exp { font-size:12px; color:var(--m-muted); margin:6px 0 10px; }
+.evid { flex:1; border:1px solid var(--m-border); border-radius:6px; padding:4px 10px; font-size:12px; color:var(--m-faint); background:var(--m-elev); font-style:italic; min-width:0; }
+
+/* v2 additions: 2-col waiting list, commit rows, exhibit strips, accordion chevrons */
+.att2 { display:grid; grid-template-columns:1fr 1fr; gap:2px 18px; }
+.att2 li { min-width:0; }
+.cmt { list-style:none; margin:0; padding:0; }
+.cmt li { display:flex; align-items:center; gap:10px; padding:5px 8px; border-radius:4px; font-size:12.5px; min-width:0; }
+.cmt li:hover { background:var(--m-hover); }
+.cmt .sha { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; color:var(--m-faint); flex:none; }
+.cmt .d { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; color:var(--m-faint); flex:none; }
+.cmt .msg { color:var(--m-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:60px; }
+.cmt .chips { display:flex; gap:5px; margin-left:auto; flex:none; }
+.cmt .tick { color:var(--m-done); }
+.cmt li.cmt-quiet .msg { color:var(--m-faint); font-style:italic; }
+.php-top .chev, .php-slim .chev, .dlv-head .chev { font-size:9px; color:var(--m-faint); flex:none; }
+.strip-mock { display:flex; flex-direction:column; gap:10px; min-width:720px; padding:14px 16px; }
+.exhibit { margin:16px 0 0; overflow-x:auto; }
+.exh-cap { font-size:12.5px; color:var(--ink-3); margin:8px 0 0; max-width:84ch; }
+
+/* proposed phase detail */
+.hd-band { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.hd-band .stat-inline { display:flex; align-items:center; gap:6px; margin-left:auto; font-size:12px; color:var(--m-muted); }
+.health { display:flex; align-items:center; gap:18px; padding:9px 14px; background:var(--m-elev); border:1px solid var(--m-border); border-radius:6px; font-size:12px; color:var(--m-muted); flex-wrap:wrap; }
+.health .hi { display:flex; align-items:center; gap:7px; }
+.health .hi b { color:var(--m-text); font-weight:600; font-variant-numeric:tabular-nums; }
+.health .mixbar { width:44px; }
+.health .div { width:1px; align-self:stretch; background:var(--m-border); }
+.feat2 { border-bottom:1px solid var(--m-border); padding:8px 4px; }
+.feat2:last-child { border-bottom:0; }
+.feat2 .r1 { display:flex; align-items:center; gap:10px; min-width:0; }
+.feat2 .fn { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.feat2 .frac { font-size:11px; color:var(--m-faint); font-variant-numeric:tabular-nums; flex:none; }
+.feat2 .chip { margin-left:auto; flex:none; }
+.feat2 .r2 { display:flex; align-items:center; gap:8px; margin:5px 0 0 14px; font-size:11.5px; color:var(--m-faint); white-space:nowrap; overflow:hidden; }
+.feat2 .r2 .lead { color:var(--m-accent); }
+.exit2-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.exit2-head .frac { font-size:11.5px; color:var(--m-muted); font-variant-numeric:tabular-nums; }
+.exit2-head .bar { flex:1; height:3px; background:var(--m-border); border-radius:2px; overflow:hidden; }
+.exit2-head .bar i { display:block; height:100%; background:var(--m-done); }
+.exit2 { margin:0; padding:0; }
+.exit2 li { list-style:none; display:flex; align-items:baseline; gap:8px; padding:3.5px 0; font-size:12.5px; color:var(--m-muted); }
+.exit2 li.dn { color:var(--m-faint); }
+.exit2 .ev { margin-left:auto; flex:none; }
+.rem li { display:flex; align-items:center; gap:9px; padding:5px 6px; border-radius:4px; font-size:12.5px; list-style:none; }
+.rem { margin:0; padding:0; }
+.rem li:hover { background:var(--m-hover); }
+.rem .ti { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--m-muted); min-width:0; }
+.rem .chip { margin-left:auto; flex:none; }
+</style>
+
+<div class="wrap">
+<header class="dossier-head">
+  <p class="eyebrow">project-os-cockpit · design review</p>
+  <h1>The Overview, redrawn for density</h1>
+  <p class="lede">A review of the overview surfaces (FEAT-0017 / FEAT-0023) and a concrete redesign. The brief: these screens have very little real estate and should carry as much project state as possible — depth belongs a click away. Five annotated plates — the two current screens as built, the proposed replacements, and a new review desk where the agent's proposals, questions, decisions, and manual test runs meet a human — plus a reality audit of every state the design leans on. Every change is tagged with where its data comes from.</p>
+  <p class="head-meta">v2 · 2026-07-26 · sources: renderer.ts, renderer.css, cockpit.py stats_payload, cockpit.css/base.css tokens · revised after review: every state audited against the corpus (see States audit); plate C now shows the repo's real quiet state, with the mid-session variant as an exhibit</p>
+</header>
+
+<nav class="toc" id="toc">
+  <a href="#plate-a" class="on">A · Current overview</a>
+  <a href="#plate-b">B · Current phase detail</a>
+  <a href="#plate-c">C · Proposed overview</a>
+  <a href="#plate-d">D · Proposed phase detail</a>
+  <a href="#plate-e">E · Review desk</a>
+  <a href="#states">States audit</a>
+  <a href="#notes">Notes &amp; data</a>
+  <span class="toc-spacer"></span>
+  <span class="seg-label">Mockups</span>
+  <div class="seg" role="group" aria-label="Mockup theme">
+    <button id="mt-light" class="on" type="button">Light</button>
+    <button id="mt-dark" type="button">Dark</button>
+  </div>
+</nav>
+
+<main id="plates">
+
+<!-- ================= PLATE A — current project overview ================= -->
+<section class="plate" id="plate-a">
+  <p class="plate-kicker cur">Plate A · Current</p>
+  <h2 class="plate-title">Project overview, as built</h2>
+  <p class="plate-blurb">Faithful recreation from <span class="mono">renderer.ts</span> / <span class="mono">renderer.css</span>. Four stacked sections — hero, phases, charts, feed — with the right pane nearly empty. The dashed line marks the fold in a 900&nbsp;px window.</p>
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb on" title="Overview"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb" title="Features"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb" title="Tasks"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb" title="Issues"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb" title="Active"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+        <span class="mb" title="Library"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+        <span class="mb" title="Recent"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav">
+      <div class="scope-h">Scope</div>
+      <div class="srow cur"><span class="nm">⌂ Project</span></div>
+      <div class="scope-h">Phases</div>
+      <div class="srow"><span class="nm">Render Server</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Project-OS Adapter</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Downstream Pilot</span><span class="bar"><i style="width:33%"></i></span><span class="pct">33%</span></div>
+      <div class="srow"><span class="nm">Embedded Terminal</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Desktop Shell</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Native Cockpit UI</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Agent Instrumentation</span><span class="bar"><i style="width:95%"></i></span><span class="pct">95%</span></div>
+      <div class="srow"><span class="nm">Future</span><span class="bar"><i style="width:22%"></i></span><span class="pct">22%</span></div>
+    </div>
+    <div class="m-stage">
+      <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
+      <section class="annot" data-pin="1">
+        <div class="ov-hero">
+          <div class="hero-cell"><div class="hero-v">32 / 39</div><div class="hero-l">Features</div></div>
+          <div class="hero-cell"><div class="hero-v">188 / 198</div><div class="hero-l">Tasks</div></div>
+          <div class="hero-cell"><div class="hero-v">3</div><div class="hero-l">Issues</div><div class="hero-s">26 total</div></div>
+          <div class="hero-cell"><div class="hero-v">17 / 19</div><div class="hero-l">Tests</div></div>
+          <div class="hero-cell"><div class="hero-v">2</div><div class="hero-l">Risks</div><div class="hero-s">4 total</div></div>
+          <div class="hero-cell"><div class="hero-v sm">Cockpit CSS parity guards (ISS-0024 §2)</div><div class="hero-l">Last change</div><div class="hero-s">2026-07-22</div></div>
+        </div>
+      </section>
+      <section class="annot" data-pin="2">
+        <h3 class="m-h3">Progress by phase</h3>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Render Server</span><span class="num">12/12</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Project-OS Adapter</span><span class="num">46/46</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,requirement:d,requirement:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g loose" data-sqs="task:d,task:d,task:d,change:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Downstream Pilot</span><span class="num">1/3</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:o,task:d,task:o"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Embedded Terminal</span><span class="num">8/8</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Desktop Shell</span><span class="num">9/9</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Native Cockpit UI</span><span class="num">52/52</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d"></span><span class="sq-g loose" data-sqs="task:d,task:d,issue:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Agent Instrumentation</span><span class="num">58/61</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,requirement:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,requirement:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:o,task:d,task:a,task:o"></span><span class="sq-g loose" data-sqs="issue:t,test:o,task:d,task:d"></span></div></div>
+        <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Future</span><span class="num">2/9</span></div>
+          <div class="ph-bar"><span class="sq-g" data-sqs="feature:o,task:d,task:d,task:o,test:x"></span><span class="sq-g loose" data-sqs="feature:o,feature:o,task:o,task:o"></span></div></div>
+      </section>
+      <section class="ov-bottom annot" data-pin="3">
+        <div class="tile">
+          <h3 class="m-h3">Activity (last 13 weeks)</h3>
+          <div class="act-chart"><i style="height:18%"></i><i style="height:30%"></i><i style="height:12%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:42%"></i><i style="height:70%"></i><i style="height:47%"></i><i style="height:84%"></i><i style="height:62%"></i><i style="height:95%"></i><i style="height:78%"></i><i style="height:100%"></i></div>
+          <div class="act-axis"><span>13w</span><span>now</span></div>
+        </div>
+        <div class="tile">
+          <h3 class="m-h3">Status mix</h3>
+          <div class="donut-grid">
+            <div class="donut-cell"><div class="donut" style="background:conic-gradient(var(--m-done) 0% 82%, var(--m-act) 82% 87%, var(--m-pend) 87% 95%, var(--m-faint) 95% 100%)"><b class="num">39</b></div><div class="donut-l">features</div></div>
+            <div class="donut-cell"><div class="donut" style="background:conic-gradient(var(--m-done) 0% 95%, var(--m-act) 95% 96%, var(--m-pend) 96% 98%, var(--m-faint) 98% 100%)"><b class="num">198</b></div><div class="donut-l">tasks</div></div>
+            <div class="donut-cell"><div class="donut" style="background:conic-gradient(var(--m-done) 0% 88%, var(--m-med) 88% 92%, var(--m-pend) 92% 100%)"><b class="num">26</b></div><div class="donut-l">issues</div></div>
+            <div class="donut-cell"><div class="donut" style="background:conic-gradient(var(--m-done) 0% 90%, var(--m-pend) 90% 100%)"><b class="num">21</b></div><div class="donut-l">requirements</div></div>
+          </div>
+        </div>
+      </section>
+      <section class="annot" data-pin="4">
+        <h3 class="m-h3">Recent activity</h3>
+        <ul class="feed">
+          <li><span class="d">2026-07-22</span><span class="ty i-change">change</span><span class="idm">CHG-20260722</span><span class="ti">Cockpit CSS parity guards (ISS-0024 §2)</span></li>
+          <li><span class="d">2026-07-22</span><span class="ty i-task">task</span><span class="idm">TASK-0193</span><span class="ti">Sidecar: drive the in-flight work set from SNAPSHOT focus</span></li>
+          <li><span class="d">2026-07-22</span><span class="ty i-task">task</span><span class="idm">TASK-0196</span><span class="ti">Snapshot-driven routing hint — UserPromptSubmit hook</span></li>
+          <li><span class="d">2026-07-21</span><span class="ty i-feature">feature</span><span class="idm">FEAT-0038</span><span class="ti">Console progress rail — live work-blocks under the strip</span></li>
+          <li><span class="d">2026-07-21</span><span class="ty i-test">test</span><span class="idm">TST-0019</span><span class="ti">Status vocabulary parity across palette surfaces</span></li>
+          <li><span class="d">2026-07-21</span><span class="ty i-issue">issue</span><span class="idm">ISS-0023</span><span class="ti">Six palette surfaces disagree about `implemented`</span></li>
+          <li><span class="d">2026-07-20</span><span class="ty i-task">task</span><span class="idm">TASK-0192</span><span class="ti">Renderer: in-flight boxes inline before ctx</span></li>
+          <li><span class="d">2026-07-20</span><span class="ty i-change">change</span><span class="idm">CHG-20260720</span><span class="ti">Progress rail ships; work tab renamed to progress</span></li>
+          <li><span class="d">2026-07-19</span><span class="ty i-task">task</span><span class="idm">TASK-0191</span><span class="ti">Sidecar: prompt-scoped, index-enriched work items</span></li>
+          <li><span class="d">2026-07-18</span><span class="ty i-adr">adr</span><span class="idm">ADR-0009</span><span class="ti">Notes are the authored source of state</span></li>
+        </ul>
+      </section>
+    </div>
+    <div class="m-right annot" data-pin="5">
+      <div class="ctx-h">Pinned</div>
+      <div class="ctx-row"><span class="tt">DESIGN.md</span></div>
+      <div class="ctx-row"><span class="tt">COCKPIT-API.md</span></div>
+      <p class="m-empty" style="margin-top:180px; text-align:center">( nothing else — 280 px column )</p>
+    </div>
+    <div class="m-foot"><span>~overview</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+  <ul class="legend">
+    <li><span class="n">1</span><span class="t"><b>The hero spends 110–170 px on six numbers.</b> At sub-wide stage widths <span class="mono">auto-fit</span> wraps it into two ragged rows, exactly as shown. Requirements (19/21) is computed by <span class="mono">stats_payload</span> but never rendered; "Last change" — a low-urgency fact — occupies premium hero real estate. No trend, no composition, no "what changed since yesterday."</span></li>
+    <li><span class="n">2</span><span class="t"><b>Done phases shout as loudly as the live one.</b> Five of eight rows are 100% complete, yet each gets a full title + square-strip row (~46 px). No per-row percentage, no in-flight or attention signal; the one phase that matters is visually indistinguishable from history.</span></li>
+    <li><span class="n">3</span><span class="t"><b>The charts duplicate the hero at lower resolution.</b> Donuts show proportions without labels or counts-by-status (colors are unexplained); the histogram spends 100 px of height on a single series. Together: ~180 px for facts the hero already stated.</span></li>
+    <li><span class="n">4</span><span class="t"><b>Recent activity starts below the fold.</b> The one feed with narrative value is the fourth stacked section; in a 900 px window you scroll to see any of it.</span></li>
+    <li><span class="n">5</span><span class="t"><b>The context pane is dead space.</b> On the project scope, <span class="mono">renderOverviewRightPane</span> renders pinned notes or nothing — an empty 280 px column on the screen with the most state to summarize. Meanwhile SNAPSHOT's <span class="mono">focus:</span> block — the single most contextual fact — appears nowhere.</span></li>
+  </ul>
+</section>
+
+<!-- ================= PLATE B — current phase detail ================= -->
+<section class="plate" id="plate-b">
+  <p class="plate-kicker cur">Plate B · Current</p>
+  <h2 class="plate-title">Phase detail (drill-down), as built</h2>
+  <p class="plate-blurb">The FEAT-0023 scoped dashboard for <span class="mono">~overview/PHASE-007</span>. The header and a repeated six-tile hero consume the top ~230 px before anything phase-specific appears; the feature list encodes progress only as anonymous squares.</p>
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb on"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav">
+      <div class="scope-h">Scope</div>
+      <div class="srow"><span class="nm">⌂ Project</span></div>
+      <div class="scope-h">Phases</div>
+      <div class="srow"><span class="nm">Render Server</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Project-OS Adapter</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Downstream Pilot</span><span class="bar"><i style="width:33%"></i></span><span class="pct">33%</span></div>
+      <div class="srow"><span class="nm">Embedded Terminal</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Desktop Shell</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Native Cockpit UI</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow cur"><span class="nm">Agent Instrumentation</span><span class="bar"><i style="width:95%"></i></span><span class="pct">95%</span></div>
+      <div class="srow"><span class="nm">Future</span><span class="bar"><i style="width:22%"></i></span><span class="pct">22%</span></div>
+    </div>
+    <div class="m-stage">
+      <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
+      <section class="annot" data-pin="1">
+        <div class="scoped-head">
+          <span class="crumb">Overview</span><span class="sep">▸</span>
+          <h2>PHASE-007 · Agent Instrumentation</h2>
+          <span class="chip c-act">doing</span>
+          <span class="open">open note ↗</span>
+        </div>
+      </section>
+      <section class="annot" data-pin="2">
+        <div class="ov-hero">
+          <div class="hero-cell"><div class="hero-v">15 / 16</div><div class="hero-l">Features</div></div>
+          <div class="hero-cell"><div class="hero-v">58 / 61</div><div class="hero-l">Tasks</div></div>
+          <div class="hero-cell"><div class="hero-v">1</div><div class="hero-l">Issues</div><div class="hero-s">3 total</div></div>
+          <div class="hero-cell"><div class="hero-v">5 / 6</div><div class="hero-l">Tests</div></div>
+          <div class="hero-cell"><div class="hero-v">0</div><div class="hero-l">Risks</div><div class="hero-s">1 total</div></div>
+          <div class="hero-cell"><div class="hero-v sm">Cockpit CSS parity guards (ISS-0024 §2)</div><div class="hero-l">Last change</div><div class="hero-s">2026-07-22</div></div>
+        </div>
+      </section>
+      <section class="annot" data-pin="3">
+        <h3 class="m-h3">Features in this phase</h3>
+        <div class="sfeat"><span class="fn">FEAT-0039 Model routing — phase-pinned subagents</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:a,task:o"></span></span><span class="chip c-act">doing</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0038 Console progress rail</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0036 Live work views</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0034 Agents centre tab + follow control</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0030 Agent inbox — docked attention panel</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0025 Dispatch runtime — queue, ledger, CLI</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn">FEAT-0019 Agent hook ingestion</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        <div class="sfeat"><span class="fn" style="color:var(--m-muted)">Loose items</span><span class="sqs"><span class="sq-g loose" data-sqs="issue:t,test:o,task:d,task:d"></span></span></div>
+      </section>
+      <section class="ov-bottom annot" data-pin="4" style="align-items:start">
+        <div class="tile">
+          <h3 class="m-h3">Exit criteria</h3>
+          <ul class="exit">
+            <li class="dn">☑ Hook ingestion auto-instruments Claude &amp; Codex sessions</li>
+            <li class="dn">☑ Attention inbox with a sane lifecycle (no decay)</li>
+            <li class="dn">☑ Fleet view (~agents) with cost, queues, rate limits</li>
+            <li class="dn">☑ Task dispatch from the board with a durable ledger</li>
+            <li>☐ Model routing pinned per lifecycle phase</li>
+            <li>☐ Status vocabulary parity across all six surfaces</li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3 class="m-h3">Activity in this phase</h3>
+          <ul class="feed f3">
+            <li><span class="d">2026-07-22</span><span class="ty i-task">task</span><span class="ti">Sidecar: drive the in-flight work set from SNAPSHOT</span></li>
+            <li><span class="d">2026-07-22</span><span class="ty i-task">task</span><span class="ti">Snapshot-driven routing hint — UserPromptSubmit hook</span></li>
+            <li><span class="d">2026-07-21</span><span class="ty i-feature">feature</span><span class="ti">Console progress rail — live work-blocks</span></li>
+            <li><span class="d">2026-07-21</span><span class="ty i-issue">issue</span><span class="ti">Six palette surfaces disagree about `implemented`</span></li>
+            <li><span class="d">2026-07-20</span><span class="ty i-task">task</span><span class="ti">Renderer: in-flight boxes inline before ctx</span></li>
+            <li><span class="d">2026-07-20</span><span class="ty i-change">change</span><span class="ti">Progress rail ships; work tab renamed</span></li>
+            <li><span class="d">2026-07-19</span><span class="ty i-task">task</span><span class="ti">Sidecar: prompt-scoped work items</span></li>
+            <li><span class="d">2026-07-18</span><span class="ty i-task">task</span><span class="ti">Rich progress panel rows</span></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+    <div class="m-right annot" data-pin="5">
+      <div class="ctx-h">Linked</div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0019</span><span class="tt">Agent hook ingestion</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0020</span><span class="tt">Agent activity surfaces</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0021</span><span class="tt">Task dispatch</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0022</span><span class="tt">Session insight</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0023</span><span class="tt">Overview scopes</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0024</span><span class="tt">Agent verbs</span></div>
+      <div class="ctx-row"><span class="idm i-feature">FEAT-0025</span><span class="tt">Dispatch runtime</span></div>
+      <div class="ctx-h">Backlinks</div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0114</span><span class="tt">Sidecar hook receiver</span></div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0115</span><span class="tt">Claude hook injection</span></div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0116</span><span class="tt">Codex hook injection</span></div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0118</span><span class="tt">Activity strip</span></div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0121</span><span class="tt">Dispatch from task board</span></div>
+      <div class="ctx-row"><span class="idm i-task">TASK-0131</span><span class="tt">Verb registry</span></div>
+      <div class="ctx-row"><span class="idm i-adr">ADR-0009</span><span class="tt">Notes as authored source</span></div>
+    </div>
+    <div class="m-foot"><span>~overview/PHASE-007</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+  <ul class="legend">
+    <li><span class="n">1</span><span class="t"><b>Header is fine — but underworked.</b> Crumb, title, chip, note link. It could also answer "how far along, and what gates it?" without growing.</span></li>
+    <li><span class="n">2</span><span class="t"><b>The hero repeats itself at phase scale.</b> The same six tiles as the project screen — wrapping to two ragged rows at this width — now holding small numbers (0 risks, 1 issue). Scoped counts deserve one dense line, not a second dashboard heading the page.</span></li>
+    <li><span class="n">3</span><span class="t"><b>Squares say <i>shape</i>, never <i>what</i>.</b> A feature row gives no fraction (1/3), no name of the thing in flight, no flag when an open issue lives inside it. Answering "what's left in FEAT-0039?" requires hovering each square.</span></li>
+    <li><span class="n">4</span><span class="t"><b>Exit criteria and activity are flat lists.</b> No summary (4/6), no link from a criterion to its evidence; activity rows drop the ID column their project-level siblings have (TASK-0173), so rows can't be told apart at a glance.</span></li>
+    <li><span class="n">5</span><span class="t"><b>The context pane dumps the link graph.</b> Linked + Backlinks of the phase note duplicates what the note itself shows and ignores the live questions: what is in flight <i>here</i>, what is blocked <i>here</i>, how close are the gates?</span></li>
+  </ul>
+</section>
+
+<!-- ================= PLATE C — proposed project overview ================= -->
+<section class="plate" id="plate-c">
+  <p class="plate-kicker pro">Plate C · Proposed</p>
+  <h2 class="plate-title">Project overview — state first, history compressed</h2>
+  <p class="plate-blurb">Same window, same idioms (squares, chips, muted palette) — reweighted, and now shown in the repo's <b>actual quiet state</b> (2026-07-26: nothing in flight, focus terminal, one open issue, four open risks). Phases are an accordion — any row expands; PHASE-006 is shown open. Activity and a new Commits panel run full width. The right pane becomes the record column: decisions, verification, library. The organizing rule: <b>state above the fold, history below it</b>. The mid-session variant of the live bands is exhibited under the window.</p>
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb on"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb annot" data-pin="10"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg><span class="mode-badge">1</span></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav annot" data-pin="9">
+      <div class="scope-h">Scope</div>
+      <div class="srow cur"><span class="nm">⌂ Project</span></div>
+      <div class="scope-h">In flight</div>
+      <div class="srow"><span class="nm">Agent Instrumentation</span><span class="bar"><i style="width:100%"></i></span><span class="pct">100%</span></div>
+      <div class="srow"><span class="nm">Downstream Pilot</span><span class="bar"><i style="width:33%"></i></span><span class="pct">33%</span></div>
+      <div class="srow"><span class="nm">Future</span><span class="bar"><i style="width:22%"></i></span><span class="pct">22%</span></div>
+      <div class="scope-h">Completed · 5</div>
+      <div class="srow"><span class="nm">Native Cockpit UI</span><span class="pct" style="width:auto">✓ 52</span></div>
+      <div class="srow"><span class="nm">Desktop Shell</span><span class="pct" style="width:auto">✓ 9</span></div>
+      <div class="srow"><span class="nm">Embedded Terminal</span><span class="pct" style="width:auto">✓ 8</span></div>
+      <div class="srow"><span class="nm">Project-OS Adapter</span><span class="pct" style="width:auto">✓ 46</span></div>
+      <div class="srow"><span class="nm">Render Server</span><span class="pct" style="width:auto">✓ 12</span></div>
+    </div>
+    <div class="m-stage">
+      <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
+      <section class="focus-band annot" data-pin="1">
+        <span class="fl">FOCUS</span>
+        <span class="fchip"><span class="idm i-phase">PHASE-007</span> Agent Instr.</span>
+        <span class="fsep">▸</span>
+        <span class="fchip"><span class="idm i-issue">ISS-0023</span> <span class="c-done">fixed</span></span>
+        <span class="fsep">▸</span>
+        <span class="fchip" title="focus note is 2d old — predates ADR-0006"><span class="idm i-task">TASK-0198</span> Status band <span class="c-done">✓ done</span></span>
+        <span class="flast">idle · last <span class="idm">e281eaa</span> · 1d</span>
+      </section>
+      <section class="annot" data-pin="2">
+        <div class="stat-strip">
+          <div class="stat"><div class="sl">Features<span class="delta">+1w</span></div><div class="sv">32<small>/39</small></div>
+            <div class="mixbar" title="32 done · 1 in review · 4 backlog · 2 retired"><i class="g-done" style="flex:32"></i><i class="g-doing" style="flex:1"></i><i class="g-back" style="flex:6"></i></div></div>
+          <div class="stat"><div class="sl">Tasks<span class="delta">+6w</span></div><div class="sv">191<small>/198</small></div>
+            <div class="mixbar" title="191 done · 5 backlog · 2 parked"><i class="g-done" style="flex:48"></i><i class="g-back" style="flex:2"></i></div></div>
+          <div class="stat"><div class="sl">Reqs<span class="delta">+4w</span></div><div class="sv">21<small>/21</small></div>
+            <div class="mixbar" title="21 implemented (terminal since ADR-0007)"><i class="g-done" style="flex:21"></i></div></div>
+          <div class="stat"><div class="sl">Tests<span class="delta" style="color:var(--m-faint)">1 ready</span></div><div class="sv">18<small>/19</small></div>
+            <div class="mixbar" title="18 passing · 1 ready — defined, never executed"><i class="g-done" style="flex:18"></i><i class="g-back" style="flex:1"></i></div></div>
+          <div class="stat"><div class="sl">Issues<span class="delta">−2w</span></div><div class="sv">1 <small>open /26</small></div>
+            <div class="mixbar" title="24 fixed · 1 open · 1 wontfix"><i class="g-done" style="flex:24"></i><i class="g-warn" style="flex:1"></i><i class="g-back" style="flex:1"></i></div></div>
+          <div class="stat"><div class="sl">Risks</div><div class="sv">4 <small>open /4</small></div>
+            <div class="mixbar" title="4 open — mitigations tracked in the notes"><i class="g-back" style="flex:4"></i></div></div>
+        </div>
+        <div class="mix-key"><span><i style="background:var(--seg-done)"></i>done</span><span><i style="background:var(--seg-doing)"></i>in flight</span><span><i style="background:var(--seg-back);opacity:.55"></i>backlog</span><span><i style="background:var(--seg-warn)"></i>attention</span></div>
+      </section>
+      <section>
+        <h3 class="m-h3">Phases</h3>
+        <div class="annot" data-pin="3">
+        <div class="php">
+          <div class="php-top">
+            <span class="chev">▾</span>
+            <span class="pn">PHASE-007 · Agent Instrumentation</span>
+            <span class="chip c-act">doing</span>
+            <span class="frac num">61/61 · 100%</span>
+            <span class="meta"><span class="att">gates 5/6 · awaiting close-out</span></span>
+          </div>
+          <div class="php-under"><i style="width:100%"></i></div>
+          <div class="sqs"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,requirement:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,requirement:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g loose" data-sqs="issue:d,test:d,task:d,task:d"></span></div>
+        </div>
+        <div class="php" style="padding:8px 12px">
+          <div class="php-top">
+            <span class="chev">▸</span>
+            <span class="pn" style="font-weight:500">PHASE-003 · Downstream Pilot</span>
+            <span class="chip c-pend">backlog</span>
+            <span class="frac num">1/3 · 33%</span>
+            <span class="meta">waiting on FEAT-0005</span>
+          </div>
+        </div>
+        <div class="php" style="padding:8px 12px">
+          <div class="php-top">
+            <span class="chev">▸</span>
+            <span class="pn" style="font-weight:500">PHASE-999 · Future</span>
+            <span class="chip c-faint">parked</span>
+            <span class="frac num">2/9 · 22%</span>
+            <span class="meta"><span class="att">FEAT-0018 in review 6w</span></span>
+          </div>
+        </div>
+        </div>
+        <div class="annot" data-pin="4">
+        <div class="dlv-head"><span class="chev">▾</span><span>Completed · 5 phases · 127 items</span><span class="rule"></span></div>
+        <div class="php" style="padding:8px 12px">
+          <div class="php-top">
+            <span class="chev">▾</span>
+            <span class="pn" style="font-weight:500">PHASE-006 · Native Cockpit UI</span>
+            <span class="chip c-done">done</span>
+            <span class="frac num">52/52 · Jun 2026</span>
+          </div>
+          <div class="sqs" style="margin-top:8px"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d"></span><span class="sq-g loose" data-sqs="task:d,task:d,issue:d"></span></div>
+        </div>
+        <div class="php-slim"><span class="chev">▸</span><span class="pn">PHASE-005 · Desktop Shell</span><span class="cnt">9 items · May 2026</span></div>
+        <div class="php-slim"><span class="chev">▸</span><span class="pn">PHASE-004 · Embedded Terminal</span><span class="cnt">8 items · May 2026</span></div>
+        <div class="php-slim"><span class="chev">▸</span><span class="pn">PHASE-002 · Project-OS Adapter</span><span class="cnt">46 items · Apr 2026</span></div>
+        <div class="php-slim"><span class="chev">▸</span><span class="pn">PHASE-001 · Render Server</span><span class="cnt">12 items · Mar 2026</span></div>
+        </div>
+      </section>
+      <section class="tile annot" data-pin="5">
+        <h3 class="m-h3">Waiting on you · 6</h3>
+        <ul class="att-list att2">
+          <li><span class="idm i-issue">ISS-0024</span><span class="ti">Status surfaces outside the parity guard</span><span class="chip c-pend">open</span></li>
+          <li><span class="idm i-phase">PHASE-007</span><span class="ti">61/61 done — gates 5/6, not closed</span><span class="chip c-act">close-out</span></li>
+          <li><span class="idm i-feature">FEAT-0018</span><span class="ti">Verification health — in review 6w</span><span class="chip c-act">in-review</span></li>
+          <li><span class="idm i-test">TST-0011</span><span class="ti">Live instrumentation — never executed</span><span class="chip c-pend">ready</span></li>
+          <li><span class="idm i-task">TASK-0065</span><span class="ti">Build pipeline — signing, notarization</span><span class="chip c-faint">parked</span></li>
+          <li><span class="idm i-risk">RISK-0004</span><span class="ti">Hook injection surface</span><span class="chip c-high">open</span></li>
+        </ul>
+      </section>
+      <section class="tile annot" data-pin="6">
+        <h3 class="m-h3">Activity</h3>
+        <div class="spark" style="height:34px"><i style="height:18%"></i><i style="height:30%"></i><i style="height:12%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:42%"></i><i style="height:70%"></i><i style="height:47%"></i><i style="height:84%"></i><i style="height:62%"></i><i style="height:95%"></i><i style="height:78%"></i><i class="nowk" style="height:100%"></i></div>
+        <div class="spark-sub num" style="margin-bottom:0">34 touches this week · 4 notes yesterday · busiest week since May</div>
+      </section>
+      <section class="tile annot" data-pin="7">
+        <h3 class="m-h3">Commits · main</h3>
+        <ul class="cmt">
+          <li class="cmt-quiet"><span class="sha">e281eaa</span><span class="d">07-25</span><span class="msg">chore(project-os): sync — requirements gated on criteria</span><span class="chips"><span class="fchip"><span class="idm">SNAPSHOT</span></span></span></li>
+          <li><span class="sha">381aa96</span><span class="d">07-24</span><span class="msg">rebuild the desktop bundle; guard against a stale build</span><span class="chips"><span class="fchip"><span class="idm i-issue">ISS-0024</span> §6</span></span></li>
+          <li><span class="sha">ba9cba9</span><span class="d">07-24</span><span class="msg">close the two CSS parity blind spots</span><span class="chips"><span class="fchip"><span class="idm i-test">TST-0019</span> <span class="tick">✓</span></span><span class="fchip"><span class="idm i-issue">ISS-0024</span> §2</span></span></li>
+          <li><span class="sha">d075b84</span><span class="d">07-24</span><span class="msg">`implemented` reads as done on every surface</span><span class="chips"><span class="fchip"><span class="idm i-issue">ISS-0023</span> <span class="tick">✓ fixed</span></span><span class="fchip"><span class="idm i-change">CHG-20260724</span> ×2</span><span class="fchip"><span class="idm i-test">TST-0019</span></span></span></li>
+          <li><span class="sha">5958bb2</span><span class="d">07-24</span><span class="msg">triage feature-less requirements (ADR-0007 follow-up)</span><span class="chips"><span class="fchip"><span class="idm i-requirement">REQ-0018</span></span><span class="fchip"><span class="idm i-requirement">REQ-0019</span></span><span class="fchip"><span class="idm i-requirement">+2</span></span></span></li>
+          <li class="cmt-quiet"><span class="sha">9f21c04</span><span class="d">07-23</span><span class="msg">renderer: tweak splitter hit area</span><span class="chips"><span class="fchip" style="border-style:dashed"><span class="idm" style="color:var(--m-med)">no doc items</span></span></span></li>
+        </ul>
+      </section>
+    </div>
+    <div class="m-right annot" data-pin="8">
+      <div class="ctx-card">
+        <div class="ch">Decisions <span class="r idm">6 · all accepted</span></div>
+        <div class="kv"><span class="idm i-adr">ADR-0006</span><span class="tt">Retire the delivered band</span></div>
+        <div class="kv"><span class="idm i-adr">ADR-0005</span><span class="tt">Electron + Python sidecar</span></div>
+        <div class="kv"><span class="idm i-adr">ADR-0004</span><span class="tt">Code-driven cockpit vs Bases</span></div>
+        <div class="disc"><span class="chev">▸</span>3 older</div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Verification <span class="r num">18/19</span></div>
+        <div class="mixbar" style="margin-bottom:7px" title="18 passing · 1 ready"><i class="g-done" style="flex:18"></i><i class="g-back" style="flex:1"></i></div>
+        <div class="kv"><span class="idm i-test">TST-0011</span><span class="tt">defined, never executed</span><span class="chip c-pend">ready</span></div>
+        <p class="fx" style="margin:6px 0 0">0 waivers · validator clean</p>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Library</div>
+        <div class="kv"><span class="tt">DESIGN.md</span></div>
+        <div class="kv"><span class="tt">STYLEGUIDE.md</span></div>
+        <div class="kv"><span class="tt">COCKPIT-API.md</span></div>
+      </div>
+      <div class="counters">FEAT 39 · TASK 198 · ISS 26 · TST 19 · REQ 21</div>
+    </div>
+    <div class="m-foot"><span>~overview</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+  <div class="exhibit">
+    <div class="mock strip-mock">
+      <div class="focus-band" style="border-left-color:var(--m-act)">
+        <span class="fl">FOCUS</span>
+        <span class="fchip"><span class="idm i-phase">PHASE-007</span> Agent Instrumentation</span>
+        <span class="fsep">▸</span>
+        <span class="fchip"><span class="idm i-feature">FEAT-0039</span> Model routing</span>
+        <span class="fsep">▸</span>
+        <span class="fchip"><span class="pulse"></span><span class="idm i-task">TASK-0196</span> Routing-hint hook <span class="c-act">doing</span></span>
+        <span class="flast">1 in flight · session 24m</span>
+      </div>
+      <div class="php" style="margin:0">
+        <div class="php-top">
+          <span class="chev">▾</span>
+          <span class="pn">PHASE-007 · Agent Instrumentation</span>
+          <span class="chip c-act">doing</span>
+          <span class="frac num">58/61 · 95%</span>
+          <span class="meta"><span class="inf">1 in flight</span><span class="att">1 triage</span></span>
+        </div>
+        <div class="php-under"><i style="width:95%"></i></div>
+      </div>
+    </div>
+    <p class="exh-cap">The same two bands mid-session (reconstructed from July 23): while an agent works, the focus chip pulses, the phase row carries an in-flight count, and Waiting-on-you picks up the transient states — <span class="mono">doing</span>, <span class="mono">triage</span>, a failing test — the moment they exist. The quiet state in the window above is what the screen shows the rest of the time; both are designed, and quiet is primary.</p>
+  </div>
+  <ul class="legend">
+    <li><span class="n">1</span><span class="t"><b>Focus band, quiet-first.</b> The SNAPSHOT <span class="mono">focus:</span> chain is always set (preflight writes it) but is usually terminal — so the resting state reads "here's what just finished," with statuses, the note's age (the current note is 2d stale and predates ADR-0006 — worth showing, not hiding), and the last commit. The live variant is the exhibit below. <span class="src src-add">sidecar +</span></span></li>
+    <li><span class="n">2</span><span class="t"><b>Stat tiles absorb the donuts.</b> Six tiles at half the height, each with a status mix-bar and a weekly delta — now with the audited real numbers: Requirements 21/21 (computed but never rendered today), Tests 18/19 + 1 <span class="mono">ready</span>, 1 open issue, 4 open risks. <span class="src src-ok">payload ✓</span> <span class="src src-dv">deltas: client</span></span></li>
+    <li><span class="n">3</span><span class="t"><b>Phases are an accordion, live rows first.</b> Any row expands to its square strip and collapses back; chevrons make it explicit. The quiet state surfaces a real project-os situation the current screen hides: PHASE-007 is 61/61 but unclosed with gates at 5/6 — "awaiting close-out" is the row's meta. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">4</span><span class="t"><b>Completed band</b> (renamed from "Delivered" — ADR-0006 retired that vocabulary the day after v1 of this proposal cited it; the guard test would rightly complain). Five finished phases at one line each, and any of them opens: PHASE-006 is shown expanded. <span class="src src-dv">client</span></span></li>
+    <li><span class="n">5</span><span class="t"><b>Waiting on you — audited composition.</b> Only states the corpus actually holds: the open issue, the unclosed phase, a 6-week in-review stall, a test defined but never executed, parked work, open risks. Failing tests join when they exist (ADR-0010's execution-stamping makes that durable). Empty state: "All clear." <span class="src src-ok">payload ✓</span> <span class="src src-add">severity +</span></span></li>
+    <li><span class="n">6</span><span class="t"><b>Activity, full width.</b> The 100 px histogram becomes a 34 px full-width sparkbar with the current week emphasized and a plain-words line. The note-feed it used to carry is superseded by the commits panel below it. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">7</span><span class="t"><b>Commits — items, not diffs.</b> Real rows from this repo's log: each commit shows the notes it touched, completions ticked (<span class="mono">d075b84</span> lands ISS-0023 with two CHGs and a test). Sync commits render quiet; a commit touching no notes is flagged "no doc items" — the FEAT-0022 undocumented guardrail, surfaced per commit. <span class="src src-add">sidecar + git log</span></span></li>
+    <li><span class="n">8</span><span class="t"><b>The record column.</b> Decisions (all 6 ADRs, accepted), Verification (18/19 + the never-executed TST-0011, waivers, validator), Library. Durable, always-populated, and answers "where are the ADRs and acceptance tests" — replacing v1's speculative "meanwhile" column. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">9</span><span class="t"><b>Scope pane mirrors the same order.</b> In-flight phases above a Completed group; finished phases trade their 100% bars for an item count. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">10</span><span class="t"><b>The mode strip slims to six — Active and Recent retire.</b> Active was a whole mode for a state the audit showed is empty most of the time; its glanceable job moved to the focus band and phase meta, its live job to the progress rail and strip. Recent's what-changed job is the commits panel; jump-back is ⌘P + history. Review takes their slot with the queue badge (1 here: the TST-0011 run). Every remaining mode answers one question — state · structure · queue · record. UI retirement only: <span class="mono">nav?mode=active</span> keeps feeding the Now board and strip. <span class="src src-dv">client</span></span></li>
+  </ul>
+</section>
+
+<!-- ================= PLATE D — proposed phase detail ================= -->
+<section class="plate" id="plate-d">
+  <p class="plate-kicker pro">Plate D · Proposed</p>
+  <h2 class="plate-title">Phase detail — gates, remainder, next action</h2>
+  <p class="plate-blurb">The drill-down stops repeating the project dashboard and starts answering phase questions: how far, what gates it, what's left, what's next. Feature rows carry fractions and name their in-flight child; a "remaining work" list spells out what the squares only gesture at. This window deliberately reconstructs the <b>mid-session</b> state of July 23 — the busy counterpart to plate C's quiet day. The right pane is the record column at phase scope: this phase's acceptance tests and decisions.</p>
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb on"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg><span class="mode-badge">1</span></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav">
+      <div class="scope-h">Scope</div>
+      <div class="srow"><span class="nm">⌂ Project</span></div>
+      <div class="scope-h">In flight</div>
+      <div class="srow cur"><span class="nm">Agent Instrumentation</span><span class="live"></span><span class="bar"><i style="width:95%"></i></span><span class="pct">95%</span></div>
+      <div class="srow"><span class="nm">Downstream Pilot</span><span class="bar"><i style="width:33%"></i></span><span class="pct">33%</span></div>
+      <div class="srow"><span class="nm">Future</span><span class="bar"><i style="width:22%"></i></span><span class="pct">22%</span></div>
+      <div class="scope-h">Completed · 5</div>
+      <div class="srow"><span class="nm">Native Cockpit UI</span><span class="pct" style="width:auto">✓ 52</span></div>
+      <div class="srow"><span class="nm">Desktop Shell</span><span class="pct" style="width:auto">✓ 9</span></div>
+      <div class="srow"><span class="nm">Embedded Terminal</span><span class="pct" style="width:auto">✓ 8</span></div>
+      <div class="srow"><span class="nm">Project-OS Adapter</span><span class="pct" style="width:auto">✓ 46</span></div>
+      <div class="srow"><span class="nm">Render Server</span><span class="pct" style="width:auto">✓ 12</span></div>
+    </div>
+    <div class="m-stage">
+      <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
+      <section class="annot" data-pin="1">
+        <div class="scoped-head hd-band">
+          <span class="crumb">Overview</span><span class="sep">▸</span>
+          <h2>PHASE-007 · Agent Instrumentation</h2>
+          <span class="chip c-act">doing</span>
+          <span class="stat-inline"><span class="num" style="color:var(--m-text);font-weight:600">58/61 · 95%</span><span class="fchip" title="4 of 6 exit criteria met"><span class="idm">gates 4/6</span></span><span class="open" style="margin-left:4px">open note ↗</span></span>
+        </div>
+      </section>
+      <section class="health annot" data-pin="2">
+        <span class="hi"><b>15/16</b> features<span class="mixbar"><i class="g-done" style="flex:15"></i><i class="g-doing" style="flex:1"></i></span></span>
+        <span class="div"></span>
+        <span class="hi"><b>58/61</b> tasks<span class="mixbar"><i class="g-done" style="flex:58"></i><i class="g-doing" style="flex:1"></i><i class="g-back" style="flex:2"></i></span></span>
+        <span class="div"></span>
+        <span class="hi"><b>5/6</b> tests</span>
+        <span class="div"></span>
+        <span class="hi"><b>1</b> issue open</span>
+        <span class="div"></span>
+        <span class="hi" style="color:var(--m-accent)">1 in flight</span>
+        <span class="hi" style="color:var(--m-med)">1 triage</span>
+      </section>
+      <section class="annot" data-pin="3">
+        <h3 class="m-h3">Features · 16</h3>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0039 Model routing — phase-pinned subagents</span><span class="frac num">1/3</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:a,task:o"></span></span><span class="chip c-act">doing</span></div>
+          <div class="r2"><span class="lead">▸ doing</span><span class="idm i-task">TASK-0196</span><span>Routing-hint hook</span><span style="color:var(--m-faint)">·</span><span>next</span><span class="idm i-task">TASK-0197</span><span>Upstream &amp; adopt</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0038 Console progress rail</span><span class="frac num">7/7</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0036 Live work views</span><span class="frac num">4/4</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0034 Agents centre tab + follow control</span><span class="frac num">2/2</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0030 Agent inbox — docked attention panel</span><span class="frac num">5/5</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn">FEAT-0025 Dispatch runtime — queue, ledger, CLI</span><span class="frac num">3/3</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
+        </div>
+        <div class="feat2">
+          <div class="r1"><span class="fn" style="color:var(--m-muted)">Loose items</span><span class="frac num">2/4</span><span class="sqs"><span class="sq-g loose" data-sqs="issue:t,test:o,task:d,task:d"></span></span></div>
+          <div class="r2"><span class="lead" style="color:var(--m-med)">▸ triage</span><span class="idm i-issue">ISS-0023</span><span>Palette surfaces disagree on `implemented`</span></div>
+        </div>
+        <div class="disc"><span class="chev">▸</span>9 more delivered features</div>
+      </section>
+      <section class="bottom2">
+        <div class="tile annot" data-pin="4">
+          <div class="exit2-head"><h3 class="m-h3" style="margin:0">Exit criteria</h3><span class="frac num">4/6</span><span class="bar"><i style="width:67%"></i></span></div>
+          <ul class="exit2">
+            <li class="dn">☑ <span>Hook ingestion auto-instruments sessions</span><span class="ev chip c-done">TST-0010</span></li>
+            <li class="dn">☑ <span>Attention inbox, sane lifecycle</span><span class="ev chip c-done">TST-0012</span></li>
+            <li class="dn">☑ <span>Fleet view with cost, queues, limits</span></li>
+            <li class="dn">☑ <span>Dispatch from board, durable ledger</span><span class="ev chip c-done">TST-0014</span></li>
+            <li>☐ <span>Model routing pinned per phase</span></li>
+            <li>☐ <span>Status vocabulary parity, six surfaces</span><span class="ev chip c-pend">TST-0019 draft</span></li>
+          </ul>
+        </div>
+        <div class="tile annot" data-pin="5">
+          <h3 class="m-h3">Remaining · 5</h3>
+          <ul class="rem">
+            <li><span class="idm i-task">TASK-0196</span><span class="ti">Routing-hint hook + settings wiring</span><span class="chip c-act">doing</span></li>
+            <li><span class="idm i-issue">ISS-0023</span><span class="ti">Palette surfaces disagree</span><span class="chip c-tri">triage</span></li>
+            <li><span class="idm i-test">TST-0019</span><span class="ti">Status vocabulary parity</span><span class="chip c-pend">draft</span></li>
+            <li><span class="idm i-task">TASK-0197</span><span class="ti">Upstream routing to project-os</span><span class="chip c-pend">backlog</span></li>
+            <li><span class="idm i-task">TASK-0198</span><span class="ti">Delivered status band</span><span class="chip c-pend">backlog</span></li>
+          </ul>
+        </div>
+      </section>
+      <section class="annot" data-pin="6">
+        <h3 class="m-h3">Activity in this phase</h3>
+        <ul class="feed">
+          <li style="padding:5px 8px"><span class="d">07-22</span><span class="ty i-task">task</span><span class="idm">TASK-0193</span><span class="ti">Sidecar: in-flight set from SNAPSHOT focus</span></li>
+          <li style="padding:5px 8px"><span class="d">07-22</span><span class="ty i-task">task</span><span class="idm">TASK-0196</span><span class="ti">Snapshot-driven routing hint</span></li>
+          <li style="padding:5px 8px"><span class="d">07-21</span><span class="ty i-feature">feature</span><span class="idm">FEAT-0038</span><span class="ti">Console progress rail ships</span></li>
+          <li style="padding:5px 8px"><span class="d">07-21</span><span class="ty i-issue">issue</span><span class="idm">ISS-0023</span><span class="ti">Palette surfaces disagree — filed from ../your-sudoku</span></li>
+          <li style="padding:5px 8px"><span class="d">07-20</span><span class="ty i-change">change</span><span class="idm">CHG-20260720</span><span class="ti">Progress rail; work tab renamed</span></li>
+        </ul>
+      </section>
+    </div>
+    <div class="m-right annot" data-pin="7">
+      <div class="ctx-card">
+        <div class="ch">In flight here</div>
+        <div class="kv"><span class="idm i-task">TASK-0196</span><span class="tt">Routing-hint hook</span><span class="chip c-act">doing</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Attention here</div>
+        <div class="kv"><span class="idm i-issue">ISS-0023</span><span class="tt">Palette parity</span><span class="chip c-tri">triage</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Verification here <span class="r num">3/4</span></div>
+        <div class="kv"><span class="idm i-test">TST-0010</span><span class="tt">Hook ingestion</span><span class="chip c-done">passing</span></div>
+        <div class="kv"><span class="idm i-test">TST-0012</span><span class="tt">Scoped stats</span><span class="chip c-done">passing</span></div>
+        <div class="kv"><span class="idm i-test">TST-0014</span><span class="tt">Dispatch ledger</span><span class="chip c-done">passing</span></div>
+        <div class="kv"><span class="idm i-test">TST-0019</span><span class="tt">Vocabulary parity</span><span class="chip c-pend">draft</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Decisions here</div>
+        <div class="kv"><span class="idm i-adr">ADR-0006</span><span class="tt">Retire the delivered band</span></div>
+        <p class="fx" style="margin:4px 0 0">via related: ISS-0023 · 6 project ADRs ▸</p>
+      </div>
+      <div class="disc"><span class="chev">▸</span>Linked · 16 features</div>
+      <div class="disc"><span class="chev">▸</span>Backlinks · 41 notes</div>
+    </div>
+    <div class="m-foot"><span>~overview/PHASE-007</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+  <ul class="legend">
+    <li><span class="n">1</span><span class="t"><b>The header answers "how far, what gates it."</b> Fraction, percentage, and a gates chip (4/6 exit criteria, anchoring to the section) join the crumb and note link — no extra row spent. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">2</span><span class="t"><b>A 40 px health band replaces the 180 px repeated hero.</b> Scoped counts with inline mix-bars in one line: features, tasks, tests, issues, plus in-flight/triage flags. All client-derivable from the scoped payload. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">3</span><span class="t"><b>Feature rows name the next action.</b> Every row gains a fraction; rows with live work get a second line — <i>doing TASK-0196 · next TASK-0197</i> — and rows containing an open issue flag it. Done features collapse to one line; a disclosure folds long-delivered ones entirely. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">4</span><span class="t"><b>Exit criteria get a summary and evidence.</b> 4/6 with a progress bar in the section head; criteria that mention a TST/TASK id sprout an evidence chip with that item's live status (regex over the criterion text; a durable link would be a small parser addition). <span class="src src-dv">client</span> <span class="src src-add">robust: sidecar</span></span></li>
+    <li><span class="n">5</span><span class="t"><b>"Remaining" spells out what the squares imply.</b> Every not-done item in scope, sorted doing → triage → draft → backlog. This is the screen's answer to "what would finish this phase?" — previously only available by hovering squares one at a time. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">6</span><span class="t"><b>Activity keeps its IDs.</b> Scoped rows regain the ID column (dropped in TASK-0173's 3-column template) at a tighter row height. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">7</span><span class="t"><b>The record column, phase-scoped.</b> In-flight and attention stay on top (they're transient — often empty); then this phase's acceptance tests with live statuses (the same TSTs the exit criteria cite), decisions whose <span class="mono">related:</span> links reach into the phase, and the raw link graph demoted to disclosures. <span class="src src-ok">payload ✓</span></span></li>
+  </ul>
+</section>
+
+<!-- ================= PLATE E — review desk ================= -->
+<section class="plate" id="plate-e">
+  <p class="plate-kicker pro">Plate E · Proposed</p>
+  <h2 class="plate-title">The review desk (~review) — where the agent's asks become decisions</h2>
+  <p class="plate-blurb"><b>Should this live on the project screen?</b> Split it by role. Reviewing a proposal set or stepping through a manual test is a <i>session</i> — it needs the whole stage, context, and actions — while the project screen's job is to be glanceable. So: the overview <b>announces</b> (typed rows in Waiting-on-you, a count badge on the mode icon) and a new virtual page <b>~review</b> — the same pattern as ~overview and ~agents — <b>acts</b>. Everything below runs on rails that already exist — and introduces <b>no new status anywhere</b>: ADRs, requirements, and tests queue on their existing intake states (<span class="mono">proposed</span> / <span class="mono">draft</span> / <span class="mono">ready</span>); feature/task sets queue as dispatch-ledger review requests (FEAT-0025) while their notes sit at plain <span class="mono">backlog</span>; accepting stamps the existing <span class="mono">reviewed_by / review_date / review_verdict</span> fields (the independent-review convention); session provenance comes from the hooks (FEAT-0019); write-back has its precedent in the interactive checkboxes (TASK-0074). Two views of the same screen: a proposal review, then a manual test run. One boundary the desk must keep: <b>it is a queue, and queues empty</b> — while the two founding asks (validate a feature/phase/release with acceptance tests; keep the project's design input visible) are <b>records, and records grow</b>. The queue is the doorbell; the durable homes are exhibited after the windows — acting on a queue row always writes into one of them.</p>
+
+  <div class="exhibit" style="margin:0 0 22px">
+    <div class="mock strip-mock">
+      <div class="tile" style="padding:10px 14px">
+        <h3 class="m-h3" style="margin-bottom:8px">Waiting on you · 6 <span style="float:right; font-weight:500; letter-spacing:0; text-transform:none">↳ how the overview announces the desk</span></h3>
+        <ul class="att-list">
+          <li><span class="kind k-decide">decide</span><span class="idm i-adr">ADR-0007</span><span class="ti">Approval gate for planning artifacts</span><span class="chip c-pend">proposed · 1d</span></li>
+          <li><span class="kind k-review">review</span><span class="idm i-feature">FEAT-0040</span><span class="ti">Overview redesign — 1 REQ · 5 tasks</span><span class="chip c-pend">for review · 2h</span></li>
+          <li><span class="kind k-answer">answer</span><span class="idm">claude</span><span class="ti">2 questions from session 7c31</span><span class="chip c-act">waiting · 40m</span></li>
+          <li><span class="kind k-run">run</span><span class="idm i-test">TST-0011</span><span class="ti">Live instrumentation — manual, 6 steps</span><span class="chip c-pend">ready · 8w</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="exh-cap">The overview's Waiting-on-you section (plate C) gains typed rows — decide · review · answer · run — each a deep link into ~review. The flows never happen on the overview; it just makes the queue impossible to miss.</p>
+  </div>
+
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb on annot" data-pin="2"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg><span class="mode-badge">5</span></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav">
+      <div class="scope-h">Queue · 5</div>
+      <div class="scope-h" style="margin-top:8px">Decisions · 1</div>
+      <div class="qrow"><span class="kind k-decide">decide</span><span class="tt">ADR-0007 Approval gate</span><span class="age">1d</span></div>
+      <div class="scope-h">Proposals · 1</div>
+      <div class="qrow cur"><span class="kind k-review">review</span><span class="tt">FEAT-0040 Overview redesign</span><span class="age">2h</span></div>
+      <div class="scope-h">Questions · 2</div>
+      <div class="qrow"><span class="kind k-answer">answer</span><span class="tt">Commits panel — everywhere?</span><span class="age">40m</span></div>
+      <div class="qrow"><span class="kind k-answer">answer</span><span class="tt">Record column — collapse opt?</span><span class="age">40m</span></div>
+      <div class="scope-h">Test runs · 1</div>
+      <div class="qrow"><span class="kind k-run">run</span><span class="tt">TST-0011 Live instrumentation</span><span class="age">8w</span></div>
+    </div>
+    <div class="m-stage">
+      <section class="annot" data-pin="3">
+        <div class="rev-head">
+          <span class="kind k-review">review</span>
+          <h2>FEAT-0040 · Overview redesign</h2>
+          <span class="chip c-pend">backlog</span>
+          <div class="btnrow"><button class="btn good" type="button">Accept set</button><button class="btn primary" type="button">Request changes</button><button class="btn bad" type="button">Reject</button></div>
+        </div>
+        <p class="rev-sub">scaffolded by <b>claude</b> · session 7c31 · 2h ago · review requested via the dispatch ledger</p>
+      </section>
+      <section class="tile annot" data-pin="5" style="display:flex; flex-direction:column; gap:8px">
+        <p style="margin:0; font-size:13px; color:var(--m-muted)">Overview surfaces rebuilt around state-before-history: quiet-first focus band, mix-bar stat tiles, phase accordion with a Completed band, Waiting-on-you, full-width activity + commits, record column.</p>
+        <div class="attach">▣ design dossier — cockpit-overview-redesign ↗<span style="color:var(--m-faint); font-size:11px">artifact · 5 plates</span></div>
+        <div class="impact annot" data-pin="4">Impact analysis: touches FEAT-0017 / FEAT-0023 surfaces · no REQ conflicts found · introduces no status vocabulary (ADR-0006 guard unaffected) · schema bump required (FEAT-0008 rule)</div>
+      </section>
+      <section class="tile" style="padding:8px 12px">
+        <h3 class="m-h3" style="margin-bottom:4px">Proposed set · 6 items</h3>
+        <div class="setrow"><span class="cb on">✓</span><span class="idm i-requirement">REQ-0022</span><span class="ti">Overview surfaces state, not history</span><span class="chip c-pend">backlog</span></div>
+        <div class="setrow"><span class="cb on">✓</span><span class="idm i-task">TASK-0199</span><span class="ti">Sidecar payload additions — focus, severity, commits endpoint</span><span class="chip c-pend">backlog</span></div>
+        <div class="setrow"><span class="cb on">✓</span><span class="idm i-task">TASK-0200</span><span class="ti">Overview stage rework — tiles, accordion, waiting list</span><span class="chip c-pend">backlog</span></div>
+        <div class="setrow"><span class="cb on">✓</span><span class="idm i-task">TASK-0201</span><span class="ti">Phase detail rework — health band, feature rows, remaining</span><span class="chip c-pend">backlog</span></div>
+        <div class="setrow"><span class="cb">✓</span><span class="idm i-task">TASK-0202</span><span class="ti">Record column — decisions, verification, library</span><span class="chip c-pend">backlog</span></div>
+        <div class="setrow"><span class="cb on">✓</span><span class="idm i-task">TASK-0203</span><span class="ti">Quiet/live state handling + empty states</span><span class="chip c-pend">backlog</span></div>
+      </section>
+      <section class="annot" data-pin="6">
+        <div class="compose">Optional note back to the agent — "TASK-0202: hold the record column until we've decided option A vs B…" · Request changes sends this and the unticked rows to the session via the dispatch queue</div>
+      </section>
+    </div>
+    <div class="m-right annot" data-pin="7">
+      <div class="ctx-card">
+        <div class="ch">Origin</div>
+        <div class="kv"><span class="idm">session</span><span class="tt">claude · 7c31 · live</span></div>
+        <div class="kv"><span class="idm">prompt</span><span class="tt">"implement the overview redesign"</span></div>
+        <div class="kv"><span class="idm">ledger</span><span class="tt">dispatch #41 · 2h ago</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">Touches</div>
+        <div class="kv"><span class="idm i-feature">FEAT-0017</span><span class="tt">Overview dashboard</span><span class="chip c-done">done</span></div>
+        <div class="kv"><span class="idm i-feature">FEAT-0023</span><span class="tt">Overview scopes</span><span class="chip c-done">done</span></div>
+        <div class="kv"><span class="idm i-adr">ADR-0006</span><span class="tt">Delivered band retired</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">On accept</div>
+        <p class="fx" style="margin:0">Stamps <span class="idm">reviewed_by · review_date · verdict</span> into each note and clears the ledger request; Reject flips the set to <span class="idm">cancelled</span>. No statuses invented.</p>
+      </div>
+    </div>
+    <div class="m-foot"><span>~review/FEAT-0040</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+
+  <p class="plate-blurb" style="margin:26px 0 14px"><b>The same screen, running a manual test.</b> TST-0011 is real and has sat at <span class="mono">ready</span> — defined, never executed — for eight weeks. The runner turns the note's Steps section into a stepper; results write back into the note.</p>
+  <div class="window"><div class="mock">
+    <div class="m-top">
+      <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+      <div class="m-modes">
+        <span class="mb"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 7V4M8.5 9 5.5 6M15.5 9l3-3"/></svg></span>
+        <span class="mb on"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg><span class="mode-badge">5</span></span>
+        <span class="mb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/></svg></span>
+      </div>
+      <div class="m-top-right">⌘P · panels</div>
+    </div>
+    <div class="m-rail">
+      <span class="ws-sq on">C<span class="ws-dot"></span></span>
+      <span class="ws-sq">Y</span>
+      <span class="ws-sq">S</span>
+    </div>
+    <div class="m-nav">
+      <div class="scope-h">Queue · 5</div>
+      <div class="scope-h" style="margin-top:8px">Decisions · 1</div>
+      <div class="qrow"><span class="kind k-decide">decide</span><span class="tt">ADR-0007 Approval gate</span><span class="age">1d</span></div>
+      <div class="scope-h">Proposals · 1</div>
+      <div class="qrow"><span class="kind k-review">review</span><span class="tt">FEAT-0040 Overview redesign</span><span class="age">2h</span></div>
+      <div class="scope-h">Questions · 2</div>
+      <div class="qrow"><span class="kind k-answer">answer</span><span class="tt">Commits panel — everywhere?</span><span class="age">40m</span></div>
+      <div class="qrow"><span class="kind k-answer">answer</span><span class="tt">Record column — collapse opt?</span><span class="age">40m</span></div>
+      <div class="scope-h">Test runs · 1</div>
+      <div class="qrow cur"><span class="kind k-run">run</span><span class="tt">TST-0011 Live instrumentation</span><span class="age">8w</span></div>
+    </div>
+    <div class="m-stage">
+      <section class="annot" data-pin="8">
+        <div class="rev-head">
+          <span class="kind k-run">run</span>
+          <h2>TST-0011 · Live session instrumentation</h2>
+          <span class="chip c-pend">ready</span>
+          <div class="btnrow"><span class="rev-sub" style="margin:0">step 4 of 6</span><button class="btn" type="button">Abort run</button></div>
+        </div>
+        <p class="rev-sub">manual · verifies <span class="idm i-feature">FEAT-0019</span> hook ingestion · <span class="idm i-requirement">REQ-0021</span> live progress · first execution</p>
+        <div class="prog"><i style="width:58%"></i></div>
+      </section>
+      <section>
+        <div class="step done"><span class="sno">✓</span><span>Launch the desktop app with this workspace open</span><span class="ev">ok</span></div>
+        <div class="step done"><span class="sno">✓</span><span>Start claude in the embedded console</span><span class="ev">ok</span></div>
+        <div class="step done"><span class="sno">✓</span><span>Send a prompt — the strip shows busy within 5 s</span><span class="ev">2 s</span></div>
+        <div class="step-cur annot" data-pin="9">
+          <div class="st-title"><span class="sno" style="border-color:var(--m-accent); color:var(--m-accent)">4</span>Trigger an idle prompt — the agent waits for input</div>
+          <p class="exp">Expected: the attention panel shows a <b>waiting</b> row for this workspace; the rail dot pulses amber (idle_prompt severity per TASK-0156).</p>
+          <div class="btnrow"><button class="btn good" type="button">Pass</button><button class="btn bad" type="button">Fail</button><button class="btn" type="button">Skip</button><span class="evid">evidence — what you observed…</span></div>
+        </div>
+        <div class="step"><span class="sno">5</span><span>Focus the workspace — the pulse calms to static (seen-ack, TASK-0157)</span></div>
+        <div class="step"><span class="sno">6</span><span>Wait 10 min — the attention row must not decay (REQ-0018)</span></div>
+      </section>
+      <section class="annot" data-pin="10">
+        <div class="compose">On completion the run stamps <span class="idm">status</span> + <span class="idm">last_run</span> into the note and appends the step log under <span class="idm">## Runs</span>. A failing step drafts an ISS with the step, expected/observed, and evidence — straight into issue intake.</div>
+      </section>
+    </div>
+    <div class="m-right">
+      <div class="ctx-card">
+        <div class="ch">Note</div>
+        <div class="kv"><span class="idm">type</span><span class="tt">test · manual</span></div>
+        <div class="kv"><span class="idm">feature</span><span class="tt">agent-hooks / FEAT-0019</span></div>
+        <div class="kv"><span class="idm">created</span><span class="tt">2026-06-01 · never executed</span></div>
+      </div>
+      <div class="ctx-card">
+        <div class="ch">On fail</div>
+        <p class="fx" style="margin:0">Auto-draft ISS with step + evidence; run log preserved in the note either way.</p>
+      </div>
+      <div class="disc"><span class="chev">▸</span>Open note ↗</div>
+    </div>
+    <div class="m-foot"><span>~review/TST-0011/run</span><span class="spring"></span><span class="fdot"></span><span>sidecar ready · light</span></div>
+  </div></div>
+
+  <div class="exhibit">
+    <div class="mock strip-mock">
+      <div class="tile" style="padding:10px 14px">
+        <h3 class="m-h3" style="margin-bottom:8px">Verification — PHASE-007 · Agent Instrumentation <span style="float:right; font-weight:500; letter-spacing:0; text-transform:none">durable · lives on the scope's page</span></h3>
+        <ul class="att-list">
+          <li><span class="idm i-test">TST-0010</span><span class="ti">Hook ingestion</span><span class="idm" style="margin-left:auto; flex:none">auto · ran 07-12</span><span class="chip c-done">passing</span></li>
+          <li><span class="idm i-test">TST-0012</span><span class="ti">Scoped stats</span><span class="idm" style="margin-left:auto; flex:none">auto · ran 07-10</span><span class="chip c-done">passing</span></li>
+          <li><span class="idm i-test">TST-0019</span><span class="ti">Status vocabulary parity</span><span class="idm" style="margin-left:auto; flex:none">auto · ran 07-24</span><span class="chip c-done">passing</span></li>
+          <li style="background:var(--m-accent-soft); border-radius:4px"><span class="idm i-test">TST-0011</span><span class="ti">Live instrumentation — never executed</span><span class="btnrow" style="margin-left:auto; flex:none"><span class="idm">manual · 6 steps</span><button class="btn primary" type="button">Run ▸</button></span><span class="chip c-pend">ready</span></li>
+        </ul>
+        <p class="rev-sub" style="margin-top:8px">Validate this phase ▸ runs the 1 pending manual test · staleness: oldest run 14d · runs persist in each note's <span class="idm">## Runs</span></p>
+      </div>
+    </div>
+    <p class="exh-cap"><b>Founding ask 1 — validation — lives on the scope, not in the queue.</b> Every feature note, phase page, and (once REL notes exist) release gets this panel: its acceptance tests, their statuses, last run, staleness, and Run buttons that launch the runner. The queue's "run" row is only the reminder; this record is what persists after the queue empties. It extends FEAT-0018's verification-health surface rather than duplicating it.</p>
+  </div>
+
+  <div class="exhibit">
+    <div class="mock strip-mock">
+      <div class="tile" style="padding:10px 14px">
+        <h3 class="m-h3" style="margin-bottom:8px">Design input · FEAT-0040 · Overview rework <span style="float:right; font-weight:500; letter-spacing:0; text-transform:none">durable · strip atop the note render + Library group</span></h3>
+        <div class="attach" style="padding:4px 0">▣ Cockpit overview redesign — dossier · 5 plates · 2026-07-26 <span style="color:var(--m-faint); font-size:11px">docs/references/design/ · reference note · linked via <span class="idm">design:</span></span><span style="margin-left:auto" class="idm">open ↗</span></div>
+        <div class="attach" style="padding:4px 0; color:var(--m-muted)">▣ States audit — corpus snapshot backing the quiet-first decision <span style="margin-left:auto" class="idm">open ↗</span></div>
+      </div>
+    </div>
+    <p class="exh-cap"><b>Founding ask 2 — design input — becomes part of the record, not a chat artifact.</b> Dossiers are committed into the repo and wrapped in reference notes (an existing type — no new machinery), linked from the FEAT/phase frontmatter. They surface as this strip on the note render, a "Design" group in Library, and the record column's Library card — so the input that shaped a feature stays one click from the feature, forever. The convention upstreams to the project-os template, so every downstream repo gets it.</p>
+  </div>
+
+  <ul class="legend">
+    <li><span class="n">1</span><span class="t"><b>Announce on the overview, act on ~review.</b> Waiting-on-you gains typed rows (decide · review · answer · run) that deep-link into the desk; the flows themselves never crowd the project screen. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">2</span><span class="t"><b>A mode with a badge.</b> ~review joins the virtual-page family (~overview, ~agents, ~session) with a top-bar icon carrying the queue count — the one place a number on chrome is warranted, because it means "a human is the blocker." <span class="src src-dv">client</span></span></li>
+    <li><span class="n">3</span><span class="t"><b>Proposal sets, not lone notes — and no new status.</b> A scaffolded FEAT arrives with its REQ and TASKs as one reviewable set — per-item ticks, then Accept set / Request changes / Reject. The set queues as a dispatch-ledger review request while its notes sit at <span class="mono">backlog</span>; Accept stamps the existing <span class="mono">reviewed_by / review_date / review_verdict</span> fields and clears the request; Reject uses <span class="mono">cancelled</span> (write-back precedent: TASK-0074's checkboxes). <span class="src src-add">sidecar +</span></span></li>
+    <li><span class="n">4</span><span class="t"><b>Impact and provenance are part of the pitch.</b> The impact-analysis output (already a lifecycle step) and the ADR-0006-style guards render inside the proposal, so the reviewer sees conflicts before deciding. <span class="src src-dv">client + skill output</span></span></li>
+    <li><span class="n">5</span><span class="t"><b>Showcase, not just status.</b> Proposals carry attachments — design dossiers, artifacts, screenshots — so "review this design" happens where the decision is recorded. <span class="src src-ok">payload ✓ (links in frontmatter)</span></span></li>
+    <li><span class="n">6</span><span class="t"><b>Comments round-trip through the dispatch queue.</b> Request-changes sends the note + unticked rows to the originating session (or a fresh one) as a prompt — FEAT-0025's queue and ledger already do exactly this shape of work. Questions are the same mechanism in reverse: the agent files an <i>answer</i> request; your reply dispatches back. <span class="src src-ok">runtime ✓</span> <span class="src src-add">question verb +</span></span></li>
+    <li><span class="n">7</span><span class="t"><b>Context pane earns its keep here.</b> Origin (session, prompt, ledger entry), what the proposal touches, and what accept will do — the three things a reviewer checks before clicking. <span class="src src-ok">payload ✓</span></span></li>
+    <li><span class="n">8</span><span class="t"><b>The runner executes the note.</b> Steps parse from the TST note's Steps section (same trick as the exit-criteria parser); the header shows what the test verifies. TST-0011 — <span class="mono">ready</span> for 8 weeks — is exactly the backlog this surface exists to drain. <span class="src src-add">sidecar +</span></span></li>
+    <li><span class="n">9</span><span class="t"><b>One step at a time, with expected results.</b> Pass / Fail / Skip plus free-text evidence per step; the current step is the only emphasized element on screen. <span class="src src-dv">client</span></span></li>
+    <li><span class="n">10</span><span class="t"><b>Runs are records.</b> Completion stamps <span class="mono">status</span> + <span class="mono">last_run</span> (the manual counterpart of ADR-0010's execution-stamping) and appends the log to the note; failures draft an ISS through issue intake. Close-out's "tests must be passing" gate finally has a first-class way to become true. <span class="src src-add">sidecar +</span></span></li>
+  </ul>
+</section>
+
+<!-- ================= STATES AUDIT ================= -->
+<section class="plate" id="states">
+  <h2>States — a reality audit</h2>
+  <p>v1 assumed live states for effect. This pass audits every status the design leans on against the actual corpus (frontmatter of every note, 2026-07-26) and against <i>who writes it, when</i>. The finding that shapes the whole design: this repo's work is <b>bursty</b> — an agent session sets <span class="mono">doing</span>, ships, and flips everything terminal at close-out, so the overview is mostly viewed in the quiet between sessions. The durable states are the human-shaped ones: things waiting on review, decisions, execution, or closure.</p>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>State</th><th>Written by</th><th>In this repo, today</th><th>Design response</th></tr></thead>
+    <tbody>
+      <tr><td><code>doing</code> / in-progress</td><td>the working agent, at preflight</td><td>0 — set and cleared within a session</td><td>Bursty. Quiet-first design; the live band is the exception state (see the plate C exhibit).</td></tr>
+      <tr><td>SNAPSHOT <code>focus:</code></td><td>preflight + close-out</td><td>always present; currently all-terminal, prose 2d stale (predates ADR-0006)</td><td>Durable but ages. Show it with its date; resting state reads "last completed."</td></tr>
+      <tr><td><code>triage</code> (issue)</td><td>issue intake</td><td>0 — occurs, then grooming clears it</td><td>Show when present; never assume.</td></tr>
+      <tr><td><code>open</code> (issue)</td><td>intake / triage</td><td>1 — ISS-0024</td><td>Durable. Genuine Waiting-on-you row.</td></tr>
+      <tr><td><code>in-review</code> (feature)</td><td>close-out review gate</td><td>1 — FEAT-0018, for ~6 weeks</td><td>The most common human-shaped stall. Attention row, with age.</td></tr>
+      <tr><td><code>deferred</code> / parked</td><td>scope decisions, with <code>blocked_reason</code></td><td>2 — TASK-0065, TASK-0045</td><td>Durable, low urgency. Attention row.</td></tr>
+      <tr><td><code>failing</code> (test)</td><td>today: hand-written; ADR-0010 stamps it from execution</td><td>0 — 18 of 19 passing</td><td>Keep the slot, expect empty. ADR-0010 is what makes it reachable and therefore worth designing for.</td></tr>
+      <tr><td><code>ready</code> (test)</td><td>test authoring</td><td>1 — TST-0011, defined but never executed</td><td>Durable ("not started, not in flight" — ADR-0006). Verification card row.</td></tr>
+      <tr><td><code>open</code> (risk)</td><td>risk scan</td><td>4 of 4 — the most durable state in the corpus</td><td>Always-on material: record column + one Waiting-on-you row for the newest.</td></tr>
+      <tr><td>phase done-but-unclosed</td><td>nobody — it's the gap between last task and close-out</td><td>1 — PHASE-007 at 61/61, gates 5/6</td><td>A real situation no current surface names. The phase row and Waiting-on-you both say "awaiting close-out."</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>The Delivered lesson.</b> v1 cited the ISS-0023 "Delivered" status band as vocabulary this design could adopt. ADR-0006 retired that band one day later — its members were written zero times across 5,890 status writes fleet-wide, and <span class="mono">test_delivered_band_is_retired</span> now guards against reintroduction. The phases group is therefore renamed <b>Completed</b> and is a pure UI grouping of done phases — a view over statuses, never a new status. The episode is also the best argument for this audit: surfaces must follow what the corpus writes, not what a design wishes it wrote.</p>
+</section>
+
+<!-- ================= NOTES ================= -->
+<section class="plate" id="notes">
+  <h2>Notes &amp; data</h2>
+  <p>The redesign moves no idiom the cockpit hasn't already established — squares, chips, the muted REQ-0012 palette, uppercase section labels — it reweights them. Two principles did all the work: <b>state before history</b> (focus, attention, and in-flight items outrank charts of the past) and <b>one fact, one place</b> (the donut section died because the mix-bars in the tiles state the same numbers in situ).</p>
+
+  <h3>The context pane — three honest options</h3>
+  <p>Today the pane has a job on note screens (links/backlinks) but not on overview screens. v1 proposed a "meanwhile" column of live state; the states audit undermined that — live state is bursty, so that column would usually restate "idle." Three options that survive the audit:</p>
+  <p><b>Option A — the record column</b> <i>(recommended; shown in plates C and D).</i> Decisions, Verification, Library — plus phase-scoped acceptance tests and decisions on drill-down. Always populated (6 ADRs, 19 tests, references exist on every real project), never stale by construction, and it answers "where are the ADRs and acceptance tests" — which no cockpit surface currently does: today ADRs are only reachable by browsing the Library tree.</p>
+  <p><b>Option B — collapse it by default on overview screens.</b> The stage takes the 280 px; the panel-right toggle restores it. Cheapest to build, and honest: if the column has no job, width is the better spend. Defensible combined with A-as-opt-in.</p>
+  <p><b>Option C — move the commits panel there.</b> Keeps the stage one section shorter, but commit rows want horizontal room for their item chips; at 280 px they degrade to two lines per commit. Weakest option — commits earn their full-width slot in the stage.</p>
+
+  <h3>The review desk — one governance decision first</h3>
+  <p>Plate E's surfaces are mostly plumbing that exists (statuses, dispatch, write-back). What does <i>not</i> exist is the policy: today LIFECYCLE lets preflight create planning artifacts and proceed straight to implementation. Making acceptance a gate — dispatch refuses a set without an accepting <span class="mono">review_verdict</span> — is a lifecycle change that deserves its own ADR, which is why the mock's queue contains "ADR-0007 · Approval gate for planning artifacts" as its first item. (Per the owner's constraint the gate predicate is the review fields, never a status: statuses record lifecycle, the ledger records the queue, the review fields record the verdict.) Two defensible shapes: <b>advisory</b> (everything reviewable, nothing blocked — the desk is a lens) or <b>gated by type</b> (FEAT / REQ / ADR require acceptance; TASK breakdowns under an accepted FEAT auto-accept). Recommend starting advisory, measuring how often review changes the plan, then deciding — the same evidence-first lesson ADR-0006 taught.</p>
+
+  <h3>Queue vs record — keeping the founding asks safe</h3>
+  <p>A structural check the desk's first draft blurred: the proposal/question queue is <b>transient</b> — its whole purpose is to empty — while the two asks that started this feature are <b>durable</b>. Mapping each to its home, so nothing gets lost when a queue row is acted on:</p>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Founding ask</th><th>Durable home (grows)</th><th>Transient trigger (empties)</th></tr></thead>
+    <tbody>
+      <tr><td>Validate a feature / phase / release with acceptance tests</td><td>The Verification panel on that scope's own page — tests, statuses, last run, staleness, Run buttons; results persist in each TST note's <code>## Runs</code>; releases drive the existing release-verification playbook; extends FEAT-0018, doesn't duplicate it</td><td>"run" rows in the queue; the Waiting-on-you row for a never-executed test</td></tr>
+      <tr><td>Show the design (and other) input for the project</td><td>Dossiers committed in-repo + reference notes (existing type), <code>design:</code> links on FEAT/phase notes, attachment strip on render, Library "Design" group, record column</td><td>"review"/"decide" rows while a proposal or ADR is pending — accepting one <i>writes into</i> the design record</td></tr>
+    </tbody>
+  </table></div>
+  <p>Both conventions are project-agnostic — the panel reads statuses and links every project-os repo already has, and the design-reference convention is a docs-layout rule — so both upstream to the project-os template and reach the downstream repos with a sync.</p>
+
+  <h3>Retiring the Active and Recent modes</h3>
+  <p>With Review in the strip, the mode bar consolidates from seven to six. <b>Active</b> (FEAT-0036) duplicates what the redesigned overview now carries ambiently — the focus band and phase rows show in-flight work, the progress rail and strip work tab show it live — and the states audit found the mode empty outside sessions anyway. <b>Recent</b> is superseded by the commits panel (git-anchored, item-linked — strictly more truthful than a recently-touched list) with ⌘P and history back/forward covering the jump-back use. Caveats, so the docs stay honest: this is a <i>button</i> retirement, not an API one — <span class="mono">nav?mode=active</span> still feeds the phase-less Now board and the strip work tab, and <span class="mono">mode=recent</span> stays server-side per the FEAT-0008 stability rule; phase-less projects' default mode falls back from Active to Overview (whose Now board shows the same data); and FEAT-0036's Active-mode UI is partially superseded, which its notes should record.</p>
+
+  <h3>Where the data comes from</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Surface</th><th>Data</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Requirements tile</td><td><code>hero.requirements</code> — computed in <code>stats_payload</code>, never rendered by <code>buildHero</code></td><td><span class="src src-ok">payload ✓</span> render only</td></tr>
+      <tr><td>Mix-bars</td><td><code>status_mix</code> per type, already bucketed by <code>statuses.py</code> families</td><td><span class="src src-ok">payload ✓</span></td></tr>
+      <tr><td>Phase liveness, fractions, in-flight/attention meta, Remaining list, next-action line</td><td><code>phases[].features[].children[]</code> — each child already ships id · title · status · bucket · type</td><td><span class="src src-dv">client</span> derive + sort</td></tr>
+      <tr><td>Completed band</td><td>UI grouping of phases whose items are all done — deliberately <i>not</i> a status vocabulary (ADR-0006 retired the <code>delivered</code> band; <code>test_delivered_band_is_retired</code> would catch a re-introduction)</td><td><span class="src src-dv">client</span></td></tr>
+      <tr><td>Focus band</td><td>SNAPSHOT <code>focus:</code> block (task / feature / phase / issue / note) + the note's date for the staleness label</td><td><span class="src src-add">sidecar +</span> parse in <code>stats_payload</code>, ~20 lines, schema bump per FEAT-0008 rule</td></tr>
+      <tr><td>Commits panel</td><td><code>git log --name-only</code> joined to the index by <code>rel_path</code> — items per commit, completions marked by status-diffing adjacent revisions; commits touching no notes flagged "no doc items" (FEAT-0022's guardrail, per commit)</td><td><span class="src src-add">sidecar +</span> new <code>/api/cockpit/commits</code>, ~40 lines</td></tr>
+      <tr><td>Record column (Decisions / Verification / Library)</td><td><code>notes_by_type("adr" / "test" / "reference")</code> — already indexed; waiver + validator fields arrive with FEAT-0018</td><td><span class="src src-ok">payload ✓</span></td></tr>
+      <tr><td>Phase accordion</td><td>expand/collapse is pure renderer state; expanded content is the same <code>phases[]</code> payload</td><td><span class="src src-dv">client</span></td></tr>
+      <tr><td>Review queue (~review)</td><td>ADR <code>proposed</code>, REQ <code>draft</code>, TST <code>ready</code> straight from the index; feature/task sets from dispatch-ledger review requests — no vocabulary change anywhere (owner constraint: no new states)</td><td><span class="src src-ok">payload ✓</span> + <span class="src src-ok">runtime ✓</span></td></tr>
+      <tr><td>Accept / Reject / set actions</td><td>review write-back endpoint — stamps <code>reviewed_by / review_date / review_verdict</code> (the independent-review convention, ADR-0009-clean); reject → <code>cancelled</code> guarded by <code>statuses.py</code>; loopback-only per the terminal-endpoint precedent (RISK-0001)</td><td><span class="src src-add">sidecar +</span></td></tr>
+      <tr><td>Questions + request-changes round-trip</td><td>dispatch queue + ledger (FEAT-0025) with a <code>question</code>/<code>revise</code> verb; the answer dispatches back to the session as a prompt</td><td><span class="src src-ok">runtime ✓</span> + <span class="src src-add">verb +</span></td></tr>
+      <tr><td>Manual test runner</td><td>Steps parsed from the TST note (exit-criteria parser pattern); completion stamps <code>status</code> + <code>last_run</code> and appends <code>## Runs</code>; fail drafts an ISS via issue intake</td><td><span class="src src-add">sidecar +</span></td></tr>
+      <tr><td>Attention severity ordering</td><td>issue <code>severity:</code> frontmatter — not in any slim payload today</td><td><span class="src src-add">sidecar +</span> one field in <code>_slim</code></td></tr>
+      <tr><td>Weekly deltas on tiles</td><td>per-type created/updated dates — approximate from <code>activity.recent</code>, exact needs a per-type weekly count</td><td><span class="src src-dv">client ≈</span> / <span class="src src-add">exact +</span></td></tr>
+      <tr><td>Exit-criteria evidence chips</td><td>ID regex over criterion text, status join client-side; durable form = parse in <code>_exit_criteria_from_body</code></td><td><span class="src src-dv">client</span> → <span class="src src-add">sidecar</span></td></tr>
+      <tr><td>Sparkbar, feeds, gates fraction</td><td><code>activity.weekly</code> / <code>activity.recent</code> / <code>exit_criteria</code></td><td><span class="src src-ok">payload ✓</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Real-estate accounting (900 px window, ~620 px stage)</h3>
+  <div class="tbl-scroll"><table>
+    <thead><tr><th>Screen</th><th>Above the fold today</th><th>Above the fold proposed</th></tr></thead>
+    <tbody>
+      <tr><td>Project overview</td><td>5 counts + 1 title; ~6 of 8 phase strips; empty right pane. Feed and charts below the fold.</td><td>Focus chain · 6 tiles × (count + mix + delta) · live phases with meta · Completed summary · full Waiting-on-you list · record column ≈ <b>4–5× the facts above the fold</b>; the sparkbar straddles it and commits sit below — history is the only thing scrolled.</td></tr>
+      <tr><td>Phase detail</td><td>Header + repeated hero + ~5 feature rows of anonymous squares.</td><td>Header with % and gates · health band · all feature rows with fractions and next actions · exit criteria with evidence · remaining-work list — <i>the entire phase story</i>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Implementation map (if adopted)</h3>
+  <p><b>Renderer</b> (<code>renderer.ts</code>): <code>buildHero</code> → tile strip with mix-bars; <code>buildPhaseSection</code> → liveness sort + accordion + Completed band; <code>buildBottomGrid</code> → Waiting-on-you + full-width activity + commits (donuts and the note-feed retired); <code>renderOverviewRightPane</code> → record column, both scopes; <code>renderScopedOverview</code> → health band + two-line feature rows + remaining list. <b>Sidecar</b> (<code>cockpit.py</code>): <code>focus</code> block (with note date) and issue <code>severity</code> in <code>stats_payload</code>; new <code>/api/cockpit/commits</code> from <code>git log --name-only</code> joined to the index — all additive, <code>SCHEMA_VERSION</code> bump per the FEAT-0008 rule. CSS stays inside existing tokens; no new colors beyond the four mix-bar steps derived from them, and no new status vocabulary (ADR-0006's guard stays green).</p>
+  <p>Per the project-os lifecycle this lands as two FEATs (scaffold + tasks via planner preflight). <b>Overview rework</b>: sidecar payload additions (focus, severity, commits) · overview stage · phase detail · record column · quiet/live state handling. <b>Review desk</b>: the gate ADR first · ~review virtual page (queue, proposal set, runner) · <code>set-status</code> endpoint · question/revise dispatch verbs · runner write-back. The desk depends on nothing in the overview rework except the Waiting-on-you rows, so they can ship independently.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  // identity squares from data-sqs="type:d|a|o|t|x,…"
+  var BUCKET = { d:'d', a:'', o:'', t:'', x:'' };
+  document.querySelectorAll('[data-sqs]').forEach(function (g) {
+    var items = g.getAttribute('data-sqs').split(',');
+    items.forEach(function (it, i) {
+      var p = it.split(':'), type = p[0], st = p[1] || 'o';
+      var s = document.createElement('span');
+      s.className = 'sq i-' + type + (type === 'feature' ? ' f' : '') + (st === 'd' ? ' d' : '');
+      if (st === 'a') { s.style.color = 'var(--m-act)'; s.style.background = 'color-mix(in srgb, currentColor 35%, transparent)'; }
+      if (st === 't') { s.style.color = 'var(--m-med)'; }
+      if (st === 'x') { s.style.color = 'var(--m-crit)'; }
+      s.title = type + (st === 'd' ? ' · done' : st === 'a' ? ' · doing' : st === 't' ? ' · triage' : st === 'x' ? ' · failing' : ' · open');
+      g.appendChild(s);
+    });
+  });
+
+  // mockup theme toggle
+  var main = document.getElementById('plates');
+  var bl = document.getElementById('mt-light'), bd = document.getElementById('mt-dark');
+  function setMock(dark) {
+    main.classList.toggle('mocks-dark', dark);
+    bl.classList.toggle('on', !dark);
+    bd.classList.toggle('on', dark);
+  }
+  bl.addEventListener('click', function () { setMock(false); });
+  bd.addEventListener('click', function () { setMock(true); });
+
+  // legend hover → highlight pinned region
+  document.querySelectorAll('.legend li').forEach(function (li) {
+    var n = li.querySelector('.n'); if (!n) return;
+    var plate = li.closest('section.plate');
+    function tgt() { return plate.querySelector('.annot[data-pin="' + n.textContent.trim() + '"]'); }
+    li.addEventListener('mouseenter', function () { var t = tgt(); if (t) t.classList.add('hl'); });
+    li.addEventListener('mouseleave', function () { var t = tgt(); if (t) t.classList.remove('hl'); });
+  });
+
+  // scrollspy
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var secs = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  if ('IntersectionObserver' in window) {
+    var cur = 0;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) {
+          cur = secs.indexOf(e.target);
+          links.forEach(function (a, i) { a.classList.toggle('on', i === cur); });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    secs.forEach(function (s) { if (s) io.observe(s); });
+  }
+})();
+</script>

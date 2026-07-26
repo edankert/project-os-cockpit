@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0009
-aliases: ["PLAN-FEAT-0009"]
 title: "Plan: Native shell layout (chrome polish)"
 status: active
 owner: user:edwin

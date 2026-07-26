@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0013
-aliases: ["PLAN-FEAT-0013"]
 title: "Plan: Agent state signal"
 status: active
 owner: user:edwin

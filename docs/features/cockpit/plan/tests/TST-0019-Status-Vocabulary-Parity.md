@@ -11,6 +11,8 @@ updated: 2026-07-24
 source: ["[[TASK-0198-Delivered-Status-Band]]"]
 verifies: ["[[TASK-0198-Delivered-Status-Band]]", "[[ISS-0023-Implemented-Status-Band-Drift]]", "[[REQ-0012-Visual-Style]]"]
 path: "tests/test_status_vocabulary.py"
+last_verified: 2026-07-24
+
 ---
 
 # TST-0019 — Status vocabulary parity

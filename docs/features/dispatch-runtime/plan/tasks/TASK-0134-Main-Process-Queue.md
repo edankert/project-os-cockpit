@@ -15,6 +15,8 @@ depends: []
 blocks: []
 related: []
 tests: ["[[TST-0011]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Main-process dispatch queue

@@ -1,9 +1,7 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0015
-aliases: ["PLAN-FEAT-0015"]
 title: "Plan — FEAT-0015 cockpit IA v2"
-status: doing
+status: done
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25

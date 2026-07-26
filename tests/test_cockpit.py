@@ -666,3 +666,23 @@ def test_context_payload_resolves_by_path(index: Index, docs_root: Path) -> None
     payload = context_payload(index, "/docs/FEAT-0001-Alpha.md")
     assert payload["active"] is not None
     assert payload["active"]["id"] == "FEAT-0001"
+
+
+def test_retired_ui_modes_still_serve(index: Index) -> None:
+    """`active` and `recent` lost their buttons, not their endpoints.
+
+    TASK-0204 retired the two mode buttons but kept the server modes:
+    `mode=active` still feeds the phase-less Now board and the session
+    strip's work tab, and FEAT-0008's stability rule keeps `recent`
+    answering for older bundles. Independent review found the DoD
+    claimed a wire test that did not exist — this is it.
+    """
+    for mode in ("active", "recent"):
+        payload = nav_payload(index, mode=mode)
+        assert payload["mode"] == mode
+        assert payload["schema_version"] == SCHEMA_VERSION
+        assert isinstance(payload["groups"], list)
+        for group in payload["groups"]:
+            assert "label" in group and "items" in group
+            for item in group["items"]:
+                assert "type" in item, f"mode={mode} item missing 'type'"

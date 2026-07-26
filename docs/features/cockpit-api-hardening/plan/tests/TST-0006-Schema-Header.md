@@ -11,6 +11,8 @@ updated: 2026-05-25
 source: ["[[TASK-0068]]"]
 verifies: ["[[TASK-0068]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_schema_header.py"
+last_verified: 2026-05-25
+
 ---
 
 # TST-0006 — `X-Cockpit-Schema` header coverage

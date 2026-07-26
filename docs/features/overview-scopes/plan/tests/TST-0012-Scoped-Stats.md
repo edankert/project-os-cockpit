@@ -14,6 +14,8 @@ level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_stats_scope.py"
 features: ["[[FEAT-0023-Overview-Scopes]]"]
 tasks: ["[[TASK-0128]]"]
+last_verified: 2026-07-06
+
 ---
 
 # TST-0012 — Scoped stats

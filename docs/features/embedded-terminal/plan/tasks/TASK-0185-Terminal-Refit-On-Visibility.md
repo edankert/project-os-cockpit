@@ -17,6 +17,8 @@ blocks: []
 related: []
 tests: []
 verification_waiver: "Renderer-only fit/observer wiring; xterm layout/scroll behaviour has no automated renderer unit-test surface. Verified by tsc build, code trace, and a live CDP smoke check that the terminal re-fits on show (dimensions identical and un-clipped after a view-switch reshow); independent review CLOSE on the code."
+waiver_expires: 2026-10-23
+
 ---
 
 # TASK-0185 — re-fit the terminal on any container size change

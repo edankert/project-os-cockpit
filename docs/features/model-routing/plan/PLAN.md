@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0039
-aliases: ["PLAN-FEAT-0039"]
 title: "Plan — model routing subagents + routing-hint hook"
 status: done
 owner: unassigned

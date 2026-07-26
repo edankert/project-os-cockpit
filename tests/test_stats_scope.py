@@ -55,7 +55,7 @@ def _make_tree(tmp_path: Path) -> Path:
     })
     _note(docs / "features" / "b" / "FEAT-0002-B.md", {
         "type": "[[feature]]", "id": "FEAT-0002", "title": "Feat B",
-        "status": "in-progress", "phase": "[[PHASE-002]]",
+        "status": "doing", "phase": "[[PHASE-002]]",
     })
     # Task inherits phase from parent feature (no direct phase).
     _note(docs / "features" / "b" / "plan" / "tasks" / "TASK-0001-B1.md", {
@@ -231,7 +231,7 @@ def test_boxes_agree_with_hero_per_type(tmp_path: Path) -> None:
     })
     _note(docs / "features" / "x" / "FEAT-0001-X.md", {
         "type": "[[feature]]", "id": "FEAT-0001", "title": "X",
-        "status": "in-progress", "phase": "[[PHASE-001]]",
+        "status": "doing", "phase": "[[PHASE-001]]",
     })
     # `accepted` requirement → done for a requirement (DONE_REQ).
     _note(docs / "requirements" / "REQ-0001-Acc.md", {

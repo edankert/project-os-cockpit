@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0013]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0131]]", "[[TASK-0132]]", "[[TASK-0133]]"]
 related: ["[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0019-Agent-Hook-Ingestion]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Agent verbs

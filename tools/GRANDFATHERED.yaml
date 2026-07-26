@@ -1,0 +1,33 @@
+# Grandfather ledger — debt each gate carried when it was promoted to error.
+#
+# Read by tools/scripts/validate-docs.py. An item listed here reports as a
+# WARNING for that gate; every other item is an ERROR. There is no date-based
+# exemption: editing a listed note does not re-arm the gate on it, and editing
+# an unlisted note does not exempt it.
+#
+# This file only shrinks. When an item's debt is paid, delete its line — a
+# stale entry is inert but misleading. Regenerate with:
+#     python3 tools/scripts/grandfather.py --write --refresh
+#
+# ADR-0011 clause 3 prefers clearing debt to listing it. Entries here are an
+# admission that the debt was not cleared, and each one is a small backlog item.
+version: 1
+cutover: "2026-07-25"
+count: 9
+gates:
+  VERIFY: {}
+  REQ-BOXES:
+    REQ-0021: "REQ-0021 is 'implemented' (terminal) but 5 acceptance criterion/criteria remain unticked (docs/requirements/REQ-0021-Live-Progress-Visibility.md); ..."
+  FEATURE-REQ:
+    FEAT-0038: "FEAT-0038 is done but a requirement it owns has unresolved acceptance criteria: REQ-0021 (5 unticked); tick with evidence, reconcile, or descope th..."
+  PHASE-CHILDREN:
+    PHASE-007: "PHASE-007 is 'done' but ISS-0024 (open) still names it; the issue is live cockpit work (status-surface + CSS guard gaps), not stale metadata — resolve..."
+  PHASE-BOXES:
+    PHASE-001: "PHASE-001 is done but records no exit criteria (docs/phases/PHASE-001-*.md); the phase notes predate the PHASE-BOXES gate and were written without an Exit Criteria section at all..."
+    PHASE-002: "PHASE-002 is done but records no exit criteria (docs/phases/PHASE-002-*.md); the phase notes predate the PHASE-BOXES gate and were written without an Exit Criteria section at all..."
+    PHASE-004: "PHASE-004 is done but records no exit criteria (docs/phases/PHASE-004-*.md); the phase notes predate the PHASE-BOXES gate and were written without an Exit Criteria section at all..."
+    PHASE-005: "PHASE-005 is done but records no exit criteria (docs/phases/PHASE-005-*.md); the phase notes predate the PHASE-BOXES gate and were written without an Exit Criteria section at all..."
+    PHASE-006: "PHASE-006 is done but records no exit criteria (docs/phases/PHASE-006-*.md); the phase notes predate the PHASE-BOXES gate and were written without an Exit Criteria section at all..."
+    PHASE-007: "PHASE-007 is done but 6 exit criterion/criteria remain unticked (docs/phases/PHASE-007-Agent-Instrumentation.md); tick each with an evidence pointe..."
+  TEST-FIELDS: {}
+  WAIVER: {}

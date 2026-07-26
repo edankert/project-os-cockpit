@@ -15,6 +15,8 @@ depends: ["[[TASK-0114]]"]
 blocks: []
 related: ["[[RISK-0004-Hook-Injection-Surface]]"]
 tests: ["[[TST-0011]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Codex hooks.json + notify injection

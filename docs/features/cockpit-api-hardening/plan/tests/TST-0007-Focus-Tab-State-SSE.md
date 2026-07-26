@@ -11,6 +11,8 @@ updated: 2026-05-25
 source: ["[[TASK-0069]]"]
 verifies: ["[[TASK-0069]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_focus_and_tab_state.py"
+last_verified: 2026-05-25
+
 ---
 
 # TST-0007 — focus / tab-state / SSE wire shapes

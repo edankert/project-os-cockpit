@@ -25,6 +25,26 @@ def test_defaults_cover_all_dispatchable_types():
             assert "{id}" in a["prompt"] or "{rel}" in a["prompt"]
 
 
+def test_review_desk_verbs_are_registered(tmp_path: Path):
+    """The desk's round-trip verbs live in the same registry as every
+    other verb (FEAT-0041 / TASK-0208) — it adds a destination for agent
+    work, not a parallel mechanism. `revise` and `answer` are dispatched
+    by the desk itself rather than from a note menu, so they are asserted
+    on the ledger side in test_dispatch_ledger.py; `request-review` is
+    the note-menu half and belongs here.
+    """
+    feature_verbs = {a["key"]: a for a in DEFAULT_ACTIONS["feature"]}
+    assert "request-review" in feature_verbs
+    review = feature_verbs["request-review"]
+    # It must not be the default: proposing review is a deliberate act,
+    # and making it the ▶ button would put it in front of "break down".
+    assert not review.get("default")
+    assert "review-request" in review["prompt"]
+    assert "{id}" in review["prompt"]
+    # Exactly one default survives the addition.
+    assert len([a for a in DEFAULT_ACTIONS["feature"] if a.get("default")]) == 1
+
+
 def test_yaml_override_replaces_type_wholesale(tmp_path: Path):
     override = tmp_path / "tools" / "adapters" / "cockpit" / "actions.yaml"
     override.parent.mkdir(parents=True)

@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0010]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0114]]", "[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0117]]"]
 related: ["[[FEAT-0013-Agent-State-Signal]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Agent hook ingestion

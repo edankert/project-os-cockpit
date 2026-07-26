@@ -18,6 +18,8 @@ adequacy: "2 mutation runs 2026-07-17, both killed: (1) suppress the first-run S
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-18
 review_verdict: approved
+last_verified: 2026-07-18
+
 ---
 
 # TST-0016 — Validation health

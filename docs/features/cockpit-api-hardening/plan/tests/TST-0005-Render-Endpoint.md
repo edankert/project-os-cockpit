@@ -11,6 +11,8 @@ updated: 2026-05-25
 source: ["[[TASK-0067]]"]
 verifies: ["[[TASK-0067]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_render_endpoint.py"
+last_verified: 2026-05-25
+
 ---
 
 # TST-0005 — `GET /api/render` contract

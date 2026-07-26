@@ -1,9 +1,7 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0016
-aliases: ["PLAN-FEAT-0016"]
 title: "Plan — FEAT-0016 project management"
-status: doing
+status: done
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25

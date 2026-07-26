@@ -14,6 +14,8 @@ level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_agent_actions.py"
 features: ["[[FEAT-0024-Agent-Verbs]]"]
 tasks: ["[[TASK-0131]]"]
+last_verified: 2026-07-06
+
 ---
 
 # TST-0013 — Verb registry

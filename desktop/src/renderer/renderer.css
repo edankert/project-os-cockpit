@@ -1489,6 +1489,626 @@ body {
   color: var(--text-faint);
 }
 
+/* ----------------------------------------------------------------------
+   Overview rework (FEAT-0040) — state above the fold, history below.
+   Every colour below resolves to an existing base.css/cockpit.css token;
+   no new palette and no new status vocabulary (ADR-0006, TST-0019).
+   ---------------------------------------------------------------------- */
+
+/* Design-input strip (TASK-0212) — sits above the metadata card on any
+   note whose frontmatter carries `design:`. */
+.doc-design-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--type-reference);
+  border-radius: 6px;
+}
+.doc-design-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  flex: none;
+}
+.doc-design-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.doc-design-item:hover { border-color: var(--accent); color: var(--text); }
+.doc-design-icon { color: var(--type-reference); }
+
+/* Focus band (TASK-0200) — the SNAPSHOT focus chain. Quiet by default;
+   `is-live` only when a slot is genuinely in flight. */
+.ov-focus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-faint);
+  border-radius: 6px;
+  min-width: 0;
+}
+.ov-focus.is-live { border-left-color: var(--status-active); }
+.ov-focus-label {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+}
+.ov-focus.is-live .ov-focus-label { color: var(--status-active); }
+.ov-focus-sep { color: var(--text-faint); flex: none; }
+.ov-focus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 30ch;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+.ov-focus-chip:hover:not(:disabled) { border-color: var(--accent); }
+.ov-focus-chip:disabled { cursor: default; opacity: 0.7; }
+.ov-focus-chip.is-dangling { border-style: dashed; }
+.ov-focus-id { color: var(--text-muted); flex: none; }
+.ov-focus-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ov-focus-pulse {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-active);
+  animation: prog-pulse 1.6s ease-in-out infinite;
+}
+.ov-focus-age {
+  margin-left: auto;
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.ov-focus-age.is-stale { color: var(--severity-medium); }
+@media (prefers-reduced-motion: reduce) {
+  .ov-focus-pulse { animation: none; }
+}
+
+/* Stat tiles (TASK-0200) — counts with their status composition inline.
+   These retire the donut row: same numbers, stated where they're read. */
+.ov-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 10px;
+}
+.ov-stat {
+  display: flex;
+  flex-direction: column;
+  /* Chromium's UA stylesheet sets `align-items: center` on <button>. The cross
+     axis of a column flex container is horizontal, so that centres children to
+     their content width -- and the clickable tiles (Features/Tasks/Issues) are
+     buttons while the rest are divs, which is why only those three had a mix bar
+     narrower than the tile (ISS-0027). Stretch explicitly so the tile looks the
+     same whether or not it happens to be clickable. */
+  align-items: stretch;
+  gap: 5px;
+  padding: 9px 11px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+button.ov-stat { cursor: pointer; }
+button.ov-stat:hover { border-color: var(--accent); }
+.ov-stat-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+.ov-stat-value {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+}
+.ov-stat-value small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+.ov-mixbar {
+  display: flex;
+  gap: 2px;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ov-mixbar.is-empty { background: var(--border); }
+.ov-mixbar > i {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  min-width: 2px;
+}
+/* Segment colours: the status families, not new hues. */
+.ov-mixbar > i[data-seg="done"]      { background: var(--status-done); }
+.ov-mixbar > i[data-seg="doing"]     { background: var(--accent); }
+.ov-mixbar > i[data-seg="attention"] { background: var(--severity-high); }
+.ov-mixbar > i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
+.ov-mix-key {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.ov-mix-key i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 4px;
+  transform: translateY(0.5px);
+}
+.ov-mix-key i[data-seg="done"]      { background: var(--status-done); }
+.ov-mix-key i[data-seg="doing"]     { background: var(--accent); }
+.ov-mix-key i[data-seg="attention"] { background: var(--severity-high); }
+.ov-mix-key i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
+
+/* Shared tile shell for the stage's lower sections. */
+.doc-view.overview-pane .ov-tile {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+/* Waiting on you (TASK-0200) + Remaining (TASK-0202) share a row shape. */
+.ov-waiting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1px 18px;
+}
+.ov-waiting-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.ov-waiting-list li:hover { background: var(--row-hover); }
+.ov-waiting-id { flex: none; font-size: 11px; color: var(--text-faint); }
+.ov-waiting-title {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ov-waiting-list li .status-chip { margin-left: auto; flex: none; }
+.ov-waiting-clear { color: var(--status-done); font-style: normal; margin: 0; }
+/* Ad-hoc chips for states the payload doesn't hand us as a status. */
+.ov-waiting-list .status-chip[data-kind="fail"]    { color: var(--severity-critical); }
+.ov-waiting-list .status-chip[data-kind="triage"]  { color: var(--severity-medium); }
+.ov-waiting-list .status-chip[data-kind="active"]  { color: var(--status-active); }
+.ov-waiting-list .status-chip[data-kind="pending"] { color: var(--status-pending); }
+.ov-waiting-list .status-chip[data-kind="faint"]   { color: var(--text-faint); }
+
+/* Activity (TASK-0200) — a third the height of the old histogram. */
+.ov-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 34px;
+}
+.ov-spark > i {
+  flex: 1 1 0;
+  min-height: 2px;
+  background: var(--accent);
+  opacity: 0.45;
+  border-radius: 2px 2px 0 0;
+}
+.ov-spark > i.is-now { opacity: 1; }
+.ov-spark-sub {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* Commits (TASK-0200) — items moved, not lines changed. */
+.ov-commit-list { list-style: none; margin: 0; padding: 0; }
+.ov-commit-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.ov-commit-list li:hover { background: var(--row-hover); }
+.ov-commit-list li.is-undocumented .ov-commit-subject {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.ov-commit-sha, .ov-commit-date { flex: none; font-size: 11px; color: var(--text-faint); }
+.ov-commit-subject {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 60px;
+}
+.ov-commit-items {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+  flex: none;
+  align-items: center;
+}
+.ov-commit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ov-commit-chip:hover { border-color: var(--accent); }
+.ov-commit-tick { color: var(--status-done); }
+.ov-commit-more { font-size: 11px; color: var(--text-faint); }
+.ov-commit-flag {
+  font-size: 10.5px;
+  color: var(--severity-medium);
+  border: 1px dashed var(--severity-medium);
+  border-radius: 4px;
+  padding: 0 6px;
+}
+
+/* Phase accordion + Completed band (TASK-0201). */
+.ov-chev {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  color: var(--text-faint);
+}
+.ov-chev::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transition: transform 120ms ease;
+  transform-origin: 25% 50%;
+}
+.ov-phase.is-open > .ov-phase-head .ov-chev::before,
+.ov-completed-head.is-open .ov-chev::before,
+.scoped-disclosure.is-open .ov-chev::before,
+.ctx-disclosure.is-open .ov-chev::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .ov-chev::before { transition: none; } }
+
+/* The accordion hides bodies with the `hidden` attribute, but a class rule
+   carrying `display:` outranks the UA stylesheet's `[hidden]{display:none}`
+   — without this the chevron would rotate while the content stayed put. */
+.ov-phase-bar[hidden],
+.ov-completed-body[hidden],
+.ov-section [hidden],
+.ctx-card [hidden],
+.ctx-graph [hidden] { display: none; }
+
+.ov-phase {
+  display: block;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ov-phase.is-complete { padding: 7px 12px; background: transparent; }
+.ov-phase-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.ov-phase-head .ov-phase-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-phase.is-complete .ov-phase-head .ov-phase-title {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.ov-phase-title.is-link { cursor: pointer; }
+.ov-phase-title.is-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ov-phase-count {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.ov-phase-rowmeta {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  gap: 10px;
+  font-size: 11.5px;
+}
+.ov-phase-inflight { color: var(--accent); }
+.ov-phase-attention { color: var(--severity-medium); }
+.ov-phase-under {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 7px 0 9px;
+  overflow: hidden;
+}
+.ov-phase-under > i { display: block; height: 100%; background: var(--accent); }
+.ov-phase.is-complete .ov-phase-bar { margin-top: 8px; }
+
+.ov-completed-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.ov-completed-head:hover { color: var(--text-muted); }
+.ov-completed-head .ov-rule {
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+
+/* Scoped health band (TASK-0202) — replaces the repeated hero. */
+.ov-health {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 9px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.ov-health-cell { display: flex; align-items: center; gap: 7px; }
+.ov-health-cell b { color: var(--text); font-weight: 600; }
+.ov-health-cell .ov-mixbar { width: 44px; flex: none; }
+.ov-health-div { width: 1px; align-self: stretch; background: var(--border); }
+.ov-health-flag { font-size: 11.5px; }
+.ov-health-flag.is-live { color: var(--accent); margin-left: auto; }
+.ov-health-flag.is-attention { color: var(--severity-medium); }
+
+/* Scoped header extras (TASK-0202). */
+.scoped-head-stats {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex: none;
+}
+.scoped-frac { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.scoped-gates {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 9px;
+  text-decoration: none;
+}
+.scoped-gates.is-open { color: var(--severity-medium); border-color: var(--severity-medium); }
+
+/* Feature rows with a next-action line (TASK-0202). */
+.scoped-feat { display: block; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.scoped-feat:last-child { border-bottom: 0; }
+.scoped-feat-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scoped-feat-frac { flex: none; font-size: 11px; color: var(--text-faint); }
+.scoped-feat.is-done .scoped-feat-name { color: var(--text-muted); }
+.scoped-feat-next {
+  display: flex;
+  gap: 14px;
+  margin: 5px 0 0 22px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  flex-wrap: wrap;
+}
+.scoped-next-item { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+.scoped-next-item:hover .scoped-next-title { color: var(--text); }
+.scoped-next-lead.is-live { color: var(--accent); }
+.scoped-next-lead.is-attention { color: var(--severity-medium); }
+.scoped-next-lead.is-fail { color: var(--severity-critical); }
+.scoped-next-lead.is-next { color: var(--text-faint); }
+.scoped-next-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 34ch;
+}
+.scoped-disclosure, .ctx-disclosure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.scoped-disclosure:hover, .ctx-disclosure:hover { color: var(--text-muted); }
+
+/* Exit criteria with a summary bar + evidence chips (TASK-0202). */
+.scoped-exit-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.scoped-exit-head h3 { margin: 0 !important; }
+.scoped-exit-frac { font-size: 11.5px; color: var(--text-muted); }
+.scoped-exit-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.scoped-exit-bar > i { display: block; height: 100%; background: var(--status-done); }
+.scoped-exit-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3.5px 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  list-style: none;
+}
+.scoped-exit-list li.done { color: var(--text-faint); }
+.scoped-exit-box { flex: none; }
+.scoped-exit-text { min-width: 0; }
+.scoped-exit-evidence {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.scoped-exit-evidence:hover { border-color: var(--accent); }
+
+/* Record column (TASK-0203). */
+.ctx-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  padding: 9px 10px;
+  margin-bottom: 10px;
+}
+.ctx-card-head {
+  display: flex;
+  align-items: baseline;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 7px;
+}
+.ctx-card-right {
+  margin-left: auto;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+}
+.ctx-card .ov-mixbar { margin-bottom: 7px; }
+.ctx-kv {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 3px 2px;
+  border-radius: 4px;
+  min-width: 0;
+}
+.ctx-kv:hover { background: var(--row-hover); }
+.ctx-kv-id { flex: none; font-size: 11px; color: var(--text-faint); }
+.ctx-kv-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ctx-kv .status-chip { margin-left: auto; flex: none; }
+.ctx-note { margin: 4px 0 0; font-size: 11.5px; color: var(--text-faint); }
+.ctx-graph { margin-top: 4px; }
+
+/* Type-coloured ids on the new surfaces. Scoped to a shared `.ov-typed`
+   marker class rather than a bare [data-type] selector — `data-type` is
+   also carried by the phase squares, the nav rows, and the feed tags,
+   each with their own colour rules, and an unscoped selector here would
+   reach across all of them. */
+.ov-typed { color: var(--type-default); }
+.ov-typed[data-type="feature"]     { color: var(--type-feature); }
+.ov-typed[data-type="task"]        { color: var(--type-task); }
+.ov-typed[data-type="requirement"] { color: var(--type-requirement); }
+.ov-typed[data-type="issue"]       { color: var(--type-issue); }
+.ov-typed[data-type="risk"]        { color: var(--type-risk); }
+.ov-typed[data-type="test"]        { color: var(--type-test); }
+.ov-typed[data-type="adr"],
+.ov-typed[data-type="decision"]    { color: var(--type-adr); }
+.ov-typed[data-type="change"]      { color: var(--type-change); }
+.ov-typed[data-type="phase"]       { color: var(--type-phase); }
+.ov-typed[data-type="release"]     { color: var(--type-release); }
+.ov-typed[data-type="reference"]   { color: var(--type-reference); }
+
 /* Hero strip — equal-width cells with a big number + label. */
 .ov-hero {
   display: grid;
@@ -1551,6 +2171,8 @@ a.ov-phase-title:hover {
 .ov-phase-bar {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
+  overflow: hidden;
   gap: 5px;
   padding: 4px 6px;
   background: var(--bg);
@@ -1566,6 +2188,14 @@ a.ov-phase-title:hover {
   gap: 2px;
   padding: 1px 3px;
   border-radius: 3px;
+  /* A group is one feature and its children, and some groups are large —
+     the unphased bucket in a mature repo can hold ~100 loose issues. An
+     unwrapped inline-flex renders those as a single 100-square line that
+     runs straight out of the card (reported 2026-07-26). The bar wraps
+     between groups; a group must also wrap within itself. */
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 .ov-phase-group:hover { background: var(--row-hover); }
 .ov-phase-group-loose {
@@ -2516,6 +3146,43 @@ li[data-rel].agent-touched {
   font-size: 12.5px; text-align: left; cursor: pointer; width: 100%;
 }
 .scope-row:hover { background: var(--bg-hover, rgba(125, 166, 255, 0.08)); color: var(--text); }
+/* Completed band in the scope pane (dossier plate C, pin 9). Mirrors the
+   centre-pane accordion: finished phases are history until asked for. */
+.scope-band {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  background: none;
+  border: 0;
+  /* font-family, NOT the `font` shorthand: `font: inherit` also resets
+     font-size and font-weight, and this rule is declared after
+     .scope-heading, so the shorthand silently undid the heading's
+     10px/700 and the band rendered in body type. */
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-faint);
+}
+.scope-band:hover { color: var(--text); }
+.scope-chev {
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transition: transform 90ms ease;
+  flex: none;
+}
+.scope-band.is-open .scope-chev { transform: rotate(90deg); }
+.scope-band-body { display: flex; flex-direction: column; gap: 1px; }
+.scope-band-body[hidden] { display: none; }
+.scope-done {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--status-done);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
 .scope-row.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .scope-name {
   flex: none; max-width: 55%;
@@ -2768,3 +3435,171 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   color: var(--status-active);
 }
 .settings-status.is-error { color: var(--severity-critical); }
+
+/* Verification health line in the record column (TASK-0203). */
+.ctx-note.is-warn { color: var(--severity-medium); }
+.ctx-counters {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  padding: 2px 2px 8px;
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------------
+   Review desk — ~review (FEAT-0041)
+   ---------------------------------------------------------------------- */
+
+.doc-view.review-page { padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+.review-empty { padding: 40px 0; text-align: center; }
+.review-empty h2 { font-size: 17px; margin: 0 0 6px; font-weight: 600; }
+
+/* Queue rows in the nav pane. */
+.review-queue .queue-row {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  padding: 5px 8px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--text-muted); font: inherit; font-size: 12px;
+  text-align: left; cursor: pointer; min-width: 0;
+}
+.review-queue .queue-row:hover { background: var(--row-hover); color: var(--text); }
+.review-queue .queue-row.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.queue-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.queue-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.review-queue-empty { margin: 8px 6px; }
+
+/* Typed kind pill — the desk's four verbs. */
+.queue-kind {
+  flex: none; font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; padding: 1px 6px; border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.queue-kind.is-decide { color: var(--type-adr); }
+.queue-kind.is-review { color: var(--type-feature); }
+.queue-kind.is-answer { color: var(--accent); }
+.queue-kind.is-run    { color: var(--type-test); }
+
+/* Stage. */
+.review-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.review-head h2 { font-size: 16px; margin: 0; font-weight: 600; }
+.review-sub { margin: 4px 0 0; font-size: 11.5px; color: var(--text-faint); }
+.review-blurb { margin: 0; font-size: 13px; color: var(--text-muted); max-width: 80ch; }
+.review-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex: none; }
+.review-btn {
+  border: 1px solid var(--border); background: var(--bg-elevated);
+  color: var(--text-muted); border-radius: 6px; padding: 4px 12px;
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.review-btn:hover:not(:disabled) { background: var(--row-hover); color: var(--text); }
+.review-btn:disabled { opacity: 0.5; cursor: default; }
+.review-btn.is-primary { border-color: var(--accent); color: var(--accent); }
+.review-btn.is-good { border-color: var(--status-done); color: var(--status-done); }
+.review-btn.is-bad { border-color: var(--severity-critical); color: var(--severity-critical); }
+
+.review-set { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.review-set h3 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+.review-set-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-size: 12.5px; min-width: 0; }
+.review-set-row:last-child { border-bottom: 0; }
+.review-set-row.is-off { opacity: 0.45; }
+.review-set-title { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.review-set-row .status-chip { margin-left: auto; flex: none; }
+.review-tick {
+  flex: none; width: 15px; height: 15px; border-radius: 3px;
+  border: 1.5px solid var(--border); background: transparent;
+  color: transparent; font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
+}
+.review-tick.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.review-comment {
+  width: 100%; resize: vertical; font: inherit; font-size: 12.5px;
+  color: var(--text); background: var(--bg); border: 1px dashed var(--border);
+  border-radius: 6px; padding: 8px 12px;
+}
+.review-comment:focus { outline: none; border-color: var(--accent); border-style: solid; }
+.review-feedback { margin: 0; font-size: 12.5px; color: var(--status-done); }
+.review-feedback.is-error { color: var(--severity-critical); }
+
+/* Manual test runner. */
+.run-progress { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.run-progress > i { display: block; height: 100%; background: var(--accent); }
+.run-step { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; font-size: 12.5px; color: var(--text-muted); }
+.run-step.is-done { color: var(--text-faint); }
+.run-step-n {
+  flex: none; width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border); display: inline-flex;
+  align-items: center; justify-content: center; font-size: 10px;
+  color: var(--text-faint); transform: translateY(3px);
+}
+.run-step.is-pass .run-step-n { background: var(--status-done); border-color: var(--status-done); color: #fff; }
+.run-step.is-fail .run-step-n { background: var(--severity-critical); border-color: var(--severity-critical); color: #fff; }
+.run-step-n.is-current { border-color: var(--accent); color: var(--accent); }
+.run-step-ev { margin-left: auto; flex: none; font-style: italic; font-size: 11.5px; }
+.run-step-current {
+  border: 1px solid var(--accent); background: var(--accent-soft);
+  border-radius: 8px; padding: 11px 14px;
+}
+.run-step-title { display: flex; gap: 10px; align-items: baseline; font-size: 13px; font-weight: 600; }
+.run-expected { margin: 6px 0 10px 28px; font-size: 12px; color: var(--text-muted); }
+.run-controls { display: flex; gap: 8px; align-items: center; margin-left: 28px; }
+.run-evidence {
+  flex: 1; min-width: 0; font: inherit; font-size: 12px;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elevated); color: var(--text);
+}
+.run-evidence:focus { outline: none; border-color: var(--accent); }
+.run-counter { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.run-summary { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.run-summary-line { margin: 0; font-size: 13px; }
+.run-draft { margin: 0; font-size: 11.5px; color: var(--text-faint); }
+
+/* Verification panel (TASK-0211) — the durable record on a scope. */
+.verification-panel { margin-top: 20px; }
+.verification-runall { margin-left: auto; }
+.verification-list .verification-meta { flex: none; font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; margin-left: auto; }
+.verification-list .verification-meta.is-stale { color: var(--severity-medium); }
+.verification-run {
+  flex: none; border: 1px solid var(--accent); background: transparent;
+  color: var(--accent); border-radius: 5px; padding: 0 8px;
+  font: inherit; font-size: 11px; cursor: pointer;
+}
+.verification-list li .status-chip { margin-left: 0; }
+
+/* The reviewed note, rendered inside the review page (ISS-0031 follow-up).
+   A decision surface has to show what is being decided. */
+.review-note {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 18px 14px;
+  max-height: 58vh;
+  overflow-y: auto;
+}
+.review-note h1 { font-size: 17px; }
+.review-note h2 { font-size: 14px; }
+.review-note h3 { font-size: 13px; }
+.review-note > :first-child { margin-top: 10px; }
+
+/* Per-row note preview inside a proposal set (ISS-0031 follow-up). */
+.review-set-head { display: flex; align-items: baseline; gap: 12px; }
+.review-expand-all {
+  margin-left: auto; border: 0; background: transparent;
+  color: var(--accent); font: inherit; font-size: 11px;
+  text-transform: none; letter-spacing: 0; cursor: pointer;
+}
+.review-peek {
+  flex: none; width: 16px; height: 16px; padding: 0;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text-faint);
+  cursor: pointer; position: relative;
+}
+.review-peek::before {
+  content: ""; position: absolute; top: 4px; left: 5px;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+  transition: transform 120ms ease; transform-origin: 25% 50%;
+}
+.review-peek.is-open::before { transform: rotate(90deg); }
+.review-peek:hover { color: var(--accent); border-color: var(--accent); }
+.review-note-inline {
+  max-height: 34vh; margin: 0 0 8px 26px; padding: 2px 14px 10px;
+  background: var(--bg);
+}
+@media (prefers-reduced-motion: reduce) { .review-peek::before { transition: none; } }

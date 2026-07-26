@@ -58,7 +58,9 @@ _WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 _INLINE_FMT_RE = re.compile(r"(\*\*|__|\*|_|`)([^*_`\n]+?)\1")
 
-SCHEMA_VERSION: int = 3
+# 4 (FEAT-0040 / TASK-0199): additive — stats gains `focus`, issue items
+# gain `severity`, and `/api/cockpit/commits` joins the API surface.
+SCHEMA_VERSION: int = 4
 
 PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
     "README.md",
@@ -109,7 +111,7 @@ _TYPE_RANK: dict[str, int] = {t: i for i, t in enumerate(TYPE_ORDER)}
 # signed off, so they outrank finished work. `implemented` joined the done
 # family when ADR-0007 made it the terminal requirement status.
 TASK_STATUS_ORDER: tuple[str, ...] = (
-    "doing", "in-progress", "in-review", "next",
+    "doing", "review", "next",
     "blocked", "failing", "reopened", "deferred",
     "ready", "active", "approved", "accepted", "mitigating",
     "planned", "triage",
@@ -119,8 +121,8 @@ TASK_STATUS_ORDER: tuple[str, ...] = (
     "done", "merged", "fixed", "resolved", "fulfilled", "met", "complete",
     "implemented",
     "verified", "passing", "published", "released", "closed",
-    "obsolete", "retired", "cancelled", "superseded", "wont-fix", "reverted",
-    "rolled-back", "deprecated",
+    "obsolete", "retired", "cancelled", "superseded", "declined", "reverted",
+    "deprecated",
     "reference",
 )
 _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}
@@ -143,7 +145,7 @@ NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "active", "recent",
 
 # Active mode (FEAT-0036 / TASK-0164) — in-flight items across all types.
 _ACTIVE_DOING: frozenset[str] = frozenset({
-    "doing", "in-progress", "in_progress", "in-review", "active",
+    "doing", "in_progress", "review", "active",
     "mitigating", "reproducing", "reopened", "blocked", "failing",
 })
 _ACTIVE_NEXT: frozenset[str] = frozenset({
@@ -184,6 +186,11 @@ LIBRARY_RARE_TYPES: tuple[str, ...] = (
 )
 # Types that join the untyped Markdown tree in Library mode's Docs-tree group.
 DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference",)
+
+# Reference notes living here are *design input* — dossiers, mockups and
+# research a feature was built from (TASK-0212). They surface as their own
+# Library group and lead the record column's Library card.
+_DESIGN_DIR_RE = re.compile(r"(^|/)references/design/", re.IGNORECASE)
 
 # Types that already have their own UX surface elsewhere (dedicated nav
 # modes or rare-type groups) and therefore do NOT appear in the Library
@@ -238,9 +245,9 @@ _RECENT_LIMIT = 60
 DONE_FEAT = {"done", "released", "merged", "verified", "complete", "superseded", "cancelled"}
 # `implemented` is the terminal requirement status since ADR-0007; `verified` is
 # kept only so repos that have not yet migrated still read correctly.
-DONE_TASK = {"done", "merged", "verified", "closed", "fixed", "cancelled"}
+DONE_TASK = {"done", "merged", "verified", "closed", "fixed", "cancelled", "superseded"}
 DONE_REQ  = {"implemented", "verified", "met", "fulfilled", "accepted", "retired", "superseded", "cancelled"}
-DONE_ISS  = {"fixed", "closed", "wont-fix", "resolved", "cancelled"}
+DONE_ISS  = {"fixed", "closed", "declined", "resolved", "cancelled"}
 PASSING   = {"passing"}
 DONE_BY_TYPE: dict[str, set[str]] = {
     "feature": DONE_FEAT,
@@ -250,7 +257,7 @@ DONE_BY_TYPE: dict[str, set[str]] = {
     "test": PASSING,
     "risk": {"closed"},
     "change": {"merged"},
-    "phase": {"done"},
+    "phase": {"done", "superseded"},
 }
 # Fallback for any other type: the union of every terminal vocabulary.
 _DONE_ANY: set[str] = set().union(*DONE_BY_TYPE.values())
@@ -299,6 +306,78 @@ def _focus_ids(docs_root: Path) -> list[str]:
     # De-dup, preserve declaration order.
     seen: set[str] = set()
     return [i for i in ids if not (i in seen or seen.add(i))]
+
+
+_FOCUS_NOTE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+
+
+def focus_block(index: Index) -> dict[str, Any] | None:
+    """The SNAPSHOT ``focus:`` block, resolved against the index (TASK-0199).
+
+    Returns the declared slots (task / feature / phase / issue /
+    requirement) enriched with title, status, type and rel_path, plus the
+    free-text ``note`` and the leading ``YYYY-MM-DD`` date the convention
+    puts at its head. The renderer labels staleness from that date: the
+    focus block is always set but frequently outlives the work it
+    describes, so its age is part of the reading.
+
+    ``None`` when there is no snapshot or no focus block at all.
+    """
+    path = index.docs_root.parent / "SNAPSHOT.yaml"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    slots: dict[str, str] = {}
+    note = ""
+    in_focus = False
+    for line in text.splitlines():
+        if re.match(r"^focus:\s*(#.*)?$", line):
+            in_focus = True
+            continue
+        if not in_focus:
+            continue
+        # The block ends at the next non-indented, non-blank line.
+        if line and not line[0].isspace():
+            break
+        m = re.match(
+            r"^\s+(task|issue|feature|phase|requirement)\s*:\s*(.+)$", line
+        )
+        if m:
+            hit = _FOCUS_ID_RE.search(m.group(2))
+            if hit:
+                slots[m.group(1)] = hit.group(0)
+            continue
+        m = re.match(r"^\s+note\s*:\s*(.+)$", line)
+        if m:
+            note = m.group(1).strip().strip('"').strip("'")
+
+    if not slots and not note:
+        return None
+
+    def _resolve(note_id: str) -> dict[str, Any]:
+        item: dict[str, Any] = {"id": note_id}
+        target = index.by_id(note_id)
+        record = index.get(target) if target is not None else None
+        if record is not None:
+            item["title"] = record.title or note_id
+            item["status"] = record.status or ""
+            item["type"] = (record.note_type or "").lower()
+            item["rel"] = record.rel_path
+            item["done"] = is_done_status(record.note_type, record.status)
+        return item
+
+    note_date = ""
+    hit = _FOCUS_NOTE_DATE_RE.search(note)
+    if hit:
+        note_date = hit.group(0)
+
+    return {
+        "items": {name: _resolve(note_id) for name, note_id in slots.items()},
+        "note": note,
+        "note_date": note_date,
+    }
 
 
 def work_items_for_session(index: Index, sess: dict[str, Any]) -> list[dict[str, Any]]:
@@ -442,7 +521,7 @@ def stats_payload(
     # Per-type done sets are module-level (TASK-0176/0181/0191) so the hero
     # tiles, the phase boxes, and the agent work-item enrichment all share
     # one definition — an item is a filled box iff it also counts done.
-    OPEN_ISS  = {"open", "doing", "in-progress", "triage", "backlog"}
+    OPEN_ISS  = {"open", "doing", "triage", "backlog"}
     OPEN_RISK = {"open", "doing"}
 
     def _norm(s: object) -> str:
@@ -632,9 +711,44 @@ def stats_payload(
         "tasks":        _mix(tasks),
         "issues":       _mix(issues),
         "requirements": _mix(requirements),
+        "tests":        _mix(tests),
+        "risks":        _mix(risks),
     }
 
-    DOING_PHASE_BUCKET = {"doing", "in-progress", "active", "in_progress"}
+    # Bucketed alongside the raw mix (TASK-0200): the overview's mix-bars
+    # need four segments, and deciding which bucket a status falls into is
+    # a *vocabulary* question. ISS-0023 is exactly what happens when a
+    # surface answers that question locally, so the sidecar answers it once
+    # here — using is_done_status and statuses.py — and the renderer only
+    # draws the widths it is given.
+    def _mix_buckets(records: Any, kind: str) -> dict[str, int]:
+        out = {"done": 0, "doing": 0, "attention": 0, "backlog": 0}
+        for r in records:
+            status = _norm(r.status)
+            if is_done_status(kind, status):
+                out["done"] += 1
+            elif statuses.band_of(status) == "active":
+                out["doing"] += 1
+            elif statuses.band_of(status) == "blocked":
+                out["attention"] += 1
+            elif status == "triage" or (
+                status == "open" and kind in ("issue", "risk")
+            ):
+                out["attention"] += 1
+            else:
+                out["backlog"] += 1
+        return out
+
+    status_buckets = {
+        "features":     _mix_buckets(features, "feature"),
+        "tasks":        _mix_buckets(tasks, "task"),
+        "issues":       _mix_buckets(issues, "issue"),
+        "requirements": _mix_buckets(requirements, "requirement"),
+        "tests":        _mix_buckets(tests, "test"),
+        "risks":        _mix_buckets(risks, "risk"),
+    }
+
+    DOING_PHASE_BUCKET = {"doing", "active", "in_progress"}
 
     # Include features alongside tasks in the phase progress bars —
     # otherwise phases that have features tagged but no top-level
@@ -658,7 +772,7 @@ def stats_payload(
         return "backlog"
 
     def _slim(rec: Any, kind: str) -> dict[str, Any]:
-        return {
+        slim = {
             "id": rec.note_id,
             "title": rec.title or rec.note_id or "",
             "rel": rec.rel_path,
@@ -666,6 +780,11 @@ def stats_payload(
             "bucket": _status_bucket(rec),
             "type": kind,
         }
+        # Issues carry severity so attention surfaces can order by it;
+        # absent severity reads "low", matching the right pane (TASK-0035).
+        if kind == "issue":
+            slim["severity"] = _norm(rec.frontmatter.get("severity")) or "low"
+        return slim
 
     # Nest a child under its parent feature only when they share a phase.
     # A child explicitly moved to a different phase (e.g. a deferred task
@@ -826,14 +945,439 @@ def stats_payload(
         "schema_version": SCHEMA_VERSION,
         "scope": scope_block,
         "exit_criteria": exit_criteria,
+        "focus": focus_block(index),
         "hero": hero,
         "phases": phases_list,
         "status_mix": status_mix,
+        "status_buckets": status_buckets,
         "activity": {
             "weekly": weeks_meta,
             "recent": recent,
         },
     }
+
+
+COMMITS_DEFAULT_LIMIT = 20
+COMMITS_MAX_LIMIT = 100
+_GIT_TIMEOUT_SECONDS = 5.0
+_COMMIT_FIELD_SEP = "\x1f"
+_COMMIT_RECORD_SEP = "\x1e"
+
+
+def commits_payload(
+    project_root: Path, index: Index, limit: int = COMMITS_DEFAULT_LIMIT
+) -> dict[str, Any]:
+    """Recent commits as *documentation* events (TASK-0199 / FEAT-0040).
+
+    Each commit lists the doc notes it touched — resolved through the live
+    index by ``rel_path`` — with the item's id, type and current status, and
+    a ``done`` marker so a completion reads at a glance. Commits that touch
+    no notes are flagged ``undocumented``: FEAT-0022's traceability
+    guardrail, applied per commit rather than per session.
+
+    Hardening (TASK-0199 DoD): the subprocess runs with a fixed argv — the
+    only caller-derived value is ``limit``, clamped to an int and passed as
+    ``-n`` — so no client string ever reaches git. The call is bounded by
+    ``_GIT_TIMEOUT_SECONDS`` and a commit cap, and every failure mode (not a
+    repo, git absent, timeout, empty history) degrades to
+    ``{"available": False}`` rather than raising. Values are returned as
+    data and escaped by the renderer like all other note-derived content.
+    The render server binds 0.0.0.0 by design for tablet viewing, so this
+    exposes only commit metadata of the same repository whose notes are
+    already being served — see the RISK-0001 and RISK-0004 threat models.
+    """
+    import subprocess
+
+    try:
+        count = int(limit)
+    except (TypeError, ValueError):
+        count = COMMITS_DEFAULT_LIMIT
+    count = max(1, min(count, COMMITS_MAX_LIMIT))
+
+    unavailable = {
+        "schema_version": SCHEMA_VERSION,
+        "available": False,
+        "commits": [],
+    }
+    if not (project_root / ".git").exists():
+        return unavailable
+
+    fmt = _COMMIT_FIELD_SEP.join(["%h", "%H", "%aI", "%s", "%an"])
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            [
+                "git",
+                "-C",
+                str(project_root),
+                "log",
+                f"-n{count}",
+                "--no-merges",
+                "--name-only",
+                f"--format={_COMMIT_RECORD_SEP}{fmt}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=_GIT_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return unavailable
+    if proc.returncode != 0:
+        return unavailable
+
+    # rel_path is relative to docs_root; git paths are relative to the repo
+    # root. Build the prefix once so the join is a dict lookup per file.
+    docs_prefix = ""
+    try:
+        docs_prefix = index.docs_root.resolve().relative_to(
+            project_root.resolve()
+        ).as_posix()
+    except (ValueError, OSError):
+        docs_prefix = ""
+    prefix = f"{docs_prefix}/" if docs_prefix else ""
+
+    by_rel: dict[str, Any] = {}
+    for record in index.iter_records():
+        if record.note_id:
+            by_rel[record.rel_path.lower()] = record
+
+    commits: list[dict[str, Any]] = []
+    for chunk in proc.stdout.split(_COMMIT_RECORD_SEP):
+        chunk = chunk.strip("\n")
+        if not chunk:
+            continue
+        header, _, files_blob = chunk.partition("\n")
+        fields = header.split(_COMMIT_FIELD_SEP)
+        if len(fields) < 5:
+            continue
+        short_sha, full_sha, date_iso, subject, author = fields[:5]
+
+        items: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for line in files_blob.splitlines():
+            line = line.strip()
+            if not line or not line.lower().endswith(".md"):
+                continue
+            if prefix and not line.startswith(prefix):
+                continue
+            rel = line[len(prefix):] if prefix else line
+            record = by_rel.get(rel.lower())
+            if record is None or not record.note_id:
+                continue
+            if record.note_id in seen_ids:
+                continue
+            seen_ids.add(record.note_id)
+            items.append({
+                "id": record.note_id,
+                "title": record.title or record.note_id,
+                "rel": record.rel_path,
+                "type": (record.note_type or "").lower(),
+                "status": record.status or "",
+                "done": is_done_status(record.note_type, record.status),
+            })
+
+        items.sort(key=lambda i: (_TYPE_ORDER.get(i["type"], 99), i["id"]))
+        commits.append({
+            "sha": short_sha,
+            "full_sha": full_sha,
+            "date": date_iso[:10],
+            "subject": subject,
+            "author": author,
+            "items": items,
+            # No note touched: the change left no documentation trace.
+            "undocumented": not items,
+        })
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "available": True,
+        "commits": commits,
+    }
+
+
+# Canonical-ish ordering so a commit's items read feature → task → issue …
+_TYPE_ORDER: dict[str, int] = {
+    "feature": 0, "requirement": 1, "task": 2, "issue": 3,
+    "test": 4, "change": 5, "adr": 6, "decision": 6, "risk": 7,
+    "phase": 8, "release": 9, "plan": 10,
+}
+
+
+# ----------------------------------------------------------------------
+# Review desk (FEAT-0041)
+# ----------------------------------------------------------------------
+
+#: Intake states that put a note in the queue on their own — these are
+#: existing vocabulary, not new statuses (ADR-0007 / owner decision:
+#: no new states). Feature/task proposal sets queue via review requests
+#: instead, because their vocabulary has no intake state to borrow.
+QUEUE_INTAKE_STATES: dict[str, tuple[str, ...]] = {
+    "adr": ("proposed",),
+    "decision": ("proposed",),
+    "requirement": ("draft",),
+    "test": ("ready",),
+}
+# Plans are deliberately absent. A plan's status *follows its parent
+# feature* and is advanced at close-out (STATUSES.md, `[[plan]]`), so
+# `draft` on a plan means "the feature hasn't started", not "a human owes
+# this a decision". Queueing them asked Edwin to review things no reviewer
+# can act on — and they carry no `id:` either, so a queue row could not
+# even address them. Reported 2026-07-26.
+
+
+def _slim_note(record: NoteRecord) -> dict[str, Any]:
+    return {
+        "id": record.note_id,
+        "title": record.title or record.note_id or "",
+        "rel": record.rel_path,
+        "type": (record.note_type or "").lower(),
+        "status": record.status or "",
+    }
+
+
+def review_queue_payload(
+    index: Index, store: Any = None,
+) -> dict[str, Any]:
+    """The ~review queue (TASK-0206).
+
+    Four groups, each sourced from something that already exists:
+
+    * **Decisions** — ADRs at ``proposed``.
+    * **Proposals** — dispatch-ledger review requests (runtime state; the
+      notes stay at ``backlog``). Requirements/plans at ``draft`` join
+      here since they are proposals in the same sense.
+    * **Questions** — question requests from the store.
+    * **Test runs** — manual tests at ``ready``: defined, never executed.
+
+    No status is invented anywhere; see ``review.py`` for why the queue is
+    runtime state rather than note state.
+    """
+    decisions: list[dict[str, Any]] = []
+    proposals: list[dict[str, Any]] = []
+    questions: list[dict[str, Any]] = []
+    runs: list[dict[str, Any]] = []
+
+    for note_type, states in QUEUE_INTAKE_STATES.items():
+        for record in index.notes_by_type(note_type):
+            status = (record.status or "").lower().strip()
+            if status not in states:
+                continue
+            item = _slim_note(record)
+            item["kind"] = (
+                "decide" if note_type in ("adr", "decision")
+                else "run" if note_type == "test"
+                else "review"
+            )
+            if note_type == "test":
+                # Only manual tests are runnable from the desk; an
+                # automated test at `ready` is waiting on a runner, not
+                # on a human.
+                if not _is_manual_test(record):
+                    continue
+                item["steps"] = len(manual_test_steps(record.body))
+                runs.append(item)
+            elif note_type in ("adr", "decision"):
+                decisions.append(item)
+            else:
+                proposals.append(item)
+
+    if store is not None:
+        for request in store.open_requests():
+            entry = {
+                "request_id": request.get("request_id"),
+                "kind": "answer" if request.get("kind") == "question" else "review",
+                "title": request.get("title") or "",
+                "body": request.get("body") or "",
+                "ts": request.get("ts"),
+                "session_id": request.get("session_id"),
+                "agent": request.get("agent"),
+                "items": [],
+            }
+            for note_id in request.get("items") or []:
+                path = index.by_id(note_id)
+                record = index.get(path) if path else None
+                entry["items"].append(
+                    _slim_note(record) if record else {"id": note_id}
+                )
+            if request.get("kind") == "question":
+                questions.append(entry)
+            else:
+                proposals.append(entry)
+
+    for bucket in (decisions, proposals, questions, runs):
+        bucket.sort(key=lambda i: str(i.get("id") or i.get("ts") or ""))
+
+    total = len(decisions) + len(proposals) + len(questions) + len(runs)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "total": total,
+        "groups": [
+            {"key": "decisions", "label": "Decisions", "items": decisions},
+            {"key": "proposals", "label": "Proposals", "items": proposals},
+            {"key": "questions", "label": "Questions", "items": questions},
+            {"key": "runs", "label": "Test runs", "items": runs},
+        ],
+    }
+
+
+def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
+    """Acceptance tests that validate one scope (TASK-0211).
+
+    A test belongs to a scope when it links to it — via `features:`,
+    `verifies:`, `validates:`, `tests:` or `parent:` — or, for a phase,
+    when its own phase resolves there. Read from the notes only: the
+    panel is the durable record, so it must not depend on the review
+    queue existing or having been used.
+    """
+    target = (note_id or "").strip().upper()
+    if not target:
+        return {"schema_version": SCHEMA_VERSION, "tests": []}
+
+    path = index.by_id(target)
+    record = index.get(path) if path else None
+    scope_type = (record.note_type or "").lower() if record else ""
+
+    # For a phase, the scope is every feature inside it plus the phase id.
+    scope_ids = {target}
+    if scope_type == "phase":
+        for feature in index.notes_by_type("feature"):
+            fm_phase = str(feature.frontmatter.get("phase") or "")
+            if target in fm_phase.upper() and feature.note_id:
+                scope_ids.add(feature.note_id.upper())
+
+    link_fields = ("features", "verifies", "validates", "tests", "parent",
+                   "implements", "related", "phase")
+
+    out: list[dict[str, Any]] = []
+    for test in index.notes_by_type("test"):
+        linked: set[str] = set()
+        for field in link_fields:
+            value = test.frontmatter.get(field)
+            if not value:
+                continue
+            for entry in (value if isinstance(value, list) else [value]):
+                for match in _FOCUS_ID_RE.finditer(str(entry).upper()):
+                    linked.add(match.group(0))
+        if not (linked & scope_ids):
+            continue
+        fm = test.frontmatter
+        out.append({
+            "id": test.note_id,
+            "title": test.title or test.note_id or "",
+            "rel": test.rel_path,
+            "status": test.status or "",
+            "last_run": str(fm.get("last_run") or fm.get("last_verified") or ""),
+            "manual": _is_manual_test(test),
+            "steps": len(manual_test_steps(test.body)),
+        })
+    out.sort(key=lambda t: str(t["id"] or ""))
+
+    # Decisions that reach this scope, resolved through the *link graph*
+    # rather than by matching ids in titles. The renderer had a
+    # title-substring heuristic here first; it is the kind of shortcut
+    # that looks right on this corpus and silently misses an ADR whose
+    # title happens not to name its subject.
+    decisions: list[dict[str, Any]] = []
+    for adr in [*index.notes_by_type("adr"), *index.notes_by_type("decision")]:
+        reached: set[str] = set()
+        for field in ("related", "affects", "supersedes", "superseded_by",
+                      "scope", "impacts", "source"):
+            value = adr.frontmatter.get(field)
+            if not value:
+                continue
+            for entry in (value if isinstance(value, list) else [value]):
+                for match in _FOCUS_ID_RE.finditer(str(entry).upper()):
+                    reached.add(match.group(0))
+        if reached & scope_ids:
+            decisions.append({
+                "id": adr.note_id,
+                "title": adr.title or adr.note_id or "",
+                "rel": adr.rel_path,
+                "status": adr.status or "",
+            })
+    decisions.sort(key=lambda d: str(d["id"] or ""), reverse=True)
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "tests": out,
+        "decisions": decisions,
+    }
+
+
+def _is_manual_test(record: NoteRecord) -> bool:
+    """Manual tests are the ones a human can run from the desk.
+
+    Convention: frontmatter ``automation``/``kind``/``mode`` saying manual,
+    or a body with a Steps section and no automated-runner reference.
+    """
+    fm = record.frontmatter
+    for key in ("automation", "kind", "mode", "method"):
+        value = str(fm.get(key) or "").lower()
+        if "manual" in value:
+            return True
+        if value in ("automated", "auto", "ci"):
+            return False
+    return bool(manual_test_steps(record.body))
+
+
+# Manual tests in the wild head their procedure several ways — this repo's
+# own TST-0011 uses "Checklist", the template suggests "Steps". Accepting
+# the corpus's vocabulary rather than one canonical spelling is the same
+# lesson ADR-0006 recorded: a surface follows what is written, not what a
+# convention wishes were written.
+_STEP_HEADING_RE = re.compile(
+    r"^#{2,6}\s*(steps|checklist|procedure|scenario|script)\b", re.IGNORECASE,
+)
+_ANY_HEADING_RE = re.compile(r"^#{1,6}\s")
+_STEP_ITEM_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s*(?:\[[ xX]\]\s*)?(.+)$")
+_EXPECTED_RE = re.compile(r"^\s*(?:expect(?:ed|s)?|then)\s*[:：]\s*(.*)$", re.IGNORECASE)
+# An inline "… Expect: <what should happen>" clause inside a step line.
+_INLINE_EXPECT_RE = re.compile(r"\bexpect(?:ed|s)?\s*[:：]\s*(.+)$", re.IGNORECASE)
+# Markdown emphasis is noise in a stepper's one-line label.
+_MD_EMPHASIS_RE = re.compile(r"(\*\*|__|\*|_)(.+?)\1")
+
+
+def manual_test_steps(body: str) -> list[dict[str, Any]]:
+    """Parse a manual test's procedure section into ordered steps.
+
+    Same shape as ``_exit_criteria_from_body`` — tolerant of heading level
+    and list marker. An indented ``Expected:`` line, or an inline
+    ``… Expect: …`` clause, attaches to its step as the expectation the
+    runner shows beside Pass/Fail.
+    """
+    steps: list[dict[str, Any]] = []
+    in_section = False
+    for line in (body or "").splitlines():
+        if in_section and _ANY_HEADING_RE.match(line):
+            break
+        if _STEP_HEADING_RE.match(line):
+            in_section = True
+            continue
+        if not in_section:
+            continue
+        expected = _EXPECTED_RE.match(line)
+        if expected and steps:
+            steps[-1]["expected"] = expected.group(1).strip()
+            continue
+        item = _STEP_ITEM_RE.match(line)
+        if not item:
+            continue
+        text = item.group(1).strip()
+        if not text:
+            continue
+        step: dict[str, Any] = {"n": len(steps) + 1, "text": text}
+        # "Do the thing. Expect: it works" on one line — the shape this
+        # repo's own manual tests actually use.
+        inline = _INLINE_EXPECT_RE.search(text)
+        if inline:
+            step["text"] = text[:inline.start()].rstrip(" .—-–")
+            step["expected"] = inline.group(1).strip()
+        step["text"] = _MD_EMPHASIS_RE.sub(r"\2", str(step["text"])).strip()
+        if "expected" in step:
+            step["expected"] = _MD_EMPHASIS_RE.sub(r"\2", step["expected"]).strip()
+        if step["text"]:
+            steps.append(step)
+    return steps
 
 
 def nav_payload(
@@ -1265,6 +1809,29 @@ def _library_groups(
                 "items": [_rare_item(index, r) for r in pinned_records],
             }
         )
+
+    # ----- Design input (TASK-0212) -----
+    # Reference notes under `references/design/` wrap the dossiers and
+    # mockups a feature was built from. They get their own group rather
+    # than merging into the Docs tree because "what shaped this?" is a
+    # question people ask directly, and the answer is otherwise buried
+    # three folders deep. The notes stay ordinary references — this is a
+    # grouping over an existing type, not a new one.
+    design_records = [
+        r for r in index.notes_by_type("reference")
+        if _platform_match(r, platform)
+        and _DESIGN_DIR_RE.search(r.rel_path)
+    ]
+    if design_records:
+        design_records.sort(key=lambda r: (r.note_id or "", r.rel_path))
+        out.append({
+            "key": "design",
+            "label": "Design",
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [_rare_item(index, r) for r in design_records],
+        })
 
     docs_tree = _markdown_tree_group(
         index,

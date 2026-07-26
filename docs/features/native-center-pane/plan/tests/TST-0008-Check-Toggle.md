@@ -11,6 +11,8 @@ updated: 2026-05-25
 source: ["[[TASK-0074]]"]
 verifies: ["[[TASK-0074]]", "[[FEAT-0011-Native-Center-Pane]]"]
 path: "tests/test_check_toggle.py"
+last_verified: 2026-05-25
+
 ---
 
 # TST-0008 — checkbox toggle endpoint

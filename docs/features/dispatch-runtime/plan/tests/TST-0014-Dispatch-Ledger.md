@@ -14,6 +14,8 @@ level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_dispatch_ledger.py"
 features: ["[[FEAT-0025-Dispatch-Runtime]]", "[[FEAT-0026-Verb-Polish]]"]
 tasks: ["[[TASK-0135]]", "[[TASK-0136]]", "[[TASK-0137]]"]
+last_verified: 2026-07-06
+
 ---
 
 # TST-0014 — Dispatch ledger + verbs

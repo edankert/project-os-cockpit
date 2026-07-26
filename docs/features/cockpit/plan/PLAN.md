@@ -1,6 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0006
 title: "Plan: 3-pane cockpit layout (code-driven)"
 status: active
 owner: user:edwin

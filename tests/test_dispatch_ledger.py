@@ -142,9 +142,48 @@ def test_default_when_lists_encode_lifecycle():
     task = {a["key"]: a for a in DEFAULT_ACTIONS["task"]}
     assert "done" not in task["implement"]["when"]
     assert "backlog" not in task["close-out"]["when"]
-    # Entries without `when` are always-on (requirement.verify).
+
+    # Requirement verbs are status-gated too (ISS-0028). This assertion used to
+    # read `assert "when" not in req["verify"]`, documenting the requirement
+    # block as always-on -- which meant an `implemented` requirement still
+    # offered "Implement", and the defect was pinned in place by a test.
     req = {a["key"]: a for a in DEFAULT_ACTIONS["requirement"]}
-    assert "when" not in req["verify"]
+    assert all("when" in a for a in DEFAULT_ACTIONS["requirement"]), \
+        "every requirement verb is gated by status"
+    assert "implemented" not in req["implement"]["when"]
+    assert req["reconcile"]["when"] == ["implemented", "approved"]
+    assert req["verify"]["when"] == ["implemented"]
+
+
+def test_requirement_verbs_do_not_test_gate():
+    """ADR-0007: requirements are gated on acceptance criteria, never on tests.
+
+    The `verify` prompt used to say "ensure TST notes exist covering each
+    acceptance criterion, run them, and update the requirement's status
+    accordingly" -- the requirement-level test gate that ADR retired and the
+    validator exempts requirements from. It survived in this surface after
+    ISS-0006 swept the instruction files, which is what a fourth copy of a rule
+    does. Guard it here so prose cannot drift back.
+    """
+    for action in DEFAULT_ACTIONS["requirement"]:
+        prompt = action["prompt"].lower()
+        assert not ("run them" in prompt and "tst" in prompt), (
+            f"requirement verb {action['key']!r} instructs running tests to set "
+            "a requirement's status; ADR-0007 forbids test-gating requirements"
+        )
+
+
+def test_requirement_has_a_review_path():
+    """A requirement must be able to reach the review desk (ISS-0028).
+
+    `feature` has had `request-review` since FEAT-0041; `requirement` had none,
+    so the 120 requirements with unresolved acceptance criteria in your-trainer
+    were visible in the cockpit with no verb that acted on them.
+    """
+    req = {a["key"]: a for a in DEFAULT_ACTIONS["requirement"]}
+    assert "request-review" in req
+    assert "review-request" in req["request-review"]["prompt"]
+    assert "reconcile" in req, "the REQ-BOXES workflow needs a verb"
 
 
 def test_yaml_when_passthrough(tmp_path: Path):
@@ -184,3 +223,52 @@ def test_cli_dispatch_posts_enqueue(monkeypatch, capsys):
         {"id": "TASK-0001", "enqueue": True, "verb": "refine", "agent": "claude"},
     )]
     assert "queued refine for TASK-0001" in capsys.readouterr().out
+
+
+def test_review_round_trip_verbs_reach_the_ledger(tmp_path: Path) -> None:
+    """The desk's two round-trip legs are ordinary ledger entries.
+
+    `revise` (request-changes) and `answer` (a question reply) ride the
+    FEAT-0025 runtime rather than a private channel — TASK-0208's whole
+    claim is that the desk adds a *destination*, not a mechanism. If
+    these stopped landing in the ledger, the proposal view's provenance
+    line would quietly go blank.
+    """
+    from project_os_cockpit.agent_hooks import AgentSessionTracker
+
+    from project_os_cockpit.review import ReviewStore
+
+    tracker = AgentSessionTracker(docs_root=tmp_path / "docs")
+    store = ReviewStore(tmp_path)
+
+    # Leg 1 — the agent files a request; the desk records a ledger entry
+    # per item so the proposal view can show provenance.
+    request = store.add(
+        "review", items=["FEAT-0040", "TASK-0199"], title="Overview rework",
+        session_id="7c31", agent="claude",
+    )
+    for note_id in request["items"]:
+        tracker.record_dispatch(note_id, verb="review:review")
+
+    pending = tracker.take_dispatch_requests()
+    assert pending == [], "filing a review must not enqueue a CLI request"
+
+    # Leg 2 — the human's reply dispatches back. The ledger must carry
+    # both legs against the same item, in order, so "← revise FEAT-0040"
+    # can be rendered on the session row.
+    tracker.record_dispatch("FEAT-0040", verb="revise", agent="claude")
+    tracker.record_dispatch("FEAT-0040", verb="answer", agent="claude")
+
+    session = tracker.snapshot().get("session") or tracker.snapshot().get("last_session")
+    entries = (session or {}).get("dispatches") or []
+    if not entries:                      # no live session: pending buffer
+        entries = [dict(d) for d in tracker._pending_dispatches]  # noqa: SLF001
+    verbs = [e["verb"] for e in entries if e["id"] == "FEAT-0040"]
+    assert verbs == ["review:review", "revise", "answer"], verbs
+    assert all(e["ts"] for e in entries)
+
+    # The request itself is resolvable and its outcome is counted — the
+    # measurement ADR-0007's advisory phase depends on.
+    store.resolve(request["request_id"], "changes-requested")
+    assert store.outcome_counts() == {"changes-requested": 1}
+    assert store.open_requests() == []

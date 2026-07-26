@@ -13,6 +13,7 @@ the JS/CSS surfaces to prove they still agree with it.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 from pathlib import Path
@@ -20,7 +21,14 @@ from pathlib import Path
 import pytest
 
 from project_os_cockpit import statuses
-from project_os_cockpit.cockpit import _ACTIVE_DONE, DONE_BY_TYPE, TASK_STATUS_ORDER, is_done_status
+from project_os_cockpit.cockpit import (
+    _ACTIVE_DONE,
+    DONE_BY_TYPE,
+    TASK_STATUS_ORDER,
+    is_done_status,
+    stats_payload,
+)
+from project_os_cockpit.index import Index
 from project_os_cockpit.templates import COLLAPSED_BY_DEFAULT, STATUS_RANK
 
 STATIC = Path(statuses.__file__).parent / "static"
@@ -50,24 +58,23 @@ def test_every_band_has_a_palette_token() -> None:
     assert set(statuses.BAND_TOKEN) == set(statuses.BANDS)
 
 
-def test_delivered_is_not_completed() -> None:
-    """The crux of ISS-0023 — delivered-but-unsigned-off work stays visible.
+def test_delivered_band_is_retired() -> None:
+    """The delivered band is gone, and nothing may quietly reintroduce it.
 
-    `implemented` was the founding member of this band; ADR-0007 retired the
-    requirement `verified` status and made `implemented` terminal, so it moved
-    to `done`. The band still holds `staged` (release ready, not live) and
-    `monitoring` (risk mitigated, still watched), which remain non-terminal.
+    ISS-0023 created it for work shipped but not signed off. ADR-0007 made its
+    founding member `implemented` terminal, leaving `staged` and `monitoring`;
+    upstream ADR-0008 then deleted both, having measured **zero** writes of
+    either across 5,890 fleet status writes. A band no status can enter is not
+    a distinction the system makes, so ADR-0006 retired it.
+
+    This asserts the retirement rather than deleting the guard: re-adding the
+    band without re-deciding it should fail here.
     """
-    assert not (statuses.DELIVERED_STATUSES & statuses.COMPLETED_STATUSES)
-    assert "staged" in statuses.DELIVERED_STATUSES
-    assert not statuses.is_completed("staged")
-    assert statuses.is_completed("implemented")   # terminal since ADR-0007
-    assert statuses.band_of("STAGED") == "delivered"
-    assert statuses.band_of("implemented") == "done"
-    assert statuses.band_of("nonsense") is None
-
-
-# ------------------------------------------------------------ python surfaces
+    assert "delivered" not in statuses.BANDS
+    assert "delivered" not in statuses.BAND_TOKEN
+    assert statuses.DELIVERED_STATUSES == frozenset()
+    for gone in ("staged", "monitoring"):
+        assert gone not in statuses.VOCABULARY, f"{gone} was deleted by ADR-0008"
 
 def test_task_status_order_covers_the_vocabulary() -> None:
     missing = statuses.VOCABULARY - set(TASK_STATUS_ORDER)
@@ -79,14 +86,15 @@ def test_status_rank_covers_the_vocabulary() -> None:
     assert not missing, f"unranked on index pages: {sorted(missing)}"
 
 
-def test_delivered_ranks_between_pending_and_done() -> None:
-    """Delivered work is no longer to-do, but is not finished either."""
-    pending = max(STATUS_RANK[s] for s in statuses.BANDS["pending"])
-    delivered = [STATUS_RANK[s] for s in statuses.BANDS["delivered"]]
-    done = min(STATUS_RANK[s] for s in statuses.BANDS["done"])
-    assert pending < min(delivered)
-    assert max(delivered) < done
+def test_pending_ranks_below_done() -> None:
+    """Ordering invariant that survives the delivered band's retirement.
 
+    With no intermediate band left, every pending status must still rank ahead
+    of every done status on index pages.
+    """
+    pending = max(STATUS_RANK[s] for s in statuses.BANDS["pending"])
+    done = min(STATUS_RANK[s] for s in statuses.BANDS["done"])
+    assert pending < done
 
 def test_collapsed_by_default_is_terminal_only() -> None:
     assert COLLAPSED_BY_DEFAULT == statuses.COMPLETED_STATUSES
@@ -110,6 +118,128 @@ def test_done_by_type_recognises_terminal_requirement_status() -> None:
     for members in DONE_BY_TYPE.values():
         assert not (set(members) & statuses.DELIVERED_STATUSES), (
             f"a done vocabulary claims a delivered status: {set(members) & statuses.DELIVERED_STATUSES}"
+        )
+
+
+def test_superseded_reads_as_done_for_every_type_that_allows_it() -> None:
+    """`superseded` is terminal; every per-type vocabulary must say so.
+
+    The test above only checks the *negative* direction — that no done
+    vocabulary claims a delivered status. Nothing asserted the positive one,
+    so the ISS-0023 / ISS-0024 failure mode recurred verbatim for a different
+    status: ADR-0008 added `superseded` to `task` and `phase`, `DONE_FEAT` and
+    `DONE_REQ` were updated, and `DONE_TASK` and `"phase"` were not. The
+    module comment above them claimed "Terminal-resolved statuses
+    (superseded/retired/cancelled) count done" while the data disagreed.
+
+    Concretely: `your-trainer` carries 72 superseded tasks and a superseded
+    PHASE-012 (the frozen iOS-launch line, re-cut as PHASE-019). Every one of
+    them rendered as outstanding work — reported by a rider-facing user, not
+    caught here.
+
+    `statuses.COMPLETED_STATUSES` is the source of truth: it is
+    `BANDS["done"] | BANDS["archived"]`, and `superseded` lives in
+    `archived`.
+    """
+    assert "superseded" in statuses.COMPLETED_STATUSES
+    for note_type in ("task", "phase", "feature", "requirement"):
+        assert is_done_status(note_type, "superseded"), (
+            f"{note_type!r} does not count `superseded` as done, but ADR-0008 "
+            f"makes it terminal for that type"
+        )
+
+    # The general form of the same rule: no per-type vocabulary may omit a
+    # terminal status it is reachable by. `cancelled` is the sibling case.
+    for note_type in ("task", "feature"):
+        assert is_done_status(note_type, "cancelled")
+
+
+def test_overview_mix_buckets_stay_in_the_sidecar(tmp_path: Path) -> None:
+    """The overview's mix-bars must not re-derive the vocabulary in JS.
+
+    TASK-0200's first cut classified statuses into done/doing/attention/
+    backlog inside `renderer.ts` — a ninth surface restating the
+    vocabulary, which is precisely the ISS-0023 failure mode. The
+    bucketing moved into `stats_payload` (`status_buckets`, computed from
+    `is_done_status` + `statuses.band_of`); this test fails if the
+    renderer grows its own per-type done table again.
+    """
+    src = DESKTOP_TS.read_text(encoding="utf-8")
+    # A per-type done vocabulary in the renderer is the thing being banned.
+    assert "DONE_STATUSES_BY_MIX_TYPE" not in src, (
+        "renderer.ts is restating a per-type done vocabulary — "
+        "the sidecar owns bucketing (status_buckets); see ISS-0023"
+    )
+    assert "status_buckets" in src, (
+        "renderer.ts should consume the sidecar's status_buckets"
+    )
+
+
+def test_status_buckets_agree_with_the_canonical_vocabulary(tmp_path: Path) -> None:
+    """Every status the payload buckets lands where statuses.py says.
+
+    Guards the specific confusions the bands exist to prevent:
+    `implemented` is done (ADR-0007), `ready` is *not* in flight
+    (ADR-0006/ADR-0008 — defined but never executed), `failing` needs
+    attention, and a plain `open` issue is attention while an `open`
+    requirement is merely backlog.
+    """
+    docs = tmp_path / "docs"
+
+    def note(rel: str, fm: dict) -> None:
+        path = docs / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lines = ["---"]
+        for key, value in fm.items():
+            lines.append(f"{key}: {json.dumps(value)}")
+        lines.append("---")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    note("requirements/REQ-0001-A.md", {
+        "type": "[[requirement]]", "id": "REQ-0001", "title": "A",
+        "status": "implemented",
+    })
+    note("requirements/REQ-0002-B.md", {
+        "type": "[[requirement]]", "id": "REQ-0002", "title": "B",
+        "status": "open",
+    })
+    note("tests/TST-0001-P.md", {
+        "type": "[[test]]", "id": "TST-0001", "title": "P", "status": "passing",
+    })
+    note("tests/TST-0002-R.md", {
+        "type": "[[test]]", "id": "TST-0002", "title": "R", "status": "ready",
+    })
+    note("tests/TST-0003-F.md", {
+        "type": "[[test]]", "id": "TST-0003", "title": "F", "status": "failing",
+    })
+    note("issues/ISS-0001-O.md", {
+        "type": "[[issue]]", "id": "ISS-0001", "title": "O", "status": "open",
+    })
+    note("issues/ISS-0002-D.md", {
+        "type": "[[issue]]", "id": "ISS-0002", "title": "D", "status": "doing",
+    })
+
+    payload = stats_payload(Index.build(docs))
+    assert payload is not None
+    buckets = payload["status_buckets"]
+
+    # `implemented` is terminal (ADR-0007); a plain `open` requirement is not
+    # attention-worthy, just unstarted.
+    assert buckets["requirements"] == {
+        "done": 1, "doing": 0, "attention": 0, "backlog": 1,
+    }
+    # `ready` is "defined, never executed" — pending, NOT in flight.
+    assert buckets["tests"] == {
+        "done": 1, "doing": 0, "attention": 1, "backlog": 1,
+    }
+    # An open issue *is* attention; a doing issue is in flight.
+    assert buckets["issues"] == {
+        "done": 0, "doing": 1, "attention": 1, "backlog": 0,
+    }
+    # Bucket totals must account for every note, or a status fell through.
+    for kind, counts in buckets.items():
+        assert sum(counts.values()) == sum(payload["status_mix"][kind].values()), (
+            f"{kind}: bucket total disagrees with the raw status mix"
         )
 
 

@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0012
-aliases: ["PLAN-FEAT-0012"]
 title: "Plan: Native UX wins"
 status: active
 owner: user:edwin

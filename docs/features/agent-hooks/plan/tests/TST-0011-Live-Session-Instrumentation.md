@@ -14,6 +14,8 @@ level: e2e
 entrypoint: ""
 features: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 tasks: ["[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0121]]", "[[TASK-0124]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0132]]", "[[TASK-0133]]", "[[TASK-0134]]", "[[TASK-0138]]", "[[TASK-0142]]"]
+last_verified: 2026-07-05
+
 ---
 
 # TST-0011 — Live-session instrumentation (manual)

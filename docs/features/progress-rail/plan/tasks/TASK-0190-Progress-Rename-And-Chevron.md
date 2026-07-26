@@ -17,6 +17,8 @@ blocks: []
 related: []
 tests: []
 verification_waiver: "Renderer-only UI; no automated renderer unit-test surface. Validated live via CDP against a real agent session (render across all note types, live block fill on a driven transition, panel enrichment, chevron/rename); independent review on the code."
+waiver_expires: 2026-10-23
+
 ---
 
 # TASK-0190 — progress rename + chevron expand affordance

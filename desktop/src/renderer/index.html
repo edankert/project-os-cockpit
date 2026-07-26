@@ -28,9 +28,14 @@
           <button type="button" class="top-bar-btn" data-mode="features" title="Features (by phase)" role="tab" aria-label="Features"></button>
           <button type="button" class="top-bar-btn" data-mode="tasks"    title="Tasks"               role="tab" aria-label="Tasks"></button>
           <button type="button" class="top-bar-btn" data-mode="issues"   title="Issues"              role="tab" aria-label="Issues"></button>
-          <button type="button" class="top-bar-btn" data-mode="active"   title="Active — work in flight" role="tab" aria-label="Active"></button>
+          <button type="button" class="top-bar-btn" data-mode="review"   title="Review — proposals, questions, test runs" role="tab" aria-label="Review"></button>
+          <!-- Active and Recent retired in TASK-0204: the overview's focus
+               band and phase rows carry in-flight work ambiently, the
+               progress rail carries it live, and the commits panel tells
+               "what changed" more truthfully than a recently-touched list.
+               Both server modes remain (FEAT-0008 API stability) and still
+               feed the Now board and the strip's work tab. -->
           <button type="button" class="top-bar-btn" data-mode="library"  title="Library"             role="tab" aria-label="Library"></button>
-          <button type="button" class="top-bar-btn" data-mode="recent"   title="Recent"              role="tab" aria-label="Recent"></button>
         </div>
         <button id="left-pane-collapse" type="button" class="top-bar-btn" title="Collapse left pane" aria-label="Collapse left pane"></button>
       </div>

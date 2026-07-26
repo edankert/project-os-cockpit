@@ -17,6 +17,8 @@ blocks: []
 related: ["[[TASK-0188]]", "[[TASK-0189]]", "[[TASK-0190]]"]
 tests: []
 verification_waiver: "Renderer-only UI; no automated renderer unit-test surface. Validated live via CDP (inline placement, prompt-scoped block set, enriched rows, icon) plus independent review on the code."
+waiver_expires: 2026-10-23
+
 ---
 
 # TASK-0192 — inline in-flight boxes + enriched rows + real icon

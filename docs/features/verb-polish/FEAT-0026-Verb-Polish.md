@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0014]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0137]]", "[[TASK-0138]]", "[[TASK-0139]]", "[[TASK-0140]]"]
 related: ["[[FEAT-0024-Agent-Verbs]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Verb polish

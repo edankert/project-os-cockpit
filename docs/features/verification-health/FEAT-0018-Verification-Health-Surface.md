@@ -3,13 +3,13 @@ type: "[[feature]]"
 id: FEAT-0018
 aliases: ["FEAT-0018"]
 title: "Verification health surface — validator status, drift panel, waiver/review badges"
-status: in-review
+status: review
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-07-17
 goal: "Make the project-os verification state visible while browsing: a live health badge backed by tools/scripts/validate-docs.py, a drift panel deep-linking each violation to the offending note, and badges for verification waivers, review verdicts, and test adequacy."
-related: ["[[FEAT-0017-Overview-Dashboard]]"]
+related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0041-Review-Desk]]", "[[TASK-0211-Verification-Panel]]"]
 tasks: ["[[TASK-0111]]", "[[TASK-0112]]", "[[TASK-0113]]"]
 tests: ["[[TST-0016]]"]
 ---
@@ -40,3 +40,7 @@ While browsing any project-os repo in the cockpit, the user can see at a glance 
 
 ## Status (2026-07-17 — in-review)
 All three tasks are implemented and `done`; see the per-task Verification sections for the file-level breakdown. Automated coverage is [[TST-0016]] (`tests/test_validation.py`, 11 passed with mutation-run adequacy evidence; full suite 201 passed / 1 skipped), which exercises the endpoint's three states, drift deep-links, debounced SSE fan-out (including burst coalescing), the waiver/verdict/adequacy payload flags, and the metadata-strip chip render; the endpoint was additionally smoke-tested by curl against this repo's own docs (`state: "ok"`, `X-Cockpit-Schema: 3`, health slot present in the served chrome). Held at `in-review` pending a human visual pass of the mode-1 UI: badge green→red flip on live drift without reload, drift-panel row navigation, and chip rendering on waived/verdict/adequacy fixtures. The desktop (mode-3) renderer intentionally has no badge yet — the payload and SSE event are renderer-agnostic, so porting the chrome is a follow-up.
+
+## Relationship to the review desk's verification panel (2026-07-26)
+
+[[TASK-0211-Verification-Panel]] adds a per-scope Verification panel to feature, phase and release renders: the scope's acceptance tests with status, last run and staleness, plus Run affordances into the manual-test runner. It is the same surface family as this feature and deliberately does not duplicate it — this feature owns **project-scope health** (validator state, drift, waiver and review badges), the panel owns **per-scope test evidence**. The record column consumes both: validator state from here, test counts from there. If this feature's badges move or change shape, that panel is the other caller to update.

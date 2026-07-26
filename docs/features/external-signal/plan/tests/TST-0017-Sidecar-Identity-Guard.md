@@ -10,6 +10,8 @@ created: 2026-07-19
 updated: 2026-07-19
 validates: ["[[TASK-0146]]", "[[ISS-0007]]"]
 related: ["[[TST-0015]]"]
+last_verified: 2026-07-19
+
 ---
 
 # TST-0017 — sidecar identity guard

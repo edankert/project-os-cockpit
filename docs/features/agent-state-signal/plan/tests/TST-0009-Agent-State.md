@@ -11,6 +11,8 @@ updated: 2026-05-25
 source: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]"]
 verifies: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]", "[[FEAT-0013-Agent-State-Signal]]"]
 path: "tests/test_cockpit_state.py + tests/test_agent_state.py + tests/test_cli_signal.py"
+last_verified: 2026-05-25
+
 ---
 
 # TST-0009 — Agent-state pipe

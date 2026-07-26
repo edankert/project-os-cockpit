@@ -15,6 +15,8 @@ depends: ["[[TASK-0124]]"]
 blocks: []
 related: ["[[TASK-0118]]"]
 tests: ["[[TST-0011]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Overview sessions redesign

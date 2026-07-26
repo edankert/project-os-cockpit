@@ -17,6 +17,8 @@ blocks: []
 related: ["[[TASK-0183]]"]
 tests: ["[[TST-0011]]"]
 verification_waiver: "Renderer-only two-line state reset in the existing switch-reset block; verified by tsc build + code trace (independent review CLOSE on the code). The linked TST-0011 is FEAT-0019's manual live-agent e2e checklist (status: ready), carried under the same waiver as the other FEAT-0019/0030 tasks; the automated harness has no renderer unit-test surface."
+waiver_expires: 2026-10-23
+
 ---
 
 # TASK-0184 — clear sticky strip state on workspace switch

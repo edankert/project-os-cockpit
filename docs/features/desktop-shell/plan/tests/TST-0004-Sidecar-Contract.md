@@ -11,6 +11,8 @@ updated: 2026-05-24
 source: ["[[TASK-0059]]"]
 verifies: ["[[TASK-0059]]", "[[FEAT-0007]]"]
 path: "tests/test_sidecar_contract.py"
+last_verified: 2026-05-24
+
 ---
 
 # TST-0004 — Sidecar contract

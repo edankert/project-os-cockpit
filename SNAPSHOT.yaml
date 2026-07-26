@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-07-24T09:19Z"
+updated: "2026-07-26T00:00Z"
 
 template:
   replace_me: false
@@ -15,7 +15,7 @@ retention:
   keep_closed_issues_in_snapshot: false
   keep_done_tasks_in_snapshot: false
   keep_done_features_in_snapshot: false
-  note: "Snapshot keeps active work + recent changes for handoff; notes are the archive."
+  note: "2026-07-26 PHASE-008 built and reviewed — FEAT-0040 done, FEAT-0041 in-review, 304 tests green, validator OK, uncommitted. Next is TASK-0205: Edwin decides ADR-0007 (approval gate for planning artifacts; advisory-first is the recommendation) — everything ships advisory until then. Also owed: a cross-vendor or human review pass, since the independent-reviewer is the same model family (QUALITY.md)."
 
 docs_system:
   source_of_truth: SNAPSHOT.yaml
@@ -26,29 +26,44 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 5
+  ADR: 8
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 39
-  ISS: 24
-  PHASE: 7
-  REQ: 21
+  FEAT: 41
+  ISS: 31
+  PHASE: 8
+  REQ: 22
   RISK: 4
   REL: 0
-  TASK: 198
-  TST: 19
+  TASK: 212
+  TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0198"
-  feature: "FEAT-0006"
-  phase: "[[PHASE-007-Agent-Instrumentation]]"
-  issue: "ISS-0023"
-  note: "2026-07-24 ISS-0023 — six palette surfaces disagree about `implemented`; introducing a Delivered band backed by a single canonical vocabulary (statuses.py) and a cross-surface parity test. Reported from ../your-sudoku (97 requirements at `implemented` that never clear under Hide-completed). Ships to project-os via release-to-project-os.sh, then syncs to the nine downstream repos."
+  task: "TASK-0205"
+  feature: "FEAT-0041"
+  phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+  issue: ""
+  note: "2026-07-26 preflight for the approved overview-redesign dossier (design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be) — FEAT-0040 overview rework (state-first dashboards, REQ-0022) + FEAT-0041 review desk (~review) under new PHASE-008; governance ADR-0007 (approval gate for planning artifacts) awaits Edwin's decision. First implementation task: TASK-0199 sidecar payload additions."
 
 items:
   features:
+    FEAT-0041:
+      title: "Review desk (~review) — agent proposals, questions, and manual test runs"
+      status: review
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/FEAT-0041-Review-Desk.md"
+      tasks: ["TASK-0205", "TASK-0206", "TASK-0207", "TASK-0208", "TASK-0209", "TASK-0210", "TASK-0211"]
+      note: "Design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be (plate E). Independently shippable from FEAT-0040 except the announce rows (TASK-0210)."
+    FEAT-0040:
+      title: "Overview rework — state-first project & phase dashboards"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/FEAT-0040-Overview-Rework.md"
+      requirements: ["REQ-0022"]
+      tasks: ["TASK-0199", "TASK-0200", "TASK-0201", "TASK-0202", "TASK-0203", "TASK-0204", "TASK-0212"]
+      note: "Design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be (plates C/D). Reworks the FEAT-0017/FEAT-0023 surfaces; partially supersedes FEAT-0036's Active-mode UI (TASK-0204)."
     FEAT-0039:
       title: "Model routing — phase-pinned Claude Code subagents (planner/reviewer on Fable) + snapshot-driven routing-hint hook"
       status: done
@@ -191,7 +206,7 @@ items:
 
     FEAT-0018:
       title: "Verification health surface — validator status, drift panel, waiver/review badges"
-      status: in-review
+      status: review
       phase: "[[PHASE-999-Future]]"
       path: "docs/features/verification-health/FEAT-0018-Verification-Health-Surface.md"
       tasks: ["TASK-0111", "TASK-0112", "TASK-0113"]
@@ -263,6 +278,90 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0212:
+      title: "Design-input references — convention + surfaces: in-repo dossiers wrapped by reference notes, design: frontmatter links, attachment strip, Library Design group"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0212-Design-Input-References.md"
+      parent: "FEAT-0040"
+    TASK-0211:
+      title: "Verification panel — acceptance tests by scope: durable panel on feature/phase/release renders with status, last run, staleness, and Run affordances"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0211-Verification-Panel.md"
+      parent: "FEAT-0041"
+    TASK-0210:
+      title: "Overview announce rows — typed decide/review/answer/run rows in Waiting-on-you deep-linking into ~review"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0210-Overview-Announce-Rows.md"
+      parent: "FEAT-0041"
+    TASK-0209:
+      title: "Manual test runner — TST Steps parsed into a stepper; Pass/Fail/Skip + evidence; status/last_run stamping + ## Runs log; fail drafts an ISS"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0209-Manual-Test-Runner.md"
+      parent: "FEAT-0041"
+    TASK-0208:
+      title: "Question/revise round-trip — dispatch-queue verbs carry agent questions out and human answers/change-requests back as prompts"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0208-Question-Revise-Round-Trip.md"
+      parent: "FEAT-0041"
+    TASK-0207:
+      title: "Proposal-set review — FEAT + children as one set; per-item ticks; Accept stamps review fields, Reject flips to cancelled via guarded POST /api/notes/review"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0207-Proposal-Set-Review.md"
+      parent: "FEAT-0041"
+    TASK-0206:
+      title: "~review virtual page — queue pane grouped Decisions/Proposals/Questions/Test runs, routing, Review mode button with count badge"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0206-Review-Virtual-Page.md"
+      parent: "FEAT-0041"
+    TASK-0205:
+      title: "Governance — decide the approval-gate policy for planning artifacts (ADR-0007 proposed → accepted/amended/superseded)"
+      status: backlog
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/review-desk/plan/tasks/TASK-0205-Approval-Gate-Decision.md"
+      parent: "FEAT-0041"
+    TASK-0204:
+      title: "Retire the Active and Recent nav modes (UI-only) — mode strip slims to six; phase-less default falls back to Overview; server modes stay"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0204-Retire-Active-Recent-Modes.md"
+      parent: "FEAT-0040"
+    TASK-0203:
+      title: "Record column — right pane on both overview scopes becomes Decisions / Verification / Library cards, phase-scoped on drill-down"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0203-Record-Column.md"
+      parent: "FEAT-0040"
+    TASK-0202:
+      title: "Phase-detail rework — header fraction/gates chip, one-line health band, next-action feature rows, exit-criteria summary + evidence chips, Remaining list, scoped activity IDs"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0202-Phase-Detail-Rework.md"
+      parent: "FEAT-0040"
+    TASK-0201:
+      title: "Phase section rework — liveness-sorted accordion with expandable square strips; active-phase meta; finished phases collapse into a Completed band"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0201-Phase-Accordion-And-Completed-Band.md"
+      parent: "FEAT-0040"
+    TASK-0200:
+      title: "Overview stage rework — quiet-first focus band, mix-bar stat tiles (Requirements tile restored), Waiting-on-you list, full-width sparkbar + commits panel"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0200-Overview-Stage-Rework.md"
+      parent: "FEAT-0040"
+    TASK-0199:
+      title: "Sidecar payload additions — SNAPSHOT focus block (with note date) + issue severity in _slim; new /api/cockpit/commits; SCHEMA_VERSION bump"
+      status: done
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      path: "docs/features/overview-rework/plan/tasks/TASK-0199-Sidecar-Payload-Additions.md"
+      parent: "FEAT-0040"
     TASK-0198:
       title: "Delivered status band — one canonical status vocabulary, applied across all six palette surfaces"
       status: done
@@ -1390,6 +1489,40 @@ items:
 
 
   issues:
+    ISS-0030:
+      title: "Phase completion is inferred from task counts and ignores the phase's own status, so a superseded phase reads live; live phases also sort by order: rather than active-first"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0030-Phase-Completion-Ignores-Status.md"
+      related: ["ISS-0029"]
+    ISS-0029:
+      title: "The left Scope pane never got plate C's In-flight/Completed split — five finished phases still shout as loudly as the live one"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0029-Scope-Pane-Completed-Band.md"
+    ISS-0028:
+      title: "Requirements offer no review path, their actions ignore status, and the `verify` verb tells the agent to test-gate them — which ADR-0007 forbids"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0028-Requirement-Review-Actions.md"
+      related: ["ISS-0026"]
+    ISS-0027:
+      title: "Stat-tile mix bars don't span the tile on Features/Tasks/Issues — those tiles are buttons, and the UA stylesheet centres their flex children"
+      status: fixed
+      severity: low
+      path: "docs/issues/ISS-0027-Stat-Tile-Mixbar-Width.md"
+    ISS-0026:
+      title: "The cockpit bundles its own copy of validate-docs.py and it has already drifted from the template (875 vs 885 lines)"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0026-Bundled-Validator-Drift.md"
+      related: ["ISS-0025"]
+    ISS-0025:
+      title: "Incoming ADR-0008 taxonomy collapse empties the delivered band and retires ~12 vocabulary members across eight surfaces"
+      status: fixed
+      severity: medium
+      path: "docs/issues/ISS-0025-Incoming-Taxonomy-Collapse.md"
+      related: ["ISS-0023"]
     ISS-0024:
       title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
       status: open
@@ -1521,13 +1654,17 @@ items:
       component: cockpit-stats
     ISS-0001:
       title: "Watcher-indexed paths poison _records under a mismatched case on macOS, so /api/render returns empty frontmatter for files created/modified after cockpit start"
-      status: closed
+      status: fixed
       severity: high
       phase: "[[PHASE-006-Native-Cockpit-UI]]"
       path: "docs/issues/ISS-0001-WatcherIndexedPathCaseMismatch.md"
       component: index/watcher
 
   requirements:
+    REQ-0022:
+      title: "The overview surfaces project state above history — every fact above the fold is current-state; history (activity, commits) is the only thing scrolled"
+      status: implemented
+      path: "docs/requirements/REQ-0022-Overview-State-Above-History.md"
     REQ-0021:
       title: "Live progress visibility at the console — session work items shown as the coloured block notation, filling in as the agent completes them"
       status: implemented
@@ -1631,6 +1768,11 @@ items:
       status: done
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027"]
+    PHASE-008:
+      title: "State & review surfaces"
+      status: active
+      path: "docs/phases/PHASE-008-State-And-Review-Surfaces.md"
+      features: ["FEAT-0040", "FEAT-0041"]
     PHASE-999:
       title: "Future / Unphased"
       status: planned
@@ -2210,18 +2352,26 @@ items:
       title: "Desktop shell: Electron + Python sidecar (additive, multi-project)"
       status: accepted
       path: "docs/decisions/ADR-0005-Electron-Plus-Python-Sidecar.md"
+    ADR-0006:
+      title: "Retire the delivered band — upstream ADR-0008 deleted its last two members"
+      status: accepted
+      path: "docs/decisions/ADR-0006-Retire-Delivered-Band.md"
+    ADR-0007:
+      title: "Approval gate for planning artifacts — advisory first, measured before gating"
+      status: proposed
+      path: "docs/decisions/ADR-0007-Planning-Artifact-Approval-Gate.md"
 
 metrics:
   counts:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 39
-    features_done: 34
-    tasks_total: 198
-    tasks_done: 194
-    tests_total: 19
-    tests_passing: 18
+    features_total: 41
+    features_done: 35
+    tasks_total: 212
+    tasks_done: 207
+    tests_total: 21
+    tests_passing: 20
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
@@ -2229,4 +2379,4 @@ metrics:
     issues_triage: 0
     risks_open: 4
     releases_total: 0
-    decisions_total: 5
+    decisions_total: 8

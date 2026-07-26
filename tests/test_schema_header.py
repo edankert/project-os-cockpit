@@ -92,6 +92,11 @@ ENDPOINTS: list[tuple[str, str, dict[str, Any] | None, int]] = [
     ("GET",  "/api/cockpit/context?this=README",        None, 200),
     ("GET",  "/api/cockpit/state",                      None, 200),
     ("GET",  "/api/cockpit/validation",                 None, 200),
+    ("GET",  "/api/cockpit/stats",                      None, 200),
+    ("GET",  "/api/cockpit/commits",                    None, 200),
+    ("GET",  "/api/cockpit/commits?limit=5",            None, 200),
+    # Junk limit must not reach git — it clamps to the default (TASK-0199).
+    ("GET",  "/api/cockpit/commits?limit=abc",          None, 200),
     ("GET",  "/api/terminal",                           None, 200),
     ("GET",  "/api/render?path=README.md",              None, 200),
     # Error responses must also carry the header — the renderer

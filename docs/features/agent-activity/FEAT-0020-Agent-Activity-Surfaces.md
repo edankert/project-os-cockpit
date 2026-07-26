@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0011]]"]
 tasks: ["[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0120]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Agent activity surfaces

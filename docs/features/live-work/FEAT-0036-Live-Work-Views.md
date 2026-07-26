@@ -15,7 +15,7 @@ goal: "The cockpit stops being a static snapshot: a status-diff layer turns note
 requirements: []
 tests: []
 tasks: ["[[TASK-0162]]", "[[TASK-0163]]", "[[TASK-0164]]", "[[TASK-0165]]"]
-related: ["[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0030-Agent-Inbox]]"]
+related: ["[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0030-Agent-Inbox]]", "[[FEAT-0040-Overview-Rework]]"]
 ---
 
 # Live work views
@@ -34,3 +34,7 @@ User feedback 2026-07-19: the overview works poorly for phase-less projects and 
 ## Out of scope
 
 Kanban drag-and-drop (statuses change through the docs/agents, not the board); cross-workspace aggregation (that's ~agents).
+
+## Supersession (partial, UI-only)
+
+2026-07-26 — [[FEAT-0040-Overview-Rework]] (TASK-0204) retires the Active nav-mode *button* from the mode strip, and phase-less projects' default mode falls back from Active to Overview, whose Now board (TASK-0165) renders the same data. `nav?mode=active` stays server-side per the FEAT-0008 stability rule and keeps feeding the Now board and the strip work tab (TASK-0163); the status-diff layer (TASK-0162) is untouched. Only TASK-0164's button/default-mode surface is superseded — this feature stays `done`.

@@ -10,6 +10,8 @@ created: 2026-07-19
 updated: 2026-07-19
 validates: ["[[TASK-0162]]"]
 related: []
+last_verified: 2026-07-19
+
 ---
 
 # TST-0018 — status-diff layer

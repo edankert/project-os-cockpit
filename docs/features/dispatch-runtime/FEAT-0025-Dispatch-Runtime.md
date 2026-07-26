@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0014]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0134]]", "[[TASK-0135]]", "[[TASK-0136]]"]
 related: ["[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # Dispatch runtime

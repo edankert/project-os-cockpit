@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0008
-aliases: ["PLAN-FEAT-0008"]
 title: "Plan: Cockpit API hardening (Python side) for the native renderer"
 status: active
 owner: user:edwin

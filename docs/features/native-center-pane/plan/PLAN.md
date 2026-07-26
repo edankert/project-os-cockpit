@@ -1,7 +1,5 @@
 ---
 type: "[[plan]]"
-id: PLAN-FEAT-0011
-aliases: ["PLAN-FEAT-0011"]
 title: "Plan: Native centre pane + routing"
 status: active
 owner: user:edwin

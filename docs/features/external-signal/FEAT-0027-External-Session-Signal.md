@@ -17,6 +17,8 @@ requirements: []
 tests: ["[[TST-0015]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0141]]", "[[TASK-0142]]", "[[TASK-0143]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[ISS-0003-Hook-Path-Space]]"]
+waiver_expires: 2026-10-23
+
 ---
 
 # External session signal

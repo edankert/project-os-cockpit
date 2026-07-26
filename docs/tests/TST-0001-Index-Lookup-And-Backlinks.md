@@ -18,6 +18,8 @@ artifacts: []
 evidence: ["12 passed in 0.06s (2026-05-08)"]
 last_run: "2026-05-08"
 related: ["[[TASK-0007]]", "[[FEAT-0006]]"]
+last_verified: 2026-05-08
+
 ---
 
 # TST-0001 — Index lookup + backlink graph + invalidation

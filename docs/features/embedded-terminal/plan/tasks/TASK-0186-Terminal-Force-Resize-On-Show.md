@@ -17,6 +17,8 @@ blocks: []
 related: []
 tests: []
 verification_waiver: "Renderer-only terminal-mode wiring; xterm mouse-forwarding has no automated renderer unit-test surface. Diagnosed with live CDP instrumentation (captured xterm's mouseTrackingMode flipping to 'none' on switch-in) and confirmed working live by the user after the deterministic mode-restore landed; independent review on the code."
+waiver_expires: 2026-10-23
+
 ---
 
 # TASK-0186 — restore mouse-tracking mode on console re-attach
