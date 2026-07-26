@@ -648,9 +648,17 @@ def test_declining_an_adr_supersedes_rather_than_rejects(workspace: Path) -> Non
         index, "ADR-0001", reviewer="user:edwin", accept=False,
     )
     assert result["status"] == "superseded"
-    assert "rejected" not in (
-        workspace / "decisions" / "ADR-0001-Gate.md"
-    ).read_text()
+    text = (workspace / "decisions" / "ADR-0001-Gate.md").read_text()
+    # The *status* is what must never be `rejected` — that is the
+    # vocabulary rule. The desk's own verdict field is separately allowed
+    # to say `plan-rejected`, which is a record of the review, not a
+    # lifecycle state (an earlier substring check conflated the two).
+    assert 'status: "rejected"' not in text
+    assert "rejected" not in [
+        line.split(":", 1)[1].strip().strip('"')
+        for line in text.splitlines() if line.startswith("status:")
+    ]
+    assert 'review_verdict: "plan-rejected"' in text
 
 
 def test_draft_requirement_is_approved_not_plan_accepted(workspace: Path) -> None:
@@ -671,3 +679,40 @@ def test_decide_refuses_types_it_does_not_own(workspace: Path) -> None:
                 index, note_id, reviewer="user:edwin", accept=True,
             )
         assert exc.value.status == expected
+
+
+def test_queue_reports_the_advisory_phase_tally(workspace: Path, tmp_path: Path) -> None:
+    """ADR-0007 chose advisory-first so gating could be decided with data,
+    and set a trigger (~20 sets, or PHASE-008 close-out). The store was
+    counting outcomes and nothing read them — a revisit with no evidence
+    is the failure ADR-0006 was written about.
+    """
+    store = ReviewStore(tmp_path)
+    for outcome in ("accepted", "accepted-amended", "changes-requested"):
+        rec = store.add("review", items=["FEAT-0001"], title=outcome)
+        store.resolve(rec["request_id"], outcome)
+    open_one = store.add("review", items=["FEAT-0001"], title="still open")
+
+    payload = cockpit.review_queue_payload(Index.build(workspace), store)
+    assert payload["reviewed"] == 3
+    assert payload["outcomes"] == {
+        "accepted": 1, "accepted-amended": 1, "changes-requested": 1,
+    }
+    # An unresolved request counts in the queue, never in the tally.
+    assert open_one["request_id"]
+    assert payload["total"] >= 1
+
+
+def test_decision_records_a_verdict_for_the_future_gate(workspace: Path) -> None:
+    """ADR-0007's future gate predicate is 'has an accepting
+    review_verdict', not a status check. A lone-note decision that wrote
+    only reviewed_by/review_date would be invisible to it."""
+    index = Index.build(workspace)
+    result = note_writes.stamp_decision(
+        index, "ADR-0001", reviewer="user:edwin", accept=True,
+    )
+    assert result["review_verdict"] == note_writes.PLAN_ACCEPTED_VERDICT
+    text = (workspace / "decisions" / "ADR-0001-Gate.md").read_text()
+    assert 'review_verdict: "plan-accepted"' in text
+    # And it is still not close-out's vocabulary.
+    assert "approved" not in text

@@ -1208,9 +1208,17 @@ def review_queue_payload(
         bucket.sort(key=lambda i: str(i.get("id") or i.get("ts") or ""))
 
     total = len(decisions) + len(proposals) + len(questions) + len(runs)
+    # ADR-0007 chose an advisory phase explicitly so gating could be decided
+    # with data ("revisit when ~20 sets have passed through the desk, or at
+    # PHASE-008 close-out"). The store was already counting outcomes and
+    # nothing read them, which would have made that revisit a judgement call
+    # with no evidence — the exact failure ADR-0006 was written about.
+    outcomes = store.outcome_counts() if store is not None else {}
     return {
         "schema_version": SCHEMA_VERSION,
         "total": total,
+        "outcomes": outcomes,
+        "reviewed": sum(outcomes.values()),
         "groups": [
             {"key": "decisions", "label": "Decisions", "items": decisions},
             {"key": "proposals", "label": "Proposals", "items": proposals},

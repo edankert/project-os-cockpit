@@ -51,7 +51,7 @@ items:
   features:
     FEAT-0041:
       title: "Review desk (~review) — agent proposals, questions, and manual test runs"
-      status: review
+      status: done
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       path: "docs/features/review-desk/FEAT-0041-Review-Desk.md"
       tasks: ["TASK-0205", "TASK-0206", "TASK-0207", "TASK-0208", "TASK-0209", "TASK-0210", "TASK-0211"]
@@ -322,7 +322,7 @@ items:
       parent: "FEAT-0041"
     TASK-0205:
       title: "Governance — decide the approval-gate policy for planning artifacts (ADR-0007 proposed → accepted/amended/superseded)"
-      status: backlog
+      status: done
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       path: "docs/features/review-desk/plan/tasks/TASK-0205-Approval-Gate-Decision.md"
       parent: "FEAT-0041"
@@ -2358,7 +2358,7 @@ items:
       path: "docs/decisions/ADR-0006-Retire-Delivered-Band.md"
     ADR-0007:
       title: "Approval gate for planning artifacts — advisory first, measured before gating"
-      status: proposed
+      status: accepted
       path: "docs/decisions/ADR-0007-Planning-Artifact-Approval-Gate.md"
 
 metrics:
@@ -2367,9 +2367,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 41
-    features_done: 35
+    features_done: 36
     tasks_total: 212
-    tasks_done: 207
+    tasks_done: 208
     tests_total: 21
     tests_passing: 20
     test_cases_total: 182

@@ -2668,6 +2668,8 @@ interface ReviewQueueItem {
 interface ReviewQueueGroup { key: string; label: string; items: ReviewQueueItem[] }
 interface ReviewQueuePayload {
   schema_version: number; total: number; groups: ReviewQueueGroup[];
+  outcomes?: Record<string, number>;
+  reviewed?: number;
 }
 interface ReviewDetail {
   kind: string;
@@ -2809,6 +2811,53 @@ function renderReviewQueuePane(payload: ReviewQueuePayload): void {
     empty.className = 'meta review-queue-empty';
     empty.textContent = 'All clear.';
     wrap.appendChild(empty);
+  }
+
+  // The advisory-phase tally (ADR-0007). It is here rather than on a
+  // dashboard because the decision it feeds — whether to make review a
+  // gate — is one the person working the queue makes, and the ADR set an
+  // explicit trigger (~20 sets, or PHASE-008 close-out) that needs a
+  // visible count to fire on.
+  const reviewed = payload.reviewed ?? 0;
+  if (reviewed > 0) {
+    const foot = document.createElement('div');
+    foot.className = 'review-tally';
+    const head = document.createElement('div');
+    head.className = 'scope-heading';
+    head.textContent = `Reviewed · ${reviewed}`;
+    foot.appendChild(head);
+    const labels: Record<string, string> = {
+      accepted: 'accepted as proposed',
+      'accepted-amended': 'accepted, amended',
+      'changes-requested': 'changes requested',
+      rejected: 'rejected',
+      answered: 'questions answered',
+    };
+    for (const [key, label] of Object.entries(labels)) {
+      const n = payload.outcomes?.[key] ?? 0;
+      if (n === 0) continue;
+      const row = document.createElement('div');
+      row.className = 'review-tally-row';
+      const l = document.createElement('span');
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'num';
+      v.textContent = String(n);
+      row.append(l, v);
+      foot.appendChild(row);
+    }
+    // The measurement's whole point: did review change anything?
+    const changed = (payload.outcomes?.['accepted-amended'] ?? 0)
+      + (payload.outcomes?.['changes-requested'] ?? 0)
+      + (payload.outcomes?.rejected ?? 0);
+    const note = document.createElement('p');
+    note.className = 'review-tally-note';
+    const sets = reviewed - (payload.outcomes?.answered ?? 0);
+    note.textContent = sets > 0
+      ? `${changed} of ${sets} set${sets === 1 ? '' : 's'} changed on review`
+      : '';
+    if (note.textContent) foot.appendChild(note);
+    wrap.appendChild(foot);
   }
   wsNavContent.replaceChildren(wrap);
 }

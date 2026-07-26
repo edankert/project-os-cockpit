@@ -3,10 +3,10 @@ type: "[[adr]]"
 id: ADR-0007
 aliases: ["ADR-0007"]
 title: "Approval gate for planning artifacts — advisory first, measured before gating"
-status: proposed
+status: "accepted"
 owner: user:edwin
 created: 2026-07-26
-updated: 2026-07-26
+updated: "2026-07-26"
 source: ["https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be"]
 decision: "Adopt an advisory review flow first: every planning artifact set the agent produces is reviewable in ~review, nothing is blocked on acceptance, and the desk records how often review actually changes a plan. The mechanism introduces no new states: FEAT/TASK proposal sets enter the queue as dispatch-ledger review requests while their notes stay at plain `backlog`; accepting a set stamps the existing independent-review frontmatter (`reviewed_by`, `review_date`, `review_verdict`) into each note and clears the ledger request; rejecting flips the set to the existing `cancelled` status; ADR/REQ/TST queue groups use their existing intake states (`proposed`/`draft`/`ready`). Only after measurement decide whether to promote the gate to gated-by-type — and if so, the gate predicate is 'has an accepting review_verdict', not a status check."
 context: "Today LIFECYCLE lets preflight create planning artifacts and proceed straight to implementation; the review desk (FEAT-0041) introduces a surface where a human can accept, amend, or reject a proposal set before work starts. Making review a hard gate — dispatch refusing a set that has not been accepted — would be a lifecycle change, and the fleet's own history (ADR-0006: a band nobody ever wrote; upstream ADR-0008: statuses measured before deletion) argues for measuring before legislating. The queue/record split follows ADR-0009 and the REQ-0018 attention model: pending-ness is transient runtime state (the dispatch ledger), the durable outcome lives in the note (review fields, or a real status transition)"
@@ -23,6 +23,8 @@ consequences:
   - "The review fields do double duty: today they record close-out independent review (e.g. FEAT-0023), now also plan acceptance. The desk must not let a plan-acceptance stamp satisfy the close-out review gate — distinguish by verdict value (decide the exact value in TASK-0207)"
   - "The advisory phase must actually measure: the desk records per-set outcomes (accepted unchanged / accepted amended / changes requested / rejected) so the gating decision is evidence-based, the same lesson ADR-0006 codified"
 related: ["[[FEAT-0041-Review-Desk]]", "[[TASK-0205]]", "[[FEAT-0025-Dispatch-Runtime]]", "[[ADR-0006-Retire-Delivered-Band]]"]
+reviewed_by: "user:edwin"
+review_date: "2026-07-26"
 ---
 
 # Approval gate for planning artifacts

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0041
 aliases: ["FEAT-0041"]
 title: "Review desk (~review) — agent proposals, questions, and manual test runs"
-status: review
+status: done
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26

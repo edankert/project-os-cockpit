@@ -348,9 +348,20 @@ def stamp_decision(
     fm_lines = _set_field(fm_lines, "status", normalised)
     fm_lines = _set_field(fm_lines, "reviewed_by", reviewer.strip())
     fm_lines = _set_field(fm_lines, "review_date", _today())
+    # ADR-0007 names the future gate predicate as "has an accepting
+    # `review_verdict`", not a status check. Writing it here keeps a
+    # lone-note decision legible to that gate if the advisory phase ever
+    # promotes — and legible to the measurement in the meantime.
+    fm_lines = _set_field(
+        fm_lines, "review_verdict",
+        PLAN_ACCEPTED_VERDICT if accept else PLAN_REJECTED_VERDICT,
+    )
     fm_lines = _set_field(fm_lines, "updated", _today())
     _write(path, fm_lines, body)
-    return {"id": note_id, "status": normalised, "accepted": accept}
+    return {
+        "id": note_id, "status": normalised, "accepted": accept,
+        "review_verdict": PLAN_ACCEPTED_VERDICT if accept else PLAN_REJECTED_VERDICT,
+    }
 
 
 def _guard_transition(kind: str, status: str) -> None:
