@@ -63,3 +63,14 @@ Refusing the string turned out to be only half the guard. Independent review (20
 ## Consequences
 
 See frontmatter. The two that need active tracking: the review-field double duty (plan acceptance vs close-out independent review share `reviewed_by`/`review_date`/`review_verdict` — the desk must distinguish by verdict value so a plan-acceptance stamp never satisfies the close-out gate; exact value decided in TASK-0207), and the measurement obligation (the advisory phase is an experiment, not a resting place; TASK-0205 carries the decision, and the revisit is part of PHASE-008's close-out).
+
+## Advisory-phase revisit (PHASE-008 close-out, 2026-07-26)
+
+The ADR set two triggers for revisiting the gate: ~20 proposal sets through the desk, or PHASE-008's close-out, whichever is later. Close-out has arrived first, and the honest reading is that **there is nothing yet to decide with.**
+
+The desk shipped and was accepted on the same day. Its measurable history is one review request — filed by the implementing session to exercise the flow end to end — which was cleared as test residue rather than resolved, because resolving it would have injected a fabricated data point into the exact tally this phase exists to collect. The advisory-phase count is therefore zero, honestly.
+
+That is not a failure of the measurement; it is the measurement working. The trigger stands at ~20 sets and the gating question stays open. What changed at close-out is that the tally is now *visible* — the queue pane renders it, including how many sets changed on review — so the revisit will have evidence when it happens rather than a recollection.
+
+One observation worth keeping for that revisit: the first real use of the desk was a human accepting an ADR through it, which is the *lightest* case (one note, no set, no amendment). The interesting evidence will come from proposal sets that get amended or sent back, and none has occurred yet.
+

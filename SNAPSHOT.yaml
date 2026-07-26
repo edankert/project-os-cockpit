@@ -15,7 +15,7 @@ retention:
   keep_closed_issues_in_snapshot: false
   keep_done_tasks_in_snapshot: false
   keep_done_features_in_snapshot: false
-  note: "2026-07-26 PHASE-008 built and reviewed — FEAT-0040 done, FEAT-0041 in-review, 304 tests green, validator OK, uncommitted. Next is TASK-0205: Edwin decides ADR-0007 (approval gate for planning artifacts; advisory-first is the recommendation) — everything ships advisory until then. Also owed: a cross-vendor or human review pass, since the independent-reviewer is the same model family (QUALITY.md)."
+  note: "2026-07-26 PHASE-008 complete bar one gate: FEAT-0040 and FEAT-0041 done, REQ-0022 implemented, 314 tests green, fleet migrated to the hyphen-free vocabulary (ADR-0012). The phase stays active until TST-0011 is run once through the ~review manual test runner — it is manual by design and needs Edwin at the desk. Also owed: a cross-vendor or human review pass (QUALITY.md)."
 
 docs_system:
   source_of_truth: SNAPSHOT.yaml
@@ -41,8 +41,8 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0205"
-  feature: "FEAT-0041"
+  task: ""
+  feature: ""
   phase: "[[PHASE-008-State-And-Review-Surfaces]]"
   issue: ""
   note: "2026-07-26 preflight for the approved overview-redesign dossier (design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be) — FEAT-0040 overview rework (state-first dashboards, REQ-0022) + FEAT-0041 review desk (~review) under new PHASE-008; governance ADR-0007 (approval gate for planning artifacts) awaits Edwin's decision. First implementation task: TASK-0199 sidecar payload additions."
