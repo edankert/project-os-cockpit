@@ -2410,6 +2410,11 @@ items:
   releases: {}
 
   designs:
+    DES-0002:
+      file: "docs/designs/DES-0002-Cockpit-Design-System.md"
+      title: "Cockpit design system"
+      status: draft
+      note: "role: system. Values read from base.css/cockpit.css, not invented; records two real gaps (no spacing scale, no type scale) rather than papering over them. The living style-guide artifact is TASK-0221's output."
     DES-0001:
       file: "docs/designs/DES-0001-Overview-Redesign.md"
       title: "Overview redesign — the design PHASE-008 was built from"
