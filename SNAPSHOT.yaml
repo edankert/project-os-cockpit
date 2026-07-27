@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0214"
+  task: "TASK-0221"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009, revised after Fable's cold review. Order is convention (0214) -> authoring contract (0221) -> render (0215) -> CAPTURE (0220) -> compare (0216); capture before compare, because rendering history is worthless while nothing deposits it. The token-parity claim is demoted: the real justification is the render loop and the record."
+  note: "2026-07-27 PHASE-009. TASK-0214 done (type-based membership + register + gated asset endpoint). Now the authoring contract (0221), which 0215 and 0219 both depend on: DES-0001 declares zero regions and non-corresponding token names, so the detectors have nothing that can pass them yet."
 
 items:
   features:
@@ -296,7 +296,7 @@ items:
     TASK-0221:
       file: "docs/features/design-bench/plan/tasks/TASK-0221-Design-Authoring-Contract.md"
       title: "Design authoring contract — what a conforming artifact looks like"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
       note: "DES-0001 declares zero regions and uses non-corresponding token names; the plan built detectors without the guidance that would let an artifact pass them."
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 210
+    tasks_done: 211
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

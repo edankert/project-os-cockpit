@@ -481,7 +481,7 @@ main.mocks-dark .mock {
 <main id="plates">
 
 <!-- ================= PLATE A — current project overview ================= -->
-<section class="plate" id="plate-a">
+<section class="plate" id="plate-a" data-design-region="plate-a">
   <p class="plate-kicker cur">Plate A · Current</p>
   <h2 class="plate-title">Project overview, as built</h2>
   <p class="plate-blurb">Faithful recreation from <span class="mono">renderer.ts</span> / <span class="mono">renderer.css</span>. Four stacked sections — hero, phases, charts, feed — with the right pane nearly empty. The dashed line marks the fold in a 900&nbsp;px window.</p>
@@ -519,7 +519,7 @@ main.mocks-dark .mock {
     </div>
     <div class="m-stage">
       <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
-      <section class="annot" data-pin="1">
+      <section class="annot" data-pin="1" data-design-region="plate-a-pin-1">
         <div class="ov-hero">
           <div class="hero-cell"><div class="hero-v">32 / 39</div><div class="hero-l">Features</div></div>
           <div class="hero-cell"><div class="hero-v">188 / 198</div><div class="hero-l">Tasks</div></div>
@@ -529,7 +529,7 @@ main.mocks-dark .mock {
           <div class="hero-cell"><div class="hero-v sm">Cockpit CSS parity guards (ISS-0024 §2)</div><div class="hero-l">Last change</div><div class="hero-s">2026-07-22</div></div>
         </div>
       </section>
-      <section class="annot" data-pin="2">
+      <section class="annot" data-pin="2" data-design-region="plate-a-pin-2">
         <h3 class="m-h3">Progress by phase</h3>
         <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Render Server</span><span class="num">12/12</span></div>
           <div class="ph-bar"><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span><span class="sq-g" data-sqs="feature:d,task:d,task:d,task:d,task:d,task:d"></span></div></div>
@@ -548,7 +548,7 @@ main.mocks-dark .mock {
         <div class="ph-row"><div class="ph-meta"><span class="pt lnk">Future</span><span class="num">2/9</span></div>
           <div class="ph-bar"><span class="sq-g" data-sqs="feature:o,task:d,task:d,task:o,test:x"></span><span class="sq-g loose" data-sqs="feature:o,feature:o,task:o,task:o"></span></div></div>
       </section>
-      <section class="ov-bottom annot" data-pin="3">
+      <section class="ov-bottom annot" data-pin="3" data-design-region="plate-a-pin-3">
         <div class="tile">
           <h3 class="m-h3">Activity (last 13 weeks)</h3>
           <div class="act-chart"><i style="height:18%"></i><i style="height:30%"></i><i style="height:12%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:42%"></i><i style="height:70%"></i><i style="height:47%"></i><i style="height:84%"></i><i style="height:62%"></i><i style="height:95%"></i><i style="height:78%"></i><i style="height:100%"></i></div>
@@ -564,7 +564,7 @@ main.mocks-dark .mock {
           </div>
         </div>
       </section>
-      <section class="annot" data-pin="4">
+      <section class="annot" data-pin="4" data-design-region="plate-a-pin-4">
         <h3 class="m-h3">Recent activity</h3>
         <ul class="feed">
           <li><span class="d">2026-07-22</span><span class="ty i-change">change</span><span class="idm">CHG-20260722</span><span class="ti">Cockpit CSS parity guards (ISS-0024 §2)</span></li>
@@ -598,7 +598,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= PLATE B — current phase detail ================= -->
-<section class="plate" id="plate-b">
+<section class="plate" id="plate-b" data-design-region="plate-b">
   <p class="plate-kicker cur">Plate B · Current</p>
   <h2 class="plate-title">Phase detail (drill-down), as built</h2>
   <p class="plate-blurb">The FEAT-0023 scoped dashboard for <span class="mono">~overview/PHASE-007</span>. The header and a repeated six-tile hero consume the top ~230 px before anything phase-specific appears; the feature list encodes progress only as anonymous squares.</p>
@@ -636,7 +636,7 @@ main.mocks-dark .mock {
     </div>
     <div class="m-stage">
       <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
-      <section class="annot" data-pin="1">
+      <section class="annot" data-pin="1" data-design-region="plate-b-pin-1">
         <div class="scoped-head">
           <span class="crumb">Overview</span><span class="sep">▸</span>
           <h2>PHASE-007 · Agent Instrumentation</h2>
@@ -644,7 +644,7 @@ main.mocks-dark .mock {
           <span class="open">open note ↗</span>
         </div>
       </section>
-      <section class="annot" data-pin="2">
+      <section class="annot" data-pin="2" data-design-region="plate-b-pin-2">
         <div class="ov-hero">
           <div class="hero-cell"><div class="hero-v">15 / 16</div><div class="hero-l">Features</div></div>
           <div class="hero-cell"><div class="hero-v">58 / 61</div><div class="hero-l">Tasks</div></div>
@@ -654,7 +654,7 @@ main.mocks-dark .mock {
           <div class="hero-cell"><div class="hero-v sm">Cockpit CSS parity guards (ISS-0024 §2)</div><div class="hero-l">Last change</div><div class="hero-s">2026-07-22</div></div>
         </div>
       </section>
-      <section class="annot" data-pin="3">
+      <section class="annot" data-pin="3" data-design-region="plate-b-pin-3">
         <h3 class="m-h3">Features in this phase</h3>
         <div class="sfeat"><span class="fn">FEAT-0039 Model routing — phase-pinned subagents</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:a,task:o"></span></span><span class="chip c-act">doing</span></div>
         <div class="sfeat"><span class="fn">FEAT-0038 Console progress rail</span><span class="sqs"><span class="sq-g" data-sqs="requirement:d,task:d,task:d,task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
@@ -665,7 +665,7 @@ main.mocks-dark .mock {
         <div class="sfeat"><span class="fn">FEAT-0019 Agent hook ingestion</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:d,task:d,task:d,task:d"></span></span><span class="chip c-done">done</span></div>
         <div class="sfeat"><span class="fn" style="color:var(--m-muted)">Loose items</span><span class="sqs"><span class="sq-g loose" data-sqs="issue:t,test:o,task:d,task:d"></span></span></div>
       </section>
-      <section class="ov-bottom annot" data-pin="4" style="align-items:start">
+      <section class="ov-bottom annot" data-pin="4" data-design-region="plate-b-pin-4" style="align-items:start">
         <div class="tile">
           <h3 class="m-h3">Exit criteria</h3>
           <ul class="exit">
@@ -722,7 +722,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= PLATE C — proposed project overview ================= -->
-<section class="plate" id="plate-c">
+<section class="plate" id="plate-c" data-design-region="plate-c">
   <p class="plate-kicker pro">Plate C · Proposed</p>
   <h2 class="plate-title">Project overview — state first, history compressed</h2>
   <p class="plate-blurb">Same window, same idioms (squares, chips, muted palette) — reweighted, and now shown in the repo's <b>actual quiet state</b> (2026-07-26: nothing in flight, focus terminal, one open issue, four open risks). Phases are an accordion — any row expands; PHASE-006 is shown open. Activity and a new Commits panel run full width. The right pane becomes the record column: decisions, verification, library. The organizing rule: <b>state above the fold, history below it</b>. The mid-session variant of the live bands is exhibited under the window.</p>
@@ -760,7 +760,7 @@ main.mocks-dark .mock {
     </div>
     <div class="m-stage">
       <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
-      <section class="focus-band annot" data-pin="1">
+      <section class="focus-band annot" data-pin="1" data-design-region="plate-c-pin-1">
         <span class="fl">FOCUS</span>
         <span class="fchip"><span class="idm i-phase">PHASE-007</span> Agent Instr.</span>
         <span class="fsep">▸</span>
@@ -769,7 +769,7 @@ main.mocks-dark .mock {
         <span class="fchip" title="focus note is 2d old — predates ADR-0006"><span class="idm i-task">TASK-0198</span> Status band <span class="c-done">✓ done</span></span>
         <span class="flast">idle · last <span class="idm">e281eaa</span> · 1d</span>
       </section>
-      <section class="annot" data-pin="2">
+      <section class="annot" data-pin="2" data-design-region="plate-c-pin-2">
         <div class="stat-strip">
           <div class="stat"><div class="sl">Features<span class="delta">+1w</span></div><div class="sv">32<small>/39</small></div>
             <div class="mixbar" title="32 done · 1 in review · 4 backlog · 2 retired"><i class="g-done" style="flex:32"></i><i class="g-doing" style="flex:1"></i><i class="g-back" style="flex:6"></i></div></div>
@@ -836,7 +836,7 @@ main.mocks-dark .mock {
         <div class="php-slim"><span class="chev">▸</span><span class="pn">PHASE-001 · Render Server</span><span class="cnt">12 items · Mar 2026</span></div>
         </div>
       </section>
-      <section class="tile annot" data-pin="5">
+      <section class="tile annot" data-pin="5" data-design-region="plate-c-pin-5">
         <h3 class="m-h3">Waiting on you · 6</h3>
         <ul class="att-list att2">
           <li><span class="idm i-issue">ISS-0024</span><span class="ti">Status surfaces outside the parity guard</span><span class="chip c-pend">open</span></li>
@@ -847,12 +847,12 @@ main.mocks-dark .mock {
           <li><span class="idm i-risk">RISK-0004</span><span class="ti">Hook injection surface</span><span class="chip c-high">open</span></li>
         </ul>
       </section>
-      <section class="tile annot" data-pin="6">
+      <section class="tile annot" data-pin="6" data-design-region="plate-c-pin-6">
         <h3 class="m-h3">Activity</h3>
         <div class="spark" style="height:34px"><i style="height:18%"></i><i style="height:30%"></i><i style="height:12%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:42%"></i><i style="height:70%"></i><i style="height:47%"></i><i style="height:84%"></i><i style="height:62%"></i><i style="height:95%"></i><i style="height:78%"></i><i class="nowk" style="height:100%"></i></div>
         <div class="spark-sub num" style="margin-bottom:0">34 touches this week · 4 notes yesterday · busiest week since May</div>
       </section>
-      <section class="tile annot" data-pin="7">
+      <section class="tile annot" data-pin="7" data-design-region="plate-c-pin-7">
         <h3 class="m-h3">Commits · main</h3>
         <ul class="cmt">
           <li class="cmt-quiet"><span class="sha">e281eaa</span><span class="d">07-25</span><span class="msg">chore(project-os): sync — requirements gated on criteria</span><span class="chips"><span class="fchip"><span class="idm">SNAPSHOT</span></span></span></li>
@@ -927,7 +927,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= PLATE D — proposed phase detail ================= -->
-<section class="plate" id="plate-d">
+<section class="plate" id="plate-d" data-design-region="plate-d">
   <p class="plate-kicker pro">Plate D · Proposed</p>
   <h2 class="plate-title">Phase detail — gates, remainder, next action</h2>
   <p class="plate-blurb">The drill-down stops repeating the project dashboard and starts answering phase questions: how far, what gates it, what's left, what's next. Feature rows carry fractions and name their in-flight child; a "remaining work" list spells out what the squares only gesture at. This window deliberately reconstructs the <b>mid-session</b> state of July 23 — the busy counterpart to plate C's quiet day. The right pane is the record column at phase scope: this phase's acceptance tests and decisions.</p>
@@ -965,7 +965,7 @@ main.mocks-dark .mock {
     </div>
     <div class="m-stage">
       <div class="fold" style="top:840px"><em>FOLD · 900px window</em></div>
-      <section class="annot" data-pin="1">
+      <section class="annot" data-pin="1" data-design-region="plate-d-pin-1">
         <div class="scoped-head hd-band">
           <span class="crumb">Overview</span><span class="sep">▸</span>
           <h2>PHASE-007 · Agent Instrumentation</h2>
@@ -973,7 +973,7 @@ main.mocks-dark .mock {
           <span class="stat-inline"><span class="num" style="color:var(--m-text);font-weight:600">58/61 · 95%</span><span class="fchip" title="4 of 6 exit criteria met"><span class="idm">gates 4/6</span></span><span class="open" style="margin-left:4px">open note ↗</span></span>
         </div>
       </section>
-      <section class="health annot" data-pin="2">
+      <section class="health annot" data-pin="2" data-design-region="plate-d-pin-2">
         <span class="hi"><b>15/16</b> features<span class="mixbar"><i class="g-done" style="flex:15"></i><i class="g-doing" style="flex:1"></i></span></span>
         <span class="div"></span>
         <span class="hi"><b>58/61</b> tasks<span class="mixbar"><i class="g-done" style="flex:58"></i><i class="g-doing" style="flex:1"></i><i class="g-back" style="flex:2"></i></span></span>
@@ -985,7 +985,7 @@ main.mocks-dark .mock {
         <span class="hi" style="color:var(--m-accent)">1 in flight</span>
         <span class="hi" style="color:var(--m-med)">1 triage</span>
       </section>
-      <section class="annot" data-pin="3">
+      <section class="annot" data-pin="3" data-design-region="plate-d-pin-3">
         <h3 class="m-h3">Features · 16</h3>
         <div class="feat2">
           <div class="r1"><span class="fn">FEAT-0039 Model routing — phase-pinned subagents</span><span class="frac num">1/3</span><span class="sqs"><span class="sq-g" data-sqs="task:d,task:a,task:o"></span></span><span class="chip c-act">doing</span></div>
@@ -1035,7 +1035,7 @@ main.mocks-dark .mock {
           </ul>
         </div>
       </section>
-      <section class="annot" data-pin="6">
+      <section class="annot" data-pin="6" data-design-region="plate-d-pin-6">
         <h3 class="m-h3">Activity in this phase</h3>
         <ul class="feed">
           <li style="padding:5px 8px"><span class="d">07-22</span><span class="ty i-task">task</span><span class="idm">TASK-0193</span><span class="ti">Sidecar: in-flight set from SNAPSHOT focus</span></li>
@@ -1084,7 +1084,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= PLATE E — review desk ================= -->
-<section class="plate" id="plate-e">
+<section class="plate" id="plate-e" data-design-region="plate-e">
   <p class="plate-kicker pro">Plate E · Proposed</p>
   <h2 class="plate-title">The review desk (~review) — where the agent's asks become decisions</h2>
   <p class="plate-blurb"><b>Should this live on the project screen?</b> Split it by role. Reviewing a proposal set or stepping through a manual test is a <i>session</i> — it needs the whole stage, context, and actions — while the project screen's job is to be glanceable. So: the overview <b>announces</b> (typed rows in Waiting-on-you, a count badge on the mode icon) and a new virtual page <b>~review</b> — the same pattern as ~overview and ~agents — <b>acts</b>. Everything below runs on rails that already exist — and introduces <b>no new status anywhere</b>: ADRs, requirements, and tests queue on their existing intake states (<span class="mono">proposed</span> / <span class="mono">draft</span> / <span class="mono">ready</span>); feature/task sets queue as dispatch-ledger review requests (FEAT-0025) while their notes sit at plain <span class="mono">backlog</span>; accepting stamps the existing <span class="mono">reviewed_by / review_date / review_verdict</span> fields (the independent-review convention); session provenance comes from the hooks (FEAT-0019); write-back has its precedent in the interactive checkboxes (TASK-0074). Two views of the same screen: a proposal review, then a manual test run. One boundary the desk must keep: <b>it is a queue, and queues empty</b> — while the two founding asks (validate a feature/phase/release with acceptance tests; keep the project's design input visible) are <b>records, and records grow</b>. The queue is the doorbell; the durable homes are exhibited after the windows — acting on a queue row always writes into one of them.</p>
@@ -1135,7 +1135,7 @@ main.mocks-dark .mock {
       <div class="qrow"><span class="kind k-run">run</span><span class="tt">TST-0011 Live instrumentation</span><span class="age">8w</span></div>
     </div>
     <div class="m-stage">
-      <section class="annot" data-pin="3">
+      <section class="annot" data-pin="3" data-design-region="plate-e-pin-3">
         <div class="rev-head">
           <span class="kind k-review">review</span>
           <h2>FEAT-0040 · Overview redesign</h2>
@@ -1144,7 +1144,7 @@ main.mocks-dark .mock {
         </div>
         <p class="rev-sub">scaffolded by <b>claude</b> · session 7c31 · 2h ago · review requested via the dispatch ledger</p>
       </section>
-      <section class="tile annot" data-pin="5" style="display:flex; flex-direction:column; gap:8px">
+      <section class="tile annot" data-pin="5" data-design-region="plate-e-pin-5" style="display:flex; flex-direction:column; gap:8px">
         <p style="margin:0; font-size:13px; color:var(--m-muted)">Overview surfaces rebuilt around state-before-history: quiet-first focus band, mix-bar stat tiles, phase accordion with a Completed band, Waiting-on-you, full-width activity + commits, record column.</p>
         <div class="attach">▣ design dossier — cockpit-overview-redesign ↗<span style="color:var(--m-faint); font-size:11px">artifact · 5 plates</span></div>
         <div class="impact annot" data-pin="4">Impact analysis: touches FEAT-0017 / FEAT-0023 surfaces · no REQ conflicts found · introduces no status vocabulary (ADR-0006 guard unaffected) · schema bump required (FEAT-0008 rule)</div>
@@ -1158,7 +1158,7 @@ main.mocks-dark .mock {
         <div class="setrow"><span class="cb">✓</span><span class="idm i-task">TASK-0202</span><span class="ti">Record column — decisions, verification, library</span><span class="chip c-pend">backlog</span></div>
         <div class="setrow"><span class="cb on">✓</span><span class="idm i-task">TASK-0203</span><span class="ti">Quiet/live state handling + empty states</span><span class="chip c-pend">backlog</span></div>
       </section>
-      <section class="annot" data-pin="6">
+      <section class="annot" data-pin="6" data-design-region="plate-e-pin-6">
         <div class="compose">Optional note back to the agent — "TASK-0202: hold the record column until we've decided option A vs B…" · Request changes sends this and the unticked rows to the session via the dispatch queue</div>
       </section>
     </div>
@@ -1215,7 +1215,7 @@ main.mocks-dark .mock {
       <div class="qrow cur"><span class="kind k-run">run</span><span class="tt">TST-0011 Live instrumentation</span><span class="age">8w</span></div>
     </div>
     <div class="m-stage">
-      <section class="annot" data-pin="8">
+      <section class="annot" data-pin="8" data-design-region="plate-e-pin-8">
         <div class="rev-head">
           <span class="kind k-run">run</span>
           <h2>TST-0011 · Live session instrumentation</h2>
@@ -1237,7 +1237,7 @@ main.mocks-dark .mock {
         <div class="step"><span class="sno">5</span><span>Focus the workspace — the pulse calms to static (seen-ack, TASK-0157)</span></div>
         <div class="step"><span class="sno">6</span><span>Wait 10 min — the attention row must not decay (REQ-0018)</span></div>
       </section>
-      <section class="annot" data-pin="10">
+      <section class="annot" data-pin="10" data-design-region="plate-e-pin-10">
         <div class="compose">On completion the run stamps <span class="idm">status</span> + <span class="idm">last_run</span> into the note and appends the step log under <span class="idm">## Runs</span>. A failing step drafts an ISS with the step, expected/observed, and evidence — straight into issue intake.</div>
       </section>
     </div>
@@ -1299,7 +1299,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= STATES AUDIT ================= -->
-<section class="plate" id="states">
+<section class="plate" id="states" data-design-region="states">
   <h2>States — a reality audit</h2>
   <p>v1 assumed live states for effect. This pass audits every status the design leans on against the actual corpus (frontmatter of every note, 2026-07-26) and against <i>who writes it, when</i>. The finding that shapes the whole design: this repo's work is <b>bursty</b> — an agent session sets <span class="mono">doing</span>, ships, and flips everything terminal at close-out, so the overview is mostly viewed in the quiet between sessions. The durable states are the human-shaped ones: things waiting on review, decisions, execution, or closure.</p>
   <div class="tbl-scroll"><table>
@@ -1321,7 +1321,7 @@ main.mocks-dark .mock {
 </section>
 
 <!-- ================= NOTES ================= -->
-<section class="plate" id="notes">
+<section class="plate" id="notes" data-design-region="notes">
   <h2>Notes &amp; data</h2>
   <p>The redesign moves no idiom the cockpit hasn't already established — squares, chips, the muted REQ-0012 palette, uppercase section labels — it reweights them. Two principles did all the work: <b>state before history</b> (focus, attention, and in-flight items outrank charts of the past) and <b>one fact, one place</b> (the donut section died because the mix-bars in the tiles state the same numbers in situ).</p>
 

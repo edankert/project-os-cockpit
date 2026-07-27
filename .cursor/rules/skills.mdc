@@ -14,6 +14,7 @@ Before performing a project-os lifecycle operation (intake, scaffold, close-out,
 - `tools/skills/change-note/SKILL.md`
 - `tools/skills/close-out/SKILL.md`
 - `tools/skills/cockpit-driving/SKILL.md`
+- `tools/skills/design-authoring/SKILL.md`
 - `tools/skills/docs-audit/SKILL.md`
 - `tools/skills/feature-scaffold/SKILL.md`
 - `tools/skills/impact-analysis/SKILL.md`

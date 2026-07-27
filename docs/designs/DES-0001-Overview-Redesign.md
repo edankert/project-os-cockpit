@@ -44,6 +44,20 @@ Two findings did most of the work and are worth re-reading before changing these
 
 Update the HTML in place when the surfaces change materially, and keep the plate numbering stable so the annotations in [[FEAT-0040-Overview-Rework]] and [[FEAT-0041-Review-Desk]] keep resolving. The `design:` frontmatter field on those notes is what puts this dossier in their attachment strip and in the record column's Library card; adding the same field to a new feature is all it takes to surface its own input.
 
+## Regions
+
+Retrofitted 2026-07-27 so the annotation surface has anchors ([[TASK-0221]]). **29 regions, no duplicates.**
+
+Seven top-level, one per plate — the granularity a reviewer actually comments at:
+
+`plate-a` · `plate-b` · `plate-c` · `plate-d` · `plate-e` · `states` · `notes`
+
+Twenty-two finer anchors on the annotation callouts, scoped as `<plate>-pin-<n>`.
+
+**The scoping is not cosmetic.** The dossier's `data-pin` numbers restart at 1 in every plate, so a bare `pin-1` would have collided five ways — the duplicate-ID hazard the authoring contract warns about, present in the founding artifact before anyone looked for it. Region IDs derive from existing `id="plate-x"` anchors rather than being invented, so they were already stable names.
+
+Region IDs are published names: **add and deprecate, never rename.** A rename is indistinguishable from delete-and-add and silently orphans every comment anchored to it.
+
 ## Migration note (2026-07-27)
 
 Filed as `REF-0001` under `docs/references/design/` because no design note type existed. It does now (project-os-dev FEAT-0019), so this became `DES-0001` under `docs/designs/`.
