@@ -229,20 +229,27 @@ function buildContextTemplate(
             .filter((v) => typeof v?.key === 'string' && typeof v?.label === 'string')
         : [];
       if (verbs.length > 0) {
-        const currentAgent = payload.currentAgent === 'codex' ? 'codex' : 'claude';
+        // Preserve whatever the renderer says is current, even if this build
+        // does not recognise it: coercing to 'claude' ticked the wrong radio
+        // and made a third agent unselectable (ISS-0032).
+        const currentAgent = typeof payload.currentAgent === 'string'
+          ? payload.currentAgent : '';
+        const menuAgents = Array.isArray(payload.agents) && payload.agents.length
+          ? payload.agents as Array<{ id: string; label: string }>
+          : [{ id: 'claude', label: 'Claude Code' }, { id: 'codex', label: 'Codex' }];
         const submenu: Electron.MenuItemConstructorOptions[] = verbs.map((v) => ({
           label: String(v.label),
           click: () => sendDispatch('agent-dispatch', { id, rel, verb: v.key, workspaceId }),
         }));
         submenu.push({ type: 'separator' });
-        submenu.push({
-          label: 'Claude Code', type: 'radio', checked: currentAgent === 'claude',
-          click: () => sendDispatch('agent-set', { agent: 'claude' }),
-        });
-        submenu.push({
-          label: 'Codex', type: 'radio', checked: currentAgent === 'codex',
-          click: () => sendDispatch('agent-set', { agent: 'codex' }),
-        });
+        // Built from the registry, not two literals (ISS-0032): adding an agent
+        // is one entry in agents.py, not an edit here as well.
+        for (const a of menuAgents) {
+          submenu.push({
+            label: a.label, type: 'radio', checked: currentAgent === a.id,
+            click: () => sendDispatch('agent-set', { agent: a.id }),
+          });
+        }
         items.push({ type: 'separator' });
         items.push({ label: 'Agent', submenu });
       }

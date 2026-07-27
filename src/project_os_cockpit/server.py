@@ -31,7 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import cockpit, note_writes, renderer, templates, terminal_proxy
+from . import agents, cockpit, note_writes, renderer, templates, terminal_proxy
 from .agent_actions import load_actions
 from .agent_hooks import AgentSessionTracker
 from .status_diff import StatusTracker
@@ -756,6 +756,10 @@ def _make_handler(
                 self._serve_cockpit_actions()
                 return
 
+            if path == "/api/cockpit/agents":
+                self._serve_cockpit_agents()
+                return
+
             if path == "/api/cockpit/dispatch-requests":
                 self._serve_dispatch_requests()
                 return
@@ -1424,6 +1428,16 @@ def _make_handler(
             self._respond_json({
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "actions": load_actions(project_root),
+            })
+
+        def _serve_cockpit_agents(self) -> None:
+            """``GET /api/cockpit/agents`` — the dispatchable-agent registry
+            (ISS-0032). Served rather than restated: before this, the set
+            ``claude | codex`` lived in nine places and a third agent's
+            queued work was discarded on restart."""
+            self._respond_json({
+                "schema_version": cockpit.SCHEMA_VERSION,
+                **agents.agents_payload(),
             })
 
         def _serve_cockpit_sessions(self) -> None:

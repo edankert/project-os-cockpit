@@ -36,16 +36,16 @@ counters:
   REQ: 22
   RISK: 4
   REL: 0
-  TASK: 212
+  TASK: 213
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
-  phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-  issue: ""
-  note: "2026-07-26 preflight for the approved overview-redesign dossier (design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be) — FEAT-0040 overview rework (state-first dashboards, REQ-0022) + FEAT-0041 review desk (~review) under new PHASE-008; governance ADR-0007 (approval gate for planning artifacts) awaits Edwin's decision. First implementation task: TASK-0199 sidecar payload additions."
+  task: "TASK-0213"
+  feature: "FEAT-0025"
+  phase: "[[PHASE-999]]"
+  issue: "ISS-0032"
+  note: "2026-07-27 consolidating the agent vocabulary (ISS-0032) before adding Kimi as a dispatch target — doing it the other way round would turn a latent queue-validation bug into silent loss of queued work. Dispatchable is closed and served from agents.py; recordable stays open."
 
 items:
   features:
@@ -1492,7 +1492,7 @@ items:
     ISS-0032:
       file: "docs/issues/ISS-0032-Dispatch-Agent-Vocabulary-Is-Closed-To-Two.md"
       title: "Dispatch agent vocabulary is a closed two-value union; its ternaries coerce any third agent to 'claude'"
-      status: triage
+      status: fixed
       severity: medium
       phase: "[[PHASE-999]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
@@ -2375,15 +2375,15 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 41
     features_done: 36
-    tasks_total: 212
-    tasks_done: 208
+    tasks_total: 213
+    tasks_done: 209
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 1
+    issues_triage: 0
     risks_open: 4
     releases_total: 0
     decisions_total: 8

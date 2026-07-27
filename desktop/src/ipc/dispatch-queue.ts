@@ -28,7 +28,10 @@ export interface DispatchItem {
   id: string;
   rel: string;
   verb?: string;
-  agent: 'claude' | 'codex';
+  /** Agent id from the served registry (ISS-0032). Open by design:
+   *  the queue must not discard work for an agent this build of the
+   *  renderer happens not to know about. */
+  agent: string;
   prompt: string;
   ts: string;
 }
@@ -67,7 +70,14 @@ function isValidItem(raw: unknown): raw is DispatchItem {
   const it = raw as Record<string, unknown>;
   return typeof it.id === 'string' && typeof it.rel === 'string'
     && typeof it.prompt === 'string' && it.prompt.length > 0
-    && (it.agent === 'claude' || it.agent === 'codex');
+    // Membership is NOT checked here. It used to be `it.agent === 'claude' ||
+    // it.agent === 'codex'`, which meant a queued item for any other agent
+    // failed validation and was discarded, silently, on the next restart --
+    // the exact opposite of FEAT-0025's promise that the queue survives a
+    // restart (ISS-0032). Shape is this function's job; membership belongs to
+    // the registry, and an item naming an unknown agent is bad configuration,
+    // not corrupt data.
+    && typeof it.agent === 'string' && it.agent.length > 0;
 }
 
 function persistSoon(): void {

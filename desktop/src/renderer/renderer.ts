@@ -57,7 +57,10 @@ interface AgentStatePayload {
 
 interface QueuedDispatch {
   id: string; rel: string; verb?: string;
-  agent: 'claude' | 'codex'; prompt: string; ts: string;
+  /** Agent id from the served registry (ISS-0032). A string, not a closed
+   *  union: a union here is a second declaration of membership, and the queue
+   *  must never discard work for an agent this build does not know. */
+  agent: string; prompt: string; ts: string;
 }
 
 interface CockpitApi {
@@ -650,6 +653,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       if (currentNavMode !== 'overview') void navigateTo('README.md');
       void refreshAgentSnapshot();
       void loadAgentActions();
+      void loadAgentRegistry();
       void refreshQueueItems();
       void drainDispatchRequests();
       // Reopen the console if it was open when the app last closed.
@@ -5827,6 +5831,7 @@ function navRowContextMenu(e: MouseEvent): void {
     verbs: verbsForId(id, { type: li.dataset.type, status: li.dataset.status })
       .map((v) => ({ key: v.key, label: v.label })),
     currentAgent: loadDispatchAgent(),
+    agents: agentRegistry,
   });
 }
 
@@ -5853,6 +5858,7 @@ docView.addEventListener('contextmenu', (e) => {
     root: activeWs?.root || '',
     verbs: linkId ? verbsForId(linkId).map((v) => ({ key: v.key, label: v.label })) : [],
     currentAgent: loadDispatchAgent(),
+    agents: agentRegistry,
   });
 });
 
@@ -5986,8 +5992,12 @@ cockpitApi.app.onMenuDispatch((ev) => {
       break;
     }
     case 'agent-set': {
-      const agent = ev.agent === 'codex' ? 'codex' as const : 'claude' as const;
-      saveDispatchAgent(agent);
+      // Reject an agent the registry does not know, rather than saving it as
+      // `claude` (ISS-0032). Coercing here meant a third agent could never be
+      // selected: the menu would set it and the preference would come back as
+      // Claude, with nothing reporting that the choice had been discarded.
+      const agent = resolveDispatchAgent(ev.agent);
+      if (agent) saveDispatchAgent(agent);
       showStatus(`Dispatch agent: ${agent}`);
       break;
     }
@@ -7252,7 +7262,42 @@ agentStripExpand.addEventListener('click', () => {
 
 // ----- Task dispatch (FEAT-0021 + FEAT-0024) -----------------------------
 
-type DispatchAgent = 'claude' | 'codex';
+// Agent ids come from the served registry (`/api/cockpit/agents`, ISS-0032).
+// This is a string, not a union: a closed union here is a second declaration
+// of membership, which is what drifted.
+type DispatchAgent = string;
+
+interface AgentSpec { id: string; label: string; command: string; instrumented: boolean }
+let agentRegistry: AgentSpec[] = [];
+let defaultAgent = 'claude';
+
+async function loadAgentRegistry(): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/agents`);
+    if (!resp.ok) return;
+    const data = await resp.json() as { agents?: AgentSpec[]; default?: string };
+    if (Array.isArray(data.agents) && data.agents.length) agentRegistry = data.agents;
+    if (typeof data.default === 'string' && data.default) defaultAgent = data.default;
+  } catch { /* keep whatever the last successful load gave us */ }
+}
+
+/** Normalise a dispatch target, or null when the registry does not know it.
+ *  Never substitutes a sibling — that substitution was ISS-0032. */
+function resolveDispatchAgent(v: unknown): DispatchAgent | null {
+  if (typeof v !== 'string' || !v) return null;
+  const id = v.trim().toLowerCase();
+  if (agentRegistry.length === 0) return id;   // registry not loaded yet
+  return agentRegistry.some((a) => a.id === id) ? id : null;
+}
+
+/** Display label for any agent, dispatchable or merely recorded. An agent the
+ *  cockpit cannot launch still appears in records; showing it under another
+ *  agent's name would misattribute the work. */
+function agentLabel(id: string | null | undefined): string {
+  if (!id) return 'unknown';
+  return agentRegistry.find((a) => a.id === id)?.label ?? id;
+}
 
 interface AgentAction { key: string; label: string; prompt: string; default?: boolean; when?: string[] }
 let agentActions: Record<string, AgentAction[]> = {};
@@ -7304,10 +7349,10 @@ function dispatchAgentKey(): string {
 
 function loadDispatchAgent(): DispatchAgent {
   try {
-    const v = localStorage.getItem(dispatchAgentKey());
-    if (v === 'codex') return 'codex';
+    const stored = resolveDispatchAgent(localStorage.getItem(dispatchAgentKey()));
+    if (stored) return stored;
   } catch { /* ignore */ }
-  return 'claude';
+  return defaultAgent;
 }
 
 function saveDispatchAgent(agent: DispatchAgent): void {
@@ -8304,6 +8349,7 @@ function buildScopedFeatureRow(
         verbs: verbsForId(fid, { type: 'feature', status: feat.status })
           .map((v) => ({ key: v.key, label: v.label })),
         currentAgent: loadDispatchAgent(),
+    agents: agentRegistry,
       });
     });
   }
