@@ -45,7 +45,7 @@ focus:
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009 design surfaces. Start with the note convention (TASK-0214) so membership comes from frontmatter rather than the path regex the Library group uses today; render and revisions follow. First real subject is REF-0001's existing 139KB dossier, not a fixture."
+  note: "2026-07-27 PHASE-009, revised after Fable's cold review. Order is convention (0214) -> authoring contract (0221) -> render (0215) -> CAPTURE (0220) -> compare (0216); capture before compare, because rendering history is worthless while nothing deposits it. The token-parity claim is demoted: the real justification is the render loop and the record."
 
 items:
   features:
