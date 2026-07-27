@@ -3611,3 +3611,55 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   padding: 2px 8px; font-size: 11.5px; color: var(--text-muted);
 }
 .review-tally-note { margin: 6px 8px 0; font-size: 11px; color: var(--text-faint); }
+
+/* ---- design bench (FEAT-0042 / TASK-0215) ------------------------------ */
+
+.design-page { overflow: auto; padding: 18px 22px; }
+
+.design-head { margin-bottom: 14px; }
+.design-head h1 { margin: 0 0 6px; font-size: 18px; }
+
+.design-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.design-chip {
+  font-size: 11px; padding: 2px 7px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-muted); white-space: nowrap;
+}
+.design-chip.design-implements { color: var(--accent-link); }
+
+.design-viewports { display: flex; gap: 4px; }
+.design-vp {
+  font: inherit; font-size: 11px; padding: 3px 9px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-muted);
+}
+.design-vp.is-active { border-color: var(--accent-focus); color: var(--text); }
+.design-vp:disabled { opacity: .4; cursor: not-allowed; }
+.design-vp:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
+
+/* A framed artifact sits on a distinct ground so the frame edge is visible —
+   otherwise a design with a white background looks like it bled into the app
+   and you cannot tell what you are reviewing. */
+.design-stage { display: flex; justify-content: center; }
+.design-stage.is-framed {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 12px;
+}
+.design-frame {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: #fff; display: block; min-height: 320px;
+}
+
+.design-empty { color: var(--text-muted); font-size: 13px; }
+.design-missing { color: var(--status-blocked); }
+
+.design-register h1 { margin: 0 0 12px; font-size: 18px; }
+.design-row {
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+  text-decoration: none; color: inherit;
+}
+.design-row:hover { background: var(--surface); }
+.design-row:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: -2px; }
+.design-row-title { font-size: 14px; }
+.design-row-meta { font-size: 11px; color: var(--text-faint); white-space: nowrap; }

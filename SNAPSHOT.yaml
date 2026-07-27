@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0221"
+  task: "TASK-0215"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009. TASK-0214 done (type-based membership + register + gated asset endpoint). Now the authoring contract (0221), which 0215 and 0219 both depend on: DES-0001 declares zero regions and non-corresponding token names, so the detectors have nothing that can pass them yet."
+  note: "2026-07-27 PHASE-009. Done: 0214 (type membership, register, gated asset endpoint), 0221 (authoring contract upstream, DES-0001 retrofitted with 29 regions). Now 0215 render surface, then 0220 capture BEFORE 0216 compare."
 
 items:
   features:
@@ -309,7 +309,7 @@ items:
     TASK-0215:
       file: "docs/features/design-bench/plan/tasks/TASK-0215-Design-Render-Surface.md"
       title: "Design render surface — real viewport, live reload, sandboxed"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
     TASK-0216:
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 211
+    tasks_done: 212
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

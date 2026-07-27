@@ -226,3 +226,53 @@ def test_design_asset_response_is_not_cacheable_and_does_not_sniff() -> None:
     body = inspect.getsource(server_mod).split("def _serve_design_asset(")[1].split("\n        def ")[0]
     assert "no-store" in body
     assert "nosniff" in body
+
+
+# ---- the render surface (TASK-0215) --------------------------------------
+
+def _renderer() -> str:
+    return (Path(__file__).resolve().parents[1]
+            / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+
+
+def test_frame_allows_scripts_but_nothing_else() -> None:
+    """DES-0001 carries a theme toggle, so a script-free sandbox would break
+    the acceptance subject. Everything else stays denied — and crucially the
+    sandbox is NOT the protection against reaching a mutation endpoint, since
+    a sandbox attribute does not restrict network. That protection is the
+    asset route being GET-only and gated on the register."""
+    src = _renderer()
+    assert "'sandbox', 'allow-scripts'" in src
+    for forbidden in ("allow-same-origin", "allow-top-navigation", "allow-forms",
+                      "allow-popups", "allow-modals"):
+        assert forbidden not in src, (
+            "the design frame grants %s; an artifact is content, not code" % forbidden
+        )
+
+
+def test_declared_viewport_is_used_and_absence_means_scroll() -> None:
+    """`declared` resolves to the note's viewport, or no framing at all. A
+    dossier framed at a device width demonstrates nothing."""
+    src = _renderer()
+    assert "preset.key === 'declared' ? d.viewport : preset.w" in src
+    # A document must not be offered device widths at all.
+    assert "if (!d.viewport && v.w) b.disabled = true;" in src
+
+
+def test_missing_artifact_is_distinguished_from_none_declared() -> None:
+    """A blank pane for either would hide a typo committed weeks earlier."""
+    src = _renderer()
+    assert "declares no artifact yet" in src
+    assert "Artifact not found" in src
+
+
+def test_900_is_present_as_a_preset() -> None:
+    """REQ-0022 asserts every state section fits above the fold at 900px, so a
+    design reviewed at another size is reviewed against the wrong question."""
+    assert "h: 900" in _renderer()
+
+
+def test_the_asset_url_is_percent_encoded_per_segment() -> None:
+    """A path segment with a space or '#' must not break the frame src, and
+    encoding the whole path would destroy the separators."""
+    assert "d.asset.split('/').map(encodeURIComponent).join('/')" in _renderer()

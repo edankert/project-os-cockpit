@@ -869,6 +869,21 @@ async function navigateToInner(
     }
     return;
   }
+  // ~design — the design bench (FEAT-0042 / TASK-0215). `~design` lists the
+  // register; `~design/<DES-id>` frames one artifact.
+  if (normalised === '~design' || normalised.startsWith('~design/')) {
+    const target = normalised === '~design'
+      ? '' : normalised.slice('~design/'.length);
+    const ok = await renderDesignPage(target);
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
   if (normalised.startsWith('~session/')) {
     const ok = await renderSessionDetailPage(normalised.slice('~session/'.length));
     if (ok) {
@@ -2717,6 +2732,198 @@ async function refreshReviewBadge(): Promise<void> {
   badge.textContent = String(total);
   btn.appendChild(badge);
   btn.title = `Review — ${total} waiting on you`;
+}
+
+interface DesignRecord {
+  id: string; title: string; rel: string; status: string;
+  role: string; asset: string; has_asset: boolean;
+  viewport: number | null; implements: string[];
+}
+
+let designRegister: DesignRecord[] = [];
+
+/** Viewport presets. 900 is not a breakpoint — it is the height REQ-0022
+ *  asserts every state section fits within, so a design reviewed at another
+ *  size is reviewed against the wrong question. */
+const DESIGN_VIEWPORTS: Array<{ key: string; label: string; w: number | null; h: number | null }> = [
+  { key: 'declared', label: 'Declared', w: null, h: 900 },
+  { key: 'w1240', label: '1240 × 900', w: 1240, h: 900 },
+  { key: 'w900', label: '900 × 900', w: 900, h: 900 },
+  { key: 'w420', label: '420 × 900', w: 420, h: 900 },
+  { key: 'fill', label: 'Fill', w: null, h: null },
+];
+let designViewport = 'declared';
+
+async function fetchDesignRegister(): Promise<DesignRecord[]> {
+  if (!sidecarBaseUrl) return [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/designs`);
+    if (!resp.ok) return [];
+    const data = await resp.json() as { designs?: DesignRecord[] };
+    designRegister = Array.isArray(data.designs) ? data.designs : [];
+  } catch { /* keep the last good register */ }
+  return designRegister;
+}
+
+function buildDesignFrame(d: DesignRecord): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'design-stage';
+
+  if (!d.asset) {
+    const empty = document.createElement('p');
+    empty.className = 'design-empty';
+    empty.textContent = `${d.id} declares no artifact yet — nothing to render.`;
+    wrap.append(empty);
+    return wrap;
+  }
+  if (!d.has_asset) {
+    // Distinguish "none declared" from "declared but missing". A blank pane
+    // for either would hide a typo committed weeks earlier.
+    const missing = document.createElement('p');
+    missing.className = 'design-empty design-missing';
+    missing.textContent = `Artifact not found: ${d.asset}`;
+    wrap.append(missing);
+    return wrap;
+  }
+
+  const frame = document.createElement('iframe');
+  frame.className = 'design-frame';
+  // allow-scripts is required: DES-0001 carries a theme toggle, so a
+  // script-free sandbox would break the acceptance subject. Everything else
+  // stays denied — no same-origin, no top navigation, no forms. The real
+  // protection against an artifact reaching a mutation endpoint is
+  // server-side (the asset route is GET-only and gated on the register);
+  // a sandbox attribute does not restrict network.
+  frame.setAttribute('sandbox', 'allow-scripts');
+  frame.setAttribute('referrerpolicy', 'no-referrer');
+  frame.src = `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}`;
+
+  const preset = DESIGN_VIEWPORTS.find((v) => v.key === designViewport)
+    ?? DESIGN_VIEWPORTS[0];
+  // `declared` means: use the note's viewport if it declared one, otherwise
+  // let the artifact scroll. Absence is meaningful — a dossier framed at a
+  // device width demonstrates nothing.
+  const width = preset.key === 'declared' ? d.viewport : preset.w;
+  if (width) {
+    frame.style.width = `${width}px`;
+    wrap.classList.add('is-framed');
+  } else {
+    frame.style.width = '100%';
+  }
+  if (preset.h) frame.style.height = `${preset.h}px`;
+  wrap.append(frame);
+  return wrap;
+}
+
+function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement {
+  const head = document.createElement('header');
+  head.className = 'design-head';
+
+  const h = document.createElement('h1');
+  h.textContent = d.title || d.id;
+  head.append(h);
+
+  const meta = document.createElement('div');
+  meta.className = 'design-meta';
+  const chip = (text: string, cls = '') => {
+    const el = document.createElement('span');
+    el.className = `design-chip ${cls}`.trim();
+    el.textContent = text;
+    return el;
+  };
+  meta.append(chip(d.id));
+  if (d.status) meta.append(chip(d.status, `status-${d.status}`));
+  meta.append(chip(d.role === 'system' ? 'design system' : 'proposal'));
+  if (d.viewport) meta.append(chip(`${d.viewport}px surface`));
+  else if (d.asset) meta.append(chip('document'));
+  for (const id of d.implements) meta.append(chip(id, 'design-implements'));
+  head.append(meta);
+
+  const bar = document.createElement('div');
+  bar.className = 'design-viewports';
+  for (const v of DESIGN_VIEWPORTS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'design-vp' + (v.key === designViewport ? ' is-active' : '');
+    b.textContent = v.label;
+    // A document has no meaningful device width; offering one invites a
+    // review conducted at a size that proves nothing.
+    if (!d.viewport && v.w) b.disabled = true;
+    b.addEventListener('click', () => { designViewport = v.key; onViewport(); });
+    bar.append(b);
+  }
+  head.append(bar);
+  return head;
+}
+
+function buildDesignRegisterList(designs: DesignRecord[]): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'design-register';
+  const h = document.createElement('h1');
+  h.textContent = 'Designs';
+  wrap.append(h);
+  if (!designs.length) {
+    const p = document.createElement('p');
+    p.className = 'design-empty';
+    p.textContent = 'No design notes yet. A design is a note with type: [[design]].';
+    wrap.append(p);
+    return wrap;
+  }
+  for (const d of designs) {
+    const row = document.createElement('a');
+    row.className = 'design-row';
+    row.href = '#';
+    row.addEventListener('click', (e) => {
+      e.preventDefault();
+      void navigateTo(`~design/${d.id}`);
+    });
+    const t = document.createElement('span');
+    t.className = 'design-row-title';
+    t.textContent = `${d.id} — ${d.title}`;
+    const s2 = document.createElement('span');
+    s2.className = 'design-row-meta';
+    s2.textContent = [
+      d.role === 'system' ? 'system' : 'proposal',
+      d.status,
+      d.has_asset ? (d.viewport ? `${d.viewport}px` : 'document') : 'no artifact',
+    ].filter(Boolean).join(' · ');
+    row.append(t, s2);
+    wrap.append(row);
+  }
+  return wrap;
+}
+
+async function renderDesignPage(target: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  const designs = await fetchDesignRegister();
+  docView.classList.remove('overview-pane', 'agents-page', 'review-page');
+  docView.classList.add('design-page');
+  rightPaneContent.replaceChildren();
+
+  if (!target) {
+    docView.replaceChildren(buildDesignRegisterList(designs));
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return true;
+  }
+  const d = designs.find((x) => x.id === target);
+  if (!d) {
+    docView.replaceChildren(buildDesignRegisterList(designs));
+    showStatus(`No design ${target}`, 'error');
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return true;
+  }
+  const paint = () => {
+    const root = document.createElement('div');
+    root.className = 'design-view';
+    root.append(buildDesignHeader(d, paint), buildDesignFrame(d));
+    docView.replaceChildren(root);
+  };
+  paint();
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
 }
 
 async function renderReviewPage(
