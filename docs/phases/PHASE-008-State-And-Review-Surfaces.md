@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-008
 aliases: ["PHASE-008"]
 title: "State & review surfaces"
-status: active
+status: done
 order: 8
 owner: user:edwin
 created: 2026-07-26
@@ -43,10 +43,13 @@ PHASE-007 made the cockpit agent-aware: hooks feed state in, dispatch sends work
 - [x] The Requirements stat tile renders — `hero.requirements` is no longer computed-but-unrendered. — evidence: `buildStatTiles()` in `renderer.ts`; visible as "REQS 21/22" in the harness captures.
 - [x] The phase drill-down answers "how far, what gates it, what's left, what's next" without opening a note: header fraction + gates chip, health band, per-feature fractions with a next-action line, and a Remaining list. — evidence: `buildScopedHeader` (fraction + `scoped-gates`), `buildScopedHealthBand`, `buildFeatureNextLine`, `buildRemainingList`; all four verified rendering together on PHASE-007 in the harness.
 - [x] ~review lists decisions, proposal sets, questions, and runnable manual tests from live index/ledger data; accepting a proposal set stamps the independent-review fields into its members through the guarded review write-back endpoint and clears the ledger request, and rejecting flips the set to `cancelled`. — evidence: [[TST-0021-Review-Desk]] (37 tests); confirmed against the live corpus, and ADR-0007 itself was accepted through the desk — its diff is exactly what `stamp_decision` writes.
-- [ ] TST-0011 has been executed at least once through the manual test runner, with the run log recorded under its `## Runs` section. — **outstanding, and needs Edwin.** The runner is built and TST-0011 parses into 13 steps, but the test is manual by design: its steps require launching an agent in the embedded console, triggering a permission prompt, and observing rail dots, strip meters and nav-row chips. An agent cannot execute it truthfully — recording observations it did not make would be exactly the fabricated-verification this criterion exists to prevent. This is the one gate holding the phase open, and it is the phase's own acceptance demo.
+- [x] TST-0011 has been executed at least once through the manual test runner, with the run log recorded under its `## Runs` section. — evidence: run of 2026-07-27 by `user:edwin`, recorded by the runner (TASK-0208) in TST-0011's `## Runs` section: 12 steps **pass**, 1 **skip**. The runner stamped `status: passing`, `last_run` and `last_verified` through the guarded write-back, and the snapshot was synced from the note per ADR-0009. The skipped step is Codex notify (TASK-0116) — recorded as skipped rather than folded into the total, so TASK-0116's injection path is verified by TST-0010's synthetic payloads but has still never been exercised end to end by a human. Carried forward in the Notes below rather than left implicit in a checkbox.
 - [x] ADR-0007 is decided (accepted or superseded), and the mode strip carries Review in the slot Active/Recent vacated while `nav?mode=active|recent` still serve (FEAT-0008 rule). — evidence: ADR-0007 `accepted` 2026-07-26 (advisory-first), stamped through the desk; `data-mode="review"` in index.html; `test_retired_ui_modes_still_serve` asserts both server modes still answer.
 
 ## Notes
+
+**Carried out of this phase (2026-07-27):** TST-0011 step 6, Codex notify (TASK-0116), was skipped in the acceptance run. Every other step passed. The Codex hook-injection path therefore rests on TST-0010's synthetic-payload coverage alone, with no end-to-end human observation. That is not a blocker for this phase — the phase's subject is the state and review surfaces, and they were exercised — but it is an unverified path in FEAT-0019 and should be picked up when Codex is next used in earnest.
+
 
 - Sequencing: FEAT-0040's TASK-0199 (sidecar payload additions) first — it is the data pipe the overview stage, phase detail, and record column consume. FEAT-0041 is independently shippable except TASK-0210 (announce rows), which needs FEAT-0040's Waiting-on-you list; ADR-0007 (TASK-0205) should be decided before TASK-0207 hard-wires an accept flow.
 - Design source: the dossier artifact above (plates C/D/E, the states audit, and the data-source table) is the canonical design record for both features; both FEAT notes link it.

@@ -1770,7 +1770,7 @@ items:
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027"]
     PHASE-008:
       title: "State & review surfaces"
-      status: active
+      status: done
       path: "docs/phases/PHASE-008-State-And-Review-Surfaces.md"
       features: ["FEAT-0040", "FEAT-0041"]
     PHASE-999:
