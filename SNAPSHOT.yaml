@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 41
-  ISS: 31
+  ISS: 32
   PHASE: 8
   REQ: 22
   RISK: 4
@@ -1489,6 +1489,13 @@ items:
 
 
   issues:
+    ISS-0032:
+      file: "docs/issues/ISS-0032-Dispatch-Agent-Vocabulary-Is-Closed-To-Two.md"
+      title: "Dispatch agent vocabulary is a closed two-value union; its ternaries coerce any third agent to 'claude'"
+      status: triage
+      severity: medium
+      phase: "[[PHASE-999]]"
+      note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
     ISS-0030:
       title: "Phase completion is inferred from task counts and ignores the phase's own status, so a superseded phase reads live; live phases also sort by order: rather than active-first"
       status: fixed
@@ -2376,7 +2383,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 0
+    issues_triage: 1
     risks_open: 4
     releases_total: 0
     decisions_total: 8
