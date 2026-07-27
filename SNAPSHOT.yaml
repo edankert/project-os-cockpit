@@ -36,7 +36,7 @@ counters:
   REQ: 23
   RISK: 4
   REL: 0
-  TASK: 219
+  TASK: 221
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -286,6 +286,20 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0220:
+      file: "docs/features/design-bench/plan/tasks/TASK-0220-Revision-Capture.md"
+      title: "Revision capture — deposit the history TASK-0216 renders"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+      note: "The hole the phase was built around and did not fill: TASK-0216 renders git history, nothing deposits it. Sequenced before 0216."
+    TASK-0221:
+      file: "docs/features/design-bench/plan/tasks/TASK-0221-Design-Authoring-Contract.md"
+      title: "Design authoring contract — what a conforming artifact looks like"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+      note: "DES-0001 declares zero regions and uses non-corresponding token names; the plan built detectors without the guidance that would let an artifact pass them."
     TASK-0214:
       file: "docs/features/design-bench/plan/tasks/TASK-0214-Design-Note-Convention.md"
       title: "Design-note convention and validator support"
@@ -2439,7 +2453,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 42
     features_done: 36
-    tasks_total: 219
+    tasks_total: 221
     tasks_done: 209
     tests_total: 21
     tests_passing: 21

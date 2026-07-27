@@ -26,6 +26,7 @@ tests: []
 - [ ] `DESIGN-ASSET` / `DESIGN-ORPHAN` arrive with the synced validator; confirm both fire in this repo, not just in the upstream fixture
 - [ ] `design:` back-links resolve both ways: from a FEAT/PHASE to its design, and from a design to everything it specifies
 - [ ] `DES-0001` renders in the Library and resolves as a link from FEAT-0040, FEAT-0041, PHASE-008 and the CHG note
+- [ ] The design note declares an **artifact kind**: `page` (the artifact *is* the surface) or `dossier` (a document *about* a surface, containing mocks)
 
 ## Steps
 
@@ -33,6 +34,12 @@ tests: []
 - [ ] Replace `_DESIGN_DIR_RE` with type-based membership
 - [ ] Confirm the synced DESIGN-ASSET / DESIGN-ORPHAN checks fire here
 - [ ] Verify against the real [[DES-0001]] note, not a fixture
+
+## Why artifact kind matters
+
+Independent review found the phase's flagship benefit does not apply to its flagship artifact. [[PHASE-009]] claims designs render "at the viewport the app actually runs at" ([[REQ-0022]]'s 900px) — but [[DES-0001]] is a *dossier*: a scrolling document containing fixed-width mocks at `min-width:1240px`. Framing it at 900px shows a scrolling document and exercises nothing.
+
+Two artifact kinds were being conflated. Viewport presets are meaningful for a `page`; a `dossier` gets a plain scroll frame. Without the distinction, two exit criteria would be "satisfied" by an interaction that demonstrates nothing.
 
 ## Notes
 

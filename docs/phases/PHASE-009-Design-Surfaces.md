@@ -38,9 +38,11 @@ Not a general claim about design tools — a specific property of this one. A de
 - Design artifacts as project records, with revisions and per-revision reasoning.
 - A render surface with viewport presets and live reload.
 - Side-by-side comparison of two revisions from git.
+- Revision capture: a commit-with-reason action that deposits the history the compare view renders.
+- An authoring contract so produced artifacts can satisfy the checks this phase adds.
 - Region-anchored annotation, stored as Markdown in the note.
 - Review through the existing desk, with per-region verdicts.
-- A parity check between declared design tokens and the implementation's CSS.
+- A scoped palette check: a design's status colours against the `statuses.py`-derived palette.
 
 ## Out of Scope
 
@@ -51,14 +53,19 @@ Not a general claim about design tools — a specific property of this one. A de
 ## Exit Criteria
 
 - [ ] A design artifact renders in the cockpit at a selectable viewport, and editing its HTML updates the pane without a reload — evidence: <path + observed>
-- [ ] Two revisions of the same artifact render side by side, sourced from git, with the reason for the revision visible — evidence: <path + a real two-revision comparison>
-- [ ] [[DES-0001]]'s dossier renders correctly as the first real subject — the existing 139KB artifact, not a synthetic fixture — evidence: <observed>
-- [ ] A comment anchored to a declared region survives a revision that moves that region on the page — evidence: <before/after>
+- [ ] Two revisions render side by side from git with the reason visible, using **history deposited by [[TASK-0220]]** rather than a fixture manufactured for the test — evidence: <the capture, then the comparison>
+- [ ] [[DES-0001]]'s dossier renders **identically to the same file opened directly in a browser** — the existing 139KB artifact, not a synthetic fixture. ("Renders correctly" was unfalsifiable; this is the test TASK-0215 already specifies.) — evidence: <side-by-side>
+- [ ] A comment survives a region being **renamed** and behaves correctly when an artifact declares **duplicate region IDs** — evidence: <both cases>
+
+  *(Surviving a region that merely moves is true by construction of ID anchoring and tests nothing. Rename is indistinguishable from delete-and-add, so a comment can orphan silently; duplicate IDs are near-certain in a multi-plate dossier. Those are the cases that discriminate.)*
 - [ ] A design token declared in a design note and changed in the implementation is caught by a test — evidence: <test + inversion>
 - [ ] Edwin has reviewed one real design through the surface and recorded a verdict — evidence: <note frontmatter>
+- [ ] **A design produced after this phase lands carries ≥2 committed revisions, each with its reason, without anyone rescuing the history by hand** — evidence: <git log + the note's Revisions section>
+
+  *(The only criterion that would have failed under the old workflow, which is what makes it the one worth having. Without it the phase can exit green while the next session loses five revisions exactly as before.)*
 
 ## Notes
 
 The last exit criterion is the phase's acceptance demo and cannot be satisfied by an agent, for the same reason [[TST-0011]] could not: the question "is this design good" is the human's, and a recorded verdict the human did not give is exactly the fabricated verification the criterion exists to prevent.
 
-Sequencing is deliberate — render and revisions first ([[TASK-0214]]..[[TASK-0216]]), because they are useful the day they land. Annotation, review integration and token parity ([[TASK-0217]]..[[TASK-0219]]) follow once there is something real to annotate.
+Sequencing, revised after independent review: convention ([[TASK-0214]]), authoring contract ([[TASK-0221]]), render ([[TASK-0215]]), **capture ([[TASK-0220]]) before compare ([[TASK-0216]])** — rendering history is worthless while nothing deposits it, and every week without capture is potentially another design process lost. Annotation, desk review and the scoped palette check ([[TASK-0217]]..[[TASK-0219]]) follow. Annotation, review integration and token parity ([[TASK-0217]]..[[TASK-0219]]) follow once there is something real to annotate.

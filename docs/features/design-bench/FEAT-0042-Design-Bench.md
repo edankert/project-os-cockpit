@@ -13,6 +13,8 @@ goal: "Make a design artifact a first-class project record the cockpit can rende
 requirements: ["[[REQ-0023-Design-Is-A-Project-Record]]"]
 tasks:
   - "[[TASK-0214-Design-Note-Convention]]"
+  - "[[TASK-0220-Revision-Capture]]"
+  - "[[TASK-0221-Design-Authoring-Contract]]"
   - "[[TASK-0215-Design-Render-Surface]]"
   - "[[TASK-0216-Design-Revisions-And-Compare]]"
   - "[[TASK-0217-Region-Anchored-Annotation]]"
@@ -37,12 +39,14 @@ This makes the project the home. A design artifact gets rendered at the viewport
 **Phase 1 — useful the day it lands.**
 - Consume the `[[design]]` type that landed upstream (project-os-dev FEAT-0019): typed membership, not the path regex the Library group uses today ([[TASK-0214]]).
 - A render surface with viewport presets and live reload ([[TASK-0215]]).
+- Revision **capture** — commit-with-reason, plus a revision log in the note ([[TASK-0220]]).
 - Revisions from git, side by side, with per-revision reasoning ([[TASK-0216]]).
 
 **Phase 2 — once there is something real to annotate.**
+- An authoring contract for conforming artifacts ([[TASK-0221]]).
 - Region-anchored comments stored as Markdown ([[TASK-0217]]).
 - Review through the desk with per-region verdicts ([[TASK-0218]]).
-- Declared design tokens checked against the implementation's CSS ([[TASK-0219]]).
+- A scoped palette check against `statuses.py` ([[TASK-0219]]).
 
 ## Out of Scope
 
@@ -65,7 +69,13 @@ This makes the project the home. A design artifact gets rendered at the viewport
 
 **Storage stays plain text.** Comments are Markdown in the design note; revisions are git. No database, nothing the cockpit owns exclusively, everything diffable and readable without the tool. Same reason the rest of project-os works this way.
 
-**The parity check is the point of building this here.** `base.css` and `cockpit.css` both restate the status palette, they drifted, and [[TST-0019]] exists because of it ([[ISS-0023]]). A design token declared in one place and implemented in another is the identical failure. No external design tool can close that loop; this can.
+**The point of building this here is the live render loop and the record** — a design rendered by the same engine as the implementation, at the viewport the app runs at, with its revisions in git beside the features it specifies.
+
+An earlier draft of this note claimed the *token parity check* was the justification. Independent review refuted that, and the evidence is in the founding artifact: [[DES-0001]] names its tokens `--m-done`, `--t-feature`, `--m-accent` while the implementation says `--status-done`, `--severity-critical`, `--accent-link`; its `--m-accent:#3b6ea8` differs from the implementation's `hsl(212 48% 42%)` (≈`#386ba0`) in a block the dossier labels "cockpit tokens, verbatim". The vocabularies do not correspond, so comparing them needs a name mapping — and a hand-maintained mapping is the drift surface reintroduced one level up.
+
+Worse, the direction of authority was contradicted inside this repo on the day it was written: [[TASK-0219]] said "the design becomes the upstream side", while [[DES-0001]]'s own Maintenance section says to *update the HTML when the surfaces change* — i.e. the design trails the code. A parity test with no agreed arrow accumulates waivers.
+
+What survives is narrower and real: a **scoped** check that a design's status/severity palette equals the `statuses.py`-derived palette, with the name mapping declared once in the design's `## Tokens` section. That is worth building. It is not why this phase exists.
 
 ## Links
 - Phase: [[PHASE-009-Design-Surfaces]]
