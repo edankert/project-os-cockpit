@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0217"
+  task: "TASK-0218"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009. Six of eight done. Now 0217 region annotation — anchors are region IDs, never coordinates; DES-0001 was retrofitted with 29 so there is a real subject."
+  note: "2026-07-27 PHASE-009, last task. 0218 desk review with per-region verdicts, reusing FEAT-0041 machinery. Acceptance must record WHICH REVISION was accepted or an old approval launders a new design."
 
 items:
   features:
@@ -327,7 +327,7 @@ items:
     TASK-0218:
       file: "docs/features/design-bench/plan/tasks/TASK-0218-Design-Review-In-The-Desk.md"
       title: "Design review through the existing desk, per-region verdicts"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
     TASK-0219:
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 216
+    tasks_done: 217
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

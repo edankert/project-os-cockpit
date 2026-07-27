@@ -631,3 +631,109 @@ def test_the_real_dossier_declares_its_29_regions() -> None:
     assert len(set(regions)) == 29, "duplicate region ids in the real artifact"
     assert [r for r in regions if "-pin-" not in r] == [
         "plate-a", "plate-b", "plate-c", "plate-d", "plate-e", "states", "notes"]
+
+
+# ---- desk review (TASK-0218) ---------------------------------------------
+
+def test_a_design_enters_the_queue_only_when_proposed() -> None:
+    """`draft` means the author is still writing it; `implemented` is after it
+    was built. Queueing either asks for a decision nobody owes — the mistake
+    plans made (ISS-0031)."""
+    assert cockpit.QUEUE_INTAKE_STATES["design"] == ("proposed",)
+
+
+def test_accepting_a_design_does_not_mark_it_implemented() -> None:
+    """`implemented` is what the code shipping means, and only the parity
+    check can honestly claim it."""
+    from project_os_cockpit import note_writes
+    assert note_writes.DECIDE_TRANSITIONS["design"] == ("accepted", "cancelled")
+
+
+def test_rejection_is_cancelled_not_superseded() -> None:
+    """`superseded` means a LATER design replaced it — a different fact about
+    the future than 'this one was turned down'."""
+    from project_os_cockpit import note_writes
+    assert note_writes.DECIDE_TRANSITIONS["design"][1] == "cancelled"
+
+
+def test_the_verdict_records_which_revision_it_judged(tmp_path: Path) -> None:
+    """The field that stops an old approval laundering a new design."""
+    from project_os_cockpit import note_writes
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    _capture(docs, {"id": "DES-0001", "reason": "second cut"})
+    revs = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    sha = revs["revisions"][0]["sha"]
+
+    result = note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0001", reviewer="user:edwin",
+        verdict="approved", revision=sha, accept=True)
+    assert result["design_revision"] == sha
+    note = (docs / "designs" / "DES-0001-X.md").read_text()
+    assert f'design_revision: "{sha}"' in note
+    assert 'status: "accepted"' in note
+
+
+def test_a_verdict_naming_a_revision_that_does_not_exist_is_refused(tmp_path: Path) -> None:
+    """Otherwise the pin is decoration: a verdict could name anything and the
+    laundering it exists to prevent would be back."""
+    import json as _json
+    import threading
+    import urllib.error
+    import urllib.request
+
+    from project_os_cockpit.server import (
+        DocsServer, _NoDNSThreadingHTTPServer, _make_handler,
+    )
+    docs = _git_workspace(tmp_path)
+    srv = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0), _make_handler(docs, Index.build(docs), srv.bus))
+    port = httpd.server_address[1]
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+
+    def post(payload):
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/design/verdict",
+            data=_json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return r.status, _json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, _json.loads(e.read())
+
+    try:
+        status, body = post({"id": "DES-0001", "verdict": "approved",
+                             "revision": "deadbee", "reviewer": "user:edwin"})
+        assert status == 400 and "not in this design's history" in body["error"]
+        # And a verdict with no revision at all.
+        status, body = post({"id": "DES-0001", "verdict": "approved",
+                             "reviewer": "user:edwin"})
+        assert status == 400 and "launder" in body["error"]
+    finally:
+        httpd.shutdown()
+
+
+def test_verdict_endpoint_is_loopback_gated() -> None:
+    import inspect
+
+    from project_os_cockpit import server as server_mod
+
+    body = inspect.getsource(server_mod).split("def _serve_design_verdict(")[1]
+    body = body.split("\n        def ")[0]
+    assert "_require_loopback()" in body
+
+
+def test_stamping_a_non_design_is_refused(tmp_path: Path) -> None:
+    from project_os_cockpit import note_writes
+    docs = _corpus(tmp_path)
+    _note(docs / "features" / "FEAT-0001-F.md", {
+        "type": "[[feature]]", "id": "FEAT-0001", "title": "F", "status": "backlog"})
+    try:
+        note_writes.stamp_design_verdict(
+            Index.build(docs), "FEAT-0001", reviewer="u", verdict="approved",
+            revision="abc1234")
+        raise AssertionError("stamped a design verdict onto a feature")
+    except note_writes.WriteError as exc:
+        assert "not a design" in str(exc)

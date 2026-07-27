@@ -1350,6 +1350,11 @@ QUEUE_INTAKE_STATES: dict[str, tuple[str, ...]] = {
     "decision": ("proposed",),
     "requirement": ("draft",),
     "test": ("ready",),
+    # A design enters the queue when it is offered for review. `draft` is
+    # deliberately absent — the author is still writing it — and so is
+    # `implemented`, which is the state AFTER the design was built. Queueing
+    # either would ask for a decision nobody owes, the mistake plans made.
+    "design": ("proposed",),
 }
 # Plans are deliberately absent. A plan's status *follows its parent
 # feature* and is advanced at close-out (STATUSES.md, `[[plan]]`), so

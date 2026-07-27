@@ -62,11 +62,20 @@ TEST_RUN_FIELDS: frozenset[str] = frozenset({
 #: It is in the allow-list because it IS written, not as an exception.
 BOOKKEEPING_FIELDS: frozenset[str] = frozenset({"updated"})
 
+#: Fields a design review verdict may touch. `design_revision` records WHICH
+#: revision was accepted — without it an approval given to v3 silently launders
+#: v6, which is the one way a design review can be worse than none.
+DESIGN_REVIEW_FIELDS: frozenset[str] = frozenset({
+    "reviewed_by", "review_date", "review_verdict", "design_revision",
+})
+
 #: Fields a design capture may touch. Nothing about status or review — a
 #: capture records that a revision happened, never that it was any good.
 DESIGN_CAPTURE_FIELDS: frozenset[str] = frozenset({"updated"})
 
-ALLOWED_FIELDS: frozenset[str] = REVIEW_FIELDS | TEST_RUN_FIELDS | BOOKKEEPING_FIELDS
+ALLOWED_FIELDS: frozenset[str] = (
+    REVIEW_FIELDS | TEST_RUN_FIELDS | BOOKKEEPING_FIELDS | DESIGN_REVIEW_FIELDS
+)
 
 #: Request-body keys each endpoint accepts. Kept here beside the field
 #: allow-list so the two cannot drift — an earlier cut duplicated these
@@ -125,6 +134,12 @@ DECIDE_TRANSITIONS: dict[str, tuple[str, str | None]] = {
     "adr": ("accepted", "superseded"),
     "decision": ("accepted", "superseded"),
     "requirement": ("approved", "cancelled"),
+    # A design that is accepted is not yet built — `implemented` is what the
+    # code shipping means, and only TASK-0219's parity check can honestly
+    # claim it. Rejecting a design `cancelled` rather than `superseded`,
+    # because superseded means a LATER design replaced it, which is a
+    # different fact about the future.
+    "design": ("accepted", "cancelled"),
 }
 
 
@@ -525,6 +540,59 @@ def read_design_comments(body: str) -> list[dict[str, str]]:
             "text": m.group("text").strip(),
         })
     return out
+
+
+def stamp_design_verdict(
+    index: Index,
+    note_id: str,
+    *,
+    reviewer: str,
+    verdict: str,
+    revision: str,
+    accept: bool | None = None,
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Record a design review verdict, pinned to the revision it judged.
+
+    ``design_revision`` is the field that makes this honest. A verdict given to
+    v3 says nothing about v6, and a design surface that lost that distinction
+    would let an old approval launder a new design — the one way a design
+    review is worse than no review at all.
+
+    ``accept`` optionally advances the status through ``DECIDE_TRANSITIONS``:
+    ``accepted`` or ``cancelled``. Note that accepting a design does **not**
+    make it ``implemented`` — that is what the code shipping means, and only
+    the parity check can honestly claim it.
+    """
+    path = resolve_note(index, note_id)
+    record = index.get(path)
+    note_type = (getattr(record, "note_type", "") or "").lower()
+    if note_type != "design":
+        raise WriteError(f"{note_id} is a {note_type or 'note'}, not a design",
+                         status=409)
+    _check_mtime(path, mtime)
+
+    text = path.read_text(encoding="utf-8")
+    fm_lines, body = _split_frontmatter(text)
+    today = _dt.date.today().isoformat()
+
+    fm_lines = _set_field(fm_lines, "reviewed_by", reviewer)
+    fm_lines = _set_field(fm_lines, "review_date", today)
+    fm_lines = _set_field(fm_lines, "review_verdict", verdict)
+    fm_lines = _set_field(fm_lines, "design_revision", revision)
+    fm_lines = _set_field(fm_lines, "updated", today)
+
+    new_status = None
+    if accept is not None:
+        transitions = DECIDE_TRANSITIONS["design"]
+        new_status = transitions[0] if accept else transitions[1]
+        if new_status:
+            fm_lines = _set_field(fm_lines, "status", new_status)
+
+    path.write_text("---\n" + "\n".join(fm_lines) + "\n---\n" + body,
+                    encoding="utf-8")
+    return {"ok": True, "id": note_id, "verdict": verdict,
+            "design_revision": revision, "status": new_status}
 
 
 def append_revision_log(body: str, *, date: str, reason: str) -> str:

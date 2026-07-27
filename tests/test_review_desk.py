@@ -314,6 +314,11 @@ def test_only_allowed_fields_are_writable() -> None:
     assert note_writes.ALLOWED_FIELDS == {
         "reviewed_by", "review_date", "review_verdict",
         "status", "last_run", "last_verified", "updated",
+        # Widened deliberately for design review (TASK-0218).
+        # `design_revision` records WHICH revision a verdict was given to.
+        # Without it an approval given to v3 silently launders v6 — the one way
+        # a design review can be worse than no review at all.
+        "design_revision",
     }
 
 

@@ -628,6 +628,10 @@ def _make_handler(
             if path == "/api/cockpit/tab-state":
                 self._serve_cockpit_tab_state()
                 return
+            if path == "/api/design/verdict":
+                self._serve_design_verdict()
+                return
+
             if path == "/api/design/comment":
                 self._serve_design_comment()
                 return
@@ -1461,6 +1465,60 @@ def _make_handler(
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "actions": load_actions(project_root),
             })
+
+        def _serve_design_verdict(self) -> None:
+            """``POST /api/design/verdict`` — record a design review verdict.
+
+            **The revision is required.** A verdict given to v3 says nothing
+            about v6, and a surface that lost that distinction would let an
+            old approval launder a new design — the one way a design review is
+            worse than no review at all. So the caller must name the revision
+            it judged, and it must be one the artifact's history actually has.
+
+            The machine records; it never decides. `accept` comes from the
+            human, and an accepted design becomes `accepted`, not
+            `implemented` — the latter is what the code shipping means and only
+            the parity check can honestly claim it.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            design_id = str(body.get("id", "") or "").strip()
+            verdict = str(body.get("verdict", "") or "").strip()
+            revision = str(body.get("revision", "") or "").strip()
+            reviewer = str(body.get("reviewer", "") or "").strip()
+            accept = body.get("accept")
+            if not (design_id and verdict and revision and reviewer):
+                self._respond_json(
+                    {"ok": False, "error": "id, verdict, revision and reviewer "
+                                           "are all required — a verdict with no "
+                                           "revision would launder a later design"},
+                    status=HTTPStatus.BAD_REQUEST)
+                return
+
+            known = {r["sha"] for r in cockpit.design_revisions_payload(
+                docs_root.parent, index, design_id)["revisions"]}
+            if revision not in known:
+                self._respond_json(
+                    {"ok": False,
+                     "error": "revision %r is not in this design's history; a "
+                              "verdict must name a revision that exists" % revision,
+                     "revisions": sorted(known)},
+                    status=HTTPStatus.BAD_REQUEST)
+                return
+            try:
+                result = note_writes.stamp_design_verdict(
+                    index, design_id, reviewer=reviewer, verdict=verdict,
+                    revision=revision,
+                    accept=None if accept is None else bool(accept),
+                    mtime=body.get("mtime"))
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=getattr(exc, "status", 409))
+                return
+            self._respond_json(result)
 
         def _serve_design_comment(self) -> None:
             """``POST /api/design/comment`` — one region-anchored comment.
