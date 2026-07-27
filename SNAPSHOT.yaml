@@ -303,7 +303,7 @@ items:
     TASK-0214:
       file: "docs/features/design-bench/plan/tasks/TASK-0214-Design-Note-Convention.md"
       title: "Design-note convention and validator support"
-      status: doing
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
     TASK-0215:
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 209
+    tasks_done: 210
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

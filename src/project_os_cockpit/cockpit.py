@@ -190,7 +190,6 @@ DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference",)
 # Reference notes living here are *design input* — dossiers, mockups and
 # research a feature was built from (TASK-0212). They surface as their own
 # Library group and lead the record column's Library card.
-_DESIGN_DIR_RE = re.compile(r"(^|/)references/design/", re.IGNORECASE)
 
 # Types that already have their own UX surface elsewhere (dedicated nav
 # modes or rare-type groups) and therefore do NOT appear in the Library
@@ -488,6 +487,68 @@ def _exit_criteria_from_body(body: str) -> list[dict[str, Any]]:
                 "done": m.group(1).lower() == "x",
             })
     return out
+
+
+_ANY_ID_RE = re.compile(r"\b((?:ADR|DES|FEAT|ISS|PHASE|REQ|RISK|REL|TASK|TST|WF)-\d{2,})\b")
+
+
+def _design_link_ids(value: Any) -> list[str]:
+    """IDs out of a scalar or list of wikilinks, order preserved, deduped."""
+    out: list[str] = []
+    for item in (value if isinstance(value, list) else [value] if value else []):
+        for m in _ANY_ID_RE.finditer(str(item)):
+            if m.group(1) not in out:
+                out.append(m.group(1))
+    return out
+
+
+def designs_payload(index: Index) -> dict:
+    """The design register (FEAT-0042 / TASK-0214).
+
+    Membership is by `type: "[[design]]"`, never by path. Two fields shape how
+    a design is framed and both are declared rather than inferred:
+
+    ``role``      `system` = the standing reference designs conform to (one per
+                  project); anything else is a time-bounded proposal. A system
+                  and a proposal behave differently enough that the surface must
+                  know which it has.
+
+    ``viewport``  px width when the artifact IS a surface. **Absence is
+                  meaningful**: it says the artifact is a document *about* a
+                  surface -- a dossier of mocks -- and framing one at a device
+                  width demonstrates nothing (found in review of PHASE-009:
+                  DES-0001 is a scrolling dossier fixed at 1240px, so a 900px
+                  preset would have "passed" an exit criterion while exercising
+                  nothing). Derived from what the note declares rather than an
+                  enumerated kind, because a kind like `mobile` restates the
+                  project's platform on every note.
+    """
+    designs = []
+    for r in sorted(index.notes_by_type("design"),
+                    key=lambda r: (r.note_id or "", r.rel_path)):
+        fm = r.frontmatter or {}
+        asset = str(fm.get("asset", "") or "").strip()
+        asset_rel = ""
+        if asset:
+            base = r.rel_path.rsplit("/", 1)[0] if "/" in r.rel_path else ""
+            asset_rel = (base + "/" + asset) if base else asset
+        viewport = fm.get("viewport")
+        try:
+            viewport = int(viewport) if viewport not in (None, "") else None
+        except (TypeError, ValueError):
+            viewport = None
+        designs.append({
+            "id": r.note_id or "",
+            "title": r.title or r.note_id or r.rel_path,
+            "rel": r.rel_path,
+            "status": (fm.get("status") or "") if isinstance(fm.get("status"), str) else "",
+            "role": (fm.get("role") or "proposal") if isinstance(fm.get("role"), str) else "proposal",
+            "asset": asset_rel,
+            "has_asset": bool(asset_rel and (index.docs_root / asset_rel).is_file()),
+            "viewport": viewport,
+            "implements": _design_link_ids(fm.get("implements")),
+        })
+    return {"schema_version": SCHEMA_VERSION, "designs": designs}
 
 
 def stats_payload(
@@ -1825,10 +1886,15 @@ def _library_groups(
     # question people ask directly, and the answer is otherwise buried
     # three folders deep. The notes stay ordinary references — this is a
     # grouping over an existing type, not a new one.
+    # Membership by TYPE, not by path. This was `notes_by_type("reference")`
+    # filtered through a `references/design/` regex until the `[[design]]` type
+    # landed upstream (project-os-dev FEAT-0019) -- a design note that lived
+    # anywhere else was invisible, and a reference that happened to sit in that
+    # folder was mislabelled a design. The type is the claim; the path is where
+    # someone happened to put the file.
     design_records = [
-        r for r in index.notes_by_type("reference")
+        r for r in index.notes_by_type("design")
         if _platform_match(r, platform)
-        and _DESIGN_DIR_RE.search(r.rel_path)
     ]
     if design_records:
         design_records.sort(key=lambda r: (r.note_id or "", r.rel_path))

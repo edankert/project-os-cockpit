@@ -760,6 +760,14 @@ def _make_handler(
                 self._serve_cockpit_agents()
                 return
 
+            if path == "/api/cockpit/designs":
+                self._serve_cockpit_designs()
+                return
+
+            if path.startswith("/design-asset/"):
+                self._serve_design_asset(path[len("/design-asset/"):])
+                return
+
             if path == "/api/cockpit/dispatch-requests":
                 self._serve_dispatch_requests()
                 return
@@ -1429,6 +1437,54 @@ def _make_handler(
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "actions": load_actions(project_root),
             })
+
+        def _serve_cockpit_designs(self) -> None:
+            """``GET /api/cockpit/designs`` — the design register
+            (FEAT-0042 / TASK-0214). Membership by `type: "[[design]]"`,
+            never by path."""
+            self._respond_json(cockpit.designs_payload(index))
+
+        def _serve_design_asset(self, rel: str) -> None:
+            """``GET /design-asset/<rel>`` — a design artifact, read-only.
+
+            Deliberately separate from ``/api/render``: that endpoint renders
+            Markdown to the cockpit's own HTML, while this serves an artifact
+            *verbatim* for framing. Two rules, both load-bearing:
+
+            * The path must resolve inside ``docs/`` and must be claimed by a
+              design note's ``asset:``. Serving any file under docs/ by path
+              would turn a render surface into a file browser.
+            * Response carries no cookies and the endpoint is GET-only, so a
+              script inside a framed artifact gains nothing by calling it.
+            """
+            rel = urllib.parse.unquote(rel).lstrip("/")
+            claimed = {
+                d["asset"] for d in cockpit.designs_payload(index)["designs"]
+                if d["asset"]
+            }
+            if rel not in claimed:
+                self._respond_not_found(rel)
+                return
+            root = docs_root.resolve()
+            target = (root / rel).resolve()
+            try:
+                target.relative_to(root)
+            except ValueError:
+                self._respond_forbidden("design asset outside docs root")
+                return
+            if not target.is_file():
+                self._respond_not_found(rel)
+                return
+            ctype, _ = mimetypes.guess_type(str(target))
+            body = target.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", ctype or "application/octet-stream")
+            self.send_header("Content-Length", str(len(body)))
+            # An artifact is authored content. Deny it a same-origin foothold.
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
 
         def _serve_cockpit_agents(self) -> None:
             """``GET /api/cockpit/agents`` — the dispatchable-agent registry
