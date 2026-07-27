@@ -10,7 +10,7 @@ created: 2026-07-26
 updated: 2026-07-26
 features: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0041-Review-Desk]]"]
 related: ["[[REQ-0022-Overview-State-Above-History]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]", "[[ADR-0006-Retire-Delivered-Band]]", "[[FEAT-0036-Live-Work-Views]]", "[[FEAT-0018-Verification-Health-Surface]]"]
-design: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+design: ["[[DES-0001-Overview-Redesign]]"]
 tests: ["[[TST-0020-Overview-Payloads]]", "[[TST-0021-Review-Desk]]"]
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26

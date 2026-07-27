@@ -14,7 +14,7 @@ requirements: ["[[REQ-0022-Overview-State-Above-History]]"]
 tests: ["[[TST-0020-Overview-Payloads]]"]
 tasks: ["[[TASK-0199]]", "[[TASK-0200]]", "[[TASK-0201]]", "[[TASK-0202]]", "[[TASK-0203]]", "[[TASK-0204]]", "[[TASK-0212]]"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0036-Live-Work-Views]]", "[[FEAT-0038-Console-Progress-Rail]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0041-Review-Desk]]", "[[ADR-0006-Retire-Delivered-Band]]"]
-design: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+design: ["[[DES-0001-Overview-Redesign]]"]
 ---
 
 # Overview rework — state-first project & phase dashboards

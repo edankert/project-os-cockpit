@@ -2395,6 +2395,13 @@ items:
       features: ["FEAT-0018"]
   releases: {}
 
+  designs:
+    DES-0001:
+      file: "docs/designs/DES-0001-Overview-Redesign.md"
+      title: "Overview redesign — the design PHASE-008 was built from"
+      status: implemented
+      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
+      note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
     ADR-0001:
       title: "Custom Python doc-server vs Quartz/mkdocs"

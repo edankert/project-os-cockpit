@@ -2,13 +2,13 @@
 type: "[[task]]"
 id: TASK-0214
 aliases: ["TASK-0214"]
-title: "Design-note convention and validator support"
+title: "Consume the design note type in the cockpit"
 status: doing
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-27
-source: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+source: ["[[DES-0001-Overview-Redesign]]"]
 parent: "[[FEAT-0042-Design-Bench]]"
 effort: "S"
 depends: []
@@ -17,25 +17,25 @@ related: []
 tests: []
 ---
 
-# Design-note convention and validator support
+# Consume the design type
 
 ## Definition of Done
 
-- [ ] A design note is `type: "[[reference]]"` with `scope: design-input` and an `asset:` naming a file beside it — the shape [[REF-0001]] already uses, written down rather than inferred
+- [ ] The cockpit recognises `type: "[[design]]"` notes under `docs/designs/` — the type landed upstream (project-os-dev FEAT-0019); this consumes it
 - [ ] The sidecar exposes design notes as a typed collection (id, title, asset path, `design:` back-links, revision count) rather than the renderer re-deriving them from a path regex
-- [ ] A validator check reports a design note whose `asset:` does not resolve, and an artifact under `references/design/` that no note claims
+- [ ] `DESIGN-ASSET` / `DESIGN-ORPHAN` arrive with the synced validator; confirm both fire in this repo, not just in the upstream fixture
 - [ ] `design:` back-links resolve both ways: from a FEAT/PHASE to its design, and from a design to everything it specifies
-- [ ] No upstream taxonomy change is required
+- [ ] `DES-0001` renders in the Library and resolves as a link from FEAT-0040, FEAT-0041, PHASE-008 and the CHG note
 
 ## Steps
 
-- [ ] Document the convention in the reference note template's guidance
-- [ ] Add the sidecar collection + endpoint
-- [ ] Add the two validator checks, each with an inversion test
-- [ ] Verify against the real [[REF-0001]] note, not a fixture
+- [ ] Add the sidecar `designs` collection + endpoint
+- [ ] Replace `_DESIGN_DIR_RE` with type-based membership
+- [ ] Confirm the synced DESIGN-ASSET / DESIGN-ORPHAN checks fire here
+- [ ] Verify against the real [[DES-0001]] note, not a fixture
 
 ## Notes
 
-Deliberately built on `reference` rather than a new `DES-*` type. A design does have a lifecycle `reference` does not model (`proposed → accepted → implemented | superseded`), and that gap may eventually justify the type — but a note type is an upstream change to TAXONOMY, STATUSES, templates and the validator, and this phase should not open with one.
+This task originally scoped the cockpit onto `reference` + `scope: design-input` to avoid an upstream taxonomy change. Edwin reversed that on 2026-07-27 — correctly: the lifecycle gap was the whole reason the convention felt wrong, and building on `reference` then migrating would have been the same work twice. The type landed upstream first (project-os-dev FEAT-0019, zero new status values), so this task is now consumption rather than invention.
 
 `_DESIGN_DIR_RE` in `cockpit.py` currently identifies designs by path regex for the Library group. That is the thing to replace: membership by frontmatter, not by where the file happens to sit.

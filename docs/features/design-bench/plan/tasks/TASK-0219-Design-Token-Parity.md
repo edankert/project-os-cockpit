@@ -32,7 +32,7 @@ tests: []
 - [ ] Choose the declaration format (CSS custom properties in the artifact are the obvious candidate — the design already has to define them to render)
 - [ ] Extract from both sides and compare
 - [ ] Write the parity test with inversion coverage in both directions
-- [ ] Run it against REF-0001's dossier and the current implementation, and record what it finds
+- [ ] Run it against DES-0001's dossier and the current implementation, and record what it finds
 
 ## Notes
 
@@ -40,4 +40,4 @@ This is the task that justifies building a design surface *here* rather than usi
 
 A design token declared in a dossier and re-typed into a stylesheet is the same failure with the same remedy. The interesting part is that the design becomes the upstream side of the parity check rather than another surface that drifts.
 
-Expect the first run against REF-0001 to find real divergence. The dossier was authored before the implementation and the implementation moved; that is data, not a bug in the check.
+Expect the first run against DES-0001 to find real divergence. The dossier was authored before the implementation and the implementation moved; that is data, not a bug in the check.

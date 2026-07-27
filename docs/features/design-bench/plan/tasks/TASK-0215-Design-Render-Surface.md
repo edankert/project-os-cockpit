@@ -25,7 +25,7 @@ tests: []
 - [ ] Viewport presets include **900px height** — the size [[REQ-0022]] is written about; a design reviewed at another size is reviewed against the wrong question
 - [ ] Editing the artifact updates the pane with no manual reload, through the existing watcher/SSE path
 - [ ] The render frame is **sandboxed**: artifact HTML is treated as content, cannot reach the sidecar's mutation endpoints, cannot read the repo, and cannot navigate the shell
-- [ ] [[REF-0001]]'s real 139KB dossier renders correctly — the acceptance subject is the existing artifact, not a fixture
+- [ ] [[DES-0001]]'s real 139KB dossier renders correctly — the acceptance subject is the existing artifact, not a fixture
 - [ ] A design with no `asset:`, or a missing file, degrades with a message rather than a blank pane
 
 ## Steps
@@ -34,7 +34,7 @@ tests: []
 - [ ] Build the surface with the viewport switcher
 - [ ] Wire the watcher so an artifact edit pushes an SSE reload for that surface only
 - [ ] Sandbox the frame; write a test asserting a script in an artifact cannot reach a mutation endpoint
-- [ ] Render REF-0001 and check it against the artifact opened directly in a browser
+- [ ] Render DES-0001 and check it against the artifact opened directly in a browser
 
 ## Notes
 

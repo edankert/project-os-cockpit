@@ -8,7 +8,7 @@ phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-27
-source: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+source: ["[[DES-0001-Overview-Redesign]]"]
 parent: "[[FEAT-0042-Design-Bench]]"
 effort: "M"
 depends: ["[[TASK-0214]]"]

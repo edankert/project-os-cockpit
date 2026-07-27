@@ -16,7 +16,7 @@ requirements:
   - "[[REQ-0022-Overview-State-Above-History]]"
 depends: ["[[PHASE-007-Agent-Instrumentation]]"]
 related: ["[[ADR-0007-Planning-Artifact-Approval-Gate]]", "[[ADR-0006-Retire-Delivered-Band]]", "[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0023-Overview-Scopes]]"]
-design: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+design: ["[[DES-0001-Overview-Redesign]]"]
 ---
 
 # Phase 8: State & review surfaces

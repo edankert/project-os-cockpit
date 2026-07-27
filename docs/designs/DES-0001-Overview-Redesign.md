@@ -1,13 +1,18 @@
 ---
-type: "[[reference]]"
-id: REF-0001
-aliases: ["REF-0001"]
-title: "Overview redesign dossier — the design input behind FEAT-0040 and FEAT-0041"
-status: active
+type: "[[design]]"
+id: DES-0001
+aliases: ["DES-0001"]
+title: "Overview redesign — the design PHASE-008 was built from"
+status: implemented
 owner: user:edwin
 created: 2026-07-26
-updated: 2026-07-26
-scope: "design-input"
+updated: 2026-07-27
+implements: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0041-Review-Desk]]", "[[PHASE-008-State-And-Review-Surfaces]]"]
+supersedes: ""
+superseded_by: ""
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
 source: ["https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be"]
 related: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0041-Review-Desk]]", "[[PHASE-008-State-And-Review-Surfaces]]", "[[ADR-0006-Retire-Delivered-Band]]"]
 asset: "overview-redesign-dossier.html"
@@ -38,3 +43,11 @@ Two findings did most of the work and are worth re-reading before changing these
 ## Maintenance
 
 Update the HTML in place when the surfaces change materially, and keep the plate numbering stable so the annotations in [[FEAT-0040-Overview-Rework]] and [[FEAT-0041-Review-Desk]] keep resolving. The `design:` frontmatter field on those notes is what puts this dossier in their attachment strip and in the record column's Library card; adding the same field to a new feature is all it takes to surface its own input.
+
+## Migration note (2026-07-27)
+
+Filed as `REF-0001` under `docs/references/design/` because no design note type existed. It does now (project-os-dev FEAT-0019), so this became `DES-0001` under `docs/designs/`.
+
+Status is **`implemented`**, not `accepted`. PHASE-008 shipped from this dossier — FEAT-0040 and FEAT-0041 are both `done` — so recording it as merely accepted would understate what happened, and `superseded` would be wrong because nothing has replaced it. `implemented` is terminal-but-alive on purpose: the design still describes the built surface, which is what makes design/implementation parity checkable at all (project-os-cockpit TASK-0219).
+
+What this note still does not carry, and [[FEAT-0042]] exists to fix: the artifact went through six revisions in one session and only the sixth survives. The five earlier ones and the reasoning between them are in a chat transcript. Future revisions are commits against the asset, with the reason in the commit message.

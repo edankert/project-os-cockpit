@@ -14,7 +14,7 @@ requirements: []
 tests: ["[[TST-0021-Review-Desk]]"]
 tasks: ["[[TASK-0205]]", "[[TASK-0206]]", "[[TASK-0207]]", "[[TASK-0208]]", "[[TASK-0209]]", "[[TASK-0210]]", "[[TASK-0211]]"]
 related: ["[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0025-Dispatch-Runtime]]", "[[FEAT-0030-Agent-Inbox]]", "[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0040-Overview-Rework]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
-design: ["[[REF-0001-Overview-Redesign-Dossier]]"]
+design: ["[[DES-0001-Overview-Redesign]]"]
 ---
 
 # Review desk (~review)

@@ -10,7 +10,7 @@ created: 2026-07-26
 updated: 2026-07-26
 component: ui
 source: ["user-report:2026-07-26"]
-design: "[[REF-0001-Overview-Redesign-Dossier]]"
+design: "[[DES-0001-Overview-Redesign]]"
 related: [ISS-0029, ADR-0005, ADR-0008]
 tests: []
 ---
