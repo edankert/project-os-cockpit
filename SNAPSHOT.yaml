@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0216"
+  task: "TASK-0219"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009. Done: 0214, 0221, 0215, 0220. Now 0216 compare — capture landed first so this renders real deposited history rather than a fixture it manufactures for itself."
+  note: "2026-07-27 PHASE-009. Done: 0214, 0221, 0215, 0220, 0216. Now 0219 scoped palette parity — status/severity only, statuses.py declared upstream. Then 0217 annotation, 0218 desk review."
 
 items:
   features:
@@ -333,7 +333,7 @@ items:
     TASK-0219:
       file: "docs/features/design-bench/plan/tasks/TASK-0219-Design-Token-Parity.md"
       title: "Design tokens checked against the implementation's CSS"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
     TASK-0212:
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 214
+    tasks_done: 215
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
