@@ -62,6 +62,10 @@ TEST_RUN_FIELDS: frozenset[str] = frozenset({
 #: It is in the allow-list because it IS written, not as an exception.
 BOOKKEEPING_FIELDS: frozenset[str] = frozenset({"updated"})
 
+#: Fields a design capture may touch. Nothing about status or review — a
+#: capture records that a revision happened, never that it was any good.
+DESIGN_CAPTURE_FIELDS: frozenset[str] = frozenset({"updated"})
+
 ALLOWED_FIELDS: frozenset[str] = REVIEW_FIELDS | TEST_RUN_FIELDS | BOOKKEEPING_FIELDS
 
 #: Request-body keys each endpoint accepts. Kept here beside the field
@@ -424,6 +428,7 @@ def stamp_test_run(
 
 
 _RUNS_HEADING_RE = re.compile(r"^##\s+Runs\s*$", re.IGNORECASE | re.MULTILINE)
+_REVISIONS_HEADING_RE = re.compile(r"^##\s+Revisions\s*$", re.IGNORECASE | re.MULTILINE)
 
 
 def _append_run_log(
@@ -459,6 +464,42 @@ def _append_run_log(
     cut = match.end() + (next_heading.start() if next_heading else len(rest))
     head, tail = body[:cut], body[cut:]
     return head.rstrip("\n") + "\n\n" + block + "\n\n" + tail.lstrip("\n")
+
+
+def append_revision_log(body: str, *, date: str, reason: str) -> str:
+    """Record one revision under ``## Revisions`` (TASK-0220).
+
+    Not redundant with git, for three reasons found in review:
+
+    * **The asset diff is noise.** Two regenerated 139KB HTML files diff as a
+      wall of changes, so the reasoning between revisions collapses to the
+      commit subject. One line here is the only readable record.
+    * **Git history is invisible to the validator**, and a squash or rebase
+      destroys it silently. A log in the note is checkable.
+    * REQ-0023's "readable without the tool" clause covered comments and
+      verdicts but not the *process*. This closes that.
+
+    Newest last, matching ``## Runs`` — a chronological log answers "when did
+    this start looking wrong?" by scrolling rather than by bisecting.
+
+    **No commit sha.** An entry cannot name the commit that contains it: write
+    the sha, commit, and the sha is already stale; amend to correct it and the
+    amend changes it again. That is self-reference, not a bug to code around.
+    So the note records the *reason* and git records the *revision*, and they
+    are paired by order and date — which also means the pairing survives a
+    rebase that rewrites every sha.
+    """
+    entry = f"- {date} — {reason.strip()}"
+    match = _REVISIONS_HEADING_RE.search(body)
+    if not match:
+        return body.rstrip("\n") + "\n\n## Revisions\n\n" + entry + "\n"
+    # Insert at the end of the Revisions SECTION, not the end of the body —
+    # the same bug an independent review caught in the run log on 2026-07-26.
+    rest = body[match.end():]
+    next_heading = re.search(r"^##\s", rest, re.MULTILINE)
+    cut = match.end() + (next_heading.start() if next_heading else len(rest))
+    head, tail = body[:cut], body[cut:]
+    return head.rstrip("\n") + "\n" + entry + "\n\n" + tail.lstrip("\n")
 
 
 def draft_issue_body(

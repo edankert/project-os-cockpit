@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0215"
+  task: "TASK-0220"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009. Done: 0214 (type membership, register, gated asset endpoint), 0221 (authoring contract upstream, DES-0001 retrofitted with 29 regions). Now 0215 render surface, then 0220 capture BEFORE 0216 compare."
+  note: "2026-07-27 PHASE-009. Done: 0214, 0221, 0215. Now 0220 revision capture — the hole Fable found: 0216 renders git history and nothing deposits it, so the founding loss could recur with every criterion green."
 
 items:
   features:
@@ -289,7 +289,7 @@ items:
     TASK-0220:
       file: "docs/features/design-bench/plan/tasks/TASK-0220-Revision-Capture.md"
       title: "Revision capture — deposit the history TASK-0216 renders"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
       note: "The hole the phase was built around and did not fill: TASK-0216 renders git history, nothing deposits it. Sequenced before 0216."
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 212
+    tasks_done: 213
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

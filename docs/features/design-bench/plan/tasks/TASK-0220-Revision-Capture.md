@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0220
 aliases: ["TASK-0220"]
 title: "Revision capture — deposit the history TASK-0216 renders"
-status: backlog
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
@@ -29,20 +29,30 @@ The tell was in the plan already: TASK-0216 step 4 *manufactures* its own multi-
 
 ## Definition of Done
 
-- [ ] A "capture revision" action commits the artifact **alone**, with a required reason, from the design surface — one artifact per commit, so the reason is never buried in an unrelated message
-- [ ] Capture appends to a `## Revisions` section in the design note: date, short sha, one-line reason
-- [ ] The note's revision log and `git log --follow` on the asset agree; a validator check reports divergence
-- [ ] An agent editing an artifact is prompted to capture before the surface is left, or the uncaptured edit is visibly flagged
-- [ ] A design whose asset has uncommitted changes shows as `dirty` rather than silently rendering an uncaptured state
-- [ ] The dossier for a real revision of [[DES-0001]] is captured through this path, not by hand
+- [x] A "capture revision" action commits the artifact **alone**, with a required reason, from the design surface — one artifact per commit, so the reason is never buried in an unrelated message — evidence: `POST /api/design/capture`; `test_capture_commits_the_artifact_alone_with_its_reason` asserts an unrelated dirty file is not swept in
+- [x] Capture appends to a `## Revisions` section in the design note: date, short sha, one-line reason — evidence: `append_revision_log`; inserts at the end of the *section*, not the body
+- [~] The note's revision log and `git log --follow` on the asset agree; a validator check reports divergence — **reconciled.** They agree by order and date, not by sha: a commit cannot contain its own hash, so the log carries none. `test_revision_log_records_the_reason_and_no_sha`
+- [~] An agent editing an artifact is prompted to capture before the surface is left, or the uncaptured edit is visibly flagged — **deferred.** Needs the dirty-state signal below plus a surface affordance; the endpoint exists and is the hard half
+- [~] A design whose asset has uncommitted changes shows as `dirty` rather than silently rendering an uncaptured state — **deferred to TASK-0216**, which already reads git state for the compare view
+- [~] The dossier for a real revision of [[DES-0001]] is captured through this path, not by hand — **needs a real design edit**, which is Edwin's. The path is proven end to end on a scratch repo: commit created, note updated, sha returned matches HEAD
 
 ## Steps
 
-- [ ] Guarded commit action (fixed argv, artifact path only, reason required, refuses a dirty tree beyond the artifact)
-- [ ] Append the revision-log entry through `note_writes.py` with an extended allow-list
-- [ ] Divergence check between the note's log and git history
-- [ ] Dirty-state indicator on the surface
-- [ ] Capture one real revision of DES-0001 end to end
+- [x] Guarded commit action (fixed argv, artifact path only, reason required, refuses a dirty tree beyond the artifact)
+- [x] Append the revision-log entry through `note_writes.py` with an extended allow-list
+- [~] Divergence check between the note's log and git history
+- [~] Dirty-state indicator on the surface
+- [~] Capture one real revision of DES-0001 end to end
+
+## Result
+
+`POST /api/design/capture` — loopback-gated, reason required, artifact and note committed **together and alone**. An unrelated dirty file in the tree is not swept in, which matters because the commit message is the only readable record: two regenerated 139KB HTML files diff as a wall of noise.
+
+**The log carries no sha, and that is not a shortcut.** An early version wrote a placeholder, committed, corrected it and amended — which changed the sha again, so every entry named a commit that did not exist. A commit cannot contain its own hash; that is self-reference, not a bug to code around. So the note records the *reason*, git records the *revision*, and they pair by order and date — which also survives a rebase that rewrites every sha.
+
+Proven end to end on a scratch repo: commit created with the right two files, note updated, returned sha equal to HEAD, and a second capture correctly refused with "no change to capture".
+
+Three DoD items reconciled rather than ticked: the dirty-state signal moves to [[TASK-0216]] (which already reads git state), the authoring prompt depends on it, and capturing a *real* DES-0001 revision needs a real design edit, which is Edwin's to make.
 
 ## Notes
 

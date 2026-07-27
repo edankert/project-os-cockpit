@@ -276,3 +276,130 @@ def test_the_asset_url_is_percent_encoded_per_segment() -> None:
     """A path segment with a space or '#' must not break the frame src, and
     encoding the whole path would destroy the separators."""
     assert "d.asset.split('/').map(encodeURIComponent).join('/')" in _renderer()
+
+
+# ---- revision capture (TASK-0220) ----------------------------------------
+
+def _git_workspace(tmp_path: Path) -> Path:
+    import subprocess
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-X.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "X",
+        "status": "draft", "asset": "x.html",
+    }, "# X\n")
+    (docs / "designs" / "x.html").write_text("<h1>v1</h1>", encoding="utf-8")
+    for args in (["init", "-q"], ["config", "user.email", "t@e.com"],
+                 ["config", "user.name", "T"], ["add", "-A"],
+                 ["commit", "-qm", "seed"]):
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True,
+                       capture_output=True)
+    return docs
+
+
+def _capture(docs: Path, payload: dict) -> tuple[int, dict]:
+    import json as _json
+    import threading
+    import urllib.error
+    import urllib.request
+
+    from project_os_cockpit.server import (
+        DocsServer, _NoDNSThreadingHTTPServer, _make_handler,
+    )
+    srv = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0), _make_handler(docs, Index.build(docs), srv.bus))
+    port = httpd.server_address[1]
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/design/capture",
+            data=_json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=25) as r:
+                return r.status, _json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            try:
+                return e.code, _json.loads(e.read())
+            except Exception:
+                return e.code, {}
+    finally:
+        httpd.shutdown()
+
+
+def test_capture_commits_the_artifact_alone_with_its_reason(tmp_path: Path) -> None:
+    """The hole PHASE-009 was built around and did not fill: TASK-0216 renders
+    git history and nothing deposited it."""
+    import subprocess
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    # An unrelated dirty file must NOT be swept into the capture commit.
+    (docs / "unrelated.md").write_text("noise\n", encoding="utf-8")
+
+    status, body = _capture(docs, {"id": "DES-0001", "reason": "tightened the band"})
+    assert status == 200 and body["ok"] is True
+
+    log = subprocess.run(["git", "-C", str(tmp_path), "log", "--oneline", "-1"],
+                         capture_output=True, text=True).stdout
+    assert "design(DES-0001): tightened the band" in log
+
+    files = subprocess.run(
+        ["git", "-C", str(tmp_path), "show", "--name-only", "--format=", "HEAD"],
+        capture_output=True, text=True).stdout.split()
+    assert sorted(files) == ["docs/designs/DES-0001-X.md", "docs/designs/x.html"], (
+        "capture swept in an unrelated file; the reason must not end up buried "
+        "in a commit that changed other things"
+    )
+
+
+def test_capture_returns_the_sha_that_is_actually_head(tmp_path: Path) -> None:
+    """A commit cannot contain its own hash. An early version wrote a
+    placeholder, committed, corrected it and amended — which changed the sha
+    again, so every log entry named a commit that did not exist."""
+    import subprocess
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    _, body = _capture(docs, {"id": "DES-0001", "reason": "why"})
+    head = subprocess.run(["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+                          capture_output=True, text=True).stdout.strip()
+    assert head.startswith(body["sha"])
+
+
+def test_revision_log_records_the_reason_and_no_sha(tmp_path: Path) -> None:
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    _capture(docs, {"id": "DES-0001", "reason": "raised contrast"})
+    note = (docs / "designs" / "DES-0001-X.md").read_text(encoding="utf-8")
+    assert "## Revisions" in note
+    assert "— raised contrast" in note
+    assert "`" not in note.split("## Revisions")[1], (
+        "the log must carry no sha — a commit cannot name itself, and the "
+        "pairing survives a rebase only if it is by order and date"
+    )
+
+
+def test_capture_requires_a_reason(tmp_path: Path) -> None:
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    status, body = _capture(docs, {"id": "DES-0001"})
+    assert status == 400 and "reason" in body["error"]
+
+
+def test_capture_refuses_when_there_is_nothing_to_capture(tmp_path: Path) -> None:
+    """Otherwise the log fills with entries recording that nothing changed."""
+    docs = _git_workspace(tmp_path)
+    status, body = _capture(docs, {"id": "DES-0001", "reason": "no edit made"})
+    assert status == 409 and "no change" in body["error"]
+
+
+def test_capture_is_loopback_gated() -> None:
+    import inspect
+
+    from project_os_cockpit import server as server_mod
+
+    body = inspect.getsource(server_mod).split("def _serve_design_capture(")[1]
+    body = body.split("\n        def ")[0]
+    assert "_require_loopback()" in body, (
+        "capture writes to the repo and runs git; it must not be reachable "
+        "from the LAN the render server binds to"
+    )

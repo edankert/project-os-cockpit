@@ -23,6 +23,7 @@ import logging
 import mimetypes
 import os
 import queue
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -627,6 +628,10 @@ def _make_handler(
             if path == "/api/cockpit/tab-state":
                 self._serve_cockpit_tab_state()
                 return
+            if path == "/api/design/capture":
+                self._serve_design_capture()
+                return
+
             if path == "/api/notes/check-toggle":
                 self._serve_check_toggle()
                 return
@@ -1437,6 +1442,110 @@ def _make_handler(
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "actions": load_actions(project_root),
             })
+
+        def _serve_design_capture(self) -> None:
+            """``POST /api/design/capture`` — commit one artifact with a reason.
+
+            The gap this closes is the whole point of PHASE-009. TASK-0216
+            renders an artifact's git history; **nothing was depositing it**.
+            An agent iterating against the live surface edits the working copy
+            six times and commits once — which is exactly what happened to
+            DES-0001, the loss this phase exists to prevent. Every exit
+            criterion could have gone green while the next design session lost
+            five revisions again.
+
+            Three rules, each of which a naive version gets wrong:
+
+            * **One artifact per commit.** Committing the asset alongside other
+              files buries the reason in an unrelated message, and the message
+              is the only readable record — two regenerated HTML files diff as
+              a wall of noise.
+            * **A reason is required.** A capture without one produces history
+              that says a revision happened and not why, which is the state
+              this feature exists to escape.
+            * **The note's revision log is written in the same commit.** A log
+              that can drift from git is worse than no log.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            design_id = str(body.get("id", "") or "").strip()
+            reason = str(body.get("reason", "") or "").strip()
+            if not design_id or not reason:
+                self._respond_json(
+                    {"ok": False, "error": "id and reason are both required; a "
+                                           "revision without a reason is the state "
+                                           "this exists to escape"},
+                    status=HTTPStatus.BAD_REQUEST)
+                return
+
+            record = next(
+                (d for d in cockpit.designs_payload(index)["designs"]
+                 if d["id"] == design_id), None)
+            if record is None or not record["asset"]:
+                self._respond_json({"ok": False, "error": "unknown design or no asset"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+
+            root = docs_root.resolve()
+            asset_abs = (root / record["asset"]).resolve()
+            note_abs = (root / record["rel"]).resolve()
+            for target in (asset_abs, note_abs):
+                try:
+                    target.relative_to(root)
+                except ValueError:
+                    self._respond_forbidden("design path outside docs root")
+                    return
+            if not asset_abs.is_file():
+                self._respond_json({"ok": False, "error": "asset missing"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+
+            repo = root.parent
+            try:
+                dirty = subprocess.run(
+                    ["git", "-C", str(repo), "status", "--porcelain", "--",
+                     str(asset_abs)],
+                    capture_output=True, text=True, timeout=10, check=True).stdout
+            except (subprocess.SubprocessError, OSError) as exc:
+                self._respond_json({"ok": False, "error": "git unavailable: %s" % exc},
+                                   status=HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            if not dirty.strip():
+                self._respond_json(
+                    {"ok": False, "error": "no change to capture — the artifact "
+                                           "matches its last committed revision"},
+                    status=HTTPStatus.CONFLICT)
+                return
+
+            today = _dt.date.today().isoformat()
+            try:
+                text = note_abs.read_text(encoding="utf-8")
+                fm_lines, body_md = note_writes._split_frontmatter(text)
+                new_body = note_writes.append_revision_log(
+                    body_md, date=today, reason=reason)
+                note_abs.write_text(
+                    "---\n" + "\n".join(fm_lines) + "\n---\n" + new_body,
+                    encoding="utf-8")
+                subprocess.run(
+                    ["git", "-C", str(repo), "add", "--", str(asset_abs), str(note_abs)],
+                    capture_output=True, text=True, timeout=10, check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "commit", "-m",
+                     "design(%s): %s" % (design_id, reason)],
+                    capture_output=True, text=True, timeout=20, check=True)
+                sha = subprocess.run(
+                    ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                    capture_output=True, text=True, timeout=10, check=True).stdout.strip()
+            except (subprocess.SubprocessError, OSError) as exc:
+                self._respond_json({"ok": False, "error": "capture failed: %s" % exc},
+                                   status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+
+            self._respond_json({"ok": True, "id": design_id, "sha": sha[:7],
+                                "date": today, "reason": reason})
 
         def _serve_cockpit_designs(self) -> None:
             """``GET /api/cockpit/designs`` — the design register
