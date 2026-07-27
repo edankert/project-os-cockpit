@@ -466,6 +466,67 @@ def _append_run_log(
     return head.rstrip("\n") + "\n\n" + block + "\n\n" + tail.lstrip("\n")
 
 
+_REVIEW_HEADING_RE = re.compile(r"^##\s+Review\s*$", re.IGNORECASE | re.MULTILINE)
+
+#: One comment line. Parsed back out so the surface can render pins, which is
+#: why the shape is fixed rather than free prose — but it stays readable as
+#: Markdown, because REQ-0023's "readable without the tool" clause covers the
+#: comments, not just the verdicts.
+_COMMENT_RE = re.compile(
+    r"^- \*\*(?P<region>[^*]+)\*\* · (?P<date>\d{4}-\d{2}-\d{2})"
+    r"(?: · (?P<author>[^—]+?))? — (?P<text>.+)$",
+    re.MULTILINE,
+)
+
+
+def append_design_comment(
+    body: str, *, region: str, date: str, author: str, text: str,
+) -> str:
+    """Add one region-anchored comment under ``## Review``.
+
+    The anchor is a **region id, never a coordinate**. Pixel pins die on the
+    next revision, and the founding artifact went through six in one session —
+    coordinate anchoring would have produced a comment set that was worthless
+    by v2.
+
+    A region of ``""`` is the document-level lane, for criticism that has no
+    region: "too much violet everywhere", or a complaint about the relationship
+    between two areas. Inventing a region to host those would make the region
+    list a fiction.
+    """
+    label = region.strip() or "(document)"
+    who = f" · {author.strip()}" if author.strip() else ""
+    entry = f"- **{label}** · {date}{who} — {text.strip()}"
+    match = _REVIEW_HEADING_RE.search(body)
+    if not match:
+        return body.rstrip("\n") + "\n\n## Review\n\n" + entry + "\n"
+    rest = body[match.end():]
+    next_heading = re.search(r"^##\s", rest, re.MULTILINE)
+    cut = match.end() + (next_heading.start() if next_heading else len(rest))
+    head, tail = body[:cut], body[cut:]
+    return head.rstrip("\n") + "\n" + entry + "\n\n" + tail.lstrip("\n")
+
+
+def read_design_comments(body: str) -> list[dict[str, str]]:
+    """Parse ``## Review`` back into comments, in written order."""
+    match = _REVIEW_HEADING_RE.search(body)
+    if not match:
+        return []
+    rest = body[match.end():]
+    next_heading = re.search(r"^##\s", rest, re.MULTILINE)
+    section = rest[:next_heading.start()] if next_heading else rest
+    out = []
+    for m in _COMMENT_RE.finditer(section):
+        region = m.group("region").strip()
+        out.append({
+            "region": "" if region == "(document)" else region,
+            "date": m.group("date"),
+            "author": (m.group("author") or "").strip(),
+            "text": m.group("text").strip(),
+        })
+    return out
+
+
 def append_revision_log(body: str, *, date: str, reason: str) -> str:
     """Record one revision under ``## Revisions`` (TASK-0220).
 

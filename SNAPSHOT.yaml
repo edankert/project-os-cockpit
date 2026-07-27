@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0219"
+  task: "TASK-0217"
   feature: "FEAT-0042"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009. Done: 0214, 0221, 0215, 0220, 0216. Now 0219 scoped palette parity — status/severity only, statuses.py declared upstream. Then 0217 annotation, 0218 desk review."
+  note: "2026-07-27 PHASE-009. Six of eight done. Now 0217 region annotation — anchors are region IDs, never coordinates; DES-0001 was retrofitted with 29 so there is a real subject."
 
 items:
   features:
@@ -321,7 +321,7 @@ items:
     TASK-0217:
       file: "docs/features/design-bench/plan/tasks/TASK-0217-Region-Anchored-Annotation.md"
       title: "Region-anchored annotation, stored as Markdown"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
     TASK-0218:
@@ -2459,7 +2459,7 @@ metrics:
     features_total: 42
     features_done: 36
     tasks_total: 221
-    tasks_done: 215
+    tasks_done: 216
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

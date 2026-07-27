@@ -1027,6 +1027,73 @@ _COMMIT_RECORD_SEP = "\x1e"
 
 DESIGN_REVISIONS_MAX = 50
 
+_REGION_RE = re.compile(r'data-design-region="([^"]+)"')
+
+
+def design_regions(docs_root: Path, asset_rel: str) -> list[str]:
+    """Region ids an artifact declares, in document order, deduped.
+
+    Read from the artifact rather than from the note, so the note cannot claim
+    a region the artifact does not have — the note documents what the regions
+    are *for*, the artifact is what actually carries them.
+    """
+    path = docs_root / asset_rel
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    seen, out = set(), []
+    for rid in _REGION_RE.findall(text):
+        if rid not in seen:
+            seen.add(rid)
+            out.append(rid)
+    return out
+
+
+def design_comments_payload(
+    docs_root: Path, index: Index, design_id: str,
+) -> dict[str, Any]:
+    """Comments plus the regions they anchor to, with orphans flagged.
+
+    An **orphan** is a comment whose region the artifact no longer declares.
+    It is shown, never dropped: a comment that vanishes because someone renamed
+    a region takes the objection with it, and the reviewer has no way to know
+    it happened. Renaming is indistinguishable from delete-and-add, which is
+    why the authoring contract says a region id is a published name.
+    """
+    from . import note_writes
+
+    record = next((d for d in designs_payload(index)["designs"]
+                   if d["id"] == design_id), None)
+    if record is None:
+        return {"schema_version": SCHEMA_VERSION, "id": design_id,
+                "regions": [], "comments": [], "orphans": []}
+
+    regions = design_regions(docs_root, record["asset"]) if record["asset"] else []
+    note_path = docs_root / record["rel"]
+    comments: list[dict[str, str]] = []
+    if note_path.is_file():
+        try:
+            _fm, body = note_writes._split_frontmatter(
+                note_path.read_text(encoding="utf-8"))
+            comments = note_writes.read_design_comments(body)
+        except Exception:  # noqa: BLE001 — a malformed note must not 500 the surface
+            comments = []
+
+    known = set(regions)
+    for c in comments:
+        # "" is the document lane — deliberately not an orphan.
+        c["orphaned"] = bool(c["region"]) and c["region"] not in known
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "id": design_id,
+        "regions": regions,
+        "comments": comments,
+        "orphans": [c for c in comments if c["orphaned"]],
+    }
+
 
 def design_revisions_payload(
     project_root: Path, index: Index, design_id: str,

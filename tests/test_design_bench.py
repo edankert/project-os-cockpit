@@ -480,3 +480,154 @@ def test_compare_renders_both_sides_at_the_same_viewport() -> None:
     src = _renderer()
     assert "body.classList.add('is-compare')" in src
     assert "buildDesignFrame(d), buildDesignFrame(d, designCompareSha)" in src
+
+
+# ---- region-anchored annotation (TASK-0217) ------------------------------
+
+def _design_with_regions(tmp_path: Path, html: str) -> Path:
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-X.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "X",
+        "status": "proposed", "asset": "x.html",
+    }, "# X\n")
+    (docs / "designs" / "x.html").write_text(html, encoding="utf-8")
+    return docs
+
+
+def test_a_comment_survives_its_region_MOVING_on_the_page(tmp_path: Path) -> None:
+    """The premise of anchoring by id. Coordinate pins die on the next
+    revision, and the founding artifact went through six in one session."""
+    from project_os_cockpit import note_writes
+    docs = _design_with_regions(
+        tmp_path,
+        '<div data-design-region="top">A</div><div data-design-region="band">B</div>')
+    note = docs / "designs" / "DES-0001-X.md"
+    fm, body = note_writes._split_frontmatter(note.read_text())
+    note.write_text("---\n" + "\n".join(fm) + "\n---\n" + note_writes.append_design_comment(
+        body, region="band", date="2026-07-27", author="user:edwin",
+        text="too loud"), encoding="utf-8")
+
+    # Move the region to the top of the document — a different position, same id.
+    (docs / "designs" / "x.html").write_text(
+        '<div data-design-region="band">B</div><div data-design-region="top">A</div>',
+        encoding="utf-8")
+
+    payload = cockpit.design_comments_payload(docs, Index.build(docs), "DES-0001")
+    assert payload["comments"][0]["region"] == "band"
+    assert payload["comments"][0]["orphaned"] is False
+    assert payload["orphans"] == []
+
+
+def test_a_comment_ORPHANS_when_its_region_is_renamed(tmp_path: Path) -> None:
+    """The case that actually discriminates. A rename is indistinguishable
+    from delete-and-add, so the comment cannot follow — but it must be SHOWN,
+    not dropped, or the objection disappears with no way to know."""
+    from project_os_cockpit import note_writes
+    docs = _design_with_regions(tmp_path, '<div data-design-region="band">B</div>')
+    note = docs / "designs" / "DES-0001-X.md"
+    fm, body = note_writes._split_frontmatter(note.read_text())
+    note.write_text("---\n" + "\n".join(fm) + "\n---\n" + note_writes.append_design_comment(
+        body, region="band", date="2026-07-27", author="", text="too loud"),
+        encoding="utf-8")
+
+    (docs / "designs" / "x.html").write_text(
+        '<div data-design-region="focus-band">B</div>', encoding="utf-8")
+
+    payload = cockpit.design_comments_payload(docs, Index.build(docs), "DES-0001")
+    assert payload["comments"][0]["orphaned"] is True
+    assert len(payload["orphans"]) == 1, "the comment was dropped rather than flagged"
+
+
+def test_duplicate_region_ids_are_deduped_in_declaration_order(tmp_path: Path) -> None:
+    """A multi-plate dossier will plausibly repeat an id — DES-0001's own
+    data-pin numbers restart per plate, which is why the contract requires
+    scoping."""
+    docs = _design_with_regions(
+        tmp_path,
+        '<i data-design-region="a">1</i><i data-design-region="b">2</i>'
+        '<i data-design-region="a">3</i>')
+    assert cockpit.design_regions(docs, "designs/x.html") == ["a", "b"]
+
+
+def test_the_document_lane_is_not_an_orphan(tmp_path: Path) -> None:
+    """Some criticism has no region — 'too much violet everywhere'. Inventing
+    a region to host it would make the region list a fiction."""
+    from project_os_cockpit import note_writes
+    docs = _design_with_regions(tmp_path, '<div data-design-region="band">B</div>')
+    note = docs / "designs" / "DES-0001-X.md"
+    fm, body = note_writes._split_frontmatter(note.read_text())
+    note.write_text("---\n" + "\n".join(fm) + "\n---\n" + note_writes.append_design_comment(
+        body, region="", date="2026-07-27", author="", text="too much violet"),
+        encoding="utf-8")
+    payload = cockpit.design_comments_payload(docs, Index.build(docs), "DES-0001")
+    assert payload["comments"][0]["region"] == ""
+    assert payload["comments"][0]["orphaned"] is False
+
+
+def test_comments_are_plain_markdown_in_the_note(tmp_path: Path) -> None:
+    """REQ-0023's 'readable without the tool' clause. A reviewer must be able
+    to read the objections as text and tell what each refers to."""
+    from project_os_cockpit import note_writes
+    body = note_writes.append_design_comment(
+        "# X\n", region="plate-c", date="2026-07-27",
+        author="user:edwin", text="the focus band is too loud")
+    assert "- **plate-c** · 2026-07-27 · user:edwin — the focus band is too loud" in body
+    assert note_writes.read_design_comments(body)[0]["region"] == "plate-c"
+
+
+def test_comment_endpoint_rejects_an_undeclared_region(tmp_path: Path) -> None:
+    """A comment anchored to a region the artifact does not declare would
+    never render — accepting it would lose the objection silently."""
+    import json as _json
+    import threading
+    import urllib.error
+    import urllib.request
+
+    from project_os_cockpit.server import (
+        DocsServer, _NoDNSThreadingHTTPServer, _make_handler,
+    )
+    docs = _design_with_regions(tmp_path, '<div data-design-region="band">B</div>')
+    srv = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0), _make_handler(docs, Index.build(docs), srv.bus))
+    port = httpd.server_address[1]
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+
+    def post(payload):
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/design/comment",
+            data=_json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return r.status, _json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, _json.loads(e.read())
+
+    try:
+        status, body = post({"id": "DES-0001", "region": "nope", "text": "x"})
+        assert status == 400 and "unknown region" in body["error"]
+        assert body["regions"] == ["band"], "the error must say what IS valid"
+        assert post({"id": "DES-0001", "region": "band", "text": "ok"})[0] == 200
+        assert post({"id": "DES-0001", "region": "", "text": "doc lane"})[0] == 200
+    finally:
+        httpd.shutdown()
+
+
+def test_comment_endpoint_is_loopback_gated() -> None:
+    import inspect
+
+    from project_os_cockpit import server as server_mod
+
+    body = inspect.getsource(server_mod).split("def _serve_design_comment(")[1]
+    body = body.split("\n        def ")[0]
+    assert "_require_loopback()" in body
+
+
+def test_the_real_dossier_declares_its_29_regions() -> None:
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    regions = cockpit.design_regions(docs, "designs/overview-redesign-dossier.html")
+    assert len(regions) == 29
+    assert len(set(regions)) == 29, "duplicate region ids in the real artifact"
+    assert [r for r in regions if "-pin-" not in r] == [
+        "plate-a", "plate-b", "plate-c", "plate-d", "plate-e", "states", "notes"]

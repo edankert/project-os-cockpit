@@ -628,6 +628,10 @@ def _make_handler(
             if path == "/api/cockpit/tab-state":
                 self._serve_cockpit_tab_state()
                 return
+            if path == "/api/design/comment":
+                self._serve_design_comment()
+                return
+
             if path == "/api/design/capture":
                 self._serve_design_capture()
                 return
@@ -767,6 +771,12 @@ def _make_handler(
 
             if path == "/api/cockpit/designs":
                 self._serve_cockpit_designs()
+                return
+
+            if path.startswith("/api/cockpit/design-comments/"):
+                self._respond_json(cockpit.design_comments_payload(
+                    docs_root, index,
+                    urllib.parse.unquote(path[len("/api/cockpit/design-comments/"):])))
                 return
 
             if path.startswith("/api/cockpit/design-revisions/"):
@@ -1451,6 +1461,74 @@ def _make_handler(
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "actions": load_actions(project_root),
             })
+
+        def _serve_design_comment(self) -> None:
+            """``POST /api/design/comment`` — one region-anchored comment.
+
+            Written as Markdown into the design note's ``## Review`` section,
+            never held as runtime state: REQ-0023's "readable without the tool"
+            clause exists because a link to a hosted artifact already showed
+            what the alternative costs.
+
+            The region must be one the **artifact** declares, or empty for the
+            document-level lane. Accepting an arbitrary string would let a
+            comment anchor to nothing and silently never render.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            design_id = str(body.get("id", "") or "").strip()
+            region = str(body.get("region", "") or "").strip()
+            text = str(body.get("text", "") or "").strip()
+            author = str(body.get("author", "") or "").strip()
+            if not design_id or not text:
+                self._respond_json({"ok": False, "error": "id and text are required"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+
+            payload = cockpit.design_comments_payload(docs_root, index, design_id)
+            if region and region not in payload["regions"]:
+                self._respond_json(
+                    {"ok": False,
+                     "error": "unknown region %r — a comment anchored to a region "
+                              "the artifact does not declare would never render"
+                              % region,
+                     "regions": payload["regions"]},
+                    status=HTTPStatus.BAD_REQUEST)
+                return
+
+            record = next((d for d in cockpit.designs_payload(index)["designs"]
+                           if d["id"] == design_id), None)
+            if record is None:
+                self._respond_json({"ok": False, "error": "unknown design"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+            note_abs = (docs_root.resolve() / record["rel"]).resolve()
+            try:
+                note_abs.relative_to(docs_root.resolve())
+            except ValueError:
+                self._respond_forbidden("note outside docs root")
+                return
+            try:
+                fm_lines, body_md = note_writes._split_frontmatter(
+                    note_abs.read_text(encoding="utf-8"))
+                new_body = note_writes.append_design_comment(
+                    body_md, region=region, date=_dt.date.today().isoformat(),
+                    author=author, text=text)
+                note_abs.write_text(
+                    "---\n" + "\n".join(fm_lines) + "\n---\n" + new_body,
+                    encoding="utf-8")
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.CONFLICT)
+                return
+            except OSError as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            self._respond_json({"ok": True, "id": design_id, "region": region})
 
         def _serve_design_capture(self) -> None:
             """``POST /api/design/capture`` — commit one artifact with a reason.
