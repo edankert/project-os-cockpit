@@ -769,6 +769,15 @@ def _make_handler(
                 self._serve_cockpit_designs()
                 return
 
+            if path.startswith("/api/cockpit/design-revisions/"):
+                self._serve_design_revisions(
+                    path[len("/api/cockpit/design-revisions/"):])
+                return
+
+            if path.startswith("/design-asset-at/"):
+                self._serve_design_asset_at(path[len("/design-asset-at/"):])
+                return
+
             if path.startswith("/design-asset/"):
                 self._serve_design_asset(path[len("/design-asset/"):])
                 return
@@ -1552,6 +1561,36 @@ def _make_handler(
             (FEAT-0042 / TASK-0214). Membership by `type: "[[design]]"`,
             never by path."""
             self._respond_json(cockpit.designs_payload(index))
+
+        def _serve_design_revisions(self, design_id: str) -> None:
+            """``GET /api/cockpit/design-revisions/<DES-id>`` (TASK-0216)."""
+            self._respond_json(cockpit.design_revisions_payload(
+                docs_root.parent, index, urllib.parse.unquote(design_id)))
+
+        def _serve_design_asset_at(self, rest: str) -> None:
+            """``GET /design-asset-at/<DES-id>/<sha>`` — the artifact as it was.
+
+            Same register gating as the live asset route: only a design the
+            register knows, and only its own asset. `git show` rather than a
+            checkout, so reading history never touches the working copy.
+            """
+            parts = urllib.parse.unquote(rest).strip("/").split("/")
+            if len(parts) != 2:
+                self._respond_not_found(rest)
+                return
+            design_id, sha = parts
+            body = cockpit.design_asset_at(
+                docs_root.parent, index, design_id, sha)
+            if body is None:
+                self._respond_not_found(rest)
+                return
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
 
         def _serve_design_asset(self, rel: str) -> None:
             """``GET /design-asset/<rel>`` — a design artifact, read-only.

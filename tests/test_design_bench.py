@@ -403,3 +403,80 @@ def test_capture_is_loopback_gated() -> None:
         "capture writes to the repo and runs git; it must not be reachable "
         "from the LAN the render server binds to"
     )
+
+
+# ---- revisions and compare (TASK-0216) -----------------------------------
+
+def test_revisions_follow_a_rename(tmp_path: Path) -> None:
+    """`--follow` matters here: DES-0001's asset moved from
+    references/design/ to designs/ when the design type landed. Without it the
+    history would truncate at the rename and the design would look new."""
+    import subprocess
+    docs = _git_workspace(tmp_path)
+    subprocess.run(["git", "-C", str(tmp_path), "mv",
+                    "docs/designs/x.html", "docs/designs/renamed.html"],
+                   check=True, capture_output=True)
+    note = docs / "designs" / "DES-0001-X.md"
+    note.write_text(note.read_text().replace('"x.html"', '"renamed.html"'), encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(tmp_path), "commit", "-qm", "design(DES-0001): renamed"],
+                   check=True, capture_output=True)
+
+    payload = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    assert payload["available"] is True
+    assert len(payload["revisions"]) >= 2, (
+        "history truncated at the rename — --follow is what keeps a renamed "
+        "design's past attached to it"
+    )
+
+
+def test_dirty_is_reported(tmp_path: Path) -> None:
+    """An uncaptured edit is a revision the compare view cannot see."""
+    docs = _git_workspace(tmp_path)
+    clean = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    assert clean["dirty"] is False
+    (docs / "designs" / "x.html").write_text("<h1>edited</h1>", encoding="utf-8")
+    dirty = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    assert dirty["dirty"] is True
+
+
+def test_the_reason_is_extracted_from_the_commit_subject(tmp_path: Path) -> None:
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    _capture(docs, {"id": "DES-0001", "reason": "raised contrast"})
+    payload = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    assert payload["revisions"][0]["reason"] == "raised contrast"
+
+
+def test_historical_asset_reads_without_touching_the_tree(tmp_path: Path) -> None:
+    """`git show`, never a checkout. A compare view that stashed the user's
+    uncommitted work to render a diff would be data loss wearing a feature's
+    clothes."""
+    docs = _git_workspace(tmp_path)
+    (docs / "designs" / "x.html").write_text("<h1>v2</h1>", encoding="utf-8")
+    _capture(docs, {"id": "DES-0001", "reason": "second"})
+    payload = cockpit.design_revisions_payload(tmp_path, Index.build(docs), "DES-0001")
+    old = payload["revisions"][-1]["sha"]
+
+    # Leave an uncommitted edit in place; reading history must not disturb it.
+    (docs / "designs" / "x.html").write_text("<h1>uncommitted</h1>", encoding="utf-8")
+    body = cockpit.design_asset_at(tmp_path, Index.build(docs), "DES-0001", old)
+    assert body is not None and b"v1" in body
+    assert (docs / "designs" / "x.html").read_text() == "<h1>uncommitted</h1>", (
+        "reading a historical revision modified the working copy"
+    )
+
+
+def test_a_bogus_sha_is_refused_before_it_reaches_git(tmp_path: Path) -> None:
+    docs = _git_workspace(tmp_path)
+    idx = Index.build(docs)
+    for bad in ("", "HEAD; rm -rf /", "../../etc/passwd", "zzzz", "g" * 40):
+        assert cockpit.design_asset_at(tmp_path, idx, "DES-0001", bad) is None
+
+
+def test_compare_renders_both_sides_at_the_same_viewport() -> None:
+    """Comparing two renders at different sizes would show the layout
+    changing rather than the design."""
+    src = _renderer()
+    assert "body.classList.add('is-compare')" in src
+    assert "buildDesignFrame(d), buildDesignFrame(d, designCompareSha)" in src

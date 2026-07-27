@@ -2765,9 +2765,16 @@ async function fetchDesignRegister(): Promise<DesignRecord[]> {
   return designRegister;
 }
 
-function buildDesignFrame(d: DesignRecord): HTMLElement {
+function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'design-stage';
+  if (atSha) {
+    const tag = document.createElement('span');
+    tag.className = 'design-stage-tag';
+    const rev = designRevisions.find((r) => r.sha === atSha);
+    tag.textContent = rev ? `${rev.date} · ${rev.sha}` : atSha;
+    wrap.append(tag);
+  }
 
   if (!d.asset) {
     const empty = document.createElement('p');
@@ -2796,7 +2803,9 @@ function buildDesignFrame(d: DesignRecord): HTMLElement {
   // a sandbox attribute does not restrict network.
   frame.setAttribute('sandbox', 'allow-scripts');
   frame.setAttribute('referrerpolicy', 'no-referrer');
-  frame.src = `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}`;
+  frame.src = atSha
+    ? `${sidecarBaseUrl}/design-asset-at/${encodeURIComponent(d.id)}/${encodeURIComponent(atSha)}`
+    : `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}`;
 
   const preset = DESIGN_VIEWPORTS.find((v) => v.key === designViewport)
     ?? DESIGN_VIEWPORTS[0];
@@ -2893,6 +2902,78 @@ function buildDesignRegisterList(designs: DesignRecord[]): HTMLElement {
   return wrap;
 }
 
+interface DesignRevision {
+  sha: string; full_sha: string; date: string;
+  subject: string; reason: string; author: string;
+}
+let designRevisions: DesignRevision[] = [];
+let designDirty = false;
+let designCompareSha: string | null = null;   // null = working copy
+
+async function fetchDesignRevisions(id: string): Promise<void> {
+  designRevisions = [];
+  designDirty = false;
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/design-revisions/${encodeURIComponent(id)}`);
+    if (!resp.ok) return;
+    const data = await resp.json() as
+      { revisions?: DesignRevision[]; dirty?: boolean };
+    designRevisions = Array.isArray(data.revisions) ? data.revisions : [];
+    designDirty = Boolean(data.dirty);
+  } catch { /* the surface still renders the working copy */ }
+}
+
+function buildDesignRevisionRail(d: DesignRecord, repaint: () => void): HTMLElement {
+  const rail = document.createElement('aside');
+  rail.className = 'design-revisions';
+
+  const h = document.createElement('h2');
+  h.textContent = 'Revisions';
+  rail.append(h);
+
+  if (designDirty) {
+    // An uncaptured edit is a revision the compare view cannot see and the
+    // note does not record. Saying so is the difference between "three
+    // revisions" and "three revisions plus whatever you have not committed".
+    const warn = document.createElement('p');
+    warn.className = 'design-dirty';
+    warn.textContent = 'Uncommitted changes — capture them or they are not history.';
+    rail.append(warn);
+  }
+
+  const mk = (label: string, meta: string, sha: string | null) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'design-rev' + (designCompareSha === sha ? ' is-active' : '');
+    const t = document.createElement('span');
+    t.className = 'design-rev-label';
+    t.textContent = label;
+    const m = document.createElement('span');
+    m.className = 'design-rev-meta';
+    m.textContent = meta;
+    b.append(t, m);
+    b.addEventListener('click', () => {
+      designCompareSha = designCompareSha === sha ? null : sha;
+      repaint();
+    });
+    return b;
+  };
+
+  rail.append(mk('Working copy', designDirty ? 'uncommitted' : 'current', null));
+  for (const r of designRevisions) {
+    rail.append(mk(r.reason || r.subject, `${r.date} · ${r.sha}`, r.sha));
+  }
+  if (!designRevisions.length) {
+    const p2 = document.createElement('p');
+    p2.className = 'design-empty';
+    p2.textContent = 'No committed revisions yet.';
+    rail.append(p2);
+  }
+  return rail;
+}
+
 async function renderDesignPage(target: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const designs = await fetchDesignRegister();
@@ -2914,10 +2995,27 @@ async function renderDesignPage(target: string): Promise<boolean> {
     placeholder.hidden = true;
     return true;
   }
+  await fetchDesignRevisions(d.id);
+  designCompareSha = null;
   const paint = () => {
     const root = document.createElement('div');
     root.className = 'design-view';
-    root.append(buildDesignHeader(d, paint), buildDesignFrame(d));
+    const body = document.createElement('div');
+    body.className = 'design-body';
+    if (designCompareSha) {
+      // Side by side: the working copy against the chosen revision, both at
+      // the same viewport — comparing two renders at different sizes would
+      // show the layout changing rather than the design.
+      body.classList.add('is-compare');
+      body.append(buildDesignFrame(d), buildDesignFrame(d, designCompareSha));
+    } else {
+      body.append(buildDesignFrame(d));
+    }
+    root.append(
+      buildDesignHeader(d, paint),
+      body,
+      buildDesignRevisionRail(d, paint),
+    );
     docView.replaceChildren(root);
   };
   paint();

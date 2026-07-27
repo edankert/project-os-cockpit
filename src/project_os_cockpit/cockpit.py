@@ -1025,6 +1025,112 @@ _COMMIT_FIELD_SEP = "\x1f"
 _COMMIT_RECORD_SEP = "\x1e"
 
 
+DESIGN_REVISIONS_MAX = 50
+
+
+def design_revisions_payload(
+    project_root: Path, index: Index, design_id: str,
+) -> dict[str, Any]:
+    """An artifact's revision history from git (TASK-0216).
+
+    Reads ``git log --follow`` over the asset path so a rename does not
+    truncate the history — a design that gets renamed has not lost its past.
+
+    Also reports whether the artifact is **dirty**. That matters more than it
+    looks: the render surface shows the working copy, so an uncaptured edit is
+    a revision the compare view cannot see and the log does not record. Saying
+    so is the difference between "this design has three revisions" and "this
+    design has three revisions plus whatever you have not committed".
+
+    Same hardening as ``commits_payload``: fixed argv, no shell, clamped
+    count, and a plain ``available: False`` outside a git repo rather than an
+    exception. The only caller-derived value is the design id, and it is
+    resolved through the register to a path the register already trusts —
+    never interpolated into the command.
+    """
+    import subprocess
+
+    unavailable = {"schema_version": SCHEMA_VERSION, "available": False,
+                   "revisions": [], "dirty": False}
+    record = next((d for d in designs_payload(index)["designs"]
+                   if d["id"] == design_id), None)
+    if record is None or not record["asset"]:
+        return unavailable
+    if not (project_root / ".git").exists():
+        return unavailable
+
+    asset_rel = "docs/" + record["asset"]
+    sep = _COMMIT_FIELD_SEP
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            ["git", "-C", str(project_root), "log", f"-n{DESIGN_REVISIONS_MAX}",
+             "--follow", f"--format={sep.join(['%h', '%H', '%aI', '%s', '%an'])}",
+             "--", asset_rel],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        status = subprocess.run(  # noqa: S603
+            ["git", "-C", str(project_root), "status", "--porcelain", "--", asset_rel],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return unavailable
+    if proc.returncode != 0:
+        return unavailable
+
+    revisions = []
+    for line in proc.stdout.splitlines():
+        parts = line.split(sep)
+        if len(parts) != 5:
+            continue
+        short, full, iso, subject, author = parts
+        # The reason lives in the commit message, which is why capture requires
+        # one: it is the only readable record between two regenerated HTML
+        # files whose diff is a wall of noise.
+        reason = subject.split(": ", 1)[1] if subject.startswith("design(") else subject
+        revisions.append({
+            "sha": short, "full_sha": full, "date": iso[:10],
+            "subject": subject, "reason": reason, "author": author,
+        })
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "available": True,
+        "id": design_id,
+        "asset": record["asset"],
+        "revisions": revisions,
+        "dirty": bool(status.stdout.strip()),
+    }
+
+
+def design_asset_at(
+    project_root: Path, index: Index, design_id: str, sha: str,
+) -> bytes | None:
+    """The artifact as it was at one revision, without touching the tree.
+
+    ``git show <sha>:<path>`` rather than a checkout — reading history must
+    never mutate the working copy, and a compare view that stashed the user's
+    uncommitted work to render a diff would be a data-loss bug wearing a
+    feature's clothes.
+    """
+    import re as _re
+    import subprocess
+
+    if not _re.fullmatch(r"[0-9a-fA-F]{4,40}", sha or ""):
+        return None
+    record = next((d for d in designs_payload(index)["designs"]
+                   if d["id"] == design_id), None)
+    if record is None or not record["asset"]:
+        return None
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, sha validated above
+            ["git", "-C", str(project_root), "show",
+             f"{sha}:docs/{record['asset']}"],
+            capture_output=True, timeout=5, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout if proc.returncode == 0 else None
+
+
 def commits_payload(
     project_root: Path, index: Index, limit: int = COMMITS_DEFAULT_LIMIT
 ) -> dict[str, Any]:
