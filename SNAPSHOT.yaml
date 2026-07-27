@@ -30,25 +30,33 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 41
+  FEAT: 42
   ISS: 32
-  PHASE: 8
-  REQ: 22
+  PHASE: 9
+  REQ: 23
   RISK: 4
   REL: 0
-  TASK: 213
+  TASK: 219
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0213"
-  feature: "FEAT-0025"
-  phase: "[[PHASE-999]]"
-  issue: "ISS-0032"
-  note: "2026-07-27 consolidating the agent vocabulary (ISS-0032) before adding Kimi as a dispatch target — doing it the other way round would turn a latent queue-validation bug into silent loss of queued work. Dispatchable is closed and served from agents.py; recordable stays open."
+  task: "TASK-0214"
+  feature: "FEAT-0042"
+  phase: "PHASE-009"
+  issue: ""
+  note: "2026-07-27 PHASE-009 design surfaces. Start with the note convention (TASK-0214) so membership comes from frontmatter rather than the path regex the Library group uses today; render and revisions follow. First real subject is REF-0001's existing 139KB dossier, not a fixture."
 
 items:
   features:
+    FEAT-0042:
+      file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
+      title: "Design bench — render, revise, annotate and review designs in the cockpit"
+      status: doing
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      requirements: ["REQ-0023"]
+      tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219"]
+      note: "Phase 1 (0214-0216) is useful the day it lands and needs no upstream change. Phase 2 (0217-0219) adds annotation, desk review and token parity."
     FEAT-0041:
       title: "Review desk (~review) — agent proposals, questions, and manual test runs"
       status: done
@@ -278,6 +286,42 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0214:
+      file: "docs/features/design-bench/plan/tasks/TASK-0214-Design-Note-Convention.md"
+      title: "Design-note convention and validator support"
+      status: doing
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+    TASK-0215:
+      file: "docs/features/design-bench/plan/tasks/TASK-0215-Design-Render-Surface.md"
+      title: "Design render surface — real viewport, live reload, sandboxed"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+    TASK-0216:
+      file: "docs/features/design-bench/plan/tasks/TASK-0216-Design-Revisions-And-Compare.md"
+      title: "Revisions from git, side by side, with the reason for each"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+    TASK-0217:
+      file: "docs/features/design-bench/plan/tasks/TASK-0217-Region-Anchored-Annotation.md"
+      title: "Region-anchored annotation, stored as Markdown"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+    TASK-0218:
+      file: "docs/features/design-bench/plan/tasks/TASK-0218-Design-Review-In-The-Desk.md"
+      title: "Design review through the existing desk, per-region verdicts"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
+    TASK-0219:
+      file: "docs/features/design-bench/plan/tasks/TASK-0219-Design-Token-Parity.md"
+      title: "Design tokens checked against the implementation's CSS"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0042
     TASK-0212:
       title: "Design-input references — convention + surfaces: in-repo dossiers wrapped by reference notes, design: frontmatter links, attachment strip, Library Design group"
       status: done
@@ -1668,6 +1712,12 @@ items:
       component: index/watcher
 
   requirements:
+    REQ-0023:
+      file: "docs/requirements/REQ-0023-Design-Is-A-Project-Record.md"
+      title: "A design and the reasoning behind its revisions are project records, not transcript artifacts"
+      status: draft
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      implements: "FEAT-0042"
     REQ-0022:
       title: "The overview surfaces project state above history — every fact above the fold is current-state; history (activity, commits) is the only thing scrolled"
       status: implemented
@@ -1746,6 +1796,13 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-009:
+      file: "docs/phases/PHASE-009-Design-Surfaces.md"
+      title: "Design surfaces"
+      status: active
+      order: 9
+      features: ["FEAT-0042"]
+      note: "Design moves into the project. The overview dossier took six revisions in one session; the sixth is committed and the reasoning for the other five is in a transcript. That is the loss this closes."
     PHASE-001:
       title: "MVP"
       status: done
@@ -2373,9 +2430,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 41
+    features_total: 42
     features_done: 36
-    tasks_total: 213
+    tasks_total: 219
     tasks_done: 209
     tests_total: 21
     tests_passing: 21
