@@ -1859,7 +1859,7 @@ items:
       path: "docs/features/agent-hooks/plan/tests/TST-0010-Agent-Hook-Ingestion.md"
     TST-0011:
       title: "Live-session instrumentation + activity surfaces — manual checklist"
-      status: ready
+      status: passing
       path: "docs/features/agent-hooks/plan/tests/TST-0011-Live-Session-Instrumentation.md"
     TST-0012:
       title: "Scoped stats payload + cache"
@@ -2371,7 +2371,7 @@ metrics:
     tasks_total: 212
     tasks_done: 208
     tests_total: 21
-    tests_passing: 20
+    tests_passing: 21
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
