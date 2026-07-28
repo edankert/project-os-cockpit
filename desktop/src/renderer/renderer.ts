@@ -2711,6 +2711,13 @@ interface ReviewQueueItem {
   rel?: string; type?: string; status?: string; kind?: string;
   ts?: string; steps?: number; agent?: string; session_id?: string;
   items?: Array<{ id: string; title?: string; rel?: string; type?: string; status?: string }>;
+  // A request ABOUT one note rather than a set (TASK-0229): a design offered
+  // for review. `subject_missing` says the note is gone.
+  subject?: string;
+  subject_missing?: boolean;
+  subject_type?: string;
+  at_revision?: string;
+  dirty_at_offer?: boolean;
 }
 interface ReviewQueueGroup { key: string; label: string; items: ReviewQueueItem[] }
 interface ReviewQueuePayload {
@@ -2727,6 +2734,14 @@ interface ReviewDetail {
   mtime?: number;
   last_run?: string;
   verifies?: string[];
+  // Staleness for a design-subject request, computed when the entry is
+  // opened rather than in the queue payload — it costs a git call and only
+  // matters once someone is looking at it.
+  subject_type?: string;
+  at_revision?: string;
+  head_revision?: string;
+  revision_moved?: boolean;
+  dirty?: boolean;
 }
 
 let reviewQueue: ReviewQueuePayload | null = null;
@@ -3476,6 +3491,20 @@ async function renderReviewPage(
     docView.replaceChildren(buildTestRunner(detail));
   } else if (detail.kind === 'question') {
     docView.replaceChildren(buildQuestionView(detail));
+  } else if (detail.request && detail.request.subject_missing) {
+    // The design was deleted or renamed after being offered. Accept and
+    // Reject both post to /api/notes/review for an id that no longer
+    // resolves, 404, and never reach review-resolve — so the row was
+    // unclearable except by hand-editing the ledger (ISS-0056). Offer the
+    // one action that can honestly be taken.
+    docView.replaceChildren(buildOrphanedRequestView(detail));
+  } else if (detail.request && detail.subject_type === 'design') {
+    // A design must NOT go through the proposal path: that stamps
+    // `plan-accepted` with no revision, and rejects by writing
+    // `status: cancelled` onto a design that may be `implemented`.
+    // TASK-0218 built /api/design/verdict precisely so a verdict names the
+    // revision it judged; this is what calls it (ISS-0056).
+    docView.replaceChildren(buildDesignReviewView(detail));
   } else if (detail.request) {
     docView.replaceChildren(buildProposalView(detail));
   } else if (detail.note) {
@@ -3829,6 +3858,156 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
     throw new Error(String(data.error || `HTTP ${resp.status}`));
   }
   return data;
+}
+
+/** A design offered for review, judged through the design verdict path.
+ *
+ *  Three differences from a proposal set, all of them load-bearing:
+ *  the verdict names the revision it judged; rejecting a design records a
+ *  rejection without cancelling a design that was already built; and the
+ *  reviewer is told when the artifact has moved since they were asked.
+ */
+function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
+  const request = detail.request as ReviewQueueItem;
+  const root = document.createElement('div');
+  root.className = 'review-detail design-review';
+
+  const note: { id: string; title?: string } =
+    (detail.items && detail.items[0]) || { id: request.subject || '' };
+  const h = document.createElement('h1');
+  h.textContent = note.title ? `${note.id} — ${note.title}` : String(note.id);
+  root.append(h);
+
+  const meta = document.createElement('p');
+  meta.className = 'meta';
+  meta.textContent = `Reviewing revision ${detail.at_revision || '(none)'}`;
+  root.append(meta);
+
+  if (detail.revision_moved) {
+    const warn = document.createElement('p');
+    warn.className = 'review-stale';
+    warn.textContent = `The artifact has moved since you were asked: `
+      + `head is now ${detail.head_revision}. A verdict here judges `
+      + `${detail.at_revision}, not what the design surface shows.`;
+    root.append(warn);
+  }
+  if (detail.dirty) {
+    const dirty = document.createElement('p');
+    dirty.className = 'review-stale';
+    dirty.textContent = 'The working copy has uncommitted changes, so the '
+      + 'design surface is showing something no revision names.';
+    root.append(dirty);
+  }
+
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'review-open-design';
+  open.textContent = 'Open in the design surface';
+  open.addEventListener('click', () => { void navigateTo(`~design/${note.id}`); });
+  root.append(open);
+
+  const comment = document.createElement('textarea');
+  comment.className = 'review-note';
+  comment.placeholder = 'Optional note for the record…';
+  root.append(comment);
+
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  const act = async (
+    verdict: string, accept: boolean | null, outcome: string, said: string,
+  ) => {
+    try {
+      const res = await postJson('/api/design/verdict', {
+        id: note.id, reviewer: 'user:edwin', verdict,
+        revision: detail.at_revision, accept,
+      });
+      if (res && (res as { ok?: boolean }).ok === false) {
+        showStatus(`Could not record: ${(res as { error?: string }).error}`, 'error');
+        return;
+      }
+      if (request.request_id) {
+        await postJson('/api/cockpit/review-resolve', {
+          request_id: request.request_id, outcome, note: comment.value,
+        });
+      }
+      showStatus(said, 'info');
+      void navigateTo('~review');
+    } catch (err) {
+      showStatus(`Could not record: ${String(err)}`, 'error');
+    }
+  };
+  const btn = (label: string, cls: string, run: () => void) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.addEventListener('click', run);
+    actions.append(b);
+  };
+  btn('Accept this revision', 'review-accept', () => {
+    void act('accepted', true, 'accepted', `${note.id} accepted at ${detail.at_revision}.`);
+  });
+  btn('Request changes', 'review-changes', () => {
+    // Leaves the request open, exactly as the proposal path does.
+    void (async () => {
+      try {
+        await postJson('/api/design/verdict', {
+          id: note.id, reviewer: 'user:edwin',
+          verdict: 'changes-requested', revision: detail.at_revision, accept: null,
+        });
+        showStatus(`Changes requested on ${note.id}; it stays in the queue.`, 'info');
+        void navigateTo('~review');
+      } catch (err) {
+        showStatus(`Could not record: ${String(err)}`, 'error');
+      }
+    })();
+  });
+  btn('Reject', 'review-reject', () => {
+    // `accept: false` — the design endpoint decides what a rejection means
+    // for a design's status. It is NOT `status: cancelled` posted from here,
+    // which is what cancelled an implemented design (ISS-0056).
+    void act('rejected', false, 'rejected', `${note.id} rejected at ${detail.at_revision}.`);
+  });
+  root.append(actions);
+  return root;
+}
+
+/** A request whose subject no longer exists. */
+function buildOrphanedRequestView(detail: ReviewDetail): HTMLElement {
+  const request = detail.request as ReviewQueueItem;
+  const root = document.createElement('div');
+  root.className = 'review-detail';
+  const h = document.createElement('h1');
+  h.textContent = String(request.subject || 'Unknown subject');
+  root.append(h);
+  const p = document.createElement('p');
+  p.className = 'review-stale';
+  p.textContent = `${request.subject} no longer exists — it was deleted or `
+    + `renamed after being offered for review. There is nothing left to judge, `
+    + `so the only honest action is to clear the request.`;
+  root.append(p);
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  const dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.className = 'review-reject';
+  dismiss.textContent = 'Clear this request';
+  dismiss.addEventListener('click', () => {
+    void (async () => {
+      // Resolves the LEDGER only. No note is written, because there is no
+      // note — the previous behaviour posted to /api/notes/review, got 404,
+      // and never reached this call, wedging the row forever.
+      await postJson('/api/cockpit/review-resolve', {
+        request_id: request.request_id, outcome: 'rejected',
+        note: 'subject no longer exists',
+      });
+      showStatus('Request cleared.', 'info');
+      void navigateTo('~review');
+    })();
+  });
+  actions.append(dismiss);
+  root.append(actions);
+  return root;
 }
 
 async function acceptProposalSet(

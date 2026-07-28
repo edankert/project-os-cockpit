@@ -1287,6 +1287,14 @@ def _make_handler(
                 # and only matters once you are looking at the thing (TASK-0229).
                 subject = str(request.get("subject") or "").strip().upper()
                 asked_at = str(request.get("at_revision") or "")
+                if subject and index.by_id(subject) is None:
+                    # The subject was deleted or renamed after being offered.
+                    # The renderer reads this to offer the one action that can
+                    # honestly be taken — clearing the request — instead of
+                    # three buttons that all 404 (ISS-0056).
+                    request = dict(request)
+                    request["subject_missing"] = True
+                    payload["request"] = request
                 if subject and asked_at:
                     revs = cockpit.design_revisions_payload(
                         docs_root.parent, index, subject)
@@ -1294,6 +1302,9 @@ def _make_handler(
                     for rev in revs.get("revisions") or []:
                         head = str(rev.get("sha") or "")
                         break
+                    payload["subject_type"] = (
+                        (index.get(index.by_id(subject)).note_type or "").lower()
+                        if index.by_id(subject) else "")
                     payload["at_revision"] = asked_at
                     payload["head_revision"] = head
                     payload["revision_moved"] = bool(head and head != asked_at)
@@ -1623,14 +1634,36 @@ def _make_handler(
                 head = str(rev.get("sha") or "")
                 break
 
+            # Refused, not offered-without-one. A request with no revision
+            # produces a 200 indistinguishable from a good one, and every
+            # staleness field then silently disappears — which was DES-0002's
+            # own situation until its `asset` was filled in (ISS-0056).
+            # `/api/design/verdict` already refuses this case; so does this.
+            if not head:
+                self._respond_json(
+                    {"ok": False,
+                     "error": "%s has no committed revision to review — commit "
+                              "the artifact first, or a reviewer would be "
+                              "judging something with no name" % design_id},
+                    status=HTTPStatus.CONFLICT)
+                return
+
             request = review_store.add(
                 "review",
                 items=[design_id],
                 subject=design_id,
                 at_revision=head,
                 title="Design review: %s" % (record.get("title") or design_id),
+                # The surface renders the WORKING COPY, so a design offered
+                # dirty was reviewed against something `at_revision` does not
+                # name. Recorded at offer time because that is the moment it
+                # is true; `dirty` computed at open is a different question.
                 body=note,
             )
+            if revisions.get("dirty"):
+                request = dict(request)
+                request["dirty_at_offer"] = True
+                review_store.annotate(request["request_id"], dirty_at_offer=True)
             self._respond_json({"ok": True, "request": request})
 
         def _serve_design_comment(self) -> None:

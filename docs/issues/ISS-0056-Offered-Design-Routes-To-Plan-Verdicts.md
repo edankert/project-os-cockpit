@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0056
 aliases: ["ISS-0056"]
 title: "An offered design routes to the plan verdict path, which stamps it without a revision and can cancel it"
-status: open
+status: fixed
 severity: high
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
@@ -16,7 +16,11 @@ fixed_by: []
 
 # The offer works; the verdict on the other side does not
 
-## Live hazard first
+## Resolved 2026-07-28
+
+All five findings fixed and verified; the DES-0002 request in Edwin's queue is now safe to action and renders *Accept this revision / Request changes / Reject* against revision `6eb6888`.
+
+## The hazard, as it was
 
 **There is an open request for DES-0002 in Edwin's queue, filed while verifying [[TASK-0229]].** Actioning it is currently unsafe:
 

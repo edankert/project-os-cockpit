@@ -2497,13 +2497,13 @@ metrics:
     features_total: 43
     features_done: 37
     tasks_total: 229
-    tasks_done: 224
+    tasks_done: 225
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 2
+    issues_open: 1
     issues_triage: 2
     risks_open: 4
     releases_total: 0

@@ -153,6 +153,18 @@ class ReviewStore:
         if at_revision:
             record["at_revision"] = str(at_revision).strip()[:40]
         with self._lock:
+            # Check-then-act under ONE lock. `open_for_subject` followed by
+            # `add` was a race: each call took and released the lock, so 16
+            # concurrent offers of one design produced 9 open requests and 9
+            # indistinguishable rows (found by independent review, ISS-0056).
+            # Not reachable by double-click — the button disables
+            # synchronously — but reachable from a second window or any
+            # scripted caller.
+            if record.get("subject"):
+                for existing in self._requests:
+                    if (existing.get("status") == "open"
+                            and existing.get("subject") == record["subject"]):
+                        return dict(existing)
             self._requests.append(record)
             self._persist_locked()
         return dict(record)
@@ -170,6 +182,25 @@ class ReviewStore:
         with self._lock:
             for r in self._requests:
                 if r.get("status") == "open" and r.get("subject") == key:
+                    return dict(r)
+        return None
+
+    def annotate(self, request_id: str, **fields: Any) -> dict[str, Any] | None:
+        """Attach JSON-safe scalars to an open request.
+
+        Deliberately scalars only: the ledger is read by the desk and written
+        by endpoints, and a nested bag here would become a second schema
+        nobody validates.
+        """
+        if not _ID_RE.match(request_id or ""):
+            return None
+        clean = {k: v for k, v in fields.items()
+                 if isinstance(v, (str, int, float, bool)) or v is None}
+        with self._lock:
+            for r in self._requests:
+                if r.get("request_id") == request_id:
+                    r.update(clean)
+                    self._persist_locked()
                     return dict(r)
         return None
 

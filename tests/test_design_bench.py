@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from http import HTTPStatus
 import re
 from pathlib import Path
 
@@ -2333,13 +2334,43 @@ def test_a_request_whose_design_vanished_explains_itself(tmp_path: Path) -> None
     assert row["at_revision"] == "deadbee"
 
 
-def test_the_offer_endpoint_is_loopback_only() -> None:
+def test_the_offer_endpoint_is_loopback_only(tmp_path: Path) -> None:
     """Every mutation endpoint is loopback-guarded; the render server binds
-    0.0.0.0 so a tablet can read it."""
-    from project_os_cockpit import server as server_mod
-    body = inspect.getsource(server_mod).split(
-        "def _serve_design_offer_review(")[1].split("\n        def ")[0]
-    assert "if not self._require_loopback():" in body
+    0.0.0.0 so a tablet on the LAN can read it.
+
+    Exercised, not grepped. Independent review moved the guard out of the live
+    path while leaving its literal text in the function, and the previous
+    source-matching version of this test stayed green with the endpoint
+    accepting writes from any LAN client (ISS-0056). This drives the real
+    handler class with a non-loopback peer address.
+    """
+    docs = _repo_with_design(tmp_path)
+    httpd, port = _serve(docs)
+    try:
+        handler_cls = httpd.RequestHandlerClass
+        refused: dict = {}
+
+        class _Remote:
+            client_address = ("192.168.1.50", 51234)
+            # The REAL address check, bound to a remote peer — so this
+            # exercises the shipped logic rather than a reimplementation.
+            _is_loopback = handler_cls._is_loopback
+
+            def _respond_json(self, body, status=None):
+                refused["body"] = body
+                refused["status"] = status
+
+        assert handler_cls._require_loopback(_Remote()) is False, (
+            "a LAN client passed the loopback guard"
+        )
+        assert refused["body"]["ok"] is False
+        assert refused["status"] == HTTPStatus.FORBIDDEN
+
+        # A genuine loopback request still works, so the guard is not simply
+        # refusing everything.
+        assert _post(port, "/api/design/offer-review", {"id": "DES-0001"})[0] == 200
+    finally:
+        httpd.shutdown()
 
 
 def test_the_design_surface_offers_the_control() -> None:
@@ -2349,3 +2380,115 @@ def test_the_design_surface_offers_the_control() -> None:
     # Says which of the two things happened rather than pretending a second
     # press did something.
     assert "already_open" in src
+
+
+# ---- ISS-0056 fixes -------------------------------------------------------
+
+def test_a_design_never_reaches_the_plan_verdict_path() -> None:
+    """A ledger row rendered through `buildProposalView`, whose Accept posts
+    `plan-accepted` with NO revision and whose Reject writes
+    `status: cancelled` onto a design that may be `implemented`. `design` is
+    not in GATE_BEARING_TYPES, so those writes landed — reproducing, one click
+    later, the exact defect this task was written to prevent (ISS-0056)."""
+    src = _renderer()
+    dispatch = src.split("} else if (detail.request", 1)[1].split("docView.hidden", 1)[0]
+    assert "detail.subject_type === 'design'" in dispatch
+    assert "buildDesignReviewView(detail)" in dispatch
+    # And the design view must use the revision-validated endpoint.
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "'/api/design/verdict'" in view
+    assert "revision: detail.at_revision" in view
+    assert "status: 'cancelled'" not in view, (
+        "the design view cancels a design from the client; the design endpoint "
+        "decides what a rejection means for a design's status"
+    )
+    assert "plan-accepted" not in view and "plan-rejected" not in view
+
+
+def test_the_reviewer_is_told_when_the_artifact_moved() -> None:
+    """The payload carried `revision_moved`/`head_revision` and no client read
+    them, so the DoD bullet claiming "the desk says so" was false."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "detail.revision_moved" in view
+    assert "detail.head_revision" in view
+    assert "detail.dirty" in view
+
+
+def test_an_orphaned_request_can_be_cleared() -> None:
+    """Accept and Reject both posted to `/api/notes/review` for an id that no
+    longer resolves, 404'd, and never reached review-resolve — so the row was
+    unclearable except by hand-editing the ledger."""
+    src = _renderer()
+    assert "buildOrphanedRequestView(detail)" in src
+    # `_code_only`: the comment inside this function NAMES the endpoint it no
+    # longer calls. Fourth time this suite has matched its own prose.
+    view = _code_only(
+        src.split("function buildOrphanedRequestView(")[1].split("\nasync function")[0])
+    assert "'/api/cockpit/review-resolve'" in view
+    assert "/api/notes/review" not in view, (
+        "clearing an orphan writes a note; there is no note to write"
+    )
+
+
+def test_offering_is_idempotent_under_concurrency(tmp_path: Path) -> None:
+    """`open_for_subject` then `add` was check-then-act across two lock
+    acquisitions: 16 concurrent offers produced 9 open requests and 9
+    indistinguishable rows. The check now happens inside `add`, under the same
+    lock that appends."""
+    import threading
+    from project_os_cockpit.review import ReviewStore
+    store = ReviewStore(tmp_path)
+    barrier = threading.Barrier(16)
+
+    def offer() -> None:
+        barrier.wait()
+        store.add("review", items=["DES-0001"], subject="DES-0001",
+                  at_revision="abc1234", title="Design review")
+
+    threads = [threading.Thread(target=offer) for _ in range(16)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(store.open_requests()) == 1, store.open_requests()
+
+
+def test_a_design_with_no_committed_revision_is_refused(tmp_path: Path) -> None:
+    """`head == ""` made `at_revision` absent, and the detail route's
+    `if subject and asked_at` then skipped every staleness field — a 200
+    indistinguishable from a good one. That was DES-0002's own situation until
+    its `asset` was filled in. `/api/design/verdict` refuses this; so does the
+    offer."""
+    import subprocess
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    docs = tmp_path / "docs"
+    (docs / "designs").mkdir(parents=True)
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    _note(docs / "designs" / "DES-0002-S.md", {
+        "type": "[[design]]", "id": "DES-0002", "title": "No artifact",
+        "status": "implemented", "role": "system", "asset": ""})
+    httpd, port = _serve(docs)
+    try:
+        status, data = _post(port, "/api/design/offer-review", {"id": "DES-0002"})
+        assert status == 409, (status, data)
+        assert "no committed revision" in data["error"]
+        assert not [r for r in _queue(port) if r.get("subject")]
+    finally:
+        httpd.shutdown()
+
+
+def test_a_design_offered_dirty_records_that_it_was(tmp_path: Path) -> None:
+    """The surface renders the WORKING COPY, so a design offered dirty was
+    reviewed against something `at_revision` does not name — and
+    `revision_moved` stays false, because the commit did not move."""
+    docs = _repo_with_design(tmp_path)
+    (docs / "designs" / "d.html").write_text("<h1>edited</h1>", encoding="utf-8")
+    httpd, port = _serve(docs)
+    try:
+        _, data = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        assert data["request"].get("dirty_at_offer") is True, data["request"]
+    finally:
+        httpd.shutdown()

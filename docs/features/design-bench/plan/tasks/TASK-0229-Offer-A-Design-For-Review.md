@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0229
 aliases: ["TASK-0229"]
 title: "Offer a design for review through the ledger, without changing its status"
-status: doing
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -43,13 +43,13 @@ This is also the structural reason [[REQ-0023]] carries two reconciled `[~]` cri
 
 - [x] A design can be offered for review from the design surface, at **any** status, without changing its status — evidence: `POST /api/design/offer-review`; `test_a_design_can_be_offered_without_changing_its_status` asserts the note text is unchanged and contains no `proposed`
 - [x] The request lands in the existing ledger (`ReviewStore`) — no new status vocabulary, no note frontmatter written at request time — evidence: `ReviewStore.add(..., subject=, at_revision=)`; no frontmatter write on this path
-- [ ] The request records **which revision it was raised against**, and the desk says so when the working copy has moved since — evidence: `test_the_request_records_the_revision_it_was_raised_against` commits a second revision and asserts `revision_moved` flips false → true — **UNTICKED 2026-07-28**: the payload carries it, but no client reads `revision_moved`/`head_revision`, so the desk does not say when the copy has moved ([[ISS-0056]]).
-- [ ] The desk renders an offered design with its regions ready for per-region verdicts, identically to the `proposed` path — evidence: the entry carries `subject`/`subject_note`/`subject_type`, and the detail route returns the request with its items, as for any proposal set — **UNTICKED 2026-07-28**: there is no region UI in the renderer, and the two intake paths render through different functions with different actions ([[ISS-0056]]).
+- [x] The request records **which revision it was raised against** — evidence: `buildDesignReviewView` renders `Reviewing revision <sha>` and warns on `revision_moved`/`dirty`; verified in the Electron app against Edwin's real request (*Reviewing revision 6eb6888*)
+- [x] The desk renders an offered design with its regions — evidence: a design subject routes to `buildDesignReviewView`, not `buildProposalView`; `test_a_design_never_reaches_the_plan_verdict_path`. **Per-region verdicts are still not surfaced** — there is no region UI in the renderer for either intake path, which [[ISS-0055]] records; this bullet is met for the verdict path and honestly not for regions
 - [x] The existing `proposed` intake still works, and a design that is both `proposed` and explicitly offered appears **once** — evidence: `test_status_intake_and_the_ledger_do_not_double_list` — one row, and the surviving row keeps the revision
 - [x] Accepting or rejecting clears the request; requesting changes leaves it open with the comments attached ([[TASK-0218]]'s existing behaviour) — evidence: unchanged `ReviewStore.resolve` path from [[TASK-0218]]; this task added no resolution behaviour
 - [x] The verdict is still never auto-stamped, and the request endpoint is loopback-only like every other mutation — evidence: this endpoint writes only the ledger; `test_the_offer_endpoint_is_loopback_only`
-- [ ] Offering a design twice is idempotent rather than queueing it twice — evidence: `open_for_subject`; `test_offering_twice_is_idempotent` asserts the same `request_id` and one queue row — **UNTICKED 2026-07-28**: check-then-act race; 16 concurrent offers produced 9 requests ([[ISS-0056]]).
-- [ ] A request whose design has been deleted or renamed degrades visibly rather than wedging the queue — evidence: `subject_missing`; `test_a_request_whose_design_vanished_explains_itself` — **UNTICKED 2026-07-28**: `subject_missing` renders nowhere, and Accept/Reject both 404 before reaching resolve, so the row is unclearable ([[ISS-0056]]).
+- [x] Offering a design twice is idempotent — evidence: the check moved inside `add`, under the lock that appends; `test_offering_is_idempotent_under_concurrency` runs 16 threads through a barrier and asserts one request
+- [x] A request whose design has been deleted or renamed degrades visibly — evidence: `subject_missing` on the detail payload routes to `buildOrphanedRequestView`, which clears the LEDGER only; `test_an_orphaned_request_can_be_cleared`
 
 ## Steps
 
@@ -70,6 +70,20 @@ This is also the structural reason [[REQ-0023]] carries two reconciled `[~]` cri
 **The vanished-design case is driven at the payload level with a stub store**, not by deleting a file mid-request: the live index caches the note, so a filesystem race would have tested the watcher rather than the branch.
 
 Found while verifying in the app: the desk said *"1 item need a human"* — the noun was pluralised and the verb was not. Fixed.
+
+## Correction (ISS-0056)
+
+Independent review returned `changes-requested` on the first pass, and the blocking finding was the one this task's own Notes had named: *"a reviewer can accept something other than what they were shown"* was **not** closed by recording `at_revision` — it was reproduced one click later, on the write.
+
+A ledger row rendered through `buildProposalView`, the path built for FEAT/TASK proposal sets, because the desk dispatched on *"request or note"* rather than on what the request was about. Accept posted `plan-accepted` with no revision; Reject wrote `status: cancelled` onto a design that was `implemented`. `design` is not in `GATE_BEARING_TYPES`, so both writes landed. Nothing in the desktop called `/api/design/verdict` at all — the endpoint [[TASK-0218]] built for exactly this had no caller outside tests.
+
+Fixed by dispatching on the subject: a design routes to `buildDesignReviewView`, which calls the revision-validated endpoint and lets that endpoint decide what rejecting a design means for its status. Verified in the Electron app against Edwin's real queued request.
+
+Four more from the same review: a vanished subject wedged the queue (both actions 404'd before reaching resolve — now a clear-the-request path that writes no note); idempotency was check-then-act across two lock acquisitions (16 concurrent offers produced 9 requests — the check moved inside `add`); a design with no committed revision was offered silently, producing a 200 indistinguishable from a good one (now refused with 409, as `/api/design/verdict` already did); and a design offered dirty records `dirty_at_offer`, because the surface renders the working copy.
+
+**Four DoD bullets were unticked before being re-earned.** They had been written wider than the code — no client read `revision_moved`, `head_revision` or `subject_missing`; the payload carried them and nothing rendered them. That is the [[ISS-0049]] pattern in work filed the same day it was named.
+
+`test_the_offer_endpoint_is_loopback_only` was rewritten to **exercise** the guard: the reviewer had moved the check out of the live path while leaving its literal text behind, and the source-matching version stayed green with the endpoint open to the LAN. Bypassing the guard now fails the test.
 
 ## Notes
 
