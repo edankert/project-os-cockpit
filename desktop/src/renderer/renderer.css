@@ -3652,6 +3652,21 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-chip-link:hover { text-decoration: underline; }
 .design-chip-link:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
 
+/* The artifact under review, at the revision being judged. Bounded so the
+   verdict buttons stay reachable without scrolling past the design. */
+.review-design-stage {
+  margin: 12px 0; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  height: 52vh; min-height: 260px; display: flex;
+}
+.review-design-stage .design-stage { flex: 1 1 auto; min-width: 0; }
+.review-design-stage .design-frame { width: 100% !important; height: 100% !important; }
+.review-stale {
+  margin: 6px 0; padding: 6px 10px; font-size: 12px;
+  border-left: 3px solid var(--status-blocked);
+  background: var(--surface); color: var(--text);
+}
+
 .design-ask-review {
   position: absolute; top: 0; right: 118px;
   background: none; border: 1px solid var(--accent-link); cursor: pointer;

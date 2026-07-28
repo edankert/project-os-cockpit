@@ -3866,50 +3866,81 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
  *  the verdict names the revision it judged; rejecting a design records a
  *  rejection without cancelling a design that was already built; and the
  *  reviewer is told when the artifact has moved since they were asked.
+ *
+ *  And it SHOWS THE DESIGN. Edwin, on the first cut: "it is unclear what I
+ *  accept since the document does not show its content." Accepting a revision
+ *  you cannot see is the exact failure this whole surface exists to prevent —
+ *  so the artifact is embedded here, rendered AT THE REVIEWED REVISION rather
+ *  than from the working copy, which is the same distinction `design_revision`
+ *  draws on the verdict itself.
  */
 function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
   const request = detail.request as ReviewQueueItem;
-  const root = document.createElement('div');
-  root.className = 'review-detail design-review';
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body design-review';
 
-  const note: { id: string; title?: string } =
+  const note: { id: string; title?: string; rel?: string } =
     (detail.items && detail.items[0]) || { id: request.subject || '' };
-  const h = document.createElement('h1');
+  const h = document.createElement('h2');
   h.textContent = note.title ? `${note.id} — ${note.title}` : String(note.id);
-  root.append(h);
+  wrap.append(h);
 
   const meta = document.createElement('p');
-  meta.className = 'meta';
-  meta.textContent = `Reviewing revision ${detail.at_revision || '(none)'}`;
-  root.append(meta);
+  meta.className = 'review-blurb';
+  meta.textContent = `Reviewing revision ${detail.at_revision || '(none)'}`
+    + ' — the frame below is that revision, not the working copy.';
+  wrap.append(meta);
 
   if (detail.revision_moved) {
     const warn = document.createElement('p');
     warn.className = 'review-stale';
-    warn.textContent = `The artifact has moved since you were asked: `
-      + `head is now ${detail.head_revision}. A verdict here judges `
-      + `${detail.at_revision}, not what the design surface shows.`;
-    root.append(warn);
+    warn.textContent = `The artifact has moved since you were asked: head is now `
+      + `${detail.head_revision}. A verdict here judges ${detail.at_revision}.`;
+    wrap.append(warn);
   }
-  if (detail.dirty) {
+  if (detail.dirty || request.dirty_at_offer) {
     const dirty = document.createElement('p');
     dirty.className = 'review-stale';
-    dirty.textContent = 'The working copy has uncommitted changes, so the '
-      + 'design surface is showing something no revision names.';
-    root.append(dirty);
+    dirty.textContent = 'The working copy has uncommitted changes, so the design '
+      + 'surface is showing something no revision names.';
+    wrap.append(dirty);
   }
+
+  // The artifact itself, at the reviewed revision. Appended asynchronously
+  // because the register is fetched; the placeholder says why it is empty
+  // rather than leaving a blank box.
+  const stage = document.createElement('div');
+  stage.className = 'review-design-stage';
+  const pending = document.createElement('p');
+  pending.className = 'meta';
+  pending.textContent = 'Loading the reviewed revision…';
+  stage.append(pending);
+  wrap.append(stage);
+  void (async () => {
+    const designs = await fetchDesignRegister();
+    const d = designs.find((x) => x.id === note.id);
+    if (!d) {
+      pending.textContent = `${note.id} is no longer in the design register.`;
+      return;
+    }
+    if (!d.has_asset) {
+      pending.textContent = `${note.id} declares no artifact — there is nothing to show.`;
+      return;
+    }
+    stage.replaceChildren(buildDesignFrame(d, detail.at_revision || undefined));
+  })();
 
   const open = document.createElement('button');
   open.type = 'button';
-  open.className = 'review-open-design';
+  open.className = 'review-btn';
   open.textContent = 'Open in the design surface';
   open.addEventListener('click', () => { void navigateTo(`~design/${note.id}`); });
-  root.append(open);
+  wrap.append(open);
 
   const comment = document.createElement('textarea');
   comment.className = 'review-note';
   comment.placeholder = 'Optional note for the record…';
-  root.append(comment);
+  wrap.append(comment);
 
   const actions = document.createElement('div');
   actions.className = 'review-actions';
@@ -3944,11 +3975,10 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
     b.addEventListener('click', run);
     actions.append(b);
   };
-  btn('Accept this revision', 'review-accept', () => {
+  btn('Accept this revision', 'review-btn is-good', () => {
     void act('accepted', true, 'accepted', `${note.id} accepted at ${detail.at_revision}.`);
   });
-  btn('Request changes', 'review-changes', () => {
-    // Leaves the request open, exactly as the proposal path does.
+  btn('Request changes', 'review-btn is-primary', () => {
     void (async () => {
       try {
         await postJson('/api/design/verdict', {
@@ -3962,22 +3992,19 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
       }
     })();
   });
-  btn('Reject', 'review-reject', () => {
-    // `accept: false` — the design endpoint decides what a rejection means
-    // for a design's status. It is NOT `status: cancelled` posted from here,
-    // which is what cancelled an implemented design (ISS-0056).
+  btn('Reject', 'review-btn is-bad', () => {
     void act('rejected', false, 'rejected', `${note.id} rejected at ${detail.at_revision}.`);
   });
-  root.append(actions);
-  return root;
+  wrap.append(actions);
+  return wrap;
 }
 
 /** A request whose subject no longer exists. */
 function buildOrphanedRequestView(detail: ReviewDetail): HTMLElement {
   const request = detail.request as ReviewQueueItem;
   const root = document.createElement('div');
-  root.className = 'review-detail';
-  const h = document.createElement('h1');
+  root.className = 'review-body';
+  const h = document.createElement('h2');
   h.textContent = String(request.subject || 'Unknown subject');
   root.append(h);
   const p = document.createElement('p');
@@ -3990,7 +4017,7 @@ function buildOrphanedRequestView(detail: ReviewDetail): HTMLElement {
   actions.className = 'review-actions';
   const dismiss = document.createElement('button');
   dismiss.type = 'button';
-  dismiss.className = 'review-reject';
+  dismiss.className = 'review-btn is-bad';
   dismiss.textContent = 'Clear this request';
   dismiss.addEventListener('click', () => {
     void (async () => {

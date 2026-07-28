@@ -2492,3 +2492,37 @@ def test_a_design_offered_dirty_records_that_it_was(tmp_path: Path) -> None:
         assert data["request"].get("dirty_at_offer") is True, data["request"]
     finally:
         httpd.shutdown()
+
+
+def test_the_review_shows_the_revision_being_judged() -> None:
+    """Edwin: "it is unclear what I accept since the document does not show its
+    content." Accepting a revision you cannot see is the exact failure this
+    surface exists to prevent.
+
+    The frame is built from `at_revision`, so it renders the reviewed
+    revision rather than the working copy — the same distinction
+    `design_revision` draws on the verdict itself.
+    """
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "buildDesignFrame(d, detail.at_revision" in view, (
+        "the review renders the working copy, not the revision under review"
+    )
+    assert "fetchDesignRegister()" in view
+    # An artifact that cannot be shown says why rather than leaving a blank box.
+    assert "no longer in the design register" in view
+    assert "declares no artifact" in view
+
+
+def test_the_design_review_uses_the_same_controls_as_every_other_review() -> None:
+    """Edwin: "Looks different to usual other options." The first cut invented
+    `review-accept`/`review-changes`/`review-reject` beside a codebase that
+    already had one button vocabulary."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    for cls in ("review-btn is-good", "review-btn is-primary", "review-btn is-bad"):
+        assert cls in view, cls
+    assert "'review-accept'" not in view and "'review-reject'" not in view
+    assert "wrap.className = 'review-body design-review';" in view
