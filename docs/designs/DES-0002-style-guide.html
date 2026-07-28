@@ -25,8 +25,19 @@
      that would read as a design regression. -->
 <link rel="stylesheet" href="/_shell/renderer.css" id="shell-css" />
 <style>
+  /* Undo the APPLICATION SHELL rules that come with borrowing the app's
+     stylesheets. base.css sets `body { height: 100dvh; display: flex;
+     overflow: hidden }` and renderer.css adds `body { display: block;
+     overflow: hidden }` — correct for a window that owns the viewport, fatal
+     for a document. This page rendered fully and could not be scrolled a
+     pixel: 4792px of content clipped to the viewport height (ISS-0046).
+
+     Any artifact that links these stylesheets inherits the same trap, so this
+     reset belongs in the authoring contract, not just in this file. */
+  html { height: auto; overflow: visible; }
   body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
-         margin: 0; padding: 28px 34px 72px; }
+         margin: 0; padding: 28px 34px 72px;
+         height: auto; min-height: 100%; display: block; overflow: visible; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
        color: var(--text-muted); margin: 30px 0 10px;

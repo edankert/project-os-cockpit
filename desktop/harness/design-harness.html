@@ -23,7 +23,7 @@
 </head>
 <body>
 <script>
-const FRAMED = location.hash === '#framed' || location.hash === '#real';
+const FRAMED = location.hash === '#framed';
 const EMPTY  = location.hash === '#empty';
 const noopOff = () => {};
 const on = () => noopOff;
@@ -96,11 +96,9 @@ window.fetch = async (input, init) => {
   if (url.includes('/api/cockpit/designs'))         return json(DESIGNS);
   if (url.includes('/api/cockpit/design-revisions'))return json(REVISIONS);
   if (url.includes('/api/cockpit/brief'))           return json(BRIEF);
-  if (url.includes('/design-asset')) {
-    // #real proxies the actual sidecar so the real artifact is exercised.
-    if (location.hash.startsWith('#real')) return realFetch('http://127.0.0.1:8918' + new URL(url).pathname);
+  // An iframe src is not routed through fetch, so #real needs no proxy here.
+  if (url.includes('/design-asset'))
     return new Response(ARTIFACT, { status: 200, headers: { 'Content-Type': 'text/html' } });
-  }
   if (url.includes('/api/render'))    return json({ metadata_html: '', html: '<p>note</p>' });
   if (url.includes('/api/cockpit/context'))     return json({ schema_version: 4,
     platform: 'all',
@@ -151,8 +149,10 @@ try {
   setTimeout(() => {
     document.querySelector('.ws-square')?.click();
     setTimeout(() => {
-      window.__sidecarCb?.({ kind: 'ready',
-        payload: { workspaceId: 'ws1', url: 'http://stub.local' } });
+      window.__sidecarCb?.({ kind: 'ready', payload: { workspaceId: 'ws1',
+        // #real points the iframe at the live sidecar so the artifact really
+        // loads; payloads still come from the stubs below.
+        url: location.hash.startsWith('#real') ? 'http://127.0.0.1:8765' : 'http://stub.local' } });
       // Land on the artifact, not the register.
       // Open the artifact, not the register: the register is a list and the
       // thing under test is the stage.

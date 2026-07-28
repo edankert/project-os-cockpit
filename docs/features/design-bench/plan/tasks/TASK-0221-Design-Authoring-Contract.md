@@ -56,3 +56,22 @@ The scoping rule earned itself immediately. The dossier's `data-pin` numbers **r
 ## Notes
 
 The DES-0001 decision is a real fork, not bookkeeping. Retrofitting regions into a 139KB file is genuine work; grandfathering it means the phase's acceptance demo needs a different subject, and [[PHASE-009]] currently implies DES-0001 is the subject throughout while phase 2 is unusable against it. Decide before TASK-0217 starts, not during.
+
+## Amendment 2026-07-28 — artifacts that link the app's stylesheets
+
+[[TASK-0227]] lets an artifact link `base.css`, `cockpit.css` and the shell stylesheet so it can show **real** tokens and **real** widgets rather than lookalikes. That is worth having, and it comes with a standing cost that every such artifact pays:
+
+**Linking the application's stylesheets means inheriting the application's shell.**
+
+`base.css` declares `body { height: 100dvh; display: flex; flex-direction: column; overflow: hidden }`; `renderer.css` adds `body { display: block; overflow: hidden }`. Correct for a window that owns the viewport; fatal for a document. The first artifact to link them rendered perfectly and could not be scrolled a pixel ([[ISS-0046]]).
+
+An artifact that links them **must** reset them:
+
+```css
+html { height: auto; overflow: visible; }
+body { height: auto; min-height: 100%; display: block; overflow: visible; }
+```
+
+Place it after the `<link>` elements, where plain source order wins — no `!important` needed, and none should be used, because an artifact that has to shout at the stylesheet is a sign the stylesheet is being misused.
+
+The same caution applies to anything else the shell assumes about the window: fixed positioning, grid on `.app`, and scroll containers. Link the stylesheets for their **tokens and component classes**, not for their layout.

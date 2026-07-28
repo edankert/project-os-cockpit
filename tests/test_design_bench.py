@@ -1905,3 +1905,38 @@ def test_the_design_system_is_a_document_not_a_surface() -> None:
     assert system["viewport"] is None, (
         "the style guide declares a viewport again; it is a document"
     )
+
+
+def test_an_artifact_resets_the_shell_body_it_inherits() -> None:
+    """base.css declares `body { height: 100dvh; display: flex; overflow:
+    hidden }` and renderer.css adds `body { display: block; overflow: hidden }`
+    — correct for a window that owns the viewport, fatal for a document. The
+    first artifact to link them rendered fully and could not be scrolled a
+    pixel: 4792px of content clipped to a 963px viewport (ISS-0046)."""
+    guide = _style_guide()
+    style = guide.split("<style>", 1)[1].split("</style>", 1)[0]
+    # Strip CSS comments first: the block above this rule QUOTES base.css's
+    # `overflow: hidden`, and matching one's own explanatory prose instead of
+    # the code is a mistake this suite has already made once.
+    style = re.sub(r"/\*.*?\*/", "", style, flags=re.S)
+    body_rule = style.split("body {", 1)[1].split("}", 1)[0]
+    assert "overflow: visible" in body_rule, (
+        "the artifact does not reset the shell's `overflow: hidden`; it will "
+        "render everything and scroll nothing"
+    )
+    assert "display: block" in body_rule
+    assert "height: auto" in body_rule
+    assert "html { height: auto; overflow: visible; }" in style
+    # No shouting: source order is enough, and !important here would mean the
+    # stylesheet is being misused rather than borrowed.
+    assert "!important" not in style
+
+
+def test_the_authoring_contract_carries_the_rule() -> None:
+    """Not a patch in one page: this is the standing cost of TASK-0227, and
+    every future artifact wanting real widgets pays it."""
+    contract = (Path(__file__).resolve().parents[1] / "docs" / "features"
+                / "design-bench" / "plan" / "tasks"
+                / "TASK-0221-Design-Authoring-Contract.md").read_text(encoding="utf-8")
+    assert "inheriting the application's shell" in contract
+    assert "overflow: visible" in contract
