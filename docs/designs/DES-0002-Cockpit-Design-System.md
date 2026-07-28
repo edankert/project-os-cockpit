@@ -130,3 +130,7 @@ What *is* guaranteed is stronger and lives elsewhere: the **style-guide page rea
 **Direction of authority: `statuses.py` is upstream.** If this note and the implementation disagree about a status colour, this note is wrong. That direction is stated because a parity check without one accumulates waivers instead of fixes.
 
 Everything else here — spacing, type scale, icon rules — is currently **descriptive, not enforced**. Two of those sections record gaps (no spacing scale, no type scale) that a future task may close. Recording them as gaps is the point: this note's value is that it can be checked, and a section that cannot be checked yet should say so rather than imply it can.
+
+## Revisions
+
+- 2026-07-28 — Read tokens declared inside @media, @supports and @layer — a one-level walk skipped them silently (ISS-0055)

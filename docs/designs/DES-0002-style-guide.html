@@ -194,9 +194,21 @@ function sheetOrigin(sheet) {
 }
 
 function eachRule(sheets, fn) {
+  // Descends into at-rules. A token declared inside @media, @supports or
+  // @layer was invisible to a one-level walk — skipped SILENTLY, against this
+  // page's own rule that anything it cannot read is reported rather than
+  // dropped (ISS-0055 §1). Nothing declares tokens that way today, which is
+  // exactly why it would have gone unnoticed the day something did.
+  const walk = (rules, sheet, depth) => {
+    if (depth > 4) return;          // grouping rules do not nest meaningfully
+    for (const rule of rules) {
+      fn(rule, sheet);
+      if (rule.cssRules) walk(rule.cssRules, sheet, depth + 1);
+    }
+  };
   for (const sheet of sheets) {
     let rules; try { rules = sheet.cssRules; } catch { continue; }
-    for (const rule of rules) fn(rule, sheet);
+    walk(rules, sheet, 0);
   }
 }
 // Every custom property declared anywhere, in declaration order.
