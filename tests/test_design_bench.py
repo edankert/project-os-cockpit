@@ -2945,3 +2945,92 @@ def test_the_route_guards_hold_even_if_the_declaration_filter_does_not(
         assert _get(port, "/_project/public/css/style.css")[0] == 200
     finally:
         httpd.shutdown()
+
+
+# ---- native token sources (ISS-0059) --------------------------------------
+
+def test_kotlin_colours_are_synthesised_into_css() -> None:
+    """Three fleet apps declare their palette in Kotlin or Swift and have no
+    application CSS, so the living style guide could not read them at all.
+    Synthesised at READ TIME — a generated file committed beside the source is
+    a second copy that goes stale the first time someone edits Color.kt and
+    forgets to regenerate (ISS-0059)."""
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css(
+        "val PrimaryBlue = Color(0xFF2563EB)\n"
+        "val Ghost = Color(0x33FFFFFF)   // translucent\n"
+        "package com.secret.thing\n", "Color.kt")
+    assert "--PrimaryBlue: #2563EB;" in css
+    # Alpha survives as a real CSS value rather than being silently dropped.
+    assert "--Ghost:" in css and "transparent" in css
+    # The SOURCE never leaves the machine — only extracted tokens.
+    assert "package com.secret.thing" not in css
+    assert ":root {" in css, "tokens declared outside :root have no page value"
+
+
+def test_swift_component_colours_are_synthesised() -> None:
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css(
+        "static let brandPurple = Color(red: 0x74 / 255.0, green: 0x74 / 255.0,"
+        " blue: 0xB0 / 255.0)\n", "Theme.swift")
+    assert "--brandPurple: #7474B0;" in css
+
+
+def test_a_derived_colour_is_named_never_guessed() -> None:
+    """`Color.blue.opacity(0.3)` derives from a system colour whose value
+    depends on platform and appearance. There is no honest hex, so the token
+    is emitted with its source expression — the page shows it exists and says
+    what it derives from rather than inventing a swatch."""
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css(
+        "static let cellSelected = Color.blue.opacity(0.3)\n", "Theme.swift")
+    assert "--cellSelected: Color.blue.opacity(0.3);" in css
+    assert "#" not in css.split("--cellSelected")[1].split(";")[0]
+
+
+def test_an_expression_cannot_escape_a_css_value() -> None:
+    """Only text a `Color…` pattern matched is ever emitted, and it is
+    stripped of anything that could close a declaration."""
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css(
+        'static let evil = Color.x } body { background: url("http://x") } /*\n',
+        "Theme.swift")
+    body = css.split("--evil:")[1].split("\n")[0]
+    for ch in ("{", "}", ";", '"', "<"):
+        assert ch not in body.replace(";", "", 1), (ch, body)
+
+
+def test_an_unrecognised_source_says_so(tmp_path: Path) -> None:
+    """Silence would look identical to a project with no colours."""
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css("fun main() { println(1) }\n", "Main.kt")
+    assert "no colour declarations recognised" in css
+
+
+def test_the_synthesised_route_serves_css_and_sets_cors(tmp_path: Path) -> None:
+    """The shared CORS helper keys off the FILENAME, which is right for the
+    static routes and wrong here: a synthesised response is named `Color.kt`
+    and is `text/css`, so the helper stayed silent and the sandboxed frame's
+    fetch failed with everything else working. curl could not see it, because
+    curl has an origin (ISS-0059)."""
+    docs = tmp_path / "docs"
+    (docs / "designs").mkdir(parents=True)
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    _note(docs / "designs" / "DES-0001-S.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "S", "status": "draft",
+        "role": "system", "asset": "", "stylesheets": ["ui/Color.kt"]})
+    (tmp_path / "ui").mkdir()
+    (tmp_path / "ui" / "Color.kt").write_text(
+        "package secret.pkg\nval Brand = Color(0xFF112233)\n", encoding="utf-8")
+    httpd, port = _serve(docs)
+    try:
+        status, body, headers = _get(port, "/_project/ui/Color.kt")
+        assert status == 200, status
+        assert headers.get("Content-Type", "").startswith("text/css")
+        assert headers.get("Access-Control-Allow-Origin") == "*", (
+            "a sandboxed opaque-origin frame cannot fetch this"
+        )
+        assert b"--Brand: #112233;" in body
+        assert b"package secret.pkg" not in body, "the source leaked"
+    finally:
+        httpd.shutdown()
