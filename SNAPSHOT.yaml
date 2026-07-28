@@ -30,25 +30,33 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 42
+  FEAT: 43
   ISS: 32
   PHASE: 9
-  REQ: 23
+  REQ: 24
   RISK: 4
   REL: 0
-  TASK: 221
+  TASK: 225
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0218"
-  feature: "FEAT-0042"
+  task: "TASK-0222"
+  feature: "FEAT-0043"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-27 PHASE-009, last task. 0218 desk review with per-region verdicts, reusing FEAT-0041 machinery. Acceptance must record WHICH REVISION was accepted or an old approval launders a new design."
+  note: "2026-07-28 FEAT-0043 — design as a top-level surface opening with the brief. Fill and guard the brief FIRST: a view over a REPLACE ME file is worse than no view."
 
 items:
   features:
+    FEAT-0043:
+      file: "docs/features/design-surface/FEAT-0043-Design-Top-Level-Surface.md"
+      title: "Design as a top-level surface, opening with the project brief"
+      status: doing
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      requirements: ["REQ-0024"]
+      tasks: [TASK-0222, TASK-0223, TASK-0224, TASK-0225]
+      note: "10 of 11 fleet repos never filled in LLM_BRIEF.md — a file nobody can see is a file nobody maintains. Plus two reachability bugs in two days on the design bench. Both say the same thing: put it where it is read."
     FEAT-0042:
       file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
       title: "Design bench — render, revise, annotate and review designs in the cockpit"
@@ -286,6 +294,30 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0222:
+      file: "docs/features/design-surface/plan/tasks/TASK-0222-Fill-And-Guard-The-Brief.md"
+      title: "Fill this repo's brief, and report a placeholder brief upstream"
+      status: doing
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0043
+    TASK-0223:
+      file: "docs/features/design-surface/plan/tasks/TASK-0223-Brief-Payload-And-Identity-Band.md"
+      title: "Brief payload and the identity band"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0043
+    TASK-0224:
+      file: "docs/features/design-surface/plan/tasks/TASK-0224-Design-Mode-In-The-Strip.md"
+      title: "A design mode in the strip, positioned second"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0043
+    TASK-0225:
+      file: "docs/features/design-surface/plan/tasks/TASK-0225-Design-Rationale.md"
+      title: "Design rationale — the ADRs a design links, not all of them"
+      status: backlog
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      parent: FEAT-0043
     TASK-0220:
       file: "docs/features/design-bench/plan/tasks/TASK-0220-Revision-Capture.md"
       title: "Revision capture — deposit the history TASK-0216 renders"
@@ -1726,6 +1758,12 @@ items:
       component: index/watcher
 
   requirements:
+    REQ-0024:
+      file: "docs/requirements/REQ-0024-Brief-Is-Maintained.md"
+      title: "The project brief is a maintained artifact, not a template stub"
+      status: draft
+      phase: "[[PHASE-009-Design-Surfaces]]"
+      implements: "FEAT-0043"
     REQ-0023:
       file: "docs/requirements/REQ-0023-Design-Is-A-Project-Record.md"
       title: "A design and the reasoning behind its revisions are project records, not transcript artifacts"
@@ -2456,9 +2494,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 42
+    features_total: 43
     features_done: 36
-    tasks_total: 221
+    tasks_total: 225
     tasks_done: 217
     tests_total: 21
     tests_passing: 21

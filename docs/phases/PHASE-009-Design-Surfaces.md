@@ -11,8 +11,10 @@ updated: 2026-07-27
 goal: "Design moves into the project: the cockpit renders design artifacts live at the viewport the app actually runs at, carries their revisions and the reasoning behind each, and lets a human review them where the notes already live — instead of design happening in a chat transcript and being copied in afterwards."
 features:
   - "[[FEAT-0042-Design-Bench]]"
+  - "[[FEAT-0043-Design-Top-Level-Surface]]"
 requirements:
   - "[[REQ-0023-Design-Is-A-Project-Record]]"
+  - "[[REQ-0024-Brief-Is-Maintained]]"
 depends: ["[[PHASE-008-State-And-Review-Surfaces]]"]
 related: ["[[DES-0001-Overview-Redesign]]", "[[FEAT-0041-Review-Desk]]", "[[ISS-0023-Status-Vocabulary-Drift]]"]
 tags: [design]
@@ -60,6 +62,7 @@ Not a general claim about design tools — a specific property of this one. A de
   *(Surviving a region that merely moves is true by construction of ID anchoring and tests nothing. Rename is indistinguishable from delete-and-add, so a comment can orphan silently; duplicate IDs are near-certain in a multi-plate dossier. Those are the cases that discriminate.)*
 - [x] A design token changed in the implementation is caught by a test — evidence: `tests/test_design_tokens.py`, proven by inversion (one-digit drift caught, different colour space caught, whitespace not). **Silent on the only artifact in the repo** — DES-0001 declares `--m-*` not `--status-*` — and a test records that as a fact rather than dressing a null result up as a pass.
 - [ ] Edwin has reviewed one real design through the surface and recorded a verdict — **outstanding, and needs Edwin.** The machinery is complete and tested; the verdict is not something an agent may supply. Same gate, same reason, as [[TST-0011]] in PHASE-008.
+- [ ] The design surface is reachable as a top-level mode and opens with this repo's real identity — added 2026-07-28 after the bench proved unreachable twice, and after measuring that 10 of 11 fleet repos never filled in their brief. Findability is not polish here; it is what keeps the thing true.
 - [ ] **A design produced after this phase lands carries ≥2 committed revisions, each with its reason, without anyone rescuing the history by hand** — **outstanding by construction.** This measures the behaviour change and can only be satisfied by a real design session after today. The capture path is proven end to end on a scratch repo; what is unproven is whether it gets *used*. — evidence: <git log + the note's Revisions section>
 
   *(The only criterion that would have failed under the old workflow, which is what makes it the one worth having. Without it the phase can exit green while the next session loses five revisions exactly as before.)*
