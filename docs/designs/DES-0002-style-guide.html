@@ -371,17 +371,38 @@ if (SCOPED.length) {
 // first render: the desktop app draws a different --bg from the one base.css
 // declares, so there were two palettes and nothing said so (ISS-0042). The
 // values are deliberately NOT written here — reading them is the point.
+// A token is OVERRIDDEN only when two DIFFERENT files declare it with
+// different values IN THE SAME SCHEME. The first version tested `/^:root\b/`
+// and compared everything it found, so it collapsed a token's light and dark
+// declarations into one list and reported every same-file light/dark pair as a
+// cross-file override — 8 of 10 wrong before ISS-0042, then 4 of 4 wrong after
+// it, since the four survivors are precisely the shell-only tokens base.css
+// never declares. Now that the shell may not redeclare a base.css role at all
+// (asserted by test), this block should report nothing — and reporting nothing
+// has to mean nothing is wrong, not that the check cannot see.
 const OVERRIDDEN = [];
 for (const token of SEMANTIC) {
-  const seen = [];
+  const perScheme = { light: [], dark: [] };
   eachRule(SHEETS, (rule, sheet) => {
     if (!rule.style || !rule.selectorText) return;
-    if (!/^:root\b/.test(rule.selectorText.trim())) return;
+    const sel = rule.selectorText;
+    const isRootish = sel.split(',').some((part) =>
+      part.replace(/:root|\bhtml\b|\bbody\b/g, '')
+          .replace(/\[data-theme=["']?[\w-]+["']?\]/g, '')
+          .trim() === '');
+    if (!isRootish) return;
     const v = rule.style.getPropertyValue(token).trim();
-    if (v) seen.push({ from: sheetOrigin(sheet).split('/').pop(), value: v });
+    if (!v) return;
+    const scheme = /\[data-theme=["']?dark["']?\]/.test(sel) ? 'dark' : 'light';
+    perScheme[scheme].push({ from: sheetOrigin(sheet).split('/').pop() || '(inline)', value: v });
   });
-  const distinct = [...new Set(seen.map((x) => x.value))];
-  if (seen.length > 1 && distinct.length > 1) OVERRIDDEN.push({ token, seen });
+  for (const [scheme, seen] of Object.entries(perScheme)) {
+    const files = new Set(seen.map((x) => x.from));
+    const values = new Set(seen.map((x) => x.value));
+    if (files.size > 1 && values.size > 1) {
+      OVERRIDDEN.push({ token: token + ' (' + scheme + ')', seen });
+    }
+  }
 }
 if (OVERRIDDEN.length) {
   const el = document.createElement('div');

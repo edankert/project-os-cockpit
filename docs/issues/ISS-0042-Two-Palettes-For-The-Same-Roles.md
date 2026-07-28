@@ -67,4 +67,11 @@ Guarded by `test_the_shell_declares_no_alias_for_a_base_css_role`, which asserts
 
 **Verified**, not assumed: every role resolves in both schemes with nothing unresolved, checked in a browser against the built stylesheets.
 
-**Found while doing it, unrelated and pre-existing:** four tokens are referenced but never declared anywhere — `--token`, `--surface-1`, `--tree-indent`, `--bg-hover`. `var()` with no fallback is invalid at computed-value time, so those properties silently render inherited. Pinned in `test_every_token_the_shell_uses_is_declared_somewhere` so a *new* one fails rather than hiding among them; fixing the four is its own small job.
+**Found while doing it, unrelated and pre-existing — and initially overstated.** A first pass reported four tokens "referenced but never declared". Independent review checked them and **only one is a real problem**:
+
+- `--surface-1` (`cockpit.css:487`) — `var(--surface-1)` with **no fallback**, declared nowhere. Invalid at computed-value time, so the property silently renders inherited. Genuine.
+- `--tree-indent` — always written `var(--tree-indent, 0px)`. Has a fallback; never invalid.
+- `--bg-hover` — always written `var(--bg-hover, rgba(125, 166, 255, 0.08))`. Same.
+- `--token` — appears only inside a `base.css` **comment** ("rules use var(--token) only"). A regex false positive, not a reference at all.
+
+The overstatement is the finding worth keeping: a grep for `var\((--[a-z-]+)` counts comments as code and treats a fallback as if it were absent, and the sentence built on it normalised three non-problems next to one real one. The guard now ignores comments and flags only `var()` **without** a fallback, which reduces the pinned set to `--surface-1` alone.

@@ -657,8 +657,12 @@ def brief_payload(project_root: Path) -> dict:
         # The heading is a renderable field too. The first fix enumerated
         # name/purpose/body and stopped one field short of the contract its
         # own docstring stated — the same shape as the defect it closed.
-        if _BRIEF_PLACEHOLDER_RE.search(m.group(1)):
-            continue
+        #
+        # A placeholder HEADING drops the section, because a section nobody
+        # named cannot be presented — but only when its body is placeholder
+        # too. Dropping a real body because its heading was left unwritten
+        # would contradict the per-line policy two lines below (round 3
+        # independent review).
         body = text[m.end():end].strip()
         # Drop the placeholder LINES, not the whole section: the rest of a
         # half-written section is real content and discarding it would punish
@@ -669,7 +673,10 @@ def brief_payload(project_root: Path) -> dict:
             if not _BRIEF_PLACEHOLDER_RE.search(line)
         ).strip()
         if body:
-            sections.append({"heading": m.group(1), "body": body})
+            heading = m.group(1)
+            if _BRIEF_PLACEHOLDER_RE.search(heading):
+                heading = ""      # unnamed, but its content still counts
+            sections.append({"heading": heading, "body": body})
 
     return {
         "schema_version": SCHEMA_VERSION,

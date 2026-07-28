@@ -991,7 +991,18 @@ def test_the_guard_polarity_is_the_one_that_navigates() -> None:
     m = re.fullmatch(r"!([A-Za-z_$][\w$]*)", guard.strip())
     if m:
         defn = re.search(r"(?:const|let)\s+%s\s*=([^;]+);" % re.escape(m.group(1)), src)
-        hoisted = bool(defn and "currentRel.startsWith('~design')" in defn.group(1))
+        # The definition's POLARITY matters, not just that it mentions the
+        # check. Round 3 of independent review found the widened test admitted
+        #   const notOnDesign = !!currentRel && !currentRel.startsWith('~design');
+        #   if (!notOnDesign) { navigateTo('~design') }
+        # which navigates only when nothing is open or when already on design —
+        # ISS-0034's defect exactly, with the suite green. A hoisted name may
+        # only mean "already on design", never its negation.
+        hoisted = bool(
+            defn
+            and "currentRel.startsWith('~design')" in defn.group(1)
+            and "!currentRel.startsWith('~design')" not in defn.group(1)
+        )
     assert inline or hoisted, (
         "the guard around navigateTo is %r — it must fire when ~design is "
         "NOT already open. A guard that fires only when it IS never opens it."
@@ -1362,11 +1373,23 @@ def test_a_placeholder_heading_is_scrubbed_too(tmp_path: Path) -> None:
     """The heading is a renderable field. The first fix enumerated name,
     purpose and body — one field short of the contract its own docstring
     stated, which is the same shape as the defect it closed."""
-    b = _brief(tmp_path, "# B\n\n## REPLACE ME\nbody\n\n## Real\ncontent\n")
-    assert [s["heading"] for s in b["sections"]] == ["Real"]
+    b = _brief(tmp_path, "# B\n\n## REPLACE ME\nreal body here\n\n## Real\ncontent\n")
     for s in b["sections"]:
         assert "REPLACE" not in s["heading"].upper()
         assert "REPLACE" not in s["body"].upper()
+    # The unwritten HEADING is dropped; the real body under it survives. The
+    # first version discarded the whole section, which contradicted the
+    # per-line body policy — dropping real content because its heading was
+    # left unwritten (round 3 independent review).
+    assert any(s["body"] == "real body here" and s["heading"] == ""
+               for s in b["sections"]), b["sections"]
+    assert any(s["heading"] == "Real" for s in b["sections"])
+
+
+def test_a_section_that_is_only_a_placeholder_disappears(tmp_path: Path) -> None:
+    """Nothing named, nothing said — there is no content to preserve."""
+    b = _brief(tmp_path, "# B\n\n## REPLACE ME\nREPLACE ME\n\n## Real\ncontent\n")
+    assert [s["heading"] for s in b["sections"]] == ["Real"]
 
 
 def test_a_hand_written_prose_brief_is_filled(tmp_path: Path) -> None:
@@ -2084,19 +2107,55 @@ def test_the_shell_declares_no_alias_for_a_base_css_role() -> None:
 
 def test_every_token_the_shell_uses_is_declared_somewhere() -> None:
     """Deleting a declaration while a usage survives is silent: `var()` with no
-    fallback makes the property invalid at computed-value time, so the element
-    renders inherited and looks almost right."""
+    fallback is invalid at computed-value time, so the element renders
+    inherited and looks almost right.
+
+    Only `var()` WITHOUT a fallback can fail that way, and only outside a
+    comment. A first version of this test grepped every `var(` and pinned four
+    tokens; independent review showed three were non-problems — two carry
+    fallbacks and one appears solely inside a `base.css` comment. Counting
+    those as defects normalised them next to the one real case.
+    """
     root = Path(__file__).resolve().parents[1]
     files = [root / "src" / "project_os_cockpit" / "static" / "base.css",
              root / "src" / "project_os_cockpit" / "static" / "cockpit.css",
              root / "desktop" / "src" / "renderer" / "renderer.css"]
-    declared, used = set(), set()
+    declared, at_risk = set(), set()
     for f in files:
-        text = f.read_text(encoding="utf-8")
+        text = re.sub(r"/\*.*?\*/", "", f.read_text(encoding="utf-8"), flags=re.S)
         declared |= set(re.findall(r"^\s*(--[a-z0-9-]+)\s*:", text, re.M))
-        used |= set(re.findall(r"var\((--[a-z0-9-]+)", text))
-    # Four dangling references pre-date ISS-0042 and are not this test's
-    # subject; pinning them means a NEW one fails here rather than hiding
-    # among them.
-    known = {"--token", "--surface-1", "--tree-indent", "--bg-hover"}
-    assert (used - declared) <= known, sorted(used - declared - known)
+        # `var(--x)` with no comma before the closing paren — no fallback.
+        at_risk |= set(re.findall(r"var\(\s*(--[a-z0-9-]+)\s*\)", text))
+    dangling = at_risk - declared
+    # `--surface-1` (cockpit.css) predates ISS-0042 and is genuinely broken;
+    # pinning it means a NEW one fails here instead of hiding beside it.
+    assert dangling <= {"--surface-1"}, sorted(dangling)
+
+
+def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
+    """The sidecar-ready handler sends the centre pane to README unless the
+    mode lands on a virtual page. It named only `overview`, so Review
+    inherited the bug the day it shipped and Design the day it shipped:
+    select Design, restart, land on README with the Design button lit
+    (ISS-0040 §2).
+
+    Round 3 of independent review noted this fix was UNGUARDED — reverting the
+    set to `{'overview'}` left the suite green — and that reachability
+    therefore had one guarded path (the click) and one unguarded (the boot),
+    with the unguarded one being the one that actually broke.
+    """
+    src = _renderer()
+    decl = re.search(
+        r"const MODES_WITH_VIRTUAL_LANDING[^=]*=\s*new Set\(\[([^\]]*)\]",
+        src)
+    assert decl, "the boot guard's mode set is gone; README will race again"
+    modes = {m.strip().strip("'\"") for m in decl.group(1).split(",") if m.strip()}
+    assert modes == {"overview", "review", "design"}, modes
+
+    # And the README fallback must actually consult it.
+    ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]
+    assert "MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)" in ready
+    assert "currentNavMode !== 'overview'" not in ready, (
+        "the guard names one mode again; every future virtual-landing mode "
+        "inherits the race"
+    )

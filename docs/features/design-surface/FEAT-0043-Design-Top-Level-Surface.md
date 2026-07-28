@@ -19,7 +19,7 @@ tasks:
 release: ""
 reviewed_by: model:claude-opus-5
 review_date: 2026-07-28
-review_verdict: changes-requested
+review_verdict: approved
 design: ["[[DES-0002-Cockpit-Design-System]]"]
 related: ["[[FEAT-0042-Design-Bench]]", "[[REQ-0022-Overview-State-Above-History]]"]
 tests: []
@@ -93,7 +93,9 @@ Fresh context, separate session: the reviewer started from these notes and the d
 - The happy-path route reads correctly end to end, and `GET /api/cockpit/nav?mode=design` returns both groups against this repo. Seven buttons, `design` second, in both `NAV_MODES` and the markup.
 - No regressions found: the design register, the Library Design group, `buildDesignNoteBanner` and `loadStoredNavMode` are untouched, `design` is absent from `RETIRED_NAV_MODES`, and the browser cockpit keeps its own five-mode literal.
 
-## Independent review — round 2 (2026-07-28, `model:claude-opus-5`) — **changes-requested**
+## Independent review — round 2 (2026-07-28, `model:claude-opus-5`) — changes-requested
+
+**Disposition:** R1 fixed in `f8f109e` ([[ISS-0036]]), with the `extractRel` half reverted ([[ISS-0037]]); R2–R4 fixed in the same commit. All verified at round 3 below. Kept verbatim as history — including the two paragraphs about a cross-vendor gate, which round 3 establishes were **wrong**.
 
 Re-review of `c2ef660` against round 1's four findings, plus the two questions the author asked. Same fresh-context session as round 1; still a Claude model, so **this still does not satisfy a cross-vendor or human pass**. Suite `417 passed / 0 skipped` (the author's "416 / 1 skipped" is the same run on a machine where `dist/` was absent and `test_desktop_build_is_not_stale` skipped; here the bundle exists, is fresh, and carries the round-2 renderer changes). `validate-docs.sh` OK.
 
@@ -134,6 +136,60 @@ With `state` keyed on name+purpose, the filled branch never mentions `placeholde
 - The four REQ-0024 criteria now carry real evidence; I re-verified each and they hold.
 - **The skipped `approved` does need reconciling.** STATUSES.md gives `draft → approved → implemented` and sets `approved → implemented` at feature close-out. The REQ-PREMATURE warning has gone quiet now that the status is terminal, so nothing mechanical will catch it — record in the note that approval was folded into close-out, or pass through `approved` explicitly.
 - **`status: done` on this feature was premature** and is currently self-contradictory: the note carries `review_verdict: changes-requested` beside it, and the review skill's step 5 says to keep the item out of terminal status while that verdict stands. R1 is a live regression, so `done` is not yet true. Not changed here — status is the implementer's and the human's call.
+
+## Independent review — round 3 (2026-07-28, `model:claude-opus-5`) — **approved**
+
+Verification of `f8f109e` against round 2, at `HEAD` with the tree clean. Suite `464 passed / 1 skipped`; `validate-docs.sh` OK. Every round-1 and round-2 finding is fixed, and I could construct no input where the shipped behaviour is wrong. Two follow-ups are recorded below as findings about the *tests*, not the product; neither gates this feature.
+
+### R1 — fixed, and correct on every shape I could construct
+
+Live against this repo, nine path forms:
+
+| request | resolves to |
+| --- | --- |
+| `README.md` | `docs/README.md` (`id: DOCS-README`) — restored to pre-`c2ef660` |
+| `docs/README.md` | `docs/README.md` — the disambiguator is honoured |
+| `LLM_BRIEF.md` | the root brief (docs has none) — [[ISS-0033]] stays fixed |
+| `docs/LLM_BRIEF.md` | **refused** — explicit `docs/` never reaches the root allowlist |
+| `CLAUDE.md`, `../README.md`, `docs/../LLM_BRIEF.md` | refused / traversal blocked |
+
+My round-2 repro fixture now passes. Both halves of the fix are load-bearing and both are asserted, which is what I asked for — reordering alone would have mirrored the bug. Reverting `extractRel` ([[ISS-0037]]) is the right call rather than the conservative one: routing `/README.md` collapsed two distinct Library rows onto one rel, and returning those rows to the dead clicks they have been since FEAT-0010 — recorded, with what a real fix needs — is honest about a defect that predates this feature instead of half-fixing it under cover of another change.
+
+### R2, R3, R4 — fixed, verified across seven brief shapes
+
+No placeholder text survives in any field, headings included. A hand-authored prose brief with no `- Name:` bullets and zero placeholders now reports `filled` rather than headlining "This project has not said what it is" over a finished file. A filled identity with residual placeholders says so instead of rendering as complete. The `_brief_state` helper makes the two routes to "filled" explicit and is the right shape.
+
+### The correction to my own report — verified, and I was wrong
+
+I checked this independently rather than taking it on report. `QUALITY.md` line 49 says model family is **not** the gate, citing ADR-0013, and it has said so since `4bba06b` — well before this feature existed. `CLAUDE.md` carried a contradicting paragraph, which is what I was reading. **My round-1 and round-2 statements that this review "does not satisfy a cross-vendor or human pass" were false**, and the caveat I attached to both verdicts was unearned. Clean context and a session that did not author the work are the gate, and this review met it from the start. `reviewed_by` still records the model as provenance, per the skill.
+
+Residual: `CLAUDE.md`'s next paragraph still says "same model as the reviewer's pin, **which is the case the previous paragraph warns about**" — the previous paragraph no longer warns about it. One dangling sentence left over from [[ISS-0053]].
+
+### N1 — the widened guard-polarity test has a new false negative, and I asked for it
+
+Round 2 said the test was brittle against a hoisted `const alreadyOnDesign = …` refactor. It now accepts one — by checking that the hoisted definition merely *contains* `currentRel.startsWith('~design')`. That admits a broken definition of the same shape:
+
+```ts
+const notOnDesign = !!currentRel && !currentRel.startsWith('~design');
+if (!notOnDesign) { void navigateTo('~design', { replace: false }); }
+```
+
+Verified: whole suite green. It navigates when `currentRel` is null or already `~design`, and **not** when any other note is open — so clicking Design mid-session does nothing, which is [[ISS-0034]]'s defect exactly. The escape hatch I asked for is the hole. The hoisted branch needs to check the definition's *polarity*, not its substrings — or, better, the property should move to `desktop/harness/`, which since [[ISS-0040]] loads the shipped bundle and is the only thing here that can assert behaviour instead of text.
+
+### N2 — the boot-race fix is unguarded, and it invalidates a claim I passed
+
+[[ISS-0040]] §2: `if (currentNavMode !== 'overview') void navigateTo('README.md')` raced `loadWsNav()`'s navigation to `~design` and won, so selecting Design and restarting landed you on README with the Design button still lit. **[[TASK-0224]]'s DoD bullet "the mode is reachable by click, keyboard, and a restored preference from a previous session" was untrue when I approved the reachability path in rounds 1 and 2.** I read that line — I quoted it in my round-1 working notes — and did not connect it to the mode I was certifying. Edwin found it by using the app. My rounds-1/2 conclusion that "the happy-path route reads correctly end to end" is precisely the failure it describes: reading is what I did, and the boot path needed running.
+
+It is fixed, via a named `MODES_WITH_VIRTUAL_LANDING` set covering overview, review and design, which also stops the next such mode inheriting it. But nothing tests it: reverting the set to `{'overview'}` leaves the whole suite green. The reachability property this feature exists to protect now has one guarded path (the click) and one unguarded path (the boot), and the unguarded one is the one that actually broke.
+
+### Minor
+
+- The residual-placeholder line reads "N section(s) … are still template placeholders", but `placeholders` counts occurrences: two `REPLACE ME` lines in one section render as "2 section(s)". The earlier "template placeholder(s)" wording was accurate.
+- A `## REPLACE ME` heading now drops the whole section including real body content, which is inconsistent with the per-line policy the body uses ("drop the placeholder LINES, not the whole section"). Conservative and not a leak, so noted rather than raised.
+
+### Verdict
+
+**Approved.** Every finding across three rounds is fixed and independently verified, and the two remaining items are about test adequacy on properties whose implementations are correct. Recommend filing N1 and N2 as `ISS-*` before close-out, since both concern guards that this feature's own history says are the ones that matter.
 
 ## Links
 - Phase: [[PHASE-009-Design-Surfaces]]
