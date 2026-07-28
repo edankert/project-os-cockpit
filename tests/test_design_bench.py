@@ -1768,3 +1768,57 @@ def test_des_0002_now_has_its_artifact() -> None:
     assert system["has_asset"] is True
     assert system["asset"].endswith("DES-0002-style-guide.html")
     assert system["status"] == "implemented"
+
+
+# ---- the sandboxed frame can still read tokens (ISS-0043) ----------------
+
+def test_stylesheets_are_fetchable_from_an_opaque_origin(tmp_path: Path) -> None:
+    """The design frame is sandboxed WITHOUT allow-same-origin, so it has an
+    opaque origin and `cssRules` on same-server stylesheets throws. The page
+    re-injects them as inline sheets, and that fetch needs CORS."""
+    shell = tmp_path / "shell"
+    shell.mkdir()
+    (shell / "renderer.css").write_text(".x{}", encoding="utf-8")
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), shell)
+    import urllib.request
+    try:
+        for path in ("/_static/base.css", "/_shell/renderer.css"):
+            with urllib.request.urlopen(
+                    "http://127.0.0.1:%d%s" % (port, path), timeout=5) as r:
+                assert r.headers.get("Access-Control-Allow-Origin") == "*", path
+    finally:
+        httpd.shutdown()
+
+
+def test_cors_is_css_only(tmp_path: Path) -> None:
+    """Narrowed deliberately: this must not become blanket CORS on every
+    static file the package ships."""
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), None)
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_static/cockpit.js" % port, timeout=5) as r:
+            assert r.headers.get("Access-Control-Allow-Origin") is None, (
+                "cockpit.js carries CORS; the allowance is for stylesheets"
+            )
+    finally:
+        httpd.shutdown()
+
+
+def test_the_guide_reinjects_rather_than_weakening_the_sandbox() -> None:
+    """The repair must not be `allow-same-origin`. A frame with both flags can
+    remove its own sandbox, which is why the frame test exists at all."""
+    html = _style_guide()
+    assert "reinjectBlocked" in html
+    assert "data-reinjected-from" in html
+    src = _renderer()
+    assert "allow-same-origin" not in src, (
+        "the sandbox was widened to fix a CSS-reading problem; re-inject the "
+        "stylesheet instead"
+    )
+
+
+def test_the_guide_never_fails_blank() -> None:
+    """A blank page is the worst failure mode for a page whose job is to show
+    things — and blank is exactly what this shipped as."""
+    assert "failed to build itself" in _style_guide()

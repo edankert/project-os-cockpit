@@ -83,6 +83,16 @@ Three defects fixed during verification, all found by rendering rather than read
 
 The spacing figures differ from the prose in DES-0002 because the page counts through the CSSOM (shorthands expanded, resets excluded) while the note quoted a text count. The page's number is the live one; the note's is a snapshot, which is exactly the asymmetry this task existed to create.
 
+## Correction (ISS-0043)
+
+Shipped broken and Edwin found it immediately: *"I do not see any of the artefacts."*
+
+The frame is sandboxed `allow-scripts` **without** `allow-same-origin`, so it has an **opaque origin** — and every stylesheet it loads from the very server that served it becomes a cross-origin read. `sheet.cssRules` throws, enumeration finds nothing, and the page rendered its prose beside empty swatch panels.
+
+Every check I ran had used a **directly-opened page**, which has a real origin: the one context the design bench never uses. The harness had grown careful about the real bundle, the real stylesheet chain and the real height chain, and still verified the artifact outside the sandbox that defines its runtime. Applying a stylesheet never needed an origin; reading its rules always did.
+
+Fixed without weakening the sandbox: fetch the stylesheet text, inject it as an inline `<style>` — inline sheets belong to the frame's own document and carry no origin question — with `Access-Control-Allow-Origin: *` on CSS routes only so the fetch is permitted from `Origin: null`. Verified in the sandboxed frame itself, side by side against an unsandboxed one.
+
 ## Notes
 
 **Use the real class names, not lookalikes.** A gallery that reimplements a chip is a fifth restatement wearing a different hat: it would keep looking right while the real chip changed. The markup is necessarily approximate — it is composed here rather than built by `renderer.ts` — and that limit belongs on the page, honestly stated, rather than hidden.

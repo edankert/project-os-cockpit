@@ -112,17 +112,47 @@
 <div class="note" id="a11y"></div>
 
 <script>
+(async () => {
 // ---- read the stylesheets -------------------------------------------------
-// Same-origin, so cssRules is readable. Anything that is not readable is
-// reported rather than silently skipped: a swatch page that quietly showed
-// fewer tokens than exist would be worse than one that says it could not look.
+// The design frame is sandboxed `allow-scripts` and deliberately NOT
+// `allow-same-origin` — a frame with both can remove its own sandbox. The cost
+// is an OPAQUE origin, which makes every stylesheet served by this very server
+// a cross-origin read: `cssRules` throws and enumeration sees nothing. This
+// page rendered perfectly when opened directly and was blank in the bench —
+// the one context that matters (ISS-0043).
+//
+// The repair keeps the sandbox: fetch the stylesheet TEXT and inject it as an
+// INLINE sheet. Inline sheets belong to this document and carry no origin
+// question, so the CSSOM opens up again and nothing below has to change.
+//
+// Anything still unreadable is reported rather than silently skipped: a swatch
+// page that quietly showed fewer tokens than exist would be worse than one
+// that says it could not look.
 function readableSheets() {
   const ok = [], blocked = [];
   for (const sheet of document.styleSheets) {
     try { void sheet.cssRules; ok.push(sheet); }
-    catch { blocked.push(sheet.href || '(inline)'); }
+    catch { blocked.push(sheet); }
   }
   return { ok, blocked };
+}
+
+async function reinjectBlocked(blocked) {
+  const failed = [];
+  for (const sheet of blocked) {
+    const href = sheet.href;
+    if (!href) { failed.push('(inline)'); continue; }
+    try {
+      const text = await (await fetch(href)).text();
+      const el = document.createElement('style');
+      el.setAttribute('data-reinjected-from', href);
+      el.textContent = text;
+      document.head.appendChild(el);
+    } catch (err) {
+      failed.push(href);
+    }
+  }
+  return failed;
 }
 function eachRule(sheets, fn) {
   for (const sheet of sheets) {
@@ -141,9 +171,17 @@ function declaredTokens(sheets) {
   });
   return order;
 }
-const { ok: SHEETS, blocked: BLOCKED } = readableSheets();
+const first = readableSheets();
+// Re-inject before anything reads tokens; the whole page depends on it.
+const BLOCKED = first.blocked.length ? await reinjectBlocked(first.blocked) : [];
+const SHEETS = readableSheets().ok;
 const TOKENS = declaredTokens(SHEETS);
-const shellPresent = SHEETS.some((s) => (s.href || '').includes('/_shell/'));
+// The shell stylesheet may now be an inline re-injection rather than a link,
+// so presence is checked by either route.
+const shellPresent = SHEETS.some((s) =>
+  (s.href || '').includes('/_shell/')
+  || (s.ownerNode && (s.ownerNode.getAttribute('data-reinjected-from') || '')
+        .includes('/_shell/')));
 
 // Resolve a token against a probe element so BOTH schemes can be read without
 // touching the page's own theme.
@@ -372,10 +410,19 @@ if (BLOCKED.length) {
   const w = document.createElement('div');
   w.className = 'missing';
   w.style.marginTop = '20px';
-  w.innerHTML = '<b>Some stylesheets could not be read:</b> ' + BLOCKED.join(', ')
+  w.innerHTML = '<b>Some stylesheets could not be read, even after re-injection:</b> '
+    + BLOCKED.join(', ')
     + '. Values from them are missing above rather than silently defaulted.';
   document.body.appendChild(w);
 }
+})().catch((err) => {
+  // A blank page is the worst failure mode for a page whose job is to show
+  // things. Say what happened instead.
+  const w = document.createElement('div');
+  w.className = 'missing';
+  w.textContent = 'The style guide failed to build itself: ' + err;
+  document.body.appendChild(w);
+});
 </script>
 </body>
 </html>

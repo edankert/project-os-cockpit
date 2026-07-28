@@ -2250,6 +2250,7 @@ def _make_handler(
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
+            _send_stylesheet_cors(self, target.name)
             self.end_headers()
             self.wfile.write(data)
 
@@ -2292,6 +2293,7 @@ def _make_handler(
             self.send_header("Content-Type", ctype or "application/octet-stream")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
+            _send_stylesheet_cors(self, target.name)
             self.end_headers()
             self.wfile.write(data)
 
@@ -2516,6 +2518,29 @@ def _make_handler(
             log.info("%s - %s", self.address_string(), format % args)
 
     return Handler
+
+
+def _send_stylesheet_cors(handler: BaseHTTPRequestHandler, filename: str) -> None:
+    """Allow a stylesheet to be fetched from an opaque origin (ISS-0043).
+
+    The design frame is sandboxed ``allow-scripts`` and deliberately NOT
+    ``allow-same-origin`` — granting both would let the frame remove its own
+    sandbox. The cost is that the frame has an *opaque* origin, so every
+    stylesheet it loads from this very server is a cross-origin read: the CSSOM
+    refuses ``cssRules``, and an artifact that enumerates design tokens sees
+    nothing at all.
+
+    Letting the artifact fetch the stylesheet TEXT and inject it as an inline
+    sheet restores enumeration without weakening the sandbox — inline sheets
+    belong to the frame's own document and carry no origin question.
+
+    **CSS only.** These are the application's own stylesheets, already public to
+    anyone who can reach the render port; nothing here reads user data. The
+    narrowing to ``.css`` is so this does not quietly become blanket CORS on
+    every static file the package ships.
+    """
+    if filename.lower().endswith(".css"):
+        handler.send_header("Access-Control-Allow-Origin", "*")
 
 
 def _is_under(candidate: Path, root: Path) -> bool:
