@@ -392,8 +392,17 @@ if (SCOPED.length) {
 // never declares. Now that the shell may not redeclare a base.css role at all
 // (asserted by test), this block should report nothing — and reporting nothing
 // has to mean nothing is wrong, not that the check cannot see.
+const STATUS = TOKENS.filter((t) => t.startsWith('--status-'));
+const SEVERITY = TOKENS.filter((t) => t.startsWith('--severity-'));
+// Scanned over the semantic palette AND the status/severity families. The
+// first version walked `SEMANTIC` only, so a shell override of a status token
+// — the exact drift ISS-0023 was filed about — would not have shown here
+// (independent review, round 2). `test_the_shell_declares_no_alias_for_a_base_css_role`
+// covers it more strongly, but a page that reports overrides should not have a
+// blind spot where the founding scar is.
+const OVERRIDE_SCAN = [...SEMANTIC, ...STATUS, ...SEVERITY];
 const OVERRIDDEN = [];
-for (const token of SEMANTIC) {
+for (const token of OVERRIDE_SCAN) {
   const perScheme = { light: [], dark: [] };
   eachRule(SHEETS, (rule, sheet) => {
     if (!rule.style || !rule.selectorText) return;
@@ -428,8 +437,6 @@ if (OVERRIDDEN.length) {
   document.getElementById('palette').after(el);
 }
 
-const STATUS = TOKENS.filter((t) => t.startsWith('--status-'));
-const SEVERITY = TOKENS.filter((t) => t.startsWith('--severity-'));
 document.getElementById('bands').append(
   schemeNode('Status bands — categorical (light)', STATUS, false),
   schemeNode('Severity — a ramp (light)', SEVERITY, false),

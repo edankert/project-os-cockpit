@@ -134,3 +134,5 @@ Everything else here — spacing, type scale, icon rules — is currently **desc
 ## Revisions
 
 - 2026-07-28 — Read tokens declared inside @media, @supports and @layer — a one-level walk skipped them silently (ISS-0055)
+- 2026-07-28 — Scan status and severity tokens for shell overrides too — the founding drift (ISS-0023) was in exactly that family and the check had a blind spot there
+
