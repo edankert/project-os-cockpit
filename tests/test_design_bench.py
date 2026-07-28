@@ -18,6 +18,7 @@ satisfied an exit criterion while demonstrating nothing.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from project_os_cockpit import cockpit
@@ -853,3 +854,145 @@ def test_an_absent_brief_degrades_silently() -> None:
     noise rather than a finding."""
     src = _renderer()
     assert "brief.state === 'absent') return null" in src
+
+
+# ---- the top-level mode (TASK-0224) --------------------------------------
+
+def test_design_sits_second_before_the_structure_modes() -> None:
+    """The *position* is the decision, so it is what gets asserted.
+
+    Edwin's reasoning: design is one of the first things you do, so it
+    belongs before Features/Tasks/Issues rather than appended at the end
+    where a new mode naturally lands. Ordering is the kind of thing a later
+    edit reshuffles without noticing, and once Design is eighth in the strip
+    it reads as an afterthought again — which is exactly the state this task
+    exists to leave behind.
+    """
+    src = _renderer()
+    modes = re.search(r"const NAV_MODES = \[([^\]]+)\]", src).group(1)
+    order = [m.strip().strip("'") for m in modes.split(",")]
+    assert order[:2] == ["overview", "design"], order
+    for structural in ("features", "tasks", "issues"):
+        assert order.index("design") < order.index(structural)
+
+    # The strip's markup carries its own order; both must agree, because the
+    # buttons are what a human actually sees.
+    html = (Path(__file__).resolve().parents[1]
+            / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
+    buttons = re.findall(r'top-bar-btn[^>]*data-mode="(\w+)"', html)
+    assert buttons.index("design") == 1, buttons
+    for structural in ("features", "tasks", "issues"):
+        assert buttons.index("design") < buttons.index(structural)
+
+
+def test_the_mode_has_a_button_an_icon_and_a_server_that_serves_it() -> None:
+    """Three separate places, and a mode missing any one of them is broken
+    in a way the other two hide. The design bench has already shipped twice
+    with a payload nothing could reach; this asserts the whole path."""
+    html = (Path(__file__).resolve().parents[1]
+            / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
+    assert 'data-mode="design"' in html
+    src = _renderer()
+    assert re.search(r"design:\s*'<circle", src), "no icon; the button renders blank"
+    assert "design" in cockpit.NAV_MODES
+    assert cockpit._design_groups is not None
+
+
+def test_reselecting_design_keeps_the_open_artifact() -> None:
+    """`startsWith`, not equality. Clicking Design while DES-0002 is open
+    must not throw you back to the register — reselecting a mode is not a
+    request to lose your place, and equality here would make it one."""
+    src = _renderer()
+    block = src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+    assert "currentRel.startsWith('~design')" in block
+    assert "currentRel === '~design'" not in block
+
+
+def test_design_mode_still_fetches_the_nav() -> None:
+    """Overview and Review return early — they are pages with no list. Design
+    is both, so an early return here would leave the left pane showing
+    whatever the previous mode put there."""
+    src = _renderer()
+    block = src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+    assert "return;" not in block, (
+        "design mode returned early; the nav list would never load"
+    )
+
+
+def test_the_system_is_separated_from_the_proposals(tmp_path: Path) -> None:
+    """One standing reference and many transient ones behave differently.
+    Listed together, the system that never leaves gets buried among proposals
+    that arrive and go quiet."""
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-System.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "System",
+        "status": "accepted", "role": "system"})
+    _note(docs / "designs" / "DES-0002-Proposal.md", {
+        "type": "[[design]]", "id": "DES-0002", "title": "Proposal",
+        "status": "proposed", "role": "proposal"})
+    idx = Index.build(docs)
+    groups = cockpit.nav_payload(idx, mode="design")["groups"]
+    assert [g["key"] for g in groups] == ["design-system", "design-proposals"]
+    assert groups[0]["items"][0]["id"] == "DES-0001"
+    assert groups[1]["items"][0]["id"] == "DES-0002"
+
+
+def test_nav_items_point_at_the_bench_not_the_raw_note(tmp_path: Path) -> None:
+    """The whole reason this mode exists: clicking a design in the Library
+    did nothing, because the item pointed at a Markdown file the design
+    surface never claimed. The url is overridden deliberately."""
+    idx = Index.build(_corpus(tmp_path))
+    groups = cockpit.nav_payload(idx, mode="design")["groups"]
+    items = [i for g in groups for i in g["items"]]
+    assert items, "the corpus has designs; the nav found none"
+    for item in items:
+        assert item["url"].startswith("~design/"), item
+
+
+def test_a_design_with_no_role_is_a_proposal(tmp_path: Path) -> None:
+    """Defaulting the other way would promote every unlabelled draft into the
+    standing-reference slot, which is the slot that must stay small."""
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0003-Nameless.md", {
+        "type": "[[design]]", "id": "DES-0003", "title": "Nameless",
+        "status": "draft"})
+    idx = Index.build(docs)
+    groups = cockpit.nav_payload(idx, mode="design")["groups"]
+    assert [g["key"] for g in groups] == ["design-proposals"]
+
+
+def test_no_designs_yields_no_empty_headings(tmp_path: Path) -> None:
+    """A project with no designs gets an empty pane, not two labelled boxes
+    with nothing in them."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    idx = Index.build(docs)
+    assert cockpit.nav_payload(idx, mode="design")["groups"] == []
+
+
+def test_the_mode_adds_and_removes_nothing() -> None:
+    """This adds a seventh button; it must not quietly retire an existing one.
+    A stored preference pointing at any prior mode still has to resolve, and
+    `design` must not land in the retired list where it would be migrated
+    away the moment someone selected it."""
+    src = _renderer()
+    for prior in ("overview", "features", "tasks", "issues", "review", "library"):
+        assert "'%s'" % prior in src.split("const NAV_MODES = [")[1].split("]")[0]
+    retired = src.split("const RETIRED_NAV_MODES: readonly string[] = [")[1].split("]")[0]
+    assert "design" not in retired
+    assert "active" in retired and "recent" in retired, (
+        "the retirement list changed; stored preferences would migrate differently"
+    )
+
+
+def test_the_button_is_keyboard_reachable_like_the_others() -> None:
+    """No extra machinery: it is a real <button> with role=tab and an
+    aria-label, so focus and Enter/Space already work. Asserted because a
+    <div> with a click handler would look identical on screen and be
+    unreachable without a mouse."""
+    html = (Path(__file__).resolve().parents[1]
+            / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
+    btn = re.search(r'<button[^>]*data-mode="design"[^>]*>', html).group(0)
+    assert btn.startswith("<button")
+    assert 'role="tab"' in btn and 'aria-label="Design"' in btn

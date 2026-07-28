@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0223"
+  task: "TASK-0224"
   feature: "FEAT-0043"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-28 FEAT-0043. Brief filled and guarded (0222). Now the payload + identity band: three states (absent/unfilled/filled), tolerant parsing, never render the placeholder."
+  note: "2026-07-28 FEAT-0043. Now the mode itself, positioned SECOND — the position is the decision, so it gets its own assertion."
 
 items:
   features:
@@ -309,7 +309,7 @@ items:
     TASK-0224:
       file: "docs/features/design-surface/plan/tasks/TASK-0224-Design-Mode-In-The-Strip.md"
       title: "A design mode in the strip, positioned second"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0043
     TASK-0225:
@@ -2497,7 +2497,7 @@ metrics:
     features_total: 43
     features_done: 36
     tasks_total: 225
-    tasks_done: 219
+    tasks_done: 220
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

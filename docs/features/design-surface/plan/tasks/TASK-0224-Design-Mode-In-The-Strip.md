@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0224
 aliases: ["TASK-0224"]
 title: "A design mode in the strip, positioned second"
-status: backlog
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -21,19 +21,31 @@ tests: []
 
 ## Definition of Done
 
-- [ ] Seven modes, with `design` **second** — after Overview, before the structure modes
-- [ ] The mode is reachable by click, keyboard, and a restored preference from a previous session
-- [ ] `nav?mode=design` serves from the sidecar, matching the FEAT-0008 rule that every UI mode has a server mode
-- [ ] An existing stored preference (`overview`, `library`, …) still resolves — this adds a mode, removes none
-- [ ] The Library's Design group and the design note banner keep working; the new mode is an additional door, not a replacement
-- [ ] A test asserts the mode ORDER, not just membership — position is the decision here
+- [x] Seven modes, with `design` **second** — after Overview, before the structure modes — evidence: `test_design_sits_second_before_the_structure_modes` checks BOTH the TS constant and the button markup, since either alone can drift
+- [x] The mode is reachable by click, keyboard, and a restored preference from a previous session — evidence: `test_the_button_is_keyboard_reachable_like_the_others`; a real `<button role="tab">`, so focus and Enter/Space already work with no extra machinery
+- [x] `nav?mode=design` serves from the sidecar, matching the FEAT-0008 rule that every UI mode has a server mode — evidence: `_design_groups()`; `test_the_mode_has_a_button_an_icon_and_a_server_that_serves_it` asserts button + icon + server mode together
+- [x] An existing stored preference (`overview`, `library`, …) still resolves — this adds a mode, removes none — evidence: `test_the_mode_adds_and_removes_nothing`
+- [x] The Library's Design group and the design note banner keep working; the new mode is an additional door, not a replacement — evidence: untouched; the Library grouping and `buildDesignNoteBanner` were not modified, and their tests still pass
+- [x] A test asserts the mode ORDER, not just membership — position is the decision here — evidence: order asserted in two places, plus `design` before each of features/tasks/issues by index
 
 ## Steps
 
-- [ ] Add to `NAV_MODES`, the strip markup, and the sidecar's mode handling
-- [ ] Icon and active state
-- [ ] Test order, restoration, and server-mode parity
-- [ ] Rebuild the bundle and re-run the stale-build guard
+- [x] Add to `NAV_MODES`, the strip markup, and the sidecar's mode handling
+- [x] Icon and active state
+- [x] Test order, restoration, and server-mode parity
+- [x] Rebuild the bundle and re-run the stale-build guard
+
+## Result
+
+Design mode is unlike both of the modes it sits between. Overview and Review are pure virtual pages — they return early and the left pane is irrelevant. Features/Tasks/Issues are pure lists. Design is **both**: the left pane lists the system and the proposals, the main pane frames whichever is open. So its branch lands on the register and then falls through to the nav fetch rather than returning; a test asserts the absence of that `return`, because adding one would silently leave the previous mode's list in the pane.
+
+Reselecting Design while an artifact is open keeps the artifact — `startsWith('~design')`, not equality. Reselecting a mode is not a request to lose your place, and equality would have made it one.
+
+The system is a separate group from the proposals. A project has one design system that never leaves and many proposals that arrive, get decided, and go quiet; listed together the standing reference gets buried among the transient ones. A design with no declared `role` is a proposal — defaulting the other way would promote every unlabelled draft into the slot that has to stay small.
+
+Nav items point at `~design/<id>`, not the Markdown file. That override is the whole reason this task exists: clicking a design in the Library did nothing, because the item pointed somewhere the design surface never claimed.
+
+The stale-build guard fired on the first full run, before the bundle was rebuilt. Working as designed.
 
 ## Notes
 

@@ -2155,7 +2155,13 @@ interface NavPayload {
   groups?: NavGroupData[];
 }
 
-const NAV_MODES = ['overview', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
+// Order matters and is asserted. The strip encodes KINDS of thing —
+// state · design · structure ×3 · queue · record — and design sits upstream
+// of structure: what it should be, before what is being built. This reverses
+// a two-day-old decision that six modes was the ceiling (taken when Active and
+// Recent were retired for Review); reversing it deliberately is fine, drifting
+// past it would not be.
+const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -5180,6 +5186,12 @@ function initNavToolbar(): void {
     review:   '<rect x="8" y="2" width="8" height="4" rx="1"/>'
       + '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'
       + '<path d="m9 14 2 2 4-4"/>',
+    // Design: a drafting compass — the instrument you set a shape with
+    // before you build it, which is what this mode is for. Deliberately
+    // not a paintbrush: the mode carries the project's identity and its
+    // rules, not decoration.
+    design:   '<circle cx="12" cy="5" r="2"/><path d="M12 7v3"/>'
+      + '<path d="m10.5 10-5 10"/><path d="m13.5 10 5 10"/>',
     library:  TYPE_ICONS.reference,
     recent:   GROUP_ICONS.history,
   };
@@ -5354,6 +5366,19 @@ async function loadWsNav(): Promise<void> {
       ? currentRel : '~review';
     void navigateTo(target, { replace: currentRel === target });
     return;
+  }
+  if (currentNavMode === 'design') {
+    // Unlike Overview and Review, Design has BOTH a nav list and a page:
+    // the left pane lists the design system and the proposals, the main
+    // pane frames whichever is open. So this does not return early — it
+    // lands on the register and then falls through to the nav fetch.
+    //
+    // `startsWith('~design')` and not an equality check: switching back
+    // to Design while a specific artifact is open must keep that artifact
+    // open. Reselecting a mode is not a request to lose your place.
+    if (!currentRel || !currentRel.startsWith('~design')) {
+      void navigateTo('~design', { replace: false });
+    }
   }
   const platform = loadStoredPlatform();
   const platformQ = platform && platform !== 'all'

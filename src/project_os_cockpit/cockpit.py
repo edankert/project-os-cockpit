@@ -141,7 +141,9 @@ _RECENT_BUCKETS = (
     ("earlier", "Earlier"),
 )
 
-NAV_MODES: tuple[str, ...] = ("features", "tasks", "issues", "active", "recent", "library")
+NAV_MODES: tuple[str, ...] = (
+    "design", "features", "tasks", "issues", "active", "recent", "library",
+)
 
 # Active mode (FEAT-0036 / TASK-0164) — in-flight items across all types.
 _ACTIVE_DOING: frozenset[str] = frozenset({
@@ -1694,6 +1696,33 @@ def manual_test_steps(body: str) -> list[dict[str, Any]]:
     return steps
 
 
+def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
+    """Nav groups for the design mode (TASK-0224).
+
+    The design *system* is separated from proposals because they behave
+    differently: a project has one system that never leaves, and many
+    proposals that arrive, get decided and go quiet. Listing them together
+    would bury the standing reference among transient ones.
+    """
+    systems, proposals = [], []
+    for r in sorted(index.notes_by_type("design"),
+                    key=lambda r: (r.note_id or "", r.rel_path)):
+        if not _platform_match(r, platform):
+            continue
+        role = (r.frontmatter or {}).get("role")
+        item = {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
+        (systems if role == "system" else proposals).append(item)
+
+    out: list[dict[str, Any]] = []
+    if systems:
+        out.append({"key": "design-system", "label": "Design system", "url": None,
+                    "status": None, "item_layout": "stacked", "items": systems})
+    if proposals:
+        out.append({"key": "design-proposals", "label": "Designs", "url": None,
+                    "status": None, "item_layout": "stacked", "items": proposals})
+    return out
+
+
 def nav_payload(
     index: Index,
     mode: str | None = None,
@@ -1715,7 +1744,9 @@ def nav_payload(
         m = DEFAULT_MODE
     plat = _normalise_platform(platform)
 
-    if m == "features":
+    if m == "design":
+        groups = _design_groups(index, plat)
+    elif m == "features":
         groups = _features_groups(index, plat)
     elif m == "tasks":
         groups = _tasks_groups(index, plat)
