@@ -46,6 +46,10 @@ The second is the cheaper fix and the more damning omission.
 - [x] The surface says "unfilled" rather than rendering the placeholder — evidence: `test_the_band_never_renders_the_placeholder` checks **every** field a surface could render (name, purpose, each section body), after [[ISS-0035]] found the text leaking through `sections[].body` while the previous test passed; mutating the scrub away now fails
 - [x] The brief stays plain Markdown, editable without the cockpit — evidence: `LLM_BRIEF.md` is unchanged prose with no cockpit-specific syntax; the payload only reads it, and no write path targets it (`note_writes.py` is scoped to `docs/`)
 
+## Status history
+
+`draft` → `implemented` directly on 2026-07-28, skipping `approved`. Recorded rather than backfilled: approval and close-out were the same act here — the requirement was written on 2026-07-28 for a feature implemented the same day, so there was never a window in which it was approved and unimplemented. STATUSES.md describes `draft → approved → implemented` as the typical path and sets the second hop at feature close-out; the first hop had no separate moment to occupy. Flagged by independent review, which noted that REQ-PREMATURE goes quiet once the status is terminal, so nothing mechanical would catch it.
+
 ## Traceability
 - Implements: [[FEAT-0043-Design-Top-Level-Surface]]
 - Verified by: `tools/scripts/validate-docs.py` and the design-surface tests

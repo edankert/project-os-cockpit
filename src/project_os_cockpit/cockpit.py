@@ -566,6 +566,31 @@ _BRIEF_H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _BRIEF_FIELD_RE = re.compile(r"^-\s*([A-Za-z][A-Za-z ]*?):\s*(.+?)\s*$", re.MULTILINE)
 
 
+def _brief_state(name: str, purpose: str, placeholders: int, sections: list) -> str:
+    """``filled`` / ``unfilled`` for a brief that exists.
+
+    Two ways to be filled, because there are two ways to write this file.
+
+    1. The identity is **stated** — a real name and purpose. This is the
+       template's shape and the common case.
+    2. Nothing is left to fill: **no placeholders and real content**. A brief
+       written as prose that never adopted the `- Name:` / `- Purpose:`
+       bullets is a finished brief, and reporting `unfilled` over it would
+       headline "This project has not said what it is" across a fully written
+       file — the mirror of the bug this state field was reshaped to fix
+       (ISS-0035), found by the same reviewer one round later.
+
+    That second clause is what keeps the payload's promise of tolerant
+    parsing. A brief is prose a human edits; the convention is a convenience
+    for the parser, not a requirement the surface may hold the author to.
+    """
+    if name and purpose:
+        return "filled"
+    if placeholders == 0 and sections:
+        return "filled"
+    return "unfilled"
+
+
 def brief_payload(project_root: Path) -> dict:
     """``LLM_BRIEF.md`` as the identity band consumes it (TASK-0223).
 
@@ -629,6 +654,11 @@ def brief_payload(project_root: Path) -> dict:
     heads = list(_BRIEF_H2_RE.finditer(text))
     for i, m in enumerate(heads):
         end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
+        # The heading is a renderable field too. The first fix enumerated
+        # name/purpose/body and stopped one field short of the contract its
+        # own docstring stated — the same shape as the defect it closed.
+        if _BRIEF_PLACEHOLDER_RE.search(m.group(1)):
+            continue
         body = text[m.end():end].strip()
         # Drop the placeholder LINES, not the whole section: the rest of a
         # half-written section is real content and discarding it would punish
@@ -644,7 +674,7 @@ def brief_payload(project_root: Path) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
         # The identity, not the file. See the docstring.
-        "state": "filled" if (name and purpose) else "unfilled",
+        "state": _brief_state(name, purpose, placeholders, sections),
         "name": name,
         "purpose": purpose,
         "sections": sections,

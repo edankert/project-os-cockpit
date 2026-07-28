@@ -1876,7 +1876,13 @@ def _make_handler(
                 )
                 return
             rel_path = raw_path.strip().lstrip("/")
-            if rel_path.startswith("docs/"):
+            # Whether the caller SAID `docs/` is information, and the first
+            # version of the root-file branch below threw it away before
+            # testing the allowlist — so `docs/README.md`, an explicit and
+            # unambiguous request for a real note, was answered with the
+            # project-root README. Keep the disambiguator.
+            explicit_docs = rel_path.startswith("docs/")
+            if explicit_docs:
                 rel_path = rel_path[len("docs/"):]
             if not rel_path or any(part == ".." for part in rel_path.split("/")):
                 self._respond_json(
@@ -1886,21 +1892,29 @@ def _make_handler(
                 return
             # An allowlisted top-level project file (README, ROADMAP,
             # SECURITY, LLM_BRIEF) lives one level ABOVE docs_root, so the
-            # resolution below would reject it as escaping the root. The
+            # docs resolution alone rejects it as escaping the root. The
             # Library has emitted `/<file>` urls for these since FEAT-0010
             # and this endpoint never served them — clicking one was a dead
             # click, and ISS-0033 is the identity band walking into the same
-            # hole. The allowlist is exact-match on a filename with no
-            # separators, so it widens nothing: `..` is already rejected
-            # above, and a name like `docs/README.md` is not in the tuple.
-            target = None
-            if project_root is not None and rel_path in cockpit.PROJECT_SUPPORT_ROOT_FILES:
-                candidate = (project_root / rel_path).resolve()
-                if _is_under(candidate, project_root) and candidate.is_file():
-                    target = candidate
-            if target is None:
-                target = (docs_root / rel_path).resolve()
-                if not _is_under(target, docs_root):
+            # hole.
+            #
+            # **docs_root wins, and it is tried first.** The first version of
+            # this tried the root allowlist first and shadowed the repo's own
+            # `docs/README.md` (ISS-0036). Ordering it this way means the root
+            # file is reachable only when docs has no file by that name, which
+            # is the true state of affairs for `LLM_BRIEF.md` and is what makes
+            # the branch safe rather than merely narrow.
+            target = (docs_root / rel_path).resolve()
+            if not (_is_under(target, docs_root) and target.is_file()):
+                root_file = None
+                if (project_root is not None and not explicit_docs
+                        and rel_path in cockpit.PROJECT_SUPPORT_ROOT_FILES):
+                    candidate = (project_root / rel_path).resolve()
+                    if _is_under(candidate, project_root) and candidate.is_file():
+                        root_file = candidate
+                if root_file is not None:
+                    target = root_file
+                elif not _is_under(target, docs_root):
                     self._respond_json(
                         {"ok": False, "error": "resolved path escapes docs root"},
                         status=HTTPStatus.FORBIDDEN,

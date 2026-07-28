@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0043
 aliases: ["FEAT-0043"]
 title: "Design as a top-level surface, opening with the project brief"
-status: done
+status: review
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -64,7 +64,9 @@ The strip encodes *kinds of thing*, not frequency: state · structure ×3 · que
 
 Worth stating plainly: Active and Recent were retired two days ago on the reasoning that six modes was the ceiling. Going to seven is a deliberate reversal of that ceiling, not a drift, and it is justified by the brief being read every session rather than browsed occasionally.
 
-## Independent review — 2026-07-28, `model:claude-opus-5`, **changes-requested**
+## Independent review — round 1 (2026-07-28, `model:claude-opus-5`) — changes-requested
+
+**Disposition:** findings 1–4 filed as [[ISS-0033]] / [[ISS-0034]] / [[ISS-0035]] and addressed in `c2ef660`. All four verified fixed at round 2 below. Kept verbatim as history.
 
 Fresh context, separate session: the reviewer started from these notes and the diffs of `14c3856`, `693dfcc`, `86a79e6`, `0185ad3` and never saw the author's reasoning trace. Same model family as the author, which per ADR-0013 is expected and not the gate — but it does mean **this pass does not satisfy a cross-vendor or human review**, and QUALITY.md's family requirement is still open. Suite `411 passed / 0 skipped`; `validate-docs.sh` OK.
 
@@ -90,6 +92,48 @@ Fresh context, separate session: the reviewer started from these notes and the d
 - `_design_rationale` cannot surface an unlinked governance ADR — ids come only from the design's own `implements:`/`related:`, filtered to `ADR-`; ADR-0011 stays out in both fixture and real corpus, and narrowing the field tuple to `("implements",)` fails four tests. It cannot silently drop a linked one either: `_ANY_ID_RE` matches bare ids and wikilinks alike, and an unresolvable id is emitted with `missing: true`. Two limits consistent with the stated contract: an ADR named only in the note's prose body is not surfaced, and the regex is case-sensitive and requires `\d{2,}`.
 - The happy-path route reads correctly end to end, and `GET /api/cockpit/nav?mode=design` returns both groups against this repo. Seven buttons, `design` second, in both `NAV_MODES` and the markup.
 - No regressions found: the design register, the Library Design group, `buildDesignNoteBanner` and `loadStoredNavMode` are untouched, `design` is absent from `RETIRED_NAV_MODES`, and the browser cockpit keeps its own five-mode literal.
+
+## Independent review — round 2 (2026-07-28, `model:claude-opus-5`) — **changes-requested**
+
+Re-review of `c2ef660` against round 1's four findings, plus the two questions the author asked. Same fresh-context session as round 1; still a Claude model, so **this still does not satisfy a cross-vendor or human pass**. Suite `417 passed / 0 skipped` (the author's "416 / 1 skipped" is the same run on a machine where `dist/` was absent and `test_desktop_build_is_not_stale` skipped; here the bundle exists, is fresh, and carries the round-2 renderer changes). `validate-docs.sh` OK.
+
+### Round 1 findings: all four fixed, verified independently
+
+1. **Dead link — fixed, and the deeper diagnosis is right.** `GET /api/render?path=LLM_BRIEF.md` now returns the rendered brief. The observation that `_serve_render` never consulted `PROJECT_SUPPORT_ROOT_FILES` at all — so `/README.md`, `/ROADMAP.md` and `/SECURITY.md` had been dead clicks since FEAT-0010 — is correct and is a better finding than the one that prompted it. The widening itself is tight: exact filename membership on a separator-free name, `..` rejected before the branch, and `CLAUDE.md`, `CONTEXT.md`, `SECRETS.md`, `../README.md` all still refused over HTTP.
+2. **Reachability — genuinely guarded now.** Both round-1 mutations were re-run: inverting the guard fails `test_the_guard_polarity_is_the_one_that_navigates`; deleting the navigate call fails `test_the_branch_actually_navigates`. The claim is accurate.
+3. **Placeholder scrubbing — fixed for `name`, `purpose` and `sections[].body`,** with the real line surviving beside a scrubbed one. Verified across four brief shapes. One field remains — see R2 below.
+4. **State semantics — the reported bug is fixed;** a stray `REPLACE ME` under a later heading no longer denies a parsed identity, and the "carries 0 template placeholder(s)" nonsense the author found on their own is real and correctly fixed.
+
+### R1 — blocking: the render-endpoint widening shadows docs-root files
+
+The change resolves the root allowlist **before** `docs_root`, and it tests the allowlist **after** stripping the `docs/` prefix. Both halves are wrong, and together they make `docs/README.md` — a real note in this repo, `id: DOCS-README`, "# Docs structure" — unreachable from the cockpit. Verified live against this repo: `path=README.md` and the explicit, unambiguous `path=docs/README.md` **both** now return `<h1>project-os-cockpit</h1>` from the root README, with `frontmatter: {}` where the docs note's metadata strip used to be. Reproduced in a minimal fixture (root + docs README, distinct bodies): the explicit docs path serves the root file.
+
+It compounds in the client. `extractRel('/docs/README.md')` and `extractRel('/README.md')` now both return `'README.md'`, and the live Library nav emits **both** url shapes as separate rows — so two distinct rows fetch the same thing. Before `c2ef660` there was no collision, because `/README.md` returned `null`. The CHG note's "**This is a fix, not a widening**" is true about exposure and untrue about resolution: an existing path now resolves to a different file.
+
+The guard added for ISS-0033 cannot see this — `test_the_brief_link_resolves_over_http` creates `docs/README.md` but no root `README.md`, so the shadowing branch is never taken. Reordering to docs-root-first makes my repro pass with the full suite still green, so nothing pins the current order; but reordering alone only mirrors the bug (the root README then becomes unreachable whenever `docs/README.md` exists). The real fix is to stop discarding `docs/` as a disambiguator — in `extractRel` **and** in `_serve_render` — so `/docs/X.md` means docs-root and `/X.md` means project-root.
+
+### R2 — `sections[].heading` is still unscrubbed
+
+`## REPLACE ME` survives verbatim in the payload. The docstring now says the placeholder text is not returned "**anywhere**" and the commit says "across every field a surface could render"; the rewritten `test_the_band_never_renders_the_placeholder` enumerates `name`, `purpose` and each `s["body"]` and omits `s["heading"]` — one field short, which is the shape of the defect it was written to close. Nothing renders headings today, so impact is low; the corrected claim is still wider than the code.
+
+### R3 — the new `state` rule introduces the mirror of the bug it fixed
+
+`state` is now `filled` iff `name and purpose`, and those come only from `- Name:` / `- Purpose:` bullet lines. A complete, hand-authored brief that uses prose headings instead of the template's bullet convention reports `state: "unfilled"`, `placeholders: 0`, and the band headlines "This project has not said what it is" over a fully written file, adding "LLM_BRIEF.md does not say what this project is or what it is for." Verified. This contradicts `brief_payload`'s own "parsing is tolerant by design — a missing section, a reordered one, an added heading are all normal, and none may break the surface": a brief that simply did not use the bullet convention is exactly the hand-written variation tolerance exists for.
+
+### R4 — the surface now stays silent about residual placeholders
+
+With `state` keyed on name+purpose, the filled branch never mentions `placeholders`. A brief with a real name and purpose and `REPLACE ME` still under a later heading (`state: filled`, `placeholders: 1`) now looks complete on the surface. The validator still warns, but the *surface* feedback loop is this feature's entire thesis — "a file nobody can see is a file nobody maintains" — and it goes quiet for precisely the partially-filled case. One line in the filled branch closes it.
+
+### The two questions asked
+
+- **Is `test_the_guard_polarity_is_the_one_that_navigates` robust?** No realistic false negative — I tried four broken variants (inverted guard, deleted call, `if (false)` wrapper, redirected target) and each fails via it or via `test_the_branch_actually_navigates`. It is brittle in the *other* direction: hoisting the condition into `const alreadyOnDesign = !!currentRel && currentRel.startsWith('~design')` — a semantically identical, entirely plausible refactor — fails it, because `rsplit("if (", 1)` then yields `!alreadyOnDesign`. Extracting the navigate into a helper fails `test_the_branch_actually_navigates` the same way. A test that fails on correct refactors trains people to weaken it. Worth moving to a real DOM assertion; `desktop/harness/` already exists for exactly this.
+- **Do the new state semantics break another consumer?** No — there is no other consumer. `brief_payload` is reached only through `GET /api/cockpit/brief` → `fetchBrief` → `buildIdentityBand`, plus the tests. That question answers cleanly.
+
+### Process
+
+- The four REQ-0024 criteria now carry real evidence; I re-verified each and they hold.
+- **The skipped `approved` does need reconciling.** STATUSES.md gives `draft → approved → implemented` and sets `approved → implemented` at feature close-out. The REQ-PREMATURE warning has gone quiet now that the status is terminal, so nothing mechanical will catch it — record in the note that approval was folded into close-out, or pass through `approved` explicitly.
+- **`status: done` on this feature was premature** and is currently self-contradictory: the note carries `review_verdict: changes-requested` beside it, and the review skill's step 5 says to keep the item out of terminal status while that verdict stands. R1 is a live regression, so `done` is not yet true. Not changed here — status is the implementer's and the human's call.
 
 ## Links
 - Phase: [[PHASE-009-Design-Surfaces]]

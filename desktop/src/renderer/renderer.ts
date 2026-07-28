@@ -3162,6 +3162,18 @@ function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
     det.textContent = forSection.body;
     band.append(det);
   }
+  // A filled identity with placeholders still in the file used to render as
+  // simply complete. The surface being the feedback loop is this feature's
+  // whole thesis — a brief nobody is told about is the state that left 10 of
+  // 11 fleet repos unfilled — so say it, quietly, without retracting the
+  // identity that IS stated.
+  if (brief.placeholders) {
+    const note = document.createElement('p');
+    note.className = 'design-identity-residual';
+    note.textContent = `${brief.placeholders} section(s) of the brief are `
+      + 'still template placeholders.';
+    band.append(note);
+  }
   const a = document.createElement('a');
   a.className = 'design-identity-edit';
   a.href = '#';
@@ -5927,13 +5939,15 @@ function extractRel(url: string | undefined): string | null {
   // and the delegated handler keys entirely off data-rel (found by Edwin,
   // 2026-07-28 — the second reachability bug in this surface).
   if (url.startsWith('~')) return url;
-  // `/README.md`, `/LLM_BRIEF.md` — a top-level project file. The Library
-  // has emitted this url shape since FEAT-0010 and this function discarded
-  // it, so those rows were dead clicks too (found while fixing ISS-0033).
-  // Routing it is the renderer's job; deciding whether it is allowed is the
-  // server's, and the server holds the allowlist. A single path segment
-  // only, so nothing deeper can be smuggled through this branch.
-  if (/^\/[^/]+\.md$/i.test(url)) return url.slice(1);
+  // NOT routed here: `/README.md` and the other top-level project files the
+  // Library emits. Routing them looked like a free bonus fix while closing
+  // ISS-0033 and was not — `/docs/README.md` and `/README.md` both reduce to
+  // `README.md`, so two distinct Library rows collapsed onto one fetch and
+  // whichever file the server preferred won. Those rows stay dead clicks
+  // (ISS-0037) until the rel carries the disambiguator the url has.
+  //
+  // The identity band is unaffected: it calls `navigateTo(brief.rel)`
+  // directly and never passes through here.
   return null;
 }
 

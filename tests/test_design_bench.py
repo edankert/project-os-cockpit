@@ -824,10 +824,11 @@ def test_parsing_is_tolerant_of_a_hand_edited_file(tmp_path: Path) -> None:
     b = _brief(tmp_path, "# B\n\n## Something Nobody Planned\nfree text\n\n"
                          "## Project Identity\n- Purpose: backwards order\n")
     assert b["purpose"] == "backwards order"
-    # Incomplete identity (no name) with ZERO placeholders — the two are
-    # independent, and the band's copy must not assume one implies the other
-    # (ISS-0035). Someone deleted the template lines instead of filling them.
-    assert b["state"] == "unfilled"
+    # Nothing left to fill: zero placeholders and real content. Reporting
+    # `unfilled` here would headline "This project has not said what it is"
+    # over a file someone finished writing — the mirror of the bug the state
+    # field was reshaped to fix (ISS-0036).
+    assert b["state"] == "filled"
     assert b["placeholders"] == 0
     assert [s["heading"] for s in b["sections"]] == [
         "Something Nobody Planned", "Project Identity"]
@@ -967,12 +968,26 @@ def test_the_guard_polarity_is_the_one_that_navigates() -> None:
     navigates only when already there. Asserting the negation explicitly is
     what a grep for `startsWith` could not do.
     """
-    block = _design_branch(_renderer())
+    src = _renderer()
+    block = _design_branch(src)
     before = block.split("void navigateTo('~design'")[0]
     guard = before.rsplit("if (", 1)[1].rsplit(")", 1)[0]
-    assert "!currentRel" in guard and "!currentRel.startsWith('~design')" in guard, (
-        "the guard around navigateTo is %r — a guard that fires only when "
-        "~design is already open never opens it" % guard
+
+    # Two shapes are correct, and the test accepts both. A test that fails on
+    # a semantically identical refactor trains people to weaken it, which is
+    # how a guard stops guarding — so hoisting the condition to a named
+    # boolean must pass, as long as the branch still fires on its NEGATION
+    # and the name resolves to the same check.
+    inline = "!currentRel" in guard and "!currentRel.startsWith('~design')" in guard
+    hoisted = False
+    m = re.fullmatch(r"!([A-Za-z_$][\w$]*)", guard.strip())
+    if m:
+        defn = re.search(r"(?:const|let)\s+%s\s*=([^;]+);" % re.escape(m.group(1)), src)
+        hoisted = bool(defn and "currentRel.startsWith('~design')" in defn.group(1))
+    assert inline or hoisted, (
+        "the guard around navigateTo is %r — it must fire when ~design is "
+        "NOT already open. A guard that fires only when it IS never opens it."
+        % guard
     )
 
 
@@ -1283,10 +1298,92 @@ def test_the_brief_link_resolves_over_http(tmp_path: Path) -> None:
         httpd.shutdown()
 
 
-def test_the_renderer_routes_the_url_shape_the_library_emits() -> None:
-    """`extractRel` discarded `/README.md`, so the Library rows for top-level
-    project files were dead clicks too — the same class as the `~design`
-    bug it was already patched for. One path segment only."""
+def test_the_renderer_does_not_route_bare_root_urls() -> None:
+    """Routing `/README.md` looked like a free bonus while closing ISS-0033
+    and was not: `/docs/README.md` and `/README.md` both reduce to
+    `README.md`, so two distinct Library rows collapsed onto one fetch. Those
+    rows stay dead clicks (ISS-0037) until the rel carries the disambiguator
+    the url already has. The identity band is unaffected — it calls
+    `navigateTo(brief.rel)` directly and never passes through here."""
     src = _renderer()
     rel = src.split("function extractRel(")[1].split("\n}")[0]
-    assert "/^\\/[^/]+\\.md$/i.test(url)" in rel, rel
+    assert ".test(url)" not in rel, (
+        "extractRel routes a bare root url again; `/docs/X.md` and `/X.md` "
+        "collide on one rel and the server decides which file you get"
+    )
+
+
+# ---- resolution order (ISS-0036) -----------------------------------------
+
+def test_the_docs_note_wins_over_the_root_file(tmp_path: Path) -> None:
+    """`docs/README.md` is a real note in this repo. The first version of the
+    root-file branch tested the allowlist AFTER stripping the `docs/` prefix
+    and resolved the root allowlist FIRST, so an explicit, unambiguous request
+    for the docs note was answered with the project-root README.
+
+    Both halves are asserted: the disambiguator is kept, and docs_root is
+    tried first — either one alone leaves a shadow in one direction.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("# docs one\ndocs-body\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("# root one\nroot-body\n", encoding="utf-8")
+    (tmp_path / "LLM_BRIEF.md").write_text(
+        "# LLM Brief\n\n## Project Identity\n- Name: fixture\n"
+        "- Purpose: to be opened\n", encoding="utf-8")
+    httpd, port = _serve(docs)
+    try:
+        for asked in ("docs/README.md", "/docs/README.md", "README.md"):
+            got = _render(port, asked)
+            assert "docs-body" in got.get("html", ""), (
+                "%s resolved to the project-root README, shadowing a real "
+                "note" % asked
+            )
+        # The root file is reachable exactly when docs has no file by that
+        # name — which is the true state of affairs for the brief.
+        assert "fixture" in _render(port, "LLM_BRIEF.md")["html"]
+    finally:
+        httpd.shutdown()
+
+
+# ---- the remaining round-2 findings --------------------------------------
+
+def test_a_placeholder_heading_is_scrubbed_too(tmp_path: Path) -> None:
+    """The heading is a renderable field. The first fix enumerated name,
+    purpose and body — one field short of the contract its own docstring
+    stated, which is the same shape as the defect it closed."""
+    b = _brief(tmp_path, "# B\n\n## REPLACE ME\nbody\n\n## Real\ncontent\n")
+    assert [s["heading"] for s in b["sections"]] == ["Real"]
+    for s in b["sections"]:
+        assert "REPLACE" not in s["heading"].upper()
+        assert "REPLACE" not in s["body"].upper()
+
+
+def test_a_hand_written_prose_brief_is_filled(tmp_path: Path) -> None:
+    """No `- Name:` bullets, no placeholders, real content — a finished brief
+    written by someone who never adopted the convention. Calling it unfilled
+    would hold the author to a parser's convenience and contradict the
+    payload's own promise of tolerant parsing."""
+    b = _brief(tmp_path, "# Brief\n\n## What this is\n"
+                         "A long-form description written by hand.\n")
+    assert b["state"] == "filled"
+    assert b["name"] == "" and b["placeholders"] == 0
+
+
+def test_an_empty_brief_is_still_unfilled(tmp_path: Path) -> None:
+    """The `nothing left to fill` clause must not swallow a file with nothing
+    IN it — zero placeholders and zero content is not a finished brief."""
+    assert _brief(tmp_path, "# Brief\n")["state"] == "unfilled"
+
+
+def test_a_filled_brief_still_reports_residual_placeholders() -> None:
+    """`state: filled, placeholders: 1` rendered as simply complete. The
+    surface being the feedback loop is this feature's whole thesis — a brief
+    nobody is told about is what left 10 of 11 fleet repos unfilled."""
+    src = _renderer()
+    band = src.split("function buildIdentityBand(")[1].split("\nasync function")[0]
+    filled = band.split("return band;", 1)[1]
+    assert "brief.placeholders" in filled, (
+        "the filled branch never mentions residual placeholders"
+    )
+    assert "still template placeholders" in filled
