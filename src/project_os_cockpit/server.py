@@ -1295,6 +1295,17 @@ def _make_handler(
                     request = dict(request)
                     request["subject_missing"] = True
                     payload["request"] = request
+                if subject:
+                    # OUTSIDE the revision branch. Computing it only when a
+                    # revision was captured meant a row with a subject and no
+                    # `at_revision` — the shape every pre-fix offer wrote —
+                    # still dispatched to the plan-verdict path, leaving
+                    # ISS-0056 unfixed for exactly the rows finding 5 was
+                    # about (round 2).
+                    subject_path = index.by_id(subject)
+                    subject_rec = index.get(subject_path) if subject_path else None
+                    payload["subject_type"] = (
+                        (subject_rec.note_type or "").lower() if subject_rec else "")
                 if subject and asked_at:
                     revs = cockpit.design_revisions_payload(
                         docs_root.parent, index, subject)
@@ -1302,9 +1313,6 @@ def _make_handler(
                     for rev in revs.get("revisions") or []:
                         head = str(rev.get("sha") or "")
                         break
-                    payload["subject_type"] = (
-                        (index.get(index.by_id(subject)).note_type or "").lower()
-                        if index.by_id(subject) else "")
                     payload["at_revision"] = asked_at
                     payload["head_revision"] = head
                     payload["revision_moved"] = bool(head and head != asked_at)

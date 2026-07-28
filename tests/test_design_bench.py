@@ -2338,36 +2338,30 @@ def test_the_offer_endpoint_is_loopback_only(tmp_path: Path) -> None:
     """Every mutation endpoint is loopback-guarded; the render server binds
     0.0.0.0 so a tablet on the LAN can read it.
 
-    Exercised, not grepped. Independent review moved the guard out of the live
-    path while leaving its literal text in the function, and the previous
-    source-matching version of this test stayed green with the endpoint
-    accepting writes from any LAN client (ISS-0056). This drives the real
-    handler class with a non-loopback peer address.
+    Driven through the **endpoint**, not the guard. Two earlier versions of
+    this test failed to catch the mutation that motivated them: the first
+    string-matched the handler source (so moving the check out while leaving
+    its text behind passed), the second exercised `_require_loopback` in
+    isolation (so DELETING its call from this endpoint passed). This makes a
+    real request with `_is_loopback` forced false and asserts the endpoint
+    refuses — which is the only shape that ties the guard to its use
+    (ISS-0056 rounds 1 and 2).
     """
     docs = _repo_with_design(tmp_path)
     httpd, port = _serve(docs)
     try:
         handler_cls = httpd.RequestHandlerClass
-        refused: dict = {}
+        original = handler_cls._is_loopback
+        handler_cls._is_loopback = lambda self: False       # type: ignore[assignment]
+        try:
+            status, data = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+            assert status == HTTPStatus.FORBIDDEN, (status, data)
+            assert data["ok"] is False
+        finally:
+            handler_cls._is_loopback = original             # type: ignore[assignment]
 
-        class _Remote:
-            client_address = ("192.168.1.50", 51234)
-            # The REAL address check, bound to a remote peer — so this
-            # exercises the shipped logic rather than a reimplementation.
-            _is_loopback = handler_cls._is_loopback
-
-            def _respond_json(self, body, status=None):
-                refused["body"] = body
-                refused["status"] = status
-
-        assert handler_cls._require_loopback(_Remote()) is False, (
-            "a LAN client passed the loopback guard"
-        )
-        assert refused["body"]["ok"] is False
-        assert refused["status"] == HTTPStatus.FORBIDDEN
-
-        # A genuine loopback request still works, so the guard is not simply
-        # refusing everything.
+        # And a genuine loopback request still works, so the guard is not
+        # simply refusing everything.
         assert _post(port, "/api/design/offer-review", {"id": "DES-0001"})[0] == 200
     finally:
         httpd.shutdown()
@@ -2573,3 +2567,103 @@ def test_request_changes_leaves_a_design_in_the_queue() -> None:
         "Request changes resolves the ledger entry; it must leave it open"
     )
     assert "if (outcome && request.request_id)" in view
+
+
+def test_accepting_does_not_demote_an_implemented_design(tmp_path: Path) -> None:
+    """`accepted` means "agreed, not yet built"; `implemented` means the code
+    shipped. Accepting a design at `implemented` wrote `accepted` over it —
+    replacing a true status with a false one, one click after an offer that
+    scrupulously wrote none. Every design that can be offered today is
+    `implemented`, which is this feature's own premise (ISS-0056 round 2)."""
+    from project_os_cockpit import note_writes
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-D.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "D",
+        "status": "implemented", "role": "proposal", "asset": "d.html",
+        "reviewed_by": "", "review_date": "", "review_verdict": "",
+        "design_revision": ""})
+    (docs / "designs" / "d.html").write_text("<h1>d</h1>", encoding="utf-8")
+    note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0001", reviewer="user:edwin",
+        verdict="accepted", revision="abc1234", accept=True)
+    text = (docs / "designs" / "DES-0001-D.md").read_text(encoding="utf-8")
+    assert 'status: "implemented"' in text, "an implemented design was demoted"
+    # The verdict itself is still recorded — declining the status move must not
+    # swallow the review.
+    assert 'review_verdict: "accepted"' in text
+    assert 'design_revision: "abc1234"' in text
+
+
+def test_accepting_still_advances_a_design_that_is_not_built(tmp_path: Path) -> None:
+    """The refusal is of BACKWARDS moves only; a `proposed` design accepted
+    must still advance, or the guard would have eaten the feature."""
+    from project_os_cockpit import note_writes
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0002-P.md", {
+        "type": "[[design]]", "id": "DES-0002", "title": "P",
+        "status": "proposed", "role": "proposal", "asset": "p.html",
+        "reviewed_by": "", "review_date": "", "review_verdict": "",
+        "design_revision": ""})
+    (docs / "designs" / "p.html").write_text("<h1>p</h1>", encoding="utf-8")
+    note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0002", reviewer="user:edwin",
+        verdict="accepted", revision="abc1234", accept=True)
+    assert 'status: "accepted"' in (docs / "designs" / "DES-0002-P.md").read_text(
+        encoding="utf-8")
+
+
+def test_subject_type_is_set_even_without_a_revision(tmp_path: Path) -> None:
+    """`subject_type` was computed inside `if subject and asked_at`, so a row
+    with a subject and no `at_revision` — the shape every pre-fix offer wrote —
+    still dispatched to the plan-verdict path (ISS-0056 round 2)."""
+    docs = _repo_with_design(tmp_path)
+    # Filed BEFORE the server starts: the handler holds its own ReviewStore
+    # instance, loaded once, so a second instance's writes are invisible to it.
+    from project_os_cockpit.review import ReviewStore
+    req = ReviewStore(docs.parent).add(
+        "review", items=["DES-0001"], subject="DES-0001",
+        title="Design review")   # no at_revision
+    httpd, port = _serve(docs)
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/api/cockpit/review/%s"
+                % (port, req["request_id"]), timeout=5) as r:
+            detail = json.load(r)
+        assert detail.get("subject_type") == "design", detail
+        assert "at_revision" not in detail
+    finally:
+        httpd.shutdown()
+
+
+def test_requesting_changes_keeps_the_comment() -> None:
+    """The placeholder promises the note is "sent with Request changes"; the
+    first cut recorded a verdict and dropped the text (ISS-0056 round 2)."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "'/api/design/comment'" in view, (
+        "Request changes discards the reviewer's note"
+    )
+    assert "region: ''" in view
+
+
+def test_a_historical_render_is_not_gated_on_the_working_copy() -> None:
+    """`has_asset` is an `is_file()` on the working copy. An artifact deleted
+    after being offered still renders fine at the revision under review."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "if (!d.has_asset && !detail.at_revision)" in view
+
+
+def test_the_dirty_banners_say_different_things() -> None:
+    """One is about the moment of offering, the other about now, and the first
+    cut fired the same present-tense sentence for both — contradicting the line
+    above it about which revision is framed."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "request.dirty_at_offer" in view and "else if (detail.dirty)" in view
+    assert "had uncommitted changes when it was offered" in view
+    assert "not part of what you are reviewing here" in view

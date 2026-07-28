@@ -130,6 +130,14 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
 #:   marked rejected, because a rejected proposal worth keeping is worth
 #:   recording as the alternative it lost to.
 #: * Requirement — `draft → approved`, or `cancelled` if it will not be built.
+#: How far along a design's life a status sits. Only used to refuse a
+#: BACKWARDS move on accept — it is not a vocabulary and nothing else reads
+#: it. `statuses.py` remains the single source for what a status means.
+_DESIGN_STATUS_RANK: dict[str, int] = {
+    "draft": 1, "proposed": 2, "accepted": 3, "implemented": 4,
+    "superseded": 5, "cancelled": 5,
+}
+
 DECIDE_TRANSITIONS: dict[str, tuple[str, str | None]] = {
     "adr": ("accepted", "superseded"),
     "decision": ("accepted", "superseded"),
@@ -199,6 +207,15 @@ def _split_frontmatter(text: str) -> tuple[list[str], str]:
 #: orphan the indented continuation lines beneath it and produce invalid
 #: YAML — refuse instead of corrupting (independent review, 2026-07-26).
 _BLOCK_OPENER_RE = re.compile(r":\s*([|>][+-]?\d*)?\s*$")
+
+
+def _get_field(lines: list[str], key: str) -> str:
+    """A scalar frontmatter value, or "" — enough to read a status back."""
+    prefix = key + ":"
+    for line in lines:
+        if line.strip().startswith(prefix):
+            return line.split(":", 1)[1].strip().strip('"').strip("'")
+    return ""
 
 
 def _set_field(lines: list[str], key: str, value: str) -> list[str]:
@@ -585,7 +602,21 @@ def stamp_design_verdict(
     new_status = None
     if accept is not None:
         transitions = DECIDE_TRANSITIONS["design"]
-        new_status = transitions[0] if accept else transitions[1]
+        candidate = transitions[0] if accept else transitions[1]
+        # Never move a design BACKWARDS (ISS-0056 round 2). `accepted` means
+        # "agreed, not yet built"; `implemented` means the code shipped. A
+        # design at `implemented` that is accepted at a revision would be
+        # demoted to a status that is no longer true — and every design that
+        # can be offered for review today is `implemented`, which is this
+        # feature's own premise. The verdict is still recorded; only the
+        # status move is declined, because the verdict is the honest part.
+        current = str(_get_field(fm_lines, "status") or "").strip().strip('"')
+        backwards = bool(
+            accept and current
+            and _DESIGN_STATUS_RANK.get(current, 0)
+            > _DESIGN_STATUS_RANK.get(candidate, 0)
+        )
+        new_status = None if backwards else candidate
         if new_status:
             fm_lines = _set_field(fm_lines, "status", new_status)
 

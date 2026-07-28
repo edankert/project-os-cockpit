@@ -59,3 +59,16 @@ The task's Result section describes what was built accurately. The DoD bullets a
 ## And the test cited as safety evidence does not guard
 
 `test_the_offer_endpoint_is_loopback_only` string-matches handler source. The reviewer moved the guard out of the live path while leaving the literal text in the function; **all four loopback tests stayed green** with the endpoint accepting writes from any LAN client on the `0.0.0.0` render port. The guard is correct in the shipped code — what is broken is the evidence that it stays correct. Three sibling tests share the shape, and [[ISS-0055]] already records that this file needs a pass converting string-shaped guards into behavioural ones.
+
+
+## Round 2 (2026-07-28)
+
+Six more, all smaller, all fixed. The two that mattered:
+
+**Accepting demoted the only designs that can be offered.** `stamp_design_verdict(accept=True)` wrote `DECIDE_TRANSITIONS["design"][0]` = `accepted` unconditionally. `accepted` means *agreed, not yet built*; `implemented` means the code shipped. So accepting a design at `implemented` replaced a true status with a false one — **one click after an offer that scrupulously wrote none** — and every design that can be offered today is `implemented`, which is this feature's own premise. It was live on Edwin's real DES-0002 row. A backwards move is now declined while the verdict is still recorded, because the verdict is the honest part.
+
+**The loopback test still did not tie the guard to the endpoint.** Round 1's rewrite exercised `_require_loopback` properly and dropped the assertion that this handler *calls* it: deleting `if not self._require_loopback(): return` from the endpoint left all 482 tests passing, with the endpoint open to the LAN. Third version drives a real request with `_is_loopback` forced false — the only shape that ties a guard to its use. Verified by deleting the call again: it now fails.
+
+That is two consecutive test rewrites that missed the mutation motivating them. Worth stating as a rule: **a guard test must fail when the guard is removed from the thing it guards**, not merely when the guard itself is broken.
+
+The rest: `subject_type` was computed inside `if subject and asked_at`, so a row with a subject and no revision — the shape every pre-fix offer wrote — still reached the plan-verdict path; "Request changes" discarded the reviewer's comment while the placeholder promised it was sent; the dirty banner fired the same present-tense sentence for two different facts and contradicted the line above it; and `has_asset`, an `is_file()` on the working copy, gated a historical render so a deleted artifact hid a revision that renders fine.

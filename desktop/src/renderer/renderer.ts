@@ -3931,8 +3931,26 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
              `${note.id} accepted at ${detail.at_revision}.`);
   });
   btn('Request changes', 'review-btn is-primary', () => {
-    void act('changes-requested', null, null,
-             `Changes requested on ${note.id}; it stays in the queue.`);
+    void (async () => {
+      // The comment is the whole point of requesting changes, and the
+      // placeholder promises it is sent. The first cut recorded a verdict and
+      // silently dropped the text (ISS-0056 round 2). It goes on the note as a
+      // document-level design comment, which is where TASK-0217 puts review
+      // prose so it survives without the tool.
+      const text = comment.value.trim();
+      if (text) {
+        try {
+          await postJson('/api/design/comment', {
+            id: note.id, region: '', text, author: 'user:edwin',
+          });
+        } catch (err) {
+          showStatus(`Comment not saved: ${String(err)}`, 'error');
+          return;
+        }
+      }
+      await act('changes-requested', null, null,
+                `Changes requested on ${note.id}; it stays in the queue.`);
+    })();
   });
   btn('Reject', 'review-btn is-bad', () => {
     void act('rejected', false, 'rejected',
@@ -3956,12 +3974,19 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
       + `${detail.head_revision}. A verdict here judges ${detail.at_revision}.`;
     wrap.append(warn);
   }
-  if (detail.dirty || request.dirty_at_offer) {
-    const dirty = document.createElement('p');
-    dirty.className = 'review-stale';
-    dirty.textContent = 'The working copy has uncommitted changes, so the design '
-      + 'surface is showing something no revision names.';
-    wrap.append(dirty);
+  if (request.dirty_at_offer) {
+    const d0 = document.createElement('p');
+    d0.className = 'review-stale';
+    d0.textContent = 'This design had uncommitted changes when it was offered, '
+      + 'so the person who offered it may have been looking at edits that '
+      + `${detail.at_revision} does not contain.`;
+    wrap.append(d0);
+  } else if (detail.dirty) {
+    const d1 = document.createElement('p');
+    d1.className = 'review-stale';
+    d1.textContent = 'The working copy has uncommitted changes now. They are '
+      + 'not part of what you are reviewing here.';
+    wrap.append(d1);
   }
 
   // The artifact, at the revision under review — not the working copy.
@@ -3979,7 +4004,11 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
       pending.textContent = `${note.id} is no longer in the design register.`;
       return;
     }
-    if (!d.has_asset) {
+    // `has_asset` is an `is_file()` on the WORKING COPY, so it must not gate a
+    // historical render: an artifact deleted after being offered still renders
+    // fine at the revision under review (ISS-0056 round 2). Without a revision
+    // there is nothing but the working copy to fall back on.
+    if (!d.has_asset && !detail.at_revision) {
       pending.textContent = `${note.id} declares no artifact — there is nothing to show.`;
       return;
     }
