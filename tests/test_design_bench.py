@@ -1486,3 +1486,36 @@ def test_the_details_sidebar_can_be_collapsed() -> None:
     paint = src.split("const paint = () => {")[1].split("\n  };")[0]
     assert "head.append(toggle);" in paint
     assert "side.append(toggle)" not in paint
+
+
+# ---- a design with no artifact must still lead somewhere (ISS-0041) ------
+
+def test_an_artifactless_design_can_still_be_read() -> None:
+    """DES-0002 is the design SYSTEM and its entire content is prose. With
+    `asset: ""` the stage rendered "declares no artifact yet" and stopped —
+    Edwin: "I cannot open it in the tool". The note banner pointed at the
+    bench and nothing pointed back, so the system was readable only outside
+    the app that exists to show it."""
+    src = _renderer()
+    assert "Read ${d.id} as a note" in src, (
+        "the empty stage offers no way through to the prose"
+    )
+    # And from any design, artifact or not: the id chip is the link.
+    assert "idChip.setAttribute('role', 'link');" in src
+    assert "const openNote = () => { void navigateTo(d.rel); };" in src
+    # Keyboard-reachable, since it is a span rather than a real <a>.
+    assert "e.key === 'Enter' || e.key === ' '" in src
+
+
+def test_the_design_system_note_is_the_one_that_needed_this() -> None:
+    """Grounded in the corpus rather than a fixture: the repo's own design
+    system declares no asset, so this is not a hypothetical case."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    payload = cockpit.designs_payload(Index.build(docs))
+    system = next(d for d in payload["designs"] if d["role"] == "system")
+    assert system["id"] == "DES-0002"
+    assert system["has_asset"] is False, (
+        "DES-0002 now has an artifact — this test's premise changed; keep the "
+        "no-artifact path covered by a fixture instead of deleting it"
+    )
+    assert system["rel"].endswith(".md")

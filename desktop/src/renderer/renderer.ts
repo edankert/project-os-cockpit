@@ -2834,6 +2834,16 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
     empty.className = 'design-empty';
     empty.textContent = `${d.id} declares no artifact yet — nothing to render.`;
     wrap.append(empty);
+    // An empty stage must still lead somewhere. DES-0002 is the design SYSTEM
+    // and its whole content is prose; landing on "nothing to render" with no
+    // way through made the system unreadable inside the tool that exists to
+    // show it (ISS-0041).
+    const toNote = document.createElement('button');
+    toNote.type = 'button';
+    toNote.className = 'design-note-open';
+    toNote.textContent = `Read ${d.id} as a note`;
+    toNote.addEventListener('click', () => { void navigateTo(d.rel); });
+    wrap.append(toNote);
     return wrap;
   }
   if (!d.has_asset) {
@@ -2906,7 +2916,20 @@ function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement
     el.textContent = text;
     return el;
   };
-  meta.append(chip(d.id));
+  // A design with no artifact renders an empty stage, and until now there was
+  // no way from here to the prose that explains it — the note banner points at
+  // the bench and nothing pointed back, so DES-0002 (asset: "") was readable
+  // only outside the app. The id chip is the link (ISS-0041).
+  const idChip = chip(d.id, 'design-chip-link');
+  idChip.setAttribute('role', 'link');
+  idChip.setAttribute('tabindex', '0');
+  idChip.title = `Open ${d.rel}`;
+  const openNote = () => { void navigateTo(d.rel); };
+  idChip.addEventListener('click', openNote);
+  idChip.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(); }
+  });
+  meta.append(idChip);
   if (d.status) meta.append(chip(d.status, `status-${d.status}`));
   meta.append(chip(d.role === 'system' ? 'design system' : 'proposal'));
   if (d.viewport) meta.append(chip(`${d.viewport}px surface`));
