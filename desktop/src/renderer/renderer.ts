@@ -950,6 +950,15 @@ async function navigateToInner(
   // because design input is otherwise reachable only by knowing it exists.
   const designStrip = buildDesignStrip(data.frontmatter || {});
   if (designStrip) docView.prepend(designStrip);
+  // A design NOTE offers its own artifact. Opening the note and seeing only
+  // prose is correct for Markdown and wrong for a design — and without this
+  // the render surface had no door into it at all: the only link to
+  // ~design/<id> lived inside the register, which nothing pointed to.
+  if (noteTypeFromFrontmatter(data.frontmatter || {}) === 'design') {
+    if (!designRegister.length) await fetchDesignRegister();
+    const banner = buildDesignNoteBanner(normalised);
+    if (banner) docView.prepend(banner);
+  }
   // Verification panel (TASK-0211) on the scopes that get validated.
   // Appended, not prepended: the note's own words come first, then the
   // evidence that it works.
@@ -2972,6 +2981,33 @@ function buildDesignRevisionRail(d: DesignRecord, repaint: () => void): HTMLElem
     rail.append(p2);
   }
   return rail;
+}
+
+/** A banner on a design NOTE offering the artifact.
+ *
+ *  The note is prose *about* a design; the artifact is the design. Opening
+ *  the note and seeing only text is the correct behaviour for Markdown and
+ *  the wrong experience for a design — so the note says where the design is.
+ */
+function buildDesignNoteBanner(rel: string): HTMLElement | null {
+  const d = designRegister.find((x) => x.rel === rel);
+  if (!d) return null;
+  const bar = document.createElement('div');
+  bar.className = 'design-note-banner';
+  const label = document.createElement('span');
+  label.textContent = d.has_asset
+    ? 'This note describes a design.'
+    : 'This design has no artifact yet.';
+  bar.append(label);
+  if (d.has_asset) {
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'design-note-open';
+    open.textContent = `Open ${d.id} in the design bench`;
+    open.addEventListener('click', () => { void navigateTo(`~design/${d.id}`); });
+    bar.append(open);
+  }
+  return bar;
 }
 
 async function renderDesignPage(target: string): Promise<boolean> {

@@ -2082,7 +2082,14 @@ def _library_groups(
             "url": None,
             "status": None,
             "item_layout": "stacked",
-            "items": [_rare_item(index, r) for r in design_records],
+            # Point at the BENCH, not the note. The note is prose about a
+            # design; the artifact is the design. A Library entry that opened
+            # the note left the render surface with no door into it — built,
+            # tested, and unreachable (found by Edwin, 2026-07-28).
+            "items": [
+                {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
+                for r in design_records if r.note_id
+            ],
         })
 
     docs_tree = _markdown_tree_group(

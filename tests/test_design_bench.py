@@ -737,3 +737,29 @@ def test_stamping_a_non_design_is_refused(tmp_path: Path) -> None:
         raise AssertionError("stamped a design verdict onto a feature")
     except note_writes.WriteError as exc:
         assert "not a design" in str(exc)
+
+
+# ---- reachability (the surface must have a door) --------------------------
+
+def test_the_library_design_group_points_at_the_bench_not_the_note(tmp_path: Path) -> None:
+    """Built, tested, and unreachable: the only link to `~design/<id>` lived
+    inside the register, which nothing pointed to. A closed loop with no
+    entrance — found by Edwin opening the app and seeing nothing."""
+    docs = _corpus(tmp_path)
+    groups = cockpit._library_groups(Index.build(docs), None, [])
+    design = next((g for g in groups if g.get("key") == "design"), None)
+    assert design is not None, "the Library has no Design group"
+    for item in design["items"]:
+        assert item["url"].startswith("~design/"), (
+            "the Library opens the design NOTE; the note is prose about a "
+            "design, the artifact is the design"
+        )
+
+
+def test_a_design_note_offers_its_artifact() -> None:
+    """Opening a design note and seeing only prose is correct for Markdown
+    and wrong for a design."""
+    src = _renderer()
+    assert "buildDesignNoteBanner" in src
+    assert "Open ${d.id} in the design bench" in src
+    assert "=== 'design'" in src, "the banner must be gated on the note type"
