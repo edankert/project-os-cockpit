@@ -1519,3 +1519,39 @@ def test_the_design_system_note_is_the_one_that_needed_this() -> None:
         "no-artifact path covered by a fixture instead of deleting it"
     )
     assert system["rel"].endswith(".md")
+
+
+def test_the_empty_stage_does_not_stretch_its_message() -> None:
+    """The stage stretches its children so an iframe can fill it — applied to
+    a one-line button that made a full-height slab (Edwin, 2026-07-28).
+    Measured after the fix: 25px button in a 765px stage."""
+    src = _renderer()
+    assert src.count("wrap.classList.add('is-empty');") == 2, (
+        "both empty branches (no asset declared, asset missing) must opt out "
+        "of the stretch"
+    )
+    css = (Path(__file__).resolve().parents[1]
+           / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    assert ".design-stage.is-empty" in css
+
+
+def test_the_design_page_fills_the_context_pane() -> None:
+    """It cleared the right pane and never refilled it, so a design note's
+    real links were invisible on the surface built to show the design —
+    DES-0002 names DES-0001, TST-0019, ISS-0023 and REQ-0022. The context
+    endpoint already answers this for any note; the page never asked."""
+    src = _renderer()
+    page = src.split("async function renderDesignPage(")[1].split("\nasync function")[0]
+    assert "void loadRightPane(d.rel);" in page, (
+        "the design page clears the context pane without refilling it"
+    )
+
+
+def test_the_harness_covers_the_empty_stage() -> None:
+    """A design with no artifact is its own layout case — a message, not a
+    surface — and the case the register's only artifactless design exercises."""
+    harness = (Path(__file__).resolve().parents[1]
+               / "desktop" / "harness" / "design-harness.html").read_text(encoding="utf-8")
+    assert "#empty" in harness
+    assert "the button is not a full-height slab" in harness
+    assert "the context pane carries the note" in harness

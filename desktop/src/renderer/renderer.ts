@@ -2830,6 +2830,10 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   }
 
   if (!d.asset) {
+    // Not a frame: the stage stretches its children so an iframe can fill it,
+    // which turned a one-line button into a full-height slab (Edwin,
+    // 2026-07-28). An empty stage is a message, not a surface.
+    wrap.classList.add('is-empty');
     const empty = document.createElement('p');
     empty.className = 'design-empty';
     empty.textContent = `${d.id} declares no artifact yet — nothing to render.`;
@@ -2849,6 +2853,7 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   if (!d.has_asset) {
     // Distinguish "none declared" from "declared but missing". A blank pane
     // for either would hide a typo committed weeks earlier.
+    wrap.classList.add('is-empty');
     const missing = document.createElement('p');
     missing.className = 'design-empty design-missing';
     missing.textContent = `Artifact not found: ${d.asset}`;
@@ -3257,6 +3262,11 @@ async function renderDesignPage(target: string): Promise<boolean> {
     'is-design-shell');
   docView.classList.add('design-page');
   rightPaneContent.replaceChildren();
+  // A design note has real links — DES-0002 names DES-0001, TST-0019,
+  // ISS-0023 and REQ-0022 — and clearing the pane without refilling it made
+  // every one of them invisible on the surface built to show the design
+  // (Edwin, 2026-07-28). The context endpoint already answers this for any
+  // note; the design page simply never asked.
 
   if (!target) {
     // Identity first: what this is, before what it should look like.
@@ -3280,6 +3290,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
     return true;
   }
   await fetchDesignRevisions(d.id);
+  void loadRightPane(d.rel);
   designCompareSha = null;
   const paint = () => {
     // App-shell, not a document (ISS-0039). The page itself does not scroll:

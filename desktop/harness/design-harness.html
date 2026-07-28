@@ -24,6 +24,7 @@
 <body>
 <script>
 const FRAMED = location.hash === '#framed';
+const EMPTY  = location.hash === '#empty';
 const noopOff = () => {};
 const on = () => noopOff;
 window.cockpit = {
@@ -65,6 +66,11 @@ const DESIGNS = { schema_version: 4, designs: [{
   rationale: [{ id: 'ADR-0006', title: 'Retire the delivered band',
     decision: 'Remove the delivered palette band, its CSS token, and its two members from every status surface, so no coloured band survives that no status can enter.',
     url: '/docs/decisions/ADR-0006-Retire-Delivered-Band.md', status: 'accepted', missing: false }],
+}, {
+  id: 'DES-0002', title: 'Cockpit design system',
+  rel: 'designs/DES-0002-Cockpit-Design-System.md', status: 'draft',
+  role: 'system', asset: '', has_asset: false, viewport: 900,
+  implements: [], rationale: [],
 }]};
 const REVISIONS = { schema_version: 4, dirty: true, revisions: [
   { sha: 'a1b2c3d', date: '2026-07-27', subject: 'first pass', reason: 'first pass at the quiet state' },
@@ -91,6 +97,10 @@ window.fetch = async (input, init) => {
   if (url.includes('/design-asset'))
     return new Response(ARTIFACT, { status: 200, headers: { 'Content-Type': 'text/html' } });
   if (url.includes('/api/render'))    return json({ metadata_html: '', html: '<p>note</p>' });
+  if (url.includes('/api/cockpit/context'))     return json({ schema_version: 4,
+    platform: 'all',
+    linked: [{ id: 'ISS-0023', title: 'Status vocabulary drift', rel: 'issues/ISS-0023.md', type: 'issue', status: 'fixed' }],
+    backlinks: [{ id: 'DES-0001', title: 'Overview redesign', rel: 'designs/DES-0001.md', type: 'design', status: 'implemented' }] });
   if (url.includes('/api/cockpit/nav'))         return json({ schema_version: 4, groups: [], available_platforms: [] });
   if (url.includes('/api/cockpit/context'))     return json({ schema_version: 4, platform: 'all', linked: [], backlinks: [] });
   if (url.includes('/api/cockpit/state'))       return json({ schema_version: 4 });
@@ -141,7 +151,12 @@ try {
       // Land on the artifact, not the register.
       // Open the artifact, not the register: the register is a list and the
       // thing under test is the stage.
-      setTimeout(() => { document.querySelector('.design-row')?.click(); }, 600);
+      // #empty opens the design with no artifact (DES-0002's shape), which is
+      // its own layout case: a message, not a surface.
+      setTimeout(() => {
+        const rows = document.querySelectorAll('.design-row');
+        (location.hash === '#empty' ? rows[1] : rows[0])?.click();
+      }, 600);
     }, 250);
   }, 400);
 
@@ -162,6 +177,24 @@ try {
     };
     const page = document.querySelector('#doc-view');
     const frame = document.querySelector('.design-frame');
+    if (EMPTY) {
+      const btn = document.querySelector('.design-note-open');
+      const st  = document.querySelector('.design-stage');
+      const rp  = document.querySelector('#right-pane-content');
+      const out2 = document.getElementById('out');
+      const bh = btn ? btn.getBoundingClientRect().height : 0;
+      const sh = st ? st.getBoundingClientRect().height : 0;
+      const ok = btn && bh < 60 && sh > 100;
+      out2.textContent = 'EMPTY STAGE  window ' + innerWidth + 'x' + innerHeight
+        + '\n' + (btn ? 'PASS' : 'FAIL') + '  a way through exists   ' + (btn?.textContent || '-')
+        + '\n' + (ok ? 'PASS' : 'FAIL') + '  the button is not a full-height slab   button '
+        + Math.round(bh) + ' of stage ' + Math.round(sh)
+        + '\n' + (rp && rp.children.length ? 'PASS' : 'FAIL')
+        + '  the context pane carries the note\'s links   '
+        + (rp ? rp.textContent.trim().slice(0, 60) : '-');
+      out2.style.color = (btn && ok && rp && rp.children.length) ? '#070' : '#b00';
+      return;
+    }
     if (!page || !frame) {
       document.getElementById('out').textContent =
         'FAIL: the design surface did not render at all'
