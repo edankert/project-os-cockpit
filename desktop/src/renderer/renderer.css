@@ -3616,6 +3616,42 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 
 .design-page { overflow: auto; padding: 18px 22px; }
 
+/* App shell (ISS-0039). The page stops scrolling so the artifact frame can be
+   the only scroller for the artifact; before this, a fixed-height frame sat
+   inside a scrolling page and every long design produced a scrollbar inside a
+   scrollbar. `is-design-shell` is toggled per render because the register —
+   which IS a list and must scroll — mounts on the same element. */
+.doc-view.design-page.is-design-shell {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.design-view.is-shell {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+}
+/* The head pins; everything below it shares the remaining height. */
+.design-view.is-shell > .design-head { flex: 0 0 auto; }
+.design-shell-body {
+  display: flex; gap: 16px;
+  flex: 1; min-height: 0;
+}
+.design-shell-body > .design-body { flex: 1 1 auto; min-width: 0; min-height: 0; }
+/* The sidebar scrolls on its OWN, never inside the artifact's scroller. */
+.design-side {
+  flex: 0 0 260px; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+/* A frame filling the stage needs a definite height to resolve `100%`
+   against — the same indefinite-parent trap that made the stage render at
+   the iframe's intrinsic 300px width (ISS-0038), in the other axis. */
+.design-shell-body .design-stage { min-height: 0; }
+.design-shell-body .design-stage:not(.is-framed) { align-items: stretch; }
+/* A framed stage scrolls if the declared viewport is taller than the window:
+   the frame keeps its declared size, and the stage — not the page — moves. */
+.design-shell-body .design-stage.is-framed { overflow: auto; align-items: flex-start; }
+
 .design-head { margin-bottom: 14px; }
 .design-head h1 { margin: 0 0 6px; font-size: 18px; }
 
@@ -3689,7 +3725,10 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   color: var(--text-muted);
 }
 
-.design-revisions { margin-top: 16px; max-width: 640px; }
+.design-revisions { margin-top: 0; max-width: 640px; }
+.design-side .design-rationale { margin-top: 18px; }
+.design-side .design-rationale-row { grid-template-columns: auto 1fr; }
+.design-side .design-rationale-open { grid-column: 2; justify-self: start; }
 .design-revisions h2 { font-size: 13px; margin: 0 0 6px; color: var(--text-muted); }
 .design-rev {
   display: flex; justify-content: space-between; gap: 12px; width: 100%;

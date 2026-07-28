@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Design shell layout harness</title>
+<!--
+  Measures the design surface's scroll containers against the REAL stylesheet.
+
+  Both layout defects found on 2026-07-28 (ISS-0038, a stage rendering at the
+  iframe's intrinsic 300px; ISS-0039, scrollbars inside scrollbars) were
+  invisible to all 81 design-bench tests, because every one of them asserts a
+  payload or a line of source. Edwin found both by looking at the screen. This
+  is the smallest thing that can fail instead.
+
+  Run:  cd desktop && npm run build && python3 -m http.server 8080
+        open http://127.0.0.1:8080/harness/design-shell-harness.html
+  Pass: the page never scrolls; the artifact's scroller is the frame (document
+        case) or the stage (declared-viewport case); the sidebar scrolls on its
+        own; and no scroller is nested inside another.
+-->
+<link rel="stylesheet" href="../dist/renderer/renderer.css">
+<style>
+  html, body { margin: 0; height: 100%; font: 13px system-ui; }
+  .case { height: 46vh; display: flex; flex-direction: column;
+          border-bottom: 2px solid #888; }
+  .case > h2 { margin: 0; padding: 4px 8px; font-size: 12px; background: #eee; }
+  .case > .doc-view { flex: 1; min-height: 0; }
+  iframe.design-frame { background: repeating-linear-gradient(
+      45deg, #ddd 0 10px, #eee 10px 20px); }
+  #out { position: fixed; right: 0; bottom: 0; z-index: 99; margin: 0;
+         font: 11px/1.4 monospace; background: #fff; border: 1px solid #333;
+         padding: 6px; white-space: pre; max-height: 40vh; overflow: auto; }
+  .fail { color: #b00; font-weight: bold; }
+  .pass { color: #070; }
+</style>
+
+<div class="case" id="doc">
+  <h2>Document — no declared viewport. The frame fills; only it scrolls.</h2>
+  <div class="doc-view design-page is-design-shell">
+    <div class="design-view is-shell">
+      <header class="design-head"><h1>DES-0001</h1>
+        <div class="design-viewports"><button class="design-vp is-active">Declared</button></div>
+      </header>
+      <div class="design-shell-body">
+        <div class="design-body"><div class="design-stage">
+          <iframe class="design-frame" style="width:100%;height:100%"></iframe>
+        </div></div>
+        <aside class="design-side">
+          <div class="design-revisions"><h2>Revisions</h2>
+            <button class="design-rev"><span>Working copy</span><span>current</span></button>
+          </div>
+          <section class="design-rationale"><h2>Decisions</h2>
+            <div class="design-rationale-row">
+              <span class="design-rationale-id">ADR-0006</span>
+              <div class="design-rationale-text">A decision long enough to wrap in a narrow sidebar column, repeated so the sidebar overflows and its own scroller is exercised rather than assumed. A decision long enough to wrap in a narrow sidebar column, repeated so the sidebar overflows.</div>
+              <button class="design-rationale-open">Open</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="case" id="framed">
+  <h2>Declared viewport 900×900 — the frame keeps its size; the STAGE moves.</h2>
+  <div class="doc-view design-page is-design-shell">
+    <div class="design-view is-shell">
+      <header class="design-head"><h1>DES-0002</h1>
+        <div class="design-viewports"><button class="design-vp is-active">900 × 900</button></div>
+      </header>
+      <div class="design-shell-body">
+        <div class="design-body"><div class="design-stage is-framed">
+          <iframe class="design-frame" style="width:900px;height:900px"></iframe>
+        </div></div>
+        <aside class="design-side">
+          <div class="design-revisions"><h2>Revisions</h2>
+            <button class="design-rev"><span>Working copy</span><span>current</span></button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<pre id="out"></pre>
+<script>
+function scrolls(el) {
+  return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
+}
+function scrollers(root) {
+  return [...root.querySelectorAll('*')].filter((el) => {
+    const cs = getComputedStyle(el);
+    return ['auto', 'scroll'].includes(cs.overflowY)
+        || ['auto', 'scroll'].includes(cs.overflowX);
+  });
+}
+const lines = [];
+let failed = 0;
+function check(label, ok, detail) {
+  if (!ok) failed++;
+  lines.push((ok ? '  PASS  ' : '  FAIL  ') + label + (detail ? '   ' + detail : ''));
+}
+for (const id of ['doc', 'framed']) {
+  const root = document.getElementById(id);
+  const page = root.querySelector('.doc-view');
+  const frame = root.querySelector('.design-frame');
+  const stage = root.querySelector('.design-stage');
+  const side = root.querySelector('.design-side');
+  lines.push(id.toUpperCase() + ':');
+  check('the page does not scroll', !scrolls(page),
+        'scrollHeight ' + page.scrollHeight + ' vs client ' + page.clientHeight);
+  // A scroller nested inside another scroller is the whole complaint.
+  const nested = scrollers(page).filter(
+    (el) => scrollers(page).some((o) => o !== el && o.contains(el)));
+  check('no scroller nests inside another', nested.length === 0,
+        nested.map((n) => n.className).join(', '));
+  const r = frame.getBoundingClientRect();
+  if (id === 'doc') {
+    check('the frame fills the stage', r.height > 100 && r.width > 400,
+          Math.round(r.width) + 'x' + Math.round(r.height));
+  } else {
+    check('the declared frame keeps its size', Math.round(r.width) === 900,
+          Math.round(r.width) + 'x' + Math.round(r.height));
+    check('the stage scrolls, not the page', scrolls(stage), '');
+  }
+  check('the sidebar is its own scroller',
+        ['auto', 'scroll'].includes(getComputedStyle(side).overflowY), '');
+}
+const out = document.getElementById('out');
+out.textContent = 'window ' + innerWidth + 'x' + innerHeight + '\n' + lines.join('\n')
+  + '\n\n' + (failed ? failed + ' FAILED' : 'all checks passed');
+out.className = failed ? 'fail' : 'pass';
+</script>

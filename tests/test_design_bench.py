@@ -1173,7 +1173,9 @@ def test_a_design_linking_no_adrs_gets_nothing(tmp_path: Path) -> None:
     src = _renderer()
     block = src.split("function buildDesignRationale(")[1].split("\nfunction ")[0]
     assert "if (!entries.length) return null;" in block
-    assert "if (rationale) root.append(rationale);" in src
+    # Appended only when non-null, so a design with no linked ADRs gets no
+    # heading at all. It now lands in the shell sidebar rather than the page.
+    assert "if (rationale) side.append(rationale);" in src
 
 
 def test_the_line_is_the_adrs_own_decision_field(tmp_path: Path) -> None:
@@ -1387,3 +1389,70 @@ def test_a_filled_brief_still_reports_residual_placeholders() -> None:
         "the filled branch never mentions residual placeholders"
     )
     assert "still template placeholders" in filled
+
+
+# ---- app-shell layout (ISS-0039 / TASK-0226) -----------------------------
+
+def test_height_follows_the_same_absence_rule_as_width() -> None:
+    """`declared` honoured an absent viewport for width and ignored it for
+    height, so a document — the case that should scroll freely — was forced
+    into a 900px window inside a scrolling page. A declared viewport still
+    keeps its fixed height: the framing IS the point."""
+    src = _renderer()
+    assert ("const framedHeight = preset.key === 'declared' "
+            "? (d.viewport ? preset.h : null) : preset.h;") in src
+    assert "else frame.style.height = '100%';" in src
+
+
+def test_fill_actually_fills() -> None:
+    """`Fill` set w and h to null, so no height was applied and
+    `.design-frame { min-height: 320px }` won — a preset named Fill rendered
+    a 320px box."""
+    src = _renderer()
+    presets = src.split("const DESIGN_VIEWPORTS")[1].split("];")[0]
+    assert "{ key: 'fill', label: 'Fill', w: null, h: null }" in presets
+    # With w and h null, both axes now resolve to 100% of the shell-sized
+    # stage rather than to the iframe's intrinsic default.
+    assert "frame.style.width = '100%';" in src
+
+
+def test_the_shell_class_is_cleared_when_leaving_a_design(tmp_path: Path) -> None:
+    """`design-page` was never removed from #doc-view. Harmless while it only
+    added padding; adding `overflow: hidden` to the same element would have
+    stopped EVERY subsequent page scrolling. Both classes now come off at
+    each site that switches away."""
+    src = _renderer()
+    switches = src.count("'design-page', 'is-design-shell'")
+    assert switches >= 4, (
+        "only %d page-switch sites clear the shell class; a stale "
+        "`is-design-shell` freezes scrolling on whatever page comes next"
+        % switches
+    )
+    # The register is a list and must keep scrolling.
+    assert "docView.classList.remove('is-design-shell');" in src
+
+
+def test_the_sidebar_holds_the_rail_and_rationale_not_the_stage() -> None:
+    """They used to sit under the frame in the page's scroller. In a shell
+    there is no page scroller, so anything left there is unreachable."""
+    src = _renderer()
+    paint = src.split("const paint = () => {")[1].split("\n  };")[0]
+    assert "side.append(buildDesignRevisionRail(d, paint));" in paint
+    assert "side.append(rationale);" in paint
+    assert "root.append(buildDesignHeader(d, paint), stage);" in paint
+
+
+def test_a_layout_harness_exists_and_asserts_the_nesting() -> None:
+    """Both layout defects found on 2026-07-28 were invisible to every test
+    in this file, because all of them read a payload or a line of source.
+    Edwin found both by looking at the screen. The harness is the smallest
+    thing that can fail instead — pytest cannot measure a box."""
+    harness = (Path(__file__).resolve().parents[1]
+               / "desktop" / "harness" / "design-shell-harness.html")
+    assert harness.is_file(), "the layout harness was deleted"
+    text = harness.read_text(encoding="utf-8")
+    assert "no scroller nests inside another" in text
+    assert "the page does not scroll" in text
+    assert "the declared frame keeps its size" in text
+    # It must measure the REAL stylesheet, not a copy that can drift.
+    assert '../dist/renderer/renderer.css' in text

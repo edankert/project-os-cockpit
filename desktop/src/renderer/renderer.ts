@@ -934,7 +934,8 @@ async function navigateToInner(
   // wikilinks already turned into `<a>` tags. The click handler on
   // #doc-view intercepts links in either section identically.
   docView.innerHTML = (data.metadata_html || '') + data.html;
-  docView.classList.remove('overview-pane', 'agents-page');
+  docView.classList.remove('overview-pane', 'agents-page',
+    'design-page', 'is-design-shell');
   docView.hidden = false;
   placeholder.hidden = true;
   currentRel = normalised;
@@ -2844,7 +2845,20 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   } else {
     frame.style.width = '100%';
   }
-  if (preset.h) frame.style.height = `${preset.h}px`;
+  // Height follows the SAME absence rule as width, which it did not before
+  // (ISS-0039): `declared` carried h: 900 unconditionally, so a design that
+  // declared no viewport — a document, the case that should scroll freely —
+  // was forced into a 900px window inside a scrolling page. DES-0001 is that
+  // case and is the only design in the repo with an artifact, so the one
+  // thing that could be opened was the one thing framed wrongly.
+  //
+  // A declared viewport keeps its fixed height: the framing IS the point,
+  // and a phone-width design stretched to the window height demonstrates
+  // nothing. Everything else fills the stage, which the shell has already
+  // sized, and the artifact scrolls inside it — once.
+  const framedHeight = preset.key === 'declared' ? (d.viewport ? preset.h : null) : preset.h;
+  if (framedHeight) frame.style.height = `${framedHeight}px`;
+  else frame.style.height = '100%';
   wrap.append(frame);
   return wrap;
 }
@@ -3189,7 +3203,8 @@ function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
 async function renderDesignPage(target: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const designs = await fetchDesignRegister();
-  docView.classList.remove('overview-pane', 'agents-page', 'review-page');
+  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
+    'is-design-shell');
   docView.classList.add('design-page');
   rightPaneContent.replaceChildren();
 
@@ -3207,6 +3222,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
   }
   const d = designs.find((x) => x.id === target);
   if (!d) {
+    docView.classList.remove('is-design-shell');
     docView.replaceChildren(buildDesignRegisterList(designs));
     showStatus(`No design ${target}`, 'error');
     docView.hidden = false;
@@ -3216,8 +3232,13 @@ async function renderDesignPage(target: string): Promise<boolean> {
   await fetchDesignRevisions(d.id);
   designCompareSha = null;
   const paint = () => {
+    // App-shell, not a document (ISS-0039). The page itself does not scroll:
+    // the head pins, the stage takes the rest of the height, and the artifact
+    // frame is the only scroller for the artifact. Revisions and rationale go
+    // in a sidebar that scrolls on its own, so nothing ever ends up inside
+    // the artifact's scroller.
     const root = document.createElement('div');
-    root.className = 'design-view';
+    root.className = 'design-view is-shell';
     const body = document.createElement('div');
     body.className = 'design-body';
     if (designCompareSha) {
@@ -3229,14 +3250,21 @@ async function renderDesignPage(target: string): Promise<boolean> {
     } else {
       body.append(buildDesignFrame(d));
     }
-    root.append(
-      buildDesignHeader(d, paint),
-      body,
-      buildDesignRevisionRail(d, paint),
-    );
+    const side = document.createElement('aside');
+    side.className = 'design-side';
+    side.append(buildDesignRevisionRail(d, paint));
     const rationale = buildDesignRationale(d);
-    if (rationale) root.append(rationale);
+    if (rationale) side.append(rationale);
+
+    const stage = document.createElement('div');
+    stage.className = 'design-shell-body';
+    stage.append(body, side);
+
+    root.append(buildDesignHeader(d, paint), stage);
     docView.replaceChildren(root);
+    // The register scrolls; a stage does not. Toggled per render because the
+    // same element carries both.
+    docView.classList.add('is-design-shell');
   };
   paint();
   docView.hidden = false;
@@ -3258,7 +3286,8 @@ async function renderReviewPage(
   renderReviewQueuePane(payload);
   void refreshReviewBadge();
 
-  docView.classList.remove('overview-pane', 'agents-page');
+  docView.classList.remove('overview-pane', 'agents-page',
+    'design-page', 'is-design-shell');
   docView.classList.add('review-page');
   rightPaneContent.replaceChildren();
 
@@ -8240,7 +8269,8 @@ async function renderSessionDetailPage(sessionId: string): Promise<boolean> {
     mountPlaceholder(`session ${sessionId}`);
     return false;
   }
-  docView.classList.remove('overview-pane', 'agents-page');
+  docView.classList.remove('overview-pane', 'agents-page',
+    'design-page', 'is-design-shell');
   docView.replaceChildren();
 
   const head = document.createElement('header');
@@ -8415,7 +8445,8 @@ async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   // user left it so a peer workspace's state change doesn't yank the
   // headline fleet screen back to the top (review finding F1).
   const prevScroll = docView.scrollTop;
-  docView.classList.remove('overview-pane', 'agents-page');
+  docView.classList.remove('overview-pane', 'agents-page',
+    'design-page', 'is-design-shell');
   docView.classList.add('agents-page');
   docView.replaceChildren();
 
