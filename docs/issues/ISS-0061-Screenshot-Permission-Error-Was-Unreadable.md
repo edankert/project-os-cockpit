@@ -46,6 +46,16 @@ The status is consulted, and a stderr matching the known permission signature is
 
 Capture is still attempted when the status is not `granted`. Short-circuiting reads safer but suppresses the macOS prompt on `not-determined`, which would mean a fresh machine could never grant the permission at all. That property has its own assertion, because it is the kind of thing a later "optimisation" removes.
 
-## Still needs a human step
+## The second defect: it named a row that did not exist
 
-Once macOS records a denial it does not re-prompt. Enable **Electron** under System Settings › Privacy & Security › Screen Recording and restart the cockpit; the app cannot grant this to itself.
+Edwin, on the improved message: *"I don't see Electron in the list."*
+
+Correct, and the fix was still wrong. `denied` here did not mean *refused* — it meant **no TCC entry at all**. Until something requests screen capture, macOS has nothing to list, so the message sent him to enable a row that could not be there. Reporting a missing permission is useless on its own when the report is the only thing that ever happens.
+
+`screencapture` cannot register the cockpit: it is an Apple-signed system binary, so the permission attaches to *it*. The one API that makes the request in the app's own name is `desktopCapturer.getSources`, which is now called before capturing when the status is not granted. Verified — the request path returns `SOURCES=4` against a real display.
+
+The lesson is narrower than "test it": a permission surface has **three** states, not two, and the third is *never asked*. A message that assumes `denied` means `refused` sends the user somewhere with nothing in it.
+
+## And a third: "granted" can still fail
+
+TCC is evaluated per process at launch, so a grant made while the cockpit is running does not reach it. The hint now distinguishes the two: if the status reads `granted` but capture failed, the advice is to **restart**, not to grant something already granted.

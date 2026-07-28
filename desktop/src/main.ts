@@ -7,7 +7,7 @@
 // TASK-0064: this file adds menu, single-instance lock, cockpit:// deep
 //            links, and window-state persistence.
 
-import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell, systemPreferences } from 'electron';
+import { BrowserWindow, Menu, app, clipboard, desktopCapturer, dialog, ipcMain, shell, systemPreferences } from 'electron';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -482,13 +482,37 @@ app.whenReady().then(() => {
     // which is not the name anyone looks for in the settings list, so the
     // message below names it explicitly.
     const capturedBy = app.isPackaged ? app.getName() : 'Electron';
-    const access = process.platform === 'darwin'
+    const screenAccess = (): string => (process.platform === 'darwin'
       ? systemPreferences.getMediaAccessStatus('screen')
-      : 'granted';
-    const permissionHint =
-      `macOS has not granted screen recording to ${capturedBy}. Open System `
-      + `Settings \u203a Privacy & Security \u203a Screen Recording, enable `
-      + `\u201c${capturedBy}\u201d, and restart the cockpit.`;
+      : 'granted');
+
+    // ASK, rather than only reporting. Until something requests screen
+    // capture macOS has no TCC entry for this app, and System Settings shows
+    // no row to enable — Edwin hit exactly that: the message told him to
+    // enable "Electron" in a list that did not contain it. `screencapture`
+    // cannot register us, because it is an Apple-signed system binary and the
+    // permission attaches to it, not to its caller. `desktopCapturer` is the
+    // one API here that makes the request in the cockpit's own name.
+    if (process.platform === 'darwin' && screenAccess() !== 'granted') {
+      try {
+        // 1x1 thumbnails: the request is the point, the pixels are not.
+        await desktopCapturer.getSources({
+          types: ['screen'], thumbnailSize: { width: 1, height: 1 },
+        });
+      } catch { /* the prompt is the outcome we wanted; sources are not */ }
+    }
+    const access = screenAccess();
+    const permissionHint = access === 'granted'
+      // Granted since this process started: TCC is per-process at launch, so
+      // the running app still cannot capture until it is restarted. Saying
+      // "grant the permission" here would be advice already taken.
+      ? `Screen recording is now granted to ${capturedBy}, but this window `
+        + `started before that. Restart the cockpit and try again.`
+      : `macOS has not granted screen recording to ${capturedBy}. Look for `
+        + `\u201c${capturedBy}\u201d in System Settings \u203a Privacy & `
+        + `Security \u203a Screen Recording \u2014 if it is not listed, add `
+        + `it with \u201c+\u201d from ${process.execPath.replace(/\/Contents\/MacOS\/.*$/, '')} `
+        + `\u2014 then restart the cockpit.`;
 
     return await new Promise((resolve) => {
       // -i interactive, -o no window shadow. No -c: straight to the file, so

@@ -406,11 +406,27 @@ def test_a_denied_screen_permission_is_reported_as_a_permission_problem() -> Non
         "string will reach the user again"
     )
 
-    # 3. `screencapture` still runs when access is not granted. Short-circuiting
-    #    looks safer but means macOS never shows the permission prompt on
-    #    'not-determined', so a fresh machine could never grant it at all.
+    # 3. the app ASKS for the permission, and asks before it captures.
+    #    Reporting a missing permission is useless on its own: until something
+    #    requests screen capture there is no TCC entry, so System Settings has
+    #    no row to enable. Edwin was told to enable "Electron" in a list that
+    #    did not contain it. `screencapture` cannot register us — it is an
+    #    Apple-signed system binary and the permission attaches to it.
+    request_at = handler.find("desktopCapturer.getSources")
+    assert request_at != -1, (
+        "nothing requests screen capture any more — the app will never appear "
+        "in System Settings and the permission can never be granted"
+    )
+    assert request_at < handler.index("spawn('screencapture'"), (
+        "the permission is requested after the capture attempt, so the first "
+        "attempt always fails"
+    )
+
+    # 4. and it still captures when the status is not 'granted'. Short-circuiting
+    #    looks safer but suppresses the prompt on 'not-determined'.
     spawn_at = handler.index("spawn('screencapture'")
-    guard = re.search(r"if \(access !== 'granted'\)[^\n]*\n[^\n]*return", handler[:spawn_at])
+    guard = re.search(r"if \([^)]*access[^)]*!== 'granted'\)[^\n]*\n[^\n]*return",
+                      handler[:spawn_at])
     assert guard is None, (
         "capture is skipped when access is not granted — on 'not-determined' "
         "that suppresses the macOS prompt and the feature can never start"
