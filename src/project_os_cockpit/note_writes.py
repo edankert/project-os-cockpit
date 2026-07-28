@@ -130,16 +130,20 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
 #:   marked rejected, because a rejected proposal worth keeping is worth
 #:   recording as the alternative it lost to.
 #: * Requirement — `draft → approved`, or `cancelled` if it will not be built.
-#: How far along a design's life a status sits. Only used to refuse a move
-#: that would rewrite history — it is not a vocabulary and nothing else reads
-#: it. `statuses.py` remains the single source for what a status means, and
-#: `test_the_design_rank_table_covers_the_vocabulary` asserts this covers
-#: exactly `ALLOWED_STATUS["design"]`, because an unranked status used to
-#: fail OPEN (rank 0, never backwards, silently demoted).
-_DESIGN_STATUS_RANK: dict[str, int] = {
-    "draft": 1, "proposed": 2, "accepted": 3, "implemented": 4,
-    "superseded": 5, "cancelled": 5,
-}
+#: The design statuses this module knows how to reason about. Used for ONE
+#: thing: failing closed on a status it has never seen, which otherwise got
+#: silently demoted.
+#:
+#: This was a rank table until independent review proved the ranks were dead —
+#: replacing the whole backwards comparison with `False` left all 496 tests
+#: passing, because accept's candidate is `accepted` and every status ranking
+#: above it is in `_DESIGN_SETTLED`, which is checked first. The comment said
+#: the ranks refused a move that would rewrite history; `_DESIGN_SETTLED`
+#: refuses it. Keeping ordering nobody consults, under a comment claiming it
+#: guards something, is the exact defect this review kept finding elsewhere.
+_DESIGN_KNOWN_STATUSES: frozenset[str] = frozenset({
+    "draft", "proposed", "accepted", "implemented", "superseded", "cancelled",
+})
 
 #: Statuses a review verdict must never move a design out of. Rank alone
 #: cannot express this: `cancelled` ranks ABOVE `implemented`, so cancelling a
@@ -630,15 +634,9 @@ def stamp_design_verdict(
         if current in _DESIGN_SETTLED:
             new_status = None
         else:
-            # Unknown status fails CLOSED. It used to return rank 0, never
-            # compare as backwards, and get demoted silently.
-            known = current in _DESIGN_STATUS_RANK or not current
-            backwards = bool(
-                accept and current
-                and _DESIGN_STATUS_RANK.get(current, 0)
-                > _DESIGN_STATUS_RANK.get(candidate, 0)
-            )
-            new_status = candidate if (known and not backwards) else None
+            # Unknown status fails CLOSED — it used to be demoted silently.
+            known = current in _DESIGN_KNOWN_STATUSES or not current
+            new_status = candidate if known else None
         if new_status:
             fm_lines = _set_field(fm_lines, "status", new_status)
 

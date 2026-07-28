@@ -2365,6 +2365,18 @@ def test_the_offer_endpoint_is_loopback_only(tmp_path: Path) -> None:
             assert not [r for r in _queue(port) if r.get("subject")], (
                 "the endpoint refused the response but still wrote the ledger"
             )
+            # THIRD clause: the refusal must pre-empt the endpoint's other
+            # branches. A guard sitting after the read branches returns 403
+            # with no row written — passing the two checks above — while a LAN
+            # client still enumerates the register by response code: 403 for a
+            # real id, 404 for a fake one, plus a designs scan and two git
+            # subprocesses per probe. Neither is a write, so the queue cannot
+            # see it (independent review round 4).
+            unknown, _ = _post(port, "/api/design/offer-review", {"id": "DES-9999"})
+            assert unknown == HTTPStatus.FORBIDDEN, (
+                "a non-loopback client learned whether DES-9999 exists: got "
+                "%s, so the guard sits below the register lookup" % unknown
+            )
         finally:
             handler_cls._is_loopback = original             # type: ignore[assignment]
 
@@ -2715,16 +2727,23 @@ def test_rejecting_still_cancels_a_design_that_has_not_shipped(tmp_path: Path) -
         encoding="utf-8")
 
 
-def test_the_design_rank_table_covers_the_vocabulary() -> None:
-    """An unranked status returned rank 0, never compared as backwards, and
-    was silently demoted — a fail-OPEN that quietly reopened the demotion bug
-    the table exists to prevent."""
+def test_the_known_status_set_covers_the_vocabulary() -> None:
+    """An unknown status was silently demoted — a fail-OPEN that quietly
+    reopened the very bug this exists to prevent.
+
+    Was a rank table until independent review proved the ranks dead: replacing
+    the backwards comparison with `False` left every test passing, because
+    accept's candidate is `accepted` and everything above it is settled. The
+    live use was always membership."""
     from project_os_cockpit import note_writes
     from project_os_cockpit.validate_docs_bundled import ALLOWED_STATUS
-    assert set(note_writes._DESIGN_STATUS_RANK) == set(ALLOWED_STATUS["design"]), (
-        "the rank table has drifted from the design vocabulary"
+    assert note_writes._DESIGN_KNOWN_STATUSES == set(ALLOWED_STATUS["design"]), (
+        "the known-status set has drifted from the design vocabulary"
     )
     assert note_writes._DESIGN_SETTLED <= set(ALLOWED_STATUS["design"])
+    assert not hasattr(note_writes, "_DESIGN_STATUS_RANK"), (
+        "the dead rank table is back; `_DESIGN_SETTLED` is the guard"
+    )
 
 
 def test_an_unknown_status_fails_closed(tmp_path: Path) -> None:

@@ -1662,12 +1662,12 @@ def _make_handler(
                 subject=design_id,
                 at_revision=head,
                 title="Design review: %s" % (record.get("title") or design_id),
-                # The surface renders the WORKING COPY, so a design offered
-                # dirty was reviewed against something `at_revision` does not
-                # name. Recorded at offer time because that is the moment it
-                # is true; `dirty` computed at open is a different question.
                 body=note,
             )
+            # The surface renders the WORKING COPY, so a design offered dirty
+            # was reviewed against something `at_revision` does not name.
+            # Recorded at offer time because that is the moment it is true;
+            # `dirty` computed at open is a different question.
             if revisions.get("dirty"):
                 request = dict(request)
                 request["dirty_at_offer"] = True

@@ -85,3 +85,16 @@ Fixed with `_DESIGN_SETTLED`: a verdict never moves a design out of `implemented
 **The loopback test was one clause short.** Deleting the guard from the endpoint failed it, as intended — but *moving* the guard to sit after `review_store.add(...)` passed: 403 returned, ledger row written. The rule needs both halves: **a guard test must fail when the guard is removed from the thing it guards, and assert the guarded side effect did not happen.** Three versions of this test, three different holes.
 
 **`has_asset` still gated the historical render**, one layer below the round-2 fix: `buildDesignFrame` kept its own unconditional return, so only the message changed. The test greped the outer substring and could not see the inner return.
+
+
+## Round 4 — approved, with three follow-ups taken rather than deferred
+
+The review approved at round 4 and offered three findings as follow-ups. All three were taken, because each is the same species this whole issue is about: **a claim wider than the code.**
+
+**The loopback rule needed a third clause.** Moving the guard to sit immediately *before* `review_store.add(...)` — after every read branch — passes both existing clauses: 403 returned, no row written. But a LAN client can still enumerate the register by response code (`403` for a real id, `404 unknown design` for a fake one), plus a designs scan and two git subprocesses per probe. **Neither effect is a write, so the queue cannot see it.** The rule is now three clauses: a guard test must fail when the guard is removed from the thing it guards, **and** assert the guarded side effect did not happen, **and** assert the refusal pre-empts the endpoint's other branches.
+
+**The rank table was decoration under a comment claiming it was a guard.** `_DESIGN_STATUS_RANK` said it "refuses a move that would rewrite history"; replacing its entire backwards comparison with `False` left all 496 tests passing. It cannot fire by construction — accept's candidate is `accepted`, everything ranking above it is in `_DESIGN_SETTLED`, which is checked first, and reject never evaluates it. The live use was always *membership*. Replaced with `_DESIGN_KNOWN_STATUSES`, a set, and a test asserts the rank table does not come back.
+
+That one is worth keeping in view: **it was introduced by the fix for round 2's finding, in this issue, and its comment was the thing that made it look load-bearing.** The same mechanism as `buildDesignReviewView`'s docstring carrying the reject branch through round 2 unexamined.
+
+**Two docstrings claimed behaviour the code does not have.** `review.py` asserted that filing a request records a dispatch entry "so the provenance chain stays intact" — true of the dispatch flow, not of a design offered from the surface, where there is no prompt or session behind a button press. And the `dirty_at_offer` comment was attached to the wrong argument, explaining code that lives after the call.
