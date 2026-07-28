@@ -2151,11 +2151,11 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
         src)
     assert decl, "the boot guard's mode set is gone; README will race again"
     modes = {m.strip().strip("'\"") for m in decl.group(1).split(",") if m.strip()}
-    # `inbox` joined on 2026-07-28 (FEAT-0045) — it lands on ~inbox, so it
-    # inherits the same race if it is left out. The set is pinned rather than
-    # merely non-empty precisely so adding a virtual-landing mode has to come
-    # here and say so.
-    assert modes == {"overview", "review", "design", "inbox"}, modes
+    # `inbox` joined on 2026-07-28 (FEAT-0045) and left again the same day
+    # (TASK-0234) when it stopped being a mode at all and became a left-pane
+    # tray. The set is pinned rather than merely non-empty precisely so
+    # adding or removing a virtual-landing mode has to come here and say so.
+    assert modes == {"overview", "review", "design"}, modes
 
     # And the README fallback must actually consult it.
     ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]

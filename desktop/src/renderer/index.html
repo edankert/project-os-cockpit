@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://127.0.0.1:* http://localhost:*; connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*;" />
   <title>project-os-cockpit</title>
   <link rel="stylesheet" href="./xterm.css" />
   <link rel="stylesheet" href="./base.css" />
@@ -29,7 +29,10 @@
           <button type="button" class="top-bar-btn" data-mode="features" title="Features (by phase)" role="tab" aria-label="Features"></button>
           <button type="button" class="top-bar-btn" data-mode="tasks"    title="Tasks"               role="tab" aria-label="Tasks"></button>
           <button type="button" class="top-bar-btn" data-mode="issues"   title="Issues"              role="tab" aria-label="Issues"></button>
-          <button type="button" class="top-bar-btn" data-mode="inbox"   title="Inbox — external material waiting to be triaged" role="tab" aria-label="Inbox"></button>
+          <!-- Inbox retired from the top bar in TASK-0234: every other mode
+               here is a view over the committed record in docs/, and the
+               inbox is deliberately none of that. It lives in the left pane
+               with the other transient state. -->
           <button type="button" class="top-bar-btn" data-mode="review"   title="Review — proposals, questions, test runs" role="tab" aria-label="Review"></button>
           <!-- Active and Recent retired in TASK-0204: the overview's focus
                band and phase rows carry in-flight work ambiently, the
@@ -160,6 +163,12 @@
         <p>Pick a workspace from the rail on the left.</p>
       </div>
       <div id="ws-nav-content" class="ws-nav-content cockpit-pane" hidden></div>
+      <!-- Inbox tray (TASK-0234): staging, not record — so it docks with the
+           other transient per-workspace state rather than sitting in the top
+           bar beside the views over docs/. Zero-height when empty, because an
+           empty inbox is the resolved state and does not need a pane.
+           Populated by renderInboxPanel(). -->
+      <div id="ws-inbox" class="ws-inbox" hidden aria-label="Inbox"></div>
       <!-- Agent attention panel (FEAT-0030 / TASK-0147): docked below
            the tree, cross-workspace, zero-height when empty. Populated
            by renderAttentionPanel(). -->

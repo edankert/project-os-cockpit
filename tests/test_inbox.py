@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import json
+import re
 import threading
 import urllib.error
 import urllib.request
@@ -316,3 +317,101 @@ def test_capture_writes_into_the_inbox() -> None:
     handler = main.split("app:capture-screenshot", 1)[1].split("ipcMain.handle", 1)[0]
     assert "path.join(ws.root, 'inbox')" in handler
     assert "'-i'" in handler, "capture is not interactive, so it cannot be aimed"
+
+
+def test_inbox_images_are_allowed_by_the_renderer_csp() -> None:
+    """An `<img>` from the sidecar must be allowed, not just a `fetch` from it.
+
+    The CSP granted the sidecar origin under `connect-src` and `frame-src` but
+    not `img-src`, so every inbox thumbnail failed to load — silently, because a
+    blocked image is just an image that never paints. `fetch()` of the exact
+    same URL returned 200 and 151 KB of PNG, which is why this survived being
+    "verified": the bytes were reachable, the picture was not.
+
+    Caught by asserting `naturalWidth > 0` in the running app rather than
+    asserting the `<img>` element existed.
+    """
+    html = (Path(__file__).resolve().parents[1]
+            / "desktop/src/renderer/index.html").read_text(encoding="utf-8")
+    csp = re.search(r'Content-Security-Policy"[^>]*content="([^"]+)"', html)
+    assert csp, "the renderer CSP is gone"
+    directives = {
+        part.strip().split(" ", 1)[0]: part.strip()
+        for part in csp.group(1).split(";") if part.strip()
+    }
+    assert "127.0.0.1" in directives.get("img-src", ""), (
+        "img-src no longer allows the sidecar origin — inbox thumbnails and the "
+        "full-size viewer will silently fail to paint again"
+    )
+
+
+def _code_only(js: str) -> str:
+    """JS/TS with comments stripped — a comment naming an action reads like one."""
+    js = re.sub(r"/\*.*?\*/", "", js, flags=re.S)
+    return re.sub(r"^\s*//.*$", "", js, flags=re.M)
+
+
+def test_every_inbox_menu_action_has_a_handler() -> None:
+    """The right-click menu's actions must match what the renderer handles.
+
+    This crosses a process boundary — `main.ts` names an action string and
+    `renderer.ts` switches on it — so a rename in one file leaves a menu entry
+    that silently does nothing. Nothing else checks it: the menu is native, so
+    it cannot be clicked from a test, and popping it over CDP risks a nested
+    run loop in the main process.
+
+    Asserted both ways round: an unhandled action is a dead menu entry, and a
+    handled-but-unsent action is a branch no menu can reach.
+    """
+    root = Path(__file__).resolve().parents[1]
+    main = _code_only((root / "desktop/src/main.ts").read_text(encoding="utf-8"))
+    renderer = _code_only(
+        (root / "desktop/src/renderer/renderer.ts").read_text(encoding="utf-8"))
+
+    case = main.split("case 'inbox-item': {", 1)
+    assert len(case) == 2, "the inbox context menu is gone from main.ts"
+    body = case[1].split("case 'rail':", 1)[0]
+    sent = set(re.findall(r"sendDispatch\('([^']+)'", body))
+    assert sent, "the inbox menu no longer dispatches anything"
+
+    handled = set(re.findall(r"case '(inbox-[a-z]+)':", renderer))
+    assert sent <= handled, f"menu actions with no handler: {sorted(sent - handled)}"
+    assert handled <= sent, f"handlers no menu can reach: {sorted(handled - sent)}"
+
+
+def test_a_denied_screen_permission_is_reported_as_a_permission_problem() -> None:
+    """macOS says "could not create image from rect" when the permission is missing.
+
+    Edwin hit exactly that string. Reported raw it reads like a geometry bug and
+    sends you looking at the selection rectangle; the actionable text was
+    already written but sat in an `|| fallback`, so it could only appear when
+    stderr was EMPTY — the one case where a permission denial is *not* the
+    cause. Confirmed with `systemPreferences.getMediaAccessStatus('screen')`,
+    which returned `denied` on this machine.
+
+    Three properties, because the first cut of this fix could satisfy any one
+    of them and still be wrong.
+    """
+    src = _code_only((Path(__file__).resolve().parents[1]
+                      / "desktop/src/main.ts").read_text(encoding="utf-8"))
+    handler = src.split("app:capture-screenshot", 1)[1].split(
+        "Drag-and-drop file resolver", 1)[0]
+
+    # 1. the status is actually consulted, not assumed
+    assert "getMediaAccessStatus('screen')" in handler
+
+    # 2. the stderr text is classified, not just passed through
+    assert re.search(r"could not create image", handler), (
+        "the known permission stderr is no longer recognised — the raw macOS "
+        "string will reach the user again"
+    )
+
+    # 3. `screencapture` still runs when access is not granted. Short-circuiting
+    #    looks safer but means macOS never shows the permission prompt on
+    #    'not-determined', so a fresh machine could never grant it at all.
+    spawn_at = handler.index("spawn('screencapture'")
+    guard = re.search(r"if \(access !== 'granted'\)[^\n]*\n[^\n]*return", handler[:spawn_at])
+    assert guard is None, (
+        "capture is skipped when access is not granted — on 'not-determined' "
+        "that suppresses the macOS prompt and the feature can never start"
+    )

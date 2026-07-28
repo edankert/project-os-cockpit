@@ -595,6 +595,10 @@ async function openWorkspace(id: string): Promise<void> {
   placeholder.hidden = true;
   docView.hidden = true;
   sidecarBaseUrl = null;
+  // Same reason as the agent strip below: the tray is per-workspace, and
+  // leaving the old project's items up while the new sidecar starts would
+  // invite triaging a file into the wrong repo.
+  void renderInboxPanel();
   // Drop the previous workspace's snapshot so a waiting row for the
   // newly-active workspace doesn't briefly show the old workspace's
   // cost before the new sidecar's /api/cockpit/state resolves (review
@@ -661,6 +665,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       // when overview was the only such mode; Review and Design inherited the
       // bug on the days they were added (ISS-0040).
       if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)) void navigateTo('README.md');
+      void renderInboxPanel();
       void refreshAgentSnapshot();
       void loadAgentActions();
       void loadAgentRegistry();
@@ -881,11 +886,19 @@ async function navigateToInner(
   }
   // ~design — the design bench (FEAT-0042 / TASK-0215). `~design` lists the
   // register; `~design/<DES-id>` frames one artifact.
+  // ~inbox/<name> frames one item full-size (TASK-0234). Bare ~inbox has no
+  // page any more — the left-pane tray is the index — so it just refreshes
+  // the tray and leaves the stage alone.
   if (normalised === '~inbox') {
+    void renderInboxPanel();
+    return;
+  }
+  if (normalised.startsWith('~inbox/')) {
+    const name = decodeURIComponent(normalised.slice('~inbox/'.length));
     currentRel = normalised;
     pushHistory(normalised, opts.replace ?? false);
-    await renderInboxPage();
-    void refreshInboxBadge();
+    await renderInboxItemView(name);
+    void renderInboxPanel();
     return;
   }
   if (normalised === '~design' || normalised.startsWith('~design/')) {
@@ -2179,7 +2192,7 @@ interface NavPayload {
 // a two-day-old decision that six modes was the ceiling (taken when Active and
 // Recent were retired for Review); reversing it deliberately is fine, drifting
 // past it would not be.
-const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'inbox', 'review', 'active', 'library', 'recent'] as const;
+const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -2373,13 +2386,17 @@ function isItemHidden(item: { status?: string }): boolean {
 // Modes whose `loadWsNav()` routes to a virtual page rather than a note.
 // Anything listed here must NOT be sent to README.md on workspace open.
 const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
-  'overview', 'review', 'design', 'inbox',
+  'overview', 'review', 'design',
 ]);
 
-const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent'];
+const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox'];
 const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   active: 'overview',   // in-flight work is ambient on the overview now
   recent: 'overview',   // "what changed" is the commits panel
+  // TASK-0234: the inbox became a left-pane tray. Anyone whose stored mode
+  // still says 'inbox' would otherwise land in a mode with no button and no
+  // way out, which is exactly the trap RETIRED_NAV_MODES exists to prevent.
+  inbox: 'overview',
 };
 
 function loadStoredNavMode(): NavMode {
@@ -2795,133 +2812,281 @@ async function refreshReviewBadge(): Promise<void> {
  *  on this surface specifically, four separate defects this month were "a thing
  *  existed and nothing pointed at it".
  */
-async function refreshInboxBadge(): Promise<void> {
-  const btn = document.querySelector<HTMLButtonElement>('.top-bar-btn[data-mode="inbox"]');
-  if (!btn || !sidecarBaseUrl) return;
-  let total = 0;
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/inbox`);
-    if (resp.ok) total = ((await resp.json()) as InboxPayload).items.length;
-  } catch { /* an unreachable sidecar is not an inbox problem */ }
-  btn.querySelector('.mode-badge')?.remove();
-  btn.title = total > 0
-    ? `Inbox — ${total} item${total === 1 ? '' : 's'} to triage`
-    : 'Inbox — empty';
-  if (total <= 0) return;
-  const badge = document.createElement('span');
-  badge.className = 'mode-badge';
-  badge.textContent = String(total);
-  btn.appendChild(badge);
-}
-
 interface InboxItem { name: string; bytes: number; mtime: number; suffix: string }
 interface InboxPayload { schema_version: number; items: InboxItem[] }
 
 const INBOX_PREVIEWABLE = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg']);
+/** Types the stage can render as text rather than punting to Finder. */
+const INBOX_READABLE = new Set(['.md', '.txt', '.log', '.csv', '.tsv', '.json',
+  '.yaml', '.yml', '.html', '.css', '.js', '.ts', '.py', '.sh']);
 
-/** The inbox surface: what is waiting, and how to get rid of it. */
-async function renderInboxPage(): Promise<boolean> {
+// Lucide file-type icons, keyed by suffix. Same idiom and same builder as
+// TYPE_ICONS below — an inbox row should look like it belongs to this app.
+const ICON_FILE_TAIL = '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v6h6"/>';
+const INBOX_ICONS: ReadonlyArray<[ReadonlySet<string>, string]> = [
+  [new Set(['.pdf']),
+    `${ICON_FILE_TAIL}<path d="M9 13v5"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9"/>`],
+  [new Set(['.md', '.txt', '.log', '.rtf', '.doc', '.docx', '.pages']),
+    `${ICON_FILE_TAIL}<path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>`],
+  [new Set(['.csv', '.tsv', '.json', '.yaml', '.yml', '.xlsx', '.numbers']),
+    `${ICON_FILE_TAIL}<path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/>`],
+  [new Set(['.zip', '.tar', '.gz', '.tgz', '.7z']),
+    `${ICON_FILE_TAIL}<path d="M10 7V6"/><path d="M10 12v-1"/><circle cx="10" cy="18" r="2"/>`],
+  [new Set(['.mov', '.mp4', '.m4v', '.webm', '.avi']),
+    '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/>'
+    + '<path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/>'],
+  // An image whose thumbnail failed to load still reads as an image here,
+  // rather than falling through to "unknown file".
+  [INBOX_PREVIEWABLE,
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/>'
+    + '<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'],
+];
+const ICON_CAMERA = '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>';
+
+function inboxIconFor(suffix: string): SVGElement {
+  for (const [suffixes, paths] of INBOX_ICONS) {
+    if (suffixes.has(suffix)) return makeSvg(paths, 15, { class: 'inbox-icon' });
+  }
+  return makeSvg(ICON_FILE_TAIL, 15, { class: 'inbox-icon' });
+}
+
+function inboxItemUrl(name: string): string {
+  return `${sidecarBaseUrl}/_inbox/${encodeURIComponent(name)}`;
+}
+
+async function fetchInboxItems(): Promise<InboxItem[]> {
+  if (!sidecarBaseUrl) return [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/inbox`);
+    if (resp.ok) return ((await resp.json()) as InboxPayload).items;
+  } catch { /* an unreachable sidecar is not an inbox problem */ }
+  return [];
+}
+
+/**
+ * Hand one inbox item to the agent to triage.
+ *
+ * Reuses the dispatch path rather than growing a second one, so this inherits
+ * the agent preference, the terminal and the ledger. The prompt names the one
+ * file and the skill: the convention's whole point is that the inbox empties,
+ * and until now the UI could only *discard* an item, never triage it.
+ */
+async function triageInboxItem(item: InboxItem): Promise<void> {
+  const wsId = activeId;
+  if (!wsId) return;
+  const chosen = loadDispatchAgent();
+  const prompt = `Triage inbox/${item.name} in this project. Read `
+    + `tools/skills/inbox-triage/SKILL.md and follow it for this one item: read `
+    + `it, decide where it belongs, then file it, split it across the right `
+    + `notes, or discard it — and remove it from inbox/ either way. Nothing `
+    + `should be left in the inbox afterwards.`;
+  const queued: QueuedDispatch = {
+    id: 'inbox', rel: '', agent: chosen, prompt, ts: new Date().toISOString(),
+  };
+  const freshPty = !liveTerminals.has(wsId);
+  showTerminal();
+  await new Promise((r) => setTimeout(r, freshPty ? 600 : 150));
+  const res = await cockpitApi.dispatch.execute(wsId, queued);
+  if ('error' in res && res.error) {
+    showStatus(`Triage dispatch failed: ${res.error}`, 'error');
+    return;
+  }
+  showStatus(res.queued ? `Queued triage of ${item.name}` : `Triaging ${item.name}`);
+  scheduleHide(2500);
+}
+
+async function discardInboxItem(name: string): Promise<void> {
+  await postJson('/api/inbox/discard', { name });
+  showStatus(`Discarded ${name}.`, 'info');
+  void renderInboxPanel();
+}
+
+/**
+ * Open one item full-size in the centre stage.
+ *
+ * The pane is the tray and the stage is the viewer (TASK-0234). A left pane
+ * is narrow and a screenshot is the thing most often dropped into it, so
+ * shrinking images to fit the tray would trade away the feature's point.
+ */
+async function renderInboxItemView(name: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
+  const items = await fetchInboxItems();
+  const item = items.find((i) => i.name === name);
   docView.classList.remove('overview-pane', 'agents-page', 'review-page',
     'design-page', 'is-design-shell');
   docView.classList.add('inbox-page');
-  let items: InboxItem[] = [];
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/inbox`);
-    if (resp.ok) items = ((await resp.json()) as InboxPayload).items;
-  } catch { /* fall through to the empty state */ }
 
   const root = document.createElement('div');
   const h = document.createElement('h1');
-  h.textContent = 'Inbox';
+  h.textContent = name;
   root.append(h);
 
-  const shoot = document.createElement('button');
-  shoot.type = 'button';
-  shoot.className = 'review-btn is-primary';
-  shoot.textContent = 'Take a screenshot';
-  shoot.addEventListener('click', () => {
-    void (async () => {
-      if (!activeId) return;
-      shoot.disabled = true;
-      // The window would otherwise sit in its own screenshot.
-      shoot.textContent = 'Select an area…';
-      try {
-        const res = await cockpitApi.app.captureScreenshot(activeId);
-        if (res.cancelled) showStatus('Screenshot cancelled.', 'info');
-        else if (!res.ok) showStatus(`Screenshot failed: ${res.error}`, 'error');
-        else {
-          showStatus(`Captured ${res.name}`, 'info');
-          void refreshInboxBadge();
-          void renderInboxPage();
-        }
-      } finally {
-        shoot.disabled = false;
-        shoot.textContent = 'Take a screenshot';
-      }
-    })();
-  });
-  root.append(shoot);
-
-  const lede = document.createElement('p');
-  lede.className = 'meta';
-  lede.textContent = 'Drop or paste anything here — a screenshot, an export, a '
-    + 'page of notes. It is staged, not filed: an agent reads each item and '
-    + 'files it, splits it, or discards it. Nothing should stay.';
-  root.append(lede);
-
-  if (!items.length) {
-    // An empty inbox is the RESOLVED state, not a blank pane. Saying so is
-    // the difference between "nothing to do" and "something is broken".
-    const done = document.createElement('p');
-    done.className = 'inbox-empty';
-    done.textContent = 'Empty — everything has been triaged.';
-    root.append(done);
+  if (!item) {
+    // Triaged out from under us — the resolved state, not an error.
+    const gone = document.createElement('p');
+    gone.className = 'inbox-empty';
+    gone.textContent = 'No longer in the inbox — it has been filed or discarded.';
+    root.append(gone);
     docView.replaceChildren(root);
     docView.hidden = false;
     placeholder.hidden = true;
     return true;
   }
 
-  for (const item of items) {
-    const row = document.createElement('div');
-    row.className = 'inbox-item';
-    if (INBOX_PREVIEWABLE.has(item.suffix)) {
-      const img = document.createElement('img');
-      img.className = 'inbox-thumb';
-      img.src = `${sidecarBaseUrl}/_inbox/${encodeURIComponent(item.name)}`;
-      img.alt = item.name;
-      row.append(img);
-    }
-    const meta = document.createElement('div');
-    meta.className = 'inbox-meta';
-    const name = document.createElement('code');
-    name.textContent = item.name;
-    const size = document.createElement('span');
-    size.className = 'meta';
-    size.textContent = `${Math.max(1, Math.round(item.bytes / 1024))} KB · inbox/${item.name}`;
-    meta.append(name, size);
-    row.append(meta);
+  const meta = document.createElement('p');
+  meta.className = 'meta';
+  meta.textContent = `${Math.max(1, Math.round(item.bytes / 1024))} KB · inbox/${item.name}`;
+  root.append(meta);
 
-    const discard = document.createElement('button');
-    discard.type = 'button';
-    discard.className = 'review-btn is-bad';
-    discard.textContent = 'Discard';
-    discard.addEventListener('click', () => {
-      void (async () => {
-        await postJson('/api/inbox/discard', { name: item.name });
-        showStatus(`Discarded ${item.name}.`, 'info');
-        void refreshInboxBadge();
-        void renderInboxPage();
-      })();
+  const actions = document.createElement('div');
+  actions.className = 'inbox-actions';
+  const triage = document.createElement('button');
+  triage.type = 'button';
+  triage.className = 'review-btn is-primary';
+  triage.textContent = 'Triage this item';
+  triage.addEventListener('click', () => { void triageInboxItem(item); });
+  const discard = document.createElement('button');
+  discard.type = 'button';
+  discard.className = 'review-btn is-bad';
+  discard.textContent = 'Discard';
+  discard.addEventListener('click', () => {
+    void (async () => { await discardInboxItem(item.name); await navigateTo('~inbox'); })();
+  });
+  actions.append(triage, discard);
+  root.append(actions);
+
+  if (INBOX_PREVIEWABLE.has(item.suffix)) {
+    const img = document.createElement('img');
+    img.className = 'inbox-full';
+    img.src = inboxItemUrl(item.name);
+    img.alt = item.name;
+    root.append(img);
+  } else if (INBOX_READABLE.has(item.suffix)) {
+    const pre = document.createElement('pre');
+    pre.className = 'inbox-text';
+    try {
+      const resp = await fetch(inboxItemUrl(item.name));
+      // textContent, never innerHTML: this is unreviewed external material.
+      pre.textContent = resp.ok ? await resp.text() : 'Could not read this item.';
+    } catch { pre.textContent = 'Could not read this item.'; }
+    root.append(pre);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'meta';
+    hint.textContent = 'No in-app preview for this type — open it in Finder.';
+    root.append(hint);
+    const reveal = document.createElement('button');
+    reveal.type = 'button';
+    reveal.className = 'review-btn';
+    reveal.textContent = 'Reveal in Finder';
+    reveal.addEventListener('click', () => {
+      const wsRoot = workspaces.find((w) => w.id === activeId)?.root || '';
+      if (wsRoot) void cockpitApi.app.revealInFinder(`${wsRoot}/inbox/${item.name}`);
     });
-    row.append(discard);
-    root.append(row);
+    root.append(reveal);
   }
+
   docView.replaceChildren(root);
   docView.hidden = false;
   placeholder.hidden = true;
   return true;
+}
+
+/**
+ * The inbox tray, docked in the left pane above the agent attention panel.
+ *
+ * It sits here rather than in the top bar because every mode up there is a
+ * view over the committed record in `docs/`, and the inbox is deliberately
+ * none of that — it is gitignored staging whose success condition is being
+ * empty (LIFECYCLE). The header stays even when empty: it is one row, it
+ * carries the screenshot action, and "empty" is a state worth stating.
+ */
+async function renderInboxPanel(): Promise<void> {
+  const panel = document.getElementById('ws-inbox');
+  if (!panel) return;
+  if (!activeId || !sidecarBaseUrl) { panel.hidden = true; return; }
+  const items = await fetchInboxItems();
+  panel.hidden = false;
+
+  const head = document.createElement('div');
+  head.className = 'ws-inbox-head';
+  const label = document.createElement('span');
+  label.className = 'ws-inbox-label';
+  label.textContent = 'Inbox';
+  head.append(label);
+  if (items.length) {
+    const count = document.createElement('span');
+    count.className = 'ws-inbox-count';
+    count.textContent = String(items.length);
+    head.append(count);
+  }
+  const shoot = document.createElement('button');
+  shoot.type = 'button';
+  shoot.className = 'ws-inbox-shoot';
+  shoot.title = 'Take a screenshot into this project\u2019s inbox';
+  shoot.setAttribute('aria-label', 'Take a screenshot');
+  shoot.append(makeSvg(ICON_CAMERA, 14, { class: 'ws-inbox-shoot-icon' }));
+  shoot.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    void (async () => {
+      if (!activeId) return;
+      shoot.disabled = true;
+      try {
+        const res = await cockpitApi.app.captureScreenshot(activeId);
+        if (res.cancelled) showStatus('Screenshot cancelled.', 'info');
+        else if (!res.ok) showStatus(`Screenshot failed: ${res.error}`, 'error');
+        else { showStatus(`Captured ${res.name}`, 'info'); void renderInboxPanel(); }
+      } finally { shoot.disabled = false; }
+    })();
+  });
+  head.append(shoot);
+
+  const body = document.createElement('div');
+  body.className = 'ws-inbox-body';
+  if (!items.length) {
+    // An empty inbox is the RESOLVED state, not a blank pane. Saying so is the
+    // difference between "nothing to do" and "something is broken".
+    const done = document.createElement('p');
+    done.className = 'ws-inbox-empty';
+    done.textContent = 'Empty \u2014 nothing to triage.';
+    body.append(done);
+  }
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'ws-inbox-row';
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
+    row.title = `${item.name} \u2014 ${Math.max(1, Math.round(item.bytes / 1024))} KB`;
+    if (INBOX_PREVIEWABLE.has(item.suffix)) {
+      const img = document.createElement('img');
+      img.className = 'ws-inbox-thumb';
+      img.src = inboxItemUrl(item.name);
+      img.alt = '';
+      row.append(img);
+    } else {
+      row.append(inboxIconFor(item.suffix));
+    }
+    const name = document.createElement('span');
+    name.className = 'ws-inbox-name';
+    name.textContent = item.name;
+    row.append(name);
+    const open = (): void => { void navigateTo(`~inbox/${item.name}`); };
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); }
+    });
+    row.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      void cockpitApi.app.showContextMenu('inbox-item', {
+        name: item.name,
+        workspaceId: activeId || '',
+        root: workspaces.find((w) => w.id === activeId)?.root || '',
+      });
+    });
+    body.append(row);
+  }
+
+  panel.replaceChildren(head, body);
 }
 
 interface DesignRecord {
@@ -6048,11 +6213,6 @@ async function loadWsNav(): Promise<void> {
     void navigateTo(target, { replace: currentRel === target });
     return;
   }
-  if (currentNavMode === 'inbox') {
-    // Same virtual-page treatment as overview/review/design.
-    void navigateTo('~inbox', { replace: currentRel === '~inbox' });
-    return;
-  }
   if (currentNavMode === 'design') {
     // Unlike Overview and Review, Design has BOTH a nav list and a page:
     // the left pane lists the design system and the proposals, the main
@@ -7088,7 +7248,7 @@ async function storeInInbox(file: File): Promise<void> {
       return;
     }
     showStatus(`Stored in the inbox: ${res.name}`, 'info');
-    void refreshInboxBadge();
+    void renderInboxPanel();
   } catch (err) {
     showStatus(`Not stored: ${String(err)}`, 'error');
   }
@@ -7208,6 +7368,28 @@ cockpitApi.app.onMenuDispatch((ev) => {
       const agent = ev.agent === 'codex' ? 'codex' as const
         : ev.agent === 'claude' ? 'claude' as const : undefined;
       if (id || rel) void dispatchToAgent(id, rel, agent, verb, wsId);
+      break;
+    }
+    case 'inbox-triage': {
+      const name = (ev.name as string | undefined) || '';
+      if (!name) break;
+      void (async () => {
+        const item = (await fetchInboxItems()).find((i) => i.name === name);
+        // Gone between the right-click and the click: triaging a file that is
+        // no longer there would send the agent after nothing.
+        if (!item) { showStatus(`${name} is no longer in the inbox.`, 'info'); return; }
+        await triageInboxItem(item);
+      })();
+      break;
+    }
+    case 'inbox-open': {
+      const name = (ev.name as string | undefined) || '';
+      if (name) void navigateTo(`~inbox/${name}`);
+      break;
+    }
+    case 'inbox-discard': {
+      const name = (ev.name as string | undefined) || '';
+      if (name) void discardInboxItem(name);
       break;
     }
     case 'agent-set': {

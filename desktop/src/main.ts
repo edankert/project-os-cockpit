@@ -7,7 +7,7 @@
 // TASK-0064: this file adds menu, single-instance lock, cockpit:// deep
 //            links, and window-state persistence.
 
-import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell, systemPreferences } from 'electron';
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -257,6 +257,39 @@ function buildContextTemplate(
       }
       return items;
     }
+    // TASK-0234. Triage is first and Discard is last and separated: the
+    // convention's goal is that the inbox empties by being *filed*, and
+    // discarding is the irreversible one.
+    case 'inbox-item': {
+      const name = typeof payload.name === 'string' ? payload.name : '';
+      if (!name) return [];
+      const abs = root ? path.join(root, 'inbox', name) : '';
+      return [
+        {
+          label: 'Triage this item',
+          click: () => sendDispatch('inbox-triage', { name, workspaceId }),
+        },
+        {
+          label: 'Open',
+          click: () => sendDispatch('inbox-open', { name }),
+        },
+        { type: 'separator' },
+        {
+          label: 'Reveal in Finder',
+          enabled: !!abs,
+          click: () => { if (abs) shell.showItemInFolder(abs); },
+        },
+        {
+          label: 'Copy name',
+          click: () => clipboard.writeText(name),
+        },
+        { type: 'separator' },
+        {
+          label: 'Discard',
+          click: () => sendDispatch('inbox-discard', { name }),
+        },
+      ];
+    }
     case 'rail': {
       return [
         {
@@ -444,9 +477,27 @@ app.whenReady().then(() => {
     } catch (err) {
       return { ok: false, error: String(err) };
     }
+    // macOS attributes screen capture to the app that SPAWNS `screencapture`,
+    // not to the CLI. In dev that is Electron itself, under node_modules —
+    // which is not the name anyone looks for in the settings list, so the
+    // message below names it explicitly.
+    const capturedBy = app.isPackaged ? app.getName() : 'Electron';
+    const access = process.platform === 'darwin'
+      ? systemPreferences.getMediaAccessStatus('screen')
+      : 'granted';
+    const permissionHint =
+      `macOS has not granted screen recording to ${capturedBy}. Open System `
+      + `Settings \u203a Privacy & Security \u203a Screen Recording, enable `
+      + `\u201c${capturedBy}\u201d, and restart the cockpit.`;
+
     return await new Promise((resolve) => {
       // -i interactive, -o no window shadow. No -c: straight to the file, so
       // there is no intermediate clipboard state to lose.
+      //
+      // Deliberately still spawned when `access` is not 'granted': on
+      // 'not-determined' this is what makes macOS show the permission prompt
+      // in the first place. Short-circuiting would mean the prompt never
+      // appears and the feature can never start working.
       const child = spawn('screencapture', ['-i', '-o', target]);
       let stderr = '';
       child.stderr?.on('data', (d) => { stderr += String(d); });
@@ -463,17 +514,27 @@ app.whenReady().then(() => {
         try { await fs.access(target); exists = true; } catch { /* absent */ }
         if (exists) {
           resolve({ ok: true, name: path.basename(target) });
-        } else if (code === 0 && !stderr.trim()) {
-          resolve({ ok: false, cancelled: true });
-        } else {
-          resolve({
-            ok: false,
-            error: stderr.trim()
-              || `screencapture exited ${code}. On macOS this is usually the `
-                 + `Screen Recording permission — grant it to the cockpit in `
-                 + `System Settings › Privacy & Security › Screen Recording.`,
-          });
+          return;
         }
+        if (code === 0 && !stderr.trim()) {
+          resolve({ ok: false, cancelled: true });
+          return;
+        }
+        // "could not create image from rect" is what macOS actually says when
+        // the permission is missing. Reported raw it reads like a geometry bug
+        // and sends you looking at the selection rectangle — Edwin hit exactly
+        // this. The hint was already written but sat in the `||` fallback, so
+        // it could only appear when stderr was EMPTY, which is the one case
+        // where this is not the cause.
+        const raw = stderr.trim();
+        const isPermission = access !== 'granted'
+          || /could not create image|not authori[sz]ed|permission/i.test(raw);
+        resolve({
+          ok: false,
+          error: isPermission
+            ? permissionHint
+            : (raw || `screencapture exited ${code}`),
+        });
       });
     });
   });

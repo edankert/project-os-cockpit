@@ -31,21 +31,21 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 45
-  ISS: 60
+  ISS: 61
   PHASE: 9
   REQ: 24
   RISK: 4
   REL: 0
-  TASK: 233
+  TASK: 234
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0224"
-  feature: "FEAT-0043"
-  phase: "PHASE-009"
+  task: "TASK-0234"
+  feature: "FEAT-0045"
+  phase: "PHASE-999"
   issue: ""
-  note: "2026-07-28 FEAT-0043. Now the mode itself, positioned SECOND — the position is the decision, so it gets its own assertion."
+  note: "2026-07-28 FEAT-0045. The inbox moves out of the top-level nav into a left-pane tray — it is staging, not record, and it now offers per-item triage."
 
 items:
   features:
@@ -2496,8 +2496,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 45
     features_done: 38
-    tasks_total: 233
-    tasks_done: 228
+    tasks_total: 234
+    tasks_done: 229
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
