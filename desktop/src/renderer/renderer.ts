@@ -5730,6 +5730,12 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
 function extractRel(url: string | undefined): string | null {
   if (!url) return null;
   if (url.startsWith('/docs/')) return url.slice('/docs/'.length);
+  // A virtual page (`~design/DES-0001`, `~review/...`) is a legitimate nav
+  // target and `navigateTo` already routes it. Returning null here made a
+  // Library row that pointed at one a dead click: the row got no data-rel,
+  // and the delegated handler keys entirely off data-rel (found by Edwin,
+  // 2026-07-28 — the second reachability bug in this surface).
+  if (url.startsWith('~')) return url;
   return null;
 }
 

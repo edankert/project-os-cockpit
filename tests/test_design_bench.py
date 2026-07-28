@@ -763,3 +763,16 @@ def test_a_design_note_offers_its_artifact() -> None:
     assert "buildDesignNoteBanner" in src
     assert "Open ${d.id} in the design bench" in src
     assert "=== 'design'" in src, "the banner must be gated on the note type"
+
+
+def test_a_virtual_page_url_survives_extractRel() -> None:
+    """The second reachability bug. `extractRel` accepted only `/docs/…` and
+    returned null for anything else — so a Library row pointing at
+    `~design/DES-0001` got no data-rel, and every nav path keys off data-rel.
+    The row rendered, looked clickable, and did nothing."""
+    src = _renderer()
+    fn = src.split("function extractRel(")[1].split("\n}")[0]
+    assert "url.startsWith('~')" in fn, (
+        "extractRel drops virtual pages; a Library row that points at one is "
+        "a dead click"
+    )
