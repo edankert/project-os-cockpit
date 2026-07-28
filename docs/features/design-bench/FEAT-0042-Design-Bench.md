@@ -20,6 +20,8 @@ tasks:
   - "[[TASK-0217-Region-Anchored-Annotation]]"
   - "[[TASK-0218-Design-Review-In-The-Desk]]"
   - "[[TASK-0219-Design-Token-Parity]]"
+  - "[[TASK-0227-Expose-Shell-Stylesheet]]"
+  - "[[TASK-0228-Living-Style-Guide]]"
 release: ""
 design: ["[[DES-0001-Overview-Redesign]]"]
 related: ["[[FEAT-0041-Review-Desk]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[TST-0019-Status-Vocabulary-Parity]]"]

@@ -36,7 +36,7 @@ counters:
   REQ: 24
   RISK: 4
   REL: 0
-  TASK: 226
+  TASK: 228
   TST: 21
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -2496,7 +2496,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 43
     features_done: 36
-    tasks_total: 226
+    tasks_total: 228
     tasks_done: 222
     tests_total: 21
     tests_passing: 21
