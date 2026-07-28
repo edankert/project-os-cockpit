@@ -181,6 +181,18 @@ async function reinjectBlocked(blocked) {
   }
   return failed;
 }
+// Where a sheet came from. A re-injected sheet is a <style> element, so its
+// `href` is null — and a filter written as `(sheet.href || '').includes(...)`
+// silently matched nothing in the sandboxed runtime, which is the only runtime
+// the app uses. `shellPresent` was taught this and the spacing counter was not
+// (ISS-0051): the ISS-0043 pattern recurring one function from its own fix.
+function sheetOrigin(sheet) {
+  return sheet.href
+    || (sheet.ownerNode && sheet.ownerNode.getAttribute
+        && sheet.ownerNode.getAttribute('data-reinjected-from'))
+    || '';
+}
+
 function eachRule(sheets, fn) {
   for (const sheet of sheets) {
     let rules; try { rules = sheet.cssRules; } catch { continue; }
@@ -205,10 +217,7 @@ const SHEETS = readableSheets().ok;
 const TOKENS = declaredTokens(SHEETS);
 // The shell stylesheet may now be an inline re-injection rather than a link,
 // so presence is checked by either route.
-const shellPresent = SHEETS.some((s) =>
-  (s.href || '').includes('/_shell/')
-  || (s.ownerNode && (s.ownerNode.getAttribute('data-reinjected-from') || '')
-        .includes('/_shell/')));
+const shellPresent = SHEETS.some((s) => sheetOrigin(s).includes('/_shell/'));
 
 // Read both schemes from the DECLARATIONS, not from a probe element.
 //
@@ -369,7 +378,7 @@ for (const token of SEMANTIC) {
     if (!rule.style || !rule.selectorText) return;
     if (!/^:root\b/.test(rule.selectorText.trim())) return;
     const v = rule.style.getPropertyValue(token).trim();
-    if (v) seen.push({ from: (sheet.href || '').split('/').pop(), value: v });
+    if (v) seen.push({ from: sheetOrigin(sheet).split('/').pop(), value: v });
   });
   const distinct = [...new Set(seen.map((x) => x.value))];
   if (seen.length > 1 && distinct.length > 1) OVERRIDDEN.push({ token, seen });
@@ -416,15 +425,50 @@ document.getElementById('membership').innerHTML =
       '<code>' + band + '</code> → ' + names.sort().join(', ')).join('<br>');
 
 // ---- typography -----------------------------------------------------------
+// Built with DOM APIs for the same reason the swatches are (ISS-0048): these
+// values come from a stylesheet. `--font-sans` contains quoted family names
+// ("Segoe UI"), so interpolating it closed the style attribute and the
+// specimen silently rendered the inherited body font — demonstrating nothing,
+// which is the one thing a specimen must not do (ISS-0052).
 const fonts = resolve(TOKENS.filter((t) => t.startsWith('--font')), false);
-document.getElementById('type').innerHTML = Object.entries(fonts).map(([n, v]) =>
-    '<div class="spec"><span class="lbl">' + n + '</span>'
-  + '<span style="font-family:' + v + ';font-size:15px">The quick brown fox 0123</span></div>'
-  + '<div class="spec"><span class="lbl"></span><span class="val" style="font-size:11px;color:var(--text-muted)">'
-  + v + '</span></div>').join('')
-  + [['14px', 'body'], ['12px', 'secondary'], ['11px', 'metadata and chips']].map(
-      ([size, role]) => '<div class="spec"><span class="lbl">' + size + ' — ' + role
-      + '</span><span style="font-size:' + size + '">The quick brown fox 0123</span></div>').join('');
+const typeEl = document.getElementById('type');
+const spec = (label, sample, styler) => {
+  const row = document.createElement('div');
+  row.className = 'spec';
+  const lbl = document.createElement('span');
+  lbl.className = 'lbl';
+  lbl.textContent = label;
+  const text = document.createElement('span');
+  text.textContent = sample;
+  styler(text);
+  row.append(lbl, text);
+  return row;
+};
+for (const [name, value] of Object.entries(fonts)) {
+  typeEl.append(spec(name, 'The quick brown fox 0123', (n) => {
+    n.style.setProperty('font-family', value);   // never through markup
+    n.style.fontSize = '15px';
+  }));
+  const valRow = document.createElement('div');
+  valRow.className = 'spec';
+  // NB: `append()` returns undefined — assigning to its result throws and
+  // kills every section below this one. Caught by measuring the page rather
+  // than by reading it.
+  const pad = document.createElement('span');
+  pad.className = 'lbl';
+  valRow.append(pad);
+  const v = document.createElement('span');
+  v.className = 'val';
+  v.style.cssText = 'font-size:11px;color:var(--text-muted)';
+  v.textContent = value;
+  valRow.append(v);
+  typeEl.append(valRow);
+}
+for (const [size, role] of [['14px', 'body'], ['12px', 'secondary'],
+                            ['11px', 'metadata and chips']]) {
+  typeEl.append(spec(size + ' — ' + role, 'The quick brown fox 0123',
+                     (n) => { n.style.fontSize = size; }));
+}
 document.getElementById('type-gap').innerHTML =
     '<b>No declared type scale.</b> Sizes are literal px in <code>cockpit.css</code>, '
   + 'clustering at 11/12/14. Recorded as a gap rather than papered over — what the '
@@ -434,7 +478,7 @@ document.getElementById('type-gap').innerHTML =
 // ---- spacing: counted from the stylesheet text, not quoted -----------------
 const counts = {};
 eachRule(SHEETS, (rule, sheet) => {
-  if (!rule.style || !(sheet.href || '').includes('cockpit.css')) return;
+  if (!rule.style || !sheetOrigin(sheet).includes('cockpit.css')) return;
   for (const prop of rule.style) {
     if (!/^(margin|padding|gap|top|left|right|bottom)/.test(prop)) continue;
     for (const px of String(rule.style.getPropertyValue(prop)).match(/\b\d+px\b/g) || []) {

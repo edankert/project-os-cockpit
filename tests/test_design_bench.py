@@ -1699,6 +1699,17 @@ def test_the_desktop_passes_the_path_and_derives_it_once() -> None:
 
 # ---- the living style guide (TASK-0228) ----------------------------------
 
+def _code_only(js: str) -> str:
+    """JS with comments stripped.
+
+    Three tests in this file have now matched their own explanatory prose
+    instead of the code — a comment quoting the bug it warns about reads
+    exactly like the bug. Strip once, in one place.
+    """
+    js = re.sub(r"/\*.*?\*/", "", js, flags=re.S)
+    return re.sub(r"^\s*//.*$", "", js, flags=re.M)
+
+
 def _style_guide() -> str:
     return (Path(__file__).resolve().parents[1] / "docs" / "designs"
             / "DES-0002-style-guide.html").read_text(encoding="utf-8")
@@ -1964,7 +1975,7 @@ def test_token_values_never_reach_an_html_parser() -> None:
     string concatenation into innerHTML, the quote closed the style attribute
     and the SVG was parsed as markup — 16 stray elements in the palette. A
     value read from a stylesheet is DATA (ISS-0048)."""
-    body = _style_guide().split("<script>", 1)[1]
+    body = _code_only(_style_guide().split("<script>", 1)[1])
     assert "swatchRow" in body and "createElement('i')" in body
     for banned in ("'<div class=\"sw\"", "style=\"background:'", "innerHTML = '<div"):
         assert banned not in body, banned
@@ -1983,3 +1994,63 @@ def test_a_token_is_not_assumed_to_be_a_colour() -> None:
     assert "url(data:image/svg+xml …)" in body, (
         "the raw data URI is printed again; it is payload, not a value"
     )
+
+
+# ---- review findings F2 / F3 / F5 ----------------------------------------
+
+def test_the_asset_route_declares_utf8(tmp_path: Path) -> None:
+    """`guess_type` returns `text/html` with no charset, while the HISTORICAL
+    route hard-codes utf-8 — so the same bytes decoded two ways and
+    revision-compare showed an encoding difference as a design difference
+    (ISS-0050). Asked over HTTP, because the previous guard grepped the
+    handler's source and could not see a header that was absent."""
+    docs = tmp_path / "docs"
+    (docs / "designs").mkdir(parents=True)
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    _note(docs / "designs" / "DES-0001-Enc.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "Enc",
+        "status": "draft", "role": "proposal", "asset": "enc.html"})
+    # No <meta charset> — exactly DES-0001's shape.
+    (docs / "designs" / "enc.html").write_text(
+        "<h1>project-os-cockpit · design review</h1>", encoding="utf-8")
+    httpd, port = _serve(docs)
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/design-asset/designs/enc.html" % port,
+                timeout=5) as r:
+            ctype = r.headers.get("Content-Type", "")
+            assert "charset=utf-8" in ctype.lower(), ctype
+            assert "·" in r.read().decode("utf-8")
+    finally:
+        httpd.shutdown()
+
+
+def test_sheet_provenance_survives_reinjection() -> None:
+    """A re-injected sheet is a <style>, so `href` is null. A filter written
+    as `(sheet.href || '').includes(...)` matched nothing in the sandboxed
+    runtime — the only runtime the app uses — and the spacing section rendered
+    zero bars under prose calling itself the live measurement (ISS-0051)."""
+    guide = _style_guide()
+    assert "function sheetOrigin(sheet)" in guide
+    assert "data-reinjected-from" in guide
+    body = _code_only(guide.split("<script>", 1)[1])
+    assert "(sheet.href || '')" not in body, (
+        "a sheet's origin is read from href alone again; re-injected sheets "
+        "have none and will be silently skipped"
+    )
+    # Every provenance question goes through the one helper.
+    assert body.count("sheetOrigin(") >= 3
+
+
+def test_the_type_specimens_do_not_reach_a_parser() -> None:
+    """`--font-sans` contains `"Segoe UI"`. Interpolated, the quotes closed the
+    attribute and the specimen rendered the INHERITED font — looking almost
+    right while demonstrating nothing, the worst failure a specimen has
+    (ISS-0052). ISS-0048 fixed this in swatchRow only."""
+    body = _code_only(_style_guide().split("<script>", 1)[1])
+    assert "font-family:' + v" not in body
+    assert "n.style.setProperty('font-family', value);" in body
+    # The guard for ISS-0048 inspected one function and certified the fix it
+    # was written beside; this one covers the whole script.
+    assert "style=\"font-family:" not in body

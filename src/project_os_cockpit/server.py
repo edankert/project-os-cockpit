@@ -1786,6 +1786,14 @@ def _make_handler(
                 self._respond_not_found(rel)
                 return
             ctype, _ = mimetypes.guess_type(str(target))
+            # `guess_type` returns "text/html" with no charset, so a document
+            # without its own <meta charset> was decoded as latin-1 and
+            # rendered mojibake — while `_serve_design_asset_at` hard-codes
+            # utf-8, so the SAME bytes rendered correctly from history and
+            # incorrectly live. Revision-compare was comparing two encodings
+            # (ISS-0050). Text is utf-8 here; binary assets are untouched.
+            if ctype and ctype.startswith("text/"):
+                ctype = ctype + "; charset=utf-8"
             body = target.read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", ctype or "application/octet-stream")
