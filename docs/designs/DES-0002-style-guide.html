@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="/_shell/renderer.css" id="shell-css" />
 <style>
   body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
-         margin: 0; padding: 20px 24px 60px; }
+         margin: 0; padding: 28px 34px 72px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
        color: var(--text-muted); margin: 30px 0 10px;
@@ -112,6 +112,17 @@
 <div class="note" id="a11y"></div>
 
 <script>
+// The app passes its theme in the query string — the frame is sandboxed with an
+// opaque origin and can reach neither the parent nor localStorage, so there is
+// no other channel. Honoured here because this page DOCUMENTS both schemes and
+// looked wrong sitting light inside a dark cockpit; a design mock that is
+// deliberately light is free to ignore it.
+(() => {
+  const theme = new URLSearchParams(location.search).get('theme');
+  if (theme === 'dark' || theme === 'light') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+})();
 (async () => {
 // ---- read the stylesheets -------------------------------------------------
 // The design frame is sandboxed `allow-scripts` and deliberately NOT
@@ -183,17 +194,51 @@ const shellPresent = SHEETS.some((s) =>
   || (s.ownerNode && (s.ownerNode.getAttribute('data-reinjected-from') || '')
         .includes('/_shell/')));
 
-// Resolve a token against a probe element so BOTH schemes can be read without
-// touching the page's own theme.
+// Read both schemes from the DECLARATIONS, not from a probe element.
+//
+// A probe cannot escape the document's own theme: light is the `:root` default
+// and only `[data-theme="dark"]` exists, so once the app hands this page a dark
+// theme every probe inherits dark and the LIGHT column silently shows dark
+// values. Caught the moment theme propagation started working.
+//
+// Walking the rules in cascade order also handles the shell overriding
+// base.css, which is the thing this page exists to surface.
+function paletteMaps() {
+  const light = {}, dark = {};
+  eachRule(SHEETS, (rule) => {
+    if (!rule.style || !rule.selectorText) return;
+    const sel = rule.selectorText;
+    // Root-level declarations only; component-scoped tokens are reported
+    // separately as scoped rather than pretended into the palette.
+    //
+    // "Root-level" cannot be a prefix test. base.css writes the dark block as
+    // a BARE `[data-theme="dark"]` while renderer.css writes
+    // `:root[data-theme="dark"]` — requiring the `:root` skipped base.css's
+    // dark palette entirely and the dark column quietly showed light values
+    // for every token the shell does not override. So: strip the root-ish
+    // pieces and accept the selector only if nothing else remains.
+    const isRootish = sel.split(',').some((part) =>
+      part.replace(/:root|\bhtml\b|\bbody\b/g, '')
+          .replace(/\[data-theme=["']?[\w-]+["']?\]/g, '')
+          .trim() === '');
+    if (!isRootish) return;
+    const target = /\[data-theme=["']?dark["']?\]/.test(sel) ? dark : light;
+    for (const name of rule.style) {
+      if (!name.startsWith('--')) continue;
+      // Last declaration wins, matching the cascade.
+      target[name] = rule.style.getPropertyValue(name).trim();
+    }
+  });
+  return { light, dark };
+}
+let PALETTE = null;
 function resolve(names, dark) {
-  const probe = document.createElement('div');
-  if (dark) probe.setAttribute('data-theme', 'dark');
-  probe.style.display = 'none';
-  document.body.appendChild(probe);
-  const cs = getComputedStyle(probe);
+  if (!PALETTE) PALETTE = paletteMaps();
+  const map = dark ? PALETTE.dark : PALETTE.light;
   const out = {};
-  for (const n of names) out[n] = cs.getPropertyValue(n).trim();
-  probe.remove();
+  // A token declared only in the light block is the same in dark — the dark
+  // block overrides selectively rather than restating the whole palette.
+  for (const n of names) out[n] = (map[n] || (dark ? PALETTE.light[n] : '') || '').trim();
   return out;
 }
 function swatchList(names, dark) {

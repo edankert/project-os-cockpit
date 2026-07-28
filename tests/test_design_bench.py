@@ -152,7 +152,11 @@ def test_the_repos_own_designs_resolve() -> None:
         "it at a size that exercises nothing"
     )
     assert by_id["DES-0002"]["role"] == "system"
-    assert by_id["DES-0002"]["viewport"] == 900
+    # No viewport: it is a document. It declared 900 before the page existed,
+    # recording the height REQ-0022 asserts rather than a width the artifact
+    # is drawn at — and that one wrong field framed a scrolling reference page
+    # inside a 900px window (ISS-0045).
+    assert by_id["DES-0002"]["viewport"] is None
 
 
 # ---- the artifact endpoint ------------------------------------------------
@@ -257,8 +261,12 @@ def test_declared_viewport_is_used_and_absence_means_scroll() -> None:
     dossier framed at a device width demonstrates nothing."""
     src = _renderer()
     assert "preset.key === 'declared' ? d.viewport : preset.w" in src
-    # A document must not be offered device widths at all.
-    assert "if (!d.viewport && v.w) b.disabled = true;" in src
+    # A document is not offered device widths at all — and no longer even
+    # shown the bar. The first version rendered five buttons and disabled
+    # four of them; Edwin's question ("why do we have these options if all we
+    # show is a page") is answered by not rendering it (ISS-0045).
+    head = src.split("function buildDesignHeader(")[1].split("\nfunction ")[0]
+    assert "if (d.viewport) {" in head
 
 
 def test_missing_artifact_is_distinguished_from_none_declared() -> None:
@@ -1708,8 +1716,11 @@ def test_the_style_guide_types_no_values() -> None:
         "a hex colour is typed into the style guide; every value must be read"
     )
     assert not re.search(r"\bhsl\(\s*\d", body), "an hsl value is typed in"
-    for mechanism in ("document.styleSheets", "getComputedStyle",
-                      "getPropertyValue"):
+    #  was the original mechanism and is deliberately gone:
+    # a probe inherits the document theme, so it could not read both schemes
+    # once the app started handing this page a dark one. Reading declarations
+    # is what replaced it.
+    for mechanism in ("document.styleSheets", "getPropertyValue", "cssRules"):
         assert mechanism in body, mechanism
 
 
@@ -1822,3 +1833,75 @@ def test_the_guide_never_fails_blank() -> None:
     """A blank page is the worst failure mode for a page whose job is to show
     things — and blank is exactly what this shipped as."""
     assert "failed to build itself" in _style_guide()
+
+
+# ---- theme, fit and margins (ISS-0044) -----------------------------------
+
+def test_the_theme_travels_in_the_url() -> None:
+    """The artifact is sandboxed with an opaque origin: it can reach neither
+    the parent nor localStorage, so the URL is the only channel. A page that
+    documents both schemes sitting light inside a dark cockpit looked wrong,
+    and an artifact is free to ignore the hint."""
+    src = _renderer()
+    assert "?theme=${document.documentElement.dataset.theme" in src
+    guide = _style_guide()
+    assert "new URLSearchParams(location.search).get('theme')" in guide
+
+
+def test_both_palettes_are_read_from_declarations_not_a_probe() -> None:
+    """A probe cannot escape the document's own theme — light is the `:root`
+    default and only `[data-theme="dark"]` exists — so once the app started
+    handing this page a dark theme, the LIGHT column silently showed dark
+    values. Reading the declarations is theme-independent."""
+    guide = _style_guide()
+    assert "function paletteMaps()" in guide
+    assert "getComputedStyle(probe)" not in guide
+
+
+def test_root_detection_accepts_a_bare_data_theme_selector() -> None:
+    """base.css writes its dark block as a BARE `[data-theme="dark"]` while
+    renderer.css writes `:root[data-theme="dark"]`. Requiring the `:root`
+    skipped base.css's dark palette entirely, and the dark column showed light
+    values for every token the shell does not override."""
+    guide = _style_guide()
+    assert "isRootish" in guide
+    assert "data-theme=[\"']?[\\w-]+[\"']?" in guide
+
+
+def test_a_framed_design_is_scaled_rather_than_scrolled() -> None:
+    """A 900px frame in a ~767px stage made the stage a second scroller, and
+    centred in a wide pane it left a broad dead zone either side of the design
+    where the wheel moved that stage a few pixels instead of the artifact."""
+    src = _renderer()
+    assert "Math.min(1, box.height / framedHeight, box.width / width)" in src
+    assert "new ResizeObserver(fit)" in src
+    css = (Path(__file__).resolve().parents[1] / "desktop" / "src" / "renderer"
+           / "renderer.css").read_text(encoding="utf-8")
+    framed = css.split(".design-shell-body .design-stage.is-framed {")[1].split("}")[0]
+    assert "overflow: hidden" in framed, (
+        "the framed stage is a scroller again; scaling exists so it is not"
+    )
+
+
+def test_the_viewport_chooser_is_only_for_surfaces() -> None:
+    """`viewport:` absence already means "this is a document, let it flow" for
+    the width, the height and the framing. The chrome had not been told, so a
+    document rendered a five-button bar of which four were disabled."""
+    src = _renderer()
+    head = src.split("function buildDesignHeader(")[1].split("\nfunction ")[0]
+    assert "if (d.viewport) {" in head
+    assert "b.disabled = true" not in head, (
+        "the bar is rendered-then-disabled again; it should not be rendered"
+    )
+
+
+def test_the_design_system_is_a_document_not_a_surface() -> None:
+    """DES-0002 declared `viewport: 900`, recording the height REQ-0022
+    asserts rather than a width the artifact is drawn at. That one wrong field
+    framed a scrolling reference page inside a 900px window."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    system = next(d for d in cockpit.designs_payload(Index.build(docs))["designs"]
+                  if d["id"] == "DES-0002")
+    assert system["viewport"] is None, (
+        "the style guide declares a viewport again; it is a document"
+    )

@@ -3626,7 +3626,12 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* The shell tightened the page against its chrome; a design needs room
+     around it to read as a design rather than as part of the app. */
+  padding: 18px 26px 20px;
+  gap: 4px;
 }
+.design-view.is-shell > .design-head { margin-bottom: 10px; }
 .design-view.is-shell {
   display: flex; flex-direction: column;
   flex: 1; min-height: 0;
@@ -3671,9 +3676,15 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   flex-direction: column; gap: 10px; align-content: center;
 }
 .design-stage.is-empty .design-note-open { flex: 0 0 auto; align-self: center; }
-/* A framed stage scrolls if the declared viewport is taller than the window:
-   the frame keeps its declared size, and the stage — not the page — moves. */
-.design-shell-body .design-stage.is-framed { overflow: auto; align-items: flex-start; }
+/* A framed design is SCALED to fit rather than making the stage a second
+   scroller (ISS-0044). The stage therefore does not scroll at all, and the
+   artifact's own scrollbar is the only one on the surface — which is what
+   "no way to scroll down the document" was really about: the wheel landing on
+   a stage with 130px of travel instead of on the design. */
+.design-shell-body .design-stage.is-framed {
+  overflow: hidden; align-items: flex-start;
+  padding: 4px 0 0;
+}
 
 .design-head { margin-bottom: 14px; }
 .design-head h1 { margin: 0 0 6px; font-size: 18px; }

@@ -23,7 +23,7 @@
 </head>
 <body>
 <script>
-const FRAMED = location.hash === '#framed';
+const FRAMED = location.hash === '#framed' || location.hash === '#real';
 const EMPTY  = location.hash === '#empty';
 const noopOff = () => {};
 const on = () => noopOff;
@@ -60,7 +60,9 @@ window.EventSource = FakeES;
 const DESIGNS = { schema_version: 4, designs: [{
   id: 'DES-0001', title: 'Overview redesign dossier',
   rel: 'designs/DES-0001-Overview-Redesign.md', status: 'implemented',
-  role: 'proposal', asset: 'designs/dossier.html', has_asset: true,
+  role: 'proposal',
+  asset: location.hash.startsWith('#real') ? 'designs/DES-0002-style-guide.html' : 'designs/dossier.html',
+  has_asset: true,
   viewport: FRAMED ? 900 : null,
   implements: ['FEAT-0040'],
   rationale: [{ id: 'ADR-0006', title: 'Retire the delivered band',
@@ -94,8 +96,11 @@ window.fetch = async (input, init) => {
   if (url.includes('/api/cockpit/designs'))         return json(DESIGNS);
   if (url.includes('/api/cockpit/design-revisions'))return json(REVISIONS);
   if (url.includes('/api/cockpit/brief'))           return json(BRIEF);
-  if (url.includes('/design-asset'))
+  if (url.includes('/design-asset')) {
+    // #real proxies the actual sidecar so the real artifact is exercised.
+    if (location.hash.startsWith('#real')) return realFetch('http://127.0.0.1:8918' + new URL(url).pathname);
     return new Response(ARTIFACT, { status: 200, headers: { 'Content-Type': 'text/html' } });
+  }
   if (url.includes('/api/render'))    return json({ metadata_html: '', html: '<p>note</p>' });
   if (url.includes('/api/cockpit/context'))     return json({ schema_version: 4,
     platform: 'all',
@@ -217,12 +222,23 @@ try {
           Math.round(r.width) + 'x' + Math.round(r.height));
     check('the frame is not taller than the pane', r.height <= pr.height + 1,
           'frame ' + Math.round(r.height) + ' vs pane ' + Math.round(pr.height));
+    // ISS-0044: a framed design is SCALED to fit, so the stage must not be a
+    // scroller. A stage with a few pixels of travel, centred in a wide pane,
+    // swallowed the wheel everywhere except directly over the design.
+    if (FRAMED) {
+      const st = document.querySelector('.design-stage');
+      check('the stage is not a second scroller', !scrolls(st),
+            'scroll ' + st.scrollHeight + ' vs client ' + st.clientHeight);
+    }
     // The measurement that mattered: with the sidebar collapsed the frame must
     // reach the full pane, or a design authored wider than the frame scrolls
     // sideways inside it — which is what "the frame is the wrong size" was.
     const toggle = document.querySelector('.design-side-toggle');
     check('a details toggle exists', !!toggle);
-    if (toggle) {
+    // A FRAMED design has a fixed declared width, so collapsing the sidebar
+    // gives it more room to sit in, not more width. Only the document case
+    // can grow.
+    if (toggle && !FRAMED) {
       const sideEl = document.querySelector('.design-side');
       if (sideEl.hidden) toggle.click();          // normalise: start expanded
       const withSide = frame.getBoundingClientRect().width;

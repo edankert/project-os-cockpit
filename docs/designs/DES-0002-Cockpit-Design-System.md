@@ -10,7 +10,6 @@ created: 2026-07-27
 updated: 2026-07-27
 source: ["src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "[[DES-0001-Overview-Redesign]]"]
 asset: "DES-0002-style-guide.html"
-viewport: 900
 implements: []
 supersedes: ""
 superseded_by: ""
@@ -23,6 +22,8 @@ related: ["[[DES-0001-Overview-Redesign]]", "[[TST-0019-Status-Vocabulary-Parity
 # Cockpit design system
 
 Values below are **read from the implementation** (`base.css`, `cockpit.css`), not invented. Where the code has no answer, this note says so rather than inventing one — an aspirational system the code does not follow is worse than an honest gap, because it makes the parity check meaningless from day one.
+
+**No `viewport:` — this is a document, not a surface.** It declared `900` before the page existed, describing the height [[REQ-0022]] asserts rather than a width the artifact is drawn at; that made the bench frame a scrolling reference page inside a 900px window and offer device widths for it. Absence is the honest declaration, and the surface reads it: no framing, no viewport chooser, the page simply shown ([[ISS-0045]]).
 
 The living style-guide page is `DES-0002-style-guide.html`, delivered by [[TASK-0228]]. **It reads every value from the real stylesheets as it renders** — `base.css`, `cockpit.css`, and the shell stylesheet exposed by [[TASK-0227]] — so no colour, size or spacing figure is typed into it. Band *membership* is read the same way, from the `[data-status]` rules.
 

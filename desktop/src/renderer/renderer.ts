@@ -2871,9 +2871,15 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   // a sandbox attribute does not restrict network.
   frame.setAttribute('sandbox', 'allow-scripts');
   frame.setAttribute('referrerpolicy', 'no-referrer');
+  // The artifact cannot read the app's theme: it is sandboxed with an opaque
+  // origin and can reach neither the parent nor localStorage. So the theme
+  // travels in the URL, and an artifact may honour it or ignore it — a design
+  // mock that is deliberately light stays light, while the style guide (which
+  // documents both schemes) follows the app.
+  const themeQ = `?theme=${document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'}`;
   frame.src = atSha
-    ? `${sidecarBaseUrl}/design-asset-at/${encodeURIComponent(d.id)}/${encodeURIComponent(atSha)}`
-    : `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}`;
+    ? `${sidecarBaseUrl}/design-asset-at/${encodeURIComponent(d.id)}/${encodeURIComponent(atSha)}${themeQ}`
+    : `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}${themeQ}`;
 
   const preset = DESIGN_VIEWPORTS.find((v) => v.key === designViewport)
     ?? DESIGN_VIEWPORTS[0];
@@ -2901,6 +2907,34 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   const framedHeight = preset.key === 'declared' ? (d.viewport ? preset.h : null) : preset.h;
   if (framedHeight) frame.style.height = `${framedHeight}px`;
   else frame.style.height = '100%';
+
+  if (width && framedHeight) {
+    // Fit the declared viewport into the stage rather than letting the stage
+    // scroll (ISS-0044). A 900px frame in a ~767px stage made the stage a
+    // second scroller, and — centred in a wide pane — left a broad dead zone
+    // either side of the design where the wheel scrolled that stage by a few
+    // pixels instead of scrolling the artifact. "No way to scroll down the
+    // document" was pointing at exactly that.
+    //
+    // Scaling preserves what framing is FOR: the artifact still lays out at
+    // its declared width, so a 420px design is still a 420px design. Only the
+    // presentation shrinks, and only when it must.
+    const fit = () => {
+      const box = wrap.getBoundingClientRect();
+      if (!box.height || !box.width) return;
+      const scale = Math.min(1, box.height / framedHeight, box.width / width);
+      frame.style.transformOrigin = 'top center';
+      frame.style.transform = scale < 1 ? `scale(${scale})` : '';
+      // A scaled element still occupies its unscaled size in layout, which
+      // would reintroduce the very overflow this removes.
+      wrap.style.setProperty('--design-fit', String(scale));
+      frame.style.marginBottom = scale < 1
+        ? `${-(framedHeight * (1 - scale))}px` : '';
+    };
+    requestAnimationFrame(fit);
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+  }
   wrap.append(frame);
   return wrap;
 }
@@ -2942,20 +2976,28 @@ function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement
   for (const id of d.implements) meta.append(chip(id, 'design-implements'));
   head.append(meta);
 
-  const bar = document.createElement('div');
-  bar.className = 'design-viewports';
-  for (const v of DESIGN_VIEWPORTS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'design-vp' + (v.key === designViewport ? ' is-active' : '');
-    b.textContent = v.label;
-    // A document has no meaningful device width; offering one invites a
-    // review conducted at a size that proves nothing.
-    if (!d.viewport && v.w) b.disabled = true;
-    b.addEventListener('click', () => { designViewport = v.key; onViewport(); });
-    bar.append(b);
+  // The viewport chooser appears ONLY for a design that declares a viewport —
+  // that is, one that IS a surface (ISS-0045).
+  //
+  // Edwin: "why do we have these options on top if all we show is just a page
+  // with artefacts ... the page should always just show the page". Correct for
+  // a document, and both designs in this corpus are documents: the bar was
+  // five controls of which four were disabled, framing a page that has no
+  // device width. `viewport:` absence already means "this is a document, let
+  // it flow" everywhere else; the chrome had not been told.
+  if (d.viewport) {
+    const bar = document.createElement('div');
+    bar.className = 'design-viewports';
+    for (const v of DESIGN_VIEWPORTS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'design-vp' + (v.key === designViewport ? ' is-active' : '');
+      b.textContent = v.label;
+      b.addEventListener('click', () => { designViewport = v.key; onViewport(); });
+      bar.append(b);
+    }
+    head.append(bar);
   }
-  head.append(bar);
   return head;
 }
 
