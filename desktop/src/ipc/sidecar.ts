@@ -85,6 +85,19 @@ function bundledPythonPath(): string | null {
   return null;
 }
 
+/** The built renderer directory, or null if it cannot be found.
+ *
+ *  Design artifacts link `renderer.css` from here to show real widgets
+ *  (TASK-0227). `main.ts` loads `renderer/index.html` relative to `__dirname`,
+ *  so the same base is the one place that already knows where the build lands
+ *  — deriving it a second way would be a path that could drift from the one
+ *  the window actually loads.
+ */
+function shellAssetsPath(): string | null {
+  const dir = path.join(__dirname, '..', 'renderer');
+  return existsSync(path.join(dir, 'renderer.css')) ? dir : null;
+}
+
 function send(
   window: BrowserWindow | null,
   ev: { kind: string; payload?: unknown },
@@ -184,6 +197,7 @@ async function spawnSidecar(
       '--port', String(port),
       '--bind', '127.0.0.1',
       '--no-open',
+      ...(shellAssetsPath() ? ['--shell-assets', shellAssetsPath() as string] : []),
     ],
     {
       cwd: workspace.root,

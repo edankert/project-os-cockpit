@@ -1507,18 +1507,22 @@ def test_an_artifactless_design_can_still_be_read() -> None:
     assert "e.key === 'Enter' || e.key === ' '" in src
 
 
-def test_the_design_system_note_is_the_one_that_needed_this() -> None:
-    """Grounded in the corpus rather than a fixture: the repo's own design
-    system declares no asset, so this is not a hypothetical case."""
-    docs = Path(__file__).resolve().parents[1] / "docs"
+def test_the_no_artifact_path_stays_covered(tmp_path: Path) -> None:
+    """Was grounded in DES-0002, which declared no asset. TASK-0228 gave it
+    one, so this moved to a fixture rather than being deleted — the note said
+    so itself when the premise still held. A design may legitimately have no
+    artifact (a proposal being written), and that path still needs a door."""
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0009-No-Artifact.md", {
+        "type": "[[design]]", "id": "DES-0009", "title": "Nothing yet",
+        "status": "draft", "role": "proposal", "asset": "",
+    })
     payload = cockpit.designs_payload(Index.build(docs))
-    system = next(d for d in payload["designs"] if d["role"] == "system")
-    assert system["id"] == "DES-0002"
-    assert system["has_asset"] is False, (
-        "DES-0002 now has an artifact — this test's premise changed; keep the "
-        "no-artifact path covered by a fixture instead of deleting it"
+    record = payload["designs"][0]
+    assert record["has_asset"] is False
+    assert record["rel"].endswith(".md"), (
+        "the empty stage links to `rel`; without it there is no way through"
     )
-    assert system["rel"].endswith(".md")
 
 
 def test_the_empty_stage_does_not_stretch_its_message() -> None:
@@ -1555,3 +1559,212 @@ def test_the_harness_covers_the_empty_stage() -> None:
     assert "#empty" in harness
     assert "the button is not a full-height slab" in harness
     assert "the context pane carries the note" in harness
+
+
+# ---- the shell stylesheet route (TASK-0227) ------------------------------
+
+def _serve_with_shell(docs: Path, shell: Path | None):
+    import threading
+    from project_os_cockpit.server import (
+        DocsServer, _NoDNSThreadingHTTPServer, _make_handler,
+    )
+    server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0,
+                        shell_assets=shell)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        _make_handler(server.docs_root, server.index, server.bus,
+                      cockpit_state=server.cockpit_state,
+                      shell_assets=server.shell_assets))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, httpd.server_address[1]
+
+
+def _raw(port: int, path: str) -> tuple[int, bytes]:
+    import urllib.error
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d%s" % (port, path), timeout=5) as resp:
+            return resp.status, resp.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read()
+
+
+def _mini_docs(tmp_path: Path) -> Path:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("# hi\n", encoding="utf-8")
+    return docs
+
+
+def test_the_shell_stylesheet_is_served_when_the_path_is_given(tmp_path: Path) -> None:
+    """A design artifact is served from the SIDECAR origin, so a <link> inside
+    it resolves against the sidecar — which knew about base.css and cockpit.css
+    and had never heard of renderer.css, where every widget style lives."""
+    shell = tmp_path / "shell"
+    shell.mkdir()
+    (shell / "renderer.css").write_text(".design-chip { color: red }", encoding="utf-8")
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), shell)
+    try:
+        status, body = _raw(port, "/_shell/renderer.css")
+        assert status == 200, status
+        assert b"design-chip" in body
+    finally:
+        httpd.shutdown()
+
+
+def test_no_copy_of_the_stylesheet_is_made() -> None:
+    """Serve, never copy. A second copy of a stylesheet is precisely the drift
+    this project was founded on (ISS-0023), and the design system is the last
+    place that should carry one."""
+    pkg_static = (Path(__file__).resolve().parents[1]
+                  / "src" / "project_os_cockpit" / "static")
+    assert not (pkg_static / "renderer.css").exists(), (
+        "renderer.css was copied into the package's static dir; it must be "
+        "SERVED from the desktop build, not duplicated"
+    )
+
+
+def test_mode_1_degrades_to_404_rather_than_erroring(tmp_path: Path) -> None:
+    """The sidecar runs without the desktop app at all. Absence is a normal
+    state here, not a fault — so it must not be a hard dependency and must not
+    raise."""
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), None)
+    try:
+        status, _ = _raw(port, "/_shell/renderer.css")
+        assert status == 404, status
+        # And the rest of the server is unaffected.
+        assert _raw(port, "/healthz")[0] == 200
+    finally:
+        httpd.shutdown()
+
+
+def test_the_route_is_an_allow_list_not_a_directory_share(tmp_path: Path) -> None:
+    """The design surface needs the stylesheet. Nothing about that is a reason
+    to expose the bundle, its source maps, or anything else the build emits."""
+    shell = tmp_path / "shell"
+    shell.mkdir()
+    (shell / "renderer.css").write_text("ok", encoding="utf-8")
+    (shell / "renderer.js").write_text("console.log(1)", encoding="utf-8")
+    (shell / "renderer.js.map").write_text("{}", encoding="utf-8")
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), shell)
+    try:
+        assert _raw(port, "/_shell/renderer.css")[0] == 200
+        for denied in ("renderer.js", "renderer.js.map", "index.html"):
+            assert _raw(port, "/_shell/" + denied)[0] == 404, denied
+    finally:
+        httpd.shutdown()
+
+
+def test_traversal_and_escape_are_refused(tmp_path: Path) -> None:
+    """The guards are `_serve_static`'s, reused rather than re-derived — this
+    route must not become the one place traversal checking was rewritten
+    slightly differently."""
+    shell = tmp_path / "shell"
+    shell.mkdir()
+    (shell / "renderer.css").write_text("ok", encoding="utf-8")
+    (tmp_path / "secret.css").write_text("leaked", encoding="utf-8")
+    httpd, port = _serve_with_shell(_mini_docs(tmp_path), shell)
+    try:
+        for attack in ("/_shell/../secret.css", "/_shell/..%2Fsecret.css",
+                       "/_shell/", "/_shell/sub/renderer.css"):
+            status, body = _raw(port, attack)
+            assert status in (403, 404), (attack, status)
+            assert b"leaked" not in body, attack
+    finally:
+        httpd.shutdown()
+
+
+def test_the_desktop_passes_the_path_and_derives_it_once() -> None:
+    """`main.ts` already loads `renderer/index.html` relative to __dirname;
+    deriving the assets path a second way would let it drift from the one the
+    window actually loads."""
+    sidecar = (Path(__file__).resolve().parents[1]
+               / "desktop" / "src" / "ipc" / "sidecar.ts").read_text(encoding="utf-8")
+    assert "'--shell-assets'" in sidecar
+    assert "function shellAssetsPath()" in sidecar
+    assert "existsSync(path.join(dir, 'renderer.css'))" in sidecar, (
+        "the path is passed without checking the file is there; mode-1 and a "
+        "half-built tree would both send a bad path"
+    )
+
+
+# ---- the living style guide (TASK-0228) ----------------------------------
+
+def _style_guide() -> str:
+    return (Path(__file__).resolve().parents[1] / "docs" / "designs"
+            / "DES-0002-style-guide.html").read_text(encoding="utf-8")
+
+
+def test_the_style_guide_types_no_values() -> None:
+    """The whole argument for the page: the status palette is already stated
+    in base.css with membership in statuses.py, kept in agreement by TST-0019.
+    A hand-typed swatch page would be the FOURTH statement and the one place
+    with no check. Read from source, drift is impossible rather than caught."""
+    html = _style_guide()
+    body = html.split("<script>", 1)[1]
+    # No literal colours anywhere in the logic.
+    assert not re.search(r"#[0-9A-Fa-f]{6}\b", body), (
+        "a hex colour is typed into the style guide; every value must be read"
+    )
+    assert not re.search(r"\bhsl\(\s*\d", body), "an hsl value is typed in"
+    for mechanism in ("document.styleSheets", "getComputedStyle",
+                      "getPropertyValue"):
+        assert mechanism in body, mechanism
+
+
+def test_band_membership_is_read_from_css_too() -> None:
+    """base.css states membership as `.status-chip[data-status="x"] { color:
+    var(--status-y) }`, so the page reports the counts without a list of
+    statuses existing anywhere inside it."""
+    body = _style_guide().split("<script>", 1)[1]
+    assert 'data-status="([^"]+)"' in body
+    assert "var\\((--status-[a-z]+)\\)" in body or "--status-[a-z]+" in body
+
+
+def test_no_top_level_declaration_shadows_a_window_property() -> None:
+    """`const top` is a SyntaxError — `top` is a non-configurable window
+    property — and it killed the entire script silently. `node --check` passed
+    it, because Node has no window. This is the check that would have."""
+    body = _style_guide().split("<script>", 1)[1].rsplit("</script>", 1)[0]
+    declared = set(re.findall(
+        r"^(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)", body, re.M))
+    reserved = {
+        "top", "self", "parent", "name", "status", "length", "location",
+        "history", "origin", "screen", "closed", "frames", "event", "opener",
+        "window", "document", "external", "menubar", "toolbar", "scrollbars",
+        "personalbar", "locationbar", "statusbar", "frameElement",
+    }
+    clash = declared & reserved
+    assert not clash, (
+        "top-level %s shadows a non-configurable window property; the whole "
+        "script becomes a SyntaxError and the page renders blank" % sorted(clash)
+    )
+
+
+def test_the_gaps_and_the_degraded_path_are_stated() -> None:
+    """DES-0002 records that there is no type scale and no spacing scale. An
+    invented scale would be worse than the gap. And with the shell stylesheet
+    absent (mode-1), unstyled markup would read as a design regression."""
+    html = _style_guide()
+    assert "No declared type scale" in html
+    assert "No spacing tokens exist" in html
+    assert "The widget gallery needs the desktop shell" in html
+    assert "shellPresent" in html
+
+
+def test_zero_is_not_counted_as_spacing() -> None:
+    """`0px` topped the distribution at 154 uses — a reset, not a spacing
+    decision, and it said nothing about density."""
+    assert "if (px !== '0px')" in _style_guide()
+
+
+def test_des_0002_now_has_its_artifact() -> None:
+    """The note said of itself that the page did not exist yet and that it
+    would stay draft until it rendered."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    payload = cockpit.designs_payload(Index.build(docs))
+    system = next(d for d in payload["designs"] if d["id"] == "DES-0002")
+    assert system["has_asset"] is True
+    assert system["asset"].endswith("DES-0002-style-guide.html")
+    assert system["status"] == "implemented"

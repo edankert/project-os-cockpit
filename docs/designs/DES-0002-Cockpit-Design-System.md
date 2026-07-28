@@ -4,12 +4,12 @@ id: DES-0002
 aliases: ["DES-0002"]
 title: "Cockpit design system"
 role: system
-status: draft
+status: implemented
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-27
 source: ["src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "[[DES-0001-Overview-Redesign]]"]
-asset: ""
+asset: "DES-0002-style-guide.html"
 viewport: 900
 implements: []
 supersedes: ""
@@ -24,7 +24,7 @@ related: ["[[DES-0001-Overview-Redesign]]", "[[TST-0019-Status-Vocabulary-Parity
 
 Values below are **read from the implementation** (`base.css`, `cockpit.css`), not invented. Where the code has no answer, this note says so rather than inventing one — an aspirational system the code does not follow is worse than an honest gap, because it makes the parity check meaningless from day one.
 
-`status: draft` and `asset: ""` are accurate: the living style-guide page does not exist yet. It is [[TASK-0221]]'s output, and this note is `implemented` only once the page renders and the conformance check below passes.
+The living style-guide page is `DES-0002-style-guide.html`, delivered by [[TASK-0228]]. **It reads every value from the real stylesheets as it renders** — `base.css`, `cockpit.css`, and the shell stylesheet exposed by [[TASK-0227]] — so no colour, size or spacing figure is typed into it. Band *membership* is read the same way, from the `[data-status]` rules.
 
 ## Principles
 
@@ -48,6 +48,8 @@ Semantic roles, defined for both schemes. The cockpit is read in daylight and at
 | `--text-faint` | tertiary, metadata | `hsl(0 0% 55%)` | `hsl(0 0% 50%)` |
 | `--accent-link` | interactive | `hsl(212 48% 42%)` | — |
 | `--accent-focus` | keyboard focus | `hsl(212 60% 50%)` | — |
+
+> **The table above documents `base.css`. The desktop shell draws with `renderer.css`, and they disagree** — `--bg` and `--border` are overridden with different values, and `--text`/`--text-muted`/`--text-faint`/`--accent-link` have parallel names (`--fg`/`--fg-muted`/`--fg-faint`/`--accent`) in the shell. Found by the style-guide page on its first render and recorded as [[ISS-0042]]. Until that is resolved, read this table as the browser cockpit's palette; the page shows what the desktop app actually draws.
 
 **Neutrals are true greys** (`hsl(0 0% n)`), deliberately: the accent is the only chroma on the page, so status colour reads as signal rather than decoration.
 
@@ -114,6 +116,12 @@ Both are *attention* signals with a decay, not decoration. The rule: motion is a
 ## Conformance
 
 Checked by [[TASK-0219]]: the status/severity palette in this note must equal the `statuses.py`-derived palette.
+
+**The artifact declares no tokens, so the parity check reports nothing for it — deliberately.** `design_tokens.py` compares a design's *declared* palette against the implementation, and a design that declares nothing is silent rather than failing. That is the correct outcome here: the page reads its values from the implementation as it renders, so divergence is not caught, it is impossible. A stronger property than the check, and the reason the check has nothing to say.
+
+The **table above** is a different matter: it is prose in this note, typed by hand, and it *can* drift from `base.css`. It is the thing [[TASK-0219]] still guards.
+
+**Known limit: revision-compare loses colour fidelity for this artifact.** An old revision and the working copy both render against today's CSS, so a palette change is invisible in compare. Structural changes still show, and git records what `base.css` was. Accepted deliberately — the page's job is to be true now.
 
 **Direction of authority: `statuses.py` is upstream.** If this note and the implementation disagree about a status colour, this note is wrong. That direction is stated because a parity check without one accumulates waivers instead of fixes.
 

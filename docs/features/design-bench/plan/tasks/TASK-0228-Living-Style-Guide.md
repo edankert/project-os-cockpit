@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0228
 aliases: ["TASK-0228"]
 title: "The living style guide — DES-0002's artifact, read from the real CSS"
-status: backlog
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -51,23 +51,37 @@ Everything [[DES-0002]] describes, in the note's own order:
 
 ## Definition of Done
 
-- [ ] No colour, size or spacing value is typed into the page — every one is read from a live stylesheet
-- [ ] Both schemes render, side by side rather than behind a toggle, since the note's claim is that dark is *designed* rather than inverted
-- [ ] The status bands and the severity ramp are adjacent, so the do-not-reuse rule is visible
-- [ ] Every widget in DES-0002's table appears, in the states that must be distinct without colour
-- [ ] The two recorded gaps (no type scale, no spacing scale) are stated on the page, with the measured reality beside them
-- [ ] With the shell stylesheet unavailable (mode-1), the page says the widget section needs the desktop shell instead of rendering unstyled markup
-- [ ] Renders inside the design bench at the declared 900px viewport
-- [ ] DES-0002 gains `asset:` and leaves `draft`; its Conformance section is updated to say why token parity is now vacuous for it
-- [ ] Verified in `desktop/harness/design-harness.html` against the real bundle — measured, not asserted
+- [x] No colour, size or spacing value is typed into the page — every one is read from a live stylesheet — evidence: the page enumerates custom properties from `document.styleSheets` and renders each swatch from its computed value; 106 swatches, 0 unresolved, measured in a browser
+- [x] Both schemes render, side by side rather than behind a toggle, since the note's claim is that dark is *designed* rather than inverted — evidence: light and dark probes, no toggle; verified `--bg` light `#f7f7f8` / dark `#1b1d1f`
+- [x] The status bands and the severity ramp are adjacent, so the do-not-reuse rule is visible — evidence: four panels in one row (status light/dark, severity light/dark)
+- [x] Every widget in DES-0002's table appears, in the states that must be distinct without colour — evidence: 7 status chips (one per band, taken from the CSS), rail dots, stat tile, list row, empty-state card
+- [x] The two recorded gaps (no type scale, no spacing scale) are stated on the page, with the measured reality beside them — evidence: both rendered as callouts beside the live measurements
+- [x] With the shell stylesheet unavailable (mode-1), the page says the widget section needs the desktop shell instead of rendering unstyled markup — evidence: `shellPresent` gates the gallery; the degraded branch states why rather than rendering unstyled markup
+- [x] Renders inside the design bench at the declared 900px viewport — evidence: `viewport: 900` on DES-0002; served at `/design-asset/designs/DES-0002-style-guide.html` (200)
+- [x] DES-0002 gains `asset:` and leaves `draft`; its Conformance section is updated to say why token parity is now vacuous for it — evidence: `asset: "DES-0002-style-guide.html"`, `status: implemented`; Conformance rewritten to say why token parity is vacuous for the artifact and what it still guards
+- [x] Verified in `desktop/harness/design-harness.html` against the real bundle — measured, not asserted — evidence: measured in a real browser against the sidecar serving all three stylesheets
 
 ## Steps
 
-- [ ] Enumerate custom properties from `document.styleSheets` and render swatches from computed values
-- [ ] Compose the widget gallery using the shell's real class names
-- [ ] State the two gaps with their measurements
-- [ ] Degrade honestly when the shell stylesheet is absent
-- [ ] Update DES-0002 (`asset`, `status`, Conformance)
+- [x] Enumerate custom properties from `document.styleSheets` and render swatches from computed values
+- [x] Compose the widget gallery using the shell's real class names
+- [x] State the two gaps with their measurements
+- [x] Degrade honestly when the shell stylesheet is absent
+- [x] Update DES-0002 (`asset`, `status`, Conformance)
+
+## Result
+
+**It found something on its first render**, which is the whole argument for reading the implementation rather than restating it: `renderer.css` redefines **10 tokens** over `base.css` — `--bg` and `--border` with different values, and a parallel vocabulary (`--fg`, `--fg-muted`, `--fg-faint`, `--accent`) for roles `base.css` already names. DES-0002's palette table documents `base.css`; the desktop app draws with `renderer.css`. Filed as [[ISS-0042]] and flagged in the note. A hand-typed swatch page would have reproduced the table and shown nothing.
+
+Band **membership** is read from CSS too — `base.css` states it as `.status-chip[data-status="x"] { color: var(--status-y) }`, so the page reports *43 statuses across 6 bands* without a list existing anywhere in it.
+
+Three defects fixed during verification, all found by rendering rather than reading:
+
+- `const top` is a **SyntaxError** — `top` is a non-configurable `window` property, so the whole script died silently. `node --check` passed it, because Node has no `window`. The page now carries that warning where the name was, and the audit that found it checks every top-level declaration against the window namespace.
+- `0px` topped the spacing distribution at **154 uses** — a reset, not a spacing decision, saying nothing about density. Excluded.
+- Three tokens (`--nav-width`, `--right-width`, `--pane-header-height`) are declared on components rather than `:root`, so they do not resolve against a page-level probe. They are **named as scoped** rather than rendered as six broken swatches.
+
+The spacing figures differ from the prose in DES-0002 because the page counts through the CSSOM (shorthands expanded, resets excluded) while the note quoted a text count. The page's number is the live one; the note's is a snapshot, which is exactly the asymmetry this task existed to create.
 
 ## Notes
 

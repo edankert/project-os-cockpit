@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 43
-  ISS: 41
+  ISS: 42
   PHASE: 9
   REQ: 24
   RISK: 4
@@ -60,7 +60,7 @@ items:
     FEAT-0042:
       file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
       title: "Design bench — render, revise, annotate and review designs in the cockpit"
-      status: doing
+      status: review
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
       tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219"]
@@ -1767,7 +1767,7 @@ items:
     REQ-0023:
       file: "docs/requirements/REQ-0023-Design-Is-A-Project-Record.md"
       title: "A design and the reasoning behind its revisions are project records, not transcript artifacts"
-      status: draft
+      status: implemented
       phase: "[[PHASE-009-Design-Surfaces]]"
       implements: "FEAT-0042"
     REQ-0022:
@@ -2451,7 +2451,7 @@ items:
     DES-0002:
       file: "docs/designs/DES-0002-Cockpit-Design-System.md"
       title: "Cockpit design system"
-      status: draft
+      status: implemented
       note: "role: system. Values read from base.css/cockpit.css, not invented; records two real gaps (no spacing scale, no type scale) rather than papering over them. The living style-guide artifact is TASK-0221's output."
     DES-0001:
       file: "docs/designs/DES-0001-Overview-Redesign.md"
@@ -2497,14 +2497,14 @@ metrics:
     features_total: 43
     features_done: 36
     tasks_total: 228
-    tasks_done: 222
+    tasks_done: 224
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 1
+    issues_triage: 2
     risks_open: 4
     releases_total: 0
     decisions_total: 8

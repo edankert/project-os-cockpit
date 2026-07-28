@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cockpit design system — living style guide</title>
+<!--
+  DES-0002's artifact (TASK-0228).
+
+  EVERY value on this page is read from the real stylesheets at render time.
+  Nothing is typed here. The status palette is already stated in base.css with
+  its membership in statuses.py, kept in agreement by TST-0019 — a hand-typed
+  swatch page would be the FOURTH statement of the same palette and the one
+  place with no check on it. Read from the source, drift is not caught: it is
+  impossible.
+
+  Consequence, recorded because it is real: revision-compare loses colour
+  fidelity. An old revision of this file and the working copy both render
+  against TODAY's CSS, so a palette change is invisible in compare. Structural
+  changes still show, and git already records what base.css was.
+-->
+<link rel="stylesheet" href="/_static/base.css" />
+<link rel="stylesheet" href="/_static/cockpit.css" />
+<!-- The desktop shell's widget styles. Absent in mode-1 (no Electron build),
+     which the Widgets section reports rather than rendering unstyled markup
+     that would read as a design regression. -->
+<link rel="stylesheet" href="/_shell/renderer.css" id="shell-css" />
+<style>
+  body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
+         margin: 0; padding: 20px 24px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+       color: var(--text-muted); margin: 30px 0 10px;
+       border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+  .lede { color: var(--text-muted); font-size: 13px; max-width: 72ch; margin: 0 0 4px; }
+  .schemes { display: flex; gap: 14px; flex-wrap: wrap; }
+  .scheme { flex: 1 1 300px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 12px; }
+  .scheme h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+               letter-spacing: .05em; color: var(--text-muted); }
+  .sw { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 12px; }
+  .sw i { width: 24px; height: 16px; border-radius: 3px; border: 1px solid var(--border);
+          flex: 0 0 auto; }
+  .sw code { font-family: var(--font-mono); font-size: 11px; }
+  .sw .val { margin-left: auto; color: var(--text-muted); font-family: var(--font-mono);
+             font-size: 11px; }
+  .note { font-size: 12px; color: var(--text-muted); max-width: 74ch; line-height: 1.55; }
+  .gap { border-left: 3px solid var(--severity-medium); padding: 8px 12px;
+         background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0;
+         font-size: 12px; color: var(--text); max-width: 74ch; margin: 8px 0; }
+  .gap b { color: var(--severity-medium); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  .bars { display: flex; flex-direction: column; gap: 3px; font-size: 11px;
+          font-family: var(--font-mono); }
+  .bar { display: flex; align-items: center; gap: 8px; }
+  .bar u { text-decoration: none; display: inline-block; height: 9px;
+           background: var(--accent-link); border-radius: 2px; }
+  .spec { display: flex; align-items: baseline; gap: 12px; padding: 3px 0; }
+  .spec .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+               width: 130px; flex: 0 0 auto; }
+  table.wid { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 900px; }
+  table.wid th { text-align: left; font-weight: 600; color: var(--text-muted);
+                 font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+                 border-bottom: 1px solid var(--border); padding: 5px 8px 5px 0; }
+  table.wid td { border-bottom: 1px solid var(--border); padding: 8px 8px 8px 0;
+                 vertical-align: top; }
+  .missing { border-left: 3px solid var(--status-blocked); padding: 8px 12px;
+             background: var(--surface); font-size: 12px; max-width: 74ch; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+
+<h1>Cockpit design system</h1>
+<p class="lede">Every value below is read from <code>base.css</code>, <code>cockpit.css</code> and the shell stylesheet <em>as this page renders</em>. Nothing is typed here, so nothing can drift.</p>
+
+<h2>Principles</h2>
+<div class="note" id="principles"></div>
+
+<h2>Palette</h2>
+<p class="note">Both schemes side by side, because the claim is that dark is <em>designed</em> rather than inverted — a toggle would hide exactly the comparison worth making. Neutrals are true greys so the accent is the only chroma and status colour reads as signal.</p>
+<div class="schemes" id="palette"></div>
+
+<h2>Status bands and severity — adjacent, deliberately</h2>
+<p class="note">Status bands are <b>categorical hues</b>; severity is a <b>ramp</b> (red→orange→amber→grey). They are shown together so the rule is visible rather than asserted: <b>never reuse one family's colour for the other</b> — they answer different questions, and a reader who learns one mapping will misread the other.</p>
+<div class="schemes" id="bands"></div>
+<p class="note" id="membership"></p>
+
+<h2>Typography</h2>
+<div id="type"></div>
+<div class="gap" id="type-gap"></div>
+
+<h2>Spacing &amp; density</h2>
+<p class="note">Measured from <code>cockpit.css</code> as this page loads — the counts below are computed, not quoted. Counted through the CSSOM, so shorthands are expanded and <code>0px</code> resets are excluded; the figures therefore differ from a raw text count of the file, and this one is the live measurement.</p>
+<div class="bars" id="spacing"></div>
+<div class="gap" id="spacing-gap"></div>
+<p class="note" id="geometry"></p>
+
+<h2>Icons</h2>
+<p class="note">The cockpit is <b>near-iconless by default</b>, and that is a choice. Status is a coloured dot plus a word; navigation is text; the mode strip is the one place carrying glyphs.</p>
+<p class="note"><b>Rule:</b> an icon may appear without a text label <em>only</em> when it is a persistent control whose position teaches its meaning — the mode strip, the terminal toggle. Anything appearing conditionally, or in a list, carries a word. A chip is a word with a colour, never a glyph alone.</p>
+<div class="gap"><b>Not shown here.</b> The icon set lives in <code>renderer.ts</code> as inline SVG path data, not in any stylesheet, so this page cannot enumerate it without restating it — which is the one thing this page refuses to do. The rule above is the checkable part; the glyphs are in the mode strip at the top of the app.</div>
+
+<h2>Widgets</h2>
+<p class="note">Real class names, styled by the real stylesheets. Each is shown in the states that must be distinguishable <b>without colour</b> — the property DES-0002 claims, which a rendered page can either prove or expose.</p>
+<div id="widgets"></div>
+
+<h2>Motion</h2>
+<p class="note">Almost nothing animates. The exceptions are attention signals <em>with a decay</em>: the rail dot pulses on needs-input, and the nav-row agent chip fades over ~8s. Motion is allowed only to say "this changed while you were not looking", and it must stop on its own — a tool read at a glance across a room cannot afford ambient movement competing with the one thing that needs a look.</p>
+<div id="motion"></div>
+
+<h2>Accessibility floor</h2>
+<div class="note" id="a11y"></div>
+
+<script>
+// ---- read the stylesheets -------------------------------------------------
+// Same-origin, so cssRules is readable. Anything that is not readable is
+// reported rather than silently skipped: a swatch page that quietly showed
+// fewer tokens than exist would be worse than one that says it could not look.
+function readableSheets() {
+  const ok = [], blocked = [];
+  for (const sheet of document.styleSheets) {
+    try { void sheet.cssRules; ok.push(sheet); }
+    catch { blocked.push(sheet.href || '(inline)'); }
+  }
+  return { ok, blocked };
+}
+function eachRule(sheets, fn) {
+  for (const sheet of sheets) {
+    let rules; try { rules = sheet.cssRules; } catch { continue; }
+    for (const rule of rules) fn(rule, sheet);
+  }
+}
+// Every custom property declared anywhere, in declaration order.
+function declaredTokens(sheets) {
+  const order = [];
+  eachRule(sheets, (rule) => {
+    if (!rule.style) return;
+    for (const name of rule.style) {
+      if (name.startsWith('--') && !order.includes(name)) order.push(name);
+    }
+  });
+  return order;
+}
+const { ok: SHEETS, blocked: BLOCKED } = readableSheets();
+const TOKENS = declaredTokens(SHEETS);
+const shellPresent = SHEETS.some((s) => (s.href || '').includes('/_shell/'));
+
+// Resolve a token against a probe element so BOTH schemes can be read without
+// touching the page's own theme.
+function resolve(names, dark) {
+  const probe = document.createElement('div');
+  if (dark) probe.setAttribute('data-theme', 'dark');
+  probe.style.display = 'none';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const out = {};
+  for (const n of names) out[n] = cs.getPropertyValue(n).trim();
+  probe.remove();
+  return out;
+}
+function swatchList(names, dark) {
+  const vals = resolve(names, dark);
+  return names.map((n) => {
+    const v = vals[n];
+    return '<div class="sw"><i style="background:' + (v || 'transparent') + '"></i>'
+         + '<code>' + n + '</code><span class="val">' + (v || '—') + '</span></div>';
+  }).join('');
+}
+function scheme(title, names, dark) {
+  return '<div class="scheme"' + (dark ? ' data-theme="dark"' : '') + '>'
+       + '<h3>' + title + '</h3>' + swatchList(names, dark) + '</div>';
+}
+
+// ---- palette --------------------------------------------------------------
+const CANDIDATES = TOKENS.filter((t) =>
+  !t.startsWith('--status-') && !t.startsWith('--severity-')
+  && !t.startsWith('--font') && !t.startsWith('--radius'));
+// A token declared on a component rather than :root does not resolve against a
+// bare probe. That is correct behaviour, not a broken swatch — so they are
+// named separately instead of rendering as empty rows.
+const rootValues = resolve(CANDIDATES, false);
+const SEMANTIC = CANDIDATES.filter((t) => rootValues[t]);
+const SCOPED = CANDIDATES.filter((t) => !rootValues[t]);
+document.getElementById('palette').innerHTML =
+    scheme('Light', SEMANTIC, false) + scheme('Dark', SEMANTIC, true)
+  + (SCOPED.length ? '<p class="note" style="flex:1 1 100%">'
+      + '<b>Scoped, not global:</b> ' + SCOPED.map((t) => '<code>' + t + '</code>').join(' · ')
+      + ' — declared on a component rather than <code>:root</code>, so they have no '
+      + 'page-level value to show.</p>' : '');
+
+// Which tokens the SHELL redefines over base.css. Found by this page on its
+// first render: the desktop app draws a different --bg from the one base.css
+// declares, so there were two palettes and nothing said so (ISS-0042). The
+// values are deliberately NOT written here — reading them is the point.
+const OVERRIDDEN = [];
+for (const token of SEMANTIC) {
+  const seen = [];
+  eachRule(SHEETS, (rule, sheet) => {
+    if (!rule.style || !rule.selectorText) return;
+    if (!/^:root\b/.test(rule.selectorText.trim())) return;
+    const v = rule.style.getPropertyValue(token).trim();
+    if (v) seen.push({ from: (sheet.href || '').split('/').pop(), value: v });
+  });
+  const distinct = [...new Set(seen.map((x) => x.value))];
+  if (seen.length > 1 && distinct.length > 1) OVERRIDDEN.push({ token, seen });
+}
+if (OVERRIDDEN.length) {
+  const el = document.createElement('div');
+  el.className = 'gap';
+  el.innerHTML = '<b>The shell redefines ' + OVERRIDDEN.length + ' token(s) over '
+    + '<code>base.css</code>.</b> The value the desktop app actually draws is the '
+    + 'last one; the swatches above show that. Surfaced here because a second '
+    + 'palette that nothing mentions is how the first one drifted.<br>'
+    + OVERRIDDEN.map((o) => '<code>' + o.token + '</code> → '
+        + o.seen.map((x) => x.from + ': ' + x.value).join('  then  ')).join('<br>');
+  document.getElementById('palette').after(el);
+}
+
+const STATUS = TOKENS.filter((t) => t.startsWith('--status-'));
+const SEVERITY = TOKENS.filter((t) => t.startsWith('--severity-'));
+document.getElementById('bands').innerHTML =
+    '<div class="scheme"><h3>Status bands — categorical (light)</h3>'
+  + swatchList(STATUS, false) + '</div>'
+  + '<div class="scheme"><h3>Severity — a ramp (light)</h3>'
+  + swatchList(SEVERITY, false) + '</div>'
+  + '<div class="scheme" data-theme="dark"><h3>Status bands (dark)</h3>'
+  + swatchList(STATUS, true) + '</div>'
+  + '<div class="scheme" data-theme="dark"><h3>Severity (dark)</h3>'
+  + swatchList(SEVERITY, true) + '</div>';
+
+// Band MEMBERSHIP, also read from CSS: base.css states it as
+// `.status-chip[data-status="x"] { color: var(--status-y) }`.
+const MEMBERS = {};
+eachRule(SHEETS, (rule) => {
+  if (!rule.selectorText || !rule.style) return;
+  const m = /\.status-chip\[data-status="([^"]+)"\]/.exec(rule.selectorText);
+  if (!m) return;
+  const band = /var\((--status-[a-z]+)\)/.exec(rule.style.getPropertyValue('color'));
+  if (!band) return;
+  (MEMBERS[band[1]] = MEMBERS[band[1]] || []).push(m[1]);
+});
+const bandCount = Object.keys(MEMBERS).length;
+const statusCount = Object.values(MEMBERS).reduce((n, a) => n + a.length, 0);
+document.getElementById('membership').innerHTML =
+    '<b>' + statusCount + ' statuses across ' + bandCount + ' bands</b> — read from '
+  + 'the <code>[data-status]</code> rules, not listed here. Membership lives in '
+  + '<code>statuses.py</code>; the bands are what CSS knows about, which is why '
+  + 'adding a status value never touches a stylesheet.<br>'
+  + Object.entries(MEMBERS).map(([band, names]) =>
+      '<code>' + band + '</code> → ' + names.sort().join(', ')).join('<br>');
+
+// ---- typography -----------------------------------------------------------
+const fonts = resolve(TOKENS.filter((t) => t.startsWith('--font')), false);
+document.getElementById('type').innerHTML = Object.entries(fonts).map(([n, v]) =>
+    '<div class="spec"><span class="lbl">' + n + '</span>'
+  + '<span style="font-family:' + v + ';font-size:15px">The quick brown fox 0123</span></div>'
+  + '<div class="spec"><span class="lbl"></span><span class="val" style="font-size:11px;color:var(--text-muted)">'
+  + v + '</span></div>').join('')
+  + [['14px', 'body'], ['12px', 'secondary'], ['11px', 'metadata and chips']].map(
+      ([size, role]) => '<div class="spec"><span class="lbl">' + size + ' — ' + role
+      + '</span><span style="font-size:' + size + '">The quick brown fox 0123</span></div>').join('');
+document.getElementById('type-gap').innerHTML =
+    '<b>No declared type scale.</b> Sizes are literal px in <code>cockpit.css</code>, '
+  + 'clustering at 11/12/14. Recorded as a gap rather than papered over — what the '
+  + 'levels are <em>for</em> is settled even though the scale is not. An invented '
+  + 'scale would be worse than the gap.';
+
+// ---- spacing: counted from the stylesheet text, not quoted -----------------
+const counts = {};
+eachRule(SHEETS, (rule, sheet) => {
+  if (!rule.style || !(sheet.href || '').includes('cockpit.css')) return;
+  for (const prop of rule.style) {
+    if (!/^(margin|padding|gap|top|left|right|bottom)/.test(prop)) continue;
+    for (const px of String(rule.style.getPropertyValue(prop)).match(/\b\d+px\b/g) || []) {
+      // `0px` is a reset, not a spacing decision — it topped the list at 154
+      // uses and said nothing about density.
+      if (px !== '0px') counts[px] = (counts[px] || 0) + 1;
+    }
+  }
+});
+const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 9);
+// NB: not `top` — that is a non-configurable window property and a
+// top-level `const top` is a SyntaxError that kills the whole script.
+// `node --check` cannot see it, because Node has no window.
+const peak = ranked.length ? ranked[0][1] : 1;
+document.getElementById('spacing').innerHTML = ranked.map(([px, n]) =>
+    '<div class="bar"><span style="width:44px">' + px + '</span>'
+  + '<u style="width:' + Math.max(6, Math.round(n / peak * 260)) + 'px"></u>'
+  + '<span>' + n + '</span></div>').join('') || '<span class="note">cockpit.css not readable</span>';
+document.getElementById('spacing-gap').innerHTML =
+    '<b>No spacing tokens exist.</b> The above is not a scale, it is a '
+  + '<em>distribution</em> — several neighbouring values all in heavy use with no '
+  + 'consistent step. Honest reading: the cockpit is dense-by-design and its spacing '
+  + 'was tuned per-surface by eye.';
+const geom = resolve(TOKENS.filter((t) => t.startsWith('--radius')), false);
+document.getElementById('geometry').innerHTML = 'The only geometry tokens: '
+  + Object.entries(geom).map(([n, v]) => '<code>' + n + '</code> ' + v).join(' · ')
+  + '. Target viewport <b>900px height</b> — not a breakpoint, but the assertion '
+  + 'REQ-0022 makes: every state section fits above the fold at that height.';
+
+// ---- principles / a11y (prose the note owns) ------------------------------
+document.getElementById('principles').innerHTML = [
+  ['Quiet-first', 'Design for the state the corpus is actually in. Work is bursty and <code>doing</code> clears within a session, so the common case is a project with nothing in flight — a surface that only looks good when busy is a surface that usually looks broken.'],
+  ['State before history', 'Above the fold answers "where is this now", not "what happened".'],
+  ['One vocabulary, one source', 'Status colour comes from <code>statuses.py</code> and reaches CSS through generation, never retyping. This page is built the same way, for the same reason.'],
+  ['Never colour-alone', 'A status is a coloured dot <em>and</em> a word. Colour is the accelerant, never the message.'],
+].map(([t, d]) => '<p><b>' + t + '.</b> ' + d + '</p>').join('');
+
+document.getElementById('a11y').innerHTML = [
+  'Status is never colour-alone — a word accompanies every coloured dot or chip.',
+  'Keyboard focus is always visible, via <code>--accent-focus</code>, and never removed for aesthetics.',
+  'Both schemes are designed, not derived; contrast is checked against the ground each is used on.',
+  'The <code>attention</code> state does not decay: something needing a human must not become invisible by waiting.',
+].map((l) => '<p>• ' + l + '</p>').join('')
+  + '<div class="row"><button style="font:inherit;font-size:12px;padding:4px 10px;'
+  + 'border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);'
+  + 'color:var(--text)">Tab to me — focus must be visible</button></div>';
+
+// ---- widgets --------------------------------------------------------------
+const W = document.getElementById('widgets');
+if (!shellPresent) {
+  W.innerHTML = '<div class="missing"><b>The widget gallery needs the desktop shell.</b> '
+    + 'These components are styled by <code>renderer.css</code>, which the sidecar serves '
+    + 'only when the Electron shell passes <code>--shell-assets</code>. Running standalone, '
+    + 'that route 404s. Showing unstyled markup here would read as a design regression '
+    + 'rather than a missing stylesheet, so it is stated instead.</div>';
+} else {
+  const someStatuses = Object.entries(MEMBERS).map(([band, names]) => names.sort()[0]);
+  W.innerHTML =
+      '<table class="wid"><tr><th>Widget</th><th>Distinct without colour, because…</th></tr>'
+    + '<tr><td><div class="row">' + someStatuses.map((s) =>
+        '<span class="status-chip" data-status="' + s + '">' + s + '</span>').join('')
+    + '</div></td><td>the word itself carries the state; colour is redundant by design. '
+    + 'One status per band, taken from the CSS.</td></tr>'
+    + '<tr><td><div class="row">'
+    + ['idle', 'busy', 'needs-input', 'stalled'].map((st) =>
+        '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px">'
+      + '<span class="ws-dot state-' + st + '" style="width:9px;height:9px;border-radius:50%;'
+      + 'background:var(--text-faint);display:inline-block"></span>' + st + '</span>').join('')
+    + '</div></td><td>shape and fill, not hue alone — and each carries its word here.</td></tr>'
+    + '<tr><td><div class="row"><div class="ov-tile" style="min-width:110px">'
+    + '<div style="font-size:11px;color:var(--text-muted)">TASKS</div>'
+    + '<div style="font-size:18px">12/14</div></div></div></td>'
+    + '<td>proportion is length; the label states the fraction numerically, so the bar '
+    + 'is never the only reading.</td></tr>'
+    + '<tr><td><div class="row"><span style="font-size:12px">▸ TASK-0228</span>'
+    + '<span class="status-chip" data-status="doing">doing</span></div></td>'
+    + '<td>selected / focused / visited — the focus ring is <code>--accent-focus</code>, '
+    + 'never colour-only.</td></tr>'
+    + '<tr><td><div style="border:1px solid var(--border);border-radius:var(--radius-lg);'
+    + 'padding:10px;max-width:260px;background:var(--surface)">'
+    + '<div style="font-size:12px;font-weight:600;margin-bottom:4px">Waiting on you</div>'
+    + '<div style="font-size:12px;color:var(--text-muted)">All clear — nothing is blocked '
+    + 'on a human.</div></div></td>'
+    + '<td><b>Empty states are a component, not an absence.</b> A quiet-first surface is '
+    + 'mostly empty, so empty is the <em>common</em> case and must read as deliberate.</td></tr>'
+    + '</table>';
+}
+
+// ---- motion ---------------------------------------------------------------
+document.getElementById('motion').innerHTML =
+    '<div class="row"><span class="dot" style="background:var(--status-blocked);'
+  + 'animation:ws-needs-input-pulse .9s ease-in-out infinite"></span>'
+  + '<span style="font-size:12px">needs-input — pulses until answered</span></div>'
+  + '<div class="row"><span style="font-size:12px;color:var(--text-muted)">'
+  + 'Both exceptions are defined in the shell stylesheet; if the pulse above is static, '
+  + 'the shell stylesheet is not loaded (or you have reduced-motion on, which the '
+  + 'stylesheet honours by design).</span></div>';
+
+// ---- honesty about what could not be read ---------------------------------
+if (BLOCKED.length) {
+  const w = document.createElement('div');
+  w.className = 'missing';
+  w.style.marginTop = '20px';
+  w.innerHTML = '<b>Some stylesheets could not be read:</b> ' + BLOCKED.join(', ')
+    + '. Values from them are missing above rather than silently defaulted.';
+  document.body.appendChild(w);
+}
+</script>
+</body>
+</html>

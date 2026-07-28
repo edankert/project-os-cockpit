@@ -83,6 +83,11 @@ log = logging.getLogger("project_os_cockpit.server")
 
 STATIC_DIR: Path = Path(__file__).resolve().parent / "static"
 
+#: Files the shell-assets route will serve (TASK-0227). An allow-list rather
+#: than a directory share: the design surface needs the stylesheet, and
+#: nothing about that is a reason to expose the bundle or its source maps.
+SHELL_ASSET_FILES: frozenset[str] = frozenset({"renderer.css"})
+
 # Tabs whose last_seen heartbeat is older than this are pruned from the
 # state snapshot. The cockpit JS sends a heartbeat every 15 s
 # (TASK-0055); 45 s allows two missed pings before we declare the tab
@@ -365,12 +370,19 @@ class _NoDNSThreadingHTTPServer(ThreadingHTTPServer):
 class DocsServer:
     """Wraps a ``ThreadingHTTPServer`` bound to a docs root."""
 
-    def __init__(self, *, docs_root: Path, bind: str, port: int) -> None:
+    def __init__(
+        self, *, docs_root: Path, bind: str, port: int,
+        shell_assets: Path | None = None,
+    ) -> None:
         self.docs_root = docs_root.resolve(strict=True)
         if not self.docs_root.is_dir():
             raise NotADirectoryError(f"docs root is not a directory: {self.docs_root}")
         self.bind = bind
         self.port = port
+        # Where the desktop shell's built stylesheet lives (TASK-0227).
+        # `None` in mode-1, which has no Electron build at all — so this is
+        # an optional capability, never a dependency.
+        self.shell_assets = shell_assets.resolve() if shell_assets else None
         self.bus: EventBus = EventBus()
         self.index: Index = Index.build(self.docs_root)
         # Index subscribes for invalidation; the SSE channel (TASK-0006) and
@@ -450,6 +462,7 @@ class DocsServer:
             agent_tracker=self.agent_tracker,
             validation_runner=self.validation,
             status_tracker=self.status_tracker,
+            shell_assets=self.shell_assets,
         )
         self.watcher.start()
         # SNAPSHOT.yaml sits above the docs root — the validation runner
@@ -564,6 +577,7 @@ def _make_handler(
     agent_tracker: AgentSessionTracker | None = None,
     validation_runner: ValidationRunner | None = None,
     status_tracker: "StatusTracker | None" = None,
+    shell_assets: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     project_root = docs_root.parent.resolve()
@@ -818,6 +832,14 @@ def _make_handler(
 
             if path.startswith("/_static/"):
                 self._serve_static(path[len("/_static/"):])
+                return
+
+            # The desktop shell's stylesheet, for design artifacts that want
+            # to show real widgets (TASK-0227). Served from where the build
+            # already puts it — never copied into the package, because a
+            # second copy of a stylesheet is the ISS-0023 failure again.
+            if path.startswith("/_shell/"):
+                self._serve_shell_asset(path[len("/_shell/"):])
                 return
 
             if path == "/index" or path == "/index/":
@@ -2226,6 +2248,48 @@ def _make_handler(
             data = target.read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _serve_shell_asset(self, rel: str) -> None:
+            """A file from the desktop shell's built renderer directory.
+
+            Absent in mode-1 (no Electron build), so a 404 here is a normal
+            state rather than a fault — and a page that depends on it must
+            say so rather than render unstyled markup that reads as a design
+            regression.
+
+            The guards are `_serve_static`'s, deliberately reused rather than
+            re-derived: this route must not become the one place traversal
+            checking was rewritten slightly differently.
+            """
+            if shell_assets is None:
+                self._respond_not_found(self.path)
+                return
+            if not rel or ".." in rel.split("/"):
+                self._respond_forbidden("shell path traversal blocked")
+                return
+            # An allow-list, not a directory share. The design surface needs
+            # the stylesheet; nothing about this route is a reason to expose
+            # the bundle, the source maps, or anything else the build emits.
+            if rel not in SHELL_ASSET_FILES:
+                self._respond_not_found(self.path)
+                return
+            target = (shell_assets / rel).resolve()
+            try:
+                target.relative_to(shell_assets)
+            except ValueError:
+                self._respond_forbidden("shell path escapes assets dir")
+                return
+            if not target.is_file():
+                self._respond_not_found(self.path)
+                return
+            data = target.read_bytes()
+            ctype, _ = mimetypes.guess_type(target.name)
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", ctype or "application/octet-stream")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()

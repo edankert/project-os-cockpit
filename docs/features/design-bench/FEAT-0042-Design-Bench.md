@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0042
 aliases: ["FEAT-0042"]
 title: "Design bench — render, revise, annotate and review designs in the cockpit"
-status: doing
+status: review
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
