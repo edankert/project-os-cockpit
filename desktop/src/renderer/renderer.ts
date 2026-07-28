@@ -2753,6 +2753,16 @@ interface DesignRecord {
   id: string; title: string; rel: string; status: string;
   role: string; asset: string; has_asset: boolean;
   viewport: number | null; implements: string[];
+  rationale: DesignRationale[];
+}
+
+/** An ADR this design links. `missing` = the link resolves to nothing, which
+ *  is shown rather than dropped — omitting it would hide a typo in the note's
+ *  own frontmatter, and the point of resolving by link is that links are
+ *  checkable. */
+interface DesignRationale {
+  id: string; title: string; decision: string;
+  url: string; status: string; missing: boolean;
 }
 
 let designRegister: DesignRecord[] = [];
@@ -2878,6 +2888,58 @@ function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement
   }
   head.append(bar);
   return head;
+}
+
+/** The decisions behind this design — the ADRs it links, and no others.
+ *
+ *  Returns null when there are none, so a design with no linked ADRs shows
+ *  nothing at all. An empty "Rationale" heading would read as "no decisions
+ *  were made here", which is a claim; absence is not.
+ */
+function buildDesignRationale(d: DesignRecord): HTMLElement | null {
+  const entries = d.rationale || [];
+  if (!entries.length) return null;
+
+  const sec = document.createElement('section');
+  sec.className = 'design-rationale';
+  const h = document.createElement('h2');
+  h.textContent = 'Decisions behind this design';
+  sec.append(h);
+
+  for (const r of entries) {
+    const row = document.createElement('div');
+    row.className = 'design-rationale-row' + (r.missing ? ' is-missing' : '');
+
+    const id = document.createElement('span');
+    id.className = 'design-rationale-id';
+    id.textContent = r.id;
+    row.append(id);
+
+    const text = document.createElement('div');
+    text.className = 'design-rationale-text';
+    if (r.missing) {
+      // Named, not summarised. The link is broken and the surface says so.
+      text.textContent = `${r.id} is linked but no such note exists.`;
+    } else {
+      // The ADR's own `decision:` line — the sentence its author wrote to be
+      // quoted. Its title when that is absent, and never a paraphrase: a
+      // generated summary of a decision is the kind of confident restatement
+      // that misleads precisely where accuracy matters.
+      text.textContent = r.decision || r.title || r.id;
+    }
+    row.append(text);
+
+    if (!r.missing && r.url) {
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'design-rationale-open';
+      open.textContent = 'Open';
+      open.addEventListener('click', () => { void navigateTo(r.url); });
+      row.append(open);
+    }
+    sec.append(row);
+  }
+  return sec;
 }
 
 function buildDesignRegisterList(designs: DesignRecord[]): HTMLElement {
@@ -3147,6 +3209,8 @@ async function renderDesignPage(target: string): Promise<boolean> {
       body,
       buildDesignRevisionRail(d, paint),
     );
+    const rationale = buildDesignRationale(d);
+    if (rationale) root.append(rationale);
     docView.replaceChildren(root);
   };
   paint();

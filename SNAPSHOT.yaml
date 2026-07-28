@@ -315,7 +315,7 @@ items:
     TASK-0225:
       file: "docs/features/design-surface/plan/tasks/TASK-0225-Design-Rationale.md"
       title: "Design rationale — the ADRs a design links, not all of them"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0043
     TASK-0220:
@@ -2497,7 +2497,7 @@ metrics:
     features_total: 43
     features_done: 36
     tasks_total: 225
-    tasks_done: 220
+    tasks_done: 221
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

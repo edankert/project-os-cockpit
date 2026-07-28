@@ -17,6 +17,7 @@ satisfied an exit criterion while demonstrating nothing.
 
 from __future__ import annotations
 
+import inspect
 import json
 import re
 from pathlib import Path
@@ -996,3 +997,126 @@ def test_the_button_is_keyboard_reachable_like_the_others() -> None:
     btn = re.search(r'<button[^>]*data-mode="design"[^>]*>', html).group(0)
     assert btn.startswith("<button")
     assert 'role="tab"' in btn and 'aria-label="Design"' in btn
+
+
+# ---- design rationale (TASK-0225) ----------------------------------------
+
+def _rationale_corpus(tmp_path: Path) -> Path:
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-Linked.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "Linked",
+        "status": "accepted", "role": "system",
+        "related": ["[[ADR-0006-Retire-Band]]", "[[FEAT-0001]]"],
+        "implements": ["[[ADR-0009-Notes-Authored]]"],
+    })
+    _note(docs / "designs" / "DES-0002-Bare.md", {
+        "type": "[[design]]", "id": "DES-0002", "title": "Bare",
+        "status": "proposed", "role": "proposal",
+        "related": ["[[FEAT-0001]]"],
+    })
+    _note(docs / "designs" / "DES-0003-Broken.md", {
+        "type": "[[design]]", "id": "DES-0003", "title": "Broken",
+        "status": "draft", "role": "proposal",
+        "related": ["[[ADR-9999-Nonexistent]]"],
+    })
+    _note(docs / "decisions" / "ADR-0006-Retire-Band.md", {
+        "type": "[[adr]]", "id": "ADR-0006", "title": "Retire the delivered band",
+        "status": "accepted",
+        "decision": "Remove the delivered palette band from every status surface",
+    })
+    _note(docs / "decisions" / "ADR-0009-Notes-Authored.md", {
+        "type": "[[adr]]", "id": "ADR-0009", "title": "Notes are the authored source",
+        "status": "accepted",
+        "decision": "Write a status once, in the note; the sync script propagates it",
+    })
+    # Governance. Linked by nothing, and must stay out of every design.
+    _note(docs / "decisions" / "ADR-0011-Dated-Promotion.md", {
+        "type": "[[adr]]", "id": "ADR-0011", "title": "Dated promotion of review warnings",
+        "status": "accepted",
+        "decision": "A review warning becomes an error on a fixed date",
+    })
+    return docs
+
+
+def _rationale_for(tmp_path: Path, design_id: str) -> list:
+    payload = cockpit.designs_payload(Index.build(_rationale_corpus(tmp_path)))
+    return next(d for d in payload["designs"] if d["id"] == design_id)["rationale"]
+
+
+def test_only_the_adrs_a_design_links_appear(tmp_path: Path) -> None:
+    """The filter is the whole task. ADR-0011 is real, accepted, and sitting
+    in the same corpus — it is process governance, and a design surface that
+    lists it buries the two decisions that actually explain the design."""
+    ids = [r["id"] for r in _rationale_for(tmp_path, "DES-0001")]
+    assert ids == ["ADR-0009", "ADR-0006"], (
+        "expected implements-then-related order, ADR-only, deduped"
+    )
+    assert "ADR-0011" not in ids
+
+
+def test_non_adr_links_are_not_dragged_in(tmp_path: Path) -> None:
+    """`related:` carries features, phases and issues too. This section is
+    about decisions; everything else already has a place on the surface."""
+    for entry in _rationale_for(tmp_path, "DES-0001"):
+        assert entry["id"].startswith("ADR-"), entry
+
+
+def test_a_design_linking_no_adrs_gets_nothing(tmp_path: Path) -> None:
+    """Not an empty section. An empty 'Rationale' heading reads as 'no
+    decisions were made here', which is a claim; absence is not."""
+    assert _rationale_for(tmp_path, "DES-0002") == []
+    src = _renderer()
+    block = src.split("function buildDesignRationale(")[1].split("\nfunction ")[0]
+    assert "if (!entries.length) return null;" in block
+    assert "if (rationale) root.append(rationale);" in src
+
+
+def test_the_line_is_the_adrs_own_decision_field(tmp_path: Path) -> None:
+    """The sentence its author wrote to be quoted — never a paraphrase. A
+    generated summary of a decision is the kind of confident restatement that
+    misleads exactly where accuracy matters."""
+    entry = next(r for r in _rationale_for(tmp_path, "DES-0001") if r["id"] == "ADR-0006")
+    assert entry["decision"] == (
+        "Remove the delivered palette band from every status surface")
+    assert entry["url"], "no url; the entry cannot open the ADR"
+    src = _renderer()
+    assert "r.decision || r.title || r.id" in src, (
+        "the fallback chain changed; it must degrade to the title and then the "
+        "id, and never to a generated summary"
+    )
+
+
+def test_a_broken_adr_link_is_reported_not_dropped(tmp_path: Path) -> None:
+    """Silently omitting it hides a typo in the note's own frontmatter — and
+    the reason this resolves through the link graph rather than a title
+    heuristic is that links are checkable in a way guesses are not."""
+    entries = _rationale_for(tmp_path, "DES-0003")
+    assert [e["id"] for e in entries] == ["ADR-9999"]
+    assert entries[0]["missing"] is True
+    assert entries[0]["decision"] == ""
+    src = _renderer()
+    assert "is linked but no such note exists" in src
+
+
+def test_resolution_is_by_link_never_by_title(tmp_path: Path) -> None:
+    """A title-substring match was tried once in the review desk and removed
+    in independent review: a guess that is usually right is worse than an
+    explicit link, because nobody can tell when it is wrong."""
+    body = inspect.getsource(cockpit._design_rationale)
+    for heuristic in ("in record.title", "title.lower()", "startswith(d[\"title\"]"):
+        assert heuristic not in body, (
+            "rationale resolution reads titles; it must read links only"
+        )
+    assert "index.by_id(" in body
+
+
+def test_the_real_corpus_matches_what_the_task_predicted() -> None:
+    """DES-0001 links ADR-0006 and DES-0002 links none — written into the task
+    note before the code existed. Asserting it here means the feature is
+    verified against the project it ships in, not only against fixtures."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    payload = cockpit.designs_payload(Index.build(docs))
+    by_id = {d["id"]: d for d in payload["designs"]}
+    assert [r["id"] for r in by_id["DES-0001"]["rationale"]] == ["ADR-0006"]
+    assert by_id["DES-0002"]["rationale"] == []
+    assert by_id["DES-0001"]["rationale"][0]["decision"].startswith("Remove the")

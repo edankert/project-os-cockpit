@@ -504,6 +504,58 @@ def _design_link_ids(value: Any) -> list[str]:
     return out
 
 
+def _design_rationale(index: Index, fm: dict) -> list[dict[str, str]]:
+    """The ADRs a design LINKS — never every ADR in the project (TASK-0225).
+
+    The filter is the whole point. ADR-0006 (retire the delivered band) is
+    design rationale; ADR-0011 (dated promotion of review warnings) is process
+    governance. A surface listing both drags governance into a product view and
+    buries the two or three decisions that actually explain why something looks
+    the way it does.
+
+    Resolution is through the **link graph**, not a title heuristic. A
+    title-substring match was tried once in the review desk and removed in
+    independent review for exactly this reason: it guesses, and a guess that is
+    usually right is worse than an explicit link, because nobody can tell when
+    it is wrong.
+
+    The one line is the ADR's own ``decision:`` frontmatter — the sentence its
+    author wrote to be quoted. Falling back to the title when it is absent, and
+    to nothing beyond that: an ADR with neither is listed by id rather than
+    summarised by a machine, since a generated summary of a decision is exactly
+    the kind of confident paraphrase that misleads.
+    """
+    seen: list[str] = []
+    for field in ("implements", "related"):
+        for note_id in _design_link_ids(fm.get(field)):
+            if note_id.startswith("ADR-") and note_id not in seen:
+                seen.append(note_id)
+
+    out: list[dict[str, str]] = []
+    for note_id in seen:
+        path = index.by_id(note_id)
+        record = index.get(path) if path is not None else None
+        if record is None:
+            # A link to an ADR that does not exist is REPORTED, not dropped.
+            # Silently omitting it hides a typo in the note's own frontmatter,
+            # and the whole reason this resolves by link is that links are
+            # checkable in a way heuristics are not.
+            out.append({"id": note_id, "title": "", "decision": "",
+                        "url": "", "status": "", "missing": True})
+            continue
+        adr_fm = record.frontmatter or {}
+        decision = adr_fm.get("decision")
+        out.append({
+            "id": note_id,
+            "title": record.title or note_id,
+            "decision": str(decision).strip() if isinstance(decision, str) else "",
+            "url": index.url_for(record.path),
+            "status": record.status or "",
+            "missing": False,
+        })
+    return out
+
+
 _BRIEF_PLACEHOLDER_RE = re.compile(r"REPLACE[ _-]?ME", re.IGNORECASE)
 _BRIEF_H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _BRIEF_FIELD_RE = re.compile(r"^-\s*([A-Za-z][A-Za-z ]*?):\s*(.+?)\s*$", re.MULTILINE)
@@ -616,6 +668,7 @@ def designs_payload(index: Index) -> dict:
             "has_asset": bool(asset_rel and (index.docs_root / asset_rel).is_file()),
             "viewport": viewport,
             "implements": _design_link_ids(fm.get("implements")),
+            "rationale": _design_rationale(index, fm),
         })
     return {"schema_version": SCHEMA_VERSION, "designs": designs}
 
