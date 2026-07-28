@@ -509,6 +509,44 @@ def _design_link_ids(value: Any) -> list[str]:
     return out
 
 
+def _design_stylesheets(fm: dict) -> list[str]:
+    """Project-relative stylesheet paths a design declares (TASK-0230).
+
+    Normalised and filtered here rather than at the route, so the route has
+    one question to ask ("is this in the set?") and the corpus has one place
+    that decides what a declaration means. Anything that is not a plain
+    relative ``.css`` path is dropped: a declaration the route would refuse
+    anyway is a declaration that should never have counted.
+    """
+    raw = fm.get("stylesheets")
+    if isinstance(raw, str):
+        raw = [raw]
+    out: list[str] = []
+    for item in raw if isinstance(raw, list) else []:
+        rel = str(item or "").strip().lstrip("/")
+        if not rel or not rel.lower().endswith(".css"):
+            continue
+        if ".." in rel.split("/") or "\\" in rel:
+            continue
+        if rel not in out:
+            out.append(rel)
+    return out
+
+
+def project_stylesheet_allowlist(index: Index) -> set[str]:
+    """Every stylesheet path any design note declares.
+
+    Derived from the corpus, never configured. A hardcoded list would drift
+    from the notes it is meant to describe — the failure this project is
+    named after (ISS-0023) — and a directory share would publish the project
+    rather than the two or three files a style guide reads.
+    """
+    allowed: set[str] = set()
+    for record in index.notes_by_type("design"):
+        allowed.update(_design_stylesheets(record.frontmatter or {}))
+    return allowed
+
+
 def _design_rationale(index: Index, fm: dict) -> list[dict[str, str]]:
     """The ADRs a design LINKS — never every ADR in the project (TASK-0225).
 
@@ -736,6 +774,11 @@ def designs_payload(index: Index) -> dict:
             "viewport": viewport,
             "implements": _design_link_ids(fm.get("implements")),
             "rationale": _design_rationale(index, fm),
+            # Project-relative stylesheets this design reads (TASK-0230).
+            # Declaring them here is what makes them servable: the route's
+            # allow-list IS this list, gathered across every design note, so a
+            # path nobody declared is a path nobody can fetch.
+            "stylesheets": _design_stylesheets(fm),
         })
     return {"schema_version": SCHEMA_VERSION, "designs": designs}
 

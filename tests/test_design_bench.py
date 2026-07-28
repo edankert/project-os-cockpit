@@ -2775,3 +2775,173 @@ def test_a_historical_render_survives_a_deleted_artifact() -> None:
     assert "if (!d.has_asset && !atSha)" in frame, (
         "the historical render is still gated on the working copy"
     )
+
+
+# ---- the project stylesheet route (TASK-0230) -----------------------------
+
+def _repo_with_project_css(tmp_path: Path, declared: list[str] | None = None) -> Path:
+    docs = tmp_path / "docs"
+    (docs / "designs").mkdir(parents=True)
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    fm = {"type": "[[design]]", "id": "DES-0001", "title": "System",
+          "status": "draft", "role": "system", "asset": ""}
+    if declared is not None:
+        fm["stylesheets"] = declared
+    _note(docs / "designs" / "DES-0001-S.md", fm)
+    (tmp_path / "public" / "css").mkdir(parents=True)
+    (tmp_path / "public" / "css" / "style.css").write_text(
+        ":root { --brand: #123456 }", encoding="utf-8")
+    # A real stylesheet the note does NOT declare.
+    (tmp_path / "public" / "css" / "private.css").write_text(
+        ":root { --secret: #abcdef }", encoding="utf-8")
+    (tmp_path / "secrets.env").write_text("TOKEN=hunter2\n", encoding="utf-8")
+    return docs
+
+
+def _get(port: int, path: str) -> tuple[int, bytes, dict]:
+    import urllib.error
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d%s" % (port, path), timeout=5) as r:
+            return r.status, r.read(), dict(r.headers)
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read(), dict(exc.headers)
+
+
+def test_a_declared_stylesheet_is_served(tmp_path: Path) -> None:
+    """Every downstream stylesheet lives ABOVE the docs root, so a design
+    artifact could not read its own project's tokens and a downstream design
+    system could only ever be a hand-typed table (TASK-0230)."""
+    docs = _repo_with_project_css(tmp_path, ["public/css/style.css"])
+    httpd, port = _serve(docs)
+    try:
+        status, body, headers = _get(port, "/_project/public/css/style.css")
+        assert status == 200, status
+        assert b"--brand" in body
+        assert headers.get("Content-Type", "").startswith("text/css")
+        # A sandboxed frame has an opaque origin and must fetch + re-inject.
+        assert headers.get("Access-Control-Allow-Origin") == "*"
+    finally:
+        httpd.shutdown()
+
+
+def test_the_allowlist_is_the_corpus_not_a_constant(tmp_path: Path) -> None:
+    """A real stylesheet the notes do not declare is refused. Widening the
+    route means declaring a path in a note a human reviews — a hardcoded list
+    would drift from the notes it describes (ISS-0023's failure)."""
+    docs = _repo_with_project_css(tmp_path, ["public/css/style.css"])
+    httpd, port = _serve(docs)
+    try:
+        assert _get(port, "/_project/public/css/style.css")[0] == 200
+        assert _get(port, "/_project/public/css/private.css")[0] == 404, (
+            "an undeclared stylesheet was served; the route is a directory "
+            "share rather than an allow-list"
+        )
+    finally:
+        httpd.shutdown()
+
+
+def test_declaring_nothing_serves_nothing(tmp_path: Path) -> None:
+    """The empty case must be closed, not open."""
+    docs = _repo_with_project_css(tmp_path, None)
+    httpd, port = _serve(docs)
+    try:
+        assert _get(port, "/_project/public/css/style.css")[0] == 404
+    finally:
+        httpd.shutdown()
+
+
+def test_the_route_reads_css_and_nothing_else(tmp_path: Path) -> None:
+    """The render server binds 0.0.0.0. The narrowing to `.css` is what stops
+    this becoming a general file read."""
+    docs = _repo_with_project_css(
+        tmp_path, ["public/css/style.css", "../secrets.env", "secrets.env"])
+    httpd, port = _serve(docs)
+    try:
+        for attack in ("/_project/secrets.env", "/_project/../secrets.env",
+                       "/_project/..%2Fsecrets.env", "/_project/",
+                       "/_project/public/css/../../secrets.env"):
+            status, body, _ = _get(port, attack)
+            assert status in (403, 404), (attack, status)
+            assert b"hunter2" not in body, attack
+    finally:
+        httpd.shutdown()
+
+
+def test_a_symlink_out_of_the_tree_is_refused(tmp_path: Path) -> None:
+    """The allow-list cannot see through a link, so containment is checked
+    after resolution as well as before."""
+    outside = tmp_path.parent / ("outside-%s.css" % tmp_path.name)
+    outside.write_text(":root { --leaked: red }", encoding="utf-8")
+    docs = _repo_with_project_css(tmp_path, ["public/css/link.css"])
+    try:
+        (tmp_path / "public" / "css" / "link.css").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    httpd, port = _serve(docs)
+    try:
+        status, body, _ = _get(port, "/_project/public/css/link.css")
+        assert status == 403, status
+        assert b"--leaked" not in body
+    finally:
+        httpd.shutdown()
+        outside.unlink(missing_ok=True)
+
+
+def test_a_declared_but_missing_stylesheet_404s(tmp_path: Path) -> None:
+    """Declared and absent is a normal state — a path renamed in the project
+    and not yet in the note. It must not raise."""
+    docs = _repo_with_project_css(tmp_path, ["public/css/gone.css"])
+    httpd, port = _serve(docs)
+    try:
+        assert _get(port, "/_project/public/css/gone.css")[0] == 404
+        assert _get(port, "/healthz")[0] == 200
+    finally:
+        httpd.shutdown()
+
+
+def test_the_declaration_is_normalised_at_one_place(tmp_path: Path) -> None:
+    """A declaration the route would refuse anyway should never have counted,
+    so the payload and the allow-list agree by construction."""
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-S.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "S", "status": "draft",
+        "role": "system", "asset": "",
+        "stylesheets": ["/public/css/a.css", "b.css", "../evil.css",
+                        "notes.md", "", "b.css"]})
+    idx = Index.build(docs)
+    payload = cockpit.designs_payload(idx)["designs"][0]
+    assert payload["stylesheets"] == ["public/css/a.css", "b.css"], payload
+    assert cockpit.project_stylesheet_allowlist(idx) == {"public/css/a.css", "b.css"}
+
+
+def test_the_route_guards_hold_even_if_the_declaration_filter_does_not(
+        tmp_path: Path, monkeypatch) -> None:
+    """The route's own `.css` and traversal checks are unreachable while
+    `_design_stylesheets` drops those declarations first — so mutating either
+    one out changed nothing, and the tests above were exercising the FILTER,
+    not the route (found by mutation, 2026-07-28).
+
+    Two layers deserve two tests. This one hands the route a hostile
+    allow-list directly, which is what would happen if the filter were ever
+    relaxed, and asserts the route refuses on its own.
+    """
+    docs = _repo_with_project_css(tmp_path, ["public/css/style.css"])
+    hostile = {"secrets.env", "../secrets.env", "public/css/style.css"}
+    monkeypatch.setattr(cockpit, "project_stylesheet_allowlist",
+                        lambda index: hostile)
+    httpd, port = _serve(docs)
+    try:
+        # Non-CSS, allow-listed: refused by the route's own extension check.
+        status, body, _ = _get(port, "/_project/secrets.env")
+        assert status == 404, status
+        assert b"hunter2" not in body
+        # Traversal, allow-listed: refused by the route's own `..` check.
+        status, body, _ = _get(port, "/_project/../secrets.env")
+        assert status in (403, 404), status
+        assert b"hunter2" not in body
+        # And the legitimate one still works, so the guards are not blanket.
+        assert _get(port, "/_project/public/css/style.css")[0] == 200
+    finally:
+        httpd.shutdown()

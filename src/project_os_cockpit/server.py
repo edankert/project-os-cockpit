@@ -846,6 +846,14 @@ def _make_handler(
                 self._serve_shell_asset(path[len("/_shell/"):])
                 return
 
+            # A project's OWN stylesheets, for its design artifacts
+            # (TASK-0230). The allow-list is whatever the design notes
+            # declare — see `_serve_project_stylesheet`.
+            if path.startswith("/_project/"):
+                self._serve_project_stylesheet(
+                    urllib.parse.unquote(path[len("/_project/"):]))
+                return
+
             if path == "/index" or path == "/index/":
                 self._redirect("/")
                 return
@@ -2386,6 +2394,65 @@ def _make_handler(
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
+            _send_stylesheet_cors(self, target.name)
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _serve_project_stylesheet(self, rel: str) -> None:
+            """A stylesheet a design note declares, served from the project root.
+
+            Every downstream project's CSS lives ABOVE the docs root —
+            `public/css/style.css`, `obsidian-plugin/styles.css` — so a design
+            artifact could not read its own project's tokens and a downstream
+            design system could only ever be a hand-typed table. That table is
+            what DES-0002 stopped claiming was checked.
+
+            **The allow-list is the corpus.** `project_stylesheet_allowlist`
+            gathers `stylesheets:` from every design note, so widening it means
+            declaring a path in a note that a human reviews — not editing a
+            constant here, which would drift from the notes it describes, and
+            not sharing a directory, which would publish the project.
+
+            Read-only and CSS-only. The render server binds 0.0.0.0; these are
+            stylesheets the app already serves to anyone who loads it. The
+            narrowing is what stops this becoming a general file read.
+            """
+            # A fast path, not the guard. Containment below refuses the same
+            # inputs — mutating this check out leaves every test green because
+            # `relative_to` catches them anyway. Kept because it makes the
+            # refusal reason accurate, and said plainly because a check that
+            # cannot fire, under a comment implying it protects something, is
+            # the defect this codebase keeps finding (ISS-0024, ISS-0056).
+            if not rel or ".." in rel.split("/"):
+                self._respond_forbidden("project path traversal blocked")
+                return
+            if not rel.lower().endswith(".css"):
+                self._respond_not_found(self.path)
+                return
+            if rel not in cockpit.project_stylesheet_allowlist(index):
+                # Undeclared. Not "missing" — a real stylesheet elsewhere in
+                # the project reaches exactly this branch.
+                self._respond_not_found(self.path)
+                return
+            target = (project_root / rel).resolve()
+            try:
+                target.relative_to(project_root)
+            except ValueError:
+                # Catches a declared path that symlinks out of the tree; the
+                # allow-list check above cannot see through a link.
+                self._respond_forbidden("project path escapes project root")
+                return
+            if not target.is_file():
+                self._respond_not_found(self.path)
+                return
+            data = target.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/css; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            # A design frame is sandboxed with an OPAQUE origin, so it cannot
+            # read `cssRules` from a linked sheet and must fetch the text and
+            # re-inject it (ISS-0043). Without this header that fetch fails.
             _send_stylesheet_cors(self, target.name)
             self.end_headers()
             self.wfile.write(data)
