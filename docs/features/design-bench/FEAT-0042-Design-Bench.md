@@ -3,14 +3,14 @@ type: "[[feature]]"
 id: FEAT-0042
 aliases: ["FEAT-0042"]
 title: "Design bench — render, revise, annotate and review designs in the cockpit"
-status: review
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-28
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-28
-review_verdict: changes-requested
+review_verdict: approved
 source: ["user request 2026-07-27", "[[DES-0001-Overview-Redesign]]"]
 goal: "Make a design artifact a first-class project record the cockpit can render live at the real viewport, version with its reasoning, annotate by region, review through the existing desk, and check the implementation against."
 requirements: ["[[REQ-0023-Design-Is-A-Project-Record]]"]
@@ -82,7 +82,9 @@ Worse, the direction of authority was contradicted inside this repo on the day i
 
 What survives is narrower and real: a **scoped** check that a design's status/severity palette equals the `statuses.py`-derived palette, with the name mapping declared once in the design's `## Tokens` section. That is worth building. It is not why this phase exists. **Superseded 2026-07-28 ([[ISS-0049]] option 1): that scoped check was descoped, not deferred.** `design_tokens.py` remains in the tree as a working module with no caller; it is not a plan. Read this paragraph as history.
 
-## Independent review — 2026-07-28 (`changes-requested`)
+## Independent review — 2026-07-28 (final verdict: `approved`, round 3)
+
+Three rounds. Rounds 1 and 2 returned `changes-requested`; round 3 approves. The rounds are kept in full below rather than collapsed, because what was claimed and then withdrawn is the part a later reader needs.
 
 Reviewed from the notes and the diff by a fresh session with no memory of authoring this work. Same model family as the author (`model:claude-opus-5`), so this **does not** satisfy QUALITY.md's cross-vendor requirement; it satisfies the clean-context requirement of ADR-0013 only. Ran `.venv/bin/pytest -q` (460 passed) and `bash tools/scripts/validate-docs.sh` (OK) unchanged, then tried to break the claims. Where a finding says "measured", it was measured in a `sandbox="allow-scripts"` frame against a live sidecar over CDP — the runtime ISS-0043/0046/0047 established as the only one that counts.
 
@@ -126,6 +128,30 @@ Re-reviewed `b5ec48f`, `4b30c85`, `877bf7f`, `8b52d5b`. Four of the five substan
 **The tree is red as received.** `.venv/bin/pytest -q` → `1 failed, 464 passed`: `test_desktop_build_is_not_stale` fails because `desktop/src/renderer/renderer.ts` carries an mtime (14:37:57) later than `desktop/dist/renderer/renderer.js` (14:33:12). The content is not stale — the working tree is clean, `renderer.ts` was untouched by these four commits, and the build's content assertions pass — so a rebuild (or a touch) clears it. Worth noting that the guard's mtime half is content-blind and will cry wolf on any no-op save; a content hash would not. `validate-docs.sh` is OK.
 
 **Verdict stays `changes-requested`, on a much shorter list:** fix F4 so the artifact stops printing a false finding about the codebase, correct the dangling-token sentence in [[ISS-0042]], and get the suite green. None of that is large. F6, F7 and the stale paragraph above should not hold it up.
+
+### Round 3 — 2026-07-28, `approved`
+
+Re-reviewed `6eb6888`. All three conditions met, and the one I said I would attack hardest survives the attack.
+
+**F4 — fixed, and the fix discriminates.** The objection was that "the block reports nothing" is worthless unless absence means *nothing is wrong* rather than *the check cannot see*, so I built a positive control instead of reading the diff: a copy of `desktop/dist/renderer` with two genuine cross-file overrides appended (`:root { --border: #123456 }` and `:root[data-theme="dark"] { --text: #abcdef }`), served through `--shell-assets`, loaded in a sandboxed frame. It fires, precisely and with correct attribution:
+
+```
+The shell redefines 2 token(s) over base.css.
+--border (light) → base.css: hsl(0 0% 86%)  then  renderer.css: #123456
+--text (dark)    → base.css: hsl(0 0% 87%)  then  renderer.css: #abcdef
+```
+
+Two rows, correctly scheme-labelled, correctly file-attributed — and the four shell-only same-file light/dark pairs that produced the 4/4 false positives are **not** reported. Note the dark row was read out of `base.css`'s **bare** `[data-theme="dark"]` block, so the `isRootish`/scheme split handles the selector asymmetry that caused the original misreading. Same page against the pristine shell: block `ABSENT`, 98 swatches, 9 spacing bars, no `.missing` boxes. Absence now means nothing is wrong. One scope note, not a defect: the block iterates `SEMANTIC`, which excludes `--status-*`, `--severity-*`, `--font*` and `--radius*`, so a shell override of a status token would not appear here — `test_the_shell_declares_no_alias_for_a_base_css_role` covers that case and covers it more strongly, being set-disjointness over every token.
+
+**The dangling-token correction is right on all four, and the overstatement is kept as the finding** rather than edited away — `--surface-1` genuine, `--tree-indent` and `--bg-hover` fallback-protected, `--token` a comment. The guard now strips comments and matches only `var(--x)` with no fallback, pinning `--surface-1` alone. That is the right generalisation: the bug was in the measurement, and the measurement is what changed.
+
+**ISS-0054 — I re-ran both mutations rather than take them on report.** Reverting `MODES_WITH_VIRTUAL_LANDING` to `{'overview'}` now fails `test_the_boot_path_does_not_race_a_virtual_landing_mode`; substituting `const notOnDesign = !!currentRel && !currentRel.startsWith('~design'); if (!notOnDesign)` now fails `test_the_guard_polarity_is_the_one_that_navigates`. Both were green before. Neither changes my read of FEAT-0042 — they close reachability holes in FEAT-0043's surface — but they confirm the pattern I flagged in round 1: the guards in `tests/test_design_bench.py` are string-shaped, and two reviewers have now each found a hole where a rename or a hoist walked straight through one. `test_the_viewport_chooser_is_only_for_surfaces` still has that shape (`assert "b.disabled = true" not in head` — rename the loop variable and the regression returns). Cosmetic chrome rather than reachability, so not a gate, but the file would benefit from a pass that converts the highest-value guards from "this string appears" to "this behaviour holds", as F4's fix and the two ISS-0054 tests now do.
+
+**Suite:** `466 passed`. The single failure I see, `test_desktop_build_is_not_stale`, is **my own artifact** — restoring `renderer.ts` after the two mutation runs bumped its mtime past `dist/renderer/renderer.js`; the content is byte-identical to HEAD (`git diff HEAD` empty) and the run is green with that one test deselected. That is now the second time in this review that guard fired on a no-op touch with no content change. Its content assertions are valuable and its mtime half is content-blind; hashing the source, or comparing against the build's own recorded input, would end the false alarms. Worth an `ISS-*` at triage, no more. `validate-docs.sh` OK.
+
+**F6 / F7:** file them at triage before close so they do not disappear with the feature — at-rule descent in `eachRule`, the dead `--design-fit`, the undisconnected `ResizeObserver`, plus the stale-build guard above. None of them gate the verdict, and none needs to precede it.
+
+**Verdict: `approved`.** Every claim this note makes about what is checked now matches what the code checks, and the three findings that falsified stated acceptance (F1, F2) or shipped a false statement inside the delivered artifact (F3, F4, F5) are fixed and verified in the runtime where they failed. What earns the approval is not that the defects were fixed but that the *claims were brought back to the evidence* — an acceptance bullet withdrawn rather than quietly deleted, a phase criterion reconciled rather than unticked, and an overstated measurement recorded as the finding rather than edited out.
 
 **Correction accepted:** there is no cross-vendor gate. QUALITY.md line 49 and [[ADR-0013]] make clean context the mechanism and say model family is not the gate; the paragraph in `CLAUDE.md` that both of us were reading was stale and is now fixed ([[ISS-0053]]). My round-1 sentence claiming this review "does not satisfy QUALITY.md's cross-vendor requirement" was wrong — there is no such requirement to fail. The review gate is satisfied: fresh context, separate session, notes and diff only. `reviewed_by` records the model as provenance, not as a compliance token.
 

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0043
 aliases: ["FEAT-0043"]
 title: "Design as a top-level surface, opening with the project brief"
-status: review
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -135,7 +135,7 @@ With `state` keyed on name+purpose, the filled branch never mentions `placeholde
 
 - The four REQ-0024 criteria now carry real evidence; I re-verified each and they hold.
 - **The skipped `approved` does need reconciling.** STATUSES.md gives `draft → approved → implemented` and sets `approved → implemented` at feature close-out. The REQ-PREMATURE warning has gone quiet now that the status is terminal, so nothing mechanical will catch it — record in the note that approval was folded into close-out, or pass through `approved` explicitly.
-- **`status: done` on this feature was premature** and is currently self-contradictory: the note carries `review_verdict: changes-requested` beside it, and the review skill's step 5 says to keep the item out of terminal status while that verdict stands. R1 is a live regression, so `done` is not yet true. Not changed here — status is the implementer's and the human's call.
+- **`status: done` on this feature was premature** (round 2). Acted on: it was moved back to `review`, R1 was fixed, and round 3 returned `approved`. Closed to `done` on 2026-07-28 with the verdict standing, not beside a contradicting one.
 
 ## Independent review — round 3 (2026-07-28, `model:claude-opus-5`) — **approved**
 

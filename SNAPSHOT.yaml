@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 43
-  ISS: 54
+  ISS: 55
   PHASE: 9
   REQ: 24
   RISK: 4
@@ -52,7 +52,7 @@ items:
     FEAT-0043:
       file: "docs/features/design-surface/FEAT-0043-Design-Top-Level-Surface.md"
       title: "Design as a top-level surface, opening with the project brief"
-      status: review
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0024"]
       tasks: [TASK-0222, TASK-0223, TASK-0224, TASK-0225]
@@ -60,7 +60,7 @@ items:
     FEAT-0042:
       file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
       title: "Design bench — render, revise, annotate and review designs in the cockpit"
-      status: review
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
       tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219"]
@@ -2495,7 +2495,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 43
-    features_done: 36
+    features_done: 38
     tasks_total: 228
     tasks_done: 224
     tests_total: 21
@@ -2504,7 +2504,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 1
+    issues_triage: 2
     risks_open: 4
     releases_total: 0
     decisions_total: 8
