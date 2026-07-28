@@ -1439,20 +1439,50 @@ def test_the_sidebar_holds_the_rail_and_rationale_not_the_stage() -> None:
     paint = src.split("const paint = () => {")[1].split("\n  };")[0]
     assert "side.append(buildDesignRevisionRail(d, paint));" in paint
     assert "side.append(rationale);" in paint
-    assert "root.append(buildDesignHeader(d, paint), stage);" in paint
+    assert "root.append(head, stage);" in paint
+    assert "const head = buildDesignHeader(d, paint);" in paint
 
 
-def test_a_layout_harness_exists_and_asserts_the_nesting() -> None:
-    """Both layout defects found on 2026-07-28 were invisible to every test
-    in this file, because all of them read a payload or a line of source.
-    Edwin found both by looking at the screen. The harness is the smallest
-    thing that can fail instead — pytest cannot measure a box."""
+def test_the_layout_harness_runs_the_real_bundle() -> None:
+    """Layout defects are invisible to every test in this file — all of them
+    read a payload or a line of source, and pytest cannot measure a box.
+
+    The first harness measured a DOM written **by hand**. It passed while the
+    surface was still wrong on screen, because a mock cannot reproduce the
+    height chain that matters (`.stage > .stage-main > .doc-view`), the real
+    stylesheet order, or what `paint()` actually builds. So the assertion here
+    is not "a harness exists" but "the harness loads the shipped bundle" — a
+    harness that can pass while the app is broken is worse than none.
+    """
     harness = (Path(__file__).resolve().parents[1]
-               / "desktop" / "harness" / "design-shell-harness.html")
-    assert harness.is_file(), "the layout harness was deleted"
+               / "desktop" / "harness" / "design-harness.html")
+    assert harness.is_file(), "the design harness was deleted"
     text = harness.read_text(encoding="utf-8")
+    assert "../dist/renderer/renderer.js" in text, (
+        "the harness no longer loads the real bundle; it is a mock again"
+    )
+    for css in ("base.css", "cockpit.css", "renderer.css"):
+        assert "../dist/renderer/" + css in text, css
     assert "no scroller nests inside another" in text
     assert "the page does not scroll" in text
-    assert "the declared frame keeps its size" in text
-    # It must measure the REAL stylesheet, not a copy that can drift.
-    assert '../dist/renderer/renderer.css' in text
+    assert "collapsing the sidebar gives the artifact the pane" in text
+    # The stub bridge must stay complete: one missing namespace throws at
+    # module scope and the bundle stops, which the harness then reports as
+    # "the surface does not render" — a false negative that cost a round.
+    for ns in ("onMenuDispatch", "workspaces", "sidecar", "dispatch", "terminal"):
+        assert ns in text, ns
+
+
+def test_the_details_sidebar_can_be_collapsed() -> None:
+    """Measured against the real renderer: a 1356px pane left the frame at
+    1036px, and DES-0001's dossier is authored at 1240px — so the design
+    scrolled sideways inside its own frame. Collapsed, the frame reaches
+    1312px and the horizontal scroll is gone."""
+    src = _renderer()
+    assert "cockpit:design-side" in src, "the choice does not persist"
+    assert "toggle.className = 'design-side-toggle';" in src
+    # The control must live in the HEAD, not the sidebar: a toggle that
+    # disappears with the thing it toggles cannot bring it back.
+    paint = src.split("const paint = () => {")[1].split("\n  };")[0]
+    assert "head.append(toggle);" in paint
+    assert "side.append(toggle)" not in paint

@@ -650,7 +650,13 @@ cockpitApi.sidecar.onEvent((ev) => {
       // guard a workspace switch would race the README fetch against
       // the stats fetch and overwrite the dashboard.
       void loadWsNav();
-      if (currentNavMode !== 'overview') void navigateTo('README.md');
+      // Every mode whose `loadWsNav()` lands on a VIRTUAL page must be
+      // excluded here, or the README fetch races that navigation and wins —
+      // you select Design, restart, and land on README with the Design button
+      // still lit. The guard named only `overview` because it was written
+      // when overview was the only such mode; Review and Design inherited the
+      // bug on the days they were added (ISS-0040).
+      if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)) void navigateTo('README.md');
       void refreshAgentSnapshot();
       void loadAgentActions();
       void loadAgentRegistry();
@@ -2353,6 +2359,12 @@ function isItemHidden(item: { status?: string }): boolean {
 // TASK-0204, so a stored preference pointing at one must migrate or the
 // user lands in a mode they cannot see is selected and cannot leave by
 // clicking the (now absent) button.
+// Modes whose `loadWsNav()` routes to a virtual page rather than a note.
+// Anything listed here must NOT be sent to README.md on workspace open.
+const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
+  'overview', 'review', 'design',
+]);
+
 const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent'];
 const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   active: 'overview',   // in-flight work is ambient on the overview now
@@ -2779,6 +2791,21 @@ const DESIGN_VIEWPORTS: Array<{ key: string; label: string; w: number | null; h:
   { key: 'fill', label: 'Fill', w: null, h: null },
 ];
 let designViewport = 'declared';
+
+// The sidebar costs the artifact 260px of width. Measured against the real
+// renderer: a 1356px pane leaves the frame 1036px, and DES-0001's dossier is
+// authored at 1240px — so the design scrolled sideways inside its own frame,
+// which is what "the frame is not the right size" looked like on screen. The
+// sidebar therefore collapses, and the choice persists.
+let designSideOpen = (() => {
+  try { return localStorage.getItem('cockpit:design-side') !== 'closed'; }
+  catch { return true; }
+})();
+function setDesignSideOpen(open: boolean): void {
+  designSideOpen = open;
+  try { localStorage.setItem('cockpit:design-side', open ? 'open' : 'closed'); }
+  catch { /* localStorage unavailable */ }
+}
 
 async function fetchDesignRegister(): Promise<DesignRecord[]> {
   if (!sidecarBaseUrl) return [];
@@ -3252,6 +3279,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
     }
     const side = document.createElement('aside');
     side.className = 'design-side';
+    side.hidden = !designSideOpen;
     side.append(buildDesignRevisionRail(d, paint));
     const rationale = buildDesignRationale(d);
     if (rationale) side.append(rationale);
@@ -3260,7 +3288,26 @@ async function renderDesignPage(target: string): Promise<boolean> {
     stage.className = 'design-shell-body';
     stage.append(body, side);
 
-    root.append(buildDesignHeader(d, paint), stage);
+    const head = buildDesignHeader(d, paint);
+    // The toggle lives in the head so it is reachable whether or not the
+    // sidebar is showing — a control that disappears with the thing it
+    // controls cannot bring it back.
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'design-side-toggle';
+    const labelToggle = () => {
+      toggle.textContent = designSideOpen ? 'Hide details ›' : '‹ Show details';
+      toggle.setAttribute('aria-expanded', String(designSideOpen));
+    };
+    labelToggle();
+    toggle.addEventListener('click', () => {
+      setDesignSideOpen(!designSideOpen);
+      side.hidden = !designSideOpen;
+      labelToggle();
+    });
+    head.append(toggle);
+
+    root.append(head, stage);
     docView.replaceChildren(root);
     // The register scrolls; a stage does not. Toggled per render because the
     // same element carries both.

@@ -1,0 +1,219 @@
+<!doctype html>
+<!--
+  Design surface harness — runs the REAL renderer bundle (TASK-0227).
+
+  The first attempt at verifying the app-shell layout measured a DOM I wrote
+  by hand. It passed, and the surface was still wrong on screen: a mock cannot
+  reproduce the height chain that actually matters (.stage > .stage-main >
+  .doc-view), the real stylesheet order, or what `paint()` really builds.
+  This loads dist/renderer/renderer.js against a stubbed sidecar and drives it
+  to `~design/DES-0001`, so what is measured is what ships.
+
+  Serve the repo root over http and open:
+    /desktop/harness/design-harness.html          document (no viewport)
+    /desktop/harness/design-harness.html#framed   declared viewport 900
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cockpit design harness</title>
+  <link rel="stylesheet" href="../dist/renderer/base.css" />
+  <link rel="stylesheet" href="../dist/renderer/cockpit.css" />
+  <link rel="stylesheet" href="../dist/renderer/renderer.css" />
+</head>
+<body>
+<script>
+const FRAMED = location.hash === '#framed';
+const noopOff = () => {};
+const on = () => noopOff;
+window.cockpit = {
+  workspaces: {
+    list: async () => [{ id: 'ws1', name: 'project-os-cockpit', root: '/repo', icon: null, state: 'idle' }],
+    open: async () => ({ ok: true }), rescan: async () => [], pickAndAdd: async () => null,
+    pickIcon: async () => null, remove: async () => ({ ok: true }),
+    notifyActiveChanged: () => {}, onAgentState: on, onSwitchTo: on,
+  },
+  sidecar: { onEvent: (cb) => { window.__sidecarCb = cb; return noopOff; } },
+  agent: { onFocus: on, onDispatchSelection: on },
+  agents: { fleet: async () => [], sessions: async () => [] },
+  dispatch: { list: async () => [], execute: async () => ({ ok: true }), clear: async () => ({ ok: true }),
+    remove: async () => ({ ok: true }), poke: async () => ({ ok: true }), onDelivered: on, onQueueChanged: on },
+  menu: { onBack: on, onForward: on, onRescan: on, onToggleTerminal: on },
+  deeplink: { onUrl: on },
+  settings: { get: async () => ({}), set: async () => ({ ok: true, settings: {} }) },
+  terminal: { spawn: async () => ({ ok: false }), attach: async () => ({ ok: false }),
+    write: () => {}, resize: () => {}, kill: () => {}, dispose: () => {},
+    onData: on, onExit: on },
+  // Every namespace the renderer touches must exist. Omitting one throws at
+  // module scope and the whole bundle stops — which is how the first run of
+  // this harness "found" that the design surface does not render.
+  app: { onMenuDispatch: on, openExternal: async () => ({ ok: true }),
+    resolveDroppedFile: async () => null, revealInFinder: async () => ({ ok: true }),
+    showContextMenu: async () => ({ ok: true }) },
+  attention: { dismissed: async () => [], dismiss: async () => ({ ok: true }) },
+};
+window.cockpit.workspaces.update = async () => ({ ok: true });
+class FakeES { constructor() { this.readyState = 1; } addEventListener() {} close() {} }
+window.EventSource = FakeES;
+
+const DESIGNS = { schema_version: 4, designs: [{
+  id: 'DES-0001', title: 'Overview redesign dossier',
+  rel: 'designs/DES-0001-Overview-Redesign.md', status: 'implemented',
+  role: 'proposal', asset: 'designs/dossier.html', has_asset: true,
+  viewport: FRAMED ? 900 : null,
+  implements: ['FEAT-0040'],
+  rationale: [{ id: 'ADR-0006', title: 'Retire the delivered band',
+    decision: 'Remove the delivered palette band, its CSS token, and its two members from every status surface, so no coloured band survives that no status can enter.',
+    url: '/docs/decisions/ADR-0006-Retire-Delivered-Band.md', status: 'accepted', missing: false }],
+}]};
+const REVISIONS = { schema_version: 4, dirty: true, revisions: [
+  { sha: 'a1b2c3d', date: '2026-07-27', subject: 'first pass', reason: 'first pass at the quiet state' },
+  { sha: '9f8e7d6', date: '2026-07-26', subject: 'initial', reason: 'initial dossier' },
+]};
+const BRIEF = { schema_version: 4, state: 'filled', name: 'project-os-cockpit',
+  purpose: 'A three-pane desktop cockpit that renders project-os notes on the fly.',
+  placeholders: 0, rel: 'LLM_BRIEF.md',
+  sections: [{ heading: 'What it is for', body: 'Answering four questions without opening a file.' }] };
+
+// A deliberately TALL, WIDE artifact — the case that produced the complaint.
+const ARTIFACT = '<!doctype html><style>body{margin:0;font:14px system-ui;width:1240px}'
+  + 'section{height:300px;border-bottom:1px solid #ccc;padding:12px}</style>'
+  + Array.from({length: 12}, (_, i) => `<section>panel ${i + 1}</section>`).join('');
+
+const realFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  const url = String(typeof input === 'string' ? input : input.url);
+  const json = (b) => new Response(JSON.stringify(b), { status: 200,
+    headers: { 'Content-Type': 'application/json', 'X-Cockpit-Schema': '4' } });
+  if (url.includes('/api/cockpit/designs'))         return json(DESIGNS);
+  if (url.includes('/api/cockpit/design-revisions'))return json(REVISIONS);
+  if (url.includes('/api/cockpit/brief'))           return json(BRIEF);
+  if (url.includes('/design-asset'))
+    return new Response(ARTIFACT, { status: 200, headers: { 'Content-Type': 'text/html' } });
+  if (url.includes('/api/render'))    return json({ metadata_html: '', html: '<p>note</p>' });
+  if (url.includes('/api/cockpit/nav'))         return json({ schema_version: 4, groups: [], available_platforms: [] });
+  if (url.includes('/api/cockpit/context'))     return json({ schema_version: 4, platform: 'all', linked: [], backlinks: [] });
+  if (url.includes('/api/cockpit/state'))       return json({ schema_version: 4 });
+  if (url.includes('/api/cockpit/actions'))     return json({ actions: [] });
+  if (url.includes('/api/cockpit/validation'))  return json({ schema_version: 4, ok: true, state: 'ok', errors: [], warnings: [] });
+  if (url.includes('/api/cockpit/review-queue'))return json({ schema_version: 4, groups: [] });
+  if (url.includes('/api/cockpit/dispatch-requests')) return json({ requests: [] });
+  if (url.includes('/api/cockpit/sessions'))    return json({ sessions: [] });
+  if (url.includes('/api/cockpit/stats'))       return json(null);
+  if (url.includes('/_events')) return new Response('', { status: 200 });
+  return realFetch(input, init);
+};
+try {
+  localStorage.setItem('cockpit:nav-mode', 'design');
+  // Start from a known sidebar state. The choice persists in real use, so
+  // without this the measurement below depends on whatever the last run left
+  // behind — which produced a FAIL that was the check's fault, not the app's.
+  localStorage.setItem('cockpit:design-side', 'open');
+  localStorage.setItem('cockpit:active-workspace', 'ws1');
+} catch {}
+</script>
+
+<div id="harness-shell"></div>
+
+<pre id="out" style="position:fixed;right:0;bottom:0;z-index:9999;margin:0;
+  font:11px/1.4 monospace;background:#fff;color:#111;border:1px solid #333;
+  padding:6px;white-space:pre;max-height:46vh;overflow:auto"></pre>
+
+<script type="module">
+  const shellHtml = await (await fetch('../dist/renderer/index.html')).text();
+  const doc = new DOMParser().parseFromString(shellHtml, 'text/html');
+  document.getElementById('harness-shell').replaceWith(doc.querySelector('.app'));
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = '../dist/renderer/renderer.js';
+  document.body.appendChild(script);
+
+  // The ready handler drops the event unless the workspace is ALREADY active
+  // (`p.workspaceId !== activeId` returns early), so the rail item has to be
+  // clicked first. Firing ready alone leaves the whole surface unrendered —
+  // which is how the first run of this harness reported "does not render".
+  setTimeout(() => {
+    document.querySelector('.ws-square')?.click();
+    setTimeout(() => {
+      window.__sidecarCb?.({ kind: 'ready',
+        payload: { workspaceId: 'ws1', url: 'http://stub.local' } });
+      // Land on the artifact, not the register.
+      // Open the artifact, not the register: the register is a list and the
+      // thing under test is the stage.
+      setTimeout(() => { document.querySelector('.design-row')?.click(); }, 600);
+    }, 250);
+  }, 400);
+
+  const scrolls = (el) => el.scrollHeight > el.clientHeight + 1
+                       || el.scrollWidth  > el.clientWidth  + 1;
+  const scrollers = (root) => [...root.querySelectorAll('*')].filter((el) => {
+    const cs = getComputedStyle(el);
+    return ['auto', 'scroll'].includes(cs.overflowY)
+        || ['auto', 'scroll'].includes(cs.overflowX);
+  });
+
+  setTimeout(() => {
+    const lines = [];
+    let failed = 0;
+    const check = (label, ok, detail) => {
+      if (!ok) failed++;
+      lines.push((ok ? 'PASS  ' : 'FAIL  ') + label + (detail ? '   ' + detail : ''));
+    };
+    const page = document.querySelector('#doc-view');
+    const frame = document.querySelector('.design-frame');
+    if (!page || !frame) {
+      document.getElementById('out').textContent =
+        'FAIL: the design surface did not render at all'
+        + '\n#doc-view: ' + !!page + '  .design-frame: ' + !!frame
+        + '\ndoc-view classes: ' + (page ? page.className : '(none)');
+      return;
+    }
+    const stage = document.querySelector('.design-stage');
+    const side = document.querySelector('.design-side');
+    const r = frame.getBoundingClientRect();
+    const pr = page.getBoundingClientRect();
+
+    check('the page does not scroll', !scrolls(page),
+          'scroll ' + page.scrollHeight + ' vs client ' + page.clientHeight);
+    const inner = scrollers(page);
+    const nested = inner.filter((el) => inner.some((o) => o !== el && o.contains(el)));
+    check('no scroller nests inside another', nested.length === 0,
+          nested.map((n) => n.className).join(' | '));
+    check('the frame has real height', r.height > 300,
+          Math.round(r.width) + 'x' + Math.round(r.height));
+    check('the frame is not taller than the pane', r.height <= pr.height + 1,
+          'frame ' + Math.round(r.height) + ' vs pane ' + Math.round(pr.height));
+    // The measurement that mattered: with the sidebar collapsed the frame must
+    // reach the full pane, or a design authored wider than the frame scrolls
+    // sideways inside it — which is what "the frame is the wrong size" was.
+    const toggle = document.querySelector('.design-side-toggle');
+    check('a details toggle exists', !!toggle);
+    if (toggle) {
+      const sideEl = document.querySelector('.design-side');
+      if (sideEl.hidden) toggle.click();          // normalise: start expanded
+      const withSide = frame.getBoundingClientRect().width;
+      toggle.click();                              // collapse
+      const wide = frame.getBoundingClientRect().width;
+      check('collapsing the sidebar gives the artifact the pane',
+            wide > withSide + 200 && wide >= pr.width - 60,
+            Math.round(withSide) + ' -> ' + Math.round(wide)
+            + ' of ' + Math.round(pr.width));
+      toggle.click();                              // restore
+    }
+    check('the sidebar is its own scroller',
+          !!side && ['auto', 'scroll'].includes(getComputedStyle(side).overflowY));
+    lines.push('');
+    lines.push('pane  ' + Math.round(pr.width) + 'x' + Math.round(pr.height));
+    lines.push('frame ' + Math.round(r.width) + 'x' + Math.round(r.height));
+    lines.push('stage ' + (stage ? stage.className : '-'));
+    lines.push('scrollers: ' + inner.map((e) => e.className || e.tagName).join(' | '));
+    const out = document.getElementById('out');
+    out.textContent = (FRAMED ? 'FRAMED' : 'DOCUMENT') + '  window '
+      + innerWidth + 'x' + innerHeight + '\n' + lines.join('\n')
+      + '\n\n' + (failed ? failed + ' FAILED' : 'all checks passed');
+    out.style.color = failed ? '#b00' : '#070';
+  }, 3400);
+</script>
+</body>
+</html>
