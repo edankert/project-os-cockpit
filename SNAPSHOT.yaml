@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 43
-  ISS: 32
+  ISS: 35
   PHASE: 9
   REQ: 24
   RISK: 4
@@ -52,7 +52,7 @@ items:
     FEAT-0043:
       file: "docs/features/design-surface/FEAT-0043-Design-Top-Level-Surface.md"
       title: "Design as a top-level surface, opening with the project brief"
-      status: doing
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0024"]
       tasks: [TASK-0222, TASK-0223, TASK-0224, TASK-0225]
@@ -1761,7 +1761,7 @@ items:
     REQ-0024:
       file: "docs/requirements/REQ-0024-Brief-Is-Maintained.md"
       title: "The project brief is a maintained artifact, not a template stub"
-      status: draft
+      status: implemented
       phase: "[[PHASE-009-Design-Surfaces]]"
       implements: "FEAT-0043"
     REQ-0023:
@@ -2495,7 +2495,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 43
-    features_done: 36
+    features_done: 37
     tasks_total: 225
     tasks_done: 221
     tests_total: 21

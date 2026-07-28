@@ -812,6 +812,10 @@ def test_a_partially_filled_brief_keeps_what_is_real(tmp_path: Path) -> None:
     assert b["name"] == "the thing"
     assert b["purpose"] == ""
     assert b["state"] == "unfilled"
+    # The name survives INTO the unfilled state — that is the point. State
+    # says the identity is incomplete; it does not discard the half that is
+    # real (ISS-0035).
+    assert b["placeholders"] == 1
 
 
 def test_parsing_is_tolerant_of_a_hand_edited_file(tmp_path: Path) -> None:
@@ -819,8 +823,12 @@ def test_parsing_is_tolerant_of_a_hand_edited_file(tmp_path: Path) -> None:
     heading, or a missing one are all normal and none may break the surface."""
     b = _brief(tmp_path, "# B\n\n## Something Nobody Planned\nfree text\n\n"
                          "## Project Identity\n- Purpose: backwards order\n")
-    assert b["state"] == "filled"
     assert b["purpose"] == "backwards order"
+    # Incomplete identity (no name) with ZERO placeholders — the two are
+    # independent, and the band's copy must not assume one implies the other
+    # (ISS-0035). Someone deleted the template lines instead of filling them.
+    assert b["state"] == "unfilled"
+    assert b["placeholders"] == 0
     assert [s["heading"] for s in b["sections"]] == [
         "Something Nobody Planned", "Project Identity"]
 
@@ -840,14 +848,45 @@ def test_the_real_brief_is_filled_and_parses() -> None:
     assert any(s["heading"] == "Invariants" for s in b["sections"])
 
 
-def test_the_band_never_renders_the_placeholder() -> None:
+def test_the_band_never_renders_the_placeholder(tmp_path: Path) -> None:
+    """The property is about the placeholder TEXT, not about which fields the
+    unfilled branch touches.
+
+    The first version of this test asserted the branch never reads
+    `brief.name` — which is neither necessary (the payload scrubs it) nor
+    sufficient (nothing stopped the branch rendering `sections[].body`, which
+    carried the placeholder verbatim). Independent review demonstrated the
+    leak with both tests green. So: assert the payload, at every field a
+    surface could render.
+    """
+    b = _brief(tmp_path, "# B\n\n## Project Identity\n- Name: REPLACE ME\n"
+                         "- Purpose: REPLACE ME\n\n## Invariants\n"
+                         "- REPLACE ME\n- a real invariant\n")
+    rendered = [b["name"], b["purpose"]] + [s["body"] for s in b["sections"]]
+    for value in rendered:
+        assert "REPLACE" not in value.upper(), value
+    # The real line beside the placeholder survives — scrubbing is per LINE,
+    # because discarding a half-written section would punish progress.
+    assert any("a real invariant" in s["body"] for s in b["sections"])
+
     src = _renderer()
     band = src.split("function buildIdentityBand(")[1].split("\nasync function")[0]
     assert "has not said what it is" in band
-    assert "brief.purpose" in band
-    # The unfilled branch must return before touching name/purpose.
+
+
+def test_the_unfilled_band_leads_with_the_name_when_there_is_one(tmp_path: Path) -> None:
+    """Headlining "this project has not said what it is" over a name the
+    payload just parsed calls the file a liar (ISS-0035). `name` is already
+    placeholder-scrubbed, so a non-empty value here is always real."""
+    b = _brief(tmp_path, "# B\n- Name: the thing\n- Purpose: REPLACE ME\n")
+    assert b["state"] == "unfilled" and b["name"] == "the thing"
+    src = _renderer()
+    band = src.split("function buildIdentityBand(")[1].split("\nasync function")[0]
     unfilled = band.split("if (brief.state === 'unfilled')")[1].split("return band;")[0]
-    assert "brief.name" not in unfilled and "brief.purpose" not in unfilled
+    assert "brief.name" in unfilled, (
+        "the unfilled branch ignores a name the payload parsed"
+    )
+    assert "brief.placeholders\n" in unfilled or "brief.placeholders" in unfilled
 
 
 def test_an_absent_brief_degrades_silently() -> None:
@@ -907,6 +946,57 @@ def test_reselecting_design_keeps_the_open_artifact() -> None:
     block = src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
     assert "currentRel.startsWith('~design')" in block
     assert "currentRel === '~design'" not in block
+
+
+def _design_branch(src: str) -> str:
+    """The design branch of `loadWsNav`, as source.
+
+    Read as text because the renderer is TypeScript and this suite is Python.
+    That makes these assertions weaker than executing the code, so they are
+    written to fail against the mutations that actually matter rather than to
+    restate what the source says — ISS-0034 found three tests here that a
+    permanently-unreachable mode passed unchanged.
+    """
+    return src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+
+
+def test_the_guard_polarity_is_the_one_that_navigates() -> None:
+    """The mutation that matters: inverting the guard to
+    `if (currentRel && currentRel.startsWith('~design'))` makes the mode
+    permanently unreachable by click while every other test stays green — it
+    navigates only when already there. Asserting the negation explicitly is
+    what a grep for `startsWith` could not do.
+    """
+    block = _design_branch(_renderer())
+    before = block.split("void navigateTo('~design'")[0]
+    guard = before.rsplit("if (", 1)[1].rsplit(")", 1)[0]
+    assert "!currentRel" in guard and "!currentRel.startsWith('~design')" in guard, (
+        "the guard around navigateTo is %r — a guard that fires only when "
+        "~design is already open never opens it" % guard
+    )
+
+
+def test_the_branch_actually_navigates() -> None:
+    """Deleting the navigateTo call and leaving the branch and its comments
+    behind also left 70 tests green. The call is the whole behaviour."""
+    block = _design_branch(_renderer())
+    assert "void navigateTo('~design'" in block, (
+        "the design branch no longer navigates; selecting the mode would "
+        "leave whatever page was already open"
+    )
+
+
+def test_the_route_the_mode_navigates_to_is_one_the_router_handles() -> None:
+    """The wire, not the endpoints. Both reachability bugs in this surface
+    were a control pointing at a url shape nothing downstream claimed, so the
+    target string is checked against the router's own literal and against
+    `extractRel`, which silently discarded `~design/...` once already."""
+    src = _renderer()
+    assert "normalised === '~design' || normalised.startsWith('~design/')" in src, (
+        "the router no longer claims ~design; the mode would navigate nowhere"
+    )
+    rel = src.split("function extractRel(")[1].split("\n}")[0]
+    assert "url.startsWith('~')" in rel and "return url;" in rel
 
 
 def test_design_mode_still_fetches_the_nav() -> None:
@@ -1120,3 +1210,83 @@ def test_the_real_corpus_matches_what_the_task_predicted() -> None:
     assert [r["id"] for r in by_id["DES-0001"]["rationale"]] == ["ADR-0006"]
     assert by_id["DES-0002"]["rationale"] == []
     assert by_id["DES-0001"]["rationale"][0]["decision"].startswith("Remove the")
+
+
+# ---- the identity band's link actually resolves (ISS-0033) ---------------
+
+def _serve(docs: Path):
+    """A real server on an ephemeral port.
+
+    Deliberately end-to-end. ISS-0033 was a control pointing at a url the
+    render endpoint refused, and the fix looked correct as a one-line
+    allowlist addition — until it was curled and still 404'd, because the
+    handler never consulted the allowlist. Only the wire tells you that.
+    """
+    import threading
+    from project_os_cockpit.server import (
+        DocsServer, _NoDNSThreadingHTTPServer, _make_handler,
+    )
+    server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        _make_handler(server.docs_root, server.index, server.bus,
+                      cockpit_state=server.cockpit_state),
+    )
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, httpd.server_address[1]
+
+
+def _render(port: int, rel: str) -> dict:
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    url = ("http://127.0.0.1:%d/api/render?path=%s"
+           % (port, urllib.parse.quote(rel)))
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        return json.loads(exc.read())
+
+
+def test_the_brief_link_resolves_over_http(tmp_path: Path) -> None:
+    """The identity band's only link, exercised the way a click exercises it.
+
+    It navigated to `LLM_BRIEF.md`, which lives one level ABOVE docs_root, and
+    the endpoint answered `not a markdown file` — sending the renderer into
+    mountPlaceholder, which REPLACES the design surface with "No note here".
+    Asserting the button's label would never have caught it.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("# hi\n", encoding="utf-8")
+    (tmp_path / "LLM_BRIEF.md").write_text(
+        "# LLM Brief\n\n## Project Identity\n- Name: fixture\n"
+        "- Purpose: to be opened\n", encoding="utf-8")
+    httpd, port = _serve(docs)
+    try:
+        got = _render(port, "LLM_BRIEF.md")
+        assert got.get("ok") is not False, got
+        assert got["rel_path"] == "LLM_BRIEF.md"
+        assert "fixture" in got["html"]
+
+        # The same defect existed for the Library's README row all along;
+        # the allowlist was never consulted by this endpoint.
+        assert _render(port, "README.md").get("ok") is not False
+
+        # Widening stops at the allowlist. A root file that is NOT on it
+        # stays refused, and traversal stays blocked.
+        (tmp_path / "SECRETS.md").write_text("# no\n", encoding="utf-8")
+        assert _render(port, "SECRETS.md").get("ok") is False
+        assert _render(port, "../SECRETS.md").get("ok") is False
+    finally:
+        httpd.shutdown()
+
+
+def test_the_renderer_routes_the_url_shape_the_library_emits() -> None:
+    """`extractRel` discarded `/README.md`, so the Library rows for top-level
+    project files were dead clicks too — the same class as the `~design`
+    bug it was already patched for. One path segment only."""
+    src = _renderer()
+    rel = src.split("function extractRel(")[1].split("\n}")[0]
+    assert "/^\\/[^/]+\\.md$/i.test(url)" in rel, rel

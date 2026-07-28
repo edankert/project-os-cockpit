@@ -1884,13 +1884,28 @@ def _make_handler(
                     status=HTTPStatus.FORBIDDEN,
                 )
                 return
-            target = (docs_root / rel_path).resolve()
-            if not _is_under(target, docs_root):
-                self._respond_json(
-                    {"ok": False, "error": "resolved path escapes docs root"},
-                    status=HTTPStatus.FORBIDDEN,
-                )
-                return
+            # An allowlisted top-level project file (README, ROADMAP,
+            # SECURITY, LLM_BRIEF) lives one level ABOVE docs_root, so the
+            # resolution below would reject it as escaping the root. The
+            # Library has emitted `/<file>` urls for these since FEAT-0010
+            # and this endpoint never served them — clicking one was a dead
+            # click, and ISS-0033 is the identity band walking into the same
+            # hole. The allowlist is exact-match on a filename with no
+            # separators, so it widens nothing: `..` is already rejected
+            # above, and a name like `docs/README.md` is not in the tuple.
+            target = None
+            if project_root is not None and rel_path in cockpit.PROJECT_SUPPORT_ROOT_FILES:
+                candidate = (project_root / rel_path).resolve()
+                if _is_under(candidate, project_root) and candidate.is_file():
+                    target = candidate
+            if target is None:
+                target = (docs_root / rel_path).resolve()
+                if not _is_under(target, docs_root):
+                    self._respond_json(
+                        {"ok": False, "error": "resolved path escapes docs root"},
+                        status=HTTPStatus.FORBIDDEN,
+                    )
+                    return
             if not target.is_file() or target.suffix.lower() != ".md":
                 self._respond_json(
                     {"ok": False, "error": f"not a markdown file: {rel_path}"},

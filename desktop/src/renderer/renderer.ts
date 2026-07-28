@@ -3112,11 +3112,24 @@ function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
   if (brief.state === 'unfilled') {
     band.classList.add('is-unfilled');
     const h = document.createElement('h1');
-    h.textContent = 'This project has not said what it is';
+    // Say what IS known. A brief with a real name and a missing purpose is a
+    // project that has half-answered, and headlining "has not said what it
+    // is" over a name the payload just parsed calls the file a liar
+    // (ISS-0035). `name` is already placeholder-scrubbed, so a non-empty
+    // value here is always real.
+    h.textContent = brief.name
+      ? `${brief.name} — the brief is unfinished`
+      : 'This project has not said what it is';
     const p = document.createElement('p');
-    p.textContent = `LLM_BRIEF.md carries ${brief.placeholders} template `
-      + 'placeholder(s). It is what an agent reads to learn what this project '
-      + 'is for — an unfilled one teaches it nothing.';
+    // A brief can be incomplete WITHOUT carrying placeholders — someone
+    // deleted the template lines instead of filling them. Reporting "0
+    // template placeholder(s)" there would be nonsense, so the sentence is
+    // built from what is actually true of this file.
+    p.textContent = (brief.placeholders
+      ? `LLM_BRIEF.md carries ${brief.placeholders} template placeholder(s). `
+      : 'LLM_BRIEF.md does not say what this project is or what it is for. ')
+      + 'It is what an agent reads to learn what this project is for — an '
+      + 'unfinished one teaches it nothing.';
     const a = document.createElement('a');
     a.className = 'design-identity-edit';
     a.href = '#';
@@ -5914,6 +5927,13 @@ function extractRel(url: string | undefined): string | null {
   // and the delegated handler keys entirely off data-rel (found by Edwin,
   // 2026-07-28 — the second reachability bug in this surface).
   if (url.startsWith('~')) return url;
+  // `/README.md`, `/LLM_BRIEF.md` — a top-level project file. The Library
+  // has emitted this url shape since FEAT-0010 and this function discarded
+  // it, so those rows were dead clicks too (found while fixing ISS-0033).
+  // Routing it is the renderer's job; deciding whether it is allowed is the
+  // server's, and the server holds the allowlist. A single path segment
+  // only, so nothing deeper can be smuggled through this branch.
+  if (/^\/[^/]+\.md$/i.test(url)) return url.slice(1);
   return null;
 }
 

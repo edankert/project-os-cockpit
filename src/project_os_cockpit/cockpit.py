@@ -66,6 +66,11 @@ PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
     "README.md",
     "ROADMAP.md",
     "SECURITY.md",
+    # ISS-0033: the identity band offers "Open LLM_BRIEF.md" and the render
+    # endpoint refused it, replacing the design surface with "No note here".
+    # The brief is the one root file the cockpit actively sends people to,
+    # so it belongs here more than the three above do.
+    "LLM_BRIEF.md",
 )
 
 # Project mode indexes ``docs/``. The only non-docs Markdown surfaced by
@@ -576,9 +581,25 @@ def brief_payload(project_root: Path) -> dict:
     the rest, and never fail closed on a file whose whole purpose is being
     hand-written.
 
-    The placeholder text is deliberately **not** returned. A surface that
-    renders "Purpose: REPLACE ME" as the first thing an agent reads every
-    session is worse than one that says the brief needs filling in.
+    The placeholder text is deliberately **not** returned — **anywhere**,
+    including inside ``sections[].body``. A surface that renders
+    "Purpose: REPLACE ME" as the first thing an agent reads every session is
+    worse than one that says the brief needs filling in. The first version of
+    this scrubbed only ``name``/``purpose`` while the docstring and the test
+    name both claimed "never returned"; independent review found the leak by
+    going to the named evidence (ISS-0035).
+
+    ``state`` describes the **identity**, not the file. A brief with a real
+    name and purpose and one ``REPLACE ME`` left under a later heading is a
+    project that HAS said what it is — reporting `unfilled` there made the
+    band headline "This project has not said what it is" about a project that
+    had. ``placeholders`` still counts every one, so the surface can say the
+    rest needs work without denying what is already true.
+
+    Note that the two are independent in both directions: a brief can be
+    ``unfilled`` with **zero** placeholders, when someone deleted the template
+    lines rather than filling them. The band's copy is built from what is
+    actually true of the file rather than assuming one implies the other.
     """
     path = project_root / "LLM_BRIEF.md"
     empty = {
@@ -609,12 +630,21 @@ def brief_payload(project_root: Path) -> dict:
     for i, m in enumerate(heads):
         end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
         body = text[m.end():end].strip()
+        # Drop the placeholder LINES, not the whole section: the rest of a
+        # half-written section is real content and discarding it would punish
+        # progress. A section that is nothing but placeholders disappears,
+        # which is correct — it says nothing.
+        body = "\n".join(
+            line for line in body.splitlines()
+            if not _BRIEF_PLACEHOLDER_RE.search(line)
+        ).strip()
         if body:
             sections.append({"heading": m.group(1), "body": body})
 
     return {
         "schema_version": SCHEMA_VERSION,
-        "state": "unfilled" if placeholders else "filled",
+        # The identity, not the file. See the docstring.
+        "state": "filled" if (name and purpose) else "unfilled",
         "name": name,
         "purpose": purpose,
         "sections": sections,

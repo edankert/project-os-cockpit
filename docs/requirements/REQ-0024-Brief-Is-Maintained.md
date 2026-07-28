@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0024
 aliases: ["REQ-0024"]
 title: "The project brief is a maintained artifact, not a template stub"
-status: draft
+status: implemented
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -41,10 +41,10 @@ The second is the cheaper fix and the more damning omission.
 
 ## Acceptance Criteria
 
-- [ ] This repo's `LLM_BRIEF.md` has no `REPLACE ME` — evidence: <grep>
-- [ ] A placeholder brief is reported by the validator — evidence: <check + inversion>
-- [ ] The surface says "unfilled" rather than rendering the placeholder — evidence: <test>
-- [ ] The brief stays plain Markdown, editable without the cockpit — evidence: <the file>
+- [x] This repo's `LLM_BRIEF.md` has no `REPLACE ME` — evidence: `grep -c 'REPLACE ME' LLM_BRIEF.md` → 0; `test_the_real_brief_is_filled_and_parses` asserts it against this repo rather than a fixture, so a regression fails the suite
+- [x] A placeholder brief is reported by the validator — evidence: `validate_brief()` emits BRIEF-PLACEHOLDER with a count; re-run by the independent reviewer against all four case/separator variants, silent on an absent brief and on a filled one
+- [x] The surface says "unfilled" rather than rendering the placeholder — evidence: `test_the_band_never_renders_the_placeholder` checks **every** field a surface could render (name, purpose, each section body), after [[ISS-0035]] found the text leaking through `sections[].body` while the previous test passed; mutating the scrub away now fails
+- [x] The brief stays plain Markdown, editable without the cockpit — evidence: `LLM_BRIEF.md` is unchanged prose with no cockpit-specific syntax; the payload only reads it, and no write path targets it (`note_writes.py` is scoped to `docs/`)
 
 ## Traceability
 - Implements: [[FEAT-0043-Design-Top-Level-Surface]]
