@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0231
 aliases: ["TASK-0231"]
 title: "A design system note and living style guide for each project with a UX"
-status: backlog
+status: doing
 phase: "[[PHASE-999-Unscheduled]]"
 owner: user:edwin
 created: 2026-07-28
@@ -25,13 +25,22 @@ Six projects, seven surfaces — the table in [[FEAT-0044]]. Four have a `draft`
 
 ## Definition of Done
 
-- [ ] `edankert.com` and `obsidian-supernote-sync` gain a design note; the four existing `draft` notes are brought to the same shape
-- [ ] Each note declares `stylesheets:` and carries an artifact that reads them — no palette table is load-bearing
-- [ ] `obsidian-supernote-sync` is **one note, two sections**: the plugin inherits its host's theme tokens, the dashboard owns its palette
-- [ ] Each note states what its project's system actually is, including the gaps — an invented scale is worse than a recorded absence
-- [ ] The your-* notes point at the family palette ([[ADR-0008]] upstream in `your-applications.com`) rather than restating its nine values
-- [ ] Each artifact is verified **rendering in a sandboxed frame**, not by reading it
-- [ ] Each note leaves `draft` only once its page renders, matching what [[DES-0002]] required of itself
+- [x] `edankert.com` and `obsidian-supernote-sync` gain a design note — evidence: `edankert.com@2f6bd10`, `obsidian-supernote-sync@0fecf82`
+- [~] The four existing `draft` notes are brought to the same shape — **`your-applications.com` done** (`576b1d4`); **`your-health`, `your-sudoku` and `your-trainer` are blocked** by [[ISS-0059]]: they declare colour in Kotlin and Swift and contain no application CSS, so the route cannot reach them
+- [x] Each note declares `stylesheets:` and carries an artifact that reads them — evidence: three notes declare real paths and render from them; `your-applications.com`'s hand-typed palette table was **deleted**, not maintained, and its stale "no single source" claim corrected (the family check has existed since [[ADR-0008]] and exits clean)
+- [x] `obsidian-supernote-sync` is **one note, two sections**: the plugin inherits its host's theme tokens, the dashboard owns its palette
+- [x] Each note states what its project's system actually is, including the gaps — evidence: the Obsidian plugin's system is that it declares **nothing** and defers to host theme tokens, which the note states as the rule rather than as a gap; the dashboard is Tailwind with two escapes and the note says its palette is mostly unreadable rather than inventing one
+- [~] The your-* notes point at the family palette ([[ADR-0008]] upstream in `your-applications.com`) rather than restating its nine values
+- [x] Each artifact is verified **rendering in a sandboxed frame**, not by reading it — evidence: edankert.com 64 swatches / 9 declared spacing tokens / 6 measured bars; your-applications.com 26 swatches; obsidian-supernote-sync exactly 2, which is what its two surfaces declare
+- [~] Each note leaves `draft` only once its page renders — the three built pages render; the notes stay `draft` until Edwin has looked at them, which is the same bar [[DES-0002]] held itself to, matching what [[DES-0002]] required of itself
+
+## Progress 2026-07-28
+
+**Three of six done**, and the other three are blocked by something the survey could not have seen before the route existed ([[ISS-0059]]): `your-health`, `your-sudoku` and `your-trainer` declare colour in Kotlin and Swift and contain no application CSS. The route is CSS-only by deliberate narrowing, and that narrowing is what keeps it safe.
+
+The survey that scoped [[FEAT-0044]] counted `.css` files per repo and found several in each — all vendored cockpit, venv or test-report noise. **Counting files answered "is there CSS here" when the question was "does this project's UI have CSS".**
+
+**One artifact, copied verbatim.** `docs/__templates__/design-style-guide.html` is the canonical page; everything project-specific arrives at runtime from `stylesheets:`. Six hand-written pages would have been six things that drift; six identical copies cannot say different things about the same question.
 
 ## Notes
 

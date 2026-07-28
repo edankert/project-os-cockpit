@@ -2782,6 +2782,7 @@ interface DesignRecord {
   role: string; asset: string; has_asset: boolean;
   viewport: number | null; implements: string[];
   rationale: DesignRationale[];
+  stylesheets?: string[];
 }
 
 /** An ADR this design links. `missing` = the link resolves to nothing, which
@@ -2897,7 +2898,15 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   // travels in the URL, and an artifact may honour it or ignore it — a design
   // mock that is deliberately light stays light, while the style guide (which
   // documents both schemes) follows the app.
-  const themeQ = `?theme=${document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'}`;
+  // Theme, plus the stylesheets the note declares (TASK-0231). The frame is
+  // sandboxed with an opaque origin, so it cannot fetch the designs API to
+  // discover them — the URL is the only channel. Passing them makes ONE
+  // style-guide page work for every project: everything project-specific
+  // arrives at runtime, so six repos share one artifact rather than six that
+  // drift.
+  const cssQ = (d.stylesheets || []).length
+    ? `&css=${encodeURIComponent((d.stylesheets || []).join(','))}` : '';
+  const themeQ = `?theme=${document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'}${cssQ}`;
   frame.src = atSha
     ? `${sidecarBaseUrl}/design-asset-at/${encodeURIComponent(d.id)}/${encodeURIComponent(atSha)}${themeQ}`
     : `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}${themeQ}`;

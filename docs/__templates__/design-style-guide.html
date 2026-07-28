@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design system — living style guide</title>
+<!--
+  THE CANONICAL LIVING STYLE GUIDE (TASK-0231).
+
+  One file, copied verbatim into every project that has a UX. Nothing here is
+  project-specific: the stylesheets to read arrive in `?css=`, passed by the
+  design surface from the note's `stylesheets:` declaration, and every value on
+  the page is read from them as it renders.
+
+  That is the whole point. Six hand-written pages would be six things that
+  drift — the failure this project is named after (ISS-0023). Six identical
+  copies of one page cannot say different things about the same question.
+
+  Inherited from DES-0002's page, which learned each of these the hard way:
+    * the frame is sandboxed with an OPAQUE origin, so `cssRules` on a linked
+      sheet throws — fetch the text and inject it INLINE instead (ISS-0043);
+    * inject BEFORE this page's own <style>, or the app's `body { overflow:
+      hidden }` outranks the reset that undoes it (ISS-0046, ISS-0047);
+    * a value read from a stylesheet is DATA — never interpolate it into
+      markup (ISS-0048);
+    * no top-level `const` may shadow a window property: `const top` is a
+      SyntaxError that renders the page blank, and `node --check` cannot see it.
+-->
+<style id="own-styles">
+  /* Undo the application-shell rules that come with borrowing an app's
+     stylesheets: `body { height: 100dvh; display: flex; overflow: hidden }` is
+     correct for a window that owns the viewport and fatal for a document. */
+  html { height: auto; overflow: visible; }
+  body { font-family: var(--font-sans, var(--font-body, system-ui)); background: var(--bg, #fff);
+         color: var(--text, #111); margin: 0; padding: 28px 34px 72px;
+         height: auto; min-height: 100%; display: block; overflow: visible; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+       color: var(--text-muted, #666); margin: 30px 0 10px;
+       border-bottom: 1px solid var(--border, #ddd); padding-bottom: 5px; }
+  .lede, .note { color: var(--text-muted, #666); font-size: 13px; max-width: 74ch;
+                 line-height: 1.55; }
+  .schemes { display: flex; gap: 14px; flex-wrap: wrap; }
+  .scheme { flex: 1 1 320px; background: var(--bg, #fff);
+            border: 1px solid var(--border, #ddd); border-radius: 6px; padding: 12px; }
+  .scheme h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+               letter-spacing: .05em; color: var(--text-muted, #666); }
+  .sw { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 12px; }
+  .sw i { width: 24px; height: 16px; border-radius: 3px;
+          border: 1px solid var(--border, #ddd); flex: 0 0 auto; }
+  .sw code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
+  .sw .val { margin-left: auto; color: var(--text-muted, #666);
+             font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
+  .gap { border-left: 3px solid var(--severity-medium, #b58900); padding: 8px 12px;
+         background: var(--surface, #f5f5f5); border-radius: 0 4px 4px 0;
+         font-size: 12px; max-width: 74ch; margin: 8px 0; }
+  .missing { border-left: 3px solid var(--status-blocked, #c33); padding: 8px 12px;
+             background: var(--surface, #f5f5f5); font-size: 12px; max-width: 74ch; }
+  .bars { display: flex; flex-direction: column; gap: 3px; font-size: 11px;
+          font-family: var(--font-mono, ui-monospace, monospace); }
+  .bar { display: flex; align-items: center; gap: 8px; }
+  .bar u { text-decoration: none; display: inline-block; height: 9px;
+           background: var(--accent-link, var(--accent, #46c)); border-radius: 2px; }
+  .spec { display: flex; align-items: baseline; gap: 12px; padding: 3px 0; }
+  .spec .lbl { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
+               color: var(--text-muted, #666); width: 190px; flex: 0 0 auto; }
+  .src { font-size: 11px; color: var(--text-muted, #666);
+         font-family: var(--font-mono, ui-monospace, monospace); }
+</style>
+</head>
+<body>
+
+<h1 id="title">Design system</h1>
+<p class="lede">Every value below is read from this project's own stylesheets <em>as this page renders</em>. Nothing is typed here, so nothing can drift.</p>
+<p class="src" id="sources"></p>
+
+<h2>Palette</h2>
+<p class="note">Both schemes side by side, because a dark scheme that is <em>designed</em> and one that is inverted look different here and identical in prose.</p>
+<div class="schemes" id="palette"></div>
+
+<h2>Status &amp; severity</h2>
+<p class="note">Shown together when a project has them: status is categorical, severity is a ramp, and the rule that one family's colour is never reused for the other is visible rather than asserted.</p>
+<div class="schemes" id="bands"></div>
+
+<h2>Typography</h2>
+<div id="type"></div>
+
+<h2>Spacing &amp; geometry</h2>
+<div class="bars" id="spacing"></div>
+<p class="note" id="geometry"></p>
+
+<h2>What this page could not read</h2>
+<div id="unread"></div>
+
+<script>
+(async () => {
+// ---- the stylesheets this project declared -------------------------------
+const params = new URLSearchParams(location.search);
+const theme = params.get('theme');
+if (theme === 'dark' || theme === 'light') {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+const declared = (params.get('css') || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+// The frame has an OPAQUE origin, so a linked sheet's `cssRules` throws.
+// Fetch the text and inject it INLINE — inline sheets belong to this document
+// and carry no origin question — and insert BEFORE this page's own <style> so
+// the app's shell rules never outrank the reset that undoes them.
+const own = document.getElementById('own-styles');
+const failed = [];
+for (const rel of declared) {
+  try {
+    const text = await (await fetch('/_project/' + rel)).text();
+    const el = document.createElement('style');
+    el.setAttribute('data-from', rel);
+    el.textContent = text;
+    document.head.insertBefore(el, own);
+  } catch (err) {
+    failed.push(rel);
+  }
+}
+const sheets = [...document.styleSheets].filter((s) => {
+  try { void s.cssRules; return !!(s.ownerNode && s.ownerNode.getAttribute('data-from')); }
+  catch { return false; }
+});
+
+document.getElementById('sources').textContent = declared.length
+  ? 'read from: ' + declared.join(' · ')
+  : 'no stylesheets declared — add `stylesheets:` to this design note';
+
+// ---- read ---------------------------------------------------------------
+function eachRule(fn) {
+  const walk = (rules, sheet, depth) => {
+    if (depth > 4) return;
+    for (const rule of rules) {
+      fn(rule, sheet);
+      if (rule.cssRules) walk(rule.cssRules, sheet, depth + 1);
+    }
+  };
+  for (const sheet of sheets) {
+    let rules; try { rules = sheet.cssRules; } catch { continue; }
+    walk(rules, sheet, 0);
+  }
+}
+const TOKENS = [];
+eachRule((rule) => {
+  if (!rule.style) return;
+  for (const name of rule.style) {
+    if (name.startsWith('--') && !TOKENS.includes(name)) TOKENS.push(name);
+  }
+});
+
+// Both schemes from the DECLARATIONS, not a probe: a probe inherits the
+// document's theme, so once the app hands this page a dark one the light
+// column silently shows dark values.
+function paletteMaps() {
+  const light = {}, dark = {};
+  eachRule((rule) => {
+    if (!rule.style || !rule.selectorText) return;
+    const sel = rule.selectorText;
+    // "Root-ish" cannot be a prefix test: a dark block may be written as a
+    // bare `[data-theme="dark"]` or as `:root[data-theme="dark"]`.
+    const rootish = sel.split(',').some((part) =>
+      part.replace(/:root|\bhtml\b|\bbody\b/g, '')
+          .replace(/\[data-theme=["']?[\w-]+["']?\]/g, '')
+          .replace(/\.dark|\.light/g, '')
+          .trim() === '');
+    if (!rootish) return;
+    const target = /dark/.test(sel) ? dark : light;
+    for (const name of rule.style) {
+      if (name.startsWith('--')) target[name] = rule.style.getPropertyValue(name).trim();
+    }
+  });
+  return { light, dark };
+}
+const PALETTE = paletteMaps();
+const resolve = (names, dark) => {
+  const map = dark ? PALETTE.dark : PALETTE.light;
+  const out = {};
+  for (const n of names) out[n] = (map[n] || (dark ? PALETTE.light[n] : '') || '').trim();
+  return out;
+};
+
+// ---- render (DOM APIs only — a stylesheet value is data, never markup) ---
+function tokenKind(v) {
+  if (/^url\(/i.test(v)) return 'asset';
+  if (/\d+px\s+\d+px/.test(v)) return 'shadow';
+  if (/^-?[\d.]+(px|rem|em|%|ch|vh|vw)$/.test(v)) return 'size';
+  return 'colour';
+}
+function swatchRow(name, value) {
+  const row = document.createElement('div');
+  row.className = 'sw';
+  const chip = document.createElement('i');
+  const kind = tokenKind(value || '');
+  if (!value) chip.style.background = 'transparent';
+  else if (kind === 'asset') {
+    for (const p of ['mask-image', '-webkit-mask-image']) chip.style.setProperty(p, value);
+    for (const p of ['mask-size', '-webkit-mask-size']) chip.style.setProperty(p, 'contain');
+    for (const p of ['mask-repeat', '-webkit-mask-repeat']) chip.style.setProperty(p, 'no-repeat');
+    chip.style.background = 'currentColor';
+    chip.style.border = '0';
+  } else if (kind === 'shadow') { chip.style.boxShadow = value; chip.style.background = 'var(--surface)'; }
+  else if (kind === 'size') { chip.style.background = 'var(--accent-link, var(--accent, #46c))'; chip.style.width = '4px'; }
+  else chip.style.background = value;
+  row.append(chip);
+  const label = document.createElement('code');
+  label.textContent = name;
+  row.append(label);
+  const val = document.createElement('span');
+  val.className = 'val';
+  val.textContent = !value ? '—' : kind === 'asset' ? 'url(data:… )' : value;
+  if (value) val.title = value;
+  row.append(val);
+  return row;
+}
+function schemeNode(title, names, dark) {
+  const vals = resolve(names, dark);
+  const box = document.createElement('div');
+  box.className = 'scheme';
+  if (dark) box.setAttribute('data-theme', 'dark');
+  const h = document.createElement('h3');
+  h.textContent = title;
+  box.append(h);
+  for (const n of names) box.append(swatchRow(n, vals[n]));
+  return box;
+}
+
+const isStatus = (t) => t.startsWith('--status-') || t.startsWith('--severity-');
+const isType   = (t) => t.startsWith('--font');
+const isSpace  = (t) => /^--(space|radius|size|gap)/.test(t);
+const SEMANTIC = TOKENS.filter((t) => !isStatus(t) && !isType(t) && !isSpace(t)
+                                      && PALETTE.light[t]);
+const SCOPED   = TOKENS.filter((t) => !PALETTE.light[t] && !PALETTE.dark[t]);
+const STATUS   = TOKENS.filter((t) => t.startsWith('--status-'));
+const SEVERITY = TOKENS.filter((t) => t.startsWith('--severity-'));
+
+const paletteEl = document.getElementById('palette');
+if (SEMANTIC.length) {
+  paletteEl.append(schemeNode('Light', SEMANTIC, false));
+  if (Object.keys(PALETTE.dark).length) paletteEl.append(schemeNode('Dark', SEMANTIC, true));
+} else {
+  const p = document.createElement('p');
+  p.className = 'missing';
+  p.textContent = 'No root-level custom properties found. This project may not use '
+    + 'CSS variables — in which case its palette lives in literal values and this '
+    + 'page cannot read it without restating it, which it will not do.';
+  paletteEl.append(p);
+}
+
+const bandsEl = document.getElementById('bands');
+if (STATUS.length) bandsEl.append(schemeNode('Status — categorical', STATUS, false));
+if (SEVERITY.length) bandsEl.append(schemeNode('Severity — a ramp', SEVERITY, false));
+if (!STATUS.length && !SEVERITY.length) {
+  const p = document.createElement('p');
+  p.className = 'note';
+  p.textContent = 'This project declares no status or severity families.';
+  bandsEl.append(p);
+}
+
+const typeEl = document.getElementById('type');
+const fonts = resolve(TOKENS.filter(isType), false);
+const spec = (label, sample, styler) => {
+  const row = document.createElement('div');
+  row.className = 'spec';
+  const l = document.createElement('span');
+  l.className = 'lbl';
+  l.textContent = label;
+  const t = document.createElement('span');
+  t.textContent = sample;
+  styler(t);
+  row.append(l, t);
+  return row;
+};
+if (Object.keys(fonts).length) {
+  for (const [name, value] of Object.entries(fonts)) {
+    typeEl.append(spec(name, 'The quick brown fox 0123', (n) => {
+      n.style.setProperty('font-family', value);
+      n.style.fontSize = '15px';
+    }));
+  }
+} else {
+  const p = document.createElement('p');
+  p.className = 'gap';
+  p.textContent = 'No font tokens declared. The type stack is set in literal '
+    + 'rules rather than named roles — recorded as a gap rather than invented.';
+  typeEl.append(p);
+}
+
+// Spacing counted from the declared sheets. `0px` is a reset, not a spacing
+// decision, and topped the list until it was excluded.
+const counts = {};
+eachRule((rule) => {
+  if (!rule.style) return;
+  for (const prop of rule.style) {
+    if (!/^(margin|padding|gap|top|left|right|bottom)/.test(prop)) continue;
+    for (const px of String(rule.style.getPropertyValue(prop)).match(/\b\d+px\b/g) || []) {
+      if (px !== '0px') counts[px] = (counts[px] || 0) + 1;
+    }
+  }
+});
+const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 9);
+const peak = ranked.length ? ranked[0][1] : 1;
+const spacingEl = document.getElementById('spacing');
+const scaleTokens = TOKENS.filter(isSpace);
+if (scaleTokens.length) {
+  spacingEl.append(schemeNode('Declared scale', scaleTokens, false));
+}
+for (const [px, n] of ranked) {
+  const row = document.createElement('div');
+  row.className = 'bar';
+  const a = document.createElement('span');
+  a.style.width = '44px';
+  a.textContent = px;
+  const u = document.createElement('u');
+  u.style.width = Math.max(6, Math.round(n / peak * 260)) + 'px';
+  const c = document.createElement('span');
+  c.textContent = String(n);
+  row.append(a, u, c);
+  spacingEl.append(row);
+}
+const geo = document.getElementById('geometry');
+geo.textContent = scaleTokens.length
+  ? 'A declared scale AND the measured distribution: the bars say whether the scale is actually used.'
+  : 'No spacing tokens declared — the bars are the measured distribution, which is a distribution rather than a scale.';
+
+// ---- honesty about what could not be read -------------------------------
+const unread = document.getElementById('unread');
+const notes = [];
+if (failed.length) notes.push('Could not fetch: ' + failed.join(', ')
+  + ' — declared in the note but not served. Check the path is right and the file exists.');
+if (SCOPED.length) notes.push('Declared on a component rather than :root, so they have no '
+  + 'page-level value: ' + SCOPED.join(', '));
+if (!declared.length) notes.push('No stylesheets are declared on this design note, so this '
+  + 'page has nothing to read.');
+if (!notes.length) notes.push('Everything declared was read.');
+for (const n of notes) {
+  const p = document.createElement('p');
+  p.className = failed.length || !declared.length ? 'missing' : 'note';
+  p.textContent = n;
+  unread.append(p);
+}
+})().catch((err) => {
+  const w = document.createElement('div');
+  w.className = 'missing';
+  w.textContent = 'The style guide failed to build itself: ' + err;
+  document.body.appendChild(w);
+});
+</script>
+</body>
+</html>
