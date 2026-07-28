@@ -2054,3 +2054,49 @@ def test_the_type_specimens_do_not_reach_a_parser() -> None:
     # The guard for ISS-0048 inspected one function and certified the fix it
     # was written beside; this one covers the whole script.
     assert "style=\"font-family:" not in body
+
+
+def test_the_shell_declares_no_alias_for_a_base_css_role() -> None:
+    """The shell declared `--fg`/`--fg-muted`/`--fg-faint`/`--accent` for roles
+    base.css already names, and overrode `--bg`/`--border` with different
+    values — so DES-0002 documented one palette while the desktop drew another
+    (ISS-0042). One vocabulary now: if a role exists in base.css, the shell
+    uses base.css's name."""
+    root = Path(__file__).resolve().parents[1]
+    shell = (root / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    base = (root / "src" / "project_os_cockpit" / "static" / "base.css").read_text(encoding="utf-8")
+    base_tokens = set(re.findall(r"^\s*(--[a-z0-9-]+)\s*:", base, re.M))
+    shell_tokens = set(re.findall(r"^\s*(--[a-z0-9-]+)\s*:", shell, re.M))
+
+    overlap = shell_tokens & base_tokens
+    assert not overlap, (
+        "the shell redeclares %s, which base.css already owns — that is the "
+        "two-palettes bug, back" % sorted(overlap)
+    )
+    for alias in ("--fg", "--fg-muted", "--fg-faint", "--accent"):
+        assert alias not in shell_tokens, alias
+        assert ("var(%s)" % alias) not in shell, alias
+
+    # The four that remain name roles base.css genuinely lacks.
+    assert shell_tokens >= {"--bg-elevated", "--accent-soft",
+                            "--row-hover", "--row-active"}
+
+
+def test_every_token_the_shell_uses_is_declared_somewhere() -> None:
+    """Deleting a declaration while a usage survives is silent: `var()` with no
+    fallback makes the property invalid at computed-value time, so the element
+    renders inherited and looks almost right."""
+    root = Path(__file__).resolve().parents[1]
+    files = [root / "src" / "project_os_cockpit" / "static" / "base.css",
+             root / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+             root / "desktop" / "src" / "renderer" / "renderer.css"]
+    declared, used = set(), set()
+    for f in files:
+        text = f.read_text(encoding="utf-8")
+        declared |= set(re.findall(r"^\s*(--[a-z0-9-]+)\s*:", text, re.M))
+        used |= set(re.findall(r"var\((--[a-z0-9-]+)", text))
+    # Four dangling references pre-date ISS-0042 and are not this test's
+    # subject; pinning them means a NEW one fails here rather than hiding
+    # among them.
+    known = {"--token", "--surface-1", "--tree-indent", "--bg-hover"}
+    assert (used - declared) <= known, sorted(used - declared - known)

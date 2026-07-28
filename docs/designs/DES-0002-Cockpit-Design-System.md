@@ -50,7 +50,7 @@ Semantic roles, defined for both schemes. The cockpit is read in daylight and at
 | `--accent-link` | interactive | `hsl(212 48% 42%)` | — |
 | `--accent-focus` | keyboard focus | `hsl(212 60% 50%)` | — |
 
-> **The table above documents `base.css`. The desktop shell draws with `renderer.css`, and they disagree** — `--bg` and `--border` are overridden with different values, and `--text`/`--text-muted`/`--text-faint`/`--accent-link` have parallel names (`--fg`/`--fg-muted`/`--fg-faint`/`--accent`) in the shell. Found by the style-guide page on its first render and recorded as [[ISS-0042]]. Until that is resolved, read this table as the browser cockpit's palette; the page shows what the desktop app actually draws.
+> **One vocabulary as of 2026-07-28** ([[ISS-0042]] option 1): the desktop shell no longer declares aliases for roles named here, nor overrides `--bg`/`--border`. The table and the application now name the same things. It remains **unchecked prose** — see Conformance — and the style-guide page, which reads the implementation as it renders, is what shows the values actually drawn.
 
 **Neutrals are true greys** (`hsl(0 0% n)`), deliberately: the accent is the only chroma on the page, so status colour reads as signal rather than decoration.
 

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0042
 aliases: ["ISS-0042"]
 title: "The shell declares a parallel palette for roles base.css already names"
-status: triage
+status: fixed
 severity: medium
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
@@ -57,4 +57,14 @@ Not a bug in the style guide, and not necessarily a bug in the shell. A desktop 
 2. **Declare the aliasing explicitly** — `--fg: var(--text)` — so the mapping exists in one place and cannot drift, keeping shell-only tokens as they are.
 3. **Document the shell palette as a deliberate second layer** in DES-0002, and extend the parity check to cover it. Cheapest; leaves two vocabularies.
 
-Not chosen here. Recording it with the measurement is the finding; picking the fix is Edwin's.
+**Chosen 2026-07-28: option 1.** The shell consumes `base.css`'s names.
+
+- `--fg` → `--text`, `--fg-muted` → `--text-muted`, `--fg-faint` → `--text-faint`, `--accent` → `--accent-link`: **152 usages rewritten**, all four declarations deleted from both schemes.
+- The `--bg` and `--border` overrides are deleted too. They were the same name carrying a different value, which is the drift itself rather than a shell need. The desktop now draws `base.css`'s ground: `--bg` `#f7f7f8` → `hsl(0 0% 99%)`, `--border` `#e3e3e6` → `hsl(0 0% 86%)`, and the equivalents in dark. Slightly lighter ground, slightly lighter hairlines — say if that reads wrong and the shell can declare a *different token* rather than redefining a shared one.
+- Four tokens stay in the shell because `base.css` has no equivalent role: `--bg-elevated`, `--accent-soft`, `--row-hover`, `--row-active`. A comment above them says why, and says not to reintroduce an alias.
+
+Guarded by `test_the_shell_declares_no_alias_for_a_base_css_role`, which asserts the two declaration sets are **disjoint** — so any future redeclaration of a base.css role fails, not just the four aliases that existed today.
+
+**Verified**, not assumed: every role resolves in both schemes with nothing unresolved, checked in a browser against the built stylesheets.
+
+**Found while doing it, unrelated and pre-existing:** four tokens are referenced but never declared anywhere — `--token`, `--surface-1`, `--tree-indent`, `--bg-hover`. `var()` with no fallback is invalid at computed-value time, so those properties silently render inherited. Pinned in `test_every_token_the_shell_uses_is_declared_somewhere` so a *new* one fails rather than hiding among them; fixing the four is its own small job.

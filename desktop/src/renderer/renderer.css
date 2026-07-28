@@ -7,26 +7,22 @@
 
 :root {
   color-scheme: light dark;
-  --bg:           #f7f7f8;
+  /* SHELL-ONLY tokens: these four name roles `base.css` does not have, so they
+     live here. Everything else comes from base.css by its own name (ISS-0042).
+     The shell used to declare `--fg`/`--fg-muted`/`--fg-faint`/`--accent` as a
+     parallel vocabulary for roles base.css already named `--text`/
+     `--text-muted`/`--text-faint`/`--accent-link`, and to override `--bg` and
+     `--border` with different values — so the design system documented one
+     palette while the desktop drew another. Do not reintroduce an alias: if a
+     role exists in base.css, use base.css's name. */
   --bg-elevated:  #ffffff;
-  --fg:           #1c1d1f;
-  --fg-muted:     #6b6e73;
-  --fg-faint:     #95989d;
-  --border:       #e3e3e6;
-  --accent:       #3b6ea8;
   --accent-soft:  #e9eef5;
   --row-hover:    #eef0f3;
   --row-active:   #dfe6ee;
 }
 
 :root[data-theme="dark"] {
-  --bg:           #1b1d1f;
   --bg-elevated:  #232629;
-  --fg:           #d6d6d6;
-  --fg-muted:     #9b9ea3;
-  --fg-faint:     #6b6e73;
-  --border:       #33373b;
-  --accent:       #7da6ff;
   --accent-soft:  #2a3548;
   --row-hover:    #2a2d31;
   --row-active:   #33373b;
@@ -39,7 +35,7 @@ html, body {
   padding: 0;
   height: 100%;
   background: var(--bg);
-  color: var(--fg);
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
   font-size: 13px;
   line-height: 1.45;
@@ -227,8 +223,8 @@ body {
 }
 .ws-square.active {
   background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-link);
+  border-color: var(--accent-link);
   border-radius: 10px;
 }
 /* Active indicator bar — short vertical accent line on the rail edge.
@@ -242,7 +238,7 @@ body {
   bottom: 6px;
   width: 3px;
   border-radius: 0 2px 2px 0;
-  background: var(--accent);
+  background: var(--accent-link);
 }
 
 .workspace-list li.empty {
@@ -275,7 +271,7 @@ body {
 /* busy = accent, not green — at 10px the status-active/status-done
  * greens are indistinguishable, and accent already means "actively
  * driving" everywhere else in the cockpit. */
-.ws-square.state-busy    .ws-dot { background: var(--accent); }
+.ws-square.state-busy    .ws-dot { background: var(--accent-link); }
 .ws-square.state-waiting .ws-dot {
   background: var(--severity-medium);
   animation: ws-waiting-pulse 1.4s ease-in-out infinite;
@@ -310,8 +306,8 @@ body {
 /* Active state for togglable rail tools (e.g. hide-completed). */
 .ws-rail-tool[aria-pressed="true"] {
   background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-link);
+  border-color: var(--accent-link);
 }
 
 @keyframes ws-waiting-pulse {
@@ -408,7 +404,7 @@ body {
   color: var(--text);
 }
 .top-bar-search:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: -1px;
 }
 
@@ -470,7 +466,7 @@ body {
 .top-bar-btn.active,
 .top-bar-btn[aria-pressed="true"] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-link);
 }
 .top-bar-btn svg { width: 16px; height: 16px; }
 .top-bar-btn[disabled] { opacity: 0.35; cursor: default; }
@@ -574,8 +570,8 @@ body {
 }
 .project-settings-btn[aria-expanded="true"] {
   background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-link);
+  border-color: var(--accent-link);
 }
 
 .project-settings-menu {
@@ -625,9 +621,9 @@ body {
   font-size: 13px;
 }
 .psm-input:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: -1px;
-  border-color: var(--accent);
+  border-color: var(--accent-link);
 }
 
 .psm-action {
@@ -645,7 +641,7 @@ body {
 }
 .psm-action:hover { background: var(--row-hover); }
 .psm-action:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: -1px;
 }
 .psm-danger { color: var(--severity-critical); }
@@ -693,9 +689,9 @@ body {
   text-align: center;
 }
 .psm-emoji:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: -1px;
-  border-color: var(--accent);
+  border-color: var(--accent-link);
 }
 
 .psm-swatches {
@@ -714,7 +710,7 @@ body {
 }
 .psm-swatch:hover { transform: scale(1.1); }
 .psm-swatch.is-active {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: 2px;
 }
 .psm-swatch-auto {
@@ -796,7 +792,7 @@ body {
 }
 .platform-combo:hover { background: var(--row-hover); }
 .platform-combo:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-link);
   outline-offset: -2px;
 }
 /* Open state: neutral row-active bg with accent text/chevron, so the
@@ -826,7 +822,7 @@ body {
 .platform-combo:hover .platform-combo-chevron { color: var(--text-muted); }
 .platform-combo[aria-expanded="true"] .platform-combo-chevron {
   transform: rotate(180deg);
-  color: var(--accent);
+  color: var(--accent-link);
 }
 
 .platform-menu {
@@ -866,7 +862,7 @@ body {
 .platform-menu li:hover { background: var(--row-hover); }
 .platform-menu li.is-active {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-link);
   font-weight: 500;
 }
 
@@ -884,7 +880,7 @@ body {
 
 .ws-nav-placeholder {
   padding: 24px 16px;
-  color: var(--fg-faint);
+  color: var(--text-faint);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -895,7 +891,7 @@ body {
 
 .ws-nav-placeholder .meta {
   font-size: 11px;
-  color: var(--fg-faint);
+  color: var(--text-faint);
 }
 
 .ws-nav-placeholder code {
@@ -968,7 +964,7 @@ body {
 
 .ws-nav-content .nav-item.is-active {
   background: var(--accent-soft);
-  border-left: 2px solid var(--accent);
+  border-left: 2px solid var(--accent-link);
 }
 
 /* ---- Stage ---- */
@@ -1013,44 +1009,44 @@ body {
   border: none;
   border-right: 1px solid var(--border);
   border-bottom: 2px solid transparent;
-  color: var(--fg-muted);
+  color: var(--text-muted);
   cursor: pointer;
   max-width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.center-tab:hover { background: var(--row-hover); color: var(--fg); }
+.center-tab:hover { background: var(--row-hover); color: var(--text); }
 .center-tab.on {
-  color: var(--fg);
+  color: var(--text);
   background: var(--bg);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-link);
   font-weight: 600;
 }
 .center-tab-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent); flex: none;
+  background: var(--accent-link); flex: none;
 }
 .center-tab-close {
-  color: var(--fg-faint);
+  color: var(--text-faint);
   border-radius: 4px;
   width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
   line-height: 1;
 }
-.center-tab-close:hover { background: var(--row-hover); color: var(--fg); }
+.center-tab-close:hover { background: var(--row-hover); color: var(--text); }
 
 .placeholder {
   margin: auto;
   text-align: center;
-  color: var(--fg-muted);
+  color: var(--text-muted);
 }
 
 .placeholder h2 {
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 500;
-  color: var(--fg);
+  color: var(--text);
 }
 
 .placeholder p {
@@ -1091,7 +1087,7 @@ body {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--fg);
+  color: var(--text);
   font-size: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -1100,11 +1096,11 @@ body {
   border-color: #cc6f6f;
   color: #cc6f6f;
 }
-.status-bar.is-actionable { border-color: var(--accent); }
+.status-bar.is-actionable { border-color: var(--accent-link); }
 .status-bar-action {
   background: transparent;
   border: none;
-  color: var(--accent);
+  color: var(--accent-link);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -1129,7 +1125,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  border: 4px dashed var(--accent);
+  border: 4px dashed var(--accent-link);
   pointer-events: none;
   z-index: 2000;
 }
@@ -1163,7 +1159,7 @@ body {
 }
 
 .find-input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-link);
 }
 
 .find-count {
@@ -1176,7 +1172,7 @@ body {
 .find-button {
   background: transparent;
   border: 1px solid var(--border);
-  color: var(--fg-muted);
+  color: var(--text-muted);
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -1187,7 +1183,7 @@ body {
 
 .find-button:hover {
   background: var(--row-hover);
-  color: var(--fg);
+  color: var(--text);
 }
 
 /* Highlight styles for found matches inside the rendered doc. */
@@ -1262,7 +1258,7 @@ body {
 .quick-switch-results li:hover { background: var(--row-hover); }
 .quick-switch-results li.is-selected {
   background: var(--accent-soft);
-  border-left-color: var(--accent);
+  border-left-color: var(--accent-link);
 }
 
 .quick-switch-results .qs-line-1 {
@@ -1401,8 +1397,8 @@ body {
 
 .terminal-toggle.active {
   background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-link);
+  border-color: var(--accent-link);
 }
 
 /* ---- Status footer (FEAT-0009 / TASK-0094 + 0095) ---- */
@@ -1463,8 +1459,8 @@ body {
 .sf-theme-btn:hover { color: var(--text); background: var(--row-hover); }
 .sf-theme-btn.active {
   background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-link);
+  border-color: var(--accent-link);
   z-index: 1;
 }
 
@@ -1531,7 +1527,7 @@ body {
   cursor: pointer;
   text-transform: capitalize;
 }
-.doc-design-item:hover { border-color: var(--accent); color: var(--text); }
+.doc-design-item:hover { border-color: var(--accent-link); color: var(--text); }
 .doc-design-icon { color: var(--type-reference); }
 
 /* Focus band (TASK-0200) — the SNAPSHOT focus chain. Quiet by default;
@@ -1573,7 +1569,7 @@ body {
   cursor: pointer;
   min-width: 0;
 }
-.ov-focus-chip:hover:not(:disabled) { border-color: var(--accent); }
+.ov-focus-chip:hover:not(:disabled) { border-color: var(--accent-link); }
 .ov-focus-chip:disabled { cursor: default; opacity: 0.7; }
 .ov-focus-chip.is-dangling { border-style: dashed; }
 .ov-focus-id { color: var(--text-muted); flex: none; }
@@ -1630,7 +1626,7 @@ body {
   color: inherit;
 }
 button.ov-stat { cursor: pointer; }
-button.ov-stat:hover { border-color: var(--accent); }
+button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-stat-label {
   font-size: 10.5px;
   text-transform: uppercase;
@@ -1664,7 +1660,7 @@ button.ov-stat:hover { border-color: var(--accent); }
 }
 /* Segment colours: the status families, not new hues. */
 .ov-mixbar > i[data-seg="done"]      { background: var(--status-done); }
-.ov-mixbar > i[data-seg="doing"]     { background: var(--accent); }
+.ov-mixbar > i[data-seg="doing"]     { background: var(--accent-link); }
 .ov-mixbar > i[data-seg="attention"] { background: var(--severity-high); }
 .ov-mixbar > i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
 .ov-mix-key {
@@ -1684,7 +1680,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   transform: translateY(0.5px);
 }
 .ov-mix-key i[data-seg="done"]      { background: var(--status-done); }
-.ov-mix-key i[data-seg="doing"]     { background: var(--accent); }
+.ov-mix-key i[data-seg="doing"]     { background: var(--accent-link); }
 .ov-mix-key i[data-seg="attention"] { background: var(--severity-high); }
 .ov-mix-key i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
 
@@ -1742,7 +1738,7 @@ button.ov-stat:hover { border-color: var(--accent); }
 .ov-spark > i {
   flex: 1 1 0;
   min-height: 2px;
-  background: var(--accent);
+  background: var(--accent-link);
   opacity: 0.45;
   border-radius: 2px 2px 0 0;
 }
@@ -1796,7 +1792,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   font-size: 11px;
   cursor: pointer;
 }
-.ov-commit-chip:hover { border-color: var(--accent); }
+.ov-commit-chip:hover { border-color: var(--accent-link); }
 .ov-commit-tick { color: var(--status-done); }
 .ov-commit-more { font-size: 11px; color: var(--text-faint); }
 .ov-commit-flag {
@@ -1874,7 +1870,7 @@ button.ov-stat:hover { border-color: var(--accent); }
 }
 .ov-phase-title.is-link { cursor: pointer; }
 .ov-phase-title.is-link:hover {
-  color: var(--accent);
+  color: var(--accent-link);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1890,7 +1886,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   gap: 10px;
   font-size: 11.5px;
 }
-.ov-phase-inflight { color: var(--accent); }
+.ov-phase-inflight { color: var(--accent-link); }
 .ov-phase-attention { color: var(--severity-medium); }
 .ov-phase-under {
   height: 3px;
@@ -1899,7 +1895,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   margin: 7px 0 9px;
   overflow: hidden;
 }
-.ov-phase-under > i { display: block; height: 100%; background: var(--accent); }
+.ov-phase-under > i { display: block; height: 100%; background: var(--accent-link); }
 .ov-phase.is-complete .ov-phase-bar { margin-top: 8px; }
 
 .ov-completed-head {
@@ -1938,7 +1934,7 @@ button.ov-stat:hover { border-color: var(--accent); }
 .ov-health-cell .ov-mixbar { width: 44px; flex: none; }
 .ov-health-div { width: 1px; align-self: stretch; background: var(--border); }
 .ov-health-flag { font-size: 11.5px; }
-.ov-health-flag.is-live { color: var(--accent); margin-left: auto; }
+.ov-health-flag.is-live { color: var(--accent-link); margin-left: auto; }
 .ov-health-flag.is-attention { color: var(--severity-medium); }
 
 /* Scoped header extras (TASK-0202). */
@@ -1976,7 +1972,7 @@ button.ov-stat:hover { border-color: var(--accent); }
 }
 .scoped-next-item { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
 .scoped-next-item:hover .scoped-next-title { color: var(--text); }
-.scoped-next-lead.is-live { color: var(--accent); }
+.scoped-next-lead.is-live { color: var(--accent-link); }
 .scoped-next-lead.is-attention { color: var(--severity-medium); }
 .scoped-next-lead.is-fail { color: var(--severity-critical); }
 .scoped-next-lead.is-next { color: var(--text-faint); }
@@ -2040,7 +2036,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   font-size: 11px;
   cursor: pointer;
 }
-.scoped-exit-evidence:hover { border-color: var(--accent); }
+.scoped-exit-evidence:hover { border-color: var(--accent-link); }
 
 /* Record column (TASK-0203). */
 .ctx-card {
@@ -2144,7 +2140,7 @@ button.ov-stat:hover { border-color: var(--accent); }
   color: var(--text-muted);
 }
 .ov-hero-last .ov-hero-last-title { font-size: 13px; }
-.ov-hero-last:hover { border-color: var(--accent); }
+.ov-hero-last:hover { border-color: var(--accent-link); }
 
 /* Phase progress — horizontal stacked bars. */
 .ov-section { background: transparent; }
@@ -2161,7 +2157,7 @@ a.ov-phase-title {
   color: var(--text);
 }
 a.ov-phase-title:hover {
-  color: var(--accent);
+  color: var(--accent-link);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -2267,7 +2263,7 @@ a.ov-phase-title:hover {
 .ov-act-bar {
   flex: 1 1 0;
   min-width: 4px;
-  background: var(--accent);
+  background: var(--accent-link);
   border-radius: 2px 2px 0 0;
   min-height: 2px;
 }
@@ -2375,7 +2371,7 @@ a.ov-phase-title:hover {
    in the fixed id column, truncating early (TASK-0173). */
 .ov-feed-scoped li { grid-template-columns: 88px 64px 1fr; }
 .ov-feed-tag {
-  color: var(--accent);
+  color: var(--accent-link);
   font-size: 11px;
 }
 
@@ -2512,7 +2508,7 @@ a.ov-phase-title:hover {
   background: var(--text-faint);
   flex: none;
 }
-.agent-strip-dot[data-state="busy"] { background: var(--accent); }
+.agent-strip-dot[data-state="busy"] { background: var(--accent-link); }
 .agent-strip-dot[data-state="waiting"] { background: var(--severity-medium); }
 .agent-strip-dot[data-state="needs-input"] {
   background: var(--severity-critical);
@@ -2612,7 +2608,7 @@ a.ov-phase-title:hover {
   white-space: nowrap;
   color: var(--text-muted);
 }
-.agent-detail-files a { color: var(--accent); text-decoration: none; }
+.agent-detail-files a { color: var(--accent-link); text-decoration: none; }
 .agent-detail-files a:hover { text-decoration: underline; }
 .agent-detail-empty { color: var(--text-faint); }
 
@@ -2623,14 +2619,14 @@ a.ov-phase-title:hover {
   color: var(--text-faint); cursor: pointer; font-size: 11px;
   border-bottom: 2px solid transparent;
 }
-.agent-detail-tab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.agent-detail-tab.on { color: var(--text); border-bottom-color: var(--accent-link); font-weight: 600; }
 .agent-detail-work { display: flex; flex-direction: column; gap: 2px; }
 .agent-detail-work-row {
   display: flex; align-items: center; gap: 7px;
   background: transparent; border: none; padding: 2px 0;
   cursor: pointer; text-align: left; color: var(--text);
 }
-.agent-detail-work-row:hover .work-id { color: var(--accent); }
+.agent-detail-work-row:hover .work-id { color: var(--accent-link); }
 /* The active-now item is pinned to the top and pulses (TASK-0189). */
 .agent-detail-work-row.is-active .ov-phase-sq { animation: prog-pulse 1.2s ease-in-out infinite; }
 .agent-detail-work-row .ov-phase-sq { flex: none; }
@@ -2761,7 +2757,7 @@ a.ov-phase-title:hover {
   text-align: left;
 }
 .ws-attention-finished:hover { color: var(--text); }
-.ws-attention-arrow { margin-left: auto; color: var(--accent); }
+.ws-attention-arrow { margin-left: auto; color: var(--accent-link); }
 
 /* Account budget block (FEAT-0035 / TASK-0160) — 5h/7d usage bars. */
 .ws-budget {
@@ -2845,8 +2841,8 @@ li[data-rel].agent-touched {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--accent-link);
+  border: 1px solid var(--accent-link);
   flex: none;
 }
 
@@ -2875,7 +2871,7 @@ li[data-rel].agent-touched {
   color: var(--text);
   cursor: pointer;
 }
-.term-menu-item:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.term-menu-item:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-link); }
 .term-menu-item:disabled { color: var(--text-faint); cursor: default; }
 .term-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
 
@@ -2918,7 +2914,7 @@ li[data-rel].agent-touched {
   color: var(--text);
   min-width: 0;
 }
-.now-card-item:hover { border-color: var(--accent); }
+.now-card-item:hover { border-color: var(--accent-link); }
 .now-card-id { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .now-card-item .status-chip { margin-left: auto; }
 @keyframes now-card-flash { 0% { background: var(--accent-soft); } 100% { background: var(--bg); } }
@@ -2934,7 +2930,7 @@ li[data-rel].agent-touched {
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-link);
   background: var(--accent-soft);
   flex: none;
   margin-right: 4px;
@@ -2955,7 +2951,7 @@ li[data-rel].agent-touched {
 .chg-provenance {
   margin: 0 0 10px;
   padding: 4px 10px;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--accent-link);
   background: var(--accent-soft);
   border-radius: 0 6px 6px 0;
   font-size: 12px;
@@ -3023,8 +3019,8 @@ li[data-rel].agent-touched {
 /* Session-history list on the ~agents screen (TASK-0178). */
 .agents-page .agents-sessions { margin-top: 20px; }
 .ov-agent-pill {
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--accent-link);
+  border: 1px solid var(--accent-link);
   background: transparent;
 }
 .ov-session-row-meta {
@@ -3070,7 +3066,7 @@ li[data-rel].agent-touched {
 .agents-row.is-dormant { opacity: 0.6; }
 .agents-row-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .agents-row-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--text-faint); }
-.agents-row-dot[data-state="busy"] { background: var(--accent); }
+.agents-row-dot[data-state="busy"] { background: var(--accent-link); }
 .agents-row-dot[data-state="waiting"] { background: var(--severity-medium); animation: ws-waiting-pulse 1.4s ease-in-out infinite; }
 .agents-row-dot[data-state="needs-input"] { background: var(--severity-critical); animation: ws-needs-input-pulse 0.9s ease-in-out infinite; }
 .agents-row-dot[data-state="done"] { background: var(--status-done); }
@@ -3092,7 +3088,7 @@ li[data-rel].agent-touched {
   cursor: pointer;
 }
 .agents-btn:hover { background: var(--row-hover); color: var(--text); }
-.agents-btn.primary { border-color: var(--accent); color: var(--accent); }
+.agents-btn.primary { border-color: var(--accent-link); color: var(--accent-link); }
 @media (prefers-reduced-motion: reduce) {
   .agents-row-dot { animation: none !important; }
 }
@@ -3126,7 +3122,7 @@ li[data-rel].agent-touched {
 .session-page-section ol,
 .session-page-section ul { margin: 0; padding-left: 20px; }
 .session-page-section li { padding: 2px 0; font-size: 13px; color: var(--text-muted); }
-.session-page-section a { color: var(--accent); text-decoration: none; }
+.session-page-section a { color: var(--accent-link); text-decoration: none; }
 .session-page-section a:hover { text-decoration: underline; }
 
 /* ----------------------------------------------------------------------
@@ -3183,7 +3179,7 @@ li[data-rel].agent-touched {
   font-variant-numeric: tabular-nums;
   flex: none;
 }
-.scope-row.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.scope-row.current { background: var(--accent-soft); color: var(--accent-link); font-weight: 600; }
 .scope-name {
   flex: none; max-width: 55%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -3192,7 +3188,7 @@ li[data-rel].agent-touched {
   flex: 1; height: 4px; border-radius: 2px;
   background: var(--border); overflow: hidden;
 }
-.scope-bar > span { display: block; height: 100%; background: var(--accent); }
+.scope-bar > span { display: block; height: 100%; background: var(--accent-link); }
 .scope-pct {
   flex: none; width: 34px; text-align: right;
   font-size: 10.5px; color: var(--text-faint);
@@ -3205,10 +3201,10 @@ li[data-rel].agent-touched {
   margin: 0 0 14px; flex-wrap: wrap;
 }
 .scoped-crumb { color: var(--text-faint); font-size: 12.5px; text-decoration: none; }
-.scoped-crumb:hover { color: var(--accent); text-decoration: underline; }
+.scoped-crumb:hover { color: var(--accent-link); text-decoration: underline; }
 .scoped-sep { color: var(--text-faint); font-size: 11px; }
 .scoped-title { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
-.scoped-open-note { margin-left: auto; color: var(--accent); font-size: 12px; text-decoration: none; }
+.scoped-open-note { margin-left: auto; color: var(--accent-link); font-size: 12px; text-decoration: none; }
 .scoped-open-note:hover { text-decoration: underline; }
 
 /* Scoped feature rows */
@@ -3222,7 +3218,7 @@ li[data-rel].agent-touched {
   font-size: 13px; text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cursor: pointer; }
+a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline; cursor: pointer; }
 .scoped-feat-sqs { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; align-items: center; }
 .scoped-loose .scoped-feat-name { color: var(--text-faint); font-style: italic; }
 
@@ -3235,9 +3231,9 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 .agent-strip-queue {
   flex: none;
   background: transparent;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-link);
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--accent-link);
   font-size: 10.5px;
   font-weight: 600;
   padding: 1px 8px;
@@ -3301,7 +3297,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 
 .dispatch-provenance { border-left-color: var(--status-active); }
 
-.ov-session-dispatch { color: var(--accent); flex: none; }
+.ov-session-dispatch { color: var(--accent-link); flex: none; }
 
 .qs-action-badge {
   flex: none;
@@ -3352,7 +3348,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-link);
   flex: none;
 }
 .doc-header-title {
@@ -3420,14 +3416,14 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   gap: 10px;
   cursor: pointer;
 }
-.settings-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+.settings-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent-link); }
 .settings-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .settings-row-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
 .settings-row-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
 .settings-row-desc code {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.9em;
-  color: var(--accent);
+  color: var(--accent-link);
 }
 .settings-status {
   margin: 10px 0 0;
@@ -3461,7 +3457,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   text-align: left; cursor: pointer; min-width: 0;
 }
 .review-queue .queue-row:hover { background: var(--row-hover); color: var(--text); }
-.review-queue .queue-row.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.review-queue .queue-row.current { background: var(--accent-soft); color: var(--accent-link); font-weight: 600; }
 .queue-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .queue-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .review-queue-empty { margin: 8px 6px; }
@@ -3474,7 +3470,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 }
 .queue-kind.is-decide { color: var(--type-adr); }
 .queue-kind.is-review { color: var(--type-feature); }
-.queue-kind.is-answer { color: var(--accent); }
+.queue-kind.is-answer { color: var(--accent-link); }
 .queue-kind.is-run    { color: var(--type-test); }
 
 /* Stage. */
@@ -3490,7 +3486,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 }
 .review-btn:hover:not(:disabled) { background: var(--row-hover); color: var(--text); }
 .review-btn:disabled { opacity: 0.5; cursor: default; }
-.review-btn.is-primary { border-color: var(--accent); color: var(--accent); }
+.review-btn.is-primary { border-color: var(--accent-link); color: var(--accent-link); }
 .review-btn.is-good { border-color: var(--status-done); color: var(--status-done); }
 .review-btn.is-bad { border-color: var(--severity-critical); color: var(--severity-critical); }
 
@@ -3506,20 +3502,20 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   border: 1.5px solid var(--border); background: transparent;
   color: transparent; font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
 }
-.review-tick.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.review-tick.is-on { background: var(--accent-link); border-color: var(--accent-link); color: #fff; }
 
 .review-comment {
   width: 100%; resize: vertical; font: inherit; font-size: 12.5px;
   color: var(--text); background: var(--bg); border: 1px dashed var(--border);
   border-radius: 6px; padding: 8px 12px;
 }
-.review-comment:focus { outline: none; border-color: var(--accent); border-style: solid; }
+.review-comment:focus { outline: none; border-color: var(--accent-link); border-style: solid; }
 .review-feedback { margin: 0; font-size: 12.5px; color: var(--status-done); }
 .review-feedback.is-error { color: var(--severity-critical); }
 
 /* Manual test runner. */
 .run-progress { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; }
-.run-progress > i { display: block; height: 100%; background: var(--accent); }
+.run-progress > i { display: block; height: 100%; background: var(--accent-link); }
 .run-step { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; font-size: 12.5px; color: var(--text-muted); }
 .run-step.is-done { color: var(--text-faint); }
 .run-step-n {
@@ -3530,10 +3526,10 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 }
 .run-step.is-pass .run-step-n { background: var(--status-done); border-color: var(--status-done); color: #fff; }
 .run-step.is-fail .run-step-n { background: var(--severity-critical); border-color: var(--severity-critical); color: #fff; }
-.run-step-n.is-current { border-color: var(--accent); color: var(--accent); }
+.run-step-n.is-current { border-color: var(--accent-link); color: var(--accent-link); }
 .run-step-ev { margin-left: auto; flex: none; font-style: italic; font-size: 11.5px; }
 .run-step-current {
-  border: 1px solid var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-link); background: var(--accent-soft);
   border-radius: 8px; padding: 11px 14px;
 }
 .run-step-title { display: flex; gap: 10px; align-items: baseline; font-size: 13px; font-weight: 600; }
@@ -3544,7 +3540,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
   background: var(--bg-elevated); color: var(--text);
 }
-.run-evidence:focus { outline: none; border-color: var(--accent); }
+.run-evidence:focus { outline: none; border-color: var(--accent-link); }
 .run-counter { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .run-summary { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .run-summary-line { margin: 0; font-size: 13px; }
@@ -3556,8 +3552,8 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 .verification-list .verification-meta { flex: none; font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; margin-left: auto; }
 .verification-list .verification-meta.is-stale { color: var(--severity-medium); }
 .verification-run {
-  flex: none; border: 1px solid var(--accent); background: transparent;
-  color: var(--accent); border-radius: 5px; padding: 0 8px;
+  flex: none; border: 1px solid var(--accent-link); background: transparent;
+  color: var(--accent-link); border-radius: 5px; padding: 0 8px;
   font: inherit; font-size: 11px; cursor: pointer;
 }
 .verification-list li .status-chip { margin-left: 0; }
@@ -3581,7 +3577,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
 .review-set-head { display: flex; align-items: baseline; gap: 12px; }
 .review-expand-all {
   margin-left: auto; border: 0; background: transparent;
-  color: var(--accent); font: inherit; font-size: 11px;
+  color: var(--accent-link); font: inherit; font-size: 11px;
   text-transform: none; letter-spacing: 0; cursor: pointer;
 }
 .review-peek {
@@ -3597,7 +3593,7 @@ a.scoped-feat-name:hover { color: var(--accent); text-decoration: underline; cur
   transition: transform 120ms ease; transform-origin: 25% 50%;
 }
 .review-peek.is-open::before { transform: rotate(90deg); }
-.review-peek:hover { color: var(--accent); border-color: var(--accent); }
+.review-peek:hover { color: var(--accent-link); border-color: var(--accent-link); }
 .review-note-inline {
   max-height: 34vh; margin: 0 0 8px 26px; padding: 2px 14px 10px;
   background: var(--bg);
