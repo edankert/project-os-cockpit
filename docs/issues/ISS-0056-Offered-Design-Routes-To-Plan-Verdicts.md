@@ -72,3 +72,16 @@ Six more, all smaller, all fixed. The two that mattered:
 That is two consecutive test rewrites that missed the mutation motivating them. Worth stating as a rule: **a guard test must fail when the guard is removed from the thing it guards**, not merely when the guard itself is broken.
 
 The rest: `subject_type` was computed inside `if subject and asked_at`, so a row with a subject and no revision — the shape every pre-fix offer wrote — still reached the plan-verdict path; "Request changes" discarded the reviewer's comment while the placeholder promised it was sent; the dirty banner fired the same present-tense sentence for two different facts and contradicted the line above it; and `has_asset`, an `is_file()` on the working copy, gated a historical render so a deleted artifact hid a revision that renders fine.
+
+
+## Round 3 (2026-07-28)
+
+**Reject still cancelled a design that shipped** — the mirror of the bug round 2 fixed. The round-2 guard was accept-only, and rank could not have caught it in principle: `cancelled` and `superseded` rank *above* `implemented`, so cancelling a shipped design reads as a **forward** move. Worse, `buildDesignReviewView`'s own docstring said *"rejecting goes through the design endpoint so a built design is not cancelled by a status posted from the client"* — true about the mechanism, false about the consequence, and that sentence is what carried the reject branch through round 2 unexamined.
+
+Fixed with `_DESIGN_SETTLED`: a verdict never moves a design out of `implemented`, `superseded` or `cancelled`, for **either** verdict. A design that shipped cannot be un-shipped by a review; deciding to replace it is a new design or an issue.
+
+**The rank table failed open.** An unranked status returned 0, never compared as backwards, and was silently demoted — quietly reopening the very bug the table exists to prevent. Now fails closed, and a test asserts the table covers exactly `ALLOWED_STATUS["design"]`. The reviewer's verdict on the ISS-0042 worry I raised: it does not apply, because `statuses.py` owns a vocabulary and a band *categorisation*, not a lifecycle order — there was no existing ordering to duplicate.
+
+**The loopback test was one clause short.** Deleting the guard from the endpoint failed it, as intended — but *moving* the guard to sit after `review_store.add(...)` passed: 403 returned, ledger row written. The rule needs both halves: **a guard test must fail when the guard is removed from the thing it guards, and assert the guarded side effect did not happen.** Three versions of this test, three different holes.
+
+**`has_asset` still gated the historical render**, one layer below the round-2 fix: `buildDesignFrame` kept its own unconditional return, so only the message changed. The test greped the outer substring and could not see the inner return.

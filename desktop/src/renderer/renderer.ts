@@ -2865,7 +2865,13 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
     wrap.append(toNote);
     return wrap;
   }
-  if (!d.has_asset) {
+  if (!d.has_asset && !atSha) {
+    // `has_asset` is an `is_file()` on the WORKING COPY, so it must not gate a
+    // HISTORICAL render: `design-asset-at` reads from git and serves an
+    // artifact deleted after it was committed. The outer caller was relaxed
+    // for this in round 2 and this inner return still refused, so only the
+    // message changed (independent review round 3).
+    //
     // Distinguish "none declared" from "declared but missing". A blank pane
     // for either would hide a typo committed weeks earlier.
     wrap.classList.add('is-empty');

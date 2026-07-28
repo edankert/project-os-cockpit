@@ -2357,6 +2357,14 @@ def test_the_offer_endpoint_is_loopback_only(tmp_path: Path) -> None:
             status, data = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
             assert status == HTTPStatus.FORBIDDEN, (status, data)
             assert data["ok"] is False
+            # AND the side effect must not have happened. A guard moved to sit
+            # AFTER `review_store.add(...)` returns the same 403 while writing
+            # the row — refusing the response, not the write (round 3). The
+            # rule: a guard test must fail when the guard is removed from the
+            # thing it guards, AND assert the guarded effect did not occur.
+            assert not [r for r in _queue(port) if r.get("subject")], (
+                "the endpoint refused the response but still wrote the ledger"
+            )
         finally:
             handler_cls._is_loopback = original             # type: ignore[assignment]
 
@@ -2667,3 +2675,84 @@ def test_the_dirty_banners_say_different_things() -> None:
     assert "request.dirty_at_offer" in view and "else if (detail.dirty)" in view
     assert "had uncommitted changes when it was offered" in view
     assert "not part of what you are reviewing here" in view
+
+
+def test_rejecting_does_not_cancel_a_design_that_shipped(tmp_path: Path) -> None:
+    """The mirror of the demotion bug, and invisible to rank: `cancelled`
+    ranks ABOVE `implemented`, so cancelling a shipped design reads as a
+    FORWARD move. A design that shipped cannot be un-shipped by a verdict —
+    deciding to replace it is a new design or an issue (ISS-0056 round 3)."""
+    from project_os_cockpit import note_writes
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0001-D.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "D",
+        "status": "implemented", "role": "proposal", "asset": "d.html",
+        "reviewed_by": "", "review_date": "", "review_verdict": "",
+        "design_revision": ""})
+    (docs / "designs" / "d.html").write_text("<h1>d</h1>", encoding="utf-8")
+    note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0001", reviewer="user:edwin",
+        verdict="rejected", revision="abc1234", accept=False)
+    text = (docs / "designs" / "DES-0001-D.md").read_text(encoding="utf-8")
+    assert 'status: "implemented"' in text, "a shipped design was cancelled"
+    assert 'review_verdict: "rejected"' in text, "the verdict was swallowed"
+
+
+def test_rejecting_still_cancels_a_design_that_has_not_shipped(tmp_path: Path) -> None:
+    """The refusal is about settled statuses, not about rejection."""
+    from project_os_cockpit import note_writes
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0002-P.md", {
+        "type": "[[design]]", "id": "DES-0002", "title": "P",
+        "status": "proposed", "role": "proposal", "asset": "p.html",
+        "reviewed_by": "", "review_date": "", "review_verdict": "",
+        "design_revision": ""})
+    (docs / "designs" / "p.html").write_text("<h1>p</h1>", encoding="utf-8")
+    note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0002", reviewer="user:edwin",
+        verdict="rejected", revision="abc1234", accept=False)
+    assert 'status: "cancelled"' in (docs / "designs" / "DES-0002-P.md").read_text(
+        encoding="utf-8")
+
+
+def test_the_design_rank_table_covers_the_vocabulary() -> None:
+    """An unranked status returned rank 0, never compared as backwards, and
+    was silently demoted — a fail-OPEN that quietly reopened the demotion bug
+    the table exists to prevent."""
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.validate_docs_bundled import ALLOWED_STATUS
+    assert set(note_writes._DESIGN_STATUS_RANK) == set(ALLOWED_STATUS["design"]), (
+        "the rank table has drifted from the design vocabulary"
+    )
+    assert note_writes._DESIGN_SETTLED <= set(ALLOWED_STATUS["design"])
+
+
+def test_an_unknown_status_fails_closed(tmp_path: Path) -> None:
+    """Belt to the assertion's braces: if a status ever escapes the table, the
+    verdict is still recorded and the status is left alone."""
+    from project_os_cockpit import note_writes
+    docs = tmp_path / "docs"
+    _note(docs / "designs" / "DES-0003-X.md", {
+        "type": "[[design]]", "id": "DES-0003", "title": "X",
+        "status": "some-future-status", "role": "proposal", "asset": "x.html",
+        "reviewed_by": "", "review_date": "", "review_verdict": "",
+        "design_revision": ""})
+    (docs / "designs" / "x.html").write_text("<h1>x</h1>", encoding="utf-8")
+    note_writes.stamp_design_verdict(
+        Index.build(docs), "DES-0003", reviewer="user:edwin",
+        verdict="accepted", revision="abc1234", accept=True)
+    text = (docs / "designs" / "DES-0003-X.md").read_text(encoding="utf-8")
+    assert 'status: "some-future-status"' in text
+    assert 'review_verdict: "accepted"' in text
+
+
+def test_a_historical_render_survives_a_deleted_artifact() -> None:
+    """`buildDesignFrame` kept its own unconditional `has_asset` return below
+    the relaxed outer gate, so only the message changed — the revision still
+    did not render (ISS-0056 round 3)."""
+    src = _renderer()
+    frame = _code_only(
+        src.split("function buildDesignFrame(")[1].split("\nfunction ")[0])
+    assert "if (!d.has_asset && !atSha)" in frame, (
+        "the historical render is still gated on the working copy"
+    )

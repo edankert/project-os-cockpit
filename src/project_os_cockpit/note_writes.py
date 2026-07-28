@@ -130,13 +130,25 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
 #:   marked rejected, because a rejected proposal worth keeping is worth
 #:   recording as the alternative it lost to.
 #: * Requirement — `draft → approved`, or `cancelled` if it will not be built.
-#: How far along a design's life a status sits. Only used to refuse a
-#: BACKWARDS move on accept — it is not a vocabulary and nothing else reads
-#: it. `statuses.py` remains the single source for what a status means.
+#: How far along a design's life a status sits. Only used to refuse a move
+#: that would rewrite history — it is not a vocabulary and nothing else reads
+#: it. `statuses.py` remains the single source for what a status means, and
+#: `test_the_design_rank_table_covers_the_vocabulary` asserts this covers
+#: exactly `ALLOWED_STATUS["design"]`, because an unranked status used to
+#: fail OPEN (rank 0, never backwards, silently demoted).
 _DESIGN_STATUS_RANK: dict[str, int] = {
     "draft": 1, "proposed": 2, "accepted": 3, "implemented": 4,
     "superseded": 5, "cancelled": 5,
 }
+
+#: Statuses a review verdict must never move a design out of. Rank alone
+#: cannot express this: `cancelled` ranks ABOVE `implemented`, so cancelling a
+#: shipped design reads as a FORWARD move (independent review round 3). A
+#: design that shipped cannot be un-shipped by a verdict — deciding to replace
+#: it is a new design or an issue, not a status flip on the old one.
+_DESIGN_SETTLED: frozenset[str] = frozenset({
+    "implemented", "superseded", "cancelled",
+})
 
 DECIDE_TRANSITIONS: dict[str, tuple[str, str | None]] = {
     "adr": ("accepted", "superseded"),
@@ -611,12 +623,22 @@ def stamp_design_verdict(
         # feature's own premise. The verdict is still recorded; only the
         # status move is declined, because the verdict is the honest part.
         current = str(_get_field(fm_lines, "status") or "").strip().strip('"')
-        backwards = bool(
-            accept and current
-            and _DESIGN_STATUS_RANK.get(current, 0)
-            > _DESIGN_STATUS_RANK.get(candidate, 0)
-        )
-        new_status = None if backwards else candidate
+        # Settled first, and for BOTH verdicts. The round-2 fix guarded only
+        # `accept`, so Reject still wrote `cancelled` over `implemented` — the
+        # mirror of the bug it fixed, and invisible to rank because `cancelled`
+        # sits above `implemented`.
+        if current in _DESIGN_SETTLED:
+            new_status = None
+        else:
+            # Unknown status fails CLOSED. It used to return rank 0, never
+            # compare as backwards, and get demoted silently.
+            known = current in _DESIGN_STATUS_RANK or not current
+            backwards = bool(
+                accept and current
+                and _DESIGN_STATUS_RANK.get(current, 0)
+                > _DESIGN_STATUS_RANK.get(candidate, 0)
+            )
+            new_status = candidate if (known and not backwards) else None
         if new_status:
             fm_lines = _set_field(fm_lines, "status", new_status)
 
