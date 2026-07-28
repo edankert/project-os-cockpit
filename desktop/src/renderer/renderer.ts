@@ -3365,6 +3365,43 @@ async function renderDesignPage(target: string): Promise<boolean> {
     stage.append(body, side);
 
     const head = buildDesignHeader(d, paint);
+    // Offer this design for review WITHOUT touching its status (TASK-0229).
+    // The desk had two doors and designs could only use the status one, so a
+    // design that was genuinely `implemented` could never be put in front of a
+    // human without changing its status to something untrue.
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'design-ask-review';
+    ask.textContent = 'Ask for review';
+    ask.addEventListener('click', () => {
+      ask.disabled = true;
+      void (async () => {
+        try {
+          const resp = await fetch(`${sidecarBaseUrl}/api/design/offer-review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: d.id }),
+          });
+          const data = await resp.json();
+          if (!resp.ok || data.ok === false) {
+            showStatus(`Could not offer ${d.id}: ${data.error || resp.status}`, 'error');
+            ask.disabled = false;
+            return;
+          }
+          // Idempotent server-side; say which happened rather than pretending
+          // a second press did something.
+          showStatus(data.already_open
+            ? `${d.id} is already waiting in Review`
+            : `${d.id} sent to Review`, 'info');
+          ask.textContent = 'Waiting in Review';
+          void refreshReviewBadge();
+        } catch (err) {
+          showStatus(`Could not offer ${d.id}: ${String(err)}`, 'error');
+          ask.disabled = false;
+        }
+      })();
+    });
+    head.append(ask);
     // The toggle lives in the head so it is reachable whether or not the
     // sidebar is showing — a control that disappears with the thing it
     // controls cannot bring it back.
@@ -3460,7 +3497,8 @@ function buildReviewEmpty(
   const p = document.createElement('p');
   p.className = 'meta';
   p.textContent = message ?? (payload.total > 0
-    ? `${payload.total} item${payload.total === 1 ? '' : 's'} need a human.`
+    // 'item needs' / 'items need' — the noun was pluralised and the verb was not.
+    ? `${payload.total} item${payload.total === 1 ? ' needs' : 's need'} a human.`
     : 'Proposals, questions and pending test runs appear here as they arrive.');
   wrap.append(h, p);
   return wrap;

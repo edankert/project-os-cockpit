@@ -60,7 +60,7 @@ items:
     FEAT-0042:
       file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
       title: "Design bench — render, revise, annotate and review designs in the cockpit"
-      status: done
+      status: review
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
       tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219"]
@@ -2495,9 +2495,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 43
-    features_done: 38
+    features_done: 37
     tasks_total: 229
-    tasks_done: 224
+    tasks_done: 225
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

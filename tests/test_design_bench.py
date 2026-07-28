@@ -2159,3 +2159,193 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
         "the guard names one mode again; every future virtual-landing mode "
         "inherits the race"
     )
+
+
+# ---- offering a design for review (TASK-0229) -----------------------------
+
+def _repo_with_design(tmp_path: Path, status: str = "implemented") -> Path:
+    import subprocess
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    docs = tmp_path / "docs"
+    (docs / "designs").mkdir(parents=True)
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+    _note(docs / "designs" / "DES-0001-D.md", {
+        "type": "[[design]]", "id": "DES-0001", "title": "A design",
+        "status": status, "role": "proposal", "asset": "d.html"})
+    (docs / "designs" / "d.html").write_text("<h1>d</h1>", encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "-c", "user.email=t@t",
+                    "-c", "user.name=t", "commit", "-qm", "first"], check=True)
+    return docs
+
+
+def _post(port: int, path: str, body: dict) -> tuple[int, dict]:
+    import urllib.error
+    import urllib.request
+    req = urllib.request.Request(
+        "http://127.0.0.1:%d%s" % (port, path),
+        data=json.dumps(body).encode(), method="POST",
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status, json.load(r)
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.load(exc)
+
+
+def _queue(port: int) -> list:
+    import urllib.request
+    with urllib.request.urlopen(
+            "http://127.0.0.1:%d/api/cockpit/review-queue" % port, timeout=5) as r:
+        q = json.load(r)
+    return [i for g in q["groups"] for i in g["items"]]
+
+
+def test_a_design_can_be_offered_without_changing_its_status(tmp_path: Path) -> None:
+    """The desk had two entry paths and designs were wired to only one. No
+    design in this repo has ever been `proposed`, so the review path TASK-0218
+    built had never been entered — the only way in was to change a status to
+    something untrue (TASK-0229)."""
+    docs = _repo_with_design(tmp_path, status="implemented")
+    httpd, port = _serve(docs)
+    try:
+        status, data = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        assert status == 200 and data["ok"], data
+        assert data["request"]["subject"] == "DES-0001"
+        # The note is untouched: no status written, no frontmatter change.
+        text = (docs / "designs" / "DES-0001-D.md").read_text(encoding="utf-8")
+        assert "status: \"implemented\"" in text or "status: implemented" in text
+        assert "proposed" not in text
+        rows = _queue(port)
+        assert [r.get("subject") for r in rows if r.get("subject")] == ["DES-0001"]
+    finally:
+        httpd.shutdown()
+
+
+def test_the_request_records_the_revision_it_was_raised_against(tmp_path: Path) -> None:
+    """A review is of a REVISION, not of "the design". TASK-0218 already
+    requires `design_revision` on accept and validates it against real history;
+    without the same on the request, a reviewer can accept something other than
+    what they were shown and neither party would know."""
+    docs = _repo_with_design(tmp_path)
+    httpd, port = _serve(docs)
+    try:
+        _, data = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        sha = data["request"]["at_revision"]
+        assert re.fullmatch(r"[0-9a-f]{7,40}", sha), sha
+
+        import urllib.request
+        rid = data["request"]["request_id"]
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/api/cockpit/review/%s" % (port, rid),
+                timeout=5) as r:
+            detail = json.load(r)
+        assert detail["at_revision"] == sha
+        assert detail["revision_moved"] is False
+
+        # Move the artifact on; the desk must say the reviewer was asked about
+        # something older.
+        import subprocess
+        (docs / "designs" / "d.html").write_text("<h1>d2</h1>", encoding="utf-8")
+        subprocess.run(["git", "-C", str(docs.parent), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(docs.parent), "-c", "user.email=t@t",
+                        "-c", "user.name=t", "commit", "-qm", "second"], check=True)
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/api/cockpit/review/%s" % (port, rid),
+                timeout=5) as r:
+            detail = json.load(r)
+        assert detail["revision_moved"] is True, detail
+        assert detail["head_revision"] != sha
+    finally:
+        httpd.shutdown()
+
+
+def test_offering_twice_is_idempotent(tmp_path: Path) -> None:
+    """A human asked to look at one thing should see one row, however many
+    times the button is pressed."""
+    docs = _repo_with_design(tmp_path)
+    httpd, port = _serve(docs)
+    try:
+        _, first = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        _, second = _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        assert second.get("already_open") is True
+        assert second["request"]["request_id"] == first["request"]["request_id"]
+        assert len([r for r in _queue(port) if r.get("subject")]) == 1
+    finally:
+        httpd.shutdown()
+
+
+def test_status_intake_and_the_ledger_do_not_double_list(tmp_path: Path) -> None:
+    """A design can arrive by both routes. It must appear once, and the ledger
+    row wins because it carries the revision the reviewer was asked about."""
+    docs = _repo_with_design(tmp_path, status="proposed")
+    httpd, port = _serve(docs)
+    try:
+        assert len([r for r in _queue(port) if r.get("id") == "DES-0001"]) == 1
+        _post(port, "/api/design/offer-review", {"id": "DES-0001"})
+        rows = _queue(port)
+        hits = [r for r in rows
+                if r.get("subject") == "DES-0001" or r.get("id") == "DES-0001"]
+        assert len(hits) == 1, hits
+        assert hits[0].get("at_revision"), "the surviving row lost the revision"
+    finally:
+        httpd.shutdown()
+
+
+def test_an_unknown_or_missing_design_is_refused_or_reported(tmp_path: Path) -> None:
+    """Offering something that is not a design is refused outright; a design
+    that disappears AFTER being offered leaves a row that explains itself
+    rather than one pointing at nothing."""
+    docs = _repo_with_design(tmp_path)
+    httpd, port = _serve(docs)
+    try:
+        assert _post(port, "/api/design/offer-review", {"id": "DES-9999"})[0] == 404
+        assert _post(port, "/api/design/offer-review", {})[0] == 400
+    finally:
+        httpd.shutdown()
+
+
+def test_a_request_whose_design_vanished_explains_itself(tmp_path: Path) -> None:
+    """A design deleted or renamed AFTER being offered must leave a row that
+    says so. Dropping it silently would strand the request forever; leaving it
+    pointing at nothing is worse than a row that explains itself.
+
+    Driven at the payload level with a stub store rather than by deleting a
+    file mid-request: the live index caches the note, so a filesystem race
+    would have tested the watcher rather than this branch.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "README.md").write_text("# x\n", encoding="utf-8")
+
+    class _Store:
+        def open_requests(self):
+            return [{"request_id": "abc", "kind": "review", "title": "Design review",
+                     "items": ["DES-0404"], "subject": "DES-0404",
+                     "at_revision": "deadbee", "ts": "2026-07-28T00:00:00+00:00"}]
+        def outcome_counts(self):
+            return {}
+
+    payload = cockpit.review_queue_payload(Index.build(docs), _Store())
+    row = next(i for g in payload["groups"] for i in g["items"]
+               if i.get("subject") == "DES-0404")
+    assert row["subject_missing"] is True
+    assert row["at_revision"] == "deadbee"
+
+
+def test_the_offer_endpoint_is_loopback_only() -> None:
+    """Every mutation endpoint is loopback-guarded; the render server binds
+    0.0.0.0 so a tablet can read it."""
+    from project_os_cockpit import server as server_mod
+    body = inspect.getsource(server_mod).split(
+        "def _serve_design_offer_review(")[1].split("\n        def ")[0]
+    assert "if not self._require_loopback():" in body
+
+
+def test_the_design_surface_offers_the_control() -> None:
+    src = _renderer()
+    assert "/api/design/offer-review" in src
+    assert "'Ask for review'" in src
+    # Says which of the two things happened rather than pretending a second
+    # press did something.
+    assert "already_open" in src

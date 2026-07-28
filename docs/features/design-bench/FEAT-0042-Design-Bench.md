@@ -3,14 +3,14 @@ type: "[[feature]]"
 id: FEAT-0042
 aliases: ["FEAT-0042"]
 title: "Design bench — render, revise, annotate and review designs in the cockpit"
-status: done
+status: review
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-28
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-28
-review_verdict: approved
+review_verdict: approved  # round 3, 2026-07-28 — PREDATES TASK-0229
 source: ["user request 2026-07-27", "[[DES-0001-Overview-Redesign]]"]
 goal: "Make a design artifact a first-class project record the cockpit can render live at the real viewport, version with its reasoning, annotate by region, review through the existing desk, and check the implementation against."
 requirements: ["[[REQ-0023-Design-Is-A-Project-Record]]"]

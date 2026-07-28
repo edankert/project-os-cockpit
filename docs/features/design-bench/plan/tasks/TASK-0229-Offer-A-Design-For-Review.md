@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0229
 aliases: ["TASK-0229"]
 title: "Offer a design for review through the ledger, without changing its status"
-status: backlog
+status: done
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -38,23 +38,35 @@ This is also the structural reason [[REQ-0023]] carries two reconciled `[~]` cri
 
 ## Definition of Done
 
-- [ ] A design can be offered for review from the design surface, at **any** status, without changing its status
-- [ ] The request lands in the existing ledger (`ReviewStore`) — no new status vocabulary, no note frontmatter written at request time
-- [ ] The request records **which revision it was raised against**, and the desk says so when the working copy has moved since
-- [ ] The desk renders an offered design with its regions ready for per-region verdicts, identically to the `proposed` path
-- [ ] The existing `proposed` intake still works, and a design that is both `proposed` and explicitly offered appears **once**
-- [ ] Accepting or rejecting clears the request; requesting changes leaves it open with the comments attached ([[TASK-0218]]'s existing behaviour)
-- [ ] The verdict is still never auto-stamped, and the request endpoint is loopback-only like every other mutation
-- [ ] Offering a design twice is idempotent rather than queueing it twice
-- [ ] A request whose design has been deleted or renamed degrades visibly rather than wedging the queue
+- [x] A design can be offered for review from the design surface, at **any** status, without changing its status — evidence: `POST /api/design/offer-review`; `test_a_design_can_be_offered_without_changing_its_status` asserts the note text is unchanged and contains no `proposed`
+- [x] The request lands in the existing ledger (`ReviewStore`) — no new status vocabulary, no note frontmatter written at request time — evidence: `ReviewStore.add(..., subject=, at_revision=)`; no frontmatter write on this path
+- [x] The request records **which revision it was raised against**, and the desk says so when the working copy has moved since — evidence: `test_the_request_records_the_revision_it_was_raised_against` commits a second revision and asserts `revision_moved` flips false → true
+- [x] The desk renders an offered design with its regions ready for per-region verdicts, identically to the `proposed` path — evidence: the entry carries `subject`/`subject_note`/`subject_type`, and the detail route returns the request with its items, as for any proposal set
+- [x] The existing `proposed` intake still works, and a design that is both `proposed` and explicitly offered appears **once** — evidence: `test_status_intake_and_the_ledger_do_not_double_list` — one row, and the surviving row keeps the revision
+- [x] Accepting or rejecting clears the request; requesting changes leaves it open with the comments attached ([[TASK-0218]]'s existing behaviour) — evidence: unchanged `ReviewStore.resolve` path from [[TASK-0218]]; this task added no resolution behaviour
+- [x] The verdict is still never auto-stamped, and the request endpoint is loopback-only like every other mutation — evidence: this endpoint writes only the ledger; `test_the_offer_endpoint_is_loopback_only`
+- [x] Offering a design twice is idempotent rather than queueing it twice — evidence: `open_for_subject`; `test_offering_twice_is_idempotent` asserts the same `request_id` and one queue row
+- [x] A request whose design has been deleted or renamed degrades visibly rather than wedging the queue — evidence: `subject_missing`; `test_a_request_whose_design_vanished_explains_itself`
 
 ## Steps
 
-- [ ] A request endpoint beside the existing review write-back, loopback-guarded
-- [ ] An "Ask for review" control on the design surface
-- [ ] Merge ledger requests with status intake in `review_queue_payload`, deduped by design id
-- [ ] Capture the current revision sha on the request; compare against head when rendering
-- [ ] Exercise it end to end in the Electron app via `tools/dev/cdp.py`, not only in tests
+- [x] A request endpoint beside the existing review write-back, loopback-guarded
+- [x] An "Ask for review" control on the design surface
+- [x] Merge ledger requests with status intake in `review_queue_payload`, deduped by design id
+- [x] Capture the current revision sha on the request; compare against head when rendering
+- [x] Exercise it end to end in the Electron app via `tools/dev/cdp.py`, not only in tests
+
+## Result
+
+**Exercised in the Electron app, not only in tests.** Driven through `tools/dev/cdp.py`: the control on DES-0002 reports *"DES-0002 sent to Review"*, becomes *"Waiting in Review"*, and the desk shows **Design review: Cockpit design system**. That request is now genuinely in Edwin's queue — the first real design review this bench has ever held, which is the point.
+
+**Staleness is computed on open, not in the queue payload.** It costs a git call and only matters once you are looking at the thing. The detail route reports `at_revision`, `head_revision`, `revision_moved` and `dirty`.
+
+**Dedupe favours the ledger row**, because it carries the revision the reviewer was asked about. A `proposed` design that is also offered would otherwise produce two rows a human cannot tell apart.
+
+**The vanished-design case is driven at the payload level with a stub store**, not by deleting a file mid-request: the live index caches the note, so a filesystem race would have tested the watcher rather than the branch.
+
+Found while verifying in the app: the desk said *"1 item need a human"* — the noun was pluralised and the verb was not. Fixed.
 
 ## Notes
 

@@ -646,6 +646,10 @@ def _make_handler(
                 self._serve_design_verdict()
                 return
 
+            if path == "/api/design/offer-review":
+                self._serve_design_offer_review()
+                return
+
             if path == "/api/design/comment":
                 self._serve_design_comment()
                 return
@@ -1272,12 +1276,29 @@ def _make_handler(
                     items.append(
                         cockpit._slim_note(record) if record else {"id": note_id}
                     )
-                self._respond_json({
+                payload = {
                     "schema_version": cockpit.SCHEMA_VERSION,
                     "kind": request.get("kind"),
                     "request": request,
                     "items": items,
-                })
+                }
+                # Has the design moved since the reviewer was asked? Computed
+                # on open rather than in the queue payload: it costs a git call
+                # and only matters once you are looking at the thing (TASK-0229).
+                subject = str(request.get("subject") or "").strip().upper()
+                asked_at = str(request.get("at_revision") or "")
+                if subject and asked_at:
+                    revs = cockpit.design_revisions_payload(
+                        docs_root.parent, index, subject)
+                    head = ""
+                    for rev in revs.get("revisions") or []:
+                        head = str(rev.get("sha") or "")
+                        break
+                    payload["at_revision"] = asked_at
+                    payload["head_revision"] = head
+                    payload["revision_moved"] = bool(head and head != asked_at)
+                    payload["dirty"] = bool(revs.get("dirty"))
+                self._respond_json(payload)
                 return
             # Fall back to a note id (a proposed ADR / ready test row).
             path = index.by_id(request_id)
@@ -1545,6 +1566,72 @@ def _make_handler(
                                    status=getattr(exc, "status", 409))
                 return
             self._respond_json(result)
+
+        def _serve_design_offer_review(self) -> None:
+            """``POST /api/design/offer-review`` — put a design in front of a
+            human without changing its status (TASK-0229).
+
+            The desk had two entry paths and designs were wired to only one:
+            status intake at `proposed`. No design in this repo has ever been
+            `proposed` — DES-0001 was created at `implemented`, DES-0002 went
+            `draft` → `implemented` — so the review path TASK-0218 built had
+            never been entered by a real design, and the only way in was to
+            change a status to something untrue.
+
+            This is the ledger route FEAT/TASK sets already use (ADR-0007:
+            pending-ness is runtime state, not note state). No new status, no
+            frontmatter written here — the verdict still goes through
+            `note_writes` when a human reaches one.
+
+            **The current revision is recorded on the request.** A review is of
+            a revision, not of "the design": TASK-0218 already requires
+            `design_revision` on accept and validates it against real history.
+            Without the same on the request, a reviewer can accept something
+            other than what they were shown.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            design_id = str(body.get("id", "") or "").strip().upper()
+            note = str(body.get("note", "") or "").strip()
+            if not design_id:
+                self._respond_json({"ok": False, "error": "id is required"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+
+            record = next((d for d in cockpit.designs_payload(index)["designs"]
+                           if d["id"].upper() == design_id), None)
+            if record is None:
+                self._respond_json({"ok": False, "error": "unknown design"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+
+            # Idempotent: a human asked to look at one thing should see one
+            # row, however many times the button is pressed.
+            existing = review_store.open_for_subject(design_id)
+            if existing is not None:
+                self._respond_json({"ok": True, "already_open": True,
+                                    "request": existing})
+                return
+
+            revisions = cockpit.design_revisions_payload(
+                docs_root.parent, index, design_id)
+            head = ""
+            for rev in revisions.get("revisions") or []:
+                head = str(rev.get("sha") or "")
+                break
+
+            request = review_store.add(
+                "review",
+                items=[design_id],
+                subject=design_id,
+                at_revision=head,
+                title="Design review: %s" % (record.get("title") or design_id),
+                body=note,
+            )
+            self._respond_json({"ok": True, "request": request})
 
         def _serve_design_comment(self) -> None:
             """``POST /api/design/comment`` — one region-anchored comment.

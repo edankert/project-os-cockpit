@@ -1585,10 +1585,24 @@ def review_queue_payload(
     questions: list[dict[str, Any]] = []
     runs: list[dict[str, Any]] = []
 
+    # Subjects with an open ledger request. A design can arrive by status
+    # intake AND by being offered (TASK-0229); it must appear once, and the
+    # ledger row wins because it carries the revision the reviewer was asked
+    # about. Without this a `proposed` design that someone also offered would
+    # produce two rows a human cannot tell apart.
+    offered: set[str] = set()
+    if store is not None:
+        for request in store.open_requests():
+            subject = str(request.get("subject") or "").strip().upper()
+            if subject:
+                offered.add(subject)
+
     for note_type, states in QUEUE_INTAKE_STATES.items():
         for record in index.notes_by_type(note_type):
             status = (record.status or "").lower().strip()
             if status not in states:
+                continue
+            if (record.note_id or "").strip().upper() in offered:
                 continue
             item = _slim_note(record)
             item["kind"] = (
@@ -1621,6 +1635,21 @@ def review_queue_payload(
                 "agent": request.get("agent"),
                 "items": [],
             }
+            subject = str(request.get("subject") or "").strip().upper()
+            if subject:
+                entry["subject"] = subject
+                entry["at_revision"] = str(request.get("at_revision") or "")
+                path = index.by_id(subject)
+                record = index.get(path) if path else None
+                if record is not None:
+                    entry["subject_note"] = _slim_note(record)
+                    entry["subject_type"] = (record.note_type or "").lower()
+                else:
+                    # The design was deleted or renamed after being offered.
+                    # Say so: a queue row pointing at nothing is worse than a
+                    # row that explains itself, and silently dropping it would
+                    # strand the request forever.
+                    entry["subject_missing"] = True
             for note_id in request.get("items") or []:
                 path = index.by_id(note_id)
                 record = index.get(path) if path else None

@@ -114,8 +114,23 @@ class ReviewStore:
         session_id: str | None = None,
         prompt: str | None = None,
         agent: str | None = None,
+        subject: str | None = None,
+        at_revision: str | None = None,
     ) -> dict[str, Any]:
-        """File a request. Returns the stored record."""
+        """File a request. Returns the stored record.
+
+        ``subject`` names what the request is *about* when that is one note
+        rather than a set — a design offered for review (TASK-0229). It is what
+        makes a request de-duplicable against status intake: without it, a
+        design queued by both routes appears twice and a human cannot tell the
+        rows apart.
+
+        ``at_revision`` records the revision the request was raised against.
+        A review is of a **revision**, not of "the design": TASK-0218 already
+        requires `design_revision` on accept and validates it against real
+        history, and without the same on the request a reviewer can accept
+        something other than what they were shown, with neither party knowing.
+        """
         if kind not in KINDS:
             raise ValueError(f"unknown kind: {kind}")
         record: dict[str, Any] = {
@@ -133,10 +148,30 @@ class ReviewStore:
             record["prompt"] = str(prompt)[:500]
         if agent:
             record["agent"] = str(agent)
+        if subject:
+            record["subject"] = str(subject).strip().upper()
+        if at_revision:
+            record["at_revision"] = str(at_revision).strip()[:40]
         with self._lock:
             self._requests.append(record)
             self._persist_locked()
         return dict(record)
+
+    def open_for_subject(self, subject: str) -> dict[str, Any] | None:
+        """The open request about ``subject``, if any.
+
+        Filing is idempotent through this: offering the same design twice
+        returns the existing request rather than queueing it again, because a
+        human asked to look at one thing should see one row.
+        """
+        key = (subject or "").strip().upper()
+        if not key:
+            return None
+        with self._lock:
+            for r in self._requests:
+                if r.get("status") == "open" and r.get("subject") == key:
+                    return dict(r)
+        return None
 
     def open_requests(self) -> list[dict[str, Any]]:
         with self._lock:
