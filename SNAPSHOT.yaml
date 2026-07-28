@@ -297,7 +297,7 @@ items:
     TASK-0222:
       file: "docs/features/design-surface/plan/tasks/TASK-0222-Fill-And-Guard-The-Brief.md"
       title: "Fill this repo's brief, and report a placeholder brief upstream"
-      status: doing
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0043
     TASK-0223:
@@ -2497,7 +2497,7 @@ metrics:
     features_total: 43
     features_done: 36
     tasks_total: 225
-    tasks_done: 217
+    tasks_done: 218
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182
