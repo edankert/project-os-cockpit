@@ -4,19 +4,20 @@ id: DES-0002
 aliases: ["DES-0002"]
 title: "Cockpit design system"
 role: system
-status: implemented
+status: "implemented"
 owner: user:edwin
 created: 2026-07-27
-updated: 2026-07-27
+updated: "2026-07-28"
 source: ["src/project_os_cockpit/static/base.css", "src/project_os_cockpit/static/cockpit.css", "[[DES-0001-Overview-Redesign]]"]
 asset: "DES-0002-style-guide.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-07-28"
+review_verdict: "accepted"
 related: ["[[DES-0001-Overview-Redesign]]", "[[TST-0019-Status-Vocabulary-Parity]]", "[[ISS-0023-Status-Vocabulary-Drift]]", "[[REQ-0022-Overview-State-Above-History]]"]
+design_revision: "6eb6888"
 ---
 
 # Cockpit design system

@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 43
-  ISS: 57
+  ISS: 58
   PHASE: 9
   REQ: 24
   RISK: 4
@@ -1851,7 +1851,7 @@ items:
     PHASE-009:
       file: "docs/phases/PHASE-009-Design-Surfaces.md"
       title: "Design surfaces"
-      status: active
+      status: done
       order: 9
       features: ["FEAT-0042"]
       note: "Design moves into the project. The overview dossier took six revisions in one session; the sixth is committed and the reasoning for the other five is in a transcript. That is the loss this closes."
