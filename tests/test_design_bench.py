@@ -1957,3 +1957,29 @@ def test_reinjected_sheets_go_before_the_artifacts_own_styles() -> None:
         "re-injection appends again; the app's shell rules will outrank the "
         "artifact's reset"
     )
+
+
+def test_token_values_never_reach_an_html_parser() -> None:
+    """`--icon-folder` holds `url("data:image/svg+xml;utf8,<svg …>")`. Built by
+    string concatenation into innerHTML, the quote closed the style attribute
+    and the SVG was parsed as markup — 16 stray elements in the palette. A
+    value read from a stylesheet is DATA (ISS-0048)."""
+    body = _style_guide().split("<script>", 1)[1]
+    assert "swatchRow" in body and "createElement('i')" in body
+    for banned in ("'<div class=\"sw\"", "style=\"background:'", "innerHTML = '<div"):
+        assert banned not in body, banned
+    # The value goes through textContent and style APIs, never markup.
+    assert "label.textContent = name;" in body
+    assert "chip.style.setProperty('mask-image', value);" in body
+
+
+def test_a_token_is_not_assumed_to_be_a_colour() -> None:
+    """Assets (`url(…)`, used as mask-image) and shadow triples are not
+    colours; painting them as backgrounds said nothing and printed hundreds of
+    characters of data URI into the value column."""
+    body = _style_guide().split("<script>", 1)[1]
+    assert "function tokenKind(" in body
+    assert "'asset'" in body and "'shadow'" in body and "'colour'" in body
+    assert "url(data:image/svg+xml …)" in body, (
+        "the raw data URI is printed again; it is payload, not a value"
+    )

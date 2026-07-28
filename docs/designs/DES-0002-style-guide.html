@@ -257,17 +257,75 @@ function resolve(names, dark) {
   for (const n of names) out[n] = (map[n] || (dark ? PALETTE.light[n] : '') || '').trim();
   return out;
 }
-function swatchList(names, dark) {
-  const vals = resolve(names, dark);
-  return names.map((n) => {
-    const v = vals[n];
-    return '<div class="sw"><i style="background:' + (v || 'transparent') + '"></i>'
-         + '<code>' + n + '</code><span class="val">' + (v || '—') + '</span></div>';
-  }).join('');
+// A token is not necessarily a colour. `--icon-folder` and `--icon-file` hold
+// `url("data:image/svg+xml;utf8,<svg …>")`, and `--shadow-soft` holds a shadow
+// triple. Painting those as backgrounds said nothing useful — and, because the
+// swatches were built by concatenating values into innerHTML, the quotes and
+// the `<svg>` inside them broke out of the style attribute and were parsed as
+// markup (ISS-0048).
+//
+// So: classify by value, and build with DOM APIs. A value read from a
+// stylesheet is DATA; it must never be interpolated into markup.
+function tokenKind(value) {
+  if (/^url\(/i.test(value)) return 'asset';
+  if (/\d+px\s+\d+px/.test(value)) return 'shadow';
+  return 'colour';
 }
-function scheme(title, names, dark) {
-  return '<div class="scheme"' + (dark ? ' data-theme="dark"' : '') + '>'
-       + '<h3>' + title + '</h3>' + swatchList(names, dark) + '</div>';
+
+function swatchRow(name, value) {
+  const row = document.createElement('div');
+  row.className = 'sw';
+
+  const chip = document.createElement('i');
+  const kind = tokenKind(value || '');
+  if (!value) {
+    chip.style.background = 'transparent';
+  } else if (kind === 'asset') {
+    // These are used as mask-image in the app, so show them the way the app
+    // does — the glyph in the current ink colour, not a raw image.
+    chip.style.setProperty('mask-image', value);
+    chip.style.setProperty('-webkit-mask-image', value);
+    chip.style.setProperty('mask-size', 'contain');
+    chip.style.setProperty('-webkit-mask-size', 'contain');
+    chip.style.setProperty('mask-repeat', 'no-repeat');
+    chip.style.setProperty('-webkit-mask-repeat', 'no-repeat');
+    chip.style.setProperty('mask-position', 'center');
+    chip.style.setProperty('-webkit-mask-position', 'center');
+    chip.style.background = 'currentColor';
+    chip.style.border = '0';
+  } else if (kind === 'shadow') {
+    chip.style.boxShadow = value;
+    chip.style.background = 'var(--surface)';
+  } else {
+    chip.style.background = value;
+  }
+  row.append(chip);
+
+  const label = document.createElement('code');
+  label.textContent = name;                     // textContent, never innerHTML
+  row.append(label);
+
+  const val = document.createElement('span');
+  val.className = 'val';
+  // A data URI is hundreds of characters of payload, not a value anyone reads.
+  val.textContent = !value ? '—'
+    : kind === 'asset' ? 'url(data:image/svg+xml …)'
+    : value;
+  if (value) val.title = value;                 // full value on hover
+  row.append(val);
+  return row;
+}
+
+function schemeNode(title, names, dark) {
+  const vals = resolve(names, dark);
+  const box = document.createElement('div');
+  box.className = 'scheme';
+  if (dark) box.setAttribute('data-theme', 'dark');
+  const h = document.createElement('h3');
+  h.textContent = title;
+  box.append(h);
+  for (const n of names) box.append(swatchRow(n, vals[n]));
+  return box;
 }
 
 // ---- palette --------------------------------------------------------------
@@ -280,12 +338,25 @@ const CANDIDATES = TOKENS.filter((t) =>
 const rootValues = resolve(CANDIDATES, false);
 const SEMANTIC = CANDIDATES.filter((t) => rootValues[t]);
 const SCOPED = CANDIDATES.filter((t) => !rootValues[t]);
-document.getElementById('palette').innerHTML =
-    scheme('Light', SEMANTIC, false) + scheme('Dark', SEMANTIC, true)
-  + (SCOPED.length ? '<p class="note" style="flex:1 1 100%">'
-      + '<b>Scoped, not global:</b> ' + SCOPED.map((t) => '<code>' + t + '</code>').join(' · ')
-      + ' — declared on a component rather than <code>:root</code>, so they have no '
-      + 'page-level value to show.</p>' : '');
+const paletteEl = document.getElementById('palette');
+paletteEl.append(schemeNode('Light', SEMANTIC, false),
+                 schemeNode('Dark', SEMANTIC, true));
+if (SCOPED.length) {
+  const p = document.createElement('p');
+  p.className = 'note';
+  p.style.flex = '1 1 100%';
+  p.append(document.createTextNode('Scoped, not global: '));
+  SCOPED.forEach((t, i) => {
+    if (i) p.append(document.createTextNode(' · '));
+    const c = document.createElement('code');
+    c.textContent = t;
+    p.append(c);
+  });
+  p.append(document.createTextNode(
+    ' — declared on a component rather than :root, so they have no '
+    + 'page-level value to show.'));
+  paletteEl.append(p);
+}
 
 // Which tokens the SHELL redefines over base.css. Found by this page on its
 // first render: the desktop app draws a different --bg from the one base.css
@@ -317,15 +388,11 @@ if (OVERRIDDEN.length) {
 
 const STATUS = TOKENS.filter((t) => t.startsWith('--status-'));
 const SEVERITY = TOKENS.filter((t) => t.startsWith('--severity-'));
-document.getElementById('bands').innerHTML =
-    '<div class="scheme"><h3>Status bands — categorical (light)</h3>'
-  + swatchList(STATUS, false) + '</div>'
-  + '<div class="scheme"><h3>Severity — a ramp (light)</h3>'
-  + swatchList(SEVERITY, false) + '</div>'
-  + '<div class="scheme" data-theme="dark"><h3>Status bands (dark)</h3>'
-  + swatchList(STATUS, true) + '</div>'
-  + '<div class="scheme" data-theme="dark"><h3>Severity (dark)</h3>'
-  + swatchList(SEVERITY, true) + '</div>';
+document.getElementById('bands').append(
+  schemeNode('Status bands — categorical (light)', STATUS, false),
+  schemeNode('Severity — a ramp (light)', SEVERITY, false),
+  schemeNode('Status bands (dark)', STATUS, true),
+  schemeNode('Severity (dark)', SEVERITY, true));
 
 // Band MEMBERSHIP, also read from CSS: base.css states it as
 // `.status-chip[data-status="x"] { color: var(--status-y) }`.
@@ -417,43 +484,103 @@ document.getElementById('a11y').innerHTML = [
 
 // ---- widgets --------------------------------------------------------------
 const W = document.getElementById('widgets');
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+};
 if (!shellPresent) {
-  W.innerHTML = '<div class="missing"><b>The widget gallery needs the desktop shell.</b> '
-    + 'These components are styled by <code>renderer.css</code>, which the sidecar serves '
-    + 'only when the Electron shell passes <code>--shell-assets</code>. Running standalone, '
-    + 'that route 404s. Showing unstyled markup here would read as a design regression '
-    + 'rather than a missing stylesheet, so it is stated instead.</div>';
+  const box = el('div', 'missing');
+  box.append(el('b', '', 'The widget gallery needs the desktop shell.'));
+  box.append(document.createTextNode(
+    ' These components are styled by renderer.css, which the sidecar serves only '
+    + 'when the Electron shell passes --shell-assets. Running standalone, that '
+    + 'route 404s. Showing unstyled markup here would read as a design regression '
+    + 'rather than a missing stylesheet, so it is stated instead.'));
+  W.append(box);
 } else {
-  const someStatuses = Object.entries(MEMBERS).map(([band, names]) => names.sort()[0]);
-  W.innerHTML =
-      '<table class="wid"><tr><th>Widget</th><th>Distinct without colour, because…</th></tr>'
-    + '<tr><td><div class="row">' + someStatuses.map((s) =>
-        '<span class="status-chip" data-status="' + s + '">' + s + '</span>').join('')
-    + '</div></td><td>the word itself carries the state; colour is redundant by design. '
-    + 'One status per band, taken from the CSS.</td></tr>'
-    + '<tr><td><div class="row">'
-    + ['idle', 'busy', 'needs-input', 'stalled'].map((st) =>
-        '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px">'
-      + '<span class="ws-dot state-' + st + '" style="width:9px;height:9px;border-radius:50%;'
-      + 'background:var(--text-faint);display:inline-block"></span>' + st + '</span>').join('')
-    + '</div></td><td>shape and fill, not hue alone — and each carries its word here.</td></tr>'
-    + '<tr><td><div class="row"><div class="ov-tile" style="min-width:110px">'
-    + '<div style="font-size:11px;color:var(--text-muted)">TASKS</div>'
-    + '<div style="font-size:18px">12/14</div></div></div></td>'
-    + '<td>proportion is length; the label states the fraction numerically, so the bar '
-    + 'is never the only reading.</td></tr>'
-    + '<tr><td><div class="row"><span style="font-size:12px">▸ TASK-0228</span>'
-    + '<span class="status-chip" data-status="doing">doing</span></div></td>'
-    + '<td>selected / focused / visited — the focus ring is <code>--accent-focus</code>, '
-    + 'never colour-only.</td></tr>'
-    + '<tr><td><div style="border:1px solid var(--border);border-radius:var(--radius-lg);'
-    + 'padding:10px;max-width:260px;background:var(--surface)">'
-    + '<div style="font-size:12px;font-weight:600;margin-bottom:4px">Waiting on you</div>'
-    + '<div style="font-size:12px;color:var(--text-muted)">All clear — nothing is blocked '
-    + 'on a human.</div></div></td>'
-    + '<td><b>Empty states are a component, not an absence.</b> A quiet-first surface is '
-    + 'mostly empty, so empty is the <em>common</em> case and must read as deliberate.</td></tr>'
-    + '</table>';
+  // Status names come from the CSS as well, so they are DATA too and go
+  // through textContent / setAttribute like every other value (ISS-0048).
+  const table = el('table', 'wid');
+  const head = document.createElement('tr');
+  head.append(el('th', '', 'Widget'), el('th', '', 'Distinct without colour, because…'));
+  table.append(head);
+
+  const row = (demoNode, why) => {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    td1.append(demoNode);
+    const td2 = document.createElement('td');
+    td2.append(why);
+    tr.append(td1, td2);
+    table.append(tr);
+  };
+
+  const chips = el('div', 'row');
+  for (const [band, names] of Object.entries(MEMBERS)) {
+    const status = names.slice().sort()[0];
+    const chip = el('span', 'status-chip', status);
+    chip.setAttribute('data-status', status);
+    chip.title = band;
+    chips.append(chip);
+  }
+  row(chips, document.createTextNode(
+    'the word itself carries the state; colour is redundant by design. '
+    + 'One status per band, taken from the CSS.'));
+
+  const dots = el('div', 'row');
+  for (const st of ['idle', 'busy', 'needs-input', 'stalled']) {
+    const wrap2 = el('span');
+    wrap2.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:11px';
+    const dot = el('span', 'ws-dot state-' + st);
+    dot.style.cssText = 'width:9px;height:9px;border-radius:50%;'
+      + 'background:var(--text-faint);display:inline-block';
+    wrap2.append(dot, document.createTextNode(st));
+    dots.append(wrap2);
+  }
+  row(dots, document.createTextNode(
+    'shape and fill, not hue alone — and each carries its word here.'));
+
+  const tileRow = el('div', 'row');
+  const tile = el('div', 'ov-tile');
+  tile.style.minWidth = '110px';
+  const cap = el('div', '', 'TASKS');
+  cap.style.cssText = 'font-size:11px;color:var(--text-muted)';
+  const num = el('div', '', '12/14');
+  num.style.fontSize = '18px';
+  tile.append(cap, num);
+  tileRow.append(tile);
+  row(tileRow, document.createTextNode(
+    'proportion is length; the label states the fraction numerically, so the bar '
+    + 'is never the only reading.'));
+
+  const listRow = el('div', 'row');
+  const item = el('span', '', '▸ TASK-0228');
+  item.style.fontSize = '12px';
+  const doing = el('span', 'status-chip', 'doing');
+  doing.setAttribute('data-status', 'doing');
+  listRow.append(item, doing);
+  row(listRow, document.createTextNode(
+    'selected / focused / visited — the focus ring is --accent-focus, never '
+    + 'colour-only.'));
+
+  const card = el('div');
+  card.style.cssText = 'border:1px solid var(--border);border-radius:var(--radius-lg);'
+    + 'padding:10px;max-width:260px;background:var(--surface)';
+  const cardTitle = el('div', '', 'Waiting on you');
+  cardTitle.style.cssText = 'font-size:12px;font-weight:600;margin-bottom:4px';
+  const cardBody = el('div', '', 'All clear — nothing is blocked on a human.');
+  cardBody.style.cssText = 'font-size:12px;color:var(--text-muted)';
+  card.append(cardTitle, cardBody);
+  const why = document.createDocumentFragment();
+  why.append(el('b', '', 'Empty states are a component, not an absence.'));
+  why.append(document.createTextNode(
+    ' A quiet-first surface is mostly empty, so empty is the common case and '
+    + 'must read as deliberate.'));
+  row(card, why);
+
+  W.append(table);
 }
 
 // ---- motion ---------------------------------------------------------------
