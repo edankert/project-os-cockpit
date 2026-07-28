@@ -136,3 +136,6 @@ Everything else here — spacing, type scale, icon rules — is currently **desc
 - 2026-07-28 — Read tokens declared inside @media, @supports and @layer — a one-level walk skipped them silently (ISS-0055)
 - 2026-07-28 — Scan status and severity tokens for shell overrides too — the founding drift (ISS-0023) was in exactly that family and the check had a blind spot there
 
+## Review
+
+- **(document)** · 2026-07-28 · agent:claude-opus-5 — The Icons section states its rule but cannot show the set: the glyphs live in renderer.ts as inline SVG path data, not in any stylesheet, so this page would have to restate them — the one thing it refuses to do. Recorded here rather than left as an unexplained gap on the page.
