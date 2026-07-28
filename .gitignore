@@ -37,3 +37,9 @@ ENV/
 .ruff_cache/
 htmlcov/
 .coverage
+
+# Project inbox — external material staged for triage (LIFECYCLE.md).
+# An item is either filed (and the FILED artefact is what gets committed)
+# or discarded; committing staging would preserve exactly what triage
+# exists to resolve.
+inbox/

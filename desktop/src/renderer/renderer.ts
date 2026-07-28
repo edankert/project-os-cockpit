@@ -877,6 +877,13 @@ async function navigateToInner(
   }
   // ~design — the design bench (FEAT-0042 / TASK-0215). `~design` lists the
   // register; `~design/<DES-id>` frames one artifact.
+  if (normalised === '~inbox') {
+    currentRel = normalised;
+    pushHistory(normalised, opts.replace ?? false);
+    await renderInboxPage();
+    void refreshInboxBadge();
+    return;
+  }
   if (normalised === '~design' || normalised.startsWith('~design/')) {
     const target = normalised === '~design'
       ? '' : normalised.slice('~design/'.length);
@@ -2168,7 +2175,7 @@ interface NavPayload {
 // a two-day-old decision that six modes was the ceiling (taken when Active and
 // Recent were retired for Review); reversing it deliberately is fine, drifting
 // past it would not be.
-const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
+const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'inbox', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -2362,7 +2369,7 @@ function isItemHidden(item: { status?: string }): boolean {
 // Modes whose `loadWsNav()` routes to a virtual page rather than a note.
 // Anything listed here must NOT be sent to README.md on workspace open.
 const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
-  'overview', 'review', 'design',
+  'overview', 'review', 'design', 'inbox',
 ]);
 
 const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent'];
@@ -2775,6 +2782,115 @@ async function refreshReviewBadge(): Promise<void> {
   badge.textContent = String(total);
   btn.appendChild(badge);
   btn.title = `Review — ${total} waiting on you`;
+}
+
+/** How many items are waiting in the inbox, on the Inbox mode button.
+ *
+ *  Not decoration. The inbox's success condition is being EMPTY, so the count
+ *  is the entire mechanism by which anyone notices there is triage to do — and
+ *  on this surface specifically, four separate defects this month were "a thing
+ *  existed and nothing pointed at it".
+ */
+async function refreshInboxBadge(): Promise<void> {
+  const btn = document.querySelector<HTMLButtonElement>('.top-bar-btn[data-mode="inbox"]');
+  if (!btn || !sidecarBaseUrl) return;
+  let total = 0;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/inbox`);
+    if (resp.ok) total = ((await resp.json()) as InboxPayload).items.length;
+  } catch { /* an unreachable sidecar is not an inbox problem */ }
+  btn.querySelector('.mode-badge')?.remove();
+  btn.title = total > 0
+    ? `Inbox — ${total} item${total === 1 ? '' : 's'} to triage`
+    : 'Inbox — empty';
+  if (total <= 0) return;
+  const badge = document.createElement('span');
+  badge.className = 'mode-badge';
+  badge.textContent = String(total);
+  btn.appendChild(badge);
+}
+
+interface InboxItem { name: string; bytes: number; mtime: number; suffix: string }
+interface InboxPayload { schema_version: number; items: InboxItem[] }
+
+const INBOX_PREVIEWABLE = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg']);
+
+/** The inbox surface: what is waiting, and how to get rid of it. */
+async function renderInboxPage(): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
+    'design-page', 'is-design-shell');
+  docView.classList.add('inbox-page');
+  let items: InboxItem[] = [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/inbox`);
+    if (resp.ok) items = ((await resp.json()) as InboxPayload).items;
+  } catch { /* fall through to the empty state */ }
+
+  const root = document.createElement('div');
+  const h = document.createElement('h1');
+  h.textContent = 'Inbox';
+  root.append(h);
+
+  const lede = document.createElement('p');
+  lede.className = 'meta';
+  lede.textContent = 'Drop or paste anything here — a screenshot, an export, a '
+    + 'page of notes. It is staged, not filed: an agent reads each item and '
+    + 'files it, splits it, or discards it. Nothing should stay.';
+  root.append(lede);
+
+  if (!items.length) {
+    // An empty inbox is the RESOLVED state, not a blank pane. Saying so is
+    // the difference between "nothing to do" and "something is broken".
+    const done = document.createElement('p');
+    done.className = 'inbox-empty';
+    done.textContent = 'Empty — everything has been triaged.';
+    root.append(done);
+    docView.replaceChildren(root);
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return true;
+  }
+
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'inbox-item';
+    if (INBOX_PREVIEWABLE.has(item.suffix)) {
+      const img = document.createElement('img');
+      img.className = 'inbox-thumb';
+      img.src = `${sidecarBaseUrl}/_inbox/${encodeURIComponent(item.name)}`;
+      img.alt = item.name;
+      row.append(img);
+    }
+    const meta = document.createElement('div');
+    meta.className = 'inbox-meta';
+    const name = document.createElement('code');
+    name.textContent = item.name;
+    const size = document.createElement('span');
+    size.className = 'meta';
+    size.textContent = `${Math.max(1, Math.round(item.bytes / 1024))} KB · inbox/${item.name}`;
+    meta.append(name, size);
+    row.append(meta);
+
+    const discard = document.createElement('button');
+    discard.type = 'button';
+    discard.className = 'review-btn is-bad';
+    discard.textContent = 'Discard';
+    discard.addEventListener('click', () => {
+      void (async () => {
+        await postJson('/api/inbox/discard', { name: item.name });
+        showStatus(`Discarded ${item.name}.`, 'info');
+        void refreshInboxBadge();
+        void renderInboxPage();
+      })();
+    });
+    row.append(discard);
+    root.append(row);
+  }
+  docView.replaceChildren(root);
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
 }
 
 interface DesignRecord {
@@ -5721,6 +5837,11 @@ function initNavToolbar(): void {
     // rules, not decoration.
     design:   '<circle cx="12" cy="5" r="2"/><path d="M12 7v3"/>'
       + '<path d="m10.5 10-5 10"/><path d="m13.5 10 5 10"/>',
+    // Inbox: a tray. The one place things arrive before anyone has decided
+    // what they are.
+    inbox:    '<path d="M22 12h-6l-2 3h-4l-2-3H2"/>'
+      + '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89'
+      + 'A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
     library:  TYPE_ICONS.reference,
     recent:   GROUP_ICONS.history,
   };
@@ -5894,6 +6015,11 @@ async function loadWsNav(): Promise<void> {
     const target = currentRel && currentRel.startsWith('~review')
       ? currentRel : '~review';
     void navigateTo(target, { replace: currentRel === target });
+    return;
+  }
+  if (currentNavMode === 'inbox') {
+    // Same virtual-page treatment as overview/review/design.
+    void navigateTo('~inbox', { replace: currentRel === '~inbox' });
     return;
   }
   if (currentNavMode === 'design') {
@@ -6888,6 +7014,55 @@ document.addEventListener('dragleave', () => {
   }
 });
 
+// Paste an image straight from the clipboard (FEAT-0045). `⌘⇧⌃ 4` puts a
+// screenshot on the macOS clipboard, so this needs NO file on disk — strictly
+// fewer steps than saving and dragging, which is the point of the feature.
+// Same destination and same code path as drop, so neither becomes the good one
+// and the other a trap.
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of Array.from(items)) {
+    if (item.kind !== 'file') continue;
+    const file = item.getAsFile();
+    if (!file) continue;
+    e.preventDefault();
+    void storeInInbox(file);
+    return;
+  }
+});
+
+/** Store a dropped or pasted file in the active project's inbox. */
+async function storeInInbox(file: File): Promise<void> {
+  if (!sidecarBaseUrl) {
+    showStatus('Open a workspace first — an inbox belongs to a project.', 'error');
+    return;
+  }
+  try {
+    const buf = await file.arrayBuffer();
+    // Chunked rather than String.fromCharCode(...bytes): a screenshot is ~1MB
+    // and spreading a million arguments overflows the call stack.
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    // A pasted screenshot often has no name at all.
+    const name = file.name || `pasted.${(file.type.split('/')[1] || 'png')}`;
+    const res = (await postJson('/api/inbox/store',
+      { name, data: btoa(binary) })) as
+        { ok?: boolean; name?: string; error?: string };
+    if (res.ok === false) {
+      showStatus(`Not stored: ${res.error}`, 'error');
+      return;
+    }
+    showStatus(`Stored in the inbox: ${res.name}`, 'info');
+    void refreshInboxBadge();
+  } catch (err) {
+    showStatus(`Not stored: ${String(err)}`, 'error');
+  }
+}
+
 document.addEventListener('dragover', (e) => {
   // Required to let the browser fire `drop`.
   if (e.dataTransfer?.items && Array.from(e.dataTransfer.items).some((i) => i.kind === 'file')) {
@@ -6922,8 +7097,10 @@ document.addEventListener('drop', async (e) => {
     }
     case 'ignored':
     default: {
-      showStatus(`Not a project-os note (${result.reason ?? 'unknown'}).`, 'error');
-      scheduleHide(2500);
+      // Not a note — so it is external material, which is exactly what the
+      // inbox is for (FEAT-0045). Refusing it was the old behaviour and it
+      // threw away the easiest way to hand the project a screenshot.
+      void storeInInbox(file);
       break;
     }
   }

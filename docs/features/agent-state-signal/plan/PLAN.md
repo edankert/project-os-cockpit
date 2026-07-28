@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: Agent state signal"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-07-28
 implements: ["[[FEAT-0013-Agent-State-Signal]]"]
 related: ["[[FEAT-0010-Native-Nav-Right-Pane]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 ---

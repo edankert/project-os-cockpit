@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Overview rework — delivery plan"
-status: draft
+status: done
 owner: user:edwin
 created: 2026-07-26
-updated: 2026-07-26
+updated: 2026-07-28
 source: ["https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be"]
 implements: ["[[FEAT-0040-Overview-Rework]]"]
 related: ["[[FEAT-0041-Review-Desk]]"]

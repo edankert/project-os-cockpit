@@ -3667,6 +3667,23 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   background: var(--surface); color: var(--text);
 }
 
+/* Inbox (FEAT-0045). An empty inbox is the RESOLVED state and reads as one. */
+.doc-view.inbox-page { padding: 24px 30px; }
+.inbox-empty {
+  font-size: 13px; color: var(--status-done); margin: 14px 0;
+}
+.inbox-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.inbox-thumb {
+  width: 132px; height: 84px; object-fit: cover; flex: 0 0 auto;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+}
+.inbox-meta { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.inbox-meta code { font-size: 12px; }
+
 .design-ask-review {
   position: absolute; top: 0; right: 118px;
   background: none; border: 1px solid var(--accent-link); cursor: pointer;

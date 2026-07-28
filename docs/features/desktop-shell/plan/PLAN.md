@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: Electron desktop shell with Python sidecar"
-status: draft
+status: done
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-28
 implements: ["[[FEAT-0007-Desktop-Shell]]"]
 related: ["[[ADR-0005-Electron-Plus-Python-Sidecar]]", "[[PHASE-005-Desktop-Shell]]"]
 ---

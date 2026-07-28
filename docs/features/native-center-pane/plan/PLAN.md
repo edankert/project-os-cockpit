@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: Native centre pane + routing"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-07-28
 implements: ["[[FEAT-0011-Native-Center-Pane]]"]
 related: ["[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0009-Native-Shell-Layout]]", "[[FEAT-0010-Native-Nav-Right-Pane]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 ---

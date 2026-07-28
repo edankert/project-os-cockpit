@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: Cockpit API hardening (Python side) for the native renderer"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-07-28
 implements: ["[[FEAT-0008-Cockpit-API-Hardening]]"]
 related: ["[[PHASE-006-Native-Cockpit-UI]]", "[[FEAT-0011-Native-Center-Pane]]"]
 ---

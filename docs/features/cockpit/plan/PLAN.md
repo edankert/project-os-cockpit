@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: 3-pane cockpit layout (code-driven)"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-08
+updated: 2026-07-28
 implements: ["[[FEAT-0006]]"]
 related: ["[[ADR-0004]]", "[[REQ-0013]]"]
 ---

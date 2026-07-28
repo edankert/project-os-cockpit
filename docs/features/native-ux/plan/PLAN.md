@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan: Native UX wins"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-07-28
 implements: ["[[FEAT-0012-Native-UX]]"]
 related: ["[[FEAT-0013-Agent-State-Signal]]", "[[FEAT-0010-Native-Nav-Right-Pane]]", "[[FEAT-0011-Native-Center-Pane]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 ---
