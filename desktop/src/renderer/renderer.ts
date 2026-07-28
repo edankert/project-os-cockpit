@@ -3010,6 +3010,89 @@ function buildDesignNoteBanner(rel: string): HTMLElement | null {
   return bar;
 }
 
+interface BriefPayload {
+  state: 'absent' | 'unfilled' | 'filled';
+  name: string; purpose: string; placeholders: number; rel: string;
+  sections: Array<{ heading: string; body: string }>;
+}
+let briefCache: BriefPayload | null = null;
+
+async function fetchBrief(): Promise<BriefPayload | null> {
+  if (!sidecarBaseUrl) return null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/brief`);
+    if (!resp.ok) return null;
+    briefCache = await resp.json() as BriefPayload;
+  } catch { /* keep the last good brief */ }
+  return briefCache;
+}
+
+/** The identity band: what this is, who for, its shape.
+ *
+ *  Three states are rendered differently on purpose. `unfilled` shows a
+ *  prompt and NEVER the placeholder text — a surface leading with
+ *  "Purpose: REPLACE ME" every session is worse than one that says the brief
+ *  needs writing. `absent` degrades quietly: not every project adopts the
+ *  convention, and nagging one that never did is noise.
+ */
+function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
+  if (!brief || brief.state === 'absent') return null;
+
+  const band = document.createElement('section');
+  band.className = 'design-identity';
+
+  if (brief.state === 'unfilled') {
+    band.classList.add('is-unfilled');
+    const h = document.createElement('h1');
+    h.textContent = 'This project has not said what it is';
+    const p = document.createElement('p');
+    p.textContent = `LLM_BRIEF.md carries ${brief.placeholders} template `
+      + 'placeholder(s). It is what an agent reads to learn what this project '
+      + 'is for — an unfilled one teaches it nothing.';
+    const a = document.createElement('a');
+    a.className = 'design-identity-edit';
+    a.href = '#';
+    a.textContent = 'Open LLM_BRIEF.md';
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      void navigateTo(brief.rel);
+    });
+    band.append(h, p, a);
+    return band;
+  }
+
+  const h = document.createElement('h1');
+  h.textContent = brief.name || 'This project';
+  band.append(h);
+  if (brief.purpose) {
+    const p = document.createElement('p');
+    p.className = 'design-identity-purpose';
+    p.textContent = brief.purpose;
+    band.append(p);
+  }
+  // "What it is for" is the section worth surfacing inline — it answers the
+  // question the band exists to answer. The rest stay one click away rather
+  // than turning the band into the whole file.
+  const forSection = brief.sections.find(
+    (s) => /what it is for/i.test(s.heading));
+  if (forSection) {
+    const det = document.createElement('div');
+    det.className = 'design-identity-for';
+    det.textContent = forSection.body;
+    band.append(det);
+  }
+  const a = document.createElement('a');
+  a.className = 'design-identity-edit';
+  a.href = '#';
+  a.textContent = 'Read the full brief';
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    void navigateTo(brief.rel);
+  });
+  band.append(a);
+  return band;
+}
+
 async function renderDesignPage(target: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const designs = await fetchDesignRegister();
@@ -3018,7 +3101,13 @@ async function renderDesignPage(target: string): Promise<boolean> {
   rightPaneContent.replaceChildren();
 
   if (!target) {
-    docView.replaceChildren(buildDesignRegisterList(designs));
+    // Identity first: what this is, before what it should look like.
+    const brief = await fetchBrief();
+    const parts: HTMLElement[] = [];
+    const band = buildIdentityBand(brief);
+    if (band) parts.push(band);
+    parts.push(buildDesignRegisterList(designs));
+    docView.replaceChildren(...parts);
     docView.hidden = false;
     placeholder.hidden = true;
     return true;

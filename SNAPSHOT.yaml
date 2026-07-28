@@ -41,11 +41,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0222"
+  task: "TASK-0223"
   feature: "FEAT-0043"
   phase: "PHASE-009"
   issue: ""
-  note: "2026-07-28 FEAT-0043 — design as a top-level surface opening with the brief. Fill and guard the brief FIRST: a view over a REPLACE ME file is worse than no view."
+  note: "2026-07-28 FEAT-0043. Brief filled and guarded (0222). Now the payload + identity band: three states (absent/unfilled/filled), tolerant parsing, never render the placeholder."
 
 items:
   features:
@@ -303,7 +303,7 @@ items:
     TASK-0223:
       file: "docs/features/design-surface/plan/tasks/TASK-0223-Brief-Payload-And-Identity-Band.md"
       title: "Brief payload and the identity band"
-      status: backlog
+      status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0043
     TASK-0224:
@@ -2497,7 +2497,7 @@ metrics:
     features_total: 43
     features_done: 36
     tasks_total: 225
-    tasks_done: 218
+    tasks_done: 219
     tests_total: 21
     tests_passing: 21
     test_cases_total: 182

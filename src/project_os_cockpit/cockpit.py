@@ -502,6 +502,73 @@ def _design_link_ids(value: Any) -> list[str]:
     return out
 
 
+_BRIEF_PLACEHOLDER_RE = re.compile(r"REPLACE[ _-]?ME", re.IGNORECASE)
+_BRIEF_H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+_BRIEF_FIELD_RE = re.compile(r"^-\s*([A-Za-z][A-Za-z ]*?):\s*(.+?)\s*$", re.MULTILINE)
+
+
+def brief_payload(project_root: Path) -> dict:
+    """``LLM_BRIEF.md`` as the identity band consumes it (TASK-0223).
+
+    **Three states, not two.** "No brief" and "a brief that says REPLACE ME"
+    call for different things: one is a project that never adopted the
+    convention, the other is a project that adopted it and stopped. Collapsing
+    them would hide the second, which is the one worth acting on — measured at
+    10 of 11 fleet repos on 2026-07-28.
+
+    Parsing is **tolerant by design**. The brief is prose a human edits, not a
+    data file: a missing section, a reordered one, an added heading are all
+    normal, and none may break the surface. Read what is recognised, ignore
+    the rest, and never fail closed on a file whose whole purpose is being
+    hand-written.
+
+    The placeholder text is deliberately **not** returned. A surface that
+    renders "Purpose: REPLACE ME" as the first thing an agent reads every
+    session is worse than one that says the brief needs filling in.
+    """
+    path = project_root / "LLM_BRIEF.md"
+    empty = {
+        "schema_version": SCHEMA_VERSION,
+        "state": "absent",
+        "name": "", "purpose": "", "sections": [], "placeholders": 0,
+        "rel": "LLM_BRIEF.md",
+    }
+    if not path.is_file():
+        return empty
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return empty
+
+    placeholders = len(_BRIEF_PLACEHOLDER_RE.findall(text))
+    fields = {k.strip().lower(): v.strip() for k, v in _BRIEF_FIELD_RE.findall(text)}
+    name = fields.get("name", "")
+    purpose = fields.get("purpose", "")
+    # A placeholder value is not an answer. Blank it rather than pass it on.
+    if _BRIEF_PLACEHOLDER_RE.search(name):
+        name = ""
+    if _BRIEF_PLACEHOLDER_RE.search(purpose):
+        purpose = ""
+
+    sections = []
+    heads = list(_BRIEF_H2_RE.finditer(text))
+    for i, m in enumerate(heads):
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
+        body = text[m.end():end].strip()
+        if body:
+            sections.append({"heading": m.group(1), "body": body})
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "state": "unfilled" if placeholders else "filled",
+        "name": name,
+        "purpose": purpose,
+        "sections": sections,
+        "placeholders": placeholders,
+        "rel": "LLM_BRIEF.md",
+    }
+
+
 def designs_payload(index: Index) -> dict:
     """The design register (FEAT-0042 / TASK-0214).
 

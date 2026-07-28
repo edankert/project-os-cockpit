@@ -776,3 +776,80 @@ def test_a_virtual_page_url_survives_extractRel() -> None:
         "extractRel drops virtual pages; a Library row that points at one is "
         "a dead click"
     )
+
+
+# ---- the project brief (TASK-0223) ---------------------------------------
+
+def _brief(tmp_path: Path, text: str | None) -> dict:
+    if text is not None:
+        (tmp_path / "LLM_BRIEF.md").write_text(text, encoding="utf-8")
+    return cockpit.brief_payload(tmp_path)
+
+
+def test_three_states_not_two(tmp_path: Path) -> None:
+    """'No brief' and 'a brief that says REPLACE ME' call for different
+    things: one project never adopted the convention, the other adopted it and
+    stopped. Collapsing them hides the second — which is the one worth acting
+    on, and was 10 of 11 fleet repos."""
+    assert _brief(tmp_path, None)["state"] == "absent"
+    assert _brief(tmp_path, "# B\n- Name: REPLACE ME\n")["state"] == "unfilled"
+    assert _brief(tmp_path, "# B\n- Name: thing\n- Purpose: does a thing\n")["state"] == "filled"
+
+
+def test_placeholder_text_is_never_returned(tmp_path: Path) -> None:
+    """A surface leading with 'Purpose: REPLACE ME' every session is worse
+    than one that says the brief needs writing."""
+    b = _brief(tmp_path, "# B\n- Name: REPLACE ME\n- Purpose: REPLACE ME\n")
+    assert b["name"] == "" and b["purpose"] == ""
+    assert b["placeholders"] == 2
+
+
+def test_a_partially_filled_brief_keeps_what_is_real(tmp_path: Path) -> None:
+    """Half-done is the common state of a file being written."""
+    b = _brief(tmp_path, "# B\n- Name: the thing\n- Purpose: REPLACE ME\n")
+    assert b["name"] == "the thing"
+    assert b["purpose"] == ""
+    assert b["state"] == "unfilled"
+
+
+def test_parsing_is_tolerant_of_a_hand_edited_file(tmp_path: Path) -> None:
+    """The brief is prose a human edits. A reordered section, an unknown
+    heading, or a missing one are all normal and none may break the surface."""
+    b = _brief(tmp_path, "# B\n\n## Something Nobody Planned\nfree text\n\n"
+                         "## Project Identity\n- Purpose: backwards order\n")
+    assert b["state"] == "filled"
+    assert b["purpose"] == "backwards order"
+    assert [s["heading"] for s in b["sections"]] == [
+        "Something Nobody Planned", "Project Identity"]
+
+
+def test_an_empty_section_is_dropped(tmp_path: Path) -> None:
+    b = _brief(tmp_path, "# B\n\n## Filled\ncontent\n\n## Empty\n\n## Also Filled\nx\n")
+    assert [s["heading"] for s in b["sections"]] == ["Filled", "Also Filled"]
+
+
+def test_the_real_brief_is_filled_and_parses() -> None:
+    """Against this repo, not a fixture. It said REPLACE ME until 2026-07-28."""
+    root = Path(__file__).resolve().parents[1]
+    b = cockpit.brief_payload(root)
+    assert b["state"] == "filled", "this repo's brief regressed to a placeholder"
+    assert b["name"] == "project-os-cockpit"
+    assert "cockpit" in b["purpose"].lower()
+    assert any(s["heading"] == "Invariants" for s in b["sections"])
+
+
+def test_the_band_never_renders_the_placeholder() -> None:
+    src = _renderer()
+    band = src.split("function buildIdentityBand(")[1].split("\nasync function")[0]
+    assert "has not said what it is" in band
+    assert "brief.purpose" in band
+    # The unfilled branch must return before touching name/purpose.
+    unfilled = band.split("if (brief.state === 'unfilled')")[1].split("return band;")[0]
+    assert "brief.name" not in unfilled and "brief.purpose" not in unfilled
+
+
+def test_an_absent_brief_degrades_silently() -> None:
+    """Not every project adopts the convention; nagging one that never did is
+    noise rather than a finding."""
+    src = _renderer()
+    assert "brief.state === 'absent') return null" in src

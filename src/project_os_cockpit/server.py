@@ -773,6 +773,10 @@ def _make_handler(
                 self._serve_cockpit_agents()
                 return
 
+            if path == "/api/cockpit/brief":
+                self._respond_json(cockpit.brief_payload(docs_root.parent))
+                return
+
             if path == "/api/cockpit/designs":
                 self._serve_cockpit_designs()
                 return
