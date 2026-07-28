@@ -3862,34 +3862,92 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
 
 /** A design offered for review, judged through the design verdict path.
  *
- *  Three differences from a proposal set, all of them load-bearing:
- *  the verdict names the revision it judged; rejecting a design records a
- *  rejection without cancelling a design that was already built; and the
- *  reviewer is told when the artifact has moved since they were asked.
+ *  Follows the shape every other review entry already has, rather than
+ *  inventing one beside it: `buildReviewHeader` with the actions **in the
+ *  header**, a `.review-comment` box for the note back, and the content
+ *  itself on the page. Three separate corrections got it here, and the first
+ *  two were both mistakes this file had already made and written down —
+ *  `buildSingleNoteReview` carries the comment "the first cut rendered a
+ *  header, buttons and nothing else — asking for approval of content it never
+ *  showed (reported 2026-07-26)", which is precisely what my first cut did.
  *
- *  And it SHOWS THE DESIGN. Edwin, on the first cut: "it is unclear what I
- *  accept since the document does not show its content." Accepting a revision
- *  you cannot see is the exact failure this whole surface exists to prevent —
- *  so the artifact is embedded here, rendered AT THE REVIEWED REVISION rather
- *  than from the working copy, which is the same distinction `design_revision`
- *  draws on the verdict itself.
+ *  What is genuinely different: the verdict names the revision it judged, the
+ *  frame renders THAT revision rather than the working copy, and rejecting
+ *  goes through the design endpoint so a built design is not cancelled by a
+ *  status posted from the client.
  */
 function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
   const request = detail.request as ReviewQueueItem;
   const wrap = document.createElement('div');
   wrap.className = 'review-body design-review';
 
-  const note: { id: string; title?: string; rel?: string } =
+  const note: { id: string; title?: string; rel?: string; status?: string } =
     (detail.items && detail.items[0]) || { id: request.subject || '' };
-  const h = document.createElement('h2');
-  h.textContent = note.title ? `${note.id} — ${note.title}` : String(note.id);
-  wrap.append(h);
+  const comment = document.createElement('textarea');
+  comment.className = 'review-comment';
+  comment.rows = 2;
+  comment.placeholder =
+    'Optional note for the record — sent with Request changes, recorded with Accept.';
 
-  const meta = document.createElement('p');
-  meta.className = 'review-blurb';
-  meta.textContent = `Reviewing revision ${detail.at_revision || '(none)'}`
-    + ' — the frame below is that revision, not the working copy.';
-  wrap.append(meta);
+  const act = async (
+    verdict: string, accept: boolean | null, outcome: string | null, said: string,
+  ) => {
+    try {
+      const res = await postJson('/api/design/verdict', {
+        id: note.id, reviewer: 'user:edwin', verdict,
+        revision: detail.at_revision, accept,
+      });
+      if (res && (res as { ok?: boolean }).ok === false) {
+        showStatus(`Could not record: ${(res as { error?: string }).error}`, 'error');
+        return;
+      }
+      // `outcome: null` = Request changes, which leaves the request open,
+      // exactly as the proposal path does.
+      if (outcome && request.request_id) {
+        await postJson('/api/cockpit/review-resolve', {
+          request_id: request.request_id, outcome, note: comment.value,
+        });
+      }
+      showStatus(said, 'info');
+      void navigateTo('~review');
+    } catch (err) {
+      showStatus(`Could not record: ${String(err)}`, 'error');
+    }
+  };
+
+  const actions = document.createElement('div');
+  actions.className = 'review-actions';
+  const btn = (label: string, cls: string, run: () => void) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.addEventListener('click', run);
+    actions.append(b);
+    return b;
+  };
+  btn('Accept this revision', 'review-btn is-good', () => {
+    void act('accepted', true, 'accepted',
+             `${note.id} accepted at ${detail.at_revision}.`);
+  });
+  btn('Request changes', 'review-btn is-primary', () => {
+    void act('changes-requested', null, null,
+             `Changes requested on ${note.id}; it stays in the queue.`);
+  });
+  btn('Reject', 'review-btn is-bad', () => {
+    void act('rejected', false, 'rejected',
+             `${note.id} rejected at ${detail.at_revision}.`);
+  });
+
+  const provenance = [
+    `revision ${detail.at_revision || '(none)'}`,
+    request.ts ? `${relativeAge(request.ts)} ago` : '',
+    'offered for review from the design surface',
+  ].filter(Boolean).join(' · ');
+  wrap.appendChild(buildReviewHeader(
+    'review', note.title ? `${note.id} — ${note.title}` : String(note.id),
+    note.status, actions, provenance,
+  ));
 
   if (detail.revision_moved) {
     const warn = document.createElement('p');
@@ -3906,9 +3964,7 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
     wrap.append(dirty);
   }
 
-  // The artifact itself, at the reviewed revision. Appended asynchronously
-  // because the register is fetched; the placeholder says why it is empty
-  // rather than leaving a blank box.
+  // The artifact, at the revision under review — not the working copy.
   const stage = document.createElement('div');
   stage.className = 'review-design-stage';
   const pending = document.createElement('p');
@@ -3930,72 +3986,16 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
     stage.replaceChildren(buildDesignFrame(d, detail.at_revision || undefined));
   })();
 
-  const open = document.createElement('button');
-  open.type = 'button';
-  open.className = 'review-btn';
-  open.textContent = 'Open in the design surface';
-  open.addEventListener('click', () => { void navigateTo(`~design/${note.id}`); });
-  wrap.append(open);
+  // The note's prose as well: the artifact is what it looks like, the note is
+  // why. `buildSingleNoteReview` mounts the body inline for the same reason.
+  if (note.rel) {
+    const body = document.createElement('section');
+    body.className = 'review-note';
+    wrap.appendChild(body);
+    void fillReviewNoteBody(body, note.rel);
+  }
 
-  const comment = document.createElement('textarea');
-  comment.className = 'review-note';
-  comment.placeholder = 'Optional note for the record…';
   wrap.append(comment);
-
-  const actions = document.createElement('div');
-  actions.className = 'review-actions';
-  const act = async (
-    verdict: string, accept: boolean | null, outcome: string, said: string,
-  ) => {
-    try {
-      const res = await postJson('/api/design/verdict', {
-        id: note.id, reviewer: 'user:edwin', verdict,
-        revision: detail.at_revision, accept,
-      });
-      if (res && (res as { ok?: boolean }).ok === false) {
-        showStatus(`Could not record: ${(res as { error?: string }).error}`, 'error');
-        return;
-      }
-      if (request.request_id) {
-        await postJson('/api/cockpit/review-resolve', {
-          request_id: request.request_id, outcome, note: comment.value,
-        });
-      }
-      showStatus(said, 'info');
-      void navigateTo('~review');
-    } catch (err) {
-      showStatus(`Could not record: ${String(err)}`, 'error');
-    }
-  };
-  const btn = (label: string, cls: string, run: () => void) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = cls;
-    b.textContent = label;
-    b.addEventListener('click', run);
-    actions.append(b);
-  };
-  btn('Accept this revision', 'review-btn is-good', () => {
-    void act('accepted', true, 'accepted', `${note.id} accepted at ${detail.at_revision}.`);
-  });
-  btn('Request changes', 'review-btn is-primary', () => {
-    void (async () => {
-      try {
-        await postJson('/api/design/verdict', {
-          id: note.id, reviewer: 'user:edwin',
-          verdict: 'changes-requested', revision: detail.at_revision, accept: null,
-        });
-        showStatus(`Changes requested on ${note.id}; it stays in the queue.`, 'info');
-        void navigateTo('~review');
-      } catch (err) {
-        showStatus(`Could not record: ${String(err)}`, 'error');
-      }
-    })();
-  });
-  btn('Reject', 'review-btn is-bad', () => {
-    void act('rejected', false, 'rejected', `${note.id} rejected at ${detail.at_revision}.`);
-  });
-  wrap.append(actions);
   return wrap;
 }
 

@@ -2515,14 +2515,61 @@ def test_the_review_shows_the_revision_being_judged() -> None:
     assert "declares no artifact" in view
 
 
-def test_the_design_review_uses_the_same_controls_as_every_other_review() -> None:
-    """Edwin: "Looks different to usual other options." The first cut invented
-    `review-accept`/`review-changes`/`review-reject` beside a codebase that
-    already had one button vocabulary."""
+def test_the_design_review_follows_the_established_review_shape() -> None:
+    """Edwin, across three corrections: "Looks different to usual other
+    options", "the buttons ... are usually shown at the top", "the buttons and
+    note doesn't look great".
+
+    All three were the same mistake — building a review screen beside a
+    convention that already existed rather than using it. The shape is
+    `buildReviewHeader` with the actions IN the header, `.review-comment` for
+    the note back, and `.review-note` reserved for rendered note content
+    (putting a textarea in it is why it looked wrong).
+    """
     src = _renderer()
     view = _code_only(
         src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "buildReviewHeader(" in view, "the design review builds its own header"
+    assert "note.status, actions, provenance" in view, (
+        "the actions are not passed into the header, so they render below the "
+        "content instead of at the top"
+    )
     for cls in ("review-btn is-good", "review-btn is-primary", "review-btn is-bad"):
         assert cls in view, cls
+    assert "comment.className = 'review-comment';" in view
+    assert "comment.className = 'review-note'" not in view, (
+        "`review-note` is the rendered-note container, not a textarea"
+    )
     assert "'review-accept'" not in view and "'review-reject'" not in view
-    assert "wrap.className = 'review-body design-review';" in view
+
+
+def test_the_design_review_shows_both_the_artifact_and_the_prose() -> None:
+    """`buildSingleNoteReview` carries the comment "the first cut rendered a
+    header, buttons and nothing else — asking for approval of content it never
+    showed (reported 2026-07-26)". The design review reproduced that defect two
+    days later, so it now mounts both: the artifact for what it looks like, and
+    the note body for why."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "buildDesignFrame(d, detail.at_revision" in view, (
+        "the review renders the working copy, not the revision under review"
+    )
+    assert "fillReviewNoteBody(body, note.rel)" in view, (
+        "the note's prose is not shown; the artifact says what it looks like, "
+        "the note says why"
+    )
+    assert "no longer in the design register" in view
+    assert "declares no artifact" in view
+
+
+def test_request_changes_leaves_a_design_in_the_queue() -> None:
+    """The proposal path leaves the request open on Request changes. The design
+    path must match, or a reviewer who asks for changes loses the row."""
+    src = _renderer()
+    view = _code_only(
+        src.split("function buildDesignReviewView(")[1].split("\n/** A request whose")[0])
+    assert "'changes-requested', null, null," in view, (
+        "Request changes resolves the ledger entry; it must leave it open"
+    )
+    assert "if (outcome && request.request_id)" in view
