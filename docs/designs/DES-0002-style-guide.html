@@ -24,7 +24,7 @@
      which the Widgets section reports rather than rendering unstyled markup
      that would read as a design regression. -->
 <link rel="stylesheet" href="/_shell/renderer.css" id="shell-css" />
-<style>
+<style id="own-styles">
   /* Undo the APPLICATION SHELL rules that come with borrowing the app's
      stylesheets. base.css sets `body { height: 100dvh; display: flex;
      overflow: hidden }` and renderer.css adds `body { display: block;
@@ -169,7 +169,12 @@ async function reinjectBlocked(blocked) {
       const el = document.createElement('style');
       el.setAttribute('data-reinjected-from', href);
       el.textContent = text;
-      document.head.appendChild(el);
+      // BEFORE this page's own <style>, never after (ISS-0047). Appending put
+      // the app's `body { overflow: hidden }` after the reset that exists to
+      // undo it, so the reset lost on source order and the page could not
+      // scroll — the exact bug ISS-0046 had already fixed, reintroduced by
+      // the fix for ISS-0043. Author styles come last; borrowed ones first.
+      document.head.insertBefore(el, document.getElementById('own-styles'));
     } catch (err) {
       failed.push(href);
     }

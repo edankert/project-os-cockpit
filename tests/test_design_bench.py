@@ -1914,7 +1914,7 @@ def test_an_artifact_resets_the_shell_body_it_inherits() -> None:
     first artifact to link them rendered fully and could not be scrolled a
     pixel: 4792px of content clipped to a 963px viewport (ISS-0046)."""
     guide = _style_guide()
-    style = guide.split("<style>", 1)[1].split("</style>", 1)[0]
+    style = guide.split('<style id="own-styles">', 1)[1].split("</style>", 1)[0]
     # Strip CSS comments first: the block above this rule QUOTES base.css's
     # `overflow: hidden`, and matching one's own explanatory prose instead of
     # the code is a mistake this suite has already made once.
@@ -1940,3 +1940,20 @@ def test_the_authoring_contract_carries_the_rule() -> None:
                 / "TASK-0221-Design-Authoring-Contract.md").read_text(encoding="utf-8")
     assert "inheriting the application's shell" in contract
     assert "overflow: visible" in contract
+
+
+def test_reinjected_sheets_go_before_the_artifacts_own_styles() -> None:
+    """ISS-0043's repair appended the fetched app stylesheets to <head>, which
+    put `body { overflow: hidden }` AFTER the reset ISS-0046 added to undo it.
+    The reset lost on source order and the page could not scroll — two correct
+    fixes cancelling out. Borrowed styles first, author styles last."""
+    guide = _style_guide()
+    assert 'id="own-styles"' in guide, (
+        "the page's own <style> is unmarked, so re-injection cannot position "
+        "itself relative to it"
+    )
+    assert "document.head.insertBefore(el, document.getElementById('own-styles'));" in guide
+    assert "document.head.appendChild(el)" not in guide, (
+        "re-injection appends again; the app's shell rules will outrank the "
+        "artifact's reset"
+    )
