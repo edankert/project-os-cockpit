@@ -115,6 +115,10 @@ interface CockpitApi {
     onMenuDispatch: (
       cb: (ev: { action: string } & Record<string, unknown>) => void,
     ) => () => void;
+    pathForFile: (file: File) => string;
+    captureScreenshot: (workspaceId: string) => Promise<{
+      ok: boolean; name?: string; cancelled?: boolean; error?: string;
+    }>;
     resolveDroppedFile: (absPath: string) => Promise<{
       action: 'navigate' | 'offer-add-workspace' | 'ignored';
       workspaceId?: string;
@@ -2831,6 +2835,33 @@ async function renderInboxPage(): Promise<boolean> {
   const h = document.createElement('h1');
   h.textContent = 'Inbox';
   root.append(h);
+
+  const shoot = document.createElement('button');
+  shoot.type = 'button';
+  shoot.className = 'review-btn is-primary';
+  shoot.textContent = 'Take a screenshot';
+  shoot.addEventListener('click', () => {
+    void (async () => {
+      if (!activeId) return;
+      shoot.disabled = true;
+      // The window would otherwise sit in its own screenshot.
+      shoot.textContent = 'Select an area…';
+      try {
+        const res = await cockpitApi.app.captureScreenshot(activeId);
+        if (res.cancelled) showStatus('Screenshot cancelled.', 'info');
+        else if (!res.ok) showStatus(`Screenshot failed: ${res.error}`, 'error');
+        else {
+          showStatus(`Captured ${res.name}`, 'info');
+          void refreshInboxBadge();
+          void renderInboxPage();
+        }
+      } finally {
+        shoot.disabled = false;
+        shoot.textContent = 'Take a screenshot';
+      }
+    })();
+  });
+  root.append(shoot);
 
   const lede = document.createElement('p');
   lede.className = 'meta';
@@ -7077,10 +7108,22 @@ document.addEventListener('drop', async (e) => {
   if (!e.dataTransfer || e.dataTransfer.files.length === 0) return;
   e.preventDefault();
   const file = e.dataTransfer.files[0];
-  // Electron exposes the absolute path on File objects in the
-  // renderer; `path` is a non-standard property added by Electron.
-  const absPath = (file as File & { path?: string }).path;
-  if (!absPath) return;
+  // Electron 32 REMOVED `File.path`. This used to read it and return early
+  // when it was undefined — so after that upgrade, dropping a note silently
+  // stopped navigating and dropping a screenshot did nothing at all, with no
+  // error anywhere. `webUtils.getPathForFile` is the replacement and lives in
+  // the preload, because it is not exposed to the renderer.
+  //
+  // And the path is now OPTIONAL: filing into the inbox needs the file's
+  // bytes, not its location, so a drag from an app that supplies no path
+  // still works. Requiring a path to do something that never needed one is
+  // what made this fail closed and silent.
+  const absPath = cockpitApi.app.pathForFile(file)
+    || (file as File & { path?: string }).path || '';
+  if (!absPath) {
+    void storeInInbox(file);
+    return;
+  }
   const result = await cockpitApi.app.resolveDroppedFile(absPath);
   switch (result.action) {
     case 'navigate': {

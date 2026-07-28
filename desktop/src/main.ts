@@ -8,6 +8,8 @@
 //            links, and window-state persistence.
 
 import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell } from 'electron';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import { registerWorkspaceIpc, getAllWorkspaces } from './ipc/workspaces';
@@ -419,6 +421,61 @@ app.whenReady().then(() => {
     if (typeof abs !== 'string' || !abs) return { ok: false, error: 'path required' };
     shell.showItemInFolder(abs);
     return { ok: true };
+  });
+
+  // Take a screenshot straight into the active project's inbox (FEAT-0045).
+  //
+  // `screencapture -i` is the same interactive selection ⌘⇧4 gives, so the
+  // muscle memory is unchanged — but the file lands in the project instead of
+  // on the Desktop, which is the whole point: the step this removes is not the
+  // capture, it is the filing afterwards.
+  //
+  // Writing straight to the destination rather than via the clipboard means
+  // there is no intermediate state to lose, and no dependency on the user
+  // remembering which of the four capture shortcuts copies rather than saves.
+  ipcMain.handle('app:capture-screenshot', async (_evt, ...args: unknown[]) => {
+    const ws = getAllWorkspaces().find((w) => w.id === (args[0] as string));
+    if (!ws) return { ok: false, error: 'no active workspace' };
+    const dir = path.join(ws.root, 'inbox');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const target = path.join(dir, `${stamp}-screenshot.png`);
+    try {
+      await fs.mkdir(dir, { recursive: true });
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+    return await new Promise((resolve) => {
+      // -i interactive, -o no window shadow. No -c: straight to the file, so
+      // there is no intermediate clipboard state to lose.
+      const child = spawn('screencapture', ['-i', '-o', target]);
+      let stderr = '';
+      child.stderr?.on('data', (d) => { stderr += String(d); });
+      child.on('error', (err) => resolve({ ok: false, error: String(err) }));
+      child.on('close', async (code) => {
+        // THREE outcomes, not two. A first cut checked only whether the file
+        // existed and reported everything else as `cancelled` — so a macOS
+        // Screen Recording denial, which is the first thing anyone hits on a
+        // new machine, would have told the user they cancelled something they
+        // never started. `screencapture` exits 0 and writes nothing when the
+        // user presses Escape, and exits non-zero with a message when it
+        // genuinely fails.
+        let exists = false;
+        try { await fs.access(target); exists = true; } catch { /* absent */ }
+        if (exists) {
+          resolve({ ok: true, name: path.basename(target) });
+        } else if (code === 0 && !stderr.trim()) {
+          resolve({ ok: false, cancelled: true });
+        } else {
+          resolve({
+            ok: false,
+            error: stderr.trim()
+              || `screencapture exited ${code}. On macOS this is usually the `
+                 + `Screen Recording permission — grant it to the cockpit in `
+                 + `System Settings › Privacy & Security › Screen Recording.`,
+          });
+        }
+      });
+    });
   });
 
   // Drag-and-drop file resolver (FEAT-0012 / TASK-0091). Renderer

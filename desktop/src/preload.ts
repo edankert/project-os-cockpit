@@ -3,7 +3,7 @@
 // code via Electron's contextBridge, so the renderer never touches
 // Node APIs directly.
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 import type { Workspace } from './types';
 
@@ -116,6 +116,17 @@ const api = {
       ipcRenderer.on('menu:dispatch', handler);
       return () => ipcRenderer.removeListener('menu:dispatch', handler);
     },
+    // Electron 32 REMOVED `File.path` (deprecated in 30). The drop handler
+    // read it, got `undefined`, and returned silently — so dropping a note
+    // stopped navigating and dropping a screenshot did nothing at all, with
+    // no error anywhere. `webUtils.getPathForFile` is the replacement, and it
+    // must be called in the preload: it is not exposed to the renderer.
+    pathForFile: (file: File): string => {
+      try { return webUtils.getPathForFile(file); } catch { return ''; }
+    },
+    captureScreenshot: (workspaceId: string): Promise<{
+      ok: boolean; name?: string; cancelled?: boolean; error?: string;
+    }> => ipcRenderer.invoke('app:capture-screenshot', workspaceId),
     resolveDroppedFile: (absPath: string): Promise<{
       action: 'navigate' | 'offer-add-workspace' | 'ignored';
       workspaceId?: string;

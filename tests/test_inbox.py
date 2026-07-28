@@ -247,3 +247,72 @@ def test_the_convention_is_gitignored() -> None:
     discarded. Committing staging preserves what triage exists to resolve."""
     root = Path(__file__).resolve().parents[1]
     assert "inbox/" in (root / ".gitignore").read_text(encoding="utf-8")
+
+
+# ---- the drop path and capture (2026-07-28 regression) --------------------
+
+def _renderer_src() -> str:
+    return (Path(__file__).resolve().parents[1] / "desktop" / "src" / "renderer"
+            / "renderer.ts").read_text(encoding="utf-8")
+
+
+def test_dropping_does_not_require_a_path() -> None:
+    """Electron 32 REMOVED `File.path`. The handler read it, got `undefined`,
+    and returned early — so after that upgrade dropping a note silently stopped
+    navigating and dropping a screenshot did nothing at all, with no error
+    anywhere. Edwin found it by dropping an image.
+
+    Filing needs the file's BYTES, not its location, so the path is optional
+    now. Requiring one to do something that never needed one is what made this
+    fail closed and silent.
+    """
+    src = _renderer_src()
+    drop = src.split("document.addEventListener('drop'", 1)[1].split("\n});", 1)[0]
+    assert "if (!absPath) return;" not in drop, (
+        "the drop handler returns early with no path again; an image drop will "
+        "silently do nothing"
+    )
+    assert "void storeInInbox(file);" in drop
+    assert "cockpitApi.app.pathForFile(file)" in drop, (
+        "the Electron 32 replacement for File.path is not used, so dropping a "
+        "note cannot navigate"
+    )
+
+
+def test_the_path_resolver_lives_in_the_preload() -> None:
+    """`webUtils` is not exposed to the renderer, so `getPathForFile` has to be
+    called in the preload — reading it in the renderer returns undefined and
+    reintroduces the silent failure."""
+    pre = (Path(__file__).resolve().parents[1] / "desktop" / "src"
+           / "preload.ts").read_text(encoding="utf-8")
+    assert "webUtils" in pre and "getPathForFile" in pre
+    assert "pathForFile:" in pre
+
+
+def test_capture_distinguishes_cancel_from_failure() -> None:
+    """A first cut checked only whether the file existed and called everything
+    else `cancelled` — so a macOS Screen Recording denial, the first thing
+    anyone hits on a new machine, would have told the user they cancelled
+    something they never started.
+
+    `screencapture` exits 0 and writes nothing on Escape, and exits non-zero
+    with a message when it genuinely fails; both are observed.
+    """
+    main = (Path(__file__).resolve().parents[1] / "desktop" / "src"
+            / "main.ts").read_text(encoding="utf-8")
+    handler = main.split("app:capture-screenshot", 1)[1].split("ipcMain.handle", 1)[0]
+    assert "code === 0 && !stderr.trim()" in handler, (
+        "cancel is not distinguished from failure"
+    )
+    assert "Screen Recording" in handler, (
+        "the most likely real failure has no actionable message"
+    )
+    assert "cancelled: true" in handler
+
+
+def test_capture_writes_into_the_inbox() -> None:
+    main = (Path(__file__).resolve().parents[1] / "desktop" / "src"
+            / "main.ts").read_text(encoding="utf-8")
+    handler = main.split("app:capture-screenshot", 1)[1].split("ipcMain.handle", 1)[0]
+    assert "path.join(ws.root, 'inbox')" in handler
+    assert "'-i'" in handler, "capture is not interactive, so it cannot be aimed"
