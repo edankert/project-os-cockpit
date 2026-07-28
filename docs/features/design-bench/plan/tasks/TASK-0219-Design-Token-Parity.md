@@ -53,3 +53,11 @@ What remains is a real, narrow check, and the precedent for *it* is exact. `base
 A design token declared in a dossier and re-typed into a stylesheet is the same failure with the same remedy. The interesting part is that the design becomes the upstream side of the parity check rather than another surface that drifts.
 
 Expect the first run against DES-0001 to find divergence — the dossier predates the implementation and the implementation moved. With the arrow now written down (`statuses.py` upstream), that divergence means **the dossier is stale**, which is an actionable finding rather than an ambiguous one. A check whose failures are routinely legitimate accumulates waivers; this one has a right answer.
+
+## Outcome 2026-07-28 — the claim was withdrawn
+
+Independent review of [[FEAT-0042]] refuted the acceptance claim built on this task by mutation: `--status-done` changed in `base.css`, no design note touched, full suite green. `check_design_assets()` has no caller outside `tests/test_design_tokens.py`, and would be silent anyway because no artifact declares a scoped token.
+
+Edwin chose [[ISS-0049]] option 1: **withdraw the claim rather than build the check.** The reasoning is the one this task's own docstring already gave — the founding drift ([[ISS-0023]]) was between the *implementation's* own restatements of the palette, and that is guarded by `statuses.py` + [[TST-0019]]. A second checker over artifacts that declare no tokens guards nothing.
+
+`design_tokens.py` and its tests are kept: the module is correct, tested, and cheap, and it becomes useful the day an artifact declares status tokens. What is deleted is the **claim that it was already protecting something.** This task stays `done` — it delivered a working checker; what was wrong was the acceptance language written around it.

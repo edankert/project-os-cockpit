@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0049
 aliases: ["ISS-0049"]
 title: "The design-token parity check has no caller, and three notes claimed it did"
-status: triage
+status: fixed
 severity: high
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
@@ -40,4 +40,6 @@ Not just wiring the checker into the validator — that would still be silent, b
 2. **Check the note's prose table** against `base.css`. That is the artifact that *can* drift and the one DES-0002 pointed at. Needs a Markdown-table parser and a name mapping.
 3. **Require artifacts that show status colour to declare their tokens**, then wire `check_design_assets` into the validator. Makes the check real but imposes a rule on every future artifact.
 
-Not chosen here. Recording the refutation and correcting the false claims is the finding; picking the fix is Edwin's.
+**Chosen 2026-07-28: option 1.** The claim is withdrawn from [[FEAT-0042]], [[PHASE-009]] and [[DES-0002]]. `design_tokens.py` and its tests are **kept** — the module is correct, tested and cheap, and it becomes useful the day an artifact declares status tokens. What is deleted is the claim that it was already protecting something.
+
+The stronger guarantee was somewhere else all along: the style-guide page reads its values from the implementation *as it renders*, so its swatches cannot drift by construction. That is a better property than any parity check, and it is the one that actually shipped.

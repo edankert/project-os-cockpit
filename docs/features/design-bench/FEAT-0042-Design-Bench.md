@@ -65,7 +65,7 @@ This makes the project the home. A design artifact gets rendered at the viewport
 - Editing a design artifact updates the pane without a manual reload, via the existing watcher/SSE path.
 - Two git revisions of one artifact render side by side with the reason for the change visible.
 - A comment anchored to a declared region still points at that region after a revision moves it on the page.
-- ~~A design token changed in the implementation but not the design note fails a test~~ — **NOT MET** (independent review, 2026-07-28). Refuted by mutation: `--status-done` was changed in `base.css`, no design note touched, and all 459 tests stayed green. `design_tokens.check_design_assets()` has **no caller outside its own test module** — not the validator, not an endpoint — and it is silent by construction anyway, since no artifact declares a scoped token. See [[ISS-0049]].
+- **The design bench does not check token parity, by decision** (Edwin, 2026-07-28, [[ISS-0049]] option 1). The original bullet claimed a test would catch a token changed in the implementation but not in a design note; independent review refuted it by mutation. Rather than build the check, the claim is withdrawn: `statuses.py` and [[TST-0019]] guard the implementation's own vocabulary, which is where drift actually happened ([[ISS-0023]]), and a second checker over artifacts that declare no tokens would have been a guard with nothing to guard.
 - Rendering an artifact cannot execute anything that reaches the real repo — the render frame is sandboxed and treats artifact HTML as content, not code.
 
 ## Design constraints worth stating

@@ -116,11 +116,13 @@ Both are *attention* signals with a decay, not decoration. The rule: motion is a
 
 ## Conformance
 
-Checked by [[TASK-0219]]: the status/severity palette in this note must equal the `statuses.py`-derived palette.
+**Not checked.** [[TASK-0219]]'s parity checker has no caller outside its own tests and is silent by construction, and the claim that it guarded this note was withdrawn on 2026-07-28 ([[ISS-0049]] option 1). The palette table below is **unchecked prose**: it can drift from `base.css`, and nothing will say so.
+
+What *is* guaranteed is stronger and lives elsewhere: the **style-guide page reads its values from the implementation as it renders**, so the swatches cannot drift by construction. Read the page for what the app actually draws; read the table as commentary.
 
 **The artifact declares no tokens, so the parity check reports nothing for it — deliberately.** `design_tokens.py` compares a design's *declared* palette against the implementation, and a design that declares nothing is silent rather than failing. That is the correct outcome here: the page reads its values from the implementation as it renders, so divergence is not caught, it is impossible. A stronger property than the check, and the reason the check has nothing to say.
 
-The **table above** is a different matter: it is prose in this note, typed by hand, and it *can* drift from `base.css`. **Nothing guards it.** [[TASK-0219]]'s checker is never called outside its own tests, so the table is unchecked prose — corrected here after independent review found the claim false by mutation ([[ISS-0049]]).
+**Direction of authority is unchanged:** `statuses.py` is upstream. If this note and the implementation disagree, this note is wrong.
 
 **Known limit: revision-compare loses colour fidelity for this artifact.** An old revision and the working copy both render against today's CSS, so a palette change is invisible in compare. Structural changes still show, and git records what `base.css` was. Accepted deliberately — the page's job is to be true now.
 
