@@ -1,0 +1,395 @@
+"""TST-0022 — surface ownership (PHASE-010).
+
+REQ-0025 gates FEAT-0050 on a property nothing else in the toolchain
+checks: that removing a type's Library group did not make the type
+unreachable. The validator reads the corpus, not the UI. The existing
+payload tests in ``test_cockpit.py`` assert group *shape*, which passes
+just as happily on a group that lost its contents.
+
+So these assert reachability **by count against the corpus**, not by
+non-emptiness. That is the distinction that matters: ISS-0062's
+type-based plan lookup returned 14 entirely convincing rows out of 33,
+and every shape assertion in the suite passed on it.
+
+What these do NOT cover, deliberately: whether a payload that reaches the
+renderer is actually *drawn*. Both cockpit reachability bugs in PHASE-009
+were renderer-side with correct payloads. TST-0022 carries manual steps
+for that, and they are the honest part of the suite.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+from pathlib import Path
+
+import pytest
+
+from project_os_cockpit import cockpit
+from project_os_cockpit.cockpit import nav_payload
+from project_os_cockpit.index import Index
+
+FIXTURE = Path(__file__).parent / "fixtures" / "index_basic"
+REPO_DOCS = Path(__file__).resolve().parent.parent / "docs"
+
+
+@pytest.fixture()
+def docs_root(tmp_path: Path) -> Path:
+    target = tmp_path / "docs"
+    shutil.copytree(FIXTURE, target)
+    return target
+
+
+@pytest.fixture()
+def index(docs_root: Path) -> Index:
+    return Index.build(docs_root)
+
+
+@pytest.fixture(scope="module")
+def repo_index() -> Index:
+    """This repo's real corpus. Used only where the property under test is
+    about the corpus itself (the untyped-plan population), which no
+    synthetic fixture would honestly reproduce."""
+    return Index.build(REPO_DOCS)
+
+
+# ---- 1/2: plans reachable from their feature (ISS-0062) ----------------
+
+
+def test_every_plan_on_disk_resolves_to_its_feature(repo_index: Index) -> None:
+    """Asserted against a filesystem glob, never a literal.
+
+    The corpus was 33 plans / 14 typed when ISS-0062 was filed, and 38/19
+    once PHASE-010 added its own five features. A frozen number would
+    fail on the next feature anyone creates, and the property is "every
+    plan on disk resolves", not "there are N plans".
+
+    A revert to ``notes_by_type("plan")`` fails here because the typed
+    subset is strictly smaller than the glob.
+    """
+    on_disk = set(REPO_DOCS.glob("features/*/plan/PLAN.md"))
+    resolved = {
+        plan.path
+        for record in repo_index.notes_by_type("feature")
+        if (plan := cockpit._feature_plan(repo_index, record)) is not None
+    }
+    assert resolved == on_disk
+
+    typed = {r.path for r in repo_index.notes_by_type("plan")}
+    assert typed < on_disk, (
+        "if every plan were typed this test could not distinguish the "
+        "path-based lookup from the type-based one it replaced"
+    )
+
+
+def test_an_untyped_plan_still_gets_a_row(repo_index: Index) -> None:
+    """The 19 files with no frontmatter at all. They were unreachable
+    everywhere — `features/` is a DOC_TREE_EXCLUDED_ROOTS root, so they
+    never joined the Docs tree either."""
+    untyped = [
+        p for p in REPO_DOCS.glob("features/*/plan/PLAN.md")
+        if not p.read_text(encoding="utf-8").startswith("---")
+    ]
+    assert untyped, "corpus no longer has an untyped plan to prove this on"
+
+    payload = nav_payload(repo_index, mode="features")
+    rows = {
+        item["url"]
+        for group in payload["groups"]
+        for feature in group["items"]
+        for item in feature.get("children", [])
+        if item.get("type") == "plan"
+    }
+    for path in untyped:
+        rel = path.relative_to(REPO_DOCS.parent).as_posix()
+        assert f"/{rel}" in rows, f"untyped plan unreachable: {rel}"
+
+
+def test_a_feature_without_a_plan_gains_no_placeholder(index: Index) -> None:
+    """No empty child, no placeholder row — a feature with no plan must
+    render exactly as it did before FEAT-0046."""
+    payload = nav_payload(index, mode="features")
+    for group in payload["groups"]:
+        for feature in group["items"]:
+            for child in feature.get("children", []):
+                assert child.get("url"), f"placeholder child on {feature['id']}"
+
+
+# ---- 3: risks reachable from the Issues mode (FEAT-0047) --------------
+
+
+def test_every_risk_appears_in_the_issues_mode(docs_root: Path) -> None:
+    risks = docs_root / "risks"
+    risks.mkdir(parents=True, exist_ok=True)
+    for n, sev in enumerate(("high", "medium", "medium", "low"), start=1):
+        (risks / f"RISK-000{n}-Sample.md").write_text(
+            f'---\ntype: "[[risk]]"\nid: RISK-000{n}\ntitle: "Risk {n}"\n'
+            f'status: open\nseverity: {sev}\n---\n# Risk {n}\n',
+            encoding="utf-8",
+        )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="issues")
+    listed = {
+        item["id"]
+        for group in payload["groups"]
+        for item in group["items"]
+        if item.get("type") == "risk"
+    }
+    assert listed == {r.note_id for r in fresh.notes_by_type("risk")}
+
+
+def test_risks_get_their_own_groups_not_the_issue_buckets(
+    docs_root: Path,
+) -> None:
+    """Mixing risks into the severity buckets would make the Issues
+    stat-tile count disagree with what the pane shows."""
+    risks = docs_root / "risks"
+    risks.mkdir(parents=True, exist_ok=True)
+    (risks / "RISK-0001-Sample.md").write_text(
+        '---\ntype: "[[risk]]"\nid: RISK-0001\ntitle: "Risk"\n'
+        'status: open\nseverity: high\n---\n# Risk\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="issues")
+    for group in payload["groups"]:
+        types = {item.get("type") for item in group["items"]}
+        assert len(types) <= 1, f"group {group['key']} mixes {types}"
+        if "risk" in types:
+            assert group["key"].startswith("risk:")
+
+
+def test_a_corpus_with_no_risks_is_unchanged(index: Index) -> None:
+    assert not list(index.notes_by_type("risk")), "fixture gained a risk"
+    payload = nav_payload(index, mode="issues")
+    assert not any(g["key"].startswith("risk:") for g in payload["groups"])
+
+
+# ---- 4: changes reachable from the overview (FEAT-0048) ---------------
+
+
+def test_the_changes_split_is_a_partition(repo_index: Index) -> None:
+    """recent + buckets must equal the corpus. A change falling out of
+    both would vanish from the only surface that lists it."""
+    payload = cockpit.changes_payload(repo_index)
+    seen = len(payload["recent"])
+    for bucket in payload["buckets"]:
+        seen += len(bucket["items"])
+        for sub in bucket.get("subgroups", []):
+            seen += len(sub["items"])
+    assert seen == payload["total"] == len(list(repo_index.notes_by_type("change")))
+
+
+# ---- 5/6: the review desk's registers (FEAT-0049) ---------------------
+
+
+def test_the_tests_register_holds_the_whole_corpus(repo_index: Index) -> None:
+    """The desk's `runs` group is gated to manual-and-`ready` — a queue
+    slice. Both counts are asserted so collapsing one into the other
+    fails rather than looking tidier."""
+    payload = cockpit.review_queue_payload(repo_index)
+    register = payload["registers"]["tests"]
+    assert {t["id"] for t in register} == {
+        r.note_id for r in repo_index.notes_by_type("test")
+    }
+
+    runs = next(g for g in payload["groups"] if g["key"] == "runs")
+    assert len(runs["items"]) < len(register), (
+        "the queue slice and the register must stay distinct"
+    )
+
+
+def test_the_reviewed_register_comes_from_note_frontmatter(
+    repo_index: Index,
+) -> None:
+    """Not the store: `_MAX_REQUESTS = 200` trims oldest-first on every
+    save, so a store-sourced register would silently lose its tail."""
+    register = cockpit.review_queue_payload(repo_index)["registers"]["reviewed"]
+    expected = {
+        r.note_id or r.rel_path
+        for r in repo_index.iter_records()
+        if isinstance(r.frontmatter.get("review_verdict"), str)
+        and r.frontmatter["review_verdict"].strip()
+    }
+    assert {r["id"] or r["rel"] for r in register} == expected
+    assert register, "corpus has recorded verdicts; the register found none"
+
+
+def test_an_empty_verdict_is_not_a_reviewed_item(docs_root: Path) -> None:
+    """Six notes in this repo declare `review_verdict: ""`. An empty
+    verdict is the absence of one — counting them would report more
+    reviewed items than were reviewed, which is the unearned
+    verification ADR-0010 exists to prevent.
+
+    The opposite call from the missing-date case below, deliberately.
+    """
+    (docs_root / "CHG-20260101-Empty.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260101-Empty\ntitle: "Empty"\n'
+        'status: merged\nreview_verdict: ""\n---\n# Empty\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    register = cockpit.review_queue_payload(fresh)["registers"]["reviewed"]
+    assert "CHG-20260101-Empty" not in {r["id"] for r in register}
+
+
+def test_a_verdict_without_a_date_still_lists(docs_root: Path) -> None:
+    """A recorded verdict with incomplete metadata is a reviewed item —
+    worth showing, sorted last. Dropping it would hide exactly the
+    records worth chasing."""
+    (docs_root / "CHG-20260101-Undated.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260101-Undated\ntitle: "Undated"\n'
+        'status: merged\nreview_verdict: approved\n---\n# Undated\n',
+        encoding="utf-8",
+    )
+    (docs_root / "CHG-20260102-Dated.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260102-Dated\ntitle: "Dated"\n'
+        'status: merged\nreview_verdict: approved\n'
+        'review_date: 2026-07-01\n---\n# Dated\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    register = cockpit.review_queue_payload(fresh)["registers"]["reviewed"]
+    ids = [r["id"] for r in register]
+    assert "CHG-20260101-Undated" in ids
+    assert ids.index("CHG-20260102-Dated") < ids.index("CHG-20260101-Undated")
+
+
+# ---- 7/8/9: the reduction itself (FEAT-0050) --------------------------
+
+
+def test_library_is_pins_and_the_tree(repo_index: Index) -> None:
+    payload = nav_payload(repo_index, mode="library", project_root=REPO_DOCS.parent)
+    keys = {g["key"] for g in payload["groups"]}
+    assert keys <= {"pinned", "docs-tree"}, sorted(keys)
+
+
+def test_the_skip_set_is_not_derived_from_the_empty_tuple() -> None:
+    """`_BY_TYPE_SKIP_IN_LIBRARY` used to be derived from
+    ``LIBRARY_RARE_TYPES``. Emptying that tuple without rewriting the
+    skip-set would let every canonical type clearing
+    ``_BY_TYPE_MIN_COUNT`` reappear under a ``by-type:`` key — the
+    reduction undone through the back door, with no test failing.
+    """
+    assert cockpit.LIBRARY_RARE_TYPES == ()
+    for type_name in (
+        "change", "adr", "decision", "release", "risk", "test",
+        "workflow", "plan", "design",
+    ):
+        assert type_name in cockpit._BY_TYPE_SKIP_IN_LIBRARY, type_name
+
+
+def test_workflows_browse_in_the_docs_tree(repo_index: Index) -> None:
+    payload = nav_payload(repo_index, mode="library", project_root=REPO_DOCS.parent)
+    tree = next(g for g in payload["groups"] if g["key"] == "docs-tree")
+    labels = {sg["label"] for sg in tree.get("subgroups", [])}
+    assert "workflows/" in labels, sorted(labels)
+
+
+# ---- the dead stat tiles (ISS-0063) -----------------------------------
+
+
+RENDERER = (
+    Path(__file__).resolve().parent.parent
+    / "desktop" / "src" / "renderer" / "renderer.ts"
+)
+
+
+def _stat_tile_call(label: str) -> str:
+    """The `buildStatTile('<label>', …)` call, up to its closing paren.
+
+    Tolerant of a newline between the paren and the label — the Reqs tile
+    is written that way, and a matcher that missed it would have reported
+    "no such tile" rather than "tile has no destination".
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    match = re.search(rf"buildStatTile\(\s*'{label}'", src)
+    assert match is not None, f"no buildStatTile call for {label!r}"
+    start = match.start()
+    depth = 0
+    for i in range(start, len(src)):
+        if src[i] == "(":
+            depth += 1
+        elif src[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return src[start:i + 1]
+    raise AssertionError(f"unbalanced parens in the {label} tile call")
+
+
+@pytest.mark.parametrize(
+    ("label", "mode"), [("Risks", "issues"), ("Tests", "review")],
+)
+def test_the_dead_stat_tiles_gained_a_destination(label: str, mode: str) -> None:
+    """`buildStatTile` renders a <button> only when passed a navMode.
+    Risks and Tests were passed none, so they showed a count and
+    navigated nowhere (ISS-0063) — indistinguishable on inspection from
+    the three that worked, and only detectable by clicking."""
+    assert f"'{mode}'" in _stat_tile_call(label)
+
+
+# ---- desk section order and naming (ISS-0064) -------------------------
+
+
+def test_only_one_desk_section_is_headed_reviewed() -> None:
+    """TASK-0242 took the word `Reviewed` for its register without noticing
+    the ADR-0007 tally already used it, leaving two sections a few rows
+    apart both headed `Reviewed` with different counts — 1 (review
+    interactions at the desk) against 62 (notes carrying a verdict).
+    ISS-0064.
+
+    Still asserted after TASK-0247 removed the tally: the collision is
+    gone by subtraction now, and this keeps it gone if a future section
+    reaches for the same word.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    headings = re.findall(r"textContent = `(\w+) · \$\{", src)
+    assert headings.count("Reviewed") == 1, (
+        f"expected exactly one Reviewed heading, found {headings}"
+    )
+
+
+def test_the_advisory_tally_is_gone_from_the_desk() -> None:
+    """ADR-0007 settled on 2026-07-29 (stay advisory, permanently), so the
+    instrument built to inform that decision has no consumer — TASK-0247.
+
+    The *recording* deliberately survives: the store still stamps outcomes
+    and the payload still carries them (asserted by
+    `test_queue_reports_the_advisory_phase_tally`). Only the surface goes,
+    so this checks the renderer and its stylesheet, not the payload.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    css = (RENDERER.parent / "renderer.css").read_text(encoding="utf-8")
+    for dead in ("review-tally", "Outcomes · "):
+        assert f"'{dead}'" not in src and f"`{dead}" not in src, dead
+    # No dead rules left behind — a stylesheet keeping selectors for a
+    # deleted block is how CSS becomes unreadable.
+    assert ".review-tally {" not in css
+    assert ".review-tally-row" not in css
+    assert ".review-tally-note" not in css
+
+
+def test_the_desk_pane_order_is_queue_reviewed_tests() -> None:
+    """Both registers are appended at the tail of the same function, so
+    the order is positional: a future addition appending in the obvious
+    place reshuffles the pane without failing anything. That is exactly
+    how ISS-0064 happened, so the order is pinned here.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    pane = src.split("function renderReviewQueuePane(")[1].split("\n}")[0]
+    positions = {
+        name: pane.index(name)
+        for name in ("buildQueueRow", "buildReviewedRegister",
+                     "buildTestsRegister")
+    }
+    assert (positions["buildQueueRow"]
+            < positions["buildReviewedRegister"]
+            < positions["buildTestsRegister"]), positions
+
+
+def test_the_reqs_tile_stays_dead_on_purpose() -> None:
+    """Out of scope for PHASE-010 and recorded as such: requirements nest
+    under features, so the tile has no single destination. Asserted so
+    the omission reads as a decision rather than an oversight."""
+    call = _stat_tile_call("Reqs")
+    assert not re.search(r",\s*'[a-z]+'\s*\)$", call.strip()), call

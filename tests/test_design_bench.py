@@ -752,19 +752,34 @@ def test_stamping_a_non_design_is_refused(tmp_path: Path) -> None:
 
 # ---- reachability (the surface must have a door) --------------------------
 
-def test_the_library_design_group_points_at_the_bench_not_the_note(tmp_path: Path) -> None:
+def test_designs_reach_the_bench_from_the_design_mode(tmp_path: Path) -> None:
     """Built, tested, and unreachable: the only link to `~design/<id>` lived
     inside the register, which nothing pointed to. A closed loop with no
-    entrance — found by Edwin opening the app and seeing nothing."""
+    entrance — found by Edwin opening the app and seeing nothing.
+
+    The Library Design group that originally carried this guard was
+    removed in PHASE-010 (TASK-0243) as a duplicate of the Design mode
+    FEAT-0043 had since built. The *guard* is what mattered, so it moves
+    to the surface that now owns the route rather than being deleted with
+    the group — removing the duplicate must not remove the assertion that
+    the survivor still works.
+    """
     docs = _corpus(tmp_path)
-    groups = cockpit._library_groups(Index.build(docs), None, [])
-    design = next((g for g in groups if g.get("key") == "design"), None)
-    assert design is not None, "the Library has no Design group"
-    for item in design["items"]:
+    index = Index.build(docs)
+    groups = cockpit._design_groups(index, None)
+    items = [item for g in groups for item in g["items"]]
+    assert items, "the Design mode lists no designs"
+    for item in items:
         assert item["url"].startswith("~design/"), (
-            "the Library opens the design NOTE; the note is prose about a "
+            "the mode opens the design NOTE; the note is prose about a "
             "design, the artifact is the design"
         )
+
+    # ...and Library no longer offers a second, competing route to it.
+    lib = cockpit._library_groups(index, None, [])
+    assert not any(g.get("key") == "design" for g in lib), (
+        "the Library Design group was removed as a duplicate (TASK-0243)"
+    )
 
 
 def test_a_design_note_offers_its_artifact() -> None:

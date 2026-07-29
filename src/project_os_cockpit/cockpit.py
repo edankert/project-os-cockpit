@@ -167,9 +167,15 @@ DOC_TREE_EXCLUDED_PREFIXES: tuple[str, ...] = ("__templates__/",)
 DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
     # Canonical project-os container dirs — each houses lifecycle-managed
     # notes that already have a dedicated nav surface (Features mode,
-    # Tasks mode, rare-type groups, etc.). Hide them from the Docs tree
-    # so the tree only carries non-project-os user content. __templates__/
-    # is separately blocked via DOC_TREE_EXCLUDED_PREFIXES.
+    # Tasks mode, the overview record column, the review desk). Hide them
+    # from the Docs tree so the tree only carries non-project-os user
+    # content. __templates__/ is separately blocked via
+    # DOC_TREE_EXCLUDED_PREFIXES.
+    #
+    # `workflows` left this list in PHASE-010 (TASK-0244): a workflow is
+    # prose with an `entrypoints:` list and no lifecycle to track, so the
+    # tree is where it belongs — the same call references got in
+    # TASK-0036.
     "changes",
     "decisions",
     "features",
@@ -181,31 +187,45 @@ DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
     "risks",
     "tasks",
     "tests",
-    "workflows",
 )
-# Note types that get their own group under "By type — rare" in Library mode.
-# Anything covered by a primary nav mode (feature, task, issue) is excluded.
-# Reference is NOT in this list — references render inline in the Docs tree
-# alongside untyped Markdown (TASK-0036), using the book-open type icon.
-# "change" leads the list (TASK-0038) — change notes are the most-active
-# log surface; everything below it is referenced occasionally.
-LIBRARY_RARE_TYPES: tuple[str, ...] = (
-    "change", "adr", "release", "risk", "test", "workflow", "plan",
-)
+# Note types that get their own by-type group in Library mode.
+#
+# Empty since PHASE-010 (TASK-0243/0245). Library accumulated eight groups
+# by a process nobody chose: each time a type appeared with no obvious
+# home it got a `rare:` group, and the result — measured against this
+# repo's own corpus — was one duplicate of the Design mode, one duplicate
+# of the overview record column, a Plans group rendering 14 of 33 files,
+# and two types whose overview stat tiles navigated nowhere.
+#
+# Each type now has a purpose surface: plans nest under their feature
+# (FEAT-0046), risks join the Issues mode (FEAT-0047), changes join the
+# overview history band (FEAT-0048), tests and reviewed items join the
+# review desk (FEAT-0049), decisions were already complete in the record
+# column, designs in the Design mode, workflows in the Docs tree.
+#
+# Kept as a named empty tuple rather than deleted: it is the thing a
+# future "where should this type live?" question should NOT answer by
+# appending to.
+LIBRARY_RARE_TYPES: tuple[str, ...] = ()
 # Types that join the untyped Markdown tree in Library mode's Docs-tree group.
-DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference",)
+DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference", "workflow")
 
-# Reference notes living here are *design input* — dossiers, mockups and
-# research a feature was built from (TASK-0212). They surface as their own
-# Library group and lead the record column's Library card.
-
-# Types that already have their own UX surface elsewhere (dedicated nav
-# modes or rare-type groups) and therefore do NOT appear in the Library
-# "By type" auto-discovery section. Without this skip-set, personal
-# vaults with `task` notes would end up with a duplicate Tasks group in
-# Library on top of the Tasks mode.
+# Types that already have their own UX surface elsewhere and therefore do
+# NOT appear in the Library "By type" auto-discovery section. Without this
+# skip-set, personal vaults with `task` notes would end up with a
+# duplicate Tasks group in Library on top of the Tasks mode.
+#
+# Named explicitly rather than derived from LIBRARY_RARE_TYPES, which is
+# now empty: deriving it would let every canonical type that clears
+# _BY_TYPE_MIN_COUNT reappear here under a `by-type:` key, undoing the
+# reduction through the back door. `release` is listed despite this
+# corpus having zero REL notes — a release surface is not part of
+# PHASE-010, and letting it fall through would hand a future release
+# corpus a Library group by accident.
 _BY_TYPE_SKIP_IN_LIBRARY: frozenset[str] = frozenset({
     "feature", "issue", "requirement", "phase", "task",
+    "change", "adr", "decision", "release", "risk", "test", "workflow",
+    "plan", "design",
 }) | frozenset(LIBRARY_RARE_TYPES) | frozenset(DOC_TREE_INLINE_TYPES)
 
 # Minimum count for a discovered type to merit its own Library "By type"
@@ -1731,7 +1751,83 @@ def review_queue_payload(
             {"key": "questions", "label": "Questions", "items": questions},
             {"key": "runs", "label": "Test runs", "items": runs},
         ],
+        "registers": {
+            "tests": _tests_register(index),
+            "reviewed": _reviewed_register(index),
+        },
     }
+
+
+def _tests_register(index: Index) -> list[dict[str, Any]]:
+    """Every acceptance test in the corpus (FEAT-0049 / TASK-0241).
+
+    Distinct from the ``runs`` queue group above, which is gated to
+    manual tests at ``ready`` — "what is waiting on me" against "what do
+    we verify at all". The queue slice was about four rows out of 21
+    here, and the register lived only in Library, so the corpus-wide
+    answer was one mode-switch away from the surface that asks the
+    question.
+
+    The per-scope Verification panel (TASK-0211) is untouched: it answers
+    "does *this* feature pass", which is a third question again.
+    """
+    out: list[dict[str, Any]] = []
+    for record in index.notes_by_type("test"):
+        fm = record.frontmatter
+        item = _slim_note(record)
+        item.update({
+            "last_verified": str(
+                fm.get("last_verified") or fm.get("last_run") or ""
+            ),
+            "manual": _is_manual_test(record),
+            "command": str(fm.get("command") or ""),
+            # FEAT-0018's badge data (waived / review_verdict / adequacy)
+            # travels with the register. It used to ride on the Library
+            # test rows; the register is where those rows went, and a
+            # test listed without its adequacy flag is the "green count,
+            # unexamined guard" the flag exists to expose.
+            **_verification_flags(record),
+        })
+        out.append(item)
+    out.sort(key=lambda t: str(t.get("id") or ""))
+    return out
+
+
+def _reviewed_register(index: Index) -> list[dict[str, Any]]:
+    """Items carrying an independent-review verdict (TASK-0242).
+
+    Sourced from **note frontmatter**, not the review store. The store
+    does retain resolved requests (``status: "resolved"`` +
+    ``resolved_at``), so reading them would be cheaper — but
+    ``_MAX_REQUESTS = 200`` trims oldest-first on every save, so a
+    store-sourced register would silently lose its tail. Frontmatter has
+    no such ceiling and is the authored record (ADR-0009).
+
+    The store keeps the *outcome counts*, which the notes genuinely
+    cannot answer: `accepted-amended` and `changes-requested` are
+    properties of the review interaction, not of the note's final
+    verdict. That is the ADR-0007 measurement and it stays where it is.
+    """
+    out: list[dict[str, Any]] = []
+    for record in index.iter_records():
+        verdict = record.frontmatter.get("review_verdict")
+        if not isinstance(verdict, str) or not verdict.strip():
+            continue
+        item = _slim_note(record)
+        item.update({
+            "verdict": verdict.strip().lower(),
+            "reviewed_by": str(record.frontmatter.get("reviewed_by") or ""),
+            "review_date": str(record.frontmatter.get("review_date") or ""),
+        })
+        out.append(item)
+    # Most recent first. A note with no `review_date` still lists — it
+    # sorts last rather than being dropped, because a recorded verdict
+    # with a missing date is exactly the kind of thing worth seeing.
+    out.sort(
+        key=lambda r: (r.get("review_date") or "", str(r.get("id") or "")),
+        reverse=True,
+    )
+    return out
 
 
 def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
@@ -2072,14 +2168,22 @@ def _features_groups(
         items: list[dict[str, Any]] = []
         for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path)):
             item = _feature_item(index, r)
+            children: list[dict[str, Any]] = []
             child_reqs = reqs_by_feature.get(r.note_id or "", [])
             if child_reqs:
                 child_reqs_sorted = sorted(
                     child_reqs, key=lambda x: (x.note_id or "", x.rel_path)
                 )
-                item["children"] = [
+                children.extend(
                     _requirement_child_item(index, c) for c in child_reqs_sorted
-                ]
+                )
+            # The plan sorts last: requirements say what the feature must
+            # do, the plan says how it gets built.
+            plan = _feature_plan(index, r)
+            if plan is not None:
+                children.append(_plan_child_item(index, plan))
+            if children:
+                item["children"] = children
             items.append(item)
         out.append(
             {
@@ -2159,6 +2263,39 @@ def _requirement_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     }
 
 
+def _feature_plan(index: Index, record: NoteRecord) -> NoteRecord | None:
+    """The delivery plan belonging to a feature, resolved **by path**.
+
+    A plan lives at ``features/<slug>/plan/PLAN.md``, beside the feature
+    note at ``features/<slug>/FEAT-*.md``. The relationship is already in
+    the filesystem, so reading it needs no frontmatter.
+
+    That matters more than it looks: 19 of this repo's 33 ``PLAN.md``
+    files carry no frontmatter at all, so ``notes_by_type("plan")`` sees
+    14 of them (ISS-0062). The other 19 were unreachable from anywhere in
+    the UI — ``features`` is a DOC_TREE_EXCLUDED_ROOTS root, so they never
+    joined the Docs tree either. The index does hold them (it derives a
+    title from the H1); nothing rendered them.
+    """
+    return index.get(record.path.parent / "plan" / "PLAN.md")
+
+
+def _plan_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Compact item shape for a plan nested under its feature.
+
+    An untyped plan still gets a row — that is the whole point — so the
+    status chip is omitted rather than faked when the note has none.
+    """
+    return {
+        "id": "",
+        "title": record.title or "Plan",
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": "",
+        "type": "plan",
+    }
+
+
 def _tasks_groups(
     index: Index, platform: str | None = None
 ) -> list[dict[str, Any]]:
@@ -2190,21 +2327,38 @@ def _tasks_groups(
     ]
 
 
-def _issues_groups(
-    index: Index, platform: str | None = None
-) -> list[dict[str, Any]]:
-    """Mode 4: issues grouped by severity."""
-    issues = [r for r in index.notes_by_type("issue") if _platform_match(r, platform)]
+def _severity_buckets(records: list[NoteRecord]) -> list[tuple[str, list[NoteRecord]]]:
+    """Bucket notes by their ``severity:`` field, in severity order."""
     grouped: dict[str, list[NoteRecord]] = {}
-    for record in issues:
+    for record in records:
         sev = str(record.frontmatter.get("severity") or "unset").lower()
         grouped.setdefault(sev, []).append(record)
-
     ordered_keys = sorted(
         grouped,
         key=lambda s: (_SEVERITY_RANK.get(s, len(SEVERITY_ORDER)), s),
     )
-    return [
+    return [(key, grouped[key]) for key in ordered_keys]
+
+
+def _issues_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Mode 4: issues grouped by severity, then risks the same way.
+
+    Risks share this surface (FEAT-0047) because "what is wrong" and
+    "what could go wrong" are the same question in different tenses, read
+    at the same moment, and both types already carry ``severity:`` in the
+    same vocabulary. Before this they appeared only in a Library
+    by-type group, and the overview's Risks stat tile navigated nowhere
+    (ISS-0063).
+
+    Risks get their **own** severity groups rather than being mixed into
+    the issue buckets: mixing would make the Issues stat-tile count
+    disagree with what the pane shows, and a risk is not triaged the way
+    an issue is.
+    """
+    issues = [r for r in index.notes_by_type("issue") if _platform_match(r, platform)]
+    out: list[dict[str, Any]] = [
         {
             "key": key,
             "label": key.title() if key != "unset" else "Severity unset",
@@ -2212,13 +2366,28 @@ def _issues_groups(
             "status": None,
             "items": [
                 _issue_item(index, r)
-                for r in sorted(
-                    grouped[key], key=lambda x: (x.note_id or "", x.rel_path)
-                )
+                for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
             ],
         }
-        for key in ordered_keys
+        for key, records in _severity_buckets(issues)
     ]
+
+    risks = [r for r in index.notes_by_type("risk") if _platform_match(r, platform)]
+    for key, records in _severity_buckets(risks):
+        out.append({
+            "key": f"risk:{key}",
+            "label": (
+                f"Risks · {key}" if key != "unset" else "Risks · severity unset"
+            ),
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [
+                _issue_item(index, r)
+                for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
+            ],
+        })
+    return out
 
 
 def _active_groups(
@@ -2353,40 +2522,11 @@ def _library_groups(
             }
         )
 
-    # ----- Design input (TASK-0212) -----
-    # Reference notes under `references/design/` wrap the dossiers and
-    # mockups a feature was built from. They get their own group rather
-    # than merging into the Docs tree because "what shaped this?" is a
-    # question people ask directly, and the answer is otherwise buried
-    # three folders deep. The notes stay ordinary references — this is a
-    # grouping over an existing type, not a new one.
-    # Membership by TYPE, not by path. This was `notes_by_type("reference")`
-    # filtered through a `references/design/` regex until the `[[design]]` type
-    # landed upstream (project-os-dev FEAT-0019) -- a design note that lived
-    # anywhere else was invisible, and a reference that happened to sit in that
-    # folder was mislabelled a design. The type is the claim; the path is where
-    # someone happened to put the file.
-    design_records = [
-        r for r in index.notes_by_type("design")
-        if _platform_match(r, platform)
-    ]
-    if design_records:
-        design_records.sort(key=lambda r: (r.note_id or "", r.rel_path))
-        out.append({
-            "key": "design",
-            "label": "Design",
-            "url": None,
-            "status": None,
-            "item_layout": "stacked",
-            # Point at the BENCH, not the note. The note is prose about a
-            # design; the artifact is the design. A Library entry that opened
-            # the note left the render surface with no door into it — built,
-            # tested, and unreachable (found by Edwin, 2026-07-28).
-            "items": [
-                {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
-                for r in design_records if r.note_id
-            ],
-        })
+    # The Design group lived here from TASK-0212 until PHASE-010
+    # (TASK-0243). It predated the Design mode: FEAT-0043 made design a
+    # top-level surface with its own system/proposals split, at which
+    # point this group was pointing at the same `~design/<id>` URLs that
+    # mode already owns. Removed as a duplicate, not as a demotion.
 
     docs_tree = _markdown_tree_group(
         index,
@@ -2401,36 +2541,11 @@ def _library_groups(
     if docs_tree is not None:
         out.append(docs_tree)
 
-    # ----- By type — rare (stacked layout, no type label) -----
-    # Typed-structured types (decisions, releases, risks, tests, workflows,
-    # plans) keep the standard ``id + human title`` shape — these notes have
-    # meaningful frontmatter titles and IDs, and live in well-known subdirs
-    # so a path subtitle adds no signal. Reference-typed notes do not appear
-    # here — they merge into the Docs tree above via DOC_TREE_INLINE_TYPES.
-    for type_name in LIBRARY_RARE_TYPES:
-        records = [
-            r for r in index.notes_by_type(type_name)
-            if _platform_match(r, platform)
-        ]
-        if not records:
-            continue
-        records.sort(key=lambda r: (r.note_id or "", r.rel_path))
-        group: dict[str, Any] = {
-            "key": f"rare:{type_name}",
-            "label": _pluralise_for_label(type_name),
-            "url": None,
-            "status": None,
-            "item_layout": "stacked",
-            "items": [_rare_item(index, r) for r in records],
-        }
-        if type_name == "change":
-            # CHG notes accumulate fast — bucket by Current week / Last
-            # week / Earlier this month for the current month, and by
-            # calendar month + per-week date ranges for past months.
-            # Only Current week opens by default.
-            group["items"] = []
-            group["subgroups"] = _changes_subgroups(index, records)
-        out.append(group)
+    # The by-type groups (Changes, Decisions, Plans, Risks, Tests,
+    # Workflows) lived here until PHASE-010 removed them; LIBRARY_RARE_TYPES
+    # is now empty and documents why. `_changes_subgroups` survives — it
+    # moved to `changes_payload` (TASK-0239), because CHG is the one type
+    # whose archive genuinely needs that bucketing.
 
     # ----- By type — auto-discovered (personal-vault types like Panel,
     #       Character, Daily, etc.). Each group nests items under their
@@ -2438,6 +2553,45 @@ def _library_groups(
     out.extend(_library_by_type_groups(index, platform))
 
     return out
+
+
+def changes_payload(
+    index: Index, platform: str | None = None
+) -> dict[str, Any]:
+    """CHG notes for the overview's history band (FEAT-0048).
+
+    The overview's lower half already answers "what happened" —
+    ``buildActivityTile`` (weekly note churn) and ``buildCommitsTile``
+    (git). CHG notes are the missing middle grain: coarser than a commit,
+    finer than a week's churn count, and the only one of the three that
+    carries a written reason.
+
+    The hybrid bucketing built by TASK-0039/0040/0041 is reused
+    **unchanged** — CHG is the one type with a genuinely unbounded
+    archive, and that structure is what makes it readable. The only thing
+    added here is the split: the open-by-default bucket becomes
+    ``recent`` (rendered expanded) and everything else becomes
+    ``buckets`` (rendered as collapsed disclosures beneath it), so the
+    archive travels with the recent items instead of being left behind on
+    a surface that no longer exists.
+    """
+    records = [
+        r for r in index.notes_by_type("change") if _platform_match(r, platform)
+    ]
+    subgroups = _changes_subgroups(index, records) if records else []
+    recent: list[dict[str, Any]] = []
+    buckets: list[dict[str, Any]] = []
+    for group in subgroups:
+        if group.get("default_open"):
+            recent.extend(group.get("items") or [])
+        else:
+            buckets.append(group)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "total": len(records),
+        "recent": recent,
+        "buckets": buckets,
+    }
 
 
 def _changes_subgroups(

@@ -1765,6 +1765,36 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   color: var(--text-faint);
   font-style: italic;
 }
+/* Changes (FEAT-0048 / TASK-0240) — the history band's middle grain,
+   between weekly churn and raw commits. Recent rows sit flush; the
+   week/month archive collapses beneath them as disclosures. */
+/* The tile heading carries a count on the right. Tile h3s are block by
+   default, where the count's `margin-left: auto` does nothing and the
+   number renders glued to the word ("Changes97"). */
+.ov-changes h3 { display: flex; align-items: baseline; }
+.ov-changes-body { display: flex; flex-direction: column; gap: 1px; }
+.ov-change-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.ov-change-row:hover { background: var(--row-hover); }
+.ov-change-row .mono { flex: none; font-size: 11px; }
+.ov-change-title {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 60px;
+}
+/* Nested buckets (a past month's weeks) indent one step so the depth is
+   legible without a second disclosure style. */
+.ov-changes-body .ctx-disclosure + div > div { margin-left: 10px; }
+
 .ov-commit-sha, .ov-commit-date { flex: none; font-size: 11px; color: var(--text-faint); }
 .ov-commit-subject {
   color: var(--text-muted);
@@ -3462,6 +3492,34 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .queue-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .review-queue-empty { margin: 8px 6px; }
 
+/* Registers (FEAT-0049) — the durable half, beneath the queue. Separated
+   by a rule so "waiting on me" and "what exists" do not read as one
+   list; the queue empties and these do not. */
+.review-register {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.review-queue .register-row { font-size: 11.5px; }
+.review-queue .register-row .mono { flex: none; font-size: 10.5px; }
+.queue-verdict {
+  margin-left: auto;
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+/* Band tokens from base.css, not new hues — the vocabulary is
+   statuses.py-derived and TST-0019 holds every surface to it. */
+.queue-verdict[data-verdict="approved"] { color: var(--status-done); }
+.queue-verdict[data-verdict="accepted"] { color: var(--status-done); }
+.queue-verdict[data-verdict="changes-requested"] { color: var(--status-blocked); }
+.queue-verdict[data-verdict="rejected"] { color: var(--status-blocked); }
+/* The verdict already claims margin-left:auto, so the date must not. */
+.review-register .queue-verdict + .queue-age { margin-left: 8px; }
+
 /* Typed kind pill — the desk's four verbs. */
 .queue-kind {
   flex: none; font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em;
@@ -3600,13 +3658,9 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 @media (prefers-reduced-motion: reduce) { .review-peek::before { transition: none; } }
 
-/* Advisory-phase tally in the review queue (ADR-0007). */
-.review-tally { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--border); }
-.review-tally-row {
-  display: flex; justify-content: space-between; gap: 8px;
-  padding: 2px 8px; font-size: 11.5px; color: var(--text-muted);
-}
-.review-tally-note { margin: 6px 8px 0; font-size: 11px; color: var(--text-faint); }
+/* The ADR-0007 advisory-phase tally's rules lived here (.review-tally,
+   -row, -note). Removed with the block by TASK-0247 — the ADR is settled,
+   so the instrument has no consumer. */
 
 /* ---- design bench (FEAT-0042 / TASK-0215) ------------------------------ */
 

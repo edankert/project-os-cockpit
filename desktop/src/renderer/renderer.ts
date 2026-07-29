@@ -2575,6 +2575,9 @@ function renderProjectOverview(data: StatsPayload): void {
     middle,
     buildWaitingOnYou(data),
     buildActivityTile(data),
+    // The history band, coarse to fine: weekly churn, then the changes
+    // someone wrote a reason for, then the commits (FEAT-0048).
+    buildChangesTile(),
     buildCommitsTile(),
   );
   docView.replaceChildren(...parts);
@@ -2748,10 +2751,24 @@ interface ReviewQueueItem {
   dirty_at_offer?: boolean;
 }
 interface ReviewQueueGroup { key: string; label: string; items: ReviewQueueItem[] }
+interface ReviewRegisterTest {
+  id: string; title: string; rel: string; status: string;
+  last_verified?: string; manual?: boolean; command?: string;
+  adequacy?: boolean; waived?: boolean;
+}
+interface ReviewRegisterReviewed {
+  id: string; title: string; rel: string; type: string;
+  verdict: string; reviewed_by?: string; review_date?: string;
+}
 interface ReviewQueuePayload {
   schema_version: number; total: number; groups: ReviewQueueGroup[];
   outcomes?: Record<string, number>;
   reviewed?: number;
+  // The durable half (FEAT-0049). The queue empties; these do not.
+  registers?: {
+    tests?: ReviewRegisterTest[];
+    reviewed?: ReviewRegisterReviewed[];
+  };
 }
 interface ReviewDetail {
   kind: string;
@@ -3888,53 +3905,140 @@ function renderReviewQueuePane(payload: ReviewQueuePayload): void {
     wrap.appendChild(empty);
   }
 
-  // The advisory-phase tally (ADR-0007). It is here rather than on a
-  // dashboard because the decision it feeds — whether to make review a
-  // gate — is one the person working the queue makes, and the ADR set an
-  // explicit trigger (~20 sets, or PHASE-008 close-out) that needs a
-  // visible count to fire on.
-  const reviewed = payload.reviewed ?? 0;
-  if (reviewed > 0) {
-    const foot = document.createElement('div');
-    foot.className = 'review-tally';
-    const head = document.createElement('div');
-    head.className = 'scope-heading';
-    head.textContent = `Reviewed · ${reviewed}`;
-    foot.appendChild(head);
-    const labels: Record<string, string> = {
-      accepted: 'accepted as proposed',
-      'accepted-amended': 'accepted, amended',
-      'changes-requested': 'changes requested',
-      rejected: 'rejected',
-      answered: 'questions answered',
-    };
-    for (const [key, label] of Object.entries(labels)) {
-      const n = payload.outcomes?.[key] ?? 0;
-      if (n === 0) continue;
-      const row = document.createElement('div');
-      row.className = 'review-tally-row';
-      const l = document.createElement('span');
-      l.textContent = label;
-      const v = document.createElement('span');
-      v.className = 'num';
-      v.textContent = String(n);
-      row.append(l, v);
-      foot.appendChild(row);
-    }
-    // The measurement's whole point: did review change anything?
-    const changed = (payload.outcomes?.['accepted-amended'] ?? 0)
-      + (payload.outcomes?.['changes-requested'] ?? 0)
-      + (payload.outcomes?.rejected ?? 0);
-    const note = document.createElement('p');
-    note.className = 'review-tally-note';
-    const sets = reviewed - (payload.outcomes?.answered ?? 0);
-    note.textContent = sets > 0
-      ? `${changed} of ${sets} set${sets === 1 ? '' : 's'} changed on review`
-      : '';
-    if (note.textContent) foot.appendChild(note);
-    wrap.appendChild(foot);
-  }
+  // The ADR-0007 advisory-phase tally used to render here, between the
+  // queue and the registers. Removed by TASK-0247: the ADR is settled
+  // (stay advisory, permanently), so the instrument it fed has no
+  // consumer, and it was the only non-interactive block in a pane of
+  // clickable rows — which is how Edwin came to ask what it was for
+  // (ISS-0064).
+  //
+  // The store still records outcomes on resolve() and the payload still
+  // carries `outcomes`/`reviewed`. That is the ledger's own record of
+  // what the desk did, and what a reopened gating question would read;
+  // what was retired is the obligation to watch it, not the data.
+
+  // The registers (FEAT-0049). The queue is what is waiting; these are
+  // what exists. A desk with an empty queue used to say nothing at all.
+  //
+  // Order is Queue → Reviewed → Tests, and it is load-bearing (asserted
+  // by TST-0022) because both are appended at the tail of this function:
+  // positional, so the next append in the obvious place would reshuffle
+  // the pane with nothing failing. Tests goes last — it is the least
+  // time-sensitive thing here, a browsable list of what gets verified
+  // rather than a record of what happened (Edwin's call).
+  appendIf(wrap, buildReviewedRegister(payload.registers?.reviewed ?? []));
+  appendIf(wrap, buildTestsRegister(payload.registers?.tests ?? []));
   wsNavContent.replaceChildren(wrap);
+}
+
+// Every acceptance test, not the `runs` queue slice above — that one is
+// gated to manual tests at `ready` (about one row of twenty-two here).
+// "What is waiting on me" and "what do we verify" are different
+// questions and both belong on the desk.
+function buildTestsRegister(tests: ReviewRegisterTest[]): HTMLElement | null {
+  if (tests.length === 0) return null;
+  const passing = tests.filter(
+    (t) => (t.status || '').toLowerCase() === 'passing',
+  ).length;
+  const section = document.createElement('div');
+  section.className = 'review-register';
+  const head = document.createElement('div');
+  head.className = 'scope-heading';
+  head.textContent = `Tests · ${passing}/${tests.length}`;
+  section.appendChild(head);
+  // Non-passing first: those are the ones worth reading, the rest are
+  // the denominator.
+  const ordered = [...tests].sort((a, b) => {
+    const ap = (a.status || '').toLowerCase() === 'passing' ? 1 : 0;
+    const bp = (b.status || '').toLowerCase() === 'passing' ? 1 : 0;
+    return ap - bp || a.id.localeCompare(b.id);
+  });
+  for (const t of ordered) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'queue-row register-row';
+    const id = document.createElement('span');
+    id.className = 'mono ov-typed';
+    id.dataset.type = 'test';
+    id.textContent = t.id;
+    const title = document.createElement('span');
+    title.className = 'queue-title';
+    title.textContent = t.title;
+    title.title = t.title;
+    row.append(id, title);
+    appendIf(row, statusChip(t.status));
+    if (t.manual) {
+      const m = document.createElement('span');
+      m.className = 'queue-age';
+      m.textContent = 'manual';
+      m.title = 'Run from the desk; no automated command';
+      row.appendChild(m);
+    }
+    row.addEventListener('click', () => void navigateTo(`/docs/${t.rel}`));
+    section.appendChild(row);
+  }
+  return section;
+}
+
+// Sourced from note frontmatter, not the store — `_MAX_REQUESTS` trims
+// the store's tail, so a store-backed register would quietly forget.
+function buildReviewedRegister(
+  items: ReviewRegisterReviewed[],
+): HTMLElement | null {
+  if (items.length === 0) return null;
+  const section = document.createElement('div');
+  section.className = 'review-register';
+  const head = document.createElement('div');
+  head.className = 'scope-heading';
+  head.textContent = `Reviewed · ${items.length}`;
+  section.appendChild(head);
+  const SHOWN = 12;
+  const render = (list: ReviewRegisterReviewed[], into: HTMLElement): void => {
+    for (const item of list) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'queue-row register-row';
+      const id = document.createElement('span');
+      id.className = 'mono ov-typed';
+      id.dataset.type = item.type;
+      id.textContent = item.id;
+      const title = document.createElement('span');
+      title.className = 'queue-title';
+      title.textContent = item.title;
+      title.title = item.reviewed_by
+        ? `${item.title}\nreviewed by ${item.reviewed_by}` : item.title;
+      const verdict = document.createElement('span');
+      verdict.className = 'queue-verdict';
+      verdict.dataset.verdict = item.verdict;
+      verdict.textContent = item.verdict;
+      const date = document.createElement('span');
+      date.className = 'queue-age';
+      date.textContent = item.review_date || '';
+      row.append(id, title, verdict, date);
+      row.addEventListener('click', () => void navigateTo(`/docs/${item.rel}`));
+      into.appendChild(row);
+    }
+  };
+  render(items.slice(0, SHOWN), section);
+  if (items.length > SHOWN) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ctx-disclosure';
+    const chev = document.createElement('span');
+    chev.className = 'ov-chev';
+    const label = document.createElement('span');
+    label.textContent = `${items.length - SHOWN} older`;
+    btn.append(chev, label);
+    const rest = document.createElement('div');
+    rest.hidden = true;
+    render(items.slice(SHOWN), rest);
+    btn.addEventListener('click', () => {
+      rest.hidden = !rest.hidden;
+      btn.classList.toggle('is-open', !rest.hidden);
+    });
+    section.append(btn, rest);
+  }
+  return section;
 }
 
 function buildQueueRow(item: ReviewQueueItem, groupKey: string): HTMLElement {
@@ -5232,13 +5336,23 @@ function buildStatTiles(data: StatsPayload): HTMLElement {
       `/${hero.requirements.total}`, buckets.requirements, mix.requirements,
     ));
   }
+  // Tests and Risks were passed no navMode until PHASE-010, so they
+  // rendered as divs: a count that looks like a control and does nothing
+  // (ISS-0063). They were dead because the types had no page. Now they
+  // do — the test register lives on the desk (FEAT-0049) and risks list
+  // in the Issues mode (FEAT-0047).
+  //
+  // Reqs stays deliberately dead: requirements nest under features, so
+  // the tile has no single destination. Recorded as a decision in
+  // PHASE-010's Out of Scope, and asserted by TST-0022 so it does not
+  // read as an oversight.
   strip.append(
     buildStatTile('Tests', String(hero.tests.passing),
-      `/${hero.tests.total}`, buckets.tests, mix.tests),
+      `/${hero.tests.total}`, buckets.tests, mix.tests, 'review'),
     buildStatTile('Issues', String(hero.issues.open),
       `open /${hero.issues.total}`, buckets.issues, mix.issues, 'issues'),
     buildStatTile('Risks', String(hero.risks.open),
-      `open /${hero.risks.total}`, buckets.risks, mix.risks),
+      `open /${hero.risks.total}`, buckets.risks, mix.risks, 'issues'),
   );
   wrap.appendChild(strip);
 
@@ -5830,6 +5944,124 @@ function buildCommitsTile(): HTMLElement {
   body.className = 'ov-commits-body';
   wrap.appendChild(body);
   void fillCommits(body);
+  return wrap;
+}
+
+// ----- Changes tile (FEAT-0048 / TASK-0240) -----------------------------
+// The history band's missing middle grain. Activity counts note churn by
+// week, Commits shows what git saw; a CHG note is the only one of the
+// three carrying a written reason for the change.
+//
+// Recent renders expanded, the pre-existing week/month buckets collapse
+// beneath it. That shape is the owner's call (2026-07-29) over routing
+// the archive through the Docs tree: the archive travels with the recent
+// items rather than being left behind on a surface that no longer lists
+// them.
+
+interface ChangesPayload {
+  total: number;
+  recent: NavItem[];
+  buckets: NavGroupData[];
+}
+
+function buildChangesTile(): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile ov-changes';
+  const h = document.createElement('h3');
+  h.textContent = 'Changes';
+  wrap.appendChild(h);
+  const body = document.createElement('div');
+  body.className = 'ov-changes-body';
+  wrap.appendChild(body);
+  void fillChanges(wrap, body);
+  return wrap;
+}
+
+async function fillChanges(
+  wrap: HTMLElement, body: HTMLElement,
+): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: ChangesPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/changes`);
+    // An older sidecar has no such endpoint. Drop the tile rather than
+    // leaving an empty box on the overview.
+    if (!resp.ok) { wrap.remove(); return; }
+    data = (await resp.json()) as ChangesPayload;
+  } catch { wrap.remove(); return; }
+
+  if (data.total === 0) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'No change notes yet.';
+    body.replaceChildren(p);
+    return;
+  }
+
+  const head = wrap.querySelector('h3');
+  if (head) {
+    const count = document.createElement('span');
+    count.className = 'ctx-card-right';
+    count.textContent = String(data.total);
+    head.appendChild(count);
+  }
+
+  const parts: HTMLElement[] = [];
+  for (const item of data.recent) parts.push(buildChangeRow(item));
+  if (data.recent.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'Nothing this week.';
+    parts.push(p);
+  }
+  for (const bucket of data.buckets) parts.push(buildChangeBucket(bucket));
+  body.replaceChildren(...parts);
+}
+
+function buildChangeRow(item: NavItem): HTMLElement {
+  const rel = extractRel(item.url);
+  const row = document.createElement('div');
+  row.className = 'ov-change-row';
+  const id = document.createElement('span');
+  id.className = 'mono ov-typed';
+  id.dataset.type = 'change';
+  id.textContent = String(item.id || '');
+  const title = document.createElement('span');
+  title.className = 'ov-change-title';
+  title.textContent = item.title || '';
+  title.title = item.title || '';
+  row.append(id, title);
+  if (rel) {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => void navigateTo(rel));
+  }
+  return row;
+}
+
+// A bucket and its optional week sub-buckets, as nested disclosures —
+// the same `ov-chev` affordance the record column's "N older" uses.
+function buildChangeBucket(group: NavGroupData): HTMLElement {
+  const wrap = document.createElement('div');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ctx-disclosure';
+  const chev = document.createElement('span');
+  chev.className = 'ov-chev';
+  const label = document.createElement('span');
+  const subs = group.subgroups ?? [];
+  const count = (group.items ?? []).length
+    + subs.reduce((n, s) => n + (s.items ?? []).length, 0);
+  label.textContent = `${group.label} · ${count}`;
+  btn.append(chev, label);
+  const inner = document.createElement('div');
+  inner.hidden = true;
+  for (const item of group.items ?? []) inner.appendChild(buildChangeRow(item));
+  for (const sub of subs) inner.appendChild(buildChangeBucket(sub));
+  btn.addEventListener('click', () => {
+    inner.hidden = !inner.hidden;
+    btn.classList.toggle('is-open', !inner.hidden);
+  });
+  wrap.append(btn, inner);
   return wrap;
 }
 
@@ -6621,7 +6853,16 @@ function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
   chevron.setAttribute('aria-hidden', 'true');
   summary.appendChild(chevron);
   const label = document.createElement('span');
-  label.textContent = `${kids.length} requirement${kids.length === 1 ? '' : 's'}`;
+  // Requirements were the only child type until FEAT-0046 nested the
+  // delivery plan here too, so a hardcoded "N requirements" would have
+  // counted the plan as one — the kind of quietly wrong label nobody
+  // reads twice.
+  const plans = kids.filter((k) => k.type === 'plan').length;
+  const rest = kids.length - plans;
+  const parts: string[] = [];
+  if (rest) parts.push(`${rest} requirement${rest === 1 ? '' : 's'}`);
+  if (plans) parts.push(plans === 1 ? 'plan' : `${plans} plans`);
+  label.textContent = parts.join(' · ');
   summary.appendChild(label);
   details.appendChild(summary);
   const list = document.createElement('ul');
@@ -7463,24 +7704,85 @@ function flattenNavItems(groups: NavGroupData[] | undefined, out: QuickItem[]): 
   }
 }
 
+// Modes whose union covers every note type in a project-os corpus.
+//
+// This used to be a single `mode=library` fetch, on the reasonable
+// assumption that Library was "the broadest one" — it carried a by-type
+// group for every canonical type. PHASE-010 removed those groups, which
+// would have silently reduced Cmd+P to pins and loose files: still a
+// populated palette, so nothing would look broken, and half the corpus
+// would simply stop being findable.
+//
+// That is the same reachability failure REQ-0025 gates the nav against,
+// reached through search instead. Enumerating the modes keeps the corpus
+// honest and makes the coverage claim checkable rather than incidental.
+const QUICK_CORPUS_MODES = [
+  'features',   // features + their requirements and plans
+  'tasks',
+  'issues',     // issues + risks (FEAT-0047)
+  'design',
+  'library',    // pins + the Docs tree, incl. references and workflows
+] as const;
+
 async function buildQuickCorpus(): Promise<void> {
   if (!sidecarBaseUrl) return;
-  // Library mode is the broadest single fetch — every canonical type
-  // (features, tasks, issues, requirements, ADRs, changes, refs)
-  // plus rare items. Good-enough v1; no need to aggregate multi-mode.
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/nav?mode=library`);
-    if (!resp.ok) return;
-    const data = (await resp.json()) as NavPayload;
-    const out: QuickItem[] = [];
-    flattenNavItems(data.groups, out);
-    // Some library groupings duplicate the same note (pinned + by-type);
-    // dedupe by rel-path.
-    const seen = new Set<string>();
-    quickCorpus = out.filter((it) => seen.has(it.rel) ? false : (seen.add(it.rel), true));
-  } catch {
-    /* leave previous corpus in place on transient failures */
+  const out: QuickItem[] = [];
+  const results = await Promise.all(QUICK_CORPUS_MODES.map(async (mode) => {
+    try {
+      const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/nav?mode=${mode}`);
+      if (!resp.ok) return null;
+      return (await resp.json()) as NavPayload;
+    } catch { return null; }
+  }));
+  if (results.every((r) => r === null)) return;  // keep the previous corpus
+  for (const data of results) {
+    if (data) flattenNavItems(data.groups, out);
   }
+  // Changes and tests have no nav mode — they live on the overview and
+  // the review desk. Both are still worth finding by name.
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/review-queue`);
+    if (resp.ok) {
+      const queue = (await resp.json()) as {
+        registers?: { tests?: Array<{ id?: string; title?: string; rel?: string }> };
+      };
+      for (const t of queue.registers?.tests ?? []) {
+        if (t.rel) {
+          out.push({
+            id: t.id || '', title: t.title || '',
+            rel: `/docs/${t.rel}`, type: 'test',
+          });
+        }
+      }
+    }
+  } catch { /* best-effort */ }
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/changes`);
+    if (resp.ok) {
+      const changes = (await resp.json()) as ChangesPayload;
+      const push = (it: NavItem): void => {
+        const rel = extractRel(it.url);
+        if (rel) {
+          out.push({
+            id: String(it.id || ''), title: it.title || '',
+            rel, type: 'change',
+          });
+        }
+      };
+      const walk = (groups: NavGroupData[]): void => {
+        for (const g of groups) {
+          for (const it of g.items ?? []) push(it);
+          if (g.subgroups) walk(g.subgroups);
+        }
+      };
+      for (const it of changes.recent ?? []) push(it);
+      walk(changes.buckets ?? []);
+    }
+  } catch { /* best-effort */ }
+  // Several modes reach the same note (a requirement nests under its
+  // feature and may also stand alone); dedupe by rel-path.
+  const seen = new Set<string>();
+  quickCorpus = out.filter((it) => seen.has(it.rel) ? false : (seen.add(it.rel), true));
 }
 
 function fuzzyScore(item: QuickItem, query: string): number {

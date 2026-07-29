@@ -415,15 +415,13 @@ def test_validation_flags_on_nav_items(tmp_path: Path) -> None:
     assert "waived" not in by_id["FEAT-0001"]
     assert "review_verdict" not in by_id["FEAT-0001"]
 
-    lib = cockpit.nav_payload(index, mode="library")
-
-    def _walk(groups):
-        for g in groups:
-            for it in g.get("items", []):
-                yield it
-            yield from _walk(g.get("subgroups", []))
-
-    tst = {it["id"]: it for it in _walk(lib["groups"]) if it.get("id")}
+    # Test rows carried these flags in the Library by-type group until
+    # PHASE-010 moved the test register onto the review desk (TASK-0241).
+    # The flags moved with them — a register that lists a test without
+    # its adequacy flag reports a green count over an unexamined guard,
+    # which is the thing FEAT-0018 added the flag to expose.
+    register = cockpit.review_queue_payload(index)["registers"]["tests"]
+    tst = {it["id"]: it for it in register if it.get("id")}
     assert tst["TST-0001"]["adequacy"] is True
     assert tst["TST-0002"]["adequacy"] is False
 

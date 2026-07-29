@@ -691,6 +691,14 @@ def test_queue_reports_the_advisory_phase_tally(workspace: Path, tmp_path: Path)
     and set a trigger (~20 sets, or PHASE-008 close-out). The store was
     counting outcomes and nothing read them — a revisit with no evidence
     is the failure ADR-0006 was written about.
+
+    **The ADR settled on 2026-07-29** (stay advisory, permanently) and the
+    desk's tally surface was removed with it (TASK-0247). These payload
+    fields deliberately stay: the store's outcome record is the ledger's
+    own account of what the desk did, and it is what a reopened gating
+    question would read. What was retired is the obligation to watch it,
+    not the data — so this asserts the recording, and TST-0022 asserts the
+    surface is gone.
     """
     store = ReviewStore(tmp_path)
     for outcome in ("accepted", "accepted-amended", "changes-requested"):

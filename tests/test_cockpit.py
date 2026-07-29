@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from project_os_cockpit import cockpit
 from project_os_cockpit.cockpit import SCHEMA_VERSION, context_payload, nav_payload
 from project_os_cockpit.index import Index
 
@@ -344,35 +345,32 @@ def test_nav_payload_library_docs_tree_merges_project_root_files(
     assert titles[0] == "README.md"
 
 
-def test_nav_payload_library_changes_hybrid_buckets(index: Index) -> None:
-    """The Changes group renders hybrid buckets (TASK-0040):
+def test_changes_payload_hybrid_buckets(index: Index) -> None:
+    """The hybrid bucketing survives the move to the overview (TASK-0040,
+    relocated by TASK-0239):
 
     - Current month buckets (Current week / Last week / Earlier this
       month) are emitted at the top level, NOT under a wrapping
       "current month" subgroup.
     - Past months wrap their own week sub-subgroups, labeled
       ``"Month Year"`` (e.g. ``"April 2026"``).
-    - Only Current week (when present) defaults open.
+    - The open-by-default bucket is split out as ``recent``; everything
+      else stays a collapsed bucket.
 
     The fixture's only CHG (`CHG-20260508-Inbound`) is from 2026-05-08;
     today is 2026-05-22 in this session, so it falls in "Earlier this
     month" (older than last Monday but inside current month)."""
-    payload = nav_payload(index, mode="library")
-    changes = next((g for g in payload["groups"] if g["key"] == "rare:change"), None)
-    assert changes is not None
-    assert changes["items"] == [], "items live inside subgroups"
-    subs = changes.get("subgroups", [])
-    assert subs, "fixture has at least one CHG"
-    labels = [sg["label"] for sg in subs]
-    # Each subgroup carries the standard stacked layout, items are CHG
-    # type, and only Current week defaults open.
-    for sg in subs:
-        assert sg["key"].startswith("rare:change:")
-        assert sg["item_layout"] == "stacked"
-        if sg["label"] == "Current week":
-            assert sg["default_open"] is True
-        else:
-            assert sg["default_open"] is False
+    payload = cockpit.changes_payload(index)
+    buckets = payload["buckets"]
+    assert buckets, "fixture has at least one CHG"
+    labels = [b["label"] for b in buckets]
+    for b in buckets:
+        assert b["key"].startswith("rare:change:")
+        assert b["item_layout"] == "stacked"
+        assert b["default_open"] is False, (
+            "the open bucket is lifted into `recent`, not left in `buckets`"
+        )
+    assert "Current week" not in labels
     # No "Current month" wrapper — current-month buckets must not be
     # nested under an extra month group.
     current_month_label = (
@@ -383,7 +381,20 @@ def test_nav_payload_library_changes_hybrid_buckets(index: Index) -> None:
     )
 
 
-def test_nav_payload_library_changes_sparse_past_month_is_flat(
+def test_changes_payload_loses_no_records(index: Index) -> None:
+    """The recent/buckets split is a partition, not a filter. A change
+    that falls out of both would vanish from the only surface that lists
+    it — the failure REQ-0025 gates against."""
+    payload = cockpit.changes_payload(index)
+    seen = len(payload["recent"])
+    for b in payload["buckets"]:
+        seen += len(b["items"])
+        for sub in b.get("subgroups", []):
+            seen += len(sub["items"])
+    assert seen == payload["total"]
+
+
+def test_changes_payload_sparse_past_month_is_flat(
     docs_root: Path,
 ) -> None:
     """A past month with fewer than 10 CHGs renders flat — items live
@@ -401,10 +412,9 @@ def test_nav_payload_library_changes_sparse_past_month_is_flat(
         encoding="utf-8",
     )
     fresh = Index.build(docs_root)
-    payload = nav_payload(fresh, mode="library")
-    changes = next(g for g in payload["groups"] if g["key"] == "rare:change")
+    payload = cockpit.changes_payload(fresh)
     jan = next(
-        (sg for sg in changes["subgroups"] if sg["label"] == "January 2026"),
+        (b for b in payload["buckets"] if b["label"] == "January 2026"),
         None,
     )
     assert jan is not None
@@ -454,40 +464,83 @@ def test_nav_payload_library_docs_tree_excludes_canonical_container_dirs(
     for canonical in (
         "changes/", "decisions/", "features/", "issues/", "phases/",
         "plans/", "releases/", "requirements/", "risks/", "tasks/",
-        "tests/", "workflows/", "__templates__/",
+        "tests/", "__templates__/",
     ):
         assert canonical not in subgroup_labels, (
             f"{canonical} should not appear as a Docs tree subgroup"
         )
+    # `workflows/` deliberately left off that list — TASK-0244 moved it
+    # *into* the tree. See test_workflows_join_the_docs_tree.
 
 
-def test_nav_payload_library_typed_rare_keeps_id_and_title(
-    index: Index, tmp_path: Path
+def test_library_is_reduced_to_pins_and_the_docs_tree(
+    index: Index,
 ) -> None:
-    """Typed-structured rare-type groups (decisions/releases/risks/tests/
-    workflows/plans) keep the original ``id + human title`` shape — these
-    notes have meaningful frontmatter titles and IDs (TASK-0025)."""
-    # Synthesise an ADR fixture so the assertion has something to bind to.
+    """PHASE-010: Library holds Pinned and the Docs tree, nothing else.
+
+    An ADR is synthesised because ``adr`` was the last canonical type to
+    leave (TASK-0243) and it clears ``_BY_TYPE_MIN_COUNT`` at 5+ notes —
+    so if the skip-set were still derived from the now-empty
+    ``LIBRARY_RARE_TYPES``, the group would come straight back under a
+    ``by-type:adr`` key instead of ``rare:adr``. Asserting the *key set*
+    rather than the absence of one key is what catches that.
+    """
     adr_dir = docs_root_for(index) / "decisions"
     adr_dir.mkdir(parents=True, exist_ok=True)
-    (adr_dir / "ADR-0099-Sample.md").write_text(
-        '---\ntype: "[[adr]]"\nid: ADR-0099\ntitle: "Sample ADR"\nstatus: accepted\n---\n# Sample\n',
+    for n in range(1, 7):
+        (adr_dir / f"ADR-00{n}9-Sample.md").write_text(
+            f'---\ntype: "[[adr]]"\nid: ADR-00{n}9\ntitle: "Sample ADR {n}"\n'
+            'status: accepted\n---\n# Sample\n',
+            encoding="utf-8",
+        )
+    fresh = Index.build(docs_root_for(index))
+    payload = nav_payload(fresh, mode="library")
+    keys = {g["key"] for g in payload["groups"]}
+    assert keys <= {"pinned", "docs-tree"}, (
+        f"Library should hold only pins and the tree, got {sorted(keys)}"
+    )
+
+
+def test_library_auto_discovery_still_works_for_vault_types(
+    index: Index,
+) -> None:
+    """The reduction removes canonical-type groups, not the discovery
+    mechanism. A personal vault with its own type still gets a group —
+    otherwise TASK-0245 would have quietly broken the feature that
+    ``_library_by_type_groups`` exists for."""
+    vault = docs_root_for(index) / "vault"
+    vault.mkdir(parents=True, exist_ok=True)
+    for n in range(6):
+        (vault / f"panel-{n}.md").write_text(
+            f'---\ntype: "[[panel]]"\ntitle: "Panel {n}"\n---\n# Panel {n}\n',
+            encoding="utf-8",
+        )
+    fresh = Index.build(docs_root_for(index))
+    payload = nav_payload(fresh, mode="library")
+    keys = {g["key"] for g in payload["groups"]}
+    assert any(k.startswith("by-type:panel") for k in keys), (
+        f"auto-discovery should still emit vault types, got {sorted(keys)}"
+    )
+
+
+def test_workflows_join_the_docs_tree(index: Index) -> None:
+    """TASK-0244: a workflow is prose with an `entrypoints:` list and no
+    lifecycle to track, so it browses as a file. Same mechanism
+    references got in TASK-0036."""
+    wf_dir = docs_root_for(index) / "workflows"
+    wf_dir.mkdir(parents=True, exist_ok=True)
+    (wf_dir / "WF-0001-Sample.md").write_text(
+        '---\ntype: "[[workflow]]"\nid: WF-0001\ntitle: "Sample workflow"\n'
+        'status: active\n---\n# Sample\n',
         encoding="utf-8",
     )
     fresh = Index.build(docs_root_for(index))
     payload = nav_payload(fresh, mode="library")
-    adrs = next((g for g in payload["groups"] if g["key"] == "rare:adr"), None)
-    assert adrs is not None, "synthetic ADR should produce the rare:adr group"
-    for item in adrs["items"]:
-        # Id is a project-os ID, NOT a filename.
-        assert item["id"].startswith("ADR-")
-        assert not item["id"].endswith(".md")
-        # Title is the frontmatter human title.
-        assert not item["title"].endswith(".md"), (
-            f"typed-rare title should be the human title, got {item['title']!r}"
-        )
-        assert item["subtitle"] == ""
-        assert item["type"] == "adr"
+    docs_tree = next(g for g in payload["groups"] if g["key"] == "docs-tree")
+    labels = {sg["label"] for sg in docs_tree.get("subgroups", [])}
+    assert "workflows/" in labels, (
+        f"workflows should browse in the tree, got {sorted(labels)}"
+    )
 
 
 def docs_root_for(index: Index) -> Path:

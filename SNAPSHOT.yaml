@@ -30,25 +30,68 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 45
-  ISS: 61
-  PHASE: 9
-  REQ: 24
+  FEAT: 50
+  ISS: 64
+  PHASE: 10
+  REQ: 25
   RISK: 4
   REL: 0
-  TASK: 234
-  TST: 21
+  TASK: 247
+  TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0234"
-  feature: "FEAT-0045"
-  phase: "PHASE-999"
-  issue: ""
-  note: "2026-07-28 FEAT-0045. The inbox moves out of the top-level nav into a left-pane tray — it is staging, not record, and it now offers per-item triage."
+  task: "TASK-0235"
+  feature: "FEAT-0046"
+  phase: "PHASE-010"
+  issue: "ISS-0062"
+  note: "2026-07-29 PHASE-010 complete, plus two follow-ups Edwin found by looking at the pane. Library is Pinned + Docs tree; plans nest under features (38, untyped included), risks join Issues, changes sit in the overview history band, Reviewed and Tests are registers on the desk. ISS-0064: two sections both headed 'Reviewed' (1 vs 62) — and asking what the smaller one was FOR settled ADR-0007 outright: review stays advisory permanently, because the gated flow does not occur. Tally surface removed, recording kept. 552 tests green, TST-0022 run three times over CDP. Owed: the independent review pass on both CHG-20260729 notes (QUALITY.md), and an upstream project-os issue for the three template workflow drafts 8 of 11 fleet repos never fill in."
 
 items:
   features:
+    FEAT-0046:
+      file: "docs/features/plans-on-feature/FEAT-0046-Plans-On-The-Feature.md"
+      title: "Plans belong to their feature — nested in the Features mode, found by path"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      tasks: [TASK-0235, TASK-0236]
+      fixes: ["ISS-0062"]
+      tests: ["TST-0022"]
+      note: "Found by path, not by frontmatter type: 19 of this repo's 33 PLAN.md files carry no frontmatter and are invisible everywhere today (features/ is excluded from the Docs tree too)."
+    FEAT-0047:
+      file: "docs/features/risks-on-issues/FEAT-0047-Risks-On-The-Issues-Surface.md"
+      title: "Risks join the Issues surface — what's wrong and what could go wrong, read together"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      tasks: [TASK-0237, TASK-0238]
+      fixes: ["ISS-0063"]
+      tests: ["TST-0022"]
+      note: "Library's Risks group is the only place risks appear anywhere in the cockpit. Both types already bucket by the same severity vocabulary."
+    FEAT-0048:
+      file: "docs/features/changes-on-overview/FEAT-0048-Changes-On-The-Overview.md"
+      title: "Changes on the overview — recent in the history band, the archive collapsed beneath"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      tasks: [TASK-0239, TASK-0240]
+      tests: ["TST-0022"]
+      note: "Owner's call (2026-07-29): the archive travels with the recent ones, collapsed — not routed through the Docs tree. _changes_subgroups relocates rather than dies."
+    FEAT-0049:
+      file: "docs/features/review-desk-record/FEAT-0049-Review-Desk-As-Record.md"
+      title: "The review desk gains its record — every acceptance test, and every reviewed item"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      tasks: [TASK-0241, TASK-0242]
+      tests: ["TST-0022"]
+      note: "The desk shows the transient and hides the durable: Test runs is gated to manual-and-ready (1 of 22 here), and the 62 notes carrying a non-empty review_verdict are listed nowhere. Reviewed comes from note frontmatter, not the store — _MAX_REQUESTS trims the store's tail. Six notes declare review_verdict empty and are correctly excluded."
+    FEAT-0050:
+      file: "docs/features/library-reduction/FEAT-0050-Library-Reduction.md"
+      title: "Library reduction — Pinned and the Docs tree, nothing else"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      requirements: ["REQ-0025"]
+      tasks: [TASK-0243, TASK-0244, TASK-0245]
+      tests: ["TST-0022"]
+      note: "Gated on REQ-0025. TASK-0243/0244 land independently (duplicates and a relocation); TASK-0245 waits on all four destinations — each is the sole navigable route to its type."
     FEAT-0043:
       file: "docs/features/design-surface/FEAT-0043-Design-Top-Level-Surface.md"
       title: "Design as a top-level surface, opening with the project brief"
@@ -294,6 +337,93 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0247:
+      file: "docs/features/review-desk-record/plan/tasks/TASK-0247-Drop-The-Advisory-Tally.md"
+      title: "Drop the advisory-phase tally from the desk — ADR-0007 is settled"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0049
+      note: "ADR-0007 settled 2026-07-29: review stays advisory permanently — not because it rubber-stamps but because the gated flow does not occur (1 desk interaction vs 62 notes carrying a verdict; review happens at close-out). The store keeps recording outcomes; only the surface goes."
+    TASK-0246:
+      file: "docs/features/review-desk-record/plan/tasks/TASK-0246-Desk-Section-Order-And-Naming.md"
+      title: "Name the desk's two review sections for what they measure, and order the pane Queue → Reviewed → Tests"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0049
+      fixes: ["ISS-0064"]
+      note: "The ADR-0007 tally becomes 'Outcomes'; Reviewed sits next to it, Tests last. The order is now asserted because both registers append at the tail of one function — positional, so the next append reshuffles it silently."
+    TASK-0235:
+      file: "docs/features/plans-on-feature/plan/tasks/TASK-0235-Plan-Lookup-By-Path.md"
+      title: "Resolve a feature's plan by path, not by frontmatter type"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0046
+      note: "The count assertion is the point: a revert to notes_by_type('plan') still returns 14 plausible rows."
+    TASK-0236:
+      file: "docs/features/plans-on-feature/plan/tasks/TASK-0236-Plan-Nested-Under-Feature.md"
+      title: "Render the plan as a child row under its feature in the Features mode"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0046
+    TASK-0237:
+      file: "docs/features/risks-on-issues/plan/tasks/TASK-0237-Risks-Group-In-Issues-Mode.md"
+      title: "Risks group in the Issues nav mode, bucketed by severity"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0047
+      note: "Own severity groups rather than mixed into the issue buckets — mixing would make the Issues stat tile disagree with the pane."
+    TASK-0238:
+      file: "docs/features/risks-on-issues/plan/tasks/TASK-0238-Risks-Tile-Destination.md"
+      title: "The Risks stat tile navigates to the Issues mode"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0047
+    TASK-0239:
+      file: "docs/features/changes-on-overview/plan/tasks/TASK-0239-Changes-Payload.md"
+      title: "Changes payload — recent plus the existing buckets, at /api/cockpit/changes"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0048
+    TASK-0240:
+      file: "docs/features/changes-on-overview/plan/tasks/TASK-0240-Changes-Tile.md"
+      title: "Changes tile in the overview history band — recent expanded, archive collapsed"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0048
+    TASK-0241:
+      file: "docs/features/review-desk-record/plan/tasks/TASK-0241-Tests-Register.md"
+      title: "Tests register on the desk — every acceptance test, not the runnable slice"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0049
+      note: "The queue group stays gated to manual-and-ready; both counts are asserted so collapsing one into the other fails."
+    TASK-0242:
+      file: "docs/features/review-desk-record/plan/tasks/TASK-0242-Reviewed-Register.md"
+      title: "Reviewed register from note frontmatter — the verdicts that already exist"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0049
+      note: "Notes, not the store: _MAX_REQUESTS = 200 trims oldest-first on every save, so a store-sourced register would silently lose its tail."
+    TASK-0243:
+      file: "docs/features/library-reduction/plan/tasks/TASK-0243-Drop-Duplicated-Groups.md"
+      title: "Drop the Design and Decisions groups — both are duplicates of existing surfaces"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0050
+    TASK-0244:
+      file: "docs/features/library-reduction/plan/tasks/TASK-0244-Workflows-Into-The-Docs-Tree.md"
+      title: "Workflows join the Docs tree, the way references already do"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0050
+      note: "The type is alive across the fleet (3 of 11 repos authored real ones, all status: active); only this repo's three template drafts are dead. Upstream template fix belongs to project-os."
+    TASK-0245:
+      file: "docs/features/library-reduction/plan/tasks/TASK-0245-Drop-Relocated-Groups.md"
+      title: "Drop the Plans, Risks, Tests and Changes groups once their destinations exist"
+      status: done
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: FEAT-0050
+      note: "Gated, not merely ordered — depends on TASK-0236/0237/0240/0241. This is the task REQ-0025 was written for."
     TASK-0222:
       file: "docs/features/design-surface/plan/tasks/TASK-0222-Fill-And-Guard-The-Brief.md"
       title: "Fill this repo's brief, and report a placeholder brief upstream"
@@ -1579,6 +1709,30 @@ items:
 
 
   issues:
+    ISS-0064:
+      file: "docs/issues/ISS-0064-Two-Reviewed-Sections.md"
+      title: "The review desk shows two sections headed 'Reviewed' with different counts, and the registers sit in the wrong order"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: "FEAT-0049"
+      note: "Found by Edwin looking at the pane, minutes after PHASE-010 closed. TASK-0242 took the word 'Reviewed' for its register without noticing the ADR-0007 tally already used it — 'Reviewed · 1' above 'Reviewed · 62', counting different populations. TST-0022 step 5 checked both registers existed and was blind to naming and order, because it was derived from a reachability requirement."
+    ISS-0062:
+      file: "docs/issues/ISS-0062-Most-Plans-Are-Invisible.md"
+      title: "19 of 33 plans are invisible in the cockpit — the Library group shows only the typed ones"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: "FEAT-0046"
+      note: "Type-based lookup returns 14 convincing rows out of 33. The other 19 carry no frontmatter, and features/ is excluded from the Docs tree, so they are unreachable everywhere. Fixed by reading the path, not by retyping the files."
+    ISS-0063:
+      file: "docs/issues/ISS-0063-Dead-Stat-Tiles.md"
+      title: "The Risks and Tests stat tiles are dead ends — they look clickable and navigate nowhere"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      parent: "FEAT-0047"
+      note: "buildStatTile renders a button only when passed a navMode; Reqs, Tests and Risks are passed none. Reqs stays dead deliberately — it has no single destination."
     ISS-0032:
       file: "docs/issues/ISS-0032-Dispatch-Agent-Vocabulary-Is-Closed-To-Two.md"
       title: "Dispatch agent vocabulary is a closed two-value union; its ternaries coerce any third agent to 'claude'"
@@ -1758,6 +1912,13 @@ items:
       component: index/watcher
 
   requirements:
+    REQ-0025:
+      file: "docs/requirements/REQ-0025-No-Type-Loses-Its-Surface.md"
+      title: "No note type loses its only surface"
+      status: implemented
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      implements: "FEAT-0050"
+      note: "The phase's one real hazard is ordering: for four of the seven types moved, the Library group is the sole navigable route, and nothing in the toolchain detects a reduction that lands before its destination. Written as a gate rather than a plan note because the cockpit shipped this exact defect twice in PHASE-009."
     REQ-0024:
       file: "docs/requirements/REQ-0024-Brief-Is-Maintained.md"
       title: "The project brief is a maintained artifact, not a template stub"
@@ -1848,6 +2009,15 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-010:
+      file: "docs/phases/PHASE-010-Surface-Ownership.md"
+      title: "Surface ownership"
+      status: done
+      order: 10
+      features: ["FEAT-0046", "FEAT-0047", "FEAT-0048", "FEAT-0049", "FEAT-0050"]
+      requirements: ["REQ-0025"]
+      issues: ["ISS-0062", "ISS-0063"]
+      note: "Library accumulated eight by-type groups by a process nobody chose. Measured: one duplicate of the Design mode, one duplicate of the overview record column, a Plans group showing 14 of 33, two dead stat tiles. Each type moves to the page that owns its question."
     PHASE-009:
       file: "docs/phases/PHASE-009-Design-Surfaces.md"
       title: "Design surfaces"
@@ -1914,6 +2084,13 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0022:
+      file: "docs/features/library-reduction/plan/tests/TST-0022-Surface-Ownership.md"
+      title: "Surface ownership — every moved type is reachable, and Library is reduced"
+      status: passing
+      phase: "[[PHASE-010-Surface-Ownership]]"
+      validates: ["REQ-0025", "FEAT-0046", "FEAT-0047", "FEAT-0048", "FEAT-0049", "FEAT-0050", "ISS-0062", "ISS-0063"]
+      note: "Counts against the live corpus, not non-emptiness — a group that renders but lost half its rows passes the existing payload-shape tests and must fail this. Carries manual steps because both PHASE-009 reachability bugs were renderer-side with correct payloads."
     TST-0019:
       title: "Status vocabulary parity — one canonical band map, six surfaces held to it"
       status: passing
@@ -2493,18 +2670,19 @@ items:
       title: "Approval gate for planning artifacts — advisory first, measured before gating"
       status: accepted
       path: "docs/decisions/ADR-0007-Planning-Artifact-Approval-Gate.md"
+      note: "Gating question SETTLED 2026-07-29: stay advisory, permanently. Not because review rubber-stamps but because the flow the gate would govern does not occur — 1 desk interaction against 62 notes carrying a review_verdict, because review here happens at close-out (QUALITY.md), not before implementation. The measurement obligation is discharged and the tally surface removed (TASK-0247); ReviewStore keeps recording outcomes for any future revisit."
 
 metrics:
   counts:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 45
-    features_done: 38
-    tasks_total: 234
-    tasks_done: 229
-    tests_total: 21
-    tests_passing: 21
+    features_total: 50
+    features_done: 43
+    tasks_total: 247
+    tasks_done: 242
+    tests_total: 22
+    tests_passing: 22
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
