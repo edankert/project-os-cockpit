@@ -2448,6 +2448,11 @@ items:
   releases: {}
 
   designs:
+    DES-0003:
+      file: "docs/designs/DES-0003-Intent-Page-And-Claims-Board.md"
+      title: "The intent page and the claims board"
+      status: draft
+      note: "role: proposal. The cockpit-side half of the 2026-07-29 design conversation; the upstream half is project-os-dev ADR-0014 (typed evidence) and ADR-0015 (parked hosted product). Deliberately has no asset: yet — see its own open question 4."
     DES-0002:
       file: "docs/designs/DES-0002-Cockpit-Design-System.md"
       title: "Cockpit design system"
