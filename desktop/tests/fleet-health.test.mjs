@@ -895,3 +895,20 @@ test('Restart Console survived the menu deletion (ISS-0080)', async () => {
     path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
   assert.ok(js.includes('onRestartTerminal'), 'the renderer never listens for it');
 });
+
+test('a right-click never touches the console selection (ISS-0081)', async () => {
+  // xterm selects the word under the cursor on right-click, and on
+  // macOS that defaults to ON. With copy-on-select made unconditional
+  // by ISS-0080 the two combined badly: right-click selects a word,
+  // copy-on-select copies it, the clipboard you were about to paste is
+  // gone — so right-click appeared to "copy the current word" and then
+  // paste it back. Reported the moment ISS-0080 shipped.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const i = js.indexOf('new Terminal(');
+  assert.notEqual(i, -1, 'the terminal constructor moved');
+  const opts = js.slice(i, js.indexOf('}', i) + 1);
+  assert.ok(/rightClickSelectsWord:\s*false/.test(opts),
+    'right-click selects a word again — with copy-on-select on, that '
+    + 'clobbers the clipboard before the paste reads it');
+});

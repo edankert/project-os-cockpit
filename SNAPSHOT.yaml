@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 54
-  ISS: 80
+  ISS: 81
   PHASE: 20
   REQ: 25
   RISK: 4
@@ -1854,6 +1854,13 @@ items:
 
 
   issues:
+    ISS-0081:
+      file: "docs/issues/ISS-0081-Right-Click-Selected-A-Word-And-Clobbered-The-Clipboard.md"
+      title: "Right-click word-select plus copy-on-select overwrote the clipboard before the paste read it"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      note: "Introduced by ISS-0080: copy-on-select was opt-in and off, so xterm's rightClickSelectsWord (on by default on macOS) was harmless. Turning copy-on-select on made a dormant default load-bearing — a default that was never wrong before is not a default that was checked."
     ISS-0080:
       file: "docs/issues/ISS-0080-Console-Context-Menu-Replaced-By-Terminal-Convention.md"
       title: "Replace the console context menu with select-copies / right-click-pastes"

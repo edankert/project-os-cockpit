@@ -84,5 +84,6 @@ Two follow-ups from Edwin trying it, both fixed:
 
 - **[[ISS-0079]]** — the note context menu keyed off `closest('a')`, so History's `<button>` rows got the word menu. My [[TASK-0262]] fix covered anchors and I verified it on an anchor.
 - **[[ISS-0080]]** — the console's context menu never worked for him across three attempts. Replaced with the terminal convention: **select copies, right-click pastes**, no menu.
+- **[[ISS-0081]]** — which ISS-0080 then caused: xterm's right-click word-select plus unconditional copy-on-select overwrote the clipboard with the word under the cursor, so right-click pasted that word back.
 
 **The pattern in both is the same and worth naming.** Each time I verified the case I had built, on the surface I had built it for, and each time the user found the surface I had not. Right-clicking an anchor worked; right-clicking a History row did not. A dispatched `contextmenu` event worked; a real right-click did not.

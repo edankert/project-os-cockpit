@@ -1685,6 +1685,16 @@ function ensureXterm(): void {
     cursorBlink: true,
     scrollback: 5000,
     allowProposedApi: true,
+    // xterm selects the word under the cursor on right-click, and on
+    // macOS that defaults to ON. With copy-on-select now unconditional
+    // (ISS-0080) the two combine badly: right-click selects a word,
+    // copy-on-select copies it, and the clipboard you were about to
+    // paste is gone — so right-click "copies the current word" and then
+    // pastes it back. Reported immediately after ISS-0080 landed.
+    //
+    // Right-click is the PASTE gesture here. It must not touch the
+    // selection at all.
+    rightClickSelectsWord: false,
   });
   fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
