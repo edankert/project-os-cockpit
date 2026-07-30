@@ -5,7 +5,7 @@ aliases: ["REQ-0019"]
 title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — is available on one dedicated screen"
 status: implemented
 implements: ["[[FEAT-0032-Agents-Screen]]"]
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-19
 updated: 2026-07-20

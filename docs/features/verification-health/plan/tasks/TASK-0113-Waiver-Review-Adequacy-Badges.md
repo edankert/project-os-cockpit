@@ -4,7 +4,7 @@ id: TASK-0113
 aliases: ["TASK-0113"]
 title: "Waiver/review-verdict badges + adequacy surfacing in note and index views"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-07-17

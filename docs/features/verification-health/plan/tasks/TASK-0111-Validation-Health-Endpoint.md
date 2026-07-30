@@ -4,7 +4,7 @@ id: TASK-0111
 aliases: ["TASK-0111"]
 title: "Validation health endpoint — run validate-docs on watcher events, cache result, SSE notify"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-07-17

@@ -4,7 +4,7 @@ id: TST-0016
 aliases: ["TST-0016"]
 title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
 status: passing
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-17
 updated: 2026-07-18

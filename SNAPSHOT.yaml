@@ -35,8 +35,8 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 73
-  PHASE: 13
+  ISS: 74
+  PHASE: 15
   REQ: 25
   RISK: 4
   REL: 0
@@ -47,9 +47,9 @@ counters:
 focus:
   task: ""
   feature: "FEAT-0028"
-  phase: "PHASE-013"
+  phase: "PHASE-015"
   issue: ""
-  note: "2026-07-30 PHASE-013 done. FEAT-0028 (fleet validator badges + roll-up) and FEAT-0044 (design systems across seven surfaces) both closed; ISS-0055 fixed. Verified against the real fleet: 10 workspaces, one deliberately drifted, badge and roll-up correct, cleared over SSE without a restart. Fleet re-validated 12/12 OK and fresh clones of the six repos touched validate clean. Wrote to 10 other repositories (3 design notes, 9 gitignore anchorings, 3 upstream issues in project-os-dev) — the per-repo table is in the phase note. ISS-0072 was found by this phase's live pass AND fixed: the SNAPSHOT watch was registered with the caller's path CASE, and FSEvents is case-sensitive on a case-insensitive filesystem, so every app-spawned sidecar had a dead watch. Independently reviewed: changes-requested on two guards that could not fail (the square encoding and the ISS-0072 symptom) plus seven smaller findings; all nine addressed and the reviewer's own mutations kept as regression cases. OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved)."
+  note: "2026-07-30 PHASE-013/014/015 all done. PHASE-013 (fleet validator badges + the design-system rollout across 7 surfaces) reviewed: changes-requested on two guards that could not fail, all nine findings addressed. PHASE-014 and PHASE-015 came from Edwin asking how delivered-but-unplanned work should be handled: 16 of the 19 notes naming PHASE-999 were terminal, so the strip drew 16 delivered squares under 'Future'. Sixteen re-homed from evidence already in the notes; the one with no delivering phase got PHASE-014 written for it, retrospectively and saying so. The RULE is upstream and open (project-os-dev ISS-0027, the mirror of PHASE-CHILDREN) because the validator is template-owned; locally there are two guards. OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved); the fleet keeps its own parking-lot backlog (your-trainer 72, project-os-dev 42)."
 items:
   features:
     FEAT-0046:
@@ -1516,20 +1516,20 @@ items:
     TASK-0111:
       title: "Validation health endpoint — run validate-docs on watcher events, cache result, SSE notify"
       status: done
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-011-Unproven-Claims]]"
       path: "docs/features/verification-health/plan/tasks/TASK-0111-Validation-Health-Endpoint.md"
       parent: "FEAT-0018"
       tests: ["TST-0016"]
     TASK-0112:
       title: "Health badge + drift panel UI — chrome badge, error list deep-linked to offending notes"
       status: done
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-011-Unproven-Claims]]"
       path: "docs/features/verification-health/plan/tasks/TASK-0112-Health-Badge-And-Drift-Panel.md"
       parent: "FEAT-0018"
     TASK-0113:
       title: "Waiver/review-verdict badges + adequacy surfacing in note and index views"
       status: done
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-011-Unproven-Claims]]"
       path: "docs/features/verification-health/plan/tasks/TASK-0113-Waiver-Review-Adequacy-Badges.md"
       parent: "FEAT-0018"
       tests: ["TST-0016"]
@@ -1742,6 +1742,13 @@ items:
 
 
   issues:
+    ISS-0074:
+      file: "docs/issues/ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot.md"
+      title: "16 of 19 notes naming PHASE-999 are terminal — the strip draws 16 delivered squares under 'Future'"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-015-Phase-Hygiene]]"
+      note: "Edwin's question, measured. The rule is upstream (project-os-dev ISS-0027, the mirror of PHASE-CHILDREN); this is the local corpus correction plus a guard so it cannot silently refill."
     ISS-0073:
       file: "docs/issues/ISS-0073-Swift-Unit-Interval-Colours-Read-As-Unresolved.md"
       title: "SwiftUI 0-1 Color(red:green:blue:) reads as unresolved"
@@ -1813,7 +1820,7 @@ items:
       title: "Dispatch agent vocabulary is a closed two-value union; its ternaries coerce any third agent to 'claude'"
       status: fixed
       severity: medium
-      phase: "[[PHASE-999]]"
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
     ISS-0030:
       title: "Phase completion is inferred from task counts and ignores the phase's own status, so a superseded phase reads live; live phases also sort by order: rather than active-first"

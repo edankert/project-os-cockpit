@@ -5,7 +5,7 @@ aliases: ["ISS-0061"]
 title: "A denied screen-recording permission surfaced as \"could not create image from rect\""
 status: fixed
 severity: medium
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

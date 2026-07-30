@@ -4,7 +4,7 @@ id: FEAT-0045
 aliases: ["FEAT-0045"]
 title: "A project inbox: drop anything in, an LLM files it, nothing stays"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

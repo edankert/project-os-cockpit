@@ -4,7 +4,7 @@ id: TASK-0234
 aliases: ["TASK-0234"]
 title: "Move the inbox into the left pane as a tray, with previews and per-item triage"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

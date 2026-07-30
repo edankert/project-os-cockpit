@@ -4,7 +4,7 @@ id: TASK-0112
 aliases: ["TASK-0112"]
 title: "Health badge + drift panel UI — chrome badge, error list deep-linked to offending notes"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-07-17

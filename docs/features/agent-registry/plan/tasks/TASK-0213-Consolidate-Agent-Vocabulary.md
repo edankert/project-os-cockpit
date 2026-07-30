@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0213
 title: "Consolidate the agent vocabulary into one served registry (ISS-0032)"
 status: done
-phase: "[[PHASE-999]]"
+phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-27
 updated: 2026-07-27

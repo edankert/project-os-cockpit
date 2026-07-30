@@ -23,6 +23,9 @@ from pathlib import Path
 
 import pytest
 
+from project_os_cockpit import cockpit
+from project_os_cockpit.index import Index
+
 ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = ROOT / "tests"
 DOCS = ROOT / "docs"
@@ -266,3 +269,63 @@ def test_every_docs_note_is_tracked_by_git() -> None:
     # already committed does not trip this; un-anchoring plus a new note does.
     # The residual risk is therefore new notes only, which is the risk that
     # matters — an existing note cannot silently leave the repository.
+
+
+# ---- ISS-0074: the parking lot is for unplanned work, not finished work -----
+
+def test_no_terminal_note_sits_in_the_parking_lot() -> None:
+    """A completed item may not name the sentinel phase.
+
+    `PHASE-999` answers "which phase will deliver this" — a question about
+    the future. Once the work has shipped the question is "which push
+    shipped it", and the plan-time answer is a category error rather than
+    a stale value. Nothing re-asks it at close-out, so items get stuck
+    there by construction: 16 of the 19 notes naming it were terminal
+    when Edwin asked about this on 2026-07-30, and the phase strip drew
+    16 `delivered` squares under a heading reading "Future / Unphased".
+
+    The rule belongs in `validate-docs.py`, which is template-owned and
+    held byte-identical here (ISS-0026) — so it is proposed upstream as
+    `project-os-dev` ISS-0027 and guarded locally in the meantime. Same
+    split ISS-0069 took for the review-verdict vocabulary.
+
+    Matches on the resolved ID rather than a spelling: the corpus carries
+    both `[[PHASE-999-Future]]` and the bare `[[PHASE-999]]`, and the
+    first correction pass matched only one of them and stopped partway.
+    """
+    index = Index.build(DOCS)
+    stranded: list[str] = []
+    for record in index.iter_records():
+        fm = record.frontmatter or {}
+        raw = str(fm.get("phase") or "")
+        if not re.search(r"\bPHASE-999\b", raw):
+            continue
+        note_type = str(fm.get("type") or "").strip("[]\"' ")
+        status = str(fm.get("status") or "")
+        if cockpit.is_done_status(note_type, status):
+            stranded.append(f"{fm.get('id')} ({note_type}, {status})")
+
+    assert not stranded, (
+        "terminal notes are parked in PHASE-999, so the phase strip renders "
+        "shipped work as unplanned — re-home each to the phase that delivered "
+        f"it, or write the phase note if none did (PHASE-014 is one): {sorted(stranded)}"
+    )
+
+
+def test_the_parking_lot_still_holds_the_work_it_is_for() -> None:
+    """Guards the guard above: emptying PHASE-999 entirely would pass it.
+
+    The fix for the sixteen is re-homing, not eviction — a sentinel with
+    no residents would satisfy the assertion above while destroying the
+    thing it exists to make visible.
+    """
+    index = Index.build(DOCS)
+    parked = [
+        fm.get("id")
+        for record in index.iter_records()
+        if re.search(r"\bPHASE-999\b", str((fm := record.frontmatter or {}).get("phase") or ""))
+    ]
+    assert parked, (
+        "nothing names PHASE-999 at all — genuinely unplanned work has "
+        "nowhere to sit, which is the failure the sentinel prevents"
+    )

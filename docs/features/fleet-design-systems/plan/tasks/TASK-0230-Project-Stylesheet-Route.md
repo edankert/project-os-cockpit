@@ -4,7 +4,7 @@ id: TASK-0230
 aliases: ["TASK-0230"]
 title: "Serve a project's own stylesheets to its design artifacts"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

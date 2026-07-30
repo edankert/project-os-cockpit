@@ -4,7 +4,7 @@ id: TASK-0232
 aliases: ["TASK-0232"]
 title: "The inbox convention and its triage skill, upstream"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

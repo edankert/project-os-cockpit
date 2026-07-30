@@ -10,7 +10,7 @@ created: 2026-07-27
 updated: 2026-07-27
 component: desktop
 source: ["session:2026-07-27 external-review design"]
-phase: "[[PHASE-999]]"
+phase: "[[PHASE-007-Agent-Instrumentation]]"
 related: [ISS-0023, FEAT-0024, FEAT-0025]
 tests: []
 fixed_by: "[[TASK-0213]]"

@@ -5,7 +5,7 @@ aliases: ["ISS-0059"]
 title: "Three fleet apps declare colour in Kotlin and Swift, so the living style guide cannot read them"
 status: fixed
 severity: medium
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

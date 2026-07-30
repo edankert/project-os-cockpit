@@ -4,7 +4,7 @@ id: TASK-0233
 aliases: ["TASK-0233"]
 title: "Drop or paste anything onto the cockpit and it lands in the inbox"
 status: done
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28
