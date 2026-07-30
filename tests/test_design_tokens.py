@@ -111,14 +111,32 @@ def test_the_real_implementation_is_self_consistent() -> None:
     assert dt.compare(impl, impl)["diverged"] == []
 
 
-def test_the_real_corpus_declares_no_scoped_tokens_yet() -> None:
-    """Recorded as a fact rather than asserted as success. DES-0001 uses
-    `--m-*`/`--t-*` names, so this check is silent on the only artifact in the
-    repo — which is precisely the gap the authoring contract exists to close
-    for the NEXT design, and why the parity claim was demoted from 'the reason
-    to build this' to 'a real, narrow check'."""
+def test_the_real_corpus_declares_scoped_tokens_and_they_agree() -> None:
+    """Flipped 2026-07-30, on this test's own instruction.
+
+    It used to assert `results == {}` and record, as a fact rather than a
+    success, that no artifact in the repo declared scoped tokens — DES-0001
+    used `--m-*`/`--t-*` names, so the checker was silent on the only asset
+    that existed. That silence is why ISS-0049 descoped the parity work:
+    a detector with nothing to detect.
+
+    DES-0004 is the first artifact authored under the contract
+    (TASK-0221), and it copies the status/severity/type tokens verbatim
+    from `base.css` and `cockpit.css`. So the checker now has something to
+    check, and the assertion becomes the one it was built for: whatever a
+    design declares must **agree** with the implementation.
+
+    This is the stronger test in both directions — it fails if a design
+    drifts from the CSS, and it fails if the corpus goes back to declaring
+    nothing checkable.
+    """
     results = dt.check_design_assets(DOCS, STATIC)
-    assert results == {}, (
-        "a design now declares scoped tokens — good; update this test to "
-        "assert it AGREES rather than that none exist"
+    assert results, (
+        "no design declares scoped tokens; the checker is silent again and "
+        "the parity claim is unsupported (see ISS-0049)"
     )
+    for asset, report in results.items():
+        assert report["diverged"] == [], (
+            f"{asset} declares tokens that disagree with the implementation: "
+            f"{report['diverged']}"
+        )

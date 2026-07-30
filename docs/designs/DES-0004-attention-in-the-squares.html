@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<title>DES-0004 — Attention in the squares</title>
+<style>
+  /* Status, severity and type tokens copied from
+     src/project_os_cockpit/static/base.css and static/cockpit.css on
+     2026-07-30 — checked against those files, not recalled. Only the
+     status/severity palette is machine-checked (design_tokens.py); the
+     rest is descriptive. */
+  :root {
+    --bg:            hsl(0 0% 99%);
+    --surface:       hsl(0 0% 96%);
+    --surface-2:     hsl(0 0% 92%);
+    --border:        hsl(0 0% 86%);
+    --border-strong: hsl(0 0% 76%);
+    --text:          hsl(0 0% 13%);
+    --text-muted:    hsl(0 0% 38%);
+    --text-faint:    hsl(0 0% 55%);
+    --accent-link:   hsl(212 48% 42%);
+
+    --status-active:    hsl(140 32% 38%);
+    --status-pending:   hsl(220 14% 48%);
+    --status-done:      hsl(160 28% 38%);
+    --status-archived:  hsl(0 0% 48%);
+    --status-blocked:   hsl(5 48% 46%);
+    --status-reference: hsl(180 24% 40%);
+    --status-default:   hsl(0 0% 45%);
+
+    --severity-critical: hsl(5 60% 46%);
+    --severity-high:     hsl(20 60% 46%);
+    --severity-medium:   hsl(45 55% 42%);
+    --severity-low:      hsl(0 0% 50%);
+
+    --type-feature:     hsl(210 50% 42%);
+    --type-task:        hsl(140 35% 38%);
+    --type-requirement: hsl(270 35% 48%);
+    --type-issue:       hsl(5 50% 46%);
+    --type-risk:        hsl(25 50% 42%);
+    --type-test:        hsl(100 35% 38%);
+    --type-phase:       hsl(285 35% 48%);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg:            hsl(0 0% 11%);
+    --surface:       hsl(0 0% 14%);
+    --surface-2:     hsl(0 0% 18%);
+    --border:        hsl(0 0% 22%);
+    --border-strong: hsl(0 0% 32%);
+    --text:          hsl(0 0% 87%);
+    --text-muted:    hsl(0 0% 65%);
+    --text-faint:    hsl(0 0% 48%);
+    --status-active:    hsl(140 32% 60%);
+    --status-pending:   hsl(220 14% 65%);
+    --status-done:      hsl(160 28% 60%);
+    --status-archived:  hsl(0 0% 58%);
+    --status-blocked:   hsl(5 50% 65%);
+    --status-reference: hsl(180 24% 60%);
+    --type-feature:     hsl(210 50% 65%);
+    --type-task:        hsl(140 35% 60%);
+    --type-issue:       hsl(5 50% 65%);
+    --type-requirement: hsl(270 35% 68%);
+    --type-risk:        hsl(25 50% 62%);
+    --type-test:        hsl(100 35% 58%);
+    --type-phase:       hsl(285 35% 68%);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 22px 60px; background: var(--bg); color: var(--text);
+         font: 13px/1.55 var(--font-sans); }
+  h1 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+  h2 { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+       color: var(--text-muted); margin: 26px 0 8px; padding-bottom: 5px;
+       border-bottom: 1px solid var(--border); }
+  h3 { font-size: 12px; margin: 0 0 5px; font-weight: 600; }
+  p { margin: 0 0 8px; max-width: 76ch; color: var(--text-muted); }
+  p.lede { color: var(--text); }
+  code, .mono { font-family: var(--font-mono); font-size: 11.5px; }
+  .note { font-size: 11.5px; color: var(--text-faint); max-width: 76ch; }
+  .bad { color: var(--status-blocked); font-weight: 600; }
+  .good { color: var(--status-done); font-weight: 600; }
+
+  #theme { position: fixed; top: 12px; right: 14px; z-index: 5; font: inherit; font-size: 11px;
+           padding: 3px 9px; border: 1px solid var(--border-strong); border-radius: 4px;
+           background: var(--surface); color: var(--text-muted); cursor: pointer; }
+
+  .strip { background: var(--surface); border: 1px solid var(--border); border-radius: 5px;
+           padding: 9px 10px; margin: 0 0 6px; }
+  .strip-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+                font-size: 11.5px; color: var(--text-muted); }
+  .strip-head .frac { font-family: var(--font-mono); font-size: 11px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .grp { display: inline-flex; gap: 3px; align-items: center; padding: 2px 4px;
+         border-radius: 3px; background: rgba(128,128,128,0.07); }
+
+  /* ---- the square: geometry transcribed from renderer.css:2234 ---- */
+  .sq { position: relative; width: 9px; height: 9px; border-radius: 2px;
+        border: 1.5px solid currentColor; background: transparent;
+        color: var(--text-faint); flex-shrink: 0; }
+  .sq.feat { width: 12px; height: 12px; border-radius: 3px; border-width: 2px; }
+  .sq[data-type="feature"]     { color: var(--type-feature); }
+  .sq[data-type="task"]        { color: var(--type-task); }
+  .sq[data-type="issue"]       { color: var(--type-issue); }
+  .sq[data-type="requirement"] { color: var(--type-requirement); }
+  .sq[data-type="test"]        { color: var(--type-test); }
+  .sq[data-type="risk"]        { color: var(--type-risk); }
+
+  /* delivered — solid */
+  .sq[data-state="delivered"] { background: currentColor; }
+
+  /* resolved, nothing delivered — SOLID with a transparent slit.
+     Filled because an archived item is settled: it resolves its parent's
+     scope and a phase can close over it. The slit is what withdraws the
+     "delivered" claim. */
+  .sq[data-state="dropped"] {
+    background: linear-gradient(to top right,
+      currentColor calc(50% - 1px), transparent calc(50% - 1px),
+      transparent calc(50% + 1px), currentColor calc(50% + 1px));
+  }
+
+  /* parked, still wanted — HOLLOW with a strike. Hollow because it is not
+     built and not terminal; the strike says "not now". */
+  .sq[data-state="deferred"] {
+    background: linear-gradient(to top right,
+      transparent calc(50% - 0.9px), currentColor calc(50% - 0.9px),
+      currentColor calc(50% + 0.9px), transparent calc(50% + 0.9px));
+  }
+
+  /* complete, unproven — inverted fill (static) */
+  .sq[data-state="unproven"] {
+    background: currentColor;
+    box-shadow: inset 0 0 0 1.5px var(--bg);
+  }
+  .sq.feat[data-state="unproven"] { box-shadow: inset 0 0 0 2px var(--bg); }
+
+  /* in progress — the same inverted fill, pulsing */
+  .sq[data-state="doing"] {
+    background: currentColor;
+    box-shadow: inset 0 0 0 1.5px var(--bg);
+    animation: prog-pulse 1.6s ease-in-out infinite;
+  }
+  .sq.feat[data-state="doing"] { box-shadow: inset 0 0 0 2px var(--bg); }
+  @keyframes prog-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* Animation is the ONLY thing separating doing from unproven, so it needs
+     a static fallback or the two collapse for anyone who turns motion off. */
+  @media (prefers-reduced-motion: reduce) {
+    .sq[data-state="doing"] {
+      animation: none;
+      outline: 1.5px solid currentColor;
+      outline-offset: 1.5px;
+    }
+  }
+
+  /* outstanding human action — corner dot, one hue regardless of type */
+  .sq[data-attn]::after {
+    content: ''; position: absolute; top: -3px; right: -3px;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--status-blocked); border: 1px solid var(--bg);
+  }
+  .sq.feat[data-attn]::after { width: 5px; height: 5px; top: -3.5px; right: -3.5px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0 0;
+            font-size: 11.5px; color: var(--text-muted); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin: 4px 0 10px; }
+  th, td { text-align: left; padding: 5px 10px 5px 0; vertical-align: top;
+           border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-weight: 600; }
+  td .sq { display: inline-block; vertical-align: middle; }
+
+  .hdr { display: flex; align-items: center; gap: 7px; font-size: 11.5px; }
+  .chev { width: 0; height: 0; border-left: 4px solid var(--text-faint);
+          border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
+  .pill { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+          padding: 1px 5px; border-radius: 3px; border: 1px solid currentColor; }
+  .pill.attn { color: var(--status-blocked); }
+  .pill.close { color: var(--status-active); }
+  .rej { opacity: 0.75; }
+</style>
+</head>
+<body>
+
+<button id="theme" type="button">theme</button>
+
+<section data-design-region="premise">
+  <h1>Attention in the squares</h1>
+  <p class="lede">The overview's <em>Waiting on you</em> list exists because the phase squares cannot say that anything needs a human. Every item that list shows is <strong>already on the page as a square</strong> — measured 2026-07-30: 9 of 9 rows, 8 visible. All nine render as plain hollow squares, pixel-identical to work nobody has started.</p>
+  <p>So the list is not a second view. It is a <strong>workaround for an under-expressive encoding</strong>. This design gives the square the states it is missing, so the list can go.</p>
+  <p class="note">Today the square has exactly two states — filled for the <code>done</code> bucket, hollow for everything else — plus type colour. The payload computes a third bucket, <code>in_progress</code>, and the stylesheet has no rule for it. Status otherwise lives only in the <code>title</code> tooltip, which a tablet cannot reach.</p>
+</section>
+
+<section data-design-region="proposal">
+  <h2>The proposed encoding</h2>
+  <p>Five marks. Colour stays on <em>type</em> throughout — it is spent, and the type legend is used across six surfaces.</p>
+  <table>
+    <tr><th style="width:52px">Mark</th><th style="width:150px">Means</th><th>Members</th></tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="delivered"></i></td>
+      <td><strong>Delivered</strong></td>
+      <td><code>done</code> band — done, fixed, implemented, merged, passing, resolved, closed, complete, released, published, verified, fulfilled, met</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="dropped"></i></td>
+      <td><strong>Resolved, nothing delivered</strong></td>
+      <td><code>archived</code> band — cancelled, superseded, retired, obsolete, deprecated, declined, reverted. Solid, because it is settled and its parent can close over it; the slit withdraws the delivered claim.</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="deferred"></i></td>
+      <td><strong>Parked, still wanted</strong></td>
+      <td><code>deferred</code> — hollow, because it is neither built nor terminal and its parent <em>cannot</em> close over it.</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="doing"></i></td>
+      <td><strong>In progress</strong><br><span class="note">pulsing</span></td>
+      <td>doing, active, in-progress</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="test" data-state="unproven"></i></td>
+      <td><strong>Complete, unproven</strong><br><span class="note">static</span></td>
+      <td>terminal under a recorded <code>verification_waiver</code>, or a manual test <code>passing</code> on a stale <code>last_verified</code></td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="issue" data-attn></i></td>
+      <td><strong>Outstanding human action</strong></td>
+      <td>triage, review, <code>ready</code> tests, and computed-blocked (an unresolved <code>depends:</code>)</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="task"></i></td>
+      <td><strong>Not started</strong></td>
+      <td>backlog, open, draft — nothing is wrong and nobody is waiting</td>
+    </tr>
+  </table>
+  <p class="note"><strong>The dot composes with every fill state; the others are exclusive.</strong> That is not a convenience — <code>STATUSES.md</code> says "an item can be blocked while still <code>doing</code>, which a status cannot express", so the two must be able to coexist on one square. Precedence among the fills: <em>dropped</em> wins over <em>delivered</em> and <em>unproven</em>, because an abandoned item was never built.</p>
+</section>
+
+<section data-design-region="strip-realistic">
+  <h2>One phase, the real density</h2>
+  <p>PHASE-010 as the corpus actually holds it, with tests included. Everything below is the same DOM at 1:1.</p>
+  <div class="strip">
+    <div class="strip-head"><strong>PHASE-010 · Surface ownership</strong><span class="frac">18/26</span></div>
+    <div class="row" id="realistic"></div>
+  </div>
+  <div class="legend">
+    <span><i class="sq" data-type="task" data-state="delivered"></i> delivered</span>
+    <span><i class="sq" data-type="task" data-state="dropped"></i> resolved, not delivered</span>
+    <span><i class="sq" data-type="task" data-state="deferred"></i> parked</span>
+    <span><i class="sq" data-type="task" data-state="doing"></i> doing</span>
+    <span><i class="sq" data-type="test" data-state="unproven"></i> unproven</span>
+    <span><i class="sq" data-type="issue" data-attn></i> needs you</span>
+    <span><i class="sq" data-type="task"></i> not started</span>
+    <span><i class="sq feat" data-type="feature" data-state="delivered"></i> feature</span>
+  </div>
+</section>
+
+<section data-design-region="composition">
+  <h2>The dot on top of each fill</h2>
+  <p>Six squares, each fill state with and without the dot, at 1:1 and again at 3× so the geometry is checkable.</p>
+  <div class="strip">
+    <div class="row" style="gap:14px" id="compose"></div>
+  </div>
+  <div class="strip">
+    <div class="row" style="gap:34px; zoom:3" id="composeBig"></div>
+  </div>
+  <p class="note">The dot sits <em>outside</em> the square's top-right corner with a 1px <code>--bg</code> ring, so it never occludes the fill it is layered over and stays legible against a solid one.</p>
+</section>
+
+<section data-design-region="terminal-and-parked">
+  <h2>Struck out, twice — and the fill is what separates them</h2>
+  <p>Two states share the diagonal gesture because they mean nearly the same thing: <em>deliberately not being done</em>. What differs is whether it is <strong>settled</strong>, and fill carries exactly that.</p>
+
+  <table>
+    <tr><th style="width:52px">Mark</th><th style="width:150px">State</th><th>Why the fill is that way</th></tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="dropped"></i></td>
+      <td><strong>Resolved, nothing delivered</strong><br><span class="note">cancelled, superseded, retired, obsolete, deprecated, declined, reverted</span></td>
+      <td><strong>Solid, with a transparent slit.</strong> Solid because an archived item is <em>settled</em>: it resolves its parent's scope and a phase can close over it. The slit is what withdraws the "delivered" claim — the square is accounted for, but nothing came out of it.</td>
+    </tr>
+    <tr>
+      <td><i class="sq" data-type="task" data-state="deferred"></i></td>
+      <td><strong>Parked, still wanted</strong><br><span class="note">deferred</span></td>
+      <td><strong>Hollow, with a strike.</strong> Hollow because it is neither built nor settled — <code>STATUSES.md:144</code>: <em>"explicitly out of the current parent's scope, still wanted later… never satisfies completeness"</em>, and a parent holding one <strong>cannot close</strong>. The strike says "not now"; the hollow keeps it out of the built count.</td>
+    </tr>
+  </table>
+
+  <div class="strip">
+    <div class="strip-head"><strong>Both, in a realistic run at 1:1</strong></div>
+    <div class="row" id="defRow"></div>
+  </div>
+  <div class="strip">
+    <div class="strip-head"><strong>At 3×</strong></div>
+    <div class="row" style="gap:30px; zoom:3" id="defBig"></div>
+  </div>
+
+  <p class="note">The pairing is what makes this work: one gesture for "deliberately not done", and the fill — the strip's primary signal — distinguishes settled from parked. Reversing them would have been wrong in a way worth recording: a filled square for <em>deferred</em> would put weight behind work that is not built <em>and</em> still blocks its parent from closing.</p>
+  <p class="note">Population: <strong>6 archived</strong> and <strong>2 deferred</strong> of 373 (<code>TASK-0045</code>, <code>TASK-0065</code>). Both rare, which is why they can afford a mark that reads as damage.</p>
+</section>
+
+<section data-design-region="tests-in-the-strip">
+  <h2>Tests join the squares</h2>
+  <p>Tests are <strong>not in the phase payload today</strong> — the strip carries features, tasks, requirements and issues only (measured: 50 / 244 / 25 / 54 = 373). Giving <code>ready</code> tests a dot therefore requires adding the type, which is a sidecar change, not CSS.</p>
+  <p>It is worth doing on its own merits: 20 of 22 tests carry a <code>phase:</code>, so they slot in. And it is where <em>unproven</em> earns its keep — all 22 tests read <code>passing</code>, 21 are manual, and <strong>9 were last verified 66–83 days ago</strong>. Today they would all be solid squares.</p>
+  <div class="strip">
+    <div class="strip-head"><strong>Tests, as they would render</strong><span class="frac">22 passing</span></div>
+    <div class="row" id="tests"></div>
+  </div>
+  <p class="note">13 proven, 9 stale, and a <code>ready</code> test that has never run carries the dot. The strip stops implying that a two-month-old manual claim is current.</p>
+  <p class="note"><strong>Risks cannot join.</strong> All 4 carry no <code>phase:</code> at all, which is why they are absent — adding them is a corpus change, not a rendering one, and is out of scope here.</p>
+</section>
+
+<section data-design-region="header-markers">
+  <h2>What the squares cannot carry</h2>
+  <p>Two cases stay on the phase header.</p>
+  <div class="strip" data-design-region="accordion-headers">
+    <div class="hdr"><span class="chev"></span><strong>PHASE-008 · State &amp; review surfaces</strong><span class="frac">23/23</span><span class="pill close">close out</span></div>
+    <div class="hdr" style="margin-top:8px"><span class="chev"></span><strong>PHASE-999 · Future</strong><span class="frac">0/6</span><span class="pill attn">3 waiting</span></div>
+    <div class="hdr" style="margin-top:8px"><span class="chev"></span><strong>PHASE-007 · Agent instrumentation</strong><span class="frac">41/41</span></div>
+  </div>
+  <p class="note"><strong>“close out”</strong> — every item done, phase not closed. A property of the phase, so no square can hold it, and the only row in the current list that nothing else on the page can tell you.</p>
+  <p class="note"><strong>“3 waiting”</strong> — a collapsed phase renders its squares with <code>offsetParent: null</code>; <code>ISS-0024</code>'s square is on the page and invisible. Without this count the change <em>loses</em> information the list shows today. Count only, no ids — a header listing ids would be Waiting-on-you with extra steps.</p>
+</section>
+
+<section data-design-region="quiet-state">
+  <h2>The quiet state, which is the common one</h2>
+  <p>Nothing waiting, nothing dropped, nothing unproven: the strip is exactly what it is today and the overview loses a section that said <em>All clear</em>. Quieter rather than more informative is the intent, and what REQ-0022 asked for.</p>
+  <div class="strip">
+    <div class="strip-head"><strong>PHASE-007 · Agent instrumentation</strong><span class="frac">41/41</span></div>
+    <div class="row" id="quiet"></div>
+  </div>
+</section>
+
+<section data-design-region="alternatives">
+  <h2>Alternatives that lost</h2>
+  <div class="rej">
+    <h3>Inverted fill for “needs a human”</h3>
+    <p class="note">The first draft's treatment A. Rejected: it competes with the solid <code>done</code> fill at 9px, and it is needed for a state that genuinely reads as "filled but qualified" — which attention does not.</p>
+    <h3>Dim everything that is not attention</h3>
+    <p class="note">Strongest at a glance and rejected anyway: it re-purposes the strip as an attention view, degrading the progress reading it exists for.</p>
+    <h3>Counts and pointers instead of the squares</h3>
+    <p class="note">Keep the section, reduce it to “3 open issues →”. Rejected: the stat tiles two sections above already are that indication, so it would have been a third rendering of the same number.</p>
+    <h3><code>review</code> on a fill rather than the dot</h3>
+    <p class="note">Rejected: <code>review</code> is an outstanding human decision, so splitting it from triage would put one concept on two channels.</p>
+    <h3>A dot for <code>open</code> and <code>deferred</code></h3>
+    <p class="note">Rejected by the owner, and correctly: <code>open</code> is accepted work waiting on capacity, and <code>deferred</code> is a decision already taken — <code>STATUSES.md</code> calls it "explicitly out of the current parent's scope". Neither is waiting on anyone.</p>
+  </div>
+</section>
+
+<script>
+  // Deterministic — no randomness, so two revisions diff meaningfully.
+  const S = (type, state, attn, klass) => {
+    const i = document.createElement('i');
+    i.className = 'sq' + (klass ? ' ' + klass : '');
+    i.dataset.type = type;
+    if (state) i.dataset.state = state;
+    if (attn) i.dataset.attn = '';
+    i.title = `${type} — ${state || 'not started'}${attn ? ' + needs you' : ''}`;
+    return i;
+  };
+  const group = (host, kids) => {
+    const g = document.createElement('span');
+    g.className = 'grp';
+    for (const k of kids) g.appendChild(k);
+    host.appendChild(g);
+  };
+
+  // PHASE-010 shape: 5 features, their children, plus tests.
+  const real = document.getElementById('realistic');
+  real.replaceChildren();
+  group(real, [S('feature','delivered',false,'feat'), S('task','delivered'), S('task','delivered'), S('requirement','delivered')]);
+  group(real, [S('feature','delivered',false,'feat'), S('task','delivered'), S('task','doing'), S('issue',null,true)]);
+  group(real, [S('feature','delivered',false,'feat'), S('task','delivered'), S('task','dropped'), S('task','delivered')]);
+  group(real, [S('feature',null,false,'feat'), S('task','doing'), S('task',null), S('issue',null,true), S('test','unproven')]);
+  group(real, [S('feature','delivered',false,'feat'), S('task','delivered'), S('requirement','delivered'), S('test','delivered'), S('test',null,true)]);
+  group(real, [S('task','dropped'), S('task','deferred'), S('issue',null,true), S('task','doing',true)]);
+
+  const states = [['delivered','delivered'],['dropped','dropped'],['doing','doing'],['unproven','unproven'],[null,'not started']];
+  for (const host of [document.getElementById('compose'), document.getElementById('composeBig')]) {
+    host.replaceChildren();
+    for (const [st] of states) {
+      const pair = document.createElement('span');
+      pair.style.cssText = 'display:inline-flex;gap:9px;align-items:center';
+      pair.appendChild(S('task', st, false));
+      pair.appendChild(S('task', st, true));
+      host.appendChild(pair);
+    }
+  }
+
+  // Both struck states inside a realistic run, so each is judged against its
+  // neighbours — a solid delivered square and a plain hollow one — rather
+  // than in isolation.
+  for (const host of [document.getElementById('defRow'), document.getElementById('defBig')]) {
+    host.replaceChildren();
+    for (const kids of [
+      [S('feature','delivered',false,'feat'), S('task','delivered'), S('task','dropped'),
+       S('task','delivered'), S('task','deferred'), S('task',null)],
+      [S('feature',null,false,'feat'), S('task','deferred'), S('task','dropped'),
+       S('task','doing'), S('task','delivered'), S('task','unproven')],
+    ]) {
+      const g = document.createElement('span');
+      g.className = 'grp';
+      for (const k of kids) g.appendChild(k);
+      host.appendChild(g);
+    }
+  }
+
+  const t = document.getElementById('tests');
+  t.replaceChildren();
+  const tg = [];
+  for (let i = 0; i < 13; i++) tg.push(S('test','delivered'));
+  for (let i = 0; i < 9; i++)  tg.push(S('test','unproven'));
+  tg.push(S('test', null, true));
+  group(t, tg);
+
+  const q = document.getElementById('quiet');
+  q.replaceChildren();
+  for (let g = 0; g < 6; g++) {
+    const kids = [S('feature','delivered',false,'feat')];
+    for (let k = 0; k < 5; k++) kids.push(S(['task','task','requirement','issue','test'][k],'delivered'));
+    group(q, kids);
+  }
+
+  document.getElementById('theme').addEventListener('click', () => {
+    const r = document.documentElement;
+    r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+</script>
+</body>
+</html>
