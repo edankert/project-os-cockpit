@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0018
 aliases: ["FEAT-0018"]
 title: "Verification health surface — validator status, drift panel, waiver/review badges"
-status: review
+status: done
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-05
@@ -44,3 +44,25 @@ All three tasks are implemented and `done`; see the per-task Verification sectio
 ## Relationship to the review desk's verification panel (2026-07-26)
 
 [[TASK-0211-Verification-Panel]] adds a per-scope Verification panel to feature, phase and release renders: the scope's acceptance tests with status, last run and staleness, plus Run affordances into the manual-test runner. It is the same surface family as this feature and deliberately does not duplicate it — this feature owns **project-scope health** (validator state, drift, waiver and review badges), the panel owns **per-scope test evidence**. The record column consumes both: validator state from here, test counts from there. If this feature's badges move or change shape, that panel is the other caller to update.
+
+## Human visual pass — 2026-07-30, mode 1
+
+The pass this feature was held at `review` for, run against this repo's own docs in Chrome at `http://127.0.0.1:8765/`. All four acceptance criteria met.
+
+**1. Badge flips live, without a reload.** Clean repo → `data-state="ok"`, label *"Docs validation: no drift"*. A deliberate drift was then introduced by adding a temporary note (`TST-9999`, `command:` set and `status: passing` with no `last_run:` — a `TEST-FIELDS` error, plus two consequential `METRICS` errors). The badge became `data-state="failing"`, text `3`, label *"Docs validation: 3 violations — click for the drift panel"* — with `performance.getEntriesByType('navigation').length === 1` throughout, so the flip arrived over SSE and not via a page load. Deleting the probe returned it to `ok`, again without a reload.
+
+A temporary note was used rather than editing a real one deliberately: it makes the drift trivially reversible and cannot corrupt a note the corpus depends on.
+
+**2. Drift-panel rows deep-link.** Opening the panel listed each violation with its `[code]` and message. The `TEST-FIELDS` row carried `href="/docs/tests/TST-9999-Drift-Probe.md"`; clicking it navigated the centre pane to that note (`h1` = *"Drift probe"*, document title updated). The `METRICS` rows correctly carry no link — they are snapshot-level, not note-level.
+
+**3. Chips render.** On `TASK-0184` (done under a `verification_waiver`): a `waiver-chip` reading *waived* at `rgb(209,174,123)` (amber) and a `verdict-chip` reading *approved* at `rgb(120,186,142)` (green), both in the metadata strip and in list rows. `TST-0016` carries the adequacy evidence its own suite asserts.
+
+**4. Zero new Python dependencies**, and the validator remains the single source of validation logic — structural, unchanged since implementation, and asserted by [[TST-0016]].
+
+### One observation, not a defect in this feature
+
+A `verdict-chip` reading **`close`** renders grey at `rgb(153,153,153)` — the fallback for a value the chip vocabulary does not recognise. That is the `review_verdict: CLOSE` population (10 notes) surfacing: QUALITY.md's vocabulary is `approved` | `changes-requested`, so `CLOSE` is corpus drift rather than a rendering bug. The chip degrading to grey rather than mis-colouring it is correct behaviour. Recorded here because [[PHASE-011]] is the phase that should decide what to do about those 10 notes.
+
+### Still deliberately outstanding
+
+The **desktop (mode-3) renderer has no health badge.** That was called out as a follow-up when the feature was implemented and remains true: the payload and SSE event are renderer-agnostic, so porting the chrome is additive. It is not a gap in what this feature promised — the acceptance criteria are mode-1 — but anyone reading `state: ok` in mode 3 is reading nothing, because there is nothing to read.

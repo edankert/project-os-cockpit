@@ -268,7 +268,7 @@ items:
 
     FEAT-0018:
       title: "Verification health surface — validator status, drift panel, waiver/review badges"
-      status: review
+      status: done
       phase: "[[PHASE-999-Future]]"
       path: "docs/features/verification-health/FEAT-0018-Verification-Health-Surface.md"
       tasks: ["TASK-0111", "TASK-0112", "TASK-0113"]
@@ -2730,7 +2730,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 50
-    features_done: 43
+    features_done: 45
     tasks_total: 247
     tasks_done: 242
     tests_total: 22
