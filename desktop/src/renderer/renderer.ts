@@ -411,6 +411,11 @@ function colorFromName(name: string): string {
 
 // ---- fleet validator health (FEAT-0028 / TASK-0250) ----------------
 
+// `healthMarks` comes from `health-marks.ts`, loaded as a separate <script>
+// before this one. Neither file is a module, so tsc already sees it in the
+// global scope — no import, and no `declare` (which would collide with the
+// real signature).
+
 interface FleetHealthRow {
   workspaceId: string;
   name: string;
@@ -422,6 +427,7 @@ interface FleetHealthRow {
   source: 'live' | 'cold' | null;
   detail?: string;
   stale?: boolean;
+  validator?: 'repo' | 'bundled';
 }
 
 const fleetHealth = new Map<string, FleetHealthRow>();
@@ -444,20 +450,19 @@ function applyHealthToSquare(li: HTMLLIElement, ws: Workspace): void {
   li.title = base;
 
   const row = fleetHealth.get(ws.id);
-  // `unknown` paints NOTHING. A repo nobody has checked must not be
-  // decorated at all — not even reassuringly.
-  if (!row || row.state === 'unknown') return;
-
-  li.classList.add(`health-${row.state}`);
-  if (row.stale) li.classList.add('health-stale');
-
-  if (row.state === 'failing' && row.errors > 0) {
+  // The decision lives in `health-marks.ts` as a pure function so it can be
+  // tested without a DOM (ISS-0074). `unknown` yields no classes and no
+  // badge — nothing at all, not a reassuring grey.
+  const marks = healthMarks(row);
+  for (const cls of marks.classes) li.classList.add(cls);
+  if (marks.badge !== null) {
     const badge = document.createElement('span');
     badge.className = 'ws-health';
-    badge.textContent = row.errors > 99 ? '99+' : String(row.errors);
+    badge.textContent = marks.badge;
     badge.setAttribute('aria-hidden', 'true');
     li.appendChild(badge);
   }
+  if (!row || row.state === 'unknown') return;
   li.title = `${base}\n${healthSummary(row)}`;
 }
 
@@ -465,7 +470,13 @@ function applyHealthToSquare(li: HTMLLIElement, ws: Workspace): void {
 function healthSummary(row: FleetHealthRow): string {
   const when = row.checkedAt ? relativeTime(row.checkedAt) : 'never';
   const how = row.source === 'cold' ? 'not open' : row.source === 'live' ? 'open' : '';
-  const suffix = `${how ? `${how}, ` : ''}checked ${when}${row.stale ? ' — stale' : ''}`;
+  // Which validator ran, for cold rows only. The per-repo choice
+  // (TASK-0249) is only defensible if the reader can see it was made —
+  // a fleet of mixed template versions must not look uniform. A live
+  // row's sidecar is by construction running its own repo's copy.
+  const by = row.validator === 'bundled' ? ", cockpit's bundled validator"
+    : row.validator === 'repo' ? ", this repo's own validator" : '';
+  const suffix = `${how ? `${how}, ` : ''}checked ${when}${by}${row.stale ? ' — stale' : ''}`;
   if (row.state === 'failing') {
     return `docs: ${row.errors} validator error${row.errors === 1 ? '' : 's'} (${suffix})`;
   }

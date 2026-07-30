@@ -57,13 +57,25 @@ def _clone_repo(tmp_path: Path) -> Path:
 
 
 def test_validating_a_repo_does_not_modify_it(tmp_path: Path) -> None:
-    """Read-only, asserted over a real corpus rather than promised."""
+    """Read-only, asserted over a corpus the write path WOULD change.
+
+    The first version of this cloned a *clean* corpus, where `fix_metrics`
+    would rewrite nothing even if `--fix-metrics` were passed — so the
+    byte-for-byte comparison could not fail and the argv guard was doing
+    all the work (PHASE-013 review, F5). The fixture now carries a real
+    metrics mismatch, which is exactly what the write path exists to
+    correct, so passing the flag makes this test go red.
+    """
     repo = _clone_repo(tmp_path)
+    _induce_metrics_drift(repo)
     before = _fingerprint(repo)
     assert before, "fixture is empty — the assertion below would be vacuous"
 
     report = validate_repo(repo)
-    assert report["state"] in {"ok", "failing"}, report
+    assert report["state"] == "failing", (
+        "the fixture must be one the write path would change, or this "
+        "assertion is vacuous"
+    )
 
     after = _fingerprint(repo)
     changed = {k for k in before.keys() | after.keys() if before.get(k) != after.get(k)}
@@ -115,13 +127,8 @@ def test_a_repo_without_a_snapshot_is_unavailable_not_ok(tmp_path: Path) -> None
     assert line.get("detail"), "unavailable without a reason is indistinguishable from a bug"
 
 
-def test_a_drifting_repo_reports_its_own_error_count(tmp_path: Path) -> None:
-    """Counts are per-repo, and a real defect moves them."""
-    repo = _clone_repo(tmp_path)
-    clean = fleet_validate.summarise(repo)
-    assert clean["state"] == "ok", clean
-
-    # Induce a metrics mismatch — a real METRICS error, not a synthetic one.
+def _induce_metrics_drift(repo: Path) -> None:
+    """A real METRICS error — the one `fix_metrics` exists to rewrite."""
     snap = repo / "SNAPSHOT.yaml"
     text = snap.read_text(encoding="utf-8")
     marker = "  counts:\n"
@@ -137,6 +144,38 @@ def test_a_drifting_repo_reports_its_own_error_count(tmp_path: Path) -> None:
         raise AssertionError("no tasks_total in metrics.counts")
     snap.write_text(head + marker + "\n".join(lines), encoding="utf-8")
 
+
+def test_the_fixture_is_one_the_write_path_would_change(tmp_path: Path) -> None:
+    """Guards the guard above: prove `--fix-metrics` rewrites THIS fixture.
+
+    Without this, `test_validating_a_repo_does_not_modify_it` could go
+    quietly vacuous again — a future fixture change that stops producing a
+    metrics mismatch would leave it passing for the wrong reason.
+    """
+    import subprocess
+    import sys
+
+    repo = _clone_repo(tmp_path)
+    _induce_metrics_drift(repo)
+    before = _fingerprint(repo)
+    subprocess.run(
+        [sys.executable, str(repo / "tools" / "scripts" / "validate-docs.py"),
+         "--repo-root", str(repo), "--fix-metrics"],
+        capture_output=True, text=True, timeout=120, cwd=str(repo),
+    )
+    assert _fingerprint(repo) != before, (
+        "--fix-metrics changed nothing, so the read-only test above proves "
+        "nothing about the flag"
+    )
+
+
+def test_a_drifting_repo_reports_its_own_error_count(tmp_path: Path) -> None:
+    """Counts are per-repo, and a real defect moves them."""
+    repo = _clone_repo(tmp_path)
+    clean = fleet_validate.summarise(repo)
+    assert clean["state"] == "ok", clean
+
+    _induce_metrics_drift(repo)
     drifted = fleet_validate.summarise(repo)
     assert drifted["state"] == "failing"
     assert drifted["errors"] >= 1
@@ -198,4 +237,23 @@ def test_the_repos_own_validator_is_preferred_over_the_bundled_copy(
     own.unlink()
     assert ValidationRunner(repo).locate_validator() == BUNDLED_VALIDATOR, (
         "a repo predating the validator must still get a signal, not nothing"
+    )
+
+
+def test_the_summary_says_which_validator_produced_it(tmp_path: Path) -> None:
+    """PHASE-013 review, F4.
+
+    TASK-0249's recommendation was per-repo "with the repo's validator
+    version surfaced so uniformity is visible rather than assumed", and
+    the implementation dropped that clause. The per-repo choice is only
+    defensible if a reader can see it was made — otherwise a fleet of
+    mixed template versions looks uniform, which is the assumption
+    ISS-0026 was filed for.
+    """
+    repo = _clone_repo(tmp_path)
+    assert fleet_validate.summarise(repo)["validator"] == "repo"
+
+    (repo / "tools" / "scripts" / "validate-docs.py").unlink()
+    assert fleet_validate.summarise(repo)["validator"] == "bundled", (
+        "a repo falling back to the cockpit's bundled validator must say so"
     )

@@ -35,9 +35,24 @@ from .validation import validate_repo
 
 
 def summarise(project_root: Path) -> dict[str, object]:
-    """One repo's validator state, counts only."""
+    """One repo's validator state, counts only.
+
+    Carries **which** validator produced it. The per-repo choice above is
+    only defensible if the reader can see it was made: without this, a
+    fleet of mixed template versions looks uniform, which is the
+    assumption ISS-0026 was filed for (a bundled validator copy drifting
+    silently from the template). `"repo"` means that repo's own
+    `tools/scripts/validate-docs.py`; `"bundled"` means the cockpit's
+    fallback, used for a repo that predates the validator.
+    """
+    from .validation import BUNDLED_VALIDATOR, ValidationRunner
+
+    located = ValidationRunner(project_root).locate_validator()
+    which = (None if located is None
+             else "bundled" if located == BUNDLED_VALIDATOR else "repo")
     report = validate_repo(project_root)
     return {
+        "validator": which,
         "root": str(project_root),
         "state": report.get("state"),
         "errors": len(report.get("errors") or []),

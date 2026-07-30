@@ -512,3 +512,50 @@ def test_canonical_case_degrades_on_an_unreadable_path() -> None:
 
     missing = Path("/nonexistent-zzz/deeper/still")
     assert canonical_case(missing) == missing
+
+
+def test_the_snapshot_observer_actually_fires_on_a_miscased_root(
+    tmp_path: Path,
+) -> None:
+    """ISS-0072 end to end, through the OBSERVER rather than the bus.
+
+    The three cases above pin `canonical_case` and the constructor — the
+    current *implementation* of the fix. None of them starts an observer,
+    so deleting `observer.schedule(...)` from `start()` left the whole
+    suite green: the defect this issue is about was unguarded end to end,
+    and any future replacement of `canonical_case` would silently re-open
+    it. Found by the PHASE-013 independent review.
+
+    This drives the real thing: build a runner on the MISCASED path, start
+    it, write `SNAPSHOT.yaml` at the canonical path, and count reruns.
+    Fixed → fires. Reverted to `Path(...).resolve()` → never fires.
+    """
+    real = tmp_path / "MixedCase" / "Repo"
+    (real / "docs").mkdir(parents=True)
+    (real / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+
+    miscased = tmp_path / "mixedcase" / "repo"
+    if not (miscased / "SNAPSHOT.yaml").is_file():
+        pytest.skip("case-sensitive filesystem — the defect cannot occur")
+
+    runner = ValidationRunner(miscased)
+    fired: list[int] = []
+    # Stub the debounce so the test measures the WATCH, not the validator:
+    # a real run would shell out and add seconds for no extra signal.
+    runner.schedule = lambda: fired.append(1)  # type: ignore[method-assign]
+
+    runner.start()
+    try:
+        time.sleep(1.0)                       # let FSEvents attach
+        (real / "SNAPSHOT.yaml").write_text("counters: {FEAT: 1}\n", encoding="utf-8")
+        deadline = time.time() + 8.0
+        while time.time() < deadline and not fired:
+            time.sleep(0.1)
+    finally:
+        runner.stop()
+
+    assert fired, (
+        "the SNAPSHOT.yaml observer never fired for a workspace root spelled "
+        "in a different case — which is how every app-spawned sidecar was "
+        "watching, so METRICS drift could never clear live (ISS-0072)"
+    )

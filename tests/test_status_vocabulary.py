@@ -473,6 +473,18 @@ def test_desktop_build_is_not_stale() -> None:
     _assert_build_matches_source()
 
 
+def _desktop_source_digest() -> str:
+    """The same digest `copy-assets.mjs` writes: every .ts under src/,
+    path then bytes, in sorted order. Kept in step by this test failing
+    if the two ever disagree."""
+    src = DESKTOP_TS.parents[1]           # desktop/src
+    digest = hashlib.sha256()
+    for path in sorted(src.rglob("*.ts")):
+        digest.update(str(path.relative_to(src.parent)).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def _assert_build_matches_source() -> None:
     """The build corresponds to the current source — by CONTENT, not mtime.
 
@@ -489,7 +501,7 @@ def _assert_build_matches_source() -> None:
     """
     stamp = DESKTOP_DIST.parent / ".source-hash"
     if stamp.is_file():
-        expected = hashlib.sha256(DESKTOP_TS.read_bytes()).hexdigest()
+        expected = _desktop_source_digest()
         recorded = stamp.read_text(encoding="utf-8").strip()
         assert recorded == expected, (
             "dist/ was built from a different renderer.ts than the one on disk — "

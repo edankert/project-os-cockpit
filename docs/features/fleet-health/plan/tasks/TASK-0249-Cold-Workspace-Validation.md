@@ -25,7 +25,7 @@ tests: []
 - [x] The schedule is **bounded and stated**: how often, how many concurrently, and what triggers an off-schedule run
 - [x] A state older than the schedule interval is marked stale rather than presented as current
 - [x] **Nothing writes to a repo this app does not own** — asserted by a test, not by intention
-- [x] A repo with no `SNAPSHOT.yaml`, no validator, or an unreadable one reports `unknown` with a reason, never a false green
+- [x] A repo with no `SNAPSHOT.yaml`, no validator, or an unreadable one reports `unavailable` with a reason, never a false green — *(said `unknown` when written; corrected after review. The two are distinct everywhere else in these notes — `unknown` is "never asked", `unavailable` is "asked, got no answer" — so the DoD should not have blurred them)*
 
 ## Steps
 - [x] Settle the validator question (below) and write it into this note

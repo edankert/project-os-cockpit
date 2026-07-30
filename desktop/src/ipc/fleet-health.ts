@@ -65,6 +65,11 @@ export interface HealthRow {
   /** A cold reading older than the schedule that produced it. Live
    *  rows are never stale — their sidecar pushes on change. */
   stale?: boolean;
+  /** Which validator produced a COLD reading: the repo's own, or the
+   *  bundled fallback. Live rows omit it — a repo's own sidecar is by
+   *  construction running that repo's own copy, so there is nothing to
+   *  disclose. */
+  validator?: 'repo' | 'bundled';
 }
 
 export interface FleetHealthPayload {
@@ -319,6 +324,7 @@ export function coldArgv(roots: string[]): string[] {
 
 interface ColdLine {
   root: string;
+  validator?: string | null;
   state?: string;
   errors?: number;
   warnings?: number;
@@ -356,13 +362,17 @@ export async function refreshColdWorkspaces(): Promise<void> {
     // A workspace whose sidecar came up while the batch ran has a
     // better answer now; do not overwrite it with the older one.
     if (subs.has(ws.id)) continue;
-    health.set(ws.id, rowFromReport(ws, {
+    const row = rowFromReport(ws, {
       state: line.state,
       errors: new Array(line.errors ?? 0),
       warnings: new Array(line.warnings ?? 0),
       checked_at: line.checked_at ?? undefined,
       detail: line.detail,
-    }, 'cold'));
+    }, 'cold');
+    if (line.validator === 'repo' || line.validator === 'bundled') {
+      row.validator = line.validator;
+    }
+    health.set(ws.id, row);
   }
   notify?.();
 }

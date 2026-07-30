@@ -61,7 +61,7 @@ async function fakeSidecar({ root, report }) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const url = `http://127.0.0.1:${server.address().port}`;
-  return {
+  const handle = {
     url,
     setReport(next) { state.report = next; },
     setRoot(next) { state.root = next; },
@@ -73,6 +73,7 @@ async function fakeSidecar({ root, report }) {
     },
     get clientCount() { return clients.size; },
     async close() {
+      liveSidecars.delete(handle);
       for (const c of clients) c.end();
       // undici keeps fetch sockets alive, so a plain close() waits for
       // idle connections that will never close on their own.
@@ -80,6 +81,8 @@ async function fakeSidecar({ root, report }) {
       await new Promise((r) => server.close(r));
     },
   };
+  liveSidecars.add(handle);
+  return handle;
 }
 
 const okReport = (at = '2026-07-30T10:00:00.000+00:00') => ({
@@ -103,6 +106,12 @@ async function until(pred, ms = 3000, label = 'condition') {
   assert.fail(`timed out waiting for ${label}`);
 }
 
+// F7 (PHASE-013 review): a failed assertion skipped the `close()` at the
+// end of a case body, the fake server kept the event loop alive, and
+// `node --test` never exited — turning one assertion failure into a
+// three-minute pytest timeout with no message. Sidecars now close in the
+// after-hook, whatever happened to the case.
+const liveSidecars = new Set();
 let tmpRoots = [];
 async function workspaceDir(name, urlContents) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), `fleet-health-${name}-`));
@@ -121,6 +130,7 @@ after(async () => {
   // Tear the last case's SSE subscription down too — an open request
   // keeps the event loop alive and the runner would never exit.
   mod.__resetFleetHealth();
+  for (const sc of Array.from(liveSidecars)) { try { await sc.close(); } catch { /* gone */ } }
   for (const d of tmpRoots) await fs.rm(d, { recursive: true, force: true });
   tmpRoots = [];
 });
@@ -357,21 +367,68 @@ test('the validator badge and the agent dot never share an element or a class', 
   }
 });
 
-test('unknown paints nothing, and only failing gets a numeral', async () => {
-  const js = await fs.readFile(
-    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
-  const start = js.indexOf('function applyHealthToSquare');
-  assert.notEqual(start, -1, 'applyHealthToSquare was renamed or removed');
-  const body = js.slice(start, js.indexOf('\nfunction ', start + 10));
+// ---- the square encoding, as behaviour (ISS-0074) --------------------
+//
+// The guard these replace compared string indices in the built bundle. The
+// PHASE-013 review broke it: a mutation that ADDED `health-ok` for an
+// `unknown` row — every unchecked repo rendering as "checked and clean",
+// the exact ISS-0065 failure — kept the literal in place and passed.
+//
+// `healthMarks` is a pure function in a non-module script, so the test
+// evaluates the built file and calls it directly. No DOM, no bundle.
 
-  // `unknown` returns before any mark is added.
-  const unknownGuard = body.indexOf("state === 'unknown'");
-  const badgeCreate = body.indexOf("'ws-health'");
-  assert.notEqual(unknownGuard, -1, 'the unknown early-return is gone — grey now paints like clean');
-  assert.ok(unknownGuard < badgeCreate,
-    'unknown must return BEFORE the badge is built, or it renders a mark for a repo nobody checked');
+let marks;
+before(async () => {
+  const src = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'health-marks.js'), 'utf-8');
+  marks = new Function(`${src}\nreturn healthMarks;`)();
+});
 
-  // The numeral is only reached for `failing`.
-  assert.ok(body.includes("state === 'failing'"),
-    'the count badge is no longer gated on the failing state');
+test('an unknown row paints nothing at all — no class, no badge', () => {
+  const out = marks({ state: 'unknown', errors: 0 });
+  assert.deepEqual(out.classes, [],
+    'a repo nobody has checked must carry NO mark — not even a neutral one');
+  assert.equal(out.badge, null);
+});
+
+test('a missing row is treated exactly like unknown', () => {
+  for (const absent of [null, undefined]) {
+    const out = marks(absent);
+    assert.deepEqual(out.classes, []);
+    assert.equal(out.badge, null);
+  }
+});
+
+test('unknown never yields the class that means checked-and-clean', () => {
+  // The specific mutation that defeated the previous guard.
+  const out = marks({ state: 'unknown', errors: 0 });
+  assert.ok(!out.classes.includes('health-ok'),
+    'unknown must not be presentable as a repo that passed (ISS-0065)');
+  assert.ok(!out.classes.some((c) => c.startsWith('health-')),
+    'no health-* class may attach to a state nobody measured');
+});
+
+test('failing carries its count, and only failing carries a numeral', () => {
+  assert.equal(marks({ state: 'failing', errors: 3 }).badge, '3');
+  assert.equal(marks({ state: 'failing', errors: 120 }).badge, '99+');
+  // A `0` badge would be a drift report with no drift.
+  assert.equal(marks({ state: 'failing', errors: 0 }).badge, null);
+  assert.equal(marks({ state: 'ok', errors: 0 }).badge, null);
+  assert.equal(marks({ state: 'unavailable', errors: 0 }).badge, null);
+});
+
+test('each measured state gets its own class, and stale composes with it', () => {
+  assert.deepEqual(marks({ state: 'ok', errors: 0 }).classes, ['health-ok']);
+  assert.deepEqual(marks({ state: 'failing', errors: 1 }).classes, ['health-failing']);
+  assert.deepEqual(marks({ state: 'unavailable', errors: 0 }).classes, ['health-unavailable']);
+  // stale ADDS to the state's mark rather than replacing it — a stale
+  // reading still says what it measured.
+  assert.deepEqual(marks({ state: 'ok', errors: 0, stale: true }).classes,
+    ['health-ok', 'health-stale']);
+});
+
+test('ok and unavailable are distinguishable from each other and from unknown', () => {
+  const seen = new Set(['ok', 'failing', 'unavailable', 'unknown'].map(
+    (s) => JSON.stringify(marks({ state: s, errors: s === 'failing' ? 2 : 0 }))));
+  assert.equal(seen.size, 4, 'two states render identically — one of them is a lie');
 });

@@ -8,7 +8,7 @@
 // because the renderer is loaded as a plain `<script>` rather than an
 // ES module — see the explanatory note at the top of renderer.ts.
 
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,11 +53,29 @@ for (const [src, dst] of vendored) {
 // renderer.ts byte-identical after a mutation run moved its mtime past
 // the build's and turned the suite red with nothing stale. A content
 // hash answers the question mtime was only approximating.
+//
+// Every .ts under src/, not just renderer.ts (PHASE-013 review, F8):
+// `fleet-health.test.mjs` runs against `dist/ipc/fleet-health.js`, so a
+// hash covering only the renderer let the one BEHAVIOURAL suite in the
+// repo test a stale artifact and stay green.
+async function tsFiles(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...await tsFiles(abs));
+    else if (entry.name.endsWith('.ts')) out.push(abs);
+  }
+  return out;
+}
+const sources = (await tsFiles(path.join(root, 'src'))).sort();
+const digest = createHash('sha256');
+for (const file of sources) {
+  digest.update(path.relative(root, file));       // renames count as changes
+  digest.update(await readFile(file));
+}
 await writeFile(
   path.join(rendererDst, '.source-hash'),
-  createHash('sha256')
-    .update(await readFile(path.join(rendererSrc, 'renderer.ts')))
-    .digest('hex') + '\n',
+  digest.digest('hex') + '\n',
   'utf-8',
 );
 
