@@ -48,6 +48,10 @@ Six marks on the square, and colour stays on *type* throughout — it is spent, 
 | Corner dot, `--status-blocked` | **Outstanding human action** | triage, review, `ready` tests, and computed-blocked |
 | *(plain hollow)* | **Not started** | backlog, open, draft |
 
+**Precedence is load-bearing, contrary to an earlier claim here.** This note said "no precedence rule is needed" because every status is in exactly one band. That is false: `cancelled` / `superseded` / `retired` / `declined` are in **both** `BANDS["archived"]` and the per-type done sets, so `_square_state` testing archived *before* `_is_done` is what makes them read as *dropped* rather than *delivered*. Reversing that order silently relabels six squares (found in review, [[ISS-0071]]).
+
+**`failing` and the `blocked` band.** This table had no row for them. `failing` is a legal test status and — until [[ISS-0071]] — fell through to plain hollow, rendering a failing test identically to unstarted work on a strip this design had just added tests to. It now carries the **dot**: a failing test is an outstanding human action in exactly the sense the dot means, and it needs no new mark.
+
 **The dot composes with every fill state; the fills are mutually exclusive.** That is required, not convenient: `STATUSES.md` says "an item can be blocked while still `doing`, which a status cannot express", so a pulsing square must be able to carry a dot. The fills are already mutually exclusive by construction — every status belongs to exactly one band (`statuses.py`), so no precedence rule is needed. *unproven* is the one overlay: it applies to an item that is otherwise *delivered*, and wins, because the point is that the delivered claim is unproven.
 
 ### Why each mark is that mark
@@ -61,7 +65,7 @@ The arrangement was reversed during review, and the discarded version is worth r
 
 **Inverted fill for the two "qualified" states**, distinguished by motion. The form reads as *the fill is present but the claim is not clean*: pulsing means in motion, static means settled-but-unverified. `doing` was already invisible despite being computed; `unproven` was never encoded at all.
 
-**Static inverted fill has a real population, and it is the one this project cares most about.** Measured: **22 items are terminal under a `verification_waiver`**, and of 22 tests — all reading `passing`, 21 of them manual — **9 were last verified 66–83 days ago**. Every one renders as a clean solid square today. That is the strip laundering exactly what [[ADR-0010]] (a status claiming verification nothing performed) and [[ADR-0011]] (the review deadline) exist to prevent.
+**Static inverted fill has a real population, and it is the one this project cares most about.** Measured: **22 items are terminal under a recorded `verification_waiver`** and render as clean solid squares today. That is the whole population — see the correction immediately below for the stale-test figure this sentence used to add, and why it was withdrawn. A waiver is the stronger case anyway: it is a standing statement that the gate was skipped, where staleness is a clock that has not run out. Either way the strip was laundering exactly what [[ADR-0010]] and [[ADR-0011]] exist to prevent.
 
 ### Correction, 2026-07-30 — the stale-test figure was wrong
 
@@ -98,7 +102,7 @@ Worth doing on its own merits: 20 of 22 tests carry a `phase:`, so they slot in 
 - `strip-realistic` — PHASE-010 at true density with every state present, and the legend
 - `terminal-and-parked` — the two struck states side by side at 1:1 and 3×, and why fill separates them
 - `composition` — each fill with and without the dot, at 1:1 and 3×, so the geometry is checkable
-- `tests-in-the-strip` — the payload change, and the 9 stale tests that motivate *unproven*
+- `tests-in-the-strip` — the payload change, and the 22 waived items that motivate *unproven* (an earlier revision cited 9 stale tests on an invented threshold; see Revisions)
 - `header-markers` — what the squares cannot carry
 - `accordion-headers` — the close-out pill and the collapsed-phase waiting count
 - `quiet-state` — the common case, where the change makes the page quieter
@@ -132,6 +136,7 @@ Every mark is also distinguishable without colour — solid, struck, ringed, dot
 
 - 2026-07-30 — initial. Four candidate treatments for one attention bit, plus the header markers.
 - 2026-07-30 — revised to the settled encoding after owner review: dot for outstanding action (`open`/`deferred` excluded), diagonal strike for the archived band, pulsing inverted fill for `doing`, static inverted fill for unproven completion, and tests added to the strip. Four alternatives demoted to the `alternatives` region. Recorded that `blocked` is a relationship and that the existing status check is dead code.
+- 2026-07-30 — **after the accepting verdict**, and recorded here because [[ISS-0057]] exists for exactly this: the staleness correction below was appended to this note *after* Edwin accepted it at `design_revision: 55a743d`, with no entry here and the revision unchanged. Found by independent review ([[ISS-0071]]). The change is a correction of an overstated figure, not a change of design — but a reviewer cannot know that from a digest, which is why it is written down. `at_note_digest` now covers this note's substance; nothing rendered `note_moved` at the time.
 - 2026-07-30 — `deferred` promoted to its own mark, and the two struck states assigned by settledness rather than by which came first: **archived** takes solid-plus-slit, **deferred** takes hollow-plus-strike. New `terminal-and-parked` region. The region formerly proposed as `deferred-decision` (a two-candidate comparison) was renamed rather than deprecated — safe only because the artifact has never been reviewed and carries no annotations; once it has, the contract is add-and-deprecate.
 
 ## Review

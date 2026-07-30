@@ -31,7 +31,7 @@ review_verdict: "changes-requested"
 This repo has decided twice already that a status must not assert what nothing performed — [[ADR-0010]] took `passing`/`failing` away from authors and gave it to the runner; [[ADR-0011]] put a deadline on unreviewed terminal notes. The surfaces did not follow. Measured on 2026-07-30:
 
 - **22 items are terminal under a recorded `verification_waiver`** and render on the phase strip as clean solid squares, identical to items verified by proof.
-- **21 of 22 tests are manual, all reading `passing`, and 9 were last verified 66–83 days ago.** Nothing in the UI distinguishes a current verification from a two-month-old one.
+- **21 of 22 tests are manual and all read `passing`.** Nothing in the UI distinguished a current verification from an old one. *(An earlier version of this line claimed 9 were stale; that used a 30-day threshold, not the project's 90. See the correction below — at 90 none are, and the waived items carry this phase on their own.)*
 - **[[TST-0022]]'s `## Coverage` register needed four independent-review rounds to describe its own 27 assertions accurately**, and requirement criteria are ticked *against that register*.
 - **[[ISS-0024]]** is the same failure one level down: `DONE_BY_TYPE` drifted outside TST-0019's parity guard, so a per-type done-set could claim a status the vocabulary had moved.
 
@@ -62,7 +62,7 @@ The phase's claim is one sentence: **where the system already knows a claim is u
 
 ## Exit Criteria
 
-- [ ] A waived or stale-verified item is visually distinguishable from a proven one on the phase strip — evidence: <the unproven mark implemented, plus a count against the 22 + 9 measured here>
+- [ ] A waived or stale-verified item is visually distinguishable from a proven one on the phase strip — evidence: <the unproven mark implemented, plus a count against the 22 waived items. NOT 22 + 9: the 9 stale tests were measured on a 30-day threshold nobody adopted, and at the project's 90 there are none — see the correction above>
 - [ ] Coverage-register drift fails a check rather than waiting for a reviewer — evidence: <the ISS-0066 assertion, mutation-verified>
 - [ ] `PHASE-007` has no PHASE-CHILDREN error — evidence: <validator clean, ISS-0024 resolved>
 - [ ] An accepting design verdict is invalidated by a change to the note's prose, not only to its artifact — evidence: <ISS-0057 test>

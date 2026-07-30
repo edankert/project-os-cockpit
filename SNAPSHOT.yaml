@@ -48,7 +48,7 @@ focus:
   task: ""
   feature: ""
   phase: "PHASE-012"
-  issue: "ISS-0070"
+  issue: "ISS-0071"
   note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
 items:
   features:
@@ -269,7 +269,7 @@ items:
     FEAT-0018:
       title: "Verification health surface — validator status, drift panel, waiver/review badges"
       status: done
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-011-Unproven-Claims]]"
       path: "docs/features/verification-health/FEAT-0018-Verification-Health-Surface.md"
       tasks: ["TASK-0111", "TASK-0112", "TASK-0113"]
       tests: ["TST-0016"]
@@ -331,7 +331,7 @@ items:
     FEAT-0028:
       title: "Fleet health surface — per-workspace validator badges across all discovered repos"
       status: backlog
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
       path: "docs/features/fleet-health/FEAT-0028-Fleet-Health-Surface.md"
     FEAT-0029:
       title: "Cockpit MCP server — expose the cockpit HTTP API to MCP-capable agents"
@@ -1724,21 +1724,21 @@ items:
       title: "The overview's Waiting-on-you list re-lists items that are already on the page as phase squares — it exists because the squares cannot say anything needs a human, and most of its rows duplicate a mode that owns them"
       status: fixed
       severity: medium
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-012-Attention-In-The-Strip]]"
       note: "Measured: all 9 rows already had a square on the page (384 squares, 8 of 9 visible), every one bucket=backlog. The squares carry two visual states plus type colour, so blocked/triage/open/review/deferred/backlog are pixel-identical — the list is prose compensating for one missing bit. DES-0004 proposes four treatments. A counts-and-pointers version was rejected: the stat tiles already are that indication. Deleting it reverses TASK-0200, TASK-0210 and DES-0001 plate 5, so those want superseding rather than emptying."
     ISS-0067:
       file: "docs/issues/ISS-0067-Untyped-Task-Notes-Are-Unreachable.md"
       title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
       status: fixed
       severity: low
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-012-Attention-In-The-Strip]]"
       note: "TASK-0182/0183/0187: 247 task files on disk, 244 typed. Found in review round four by sweeping notes rather than types — a per-type count never surfaces it, because 244 is not suspicious. REQ-0025 is about types and passed correctly; this is the residue a type-level guarantee does not cover."
     ISS-0066:
       file: "docs/issues/ISS-0066-Test-Coverage-Registers-Drift-By-Hand.md"
       title: "A TST note's ## Coverage list is a hand-maintained register of its own assertions, and drift in it is indistinguishable from a false claim — TST-0022 took four review rounds to describe 27 assertions accurately"
       status: fixed
       severity: medium
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-011-Unproven-Claims]]"
       note: "Four independent-review rounds on TST-0022, four findings, all one class: the register claiming more, less or other than the tests deliver. Two entries stayed missing for three rounds while being cited by name in REQ-0025's criteria. Same shape ADR-0009 and ADR-0010 already settled elsewhere — a hand-written second copy of machine-readable truth — except here the copy is cited as evidence, so drift reads as a false verification claim. Parked in PHASE-999, not PHASE-010: the phase is done; the format gap it exposed is not the phase's work."
     ISS-0064:
       file: "docs/issues/ISS-0064-Two-Reviewed-Sections.md"
@@ -2746,7 +2746,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 0
-    issues_triage: 2
+    issues_triage: 1
     risks_open: 4
     releases_total: 0
     decisions_total: 8

@@ -1685,6 +1685,17 @@
 
   function navigateTo(url, options) {
     var pushState = !(options && options.replace);
+    // `~root/<file>` is the nav payload's shape for a top-level project file
+    // (ISS-0037). Mode 3 needs that prefix because its `extractRel` cannot
+    // otherwise tell `/README.md` from the docs note of the same name — but
+    // mode 1 fetches the URL as a page, and `GET /README.md` has always served
+    // the project file correctly. So translate rather than route: the prefix is
+    // a rel-space disambiguator, not an HTTP path.
+    //
+    // Restores what ISS-0037's fix broke here: the payload changed under this
+    // client and `GET /~root/README.md` 404'd, so mode 3 gained a working link
+    // and mode 1 lost one (ISS-0071).
+    if (url && url.indexOf("~root/") === 0) url = "/" + url.slice(6);
     return fetch(url, { headers: { Accept: "text/html" } })
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);

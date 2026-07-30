@@ -141,36 +141,128 @@ ALLOWED_VERDICTS = CLOSE_OUT_VERDICTS | DESK_VERDICTS
 
 
 def test_review_verdicts_use_a_defined_value() -> None:
-    """ISS-0069. `review_verdict` had a second, undefined vocabulary: 10 notes
-    carried `CLOSE`, and nothing rejected it.
+    """ISS-0069, with the context split ISS-0071 found unenforced.
 
-    The validator checks *presence* (ADR-0011's REVIEW rule) and the literal
-    string `changes-requested` (the close-out gate). An arbitrary value passes
-    both — it is not absent and it is not `changes-requested` — so it read as a
-    satisfied review. This is ISS-0024 §1 one level up: a second vocabulary
-    drifting because nothing held it to its definition.
+    The first version checked the **union** of the two vocabularies, so it never
+    enforced the split it claimed to: stamping a CHG close-out note
+    `review_verdict: "accepted"` passed. The split is the whole point — ADR-0007
+    made the desk's values distinct precisely so a plan-acceptance stamp cannot
+    satisfy the close-out gate, and a check over the union re-merges them.
 
-    Empty is allowed: it means unreviewed, which ADR-0011 already warns about on
-    a terminal note. What is not allowed is a value nobody defined.
-
-    Reads the **parsed** frontmatter rather than matching source. The first cut
-    used a regex and reported a false positive on
-    `review_verdict: approved  # feature rounds 1-3` — it swallowed the trailing
-    YAML comment into the value. A check that matches the wrong thing is the
-    class this whole file exists for, so it uses the parser that already exists.
+    So: desk values are legal only where desk acceptance happens. Today that is
+    `[[design]]` notes (DES-0002 and DES-0004 carry `accepted`). If a FEAT or
+    TASK ever gains one this fails — correctly, because that is the case
+    ADR-0007 warns about and it deserves a decision, not a silent pass.
     """
     from project_os_cockpit.index import Index
 
     idx = Index.build(DOCS)
-    offenders = sorted(
-        (r.note_id or r.rel_path, r.frontmatter["review_verdict"].strip())
-        for r in idx.iter_records()
-        if isinstance(r.frontmatter.get("review_verdict"), str)
-        and r.frontmatter["review_verdict"].strip()
-        and r.frontmatter["review_verdict"].strip() not in ALLOWED_VERDICTS
-    )
+    offenders: list[tuple[str, str, str]] = []
+    for r in idx.iter_records():
+        value = r.frontmatter.get("review_verdict")
+        if not isinstance(value, str) or not value.strip():
+            continue                      # empty means unreviewed; ADR-0011 covers it
+        value = value.strip()
+        note_type = (r.note_type or "").lower()
+        allowed = (ALLOWED_VERDICTS if note_type == "design" else CLOSE_OUT_VERDICTS)
+        if value not in allowed:
+            offenders.append((r.note_id or r.rel_path, note_type, value))
     assert not offenders, (
-        "undefined review_verdict values (QUALITY.md allows "
-        f"{sorted(CLOSE_OUT_VERDICTS)}, ADR-0007 adds {sorted(DESK_VERDICTS)}): "
-        f"{offenders}"
+        "review_verdict values outside the vocabulary for their context — "
+        f"close-out notes allow {sorted(CLOSE_OUT_VERDICTS)}, `design` notes "
+        f"also allow {sorted(DESK_VERDICTS)}: {offenders}"
     )
+
+
+def test_the_two_verdict_vocabularies_stay_disjoint() -> None:
+    """ADR-0007's guarantee is that the sets do not overlap: if a value were in
+    both, the desk could stamp something the close-out gate then accepted, which
+    is the failure the ADR built two vocabularies to prevent."""
+    assert not (CLOSE_OUT_VERDICTS & DESK_VERDICTS), (
+        "the close-out and desk verdict vocabularies now share a value, so a "
+        "plan-acceptance stamp could satisfy a close-out gate (ADR-0007)"
+    )
+
+
+# ---- ISS-0071: snapshot/note agreement the sync script does not cover -------
+
+
+def test_the_snapshot_phase_matches_the_note() -> None:
+    """`sync-snapshot.py` propagates `status`, `counters` and `metrics.counts`
+    (ADR-0009) — **not `phase:`** — and the validator does not compare it. So a
+    note re-phased by hand leaves the snapshot pointing at the old phase, and
+    nothing notices.
+
+    Found in review: five items said PHASE-999-Future in the snapshot while
+    their notes said PHASE-011/012/013. Same class as the dangling
+    `PHASE-999-Unscheduled` link (ISS-0070's neighbour) — a phase reference
+    nothing checks.
+
+    The fix cannot go in the sync script: that is template-owned with a bundled
+    byte-identical copy (ISS-0026). So it is asserted here instead.
+    """
+    import re as _re
+
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(DOCS)
+    snap = (ROOT / "SNAPSHOT.yaml").read_text(encoding="utf-8")
+    drift: list[tuple[str, str, str]] = []
+    for m in _re.finditer(r"^    ([A-Z]+-\d{4}):\n((?:      .*\n)+)", snap, _re.M):
+        note_id, block = m.group(1), m.group(2)
+        sm = _re.search(r'^      phase: *"?\[\[([^\]"]+)\]\]"?', block, _re.M)
+        if not sm:
+            continue
+        path = idx.by_id(note_id)
+        record = idx.get(path) if path else None
+        if record is None:
+            continue
+        raw = str(record.frontmatter.get("phase") or "").strip().strip('"')
+        note_phase = _re.sub(r"^\[\[|\]\]$", "", raw)
+        if not note_phase:
+            continue
+        # `PHASE-011` and `PHASE-011-Unproven-Claims` both name the same phase.
+        if sm.group(1).split("-")[:2] != note_phase.split("-")[:2]:
+            drift.append((note_id, sm.group(1), note_phase))
+    assert not drift, (
+        "SNAPSHOT.yaml disagrees with the notes about which phase these belong "
+        f"to (snapshot, note): {drift}"
+    )
+
+
+def test_every_docs_note_is_tracked_by_git() -> None:
+    """ISS-0070's missing check, and the one that would have caught it years
+    earlier than a reviewer did.
+
+    An unanchored `inbox/` in `.gitignore` matched `docs/features/inbox/`, so
+    FEAT-0045, its PLAN and three tasks were never in the repository. Everything
+    local stayed green — `sync-snapshot.py` reads the filesystem, so the metrics
+    counted notes a clone could not see — and a fresh clone of `main` failed
+    `validate-docs.py` with four METRICS errors.
+
+    Cheaper than cloning: ask git whether it is ignoring anything under `docs/`.
+    A note the repository cannot see is not documentation, and it cannot be
+    independently reviewed, which is what made this worse than a lost file.
+    """
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "docs/"],
+        cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        pytest.skip("not a git work tree")
+    ignored = [line for line in result.stdout.splitlines() if line.strip()]
+    assert not ignored, (
+        "git is ignoring files under docs/ — they are not in the repository, so "
+        "a clone cannot validate and they cannot be reviewed:\n  "
+        + "\n  ".join(ignored[:20])
+    )
+
+    # Disclosed limit: this sees ignored-AND-UNTRACKED files, which is exactly
+    # ISS-0070's shape (the notes were never added). It will NOT fire for a file
+    # already tracked when a pattern starts matching it, because git keeps
+    # tracking those. Verified by probe: un-anchoring the pattern with the notes
+    # already committed does not trip this; un-anchoring plus a new note does.
+    # The residual risk is therefore new notes only, which is the risk that
+    # matters — an existing note cannot silently leave the repository.

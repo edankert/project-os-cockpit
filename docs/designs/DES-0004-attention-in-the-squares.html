@@ -222,7 +222,7 @@
     <tr>
       <td><i class="sq" data-type="test" data-state="unproven"></i></td>
       <td><strong>Complete, unproven</strong><br><span class="note">static</span></td>
-      <td>terminal under a recorded <code>verification_waiver</code>, or a manual test <code>passing</code> on a stale <code>last_verified</code></td>
+      <td>terminal under a recorded <code>verification_waiver</code>, or a manual test <code>passing</code> on a <code>last_verified</code> older than the project's threshold (<code>DEFAULT_STALENESS_DAYS = 90</code>). <strong>22 waived items today; no test is stale at 90.</strong></td>
     </tr>
     <tr>
       <td><i class="sq" data-type="issue" data-attn></i></td>
@@ -308,7 +308,7 @@
     <div class="strip-head"><strong>Tests, as they would render</strong><span class="frac">22 passing</span></div>
     <div class="row" id="tests"></div>
   </div>
-  <p class="note">13 proven, 9 stale, and a <code>ready</code> test that has never run carries the dot. The strip stops implying that a two-month-old manual claim is current.</p>
+  <p class="note">Rendered as the corpus stands: every test <code>passing</code> and none stale, plus a <code>ready</code> test carrying the dot. The stale column is shown because the state must be legible <em>when</em> it occurs — not because it occurs today.</p>
   <p class="note"><strong>Risks cannot join.</strong> All 4 carry no <code>phase:</code> at all, which is why they are absent — adding them is a corpus change, not a rendering one, and is out of scope here.</p>
 </section>
 
@@ -410,8 +410,11 @@
   const t = document.getElementById('tests');
   t.replaceChildren();
   const tg = [];
-  for (let i = 0; i < 13; i++) tg.push(S('test','delivered'));
-  for (let i = 0; i < 9; i++)  tg.push(S('test','unproven'));
+  // 21 delivered + 1 unproven: the corpus as it stands (no test is stale at
+  // the project's 90-day threshold; the single unproven square stands in for
+  // the state so it can be judged, not for a count).
+  for (let i = 0; i < 21; i++) tg.push(S('test','delivered'));
+  tg.push(S('test','unproven'));
   tg.push(S('test', null, true));
   group(t, tg);
 

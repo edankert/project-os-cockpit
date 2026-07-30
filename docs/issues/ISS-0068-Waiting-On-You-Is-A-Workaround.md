@@ -106,7 +106,17 @@ The encoding could not have been done in CSS: three of the six states had no dat
 - **`blocked` is computed from `depends:`**, never a status — the retired code checked `status === 'blocked'`, which no note carries and which the vocabulary forbids.
 - **Phase-header aggregates** `waiting` and `unclosed`.
 
-Live counts after implementation: 406 squares — 354 delivered, 22 unproven, 6 dropped, 2 deferred, 2 doing, 20 not-started, 3 carrying the dot, and three `1 waiting` pills.
+**Counts, with the method, because the first version had neither.** Independent review could not reproduce the figures originally recorded here (it measured 390/349/8/7 against a stated 406/354/6/20) and no method was given, so there was no way to tell a miscount from a different population. [[ISS-0071]].
+
+Method: items = `stats_payload`'s `features` + each feature's `children` + `loose`, summed across phases — the same set the strip renders. Measured 2026-07-30 after the ISS-0071 fixes:
+
+```
+items 396 — delivered 357, unproven 22, dropped 8, deferred 2, doing 2, not-started 5
+attn 2      (triage/review/ready/failing/computed-blocked)
+waiting     PHASE-011 1, PHASE-013 1
+```
+
+These move with the corpus and are a dated snapshot, not an invariant — the assertions in `test_surface_ownership.py` are what hold. `dropped` rose from 6 to 8 and `not-started` fell as this session's own issues were closed, which is the drift, not a discrepancy.
 
 ### Two corrections made while implementing
 

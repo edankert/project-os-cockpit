@@ -74,6 +74,86 @@ SCHEMA_VERSION: int = 4
 #: stale tests" on a 30-day threshold nobody had adopted; at 90 there are none.
 DEFAULT_STALENESS_DAYS: int = 90
 
+#: Mirror of ``PHASE_RESOLVED`` in ``tools/scripts/validate-docs.py``: per type,
+#: the statuses that let a phase close over a note naming it in ``phase:``.
+#:
+#: Duplicated rather than imported because that validator is template-owned with
+#: a byte-identical bundled copy (ISS-0026) and importing a hyphenated script is
+#: awkward — so `test_unclosed_uses_the_validators_own_gate` asserts the two
+#: tables are equal instead. **`risk` is in here.** Leaving it out is what made
+#: the `unclosed` marker looser than the gate it is supposed to predict
+#: (ISS-0071): the phase strip excludes risks by design, and computing the
+#: marker from the strip inherited that exclusion.
+PHASE_RESOLVED: dict[str, frozenset[str]] = {
+    "task": frozenset({"done", "cancelled", "superseded"}),
+    "issue": frozenset({"fixed", "declined"}),
+    "requirement": frozenset({"implemented", "retired", "cancelled", "superseded"}),
+    "feature": frozenset({"done", "cancelled", "superseded"}),
+    "risk": frozenset({"closed"}),
+}
+
+#: Mirror of ``CLOSED_PHASE_STATUSES``. `superseded` closes a phase too, so a
+#: superseded phase must not be offered for close-out.
+CLOSED_PHASE_STATUSES: frozenset[str] = frozenset({"done", "superseded"})
+
+
+def square_state_for(status: str, note_type: str = "task") -> str | None:
+    """Module-level twin of `stats_payload`'s `_square_state`, for enumeration.
+
+    The real one closes over the payload's `_is_done`; this takes the two inputs
+    that actually matter so a test can sweep the whole status vocabulary. Kept
+    beside it and asserted equivalent by `test_no_legal_status_falls_through_unmarked`
+    — the alternative was a test that could only see the statuses the corpus
+    happens to contain, which is how `failing` went unmarked (ISS-0071).
+    """
+    norm = (status or "").strip().lower()
+    if norm == "deferred":
+        return "deferred"
+    if norm in statuses.BANDS["archived"]:
+        return "dropped"
+    if is_done_status(note_type, norm):
+        return "delivered"
+    if norm in {"doing", "active", "in_progress"}:
+        return "doing"
+    return None
+
+
+def needs_human_for(status: str, note_type: str = "task") -> bool:
+    """Module-level twin of `_needs_human`, minus the `depends:` lookup (which
+    needs an index). Same purpose as `square_state_for`."""
+    norm = (status or "").strip().lower()
+    if norm in ("triage", "review"):
+        return True
+    if norm in statuses.BANDS["blocked"]:
+        return True
+    return note_type == "test" and norm == "ready"
+
+
+def phase_close_blockers(index: Index, phase_id: str) -> list[str]:
+    """Notes that would make PHASE-CHILDREN fire if ``phase_id`` closed.
+
+    Computed over **every note naming the phase**, exactly as the validator
+    does — not over the phase strip's items. The strip omits risks (none carry
+    a phase, so DES-0004 scoped them out) and that omission is not the gate's.
+    """
+    out: list[str] = []
+    for record in index.iter_records():
+        raw = str((record.frontmatter or {}).get("phase") or "").strip()
+        if not raw:
+            continue
+        named = _strip_wikilink(raw).strip()
+        # `PHASE-011` and `PHASE-011-Unproven-Claims` both name PHASE-011; a
+        # bare prefix match would also catch `PHASE-0110`, hence the boundary.
+        if not (named == phase_id or named.startswith(phase_id + "-")):
+            continue
+        resolved = PHASE_RESOLVED.get((record.note_type or "").lower())
+        if resolved is None:
+            continue                    # not a type the gate polices
+        if (record.status or "").strip().lower() not in resolved:
+            out.append(record.note_id or record.rel_path)
+    return sorted(out)
+
+
 
 def _staleness_days(docs_root: Path) -> int:
     """The project's staleness threshold, from the snapshot or the default."""
@@ -1202,6 +1282,17 @@ def stats_payload(
         status = _norm(rec.status)
         if status in ("triage", "review"):
             return True
+        # `failing` was the one legal status with no mark and no dot: it fell
+        # through to plain hollow, so a failing test rendered identically to
+        # unstarted work — on a strip this change had just added tests to,
+        # right after deleting `appendAsyncWaitingRows`, whose `failing` branch
+        # at rank 0 was the overview's only surface for it (ISS-0071).
+        #
+        # The dot rather than a new mark: a failing test IS an outstanding human
+        # action in exactly the sense the dot means, and the `blocked` band it
+        # belongs to (failing / reopened) is the same idea.
+        if status in statuses.BANDS["blocked"]:
+            return True
         if (rec.note_type or "").lower() == "test" and status == "ready":
             return True
         return _has_unresolved_dependency(rec)
@@ -1333,15 +1424,17 @@ def stats_payload(
             *(c for f in phase_features_payload for c in f["children"]),
             *loose_payload,
         ]
-        # Resolved for this purpose means the parent can close over it:
-        # delivered, unproven (still delivered, just unproven) and dropped.
-        # `deferred` deliberately does NOT resolve — STATUSES.md is explicit
-        # that a parent holding a deferred child cannot reach a terminal
-        # status, and `unclosed` must agree with the gate the validator
-        # enforces rather than invent a looser one.
-        RESOLVED_STATES = {"delivered", "unproven", "dropped"}
-        all_resolved = bool(every_item) and all(
-            i.get("state") in RESOLVED_STATES for i in every_item
+        # `unclosed` asks the VALIDATOR'S question, over the validator's
+        # population: would PHASE-CHILDREN fire if this phase closed?
+        #
+        # Computing it from `every_item` was wrong twice. First cut used the
+        # task/feature buckets and missed issues. Second cut used the strip's
+        # items — which exclude risks, because none carry a phase and DES-0004
+        # scoped them out — so a risk parked on a phase made the marker offer a
+        # close-out the gate would refuse (ISS-0071). The strip's scope is a
+        # rendering decision; the gate's is not.
+        blockers = (
+            phase_close_blockers(index, k) if k != "unphased" else ["unphased"]
         )
         phases_list.append({
             "key": k,
@@ -1354,7 +1447,14 @@ def stats_payload(
                 "backlog": b["backlog"],
             },
             "waiting": sum(1 for i in every_item if i.get("attn")),
-            "unclosed": bool(all_resolved and _norm(st) != "done" and k != "unphased"),
+            # `superseded` closes a phase too — the validator arms
+            # PHASE-CHILDREN against both, so offering a superseded phase for
+            # close-out would be a second disagreement with the gate.
+            "unclosed": bool(
+                not blockers
+                and bool(every_item)
+                and _norm(st) not in CLOSED_PHASE_STATUSES
+            ),
             "features": phase_features_payload,
             "loose": loose_payload,
         })
@@ -1552,8 +1652,14 @@ def design_note_digest(record: NoteRecord) -> str:
     import hashlib
 
     EXCLUDED_SECTIONS = ("## Review", "## Revisions")
+    # `status` is excluded because `stamp_design_verdict` WRITES it on accept
+    # (draft -> accepted), so leaving it in meant an accepting verdict changed
+    # its own digest — the exact objection ISS-0057 claims to answer, found in
+    # review as ISS-0071. Measured before the fix: 75f3c3b31b1b -> bf126afd62d7,
+    # sole difference `status: draft -> accepted`.
     EXCLUDED_FIELDS = ("reviewed_by", "review_date", "review_verdict",
-                       "design_revision", "updated")
+                       "design_revision", "updated", "status",
+                       "superseded_by")
 
     body_lines: list[str] = []
     skipping = False

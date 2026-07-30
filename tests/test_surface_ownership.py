@@ -635,26 +635,87 @@ def test_tests_are_in_the_phase_strip(repo_index: Index) -> None:
     )
 
 
-def test_blocked_is_computed_from_depends_not_from_a_status(repo_index: Index) -> None:
-    """STATUSES.md:59 — blocked-ness is `depends: [ID]`, not a status. No note
-    carries `status: blocked`, so a status check could never fire; the retired
-    `collectAttention` had exactly that dead branch.
+def test_blocked_is_computed_from_depends_not_from_a_status(
+    docs_root: Path,
+) -> None:
+    """ISS-0071. The first version's docstring claimed a behavioural assertion
+    its body never made — `def _has_unresolved_dependency(rec): return False`
+    passed all 594 tests — and its source slice read the wrong function's body,
+    so re-adding a blocked-status branch passed under a message saying it had
+    not.
 
-    Asserted by construction: an unfinished item whose dependency is unresolved
-    must carry `attn`, and one whose dependency is satisfied must not.
+    Behavioural now: an unfinished item whose dependency is unresolved carries
+    the dot; the same item whose dependency is done does not.
     """
-    assert not [
-        r for r in repo_index.iter_records()
-        if (r.status or "").strip().lower() == "blocked"
-    ], "a note now carries status: blocked, which the vocabulary does not allow"
-
-    src = (Path(__file__).resolve().parent.parent
-           / "src" / "project_os_cockpit" / "cockpit.py").read_text(encoding="utf-8")
-    assert "_has_unresolved_dependency" in src
-    assert '"blocked"' not in src.split("def _needs_human")[1].split("def ")[1], (
-        "_needs_human is reading a blocked status again"
+    (docs_root / "features").mkdir(exist_ok=True)
+    (docs_root / "features" / "FEAT-0600-Probe.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0600\ntitle: "Probe"\n'
+        'status: backlog\nphase: "[[PHASE-600]]"\n---\n# Probe\n',
+        encoding="utf-8",
     )
 
+    def write_blocker(status: str) -> None:
+        (docs_root / "TASK-0601-Blocker.md").write_text(
+            f'---\ntype: "[[task]]"\nid: TASK-0601\ntitle: "Blocker"\n'
+            f'status: {status}\nphase: "[[PHASE-600]]"\n---\n# Blocker\n',
+            encoding="utf-8",
+        )
+
+    (docs_root / "TASK-0600-Blocked.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0600\ntitle: "Blocked"\n'
+        'status: doing\nphase: "[[PHASE-600]]"\n'
+        'depends: ["[[TASK-0601]]"]\n---\n# Blocked\n',
+        encoding="utf-8",
+    )
+
+    def attn_of(note_id: str) -> bool:
+        payload = cockpit.stats_payload(Index.build(docs_root))
+        for ph in payload["phases"]:
+            pool = [*ph["features"],
+                    *(c for f in ph["features"] for c in f["children"]),
+                    *ph["loose"]]
+            for item in pool:
+                if item.get("id") == note_id:
+                    return bool(item.get("attn"))
+        raise AssertionError(f"{note_id} is not in the payload at all")
+
+    write_blocker("backlog")
+    assert attn_of("TASK-0600"), (
+        "an unfinished item with an unresolved `depends:` carries no dot"
+    )
+    # ...and it is still `doing`, so the dot composes with a fill rather than
+    # replacing it — the property STATUSES.md requires.
+    write_blocker("done")
+    assert not attn_of("TASK-0600"), (
+        "the blocker is done and the item still reads as blocked"
+    )
+
+    # A `status: blocked` must NOT be what drives it — that status is not in the
+    # vocabulary and no note carries it.
+    assert not [
+        r for r in Index.build(docs_root).iter_records()
+        if (r.status or "").strip().lower() == "blocked"
+    ]
+
+    # And the branch must not come back. This is a source check because a dead
+    # branch is behaviourally INVISIBLE — nothing carries the status, so adding
+    # `if status == "blocked"` changes no output and no behavioural test can
+    # see it. The previous version claimed to catch this and sliced the wrong
+    # function's body; slicing correctly is what makes the claim true.
+    src = (Path(__file__).resolve().parent.parent
+           / "src" / "project_os_cockpit" / "cockpit.py").read_text(encoding="utf-8")
+    after = src[src.index("    def _needs_human("):]
+    body = after[:after.index("\n    def ", 1)]
+    # Narrowed: `statuses.BANDS["blocked"]` in here is CORRECT — that band holds
+    # `failing` and `reopened`, which are real statuses (ISS-0071 gave them the
+    # dot). What must not come back is comparing the status to the literal, the
+    # dead branch STATUSES.md:59 forbids.
+    for dead in ('== "blocked"', "== 'blocked'", 'status == "blocked"'):
+        assert dead not in body, (
+            f"_needs_human compares status to the `blocked` literal ({dead}); "
+            "STATUSES.md:59 makes blocked-ness a `depends:` relationship, so "
+            "that branch is dead code which only looks like a guard"
+        )
 
 def test_the_staleness_threshold_is_the_validators(repo_index: Index) -> None:
     """A cockpit that called a test stale at 30 days while the validator called
@@ -704,31 +765,92 @@ def test_the_phase_header_carries_what_squares_cannot(repo_index: Index) -> None
     assert "ov-phase-pill is-unclosed" in code
 
 
-def test_unclosed_agrees_with_the_validators_gate(repo_index: Index) -> None:
-    """`unclosed` must not be looser than PHASE-CHILDREN. `deferred` does not
-    resolve a child — a parent holding one cannot reach a terminal status — so
-    a phase with a deferred item must never be offered for close-out.
+def test_unclosed_uses_the_validators_own_gate() -> None:
+    """ISS-0071. The first version of this test restated the implementation —
+    `unclosed` *is* `all(state in RESOLVED_STATES)` and it asserted exactly
+    that, so it could not fail and never read the validator. Reverting
+    `unclosed` to its buggy first cut left it green.
 
-    The first cut of this computed from the task/feature buckets alone and
-    reported PHASE-011 as closeable while an issue in it was still open.
+    This compares the two tables directly, which is the thing that was wrong:
+    the payload omitted `risk`, so a risk parked on a phase made the marker
+    offer a close-out PHASE-CHILDREN would refuse.
     """
-    data = cockpit.stats_payload(repo_index)
-    for ph in data["phases"]:
-        if not ph["unclosed"]:
-            continue
-        items = [*ph["features"],
-                 *(c for f in ph["features"] for c in f["children"]),
-                 *ph["loose"]]
-        assert items, f"{ph['key']} offered for close-out with no items"
-        for i in items:
-            assert i.get("state") in ("delivered", "unproven", "dropped"), (
-                f"{ph['key']} offered for close-out but {i['id']} is "
-                f"{i['status']!r} (state={i.get('state')!r})"
+    validator = (Path(__file__).resolve().parent.parent
+                 / "tools" / "scripts" / "validate-docs.py").read_text(encoding="utf-8")
+    block = validator[validator.index("PHASE_RESOLVED = {"):]
+    block = block[:block.index("\n}")]
+    theirs = {
+        m.group(1): {s.strip().strip('"') for s in m.group(2).split(",") if s.strip()}
+        for m in re.finditer(r'"(\w+)": \{([^}]*)\}', block)
+    }
+    ours = {k: set(v) for k, v in cockpit.PHASE_RESOLVED.items()}
+    assert ours == theirs, (
+        f"the close-out marker's gate has drifted from the validator's.\n"
+        f"cockpit: {ours}\nvalidator: {theirs}"
+    )
+
+    m = re.search(r"^CLOSED_PHASE_STATUSES = \(([^)]*)\)", validator, re.M)
+    assert m
+    assert cockpit.CLOSED_PHASE_STATUSES == {
+        s.strip().strip('"') for s in m.group(1).split(",") if s.strip()
+    }
+
+
+def test_an_unresolved_child_of_any_policed_type_blocks_close_out(
+    docs_root: Path,
+) -> None:
+    """Behavioural, per type, including `risk` — the omission ISS-0071 found.
+
+    Builds a phase whose every note is resolved, asserts it is offered for
+    close-out, then parks one unresolved note of each policed type on it and
+    asserts the offer is withdrawn. A test that only checked the happy corpus
+    is what let the risk case through.
+    """
+    phase_dir = docs_root / "phases"
+    phase_dir.mkdir(parents=True, exist_ok=True)
+    (phase_dir / "PHASE-500-Probe.md").write_text(
+        '---\ntype: "[[phase]]"\nid: PHASE-500\ntitle: "Probe"\n'
+        'status: active\norder: 500\n---\n# Probe\n\n## Exit Criteria\n- [x] x\n',
+        encoding="utf-8",
+    )
+    (docs_root / "features").mkdir(exist_ok=True)
+    (docs_root / "features" / "FEAT-0500-Probe.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0500\ntitle: "Probe"\n'
+        'status: done\nphase: "[[PHASE-500-Probe]]"\n---\n# Probe\n',
+        encoding="utf-8",
+    )
+
+    def offered() -> bool:
+        payload = cockpit.stats_payload(Index.build(docs_root))
+        ph = next((p for p in payload["phases"] if p["key"] == "PHASE-500"), None)
+        assert ph is not None, "the probe phase vanished from the payload"
+        return bool(ph["unclosed"])
+
+    assert offered(), "a fully resolved phase is not offered for close-out"
+
+    UNRESOLVED = {
+        "task": ("TASK-0500", "backlog"),
+        "issue": ("ISS-0500", "open"),
+        "requirement": ("REQ-0500", "draft"),
+        "feature": ("FEAT-0501", "doing"),
+        "risk": ("RISK-0500", "open"),
+    }
+    for note_type, (note_id, status) in UNRESOLVED.items():
+        probe = docs_root / f"{note_id}-Probe.md"
+        probe.write_text(
+            f'---\ntype: "[[{note_type}]]"\nid: {note_id}\ntitle: "Probe"\n'
+            f'status: {status}\nphase: "[[PHASE-500-Probe]]"\n---\n# Probe\n',
+            encoding="utf-8",
+        )
+        try:
+            assert not offered(), (
+                f"PHASE-500 is still offered for close-out with an unresolved "
+                f"{note_type} ({note_id} at {status}) parked on it — "
+                f"PHASE-CHILDREN would refuse it"
             )
-
-
-# ---- ISS-0057 / ISS-0067 / ISS-0037: the PHASE-011..012 remainder ------------
-
+        finally:
+            probe.unlink()
+        assert offered(), f"removing the {note_type} probe did not restore the offer"
 
 def test_a_design_note_digest_ignores_what_recording_a_review_touches() -> None:
     """ISS-0057. `at_revision` follows the artifact, so a design's Problem,
@@ -753,9 +875,16 @@ def test_a_design_note_digest_ignores_what_recording_a_review_touches() -> None:
         "filing a review changed the digest, so a review would invalidate itself"
     )
 
-    stamped = {**fm, "review_verdict": "approved", "updated": "2026-07-30"}
+    # Every field the accept path writes, not just the verdict. ISS-0071 found
+    # `status` missing: stamp_design_verdict flips draft -> accepted, so an
+    # accepting verdict changed its own digest — the objection this fix exists
+    # to answer, reintroduced by the fix.
+    stamped = {**fm, "review_verdict": "approved", "updated": "2026-07-30",
+               "status": "accepted", "reviewed_by": "user:edwin",
+               "review_date": "2026-07-30", "design_revision": "abc1234"}
     assert cockpit.design_note_digest(Rec(stamped, body)) == base, (
-        "stamping the verdict changed the digest"
+        "a field the accept path writes changed the digest, so recording a "
+        "verdict invalidates itself"
     )
 
     rewritten = body.replace("A thing is wrong.", "Actually a different thing.")
@@ -798,3 +927,103 @@ def test_root_file_rows_are_distinguishable_from_docs_notes(repo_index: Index) -
     assert "pathOnly.startsWith('~root/')" in code, "the renderer does not route ~root/"
     server = SERVER.read_text(encoding="utf-8")
     assert 'explicit_root = rel_path.startswith("root/")' in server
+
+    # BOTH clients. ISS-0071: the first guard grepped renderer.ts only, so the
+    # payload change landed while mode 1's cockpit.js — which has no
+    # `extractRel` and fetches the raw href — started 404ing on `~root/…`. The
+    # desktop gained a working link and the browser lost one, undetected.
+    browser = (Path(__file__).resolve().parent.parent / "src" / "project_os_cockpit"
+               / "static" / "cockpit.js").read_text(encoding="utf-8")
+    assert '"~root/"' in browser, (
+        "mode 1 does not handle the ~root/ prefix, so the Library's top-level "
+        "project files are dead clicks there"
+    )
+
+
+def test_no_legal_status_falls_through_unmarked() -> None:
+    """ISS-0071. `failing` was the one legal status with no mark and no dot, so
+    a failing test rendered identically to unstarted work — on a strip this
+    change had just added tests to, right after deleting the overview's only
+    other surface for it.
+
+    Swept over the **vocabulary**, not the corpus, because the corpus contains
+    no failing test: a count test passed over the gap, and did.
+
+    Swept per type against the validator's own `ALLOWED_STATUS` table, not the
+    cross product. Two earlier versions of this test were wrong in that way —
+    one asked `is_done_status("test", "done")` (false: tests are done at
+    `passing`) and reported the whole done band; the next asked every status of
+    every type and reported 46 pairs like `("issue", "merged")` that no note can
+    hold. A sweep over impossible inputs is noise, and noise gets suppressed.
+    """
+    from project_os_cockpit import statuses
+
+    validator = (Path(__file__).resolve().parent.parent
+                 / "tools" / "scripts" / "validate-docs.py").read_text(encoding="utf-8")
+    block = validator[validator.index("ALLOWED_STATUS = {"):]
+    block = block[:block.index("\n}")]
+    allowed = {
+        m.group(1): {s.strip().strip('"') for s in m.group(2).split(",") if s.strip()}
+        for m in re.finditer(r'"(\w+)":\s*\{([^}]*)\}', block)
+    }
+    assert {"task", "issue", "feature", "requirement", "test"} <= set(allowed), (
+        f"could not read the validator's per-type statuses: {sorted(allowed)}"
+    )
+
+    #: Legitimately unmarked, with the reason. "Not started" is a real state and
+    #: plain hollow is its mark.
+    UNMARKED_BY_DESIGN = (
+        set(statuses.BANDS["pending"])          # backlog / open / draft / proposed / …
+        | {"approved", "accepted", "next"}      # decided, not begun
+        | {"ready"}                             # only a TEST's `ready` is an ask; see below
+    )
+
+    unmarked: list[tuple[str, str]] = []
+    for note_type in ("task", "issue", "feature", "requirement", "test"):
+        for status in sorted(allowed[note_type]):
+            if status in UNMARKED_BY_DESIGN and not (
+                note_type == "test" and status == "ready"
+            ):
+                continue
+            if (cockpit.square_state_for(status, note_type) is None
+                    and not cockpit.needs_human_for(status, note_type)):
+                unmarked.append((note_type, status))
+    assert not unmarked, (
+        f"legal statuses render identically to not-started: {unmarked}. Each "
+        "needs a fill, a dot, or an entry in UNMARKED_BY_DESIGN with a reason — "
+        "silence is how `failing` went unmarked."
+    )
+
+    # And the case that bit: every status in the blocked band is marked, for
+    # every type that can hold it.
+    for note_type in ("task", "issue", "feature", "requirement", "test"):
+        for status in sorted(set(statuses.BANDS["blocked"]) & allowed[note_type]):
+            assert cockpit.needs_human_for(status, note_type), (
+                f"{note_type} at {status!r} (blocked band) carries no dot"
+            )
+
+def test_the_module_twins_agree_with_the_payload(repo_index: Index) -> None:
+    """`square_state_for` / `needs_human_for` exist so the sweep above can
+    enumerate the vocabulary, and they are only useful if they agree with what
+    the payload actually emits. Checked against every item in the live corpus.
+    """
+    data = cockpit.stats_payload(repo_index)
+    items = [i for ph in data["phases"]
+             for i in [*ph["features"],
+                       *(c for f in ph["features"] for c in f["children"]),
+                       *ph["loose"]]]
+    assert items
+    for item in items:
+        expected = cockpit.square_state_for(item["status"], item["type"])
+        # `unproven` is an overlay the twin does not model (it needs frontmatter),
+        # and it only ever replaces `delivered`.
+        actual = item.get("state")
+        if actual == "unproven":
+            assert expected == "delivered", (
+                f"{item['id']} reads unproven but its status maps to {expected}"
+            )
+            continue
+        assert actual == expected, (
+            f"{item['id']} ({item['type']} at {item['status']!r}): payload says "
+            f"{actual!r}, the twin says {expected!r}"
+        )
