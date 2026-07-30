@@ -40,16 +40,16 @@ counters:
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 247
+  TASK: 251
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: ""
+  feature: "FEAT-0028"
   phase: "PHASE-013"
   issue: ""
-  note: "2026-07-30 PHASE-011 and PHASE-012 both done, both independently reviewed. The review returned changes-requested and its findings were fixed before close-out, not after: ISS-0070 (an unanchored .gitignore had kept docs/features/inbox/ — FEAT-0045 and three tasks — out of the repository entirely; a fresh clone failed the validator) and ISS-0071 (nine findings, worst being three of my own new guards passing while what they claimed was broken). 600 tests, validator clean, a fresh clone validates clean. PHASE-013 is next and is BLOCKED on a per-repo go-ahead: TASK-0231 writes to ten other repositories, and FEAT-0028 has no task breakdown yet. Owed: the desk still does not render note_moved (ISS-0057), and ISS-0069/ISS-0066 both recommend upstreaming to project-os."
+  note: "2026-07-30 FEAT-0028 broken down into TASK-0248..0251 (live workspaces → cold workspaces → badge → roll-up); no code yet. The breakdown surfaced two things the brief plan hid: the feature and validate-fleet.sh disagree on whose validate-docs.py runs against another repo, and the rail dot is already spent on agent state — TASK-0249 and TASK-0250 own those. PHASE-013's other half, TASK-0231, stays BLOCKED on a per-repo go-ahead: it writes to ten other repositories. PHASE-011 and PHASE-012 are done and reviewed. Owed: the desk still does not render note_moved (ISS-0057), and ISS-0069/ISS-0066 both recommend upstreaming to project-os."
 items:
   features:
     FEAT-0046:
@@ -333,6 +333,8 @@ items:
       status: backlog
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       path: "docs/features/fleet-health/FEAT-0028-Fleet-Health-Surface.md"
+      tasks: [TASK-0248, TASK-0249, TASK-0250, TASK-0251]
+      note: "Broken down 2026-07-30. Two open questions the brief plan hid: whose validate-docs.py runs against another repo (the feature says the repo's, validate-fleet.sh says this one's — different badges for the same repo), and the rail dot is already spent on agent state. TASK-0249 owns the first, TASK-0250 the second."
     FEAT-0029:
       title: "Cockpit MCP server — expose the cockpit HTTP API to MCP-capable agents"
       status: backlog
@@ -340,6 +342,34 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0248:
+      file: "docs/features/fleet-health/plan/tasks/TASK-0248-Live-Workspace-Validation-Aggregate.md"
+      title: "Aggregate validator state for live workspaces in the main process"
+      status: backlog
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      parent: FEAT-0028
+      note: "The cheap half — FEAT-0018's endpoint and SSE already exist, this only fans them in. Must reuse the janitor's identity/root check: a stale .cockpit/url can point at another workspace's port, which would attribute one repo's drift to another."
+    TASK-0249:
+      file: "docs/features/fleet-health/plan/tasks/TASK-0249-Cold-Workspace-Validation.md"
+      title: "Validate cold workspaces on a bounded schedule, and decide whose validator runs"
+      status: backlog
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      parent: FEAT-0028
+      note: "Runs a script in ten repos this app does not own, so read-only is a test rather than an intention. Owns the per-repo vs uniform validator decision, to be recorded before any code."
+    TASK-0250:
+      file: "docs/features/fleet-health/plan/tasks/TASK-0250-Fleet-Badge-On-The-Rail.md"
+      title: "The validator badge on the rail and tabs, without colliding with the agent-state dot"
+      status: backlog
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      parent: FEAT-0028
+      note: "DES-0004's budget problem at rail width: .ws-dot is already agent state. Three options in the note; render them rather than argue them. unknown must not look like clean."
+    TASK-0251:
+      file: "docs/features/fleet-health/plan/tasks/TASK-0251-Fleet-Roll-Up.md"
+      title: "Fleet roll-up — one place that answers whether anything is drifting anywhere"
+      status: backlog
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      parent: FEAT-0028
+      note: "Prefer the existing ~agents screen over a new surface. PHASE-010 and PHASE-012 each ended by deleting a duplicate counts surface; this should not add a third."
     TASK-0247:
       file: "docs/features/review-desk-record/plan/tasks/TASK-0247-Drop-The-Advisory-Tally.md"
       title: "Drop the advisory-phase tally from the desk — ADR-0007 is settled"
@@ -2738,7 +2768,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 50
     features_done: 45
-    tasks_total: 247
+    tasks_total: 251
     tasks_done: 240
     tests_total: 22
     tests_passing: 22

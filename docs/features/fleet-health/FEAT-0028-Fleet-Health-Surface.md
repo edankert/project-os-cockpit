@@ -11,7 +11,7 @@ updated: 2026-07-17
 source: []
 goal: "The desktop shell shows a per-workspace docs-validation badge for every SNAPSHOT-bearing repo it knows about, so drift anywhere in the fleet is visible from one place without opening each project."
 requirements: []
-tasks: []
+tasks: ["[[TASK-0248-Live-Workspace-Validation-Aggregate]]", "[[TASK-0249-Cold-Workspace-Validation]]", "[[TASK-0250-Fleet-Badge-On-The-Rail]]", "[[TASK-0251-Fleet-Roll-Up]]"]
 release: ""
 related: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0007-Desktop-Shell]]"]
 tests: []
@@ -39,3 +39,14 @@ FEAT-0018 makes verification drift visible for the repo currently being browsed.
 
 ## Links
 - Builds on: [[FEAT-0018-Verification-Health-Surface]] (endpoint + SSE), [[FEAT-0007-Desktop-Shell]] (workspace discovery), TASK-0082 (rail dots pattern).
+
+
+## Breakdown — 2026-07-30
+
+Four tasks, sequenced so the cheap half ships without waiting on the expensive one: [[TASK-0248]] (live workspaces, pure reuse of FEAT-0018's endpoint and SSE), [[TASK-0249]] (cold workspaces, and the decision below), [[TASK-0250]] (the badge), [[TASK-0251]] (the roll-up). Plan in `plan/PLAN.md`.
+
+**This feature's brief plan contradicts an existing script, and the breakdown does not paper over it.** Step 2 above says *"run the repo's `tools/scripts/validate-docs.py`"*; `tools/scripts/validate-fleet.sh` says *"uses THIS repo's validate-docs.py for uniform semantics"*. Those produce different badges for the same repo — per-repo honours a pinned older template, uniform makes counts comparable. [[TASK-0249]] owns the decision and must record it before implementing.
+
+**Step 3's "following the agent-state dot pattern" understates a collision.** The rail entry already *has* a `.ws-dot`, and it is agent state. A validator dot there is two signals on one channel in a smaller space than [[DES-0004]] dealt with. [[TASK-0250]] carries three options and a recommendation to render them rather than argue them.
+
+**No `TST-*` note yet, deliberately.** The convention here is to author one at planning time, but a `ready` test now carries an attention dot on the phase strip ([[DES-0004]]), and a dot for work nobody has started would be a false signal on a surface built to remove them. The tests are specified in each task's Steps; the note comes with the first implementation. That tension is worth watching — it is the encoding making a documentation habit visible, which is a small argument that the habit was carrying an unstated assumption.
