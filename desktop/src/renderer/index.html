@@ -98,6 +98,10 @@
         <button id="hide-completed-toggle" type="button" class="ws-rail-action ws-rail-tool" title="Hide completed" aria-pressed="false" aria-label="Hide completed"></button>
         <button id="terminal-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Toggle terminal (⌘`)" aria-label="Toggle terminal"></button>
         <button id="agents-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Agents — all sessions" aria-label="Agents"></button>
+        <!-- History lives here rather than in the top bar: those buttons set
+             the LEFT PANE's nav mode, and History has no left-pane listing.
+             `~agents` is the precedent — a page, reached from the rail. -->
+        <button id="history-toggle"        type="button" class="ws-rail-action ws-rail-tool" title="History — what changed state, and when" aria-label="History"></button>
         <button id="follow-toggle"         type="button" class="ws-rail-action ws-rail-tool" title="Follow agent navigation" aria-label="Follow agent navigation" aria-pressed="true"></button>
         <button id="settings-toggle"       type="button" class="ws-rail-action ws-rail-tool" title="Settings" aria-label="Settings" aria-expanded="false"></button>
       </div>
@@ -279,6 +283,7 @@
   <script src="./addon-fit.js"></script>
   <script src="./health-marks.js"></script>
   <script src="./validation-rows.js"></script>
+  <script src="./contribution-grid.js"></script>
   <script src="./renderer.js"></script>
 </body>
 </html>

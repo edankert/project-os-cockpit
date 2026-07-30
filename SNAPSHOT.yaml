@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 52
+  FEAT: 53
   ISS: 74
-  PHASE: 17
+  PHASE: 18
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 257
+  TASK: 260
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-017"
+  phase: "PHASE-018"
   issue: ""
-  note: "2026-07-30 PHASE-017 done: the overview's three history tiles (Activity + Changes + Commits) are one History tile whose rows are note STATUS TRANSITIONS and whose commits are dividers marking what is saved, plus a full ~history view. Edwin's framing — the docs are a layer over git so you need not read git. The measurement that settled it: cebee80 touched 20 notes and changed 4 statuses, so the old tile rendered bookkeeping as the day's largest event. The trap (a commit documenting nothing has no rows and vanishes) was named in the plan and guarded at both levels. Earlier today: PHASE-013 (fleet badges + design-system rollout), 014/015 (parking-lot cleanup), 016 (validator errors as session work). OWED: mode 1 still has the old tiles; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev."
+  note: "2026-07-30 PHASE-018 done: History is reachable from a rail button, and the overview's sparkline is a year-long contribution grid whose cells are destinations. Measured before copying GitHub: 16 active days in 12 weeks, median 34 transitions, so fixed 1/4/7/10 buckets would put every lit cell in the top step. Three corrections — relative intensity, absent-is-not-empty (286 vs 69 cells), no year controls without a second year. The live pass caught the first cut landing on the WRONG DAY silently; fixed by anchoring the window (~history/<date>) rather than scrolling into it. Earlier today: PHASE-013 through 017. OWED: mode 1 still has the old three tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev."
 items:
   features:
+    FEAT-0053:
+      file: "docs/features/history-navigation/FEAT-0053-History-Navigation.md"
+      title: "A contribution grid you can click into, and a permanent way to reach History"
+      status: done
+      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      tasks: [TASK-0258, TASK-0259, TASK-0260]
+      note: "Edwin, right after FEAT-0052 landed. A literal GitHub grid would look broken here — measured 16 active days in 12 weeks, median 34 transitions, so fixed buckets saturate every lit cell. Three corrections: relative intensity, absent-is-not-empty, no year controls without a second year."
     FEAT-0052:
       file: "docs/features/history-timeline/FEAT-0052-History-Timeline.md"
       title: "History — document state changes as the rows, commits as dividers"
@@ -356,6 +363,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0258:
+      file: "docs/features/history-navigation/plan/tasks/TASK-0258-Activity-Grid-Payload.md"
+      title: "activity_payload — per-day counts across the whole history, cached on HEAD"
+      status: done
+      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      parent: FEAT-0053
+      note: "A second payload rather than a field on the first: FEAT-0052's must never be cached (its uncommitted band), this one must be (0.57s full-history pass). Opposite requirements."
+    TASK-0259:
+      file: "docs/features/history-navigation/plan/tasks/TASK-0259-Contribution-Grid.md"
+      title: "The contribution grid, replacing the sparkline, with days that are destinations"
+      status: done
+      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      parent: FEAT-0053
+      note: "A cell that does not navigate is the sparkline again at higher resolution. Colour cannot be the only channel — five steps of one hue is what DES-0004 refused for the phase squares."
+    TASK-0260:
+      file: "docs/features/history-navigation/plan/tasks/TASK-0260-History-In-The-Rail.md"
+      title: "A History button in the workspace rail"
+      status: done
+      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      parent: FEAT-0053
+      note: "The rail, not the top bar: those buttons set the left pane's nav mode and History has no listing. ~agents is the precedent."
     TASK-0255:
       file: "docs/features/history-timeline/plan/tasks/TASK-0255-History-Payload.md"
       title: "history_payload — transitions from git, grouped by commit, uncommitted band on top"
@@ -2843,10 +2871,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 52
-    features_done: 49
-    tasks_total: 257
-    tasks_done: 251
+    features_total: 53
+    features_done: 50
+    tasks_total: 260
+    tasks_done: 254
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182

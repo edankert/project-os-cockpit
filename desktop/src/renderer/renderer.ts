@@ -984,8 +984,10 @@ async function navigateToInner(
   }
   // ~history — the full timeline (FEAT-0052 / TASK-0257). The overview
   // tile is the short version; this is the same grammar, further back.
-  if (normalised === '~history') {
-    const ok = await renderHistoryPage();
+  if (normalised === '~history' || normalised.startsWith('~history/')) {
+    const at = normalised === '~history'
+      ? null : normalised.slice('~history/'.length);
+    const ok = await renderHistoryPage(at);
     if (ok) {
       currentRel = normalised;
       currentDispatchHistory = null;
@@ -6070,7 +6072,7 @@ const HISTORY_TILE_COMMITS = 6;
  */
 const HISTORY_PAGE_COMMITS = 60;
 
-async function renderHistoryPage(): Promise<boolean> {
+async function renderHistoryPage(at: string | null = null): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   docView.classList.remove('overview-pane', 'agents-page', 'design-page',
     'is-design-shell');
@@ -6083,9 +6085,16 @@ async function renderHistoryPage(): Promise<boolean> {
   h1.textContent = 'History';
   const sub = document.createElement('span');
   sub.className = 'agents-head-sub';
-  sub.textContent = 'what changed state, and which commit carried it';
+  sub.textContent = at
+    ? `what changed state on or before ${at}`
+    : 'what changed state, and which commit carried it';
   head.append(h1, sub);
   docView.appendChild(head);
+
+  const gridMount = document.createElement('div');
+  gridMount.className = 'ov-grid-mount is-page';
+  docView.appendChild(gridMount);
+  void fillContributionGrid(gridMount);
 
   const wrap = document.createElement('section');
   wrap.className = 'ov-section ov-history is-page';
@@ -6093,14 +6102,16 @@ async function renderHistoryPage(): Promise<boolean> {
   body.className = 'ov-history-body';
   wrap.appendChild(body);
   docView.appendChild(wrap);
-  await fillHistory(wrap, body, HISTORY_PAGE_COMMITS, false);
+  await fillHistory(wrap, body, HISTORY_PAGE_COMMITS, false, at);
 
   // Say the horizon. Without this a truncated view reads as complete —
   // the same failure the fleet roll-up avoids by naming how many repos
   // it checked.
   const foot = document.createElement('p');
   foot.className = 'meta ov-history-horizon';
-  foot.textContent = `Last ${HISTORY_PAGE_COMMITS} commits touching docs/ or SNAPSHOT.yaml.`;
+  foot.textContent = at
+    ? `${HISTORY_PAGE_COMMITS} commits up to ${at}, touching docs/ or SNAPSHOT.yaml.`
+    : `Last ${HISTORY_PAGE_COMMITS} commits touching docs/ or SNAPSHOT.yaml.`;
   docView.appendChild(foot);
 
   docView.hidden = false;
@@ -6109,30 +6120,160 @@ async function renderHistoryPage(): Promise<boolean> {
   return true;
 }
 
-function buildHistoryTile(data: StatsPayload): HTMLElement {
+// ----- the contribution grid (TASK-0259) -------------------------------
+
+interface ActivityPayload {
+  available: boolean;
+  days: Record<string, { transitions: number; commits: number }>;
+  first_commit: string | null;
+  last_commit: string | null;
+  buckets: number[];
+}
+
+async function fillContributionGrid(mount: HTMLElement): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: ActivityPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/activity`);
+    if (!resp.ok) { mount.remove(); return; }   // older sidecar
+    data = (await resp.json()) as ActivityPayload;
+  } catch { mount.remove(); return; }
+  if (!data.available || !data.first_commit) { mount.remove(); return; }
+
+  const weeks = buildGridWeeks(
+    data.days, data.first_commit, data.buckets, new Date());
+  mount.replaceChildren(buildGridElement(weeks, data));
+}
+
+function buildGridElement(
+  weeks: ReturnType<typeof buildGridWeeks>, data: ActivityPayload,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'ov-grid';
+
+  const months = document.createElement('div');
+  months.className = 'ov-grid-months';
+  // A cell should be locatable without hovering it.
+  for (const { col, label } of gridMonthLabels(weeks)) {
+    const el = document.createElement('span');
+    el.textContent = label;
+    el.style.gridColumn = String(col + 1);
+    months.appendChild(el);
+  }
+  wrap.appendChild(months);
+
+  const body = document.createElement('div');
+  body.className = 'ov-grid-body';
+  for (const column of weeks) {
+    const col = document.createElement('div');
+    col.className = 'ov-grid-col';
+    for (const cell of column) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'ov-grid-cell';
+      el.dataset.state = String(cell.state);
+      if (cell.state === 'absent') {
+        // Not a day with no activity — a day the project did not exist.
+        el.disabled = true;
+        el.setAttribute('aria-hidden', 'true');
+      } else if (cell.state === 'empty') {
+        el.disabled = true;
+        el.title = `${cell.date} · nothing`;
+      } else {
+        el.title = `${cell.date} · ${cell.transitions} state change`
+          + `${cell.transitions === 1 ? '' : 's'}, ${cell.commits} commit`
+          + `${cell.commits === 1 ? '' : 's'}`;
+        el.addEventListener('click', () => { void goToHistoryDate(cell.date); });
+      }
+      col.appendChild(el);
+    }
+    body.appendChild(col);
+  }
+  wrap.appendChild(body);
+
+  const foot = document.createElement('div');
+  foot.className = 'ov-grid-foot';
+  const since = document.createElement('span');
+  since.textContent = `since ${data.first_commit}`;
+  foot.appendChild(since);
+
+  // Year controls only once there is a second year to go to. On a
+  // twelve-week repo a selector offers navigation to nothing.
+  const years = gridYears(data.first_commit, data.last_commit);
+  if (years.length > 1) {
+    const picker = document.createElement('span');
+    picker.className = 'ov-grid-years';
+    for (const year of years) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ov-grid-year';
+      b.textContent = String(year);
+      b.addEventListener('click', () => { void goToHistoryDate(`${year}-12-31`); });
+      picker.appendChild(b);
+    }
+    foot.appendChild(picker);
+  }
+
+  const legend = document.createElement('span');
+  legend.className = 'ov-grid-legend';
+  legend.textContent = 'less';
+  for (const step of [1, 2, 3, 4]) {
+    const s = document.createElement('i');
+    s.dataset.state = String(step);
+    legend.appendChild(s);
+  }
+  const more = document.createElement('span');
+  more.textContent = 'more';
+  legend.appendChild(more);
+  legend.title = `steps: ≤${data.buckets[0]}, ≤${data.buckets[1]}, `
+    + `≤${data.buckets[2]}, more — scaled to this project's own busiest days`;
+  foot.appendChild(legend);
+  wrap.appendChild(foot);
+  return wrap;
+}
+
+/** Go to History with the window ANCHORED at a date.
+ *
+ *  The whole point of a cell: a destination, not a decoration.
+ *
+ *  The first cut navigated to `~history` and scrolled — which worked
+ *  only for dates inside the loaded window. The grid spans the whole
+ *  history and a page shows 60 commits, so clicking 2026-05-07 landed
+ *  on 2026-07-28: the oldest commit that happened to be loaded, with no
+ *  indication anything had gone wrong. Found in TASK-0259's live pass.
+ *
+ *  Anchoring the window at the date makes the day loaded by
+ *  construction, so the scroll cannot miss.
+ */
+async function goToHistoryDate(date: string): Promise<void> {
+  await navigateTo(`~history/${date}`);
+  window.setTimeout(() => {
+    const dividers = Array.from(
+      docView.querySelectorAll<HTMLElement>('.ov-history-divider[data-date]'));
+    const target = dividers.find((d) => d.dataset.date === date) ?? dividers[0];
+    if (!target) return;
+    target.scrollIntoView({ block: 'center' });
+    target.classList.add('is-landed');
+    window.setTimeout(() => target.classList.remove('is-landed'), 2000);
+  }, 300);
+}
+
+function buildHistoryTile(_data: StatsPayload): HTMLElement {
   const wrap = document.createElement('section');
   wrap.className = 'ov-section ov-tile ov-history';
   const h = document.createElement('h3');
   h.textContent = 'History';
 
-  // Activity's sparkline survives here rather than as a peer tile: it
-  // answers "how busy", which is context for a list of events and not a
-  // competing answer to the same question.
-  const weeks = data.activity.weekly || [];
-  if (weeks.length) {
-    const max = Math.max(1, ...weeks.map((w) => w.count));
-    const chart = document.createElement('span');
-    chart.className = 'ov-spark ov-history-spark';
-    weeks.forEach((w, i) => {
-      const bar = document.createElement('i');
-      bar.style.height = `${Math.max(2, (w.count / max) * 100)}%`;
-      if (i === weeks.length - 1) bar.classList.add('is-now');
-      bar.title = `${w.week_iso} · ${w.count} touch${w.count === 1 ? '' : 'es'}`;
-      chart.appendChild(bar);
-    });
-    h.appendChild(chart);
-  }
   wrap.appendChild(h);
+
+  // The contribution grid replaces the 13-week sparkline (FEAT-0053).
+  // Same question at far higher resolution, and — unlike the sparkline
+  // — every cell is a destination. A cell that does not navigate is the
+  // ornament this replaced, at higher resolution.
+  const grid = document.createElement('div');
+  grid.className = 'ov-grid-mount';
+  wrap.appendChild(grid);
+  void fillContributionGrid(grid);
 
   const body = document.createElement('div');
   body.className = 'ov-history-body';
@@ -6143,11 +6284,13 @@ function buildHistoryTile(data: StatsPayload): HTMLElement {
 
 async function fillHistory(
   wrap: HTMLElement, body: HTMLElement, limit: number, short: boolean,
+  until: string | null = null,
 ): Promise<void> {
   if (!sidecarBaseUrl) return;
   let data: HistoryPayload;
   try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/history?limit=${limit}`);
+    const q = `limit=${limit}` + (until ? `&until=${encodeURIComponent(until)}` : '');
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/history?${q}`);
     // An older sidecar has no such endpoint. Drop the tile rather than
     // leaving an empty box on the overview.
     if (!resp.ok) { wrap.remove(); return; }
@@ -6250,6 +6393,7 @@ function buildUncommittedBand(
 function buildCommitDivider(commit: HistoryCommit): HTMLElement {
   const el = document.createElement('div');
   el.className = 'ov-history-divider';
+  el.dataset.date = commit.date;   // the anchor a grid cell lands on
   if (commit.undocumented) el.classList.add('is-undocumented');
 
   const date = document.createElement('span');
@@ -6573,6 +6717,18 @@ function initNavToolbar(): void {
     agentsBtn.addEventListener('click', () => {
       if (!sidecarBaseUrl) return;  // need a workspace open to host the page
       void navigateTo('~agents');
+    });
+  }
+  // History from the rail (TASK-0260): reachable from any page, rather
+  // than only by visiting the overview and finding a link at the bottom
+  // of a tile. Same shape as the Agents button beside it — both are
+  // pages, and neither is a left-pane nav mode.
+  const historyBtn = document.getElementById('history-toggle');
+  if (historyBtn) {
+    historyBtn.replaceChildren(makeSvg(GROUP_ICONS.history, 18, {}));
+    historyBtn.addEventListener('click', () => {
+      if (!sidecarBaseUrl) return;  // need a workspace open to host the page
+      void navigateTo('~history');
     });
   }
   if (followBtn) {

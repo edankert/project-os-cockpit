@@ -4111,3 +4111,92 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .ov-history-more:hover { color: var(--accent-link); }
 .history-page .ov-history.is-page { border: none; padding: 0; }
 .ov-history-horizon { margin-top: 14px; }
+
+/* ---------------------------------------------------------------------
+ * Contribution grid (FEAT-0053 / TASK-0259).
+ *
+ * Replaces the History tile's 13-week sparkline. Same question at far
+ * higher resolution, and every cell is a destination — the sparkline
+ * was ornament, and a grid whose cells do nothing would be the same
+ * ornament with more pixels.
+ *
+ * Intensity steps come from the payload, scaled to this project's own
+ * busiest days. GitHub's fixed 1/4/7/10 saturates on this corpus (median
+ * active day: 34 state changes), which would put every lit cell in the
+ * top step.
+ */
+.ov-grid-mount { margin: 4px 0 10px; overflow-x: auto; }
+.ov-grid { display: inline-block; min-width: 0; }
+.ov-grid-months {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 11px;
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+  height: 11px;
+}
+.ov-grid-months span { grid-row: 1; white-space: nowrap; }
+.ov-grid-body { display: flex; gap: 2px; }
+.ov-grid-col { display: flex; flex-direction: column; gap: 2px; }
+.ov-grid-cell {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: var(--row-hover);
+  cursor: pointer;
+}
+/* A day before the first commit is NOT a day with no activity — the
+ * project did not exist. Rendering the two alike is why a young repo's
+ * graph reads as neglect; this corpus would show 40 of 52 weeks as
+ * apparent inactivity. Absent cells are a hairline, not a square. */
+.ov-grid-cell[data-state="absent"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+  opacity: 0.35;
+  cursor: default;
+}
+.ov-grid-cell[data-state="empty"] { cursor: default; }
+/* Intensity carries a SECOND channel — an inset ring that thickens with
+ * the step — so the scale survives greyscale and colour-blindness. Five
+ * shades of one hue is the encoding DES-0004 refused for the phase
+ * squares. */
+.ov-grid-cell[data-state="1"] { background: var(--status-done); opacity: 0.3; }
+.ov-grid-cell[data-state="2"] { background: var(--status-done); opacity: 0.5;
+  box-shadow: inset 0 0 0 0.5px var(--bg); }
+.ov-grid-cell[data-state="3"] { background: var(--status-done); opacity: 0.75;
+  box-shadow: inset 0 0 0 1px var(--bg); }
+.ov-grid-cell[data-state="4"] { background: var(--status-done); opacity: 1;
+  box-shadow: inset 0 0 0 1.5px var(--bg); }
+.ov-grid-cell:not([disabled]):hover { outline: 1px solid var(--accent-link); }
+
+.ov-grid-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.ov-grid-years { display: flex; gap: 4px; }
+.ov-grid-year {
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 4px; padding: 0 5px;
+  color: var(--text-faint); font-size: 10px; cursor: pointer;
+}
+.ov-grid-year:hover { color: var(--text); border-color: var(--text-faint); }
+.ov-grid-legend { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+.ov-grid-legend i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+.ov-grid-legend i[data-state="1"] { background: var(--status-done); opacity: 0.3; }
+.ov-grid-legend i[data-state="2"] { background: var(--status-done); opacity: 0.5; }
+.ov-grid-legend i[data-state="3"] { background: var(--status-done); opacity: 0.75; }
+.ov-grid-legend i[data-state="4"] { background: var(--status-done); opacity: 1; }
+
+/* Where a grid click landed. Brief, because it answers "did that do
+ * anything" and then gets out of the way. */
+.ov-history-divider.is-landed {
+  background: var(--accent-soft);
+  border-radius: 3px;
+}

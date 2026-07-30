@@ -603,6 +603,10 @@ def _make_handler(
     # (HEAD, index generation, limit) — a new commit or a note edit
     # invalidates it, so SSE refetches don't re-shell out to git.
     _commits_cache: dict[str, tuple[tuple[str, int, int], dict]] = {}
+    # Contribution-grid cache (TASK-0258): keyed on HEAD only — a note
+    # edit cannot change a past commit, so the index generation has no
+    # business in this key.
+    _activity_cache: dict[str, tuple[str, dict]] = {}
     # Review desk queue (FEAT-0041). Durable across sidecar restarts —
     # a proposal can wait days — and deliberately separate from note
     # state: pending-ness is runtime, verdicts live in the notes.
@@ -792,6 +796,10 @@ def _make_handler(
 
             if path == "/api/cockpit/history":
                 self._serve_cockpit_history(parsed.query)
+                return
+
+            if path == "/api/cockpit/activity":
+                self._serve_cockpit_activity()
                 return
 
             if path == "/api/cockpit/changes":
@@ -1041,9 +1049,33 @@ def _make_handler(
                 limit = int(raw_limit)
             except (TypeError, ValueError):
                 limit = cockpit.COMMITS_DEFAULT_LIMIT
+            raw_until = (params.get("until") or [""])[0]
+            until = raw_until if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_until) else None
             self._respond_json(
-                cockpit.history_payload(project_root, index, limit=limit)
+                cockpit.history_payload(
+                    project_root, index, limit=limit, until=until)
             )
+
+        def _serve_cockpit_activity(self) -> None:
+            """``GET /api/cockpit/activity`` — per-day counts for the
+            contribution grid (FEAT-0053 / TASK-0258).
+
+            Cached on HEAD alone, which is the whole reason this is a
+            separate endpoint from ``/api/cockpit/history``: that one
+            must never be cached because its uncommitted band is the
+            part whose value is being current, and this one is a
+            whole-history pass (~0.7 s) whose answer changes only when a
+            commit lands. The index generation is deliberately **not** in
+            the key — editing a note changes no past commit.
+            """
+            head = _git_head(project_root)
+            cached = _activity_cache.get("k")
+            if cached is not None and cached[0] == head:
+                self._respond_json(cached[1])
+                return
+            payload = cockpit.activity_payload(project_root, index)
+            _activity_cache["k"] = (head, payload)
+            self._respond_json(payload)
 
         def _serve_cockpit_context(self, query_string: str) -> None:
             params = urllib.parse.parse_qs(query_string)

@@ -604,3 +604,110 @@ test('a created note is not rendered as a journey it never took', async () => {
   assert.ok(fn.includes('new · ') || fn.includes('new \\u00b7 '),
     'a created note should read "new · done", not "null → done"');
 });
+
+// ---- the contribution grid (FEAT-0053 / TASK-0259) -------------------
+
+let cg;
+before(async () => {
+  const src = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'contribution-grid.js'), 'utf-8');
+  cg = new Function(`${src}
+    return { buildGridWeeks, gridStep, gridYears, gridDateKey, gridMonthLabels };`)();
+});
+
+test('a day before the first commit is absent, not empty', () => {
+  // The correction that matters most on a young repo: "did not exist"
+  // and "no activity" are different facts, and GitHub renders them the
+  // same. This corpus would otherwise show 40 of 52 weeks as neglect.
+  const weeks = cg.buildGridWeeks(
+    {}, '2026-05-07', [2, 4, 6], new Date(2026, 6, 30), 52);
+  const all = weeks.flat();
+  const before = all.filter((c) => c.date < '2026-05-07');
+  const after = all.filter((c) => c.date >= '2026-05-07' && c.date <= '2026-07-30');
+  assert.ok(before.length > 100, 'expected a long pre-history stretch');
+  assert.ok(before.every((c) => c.state === 'absent'),
+    'a day the project did not exist must not render as a quiet day');
+  assert.ok(after.every((c) => c.state === 'empty'),
+    'a day with no activity after the first commit IS empty, not absent');
+});
+
+test('intensity uses the payload buckets, not a scale of its own', () => {
+  // Measured buckets from this repo: [22, 36, 64].
+  const b = [22, 36, 64];
+  assert.equal(cg.gridStep(0, b), 'empty');
+  assert.equal(cg.gridStep(1, b), 1);
+  assert.equal(cg.gridStep(22, b), 1);
+  assert.equal(cg.gridStep(23, b), 2);
+  assert.equal(cg.gridStep(36, b), 2);
+  assert.equal(cg.gridStep(64, b), 3);
+  assert.equal(cg.gridStep(199, b), 4);
+});
+
+test("this repo's busiest and quietest active days land in different steps", () => {
+  // The whole reason for relative scaling. Under GitHub's fixed
+  // 1/4/7/10 every one of these would be step 4.
+  const b = [22, 36, 64];
+  const steps = [1, 6, 13, 29, 38, 46, 64, 80, 89, 199].map((n) => cg.gridStep(n, b));
+  assert.ok(new Set(steps).size >= 3,
+    `a median active day of 34 must not saturate the scale: got ${steps}`);
+});
+
+test('year controls are absent until there is a second year', () => {
+  assert.deepEqual(cg.gridYears('2026-05-07', '2026-07-30'), [2026],
+    'one year — a selector would offer navigation to nothing');
+  assert.deepEqual(cg.gridYears('2024-11-01', '2026-07-30'), [2026, 2025, 2024]);
+  assert.deepEqual(cg.gridYears(null, null), []);
+});
+
+test('the date key is local, not UTC', () => {
+  // toISOString() shifts the date across the boundary for anyone east
+  // or west of UTC — a whole day wrong for the cell you clicked.
+  const d = new Date(2026, 0, 1, 23, 30);
+  assert.equal(cg.gridDateKey(d), '2026-01-01');
+  assert.equal(cg.gridDateKey(new Date(2026, 11, 31, 0, 30)), '2026-12-31');
+});
+
+test('the grid ends today and columns are whole weeks', () => {
+  const today = new Date(2026, 6, 30);
+  const weeks = cg.buildGridWeeks({}, '2026-05-07', [1, 2, 3], today, 52);
+  assert.ok(weeks.every((c) => c.length === 7), 'every column is a full week');
+  const last = weeks[weeks.length - 1];
+  assert.ok(last.some((c) => c.date === '2026-07-30'), 'today is in the last column');
+});
+
+test('counts come through onto the cell for the tooltip', () => {
+  const days = { '2026-07-19': { transitions: 199, commits: 12 } };
+  const cell = cg.buildGridWeeks(days, '2026-05-07', [22, 36, 64],
+    new Date(2026, 6, 30), 52).flat().find((c) => c.date === '2026-07-19');
+  assert.equal(cell.transitions, 199);
+  assert.equal(cell.commits, 12);
+  assert.equal(cell.state, 4);
+});
+
+test('month labels mark where each month starts', () => {
+  const weeks = cg.buildGridWeeks({}, '2026-01-01', [1, 2, 3],
+    new Date(2026, 6, 30), 52);
+  const labels = cg.gridMonthLabels(weeks);
+  assert.ok(labels.length >= 12, `expected ~13 month labels, got ${labels.length}`);
+  assert.ok(labels.every((l) => /^[A-Z][a-z]{2}$/.test(l.label)));
+});
+
+test('the History rail button exists and goes to ~history', async () => {
+  const html = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'index.html'), 'utf-8');
+  assert.match(html, /id="history-toggle"/, 'the rail button is gone');
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const i = js.indexOf("getElementById('history-toggle')");
+  assert.notEqual(i, -1, 'the button has no handler');
+  assert.ok(js.slice(i, i + 400).includes("'~history'"),
+    'the History button does not navigate to ~history');
+});
+
+test('the sparkline is gone from the History tile', async () => {
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  assert.ok(!js.includes('ov-history-spark'),
+    'the 13-week sparkline is back — the grid replaced it, at higher '
+    + 'resolution and with cells that navigate');
+});

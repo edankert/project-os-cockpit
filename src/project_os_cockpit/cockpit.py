@@ -4008,6 +4008,7 @@ def history_payload(
     project_root: Path,
     index: Index,
     limit: int = COMMITS_DEFAULT_LIMIT,
+    until: str | None = None,
 ) -> dict[str, Any]:
     """Documentation history: status transitions, grouped by commit.
 
@@ -4037,6 +4038,15 @@ def history_payload(
 
     ``uncommitted`` lists notes whose working tree differs from HEAD, so
     "not saved yet" is answerable without leaving the page.
+
+    ``until`` (``YYYY-MM-DD``) anchors the window at a date rather than
+    at HEAD, which is what makes a contribution-grid cell a destination:
+    the grid spans the whole history while a page shows a window, so
+    without this a click on an old day has nothing loaded to land on.
+    Found in TASK-0259's live pass, where clicking 2026-05-07 silently
+    landed on 2026-07-28 — the oldest commit that happened to be loaded.
+    The uncommitted band is suppressed for an anchored window: work in
+    flight belongs to now, not to a date in the past.
 
     Same hardening as :func:`commits_payload`: fixed argv, clamped limit,
     bounded timeout, and every failure mode degrading to
@@ -4069,6 +4079,9 @@ def history_payload(
     prefix = f"{docs_prefix}/" if docs_prefix else ""
     scope = [prefix or ".", "SNAPSHOT.yaml"]
 
+    anchored = bool(until) and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", until or ""))
+    window: list[str] = [f"--until={until} 23:59:59"] if anchored else []
+
     by_rel: dict[str, Any] = {}
     for record in index.iter_records():
         if record.note_id:
@@ -4085,7 +4098,7 @@ def history_payload(
             [
                 "git", "-C", str(project_root), "log",
                 f"-n{count}", "--no-merges", "-U0", "--no-color",
-                f"--format={fmt}", "--", *scope,
+                f"--format={fmt}", *window, "--", *scope,
             ],
             capture_output=True, text=True,
             timeout=_GIT_TIMEOUT_SECONDS, check=False,
@@ -4099,8 +4112,12 @@ def history_payload(
     return {
         "schema_version": SCHEMA_VERSION,
         "available": True,
+        "anchored_at": until if anchored else None,
         "commits": commits,
-        "uncommitted": _uncommitted_notes(project_root, scope, _resolve),
+        # Work in flight belongs to now. Showing it above a window that
+        # ends three months ago would place today's edits inside May.
+        "uncommitted": ([] if anchored
+                        else _uncommitted_notes(project_root, scope, _resolve)),
     }
 
 
@@ -4219,3 +4236,124 @@ def _uncommitted_notes(
         })
     out.sort(key=lambda r: (r.get("id") or "￿", r["path"]))
     return out
+
+
+def activity_payload(project_root: Path, index: Index) -> dict[str, Any]:
+    """Per-day documentation activity across the whole history (FEAT-0053).
+
+    Feeds the contribution grid. Counts **status transitions** rather than
+    commits or file touches, so the darkest day is the day most things
+    were finished — the same unit :func:`history_payload` uses for its
+    rows, which is what lets a cell be a destination.
+
+    ``buckets`` are the quartile thresholds of this repo's own **active**
+    days. GitHub's fixed 1/4/7/10 scale saturates instantly here:
+    measured on this corpus, 16 days carry any activity at all and the
+    median active day has 34 transitions, so every lit cell would sit in
+    the top bucket and the grid would carry one bit per day. Computing
+    the scale server-side also stops the client inventing one.
+
+    ``first_commit`` lets the grid render pre-history as **absent**
+    rather than as a day with no activity. Those are different facts,
+    and conflating them is why a young project's contribution graph
+    reads as neglect.
+
+    Whole-history by design and therefore cacheable on HEAD — unlike
+    :func:`history_payload`, whose uncommitted band is precisely the part
+    that must never be served stale. Opposite requirements are why these
+    are two endpoints.
+    """
+    import subprocess
+
+    unavailable: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "available": False,
+        "days": {},
+        "first_commit": None,
+        "last_commit": None,
+        "buckets": [],
+    }
+    if not (project_root / ".git").exists():
+        return unavailable
+
+    docs_prefix = ""
+    try:
+        docs_prefix = index.docs_root.resolve().relative_to(
+            project_root.resolve()
+        ).as_posix()
+    except (ValueError, OSError):
+        docs_prefix = ""
+    scope = [f"{docs_prefix}/" if docs_prefix else ".", "SNAPSHOT.yaml"]
+
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            [
+                "git", "-C", str(project_root), "log",
+                "--no-merges", "-U0", "--no-color",
+                f"--format={_HISTORY_REC_SEP}%h\t%ad", "--date=short",
+                "--", *scope,
+            ],
+            capture_output=True, text=True,
+            timeout=_GIT_TIMEOUT_SECONDS * 4, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return unavailable
+    if proc.returncode != 0:
+        return unavailable
+
+    days: dict[str, dict[str, int]] = {}
+    day: str | None = None
+    path: str | None = None
+    for line in proc.stdout.splitlines():
+        if line.startswith(_HISTORY_REC_SEP):
+            parts = line[len(_HISTORY_REC_SEP):].split("\t", 1)
+            day = parts[1].strip() if len(parts) > 1 else None
+            path = None
+            if day:
+                days.setdefault(day, {"transitions": 0, "commits": 0})
+                days[day]["commits"] += 1
+            continue
+        if day is None:
+            continue
+        m = _DIFF_PATH_RE.match(line)
+        if m:
+            path = m.group(1)
+            continue
+        if path and line.startswith("+status:"):
+            days[day]["transitions"] += 1
+
+    if not days:
+        return {**unavailable, "available": True}
+
+    ordered = sorted(days)
+    active = sorted(d["transitions"] for d in days.values() if d["transitions"] > 0)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "available": True,
+        "days": days,
+        "first_commit": ordered[0],
+        "last_commit": ordered[-1],
+        "buckets": _quartile_buckets(active),
+    }
+
+
+def _quartile_buckets(active: list[int]) -> list[int]:
+    """Upper bounds of four intensity steps, from the active days only.
+
+    Including the zero days would put every threshold at 0 and every lit
+    cell in the top step — the saturation this exists to avoid. Returned
+    as three cut points: a value at or below ``b[0]`` is step 1, above
+    ``b[2]`` is step 4.
+    """
+    if not active:
+        return []
+    def _at(frac: float) -> int:
+        idx = min(len(active) - 1, max(0, int(round(frac * (len(active) - 1)))))
+        return active[idx]
+    cuts = [_at(0.25), _at(0.5), _at(0.75)]
+    # Strictly increasing, so four distinct steps exist even when the
+    # distribution is flat enough that two quartiles coincide.
+    for i in range(1, len(cuts)):
+        if cuts[i] <= cuts[i - 1]:
+            cuts[i] = cuts[i - 1] + 1
+    return cuts

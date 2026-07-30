@@ -222,3 +222,122 @@ def test_the_uncommitted_band_reflects_the_working_tree(tmp_path: Path) -> None:
     (repo / "docs" / "b.md").write_text("---\nstatus: done\n---\n", encoding="utf-8")
     band = history_payload(repo, index)["uncommitted"]
     assert [row["path"] for row in band] == ["docs/b.md"]
+
+
+# ---- the contribution grid's payload (FEAT-0053 / TASK-0258) ----------
+
+def test_activity_counts_transitions_per_day_on_this_repo() -> None:
+    from project_os_cockpit.cockpit import activity_payload
+
+    index = Index.build(REPO_ROOT / "docs")
+    payload = activity_payload(REPO_ROOT, index)
+    assert payload["available"] is True
+    assert payload["days"], "this repo has history"
+    assert payload["first_commit"] <= payload["last_commit"]
+    for day, counts in payload["days"].items():
+        assert len(day) == 10 and day[4] == "-", day
+        assert counts["commits"] >= 1, "a day in the map had a commit"
+        assert counts["transitions"] >= 0
+
+
+def test_buckets_come_from_active_days_only() -> None:
+    """Including the zero days puts every threshold at 0.
+
+    Measured on this repo: 16 days carry any activity across 12 weeks.
+    A scale computed over the calendar would place every lit cell in the
+    top step — the saturation the relative scale exists to avoid.
+    """
+    from project_os_cockpit.cockpit import _quartile_buckets
+
+    assert _quartile_buckets([]) == []
+    cuts = _quartile_buckets(sorted([1, 6, 13, 29, 32, 38, 46, 64, 80, 89, 199]))
+    assert len(cuts) == 3
+    assert cuts[0] < cuts[1] < cuts[2], "the steps must be strictly increasing"
+    assert cuts[2] < 199, "the busiest day must land above the top cut, not on it"
+
+
+def test_buckets_stay_distinct_on_a_flat_distribution() -> None:
+    """Four identical days would collapse three quartiles onto one value,
+    leaving fewer than four usable steps."""
+    from project_os_cockpit.cockpit import _quartile_buckets
+
+    cuts = _quartile_buckets([5, 5, 5, 5])
+    assert cuts[0] < cuts[1] < cuts[2], cuts
+
+
+def test_activity_is_unavailable_outside_a_repo(tmp_path: Path) -> None:
+    from project_os_cockpit.cockpit import activity_payload
+
+    (tmp_path / "docs").mkdir()
+    payload = activity_payload(tmp_path, Index.build(tmp_path / "docs"))
+    assert payload["available"] is False
+    assert payload["days"] == {}
+
+
+def test_the_busiest_day_is_a_transition_count_not_a_commit_count() -> None:
+    """The grid's unit is what got finished, not how often it was saved.
+
+    Both are carried — commits go in the tooltip — but the intensity is
+    transitions, so the darkest day is the day most things were done.
+    """
+    from project_os_cockpit.cockpit import activity_payload
+
+    index = Index.build(REPO_ROOT / "docs")
+    days = activity_payload(REPO_ROOT, index)["days"]
+    busiest_t = max(days.values(), key=lambda d: d["transitions"])
+    assert busiest_t["transitions"] > busiest_t["commits"], (
+        "on this corpus the busiest day carries far more transitions than "
+        "commits; if these are equal the payload is counting the wrong thing"
+    )
+
+
+def test_an_anchored_window_ends_at_the_requested_date() -> None:
+    """TASK-0259's live-pass bug, guarded.
+
+    The grid spans the whole history; a page shows 60 commits. Clicking
+    2026-05-07 navigated to `~history` and scrolled — and landed on
+    2026-07-28, the oldest commit that happened to be loaded, with
+    nothing indicating anything had gone wrong.
+
+    Anchoring the window at the date makes the day loaded by
+    construction, so the scroll cannot miss.
+    """
+    from project_os_cockpit.cockpit import history_payload
+
+    index = Index.build(REPO_ROOT / "docs")
+    anchored = history_payload(REPO_ROOT, index, limit=5, until="2026-05-07")
+    assert anchored["anchored_at"] == "2026-05-07"
+    assert anchored["commits"], "the window should reach that date"
+    assert all(c["date"] <= "2026-05-07" for c in anchored["commits"]), (
+        "an anchored window must not contain commits after its date"
+    )
+
+    unanchored = history_payload(REPO_ROOT, index, limit=5)
+    assert unanchored["anchored_at"] is None
+    assert unanchored["commits"][0]["date"] > "2026-05-07", (
+        "the default window is still the recent one"
+    )
+
+
+def test_an_anchored_window_suppresses_the_uncommitted_band() -> None:
+    """Work in flight belongs to now.
+
+    Showing today's unsaved edits above a window that ends in May would
+    place them inside May — the same class of error as attributing a
+    transition to the wrong commit.
+    """
+    from project_os_cockpit.cockpit import history_payload
+
+    index = Index.build(REPO_ROOT / "docs")
+    assert history_payload(REPO_ROOT, index, limit=3, until="2026-05-07")["uncommitted"] == []
+
+
+def test_a_malformed_until_is_ignored_rather_than_passed_to_git() -> None:
+    """`until` is the only caller-supplied value that reaches the argv."""
+    from project_os_cockpit.cockpit import history_payload
+
+    index = Index.build(REPO_ROOT / "docs")
+    for bad in ("; rm -rf /", "yesterday", "2026-13-99x", ""):
+        payload = history_payload(REPO_ROOT, index, limit=3, until=bad)
+        assert payload["available"] is True, bad
+        assert payload["anchored_at"] is None, bad
