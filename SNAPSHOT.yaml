@@ -27,11 +27,15 @@ docs_system:
 
 counters:
   ADR: 8
+  # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
+  # nothing guarded design ID allocation and the validator does not check for a
+  # missing counter. Upstream ships `DES: 0`.
+  DES: 4
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 67
+  ISS: 68
   PHASE: 10
   REQ: 25
   RISK: 4
@@ -1709,6 +1713,13 @@ items:
 
 
   issues:
+    ISS-0068:
+      file: "docs/issues/ISS-0068-Waiting-On-You-Is-A-Workaround.md"
+      title: "The overview's Waiting-on-you list re-lists items that are already on the page as phase squares — it exists because the squares cannot say anything needs a human, and most of its rows duplicate a mode that owns them"
+      status: open
+      severity: medium
+      phase: "[[PHASE-999-Future]]"
+      note: "Measured: all 9 rows already had a square on the page (384 squares, 8 of 9 visible), every one bucket=backlog. The squares carry two visual states plus type colour, so blocked/triage/open/review/deferred/backlog are pixel-identical — the list is prose compensating for one missing bit. DES-0004 proposes four treatments. A counts-and-pointers version was rejected: the stat tiles already are that indication. Deleting it reverses TASK-0200, TASK-0210 and DES-0001 plate 5, so those want superseding rather than emptying."
     ISS-0067:
       file: "docs/issues/ISS-0067-Untyped-Task-Notes-Are-Unreachable.md"
       title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
@@ -2639,6 +2650,11 @@ items:
   releases: {}
 
   designs:
+    DES-0004:
+      file: "docs/designs/DES-0004-Attention-In-The-Squares.md"
+      title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
+      status: draft
+      note: "role: proposal, viewport deliberately OMITTED (declaring it made the bench fit a tall document to the pane height and render at scale(0.66), presenting 9px squares at ~6px; omitted it is 1:1 at 1151px). Settled encoding after owner review: solid=delivered, solid+transparent slit=archived band (settled, nothing delivered), hollow+strike=deferred (parked, still blocks its parent), pulsing inverted fill=doing, static inverted fill=complete-but-unproven (22 waived items + 9 manual tests last verified 66-83 days ago, all rendering as clean solid squares today), corner dot=outstanding human action (triage/review/ready tests/computed-blocked). The dot composes with every fill because STATUSES.md allows blocked-while-doing. Requires a payload change: tests are not in the strip (50 feature/244 task/25 req/54 issue = 373); risks cannot join, none carry a phase. Records that blocked is a relationship not a status, so collectAttention's status==blocked branch is dead code."
     DES-0003:
       file: "docs/designs/DES-0003-Intent-Page-And-Claims-Board.md"
       title: "The intent page and the claims board"
@@ -2700,7 +2716,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
+    issues_open: 4
     issues_triage: 3
     risks_open: 4
     releases_total: 0
