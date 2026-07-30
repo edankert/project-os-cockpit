@@ -42,7 +42,7 @@ $ .venv/bin/pytest -q
 252 passed, 1 skipped
 ```
 
-Full-suite run includes the superseded contract in `tests/test_index.py::test_implemented_status_sorts_after_backlog_but_stays_expanded`, rewritten from the previous done-band assertion.
+Full-suite run includes the superseded contract in `tests/test_index.py::test_implemented_status_sorts_and_collapses_with_the_done_family`, rewritten from the previous done-band assertion.
 
 ## Adequacy
 

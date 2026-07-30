@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 68
+  ISS: 69
   PHASE: 13
   REQ: 25
   RISK: 4
@@ -48,8 +48,8 @@ focus:
   task: ""
   feature: ""
   phase: "PHASE-011"
-  issue: ""
-  note: "2026-07-30 nothing in flight. PHASE-010 closed and independently reviewed (13 notes approved over four rounds; the first found a live defect, ISS-0065, where the Library reduction emptied the record column it was justified by). Three phases planned from a full review of the open set: PHASE-011 unproven claims (first — the only one whose absence actively misleads), PHASE-012 attention in the strip (GATED on DES-0004 having a verdict), PHASE-013 fleet surfaces. Housekeeping done: PHASE-999-Unscheduled was a dangling link on 13 notes and never existed; all repointed to PHASE-999-Future. Still owed and NOT done here: FEAT-0018 (all tasks done, TST-0016 passing, stuck at review — the 6-week stall DES-0001 named) and FEAT-0045 (all three tasks done, still doing) both need close-out decisions, which are gated on the QUALITY.md review pass, not on planning."
+  issue: "ISS-0066"
+  note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
 items:
   features:
     FEAT-0046:
@@ -1712,6 +1712,13 @@ items:
 
 
   issues:
+    ISS-0069:
+      file: "docs/issues/ISS-0069-Review-Verdict-Vocabulary-Is-Unguarded.md"
+      title: "review_verdict has a second, unguarded vocabulary — 10 notes carry `CLOSE`, which QUALITY.md does not define, and nothing rejects it"
+      status: open
+      severity: medium
+      phase: "[[PHASE-011-Unproven-Claims]]"
+      note: "Corpus holds approved 65, CLOSE 10, accepted 2. `accepted` is legitimate (ADR-0007, plan acceptance). CLOSE is undefined and all 10 are CHG notes from a three-day window. The validator checks presence, not value, so an arbitrary string reads as a satisfied review — ISS-0024 §1 one level up, in the review fields rather than the status fields. Found by FEAT-0018's visual pass rendering the chip grey; the surface caught what the validator could not. Deliberately not fixed in the same pass: rewriting 10 verdicts is a decision about whether past reviews happened."
     ISS-0068:
       file: "docs/issues/ISS-0068-Waiting-On-You-Is-A-Workaround.md"
       title: "The overview's Waiting-on-you list re-lists items that are already on the page as phase squares — it exists because the squares cannot say anything needs a human, and most of its rows duplicate a mode that owns them"
@@ -1729,7 +1736,7 @@ items:
     ISS-0066:
       file: "docs/issues/ISS-0066-Test-Coverage-Registers-Drift-By-Hand.md"
       title: "A TST note's ## Coverage list is a hand-maintained register of its own assertions, and drift in it is indistinguishable from a false claim — TST-0022 took four review rounds to describe 27 assertions accurately"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-999-Future]]"
       note: "Four independent-review rounds on TST-0022, four findings, all one class: the register claiming more, less or other than the tests deliver. Two entries stayed missing for three rounds while being cited by name in REQ-0025's criteria. Same shape ADR-0009 and ADR-0010 already settled elsewhere — a hand-written second copy of machine-readable truth — except here the copy is cited as evidence, so drift reads as a false verification claim. Parked in PHASE-999, not PHASE-010: the phase is done; the format gap it exposed is not the phase's work."
@@ -1800,7 +1807,7 @@ items:
       related: ["ISS-0023"]
     ISS-0024:
       title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
-      status: open
+      status: fixed
       severity: medium
       path: "docs/issues/ISS-0024-Status-Surfaces-Outside-The-Parity-Guard.md"
     ISS-0023:
@@ -2675,7 +2682,7 @@ items:
     DES-0004:
       file: "docs/designs/DES-0004-Attention-In-The-Squares.md"
       title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
-      status: draft
+      status: accepted
       note: "role: proposal, viewport deliberately OMITTED (declaring it made the bench fit a tall document to the pane height and render at scale(0.66), presenting 9px squares at ~6px; omitted it is 1:1 at 1151px). Settled encoding after owner review: solid=delivered, solid+transparent slit=archived band (settled, nothing delivered), hollow+strike=deferred (parked, still blocks its parent), pulsing inverted fill=doing, static inverted fill=complete-but-unproven (22 waived items + 9 manual tests last verified 66-83 days ago, all rendering as clean solid squares today), corner dot=outstanding human action (triage/review/ready tests/computed-blocked). The dot composes with every fill because STATUSES.md allows blocked-while-doing. Requires a payload change: tests are not in the strip (50 feature/244 task/25 req/54 issue = 373); risks cannot join, none carry a phase. Records that blocked is a relationship not a status, so collectAttention's status==blocked branch is dead code."
     DES-0003:
       file: "docs/designs/DES-0003-Intent-Page-And-Claims-Board.md"
@@ -2738,7 +2745,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 4
+    issues_open: 3
     issues_triage: 3
     risks_open: 4
     releases_total: 0

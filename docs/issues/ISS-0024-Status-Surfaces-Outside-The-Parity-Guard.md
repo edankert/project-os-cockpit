@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0024
 aliases: ["ISS-0024"]
 title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
-status: open
+status: fixed
 severity: medium
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
@@ -107,3 +107,23 @@ The second symptom has a different path but the same cause: an overview square's
 **Guarded**: `test_desktop_build_is_not_stale` asserts the shipped bundle contains every status in `COMPLETED_STATUSES` and is no older than its source, skipping when `dist/` is absent (fresh clone / CI without a build). Adequacy proven by stripping `implemented` from the built bundle — the test fails.
 
 **Why the suite did not catch it.** Every other test here reads TypeScript *source*. The artifact that actually runs was unguarded, so 252 green tests coexisted with a stale app. That is the same shape as §2's blind spots and the miscounts elsewhere in this cycle: **the check was pointed at the thing that was correct, not the thing that was used.**
+
+## Closed 2026-07-30
+
+All six findings were already resolved in the code; the status was the only thing left open. Verified before closing rather than taken on the note's word:
+
+| Claimed guard | Present |
+|---|---|
+| `test_done_by_type_recognises_terminal_requirement_status` | `tests/test_status_vocabulary.py` |
+| `test_active_done_is_the_completed_set` | same |
+| `test_no_literal_colour_on_status_selectors` | same |
+| `test_bundled_validator_matches_the_canonical_one` | same |
+| `test_desktop_build_is_not_stale` | same |
+
+And the live bug: `is_done_status("requirement", "implemented")` returns `True`.
+
+§5 stays as recorded — parity-by-construction, noted rather than fixed, because `COLLAPSED_BY_DEFAULT` is an alias of `COMPLETED_STATUSES` and cannot drift. TST-0019's "six surfaces" framing still overstates by one, which is a wording issue in that note rather than a gap here.
+
+Worth naming the pattern this closes into: three items in two days — this, [[FEAT-0018]] and [[FEAT-0045]] — were complete work sitting at a non-terminal status because the *closing* step needs a human and nothing surfaces the backlog of it. That is [[PHASE-011]]'s theme arriving from an unexpected direction: not a claim asserted without evidence, but evidence sitting unclaimed.
+
+One finding from [[FEAT-0018]]'s visual pass belongs to this issue's family and is **not** covered by any guard here: a `verdict-chip` reading `close` renders grey, because `review_verdict: CLOSE` is not in QUALITY.md's `approved` | `changes-requested` vocabulary. 10 notes carry it. The chip degrading rather than mis-colouring is correct, so this is corpus drift, not a surface bug — but it is exactly the "a second vocabulary nobody guards" shape §1 was about, one level up in the review fields rather than the status fields. Filed as [[ISS-0069]].

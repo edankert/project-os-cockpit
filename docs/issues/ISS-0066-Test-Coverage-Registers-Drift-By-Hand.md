@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0066
 aliases: ["ISS-0066"]
 title: "A TST note's ## Coverage list is a hand-maintained register of its own assertions, and drift in it is indistinguishable from a false claim — TST-0022 took four review rounds to describe 27 assertions accurately"
-status: open
+status: fixed
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-30
@@ -84,3 +84,44 @@ Raised by the reviewer's own invitation. It explicitly declined to allocate an I
 It is a finding about the *review process* as much as the format: four rounds converged on the code quickly (the record-column defect was found in round one and fixed in round two) while the prose describing it needed all four. That asymmetry is the signal — the code had tests, the register had a reader.
 
 Filed against [[PHASE-999-Future]] rather than [[PHASE-010]] deliberately — PHASE-010 is `done`, and re-opening a closed phase to hold a finding about the documentation format would confuse "this phase's work is incomplete" with "this system has a gap the phase exposed". The second is true.
+
+## Resolved 2026-07-30 — the check, not the generator
+
+Option 2 taken (the reviewer's recommendation), with one honest narrowing.
+
+**Implemented:** `tests/test_coverage_registers.py` — every test function a `TST-*` note names must exist in `tests/`. Parametrised per note, so a failure names the offending file. Test *module* stems are excluded, because notes legitimately cite whole files via `path:`.
+
+**It found four dangling citations on its first run**, in two notes, which is the case for it existing:
+
+| Note | Cited | Actually |
+|---|---|---|
+| TST-0019 | `test_implemented_status_sorts_after_backlog_but_stays_expanded` | `..._sorts_and_collapses_with_the_done_family` |
+| TST-0002 | `test_nav_payload_groups_features_by_phase` | `test_nav_payload_features_groups_by_phase` |
+| TST-0002 | `test_nav_payload_item_shape` | `test_nav_payload_features_item_shape` |
+| TST-0002 | `test_nav_payload_excludes_template_features` | `test_nav_payload_features_excludes_template_features` |
+
+All four were renames the notes never followed. 559 passing tests coexisted with them, because the suite tests the code and nothing tested the notes *about* the code.
+
+Mutation-verified in both directions: a typo in a citation fails, and renaming a test in source while leaving the note alone fails. Plus a guard-the-guard (`test_there_are_tst_notes_to_check`) that fails if the glob stops matching — otherwise every assertion would pass over an empty set and report success by finding nothing, which is the exact failure this repo keeps rediscovering.
+
+### The other direction is deliberately not enforced, and this is the measurement
+
+The recommendation also included the reverse: every test in the `path:` file should be named in `## Coverage`. Measured across the corpus:
+
+```
+TST-0021  names  4 of 37       TST-0004  names 0 of 9
+TST-0019  names  3 of 24       TST-0008  names 0 of 10
+TST-0022  names 11 of 25       TST-0020  names 0 of 12
+```
+
+**Enumeration is not the convention.** A Coverage item is a *theme* covering several tests, not a per-test entry — so enforcing completeness would fail almost every note, and "fixing" that would mean redefining what a Coverage item is: from prose a human writes to a mapping a machine checks. That is a template-level convention change, not a check to bolt on, and inventing the requirement in order to satisfy a guard would be backwards.
+
+Recorded as an executable assertion rather than a comment: `test_enumeration_is_not_the_convention` fails if the corpus ever *does* start enumerating, at which point the stronger check becomes available and should be added.
+
+### Disclosed limit
+
+The mention regex is `\btest_[a-z0-9_]{4,}\b` — lowercase only. A citation containing an uppercase character is invisible to the check. Found while mutation-testing: the first mutation appended `X` to a name and passed, because the trailing capital defeats the word-boundary match. Pytest names are lowercase by convention so this is narrow, but it is a hole and naming it is cheaper than pretending the regex is total.
+
+### Not filed as a follow-up, deliberately
+
+The enumeration half is not filed as a new issue. It is not a defect — it is a convention this project has not adopted, and filing it would create a standing ticket for work nobody has decided is wanted. The assertion above is the tripwire if that changes.

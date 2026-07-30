@@ -4,21 +4,22 @@ id: DES-0004
 aliases: ["DES-0004"]
 title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
 role: proposal
-status: draft
+status: "accepted"
 phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
-updated: 2026-07-30
+updated: "2026-07-30"
 source: ["conversation 2026-07-30: 'does this mean we can get rid of the Waiting on You section?'"]
 asset: "DES-0004-attention-in-the-squares.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-07-30"
+review_verdict: "accepted"
 related: ["[[ISS-0068-Waiting-On-You-Is-A-Workaround]]", "[[DES-0001-Overview-Redesign]]", "[[DES-0002-Cockpit-Design-System]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[TASK-0210-Overview-Announce-Rows]]", "[[REQ-0022-Overview-State-Above-History]]", "[[ADR-0010]]", "[[ADR-0011]]"]
 tags: [design, overview]
+design_revision: "55a743d"
 ---
 
 # Attention in the squares
@@ -127,7 +128,9 @@ Every mark is also distinguishable without colour — solid, struck, ringed, dot
 
 ## Review
 
-<Region-anchored comments land here. No verdict yet — this is `draft` and has not been reviewed.>
+**2026-07-30 — accepted by Edwin.** Recorded from "I have reviewed DES-0004, please continue with PHASE-011, 012 and 013"; the verdict value and attribution are his, the wording of this line is not. No region-anchored comments were raised, and the encoding was settled through the four exchanges recorded under `## Revisions` rather than in a single pass at the end — which is why there is no findings list here.
+
+Correct this line if the verdict was more qualified than `accepted`; [[PHASE-012]]'s first exit criterion depends on it.
 
 ## Notes
 

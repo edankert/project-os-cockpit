@@ -46,9 +46,9 @@ Unit tests for `project_os_cockpit.cockpit.nav_payload` and `project_os_cockpit.
 | Test | Validates |
 |---|---|
 | `test_nav_payload_schema_versioned` | `schema_version: 1` present |
-| `test_nav_payload_groups_features_by_phase` | Phase grouping + phase metadata |
-| `test_nav_payload_item_shape` | `{id, title, status, goal, url}` per row |
-| `test_nav_payload_excludes_template_features` | Template `FEAT-0000` not present |
+| `test_nav_payload_features_groups_by_phase` | Phase grouping + phase metadata |
+| `test_nav_payload_features_item_shape` | `{id, title, status, goal, url}` per row |
+| `test_nav_payload_features_excludes_template_features` | Template `FEAT-0000` not present |
 | `test_context_payload_unknown_note_is_empty` | Unknown `this` → empty payload |
 | `test_context_payload_missing_this_is_empty` | `this=None` → empty payload |
 | `test_context_payload_resolves_by_id` | `this=FEAT-0001` → resolved active block |
