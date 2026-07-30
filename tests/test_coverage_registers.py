@@ -329,3 +329,46 @@ def test_the_parking_lot_still_holds_the_work_it_is_for() -> None:
         "nothing names PHASE-999 at all — genuinely unplanned work has "
         "nowhere to sit, which is the failure the sentinel prevents"
     )
+
+
+# ---- FEAT-0051 / TASK-0254: close-out files what it cannot fix --------------
+
+def test_close_out_says_to_file_unfixable_validator_errors() -> None:
+    """The half of the close-out sentence that was missing.
+
+    LIFECYCLE step 7 and the close-out skill both say to run the
+    validator and *fix* what it reports. Neither has an answer for
+    "cannot fix" — which is exactly the case that needs a human and so
+    the one that must leave a record (FEAT-0051).
+
+    The rule lives in `CLAUDE.md` rather than `tools/instructions/`
+    because that directory is template-owned and a sync would report the
+    edit as divergence (`tools/sync/MANIFEST.yaml`). This guard exists
+    so the procedure cannot quietly lose the added half — the same
+    reason ISS-0069's vocabulary check lives in this suite.
+    """
+    text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "validate-docs.sh" in text, "the close-out rule names no validator"
+    # The two halves of the rule, and the thing that stops it duplicating.
+    for needed in ("ISS-*", "(code, subject)"):
+        assert needed in text, f"the close-out rule lost {needed!r}"
+    assert "fixed or filed" in text, (
+        "the rule's claim is that every validator error is fixed OR filed; "
+        "without that sentence the instruction is just 'fix it' again"
+    )
+
+
+def test_the_upstream_instruction_still_only_says_fix() -> None:
+    """Pins the reason the rule is local, so it moves when that changes.
+
+    If a template sync ever brings the file-what-you-cannot-fix rule
+    into `LIFECYCLE.md`, this fails — and the CLAUDE.md copy should then
+    be deleted rather than left to drift alongside it. A local override
+    that outlives its reason is how two vocabularies start (ISS-0069).
+    """
+    lifecycle = (ROOT / "tools" / "instructions" / "LIFECYCLE.md").read_text(encoding="utf-8")
+    assert "validate-docs.sh" in lifecycle
+    assert "ISS-*" not in lifecycle.split("validate-docs.sh")[1][:400], (
+        "LIFECYCLE.md now carries the filing rule upstream — delete the "
+        "CLAUDE.md copy and this test rather than keeping both"
+    )

@@ -432,3 +432,129 @@ test('ok and unavailable are distinguishable from each other and from unknown', 
     (s) => JSON.stringify(marks({ state: s, errors: s === 'failing' ? 2 : 0 }))));
   assert.equal(seen.size, 4, 'two states render identically — one of them is a lie');
 });
+
+// ---- validator errors as session rows (FEAT-0051 / TASK-0253) --------
+//
+// Same approach as `healthMarks` above, for the same reason: the row
+// model is pure, so it is evaluated and called directly rather than
+// grepped out of the built bundle.
+
+let vr;
+before(async () => {
+  const src = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'validation-rows.js'), 'utf-8');
+  vr = new Function(`${src}
+    return { validationRows, noteValidationChange, resetValidationRows,
+             validationKey, validationLabel };`)();
+});
+
+const err = (code, message, extra = {}) => ({ code, message, ...extra });
+const report = (...errors) => ({ state: errors.length ? 'failing' : 'ok', errors });
+
+test('an error becomes a row, and stays open while it is failing', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  vr.noteValidationChange(report(err('METRICS', 'tasks_total is 251 but computed 252')), t0);
+  const rows = vr.validationRows([err('METRICS', 'tasks_total is 251 but computed 252')], t0);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].done, false);
+  assert.equal(rows[0].entry.code, 'METRICS');
+});
+
+test('a fixed error is marked done and LINGERS rather than vanishing', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  const e = err('METRICS', 'counts are behind');
+  vr.noteValidationChange(report(e), t0);
+  // Fixed a second later — METRICS clears about this fast once
+  // sync-snapshot runs, and a row that disappeared instantly means the
+  // user sees a number change and never learns what changed.
+  vr.noteValidationChange(report(), t0 + 1000);
+  const rows = vr.validationRows([], t0 + 2000);
+  assert.equal(rows.length, 1, 'the fixed row must still be visible');
+  assert.equal(rows[0].done, true);
+  assert.equal(rows[0].entry.code, 'METRICS');
+});
+
+test('a fixed row is forgotten once its linger expires', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  vr.noteValidationChange(report(err('METRICS', 'x')), t0);
+  vr.noteValidationChange(report(), t0 + 1000);
+  const late = t0 + 1000 + 6 * 60_000;      // past the 5-minute window
+  vr.noteValidationChange(report(), late);
+  assert.deepEqual(vr.validationRows([], late), [],
+    'a long session must not accumulate every error it ever fixed');
+});
+
+test('an error that comes back is open again, not stuck at fixed', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  const e = err('PHASE-CHILDREN', 'PHASE-016 is done but 1 item is unresolved');
+  vr.noteValidationChange(report(e), t0);
+  vr.noteValidationChange(report(), t0 + 1000);
+  vr.noteValidationChange(report(e), t0 + 2000);
+  const rows = vr.validationRows([e], t0 + 2000);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].done, false, 'a recurring error must not read as fixed');
+});
+
+test('unresolved rows sort above fixed ones', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  const fixed = err('METRICS', 'a');
+  const open = err('LINK', 'b');
+  vr.noteValidationChange(report(fixed), t0);
+  vr.noteValidationChange(report(open), t0 + 1000);   // `fixed` resolved, `open` arrived
+  const rows = vr.validationRows([open], t0 + 1000);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].done, false, 'a fixed row must never push a live one down');
+  assert.equal(rows[1].done, true);
+});
+
+test('two errors with the same code are two rows', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  const a = err('METRICS', 'tasks_total is wrong');
+  const b = err('METRICS', 'features_total is wrong');
+  vr.noteValidationChange(report(a, b), t0);
+  assert.equal(vr.validationRows([a, b], t0).length, 2,
+    'the key must include the message — one code can name several problems');
+  assert.notEqual(vr.validationKey(a), vr.validationKey(b));
+});
+
+test('a code gets a readable label, and an unknown code falls back to itself', () => {
+  // The whole point of the panel is that a glance answers "what is this
+  // about" — the code alone is accurate and opaque.
+  assert.notEqual(vr.validationLabel(err('METRICS', 'x')), 'METRICS');
+  assert.match(vr.validationLabel(err('METRICS', 'x')), /count/i);
+  assert.equal(vr.validationLabel(err('NOT-A-REAL-CODE', 'x')), 'NOT-A-REAL-CODE',
+    'an unrecognised code must show itself rather than a guess');
+});
+
+test('clearing drops everything — one repo\'s errors never outlive a switch', () => {
+  vr.resetValidationRows();
+  const t0 = 1_000_000;
+  vr.noteValidationChange(report(err('LINK', 'x')), t0);
+  vr.resetValidationRows();
+  assert.deepEqual(vr.validationRows([], t0), [],
+    "showing one repo's violations under another's session is FEAT-0028's "
+    + 'identity bug one scope down');
+});
+
+test('every code the validator can emit has a label', async () => {
+  // Enumerated from the validator's own emit sites, so this fails when
+  // it gains a rule rather than when someone notices. The fallback
+  // (show the code) still works — this is about the panel answering
+  // "what is this about" for the codes that exist today.
+  const py = await fs.readFile(
+    path.join(here, '..', '..', 'tools', 'scripts', 'validate-docs.py'), 'utf-8');
+  const codes = new Set();
+  for (const m of py.matchAll(/(?:report\.error|emit)\("([A-Z0-9-]+)"/g)) codes.add(m[1]);
+  assert.ok(codes.size > 15, `only found ${codes.size} codes — the scrape broke`);
+
+  const unlabelled = [...codes].filter(
+    (c) => vr.validationLabel({ code: c, message: '' }) === c);
+  assert.deepEqual(unlabelled, [],
+    `validator codes with no readable label: ${unlabelled.join(', ')}`);
+});

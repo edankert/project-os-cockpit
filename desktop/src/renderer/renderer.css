@@ -3971,3 +3971,43 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   color: var(--text-faint);
   font-style: italic;
 }
+
+/* ---------------------------------------------------------------------
+ * Validator errors in the session summary (FEAT-0051 / TASK-0253).
+ *
+ * Above the progress rows and outside the tab bar: this is not a third
+ * view of the session, it is a condition of the repo the session is
+ * currently causing or clearing. Behind a tab it would be a signal you
+ * have to go looking for, which is the problem it exists to fix.
+ *
+ * Same row grammar as `.agent-detail-work-row` on purpose — square,
+ * id, title, status, time. The eye should not learn a second pattern
+ * six inches from the first.
+ */
+.agent-detail-validation {
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.agent-detail-validation-head {
+  color: var(--severity-critical);
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+/* Nothing left to fix: the heading stops being an alarm rather than
+ * disappearing, so a fix that lands between glances is still legible. */
+.agent-detail-validation:not(:has(.agent-detail-validation-row:not(.is-done)))
+  .agent-detail-validation-head {
+  color: var(--status-done);
+}
+.agent-detail-validation-row .ov-phase-sq { color: var(--severity-critical); }
+/* Fixed rows recede but stay readable — struck through, so the state
+ * survives a greyscale screenshot and does not rely on colour. */
+.agent-detail-validation-row.is-done { opacity: 0.55; }
+.agent-detail-validation-row.is-done .work-title { text-decoration: line-through; }
+.agent-detail-validation-row.is-done .ov-phase-sq { color: var(--status-done); }
+.agent-detail-validation-row .work-time { color: var(--text-faint); }
+/* A snapshot-level error names no note, so its row does not pretend to
+ * be a link (ISS-0037 was a row that looked clickable and was not). */
+.agent-detail-validation-row:disabled { cursor: default; }
+.agent-detail-validation-row:disabled:hover .work-id { color: inherit; }

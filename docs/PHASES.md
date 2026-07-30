@@ -25,6 +25,7 @@ This document is the **semantic source of truth** for development phases. It map
 | [PHASE-012](phases/PHASE-012-Attention-In-The-Strip.md) | Attention in the strip | Give the phase squares the states they lack (DES-0004) so the Waiting-on-you list has no job, plus PHASE-010's reachability residue. Gated on DES-0004 having a verdict. | ISS-0067, ISS-0068 | done |
 | [PHASE-013](phases/PHASE-013-Fleet-Surfaces.md) | Fleet surfaces | Finish the cross-repo work: roll the design-system convention across the fleet, and surface per-workspace validator health. | FEAT-0028, FEAT-0044 | planned |
 | [PHASE-015](phases/PHASE-015-Phase-Hygiene.md) | Phase hygiene | An item's phase becomes a record of what delivered it rather than a plan-time answer nobody revisits. Sixteen delivered notes re-homed out of the sentinel; the rule itself proposed upstream. | ISS-0074 | done |
+| [PHASE-016](phases/PHASE-016-Errors-Become-Work.md) | Errors become work | A validator result is either a row in the running session's work list, closing as the agent fixes it, or an issue filed at close-out. Never a standing number with nothing behind it. | FEAT-0051 | done |
 | [PHASE-999](phases/PHASE-999-Future.md) | Future / Unphased | Sentinel parking-lot for items without a concrete delivery phase yet. Re-phase out when planning crystallises. **Not a second sentinel:** `PHASE-999-Unscheduled` was a dangling link on 13 notes until 2026-07-30 and never existed. | FEAT-0029, TASK-0045, TASK-0065 | planned |
 
 ## Active phase

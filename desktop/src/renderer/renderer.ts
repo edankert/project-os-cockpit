@@ -708,6 +708,7 @@ async function openWorkspace(id: string): Promise<void> {
   placeholder.hidden = true;
   docView.hidden = true;
   sidecarBaseUrl = null;
+  clearValidation();  // the report belongs to a repo no longer on screen
   // Same reason as the agent strip below: the tray is per-workspace, and
   // leaving the old project's items up while the new sidecar starts would
   // invite triaging a file into the wrong repo.
@@ -797,6 +798,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       placeholder.hidden = false;
       docView.hidden = true;
       sidecarBaseUrl = null;
+      clearValidation();  // the report belongs to a repo no longer on screen
       currentRel = null;
       activeId = null;
       refreshFooterPath();
@@ -813,6 +815,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       placeholder.hidden = false;
       docView.hidden = true;
       sidecarBaseUrl = null;
+      clearValidation();  // the report belongs to a repo no longer on screen
       currentRel = null;
       activeId = null;
       refreshFooterPath();
@@ -8029,12 +8032,22 @@ function attachSidecarEventStream(baseUrl: string): void {
       handleDispatchRequest(JSON.parse((e as MessageEvent).data));
     } catch { /* ignore malformed */ }
   });
+  // Docs-validator health for THIS repo (FEAT-0051 / TASK-0252). Fires
+  // only when the observable state changes, which is why `primeValidation`
+  // runs once on attach — a repo that has been quietly failing since
+  // before we connected would otherwise never report.
+  es.addEventListener('cockpit:validation', (e) => {
+    try {
+      applyValidationReport(JSON.parse((e as MessageEvent).data) as ValidationReport);
+    } catch { /* malformed frame — keep the last good report */ }
+  });
   // `cockpit:focus` stays on the main process's agent-focus bridge.
   es.onerror = () => {
     // EventSource auto-reconnects; nothing to do here. Closing the
     // stream on every transient error would loop.
   };
   activeEventSource = es;
+  void primeValidation(baseUrl);
 }
 
 function scheduleSoftReload(): void {
@@ -8346,6 +8359,129 @@ function noteWorkTransition(c: { id?: string; to?: string; from?: string; ts?: s
   if (!agentStripDetail.hidden && stripDetailTab === 'work') renderAgentStripDetail();
 }
 
+// ---- validator errors for the ACTIVE repo (FEAT-0051 / TASK-0252) ----
+//
+// FEAT-0018 built `GET /api/cockpit/validation` and the
+// `cockpit:validation` SSE event, and the renderer has held an
+// EventSource on the sidecar since FEAT-0036 — it simply never
+// subscribed to this one. That is why the desktop shell has had no way
+// to see its own repo's violations while the browser client has had a
+// drift panel for weeks.
+//
+// The FLEET map (FEAT-0028) stays counts-only on purpose: that is ten
+// repos over an IPC boundary. This is one repo, live, on a connection
+// that is already open, so it carries the whole report.
+
+/** The active workspace's validator report, or null when unknown. */
+let activeValidation: ValidationReport | null = null;
+
+function currentValidationErrors(): ValidationEntry[] {
+  return activeValidation?.errors ?? [];
+}
+
+function applyValidationReport(report: ValidationReport | null): void {
+  activeValidation = report;
+  noteValidationChange(report, Date.now());
+  if (!agentStripDetail.hidden) renderAgentStripDetail();
+}
+
+/** Drop everything on a workspace switch or a dead sidecar.
+ *
+ *  Not "keep the last report": it belongs to a repo that is no longer
+ *  on screen, and showing one repo's violations under another's session
+ *  is the mistake FEAT-0028's identity check exists to prevent, one
+ *  scope down. */
+function clearValidation(): void {
+  activeValidation = null;
+  resetValidationRows();
+  if (!agentStripDetail.hidden) renderAgentStripDetail();
+}
+
+async function primeValidation(baseUrl: string): Promise<void> {
+  try {
+    const resp = await fetch(`${baseUrl}/api/cockpit/validation`);
+    if (!resp.ok) return;
+    applyValidationReport((await resp.json()) as ValidationReport);
+  } catch { /* best-effort; the SSE event will bring the next one */ }
+}
+
+/** The validator-error block in the session summary (TASK-0253).
+ *
+ *  One row per error, in the same grammar as the work rows below it —
+ *  a square that fills when the thing completes. The eye should not
+ *  have to learn a second pattern six inches from the first.
+ *
+ *  It carries code, message and a destination; it does NOT restate the
+ *  rail badge's count. The badge answers *which project*, this answers
+ *  *what* — and a surface that re-listed what another already drew is
+ *  exactly what ISS-0068 deleted.
+ */
+function buildValidationBlock(rows: ValidationRow[]): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'agent-detail-validation';
+
+  const head = document.createElement('div');
+  head.className = 'agent-detail-validation-head';
+  const openCount = rows.filter((r) => !r.done).length;
+  head.textContent = openCount === 0
+    ? 'Docs checks — all cleared'
+    : `Docs checks — ${openCount} to fix`;
+  wrap.appendChild(head);
+
+  for (const { entry, done } of rows) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'agent-detail-work-row agent-detail-validation-row'
+      + (done ? ' is-done' : '');
+
+    const sq = document.createElement('span');
+    sq.className = 'ov-phase-sq';
+    sq.dataset.type = 'issue';
+    if (done) sq.dataset.bucket = 'done';
+
+    const code = document.createElement('span');
+    code.className = 'work-id mono';
+    code.textContent = entry.code;
+
+    const label = document.createElement('span');
+    label.className = 'work-title';
+    label.textContent = validationLabel(entry);
+
+    row.append(sq, code, label);
+
+    // The subject: the note the error is about, when it names one.
+    const subject = entry.id || (entry.rel ? entry.rel.split('/').pop() : '');
+    if (subject) {
+      const subj = document.createElement('span');
+      subj.className = 'work-status';
+      subj.textContent = subject;
+      row.appendChild(subj);
+    }
+
+    const state = document.createElement('span');
+    state.className = 'work-time';
+    state.textContent = done ? 'fixed' : 'open';
+    row.appendChild(state);
+
+    // Full message on hover — the label is a summary, and a summary
+    // that cannot be expanded is where "what is this related to" came
+    // from in the first place.
+    row.title = entry.message;
+
+    const target = entry.url || (entry.rel && entry.rel.startsWith('docs/') ? `/${entry.rel}` : '');
+    if (target) {
+      row.addEventListener('click', () => { void navigateTo(target); });
+    } else {
+      // Snapshot-level errors name no note. Say so rather than offering
+      // a click that goes nowhere — ISS-0037 was exactly that.
+      row.disabled = true;
+      row.title = `${entry.message}\n\n(no single note to open — this is about SNAPSHOT.yaml)`;
+    }
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
 function renderAgentStripDetail(): void {
   if (!stripSession) { agentStripDetail.hidden = true; return; }
   agentStripDetail.replaceChildren();
@@ -8353,6 +8489,15 @@ function renderAgentStripDetail(): void {
   head.className = 'agent-detail-head';
   head.textContent = `session ${stripSession.session_id.slice(0, 8)} · ${stripSession.prompt_count} prompt${stripSession.prompt_count === 1 ? '' : 's'}`;
   agentStripDetail.appendChild(head);
+
+  // Validator errors, above the tabs and above the work rows
+  // (FEAT-0051 / TASK-0253). Deliberately outside the tab bar: this is
+  // not a third view of the session, it is a condition of the repo that
+  // the session is currently causing or clearing, and burying it behind
+  // a tab would reproduce the problem it exists to fix — a signal you
+  // have to go looking for.
+  const errRows = validationRows(currentValidationErrors(), Date.now());
+  if (errRows.length > 0) agentStripDetail.appendChild(buildValidationBlock(errRows));
 
   const items = sessionWorkItems();
   // Tab bar: progress | files (TASK-0190 renamed 'work' → 'progress').

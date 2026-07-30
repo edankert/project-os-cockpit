@@ -60,6 +60,21 @@ Watch out on resume: a resumed session keeps the model its transcript was saved 
 
 Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are byte-identical to upstream's, but note that `sync-project-os.sh` copies `tools/` and never touches `.claude/`, and this repo carries no generator — so the agent files can only be refreshed by re-copying them, and nothing here detects drift.
 
+## Close-out: file what the validator reports and you cannot fix (FEAT-0051)
+
+LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.
+
+**At close-out, every validator error is either fixed or filed.**
+
+1. Run the validator. Fix what you can; most of what appears mid-session is your own half-finished work (`METRICS` is corrected automatically by `sync-snapshot.py` at pre-commit).
+2. For anything still failing that you cannot or should not fix, **create an `ISS-*`** carrying the error's `[CODE]` and message verbatim, linking the note it names.
+3. **Dedup on `(code, subject)`** — where subject is the error's note ID, or its repo-relative path, or the literal `SNAPSHOT.yaml` for snapshot-level errors. If an open issue already has that key, update it and note the recurrence; do not file a second.
+4. Closing that issue is what fixing it looks like. There is no separate bookkeeping.
+
+**Why this and not an automatic filer.** Issues appearing without anyone asking is a worse failure than one occasionally missed (Edwin, 2026-07-30), and close-out is where the check already runs. The dependency on the agent performing the step is the same one every other close-out obligation carries, with the same mitigation: the validator gates pre-commit and CI, so an unfixed error is loud whether or not anyone filed it. What filing adds is a place to record **why** it is still there.
+
+This lives here rather than in `tools/instructions/LIFECYCLE.md` because that file is template-owned and a sync would report the edit as divergence. The rule is proposed upstream so every repo can carry it; until then it is this project's.
+
 ## Project-specific notes
 
 Stack: Python 3.11+. Dependencies live in `pyproject.toml`. Source under `src/project_os_cockpit/`. Run with `python -m project_os_cockpit <path-to-docs-dir>` or the installed console script `project-os-cockpit <path-to-docs-dir>`. The render server binds to `0.0.0.0` (so a tablet on the same Wi-Fi can read), the optional terminal endpoint binds to `127.0.0.1` only (Mac-local).

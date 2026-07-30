@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 50
+  FEAT: 51
   ISS: 74
-  PHASE: 15
+  PHASE: 16
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 251
+  TASK: 254
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0028"
-  phase: "PHASE-015"
+  feature: ""
+  phase: "PHASE-016"
   issue: ""
-  note: "2026-07-30 PHASE-013/014/015 all done. PHASE-013 (fleet validator badges + the design-system rollout across 7 surfaces) reviewed: changes-requested on two guards that could not fail, all nine findings addressed. PHASE-014 and PHASE-015 came from Edwin asking how delivered-but-unplanned work should be handled: 16 of the 19 notes naming PHASE-999 were terminal, so the strip drew 16 delivered squares under 'Future'. Sixteen re-homed from evidence already in the notes; the one with no delivering phase got PHASE-014 written for it, retrospectively and saying so. The RULE is upstream and open (project-os-dev ISS-0027, the mirror of PHASE-CHILDREN) because the validator is template-owned; locally there are two guards. OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved); the fleet keeps its own parking-lot backlog (your-trainer 72, project-os-dev 42)."
+  note: "2026-07-30 PHASE-016 done: validator errors are now rows in the running session's work list (above the console, closing as they are fixed) and issues at close-out if they survive. Edwin's design, replacing three worse ones of mine — the question is WHO FIXES IT, not how long it lasts, and the classification is measured rather than tabled. Verified live: induced errors appeared as rows over SSE, cleared to `fixed` when the note was deleted, and a row navigated to its note. Earlier today: PHASE-013 (fleet validator badges + design-system rollout, reviewed changes-requested, all nine findings addressed), PHASE-014/015 (16 delivered notes re-homed out of the parking lot). OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved); three upstream proposals open in project-os-dev (ISS-0025/0026/0027 plus the fixed-or-filed close-out rule)."
 items:
   features:
+    FEAT-0051:
+      file: "docs/features/errors-as-work/FEAT-0051-Validator-Errors-As-Session-Work.md"
+      title: "Validator errors are session work while a session runs, and issues once it ends"
+      status: done
+      phase: "[[PHASE-016-Errors-Become-Work]]"
+      tasks: [TASK-0252, TASK-0253, TASK-0254]
+      note: "Edwin's design, replacing three worse ones of mine. Split by WHO FIXES IT rather than how long it lasts: a row in the session work list while the agent is fixing it, a real ISS-* once it survives the session. Which is which is measured, not classified — no error-code table to drift."
     FEAT-0046:
       file: "docs/features/plans-on-feature/FEAT-0046-Plans-On-The-Feature.md"
       title: "Plans belong to their feature — nested in the Features mode, found by path"
@@ -342,6 +349,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0252:
+      file: "docs/features/errors-as-work/plan/tasks/TASK-0252-Validation-Errors-Reach-The-Session-Panel.md"
+      title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live"
+      status: done
+      phase: "[[PHASE-016-Errors-Become-Work]]"
+      parent: FEAT-0051
+      note: "Pure plumbing — endpoint, event and EventSource all exist; the renderer just never subscribed, which is why the desktop shell has never been able to see its own repo's violations."
+    TASK-0253:
+      file: "docs/features/errors-as-work/plan/tasks/TASK-0253-Error-Rows-In-The-Session-Summary.md"
+      title: "One row per validator error in the session summary, closing as it is fixed"
+      status: done
+      phase: "[[PHASE-016-Errors-Become-Work]]"
+      parent: FEAT-0051
+      note: "Reuses .agent-detail-work-row's grammar so the eye does not learn a second pattern six inches from the first. Must not restate the badge's count — that is the ISS-0068 shape."
+    TASK-0254:
+      file: "docs/features/errors-as-work/plan/tasks/TASK-0254-Close-Out-Files-What-Survives.md"
+      title: "Close-out files what it could not fix, deduped on (code, subject)"
+      status: done
+      phase: "[[PHASE-016-Errors-Become-Work]]"
+      parent: FEAT-0051
+      note: "Documentation, not code. Auto-filing declined by Edwin: issues appearing unasked is a worse failure than one occasionally missed."
     TASK-0248:
       file: "docs/features/fleet-health/plan/tasks/TASK-0248-Live-Workspace-Validation-Aggregate.md"
       title: "Aggregate validator state for live workspaces in the main process"
@@ -2787,10 +2815,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 50
-    features_done: 47
-    tasks_total: 251
-    tasks_done: 245
+    features_total: 51
+    features_done: 48
+    tasks_total: 254
+    tasks_done: 248
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182
