@@ -53,7 +53,14 @@ interface SidecarRecord {
 // Sidecars only die on explicit dispose, natural crash, or app exit.
 const sidecars = new Map<string, SidecarRecord>();
 
-function pythonExecutable(): string {
+/** The Python interpreter to run the cockpit package with.
+ *
+ *  Exported for FEAT-0028's cold-workspace pass, which spawns
+ *  `python -m project_os_cockpit.fleet_validate`: resolving the
+ *  interpreter a second way is a path that could drift from the one
+ *  the sidecars actually run under.
+ */
+export function pythonExecutable(): string {
   // 1. Explicit override (development — e.g. point at `.venv/bin/python`).
   if (process.env.COCKPIT_DESKTOP_PYTHON) {
     return process.env.COCKPIT_DESKTOP_PYTHON;

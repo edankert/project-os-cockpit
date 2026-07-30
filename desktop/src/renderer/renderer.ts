@@ -108,6 +108,12 @@ interface CockpitApi {
     fleet: () => Promise<FleetPayload>;
     sessions: (workspaceId: string) => Promise<AgentSessionSlim[]>;
   };
+  // Per-workspace docs-validator state across the fleet (FEAT-0028).
+  fleetHealth: {
+    get: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
+    recheck: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
+    onChange: (cb: (payload: unknown) => void) => () => void;
+  };
   app: {
     openExternal: (url: string) => Promise<{ ok: boolean; error?: string }>;
     revealInFinder: (abs: string) => Promise<{ ok: boolean; error?: string }>;
@@ -387,7 +393,7 @@ function renderWorkspaceRail(): void {
         closeWorkspace(ws.id);
       }
     });
-    applyAgentStateToSquare(li, ws);
+    applyAgentStateToSquare(li, ws); // also paints the validator badge
     listEl.appendChild(li);
   }
 }
@@ -403,18 +409,110 @@ function colorFromName(name: string): string {
   return `hsl(${hue} 55% 45%)`;
 }
 
+// ---- fleet validator health (FEAT-0028 / TASK-0250) ----------------
+
+interface FleetHealthRow {
+  workspaceId: string;
+  name: string;
+  root: string;
+  state: 'ok' | 'failing' | 'unavailable' | 'unknown';
+  errors: number;
+  warnings: number;
+  checkedAt: string | null;
+  source: 'live' | 'cold' | null;
+  detail?: string;
+  stale?: boolean;
+}
+
+const fleetHealth = new Map<string, FleetHealthRow>();
+
+/** Paint the validator badge on one rail square.
+ *
+ *  Deliberately separate from `applyAgentStateToSquare`: the two
+ *  signals are independent, arrive on different channels, and one
+ *  repainting must not wipe the other. Folding them into one function
+ *  is how they would end up sharing a `classList` reset.
+ */
+function applyHealthToSquare(li: HTMLLIElement, ws: Workspace): void {
+  for (const cls of ['health-ok', 'health-failing', 'health-unavailable', 'health-stale']) {
+    li.classList.remove(cls);
+  }
+  const existing = li.querySelector('.ws-health');
+  if (existing) existing.remove();
+
+  const base = li.dataset.baseTitle ?? li.title;
+  li.title = base;
+
+  const row = fleetHealth.get(ws.id);
+  // `unknown` paints NOTHING. A repo nobody has checked must not be
+  // decorated at all — not even reassuringly.
+  if (!row || row.state === 'unknown') return;
+
+  li.classList.add(`health-${row.state}`);
+  if (row.stale) li.classList.add('health-stale');
+
+  if (row.state === 'failing' && row.errors > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'ws-health';
+    badge.textContent = row.errors > 99 ? '99+' : String(row.errors);
+    badge.setAttribute('aria-hidden', 'true');
+    li.appendChild(badge);
+  }
+  li.title = `${base}\n${healthSummary(row)}`;
+}
+
+/** One line of prose for the tooltip — state, count, and how old. */
+function healthSummary(row: FleetHealthRow): string {
+  const when = row.checkedAt ? relativeTime(row.checkedAt) : 'never';
+  const how = row.source === 'cold' ? 'not open' : row.source === 'live' ? 'open' : '';
+  const suffix = `${how ? `${how}, ` : ''}checked ${when}${row.stale ? ' — stale' : ''}`;
+  if (row.state === 'failing') {
+    return `docs: ${row.errors} validator error${row.errors === 1 ? '' : 's'} (${suffix})`;
+  }
+  if (row.state === 'unavailable') {
+    return `docs: could not validate — ${row.detail || 'no reason given'} (${suffix})`;
+  }
+  return `docs: clean (${suffix})`;
+}
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms)) return iso;
+  const mins = Math.round(ms / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+function applyFleetHealthPayload(payload: unknown): void {
+  const rows = (payload as { rows?: FleetHealthRow[] } | null)?.rows;
+  if (!Array.isArray(rows)) return;
+  fleetHealth.clear();
+  for (const row of rows) fleetHealth.set(row.workspaceId, row);
+  for (const li of Array.from(listEl.querySelectorAll<HTMLLIElement>('li.ws-square'))) {
+    const ws = workspaces.find((w) => w.id === li.dataset.id);
+    if (ws) applyHealthToSquare(li, ws);
+  }
+}
+
 function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   const state = agentStates.get(ws.id);
   const stateLine = state
     ? `\nagent: ${state.state}${state.message ? ` — ${state.message}` : ''}`
     : '';
-  li.title = `${effectiveName(ws)}\n${ws.root}${stateLine}`;
+  // The base tooltip. Health appends to THIS rather than to whatever
+  // `title` currently holds — otherwise two independent repaint paths
+  // append to each other's output and the tooltip grows without bound.
+  li.dataset.baseTitle = `${effectiveName(ws)}\n${ws.root}${stateLine}`;
+  li.title = li.dataset.baseTitle;
   for (const cls of ['state-busy', 'state-waiting', 'state-needs-input', 'state-done', 'state-idle', 'state-error']) {
     li.classList.remove(cls);
   }
   const existingDot = li.querySelector('.ws-dot');
   if (existingDot) existingDot.remove();
-  if (!state) return;
+  if (!state) { applyHealthToSquare(li, ws); return; }
   const key = state.decayed_from ? 'idle' : state.state;
   li.classList.add(`state-${key}`);
   // Acknowledged alerts go static (pulse off, colour kept) — TASK-0157.
@@ -423,6 +521,10 @@ function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   dot.className = 'ws-dot';
   dot.setAttribute('aria-hidden', 'true');
   li.appendChild(dot);
+  // Agent state arrives far more often than validator state; without
+  // this the health badge survives (classes are untouched) but its
+  // tooltip line is lost on the next poll.
+  applyHealthToSquare(li, ws);
 }
 
 function closeWorkspace(id: string): void {
@@ -1403,6 +1505,13 @@ cockpitApi.workspaces.onSwitchTo((ev) => {
   // Notification click (TASK-0087) — switch to the named workspace.
   void openWorkspace(ev.workspaceId);
 });
+
+// Fleet validator health (FEAT-0028). Pushed by main whenever any
+// workspace's state changes; the initial read primes the rail.
+cockpitApi.fleetHealth.onChange((payload) => { applyFleetHealthPayload(payload); });
+void cockpitApi.fleetHealth.get()
+  .then((payload) => applyFleetHealthPayload(payload))
+  .catch(() => { /* older main process — the rail simply shows nothing */ });
 
 cockpitApi.workspaces.onAgentState((ev) => {
   const prev = agentStates.get(ev.workspaceId)?.state;
@@ -3301,19 +3410,32 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
       const scale = Math.min(1, box.height / framedHeight, box.width / width);
       frame.style.transformOrigin = 'top center';
       frame.style.transform = scale < 1 ? `scale(${scale})` : '';
-      // A scaled element still occupies its unscaled size in layout, which
-      // would reintroduce the very overflow this removes.
-      wrap.style.setProperty('--design-fit', String(scale));
+      // A scaled element still occupies its UNSCALED size in layout, so the
+      // negative bottom margin below is what actually reclaims the
+      // difference. (ISS-0055 §2: a `--design-fit` custom property used to
+      // be set here with a comment claiming it did this. It appeared in no
+      // stylesheet — the clipping comes from
+      // `.design-stage.is-framed { overflow: hidden }`. A comment naming a
+      // mechanism that does not exist is worse than none, because it gets
+      // believed.)
       frame.style.marginBottom = scale < 1
         ? `${-(framedHeight * (1 - scale))}px` : '';
     };
     requestAnimationFrame(fit);
-    const ro = new ResizeObserver(fit);
-    ro.observe(wrap);
+    // ISS-0055 §3: one observer per frame, and a frame is rebuilt on every
+    // viewport change, revision selection and compare toggle. Disconnect the
+    // previous one rather than leaking it per repaint.
+    designFitObserver?.disconnect();
+    designFitObserver = new ResizeObserver(fit);
+    designFitObserver.observe(wrap);
   }
   wrap.append(frame);
   return wrap;
 }
+
+// The design stage has at most one framed artifact at a time, so at most
+// one fit observer should exist (ISS-0055 §3).
+let designFitObserver: ResizeObserver | null = null;
 
 function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement {
   const head = document.createElement('header');
@@ -9525,6 +9647,9 @@ async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   }
   docView.appendChild(list);
 
+  // Docs health across the fleet (FEAT-0028 / TASK-0251).
+  docView.appendChild(buildFleetHealthSection());
+
   // Session history for the selected project (TASK-0180 / ISS-0013).
   const selName = rows.find((r) => r.workspaceId === selected)?.name ?? '';
   docView.appendChild(buildAgentsSessionSection(selected, selName));
@@ -9533,6 +9658,107 @@ async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   placeholder.hidden = true;
   docView.scrollTop = preserveScroll ? prevScroll : 0;
   return true;
+}
+
+/** The fleet docs-health roll-up (FEAT-0028 / TASK-0251).
+ *
+ *  Answers one question the rail badges cannot: *is anything wrong
+ *  anywhere*. It deliberately does NOT restate what a badge already
+ *  says per repo — PHASE-010 and PHASE-012 each ended by deleting a
+ *  surface that re-listed what another surface already drew, and this
+ *  is the same shape of mistake waiting to be made.
+ *
+ *  Lives on the ~agents screen rather than in a new one: that screen
+ *  already aggregates per-workspace state across the fleet, and a
+ *  second fleet screen would split the answer in two.
+ */
+function buildFleetHealthSection(): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'agents-health';
+
+  const head = document.createElement('div');
+  head.className = 'agents-health-head';
+  const title = document.createElement('h2');
+  title.textContent = 'Docs health';
+  head.appendChild(title);
+
+  const rows = Array.from(fleetHealth.values());
+  const drifting = rows.filter((r) => r.state === 'failing')
+    .sort((a, b) => b.errors - a.errors || a.name.localeCompare(b.name));
+  const unknown = rows.filter((r) => r.state === 'unknown' || r.state === 'unavailable')
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const clean = rows.filter((r) => r.state === 'ok');
+
+  const recheck = document.createElement('button');
+  recheck.type = 'button';
+  recheck.className = 'agents-health-recheck';
+  recheck.textContent = 'Re-check';
+  recheck.title = 'Run the validator for workspaces that are not open';
+  recheck.addEventListener('click', () => {
+    recheck.disabled = true;
+    recheck.textContent = 'Checking…';
+    void cockpitApi.fleetHealth.recheck()
+      .then((payload) => { applyFleetHealthPayload(payload); void renderAgentsPage(true); })
+      .catch(() => { recheck.disabled = false; recheck.textContent = 'Re-check'; });
+  });
+  head.appendChild(recheck);
+  wrap.appendChild(head);
+
+  // The all-clear says how many and how recently. A blank panel is
+  // indistinguishable from a broken one, and this is the common state.
+  if (!rows.length) {
+    const p = document.createElement('p');
+    p.className = 'agents-health-empty';
+    p.textContent = 'No workspaces discovered.';
+    wrap.appendChild(p);
+    return wrap;
+  }
+  if (!drifting.length) {
+    const p = document.createElement('p');
+    p.className = 'agents-health-empty';
+    const newest = clean.map((r) => r.checkedAt).filter(Boolean).sort().pop();
+    p.textContent = clean.length
+      ? `${clean.length} of ${rows.length} repos clean${newest ? `, newest check ${relativeTime(newest)}` : ''}.`
+      : 'Nothing checked yet.';
+    wrap.appendChild(p);
+  }
+
+  for (const r of drifting) wrap.appendChild(buildHealthRow(r));
+
+  // Unknown is listed SEPARATELY, never folded into "fine". A repo
+  // nobody checked is not a repo that passed.
+  if (unknown.length) {
+    const sub = document.createElement('p');
+    sub.className = 'agents-health-unknown';
+    sub.textContent = `${unknown.length} not checked: ${unknown.map((r) => r.name).join(', ')}`;
+    sub.title = unknown.map((r) => `${r.name}: ${r.detail || 'no sidecar, not yet validated'}`).join('\n');
+    wrap.appendChild(sub);
+  }
+  return wrap;
+}
+
+function buildHealthRow(r: FleetHealthRow): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'agents-health-row';
+
+  const count = document.createElement('span');
+  count.className = 'agents-health-count';
+  count.textContent = String(r.errors);
+
+  const name = document.createElement('span');
+  name.className = 'agents-health-name';
+  name.textContent = r.name;
+
+  const when = document.createElement('span');
+  when.className = 'agents-health-when';
+  when.textContent = `${r.checkedAt ? relativeTime(r.checkedAt) : 'never'}${r.stale ? ' · stale' : ''}`;
+
+  row.append(count, name, when);
+  row.title = healthSummary(r);
+  // Deep-link into that workspace's own drift panel (TASK-0112), which
+  // holds the actual violations — this row only carries the number.
+  row.addEventListener('click', () => { void openWorkspace(r.workspaceId); });
+  return row;
 }
 
 function buildFleetRow(r: FleetRow): HTMLElement {

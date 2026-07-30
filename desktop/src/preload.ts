@@ -102,6 +102,22 @@ const api = {
     sessions: (workspaceId: string): Promise<unknown> =>
       ipcRenderer.invoke('agents:sessions', workspaceId),
   },
+  // Per-workspace docs-validator state across the fleet (FEAT-0028).
+  fleetHealth: {
+    get: (): Promise<unknown> => ipcRenderer.invoke('fleet:health'),
+    // Explicit re-check including cold (sidecar-less) workspaces —
+    // those are on a slow schedule, so a surface that wants a fresh
+    // answer now has to ask for one (TASK-0249).
+    recheck: (): Promise<unknown> => ipcRenderer.invoke('fleet:health-recheck'),
+    // Pushed whenever any workspace's validator state changes — the
+    // sidecars publish `cockpit:validation` on change, so this is
+    // event-driven rather than polled.
+    onChange: (cb: (payload: unknown) => void): (() => void) => {
+      const handler = (_: unknown, payload: unknown): void => cb(payload);
+      ipcRenderer.on('fleet:health', handler);
+      return () => ipcRenderer.removeListener('fleet:health', handler);
+    },
+  },
   app: {
     openExternal: (url: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('app:openExternal', url),

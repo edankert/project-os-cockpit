@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 71
+  ISS: 72
   PHASE: 13
   REQ: 25
   RISK: 4
@@ -45,7 +45,7 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
+  task: "TASK-0248"
   feature: "FEAT-0028"
   phase: "PHASE-013"
   issue: ""
@@ -330,7 +330,7 @@ items:
 
     FEAT-0028:
       title: "Fleet health surface — per-workspace validator badges across all discovered repos"
-      status: backlog
+      status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       path: "docs/features/fleet-health/FEAT-0028-Fleet-Health-Surface.md"
       tasks: [TASK-0248, TASK-0249, TASK-0250, TASK-0251]
@@ -345,28 +345,28 @@ items:
     TASK-0248:
       file: "docs/features/fleet-health/plan/tasks/TASK-0248-Live-Workspace-Validation-Aggregate.md"
       title: "Aggregate validator state for live workspaces in the main process"
-      status: backlog
+      status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       parent: FEAT-0028
       note: "The cheap half — FEAT-0018's endpoint and SSE already exist, this only fans them in. Must reuse the janitor's identity/root check: a stale .cockpit/url can point at another workspace's port, which would attribute one repo's drift to another."
     TASK-0249:
       file: "docs/features/fleet-health/plan/tasks/TASK-0249-Cold-Workspace-Validation.md"
       title: "Validate cold workspaces on a bounded schedule, and decide whose validator runs"
-      status: backlog
+      status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       parent: FEAT-0028
       note: "Runs a script in ten repos this app does not own, so read-only is a test rather than an intention. Owns the per-repo vs uniform validator decision, to be recorded before any code."
     TASK-0250:
       file: "docs/features/fleet-health/plan/tasks/TASK-0250-Fleet-Badge-On-The-Rail.md"
       title: "The validator badge on the rail and tabs, without colliding with the agent-state dot"
-      status: backlog
+      status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       parent: FEAT-0028
       note: "DES-0004's budget problem at rail width: .ws-dot is already agent state. Three options in the note; render them rather than argue them. unknown must not look like clean."
     TASK-0251:
       file: "docs/features/fleet-health/plan/tasks/TASK-0251-Fleet-Roll-Up.md"
       title: "Fleet roll-up — one place that answers whether anything is drifting anywhere"
-      status: backlog
+      status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       parent: FEAT-0028
       note: "Prefer the existing ~agents screen over a new surface. PHASE-010 and PHASE-012 each ended by deleting a duplicate counts surface; this should not add a third."
@@ -1742,6 +1742,13 @@ items:
 
 
   issues:
+    ISS-0072:
+      file: "docs/issues/ISS-0072-Snapshot-Edits-Do-Not-Retrigger-Validation.md"
+      title: "SNAPSHOT.yaml edits never re-trigger validation — METRICS drift cannot clear live"
+      status: open
+      severity: medium
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      note: "Found during TASK-0250's live pass. The docs-tree watcher path works; the project-root SNAPSHOT observer does not fire at all (three edits, no re-run). METRICS is the commonest error and lives in SNAPSHOT.yaml, so the likeliest way to go red is the one way you cannot see yourself go green. FEAT-0018's acceptance was verified with a docs-tree fault, which takes the working path."
     ISS-0069:
       file: "docs/issues/ISS-0069-Review-Verdict-Vocabulary-Is-Unguarded.md"
       title: "review_verdict has a second, unguarded vocabulary — 10 notes carry `CLOSE`, which QUALITY.md does not define, and nothing rejects it"
@@ -2088,7 +2095,7 @@ items:
     PHASE-013:
       file: "docs/phases/PHASE-013-Fleet-Surfaces.md"
       title: "Fleet surfaces — the cockpit reports on every repo it can see"
-      status: planned
+      status: active
       order: 13
       features: ["FEAT-0028", "FEAT-0044"]
       issues: ["ISS-0055"]
@@ -2767,16 +2774,16 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 50
-    features_done: 45
+    features_done: 46
     tasks_total: 251
-    tasks_done: 240
+    tasks_done: 244
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 0
-    issues_triage: 1
+    issues_open: 1
+    issues_triage: 0
     risks_open: 4
     releases_total: 0
     decisions_total: 8

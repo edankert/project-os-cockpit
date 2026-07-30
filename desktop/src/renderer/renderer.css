@@ -3825,3 +3825,149 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 /* A broken link is stated, never hidden — the point of resolving by link is
    that links are checkable. */
 .design-rationale-row.is-missing .design-rationale-text { color: var(--status-blocked); }
+
+/* ---------------------------------------------------------------------
+ * Fleet validator badge on the workspace rail (FEAT-0028 / TASK-0250).
+ *
+ * The rail square's bottom-right corner and its colour are already
+ * spent: `.ws-dot` is AGENT state. That is DES-0004's budget problem at
+ * rail width, and the resolution is the same one — stop competing for a
+ * channel that is taken, and find one that is free.
+ *
+ * Three channels separate the two signals here, so neither depends on
+ * the reader having learned a colour:
+ *   position  — validator top-LEFT, agent bottom-right
+ *   shape     — a rounded pill vs a circle
+ *   content   — a NUMERAL vs a blank fill
+ *
+ * The numeral is the point. It carries the error count, which the dot
+ * cannot, and a digit is the least colour-dependent mark available.
+ *
+ * `ok` is a hairline ring on the square itself rather than a second
+ * mark, and `unknown` is NOTHING — literally no claim. That distinction
+ * is load-bearing: ISS-0065 was a surface whose unbuilt cards looked
+ * exactly like cards with nothing to say, and a fleet dashboard whose
+ * default state reads as "healthy" teaches people to read absence as
+ * health.
+ */
+.ws-square .ws-health {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: var(--severity-critical);
+  color: var(--bg);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+  pointer-events: none;
+}
+/* Checked and clean: a hairline ring, no badge. Quiet by design — the
+ * common case should not compete with the exceptional one. */
+.ws-square.health-ok {
+  box-shadow: inset 0 0 0 1.5px var(--status-done);
+}
+/* The validator could not run (no SNAPSHOT.yaml, no validator, a hung
+ * run). Distinct from BOTH clean and drifting: a dashed hairline says
+ * "asked, got no answer", where `unknown` says "never asked". */
+.ws-square.health-unavailable {
+  box-shadow: inset 0 0 0 1.5px var(--text-faint);
+}
+/* A cold reading older than the schedule that produced it. Keeps its
+ * state's mark, but hollows the badge so a two-hour-old count cannot
+ * pass for a current one. */
+.ws-square.health-stale .ws-health {
+  background: var(--bg-elevated);
+  color: var(--severity-critical);
+  box-shadow: 0 0 0 2px var(--bg-elevated), inset 0 0 0 1.5px var(--severity-critical);
+}
+.ws-square.health-stale.health-ok {
+  box-shadow: inset 0 0 0 1.5px var(--text-faint);
+}
+
+/* ---------------------------------------------------------------------
+ * Fleet docs-health roll-up on the ~agents screen (FEAT-0028 / TASK-0251).
+ *
+ * Answers "is anything wrong anywhere". The per-repo detail lives in
+ * each workspace's own drift panel (TASK-0112); a row here is a count
+ * and a door, not a second rendering of the violations.
+ */
+.agents-health {
+  margin: 20px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.agents-health-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.agents-health-head h2 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+.agents-health-recheck {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.agents-health-recheck:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+.agents-health-recheck:disabled { cursor: default; opacity: 0.6; }
+/* The all-clear states the count and the age. A blank panel reads as
+ * broken, and this is the state the fleet is in most of the time. */
+.agents-health-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.agents-health-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.agents-health-row:hover { background: var(--row-hover); }
+.agents-health-count {
+  min-width: 22px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--severity-critical);
+}
+.agents-health-name { font-size: 12px; color: var(--text); }
+.agents-health-when {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+/* Listed apart from the clean ones on purpose: a repo nobody checked
+ * must never be folded into "fine". */
+.agents-health-unknown {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}

@@ -53,6 +53,37 @@ def repo_index() -> Index:
     return Index.build(REPO_DOCS)
 
 
+@pytest.fixture(scope="module")
+def attention_index(tmp_path_factory) -> Index:
+    """This repo's corpus plus one note in each attention state.
+
+    The two guards below used to read `repo_index` directly and assert that
+    *some* item needed attention. That made them fail the moment the project
+    was healthy — which is the state the project is supposed to be in, and
+    the state it reached the day PHASE-013 closed its last triage issue. A
+    guard that goes red when the work is done is measuring the corpus, not
+    the encoding.
+
+    Injecting the states keeps what the guard was actually for (the payload
+    can *reach* every DES-0004 state) while dropping the accidental
+    dependency on the corpus being in trouble.
+    """
+    root = tmp_path_factory.mktemp("attention") / "docs"
+    shutil.copytree(REPO_DOCS, root)
+    phase = "[[PHASE-013-Fleet-Surfaces]]"
+    (root / "issues" / "ISS-9001-Fixture-Triage.md").write_text(
+        "---\ntype: \"[[issue]]\"\nid: ISS-9001\nstatus: triage\n"
+        f"phase: \"{phase}\"\nseverity: low\n---\n# fixture\n",
+        encoding="utf-8",
+    )
+    (root / "tests" / "TST-9001-Fixture-Ready.md").write_text(
+        "---\ntype: \"[[test]]\"\nid: TST-9001\nstatus: ready\n"
+        f"phase: \"{phase}\"\n---\n# fixture\n",
+        encoding="utf-8",
+    )
+    return Index.build(root)
+
+
 # ---- 1/2: plans reachable from their feature (ISS-0062) ----------------
 
 
@@ -594,14 +625,14 @@ def test_the_reqs_tile_stays_dead_on_purpose() -> None:
 # ---- PHASE-012 / DES-0004: the square encoding -------------------------------
 
 
-def test_every_des_0004_state_is_reachable(repo_index: Index) -> None:
+def test_every_des_0004_state_is_reachable(attention_index: Index) -> None:
     """The accepted encoding, asserted against the live corpus.
 
     A count test is the right shape here for the reason ISS-0062 taught: a
     payload that emits `state: null` for everything would render as today's
     two-state strip and pass any shape assertion.
     """
-    data = cockpit.stats_payload(repo_index)
+    data = cockpit.stats_payload(attention_index)
     items = []
     for ph in data["phases"]:
         for f in ph["features"]:
@@ -751,12 +782,12 @@ def test_the_waiting_on_you_list_is_gone() -> None:
     assert ".ov-waiting" not in css, "the retired section's CSS is back"
 
 
-def test_the_phase_header_carries_what_squares_cannot(repo_index: Index) -> None:
+def test_the_phase_header_carries_what_squares_cannot(attention_index: Index) -> None:
     """A collapsed phase renders its squares with `offsetParent: null`, so
     without a header count the encoding LOSES what the list showed. And
     "all resolved, not closed" is a property of the phase, so no square holds it.
     """
-    data = cockpit.stats_payload(repo_index)
+    data = cockpit.stats_payload(attention_index)
     assert all("waiting" in ph and "unclosed" in ph for ph in data["phases"])
     assert any(ph["waiting"] for ph in data["phases"]), "no phase reports waiting"
 

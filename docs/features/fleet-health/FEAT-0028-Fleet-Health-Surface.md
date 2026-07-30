@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0028
 aliases: ["FEAT-0028"]
 title: "Fleet health surface — per-workspace validator badges across all discovered repos"
-status: backlog
+status: done
 phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-17
@@ -50,3 +50,25 @@ Four tasks, sequenced so the cheap half ships without waiting on the expensive o
 **Step 3's "following the agent-state dot pattern" understates a collision.** The rail entry already *has* a `.ws-dot`, and it is agent state. A validator dot there is two signals on one channel in a smaller space than [[DES-0004]] dealt with. [[TASK-0250]] carries three options and a recommendation to render them rather than argue them.
 
 **No `TST-*` note yet, deliberately.** The convention here is to author one at planning time, but a `ready` test now carries an attention dot on the phase strip ([[DES-0004]]), and a dot for work nobody has started would be a false signal on a surface built to remove them. The tests are specified in each task's Steps; the note comes with the first implementation. That tension is worth watching — it is the encoding making a documentation habit visible, which is a small argument that the habit was carrying an unstated assumption.
+
+
+## Done 2026-07-30
+
+All four tasks landed and were verified against the real fleet — ten discovered workspaces, one deliberately drifted. Evidence in [[TASK-0250]]'s and [[TASK-0251]]'s live-pass sections.
+
+The three acceptance criteria:
+
+1. **Two workspaces, one drifting** — met, and stronger than asked: ten repos, one drifting, badge `1` on that square alone, cleared over SSE without restarting the shell. Both signals coexisted on the same square (`state-busy health-failing`).
+2. **A discovered-but-not-running workspace still gets a state** — met. All ten validated cold on startup, `source: 'cold'`, and rows age into `stale` past their schedule.
+3. **Zero new Python dependencies; validator logic stays in `validate-docs.py`** — met. `fleet_validate.py` is stdlib and delegates to `ValidationRunner`, which shells out to the validator.
+
+### The two contradictions the breakdown surfaced, both resolved
+
+- **Whose validator runs** → the repo's own, matching `ValidationRunner`'s locate order and its stated reason. `validate-fleet.sh` keeps the uniform choice, which is right for a manual diagnostic and wrong for a badge. Recorded in [[TASK-0249]] before implementing, pinned by a test.
+- **The rail-dot collision** → resolved on semantics rather than taste: different corner, different shape, and a *numeral* rather than a fill. See [[TASK-0250]].
+
+### Owed
+
+- **[[ISS-0072]]**, found during the live pass: the sidecar's `SNAPSHOT.yaml` observer never fires, so `METRICS` drift — the commonest validator error — cannot clear live. [[FEAT-0018]]'s machinery, not this feature's, and this feature's path is unaffected.
+- The DoD's "and tabs" describes a surface this shell does not have; it has a workspace rail. Said rather than ticked.
+- The roll-up has no automated test — DOM code in `renderer.ts` cannot be imported outside a browser. Covered by the live pass, marked `[~]`.

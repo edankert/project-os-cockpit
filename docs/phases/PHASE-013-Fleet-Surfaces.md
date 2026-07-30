@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-013
 aliases: ["PHASE-013"]
 title: "Fleet surfaces — the cockpit reports on every repo it can see, not just the open one"
-status: planned
+status: active
 order: 13
 owner: user:edwin
 created: 2026-07-30

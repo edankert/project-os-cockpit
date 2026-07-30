@@ -22,6 +22,7 @@ import {
 } from './ipc/terminal';
 import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
+import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
 import { attachContextMenu } from './ipc/context-menu';
 import { registerSettingsIpc } from './ipc/app-settings';
 import {
@@ -415,6 +416,8 @@ app.whenReady().then(() => {
   registerTerminalIpc({ getActiveWindow: () => mainWindow });
   registerDispatchIpc();
   registerAgentsFleetIpc();
+  // Per-workspace validator state across the fleet (FEAT-0028 / TASK-0248).
+  registerFleetHealthIpc({ getAllWindows: () => Array.from(allWindows) });
   registerSettingsIpc();
 
   // Agent-state poller — reads each workspace's
@@ -704,4 +707,5 @@ app.on('before-quit', (event) => {
   shutdownAllSidecars();
   shutdownAllTerminals();
   stopAgentStatePoller();
+  stopFleetHealth();
 });

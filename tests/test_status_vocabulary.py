@@ -13,6 +13,7 @@ the JS/CSS surfaces to prove they still agree with it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import re
@@ -469,8 +470,34 @@ def test_desktop_build_is_not_stale() -> None:
             f"desktop build is stale: {status!r} is in the canonical completed set "
             f"but absent from dist/renderer/renderer.js — run `npm run build` in desktop/"
         )
-    src_mtime = DESKTOP_TS.stat().st_mtime
-    assert DESKTOP_DIST.stat().st_mtime >= src_mtime, (
+    _assert_build_matches_source()
+
+
+def _assert_build_matches_source() -> None:
+    """The build corresponds to the current source — by CONTENT, not mtime.
+
+    ISS-0055 §4: the mtime comparison this replaces fired twice during
+    review on a no-op touch. `renderer.ts` was restored byte-identical
+    after a mutation run, its mtime moved past the build's, and the test
+    went red with nothing actually stale.
+
+    A hash written at build time is the honest version of the question:
+    "was this artifact produced from this source", which mtime only ever
+    approximated. `scripts/copy-assets.mjs` writes `dist/renderer/
+    .source-hash`; a build predating that file falls back to mtime, so
+    an older tree still gets the weaker check rather than none.
+    """
+    stamp = DESKTOP_DIST.parent / ".source-hash"
+    if stamp.is_file():
+        expected = hashlib.sha256(DESKTOP_TS.read_bytes()).hexdigest()
+        recorded = stamp.read_text(encoding="utf-8").strip()
+        assert recorded == expected, (
+            "dist/ was built from a different renderer.ts than the one on disk — "
+            "run `npm run build` in desktop/"
+        )
+        return
+    assert DESKTOP_DIST.stat().st_mtime >= DESKTOP_TS.stat().st_mtime, (
         "dist/renderer/renderer.js is older than src/renderer/renderer.ts — "
-        "run `npm run build` in desktop/"
+        "run `npm run build` in desktop/ (no .source-hash present; this is the "
+        "mtime fallback, which ISS-0055 §4 records as prone to false alarms)"
     )

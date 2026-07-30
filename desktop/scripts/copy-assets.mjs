@@ -8,7 +8,8 @@
 // because the renderer is loaded as a plain `<script>` rather than an
 // ES module — see the explanatory note at the top of renderer.ts.
 
-import { cp, mkdir } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -46,5 +47,18 @@ const vendored = [
 for (const [src, dst] of vendored) {
   await cp(path.join(nodeModules, src), path.join(rendererDst, dst));
 }
+
+// Stamp what this build was produced FROM (ISS-0055 §4). The staleness
+// guard used to compare mtimes, which fired on a no-op touch — restoring
+// renderer.ts byte-identical after a mutation run moved its mtime past
+// the build's and turned the suite red with nothing stale. A content
+// hash answers the question mtime was only approximating.
+await writeFile(
+  path.join(rendererDst, '.source-hash'),
+  createHash('sha256')
+    .update(await readFile(path.join(rendererSrc, 'renderer.ts')))
+    .digest('hex') + '\n',
+  'utf-8',
+);
 
 console.log(`copy-assets: ${rendererSrc} (+ vendored xterm) → ${rendererDst}`);

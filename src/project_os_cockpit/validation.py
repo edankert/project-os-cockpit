@@ -341,3 +341,25 @@ class ValidationRunner:
             "unavailable",
             detail=detail[-1] if detail else f"validator exit {proc.returncode}",
         )
+
+
+# ------------------------------------------------------- fleet (FEAT-0028)
+
+def validate_repo(project_root: Path) -> dict[str, Any]:
+    """Run the validator once against ``project_root`` and return its report.
+
+    The same payload shape ``GET /api/cockpit/validation`` serves, for a
+    repo with **no running sidecar** — TASK-0249's cold half. Public so
+    the locate order above stays the single place that decides *whose*
+    validator runs; the desktop shell spawns this rather than
+    re-deriving those rules in TypeScript.
+
+    Read-only. The validator's one write path (``fix_metrics``, which
+    rewrites ``SNAPSHOT.yaml``) is behind ``--fix-metrics``, and neither
+    :meth:`ValidationRunner._run_validator` nor this function passes it.
+    That is load-bearing here in a way it is not for the browsed repo:
+    this runs against repos the user never asked this app to touch.
+
+    No bus, no watcher, no cache — one run, one answer.
+    """
+    return ValidationRunner(project_root)._run_validator()
