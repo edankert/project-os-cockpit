@@ -73,3 +73,14 @@ Two guards, mutation-verified: the convention is in place (no menu, right-click 
 I measured the menu path writing to the PTY, measured the xterm textarea holding focus throughout, and each time concluded the mechanism worked. It did — **for a dispatched event.** A real right-click involves a native menu, an OS-level focus transition and pointer capture that `dispatchEvent` does not reproduce.
 
 Edwin diagnosed it correctly from the outside on the first try ("I think it is a focus issue") while three rounds of instrumentation from the inside said otherwise. The lesson is not that the instrumentation lied — it is that **a synthetic event is not the interaction**, and when a user reports the same thing three times, the thing to change is the mechanism, not the measurement.
+
+
+## Copy-on-select: raised, considered, kept (Edwin, 2026-07-30)
+
+I put the case for turning it back off and Edwin chose to keep it. Recorded so it is not re-argued, and so anyone who later finds their clipboard overwritten finds the reasoning rather than filing a bug.
+
+**The argument against**, which stands regardless of the decision: X11 has two clipboards — PRIMARY (written by selecting, pasted by middle-click) and CLIPBOARD (written by an explicit copy). Copy-on-select is safe there because it writes to a buffer nothing else reads. **macOS has one.** So on this platform every stray drag across terminal output silently replaces whatever was copied, and [[ISS-0081]] was that hazard firing through the right-click.
+
+**What makes it acceptable anyway:** the gesture is deliberate, the console is where you most often want to grab a path or an error, and ⌘C remains available for the cases where you want to be explicit. The alternative — select does nothing, ⌘C copies — trades a live convenience for a risk that has now been narrowed to actual drags.
+
+**If it does bite:** the change is one line (`const copyOnSelect = true` → a setting defaulting off) plus rehoming the toggle, since the console menu that used to carry it is gone.
