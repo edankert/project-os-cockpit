@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 51
+  FEAT: 52
   ISS: 74
-  PHASE: 16
+  PHASE: 17
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 254
+  TASK: 257
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-016"
+  phase: "PHASE-017"
   issue: ""
-  note: "2026-07-30 PHASE-016 done: validator errors are now rows in the running session's work list (above the console, closing as they are fixed) and issues at close-out if they survive. Edwin's design, replacing three worse ones of mine — the question is WHO FIXES IT, not how long it lasts, and the classification is measured rather than tabled. Verified live: induced errors appeared as rows over SSE, cleared to `fixed` when the note was deleted, and a row navigated to its note. Earlier today: PHASE-013 (fleet validator badges + design-system rollout, reviewed changes-requested, all nine findings addressed), PHASE-014/015 (16 delivered notes re-homed out of the parking lot). OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved); three upstream proposals open in project-os-dev (ISS-0025/0026/0027 plus the fixed-or-filed close-out rule)."
+  note: "2026-07-30 PHASE-017 done: the overview's three history tiles (Activity + Changes + Commits) are one History tile whose rows are note STATUS TRANSITIONS and whose commits are dividers marking what is saved, plus a full ~history view. Edwin's framing — the docs are a layer over git so you need not read git. The measurement that settled it: cebee80 touched 20 notes and changed 4 statuses, so the old tile rendered bookkeeping as the day's largest event. The trap (a commit documenting nothing has no rows and vanishes) was named in the plan and guarded at both levels. Earlier today: PHASE-013 (fleet badges + design-system rollout), 014/015 (parking-lot cleanup), 016 (validator errors as session work). OWED: mode 1 still has the old tiles; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev."
 items:
   features:
+    FEAT-0052:
+      file: "docs/features/history-timeline/FEAT-0052-History-Timeline.md"
+      title: "History — document state changes as the rows, commits as dividers"
+      status: done
+      phase: "[[PHASE-017-History-As-Document-Events]]"
+      tasks: [TASK-0255, TASK-0256, TASK-0257]
+      note: "Edwin's framing: the docs are a layer over git so you need not read git. Rows are status TRANSITIONS, not note touches — measured, the phase-hygiene commit touched 20 notes and changed 4 statuses. Commits become dividers marking what is saved. Replaces three overview tiles with one."
     FEAT-0051:
       file: "docs/features/errors-as-work/FEAT-0051-Validator-Errors-As-Session-Work.md"
       title: "Validator errors are session work while a session runs, and issues once it ends"
@@ -349,6 +356,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0255:
+      file: "docs/features/history-timeline/plan/tasks/TASK-0255-History-Payload.md"
+      title: "history_payload — transitions from git, grouped by commit, uncommitted band on top"
+      status: done
+      phase: "[[PHASE-017-History-As-Document-Events]]"
+      parent: FEAT-0052
+      note: "One git log -U0 over docs/ gives every +status: line with its commit in 0.08s. Must distinguish created-at from moved-to: most notes in a busy commit are BORN done, and an arrow implies a journey they never took."
+    TASK-0256:
+      file: "docs/features/history-timeline/plan/tasks/TASK-0256-History-Tile-On-The-Overview.md"
+      title: "One History tile replacing Activity, Changes and Commits"
+      status: done
+      phase: "[[PHASE-017-History-As-Document-Events]]"
+      parent: FEAT-0052
+      note: "Deleting the three is the point, not a side effect — landing beside them leaves four history surfaces, the shape PHASE-010 and PHASE-012 each closed by undoing. The guard asserts the absence."
+    TASK-0257:
+      file: "docs/features/history-timeline/plan/tasks/TASK-0257-Full-History-View.md"
+      title: "The full history view at ~history"
+      status: done
+      phase: "[[PHASE-017-History-As-Document-Events]]"
+      parent: FEAT-0052
+      note: "One more virtual page beside ~design/~review/~agents. Must state its horizon — a view that stops at 200 commits without saying so reads as complete."
     TASK-0252:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0252-Validation-Errors-Reach-The-Session-Panel.md"
       title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live"
@@ -2815,10 +2843,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 51
-    features_done: 48
-    tasks_total: 254
-    tasks_done: 248
+    features_total: 52
+    features_done: 49
+    tasks_total: 257
+    tasks_done: 251
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182

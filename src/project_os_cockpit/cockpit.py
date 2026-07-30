@@ -34,7 +34,7 @@ from __future__ import annotations
 import datetime as _dt
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from . import statuses
 from . import token_sources
@@ -3991,3 +3991,231 @@ def _bucket_for_date(date: _dt.date | None, today: _dt.date) -> str:
     if delta <= 31:
         return "month"
     return "earlier"
+
+
+# ------------------------------------------------- history (FEAT-0052)
+
+#: Marker for the log's per-commit record. `%x01` cannot occur in a subject.
+_HISTORY_REC_SEP = "\x01"
+
+#: `status: value` in a diff line — the frontmatter field this system treats
+#: as the authored unit of state (ADR-0009).
+_STATUS_LINE_RE = re.compile(r"^([+-])status:\s*(\S+)\s*$")
+_DIFF_PATH_RE = re.compile(r"^\+\+\+ b/(.+)$")
+
+
+def history_payload(
+    project_root: Path,
+    index: Index,
+    limit: int = COMMITS_DEFAULT_LIMIT,
+) -> dict[str, Any]:
+    """Documentation history: status transitions, grouped by commit.
+
+    The overview's history band used to answer the same question three
+    ways — a weekly edit count, the change notes, and the git log with
+    notes as chips. All three read git or the filesystem as the subject.
+    This inverts it: the **row is a note's status transition** and the
+    **commit is a divider** saying what is saved.
+
+    A transition is not a touch, and the difference is not pedantic.
+    Measured on this repo's phase-hygiene commit: 20 notes touched, **4**
+    statuses changed — the other sixteen had a ``phase:`` field
+    corrected. A touch-based list renders bookkeeping as the largest
+    event of the day.
+
+    ``created`` distinguishes a note *born* at a status from one that
+    *moved* to it: a ``+status:`` with no matching ``-status:`` in the
+    same file diff is a new note. Most notes in a busy commit are written
+    and closed in one pass, and an arrow would imply a journey they never
+    took.
+
+    A commit whose diff carries no transition is **still returned**, with
+    ``transitions: []`` and the existing ``undocumented`` sense preserved
+    — a commit that moved code with nothing recording why is the one that
+    most needs to be visible, and it is the one a naive implementation
+    drops for having no rows (FEAT-0022's guardrail).
+
+    ``uncommitted`` lists notes whose working tree differs from HEAD, so
+    "not saved yet" is answerable without leaving the page.
+
+    Same hardening as :func:`commits_payload`: fixed argv, clamped limit,
+    bounded timeout, and every failure mode degrading to
+    ``{"available": False}`` rather than raising.
+    """
+    import subprocess
+
+    try:
+        count = int(limit)
+    except (TypeError, ValueError):
+        count = COMMITS_DEFAULT_LIMIT
+    count = max(1, min(count, COMMITS_MAX_LIMIT))
+
+    unavailable: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "available": False,
+        "commits": [],
+        "uncommitted": [],
+    }
+    if not (project_root / ".git").exists():
+        return unavailable
+
+    docs_prefix = ""
+    try:
+        docs_prefix = index.docs_root.resolve().relative_to(
+            project_root.resolve()
+        ).as_posix()
+    except (ValueError, OSError):
+        docs_prefix = ""
+    prefix = f"{docs_prefix}/" if docs_prefix else ""
+    scope = [prefix or ".", "SNAPSHOT.yaml"]
+
+    by_rel: dict[str, Any] = {}
+    for record in index.iter_records():
+        if record.note_id:
+            by_rel[record.rel_path.lower()] = record
+
+    def _resolve(git_path: str) -> Any:
+        if prefix and git_path.lower().startswith(prefix.lower()):
+            return by_rel.get(git_path[len(prefix):].lower())
+        return None
+
+    fmt = f"{_HISTORY_REC_SEP}%h\t%H\t%aI\t%an\t%s"
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            [
+                "git", "-C", str(project_root), "log",
+                f"-n{count}", "--no-merges", "-U0", "--no-color",
+                f"--format={fmt}", "--", *scope,
+            ],
+            capture_output=True, text=True,
+            timeout=_GIT_TIMEOUT_SECONDS, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return unavailable
+    if proc.returncode != 0:
+        return unavailable
+
+    commits = _parse_history_log(proc.stdout, _resolve)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "available": True,
+        "commits": commits,
+        "uncommitted": _uncommitted_notes(project_root, scope, _resolve),
+    }
+
+
+def _parse_history_log(
+    text: str, resolve: Callable[[str], Any]
+) -> list[dict[str, Any]]:
+    """Parse ``git log -U0`` output into commits carrying transitions.
+
+    Split out so it can be tested without a repository — the parsing is
+    where this can be wrong, and a fixture repo per case would make the
+    suite slow enough that nobody adds cases to it.
+    """
+    commits: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    path: str | None = None
+    # Per file within one commit: the `-status:` seen (if any) and the
+    # `+status:` seen. Pairing them is what separates moved from created.
+    pending: dict[str, dict[str, str]] = {}
+
+    def _flush() -> None:
+        if current is None:
+            return
+        for file_path, seen in pending.items():
+            to = seen.get("to")
+            if to is None:
+                continue
+            record = resolve(file_path)
+            current["transitions"].append({
+                "id": getattr(record, "note_id", None),
+                "type": getattr(record, "note_type", None),
+                "title": getattr(record, "title", None),
+                "rel": getattr(record, "rel_path", None),
+                "path": file_path,
+                "from": seen.get("from"),
+                "to": to,
+                "created": "from" not in seen,
+            })
+        current["transitions"].sort(key=lambda t: (t.get("id") or "￿"))
+        commits.append(current)
+
+    for line in text.splitlines():
+        if line.startswith(_HISTORY_REC_SEP):
+            _flush()
+            parts = line[len(_HISTORY_REC_SEP):].split("\t", 4)
+            if len(parts) < 5:
+                current, pending, path = None, {}, None
+                continue
+            sha, full, when, author, subject = parts
+            current = {
+                "sha": sha, "full_sha": full, "date": when[:10],
+                "author": author, "subject": subject, "transitions": [],
+            }
+            pending, path = {}, None
+            continue
+        if current is None:
+            continue
+        m = _DIFF_PATH_RE.match(line)
+        if m:
+            path = m.group(1)
+            continue
+        m = _STATUS_LINE_RE.match(line)
+        if m and path:
+            sign, value = m.group(1), m.group(2)
+            slot = pending.setdefault(path, {})
+            slot["to" if sign == "+" else "from"] = value
+    _flush()
+    # `undocumented` keeps commits_payload's sense: nothing documented
+    # moved. Reported rather than dropped — a commit that changed code
+    # with no note behind it is the one worth seeing (FEAT-0022).
+    for commit in commits:
+        commit["undocumented"] = not commit["transitions"]
+    return commits
+
+
+def _uncommitted_notes(
+    project_root: Path, scope: list[str], resolve: Callable[[str], Any]
+) -> list[dict[str, Any]]:
+    """Notes whose working tree differs from HEAD.
+
+    The half of "what happened" that git history cannot answer: work in
+    flight. Failure is silent — an absent or slow git means the band is
+    empty, never that the page breaks.
+    """
+    import subprocess
+
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            ["git", "-C", str(project_root), "status", "--porcelain",
+             "--", *scope],
+            capture_output=True, text=True,
+            timeout=_GIT_TIMEOUT_SECONDS, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if proc.returncode != 0:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for line in proc.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        code, git_path = line[:2].strip(), line[3:].strip()
+        # Renames read `old -> new`; the new path is the one that exists.
+        if " -> " in git_path:
+            git_path = git_path.split(" -> ", 1)[1]
+        git_path = git_path.strip('"')
+        record = resolve(git_path)
+        out.append({
+            "id": getattr(record, "note_id", None),
+            "type": getattr(record, "note_type", None),
+            "title": getattr(record, "title", None),
+            "rel": getattr(record, "rel_path", None),
+            "path": git_path,
+            "status": getattr(record, "status", None),
+            "code": code,
+        })
+    out.sort(key=lambda r: (r.get("id") or "￿", r["path"]))
+    return out

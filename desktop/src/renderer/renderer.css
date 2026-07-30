@@ -4011,3 +4011,103 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
  * be a link (ISS-0037 was a row that looked clickable and was not). */
 .agent-detail-validation-row:disabled { cursor: default; }
 .agent-detail-validation-row:disabled:hover .work-id { color: inherit; }
+
+/* ---------------------------------------------------------------------
+ * History (FEAT-0052 / TASK-0256).
+ *
+ * Replaced Activity + Changes + Commits. The row is a note's status
+ * transition; the commit is a divider. Everything about the weighting
+ * follows from that: rows read as content, dividers as structure.
+ */
+.ov-history-body { display: flex; flex-direction: column; gap: 1px; }
+.ov-history-spark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 12px;
+  margin-left: 8px;
+  vertical-align: baseline;
+}
+.ov-history-spark i { width: 3px; background: var(--text-faint); }
+.ov-history-spark i.is-now { background: var(--accent-link); }
+
+/* The divider. Subordinate — smaller, dimmer, ruled — because it is the
+ * boundary between in-flight and durable, not the unit of meaning. */
+.ov-history-divider {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 8px 0 2px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.ov-history-divider:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.ov-history-date, .ov-history-sha { flex: none; }
+.ov-history-subject {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* A commit that documented nothing. Under a transition-based list it
+ * has no rows at all, so this flag is the only thing keeping it visible
+ * — which is the point, since it is the commit most worth seeing. */
+.ov-history-divider.is-undocumented { color: var(--severity-medium); }
+.ov-history-flag {
+  flex: none;
+  margin-left: auto;
+  font-style: italic;
+}
+/* Not saved yet. Dashed, because the boundary below it is real and this
+ * one is not yet. */
+.ov-history-divider.is-uncommitted {
+  border-top: none;
+  border-bottom: 1px dashed var(--accent-link);
+  color: var(--accent-link);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.ov-history-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ov-history-row:hover .ov-history-id { color: var(--accent-link); }
+.ov-history-row:disabled { cursor: default; opacity: 0.6; }
+.ov-history-row:disabled:hover .ov-history-id { color: inherit; }
+.ov-history-id { flex: none; font-size: 11px; }
+.ov-history-title {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-muted);
+}
+/* The state change itself, right-aligned so a column of them scans. */
+.ov-history-to {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ov-history-row.is-uncommitted .ov-history-to { color: var(--accent-link); }
+
+.ov-history-more {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+.ov-history-more:hover { color: var(--accent-link); }
+.history-page .ov-history.is-page { border: none; padding: 0; }
+.ov-history-horizon { margin-top: 14px; }

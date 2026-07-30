@@ -558,3 +558,49 @@ test('every code the validator can emit has a label', async () => {
   assert.deepEqual(unlabelled, [],
     `validator codes with no readable label: ${unlabelled.join(', ')}`);
 });
+
+// ---- History replaced three tiles (FEAT-0052 / TASK-0256) ------------
+
+test('Activity, Changes and Commits are gone as separate tiles', async () => {
+  // Deleting them is the point, not a side effect: landing History
+  // beside them would leave the overview with four history surfaces,
+  // which is the shape PHASE-010 and PHASE-012 each closed by undoing.
+  // The absence is what regresses silently, so the absence is asserted.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  for (const gone of ['function buildActivityTile', 'function buildCommitsTile',
+                      'function buildChangesTile', 'async function fillCommits']) {
+    assert.ok(!js.includes(gone), `${gone} is back — the overview has two history surfaces`);
+  }
+  assert.ok(js.includes('function buildHistoryTile'), 'History tile is missing');
+  // …and the overview actually mounts it.
+  const build = js.slice(js.indexOf('function buildOverviewParts'),
+                         js.indexOf('function buildOverviewParts') + 4000);
+  assert.ok(build.includes('buildHistoryTile') || js.includes('buildHistoryTile(data)'),
+    'the History tile is defined but never mounted');
+});
+
+test('the commit divider keeps the undocumented flag', async () => {
+  // A commit with no transitions has no rows, so this flag is the only
+  // thing keeping it visible — and it is the commit most worth seeing
+  // (code moved, nothing recorded it). FEAT-0022's guardrail.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const fn = js.slice(js.indexOf('function buildCommitDivider'),
+                      js.indexOf('function buildTransitionRow'));
+  assert.ok(fn.length > 100, 'buildCommitDivider was renamed or removed');
+  assert.ok(fn.includes('undocumented'),
+    'the divider no longer reads the undocumented flag, so a commit that '
+    + 'documented nothing renders identically to one that did');
+  assert.ok(fn.includes('nothing documented'), 'the flag has no visible text');
+});
+
+test('a created note is not rendered as a journey it never took', async () => {
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const fn = js.slice(js.indexOf('function buildTransitionRow'),
+                      js.indexOf('function buildTransitionRow') + 2000);
+  assert.ok(fn.includes('created'), 'the row ignores the created flag');
+  assert.ok(fn.includes('new · ') || fn.includes('new \\u00b7 '),
+    'a created note should read "new · done", not "null → done"');
+});

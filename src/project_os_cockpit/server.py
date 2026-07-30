@@ -790,6 +790,10 @@ def _make_handler(
                 self._serve_cockpit_commits(parsed.query)
                 return
 
+            if path == "/api/cockpit/history":
+                self._serve_cockpit_history(parsed.query)
+                return
+
             if path == "/api/cockpit/changes":
                 params = urllib.parse.parse_qs(parsed.query)
                 self._respond_json(cockpit.changes_payload(
@@ -1017,6 +1021,29 @@ def _make_handler(
             payload = cockpit.commits_payload(project_root, index, limit=limit)
             _commits_cache["k"] = (cache_key, payload)
             self._respond_json(payload)
+
+        def _serve_cockpit_history(self, query_string: str = "") -> None:
+            """``GET /api/cockpit/history[?limit=N]`` — documentation
+            history: status transitions grouped by commit, plus the
+            uncommitted band (FEAT-0052 / TASK-0255).
+
+            Deliberately **not** cached on HEAD alone the way
+            ``/api/cockpit/commits`` is: the uncommitted band changes
+            with every save, and a cache keyed on the commit would serve
+            a stale "not saved yet" list — the one part of this payload
+            whose whole value is being current. The git calls are
+            measured at ~0.08 s for 40 commits, so there is nothing here
+            a cache would rescue.
+            """
+            params = urllib.parse.parse_qs(query_string)
+            raw_limit = (params.get("limit") or [""])[0]
+            try:
+                limit = int(raw_limit)
+            except (TypeError, ValueError):
+                limit = cockpit.COMMITS_DEFAULT_LIMIT
+            self._respond_json(
+                cockpit.history_payload(project_root, index, limit=limit)
+            )
 
         def _serve_cockpit_context(self, query_string: str) -> None:
             params = urllib.parse.parse_qs(query_string)

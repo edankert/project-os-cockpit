@@ -982,6 +982,19 @@ async function navigateToInner(
     }
     return;
   }
+  // ~history — the full timeline (FEAT-0052 / TASK-0257). The overview
+  // tile is the short version; this is the same grammar, further back.
+  if (normalised === '~history') {
+    const ok = await renderHistoryPage();
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
   // ~review — the desk (FEAT-0041). `~review` is the queue with nothing
   // selected; `~review/<id>` a proposal/decision; `~review/<TST>/run` a
   // manual test run in progress.
@@ -2714,11 +2727,12 @@ function renderProjectOverview(data: StatsPayload): void {
   parts.push(
     buildStatTiles(data),
     middle,
-    buildActivityTile(data),
-    // The history band, coarse to fine: weekly churn, then the changes
-    // someone wrote a reason for, then the commits (FEAT-0048).
-    buildChangesTile(),
-    buildCommitsTile(),
+    // One History surface (FEAT-0052). It replaced three tiles that
+    // answered the same question three ways — a weekly edit count, the
+    // change notes, and the git log with notes as chips — all of which
+    // read git or the filesystem as the subject. Here the row is a
+    // note's status transition and the commit is a divider.
+    buildHistoryTile(data),
   );
   docView.replaceChildren(...parts);
   docView.hidden = false;
@@ -5937,52 +5951,6 @@ function donutGradient(mix: Record<string, number>): string {
 
 // ----- Activity + commits (TASK-0200) -----------------------------------
 
-function buildActivityTile(data: StatsPayload): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-tile ov-activity-tile';
-  const h = document.createElement('h3');
-  h.textContent = 'Activity';
-  wrap.appendChild(h);
-
-  const weeks = data.activity.weekly || [];
-  const max = Math.max(1, ...weeks.map((w) => w.count));
-  const chart = document.createElement('div');
-  chart.className = 'ov-spark';
-  weeks.forEach((w, i) => {
-    const bar = document.createElement('i');
-    bar.style.height = `${Math.max(2, (w.count / max) * 100)}%`;
-    if (i === weeks.length - 1) bar.classList.add('is-now');
-    bar.title = `${w.week_iso} · ${w.count} touch${w.count === 1 ? '' : 'es'}`;
-    chart.appendChild(bar);
-  });
-  wrap.appendChild(chart);
-
-  const sub = document.createElement('p');
-  sub.className = 'ov-spark-sub num';
-  const thisWeek = weeks.length ? weeks[weeks.length - 1].count : 0;
-  const busiest = Math.max(...weeks.map((w) => w.count), 0);
-  sub.textContent = `${thisWeek} touch${thisWeek === 1 ? '' : 'es'} this week`
-    + (weeks.length ? ` · 13-week peak ${busiest}` : '');
-  wrap.appendChild(sub);
-  return wrap;
-}
-
-// Commits as documentation events: which items each commit moved, not
-// which lines it changed. Fetched separately so a slow/absent git never
-// delays the rest of the overview.
-function buildCommitsTile(): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-tile ov-commits';
-  const h = document.createElement('h3');
-  h.textContent = 'Commits';
-  wrap.appendChild(h);
-  const body = document.createElement('div');
-  body.className = 'ov-commits-body';
-  wrap.appendChild(body);
-  void fillCommits(body);
-  return wrap;
-}
-
 // ----- Changes tile (FEAT-0048 / TASK-0240) -----------------------------
 // The history band's missing middle grain. Activity counts note churn by
 // week, Commits shows what git saw; a CHG note is the only one of the
@@ -5998,19 +5966,6 @@ interface ChangesPayload {
   total: number;
   recent: NavItem[];
   buckets: NavGroupData[];
-}
-
-function buildChangesTile(): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-tile ov-changes';
-  const h = document.createElement('h3');
-  h.textContent = 'Changes';
-  wrap.appendChild(h);
-  const body = document.createElement('div');
-  body.className = 'ov-changes-body';
-  wrap.appendChild(body);
-  void fillChanges(wrap, body);
-  return wrap;
 }
 
 async function fillChanges(
@@ -6052,6 +6007,309 @@ async function fillChanges(
   }
   for (const bucket of data.buckets) parts.push(buildChangeBucket(bucket));
   body.replaceChildren(...parts);
+}
+
+// ----- History (FEAT-0052 / TASK-0256) ---------------------------------
+//
+// Replaced Activity, Changes and Commits. Those answered "what happened"
+// three ways and every one of them made git or the filesystem the
+// subject: a weekly edit count that never said *what*, the change notes
+// which only cover work someone wrote a note for, and the git log with
+// documents reduced to chips inside it.
+//
+// Here the row is a note's STATUS TRANSITION and the commit is a
+// DIVIDER — "everything above this is not saved yet; this commit
+// contained these". That is the ordering the whole system implies:
+// documents are the record, git is where they are kept.
+//
+// Deleting the three was the point rather than a side effect. Landing
+// beside them would have left the overview with four history surfaces,
+// which is the shape PHASE-010 and PHASE-012 each closed by undoing.
+
+interface HistoryTransition {
+  id: string | null;
+  type: string | null;
+  title: string | null;
+  rel: string | null;
+  path: string;
+  from: string | null;
+  to: string;
+  created: boolean;
+}
+
+interface HistoryCommit {
+  sha: string;
+  full_sha: string;
+  date: string;
+  author: string;
+  subject: string;
+  transitions: HistoryTransition[];
+  undocumented: boolean;
+}
+
+interface HistoryPayload {
+  available: boolean;
+  commits: HistoryCommit[];
+  uncommitted: Array<{
+    id: string | null; type: string | null; title: string | null;
+    rel: string | null; path: string; status: string | null; code: string;
+  }>;
+}
+
+/** How many commits the overview's short version shows. The full view
+ *  (`~history`) shows the rest — this is the "what happened lately"
+ *  answer, not the archive. */
+const HISTORY_TILE_COMMITS = 6;
+
+/** The full history view (TASK-0257).
+ *
+ *  Same rows and dividers as the overview tile, further back — one
+ *  grammar, not two. Grouped by day so a month is scannable rather than
+ *  a wall, and it states its horizon: a view that stops at N commits
+ *  without saying so reads as "this is everything".
+ */
+const HISTORY_PAGE_COMMITS = 60;
+
+async function renderHistoryPage(): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell');
+  docView.classList.add('history-page');
+  docView.replaceChildren();
+
+  const head = document.createElement('header');
+  head.className = 'agents-head';
+  const h1 = document.createElement('h1');
+  h1.textContent = 'History';
+  const sub = document.createElement('span');
+  sub.className = 'agents-head-sub';
+  sub.textContent = 'what changed state, and which commit carried it';
+  head.append(h1, sub);
+  docView.appendChild(head);
+
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-history is-page';
+  const body = document.createElement('div');
+  body.className = 'ov-history-body';
+  wrap.appendChild(body);
+  docView.appendChild(wrap);
+  await fillHistory(wrap, body, HISTORY_PAGE_COMMITS, false);
+
+  // Say the horizon. Without this a truncated view reads as complete —
+  // the same failure the fleet roll-up avoids by naming how many repos
+  // it checked.
+  const foot = document.createElement('p');
+  foot.className = 'meta ov-history-horizon';
+  foot.textContent = `Last ${HISTORY_PAGE_COMMITS} commits touching docs/ or SNAPSHOT.yaml.`;
+  docView.appendChild(foot);
+
+  docView.hidden = false;
+  placeholder.hidden = true;
+  docView.scrollTop = 0;
+  return true;
+}
+
+function buildHistoryTile(data: StatsPayload): HTMLElement {
+  const wrap = document.createElement('section');
+  wrap.className = 'ov-section ov-tile ov-history';
+  const h = document.createElement('h3');
+  h.textContent = 'History';
+
+  // Activity's sparkline survives here rather than as a peer tile: it
+  // answers "how busy", which is context for a list of events and not a
+  // competing answer to the same question.
+  const weeks = data.activity.weekly || [];
+  if (weeks.length) {
+    const max = Math.max(1, ...weeks.map((w) => w.count));
+    const chart = document.createElement('span');
+    chart.className = 'ov-spark ov-history-spark';
+    weeks.forEach((w, i) => {
+      const bar = document.createElement('i');
+      bar.style.height = `${Math.max(2, (w.count / max) * 100)}%`;
+      if (i === weeks.length - 1) bar.classList.add('is-now');
+      bar.title = `${w.week_iso} · ${w.count} touch${w.count === 1 ? '' : 'es'}`;
+      chart.appendChild(bar);
+    });
+    h.appendChild(chart);
+  }
+  wrap.appendChild(h);
+
+  const body = document.createElement('div');
+  body.className = 'ov-history-body';
+  wrap.appendChild(body);
+  void fillHistory(wrap, body, HISTORY_TILE_COMMITS, true);
+  return wrap;
+}
+
+async function fillHistory(
+  wrap: HTMLElement, body: HTMLElement, limit: number, short: boolean,
+): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: HistoryPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/history?limit=${limit}`);
+    // An older sidecar has no such endpoint. Drop the tile rather than
+    // leaving an empty box on the overview.
+    if (!resp.ok) { wrap.remove(); return; }
+    data = (await resp.json()) as HistoryPayload;
+  } catch { wrap.remove(); return; }
+
+  const parts: HTMLElement[] = [];
+
+  if (!data.available) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'No git history for this workspace.';
+    body.replaceChildren(p);
+    return;
+  }
+
+  // Not saved yet — above the first divider, because that is where it
+  // is in time. This is the half git history cannot answer.
+  if (data.uncommitted.length > 0) {
+    parts.push(buildUncommittedBand(data.uncommitted));
+  }
+
+  for (const commit of data.commits) {
+    parts.push(buildCommitDivider(commit));
+    for (const tr of commit.transitions) parts.push(buildTransitionRow(tr));
+  }
+
+  if (parts.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'Nothing recorded yet.';
+    parts.push(p);
+  }
+
+  if (short) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'ov-history-more';
+    more.textContent = 'Full history ›';
+    more.addEventListener('click', () => { void navigateTo('~history'); });
+    parts.push(more);
+  }
+  body.replaceChildren(...parts);
+}
+
+/** The uncommitted band. Says what is in flight, and says plainly that
+ *  it is not saved — the question "is this written down yet" should not
+ *  require leaving the page. */
+function buildUncommittedBand(
+  rows: HistoryPayload['uncommitted'],
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'ov-history-uncommitted';
+  const head = document.createElement('div');
+  head.className = 'ov-history-divider is-uncommitted';
+  head.textContent = `not committed yet · ${rows.length} file${rows.length === 1 ? '' : 's'}`;
+  wrap.appendChild(head);
+  for (const row of rows) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'ov-history-row is-uncommitted';
+    const sq = document.createElement('span');
+    sq.className = 'ov-phase-sq';
+    if (row.type) sq.dataset.type = row.type;
+    const id = document.createElement('span');
+    id.className = 'ov-history-id mono';
+    id.textContent = row.id || row.path.split('/').pop() || row.path;
+    const title = document.createElement('span');
+    title.className = 'ov-history-title';
+    // Empty rather than repeating the path already shown to its left —
+    // `SNAPSHOT.yaml | SNAPSHOT.yaml` is noise, and an untracked
+    // directory (git reports those as one entry) has no title at all.
+    title.textContent = row.title || '';
+    el.append(sq, id, title);
+    if (row.status) {
+      const st = document.createElement('span');
+      st.className = 'ov-history-to';
+      st.textContent = row.status;
+      el.appendChild(st);
+    }
+    el.title = `${row.path} — ${row.code}`;
+    if (row.rel) {
+      el.addEventListener('click', () => { void navigateTo(row.rel as string); });
+    } else {
+      el.disabled = true;
+    }
+    wrap.appendChild(el);
+  }
+  return wrap;
+}
+
+/** A commit, as a divider rather than a row.
+ *
+ *  Subordinate on purpose: it is the boundary between in-flight and
+ *  durable, not the unit of meaning. But NOT hidden — a commit that
+ *  moved code with nothing recording why is the one worth seeing, and
+ *  under a transition-based list it has no rows at all, so the flag has
+ *  to live here or it disappears entirely (FEAT-0022's guardrail).
+ */
+function buildCommitDivider(commit: HistoryCommit): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'ov-history-divider';
+  if (commit.undocumented) el.classList.add('is-undocumented');
+
+  const date = document.createElement('span');
+  date.className = 'ov-history-date mono';
+  date.textContent = commit.date.slice(5);
+
+  const sha = document.createElement('span');
+  sha.className = 'ov-history-sha mono';
+  sha.textContent = commit.sha;
+
+  const subject = document.createElement('span');
+  subject.className = 'ov-history-subject';
+  subject.textContent = commit.subject;
+
+  el.append(date, sha, subject);
+  if (commit.undocumented) {
+    const flag = document.createElement('span');
+    flag.className = 'ov-history-flag';
+    flag.textContent = 'nothing documented';
+    el.appendChild(flag);
+  }
+  el.title = `${commit.full_sha}\n${commit.author} · ${commit.date}`;
+  return el;
+}
+
+/** One row: a note's state change. */
+function buildTransitionRow(tr: HistoryTransition): HTMLElement {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'ov-history-row';
+
+  const sq = document.createElement('span');
+  sq.className = 'ov-phase-sq';
+  if (tr.type) sq.dataset.type = tr.type;
+  if (isCompletedStatus(tr.to)) sq.dataset.bucket = 'done';
+
+  const id = document.createElement('span');
+  id.className = 'ov-history-id mono';
+  id.textContent = tr.id || tr.path.split('/').pop() || tr.path;
+
+  const title = document.createElement('span');
+  title.className = 'ov-history-title';
+  title.textContent = tr.title || '';
+
+  const state = document.createElement('span');
+  state.className = 'ov-history-to';
+  // `created` renders as "new · done" rather than "→ done": most notes
+  // in a busy commit are written and closed in one pass, and an arrow
+  // would imply a journey the note never took.
+  state.textContent = tr.created ? `new · ${tr.to}` : `${tr.from} → ${tr.to}`;
+
+  el.append(sq, id, title, state);
+  el.title = tr.rel || tr.path;
+  const dest = tr.rel;
+  if (dest) {
+    el.addEventListener('click', () => { void navigateTo(dest); });
+  } else {
+    el.disabled = true;   // the note has since been deleted or renamed
+  }
+  return el;
 }
 
 function buildChangeRow(item: NavItem): HTMLElement {
@@ -6099,36 +6357,6 @@ function buildChangeBucket(group: NavGroupData): HTMLElement {
   });
   wrap.append(btn, inner);
   return wrap;
-}
-
-async function fillCommits(body: HTMLElement): Promise<void> {
-  if (!sidecarBaseUrl) return;
-  let data: CommitsPayload;
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/commits?limit=8`);
-    if (!resp.ok) return;
-    data = (await resp.json()) as CommitsPayload;
-  } catch { return; }
-
-  if (!data.available) {
-    const p = document.createElement('p');
-    p.className = 'meta';
-    p.textContent = 'No git history for this workspace.';
-    body.replaceChildren(p);
-    return;
-  }
-  if (data.commits.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'meta';
-    p.textContent = 'No commits yet.';
-    body.replaceChildren(p);
-    return;
-  }
-
-  const list = document.createElement('ul');
-  list.className = 'ov-commit-list';
-  for (const commit of data.commits) list.appendChild(buildCommitRow(commit));
-  body.replaceChildren(list);
 }
 
 function buildCommitRow(commit: CommitRow): HTMLLIElement {
