@@ -36,7 +36,7 @@ counters:
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
   ISS: 68
-  PHASE: 10
+  PHASE: 13
   REQ: 25
   RISK: 4
   REL: 0
@@ -45,12 +45,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0235"
-  feature: "FEAT-0046"
-  phase: "PHASE-010"
-  issue: "ISS-0062"
-  note: "2026-07-29 PHASE-010 complete, plus two follow-ups Edwin found by looking at the pane. Library is Pinned + Docs tree; plans nest under features (38, untyped included), risks join Issues, changes sit in the overview history band, Reviewed and Tests are registers on the desk. ISS-0064: two sections both headed 'Reviewed' (1 vs 62) — and asking what the smaller one was FOR settled ADR-0007 outright: review stays advisory permanently, because the gated flow does not occur. Tally surface removed, recording kept. 552 tests green, TST-0022 run three times over CDP. Owed: the independent review pass on both CHG-20260729 notes (QUALITY.md), and an upstream project-os issue for the three template workflow drafts 8 of 11 fleet repos never fill in."
-
+  task: ""
+  feature: ""
+  phase: "PHASE-011"
+  issue: ""
+  note: "2026-07-30 nothing in flight. PHASE-010 closed and independently reviewed (13 notes approved over four rounds; the first found a live defect, ISS-0065, where the Library reduction emptied the record column it was justified by). Three phases planned from a full review of the open set: PHASE-011 unproven claims (first — the only one whose absence actively misleads), PHASE-012 attention in the strip (GATED on DES-0004 having a verdict), PHASE-013 fleet surfaces. Housekeeping done: PHASE-999-Unscheduled was a dangling link on 13 notes and never existed; all repointed to PHASE-999-Future. Still owed and NOT done here: FEAT-0018 (all tasks done, TST-0016 passing, stuck at review — the 6-week stall DES-0001 named) and FEAT-0045 (all three tasks done, still doing) both need close-out decisions, which are gated on the QUALITY.md review pass, not on planning."
 items:
   features:
     FEAT-0046:
@@ -2034,6 +2033,29 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-011:
+      file: "docs/phases/PHASE-011-Unproven-Claims.md"
+      title: "Unproven claims become visible"
+      status: planned
+      order: 11
+      features: ["FEAT-0018"]
+      issues: ["ISS-0024", "ISS-0057", "ISS-0066"]
+      note: "Measured: 22 items terminal under a verification_waiver and 9 manual tests last verified 66-83 days ago all render as clean solid squares; TST-0022's Coverage register took four review rounds to describe its own assertions. Every item has the data already — surfacing, not new judgement. Sequenced first because it is the only one of the three whose absence actively misleads."
+    PHASE-012:
+      file: "docs/phases/PHASE-012-Attention-In-The-Strip.md"
+      title: "Attention in the strip — the overview stops re-listing what it already draws"
+      status: planned
+      order: 12
+      issues: ["ISS-0037", "ISS-0067", "ISS-0068"]
+      note: "DES-0004's encoding, then delete buildWaitingOnYou and its three helpers. GATED on DES-0004 carrying a review verdict — it is a stylesheet change to the densest element on the page. Also needs tests in the phase payload (they are absent) and `blocked` computed from depends: rather than a status that does not exist. Retiring the list reverses TASK-0200/TASK-0210 and DES-0001 plate 5, so those want superseding."
+    PHASE-013:
+      file: "docs/phases/PHASE-013-Fleet-Surfaces.md"
+      title: "Fleet surfaces — the cockpit reports on every repo it can see"
+      status: planned
+      order: 13
+      features: ["FEAT-0028", "FEAT-0044"]
+      issues: ["ISS-0055"]
+      note: "Both features are half-built and paused rather than abandoned: FEAT-0044 has TASK-0230 done and TASK-0231 outstanding; FEAT-0028 has no tasks at all. Last of the three — nothing here is wrong, it is unfinished."
     PHASE-010:
       file: "docs/phases/PHASE-010-Surface-Ownership.md"
       title: "Surface ownership"

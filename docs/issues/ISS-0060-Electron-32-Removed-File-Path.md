@@ -5,7 +5,7 @@ aliases: ["ISS-0060"]
 title: "Electron 32 removed File.path, so every file drop silently did nothing"
 status: fixed
 severity: high
-phase: "[[PHASE-999-Unscheduled]]"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

@@ -4,7 +4,7 @@ id: ISS-0066
 aliases: ["ISS-0066"]
 title: "A TST note's ## Coverage list is a hand-maintained register of its own assertions, and drift in it is indistinguishable from a false claim — TST-0022 took four review rounds to describe 27 assertions accurately"
 status: open
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

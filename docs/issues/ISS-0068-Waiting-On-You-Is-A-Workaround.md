@@ -4,7 +4,7 @@ id: ISS-0068
 aliases: ["ISS-0068"]
 title: "The overview's Waiting-on-you list re-lists items that are already on the page as phase squares — it exists because the squares cannot say anything needs a human, and most of its rows duplicate a mode that owns them"
 status: open
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
@@ -61,7 +61,7 @@ The phase strip says which items need a human; the list is gone.
 
 ## Next Actions
 
-- [ ] Review [[DES-0004]] and pick a treatment — four are rendered side by side at the true 900px density, because the whole question is whether 9px can carry the signal without turning 384 calm squares into noise
+- [ ] Review [[DES-0004]] and record a verdict. The encoding is settled (dot / strike / slit / pulse / inverted fill) and the artifact frames at 1:1; what needs judging is whether 9px carries the signal without turning 384 calm squares into noise
 - [ ] Mark collapsed phase headers with a count, or the change **loses** information (`ISS-0024`'s square is on the page and not visible)
 - [ ] Mark "all items done, phase not closed" on the phase header — the one row nothing else on the page can tell you
 - [ ] Decide the `review` row type: nothing owns "in review too long"

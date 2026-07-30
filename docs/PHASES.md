@@ -21,11 +21,14 @@ This document is the **semantic source of truth** for development phases. It map
 | [PHASE-008](phases/PHASE-008-State-And-Review-Surfaces.md) | State & review surfaces | State-first overview rework (project + phase dashboards per the 2026-07-26 design dossier) and the ~review desk where agent proposals, questions, and manual test runs meet a human. | FEAT-0040, FEAT-0041 | done |
 | [PHASE-009](phases/PHASE-009-Design-Surfaces.md) | Design surfaces | Design artifacts become project records: rendered live at the app's own viewport, versioned with per-revision reasoning, annotated and reviewed where the notes live. | FEAT-0042, FEAT-0043 | done |
 | [PHASE-010](phases/PHASE-010-Surface-Ownership.md) | Surface ownership | Every note type gets one purpose surface; Library reduces to Pinned + the Docs tree. Plans nest under features, risks join Issues, changes join the overview, tests and reviewed items join the review desk. | FEAT-0046..FEAT-0050 | done |
-| [PHASE-999](phases/PHASE-999-Future.md) | Future / Unphased | Sentinel parking-lot for items without a concrete delivery phase yet. Re-phase out when planning crystallises. | FEAT-0018 | planned |
+| [PHASE-011](phases/PHASE-011-Unproven-Claims.md) | Unproven claims become visible | Where the system already knows a claim is unproven — a waiver, a stale manual verification, a drifted status guard, a hand-maintained coverage register — the surfaces must say so. | FEAT-0018 | planned |
+| [PHASE-012](phases/PHASE-012-Attention-In-The-Strip.md) | Attention in the strip | Give the phase squares the states they lack (DES-0004) so the Waiting-on-you list has no job, plus PHASE-010's reachability residue. Gated on DES-0004 having a verdict. | ISS-0067, ISS-0068 | planned |
+| [PHASE-013](phases/PHASE-013-Fleet-Surfaces.md) | Fleet surfaces | Finish the cross-repo work: roll the design-system convention across the fleet, and surface per-workspace validator health. | FEAT-0028, FEAT-0044 | planned |
+| [PHASE-999](phases/PHASE-999-Future.md) | Future / Unphased | Sentinel parking-lot for items without a concrete delivery phase yet. Re-phase out when planning crystallises. **Not a second sentinel:** `PHASE-999-Unscheduled` was a dangling link on 13 notes until 2026-07-30 and never existed. | FEAT-0029, TASK-0045, TASK-0065 | planned |
 
 ## Active phase
 
-None. PHASE-010 closed 2026-07-29; the next phase is unallocated. See `SNAPSHOT.yaml` `focus.phase`.
+None active. PHASE-010 closed 2026-07-29; PHASE-011..013 are planned and unstarted, in that order. PHASE-012 is gated on DES-0004 carrying a review verdict. See `SNAPSHOT.yaml` `focus.phase`.
 
 ## Operational rules for LLMs
 

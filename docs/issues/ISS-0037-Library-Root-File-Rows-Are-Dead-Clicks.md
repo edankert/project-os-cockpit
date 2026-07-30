@@ -5,7 +5,7 @@ aliases: ["ISS-0037"]
 title: "Library rows for top-level project files are dead clicks"
 status: triage
 severity: low
-phase: "[[PHASE-999-Unscheduled]]"
+phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

@@ -4,7 +4,7 @@ id: ISS-0067
 aliases: ["ISS-0067"]
 title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
 status: open
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

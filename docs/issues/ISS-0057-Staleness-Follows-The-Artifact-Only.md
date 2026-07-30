@@ -5,7 +5,7 @@ aliases: ["ISS-0057"]
 title: "Design review staleness follows the artifact only, so the note's prose can change under a reviewer"
 status: triage
 severity: low
-phase: "[[PHASE-999-Unscheduled]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

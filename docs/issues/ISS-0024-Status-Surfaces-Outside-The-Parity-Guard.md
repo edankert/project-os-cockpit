@@ -5,7 +5,7 @@ aliases: ["ISS-0024"]
 title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
 status: open
 severity: medium
-phase: "[[PHASE-007-Agent-Instrumentation]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-24
 updated: 2026-07-24

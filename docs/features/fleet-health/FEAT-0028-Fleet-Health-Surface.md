@@ -4,7 +4,7 @@ id: FEAT-0028
 aliases: ["FEAT-0028"]
 title: "Fleet health surface — per-workspace validator badges across all discovered repos"
 status: backlog
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-17
 updated: 2026-07-17

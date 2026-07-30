@@ -4,7 +4,7 @@ id: FEAT-0018
 aliases: ["FEAT-0018"]
 title: "Verification health surface — validator status, drift panel, waiver/review badges"
 status: review
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-07-17

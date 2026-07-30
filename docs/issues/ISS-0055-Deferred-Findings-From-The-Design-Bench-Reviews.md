@@ -5,7 +5,7 @@ aliases: ["ISS-0055"]
 title: "Deferred findings from the design-bench reviews: at-rule descent, dead token, leaked observer, content-blind build guard"
 status: triage
 severity: low
-phase: "[[PHASE-999-Unscheduled]]"
+phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
 updated: 2026-07-28

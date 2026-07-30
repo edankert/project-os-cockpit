@@ -5,7 +5,7 @@ aliases: ["DES-0004"]
 title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
 role: proposal
 status: draft
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
