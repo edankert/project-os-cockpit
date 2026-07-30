@@ -5848,11 +5848,22 @@ async function appendAsyncWaitingRows(
   wrap: HTMLElement, list: HTMLElement, heading: HTMLElement,
   alreadyListed: string[],
 ): Promise<void> {
-  const [tests, queue] = await Promise.all([
-    fetchRecordNotes('library'),
-    fetchReviewQueue(),
-  ]);
+  // Tests came from `fetchRecordNotes('library')` until ISS-0065; that
+  // harvest is empty since PHASE-010 reduced the Library nav mode, which
+  // made these rows latent rather than broken only because every test in
+  // this corpus is currently `passing`.
+  //
+  // The register is read off the queue payload rather than fetched: the
+  // queue is already being loaded here and carries `registers.tests`, so
+  // this costs no extra request. The first cut of this fix called
+  // `fetchTestsRegister()` alongside `fetchReviewQueue()` — two identical
+  // GETs to the same URL — while its comment claimed no second request
+  // was needed. Caught in re-review; a note asserting a property the code
+  // lacks is the defect class ISS-0065 is about, committed inside its own
+  // fix.
+  const queue = await fetchReviewQueue();
   if (!currentRel || !currentRel.startsWith('~overview')) return;
+  const tests = testsFromQueue(queue);
 
   const seen = new Set(alreadyListed.filter(Boolean));
   const rows: AttentionRow[] = [];
@@ -10433,30 +10444,57 @@ async function fetchScopeDecisions(noteId: string): Promise<RecordNote[]> {
   } catch { return []; }
 }
 
-async function fetchRecordNotes(mode: string): Promise<RecordNote[]> {
+// ADRs from the sidecar's own answer, not scraped out of a nav mode
+// (ISS-0065). `/api/cockpit/decisions` exists so that "what decisions
+// exist" has a source that does not change shape when a nav mode does.
+async function fetchDecisions(): Promise<RecordNote[]> {
   if (!sidecarBaseUrl) return [];
   try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/nav?mode=${mode}`);
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/decisions`);
     if (!resp.ok) return [];
-    const data = (await resp.json()) as NavPayload;
-    const out: RecordNote[] = [];
-    const walk = (groups: NavGroupData[]): void => {
-      for (const g of groups) {
-        for (const item of g.items ?? []) {
-          const rel = extractRel(item.url);
-          if (!item.id || !rel) continue;
-          out.push({
-            id: String(item.id), title: item.title || String(item.id),
-            rel, status: item.status || '', type: (item.type || '').toLowerCase(),
-          });
-        }
-        if (g.subgroups) walk(g.subgroups);
-      }
+    const data = (await resp.json()) as {
+      decisions?: Array<{
+        id?: string; title?: string; rel?: string; status?: string; type?: string;
+      }>;
     };
-    walk(data.groups ?? []);
-    return out;
+    return (data.decisions ?? [])
+      .filter((d) => d.id && d.rel)
+      .map((d) => ({
+        id: String(d.id), title: d.title || String(d.id),
+        rel: `/docs/${d.rel}`, status: d.status || '',
+        type: (d.type || 'adr').toLowerCase(),
+      }));
   } catch { return []; }
 }
+
+// The desk's test register in RecordNote shape. Split out from the fetch
+// so a caller that already holds the queue payload can use it without a
+// second identical GET (ISS-0065 re-review).
+function testsFromQueue(data: ReviewQueuePayload | null): RecordNote[] {
+  return (data?.registers?.tests ?? [])
+    .filter((t) => t.id && t.rel)
+    .map((t) => ({
+      id: t.id, title: t.title || t.id, rel: `/docs/${t.rel}`,
+      status: t.status || '', type: 'test',
+    }));
+}
+
+// The desk's test register, reused as the record column's source for the
+// same reason (ISS-0065): it answers "what do we verify" directly.
+async function fetchTestsRegister(): Promise<RecordNote[]> {
+  return testsFromQueue(await fetchReviewQueue());
+}
+
+// `fetchRecordNotes(mode)` lived here: walk any nav payload, keep every
+// item carrying an id, and let the caller filter by type. Deleted with
+// ISS-0065 — it had no callers left once the record column and the
+// attention rows moved to purpose payloads.
+//
+// It is the abstraction that caused the bug, not just a casualty of it. A
+// helper that turns "a navigation surface" into "a list of notes" invites
+// callers to depend on a nav mode's *contents*, which is a UI decision
+// and free to change. It did change, three consumers broke, and two of
+// them stayed broken through a full review of the phase that broke them.
 
 async function renderOverviewRightPane(
   scopeRel: string | null, data?: StatsPayload,
@@ -10517,12 +10555,23 @@ function buildScopedTransientCards(data: StatsPayload): HTMLElement[] {
 async function fillRecordColumn(
   scoped: boolean, data?: StatsPayload,
 ): Promise<void> {
-  const library = await fetchRecordNotes('library');
+  // Purpose payloads, not a nav-mode harvest (ISS-0065). This used to be
+  // `fetchRecordNotes('library')` for all three lists, which meant the
+  // record column's contents were whatever the Library *nav mode*
+  // happened to emit. PHASE-010 reduced that mode to the Docs tree, whose
+  // items carry no `id`, so the harvest went 149 → 0 and the Decisions
+  // and Verification cards stopped being built — silently, because every
+  // card sits behind a `length > 0` guard.
+  //
+  // Worse, the reduction was justified by this column: "Library's
+  // Decisions group duplicates the record column" was true only because
+  // the column *was* that group, reshaped. Asking the sidecar what
+  // decisions and tests exist cannot fail that way.
+  const [adrs, tests] = await Promise.all([
+    fetchDecisions(),
+    fetchTestsRegister(),
+  ]);
   if (!currentRel || !currentRel.startsWith('~overview')) return;
-
-  const adrs = library.filter((n) => n.type === 'adr' || n.type === 'decision');
-  const tests = library.filter((n) => n.type === 'test');
-  const refs = library.filter((n) => n.type === 'reference');
 
   // On a phase, narrow the record to what reaches *this* phase: ADRs the
   // scope's items reference, and the phase's own acceptance tests. On the
@@ -10618,17 +10667,20 @@ async function fillRecordColumn(
     rightPaneContent.appendChild(card);
   }
 
-  if (refs.length > 0) {
-    const { card, body } = buildRecordCard('Library');
-    // Design inputs lead — they're the "why" behind the work
-    // (TASK-0212 puts dossiers here).
-    const design = refs.filter((r) => r.rel.includes('/design/'));
-    const rest = refs.filter((r) => !r.rel.includes('/design/'));
-    for (const ref of [...design, ...rest].slice(0, 5)) {
-      body.appendChild(buildRecordRow('', ref.title, ref.rel, 'reference'));
-    }
-    rightPaneContent.appendChild(card);
-  }
+  // A third card, headed "Library", used to be built here from
+  // `library.filter(n => n.type === 'reference')`. It never rendered, and
+  // not because of PHASE-010: `fetchRecordNotes` keeps only items with an
+  // `id`, and reference notes inline in the Docs tree are emitted with
+  // `id: ""` by design (TASK-0036 — filename in the id slot, no project-os
+  // ID). Measured against the pre-PHASE-010 payload, the harvest carried
+  // design/change/adr/risk/test/workflow/plan items and **zero**
+  // references, so the filter was always empty.
+  //
+  // Removed rather than repaired: design inputs are reachable from the
+  // Design mode (FEAT-0043) and references browse in the Docs tree, so
+  // the card has no content of its own to show. Found while fixing
+  // ISS-0065 — it is the same defect class, aged, and worth recording
+  // because a `length > 0` guard hid it for as long as it existed.
 
   if (data && !scoped) {
     // Corpus size, in the ID vocabulary the notes themselves use.

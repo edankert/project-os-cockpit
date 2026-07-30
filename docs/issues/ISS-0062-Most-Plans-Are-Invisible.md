@@ -14,6 +14,9 @@ component: cockpit-nav
 parent: "[[FEAT-0046-Plans-On-The-Feature]]"
 related: ["[[PHASE-010-Surface-Ownership]]", "[[TASK-0037-Exclude-Canonical-Container-Dirs]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # ISS-0062 — Most plans are invisible
@@ -74,3 +77,8 @@ NoteRecord(rel_path='features/agent-verbs/plan/PLAN.md', frontmatter={},
 Counts above are as measured at filing (2026-07-29, before [[PHASE-010]] created its own five features, which took the corpus to 38 plans / 19 typed). The fix and its test assert against the filesystem rather than these figures — the property is "every plan on disk resolves", and a frozen number would fail on the next feature anyone adds.
 
 Deliberately **not** fixed by adding `type: "[[plan]]"` to the 19 files. That would make the count pass while leaving the mechanism dependent on frontmatter nobody is required to write — and it would hide whether the path-based lookup works. The path already encodes the relationship; reading it is the fix.
+## Independent review — 2026-07-30, approved
+
+Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`.
+
+The diagnosis reproduces exactly. At `bed48ea~1`: 33 `PLAN.md` files on disk, 14 visible through `notes_by_type("plan")`. At `bed48ea`: 38 on disk, 19 typed, 38 reachable. The compounding claim is also true — `features` is in `DOC_TREE_EXCLUDED_ROOTS`, so the 19 reached no surface at all rather than merely missing one group. Reverting `_feature_plan` to a type-based lookup fails two assertions, so the fix is guarded and not just present. No findings.

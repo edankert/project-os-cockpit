@@ -2555,6 +2555,39 @@ def _library_groups(
     return out
 
 
+def decisions_payload(
+    index: Index, platform: str | None = None
+) -> dict[str, Any]:
+    """Every ADR in the corpus, for the overview's record column (ISS-0065).
+
+    A purpose payload rather than a nav-mode harvest, which is the whole
+    lesson of that issue. The record column used to build itself from
+    ``GET /api/cockpit/nav?mode=library`` — so when PHASE-010 reduced
+    Library to the Docs tree, whose items carry no ``id``, the harvest
+    went from 149 items to 0 and the Decisions and Verification cards
+    silently stopped being built. Every card sits behind a
+    ``length > 0`` guard, so nothing errored; the surface just emptied.
+
+    The circularity is worth naming, because it is what made the
+    reduction look safe: "the Library Decisions group duplicates the
+    record column" was true only because the record column *was* that
+    group, reshaped. Removing the duplicate removed the source.
+
+    Asking the sidecar "what decisions exist" and answering it directly
+    cannot fail that way.
+    """
+    records = [
+        r for r in (*index.notes_by_type("adr"), *index.notes_by_type("decision"))
+        if _platform_match(r, platform)
+    ]
+    records.sort(key=lambda r: (r.note_id or "", r.rel_path), reverse=True)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "total": len(records),
+        "decisions": [_slim_note(r) for r in records],
+    }
+
+
 def changes_payload(
     index: Index, platform: str | None = None
 ) -> dict[str, Any]:

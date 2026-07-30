@@ -87,7 +87,9 @@ It is not that review rubber-stamps. It is that **the flow the gate would govern
 - The gate this ADR designed sits **before implementation**, on agent-produced proposal sets entering the queue.
 - Review as actually practised happens at **close-out**, per `QUALITY.md`, stamping `reviewed_by`/`review_date`/`review_verdict` into the note once the work exists.
 
-A gate on the first would have governed 1 of 63 review events. Promoting it would not have made planning more reviewed; it would have added a bottleneck to a path nobody walks, while the 62 real reviews continued past it untouched.
+A gate on the first would have governed **1 of 62** review events — the two populations overlap by exactly one, because the single desk interaction is the [[DES-0002]] acceptance and that note carries `review_verdict: "accepted"`, putting it inside the register. (Corrected 2026-07-30; it read "1 of 63" as though the sets were disjoint.) Promoting the gate would not have made planning more reviewed; it would have added a bottleneck to a path nobody walks, while the other 61 reviews continued past it untouched.
+
+Two further caveats, both narrowing the ratio and neither reaching the conclusion. Ten of those verdicts read `CLOSE`, which is not a QUALITY.md value, so the count of *conforming* reviews is nearer 51 than 62. And the windows differ — the verdicts span 11 days, the desk 3 — so the honest rate comparison is roughly 17:1 rather than 62:1. A gate that governs one event in seventeen is still governing a path nobody walks.
 
 That the two mechanisms share the `review_verdict` field is what made this measurable at all — and also what made it invisible for three days. The tally counted desk interactions; the field counted everything. Only rendering both next to each other exposed the gap, which happened by accident: [[ISS-0064]] was filed because `Reviewed · 1` and `Reviewed · 62` appeared a few rows apart and looked like a bug.
 
@@ -101,3 +103,35 @@ That the two mechanisms share the `review_verdict` field is what made this measu
 ### If this is ever reopened
 
 The trigger would not be "~20 sets" again — that trigger already failed twice by never firing. It would be evidence that pre-implementation proposal review is **being used**: a non-trivial count of sets amended or sent back through the desk. Until that happens, gating a path with no traffic is legislating for a hypothetical, which is the failure [[ADR-0006]] and upstream ADR-0008 were both written about.
+
+### Independent review of the settlement section — 2026-07-30
+
+Reviewed by `model:claude-opus-5` in a fresh session, from the notes and the diff for `bed48ea` alone. **Scope note:** this covers only the `## Gating decision — settled` section added in `bed48ea`, not the original decision. The frontmatter `reviewed_by: "user:edwin"` / `review_date: "2026-07-26"` is deliberately left untouched — it is Edwin's own review of the original decision, it is the stronger provenance, and overwriting it would claim a coverage I do not have. That does mean the ADR's most consequential section postdates its review stamp by three days, and the note should say which review covers which part.
+
+**The decision is upheld. Three figures in it are wrong and are cheap to fix.**
+
+1. **"A gate on the first would have governed 1 of 63 review events" — it is 1 of 62.** The single desk interaction is the [[DES-0002]] acceptance, and `docs/designs/DES-0002-*.md` carries `review_verdict: "accepted"`, so it is *inside* the register's 62 (it is the only `accepted` verdict there; the rest are 51 `approved` and 10 `CLOSE`). The two populations overlap by exactly one. This strengthens the conclusion. "The 62 real reviews continued past it untouched" is likewise wrong by one.
+2. **"62 notes carrying a non-empty `review_verdict`" is true, but 10 of them read `review_verdict: CLOSE`**, which is not a value in QUALITY.md's vocabulary (`approved` | `changes-requested`). Pre-existing corpus hygiene rather than anything this change introduced — but by the documented vocabulary the count of real close-out reviews is 52, not 62.
+3. **The windows are not comparable and the section presents them as if they were.** All 62 `review_date` values fall in 2026-07-18..2026-07-28 (11 days); [[FEAT-0041]] shipped 2026-07-26, so the desk's window is 3 days. Rate-normalised the gap is roughly 17:1, not 62:1. The conclusion survives with room to spare — the point is that the section's own better sentence ("they count different populations") should carry the argument rather than a raw ratio.
+
+**One durability problem for a settlement described as permanent.** The load-bearing "1" lives in `.cockpit/review-requests.json`, which `.gitignore:32` excludes. I confirmed it locally — one request, `subject: DES-0002`, `status: resolved`, `outcome: accepted`, `resolved_at: 2026-07-28T15:31:03+00:00` — but a future reader weighing whether to reopen this cannot. Transcribe that record into this note so the evidence outlives the untracked file.
+
+**What survived refutation.** The reasoning that neither of the ADR's two exits applied, and that the gate would govern a path with no traffic, is sound and is the right conclusion on this evidence. The code change is clean and guarded in both directions: the surface's absence is asserted in renderer *and* stylesheet (re-adding `.review-tally` rules fails a test), and `test_queue_reports_the_advisory_phase_tally` does still assert the payload, so "the recording survives" is verified rather than aspirational. No `SCHEMA_VERSION` change was needed and none was made.
+
+### The evidence, transcribed (2026-07-30)
+
+The "1" this settlement rests on lives in `.cockpit/review-requests.json`, which `.gitignore` excludes. A permanent decision whose reopen trigger is *a delta from a baseline* cannot rest on a datum a future reader has no way to see — so the baseline is written down here.
+
+The store's entire population as of 2026-07-30:
+
+| field | value |
+|---|---|
+| `subject` | `DES-0002` |
+| `kind` | `review` |
+| `status` | `resolved` |
+| `outcome` | `accepted` |
+| `resolved_at` | `2026-07-28T15:31:03+00:00` |
+
+One request, resolved, accepted. That is the whole desk history at the time of this decision.
+
+Independent review supplied the argument for transcribing it, and it is this ADR's own reasoning turned around: [[TASK-0242]] deliberately sourced the Reviewed register from note frontmatter rather than from this store **because** `_MAX_REQUESTS = 200` trims oldest-first and "a store-sourced register would silently lose its tail". The same store, designed to forget, was left holding the only copy of the number a permanent settlement turns on. Anyone reopening the gate question compares their count against the table above, not against a file that may no longer contain it.

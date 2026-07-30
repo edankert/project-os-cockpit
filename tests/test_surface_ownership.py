@@ -286,6 +286,172 @@ def test_workflows_browse_in_the_docs_tree(repo_index: Index) -> None:
     assert "workflows/" in labels, sorted(labels)
 
 
+# ---- the record column's source (ISS-0065) ----------------------------
+
+
+def test_decisions_have_a_payload_of_their_own(repo_index: Index) -> None:
+    """The defect REQ-0025 was written to prevent, arriving from the one
+    direction the gate did not check.
+
+    The overview record column built its Decisions and Verification cards
+    from `GET /api/cockpit/nav?mode=library`. Reducing that mode took the
+    harvest from 149 items to 0, so both cards stopped being built —
+    silently, because each sits behind a `length > 0` guard. And the
+    reduction was justified *by* this column, which was circular: the
+    column was that Library group, reshaped.
+
+    So decisions get a payload that answers the question directly. A nav
+    mode is a navigation surface; it is not an API for "what exists".
+    """
+    payload = cockpit.decisions_payload(repo_index)
+    assert {d["id"] for d in payload["decisions"]} == {
+        r.note_id for r in (
+            *repo_index.notes_by_type("adr"),
+            *repo_index.notes_by_type("decision"),
+        )
+    }
+    assert payload["total"] > 0, "corpus has ADRs; the payload found none"
+
+    # Every entry must be *openable*, not merely present. The renderer
+    # drops rows with no `rel`, so a payload that returns ids and blank
+    # rels empties the card exactly as ISS-0065 did — an id-only check
+    # passed that mutation when it was tried.
+    for d in payload["decisions"]:
+        assert d["rel"], f"{d['id']} has no rel; the row would be dropped"
+        assert (REPO_DOCS / d["rel"]).exists(), f"{d['rel']} does not resolve"
+
+
+SERVER = (
+    Path(__file__).resolve().parent.parent
+    / "src" / "project_os_cockpit" / "server.py"
+)
+
+
+@pytest.mark.parametrize(
+    "route", ["/api/cockpit/decisions", "/api/cockpit/review-queue"],
+)
+def test_the_record_columns_endpoints_exist_on_both_sides(route: str) -> None:
+    """A cross-process contract with no guard, per the ISS-0065 re-review.
+
+    The record column now depends on two HTTP paths spelled as string
+    literals in two files in two languages. A typo on either side — or a
+    renamed server route — empties a card silently, because every card
+    sits behind a `length > 0` guard. That is ISS-0065's exact signature,
+    reintroduced by its own fix in a new place.
+
+    Nothing else in the suite compares the two spellings: the payload
+    tests call `cockpit.*_payload()` directly and never touch a route, and
+    the renderer tests read source without resolving what it fetches.
+    """
+    assert f'path == "{route}"' in SERVER.read_text(encoding="utf-8"), (
+        f"server.py does not serve {route}"
+    )
+    assert route in _renderer_code(), f"no renderer fetch for {route}"
+
+
+def test_the_decisions_route_answers_through_the_http_handler(
+    tmp_path: Path,
+) -> None:
+    """The literal-matching test above still cannot catch a handler that
+    is registered but broken, so this exercises the real dispatch path
+    end to end against a live server on an ephemeral port.
+
+    Deliberately not asserting contents — `test_decisions_have_a_payload_of_their_own`
+    owns that. What this owns is "the route the renderer names actually
+    returns decisions", which is the half that was missing.
+    """
+    import json
+    import threading
+    import urllib.request
+
+    from project_os_cockpit.server import (
+        DocsServer, _make_handler, _NoDNSThreadingHTTPServer,
+    )
+
+    shutil.copytree(FIXTURE, tmp_path / "docs")
+    adr_dir = tmp_path / "docs" / "decisions"
+    adr_dir.mkdir(parents=True, exist_ok=True)
+    (adr_dir / "ADR-0099-Sample.md").write_text(
+        '---\ntype: "[[adr]]"\nid: ADR-0099\ntitle: "Sample"\n'
+        'status: accepted\n---\n# Sample\n',
+        encoding="utf-8",
+    )
+
+    server = DocsServer(docs_root=tmp_path / "docs", bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        _make_handler(
+            server.docs_root, server.index, server.bus,
+            cockpit_state=server.cockpit_state,
+        ),
+    )
+    port = httpd.server_address[1]
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/api/cockpit/decisions", timeout=10,
+        ) as resp:
+            assert resp.status == 200
+            body = json.load(resp)
+        assert "ADR-0099" in {d["id"] for d in body["decisions"]}
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_the_record_column_does_not_harvest_a_nav_mode() -> None:
+    """ISS-0065's root cause, asserted structurally.
+
+    A count test cannot catch this: the payload was well-formed and the
+    tests all passed. What was wrong was *where the renderer looked*, so
+    that is what is pinned. `fillRecordColumn` must not source its cards
+    from `fetchRecordNotes`, whose contract is "walk a nav payload and
+    keep whatever has an id" — a shape that changes when a nav mode does.
+    """
+    fn = _renderer_code().split("async function fillRecordColumn(")[1]
+    fn = fn.split("\n}")[0]
+    assert "fetchRecordNotes" not in fn, (
+        "the record column is harvesting a nav mode again (ISS-0065)"
+    )
+    assert "fetchDecisions()" in fn and "fetchTestsRegister()" in fn
+
+
+def test_the_nav_harvest_helper_is_gone() -> None:
+    """`fetchRecordNotes(mode)` — walk any nav payload, keep whatever has
+    an id — is the abstraction that caused ISS-0065, not just a casualty.
+    It let three callers depend on a nav mode's *contents*, which is a UI
+    decision and free to change. It changed; two of the three stayed
+    broken through a full review of the phase that broke them.
+
+    Asserted on comment-stripped source, because the deletion is
+    explained in a comment that names the function.
+    """
+    assert "fetchRecordNotes" not in _renderer_code()
+
+
+def test_the_quick_palette_covers_every_type_bearing_mode() -> None:
+    """The near-miss that had no test.
+
+    `buildQuickCorpus` fetched `mode=library` alone, documented as "the
+    broadest single fetch" — true until PHASE-010 reduced that mode, at
+    which point Cmd+P would have silently narrowed to pins and loose
+    files: a still-populated palette with half the corpus unfindable.
+    That was caught by reading, not by a test, which is the same way
+    ISS-0065 was missed.
+
+    So the coverage claim is pinned. `library` alone is not enough, and
+    the modes that carry the moved types must all be present.
+    """
+    code = _renderer_code()
+    block = code.split("const QUICK_CORPUS_MODES = [")[1].split("]")[0]
+    modes = set(re.findall(r"'([a-z]+)'", block))
+    assert {"features", "tasks", "issues", "design", "library"} <= modes, modes
+    # Changes and tests have no nav mode; they must be reached explicitly.
+    corpus_fn = code.split("async function buildQuickCorpus(")[1].split("\n}\n")[0]
+    assert "review-queue" in corpus_fn, "tests are not in the palette"
+    assert "cockpit/changes" in corpus_fn, "changes are not in the palette"
+
+
 # ---- the dead stat tiles (ISS-0063) -----------------------------------
 
 
@@ -293,6 +459,36 @@ RENDERER = (
     Path(__file__).resolve().parent.parent
     / "desktop" / "src" / "renderer" / "renderer.ts"
 )
+
+
+def _renderer_code() -> str:
+    """The renderer with `//` comments stripped, whole-line and trailing.
+
+    Needed because several of these assertions are "this call site no
+    longer exists", and the reasons those call sites were removed are
+    recorded in comments that name them. Matching raw source made three
+    such assertions fail on their own explanations.
+
+    Trailing comments are stripped too, after round three found that
+    stripping only whole-line ones left a hole: a typo'd fetch followed by
+    `// was /api/cockpit/decisions` on the same line satisfied the
+    route-contract test. Contrived, but the fix is one line and a guard
+    with a known bypass is the kind this suite otherwise avoids.
+
+    `://` is skipped so URLs survive — the strings being asserted on are
+    themselves URL paths, and a naive split would erase them.
+    """
+    out = []
+    for line in RENDERER.read_text(encoding="utf-8").splitlines():
+        search_from = 0
+        while (idx := line.find("//", search_from)) != -1:
+            if idx > 0 and line[idx - 1] == ":":   # part of `http://`
+                search_from = idx + 2
+                continue
+            line = line[:idx]
+            break
+        out.append(line)
+    return "\n".join(out)
 
 
 def _stat_tile_call(label: str) -> str:

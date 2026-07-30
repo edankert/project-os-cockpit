@@ -34,7 +34,9 @@ tests: ["[[TST-0022-Surface-Ownership]]"]
 
 ## The empty-verdict case
 
-Six notes declare `review_verdict: ""` — four CHG notes and two designs. They must **not** list: an empty verdict is the absence of a verdict, and a register that counted them would report 68 reviewed items where 62 were actually reviewed.
+Some notes declare `review_verdict: ""` — CHG notes and designs that carry the field with no value yet. They must **not** list: an empty verdict is the absence of a verdict, and a register that counted them would overstate how much of the corpus has been reviewed.
+
+**No count is quoted here on purpose.** It was "six … 68 where 62" when this task was written; independent review found 12 at `bed48ea` (because the commit added five, including [[TST-0022]]'s own frontmatter), and 10 a day later once that review stamped verdicts of its own. Every review changes both populations, so any figure written down is stale before it is read. The invariant is what the test asserts: empty is excluded, non-empty is included, and both are counted from the index rather than from a note.
 
 This is the opposite call from the missing-`review_date` case, and the distinction is deliberate. A recorded verdict with no date is a reviewed item with incomplete metadata — worth showing, sorted last. An empty verdict is not a reviewed item at all.
 

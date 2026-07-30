@@ -31,7 +31,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 64
+  ISS: 67
   PHASE: 10
   REQ: 25
   RISK: 4
@@ -1709,6 +1709,20 @@ items:
 
 
   issues:
+    ISS-0067:
+      file: "docs/issues/ISS-0067-Untyped-Task-Notes-Are-Unreachable.md"
+      title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
+      status: open
+      severity: low
+      phase: "[[PHASE-999-Future]]"
+      note: "TASK-0182/0183/0187: 247 task files on disk, 244 typed. Found in review round four by sweeping notes rather than types — a per-type count never surfaces it, because 244 is not suspicious. REQ-0025 is about types and passed correctly; this is the residue a type-level guarantee does not cover."
+    ISS-0066:
+      file: "docs/issues/ISS-0066-Test-Coverage-Registers-Drift-By-Hand.md"
+      title: "A TST note's ## Coverage list is a hand-maintained register of its own assertions, and drift in it is indistinguishable from a false claim — TST-0022 took four review rounds to describe 27 assertions accurately"
+      status: open
+      severity: medium
+      phase: "[[PHASE-999-Future]]"
+      note: "Four independent-review rounds on TST-0022, four findings, all one class: the register claiming more, less or other than the tests deliver. Two entries stayed missing for three rounds while being cited by name in REQ-0025's criteria. Same shape ADR-0009 and ADR-0010 already settled elsewhere — a hand-written second copy of machine-readable truth — except here the copy is cited as evidence, so drift reads as a false verification claim. Parked in PHASE-999, not PHASE-010: the phase is done; the format gap it exposed is not the phase's work."
     ISS-0064:
       file: "docs/issues/ISS-0064-Two-Reviewed-Sections.md"
       title: "The review desk shows two sections headed 'Reviewed' with different counts, and the registers sit in the wrong order"
@@ -2670,7 +2684,7 @@ items:
       title: "Approval gate for planning artifacts — advisory first, measured before gating"
       status: accepted
       path: "docs/decisions/ADR-0007-Planning-Artifact-Approval-Gate.md"
-      note: "Gating question SETTLED 2026-07-29: stay advisory, permanently. Not because review rubber-stamps but because the flow the gate would govern does not occur — 1 desk interaction against 62 notes carrying a review_verdict, because review here happens at close-out (QUALITY.md), not before implementation. The measurement obligation is discharged and the tally surface removed (TASK-0247); ReviewStore keeps recording outcomes for any future revisit."
+      note: "Gating question SETTLED 2026-07-29: stay advisory, permanently. Not because review rubber-stamps but because the flow the gate would govern does not occur — the gate would have covered 1 of 62 review events (corrected 2026-07-30 from '1 of 63'; the sets overlap by one), because review here happens at close-out (QUALITY.md), not before implementation. Independent review upheld the decision and narrowed the ratio to ~17:1 on comparable windows. The measurement obligation is discharged and the tally surface removed (TASK-0247); ReviewStore keeps recording outcomes for any future revisit, though the count itself lives in gitignored .cockpit/ and is not reconstructible from the repo."
 
 metrics:
   counts:
@@ -2686,7 +2700,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 1
+    issues_open: 3
     issues_triage: 3
     risks_open: 4
     releases_total: 0

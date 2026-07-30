@@ -797,6 +797,13 @@ def _make_handler(
                 ))
                 return
 
+            if path == "/api/cockpit/decisions":
+                params = urllib.parse.parse_qs(parsed.query)
+                self._respond_json(cockpit.decisions_payload(
+                    index, (params.get("platform") or [None])[0],
+                ))
+                return
+
             if path == "/api/cockpit/sessions":
                 self._serve_cockpit_sessions()
                 return

@@ -15,6 +15,9 @@ tasks: ["[[TASK-0239-Changes-Payload]]", "[[TASK-0240-Changes-Tile]]"]
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[TASK-0040-Changes-Hybrid-Buckets]]", "[[FEAT-0050-Library-Reduction]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # FEAT-0048 — Changes on the overview
@@ -45,3 +48,12 @@ The overview's lower half is already the history band: `buildActivityTile` (week
 
 - Tasks: [[TASK-0239-Changes-Payload]], [[TASK-0240-Changes-Tile]]
 - Prior art: [[TASK-0040-Changes-Hybrid-Buckets]], [[TASK-0041-Sparse-Month-Flat]]
+## Independent review — 2026-07-30, approved
+
+Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`; no access to the authoring session's reasoning.
+
+`test_the_changes_split_is_a_partition` is the load-bearing assertion and it is not tautological: `total` comes from `len(records)` while `seen` is summed over `recent` + buckets + subgroups, and the chain also compares against `len(list(notes_by_type("change")))`. Dropping one item from the open bucket's contribution to `recent` fails it. Rewriting `total` to be derived from the split does *not* make it pass silently, because the third term is independent of the payload. Measured live: total 98, recent 6, buckets partitioning the remaining 92.
+
+The new `GET /api/cockpit/changes` endpoint is additive and the degradation claim (older sidecar → the tile removes itself rather than rendering an empty box) is recorded as observed rather than assumed, which is the right standard.
+
+No findings against this feature. Note for context: the reduction that accompanies it emptied a different overview surface — see [[REQ-0025]] — but nothing in FEAT-0048's own scope is affected.

@@ -15,6 +15,9 @@ tasks: ["[[TASK-0237-Risks-Group-In-Issues-Mode]]", "[[TASK-0238-Risks-Tile-Dest
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[ISS-0063-Dead-Stat-Tiles]]", "[[FEAT-0050-Library-Reduction]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # FEAT-0047 — Risks on the Issues surface
@@ -48,3 +51,10 @@ Library's Risks group is the only place risks appear in the whole cockpit. Nothi
 
 - Issue: [[ISS-0063-Dead-Stat-Tiles]]
 - Tasks: [[TASK-0237-Risks-Group-In-Issues-Mode]], [[TASK-0238-Risks-Tile-Destination]]
+## Independent review — 2026-07-30, approved
+
+Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`; no access to the authoring session's reasoning.
+
+Mutation-tested rather than re-read. Removing `'issues'` from the `buildStatTile('Risks', …)` call fails `test_the_dead_stat_tiles_gained_a_destination[Risks-issues]`; pointing the tile at `'features'` instead also fails, so the assertion pins the destination and not merely the presence of one. `test_risks_get_their_own_groups_not_the_issue_buckets` genuinely separates the populations (no group mixes types; every risk group key is prefixed `risk:`), and `test_a_corpus_with_no_risks_is_unchanged` holds. Measured live: `mode=issues` yields `critical/high/medium/low` plus `risk:high`, `risk:medium`, `risk:low`.
+
+One limit, disclosed in [[TST-0022]] and not a defect here: the tile assertions read the call site, so a `buildStatTile` that stopped honouring `navMode` altogether would pass. The manual step covers the behaviour. No findings.

@@ -23,6 +23,9 @@ issues:
 depends: ["[[PHASE-009-Design-Surfaces]]"]
 related: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0041-Review-Desk]]", "[[FEAT-0043-Design-Top-Level-Surface]]"]
 tags: [ia, library]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # Surface ownership
@@ -86,4 +89,21 @@ Sequencing: the four moves ([[FEAT-0046]]..[[FEAT-0049]]) each land a destinatio
 
 **Outstanding: the independent review pass.** QUALITY.md requires one for [[CHG-20260729-Surface-Ownership]] and for features reaching `done`; it has not run, and the validator's REVIEW warning on that CHG note is accurate rather than noise. The work was authored in one session, so a reviewer starting from the notes and the diff alone is what the gate asks for ([[ADR-0013]]).
 
+## Independent review — 2026-07-30, changes-requested
+
+The review the note above records as outstanding has now run: fresh session, `model:claude-opus-5`, starting from the notes and the diff for `bed48ea` with no access to the authoring session. Findings in full on [[REQ-0025]]; the phase-level consequence is that **exit criterion 6 is false**.
+
+`fillRecordColumn` sources every ADR, test and reference it renders from `GET /api/cockpit/nav?mode=library`. That harvest returned 8 ADRs and 21 tests at `bed48ea~1` and returns **0** at `bed48ea`. So the Decisions card and the Verification card are no longer built on the project-scope overview, and 8 of this repo's 9 ADRs have no navigation route at all — nor a Cmd+P route, since `QUICK_CORPUS_MODES` carries no decision source. `decisions` remains in `DOC_TREE_EXCLUDED_ROOTS` on the stated grounds that "the overview record column" already owns it.
+
+The "What the corpus actually showed" table calls the Decisions group a duplicate on the strength of `buildRecordDisclosure` holding `sorted.slice(4)`. That reading looked one level too shallow: the function is correct, but `sorted` derives from the Library payload the reduction empties. The record column was not a second copy of Library's Decisions group — it *was* Library's Decisions group, reshaped. The same is true of the Verification card and the Tests group, which no note mentions.
+
+The reachability discipline in this phase was real and it worked everywhere it was applied: the `buildQuickCorpus` near-miss the notes record so carefully is the identical failure, caught. What was missing was an inventory of *every* consumer of `mode=library` — `grep -n "fetchRecordNotes\|mode=library"` over `renderer.ts` returns three call sites, and one of the three was fixed.
+
+Everything else in this phase held up under active refutation rather than re-reading — see [[REQ-0025]] for the mutation results. Exit criteria 1–5 stand.
+
 **What the manual pass did and did not establish.** Structure and geometry over CDP — element presence, row counts, computed `display`, click destinations — against a restarted app on a fresh sidecar. It found a real defect the whole automated suite passed over (the Changes tile's count rendered as `Changes97`, because tile `h3`s are `display: block` and `margin-left: auto` does nothing there). It did **not** establish that the new surfaces look right; that is a human judgement and was not made.
+## Re-review — 2026-07-30, approved
+
+Exit criterion 6 now holds. Verified by sweeping every record in the corpus against all nine nav modes plus the decisions, changes and register payloads: no canonical type has an unreachable note, the only misses being `__templates__/` entries that are excluded by design. See [[REQ-0025]] for the detail and [[ISS-0065]] for the fix.
+
+The phase's own lesson is now recorded in the right place — [[ISS-0065]]'s closing section says a criterion ticked against a code-reading rather than an executable check is not evidence, which is precisely what happened to criterion 5. Two limits remain open and are recorded rather than closed: the new renderer→sidecar wiring is guarded structurally rather than behaviourally (see [[TST-0022]]), and [[CHG-20260729-Advisory-Review-Settled]] still rests on a figure that lives in a gitignored file.

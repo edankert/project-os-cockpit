@@ -15,6 +15,9 @@ tasks: ["[[TASK-0235-Plan-Lookup-By-Path]]", "[[TASK-0236-Plan-Nested-Under-Feat
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[FEAT-0050-Library-Reduction]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # FEAT-0046 — Plans on the feature
@@ -48,3 +51,10 @@ The relationship is already encoded in the filesystem: `features/<slug>/plan/PLA
 - Issue: [[ISS-0062-Most-Plans-Are-Invisible]]
 - Tasks: [[TASK-0235-Plan-Lookup-By-Path]], [[TASK-0236-Plan-Nested-Under-Feature]]
 - Reduction: [[FEAT-0050-Library-Reduction]]
+## Independent review — 2026-07-30, approved
+
+Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`; no access to the authoring session's reasoning (ADR-0013 — same model family as the author, different context).
+
+Refuted rather than confirmed: I reverted `_feature_plan` to a slug-matched `notes_by_type("plan")` lookup and the suite failed — `test_every_plan_on_disk_resolves_to_its_feature` and `test_an_untyped_plan_still_gets_a_row`, the second naming a specific stranded file (`docs/features/agent-inbox/plan/PLAN.md`). So the guard is real and the fix is not merely asserted. Independently measured against this corpus: 38 `PLAN.md` on disk, 19 typed, 38 resolved through the path lookup; 33 on disk at `bed48ea~1`, matching the note's "14 of 33". Asserting against a glob rather than a literal was the right call and it is what makes the strict-subset check meaningful.
+
+No findings. The reasoning that retyping 19 files would pass the count while leaving the mechanism frontmatter-dependent is correct and worth keeping.

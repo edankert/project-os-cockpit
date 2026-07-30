@@ -14,6 +14,9 @@ component: review-desk
 parent: "[[FEAT-0049-Review-Desk-As-Record]]"
 related: ["[[CHG-20260729-Surface-Ownership]]", "[[TASK-0242-Reviewed-Register]]", "[[ADR-0007]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: "2026-07-30"
+review_verdict: "approved"
 ---
 
 # ISS-0064 — Two "Reviewed" sections
@@ -80,3 +83,12 @@ REGISTER: Tests · 22/22
 Worth recording why [[TST-0022]]'s manual pass did not catch this. Step 5 asserted both registers were *present and populated* — `Tests · 22/22` and `Reviewed · 62` — which is exactly what it was written to check, and it passed correctly. It said nothing about their order relative to each other or to the pre-existing tally, because the step was written to test reachability and this is a legibility defect.
 
 That is the honest limit of a checklist derived from a reachability requirement: [[REQ-0025]] asks whether a type can be found, and the answer here is still yes. A human looking at the pane spotted it in seconds.
+## Independent review — 2026-07-30, approved
+
+Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`.
+
+The account is accurate and the resolution is better than the fix originally requested. Verified: the collision is gone, `test_only_one_desk_section_is_headed_reviewed` holds, and `test_the_desk_pane_order_is_queue_reviewed_tests` fails when the two register appends are swapped — so the positional fragility that produced this issue is now pinned rather than merely noted. The two counts do measure different populations as described (1 desk interaction, 62 notes carrying a verdict).
+
+**One correction inherited by the notes downstream of this issue.** The 1 is not disjoint from the 62: the desk interaction is [[DES-0002]], whose note carries `review_verdict: "accepted"` and is therefore inside the register's 62. The "1 of 63" arithmetic in [[ADR-0007]] and [[CHG-20260729-Advisory-Review-Settled]] should be 1 of 62. It strengthens the conclusion; it is still worth fixing.
+
+The heading assertion is a source-level regex (`textContent = \`(\w+) · \${`) and would not catch a heading written another way. [[TST-0022]] labels it source-level, so this is a known limit rather than a finding.
