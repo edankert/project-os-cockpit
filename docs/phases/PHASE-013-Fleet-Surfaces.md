@@ -18,6 +18,9 @@ issues:
 depends: ["[[PHASE-009-Design-Surfaces]]"]
 related: ["[[DES-0002-Cockpit-Design-System]]", "[[FEAT-0032-Agents-Screen]]", "[[PHASE-011-Unproven-Claims]]"]
 tags: [fleet, design]
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # Fleet surfaces
@@ -55,3 +58,9 @@ The reason to do them together is that they need the same thing: a reliable read
 Sequenced last of the three. Nothing here is wrong today — it is unfinished, which is a weaker claim on attention than [[PHASE-011]]'s misleading surfaces or [[PHASE-012]]'s duplicated section.
 
 Worth watching for scope creep: "the fleet" is 11 repos on one machine, and every surface that reads across them is a surface that can be wrong about ten codebases at once. [[FEAT-0028]] in particular should ship read-only and stay that way.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved as a plan. Scope, sequencing and the exclusions are defensible from the note alone: both features genuinely have one leg built, the shared prerequisite (a reliable read of another repo's docs) is the real reason to group them, and "fixing other repos' corpora" being out of scope is the boundary that keeps this from becoming unbounded. The `FEAT-0028`-needs-tasks criterion is the right gate on a feature with no breakdown, and the read-only caution in Notes is the one warning this phase needed.
+
+No findings. One observation for whoever starts it: the fleet-wide leg of [[ISS-0069]] ("consider upstreaming", still open) and the `.gitignore` defect recorded in [[CHG-20260730-Two-Features-Closed]] are both cross-repo conventions that this phase's tooling will be reading across 11 corpora — worth knowing before the rollout, not after.

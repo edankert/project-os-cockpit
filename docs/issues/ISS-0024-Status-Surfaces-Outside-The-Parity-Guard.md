@@ -11,6 +11,9 @@ created: 2026-07-24
 updated: 2026-07-24
 source: ["independent-review:model:claude-fable-5"]
 related: ["[[ISS-0023-Implemented-Status-Band-Drift]]", "[[TST-0019-Status-Vocabulary-Parity]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # ISS-0024 — surfaces the parity guard did not cover
@@ -127,3 +130,9 @@ And the live bug: `is_done_status("requirement", "implemented")` returns `True`.
 Worth naming the pattern this closes into: three items in two days — this, [[FEAT-0018]] and [[FEAT-0045]] — were complete work sitting at a non-terminal status because the *closing* step needs a human and nothing surfaces the backlog of it. That is [[PHASE-011]]'s theme arriving from an unexpected direction: not a claim asserted without evidence, but evidence sitting unclaimed.
 
 One finding from [[FEAT-0018]]'s visual pass belongs to this issue's family and is **not** covered by any guard here: a `verdict-chip` reading `close` renders grey, because `review_verdict: CLOSE` is not in QUALITY.md's `approved` | `changes-requested` vocabulary. 10 notes carry it. The chip degrading rather than mis-colouring is correct, so this is corpus drift, not a surface bug — but it is exactly the "a second vocabulary nobody guards" shape §1 was about, one level up in the review fields rather than the status fields. Filed as [[ISS-0069]].
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved. Closing on a table of "claimed guard → verified present" rather than on the note's own word is the right method for an issue whose findings were fixed in an earlier pass, and I re-checked it: all five named tests exist in `tests/test_status_vocabulary.py`, and `is_done_status("requirement", "implemented")` is `True`. §5 staying recorded-not-fixed is correct — `COLLAPSED_BY_DEFAULT` is an alias of `COMPLETED_STATUSES` and cannot drift — and routing the `close` chip finding to [[ISS-0069]] rather than absorbing it here is the right boundary.
+
+One thing worth knowing, since this issue is the origin of "a second vocabulary nobody guards": the same shape is now live one level down, in `_square_state`. Enumerating `ALLOWED_STATUS` through it, `test`/`failing` maps to no state and no attention dot, so a failing test renders identically to work nobody started — and `DES-0004`'s encoding table has no row for the `blocked` band at all. Recorded against [[ISS-0068]], not reopened here.

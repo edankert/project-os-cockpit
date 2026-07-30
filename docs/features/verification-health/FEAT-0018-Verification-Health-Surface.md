@@ -12,6 +12,9 @@ goal: "Make the project-os verification state visible while browsing: a live hea
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0041-Review-Desk]]", "[[TASK-0211-Verification-Panel]]"]
 tasks: ["[[TASK-0111]]", "[[TASK-0112]]", "[[TASK-0113]]"]
 tests: ["[[TST-0016]]"]
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # Verification health surface
@@ -66,3 +69,13 @@ A `verdict-chip` reading **`close`** renders grey at `rgb(153,153,153)` — the 
 ### Still deliberately outstanding
 
 The **desktop (mode-3) renderer has no health badge.** That was called out as a follow-up when the feature was implemented and remains true: the payload and SSE event are renderer-agnostic, so porting the chrome is additive. It is not a gap in what this feature promised — the acceptance criteria are mode-1 — but anyone reading `state: ok` in mode 3 is reading nothing, because there is nothing to read.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved. This is the strongest close-out evidence in `74a2187..HEAD` and the closure stands.
+
+What made it checkable rather than assertable: each of the four criteria is recorded with the value observed, not with a verdict — `data-state`, the badge text, the two chip colours as `rgb()` triples, the `href` on the drift row. The live-flip claim is the one that could most easily have been taken on faith, and it was tested against `performance.getEntriesByType('navigation').length === 1`, which is the only observation that distinguishes SSE from a reload. The drift was induced with a disposable probe note rather than by editing a real one, so the check is reversible and cannot corrupt the corpus it measures — and the reversal was verified too. The reasoning for that choice is recorded, which is what lets a later reader reuse the method.
+
+Two disclosures I would otherwise have raised are already in the note: mode 3 has no health badge, so `state: ok` there is nothing rather than green; and the `close` verdict chip rendering grey is corpus drift rather than a rendering bug (correctly routed to [[ISS-0069]] rather than absorbed here). Naming a gap you are not closing is what makes `done` mean something.
+
+One residual, not a defect in this feature: it closes as `done` under `phase: "[[PHASE-011-Unproven-Claims]]"` while that phase reads `status: planned` with every exit criterion unticked, including the one this closure satisfies.

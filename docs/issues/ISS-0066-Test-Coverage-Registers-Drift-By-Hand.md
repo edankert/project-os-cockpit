@@ -13,6 +13,9 @@ severity: medium
 component: docs-system
 related: ["[[TST-0022-Surface-Ownership]]", "[[ISS-0065-Record-Column-Lost-Its-Source]]", "[[REQ-0025-No-Type-Loses-Its-Surface]]", "[[ADR-0009]]", "[[ADR-0010]]"]
 tests: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # Coverage registers drift by hand
@@ -125,3 +128,11 @@ The mention regex is `\btest_[a-z0-9_]{4,}\b` — lowercase only. A citation con
 ### Not filed as a follow-up, deliberately
 
 The enumeration half is not filed as a new issue. It is not a defect — it is a convention this project has not adopted, and filing it would create a standing ticket for work nobody has decided is wanted. The assertion above is the tripwire if that changes.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved, and this is the guard in this range I trust most. It is behavioural rather than source-matching, it found four real dangling citations on first run, and it has the property most of the others in this range lack: a wrong claim in a note makes it red. `test_there_are_tst_notes_to_check` is the right shape for a guard whose glob could silently stop matching, and the two thresholds (≥20 notes, ≥200 tests) are low enough not to be brittle.
+
+Narrowing the scope to one direction is the right call and, more importantly, the *measurement* is recorded rather than the intuition — `TST-0021` 4 of 37, `TST-0004` 0 of 9 — so a later reader can re-derive the decision. Encoding it as `test_enumeration_is_not_the_convention` rather than a comment is the difference between a decision and a preference. Note that with `min(ratios) < 0.5` the tripwire needs *every* note to start enumerating before it fires, which is a deliberately loose latch; consistent with the failure message, worth knowing if the convention shifts gradually.
+
+The disclosed regex limit is real and correctly scoped: `\btest_[a-z0-9_]{4,}\b` cannot see a citation containing an uppercase character. Declining to file the enumeration half as a follow-up is right — a standing ticket for work nobody has decided is wanted is worse than the tripwire.

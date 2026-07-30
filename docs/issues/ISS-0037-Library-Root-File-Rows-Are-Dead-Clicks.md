@@ -12,6 +12,9 @@ updated: 2026-07-28
 source: ["found while fixing [[ISS-0033]], 2026-07-28"]
 related: ["[[ISS-0033-Identity-Band-Link-Is-Dead]]", "[[ISS-0036-Root-File-Shadowed-Docs-Note]]"]
 fixed_by: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "changes-requested"
 ---
 
 # The Library's root-file rows do nothing
@@ -52,3 +55,21 @@ So option 2 ("keep the leading `/` through `navigateToInner`") could never have 
 **Verified in the app:** the Library's Docs tree shows `~root/README.md`, `~root/LLM_BRIEF.md`, `~root/ROADMAP.md`, `~root/SECURITY.md`; clicking README opens the **project** README (`h1` = "project-os-cockpit"), not the docs note ("Docs structure"). Over HTTP: `root/README.md` → "README", `docs/README.md` → "Docs structure", `root/NOPE.md` → 404.
 
 Guarded by `test_root_file_rows_are_distinguishable_from_docs_notes`, mutation-verified by reverting the url to a bare `/{rel}`.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — changes-requested
+
+The server half is correct and I could not break it. Probed live: `?path=root/README.md` → the project README, `?path=README.md` and `?path=docs/README.md` → the docs note, `?path=root/../SNAPSHOT.yaml` → "path traversal blocked", `?path=root/SNAPSHOT.yaml` and `?path=root/CLAUDE.md` → "not an allowlisted project file", `?path=root/docs/README.md` → 404. The allowlist plus the `_is_under(candidate, project_root)` check leaves no escape, and an explicit root request never falls through to docs.
+
+**But the fix is mode-3 only, and it regresses modes 1 and 2.** This note's diagnosis is the desktop renderer's `extractRel`. The web client has no `extractRel`: `static/cockpit.js`'s delegated handler passes the raw `href` to `isInternalNoteLink` and then `navigateTo`, which does `fetch(url)` for an HTML page. Measured against a sidecar on this repo:
+
+```
+GET /README.md         -> 200   <h1>project-os-cockpit</h1>   (the PROJECT readme — correct)
+GET /docs/README.md    -> 200   <h1>Docs structure</h1>       (the docs note — correct)
+GET /~root/README.md   -> 404
+```
+
+So in the browser client the old `url: "/README.md"` **worked**, and `~root/README.md` — which resolves relative and is not an HTTP route, exactly like `/~design` — throws `HTTP 404` out of `navigateTo`. `_project_root_tree_items` feeds `nav_payload`'s Docs tree, which both clients render, so all four rows changed for both and only one client was checked. "Verified in the app" and "Over HTTP" in the section above are the desktop app and the `/api/render` endpoint respectively; neither is the browser client's page route.
+
+`test_root_file_rows_are_distinguishable_from_docs_notes` cannot see this: it asserts the url prefix, greps `renderer.ts` for two literals and `server.py` for one, and never touches `static/cockpit.js` or the page route. A guard that reads only the surface that was fixed is the failure mode ISS-0024 §2 recorded.
+
+**Asked for:** either serve `~`-prefixed paths from the page route, or give the web client the same translation the desktop renderer got — and extend the guard to assert both clients resolve the row.

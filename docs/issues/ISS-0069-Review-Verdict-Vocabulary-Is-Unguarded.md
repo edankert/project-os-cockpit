@@ -13,6 +13,9 @@ severity: medium
 component: docs-system
 related: ["[[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[ADR-0011]]", "[[ADR-0007]]", "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"]
 tests: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "changes-requested"
 ---
 
 # review_verdict has a second vocabulary
@@ -98,3 +101,13 @@ Empty passes — it means unreviewed, which ADR-0011 already warns about. An und
 ### Not done
 
 The rule lives in this repo's suite, **not** in `tools/scripts/validate-docs.py`. That validator is template-owned and has a bundled copy TST-0019 holds byte-identical; editing it here is what [[ISS-0026]] was filed for. So other fleet repos remain unguarded, and the upstream recommendation in the Next Actions stands — this is a local check for a template-wide convention.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — changes-requested
+
+The corpus work is right — clearing the value while keeping `reviewed_by`/`review_date` is the correct call, the per-note record of what `CLOSE` was is good practice, and the consequence (ADR-0011's deadline now applies) is named rather than hidden. The parser-not-regex correction is a genuine catch.
+
+**The guard does not do the one thing this note says it does.** `## Resolved` states "The vocabulary is explicit and split by context, as the Next Actions required", and the Next Action reads "the check must know which field context it is in". `test_review_verdicts_use_a_defined_value` defines the two sets and then checks membership in `ALLOWED_VERDICTS = CLOSE_OUT_VERDICTS | DESK_VERDICTS`. It never asks which context a note is in. Mutation-verified: stamping `CHG-20260721-Child-Phase-Placement` — a close-out change note — with `review_verdict: "accepted"` passes. That is exactly the substitution `test_coverage_registers.py:138` says the split exists to prevent ("deliberately distinct so a plan-acceptance stamp can never satisfy the close-out gate").
+
+Reintroducing `CLOSE` does fail the test, so the primary case is genuinely guarded; the claim that is wider than the code is the context split.
+
+**A third context is unaccounted for.** The two `accepted` values in the corpus are design notes (`DES-0003`, `DES-0004`), recorded by `note_writes.stamp_design_verdict` via `DECIDE_TRANSITIONS["design"]` — not ADR-0007 plan acceptance. They pass only because the union is checked. Whatever shape the context split takes, `design` needs to be one of the contexts, or design acceptances will be classified as desk plan acceptances.

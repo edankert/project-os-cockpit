@@ -13,6 +13,9 @@ severity: low
 component: cockpit-nav
 related: ["[[ISS-0062-Most-Plans-Are-Invisible]]", "[[REQ-0025-No-Type-Loses-Its-Surface]]", "[[TASK-0235-Plan-Lookup-By-Path]]", "[[TASK-0037-Exclude-Canonical-Container-Dirs]]"]
 tests: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # Untyped task notes are unreachable
@@ -70,3 +73,11 @@ Deliberately **not** done: adding frontmatter to the three files. Same reasoning
 Guarded by `test_every_task_note_on_disk_is_reachable`, asserted against a filesystem glob rather than a literal, and mutation-verified by removing the fallback.
 
 Note for whoever fixes the class rather than the instances: the validator already warns `PLAN-UNTYPED` for untyped plans. There is no equivalent for tasks, which is why these three were invisible to it as well as to the UI.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved, verified rather than accepted. `_task_records` returns 247 against 247 `TASK-*.md` on disk (244 typed), `_tasks_groups` yields 247 items, and `TASK-0182` / `TASK-0183` / `TASK-0187` appear in the `unset` group with filename-derived titles and working `/docs/...` urls — so they reach a surface and are clickable, which is the claim. The union-not-path-sweep reasoning is right: a path-only rule would drop a task written outside that layout, and the type is the claim wherever it appears.
+
+`test_every_task_note_on_disk_is_reachable` is one of the two genuinely adequate new guards in this range — asserted against a filesystem glob, so a type-based subset cannot satisfy it, and the second assertion (`typed < on_disk | typed`) correctly fails if the path fallback stops being exercised, which is what keeps the first assertion from passing vacuously.
+
+Two boundaries worth recording, neither a defect in this fix: `stats_payload` still uses `index.notes_by_type("task")` (`cockpit.py:880`), so these three are reachable in the Tasks mode but remain absent from the phase strip and the task counts — consistent with the issue's scope, which is reachability. And the note for whoever fixes the class rather than the instances is the useful half of this note: there is no `TASK-UNTYPED` counterpart to `PLAN-UNTYPED`, which is why the validator was as blind as the UI.

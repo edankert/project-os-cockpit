@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 69
+  ISS: 70
   PHASE: 13
   REQ: 25
   RISK: 4
@@ -48,7 +48,7 @@ focus:
   task: ""
   feature: ""
   phase: "PHASE-012"
-  issue: "ISS-0037"
+  issue: "ISS-0070"
   note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
 items:
   features:

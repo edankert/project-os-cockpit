@@ -13,6 +13,9 @@ severity: medium
 component: overview
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[TASK-0210-Overview-Announce-Rows]]", "[[REQ-0022-Overview-State-Above-History]]", "[[DES-0001-Overview-Redesign]]", "[[ISS-0064-Two-Reviewed-Sections]]"]
 tests: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "changes-requested"
 ---
 
 # Waiting on you is a workaround
@@ -122,3 +125,27 @@ Live counts after implementation: 406 squares — 354 delivered, 22 unproven, 6 
 Six assertions in `tests/test_surface_ownership.py`: every state reachable against the live corpus; tests in the strip and risks not; blocked computed not read; the staleness threshold equal to the validator's; the retired helpers absent from source *and* stylesheet; the header pills present; and `unclosed` never looser than PHASE-CHILDREN.
 
 One of those guards was itself wrong first: it matched the bare name `AttentionRow`, which is a substring of the live and unrelated `buildAttentionRow` (the agent attention panel). It now matches declarations, and additionally asserts that neighbour survived.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — changes-requested
+
+The deletion is right and the encoding is a real improvement. Four findings, three of them about guards that do not guard.
+
+**1. `unclosed` IS looser than PHASE-CHILDREN, in the one direction that matters.** The validator's `PHASE_RESOLVED` (`tools/scripts/validate-docs.py:129`) covers `task`, `issue`, `requirement`, `feature` **and `risk`**, keyed on each child's own `phase:`. The phase payload excludes risks by design. Demonstrated end to end: give `RISK-0001` (`status: open`) `phase: "[[PHASE-012-Attention-In-The-Strip]]"` and the payload reports `unclosed: true` for PHASE-012 — the header offers "close out". Follow that offer and the validator errors:
+
+```
+ERROR [PHASE-CHILDREN] PHASE-012 is 'done' but 1 item(s) still name it as their
+phase without a resolved status: RISK-0001 (open)
+```
+
+Zero risks carry a `phase:` today, so this is latent — but PHASE-012 itself records admitting risks to the strip as "a corpus change, not a rendering one", i.e. an expected future edit, and this is the trap it walks into. Separately, `_norm(st) != "done"` disagrees with `CLOSED_PHASE_STATUSES = ("done", "superseded")`: a `superseded` phase with everything resolved is offered for a close-out it has already had.
+
+**2. `test_unclosed_agrees_with_the_validators_gate` cannot fail.** It rebuilds the same `items` list the payload built and asserts `all(state in {"delivered","unproven","dropped"})` — which is the definition of `unclosed`. It is a restatement of the implementation, not a comparison with the gate: it never imports the validator and never reads `PHASE_RESOLVED`. Mutation-verified: replacing the state check with the exact bucket-based first cut this note describes as the bug leaves the test green.
+
+**3. `test_blocked_is_computed_from_depends_not_from_a_status` asserts none of what its docstring claims.** The docstring says "Asserted by construction: an unfinished item whose dependency is unresolved must carry `attn`, and one whose dependency is satisfied must not." The body asserts no note carries `status: blocked`, then greps source. Two consequences, both mutation-verified against the full suite:
+
+- `def _has_unresolved_dependency(rec): return False` — the whole computed-blocked mechanism disabled — passes all 594 tests. The mechanism this note lists as a headline change is entirely unguarded.
+- The string slice `src.split("def _needs_human")[1].split("def ")[1]` selects the body of `_has_unresolved_dependency`, not of `_needs_human`. Re-adding `if status == "blocked": return True` to `_needs_human` passes, under an assertion message that reads "_needs_human is reading a blocked status again".
+
+**4. `failing` is the one legal status with no mark and no dot.** Enumerating `ALLOWED_STATUS` through `_square_state`/`_needs_human`, every value lands somewhere except `test`/`failing` (and `requirement`/`approved`, which reads as not-started defensibly). A failing test renders pixel-identical to work nobody started — and this change both added tests to the strip and deleted `appendAsyncWaitingRows`, whose `status === 'failing'` branch was the overview's only failing-test surface, at rank 0. The row-ownership table assigns it to "the desk's test register, the Verification card", which is a different screen. `DES-0004`'s table has no row for the `blocked` band at all, so this is a design gap the implementation inherited faithfully.
+
+**Minor:** the post-implementation counts do not reproduce. At this commit the payload yields 390 squares / 349 delivered / 8 dropped / 7 not-started / 3 dotted / 3 waiting pills, against "406 / 354 / 6 / 20 / 3 / three". The dot and pill counts match, so the shape is right; the note gives no measurement method, so a later reader cannot tell whether the difference is DOM-versus-payload or an error. Also `test_every_des_0004_state_is_reachable` checks presence only — swapping `deferred` and `dropped` in `_square_state` keeps it green.

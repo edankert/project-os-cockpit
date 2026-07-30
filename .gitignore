@@ -42,4 +42,11 @@ htmlcov/
 # An item is either filed (and the FILED artefact is what gets committed)
 # or discarded; committing staging would preserve exactly what triage
 # exists to resolve.
-inbox/
+#
+# ANCHORED. Unanchored `inbox/` matches a directory of that name at ANY
+# depth, so it also ignored `docs/features/inbox/` — FEAT-0045, its PLAN and
+# TASK-0232/0233/0234 were never in the repository, and a fresh clone failed
+# validate-docs.py because SNAPSHOT metrics counted notes the clone could not
+# see. Found by independent review, 2026-07-30 (ISS-0070). Only the staging
+# directory at the repo root is meant here.
+/inbox/

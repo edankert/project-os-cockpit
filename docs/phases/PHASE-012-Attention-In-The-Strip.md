@@ -18,6 +18,9 @@ issues:
 depends: ["[[PHASE-010-Surface-Ownership]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[TASK-0210-Overview-Announce-Rows]]", "[[REQ-0022-Overview-State-Above-History]]", "[[PHASE-011-Unproven-Claims]]"]
 tags: [overview, ia]
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "approved"
 ---
 
 # Attention in the strip
@@ -61,3 +64,11 @@ Alongside it, two small reachability items of exactly [[PHASE-010]]'s family —
 The counts-and-pointers alternative was considered and rejected: the stat tiles two sections above already carry those counts and navigate, so a counts row would have been a third rendering of the same number. Recorded in [[ISS-0068]] so it is not re-proposed.
 
 Two gaps in the tiles' indication are worth fixing *in the tiles* if they annoy anyone: `triage` is not distinguishable from `open`, and there is no deferred count.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — approved
+
+Approved as a plan. The gate on DES-0004 having a verdict was honoured, the design reversal is named as one, `TASK-0200`/`TASK-0210` are `superseded` with a successor rather than emptied, and the rejected counts-and-pointers alternative is recorded where it will be found again.
+
+Findings from the implementation are filed against the items that carry them, not here: [[ISS-0068]] (`unclosed` looser than PHASE-CHILDREN for `risk`; three guards that pass while what they claim to guard is broken; `failing` has no mark) and [[ISS-0037]] (the `~root/` fix regresses the browser client). Both keep this phase short of its exit criteria rather than invalidating its scope.
+
+Two notes on the criteria themselves. Criterion 2 requires a manual pass "including under `prefers-reduced-motion`" — the CSS carries the fallback (`animation: none` plus an offset outline, `renderer.css:2113`) and the commit records a CDP pass at 9px, but not a reduced-motion pass; that is the one criterion whose evidence is not yet on record. Criterion 5 is met: `_task_records` returns 247 of 247 `TASK-*.md`, and `TASK-0182`/`0183`/`0187` render in the Tasks mode's Unset group with working urls. As with PHASE-011, every box is unticked and the status is `planned` while the work has landed.

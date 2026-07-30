@@ -12,6 +12,9 @@ updated: 2026-07-28
 source: ["independent review of TASK-0229 rounds 2–3, 2026-07-28"]
 related: ["[[TASK-0229-Offer-A-Design-For-Review]]", "[[TASK-0216-Revisions-And-Compare]]", "[[TASK-0220-Revision-Capture]]", "[[TASK-0218-Design-Review-In-The-Desk]]"]
 fixed_by: []
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "changes-requested"
 ---
 
 # Half of a design is unversioned, for review purposes
@@ -44,3 +47,20 @@ This note said it was "a triage note and not a patch" because two decisions were
 Verified in both directions, which is the only way this fix is correct: appending to `## Review` leaves the digest unchanged, stamping the verdict leaves it unchanged, and changing the Problem changes it. Guarded by `test_a_design_note_digest_ignores_what_recording_a_review_touches`, mutation-verified by removing the section exclusion.
 
 **Not done:** the desk does not yet *render* `note_moved` — the payload carries it and no UI reads it, exactly as `revision_moved` was carried before [[TASK-0229]] surfaced it. Naming that rather than leaving it implied, because a signal nothing renders is the shape of defect [[ISS-0065]] was about.
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — changes-requested
+
+The additive framing is right and dissolves the two open questions as claimed. One of the two directions is nonetheless false as implemented.
+
+**`status` is missing from `EXCLUDED_FIELDS`, and the accept path writes it.** `note_writes.stamp_design_verdict` sets `reviewed_by`, `review_date`, `review_verdict`, `design_revision`, `updated` — all five excluded — **and** `status`, via `DECIDE_TRANSITIONS["design"]`, whenever `accept` is passed. So accepting a design through the app's own endpoint changes its digest, and `note_moved` reads true the instant the verdict is recorded. Measured on the field set `stamp_design_verdict` actually writes:
+
+```
+digest before accept: 75f3c3b31b1b
+digest after  accept: bf126afd62d7   (only difference: status draft -> accepted)
+```
+
+That is precisely "filing a review would invalidate itself the instant it was recorded" — the objection this note says the fix answers. `test_a_design_note_digest_ignores_what_recording_a_review_touches` tests the five excluded fields and omits the sixth field the same code path writes, so it is shaped to the incomplete fix rather than to the accept flow.
+
+**The disclosed limit is real and load-bearing.** `note_moved` has no consumer anywhere — not `renderer.ts`, not `static/cockpit.js`. The note names this honestly, which is worth crediting; but `test_the_reviewer_is_told_when_the_artifact_moved` exists in `tests/test_design_bench.py` specifically because the artifact half shipped in that state once already, and the new work reproduces the shape without extending that guard. An `ISS-*` for the desk rendering, or leaving this note short of `fixed`, would both be more accurate than closing it.
+
+**And the failure this issue describes occurred in this same commit range, on the design that specifies it.** `DES-0004`'s accepting verdict was recorded in `4daa6c1`; `0e8008a` then appended a Correction section retracting the "9 tests last verified 66–83 days ago" measurement that the *unproven* mark's justification rests on. `design_revision` still reads `55a743d`, `review_date` is unchanged, and `## Revisions` has no entry for it. Nothing flagged it, because the only mechanism that could have is the one this fix added and no surface reads.

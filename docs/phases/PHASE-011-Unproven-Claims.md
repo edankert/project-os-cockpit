@@ -19,6 +19,9 @@ issues:
 depends: []
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
 tags: [verification, quality]
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-07-30
+review_verdict: "changes-requested"
 ---
 
 # Unproven claims become visible
@@ -70,3 +73,19 @@ The phase's claim is one sentence: **where the system already knows a claim is u
 Sequenced first of the three new phases because it is the only one whose absence actively misleads. [[PHASE-012]] makes the overview quieter and [[PHASE-013]] makes the fleet legible; this one stops a surface asserting something untrue.
 
 One honest caveat about the exit criteria: four of the five are mechanical, and the fifth (FEAT-0018 terminal) requires a judgement about whether the feature was ever finished or should be cancelled. That decision is Edwin's and is not prejudged here — a `review` status six weeks old is as likely to mean "abandoned" as "nearly done".
+
+## Independent review — 2026-07-30 (model:claude-opus-5, fresh context, separate session) — changes-requested
+
+The phase is well-shaped and the self-correction on the staleness threshold is the right instinct. **The correction is incomplete in this note and in the design it corrects**, which matters because a retracted measurement left in place reads as current to the next reader — the exact failure this phase exists to stop.
+
+Still asserting the retracted figure:
+
+- **Line 31** states "9 were last verified 66–83 days ago" as a measurement, with the retraction six lines below and no marker on the claim itself.
+- **Line 57** (Out of Scope) — "re-running the 9 stale tests".
+- **Line 62** (Exit Criteria) — "evidence: `<the unproven mark implemented, plus a count against the 22 + 9 measured here>`". This criterion now cannot be satisfied honestly: the count is 22, and the note itself says there is no 9.
+- `DES-0004`'s `## Regions` line 101 — "the 9 stale tests that motivate *unproven*".
+- **`DES-0004-attention-in-the-squares.html`**, the accepted artifact, twice: "**9 were last verified 66–83 days ago**. Today they would all be solid squares" and "13 proven, 9 stale, and a `ready` test that has never run carries the dot". The artifact was never touched, and DES-0004's own Tokens section says "if these diverge, the artifact is the specification".
+
+The implementation half of the correction *is* complete and correct: `cockpit.DEFAULT_STALENESS_DAYS = 90` matches the validator, `_is_stale_verification` mirrors `is_stale`'s semantics (`> days`, absent/unparseable dates not stale, `command:` excluded at the caller), and `test_the_staleness_threshold_is_the_validators` reads the validator's literal rather than restating it. One latent divergence: `_staleness_days` hand-rolls `^verification:\s*$` plus an indented `staleness_days:` scan, so a snapshot writing `verification: {staleness_days: 30}` inline, or `verification:  # comment`, silently yields 90 while the validator's parser yields 30 — a parallel rule of the kind this phase's goal names, reachable by ordinary YAML.
+
+Exit criteria 1–5 all appear satisfied by `74a2187..HEAD` yet none is ticked and the phase still reads `status: planned`, so from the notes alone this phase reads as unstarted while its work has shipped.
