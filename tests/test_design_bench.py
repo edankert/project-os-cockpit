@@ -2995,6 +2995,30 @@ def test_swift_component_colours_are_synthesised() -> None:
     assert "--brandPurple: #7474B0;" in css
 
 
+def test_swift_unit_interval_colours_are_synthesised() -> None:
+    """ISS-0073. SwiftUI's `Color(red:green:blue:)` takes 0–1 doubles; the
+    `/ 255.0` spelling above is one way of writing them, not the only one.
+
+    Reporting a fully-specified colour as unresolvable spends the "no honest
+    value" signal on a colour that has one, and a reader who sees several
+    unresolved tokens learns to skim past the ones that genuinely could not
+    be read.
+    """
+    from project_os_cockpit import token_sources
+    css = token_sources.synthesise_css(
+        "static let zoneRecovery = Color(red: 0.6, green: 0.6, blue: 0.6)\n",
+        "ZoneColorUtils.swift")
+    assert "--zoneRecovery: #999999;" in css
+
+    # Both spellings still work, and neither steals the other's matches.
+    both = token_sources.synthesise_css(
+        "static let a = Color(red: 0x74 / 255.0, green: 0x74 / 255.0, blue: 0xB0 / 255.0)\n"
+        "static let b = Color(red: 1.0, green: 0, blue: 0)\n",
+        "Theme.swift")
+    assert "--a: #7474B0;" in both
+    assert "--b: #FF0000;" in both
+
+
 def test_a_derived_colour_is_named_never_guessed() -> None:
     """`Color.blue.opacity(0.3)` derives from a system colour whose value
     depends on platform and appearance. There is no honest hex, so the token
@@ -3005,6 +3029,14 @@ def test_a_derived_colour_is_named_never_guessed() -> None:
         "static let cellSelected = Color.blue.opacity(0.3)\n", "Theme.swift")
     assert "--cellSelected: Color.blue.opacity(0.3);" in css
     assert "#" not in css.split("--cellSelected")[1].split(";")[0]
+
+    # ISS-0073's fix must not reach these: a system colour still has no
+    # honest hex, and inventing one is worse than reporting it.
+    system = token_sources.synthesise_css(
+        "static let zoneEndurance = Color.blue\n"
+        "static let zoneTempo = Color.green\n", "ZoneColorUtils.swift")
+    assert "--zoneEndurance: Color.blue;" in system
+    assert "#" not in system
 
 
 def test_an_expression_cannot_escape_a_css_value() -> None:

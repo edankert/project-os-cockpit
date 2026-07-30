@@ -76,4 +76,6 @@ Closing this issue emptied the last `triage` bucket, and two PHASE-012 guards we
 
 **They were measuring the corpus, not the encoding.** A guard that goes red the moment the project is healthy is a guard that trains people to ignore it. Both now build a copied corpus with one `triage` issue and one `ready` test injected, which keeps what they were for — the payload can *reach* every DES-0004 state — without depending on the project being in trouble. Mutation-verified: disabling `_needs_human` still fails them.
 
-Worth recording as its own lesson. [[ISS-0071]] found guards that passed while broken; this is the mirror — a guard that fails while everything is right.
+**It happened twice.** The first pass injected a `triage` issue and a `ready` test, which fixed the attention half; closing the phase then removed the last `doing` task and the same guard went red again on a different assertion. The fixture now injects **every** square fill as well, because the pattern was the point and patching one instance of it was not.
+
+Worth recording as its own lesson. [[ISS-0071]] found guards that passed while broken; this is the mirror — a guard that fails while everything is right. Both are guards that measure the corpus when they meant to measure the code.

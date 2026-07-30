@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -114,6 +115,40 @@ def parse_report_lines(text: str) -> tuple[list[dict[str, Any]], list[dict[str, 
     return errors, warnings
 
 
+def canonical_case(path: Path) -> Path:
+    """``path`` with each component spelled as the filesystem spells it.
+
+    macOS filesystems are case-INsensitive but FSEvents is case-SENSITIVE:
+    a watch registered on ``/Users/edwin/…`` receives events reported as
+    ``/Users/Edwin/…`` and matches none of them. The watch starts, logs
+    happily, and never fires (ISS-0072).
+
+    This bit the non-recursive SNAPSHOT.yaml observer and not the docs
+    watcher, because the recursive emitter matches by prefix. The desktop
+    shell stores discovered workspace roots as the user typed them, so
+    every app-spawned sidecar had a dead SNAPSHOT watch — and `METRICS`,
+    the commonest validator error, lives in exactly that file.
+
+    ``Path.resolve()`` does not do this: it resolves symlinks and ``..``
+    and leaves case alone. A component that cannot be read is kept as
+    given, so this degrades to today's behaviour rather than raising.
+    """
+    resolved = Path(path).resolve()
+    out = Path(resolved.anchor)
+    for part in resolved.parts[1:]:
+        try:
+            names = os.listdir(out)
+        except OSError:
+            return resolved
+        if part in names:                       # exact — the common case
+            out = out / part
+            continue
+        lowered = part.lower()
+        match = next((n for n in names if n.lower() == lowered), part)
+        out = out / match
+    return out
+
+
 class _SnapshotHandler(FileSystemEventHandler):
     """Non-recursive project-root watcher — SNAPSHOT.yaml edits only."""
 
@@ -147,7 +182,11 @@ class ValidationRunner:
         resolver: Callable[[str], str | None] | None = None,
         debounce_seconds: float = DEBOUNCE_SECONDS,
     ) -> None:
-        self.project_root = Path(project_root).resolve()
+        # Canonical CASE, not just a resolved path — see `canonical_case`.
+        # Everything downstream (the validator's --repo-root, the observer's
+        # watch path, deep-link rels) uses this one value, so the watch and
+        # the runs cannot disagree about which directory they mean.
+        self.project_root = canonical_case(project_root)
         self._bus = bus
         self._resolver = resolver
         self._debounce = debounce_seconds

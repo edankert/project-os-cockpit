@@ -71,16 +71,26 @@ def attention_index(tmp_path_factory) -> Index:
     root = tmp_path_factory.mktemp("attention") / "docs"
     shutil.copytree(REPO_DOCS, root)
     phase = "[[PHASE-013-Fleet-Surfaces]]"
-    (root / "issues" / "ISS-9001-Fixture-Triage.md").write_text(
-        "---\ntype: \"[[issue]]\"\nid: ISS-9001\nstatus: triage\n"
-        f"phase: \"{phase}\"\nseverity: low\n---\n# fixture\n",
-        encoding="utf-8",
-    )
-    (root / "tests" / "TST-9001-Fixture-Ready.md").write_text(
-        "---\ntype: \"[[test]]\"\nid: TST-9001\nstatus: ready\n"
-        f"phase: \"{phase}\"\n---\n# fixture\n",
-        encoding="utf-8",
-    )
+    tasks = root / "features" / "fleet-health" / "plan" / "tasks"
+
+    def note(path: Path, ntype: str, nid: str, status: str, extra: str = "") -> None:
+        path.write_text(
+            f'---\ntype: "[[{ntype}]]"\nid: {nid}\nstatus: {status}\n'
+            f'phase: "{phase}"\n{extra}---\n# fixture\n',
+            encoding="utf-8",
+        )
+
+    # Attention states.
+    note(root / "issues" / "ISS-9001-Fixture-Triage.md", "issue", "ISS-9001",
+         "triage", "severity: low\n")
+    note(root / "tests" / "TST-9001-Fixture-Ready.md", "test", "TST-9001", "ready")
+    # Every square fill, so the guard cannot go red because the project got
+    # healthy. `doing` was the first to disappear — PHASE-013 closed and the
+    # corpus had nothing in flight.
+    for nid, status in (("TASK-9001", "doing"), ("TASK-9002", "deferred"),
+                        ("TASK-9003", "cancelled"), ("TASK-9004", "done"),
+                        ("TASK-9005", "backlog")):
+        note(tasks / f"{nid}-Fixture.md", "task", nid, status)
     return Index.build(root)
 
 

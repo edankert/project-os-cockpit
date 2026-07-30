@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 50
-  ISS: 72
+  ISS: 73
   PHASE: 13
   REQ: 25
   RISK: 4
@@ -45,11 +45,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0248"
+  task: ""
   feature: "FEAT-0028"
   phase: "PHASE-013"
   issue: ""
-  note: "2026-07-30 FEAT-0028 broken down into TASK-0248..0251 (live workspaces → cold workspaces → badge → roll-up); no code yet. The breakdown surfaced two things the brief plan hid: the feature and validate-fleet.sh disagree on whose validate-docs.py runs against another repo, and the rail dot is already spent on agent state — TASK-0249 and TASK-0250 own those. PHASE-013's other half, TASK-0231, stays BLOCKED on a per-repo go-ahead: it writes to ten other repositories. PHASE-011 and PHASE-012 are done and reviewed. Owed: the desk still does not render note_moved (ISS-0057), and ISS-0069/ISS-0066 both recommend upstreaming to project-os."
+  note: "2026-07-30 PHASE-013 done. FEAT-0028 (fleet validator badges + roll-up) and FEAT-0044 (design systems across seven surfaces) both closed; ISS-0055 fixed. Verified against the real fleet: 10 workspaces, one deliberately drifted, badge and roll-up correct, cleared over SSE without a restart. Fleet re-validated 12/12 OK and fresh clones of the six repos touched validate clean. Wrote to 9 other repositories (3 design notes, 8 gitignore anchorings, 3 upstream issues in project-os-dev) — the per-repo table is in the phase note. ISS-0072 was found by this phase's live pass AND fixed: the SNAPSHOT watch was registered with the caller's path CASE, and FSEvents is case-sensitive on a case-insensitive filesystem, so every app-spawned sidecar had a dead watch. OWED: the six downstream design notes stay draft until Edwin has looked at the pages; ISS-0057 (the desk still does not render note_moved)."
 items:
   features:
     FEAT-0046:
@@ -1742,13 +1742,20 @@ items:
 
 
   issues:
+    ISS-0073:
+      file: "docs/issues/ISS-0073-Swift-Unit-Interval-Colours-Read-As-Unresolved.md"
+      title: "SwiftUI 0-1 Color(red:green:blue:) reads as unresolved"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-013-Fleet-Surfaces]]"
+      note: "Found verifying TASK-0231. The unresolved path is for colours with no honest hex; using it for a fully-specified one teaches readers to skim past the ones that matter."
     ISS-0072:
       file: "docs/issues/ISS-0072-Snapshot-Edits-Do-Not-Retrigger-Validation.md"
       title: "SNAPSHOT.yaml edits never re-trigger validation — METRICS drift cannot clear live"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-013-Fleet-Surfaces]]"
-      note: "Found during TASK-0250's live pass. The docs-tree watcher path works; the project-root SNAPSHOT observer does not fire at all (three edits, no re-run). METRICS is the commonest error and lives in SNAPSHOT.yaml, so the likeliest way to go red is the one way you cannot see yourself go green. FEAT-0018's acceptance was verified with a docs-tree fault, which takes the working path."
+      note: "Found during TASK-0250's live pass and fixed: FSEvents is case-SENSITIVE on a case-INsensitive filesystem, so a watch registered as /Users/edwin/... never matched events reported as /Users/Edwin/.... The recursive docs watcher matched by prefix and was unaffected; only the exact-match SNAPSHOT watch broke, on every app-spawned sidecar. The docs-tree watcher path works; the project-root SNAPSHOT observer does not fire at all (three edits, no re-run). METRICS is the commonest error and lives in SNAPSHOT.yaml, so the likeliest way to go red is the one way you cannot see yourself go green. FEAT-0018's acceptance was verified with a docs-tree fault, which takes the working path."
     ISS-0069:
       file: "docs/issues/ISS-0069-Review-Verdict-Vocabulary-Is-Unguarded.md"
       title: "review_verdict has a second, unguarded vocabulary — 10 notes carry `CLOSE`, which QUALITY.md does not define, and nothing rejects it"
@@ -2095,7 +2102,7 @@ items:
     PHASE-013:
       file: "docs/phases/PHASE-013-Fleet-Surfaces.md"
       title: "Fleet surfaces — the cockpit reports on every repo it can see"
-      status: active
+      status: done
       order: 13
       features: ["FEAT-0028", "FEAT-0044"]
       issues: ["ISS-0055"]
@@ -2774,15 +2781,15 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 50
-    features_done: 46
+    features_done: 47
     tasks_total: 251
-    tasks_done: 244
+    tasks_done: 245
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 1
+    issues_open: 0
     issues_triage: 0
     risks_open: 4
     releases_total: 0

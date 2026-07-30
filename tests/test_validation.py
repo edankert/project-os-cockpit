@@ -452,3 +452,63 @@ def test_metadata_strip_renders_waiver_and_verdict_chips() -> None:
     # No waiver → no waiver chip anywhere.
     assert "waiver-chip" not in html2
     assert 'data-verdict="changes-requested"' in html2
+
+
+# ---- ISS-0072: the SNAPSHOT observer's watch path ---------------------------
+
+def test_project_root_is_canonicalised_by_case(tmp_path: Path) -> None:
+    """macOS is case-insensitive; FSEvents is case-sensitive.
+
+    A watch registered on `/Users/edwin/…` receives events reported as
+    `/Users/Edwin/…` and matches none of them — the observer starts, logs
+    that it is watching, and never fires. `Path.resolve()` does not fix
+    this: it resolves symlinks and `..` and leaves case alone.
+
+    Measured before the fix, same repo and same code, only the spelling of
+    the invocation path differing: watched as `/Users/Edwin/…` the report's
+    `checked_at` advanced on `touch SNAPSHOT.yaml`; watched as
+    `/Users/edwin/…` it never moved. The desktop shell stores workspace
+    roots as the user typed them, so every app-spawned sidecar had a dead
+    SNAPSHOT watch — and METRICS, the commonest validator error, lives in
+    exactly that file.
+    """
+    from project_os_cockpit.validation import canonical_case
+
+    real = tmp_path / "MixedCase" / "Repo"
+    real.mkdir(parents=True)
+    (real / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+
+    miscased = tmp_path / "mixedcase" / "repo"
+    # Only meaningful on a case-insensitive filesystem; on a case-sensitive
+    # one the miscased path does not exist and there is nothing to fix.
+    if not (miscased / "SNAPSHOT.yaml").is_file():
+        pytest.skip("case-sensitive filesystem — the defect cannot occur")
+
+    assert canonical_case(miscased) == real, (
+        "the watch path keeps the caller's spelling, so FSEvents will "
+        "deliver events this observer cannot match"
+    )
+    # And the runner uses it, which is the part that actually mattered.
+    assert ValidationRunner(miscased).project_root == real
+
+
+def test_canonical_case_is_a_no_op_on_a_path_that_already_matches(
+    tmp_path: Path,
+) -> None:
+    from project_os_cockpit.validation import canonical_case
+
+    d = tmp_path / "Exact" / "Path"
+    d.mkdir(parents=True)
+    assert canonical_case(d) == d.resolve()
+
+
+def test_canonical_case_degrades_on_an_unreadable_path() -> None:
+    """A component that cannot be listed keeps its given spelling.
+
+    Better to behave exactly as before the fix than to raise inside a
+    constructor that runs on every server start.
+    """
+    from project_os_cockpit.validation import canonical_case
+
+    missing = Path("/nonexistent-zzz/deeper/still")
+    assert canonical_case(missing) == missing

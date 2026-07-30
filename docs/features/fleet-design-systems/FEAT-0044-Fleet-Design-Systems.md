@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0044
 aliases: ["FEAT-0044"]
 title: "A design system for every project with a UX, each read from its own CSS"
-status: doing
+status: done
 phase: "[[PHASE-013-Fleet-Surfaces]]"
 owner: user:edwin
 created: 2026-07-28
@@ -58,3 +58,18 @@ So a downstream living page is impossible without a route that serves project-re
 
 - **Making the fleet look alike.** ADR-0008 in `your-applications.com` already makes that repo the upstream for the *family palette* shared by the your-* apps, checked by `check-family-palette.py`. This feature documents each system honestly; it does not homogenise them, and a site is not obliged to match an app.
 - **Retrofitting `## Revisions` history.** Existing artifacts start their log where this feature lands ([[TASK-0220]]'s rule: no rescuing history by hand).
+
+
+## Done 2026-07-30
+
+[[TASK-0230]] (the route) and [[TASK-0231]] (the rollout) both landed. The per-repo table with measured token counts is in [[TASK-0231]].
+
+Against this feature's acceptance:
+
+- **Every project in the table has a note of the same shape, and an artifact that reads that project's stylesheets** — met, seven surfaces across six projects, including the three that needed read-time synthesis from Kotlin and Swift.
+- **No palette table is load-bearing** — met, and the last three restatements were deleted 2026-07-30 rather than maintained.
+- **The route is an allow-list derived from the corpus** — met by [[TASK-0230]].
+- **Unreachable stylesheets degrade visibly** — met; `your-sudoku` and `your-trainer` show it in production, naming the tokens they cannot resolve instead of inventing swatches.
+- **`obsidian-supernote-sync` is one note with two sections** — met.
+
+**Not met, deliberately:** the six downstream notes are still `draft`. They leave `draft` when Edwin has looked at the pages, which is a human gate rather than outstanding work — the same bar [[DES-0002]] held itself to before going `implemented`.
