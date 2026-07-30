@@ -23,6 +23,7 @@ import {
 import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
+import { registerClipboardIpc } from './ipc/clipboard';
 import { attachContextMenu } from './ipc/context-menu';
 import { registerSettingsIpc } from './ipc/app-settings';
 import {
@@ -353,7 +354,47 @@ function buildMenu(): void {
         isMac ? { role: 'close' } : { role: 'quit' },
       ],
     },
-    { role: 'editMenu' },
+    // Edit — Cut/Undo/Select-All keep their roles, but Copy and Paste
+    // are CONTEXT-AWARE (FEAT-0054 / TASK-0263).
+    //
+    // `role: 'copy'` runs `webContents.copy()`, which can only see a DOM
+    // selection. xterm's selection is not one, so the role could never
+    // serve the console — and on macOS a menu accelerator fires BEFORE
+    // the page's keydown, so the renderer's own ⌘C/⌘V handling was
+    // racing something it could not win, and ⌘V could fire twice.
+    //
+    // These ask the renderer instead. It knows which pane has focus and
+    // routes to the terminal or the document accordingly, so there is
+    // one path and the accelerators still appear in the menu.
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        {
+          label: 'Copy',
+          accelerator: 'CmdOrCtrl+C',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('menu:edit', { action: 'copy' });
+            }
+          },
+        },
+        {
+          label: 'Paste',
+          accelerator: 'CmdOrCtrl+V',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('menu:edit', { action: 'paste' });
+            }
+          },
+        },
+        { type: 'separator' },
+        { role: 'selectAll' },
+      ],
+    },
     {
       label: 'View',
       submenu: [
@@ -419,6 +460,8 @@ app.whenReady().then(() => {
   // Per-workspace validator state across the fleet (FEAT-0028 / TASK-0248).
   registerFleetHealthIpc({ getAllWindows: () => Array.from(allWindows) });
   registerSettingsIpc();
+  // One clipboard path for the whole app (FEAT-0054 / TASK-0261).
+  registerClipboardIpc();
 
   // Agent-state poller — reads each workspace's
   // .cockpit/agent-state.json every 5 s and fans diffs to the

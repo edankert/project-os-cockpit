@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 53
+  FEAT: 54
   ISS: 78
-  PHASE: 19
+  PHASE: 20
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 260
+  TASK: 263
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-015"
+  phase: "PHASE-020"
   issue: ""
-  note: "2026-07-30 All phases closed; nothing active. PHASE-015 is the standing home for record corrections and is DONE between legs — reopen it rather than allocating a new phase. That corrects the rule ISS-0077 produced hours earlier ('a standing phase has no end date'), which left PHASE-015 permanently active and so rendering a permanent 'close out' nag: a rule written to stop the record saying untrue things immediately made it say one. Today: PHASE-013 (fleet surfaces), 014 (inbox, retrospective), 015 (record hygiene: parking-lot cleanup + the downstream-pilot shim claimed in five files and never built), 016 (the overview answers questions, absorbing 017/018/019). 19 phases consolidated to 16. All 8 GitHub repos pushed, 312 commits. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); five upstream proposals open in project-os-dev; your-applications.com not pushed (its only remote is a production deploy) and your-trainer/your-health carry uncommitted July work."
+  note: "2026-07-30 PHASE-020 done: copy/paste reviewed end to end after Edwin reported both halves, and both reproduced. Right-clicking a note link showed the WRONG menu — a rich doc-link menu already existed and a second selection menu fired for the same click and won; attachContextMenu now yields on a docs linkURL. Console Copy was disabled exactly when needed because the right-click clears xterm's selection before the menu reads it; the selection is captured in the contextmenu listener, proven load-bearing by clearing it deliberately. All clipboard access moved to the main process (navigator.clipboard needs focus to write and a permission to read), writes are read back, and every failure surfaces. The Edit menu asks the renderer which pane has focus rather than using roles that can only see the DOM. OWED: mode 1 still has the old three history tiles and no grid; six downstream design notes stay draft; ISS-0057 (note_moved); five upstream proposals in project-os-dev."
 items:
   features:
+    FEAT-0054:
+      file: "docs/features/clipboard/FEAT-0054-Clipboard-That-Works.md"
+      title: "One clipboard path, a link-aware context menu, and no silent failures"
+      status: done
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      tasks: [TASK-0261, TASK-0262, TASK-0263]
+      note: "Edwin reported it; both halves reproduced. Two clipboard stacks (Electron roles in the doc pane, navigator.clipboard in the terminal) with different failure modes; the context menu ignores params.linkURL; and the right-click clears xterm's selection before the menu asks whether one exists, so Copy is disabled exactly when you need it."
     FEAT-0053:
       file: "docs/features/history-navigation/FEAT-0053-History-Navigation.md"
       title: "A contribution grid you can click into, and a permanent way to reach History"
@@ -363,6 +370,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0261:
+      file: "docs/features/clipboard/plan/tasks/TASK-0261-One-Clipboard-Path.md"
+      title: "One clipboard path through the main process, and no silent failures"
+      status: done
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      parent: FEAT-0054
+      note: "navigator.clipboard needs document focus to write and a permission to read; Electron's main-process clipboard needs neither. Five call sites, every one void-ed or bare-caught, so a copy that did not happen looked like one that did."
+    TASK-0262:
+      file: "docs/features/clipboard/plan/tasks/TASK-0262-Link-Aware-Context-Menu.md"
+      title: "The context menu acts on the link, not the word Chromium selected"
+      status: done
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      parent: FEAT-0054
+      note: "params.linkURL was always there and nothing read it. Ordering matters more than the extra items — the first thing in the menu is what the menu is about."
+    TASK-0263:
+      file: "docs/features/clipboard/plan/tasks/TASK-0263-Terminal-Copy-And-Paste.md"
+      title: "Terminal copy survives the right-click; Cmd-C/V route to the focused pane"
+      status: done
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      parent: FEAT-0054
+      note: "Measured: selection true before the right-click, false after, Copy disabled. And role:editMenu binds Cmd-C to webContents.copy(), which can only see the DOM — xterm's selection is not one."
     TASK-0258:
       file: "docs/features/history-navigation/plan/tasks/TASK-0258-Activity-Grid-Payload.md"
       title: "activity_payload — per-day counts across the whole history, cached on HEAD"
@@ -2899,10 +2927,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 53
-    features_done: 50
-    tasks_total: 260
-    tasks_done: 254
+    features_total: 54
+    features_done: 51
+    tasks_total: 263
+    tasks_done: 257
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182

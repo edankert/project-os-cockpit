@@ -72,6 +72,14 @@ const api = {
       ipcRenderer.on('menu:toggle-terminal', handler);
       return () => ipcRenderer.removeListener('menu:toggle-terminal', handler);
     },
+    // Context-aware Edit menu (FEAT-0054 / TASK-0263): main forwards
+    // Copy/Paste here so the renderer can route to whichever pane has
+    // focus. `role: 'copy'` can only ever see a DOM selection.
+    onEdit: (cb: (ev: { action: string }) => void): (() => void) => {
+      const handler = (_: unknown, ev: { action: string }): void => cb(ev);
+      ipcRenderer.on('menu:edit', handler);
+      return () => ipcRenderer.removeListener('menu:edit', handler);
+    },
     onBack: (cb: () => void): (() => void) => {
       const handler = (): void => cb();
       ipcRenderer.on('menu:back', handler);
@@ -117,6 +125,17 @@ const api = {
       ipcRenderer.on('fleet:health', handler);
       return () => ipcRenderer.removeListener('fleet:health', handler);
     },
+  },
+  // One clipboard path (FEAT-0054 / TASK-0261). The renderer never
+  // touches `navigator.clipboard`: it needs document focus to write and
+  // a permission to read, and Electron's main-process clipboard needs
+  // neither. Both calls RESOLVE with a result rather than rejecting, so
+  // a caller cannot accidentally ignore a failure.
+  clipboard: {
+    write: (text: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('clipboard:write', text),
+    read: (): Promise<{ ok: boolean; text?: string; error?: string }> =>
+      ipcRenderer.invoke('clipboard:read'),
   },
   app: {
     openExternal: (url: string): Promise<{ ok: boolean; error?: string }> =>

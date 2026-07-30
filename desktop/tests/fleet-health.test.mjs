@@ -762,3 +762,81 @@ test('every phase row renders its phase ID beside the title (ISS-0076)', async (
   assert.ok(around.includes('/^PHASE-/i') || around.includes('PHASE-'),
     'the ID is rendered without checking the key is a PHASE-*');
 });
+
+// ---- clipboard (FEAT-0054) -------------------------------------------
+
+test('the renderer no longer touches navigator.clipboard', async () => {
+  // It needs document focus to write and a permission to read; the
+  // main-process module needs neither. Five call sites used to `void`
+  // the promise or bare-catch it, so a copy that did not happen looked
+  // exactly like one that did.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  // A CALL, not a mention: the helper's own comment explains why the
+  // API is avoided, and a substring match on the name flagged that.
+  assert.ok(!/navigator\.clipboard[?.\s]*\.\s*(writeText|readText)\s*\(/.test(js),
+    'a renderer clipboard call is back — route it through cockpit.clipboard');
+  assert.ok(js.includes('clipboard.write'), 'the IPC clipboard path is gone');
+});
+
+test('the Edit menu does not bind Copy/Paste to bare roles', async () => {
+  // `role: 'copy'` runs webContents.copy(), which can only see a DOM
+  // selection — xterm's is not one. And on macOS the accelerator fires
+  // before the page's keydown, so the renderer was racing it and ⌘V
+  // could paste twice.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'main.js'), 'utf-8');
+  const i = js.indexOf("label: 'Edit'");
+  assert.notEqual(i, -1, 'the Edit menu was renamed or removed');
+  const menu = js.slice(i, i + 1200);
+  assert.ok(!/role:\s*'copy'/.test(menu),
+    "Edit still uses role:'copy' — it cannot see the console's selection");
+  assert.ok(!/role:\s*'paste'/.test(menu),
+    "Edit still uses role:'paste' — it races the renderer and pastes twice");
+  assert.ok(menu.includes("'menu:edit'"),
+    'Edit no longer asks the renderer which pane has focus');
+});
+
+test('a right-click on a docs link yields to the renderer menu', async () => {
+  // Both handlers fire for one click and preventDefault() on the DOM
+  // event does not suppress the main-process one, so without this the
+  // selection menu wins and offers to dispatch the word Chromium
+  // auto-selected — which is what FEAT-0054 was reported for.
+  // attachContextMenu lives in ipc/context-menu.ts, not main.ts.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'ipc', 'context-menu.js'), 'utf-8');
+  const i = js.indexOf('function attachContextMenu');
+  assert.notEqual(i, -1, 'attachContextMenu was renamed');
+  const fn = js.slice(i, i + 2600);
+  assert.ok(fn.includes('isDocsLink'), 'the docs-link yield is gone');
+  assert.ok(/isDocsLink\([^)]*\)\)\s*return/.test(fn.replace(/\s+/g, ' ')),
+    'isDocsLink is referenced but does not short-circuit the handler');
+  assert.ok(fn.includes('linkURL'), 'the handler still ignores params.linkURL');
+});
+
+test('the terminal captures its selection before the menu opens', async () => {
+  // Measured before the fix: selection true before the right-click,
+  // false after, Copy disabled. Verified after: with the selection
+  // deliberately cleared, Copy stays enabled and still copies.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const i = js.indexOf("addEventListener('contextmenu'");
+  assert.notEqual(i, -1);
+  const near = js.slice(i, i + 500);
+  assert.ok(near.includes('capturedTerminalSelection'),
+    'the contextmenu handler no longer captures the selection, so Copy will '
+    + 'read hasSelection() after the click has already cleared it');
+  const copyFn = js.slice(js.indexOf('function copyTerminalSelection'), js.indexOf('function copyTerminalSelection') + 400);
+  assert.ok(copyFn.includes('capturedTerminalSelection'),
+    'copyTerminalSelection ignores the captured text');
+});
+
+test('clipboard failures are reported, not swallowed', async () => {
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const i = js.indexOf('async function copyText');
+  assert.notEqual(i, -1, 'the copyText helper is gone');
+  const fn = js.slice(i, i + 700);
+  assert.ok(fn.includes('Copy failed'), 'copyText no longer surfaces a failure');
+  assert.ok(fn.includes("'error'"), 'the failure is not shown as an error status');
+});

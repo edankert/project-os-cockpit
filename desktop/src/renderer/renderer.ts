@@ -97,6 +97,7 @@ interface CockpitApi {
   menu: {
     onRescan: (cb: () => void) => () => void;
     onToggleTerminal: (cb: () => void) => () => void;
+    onEdit: (cb: (ev: { action: string }) => void) => () => void;
     onBack: (cb: () => void) => () => void;
     onForward: (cb: () => void) => () => void;
   };
@@ -109,6 +110,13 @@ interface CockpitApi {
     sessions: (workspaceId: string) => Promise<AgentSessionSlim[]>;
   };
   // Per-workspace docs-validator state across the fleet (FEAT-0028).
+  // One clipboard path (FEAT-0054 / TASK-0261) — main-process backed,
+  // so it needs neither document focus nor a permission, and both calls
+  // RESOLVE with a result so a failure cannot be silently dropped.
+  clipboard: {
+    write: (text: string) => Promise<{ ok: boolean; error?: string }>;
+    read: () => Promise<{ ok: boolean; text?: string; error?: string }>;
+  };
   fleetHealth: {
     get: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
     recheck: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
@@ -356,6 +364,32 @@ function showActionStatus(text: string, action: string, onClick: () => void): vo
   statusBar.classList.remove('error');
   statusBar.classList.add('is-actionable');
   statusBar.hidden = false;
+}
+
+/** Copy through the main process, and SAY SO when it fails
+ *  (FEAT-0054 / TASK-0261).
+ *
+ *  `navigator.clipboard.writeText` throws `NotAllowedError` unless the
+ *  document is focused, and every call site here used to `void` the
+ *  promise or swallow it — so a copy that did not happen looked exactly
+ *  like one that did. That is how this survived to be reported by a
+ *  user rather than noticed.
+ */
+async function copyText(text: string, label = 'Copied'): Promise<boolean> {
+  if (!text) { showStatus('Nothing to copy', 'error'); return false; }
+  try {
+    const res = await cockpitApi.clipboard.write(text);
+    if (!res.ok) {
+      showStatus(`Copy failed: ${res.error ?? 'unknown error'}`, 'error');
+      return false;
+    }
+    showStatus(label);
+    scheduleHide(1200);
+    return true;
+  } catch (err) {
+    showStatus(`Copy failed: ${String(err)}`, 'error');
+    return false;
+  }
 }
 
 function hideStatus(): void {
@@ -908,7 +942,7 @@ function buildDocHeader(data: RenderResponse, rel: string): HTMLElement {
   pathEl.textContent = `docs/${rel}`;
   pathEl.title = 'Click to copy path';
   pathEl.addEventListener('click', () => {
-    void navigator.clipboard?.writeText(`docs/${rel}`);
+    void copyText(`docs/${rel}`, 'Path copied');
     const orig = pathEl.textContent;
     pathEl.textContent = 'copied';
     setTimeout(() => { pathEl.textContent = orig; }, 800);
@@ -1688,13 +1722,20 @@ function ensureXterm(): void {
   term.onSelectionChange(() => {
     if (!copyOnSelect || !term?.hasSelection()) return;
     const s = term.getSelection();
-    if (s) void navigator.clipboard.writeText(s);
+    // Quiet on success — copy-on-select fires constantly and a status
+    // line per drag would be noise. A FAILURE still speaks.
+    if (s) void cockpitApi.clipboard.write(s).then((r: { ok: boolean; error?: string }) => {
+      if (!r.ok) showStatus(`Copy failed: ${r.error ?? 'unknown error'}`, 'error');
+    });
   });
   // Terminal context menu (TASK-0167) — xterm's selection isn't a DOM
   // selection, so the native menu can't see it; build our own.
   terminalMount.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    // Capture BEFORE the menu opens: by the time `showTerminalMenu`
+    // asks, the right-click has already cleared xterm's selection.
+    capturedTerminalSelection = term?.hasSelection() ? (term.getSelection() || '') : '';
     showTerminalMenu(e.clientX, e.clientY);
   });
   wireTerminalListenersOnce();
@@ -1717,23 +1758,35 @@ function bracketedPaste(text: string): string {
 }
 
 async function pasteIntoTerminal(): Promise<void> {
-  if (!attachedTerminalId) return;
-  try {
-    const text = await navigator.clipboard.readText();
-    if (text) cockpitApi.terminal.write(attachedTerminalId, bracketedPaste(text));
-  } catch { /* clipboard blocked — ignore */ }
+  if (!attachedTerminalId) { showStatus('No console to paste into', 'error'); return; }
+  const res = await cockpitApi.clipboard.read();
+  if (!res.ok) { showStatus(`Paste failed: ${res.error ?? 'unknown error'}`, 'error'); return; }
+  const text = res.text ?? '';
+  if (!text) { showStatus('Clipboard is empty', 'error'); return; }
+  cockpitApi.terminal.write(attachedTerminalId, bracketedPaste(text));
 }
 
+/** The selection captured when the context menu opened, if any.
+ *
+ *  A right-click CLEARS xterm's selection before the menu is built, so
+ *  reading `term.hasSelection()` at menu time reports false and Copy
+ *  renders disabled — exactly when a user reaches for it. Measured
+ *  before the fix: selection true before the click, false after, the
+ *  Copy item disabled (FEAT-0054 / TASK-0263).
+ */
+let capturedTerminalSelection = '';
+
 function copyTerminalSelection(): void {
-  const s = term?.hasSelection() ? term.getSelection() : '';
-  if (s) void navigator.clipboard.writeText(s);
+  const s = capturedTerminalSelection
+    || (term?.hasSelection() ? term.getSelection() : '');
+  void copyText(s, 'Copied from console');
 }
 
 function showTerminalMenu(x: number, y: number): void {
   closeTerminalMenu();
   const menu = document.createElement('div');
   menu.className = 'term-menu';
-  const hasSel = !!term?.hasSelection();
+  const hasSel = !!capturedTerminalSelection || !!term?.hasSelection();
   const add = (label: string, enabled: boolean, fn: () => void): void => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -1745,7 +1798,7 @@ function showTerminalMenu(x: number, y: number): void {
   };
   add('Copy', hasSel, copyTerminalSelection);
   add('Paste', true, () => { void pasteIntoTerminal(); });
-  add('Select All', true, () => term?.selectAll());
+  add('Select All', true, () => { capturedTerminalSelection = ''; term?.selectAll(); });
   add('Clear', true, () => term?.clear());
   add('Restart console', !!(attachedTerminalId ?? activeId), () => { void restartTerminal(); });
   const sep = document.createElement('div');
@@ -1947,17 +2000,35 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     toggleTerminal();
   }
-  // Terminal clipboard keys (TASK-0167): ⌘C copies the xterm selection
-  // when one exists (otherwise falls through to the shell's own binding);
-  // ⌘V pastes into the PTY. Only while the terminal is focused.
-  if (e.metaKey && !terminalPane.hidden && terminalMount.contains(document.activeElement)) {
-    if (e.key === 'c' && term?.hasSelection()) {
-      e.preventDefault();
-      copyTerminalSelection();
-    } else if (e.key === 'v') {
-      e.preventDefault();
-      void pasteIntoTerminal();
-    }
+  // ⌘C / ⌘V are owned by the Edit menu's accelerators now (TASK-0263).
+  // Handling them here as well raced the menu — on macOS the accelerator
+  // fires first — which made ⌘V paste twice and ⌘C copy the wrong thing.
+});
+
+/** True when the console has focus and should own Copy/Paste. */
+function terminalHasFocus(): boolean {
+  return !terminalPane.hidden && terminalMount.contains(document.activeElement);
+}
+
+// The Edit menu asks; the renderer decides which pane it meant
+// (FEAT-0054 / TASK-0263).
+cockpitApi.menu.onEdit((ev) => {
+  if (ev.action === 'copy') {
+    if (terminalHasFocus()) { copyTerminalSelection(); return; }
+    const sel = window.getSelection()?.toString() ?? '';
+    if (sel) void copyText(sel);
+    else showStatus('Nothing selected to copy', 'error');
+    return;
+  }
+  if (ev.action === 'paste') {
+    if (terminalHasFocus()) { void pasteIntoTerminal(); return; }
+    // A focused input is the document's own business — let the platform
+    // insert, which preserves undo history and caret position.
+    const el = document.activeElement as HTMLElement | null;
+    const editable = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'
+      || el.isContentEditable);
+    if (editable) { document.execCommand('paste'); return; }
+    showStatus('Nothing here accepts a paste', 'error');
   }
 });
 
@@ -8013,7 +8084,7 @@ function refreshFooterAgent(): void { /* removed — see TASK-0148 */ }
 
 sfPath.addEventListener('click', () => {
   if (!sfPath.textContent) return;
-  void navigator.clipboard?.writeText(sfPath.textContent);
+  void copyText(sfPath.textContent, 'Path copied');
   const orig = sfPath.textContent;
   sfPath.textContent = 'copied';
   setTimeout(() => { sfPath.textContent = orig; refreshFooterPath(); }, 800);
