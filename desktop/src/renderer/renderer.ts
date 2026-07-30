@@ -940,10 +940,20 @@ async function navigateToInner(
   const pathOnly = fragmentIndex >= 0 ? normalised.slice(0, fragmentIndex) : normalised;
   const frag = fragmentIndex >= 0 ? normalised.slice(fragmentIndex + 1) : null;
 
+  // `~root/README.md` is a top-level PROJECT file, not the docs note of the
+  // same name. It renders through this ordinary path — only the request the
+  // server sees differs, because `root/` is what tells it which file is meant
+  // (ISS-0037). Handled here rather than as its own virtual-page branch: it
+  // really is just a markdown render, and a separate branch would have to
+  // duplicate the fragment, history, 404 and error handling below.
+  const renderPath = pathOnly.startsWith('~root/')
+    ? pathOnly.slice(1)                     // '~root/README.md' -> 'root/README.md'
+    : pathOnly;
+
   let resp: Response;
   try {
     resp = await fetch(
-      `${sidecarBaseUrl}/api/render?path=${encodeURIComponent(pathOnly)}`,
+      `${sidecarBaseUrl}/api/render?path=${encodeURIComponent(renderPath)}`,
     );
   } catch (err) {
     showStatus(`Render fetch failed: ${String(err)}`, 'error');

@@ -116,6 +116,7 @@ class ReviewStore:
         agent: str | None = None,
         subject: str | None = None,
         at_revision: str | None = None,
+        at_note_digest: str | None = None,
     ) -> dict[str, Any]:
         """File a request. Returns the stored record.
 
@@ -130,6 +131,13 @@ class ReviewStore:
         requires `design_revision` on accept and validates it against real
         history, and without the same on the request a reviewer can accept
         something other than what they were shown, with neither party knowing.
+
+        ``at_note_digest`` is the same argument applied to the other half
+        (ISS-0057). `at_revision` follows the artifact; a design's note carries
+        its Problem, Approach, Regions and Tokens, and could be rewritten under
+        a reviewer with every revision signal still reading current. Additive:
+        `at_revision` keeps its meaning exactly, so no stored request or
+        recorded verdict changes meaning.
         """
         if kind not in KINDS:
             raise ValueError(f"unknown kind: {kind}")
@@ -152,6 +160,8 @@ class ReviewStore:
             record["subject"] = str(subject).strip().upper()
         if at_revision:
             record["at_revision"] = str(at_revision).strip()[:40]
+        if at_note_digest:
+            record["at_note_digest"] = str(at_note_digest).strip()[:64]
         with self._lock:
             # Check-then-act under ONE lock. `open_for_subject` followed by
             # `add` was a race: each call took and released the lock, so 16

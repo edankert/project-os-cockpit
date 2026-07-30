@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0067
 aliases: ["ISS-0067"]
 title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
-status: open
+status: fixed
 phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
@@ -56,3 +56,17 @@ Every `TASK-*.md` under `features/<slug>/plan/tasks/` is reachable from its feat
 Filed against [[PHASE-999-Future]], not [[PHASE-010]] — that phase is `done` and nothing in it is incomplete. This is adjacent work its fix made visible.
 
 Worth recording that the reviewer surfaced this *and* declined to allocate an ID for it, on the grounds that a reviewer records findings and a planner allocates. That is the right line, and it is why this note exists rather than a verdict comment.
+
+## Fixed 2026-07-30 — read the path, as ISS-0062 did
+
+Option 1: `_task_records(index)` unions `notes_by_type("task")` with untyped notes at `features/<slug>/plan/tasks/TASK-*.md`. The Tasks mode reads it instead of the type lookup.
+
+**Union, not a path-only sweep.** A task note living somewhere else is still a task, and the type is the claim wherever it is written; the path is only the fallback for a note that makes no claim. A path-only rule would have silently dropped any task outside that layout.
+
+Verified: 247 `TASK-*.md` on disk, 244 typed, `_task_records` returns **247**, and `TASK-0182` / `TASK-0183` / `TASK-0187` all appear in the Tasks mode in the running app.
+
+Deliberately **not** done: adding frontmatter to the three files. Same reasoning as [[ISS-0062]] — it would pass the count while leaving visibility dependent on frontmatter nobody is required to write, and it would hide whether the path fallback works.
+
+Guarded by `test_every_task_note_on_disk_is_reachable`, asserted against a filesystem glob rather than a literal, and mutation-verified by removing the fallback.
+
+Note for whoever fixes the class rather than the instances: the validator already warns `PLAN-UNTYPED` for untyped plans. There is no equivalent for tasks, which is why these three were invisible to it as well as to the UI.

@@ -1526,6 +1526,51 @@ def design_comments_payload(
     }
 
 
+def design_note_digest(record: NoteRecord) -> str:
+    """A stable digest of a design note's *substance* (ISS-0057).
+
+    `design_revisions_payload` follows the **artifact** path, so `at_revision`,
+    `head_revision` and `design_revision` all describe the artifact and say
+    nothing about the note. A reviewer could accept a design and then have its
+    Problem, Approach, Regions or Tokens rewritten under them, with every
+    staleness signal still reading current.
+
+    Two questions made that hard to fix, and both are answered by making this
+    **additive**:
+
+    * *Does a revision mean the artifact or the pair?* Neither — `design_revision`
+      keeps meaning exactly what it meant, so no existing verdict changes
+      meaning. This is a second, separate signal.
+    * *What about `## Review`, which a review appends to?* Excluded, along with
+      the review frontmatter fields and `## Revisions`. Otherwise filing a
+      review would invalidate itself the instant it was recorded — the objection
+      that kept this in triage.
+
+    So the digest covers the parts a reviewer judged and nothing that recording
+    the judgement touches.
+    """
+    import hashlib
+
+    EXCLUDED_SECTIONS = ("## Review", "## Revisions")
+    EXCLUDED_FIELDS = ("reviewed_by", "review_date", "review_verdict",
+                       "design_revision", "updated")
+
+    body_lines: list[str] = []
+    skipping = False
+    for line in (record.body or "").splitlines():
+        if line.startswith("## "):
+            skipping = any(line.startswith(s) for s in EXCLUDED_SECTIONS)
+        if not skipping:
+            body_lines.append(line.rstrip())
+
+    fields = {
+        k: v for k, v in sorted((record.frontmatter or {}).items())
+        if k not in EXCLUDED_FIELDS
+    }
+    material = repr(fields) + "\n" + "\n".join(body_lines).strip()
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:12]
+
+
 def design_revisions_payload(
     project_root: Path, index: Index, design_id: str,
 ) -> dict[str, Any]:
@@ -2469,11 +2514,37 @@ def _plan_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     }
 
 
+def _task_records(index: Index) -> list[NoteRecord]:
+    """Every task note, typed or not (ISS-0067).
+
+    `notes_by_type("task")` reads frontmatter, and three notes under
+    `features/*/plan/tasks/` have none — so they were missing from the Tasks
+    mode, and `features/` is a DOC_TREE_EXCLUDED_ROOTS root, so they reached
+    no surface at all. Exactly ISS-0062's mechanism, which PHASE-010 fixed for
+    plans and not for tasks.
+
+    Union rather than a path-only sweep: a task note living somewhere else is
+    still a task, and the type is the claim wherever it is written. The path is
+    only the fallback for notes that make no claim.
+    """
+    typed = list(index.notes_by_type("task"))
+    seen = {r.path for r in typed}
+    for record in index.iter_records():
+        if record.path in seen:
+            continue
+        if record.note_type:
+            continue                      # types itself as something else
+        parts = record.rel_path.split("/")
+        if len(parts) >= 4 and parts[0] == "features" and parts[-2] == "tasks":
+            typed.append(record)
+    return typed
+
+
 def _tasks_groups(
     index: Index, platform: str | None = None
 ) -> list[dict[str, Any]]:
     """Mode 3: tasks grouped by status."""
-    tasks = [r for r in index.notes_by_type("task") if _platform_match(r, platform)]
+    tasks = [r for r in _task_records(index) if _platform_match(r, platform)]
     grouped: dict[str, list[NoteRecord]] = {}
     for record in tasks:
         key = (record.status or "unset").lower()
@@ -3252,7 +3323,14 @@ def _project_root_tree_items(project_root: Path | None) -> list[dict[str, Any]]:
             "id": "",
             "title": rel,
             "status": None,
-            "url": f"/{rel}",
+            # `~root/<file>`, not `/<file>` (ISS-0037). The old shape was
+            # indistinguishable from a docs note once the leading slash was
+            # stripped — which both `extractRel` and `/api/render` did — so
+            # `/README.md` and `/docs/README.md` collapsed onto one fetch and
+            # these rows were dead clicks from FEAT-0010 until 2026-07-30.
+            # The `~` prefix routes through the same virtual-page mechanism
+            # `~design` and `~review` use, and carries the disambiguator.
+            "url": f"~root/{rel}",
             "subtitle": "",
             "type": "",
         }

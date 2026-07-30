@@ -725,3 +725,76 @@ def test_unclosed_agrees_with_the_validators_gate(repo_index: Index) -> None:
                 f"{ph['key']} offered for close-out but {i['id']} is "
                 f"{i['status']!r} (state={i.get('state')!r})"
             )
+
+
+# ---- ISS-0057 / ISS-0067 / ISS-0037: the PHASE-011..012 remainder ------------
+
+
+def test_a_design_note_digest_ignores_what_recording_a_review_touches() -> None:
+    """ISS-0057. `at_revision` follows the artifact, so a design's Problem,
+    Approach, Regions or Tokens could be rewritten under a reviewer with every
+    staleness signal still reading current.
+
+    The objection that kept this in triage was that a review *appends to* the
+    note's `## Review` section, so a naive "did the note change" check would
+    invalidate itself the instant it was recorded. Asserted here in both
+    directions, because the fix is only correct if both hold.
+    """
+    class Rec:
+        def __init__(self, fm: dict, body: str) -> None:
+            self.frontmatter, self.body = fm, body
+
+    fm = {"id": "DES-0000", "title": "x", "review_verdict": "", "updated": "2026-01-01"}
+    body = "## Problem\n\nA thing is wrong.\n\n## Review\n\n<none yet>\n"
+    base = cockpit.design_note_digest(Rec(dict(fm), body))
+
+    appended = body.replace("<none yet>", "<none yet>\n\nRound one: approved.")
+    assert cockpit.design_note_digest(Rec(dict(fm), appended)) == base, (
+        "filing a review changed the digest, so a review would invalidate itself"
+    )
+
+    stamped = {**fm, "review_verdict": "approved", "updated": "2026-07-30"}
+    assert cockpit.design_note_digest(Rec(stamped, body)) == base, (
+        "stamping the verdict changed the digest"
+    )
+
+    rewritten = body.replace("A thing is wrong.", "Actually a different thing.")
+    assert cockpit.design_note_digest(Rec(dict(fm), rewritten)) != base, (
+        "the substance changed and the digest did not — the whole point"
+    )
+
+
+def test_every_task_note_on_disk_is_reachable(repo_index: Index) -> None:
+    """ISS-0067, and the same assertion shape as the plan count: against a
+    filesystem glob, not a literal, because a type-based lookup returns a
+    plausible subset and passes any shape check."""
+    on_disk = set(REPO_DOCS.glob("features/*/plan/tasks/TASK-*.md"))
+    reached = {r.path for r in cockpit._task_records(repo_index)}
+    assert on_disk <= reached, f"unreachable task notes: {sorted(on_disk - reached)}"
+
+    typed = {r.path for r in repo_index.notes_by_type("task")}
+    assert typed < on_disk | typed, (
+        "if every task were typed this could not distinguish the path fallback "
+        "from the type lookup it supplements"
+    )
+
+
+def test_root_file_rows_are_distinguishable_from_docs_notes(repo_index: Index) -> None:
+    """ISS-0037. `/README.md` and `/docs/README.md` both reduced to the rel
+    `README.md` — in `extractRel` *and* in `/api/render` — so two distinct
+    Library rows collapsed onto one fetch and the top-level files were dead
+    clicks from FEAT-0010 onward.
+
+    The rel now carries the disambiguator the url always had.
+    """
+    items = cockpit._project_root_tree_items(REPO_DOCS.parent)
+    assert items, "no top-level project files found"
+    for item in items:
+        assert item["url"].startswith("~root/"), item
+    # `~`-prefixed urls survive extractRel — that is why this shape was chosen
+    # over keeping a bare leading slash.
+    code = _renderer_code()
+    assert "if (url.startsWith('~')) return url;" in code
+    assert "pathOnly.startsWith('~root/')" in code, "the renderer does not route ~root/"
+    server = SERVER.read_text(encoding="utf-8")
+    assert 'explicit_root = rel_path.startswith("root/")' in server

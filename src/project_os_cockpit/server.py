@@ -1370,6 +1370,22 @@ def _make_handler(
                     payload["head_revision"] = head
                     payload["revision_moved"] = bool(head and head != asked_at)
                     payload["dirty"] = bool(revs.get("dirty"))
+                    # ISS-0057: the three signals above describe the ARTIFACT.
+                    # A design's note carries half its substance — Problem,
+                    # Approach, Regions, Tokens — and could be rewritten under a
+                    # reviewer with all of them still reading current. Additive
+                    # by design: `design_revision` keeps its meaning, so no
+                    # existing verdict changes meaning.
+                    subject_path = index.by_id(subject)
+                    subject_rec = index.get(subject_path) if subject_path else None
+                    if subject_rec is not None:
+                        asked_digest = str(request.get("at_note_digest") or "")
+                        now_digest = cockpit.design_note_digest(subject_rec)
+                        payload["at_note_digest"] = asked_digest
+                        payload["note_digest"] = now_digest
+                        payload["note_moved"] = bool(
+                            asked_digest and asked_digest != now_digest
+                        )
                 self._respond_json(payload)
                 return
             # Fall back to a note id (a proposed ADR / ready test row).
@@ -1709,11 +1725,17 @@ def _make_handler(
                     status=HTTPStatus.CONFLICT)
                 return
 
+            # Both halves pinned: the artifact revision the reviewer was shown,
+            # and a digest of the note's substance (ISS-0057). Either moving
+            # afterwards means they reviewed something other than what stands.
+            design_rec = index.get(index.by_id(design_id)) if index.by_id(design_id) else None
             request = review_store.add(
                 "review",
                 items=[design_id],
                 subject=design_id,
                 at_revision=head,
+                at_note_digest=(cockpit.design_note_digest(design_rec)
+                                if design_rec is not None else None),
                 title="Design review: %s" % (record.get("title") or design_id),
                 body=note,
             )
@@ -2093,6 +2115,15 @@ def _make_handler(
             # unambiguous request for a real note, was answered with the
             # project-root README. Keep the disambiguator.
             explicit_docs = rel_path.startswith("docs/")
+            # ...and the inverse, which ISS-0037 needed. `docs/` said "the
+            # note"; nothing said "the project file", so `README.md` always
+            # resolved to `docs/README.md` and the top-level README was
+            # unreachable through this endpoint. The Library's rows for those
+            # files were dead clicks not because the client dropped the rel,
+            # but because there was no rel that could mean what they meant.
+            explicit_root = rel_path.startswith("root/")
+            if explicit_root:
+                rel_path = rel_path[len("root/"):]
             if explicit_docs:
                 rel_path = rel_path[len("docs/"):]
             if not rel_path or any(part == ".." for part in rel_path.split("/")):
@@ -2116,7 +2147,25 @@ def _make_handler(
             # is the true state of affairs for `LLM_BRIEF.md` and is what makes
             # the branch safe rather than merely narrow.
             target = (docs_root / rel_path).resolve()
-            if not (_is_under(target, docs_root) and target.is_file()):
+            if explicit_root:
+                # An explicit root request never falls through to docs: that
+                # fallthrough is what made the two indistinguishable.
+                if (project_root is None
+                        or rel_path not in cockpit.PROJECT_SUPPORT_ROOT_FILES):
+                    self._respond_json(
+                        {"ok": False, "error": f"not an allowlisted project file: {rel_path}"},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                candidate = (project_root / rel_path).resolve()
+                if not (_is_under(candidate, project_root) and candidate.is_file()):
+                    self._respond_json(
+                        {"ok": False, "error": f"no such project file: {rel_path}"},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                target = candidate
+            elif not (_is_under(target, docs_root) and target.is_file()):
                 root_file = None
                 if (project_root is not None and not explicit_docs
                         and rel_path in cockpit.PROJECT_SUPPORT_ROOT_FILES):

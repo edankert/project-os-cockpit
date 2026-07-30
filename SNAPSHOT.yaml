@@ -48,7 +48,7 @@ focus:
   task: ""
   feature: ""
   phase: "PHASE-012"
-  issue: "ISS-0068"
+  issue: "ISS-0037"
   note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
 items:
   features:
@@ -1729,7 +1729,7 @@ items:
     ISS-0067:
       file: "docs/issues/ISS-0067-Untyped-Task-Notes-Are-Unreachable.md"
       title: "Three task notes carry no frontmatter and reach no surface — ISS-0062's mechanism, surviving for the task type because the fix was applied to plans only"
-      status: open
+      status: fixed
       severity: low
       phase: "[[PHASE-999-Future]]"
       note: "TASK-0182/0183/0187: 247 task files on disk, 244 typed. Found in review round four by sweeping notes rather than types — a per-type count never surfaces it, because 244 is not suspicious. REQ-0025 is about types and passed correctly; this is the residue a type-level guarantee does not cover."
@@ -2745,8 +2745,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 1
-    issues_triage: 3
+    issues_open: 0
+    issues_triage: 1
     risks_open: 4
     releases_total: 0
     decisions_total: 8
