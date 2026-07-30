@@ -4,7 +4,7 @@ id: TASK-0258
 aliases: ["TASK-0258"]
 title: "activity_payload — per-day transition and commit counts across the whole history, cached on HEAD"
 status: done
-phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

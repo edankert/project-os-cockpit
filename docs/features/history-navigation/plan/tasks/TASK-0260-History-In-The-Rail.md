@@ -4,7 +4,7 @@ id: TASK-0260
 aliases: ["TASK-0260"]
 title: "A History button in the workspace rail, so the page is reachable from anywhere"
 status: done
-phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

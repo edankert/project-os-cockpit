@@ -5,7 +5,7 @@ aliases: ["ISS-0076"]
 title: "The overview's Phases section shows each phase's title and never its ID, so the one place that lists every phase cannot be cross-referenced with anything that names them"
 status: fixed
 severity: low
-phase: "[[PHASE-019-Overview-Legibility]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

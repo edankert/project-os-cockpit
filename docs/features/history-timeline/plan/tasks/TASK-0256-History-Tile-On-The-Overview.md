@@ -4,7 +4,7 @@ id: TASK-0256
 aliases: ["TASK-0256"]
 title: "One History tile on the overview, replacing Activity, Changes and Commits"
 status: done
-phase: "[[PHASE-017-History-As-Document-Events]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

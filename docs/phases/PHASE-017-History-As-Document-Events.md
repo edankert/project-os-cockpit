@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-017
 aliases: ["PHASE-017"]
 title: "History as document events — what was fixed and when, with git as the boundary rather than the subject"
-status: done
+status: superseded
 order: 17
 owner: user:edwin
 created: 2026-07-30
@@ -13,6 +13,7 @@ features:
   - "[[FEAT-0052-History-Timeline]]"
 requirements: []
 issues: []
+superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"
 depends: ["[[PHASE-016-Errors-Become-Work]]"]
 related: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[TASK-0199-Commits-As-Documentation-Events]]", "[[ADR-0009]]"]
 tags: [overview, history]
@@ -90,3 +91,11 @@ It was written into [[FEAT-0052]]'s plan as "the single most likely way to build
 ### Worth carrying forward
 
 Six user-reported findings this week — [[ISS-0069]], [[ISS-0072]], [[ISS-0073]], [[ISS-0074]], the unreadable error pill, and now the history band. Every one came from someone **looking at a rendered surface**, none from a check. Four of the six were mine to have noticed and I did not, because I verified each surface *worked* rather than that it *answered the question it exists for*.
+
+## Superseded 2026-07-30 — merged into [[PHASE-016]]
+
+This phase's work shipped and is unchanged; what changed is where it is recorded. [[PHASE-016]] absorbed it along with the other two legs of the same push, because their shared goal states without listing them: **every number on the overview leads somewhere, and everything on it says what it is.**
+
+Four phases for one afternoon was the drift [[ISS-0077]] measured — nine phases opened in a day against nine in the preceding twelve weeks, at a fifth of the historical size. Each was minted reactively, one per request.
+
+The note stays as the record of this leg. Its items now name PHASE-016, which is the phase that delivered them.

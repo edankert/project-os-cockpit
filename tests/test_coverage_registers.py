@@ -372,3 +372,68 @@ def test_the_upstream_instruction_still_only_says_fix() -> None:
         "LIFECYCLE.md now carries the filing rule upstream — delete the "
         "CLAUDE.md copy and this test rather than keeping both"
     )
+
+
+# ---- ISS-0077: phase granularity -------------------------------------
+
+def test_no_terminal_phase_names_a_superseded_phase() -> None:
+    """A merge re-homes children before superseding the parent.
+
+    `superseded` is how PHASE-016 absorbed PHASE-017/018/019 without
+    deleting anything. The order matters: a superseded phase still named
+    by its old children leaves the corpus asserting two homes for one
+    note, and `PHASE-CHILDREN` only catches the unresolved ones.
+    """
+    index = Index.build(DOCS)
+    superseded = set()
+    for record in index.iter_records():
+        fm = record.frontmatter or {}
+        if str(fm.get("type") or "").strip("[]\"' ") != "phase":
+            continue
+        if str(fm.get("status") or "") == "superseded":
+            superseded.add(str(fm.get("id")))
+    if not superseded:
+        return          # nothing merged yet; nothing to hold
+
+    stranded: list[str] = []
+    for record in index.iter_records():
+        fm = record.frontmatter or {}
+        if str(fm.get("type") or "").strip("[]\"' ") == "phase":
+            continue
+        m = re.search(r"PHASE-\d+", str(fm.get("phase") or ""))
+        if m and m.group(0) in superseded:
+            stranded.append(f"{fm.get('id')} → {m.group(0)}")
+
+    assert not stranded, (
+        "notes still name a superseded phase — re-home them to the phase "
+        f"that absorbed it: {sorted(stranded)}"
+    )
+
+
+def test_a_superseded_phase_says_what_absorbed_it() -> None:
+    """Otherwise the note records that it ended and not where it went."""
+    index = Index.build(DOCS)
+    for record in index.iter_records():
+        fm = record.frontmatter or {}
+        if str(fm.get("type") or "").strip("[]\"' ") != "phase":
+            continue
+        if str(fm.get("status") or "") != "superseded":
+            continue
+        assert str(fm.get("superseded_by") or "").strip(), (
+            f"{fm.get('id')} is superseded with no superseded_by — the note "
+            "says it ended and not where its work is now recorded"
+        )
+
+
+def test_the_phase_rule_is_written_down() -> None:
+    """ISS-0077's durable half.
+
+    The merge was the cleanup; this is what stops it recurring.
+    `tools/instructions/LIFECYCLE.md` is template-owned, so the rule
+    lives in CLAUDE.md and is proposed upstream — the same split
+    ISS-0069 and FEAT-0051 took.
+    """
+    text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "When to open a phase" in text, "the phase-granularity rule is gone"
+    for needed in ("without listing its parts", "standing phase", "superseded"):
+        assert needed in text, f"the rule lost {needed!r}"

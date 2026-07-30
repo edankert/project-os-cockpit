@@ -4,7 +4,7 @@ id: TASK-0257
 aliases: ["TASK-0257"]
 title: "The full history view at ~history"
 status: done
-phase: "[[PHASE-017-History-As-Document-Events]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

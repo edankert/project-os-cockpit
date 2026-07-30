@@ -2,25 +2,48 @@
 type: "[[phase]]"
 id: PHASE-016
 aliases: ["PHASE-016"]
-title: "Errors become work — a validator result is either being fixed now or filed as an issue, never a number nobody can act on"
+title: "The overview answers questions — every number on it leads somewhere, and every thing on it says what it is"
 status: done
 order: 16
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
-goal: "A validator error stops being a permanent count on a badge. While a session is running it is a row in that session's work list that closes when the agent fixes it; if it is still standing when the session ends, it becomes a real issue with an ID and goes to the Issues view."
+goal: "Turn the overview from a page of numbers into a page of answers: a validator count becomes work you can watch drain, the history band becomes documents rather than a git log, that history becomes reachable and traversable, and everything on the page says which item it is."
 features:
   - "[[FEAT-0051-Validator-Errors-As-Session-Work]]"
+  - "[[FEAT-0052-History-Timeline]]"
+  - "[[FEAT-0053-History-Navigation]]"
 requirements: []
-issues: []
+issues:
+  - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
+  - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
+  - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"
+supersedes: ["[[PHASE-017-History-As-Document-Events]]", "[[PHASE-018-History-You-Can-Reach-And-Traverse]]", "[[PHASE-019-Overview-Legibility]]"]
 depends: ["[[PHASE-013-Fleet-Surfaces]]"]
 related: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0028-Fleet-Health-Surface]]", "[[TASK-0250-Fleet-Badge-On-The-Rail]]", "[[ISS-0065-Record-Column-Lost-Its-Source]]"]
 tags: [validation, agents]
 ---
 
-# Errors become work
+# The overview answers questions
 
-## Where this came from
+## Merged 2026-07-30 — this phase absorbed three others
+
+Opened as **"Errors become work"** and widened to cover what turned out to be one push. [[PHASE-017]], [[PHASE-018]] and [[PHASE-019]] are `superseded` into it; their notes stay as the record of each leg.
+
+Four phases for one afternoon's work was the drift [[ISS-0077]] measured: nine phases opened in a day against nine in the preceding twelve weeks, at a fifth of the size. Each was created reactively — one per request — because the document-first rule needs a focus item and an open phase is the cheapest way to get one.
+
+They belong together because their goal states without listing them: **every number on the overview leads somewhere, and everything on it says what it is.** All four came from Edwin looking at the page and asking *what is this / how do I get there / why does that look wrong*.
+
+| leg | was | what it delivered |
+|---|---|---|
+| errors | PHASE-016 | a validator count became rows in the session's work list, and issues at close-out |
+| history | [[PHASE-017]] | the history band became document state changes, with commits as dividers |
+| navigation | [[PHASE-018]] | a contribution grid whose days are destinations, and History in the rail |
+| legibility | [[PHASE-019]] | the phase rows say which phase they are |
+
+**Nothing before PHASE-013 was touched**, and [[PHASE-013]], [[PHASE-014]] and [[PHASE-015]] stay separate: planned in advance, retrospective for earlier work, and a records correction respectively.
+
+## Where the first leg came from
 
 Edwin, watching the rail badge [[TASK-0250]] shipped: *"I noticed the project image showed some error overlays during the changes but it was very difficult for me to understand what these errors were related to."*
 
@@ -85,3 +108,21 @@ His question was different: **not "how long does it last" but "who fixes it"**. 
 The reporter was the user, looking at a badge I had shipped that afternoon and finding it unreadable. Everything about it was technically correct: the count was right, the tooltip was accurate, the SSE was live. It was **useless**, because it answered *how many* and the only question anyone has is *what*.
 
 That is the fifth finding this week that came from someone looking at a rendered surface rather than from a check — after [[ISS-0069]], [[ISS-0072]], [[ISS-0073]] and [[ISS-0074]]. Four of the five were mine to have noticed and I did not, because I verified that each surface *worked* rather than that it *answered anything*.
+
+
+## Closed 2026-07-30 — merged, then closed
+
+All three features done ([[FEAT-0051]], [[FEAT-0052]], [[FEAT-0053]]), all three issues fixed ([[ISS-0075]], [[ISS-0076]], [[ISS-0077]]), fourteen items.
+
+Against the widened goal — *every number on the overview leads somewhere, and everything on it says what it is*:
+
+- **A validator count leads somewhere** — rows in the session's work list that close as they are fixed, and issues at close-out for what survives.
+- **The history band is documents** — status transitions as rows, commits as dividers, replacing three tiles that each made git the subject.
+- **History is reachable** — a rail button, and a contribution grid whose days are destinations.
+- **Everything says what it is** — phase rows carry their ID.
+
+Every one of the four came from Edwin looking at the page and asking *what is this / how do I get there / why does that look wrong*. None came from a check.
+
+### The shape of the day
+
+This phase exists in its current form because [[ISS-0077]] counted: nine phases opened on 2026-07-30 against nine in the preceding twelve weeks, at a fifth of the size. Four of them were this one push. The merge was the cleanup; the rule in `CLAUDE.md` and `project-os-dev` ISS-0029 are what stop it recurring.

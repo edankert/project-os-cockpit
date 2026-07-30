@@ -5,7 +5,7 @@ aliases: ["ISS-0075"]
 title: "The contribution grid's busiest days render 33% smaller than its quietest — the 'second channel' was subtractive, so the strongest signal was the weakest mark"
 status: fixed
 severity: medium
-phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

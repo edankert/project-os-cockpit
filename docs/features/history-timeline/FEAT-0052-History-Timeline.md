@@ -4,7 +4,7 @@ id: FEAT-0052
 aliases: ["FEAT-0052"]
 title: "History — document state changes as the rows, commits as dividers"
 status: done
-phase: "[[PHASE-017-History-As-Document-Events]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

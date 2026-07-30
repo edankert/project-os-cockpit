@@ -4,7 +4,7 @@ id: TASK-0259
 aliases: ["TASK-0259"]
 title: "The contribution grid, replacing the sparkline, with days that are destinations"
 status: done
-phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

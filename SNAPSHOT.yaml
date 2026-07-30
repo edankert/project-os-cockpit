@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 53
-  ISS: 76
+  ISS: 77
   PHASE: 19
   REQ: 25
   RISK: 4
@@ -47,23 +47,23 @@ counters:
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-019"
+  phase: "PHASE-016"
   issue: ""
-  note: "2026-07-30 PHASE-019 done: every phase row on the overview now shows its ID beside the title (it was already in p.key, routing the title click, just never rendered). Two attempts — the first put IDs on the phase strip's feature groups and Edwin reverted it on sight; he meant the phase title. Nothing was committed, so it was a clean checkout. Earlier today: PHASE-013 through 018 — fleet badges, parking-lot cleanup, validator errors as session work, History as document events, the contribution grid. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev. Seven phases opened and closed today — more than the preceding twelve weeks, worth a look at phase granularity."
+  note: "2026-07-30 Phase granularity reviewed and consolidated (ISS-0077): nine phases opened today against nine in the preceding twelve weeks, median 4 items vs 21. PHASE-016 widened to 'The overview answers questions' and absorbed PHASE-017/018/019 — one push, four phases — leaving 19 phases at 16 and that phase at 14 items. Nothing deleted: the three are superseded with superseded_by, children re-homed first. PHASE-013/014/015 left separate with reasons; nothing before 013 touched. The RULE is in CLAUDE.md (LIFECYCLE.md is template-owned) and proposed upstream as project-os-dev ISS-0029 — the standing phase is the actual mechanism, since document-first needs a focus item and minting a phase was the cheapest way to get one. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); five upstream proposals open in project-os-dev."
 items:
   features:
     FEAT-0053:
       file: "docs/features/history-navigation/FEAT-0053-History-Navigation.md"
       title: "A contribution grid you can click into, and a permanent way to reach History"
       status: done
-      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       tasks: [TASK-0258, TASK-0259, TASK-0260]
       note: "Edwin, right after FEAT-0052 landed. A literal GitHub grid would look broken here — measured 16 active days in 12 weeks, median 34 transitions, so fixed buckets saturate every lit cell. Three corrections: relative intensity, absent-is-not-empty, no year controls without a second year."
     FEAT-0052:
       file: "docs/features/history-timeline/FEAT-0052-History-Timeline.md"
       title: "History — document state changes as the rows, commits as dividers"
       status: done
-      phase: "[[PHASE-017-History-As-Document-Events]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       tasks: [TASK-0255, TASK-0256, TASK-0257]
       note: "Edwin's framing: the docs are a layer over git so you need not read git. Rows are status TRANSITIONS, not note touches — measured, the phase-hygiene commit touched 20 notes and changed 4 statuses. Commits become dividers marking what is saved. Replaces three overview tiles with one."
     FEAT-0051:
@@ -367,42 +367,42 @@ items:
       file: "docs/features/history-navigation/plan/tasks/TASK-0258-Activity-Grid-Payload.md"
       title: "activity_payload — per-day counts across the whole history, cached on HEAD"
       status: done
-      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0053
       note: "A second payload rather than a field on the first: FEAT-0052's must never be cached (its uncommitted band), this one must be (0.57s full-history pass). Opposite requirements."
     TASK-0259:
       file: "docs/features/history-navigation/plan/tasks/TASK-0259-Contribution-Grid.md"
       title: "The contribution grid, replacing the sparkline, with days that are destinations"
       status: done
-      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0053
       note: "A cell that does not navigate is the sparkline again at higher resolution. Colour cannot be the only channel — five steps of one hue is what DES-0004 refused for the phase squares."
     TASK-0260:
       file: "docs/features/history-navigation/plan/tasks/TASK-0260-History-In-The-Rail.md"
       title: "A History button in the workspace rail"
       status: done
-      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0053
       note: "The rail, not the top bar: those buttons set the left pane's nav mode and History has no listing. ~agents is the precedent."
     TASK-0255:
       file: "docs/features/history-timeline/plan/tasks/TASK-0255-History-Payload.md"
       title: "history_payload — transitions from git, grouped by commit, uncommitted band on top"
       status: done
-      phase: "[[PHASE-017-History-As-Document-Events]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0052
       note: "One git log -U0 over docs/ gives every +status: line with its commit in 0.08s. Must distinguish created-at from moved-to: most notes in a busy commit are BORN done, and an arrow implies a journey they never took."
     TASK-0256:
       file: "docs/features/history-timeline/plan/tasks/TASK-0256-History-Tile-On-The-Overview.md"
       title: "One History tile replacing Activity, Changes and Commits"
       status: done
-      phase: "[[PHASE-017-History-As-Document-Events]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0052
       note: "Deleting the three is the point, not a side effect — landing beside them leaves four history surfaces, the shape PHASE-010 and PHASE-012 each closed by undoing. The guard asserts the absence."
     TASK-0257:
       file: "docs/features/history-timeline/plan/tasks/TASK-0257-Full-History-View.md"
       title: "The full history view at ~history"
       status: done
-      phase: "[[PHASE-017-History-As-Document-Events]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0052
       note: "One more virtual page beside ~design/~review/~agents. Must state its horizon — a view that stops at 200 commits without saying so reads as complete."
     TASK-0252:
@@ -1826,19 +1826,26 @@ items:
 
 
   issues:
+    ISS-0077:
+      file: "docs/issues/ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request.md"
+      title: "A phase became the unit of a request — nine in a day at a fifth of the historical size"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "Nine phases opened 2026-07-30 against nine in the preceding twelve weeks; median 4 items vs 21. Cause: the document-first rule needs a focus item and an open phase is the cheapest way to get one, so every request minted one. PHASE-011/012/013 were planned together and are fine; 014-019 were reactive."
     ISS-0076:
       file: "docs/issues/ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id.md"
       title: "The overview's Phases section shows titles and never phase IDs"
       status: fixed
       severity: low
-      phase: "[[PHASE-019-Overview-Legibility]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "buildPhaseRow already holds the id in p.key — it routes the title click with it — and never renders it. Everything that refers to a phase refers to it by ID, so the one surface listing every phase is the only one that cannot be cross-referenced."
     ISS-0075:
       file: "docs/issues/ISS-0075-Busiest-Grid-Cells-Render-Smallest.md"
       title: "Contribution grid: the busiest days render 33% smaller — the second channel was subtractive"
       status: fixed
       severity: medium
-      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "An inset box-shadow in the BACKGROUND colour eats into the cell, so step 4 shows 6px of colour against step 1's 9px. Cited DES-0004 to justify it, but that rule is about HUE — lightness is already greyscale- and CVD-safe, which is why GitHub's scale works. Solved a problem that did not exist, subtractively."
     ISS-0074:
       file: "docs/issues/ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot.md"

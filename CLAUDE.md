@@ -60,6 +60,34 @@ Watch out on resume: a resumed session keeps the model its transcript was saved 
 
 Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are byte-identical to upstream's, but note that `sync-project-os.sh` copies `tools/` and never touches `.claude/`, and this repo carries no generator — so the agent files can only be refreshed by re-copying them, and nothing here detects drift.
 
+## When to open a phase — and when not to (ISS-0077)
+
+`LIFECYCLE.md` says when a phase note is **needed**. It never says when one is **too small**, and on 2026-07-30 that gap produced nine phases in a day against nine in the preceding twelve weeks, at a fifth of the size (median 4 items against 21).
+
+The cause is structural, not careless: the document-first rule needs a focus item before code changes, and an open phase is the cheapest way to get one. So every new request minted a phase.
+
+**Open a phase when both hold:**
+
+1. You can state its goal **without listing its parts**. "Fleet surfaces — the cockpit reports on every repo it can see" passes. "Show the phase ID next to the title" does not; that is a sentence about one change.
+2. Its exit criteria are something other than **"the tasks are done"**. A phase whose criteria restate its task list is a task list with a heading.
+
+**Do not open one for** a single request, a single issue, or anything you will finish in the same session. Those get an `ISS-*` or a task inside a **standing phase** for the surface they touch.
+
+**A standing phase is the mechanism that prevents this.** One long-lived phase per durable surface — the overview, the fleet, the docs system — that small fixes join. It has no end date and closes only if the surface is retired. Reaching for one is the default; minting a phase is the exception.
+
+**A phase closing with ≤3 items is a signal**, not a small success: it should probably have joined something. Check before closing, not after.
+
+### Merging, when it has already happened
+
+Do not delete. `superseded` is a terminal phase status ([[ADR-0008]]) and expresses this exactly:
+
+1. **Re-home the children first** — a superseded phase with unresolved children fires `PHASE-CHILDREN`.
+2. Set the absorbed phases to `superseded` with `superseded_by:`, and keep their notes as the record of each leg.
+3. Widen the surviving phase's goal, `features:`/`issues:`, and add `supersedes:`.
+4. Update `docs/PHASES.md` and the `phase:` entries in `SNAPSHOT.yaml` — `sync-snapshot.py` propagates status but **not** `phase`.
+
+Worked example: PHASE-016 absorbed PHASE-017/018/019 on 2026-07-30.
+
 ## Close-out: file what the validator reports and you cannot fix (FEAT-0051)
 
 LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.

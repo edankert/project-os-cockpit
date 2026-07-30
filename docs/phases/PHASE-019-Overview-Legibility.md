@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-019
 aliases: ["PHASE-019"]
 title: "Overview legibility — the page names what it is showing"
-status: done
+status: superseded
 order: 19
 owner: user:edwin
 created: 2026-07-30
@@ -13,6 +13,7 @@ features: []
 requirements: []
 issues:
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
+superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"
 depends: ["[[PHASE-018-History-You-Can-Reach-And-Traverse]]"]
 related: ["[[FEAT-0040-Overview-Rework]]"]
 tags: [overview]
@@ -48,3 +49,11 @@ A standing home for the small legibility fixes on the overview, so each one does
 **Two attempts, and the first one was reverted.** I read "the feature id is not visible on the project overview" as the phase strip's squares — built labels on the feature groups, and Edwin reverted it on sight. He meant the phase ID next to the phase title, which is a different surface and a much smaller change.
 
 The cost of guessing was about twenty minutes and a clean `git checkout`, because none of it was committed. The cost of *asking* would have been one message. Worth remembering which of those is cheaper: I had the whole overview inventoried and could have shown him the four places a feature appears before writing anything.
+
+## Superseded 2026-07-30 — merged into [[PHASE-016]]
+
+This phase's work shipped and is unchanged; what changed is where it is recorded. [[PHASE-016]] absorbed it along with the other two legs of the same push, because their shared goal states without listing them: **every number on the overview leads somewhere, and everything on it says what it is.**
+
+Four phases for one afternoon was the drift [[ISS-0077]] measured — nine phases opened in a day against nine in the preceding twelve weeks, at a fifth of the historical size. Each was minted reactively, one per request.
+
+The note stays as the record of this leg. Its items now name PHASE-016, which is the phase that delivered them.

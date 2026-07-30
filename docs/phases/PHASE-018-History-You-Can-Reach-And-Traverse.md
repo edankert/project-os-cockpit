@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-018
 aliases: ["PHASE-018"]
 title: "History you can reach and traverse — a permanent way in, and a year of activity you can click into"
-status: done
+status: superseded
 order: 18
 owner: user:edwin
 created: 2026-07-30
@@ -13,6 +13,7 @@ features:
   - "[[FEAT-0053-History-Navigation]]"
 requirements: []
 issues: []
+superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"
 depends: ["[[PHASE-017-History-As-Document-Events]]"]
 related: ["[[FEAT-0052-History-Timeline]]", "[[FEAT-0032-Agents-Screen]]"]
 tags: [overview, history, navigation]
@@ -89,3 +90,11 @@ Worth generalising: **copying a known design means copying its constants, and co
 [[TASK-0259]] wrote down "a cell that does not navigate is the sparkline again" before implementation, and the first cut navigated to the wrong day anyway — silently, landing on the oldest commit that happened to be loaded. No test would have caught it; nothing was thrown and a divider *was* highlighted.
 
 That is the seventh finding this week from looking at a rendered surface rather than from a check. The difference this time is that it was **my own** surface and my own warning, found within minutes because the pass was run before the claim was written.
+
+## Superseded 2026-07-30 — merged into [[PHASE-016]]
+
+This phase's work shipped and is unchanged; what changed is where it is recorded. [[PHASE-016]] absorbed it along with the other two legs of the same push, because their shared goal states without listing them: **every number on the overview leads somewhere, and everything on it says what it is.**
+
+Four phases for one afternoon was the drift [[ISS-0077]] measured — nine phases opened in a day against nine in the preceding twelve weeks, at a fifth of the historical size. Each was minted reactively, one per request.
+
+The note stays as the record of this leg. Its items now name PHASE-016, which is the phase that delivered them.

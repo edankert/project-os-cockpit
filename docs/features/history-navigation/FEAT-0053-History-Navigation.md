@@ -4,7 +4,7 @@ id: FEAT-0053
 aliases: ["FEAT-0053"]
 title: "A contribution grid you can click into, and a permanent way to reach History"
 status: done
-phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
