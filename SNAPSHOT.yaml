@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 54
-  ISS: 78
+  ISS: 79
   PHASE: 20
   REQ: 25
   RISK: 4
@@ -1854,6 +1854,13 @@ items:
 
 
   issues:
+    ISS-0079:
+      file: "docs/issues/ISS-0079-Context-Menu-Only-Ever-Fired-For-Anchors.md"
+      title: "The note context menu keyed off closest('a'), so button-shaped rows got the word menu"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      note: "TASK-0262 fixed the anchor path and was verified on an anchor. History rows are BUTTONs, so a right-click on a feature there still got the word menu — the symptom FEAT-0054 was raised for, on a surface it never covered."
     ISS-0078:
       file: "docs/issues/ISS-0078-Downstream-Pilot-Was-Overtaken-And-CLAUDE-Md-Still-Claims-It.md"
       title: "PHASE-003's pilot was overtaken by workspace discovery; CLAUDE.md still claims the shim exists"

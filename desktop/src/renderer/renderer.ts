@@ -1764,6 +1764,11 @@ async function pasteIntoTerminal(): Promise<void> {
   const text = res.text ?? '';
   if (!text) { showStatus('Clipboard is empty', 'error'); return; }
   cockpitApi.terminal.write(attachedTerminalId, bracketedPaste(text));
+  // Say so. A paste into a full-screen TUI can be visually ambiguous —
+  // the app decides where the text lands — and silence was reported as
+  // "paste does not work" when the write had in fact succeeded.
+  showStatus(`Pasted ${text.length} character${text.length === 1 ? '' : 's'} into the console`);
+  scheduleHide(1200);
 }
 
 /** The selection captured when the context menu opened, if any.
@@ -1793,7 +1798,14 @@ function showTerminalMenu(x: number, y: number): void {
     b.className = 'term-menu-item';
     b.textContent = label;
     b.disabled = !enabled;
-    b.addEventListener('click', () => { closeTerminalMenu(); fn(); });
+    b.addEventListener('click', () => {
+      closeTerminalMenu();
+      fn();
+      // Hand focus back: after a menu action the user's next keystroke
+      // belongs to the console, and a paste they cannot then type after
+      // reads as a paste that did not happen.
+      try { term?.focus(); } catch { /* terminal gone */ }
+    });
     menu.appendChild(b);
   };
   add('Copy', hasSel, copyTerminalSelection);
@@ -6441,6 +6453,8 @@ function buildUncommittedBand(
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'ov-history-row is-uncommitted';
+    if (row.id) el.dataset.noteId = row.id;
+    if (row.rel) el.dataset.noteRel = row.rel;
     const sq = document.createElement('span');
     sq.className = 'ov-phase-sq';
     if (row.type) sq.dataset.type = row.type;
@@ -6513,6 +6527,13 @@ function buildTransitionRow(tr: HistoryTransition): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'ov-history-row';
+  // Identity for the context menu (ISS-0079). These rows are BUTTONS,
+  // not anchors, so the doc-link menu — which keyed off `closest('a')` —
+  // never fired for them and a right-click fell through to the word
+  // menu. Reported: "cannot copy a link, tried a feature link in the
+  // history".
+  if (tr.id) el.dataset.noteId = tr.id;
+  if (tr.rel) el.dataset.noteRel = tr.rel;
 
   const sq = document.createElement('span');
   sq.className = 'ov-phase-sq';
@@ -7906,20 +7927,41 @@ rightPaneContent.addEventListener('contextmenu', navRowContextMenu);
 
 docView.addEventListener('contextmenu', (e) => {
   const target = e.target as HTMLElement | null;
+
+  // Anchors in rendered markdown, OR any element that carries a note's
+  // identity (ISS-0079). The History rows, the uncommitted band and the
+  // fleet roll-up are BUTTONS, so keying only off `closest('a')` meant a
+  // right-click on a feature in History got the word menu and no way to
+  // copy anything about it.
+  const carrier = target?.closest('[data-note-rel]') as HTMLElement | null;
   const anchor = target?.closest('a') as HTMLAnchorElement | null;
-  if (!anchor) return;
-  const href = anchor.getAttribute('href') || '';
-  const cls = classifyLink(href);
-  if (cls.kind !== 'docs') return;
+  if (!carrier && !anchor) return;
+
+  let rel: string;
+  let linkId: string;
+  let href: string;
+  if (carrier) {
+    rel = carrier.dataset.noteRel || '';
+    linkId = (carrier.dataset.noteId || '').toUpperCase();
+    href = `/docs/${rel}`;
+  } else {
+    href = anchor!.getAttribute('href') || '';
+    const cls = classifyLink(href);
+    if (cls.kind !== 'docs') return;
+    rel = cls.rel;
+    linkId = (anchor!.textContent || '').match(/^((TASK|ISS|FEAT|REQ|PHASE|RISK)-\d+)/i)?.[1]?.toUpperCase()
+      || (cls.rel.split('/').pop() || '').match(/^((TASK|ISS|FEAT|REQ|PHASE|RISK)-\d+)/i)?.[1]?.toUpperCase()
+      || '';
+    href = anchor!.href || href;
+  }
+  if (!rel) return;
   e.preventDefault();
   const activeWs = workspaces.find((w) => w.id === activeId);
-  const linkId = (anchor.textContent || '').match(/^((TASK|ISS|FEAT|REQ|PHASE|RISK)-\d+)/i)?.[1]?.toUpperCase()
-    || (cls.rel.split('/').pop() || '').match(/^((TASK|ISS|FEAT|REQ|PHASE|RISK)-\d+)/i)?.[1]?.toUpperCase()
-    || '';
+  const cls = { rel };
   void cockpitApi.app.showContextMenu('doc-link', {
     id: linkId,
     rel: cls.rel,
-    url: anchor.href || href,
+    url: href,
     workspaceId: activeId || '',
     root: activeWs?.root || '',
     verbs: linkId ? verbsForId(linkId).map((v) => ({ key: v.key, label: v.label })) : [],
@@ -10384,6 +10426,10 @@ function buildHealthRow(r: FleetHealthRow): HTMLElement {
 
   row.append(count, name, when);
   row.title = healthSummary(r);
+  // Not a note, so no `data-note-rel` — but the workspace name is worth
+  // copying, and the fleet rows are the other button-shaped surface
+  // ISS-0079 covers. Left without a menu deliberately: there is no
+  // single note behind a repo's health row.
   // Deep-link into that workspace's own drift panel (TASK-0112), which
   // holds the actual violations — this row only carries the number.
   row.addEventListener('click', () => { void openWorkspace(r.workspaceId); });

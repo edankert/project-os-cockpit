@@ -840,3 +840,31 @@ test('clipboard failures are reported, not swallowed', async () => {
   assert.ok(fn.includes('Copy failed'), 'copyText no longer surfaces a failure');
   assert.ok(fn.includes("'error'"), 'the failure is not shown as an error status');
 });
+
+test('the note context menu fires for BUTTON rows, not just anchors (ISS-0079)', async () => {
+  // TASK-0262 fixed the anchor path and was verified on an anchor. The
+  // History rows are <button>, so `closest('a')` returned null and a
+  // right-click on a feature there still got the word menu — the exact
+  // symptom FEAT-0054 was raised for, on a surface it never covered.
+  //
+  // Guarded on the BUTTON case specifically: the anchor case is the one
+  // that already worked, so asserting it would prove nothing.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+
+  const i = js.indexOf("docView.addEventListener('contextmenu'");
+  assert.notEqual(i, -1, 'the docView context-menu handler was renamed');
+  const fn = js.slice(i, i + 1800);
+  assert.ok(fn.includes('data-note-rel'),
+    'the handler keys off element type again — a row that names a note '
+    + 'but is not an <a> gets no menu');
+  assert.ok(!/if\s*\(!anchor\)\s*return/.test(fn),
+    'the anchor-only early return is back');
+
+  // …and the rows actually carry the identity the handler looks for.
+  const rowFn = js.slice(js.indexOf('function buildTransitionRow'),
+                         js.indexOf('function buildTransitionRow') + 900);
+  assert.ok(rowFn.includes('noteId') && rowFn.includes('noteRel'),
+    'History rows no longer carry their note identity, so the handler '
+    + 'cannot find anything to offer');
+});
