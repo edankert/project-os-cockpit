@@ -257,3 +257,91 @@ def test_the_summary_says_which_validator_produced_it(tmp_path: Path) -> None:
     assert fleet_validate.summarise(repo)["validator"] == "bundled", (
         "a repo falling back to the cockpit's bundled validator must say so"
     )
+
+
+# ---- git standing (FEAT-0055 / TASK-0265) ----------------------------
+
+def test_remote_kind_is_derived_from_the_url_not_configured() -> None:
+    """This decides whether anything may push, so it must not be a setting.
+
+    `your-applications.com`'s only remote is a server path; classifying
+    it wrong deploys a live website.
+    """
+    from project_os_cockpit.fleet_validate import remote_kind
+
+    assert remote_kind("https://github.com/edankert/x.git") == "backup"
+    assert remote_kind("git@github.com:edankert/x.git") == "backup"
+    assert remote_kind("https://gitlab.com/e/x.git") == "backup"
+    assert remote_kind("root@76.13.51.7:/home/edankert/repos/x.git") == "deploy"
+    assert remote_kind("/srv/git/x.git") == "deploy"
+    assert remote_kind("") == "none"
+
+
+def test_an_unrecognised_remote_is_deploy_not_backup() -> None:
+    """The safe default for "I do not know what this is" is "do not
+    publish to it". Getting this backwards publishes to something."""
+    from project_os_cockpit.fleet_validate import remote_kind
+
+    for weird in ("ssh://unknown.example/x.git", "file:///tmp/x.git",
+                  "https://git.internal.example/x.git"):
+        assert remote_kind(weird) == "deploy", weird
+
+
+def test_no_upstream_is_not_up_to_date(tmp_path: Path) -> None:
+    """`ahead: None` must be distinguishable from `ahead: 0`.
+
+    Three fleet repos have no remote. Rendering that as up-to-date is
+    the ISS-0065 failure — absence presented as health.
+    """
+    from project_os_cockpit.fleet_validate import git_standing
+
+    repo = tmp_path / "r"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    standing = git_standing(repo)
+    assert standing["ahead"] is None
+    assert standing["remote_kind"] == "none"
+
+
+def test_ahead_counts_unpushed_commits(tmp_path: Path) -> None:
+    from project_os_cockpit.fleet_validate import git_standing
+
+    bare = tmp_path / "b.git"
+    repo = tmp_path / "r"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    for k, v in (("user.email", "t@e.st"), ("user.name", "T")):
+        subprocess.run(["git", "-C", str(repo), "config", k, v], check=True)
+    (repo / "a.txt").write_text("a\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "one"], check=True)
+    branch = subprocess.run(["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"],
+                            capture_output=True, text=True, check=True).stdout.strip()
+    subprocess.run(["git", "-C", str(repo), "remote", "add", "origin", str(bare)], check=True)
+    subprocess.run(["git", "-C", str(repo), "push", "-q", "-u", "origin", branch], check=True)
+    assert git_standing(repo)["ahead"] == 0
+
+    (repo / "b.txt").write_text("b\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "two"], check=True)
+    assert git_standing(repo)["ahead"] == 1
+
+
+def test_the_entrypoint_block_stays_at_the_end_of_the_module() -> None:
+    """`raise SystemExit(main())` mid-module stops execution there.
+
+    Appending `git_standing` after that block bound nothing: `main()`
+    ran before the definition was reached, and every repo reported
+    `unavailable: NameError`. Importing the module hides it entirely —
+    only the subprocess entrypoint sees it, which is why exactly one
+    test caught it.
+    """
+    src = (REPO_ROOT / "src" / "project_os_cockpit" / "fleet_validate.py").read_text()
+    after = src.split('if __name__ == "__main__":', 1)[1]
+    leftover = [l for l in after.splitlines()
+                if l.strip() and not l.strip().startswith(("raise SystemExit", "#"))]
+    assert not leftover, (
+        "code follows the entrypoint block and will never be reached by "
+        f"`python -m`: {leftover}"
+    )

@@ -912,3 +912,25 @@ test('a right-click never touches the console selection (ISS-0081)', async () =>
     'right-click selects a word again — with copy-on-select on, that '
     + 'clobbers the clipboard before the paste reads it');
 });
+
+test('nothing pushes except a person clicking, and never to a deploy remote (FEAT-0055)', async () => {
+  const main = await fs.readFile(path.join(here, '..', 'dist', 'ipc', 'git.js'), 'utf-8');
+  // The classification is re-derived HERE, in the process that actually
+  // runs `git push` — a disabled button in the renderer is a UI state,
+  // not a guard.
+  assert.ok(main.includes('function remoteKind'), 'the git IPC classifies nothing');
+  assert.ok(/kind === 'deploy'/.test(main), 'a deploy remote is not refused');
+  assert.ok(main.includes('refused'), 'the refusal gives no reason');
+
+  // Unrecognised must be deploy, not backup.
+  const fn = main.slice(main.indexOf('function remoteKind'),
+                        main.indexOf('function run'));
+  assert.ok(/return 'deploy'/.test(fn.split('for (')[1] ?? fn),
+    "an unrecognised remote should fall through to 'deploy'");
+
+  // And nothing else in the app pushes.
+  const renderer = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const pushes = [...renderer.matchAll(/git\.push\(/g)].length;
+  assert.equal(pushes, 1, `expected exactly one push call site, found ${pushes}`);
+});

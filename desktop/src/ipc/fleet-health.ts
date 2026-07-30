@@ -70,6 +70,13 @@ export interface HealthRow {
    *  construction running that repo's own copy, so there is nothing to
    *  disclose. */
   validator?: 'repo' | 'bundled';
+  /** Commits not on the remote. `null` when there is no upstream to be
+   *  ahead OF — which is not the same as up to date (FEAT-0055). */
+  ahead?: number | null;
+  /** `backup` may be pushed to. `deploy` never automatically: one fleet
+   *  repo's only remote is a server path, and pushing it deploys a live
+   *  website. Derived from the URL, never configured. */
+  remoteKind?: 'backup' | 'deploy' | 'none';
 }
 
 export interface FleetHealthPayload {
@@ -325,6 +332,8 @@ export function coldArgv(roots: string[]): string[] {
 interface ColdLine {
   root: string;
   validator?: string | null;
+  ahead?: number | null;
+  remote_kind?: string | null;
   state?: string;
   errors?: number;
   warnings?: number;
@@ -371,6 +380,11 @@ export async function refreshColdWorkspaces(): Promise<void> {
     }, 'cold');
     if (line.validator === 'repo' || line.validator === 'bundled') {
       row.validator = line.validator;
+    }
+    row.ahead = typeof line.ahead === 'number' ? line.ahead : null;
+    if (line.remote_kind === 'backup' || line.remote_kind === 'deploy'
+        || line.remote_kind === 'none') {
+      row.remoteKind = line.remote_kind;
     }
     health.set(ws.id, row);
   }

@@ -51,8 +51,11 @@ def summarise(project_root: Path) -> dict[str, object]:
     which = (None if located is None
              else "bundled" if located == BUNDLED_VALIDATOR else "repo")
     report = validate_repo(project_root)
+    standing = git_standing(project_root)
     return {
         "validator": which,
+        "ahead": standing["ahead"],
+        "remote_kind": standing["remote_kind"],
         "root": str(project_root),
         "state": report.get("state"),
         "errors": len(report.get("errors") or []),
@@ -78,6 +81,73 @@ def main(argv: list[str] | None = None) -> int:
                     "detail": f"{type(exc).__name__}: {exc}"}
         print(json.dumps(line), flush=True)
     return 0
+
+
+
+
+# ---- git standing (FEAT-0055 / TASK-0265) ----------------------------
+
+#: Hosts whose remotes are a backup/forge rather than a deployment.
+_FORGE_HOSTS = ("github.com", "gitlab.com", "bitbucket.org", "codeberg.org")
+
+
+def remote_kind(url: str) -> str:
+    """`backup` | `deploy` | `none`, from the URL rather than a setting.
+
+    This decides whether anything may push automatically, so it is
+    derived and not configured: a setting can be wrong, and being wrong
+    here means deploying a website. `your-applications.com`'s only remote
+    is ``root@76.13.51.7:/home/edankert/repos/your-applications.com.git``
+    — a server path, and on 2026-07-30 one ambiguous instruction away
+    from being pushed to.
+
+    Unknown shapes are **deploy**, not backup: the safe default for "I do
+    not recognise this" is "do not publish to it".
+    """
+    u = (url or "").strip()
+    if not u:
+        return "none"
+    lowered = u.lower()
+    for host in _FORGE_HOSTS:
+        if f"//{host}/" in lowered or f"@{host}:" in lowered:
+            return "backup"
+    return "deploy"
+
+
+def git_standing(project_root: Path) -> dict[str, object]:
+    """How far ahead of its remote a repo is, and what kind of remote.
+
+    ``ahead`` is None when there is no upstream to be ahead *of* — which
+    is not the same as being up to date, and must not render as such.
+    """
+    import subprocess
+
+    def _git(*args: str) -> str | None:
+        try:
+            proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+                ["git", "-C", str(project_root), *args],
+                capture_output=True, text=True, timeout=5.0, check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return proc.stdout.strip() if proc.returncode == 0 else None
+
+    if not (project_root / ".git").exists():
+        return {"ahead": None, "remote": None, "remote_kind": "none"}
+
+    url = _git("remote", "get-url", "origin")
+    if url is None:
+        # No `origin` — but there may be another remote, and if it is a
+        # deploy target that is exactly what the caller needs to know.
+        first = (_git("remote") or "").splitlines()
+        url = _git("remote", "get-url", first[0]) if first else None
+    kind = remote_kind(url or "")
+    ahead_raw = _git("rev-list", "--count", "@{u}..HEAD")
+    try:
+        ahead = int(ahead_raw) if ahead_raw is not None else None
+    except ValueError:
+        ahead = None
+    return {"ahead": ahead, "remote": url, "remote_kind": kind}
 
 
 if __name__ == "__main__":

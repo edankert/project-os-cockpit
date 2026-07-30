@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 54
+  FEAT: 55
   ISS: 81
-  PHASE: 20
+  PHASE: 21
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 263
+  TASK: 266
   TST: 22
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-020"
+  phase: "PHASE-021"
   issue: ""
   note: "2026-07-30 PHASE-020 done: copy/paste reviewed end to end after Edwin reported both halves, and both reproduced. Right-clicking a note link showed the WRONG menu — a rich doc-link menu already existed and a second selection menu fired for the same click and won; attachContextMenu now yields on a docs linkURL. Console Copy was disabled exactly when needed because the right-click clears xterm's selection before the menu reads it; the selection is captured in the contextmenu listener, proven load-bearing by clearing it deliberately. All clipboard access moved to the main process (navigator.clipboard needs focus to write and a permission to read), writes are read back, and every failure surfaces. The Edit menu asks the renderer which pane has focus rather than using roles that can only see the DOM. OWED: mode 1 still has the old three history tiles and no grid; six downstream design notes stay draft; ISS-0057 (note_moved); five upstream proposals in project-os-dev."
 items:
   features:
+    FEAT-0055:
+      file: "docs/features/git-assist/FEAT-0055-Git-Assist.md"
+      title: "Close-out commits its own work, and being behind a remote is visible"
+      status: done
+      phase: "[[PHASE-021-Git-Is-Not-The-Users-Job]]"
+      tasks: [TASK-0264, TASK-0265, TASK-0266]
+      note: "Assisted, not automatic (Edwin). The push does not fail because it is hard — it fails because it is invisible: 312 commits and six days behind across eight repos on 2026-07-30, with nothing anywhere mentioning it. A commit is local and reversible; a push is publishing."
     FEAT-0054:
       file: "docs/features/clipboard/FEAT-0054-Clipboard-That-Works.md"
       title: "One clipboard path, a link-aware context menu, and no silent failures"
@@ -370,6 +377,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0264:
+      file: "docs/features/git-assist/plan/tasks/TASK-0264-Commit-At-Close-Out.md"
+      title: "close-out-commit.sh — stage what the work declares, refuse what it does not"
+      status: done
+      phase: "[[PHASE-021-Git-Is-Not-The-Users-Job]]"
+      parent: FEAT-0055
+      note: "Never git add -A. Measured: your-trainer 44 dirty files, your-health 8, unrelated and deliberately untouched."
+    TASK-0265:
+      file: "docs/features/git-assist/plan/tasks/TASK-0265-Unpushed-State-On-The-Fleet-Surface.md"
+      title: "Unpushed commits and the remote's kind, on the fleet surface"
+      status: done
+      phase: "[[PHASE-021-Git-Is-Not-The-Users-Job]]"
+      parent: FEAT-0055
+      note: "Same shape of fact as a validator error — per repo, cheap, invisible. Goes beside it, not in a second panel."
+    TASK-0266:
+      file: "docs/features/git-assist/plan/tasks/TASK-0266-A-Deliberate-Push-Action.md"
+      title: "A push action that a person triggers, and that refuses deploy remotes"
+      status: done
+      phase: "[[PHASE-021-Git-Is-Not-The-Users-Job]]"
+      parent: FEAT-0055
+      note: "The refusal is the feature: your-applications.com's only remote deploys a live website."
     TASK-0261:
       file: "docs/features/clipboard/plan/tasks/TASK-0261-One-Clipboard-Path.md"
       title: "One clipboard path through the main process, and no silent failures"
@@ -2948,10 +2976,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 54
-    features_done: 51
-    tasks_total: 263
-    tasks_done: 257
+    features_total: 55
+    features_done: 52
+    tasks_total: 266
+    tasks_done: 260
     tests_total: 22
     tests_passing: 22
     test_cases_total: 182

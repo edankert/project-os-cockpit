@@ -118,6 +118,10 @@ interface CockpitApi {
     write: (text: string) => Promise<{ ok: boolean; error?: string }>;
     read: () => Promise<{ ok: boolean; text?: string; error?: string }>;
   };
+  // Push, and only ever from a person clicking (FEAT-0055 / TASK-0266).
+  git: {
+    push: (workspaceId: string) => Promise<{ ok: boolean; error?: string }>;
+  };
   fleetHealth: {
     get: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
     recheck: () => Promise<{ rows: FleetHealthRow[]; generatedAt: number }>;
@@ -463,6 +467,9 @@ interface FleetHealthRow {
   detail?: string;
   stale?: boolean;
   validator?: 'repo' | 'bundled';
+  ahead?: number | null;
+  remoteKind?: 'backup' | 'deploy' | 'none';
+  remote?: string | null;
 }
 
 const fleetHealth = new Map<string, FleetHealthRow>();
@@ -511,14 +518,23 @@ function healthSummary(row: FleetHealthRow): string {
   // row's sidecar is by construction running its own repo's copy.
   const by = row.validator === 'bundled' ? ", cockpit's bundled validator"
     : row.validator === 'repo' ? ", this repo's own validator" : '';
+  // How far behind its remote (FEAT-0055). Reported here because the
+  // push does not fail for being hard — it fails for being invisible:
+  // 312 commits across eight repos on 2026-07-30, nothing mentioning it.
+  const behind = row.remoteKind === 'none'
+    ? '\nno remote — nothing is backed up'
+    : typeof row.ahead === 'number' && row.ahead > 0
+      ? `\n${row.ahead} commit${row.ahead === 1 ? '' : 's'} not pushed`
+        + (row.remoteKind === 'deploy' ? ' (remote is a deploy target)' : '')
+      : '';
   const suffix = `${how ? `${how}, ` : ''}checked ${when}${by}${row.stale ? ' — stale' : ''}`;
   if (row.state === 'failing') {
-    return `docs: ${row.errors} validator error${row.errors === 1 ? '' : 's'} (${suffix})`;
+    return `docs: ${row.errors} validator error${row.errors === 1 ? '' : 's'} (${suffix})${behind}`;
   }
   if (row.state === 'unavailable') {
-    return `docs: could not validate — ${row.detail || 'no reason given'} (${suffix})`;
+    return `docs: could not validate — ${row.detail || 'no reason given'} (${suffix})${behind}`;
   }
-  return `docs: clean (${suffix})`;
+  return `docs: clean (${suffix})${behind}`;
 }
 
 function relativeTime(iso: string): string {
@@ -10359,6 +10375,30 @@ function buildFleetHealthSection(): HTMLElement {
 
   for (const r of drifting) wrap.appendChild(buildHealthRow(r));
 
+  // Behind the remote — a DIFFERENT problem from failing, so a separate
+  // group (FEAT-0055). A repo can be perfectly clean and six days
+  // unpushed, and that is the failure nobody could see.
+  const behind = rows.filter((r) => typeof r.ahead === 'number' && r.ahead > 0)
+    .sort((a, b) => (b.ahead ?? 0) - (a.ahead ?? 0));
+  const noRemote = rows.filter((r) => r.remoteKind === 'none');
+  if (behind.length) {
+    const head2 = document.createElement('p');
+    head2.className = 'agents-health-subhead';
+    const total = behind.reduce((s, r) => s + (r.ahead ?? 0), 0);
+    head2.textContent = `Not pushed — ${total} commit${total === 1 ? '' : 's'} across `
+      + `${behind.length} repo${behind.length === 1 ? '' : 's'}`;
+    wrap.appendChild(head2);
+    for (const r of behind) wrap.appendChild(buildBehindRow(r));
+  }
+  if (noRemote.length) {
+    const p = document.createElement('p');
+    p.className = 'agents-health-unknown';
+    // Not "up to date". Nothing is backed up at all.
+    p.textContent = `${noRemote.length} with no remote: `
+      + noRemote.map((r) => r.name).join(', ');
+    wrap.appendChild(p);
+  }
+
   // Unknown is listed SEPARATELY, never folded into "fine". A repo
   // nobody checked is not a repo that passed.
   if (unknown.length) {
@@ -10369,6 +10409,56 @@ function buildFleetHealthSection(): HTMLElement {
     wrap.appendChild(sub);
   }
   return wrap;
+}
+
+/** One repo that is ahead of its remote, with the push (FEAT-0055). */
+function buildBehindRow(r: FleetHealthRow): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'agents-health-row is-behind';
+
+  const count = document.createElement('span');
+  count.className = 'agents-health-count is-behind';
+  count.textContent = String(r.ahead ?? 0);
+
+  const name = document.createElement('span');
+  name.className = 'agents-health-name';
+  name.textContent = r.name;
+
+  const act = document.createElement('button');
+  act.type = 'button';
+  act.className = 'agents-health-push';
+
+  if (r.remoteKind === 'deploy') {
+    // The refusal is the feature. One fleet repo's only remote is a
+    // server path; pushing it deploys a live website.
+    act.textContent = 'deploy remote';
+    act.disabled = true;
+    act.title = 'This repo\u2019s remote is a deployment target, not a backup. '
+      + 'Pushing it would publish a running site, so it is never offered here.';
+  } else {
+    act.textContent = `Push ${r.ahead}`;
+    act.title = `Publish ${r.ahead} commit${r.ahead === 1 ? '' : 's'} from ${r.name}`;
+    act.addEventListener('click', () => {
+      // Say what will be published BEFORE doing it: these counts are
+      // large and surprising — 117 commits and six days for one repo.
+      act.disabled = true;
+      act.textContent = 'Pushing…';
+      void cockpitApi.git.push(r.workspaceId).then((res) => {
+        if (res.ok) {
+          showStatus(`Pushed ${r.name}`);
+          act.textContent = 'Pushed';
+        } else {
+          showStatus(`Push failed: ${res.error ?? 'unknown error'}`, 'error');
+          act.disabled = false;
+          act.textContent = `Push ${r.ahead}`;
+        }
+      });
+    });
+  }
+
+  row.append(count, name, act);
+  row.title = `${r.remote ?? 'no remote'}`;
+  return row;
 }
 
 function buildHealthRow(r: FleetHealthRow): HTMLElement {

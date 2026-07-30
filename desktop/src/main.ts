@@ -24,6 +24,7 @@ import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
 import { registerClipboardIpc } from './ipc/clipboard';
+import { registerGitIpc } from './ipc/git';
 import { attachContextMenu } from './ipc/context-menu';
 import { registerSettingsIpc } from './ipc/app-settings';
 import {
@@ -470,6 +471,8 @@ app.whenReady().then(() => {
   registerSettingsIpc();
   // One clipboard path for the whole app (FEAT-0054 / TASK-0261).
   registerClipboardIpc();
+  // Push — person-triggered only, and never to a deploy remote.
+  registerGitIpc();
 
   // Agent-state poller — reads each workspace's
   // .cockpit/agent-state.json every 5 s and fans diffs to the

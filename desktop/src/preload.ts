@@ -115,6 +115,12 @@ const api = {
     sessions: (workspaceId: string): Promise<unknown> =>
       ipcRenderer.invoke('agents:sessions', workspaceId),
   },
+  // Push (FEAT-0055 / TASK-0266). Person-triggered only: nothing in
+  // this app pushes on a timer, on close-out, or on any event.
+  git: {
+    push: (workspaceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('git:push', workspaceId),
+  },
   // Per-workspace docs-validator state across the fleet (FEAT-0028).
   fleetHealth: {
     get: (): Promise<unknown> => ipcRenderer.invoke('fleet:health'),

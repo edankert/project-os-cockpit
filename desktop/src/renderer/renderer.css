@@ -4194,3 +4194,35 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   margin-right: 1px;
 }
 .ov-phase.is-complete .ov-phase-id { opacity: 0.7; }
+
+/* Repos behind their remote, on the roll-up (FEAT-0055 / TASK-0265).
+ * A different problem from failing validation, so a separate group —
+ * a repo can be perfectly clean and six days unpushed. */
+.agents-health-subhead {
+  margin: 10px 0 3px;
+  font-size: 11px;
+  color: var(--severity-medium);
+}
+.agents-health-count.is-behind { color: var(--severity-medium); }
+.agents-health-row.is-behind { cursor: default; }
+.agents-health-push {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.agents-health-push:hover:not(:disabled) {
+  color: var(--accent-link);
+  border-color: var(--accent-link);
+}
+/* A deploy remote is refused, not merely disabled — the label says what
+ * it is rather than looking like a bug. */
+.agents-health-push:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  font-style: italic;
+}

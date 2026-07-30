@@ -30,6 +30,7 @@ This document is the **semantic source of truth** for development phases. It map
 | [PHASE-018](phases/PHASE-018-History-You-Can-Reach-And-Traverse.md) | History you can reach and traverse | A contribution grid whose days are destinations, and a History button in the rail. GitHub's shape, with its constants replaced — relative intensity, absent-is-not-empty, no year controls without a second year. | FEAT-0053 | superseded → PHASE-016 |
 | [PHASE-019](phases/PHASE-019-Overview-Legibility.md) | Overview legibility | Small "I can't tell what I'm looking at" fixes on the project overview. A standing home, so each one need not invent a phase. | ISS-0076 | superseded → PHASE-016 |
 | [PHASE-020](phases/PHASE-020-Clipboard-That-Works.md) | A clipboard that works everywhere | One clipboard path through the main process, a right-click menu that acts on the link rather than the auto-selected word, and no copy that fails in silence. | FEAT-0054 | done |
+| [PHASE-021](phases/PHASE-021-Git-Is-Not-The-Users-Job.md) | Git is not the user's job | Close-out commits its own work, scoped; being behind a remote is visible where repo health already is; pushing is deliberate and refuses deploy remotes. | FEAT-0055 | done |
 | [PHASE-999](phases/PHASE-999-Future.md) | Future / Unphased | Sentinel parking-lot for items without a concrete delivery phase yet. Re-phase out when planning crystallises. **Not a second sentinel:** `PHASE-999-Unscheduled` was a dangling link on 13 notes until 2026-07-30 and never existed. | FEAT-0029, TASK-0045, TASK-0065 | planned |
 
 ## Active phase

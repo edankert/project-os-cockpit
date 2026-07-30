@@ -94,6 +94,21 @@ Do not delete. `superseded` is a terminal phase status ([[ADR-0008]]) and expres
 
 Worked example: PHASE-016 absorbed PHASE-017/018/019 on 2026-07-30.
 
+## Close-out commits its own work (FEAT-0055)
+
+Git is not the user's job. After the validator is green, **commit**:
+
+```
+bash tools/scripts/close-out-commit.sh <paths…> [-m "extra context"]
+```
+
+- **Name the paths.** The script refuses with none, because that is `git add -A` wearing a different name. Measured 2026-07-30: `your-trainer` carried 44 uncommitted files and `your-health` 8, none of them the work in hand — automation that stages everything makes somebody else's afternoon part of your commit.
+- **Dirty files outside those paths are reported and left alone**, and the commit still happens. They are usually legitimate parallel work, and a close-out that refuses to finish because an unrelated file is dirty is an automation people disable.
+- The message is built from the project-os IDs among the staged notes.
+- The pre-commit hook is the gate. **Never `--no-verify`.**
+
+**It does not push, and nothing else does either.** A commit is local and reversible; a push is publishing, and once a forge has cached and indexed it, deleting does not unpublish. Pushing is a person clicking the action on the fleet roll-up, which refuses deploy remotes — one fleet repo's only remote is a server path, and pushing it deploys a live website.
+
 ## Close-out: file what the validator reports and you cannot fix (FEAT-0051)
 
 LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.
