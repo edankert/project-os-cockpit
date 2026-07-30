@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0210
 aliases: ["TASK-0210"]
 title: "Overview announce rows — typed decide/review/answer/run rows in Waiting-on-you deep-linking into ~review"
-status: done
+status: superseded
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26
@@ -36,3 +36,11 @@ tests: []
 ## Notes
 
 This is the only hard cross-feature coupling between FEAT-0041 and FEAT-0040 (TASK-0211's panel coordinates with the reworked phase detail but does not require it) — the two features are otherwise independently shippable. If FEAT-0040 has not landed yet, this task waits; the desk works without announcement (badge only).
+
+## Superseded 2026-07-30 — PHASE-012
+
+The Waiting-on-you list this task delivered has been **deleted**, not emptied, and this status records that as a reversal rather than a cleanup.
+
+It was right for the page it was built for: the phase squares had two visual states and could not say that anything needed a human, so a prose list was the only way to surface it. [[DES-0004]] gave the square six states, at which point the list was re-listing items already on screen — measured 2026-07-30: all 9 rows it showed had a square, 8 of them visible, every one rendering plain hollow.
+
+Superseded by [[ISS-0068]]'s implementation. [[DES-0001]]'s plate 5 specified this section by name, so the reversal is a departure from an accepted design and is recorded there too.

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0068
 aliases: ["ISS-0068"]
 title: "The overview's Waiting-on-you list re-lists items that are already on the page as phase squares — it exists because the squares cannot say anything needs a human, and most of its rows duplicate a mode that owns them"
-status: open
+status: fixed
 phase: "[[PHASE-012-Attention-In-The-Strip]]"
 owner: user:edwin
 created: 2026-07-30
@@ -88,3 +88,37 @@ That composition was right for a page whose squares said nothing. Deleting it is
 Also worth deciding: `deferred`/`parked` should arguably never have been in a list called *Waiting on you*, independent of where else it appears. `STATUSES.md` defines `deferred` as "explicitly out of the current parent's scope, still wanted later" — someone already made the decision, so it is the one row type that is **not** blocked on a human. It sits at rank 5, last, which reads as though the original design half-knew.
 
 One incidental finding while allocating this design's ID: `SNAPSHOT.yaml` has **no `DES` counter**, though `DES-0001`..`DES-0004` exist and the upstream template ships `DES: 0`. Nothing guards design ID allocation here and the validator does not notice. Added with this change; the gap is worth a look upstream.
+
+## Fixed 2026-07-30 — PHASE-012
+
+[[DES-0004]] accepted by Edwin, then implemented. The section is **deleted**, not emptied.
+
+### The payload was half the work
+
+The encoding could not have been done in CSS: three of the six states had no data behind them.
+
+- **`state`** added to every phase item — `delivered` / `dropped` / `deferred` / `doing` / `unproven` / `null`. `bucket` is untouched, because the mix bars and progress fractions read it.
+- **`attn`** added, composing with any state — required, since `STATUSES.md` allows blocked-while-doing.
+- **Tests joined the strip.** They were absent entirely (features/tasks/requirements/issues only), so a `ready` test had no square to carry its dot. 20 of 22 have a `phase:`. Risks still cannot join and a guard asserts they have not: none carry a phase, so admitting them would dump all four under Unphased.
+- **`blocked` is computed from `depends:`**, never a status — the retired code checked `status === 'blocked'`, which no note carries and which the vocabulary forbids.
+- **Phase-header aggregates** `waiting` and `unclosed`.
+
+Live counts after implementation: 406 squares — 354 delivered, 22 unproven, 6 dropped, 2 deferred, 2 doing, 20 not-started, 3 carrying the dot, and three `1 waiting` pills.
+
+### Two corrections made while implementing
+
+**The staleness threshold.** DES-0004 cited "9 manual tests last verified 66–83 days ago" as motivating *unproven*. That used a 30-day threshold **I had invented**; the project's is `DEFAULT_STALENESS_DAYS = 90`, configurable via `SNAPSHOT.yaml verification.staleness_days`, and at 90 **no test is stale** — the validator emits zero `TEST-STALE` warnings. So `unproven`'s population is the 22 waived items alone. The implementation reads the validator's number and config key rather than a second rule, because a parallel staleness vocabulary is exactly [[ISS-0024]] and [[ISS-0069]]. Corrected in DES-0004 and [[PHASE-011]].
+
+**`unclosed` was wrong on its first cut.** It computed from the task/feature buckets, which exclude issues, and reported PHASE-011 as closeable while ISS-0057 was open in it. It now requires every item — including issues, requirements and tests — to be `delivered`, `unproven` or `dropped`. `deferred` deliberately does **not** resolve, so the marker agrees with the PHASE-CHILDREN gate rather than inventing a looser one. Guarded by `test_unclosed_agrees_with_the_validators_gate`.
+
+### Deleted
+
+`buildWaitingOnYou`, `collectAttention`, `appendAsyncWaitingRows`, `buildWaitingRow`, `interface AttentionRow`, `SEVERITY_RANK`, and 12 `.ov-waiting*` CSS blocks. Gone with them: the dedup pass that existed only because a `ready` manual test was both a durable state and a queue entry and two appenders listed it twice, and the dead blocked branch.
+
+[[TASK-0200]] and [[TASK-0210]] are marked `superseded` with `superseded_by` pointing here — the reversal reads as one rather than as a cleanup.
+
+### Guarded
+
+Six assertions in `tests/test_surface_ownership.py`: every state reachable against the live corpus; tests in the strip and risks not; blocked computed not read; the staleness threshold equal to the validator's; the retired helpers absent from source *and* stylesheet; the header pills present; and `unclosed` never looser than PHASE-CHILDREN.
+
+One of those guards was itself wrong first: it matched the bare name `AttentionRow`, which is a substring of the live and unrelated `buildAttentionRow` (the agent attention panel). It now matches declarations, and additionally asserts that neighbour survived.

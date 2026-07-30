@@ -63,6 +63,54 @@ _INLINE_FMT_RE = re.compile(r"(\*\*|__|\*|_|`)([^*_`\n]+?)\1")
 # gain `severity`, and `/api/cockpit/commits` joins the API surface.
 SCHEMA_VERSION: int = 4
 
+#: Manual-verification staleness threshold, in days. Mirrors
+#: ``DEFAULT_STALENESS_DAYS`` in ``tools/scripts/validate-docs.py`` and is
+#: overridden the same way, by ``SNAPSHOT.yaml`` ``verification.staleness_days``.
+#:
+#: Deliberately the validator's number and the validator's config key rather
+#: than a second rule: a cockpit that called a test stale at 30 days while the
+#: validator called it fresh at 89 would be a parallel vocabulary, which is the
+#: defect ISS-0024 and ISS-0069 are both about. DES-0004's first draft cited "9
+#: stale tests" on a 30-day threshold nobody had adopted; at 90 there are none.
+DEFAULT_STALENESS_DAYS: int = 90
+
+
+def _staleness_days(docs_root: Path) -> int:
+    """The project's staleness threshold, from the snapshot or the default."""
+    try:
+        text = (docs_root.parent / "SNAPSHOT.yaml").read_text(encoding="utf-8")
+    except OSError:
+        return DEFAULT_STALENESS_DAYS
+    m = re.search(r"^verification:\s*$", text, re.M)
+    if not m:
+        return DEFAULT_STALENESS_DAYS
+    tail = text[m.end():]
+    for line in tail.splitlines():
+        if line and not line[0].isspace():
+            break
+        got = re.match(r"^\s+staleness_days\s*:\s*(\d+)", line)
+        if got:
+            return int(got.group(1))
+    return DEFAULT_STALENESS_DAYS
+
+
+def _is_stale_verification(fm: dict[str, Any], days: int) -> bool:
+    """True when ``last_verified`` is older than ``days``.
+
+    Absent or unparseable dates are **not** stale here: the validator already
+    errors on a manual test with no ``last_verified`` (``TEST-FIELDS``), and
+    reporting the same corpus defect as staleness would say the wrong thing
+    about it on a surface that cannot explain itself.
+    """
+    raw = str(fm.get("last_verified") or "").strip()
+    if not raw:
+        return False
+    try:
+        seen = _dt.date.fromisoformat(raw[:10])
+    except ValueError:
+        return False
+    return (_dt.date.today() - seen).days > days
+
 PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
     "README.md",
     "ROADMAP.md",
@@ -1068,6 +1116,7 @@ def stats_payload(
     }
 
     DOING_PHASE_BUCKET = {"doing", "active", "in_progress"}
+    staleness_days = _staleness_days(index.docs_root)
 
     # Include features alongside tasks in the phase progress bars —
     # otherwise phases that have features tagged but no top-level
@@ -1090,6 +1139,93 @@ def stats_payload(
         if _norm(rec.status) in DOING_PHASE_BUCKET: return "in_progress"
         return "backlog"
 
+    # ---- DES-0004: the square's state, and whether it needs a human --------
+    #
+    # `bucket` stays exactly as it was (done / in_progress / backlog) because
+    # the mix bars and the phase progress fractions read it. `state` is the
+    # finer encoding the squares render, and `attn` composes with any of them.
+
+    def _square_state(rec: Any) -> str | None:
+        """One of delivered / dropped / deferred / doing / unproven, or None
+        for 'not started'. Mutually exclusive by construction: every status
+        belongs to exactly one band in statuses.py.
+
+        `unproven` overlays an otherwise-delivered item — that is the whole
+        point, since the claim being unproven is what the mark says.
+        """
+        status = _norm(rec.status)
+        if status == "deferred":
+            return "deferred"
+        if status in statuses.BANDS["archived"]:
+            return "dropped"
+        if _is_done(rec):
+            return "unproven" if _is_unproven(rec) else "delivered"
+        if status in DOING_PHASE_BUCKET:
+            return "doing"
+        return None
+
+    def _is_unproven(rec: Any) -> bool:
+        """Terminal, but the verification behind it is missing or expired.
+
+        Two sources, both already in the corpus:
+          * a recorded `verification_waiver` — a standing statement that the
+            gate was skipped;
+          * a manual test whose `last_verified` is older than the project's
+            staleness threshold.
+
+        The threshold and its config key are the validator's
+        (`DEFAULT_STALENESS_DAYS`, `SNAPSHOT.yaml verification.staleness_days`),
+        deliberately not a second one — a parallel staleness rule is the defect
+        ISS-0024 and ISS-0069 are both about.
+        """
+        fm = rec.frontmatter or {}
+        if str(fm.get("verification_waiver") or "").strip():
+            return True
+        if (rec.note_type or "").lower() != "test":
+            return False
+        if str(fm.get("command") or "").strip():
+            return False           # executable: the runner stamps it, not a human
+        return _is_stale_verification(fm, staleness_days)
+
+    def _needs_human(rec: Any) -> bool:
+        """DES-0004's dot: a specific human action is outstanding.
+
+        `triage` and `review` are decisions waiting to be made; a `ready` test
+        is defined and never executed. `open` and `deferred` are deliberately
+        excluded — accepted work waiting on capacity, and a decision already
+        taken (owner's call, 2026-07-30).
+
+        Blocked-ness is computed from `depends:`, never read off a status:
+        STATUSES.md is explicit that it is a relationship, no note carries
+        `status: blocked`, and an item can be blocked while still `doing`.
+        """
+        status = _norm(rec.status)
+        if status in ("triage", "review"):
+            return True
+        if (rec.note_type or "").lower() == "test" and status == "ready":
+            return True
+        return _has_unresolved_dependency(rec)
+
+    def _has_unresolved_dependency(rec: Any) -> bool:
+        if _is_done(rec) or _norm(rec.status) == "deferred":
+            return False           # its own state settles it; a blocker is moot
+        raw = (rec.frontmatter or {}).get("depends")
+        if not isinstance(raw, list):
+            return False
+        for entry in raw:
+            if not isinstance(entry, str):
+                continue
+            target = _strip_wikilink(entry).strip()
+            if not target:
+                continue
+            path = index.by_id(target)
+            blocker = index.get(path) if path else None
+            if blocker is None:
+                continue           # dangling target: the validator's problem
+            if not _is_done(blocker):
+                return True
+        return False
+
     def _slim(rec: Any, kind: str) -> dict[str, Any]:
         slim = {
             "id": rec.note_id,
@@ -1097,8 +1233,11 @@ def stats_payload(
             "rel": rec.rel_path,
             "status": rec.status or "",
             "bucket": _status_bucket(rec),
+            "state": _square_state(rec),
             "type": kind,
         }
+        if _needs_human(rec):
+            slim["attn"] = True
         # Issues carry severity so attention surfaces can order by it;
         # absent severity reads "low", matching the right pane (TASK-0035).
         if kind == "issue":
@@ -1114,7 +1253,12 @@ def stats_payload(
     # its own phase instead (`loose_by_phase` below already places it), so
     # both views agree on where it lives (TASK-0182).
     children_by_parent_id: dict[str, list[Any]] = {}
-    child_records = [*tasks, *requirements, *issues]
+    # Tests join the strip (DES-0004 / PHASE-012). They were absent, so a
+    # `ready` test — defined and never executed — had no square to carry its
+    # dot. 20 of 22 carry a `phase:`; the rest land under "Unphased" like any
+    # other unphased note. Risks still cannot join: none of them carry a
+    # phase at all, which is a corpus change rather than a rendering one.
+    child_records = [*tasks, *requirements, *issues, *tests]
     for c in child_records:
         fid = _parent_feature_id(c)
         if not fid:
@@ -1172,6 +1316,33 @@ def stats_payload(
             })
         loose_payload = [_slim(c, (c.note_type or "task").lower())
                          for c in loose_by_phase.get(k, [])]
+        # Phase-header markers (DES-0004). Two things no square can carry:
+        #
+        #   `waiting`   — how many items in this phase need a human. A
+        #                 collapsed phase renders its squares with
+        #                 offsetParent null, so without this the encoding
+        #                 LOSES information the Waiting-on-you list showed.
+        #                 A count, not ids: a header listing ids would be
+        #                 that list with extra steps.
+        #   `unclosed`  — every item done and the phase not closed. A
+        #                 property of the phase, so nothing with a square
+        #                 can hold it, and the only row in the old list that
+        #                 nothing else on the page could tell you.
+        every_item = [
+            *(f for f in phase_features_payload),
+            *(c for f in phase_features_payload for c in f["children"]),
+            *loose_payload,
+        ]
+        # Resolved for this purpose means the parent can close over it:
+        # delivered, unproven (still delivered, just unproven) and dropped.
+        # `deferred` deliberately does NOT resolve — STATUSES.md is explicit
+        # that a parent holding a deferred child cannot reach a terminal
+        # status, and `unclosed` must agree with the gate the validator
+        # enforces rather than invent a looser one.
+        RESOLVED_STATES = {"delivered", "unproven", "dropped"}
+        all_resolved = bool(every_item) and all(
+            i.get("state") in RESOLVED_STATES for i in every_item
+        )
         phases_list.append({
             "key": k,
             "title": title,
@@ -1182,6 +1353,8 @@ def stats_payload(
                 "in_progress": b["in_progress"],
                 "backlog": b["backlog"],
             },
+            "waiting": sum(1 for i in every_item if i.get("attn")),
+            "unclosed": bool(all_resolved and _norm(st) != "done" and k != "unphased"),
             "features": phase_features_payload,
             "loose": loose_payload,
         })

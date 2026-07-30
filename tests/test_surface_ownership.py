@@ -589,3 +589,139 @@ def test_the_reqs_tile_stays_dead_on_purpose() -> None:
     the omission reads as a decision rather than an oversight."""
     call = _stat_tile_call("Reqs")
     assert not re.search(r",\s*'[a-z]+'\s*\)$", call.strip()), call
+
+
+# ---- PHASE-012 / DES-0004: the square encoding -------------------------------
+
+
+def test_every_des_0004_state_is_reachable(repo_index: Index) -> None:
+    """The accepted encoding, asserted against the live corpus.
+
+    A count test is the right shape here for the reason ISS-0062 taught: a
+    payload that emits `state: null` for everything would render as today's
+    two-state strip and pass any shape assertion.
+    """
+    data = cockpit.stats_payload(repo_index)
+    items = []
+    for ph in data["phases"]:
+        for f in ph["features"]:
+            items.append(f)
+            items.extend(f["children"])
+        items.extend(ph["loose"])
+
+    states = {i.get("state") for i in items}
+    for expected in ("delivered", "dropped", "deferred", "doing", "unproven"):
+        assert expected in states, f"no item renders as {expected}"
+    assert None in states, "nothing renders as plain not-started"
+
+    # The dot composes with a fill rather than replacing one, and is rare by
+    # design — triage/review/ready plus computed-blocked.
+    assert 0 < sum(1 for i in items if i.get("attn")) < len(items) / 10
+
+
+def test_tests_are_in_the_phase_strip(repo_index: Index) -> None:
+    """`ready` tests get a dot, which needs them in the payload at all — they
+    were absent, so DES-0004 could not have been implemented in CSS alone."""
+    data = cockpit.stats_payload(repo_index)
+    types = {
+        i["type"]
+        for ph in data["phases"]
+        for i in [*ph["features"], *(c for f in ph["features"] for c in f["children"]), *ph["loose"]]
+    }
+    assert "test" in types, "tests are not in the phase strip"
+    assert "risk" not in types, (
+        "risks reached the strip — none carry a phase:, so this would mean "
+        "they are all landing under Unphased (out of scope, DES-0004)"
+    )
+
+
+def test_blocked_is_computed_from_depends_not_from_a_status(repo_index: Index) -> None:
+    """STATUSES.md:59 — blocked-ness is `depends: [ID]`, not a status. No note
+    carries `status: blocked`, so a status check could never fire; the retired
+    `collectAttention` had exactly that dead branch.
+
+    Asserted by construction: an unfinished item whose dependency is unresolved
+    must carry `attn`, and one whose dependency is satisfied must not.
+    """
+    assert not [
+        r for r in repo_index.iter_records()
+        if (r.status or "").strip().lower() == "blocked"
+    ], "a note now carries status: blocked, which the vocabulary does not allow"
+
+    src = (Path(__file__).resolve().parent.parent
+           / "src" / "project_os_cockpit" / "cockpit.py").read_text(encoding="utf-8")
+    assert "_has_unresolved_dependency" in src
+    assert '"blocked"' not in src.split("def _needs_human")[1].split("def ")[1], (
+        "_needs_human is reading a blocked status again"
+    )
+
+
+def test_the_staleness_threshold_is_the_validators(repo_index: Index) -> None:
+    """A cockpit that called a test stale at 30 days while the validator called
+    it fresh at 89 would be a second vocabulary — the defect ISS-0024 and
+    ISS-0069 are both about. DES-0004's first draft cited "9 stale tests" on a
+    threshold nobody had adopted; at the real 90 there are none.
+    """
+    validator = (Path(__file__).resolve().parent.parent
+                 / "tools" / "scripts" / "validate-docs.py").read_text(encoding="utf-8")
+    m = re.search(r"^DEFAULT_STALENESS_DAYS = (\d+)", validator, re.M)
+    assert m, "the validator no longer declares DEFAULT_STALENESS_DAYS"
+    assert cockpit.DEFAULT_STALENESS_DAYS == int(m.group(1)), (
+        f"cockpit says {cockpit.DEFAULT_STALENESS_DAYS}, validator says {m.group(1)}"
+    )
+
+
+def test_the_waiting_on_you_list_is_gone() -> None:
+    """ISS-0068. Deleted, not emptied — and its helpers with it, including the
+    dedup pass that existed only because two appenders raced."""
+    code = _renderer_code()
+    # Declarations, not bare names: `AttentionRow` is a substring of the live
+    # and unrelated `buildAttentionRow` (the agent attention panel), and a
+    # guard that fails on a neighbour's name is a guard nobody trusts.
+    for gone in ("function buildWaitingOnYou", "function collectAttention",
+                 "async function appendAsyncWaitingRows",
+                 "function buildWaitingRow", "interface AttentionRow"):
+        assert gone not in code, f"`{gone}` is back (ISS-0068)"
+    assert "buildAttentionRow" in code, (
+        "the agent attention panel's row builder went with it — different "
+        "surface, unrelated to the retired overview section"
+    )
+    css = (RENDERER.parent / "renderer.css").read_text(encoding="utf-8")
+    assert ".ov-waiting" not in css, "the retired section's CSS is back"
+
+
+def test_the_phase_header_carries_what_squares_cannot(repo_index: Index) -> None:
+    """A collapsed phase renders its squares with `offsetParent: null`, so
+    without a header count the encoding LOSES what the list showed. And
+    "all resolved, not closed" is a property of the phase, so no square holds it.
+    """
+    data = cockpit.stats_payload(repo_index)
+    assert all("waiting" in ph and "unclosed" in ph for ph in data["phases"])
+    assert any(ph["waiting"] for ph in data["phases"]), "no phase reports waiting"
+
+    code = _renderer_code()
+    assert "ov-phase-pill is-waiting" in code
+    assert "ov-phase-pill is-unclosed" in code
+
+
+def test_unclosed_agrees_with_the_validators_gate(repo_index: Index) -> None:
+    """`unclosed` must not be looser than PHASE-CHILDREN. `deferred` does not
+    resolve a child — a parent holding one cannot reach a terminal status — so
+    a phase with a deferred item must never be offered for close-out.
+
+    The first cut of this computed from the task/feature buckets alone and
+    reported PHASE-011 as closeable while an issue in it was still open.
+    """
+    data = cockpit.stats_payload(repo_index)
+    for ph in data["phases"]:
+        if not ph["unclosed"]:
+            continue
+        items = [*ph["features"],
+                 *(c for f in ph["features"] for c in f["children"]),
+                 *ph["loose"]]
+        assert items, f"{ph['key']} offered for close-out with no items"
+        for i in items:
+            assert i.get("state") in ("delivered", "unproven", "dropped"), (
+                f"{ph['key']} offered for close-out but {i['id']} is "
+                f"{i['status']!r} (state={i.get('state')!r})"
+            )

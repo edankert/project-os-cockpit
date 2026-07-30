@@ -2444,11 +2444,19 @@ interface PhaseItem {
   status: string; bucket: 'done' | 'in_progress' | 'backlog';
   type: string;
   severity?: string;              // issues only (TASK-0199)
+  // DES-0004. `state` is the square's encoding; `bucket` stays because the
+  // mix bars and progress fractions read it. `attn` composes with any state,
+  // because STATUSES.md allows blocked-while-doing.
+  state?: 'delivered' | 'dropped' | 'deferred' | 'doing' | 'unproven' | null;
+  attn?: boolean;
 }
 interface PhaseFeature extends PhaseItem { children: PhaseItem[] }
 interface StatsPhase {
   key: string; title: string; status: string | null; rel?: string | null;
   tasks: { done: number; in_progress: number; backlog: number };
+  // Phase-header markers (DES-0004): what no square can carry.
+  waiting?: number;               // items here needing a human — count, not ids
+  unclosed?: boolean;             // every item resolved, phase not closed
   features: PhaseFeature[];
   loose: PhaseItem[];
 }
@@ -2573,7 +2581,6 @@ function renderProjectOverview(data: StatsPayload): void {
   parts.push(
     buildStatTiles(data),
     middle,
-    buildWaitingOnYou(data),
     buildActivityTile(data),
     // The history band, coarse to fine: weekly churn, then the changes
     // someone wrote a reason for, then the commits (FEAT-0048).
@@ -5536,6 +5543,30 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
   frac.textContent = total > 0 ? `${t.done}/${total} · ${pct}%` : '(no items)';
   head.appendChild(frac);
 
+  // DES-0004's phase-header markers: the two things no square can carry.
+  //
+  // `unclosed` is a property of the phase, so nothing with a square can hold
+  // it — and it is the only row in the retired Waiting-on-you list that
+  // nothing else on the page could tell you.
+  if (p.unclosed) {
+    const pill = document.createElement('span');
+    pill.className = 'ov-phase-pill is-unclosed';
+    pill.textContent = 'close out';
+    pill.title = 'Every item here is resolved and the phase is not closed';
+    head.appendChild(pill);
+  }
+  // `waiting` exists because a COLLAPSED phase renders its squares with
+  // offsetParent null — measured on ISS-0024, whose square was on the page and
+  // invisible. Without this the encoding loses information the list showed.
+  // A count and not ids: a header listing ids would be that list again.
+  if (p.waiting && p.waiting > 0) {
+    const pill = document.createElement('span');
+    pill.className = 'ov-phase-pill is-waiting';
+    pill.textContent = `${p.waiting} waiting`;
+    pill.title = `${p.waiting} item${p.waiting === 1 ? '' : 's'} here need a human`;
+    head.appendChild(pill);
+  }
+
   const meta = buildPhaseMeta(p, complete);
   if (meta) head.appendChild(meta);
   row.appendChild(head);
@@ -5641,7 +5672,24 @@ function makePhaseSquare(item: PhaseItem, isFeature: boolean): HTMLElement {
   sq.className = 'ov-phase-sq' + (isFeature ? ' is-feature' : '');
   sq.dataset.bucket = item.bucket;
   sq.dataset.type = item.type;
-  sq.title = `${item.id ?? ''} ${item.title} (${item.status || '—'})`.trim();
+  // DES-0004: six marks, colour still carrying type. `data-state` drives the
+  // fill (solid / slit / strike / inverted / inverted-pulsing) and `data-attn`
+  // the corner dot, which layers over any of them.
+  //
+  // This is what replaced the Waiting-on-you list rather than duplicating it:
+  // every row that list showed was already a square here, rendering as plain
+  // hollow because the encoding could not say otherwise (ISS-0068).
+  if (item.state) sq.dataset.state = item.state;
+  if (item.attn) sq.dataset.attn = '';
+  const marks = [
+    item.state === 'unproven' ? 'complete, not proven' : null,
+    item.state === 'dropped' ? 'resolved, nothing delivered' : null,
+    item.state === 'deferred' ? 'parked' : null,
+    item.state === 'doing' ? 'in progress' : null,
+    item.attn ? 'needs you' : null,
+  ].filter(Boolean);
+  sq.title = `${item.id ?? ''} ${item.title} (${item.status || '—'})`.trim()
+    + (marks.length ? ` — ${marks.join(', ')}` : '');
   if (item.rel) {
     sq.style.cursor = 'pointer';
     sq.addEventListener('click', () => {
@@ -5714,201 +5762,32 @@ function donutGradient(mix: Record<string, number>): string {
 // open issues, review stalls, defined-but-never-executed tests, parked
 // work, open risks, and phases finished but never closed out.
 
-interface AttentionRow {
-  id: string; title: string; rel?: string; type: string;
-  chip: string; chipKind: string; rank: number; note?: string;
-  kind?: string;      // decide/review/answer/run — desk rows only
-  target?: string;    // virtual-page destination for desk rows
-}
+// AttentionRow went with the Waiting-on-you list (ISS-0068) — it described
+// that section's rows and had no other caller.
 
-const SEVERITY_RANK: Record<string, number> = {
-  critical: 0, high: 1, medium: 2, low: 3,
-};
+// SEVERITY_RANK went too: its only caller was collectAttention's rank, and the
+// squares carry no severity ordering — the dot is one signal regardless.
 
-function collectAttention(data: StatsPayload): AttentionRow[] {
-  const rows: AttentionRow[] = [];
-  const seen = new Set<string>();
-  const push = (row: AttentionRow): void => {
-    if (row.id && seen.has(row.id)) return;
-    if (row.id) seen.add(row.id);
-    rows.push(row);
-  };
-
-  // Phases whose work is finished but which nobody closed out — a real
-  // situation with no owner status, so it would otherwise stay invisible.
-  for (const phase of data.phases) {
-    if (!/^PHASE-/i.test(phase.key)) continue;
-    const t = phase.tasks;
-    const total = t.done + t.in_progress + t.backlog;
-    const closed = (phase.status || '').toLowerCase() === 'done';
-    if (total > 0 && t.done === total && !closed) {
-      push({
-        id: phase.key, title: `${phase.title} — all ${total} items done, phase not closed`,
-        rel: phase.rel || undefined, type: 'phase',
-        chip: 'close-out', chipKind: 'active', rank: 1,
-      });
-    }
-  }
-
-  const everyItem: PhaseItem[] = [];
-  for (const phase of data.phases) {
-    for (const feature of phase.features) {
-      everyItem.push(feature, ...feature.children);
-    }
-    everyItem.push(...phase.loose);
-  }
-
-  for (const item of everyItem) {
-    const status = (item.status || '').toLowerCase().trim();
-    const id = item.id || '';
-    if (!id) continue;
-    const base = { id, title: item.title, rel: item.rel, type: item.type };
-    // Tests are handled by appendTestAttentionRows — the phases payload
-    // never carries them here (independent review, 2026-07-26).
-    if (status === 'blocked') {
-      push({ ...base, chip: 'blocked', chipKind: 'fail', rank: 0 });
-    } else if (item.type === 'issue' && (status === 'open' || status === 'triage')) {
-      push({
-        ...base, chip: status, chipKind: status === 'triage' ? 'triage' : 'pending',
-        rank: 2 + (SEVERITY_RANK[item.severity || 'low'] ?? 3) / 10,
-      });
-    } else if (status === 'review') {
-      push({ ...base, chip: 'review', chipKind: 'active', rank: 3 });
-    } else if (status === 'deferred' || status === 'parked') {
-      push({ ...base, chip: 'parked', chipKind: 'faint', rank: 5 });
-    }
-  }
-  rows.sort((a, b) => a.rank - b.rank || a.id.localeCompare(b.id));
-  return rows;
-}
-
-function buildWaitingOnYou(data: StatsPayload): HTMLElement {
-  const rows = collectAttention(data);
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-tile ov-waiting';
-  const h = document.createElement('h3');
-  h.textContent = rows.length
-    ? `Waiting on you · ${rows.length}` : 'Waiting on you';
-  wrap.appendChild(h);
-
-  const list = document.createElement('ul');
-  list.className = 'ov-waiting-list';
-  wrap.appendChild(list);
-
-  if (rows.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'meta ov-waiting-clear';
-    empty.textContent = 'All clear — nothing is blocked on a human.';
-    wrap.appendChild(empty);
-  }
-  for (const row of rows) list.appendChild(buildWaitingRow(row));
-
-  // Tests and the desk's queue are appended together, in one pass, so
-  // they can dedupe: a ready manual test is both a durable state and a
-  // queued run, and two independent appenders listed it twice
-  // (re-review, 2026-07-26). The queue row wins — it deep-links into
-  // the runner, which is the action the row exists to offer.
-  void appendAsyncWaitingRows(wrap, list, h, rows.map((r) => r.id));
-  return wrap;
-}
-
-function buildWaitingRow(row: AttentionRow): HTMLLIElement {
-  const li = document.createElement('li');
-  if (row.kind) {
-    const kind = document.createElement('span');
-    kind.className = `queue-kind is-${row.kind}`;
-    kind.textContent = KIND_LABEL[row.kind] || row.kind;
-    li.appendChild(kind);
-  }
-  const id = document.createElement('span');
-  id.className = 'ov-waiting-id mono ov-typed';
-  id.dataset.type = row.type;
-  id.textContent = row.id;
-  const title = document.createElement('span');
-  title.className = 'ov-waiting-title';
-  title.textContent = row.title;
-  const chip = document.createElement('span');
-  chip.className = 'status-chip';
-  chip.dataset.kind = row.chipKind;
-  chip.textContent = row.chip;
-  li.append(id, title, chip);
-  if (row.rel) {
-    li.style.cursor = 'pointer';
-    li.title = row.rel;
-    li.addEventListener('click', () => void navigateTo(row.rel!));
-  }
-  if (row.target) {
-    li.style.cursor = 'pointer';
-    li.addEventListener('click', () => void navigateTo(row.target!));
-  }
-  return li;
-}
-
-async function appendAsyncWaitingRows(
-  wrap: HTMLElement, list: HTMLElement, heading: HTMLElement,
-  alreadyListed: string[],
-): Promise<void> {
-  // Tests came from `fetchRecordNotes('library')` until ISS-0065; that
-  // harvest is empty since PHASE-010 reduced the Library nav mode, which
-  // made these rows latent rather than broken only because every test in
-  // this corpus is currently `passing`.
-  //
-  // The register is read off the queue payload rather than fetched: the
-  // queue is already being loaded here and carries `registers.tests`, so
-  // this costs no extra request. The first cut of this fix called
-  // `fetchTestsRegister()` alongside `fetchReviewQueue()` — two identical
-  // GETs to the same URL — while its comment claimed no second request
-  // was needed. Caught in re-review; a note asserting a property the code
-  // lacks is the defect class ISS-0065 is about, committed inside its own
-  // fix.
-  const queue = await fetchReviewQueue();
-  if (!currentRel || !currentRel.startsWith('~overview')) return;
-  const tests = testsFromQueue(queue);
-
-  const seen = new Set(alreadyListed.filter(Boolean));
-  const rows: AttentionRow[] = [];
-
-  // Queue rows first so they claim their ids before the test scan runs.
-  for (const group of queue?.groups ?? []) {
-    for (const item of group.items) {
-      const key = item.request_id || item.id || '';
-      const kind = item.kind || (group.key === 'runs' ? 'run' : 'review');
-      if (item.id) seen.add(item.id);
-      rows.push({
-        id: item.id || '',
-        title: item.title || '(untitled)',
-        type: item.type || 'plan',
-        chip: item.status || (item.ts ? relativeAge(item.ts) : 'queued'),
-        chipKind: kind === 'run' ? 'pending' : 'active',
-        rank: 0,
-        kind,
-        target: `~review/${key}${kind === 'run' ? '/run' : ''}`,
-      });
-    }
-  }
-
-  for (const note of tests) {
-    if (note.type !== 'test') continue;
-    if (seen.has(note.id)) continue;   // already offered as a queue row
-    const status = (note.status || '').toLowerCase();
-    if (status === 'failing') {
-      rows.push({
-        id: note.id, title: note.title, rel: note.rel, type: 'test',
-        chip: 'failing', chipKind: 'fail', rank: 0,
-      });
-    } else if (status === 'ready') {
-      rows.push({
-        id: note.id, title: `${note.title} — defined, never executed`,
-        rel: note.rel, type: 'test', chip: 'ready', chipKind: 'pending',
-        rank: 4,
-      });
-    }
-  }
-  if (rows.length === 0) return;
-  wrap.querySelector('.ov-waiting-clear')?.remove();
-  for (const row of rows) list.appendChild(buildWaitingRow(row));
-  heading.textContent = `Waiting on you · ${list.childElementCount}`;
-}
+// buildWaitingOnYou / collectAttention / appendAsyncWaitingRows /
+// buildWaitingRow lived here until PHASE-012 (ISS-0068).
+//
+// The section they built re-listed, in prose, items that were already on the
+// page as phase squares — measured 2026-07-30: all 9 rows it showed had a
+// square, 8 of them visible, every one rendering plain hollow because the
+// encoding could not say otherwise. It was a workaround for an
+// under-expressive square, not a second view, so DES-0004 gave the square the
+// states and this went.
+//
+// Deleted rather than emptied, and TASK-0200 / TASK-0210 are marked
+// `superseded` rather than left claiming a live surface: retiring this reverses
+// a design decision (DES-0001's plate 5 specified it by name), and a reversal
+// should read as one.
+//
+// Gone with it: the dedup pass that existed only because a `ready` manual test
+// was both a durable state and a queue entry and two independent appenders
+// listed it twice; and the `status === 'blocked'` branch, which could never
+// fire — STATUSES.md says blocked-ness is `depends:`, and no note carries that
+// status. Blocked is now computed from the link graph, server-side.
 
 // ----- Activity + commits (TASK-0200) -----------------------------------
 

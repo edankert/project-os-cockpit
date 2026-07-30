@@ -63,6 +63,14 @@ The arrangement was reversed during review, and the discarded version is worth r
 
 **Static inverted fill has a real population, and it is the one this project cares most about.** Measured: **22 items are terminal under a `verification_waiver`**, and of 22 tests — all reading `passing`, 21 of them manual — **9 were last verified 66–83 days ago**. Every one renders as a clean solid square today. That is the strip laundering exactly what [[ADR-0010]] (a status claiming verification nothing performed) and [[ADR-0011]] (the review deadline) exist to prevent.
 
+### Correction, 2026-07-30 — the stale-test figure was wrong
+
+This note claimed *"9 were last verified 66–83 days ago"* as part of `unproven`'s motivating population. That used a **30-day threshold I chose**, not the project's.
+
+The project's threshold is `DEFAULT_STALENESS_DAYS = 90` in `tools/scripts/validate-docs.py`, configurable via `SNAPSHOT.yaml` `verification.staleness_days` (unset here, so 90 applies). At 90 days **no test in this corpus is stale**, and the validator emits zero `TEST-STALE` warnings — which is the check that would have told me, and which I did not consult before writing the figure.
+
+So `unproven`'s population today is **the 22 waived items alone**. The mark is still worth having, and for the stronger of the two reasons: a waiver is a standing claim that verification was skipped, whereas staleness is a clock that has not yet run out. But the design must not cite 9 stale tests as evidence, and the implementation must use the project's threshold and config source rather than a second one — inventing a parallel staleness rule is precisely what [[ISS-0024]] and [[ISS-0069]] are about.
+
 **The dot is one hue regardless of type**, because attention is one signal. It sits outside the top-right corner with a 1px `--bg` ring so it never occludes the fill beneath it.
 
 ## `blocked` is a relationship, not a status

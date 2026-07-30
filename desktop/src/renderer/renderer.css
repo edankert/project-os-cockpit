@@ -20,16 +20,13 @@
   --row-hover:    #eef0f3;
   --row-active:   #dfe6ee;
 }
-
 :root[data-theme="dark"] {
   --bg-elevated:  #232629;
   --accent-soft:  #2a3548;
   --row-hover:    #2a2d31;
   --row-active:   #33373b;
 }
-
 * { box-sizing: border-box; }
-
 html, body {
   margin: 0;
   padding: 0;
@@ -40,7 +37,6 @@ html, body {
   font-size: 13px;
   line-height: 1.45;
 }
-
 /* Override base.css's flex-column body — it expected a
  * (header + cockpit + footer) page structure that the native shell
  * doesn't have, and the resulting flex sizing broke the centre
@@ -49,7 +45,6 @@ body {
   display: block;
   overflow: hidden;
 }
-
 .app {
   display: grid;
   /* FEAT-0015 / iteration 2: 3-row grid.
@@ -71,25 +66,21 @@ body {
     "footer footer footer footer";
   height: 100vh;
 }
-
 .app.right-collapsed {
   grid-template-columns: 44px var(--nav-width) 1fr 0;
 }
-
 #top-bar       { grid-area: top; }
 #ws-rail       { grid-area: rail; }
 #ws-nav        { grid-area: nav; }
 #stage         { grid-area: stage; }
 #right-pane    { grid-area: right; }
 #status-footer { grid-area: footer; }
-
 /* Splitters (FEAT-0009 / TASK-0096). Each is a thin absolute strip
  * anchored to the column boundary. Position-relative on the parent
  * column so the splitter follows resize. */
 
 .ws-nav { position: relative; }
 .right-pane { position: relative; }
-
 .splitter {
   position: absolute;
   top: 0;
@@ -99,16 +90,12 @@ body {
   z-index: 50;
   user-select: none;
 }
-
 .splitter:hover, .splitter.is-dragging {
   background: var(--accent-soft);
 }
-
 .splitter-nav { right: -3px; }
 .splitter-right { left: -3px; }
-
 .app.right-collapsed .splitter-right { display: none; }
-
 /* ---- Workspace mini-rail (FEAT-0015 / TASK-0100) ----
  * Discord/Slack-style 44 px column on the far left. Square per
  * workspace; agent-state dot overlays each square. Top padding
@@ -126,10 +113,8 @@ body {
   overflow: hidden;
   -webkit-app-region: drag;
 }
-
 .ws-rail-tl-space { height: 28px; flex-shrink: 0; }
 .ws-rail-spacer { flex: 1 1 auto; min-height: 8px; }
-
 .ws-rail-tools {
   display: flex;
   flex-direction: column;
@@ -139,7 +124,6 @@ body {
   padding-bottom: 4px;
   -webkit-app-region: no-drag;
 }
-
 .ws-rail-tool {
   border: 1px solid transparent;
   border-style: solid;
@@ -158,7 +142,6 @@ body {
   border-color: transparent;
   color: var(--text-muted);
 }
-
 .workspace-list {
   list-style: none;
   margin: 0;
@@ -177,7 +160,6 @@ body {
   -webkit-app-region: no-drag;
 }
 .workspace-list::-webkit-scrollbar { display: none; }
-
 .ws-square {
   width: 32px;
   height: 32px;
@@ -198,7 +180,6 @@ body {
   -webkit-app-region: no-drag;
   transition: border-radius 120ms ease, color 120ms ease, background 120ms ease;
 }
-
 /* When a workspace has a real icon, fill the square with it. */
 .ws-square img.ws-icon {
   width: 100%;
@@ -207,7 +188,6 @@ body {
   display: block;
   border-radius: inherit;
 }
-
 /* Colored letter fallback (no icon found in project dir). The
  * background-color is set inline from a name-hash by the renderer
  * so each workspace gets a stable tint. */
@@ -240,7 +220,6 @@ body {
   border-radius: 0 2px 2px 0;
   background: var(--accent-link);
 }
-
 .workspace-list li.empty {
   color: var(--text-faint);
   font-size: 9px;
@@ -254,7 +233,6 @@ body {
   padding: 4px 0;
   line-height: 1.2;
 }
-
 /* Agent-state dot — overlaps the square's bottom-right corner with a
  * box-shadow ring in the rail colour, punching a Discord-style notch
  * out of both letter tiles and icon artwork (ISS-0006). */
@@ -279,7 +257,6 @@ body {
 .ws-square.state-done    .ws-dot { background: var(--status-done); }
 .ws-square.state-idle    .ws-dot { background: var(--text-faint); }
 .ws-square.state-error   .ws-dot { background: var(--severity-critical); }
-
 .ws-rail-action {
   width: 30px;
   height: 30px;
@@ -296,25 +273,21 @@ body {
   background: var(--row-hover);
   color: var(--text);
 }
-
 /* Dashed outline only for the "add workspace" affordance — visually
  * distinct from the workspace squares + tool buttons. */
 #ws-rail-add {
   border: 1px dashed var(--border);
 }
-
 /* Active state for togglable rail tools (e.g. hide-completed). */
 .ws-rail-tool[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent-link);
   border-color: var(--accent-link);
 }
-
 @keyframes ws-waiting-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.55; transform: scale(0.85); }
 }
-
 /* ---- Window-wide top bar (FEAT-0015 / iteration 3) ----
  * Three flex zones: left (rail+nav width), stage (flex 1, drag),
  * right (right-pane width). Each pane-collapse button is absolute-
@@ -331,7 +304,6 @@ body {
   min-height: 0;
   -webkit-app-region: drag;
 }
-
 .top-bar-left {
   position: relative;
   display: flex;
@@ -345,14 +317,12 @@ body {
   flex-shrink: 0;
   overflow: hidden;
 }
-
 .top-bar-modes {
   display: inline-flex;
   gap: 1px;
   -webkit-app-region: no-drag;
 }
 .app.left-collapsed .top-bar-modes { display: none; }
-
 /* Centered controls cluster: back, forward, and the command-palette
  * search button. Lives inside .top-bar-stage so its width tracks the
  * stage column underneath. */
@@ -365,7 +335,6 @@ body {
   gap: 4px;
   padding: 0 12px;
 }
-
 .top-bar-nav-btn { padding: 0; }
 .top-bar-nav-btn[disabled] {
   opacity: 0.35;
@@ -375,7 +344,6 @@ body {
   background: transparent;
   color: var(--text-muted);
 }
-
 .top-bar-search {
   -webkit-appearance: none;
   appearance: none;
@@ -407,7 +375,6 @@ body {
   outline: 2px solid var(--accent-link);
   outline-offset: -1px;
 }
-
 .top-bar-search-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -415,7 +382,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .top-bar-search-shortcut {
   font-size: 10.5px;
   color: var(--text-faint);
@@ -425,7 +391,6 @@ body {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   flex-shrink: 0;
 }
-
 /* Star (pin-current-doc) toggle, right of the search field. */
 .top-bar-star { padding: 0; }
 .top-bar-star[disabled] { opacity: 0.35; cursor: default; }
@@ -434,7 +399,6 @@ body {
   color: var(--severity-medium);  /* warm amber for the active star */
 }
 .top-bar-star[aria-pressed="true"] svg { fill: currentColor; }
-
 .top-bar-right {
   position: relative;
   width: var(--right-width);
@@ -444,7 +408,6 @@ body {
   min-width: 40px;
   flex-shrink: 0;
 }
-
 .top-bar-btn {
   width: 28px;
   height: 28px;
@@ -470,7 +433,6 @@ body {
 }
 .top-bar-btn svg { width: 16px; height: 16px; }
 .top-bar-btn[disabled] { opacity: 0.35; cursor: default; }
-
 /* Collapse buttons sit absolute on the splitter side of their zone.
  * z-index above mode icons + opaque background lets the left button
  * overlay any mode icons that get clipped when nav is narrow. */
@@ -490,7 +452,6 @@ body {
   z-index: 10;
   background: var(--bg-elevated);
 }
-
 /* When the right pane is collapsed the column shrinks to 28 px;
  * the toggle is the only visible content there. */
 
@@ -498,7 +459,6 @@ body {
 .app.left-collapsed .splitter-nav { display: none; }
 .app.right-collapsed #right-pane { display: none; }
 .app.right-collapsed .splitter-right { display: none; }
-
 /* ---- Project header at the top of the nav (FEAT-0015) ---- */
 
 .ws-nav-project {
@@ -513,7 +473,6 @@ body {
   min-width: 0;
 }
 .ws-nav-project[hidden] { display: none !important; }
-
 .ws-nav-project-icon {
   width: 22px;
   height: 22px;
@@ -534,7 +493,6 @@ body {
   object-fit: cover;
   display: block;
 }
-
 .ws-nav-project-name {
   font-size: 13px;
   font-weight: 600;
@@ -545,11 +503,9 @@ body {
   min-width: 0;
   flex: 1 1 auto;
 }
-
 /* Project settings ⋮ button + popover (FEAT-0016 / TASK-0107) */
 
 .ws-nav-project { position: relative; }
-
 .project-settings-btn {
   width: 22px;
   height: 22px;
@@ -573,7 +529,6 @@ body {
   color: var(--accent-link);
   border-color: var(--accent-link);
 }
-
 .project-settings-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -595,7 +550,6 @@ body {
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.55),
               0 2px 6px rgba(0, 0, 0, 0.4);
 }
-
 .psm-row {
   display: flex;
   flex-direction: column;
@@ -625,7 +579,6 @@ body {
   outline-offset: -1px;
   border-color: var(--accent-link);
 }
-
 .psm-action {
   -webkit-appearance: none;
   appearance: none;
@@ -646,13 +599,11 @@ body {
 }
 .psm-danger { color: var(--severity-critical); }
 .psm-danger:hover { background: var(--severity-critical); color: #fff; }
-
 .psm-divider {
   height: 1px;
   background: var(--border);
   margin: 4px 0;
 }
-
 /* Icon-row helpers in the project settings popover. */
 
 .psm-icon-row {
@@ -693,7 +644,6 @@ body {
   outline-offset: -1px;
   border-color: var(--accent-link);
 }
-
 .psm-swatches {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
@@ -729,7 +679,6 @@ body {
   font-weight: 700;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
 }
-
 /* Square + header containers that hold an emoji glyph. */
 .ws-square.ws-has-emoji,
 .ws-nav-project-icon.ws-has-emoji {
@@ -740,13 +689,11 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 .ws-square .ws-identicon,
 .ws-nav-project-icon .ws-identicon {
   width: 70%;
   height: 70%;
 }
-
 /* ---- Platform filter (FEAT-0015 / TASK-0102) ----
  * Custom dropdown — button + popover. Matches the rest of the chrome
  * (themed colours, accent on hover/open) and scales to any number
@@ -762,7 +709,6 @@ body {
   flex-shrink: 0;
 }
 .ws-platform-bar[hidden] { display: none !important; }
-
 /* Custom combobox — `<select>` on macOS Electron keeps its native
  * popup-button chrome (rounded gray pill) regardless of
  * `appearance: none`, so we build a button + popover that looks
@@ -803,7 +749,6 @@ body {
   color: var(--text);
   border-bottom-color: transparent;
 }
-
 .platform-combo-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -813,7 +758,6 @@ body {
   text-overflow: ellipsis;
   letter-spacing: 0.01em;
 }
-
 .platform-combo-chevron {
   color: var(--text-faint);
   flex-shrink: 0;
@@ -824,7 +768,6 @@ body {
   transform: rotate(180deg);
   color: var(--accent-link);
 }
-
 .platform-menu {
   position: absolute;
   list-style: none;
@@ -842,13 +785,11 @@ body {
   max-height: 60vh;
   overflow-y: auto;
 }
-
 :root[data-theme="dark"] .platform-menu {
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.55),
               0 2px 6px rgba(0, 0, 0, 0.4);
 }
 .platform-menu[hidden] { display: none !important; }
-
 .platform-menu li {
   padding: 7px 14px;
   cursor: pointer;
@@ -865,7 +806,6 @@ body {
   color: var(--accent-link);
   font-weight: 500;
 }
-
 /* ---- In-workspace nav column (FEAT-0010 / TASK-0083 placeholder) ---- */
 
 .ws-nav {
@@ -877,41 +817,34 @@ body {
   min-height: 0;
   overflow: hidden;
 }
-
 .ws-nav-placeholder {
   padding: 24px 16px;
   color: var(--text-faint);
   font-size: 12px;
   line-height: 1.5;
 }
-
 .ws-nav-placeholder p {
   margin: 0 0 6px;
 }
-
 .ws-nav-placeholder .meta {
   font-size: 11px;
   color: var(--text-faint);
 }
-
 .ws-nav-placeholder code {
   background: var(--row-hover);
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 10.5px;
 }
-
 .ws-nav-content {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 8px 4px;
 }
-
 .ws-nav-content[hidden] {
   display: none !important;
 }
-
 /* Additional layering on top of cockpit.css's .nav-* styles so the
  * native nav reads like the mode-1 cockpit's left pane (FEAT-0010 /
  * TASK-0083). Subtitle + children-wrap are native-only refinements
@@ -923,11 +856,9 @@ body {
   color: var(--text-faint);
   line-height: 1.3;
 }
-
 .ws-nav-content .nav-children-wrap {
   margin-top: 4px;
 }
-
 .ws-nav-content .nav-children-summary {
   list-style: none;
   cursor: pointer;
@@ -936,7 +867,6 @@ body {
   padding: 2px 4px;
   user-select: none;
 }
-
 .ws-nav-content .nav-children-summary::-webkit-details-marker { display: none; }
 .ws-nav-content .nav-children-summary::before {
   content: "▸";
@@ -947,13 +877,11 @@ body {
 .ws-nav-content .nav-children-wrap[open] > .nav-children-summary::before {
   transform: rotate(90deg);
 }
-
 .ws-nav-content .nav-items-nested {
   padding-left: 8px;
   border-left: 1px solid var(--border);
   margin-left: 4px;
 }
-
 .ws-nav-content .nav-item .nav-title {
   flex: 1;
   min-width: 0;
@@ -961,12 +889,10 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .ws-nav-content .nav-item.is-active {
   background: var(--accent-soft);
   border-left: 2px solid var(--accent-link);
 }
-
 /* ---- Stage ---- */
 
 .stage {
@@ -980,7 +906,6 @@ body {
   min-height: 0;
   overflow: hidden;
 }
-
 .stage-main {
   position: relative;
   flex: 1;
@@ -988,7 +913,6 @@ body {
   flex-direction: column;
   min-height: 0;
 }
-
 /* Centre tab strip (FEAT-0034 / TASK-0159) — doc + pinned Agents. */
 .center-tabs {
   flex: none;
@@ -1035,25 +959,21 @@ body {
   line-height: 1;
 }
 .center-tab-close:hover { background: var(--row-hover); color: var(--text); }
-
 .placeholder {
   margin: auto;
   text-align: center;
   color: var(--text-muted);
 }
-
 .placeholder h2 {
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 500;
   color: var(--text);
 }
-
 .placeholder p {
   margin: 0;
   font-size: 13px;
 }
-
 .doc-view {
   flex: 1;
   width: 100%;
@@ -1064,15 +984,12 @@ body {
   /* The mounted HTML comes from cockpit.css selectors; we just need
    * the viewport to scroll. */
 }
-
 .doc-view[hidden] {
   display: none !important;
 }
-
 .doc-view h1:first-child {
   margin-top: 0;
 }
-
 /* (Dead CSS removed in TASK-0086: the hand-built `.frontmatter-card`
  * styles were superseded by `_metadata_strip_html` in TASK-0075;
  * the `.browse-panel` scaffold was superseded by the native ws-nav
@@ -1091,7 +1008,6 @@ body {
   font-size: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
 .status-bar.error {
   border-color: #cc6f6f;
   color: #cc6f6f;
@@ -1107,10 +1023,8 @@ body {
   padding: 0;
   text-decoration: underline;
 }
-
 /* Active state for the follow rail toggle (aria-pressed). */
 .ws-rail-tool#follow-toggle[aria-pressed="false"] { opacity: 0.5; }
-
 /* ---- Drop overlay (FEAT-0012 / TASK-0091) ---- */
 
 .drop-overlay {
@@ -1129,9 +1043,7 @@ body {
   pointer-events: none;
   z-index: 2000;
 }
-
 .drop-overlay[hidden] { display: none !important; }
-
 /* ---- Find bar (FEAT-0012 / TASK-0089) ---- */
 
 .find-bar {
@@ -1143,9 +1055,7 @@ body {
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
 }
-
 .find-bar[hidden] { display: none !important; }
-
 .find-input {
   flex: 1;
   background: var(--bg);
@@ -1157,18 +1067,15 @@ body {
   border-radius: 4px;
   outline: none;
 }
-
 .find-input:focus {
   border-color: var(--accent-link);
 }
-
 .find-count {
   color: var(--text-faint);
   font-size: 11px;
   font-family: var(--font-mono);
   padding: 0 6px;
 }
-
 .find-button {
   background: transparent;
   border: 1px solid var(--border);
@@ -1180,12 +1087,10 @@ body {
   font-size: 12px;
   line-height: 1;
 }
-
 .find-button:hover {
   background: var(--row-hover);
   color: var(--text);
 }
-
 /* Highlight styles for found matches inside the rendered doc. */
 .doc-view mark.find-match {
   background: rgba(255, 213, 0, 0.45);
@@ -1197,7 +1102,6 @@ body {
   background: rgba(255, 153, 0, 0.7);
   outline: 1px solid rgba(255, 153, 0, 1);
 }
-
 /* ---- Quick-switch palette (FEAT-0012 / TASK-0088) ---- */
 
 .quick-switch {
@@ -1210,9 +1114,7 @@ body {
   padding-top: 14vh;
   z-index: 1000;
 }
-
 .quick-switch[hidden] { display: none !important; }
-
 .quick-switch-modal {
   width: 560px;
   max-width: 92vw;
@@ -1225,7 +1127,6 @@ body {
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
-
 .quick-switch-input {
   background: transparent;
   border: none;
@@ -1236,7 +1137,6 @@ body {
   padding: 14px 16px;
   outline: none;
 }
-
 .quick-switch-results {
   list-style: none;
   margin: 0;
@@ -1245,7 +1145,6 @@ body {
   flex: 1;
   min-height: 0;
 }
-
 .quick-switch-results li {
   padding: 8px 16px;
   cursor: pointer;
@@ -1254,13 +1153,11 @@ body {
   gap: 2px;
   border-left: 2px solid transparent;
 }
-
 .quick-switch-results li:hover { background: var(--row-hover); }
 .quick-switch-results li.is-selected {
   background: var(--accent-soft);
   border-left-color: var(--accent-link);
 }
-
 .quick-switch-results .qs-line-1 {
   display: flex;
   align-items: baseline;
@@ -1271,21 +1168,18 @@ body {
 .quick-switch-results .qs-id { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 .quick-switch-results .qs-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quick-switch-results .qs-path { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
-
 .quick-switch-results .qs-empty {
   padding: 14px 16px;
   color: var(--text-faint);
   font-style: italic;
   cursor: default;
 }
-
 .quick-switch-hint {
   border-top: 1px solid var(--border);
   padding: 6px 16px;
   font-size: 11px;
   color: var(--text-faint);
 }
-
 /* ---- Right pane (FEAT-0010 / TASK-0085) ---- */
 
 .right-pane {
@@ -1297,7 +1191,6 @@ body {
   min-height: 0;
   overflow: hidden;
 }
-
 .right-pane-header {
   display: flex;
   align-items: center;
@@ -1307,7 +1200,6 @@ body {
   border-bottom: 1px solid var(--border);
   gap: 8px;
 }
-
 .right-pane-header h2 {
   margin: 0;
   font-size: 11px;
@@ -1316,7 +1208,6 @@ body {
   text-transform: uppercase;
   color: var(--text-faint);
 }
-
 /* The right-pane-toggle now lives in the window top bar (FEAT-0015
  * iteration 2). When the right pane is collapsed, the column is
  * 28 px so its content hides; nothing here needs to position the
@@ -1326,30 +1217,25 @@ body {
 .app.right-collapsed .right-pane-content {
   display: none;
 }
-
 .app.right-collapsed .right-pane-header {
   padding: 8px 3px;
   justify-content: center;
   border-bottom: none;
 }
-
 .right-pane-content {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 12px 14px;
 }
-
 .right-pane-content > p.meta {
   color: var(--text-faint);
   font-size: 12px;
   margin: 8px 0;
 }
-
 .right-pane-group {
   margin-bottom: 16px;
 }
-
 .right-pane-group h3 {
   margin: 0 0 6px;
   font-size: 11px;
@@ -1358,13 +1244,11 @@ body {
   text-transform: uppercase;
   color: var(--text-faint);
 }
-
 .right-pane-group ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-
 .right-pane-group li {
   padding: 4px 0;
   cursor: pointer;
@@ -1372,17 +1256,14 @@ body {
   flex-direction: column;
   gap: 2px;
 }
-
 .right-pane-group li:hover {
   background: var(--row-hover);
 }
-
 .right-pane-group .ctx-id {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--text-faint);
 }
-
 .right-pane-group .ctx-title {
   font-size: 12.5px;
   color: var(--text);
@@ -1390,7 +1271,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 /* Terminal-toggle base styles now come from `.rail-action` (the
  * button lives in the rail footer). The `.terminal-toggle.active`
  * variant below provides the green-accent-while-open look. */
@@ -1400,7 +1280,6 @@ body {
   color: var(--accent-link);
   border-color: var(--accent-link);
 }
-
 /* ---- Status footer (FEAT-0009 / TASK-0094 + 0095) ---- */
 
 .status-footer {
@@ -1415,10 +1294,8 @@ body {
   min-height: 22px;
   flex-shrink: 0;
 }
-
 .sf-cell { display: inline-flex; align-items: center; gap: 6px; }
 .sf-spacer { flex: 1; }
-
 .sf-sidecar .sf-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--text-faint); flex-shrink: 0;
@@ -1427,7 +1304,6 @@ body {
 .sf-sidecar[data-state="ready"]    .sf-dot { background: var(--status-done); }
 .sf-sidecar[data-state="failed"]   .sf-dot { background: var(--severity-critical); }
 .sf-sidecar[data-state="exited"]   .sf-dot { background: var(--text-faint); }
-
 .sf-path {
   font-family: var(--font-mono);
   color: var(--text-muted);
@@ -1438,7 +1314,6 @@ body {
   white-space: nowrap;
 }
 .sf-path:hover { color: var(--text); }
-
 /* (footer agent dot removed — FEAT-0031/TASK-0148; agent state reads
    from the rail, strip, and attention panel) */
 
@@ -1463,7 +1338,6 @@ body {
   border-color: var(--accent-link);
   z-index: 1;
 }
-
 /* ---- Overview dashboard (FEAT-0017 / TASK-0110) ----
  * Mounted in #doc-view when the user picks the Overview mode. The
  * `overview-pane` class swaps the centre pane from prose to a tiled
@@ -1484,7 +1358,6 @@ body {
   text-transform: uppercase;
   color: var(--text-faint);
 }
-
 /* ----------------------------------------------------------------------
    Overview rework (FEAT-0040) — state above the fold, history below.
    Every colour below resolves to an existing base.css/cockpit.css token;
@@ -1529,7 +1402,6 @@ body {
 }
 .doc-design-item:hover { border-color: var(--accent-link); color: var(--text); }
 .doc-design-icon { color: var(--type-reference); }
-
 /* Focus band (TASK-0200) — the SNAPSHOT focus chain. Quiet by default;
    `is-live` only when a slot is genuinely in flight. */
 .ov-focus {
@@ -1597,7 +1469,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ov-focus-pulse { animation: none; }
 }
-
 /* Stat tiles (TASK-0200) — counts with their status composition inline.
    These retire the donut row: same numbers, stated where they're read. */
 .ov-stat-strip {
@@ -1683,7 +1554,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-mix-key i[data-seg="doing"]     { background: var(--accent-link); }
 .ov-mix-key i[data-seg="attention"] { background: var(--severity-high); }
 .ov-mix-key i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
-
 /* Shared tile shell for the stage's lower sections. */
 .doc-view.overview-pane .ov-tile {
   background: var(--bg-elevated);
@@ -1691,43 +1561,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   border-radius: 6px;
   padding: 12px 14px;
 }
-
-/* Waiting on you (TASK-0200) + Remaining (TASK-0202) share a row shape. */
-.ov-waiting-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 1px 18px;
-}
-.ov-waiting-list li {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  font-size: 12.5px;
-  min-width: 0;
-}
-.ov-waiting-list li:hover { background: var(--row-hover); }
-.ov-waiting-id { flex: none; font-size: 11px; color: var(--text-faint); }
-.ov-waiting-title {
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.ov-waiting-list li .status-chip { margin-left: auto; flex: none; }
-.ov-waiting-clear { color: var(--status-done); font-style: normal; margin: 0; }
-/* Ad-hoc chips for states the payload doesn't hand us as a status. */
-.ov-waiting-list .status-chip[data-kind="fail"]    { color: var(--severity-critical); }
-.ov-waiting-list .status-chip[data-kind="triage"]  { color: var(--severity-medium); }
-.ov-waiting-list .status-chip[data-kind="active"]  { color: var(--status-active); }
-.ov-waiting-list .status-chip[data-kind="pending"] { color: var(--status-pending); }
-.ov-waiting-list .status-chip[data-kind="faint"]   { color: var(--text-faint); }
-
 /* Activity (TASK-0200) — a third the height of the old histogram. */
 .ov-spark {
   display: flex;
@@ -1748,7 +1581,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   font-size: 11px;
   color: var(--text-faint);
 }
-
 /* Commits (TASK-0200) — items moved, not lines changed. */
 .ov-commit-list { list-style: none; margin: 0; padding: 0; }
 .ov-commit-list li {
@@ -1794,7 +1626,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 /* Nested buckets (a past month's weeks) indent one step so the depth is
    legible without a second disclosure style. */
 .ov-changes-body .ctx-disclosure + div > div { margin-left: 10px; }
-
 .ov-commit-sha, .ov-commit-date { flex: none; font-size: 11px; color: var(--text-faint); }
 .ov-commit-subject {
   color: var(--text-muted);
@@ -1832,7 +1663,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   border-radius: 4px;
   padding: 0 6px;
 }
-
 /* Phase accordion + Completed band (TASK-0201). */
 .ov-chev {
   flex: none;
@@ -1861,7 +1691,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .scoped-disclosure.is-open .ov-chev::before,
 .ctx-disclosure.is-open .ov-chev::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .ov-chev::before { transition: none; } }
-
 /* The accordion hides bodies with the `hidden` attribute, but a class rule
    carrying `display:` outranks the UA stylesheet's `[hidden]{display:none}`
    — without this the chevron would rotate while the content stayed put. */
@@ -1870,7 +1699,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-section [hidden],
 .ctx-card [hidden],
 .ctx-graph [hidden] { display: none; }
-
 .ov-phase {
   display: block;
   padding: 10px 12px;
@@ -1927,7 +1755,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 }
 .ov-phase-under > i { display: block; height: 100%; background: var(--accent-link); }
 .ov-phase.is-complete .ov-phase-bar { margin-top: 8px; }
-
 .ov-completed-head {
   display: flex;
   align-items: center;
@@ -1945,7 +1772,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   flex: 1;
   border-top: 1px solid var(--border);
 }
-
 /* Scoped health band (TASK-0202) — replaces the repeated hero. */
 .ov-health {
   display: flex;
@@ -1966,7 +1792,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-health-flag { font-size: 11.5px; }
 .ov-health-flag.is-live { color: var(--accent-link); margin-left: auto; }
 .ov-health-flag.is-attention { color: var(--severity-medium); }
-
 /* Scoped header extras (TASK-0202). */
 .scoped-head-stats {
   margin-left: auto;
@@ -1985,7 +1810,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   text-decoration: none;
 }
 .scoped-gates.is-open { color: var(--severity-medium); border-color: var(--severity-medium); }
-
 /* Feature rows with a next-action line (TASK-0202). */
 .scoped-feat { display: block; padding: 8px 4px; border-bottom: 1px solid var(--border); }
 .scoped-feat:last-child { border-bottom: 0; }
@@ -2027,7 +1851,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   text-align: left;
 }
 .scoped-disclosure:hover, .ctx-disclosure:hover { color: var(--text-muted); }
-
 /* Exit criteria with a summary bar + evidence chips (TASK-0202). */
 .scoped-exit-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .scoped-exit-head h3 { margin: 0 !important; }
@@ -2067,7 +1890,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   cursor: pointer;
 }
 .scoped-exit-evidence:hover { border-color: var(--accent-link); }
-
 /* Record column (TASK-0203). */
 .ctx-card {
   border: 1px solid var(--border);
@@ -2115,7 +1937,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ctx-kv .status-chip { margin-left: auto; flex: none; }
 .ctx-note { margin: 4px 0 0; font-size: 11.5px; color: var(--text-faint); }
 .ctx-graph { margin-top: 4px; }
-
 /* Type-coloured ids on the new surfaces. Scoped to a shared `.ov-typed`
    marker class rather than a bare [data-type] selector — `data-type` is
    also carried by the phase squares, the nav rows, and the feed tags,
@@ -2134,7 +1955,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-typed[data-type="phase"]       { color: var(--type-phase); }
 .ov-typed[data-type="release"]     { color: var(--type-release); }
 .ov-typed[data-type="reference"]   { color: var(--type-reference); }
-
 /* Hero strip — equal-width cells with a big number + label. */
 .ov-hero {
   display: grid;
@@ -2171,7 +1991,6 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 }
 .ov-hero-last .ov-hero-last-title { font-size: 13px; }
 .ov-hero-last:hover { border-color: var(--accent-link); }
-
 /* Phase progress — horizontal stacked bars. */
 .ov-section { background: transparent; }
 .ov-phase { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
@@ -2207,7 +2026,6 @@ a.ov-phase-title:hover {
   min-height: 22px;
   align-items: center;
 }
-
 .ov-phase-group {
   display: inline-flex;
   align-items: center;
@@ -2227,7 +2045,6 @@ a.ov-phase-title:hover {
 .ov-phase-group-loose {
   border: 1px dashed var(--border);
 }
-
 /* Squares are coloured by item TYPE (same palette as the nav-row
  * icons) and filled iff the item is done. Anything not done renders
  * as an outline — gives a "what's left to ship" read at a glance. */
@@ -2250,7 +2067,82 @@ a.ov-phase-title:hover {
 .ov-phase-sq[data-bucket="done"] {
   background: currentColor;
 }
+/* ---- DES-0004: the square's state -------------------------------------
+   Six marks, and colour is NOT one of them — it already carries type across
+   six surfaces. Lifted from the accepted artifact
+   (docs/designs/DES-0004-attention-in-the-squares.html); if these diverge,
+   the artifact is the specification.
 
+   The fills are mutually exclusive by construction: every status belongs to
+   exactly one band in statuses.py. `unproven` is the single overlay — it
+   applies to an otherwise-delivered item and wins, because the point is that
+   the delivered claim is unproven. */
+
+/* resolved, nothing delivered — SOLID with a transparent slit. Solid because
+   an archived item is settled: it resolves its parent's scope and a phase can
+   close over it. The slit withdraws the "delivered" claim. */
+.ov-phase-sq[data-state="dropped"] {
+  background: linear-gradient(to top right,
+    currentColor calc(50% - 1px), transparent calc(50% - 1px),
+    transparent calc(50% + 1px), currentColor calc(50% + 1px));
+}
+/* parked, still wanted — HOLLOW with a strike. Hollow because it is neither
+   built nor terminal: a parent holding a deferred child cannot close. */
+.ov-phase-sq[data-state="deferred"] {
+  background: linear-gradient(to top right,
+    transparent calc(50% - 0.9px), currentColor calc(50% - 0.9px),
+    currentColor calc(50% + 0.9px), transparent calc(50% + 0.9px));
+}
+/* complete but unproven — inverted fill, static. A recorded
+   verification_waiver, or a manual test passing on an expired last_verified. */
+.ov-phase-sq[data-state="unproven"] {
+  background: currentColor;
+  box-shadow: inset 0 0 0 1.5px var(--bg);
+}
+.ov-phase-sq.is-feature[data-state="unproven"] { box-shadow: inset 0 0 0 2px var(--bg); }
+/* in progress — the same inverted fill, pulsing. The payload has always
+   computed this bucket and the stylesheet never had a rule for it. */
+.ov-phase-sq[data-state="doing"] {
+  background: currentColor;
+  box-shadow: inset 0 0 0 1.5px var(--bg);
+  animation: prog-pulse 1.6s ease-in-out infinite;
+}
+.ov-phase-sq.is-feature[data-state="doing"] { box-shadow: inset 0 0 0 2px var(--bg); }
+/* Motion is the ONLY thing separating doing from unproven, so it needs a
+   static fallback or the two collapse for anyone who turns motion off. */
+@media (prefers-reduced-motion: reduce) {
+  .ov-phase-sq[data-state="doing"] {
+    animation: none;
+    outline: 1.5px solid currentColor;
+    outline-offset: 1.5px;
+  }
+}
+/* outstanding human action — corner dot, one hue regardless of type, because
+   attention is one signal. Sits OUTSIDE the corner with a --bg ring so it
+   never occludes the fill it layers over. */
+.ov-phase-sq { position: relative; }
+.ov-phase-sq[data-attn]::after {
+  content: '';
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--status-blocked);
+  border: 1px solid var(--bg);
+}
+.ov-phase-sq.is-feature[data-attn]::after {
+  width: 5px; height: 5px; top: -3.5px; right: -3.5px;
+}
+/* Phase-header markers — what no square can carry (DES-0004). */
+.ov-phase-pill {
+  flex: none;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px; border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.ov-phase-pill.is-waiting { color: var(--status-blocked); }
+.ov-phase-pill.is-unclosed { color: var(--status-active); }
 .ov-phase-sq[data-type="feature"]     { color: var(--type-feature); }
 .ov-phase-sq[data-type="task"]        { color: var(--type-task); }
 .ov-phase-sq[data-type="requirement"] { color: var(--type-requirement); }
@@ -2263,13 +2155,11 @@ a.ov-phase-title:hover {
 .ov-phase-sq[data-type="release"]     { color: var(--type-release); }
 .ov-phase-sq[data-type="workflow"]    { color: var(--type-workflow); }
 .ov-phase-sq[data-type="plan"]        { color: var(--type-plan); }
-
 .ov-phase-empty {
   font-size: 11px;
   color: var(--text-faint);
   font-style: italic;
 }
-
 /* Bottom grid: activity histogram + donut row, side-by-side. */
 .ov-bottom {
   display: grid;
@@ -2283,7 +2173,6 @@ a.ov-phase-title:hover {
   padding: 14px 16px;
   min-width: 0;
 }
-
 .ov-act-chart {
   display: flex;
   align-items: flex-end;
@@ -2304,7 +2193,6 @@ a.ov-phase-title:hover {
   font-size: 10.5px;
   color: var(--text-faint);
 }
-
 .ov-donut-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2341,7 +2229,6 @@ a.ov-phase-title:hover {
   color: var(--text-muted);
   text-transform: capitalize;
 }
-
 /* Recent activity feed. */
 .ov-feed-list { list-style: none; margin: 0; padding: 0; }
 .ov-feed-list li {
@@ -2404,7 +2291,6 @@ a.ov-phase-title:hover {
   color: var(--accent-link);
   font-size: 11px;
 }
-
 /* ---- Terminal pane ---- */
 
 .terminal-pane {
@@ -2419,15 +2305,12 @@ a.ov-phase-title:hover {
   border-top: 1px solid var(--border);
   position: relative;
 }
-
 :root[data-theme="dark"] .terminal-pane {
   background: #1b1d1f;
 }
-
 .terminal-pane[hidden] {
   display: none !important;
 }
-
 .terminal-divider {
   height: 5px;
   cursor: ns-resize;
@@ -2438,33 +2321,27 @@ a.ov-phase-title:hover {
   right: 0;
   z-index: 2;
 }
-
 .terminal-divider:hover {
   background: var(--accent-soft);
 }
-
 .terminal-mount {
   flex: 1;
   min-height: 0;
   padding: 6px 8px;
   overflow: hidden;
 }
-
 .terminal-mount .xterm,
 .terminal-mount .xterm-viewport,
 .terminal-mount .xterm-screen {
   height: 100% !important;
 }
-
 .xterm-viewport::-webkit-scrollbar {
   width: 10px;
 }
-
 .xterm-viewport::-webkit-scrollbar-thumb {
   background: #33373b;
   border-radius: 5px;
 }
-
 /* ----------------------------------------------------------------------
    Agent instrumentation surfaces (PHASE-007)
    ---------------------------------------------------------------------- */
@@ -2504,7 +2381,6 @@ a.ov-phase-title:hover {
               0 0 0 4px var(--severity-critical);
 }
 .ws-attention-row.acked .ws-attention-dot { animation: none !important; }
-
 @media (prefers-reduced-motion: reduce) {
   .ws-square.state-needs-input {
     animation: none;
@@ -2516,7 +2392,6 @@ a.ov-phase-title:hover {
   .agent-strip-dot,
   .agents-row-dot { animation: none !important; }
 }
-
 /* ----- Activity strip (TASK-0118) ----- */
 
 .agent-strip {
@@ -2601,7 +2476,6 @@ a.ov-phase-title:hover {
 .agent-strip-expand:hover { color: var(--text); }
 .agent-strip-caret { transition: transform 0.12s ease; display: block; }
 .agent-strip-expand[aria-expanded="true"] .agent-strip-caret { transform: rotate(180deg); }
-
 /* In-flight boxes (FEAT-0038 / TASK-0192): the current prompt's work items,
    inline in the strip line before ctx, using the overview block notation. */
 .agent-strip-inflight {
@@ -2619,7 +2493,6 @@ a.ov-phase-title:hover {
 }
 @keyframes prog-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .prog-more { font-size: 10px; color: var(--text-faint); flex: none; }
-
 .agent-strip-detail {
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -2641,7 +2514,6 @@ a.ov-phase-title:hover {
 .agent-detail-files a { color: var(--accent-link); text-decoration: none; }
 .agent-detail-files a:hover { text-decoration: underline; }
 .agent-detail-empty { color: var(--text-faint); }
-
 /* Session detail tabs: work | files (TASK-0163). */
 .agent-detail-tabs { display: flex; gap: 12px; margin: 2px 0 6px; }
 .agent-detail-tab {
@@ -2668,7 +2540,6 @@ a.ov-phase-title:hover {
 }
 .work-time { font-size: 10px; color: var(--text-faint); flex: none; min-width: 2.2em; text-align: right; }
 .work-status { font-size: 10px; color: var(--text-faint); margin-left: auto; flex: none; }
-
 /* An author `display` beats the UA's `[hidden] { display: none }`
  * rule, so every element toggled via the hidden attribute whose class
  * sets a display needs the hidden state spelled out (ISS-0009). The
@@ -2677,7 +2548,6 @@ a.ov-phase-title:hover {
 .queue-popover[hidden],
 .settings-popover[hidden],
 .agent-strip[hidden] { display: none !important; }
-
 /* ----- Agent attention panel (FEAT-0030 / TASK-0147) -----
  * Docked at the bottom of the nav pane, below the tree behind a hard
  * separator. flex:none so it takes only the height it needs while the
@@ -2788,7 +2658,6 @@ a.ov-phase-title:hover {
 }
 .ws-attention-finished:hover { color: var(--text); }
 .ws-attention-arrow { margin-left: auto; color: var(--accent-link); }
-
 /* Account budget block (FEAT-0035 / TASK-0160) — 5h/7d usage bars. */
 .ws-budget {
   border-top: 1px solid var(--border);
@@ -2852,12 +2721,10 @@ a.ov-phase-title:hover {
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
-
 @media (prefers-reduced-motion: reduce) {
   .ws-attention-dot { animation: none !important; }
   .ws-budget-fill { transition: none; }
 }
-
 /* ----- Live nav trail (TASK-0120) ----- */
 
 li[data-rel].agent-touched {
@@ -2875,7 +2742,6 @@ li[data-rel].agent-touched {
   border: 1px solid var(--accent-link);
   flex: none;
 }
-
 /* Terminal context menu (FEAT-0037 / TASK-0167). */
 .term-menu {
   position: fixed;
@@ -2904,7 +2770,6 @@ li[data-rel].agent-touched {
 .term-menu-item:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-link); }
 .term-menu-item:disabled { color: var(--text-faint); cursor: default; }
 .term-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
-
 /* Phase-less Now board (TASK-0165). */
 .ov-now-board { }
 .now-board {
@@ -2951,7 +2816,6 @@ li[data-rel].agent-touched {
 .now-card-item.now-card-flash { animation: now-card-flash 1.6s ease-out; }
 @media (prefers-reduced-motion: reduce) { .now-card-item.now-card-flash { animation: none; } }
 @media (max-width: 900px) { .now-board { grid-template-columns: 1fr; } }
-
 /* Agent chip on nav rows a live session is touching (TASK-0164). */
 .nav-agent-chip {
   padding: 0 5px;
@@ -2974,7 +2838,6 @@ li[data-rel].agent-touched {
 @media (prefers-reduced-motion: reduce) {
   .nav-status-flash .nav-item { animation: none; }
 }
-
 /* ----- Dispatch button + CHG provenance ----- */
 
 .top-bar-dispatch { color: var(--status-active); }
@@ -2987,7 +2850,6 @@ li[data-rel].agent-touched {
   font-size: 12px;
   color: var(--text-muted);
 }
-
 /* ----- Sessions in Overview (TASK-0124 + TASK-0127) ----- */
 
 .ov-session-live {
@@ -2998,7 +2860,6 @@ li[data-rel].agent-touched {
   color: var(--status-active);
   border: 1px solid var(--status-active);
 }
-
 /* Live-session banner under the hero. */
 .ov-live-banner {
   display: flex;
@@ -3031,7 +2892,6 @@ li[data-rel].agent-touched {
   cursor: pointer;
 }
 .ov-live-jump:hover { color: var(--text); border-color: var(--text-faint); }
-
 /* Two-column feeds: Recent activity | Agent sessions. */
 .ov-feeds {
   display: grid;
@@ -3059,7 +2919,6 @@ li[data-rel].agent-touched {
   font-variant-numeric: tabular-nums;
   color: var(--text-faint);
 }
-
 /* Session detail virtual page (~session/<id>). */
 /* ----- Agents fleet screen (FEAT-0032 / TASK-0151) ----- */
 .doc-view.agents-page { padding: 20px 24px; }
@@ -3122,7 +2981,6 @@ li[data-rel].agent-touched {
 @media (prefers-reduced-motion: reduce) {
   .agents-row-dot { animation: none !important; }
 }
-
 .session-page-head { margin-bottom: 14px; }
 .session-page-head h1 {
   display: flex;
@@ -3154,7 +3012,6 @@ li[data-rel].agent-touched {
 .session-page-section li { padding: 2px 0; font-size: 13px; color: var(--text-muted); }
 .session-page-section a { color: var(--accent-link); text-decoration: none; }
 .session-page-section a:hover { text-decoration: underline; }
-
 /* ----------------------------------------------------------------------
    Overview scopes (FEAT-0023)
    ---------------------------------------------------------------------- */
@@ -3224,7 +3081,6 @@ li[data-rel].agent-touched {
   font-size: 10.5px; color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
-
 /* Scoped dashboard header */
 .scoped-head {
   display: flex; align-items: baseline; gap: 10px;
@@ -3236,7 +3092,6 @@ li[data-rel].agent-touched {
 .scoped-title { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
 .scoped-open-note { margin-left: auto; color: var(--accent-link); font-size: 12px; text-decoration: none; }
 .scoped-open-note:hover { text-decoration: underline; }
-
 /* Scoped feature rows */
 .scoped-feat {
   display: flex; align-items: center; gap: 10px;
@@ -3251,12 +3106,10 @@ li[data-rel].agent-touched {
 a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline; cursor: pointer; }
 .scoped-feat-sqs { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; align-items: center; }
 .scoped-loose .scoped-feat-name { color: var(--text-faint); font-style: italic; }
-
 /* Exit criteria */
 .scoped-exit-list { list-style: none; margin: 0; padding: 0; }
 .scoped-exit-list li { padding: 3px 0; font-size: 13px; color: var(--text-muted); }
 .scoped-exit-list li.done { color: var(--text-faint); }
-
 /* Dispatch queue chip (FEAT-0024 / TASK-0133) */
 .agent-strip-queue {
   flex: none;
@@ -3270,7 +3123,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   cursor: pointer;
 }
 .agent-strip-queue:hover { background: var(--accent-soft); }
-
 /* Dispatch runtime (FEAT-0025) + verb polish (FEAT-0026) */
 .queue-popover {
   position: fixed;
@@ -3324,11 +3176,8 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   cursor: pointer;
 }
 .queue-clear:hover { color: var(--text); }
-
 .dispatch-provenance { border-left-color: var(--status-active); }
-
 .ov-session-dispatch { color: var(--accent-link); flex: none; }
-
 .qs-action-badge {
   flex: none;
   margin-right: 8px;
@@ -3340,7 +3189,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   border: 1px solid var(--status-active);
 }
 .quick-switch-results li.is-action { display: flex; align-items: center; }
-
 /* Doc header bar (FEAT-0026 / TASK-0140) */
 .doc-header {
   position: sticky;
@@ -3423,7 +3271,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   font-weight: 600;
 }
 .doc-header-verb.is-default:hover { background: var(--accent-soft); }
-
 /* Settings popover (FEAT-0027 / TASK-0142) */
 .settings-popover {
   position: fixed;
@@ -3461,7 +3308,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   color: var(--status-active);
 }
 .settings-status.is-error { color: var(--severity-critical); }
-
 /* Verification health line in the record column (TASK-0203). */
 .ctx-note.is-warn { color: var(--severity-medium); }
 .ctx-counters {
@@ -3470,7 +3316,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   padding: 2px 2px 8px;
   overflow-wrap: anywhere;
 }
-
 /* ----------------------------------------------------------------------
    Review desk — ~review (FEAT-0041)
    ---------------------------------------------------------------------- */
@@ -3478,7 +3323,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .doc-view.review-page { padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
 .review-empty { padding: 40px 0; text-align: center; }
 .review-empty h2 { font-size: 17px; margin: 0 0 6px; font-weight: 600; }
-
 /* Queue rows in the nav pane. */
 .review-queue .queue-row {
   display: flex; align-items: center; gap: 7px; width: 100%;
@@ -3491,7 +3335,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .queue-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .queue-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .review-queue-empty { margin: 8px 6px; }
-
 /* Registers (FEAT-0049) — the durable half, beneath the queue. Separated
    by a rule so "waiting on me" and "what exists" do not read as one
    list; the queue empties and these do not. */
@@ -3519,7 +3362,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .queue-verdict[data-verdict="rejected"] { color: var(--status-blocked); }
 /* The verdict already claims margin-left:auto, so the date must not. */
 .review-register .queue-verdict + .queue-age { margin-left: 8px; }
-
 /* Typed kind pill — the desk's four verbs. */
 .queue-kind {
   flex: none; font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em;
@@ -3530,7 +3372,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .queue-kind.is-review { color: var(--type-feature); }
 .queue-kind.is-answer { color: var(--accent-link); }
 .queue-kind.is-run    { color: var(--type-test); }
-
 /* Stage. */
 .review-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .review-head h2 { font-size: 16px; margin: 0; font-weight: 600; }
@@ -3547,7 +3388,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .review-btn.is-primary { border-color: var(--accent-link); color: var(--accent-link); }
 .review-btn.is-good { border-color: var(--status-done); color: var(--status-done); }
 .review-btn.is-bad { border-color: var(--severity-critical); color: var(--severity-critical); }
-
 .review-set { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
 .review-set h3 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
 .review-set-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-size: 12.5px; min-width: 0; }
@@ -3561,7 +3401,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   color: transparent; font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
 }
 .review-tick.is-on { background: var(--accent-link); border-color: var(--accent-link); color: #fff; }
-
 .review-comment {
   width: 100%; resize: vertical; font: inherit; font-size: 12.5px;
   color: var(--text); background: var(--bg); border: 1px dashed var(--border);
@@ -3570,7 +3409,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .review-comment:focus { outline: none; border-color: var(--accent-link); border-style: solid; }
 .review-feedback { margin: 0; font-size: 12.5px; color: var(--status-done); }
 .review-feedback.is-error { color: var(--severity-critical); }
-
 /* Manual test runner. */
 .run-progress { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; }
 .run-progress > i { display: block; height: 100%; background: var(--accent-link); }
@@ -3603,7 +3441,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .run-summary { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .run-summary-line { margin: 0; font-size: 13px; }
 .run-draft { margin: 0; font-size: 11.5px; color: var(--text-faint); }
-
 /* Verification panel (TASK-0211) — the durable record on a scope. */
 .verification-panel { margin-top: 20px; }
 .verification-runall { margin-left: auto; }
@@ -3615,7 +3452,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   font: inherit; font-size: 11px; cursor: pointer;
 }
 .verification-list li .status-chip { margin-left: 0; }
-
 /* The reviewed note, rendered inside the review page (ISS-0031 follow-up).
    A decision surface has to show what is being decided. */
 .review-note {
@@ -3630,7 +3466,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .review-note h2 { font-size: 14px; }
 .review-note h3 { font-size: 13px; }
 .review-note > :first-child { margin-top: 10px; }
-
 /* Per-row note preview inside a proposal set (ISS-0031 follow-up). */
 .review-set-head { display: flex; align-items: baseline; gap: 12px; }
 .review-expand-all {
@@ -3657,7 +3492,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   background: var(--bg);
 }
 @media (prefers-reduced-motion: reduce) { .review-peek::before { transition: none; } }
-
 /* The ADR-0007 advisory-phase tally's rules lived here (.review-tally,
    -row, -note). Removed with the block by TASK-0247 — the ADR is settled,
    so the instrument has no consumer. */
@@ -3665,7 +3499,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 /* ---- design bench (FEAT-0042 / TASK-0215) ------------------------------ */
 
 .design-page { overflow: auto; padding: 18px 22px; }
-
 /* App shell (ISS-0039). The page stops scrolling so the artifact frame can be
    the only scroller for the artifact; before this, a fixed-height frame sat
    inside a scrolling page and every long design produced a scrollbar inside a
@@ -3705,7 +3538,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .design-chip-link:hover { text-decoration: underline; }
 .design-chip-link:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
-
 /* The artifact under review, at the revision being judged. Bounded so the
    verdict buttons stay reachable without scrolling past the design. */
 .review-design-stage {
@@ -3720,7 +3552,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   border-left: 3px solid var(--status-blocked);
   background: var(--surface); color: var(--text);
 }
-
 /* Inbox (FEAT-0045). An empty inbox is the RESOLVED state and reads as one.
    TASK-0234: the tray lives in the left pane; the stage is the viewer. */
 .doc-view.inbox-page { padding: 24px 30px; }
@@ -3740,7 +3571,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--text);
 }
-
 /* ---- the tray, docked above the attention panel ---- */
 .ws-inbox {
   flex: none;
@@ -3796,7 +3626,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   direction: rtl; text-align: left;   /* keep the distinctive tail visible */
 }
-
 .design-ask-review {
   position: absolute; top: 0; right: 118px;
   background: none; border: 1px solid var(--accent-link); cursor: pointer;
@@ -3805,7 +3634,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .design-ask-review:hover:not(:disabled) { background: var(--accent-soft); }
 .design-ask-review:disabled { opacity: .6; cursor: default; border-color: var(--border); color: var(--text-muted); }
-
 .design-side-toggle {
   position: absolute; top: 0; right: 0;
   background: none; border: 1px solid var(--border); cursor: pointer;
@@ -3835,10 +3663,8 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   overflow: hidden; align-items: flex-start;
   padding: 4px 0 0;
 }
-
 .design-head { margin-bottom: 14px; }
 .design-head h1 { margin: 0 0 6px; font-size: 18px; }
-
 .design-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .design-chip {
   font-size: 11px; padding: 2px 7px; border-radius: var(--radius);
@@ -3846,7 +3672,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   color: var(--text-muted); white-space: nowrap;
 }
 .design-chip.design-implements { color: var(--accent-link); }
-
 .design-viewports { display: flex; gap: 4px; }
 .design-vp {
   font: inherit; font-size: 11px; padding: 3px 9px; cursor: pointer;
@@ -3856,7 +3681,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-vp.is-active { border-color: var(--accent-focus); color: var(--text); }
 .design-vp:disabled { opacity: .4; cursor: not-allowed; }
 .design-vp:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
-
 /* A framed artifact sits on a distinct ground so the frame edge is visible —
    otherwise a design with a white background looks like it bled into the app
    and you cannot tell what you are reviewing. */
@@ -3869,10 +3693,8 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   border: 1px solid var(--border); border-radius: var(--radius);
   background: #fff; display: block; min-height: 320px;
 }
-
 .design-empty { color: var(--text-muted); font-size: 13px; }
 .design-missing { color: var(--status-blocked); }
-
 .design-register h1 { margin: 0 0 12px; font-size: 18px; }
 .design-row {
   display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
@@ -3883,7 +3705,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-row:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: -2px; }
 .design-row-title { font-size: 14px; }
 .design-row-meta { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
-
 /* revisions + compare (TASK-0216) */
 .design-body { display: flex; justify-content: center; gap: 12px; }
 /* An UNFRAMED stage must fill the row (ISS-0038). As a plain flex item its
@@ -3900,7 +3721,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-body > .design-stage:not(.is-framed) { flex: 1 1 auto; min-width: 0; }
 .design-body.is-compare .design-stage { flex: 1 1 0; min-width: 0; }
 .design-body.is-compare .design-frame { width: 100% !important; }
-
 .design-stage { position: relative; }
 .design-stage-tag {
   position: absolute; top: 4px; left: 8px; z-index: 1;
@@ -3908,7 +3728,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text-muted);
 }
-
 .design-revisions { margin-top: 0; max-width: 640px; }
 .design-side .design-rationale { margin-top: 18px; }
 /* Full width for the decision (Edwin, 2026-07-28). The three-column row was
@@ -3941,7 +3760,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-rev:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
 .design-rev-meta { color: var(--text-faint); font-size: 11px; white-space: nowrap; }
 .design-dirty { font-size: 12px; color: var(--status-blocked); margin: 0 0 6px; }
-
 /* A design note points at its own artifact (TASK-0215 follow-up) */
 .design-note-banner {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -3957,7 +3775,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .design-note-open:hover { border-color: var(--accent-link); }
 .design-note-open:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
-
 /* identity band (TASK-0223) — what this is, before what it should look like */
 .design-identity {
   padding: 14px 16px; margin-bottom: 18px;
@@ -3978,12 +3795,10 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .design-identity-residual {
   margin: 0 0 10px; font-size: 12px; color: var(--text-muted);
 }
-
 /* An unfilled brief reads as a prompt, not as content. */
 .design-identity.is-unfilled { border-left-color: var(--status-blocked); }
 .design-identity.is-unfilled h1 { font-size: 15px; color: var(--status-blocked); }
 .design-identity.is-unfilled p { margin: 0 0 8px; font-size: 12px; color: var(--text-muted); max-width: 68ch; }
-
 /* Decisions behind a design (TASK-0225). Recessive by construction: this is
    context you consult, not the subject of the page — the artifact is. */
 .design-rationale { margin: 20px 0 4px; }
