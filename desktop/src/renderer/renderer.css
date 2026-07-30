@@ -4209,3 +4209,15 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   background: var(--accent-soft);
   border-radius: 3px;
 }
+
+/* The phase ID beside its title on the overview (ISS-0076). Quiet — the
+ * title is what a person reads and the ID is what everything else in
+ * the system refers to it by, so it is a cross-reference rather than a
+ * headline. */
+.ov-phase-id {
+  flex: none;
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-right: 1px;
+}
+.ov-phase.is-complete .ov-phase-id { opacity: 0.7; }

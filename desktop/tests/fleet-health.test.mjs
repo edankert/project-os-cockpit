@@ -743,3 +743,22 @@ test('intensity is monotonic and no step shrinks the cell (ISS-0075)', async () 
       `intensity must increase with the step: got ${opacities.join(' → ')}`);
   }
 });
+
+test('every phase row renders its phase ID beside the title (ISS-0076)', async () => {
+  // `p.key` was always in `buildPhaseRow` — it routes the title click to
+  // `~overview/<key>` — and was never shown. Everything that refers to a
+  // phase refers to it by ID (focus.phase, every note's frontmatter,
+  // docs/PHASES.md), so the one surface listing every phase was the only
+  // one that could not be matched against any of them.
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const i = js.indexOf('ov-phase-title');
+  assert.notEqual(i, -1, 'the phase row builder was renamed');
+  const around = js.slice(Math.max(0, i - 1500), i + 1500);
+  assert.ok(around.includes('ov-phase-id'),
+    'the phase row no longer renders its ID beside the title');
+  // Guarded on the same shape the drill-in guards on: a bucket key is
+  // not a phase and has nothing to name.
+  assert.ok(around.includes('/^PHASE-/i') || around.includes('PHASE-'),
+    'the ID is rendered without checking the key is a PHASE-*');
+});

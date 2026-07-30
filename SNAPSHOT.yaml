@@ -35,8 +35,8 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 53
-  ISS: 75
-  PHASE: 18
+  ISS: 76
+  PHASE: 19
   REQ: 25
   RISK: 4
   REL: 0
@@ -47,9 +47,9 @@ counters:
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-018"
+  phase: "PHASE-019"
   issue: ""
-  note: "2026-07-30 PHASE-018 done: History is reachable from a rail button, and the overview's sparkline is a year-long contribution grid whose cells are destinations. Measured before copying GitHub: 16 active days in 12 weeks, median 34 transitions, so fixed 1/4/7/10 buckets would put every lit cell in the top step. Three corrections — relative intensity, absent-is-not-empty (286 vs 69 cells), no year controls without a second year. The live pass caught the first cut landing on the WRONG DAY silently; fixed by anchoring the window (~history/<date>) rather than scrolling into it. Earlier today: PHASE-013 through 017. OWED: mode 1 still has the old three tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev."
+  note: "2026-07-30 PHASE-019 done: every phase row on the overview now shows its ID beside the title (it was already in p.key, routing the title click, just never rendered). Two attempts — the first put IDs on the phase strip's feature groups and Edwin reverted it on sight; he meant the phase title. Nothing was committed, so it was a clean checkout. Earlier today: PHASE-013 through 018 — fleet badges, parking-lot cleanup, validator errors as session work, History as document events, the contribution grid. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); four upstream proposals open in project-os-dev. Seven phases opened and closed today — more than the preceding twelve weeks, worth a look at phase granularity."
 items:
   features:
     FEAT-0053:
@@ -1826,6 +1826,13 @@ items:
 
 
   issues:
+    ISS-0076:
+      file: "docs/issues/ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id.md"
+      title: "The overview's Phases section shows titles and never phase IDs"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-019-Overview-Legibility]]"
+      note: "buildPhaseRow already holds the id in p.key — it routes the title click with it — and never renders it. Everything that refers to a phase refers to it by ID, so the one surface listing every phase is the only one that cannot be cross-referenced."
     ISS-0075:
       file: "docs/issues/ISS-0075-Busiest-Grid-Cells-Render-Smallest.md"
       title: "Contribution grid: the busiest days render 33% smaller — the second channel was subtractive"

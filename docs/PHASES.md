@@ -28,11 +28,12 @@ This document is the **semantic source of truth** for development phases. It map
 | [PHASE-016](phases/PHASE-016-Errors-Become-Work.md) | Errors become work | A validator result is either a row in the running session's work list, closing as the agent fixes it, or an issue filed at close-out. Never a standing number with nothing behind it. | FEAT-0051 | done |
 | [PHASE-017](phases/PHASE-017-History-As-Document-Events.md) | History as document events | One History surface replacing Activity + Changes + Commits: rows are note status transitions, commits are dividers marking what is saved. | FEAT-0052 | done |
 | [PHASE-018](phases/PHASE-018-History-You-Can-Reach-And-Traverse.md) | History you can reach and traverse | A contribution grid whose days are destinations, and a History button in the rail. GitHub's shape, with its constants replaced — relative intensity, absent-is-not-empty, no year controls without a second year. | FEAT-0053 | done |
+| [PHASE-019](phases/PHASE-019-Overview-Legibility.md) | Overview legibility | Small "I can't tell what I'm looking at" fixes on the project overview. A standing home, so each one need not invent a phase. | ISS-0076 | done |
 | [PHASE-999](phases/PHASE-999-Future.md) | Future / Unphased | Sentinel parking-lot for items without a concrete delivery phase yet. Re-phase out when planning crystallises. **Not a second sentinel:** `PHASE-999-Unscheduled` was a dangling link on 13 notes until 2026-07-30 and never existed. | FEAT-0029, TASK-0045, TASK-0065 | planned |
 
 ## Active phase
 
-None — PHASE-011 through PHASE-015 all closed on 2026-07-30. PHASE-013 (fleet surfaces) was independently reviewed and returned `changes-requested`; all nine findings were addressed before close-out. PHASE-014 and PHASE-015 came out of Edwin's question about delivered-but-unplanned work: 014 is a **retrospective** record of the project inbox, and 015 is the correction that required writing it. See `SNAPSHOT.yaml` `focus`.
+None — PHASE-011 through PHASE-019 all closed on 2026-07-30. PHASE-013 (fleet surfaces) was independently reviewed and returned `changes-requested`; all nine findings were addressed before close-out. PHASE-014 and PHASE-015 came out of Edwin's question about delivered-but-unplanned work: 014 is a **retrospective** record of the project inbox, and 015 is the correction that required writing it. See `SNAPSHOT.yaml` `focus`.
 
 **Phase numbers are allocation order, not chronology.** PHASE-014 documents work that shipped between PHASE-009 and PHASE-010; its note says so rather than leaving the reader to infer it from the number.
 

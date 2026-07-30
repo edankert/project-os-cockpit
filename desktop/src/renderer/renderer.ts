@@ -5697,7 +5697,25 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
   title.className = 'ov-phase-title';
   title.textContent = p.title;
 
-  head.append(chev, title);
+  head.append(chev);
+  // The ID, beside the title (ISS-0076). `p.key` was already here — it
+  // routes the title click to `~overview/<key>` — and was never shown.
+  //
+  // It matters more than a label usually would: everything that refers
+  // to a phase refers to it by ID (`focus.phase`, every note's
+  // frontmatter, docs/PHASES.md), so this section is the one surface
+  // listing every phase and the only one that could not be matched
+  // against any of them. The focus band above already shows it.
+  //
+  // Guarded on the same shape the drill-in guards on: a non-`PHASE-*`
+  // key is a bucket, not a phase, and has nothing to name.
+  if (/^PHASE-/i.test(p.key)) {
+    const id = document.createElement('span');
+    id.className = 'ov-phase-id mono';
+    id.textContent = p.key;
+    head.appendChild(id);
+  }
+  head.appendChild(title);
   appendIf(head, statusChip(p.status || undefined));
 
   const frac = document.createElement('span');
