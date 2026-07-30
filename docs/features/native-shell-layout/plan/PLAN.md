@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan: Native shell layout (chrome polish)"
-status: active
+status: done
 owner: user:edwin
 created: 2026-05-25
 updated: 2026-05-25

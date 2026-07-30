@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — clipboard that works"
-status: active
+status: done
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

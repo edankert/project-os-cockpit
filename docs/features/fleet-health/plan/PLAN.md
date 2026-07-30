@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Fleet health surface — delivery plan"
-status: draft
+status: done
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

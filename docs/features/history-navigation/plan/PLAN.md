@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — history navigation"
-status: active
+status: done
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
