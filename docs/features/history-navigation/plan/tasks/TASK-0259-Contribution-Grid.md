@@ -68,6 +68,12 @@ The uncommitted band is suppressed for an anchored window — work in flight bel
 
 Guarded by four tests including a malformed-`until` case, since `until` is the only caller-supplied value reaching the git argv. Mutation-verified both ways.
 
-### Second channel, as required
+### Second channel — added, wrong, removed ([[ISS-0075]])
 
-Intensity carries an inset ring that thickens with the step, so the scale survives greyscale and colour-blindness. Five shades of one hue is the encoding [[DES-0004]] refused for the phase squares, and it would have been the easy thing to copy from GitHub.
+This shipped with an inset ring thickening with the step, justified in the DoD as "colour must not be the only channel" and citing [[DES-0004]].
+
+**Both the justification and the implementation were wrong.** DES-0004's rule is about **hue**, because the phase squares had already spent colour on type; it does not say lightness needs reinforcement, and lightness is greyscale- and CVD-safe by definition — which is why GitHub's scale is accessible. And an *inset* shadow paints inside the box, so the busiest day rendered 6px of colour against the quietest day's 9px: the strongest signal became the smallest mark.
+
+Edwin saw it immediately. Fixed in [[ISS-0075]] — opacity alone, monotonic, every cell the same size, guarded on the property.
+
+The DoD line "readable without colour — intensity must not be the only channel" is left standing as written, because it is what I believed at the time and striking it would hide the mistake. It is satisfied by lightness, which was true all along.

@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 53
-  ISS: 74
+  ISS: 75
   PHASE: 18
   REQ: 25
   RISK: 4
@@ -1826,6 +1826,13 @@ items:
 
 
   issues:
+    ISS-0075:
+      file: "docs/issues/ISS-0075-Busiest-Grid-Cells-Render-Smallest.md"
+      title: "Contribution grid: the busiest days render 33% smaller — the second channel was subtractive"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-018-History-You-Can-Reach-And-Traverse]]"
+      note: "An inset box-shadow in the BACKGROUND colour eats into the cell, so step 4 shows 6px of colour against step 1's 9px. Cited DES-0004 to justify it, but that rule is about HUE — lightness is already greyscale- and CVD-safe, which is why GitHub's scale works. Solved a problem that did not exist, subtractively."
     ISS-0074:
       file: "docs/issues/ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot.md"
       title: "16 of 19 notes naming PHASE-999 are terminal — the strip draws 16 delivered squares under 'Future'"

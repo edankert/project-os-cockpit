@@ -711,3 +711,35 @@ test('the sparkline is gone from the History tile', async () => {
     'the 13-week sparkline is back — the grid replaced it, at higher '
     + 'resolution and with cells that navigate');
 });
+
+test('intensity is monotonic and no step shrinks the cell (ISS-0075)', async () => {
+  // The busiest days used to render 33% smaller than the quietest: an
+  // INSET box-shadow in the background colour is a border drawn inside
+  // the box, so step 4 showed 6px of colour against step 1's 9px. The
+  // size channel partly cancelled the intensity it was meant to
+  // reinforce. Edwin spotted it on sight; the suite could not, because
+  // every cell is 9×9 by any measurement a test would take.
+  //
+  // So this asserts the two properties that were violated, not the
+  // pixel values: nothing subtracts from a cell, and darker means busier.
+  const css = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.css'), 'utf-8');
+
+  const opacities = [];
+  for (const step of [1, 2, 3, 4]) {
+    const sel = `.ov-grid-cell[data-state="${step}"]`;
+    const i = css.indexOf(sel);
+    assert.notEqual(i, -1, `${sel} has no rule`);
+    const rule = css.slice(i, css.indexOf('}', i));
+    assert.ok(!rule.includes('inset'),
+      `step ${step} carries an inset shadow — that paints INSIDE the cell, `
+      + 'so a busier day renders as a smaller mark (ISS-0075)');
+    const m = rule.match(/opacity:\s*([\d.]+)/);
+    assert.ok(m, `step ${step} sets no opacity, so intensity has no channel`);
+    opacities.push(Number(m[1]));
+  }
+  for (let i = 1; i < opacities.length; i++) {
+    assert.ok(opacities[i] > opacities[i - 1],
+      `intensity must increase with the step: got ${opacities.join(' → ')}`);
+  }
+});

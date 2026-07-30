@@ -4159,17 +4159,26 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   cursor: default;
 }
 .ov-grid-cell[data-state="empty"] { cursor: default; }
-/* Intensity carries a SECOND channel — an inset ring that thickens with
- * the step — so the scale survives greyscale and colour-blindness. Five
- * shades of one hue is the encoding DES-0004 refused for the phase
- * squares. */
-.ov-grid-cell[data-state="1"] { background: var(--status-done); opacity: 0.3; }
-.ov-grid-cell[data-state="2"] { background: var(--status-done); opacity: 0.5;
-  box-shadow: inset 0 0 0 0.5px var(--bg); }
-.ov-grid-cell[data-state="3"] { background: var(--status-done); opacity: 0.75;
-  box-shadow: inset 0 0 0 1px var(--bg); }
-.ov-grid-cell[data-state="4"] { background: var(--status-done); opacity: 1;
-  box-shadow: inset 0 0 0 1.5px var(--bg); }
+/* Intensity is LIGHTNESS alone, and every cell is the same size.
+ *
+ * ISS-0075: these steps used to carry an inset ring in the background
+ * colour, growing 0 → 1.5px with the step. An inset shadow is drawn
+ * INSIDE the box, so the busiest day showed 6px of colour against the
+ * quietest day's 9px — the strongest signal rendered as the smallest
+ * mark, and the size channel partly cancelled the intensity it was
+ * meant to reinforce. Edwin spotted it on sight.
+ *
+ * It was justified by citing DES-0004's "colour must not be the only
+ * channel", which misreads that rule: DES-0004 is about HUE, because
+ * the phase squares had already spent colour on type. Nothing else here
+ * uses colour, and lightness survives greyscale by definition and every
+ * common colour-vision deficiency — which is exactly why GitHub's scale
+ * is accessible. The second channel was solving a problem that did not
+ * exist, subtractively. */
+.ov-grid-cell[data-state="1"] { background: var(--status-done); opacity: 0.28; }
+.ov-grid-cell[data-state="2"] { background: var(--status-done); opacity: 0.5; }
+.ov-grid-cell[data-state="3"] { background: var(--status-done); opacity: 0.75; }
+.ov-grid-cell[data-state="4"] { background: var(--status-done); opacity: 1; }
 .ov-grid-cell:not([disabled]):hover { outline: 1px solid var(--accent-link); }
 
 .ov-grid-foot {
