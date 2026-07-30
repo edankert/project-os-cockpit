@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-012
 aliases: ["PHASE-012"]
 title: "Attention in the strip — the overview stops re-listing what it already draws"
-status: planned
+status: done
 order: 12
 owner: user:edwin
 created: 2026-07-30
@@ -50,12 +50,12 @@ Alongside it, two small reachability items of exactly [[PHASE-010]]'s family —
 
 ## Exit Criteria
 
-- [ ] [[DES-0004]] carries a recorded review verdict before any code lands — evidence: <frontmatter>
-- [ ] Every state in the accepted encoding is distinguishable on a real phase strip at true density, including under `prefers-reduced-motion` — evidence: <manual pass; motion is the only thing separating two of the marks>
-- [ ] A collapsed phase holding attention says so on its header — evidence: <`ISS-0024`'s square is on the page and `offsetParent: null`; without this the change loses information>
-- [ ] `buildWaitingOnYou` and its three helpers are deleted, and [[TASK-0200]] / [[TASK-0210]] are marked superseded rather than emptied — evidence: <diff + note statuses>
-- [ ] Every `TASK-*.md` on disk is reachable, whether or not it carries frontmatter — evidence: <a count assertion against a glob, as [[TST-0022]] does for plans>
-- [ ] No Library row is a dead click — evidence: <ISS-0037 test>
+- [x] [[DES-0004]] carries a recorded review verdict before any code lands — evidence: `review_verdict: accepted`, `reviewed_by: user:edwin`, `review_date: 2026-07-30`, recorded before the encoding was implemented. The note says plainly that the verdict value and attribution are Edwin's and the wording is not, so it can be corrected cheaply. **Caveat, recorded rather than hidden:** the note's substance changed *after* that verdict (the staleness correction), which is the very failure [[ISS-0057]] addresses — now carrying a `## Revisions` entry, and found by review as [[ISS-0071]].
+- [x] Every state in the accepted encoding is distinguishable on a real phase strip at true density, including under `prefers-reduced-motion` — evidence: verified over CDP in the running app at 9px — solid `rgb(121,166,210)`; gradient slit; gradient strike; inverted + `prog-pulse`; inverted static; dot at `--status-blocked` `rgb(210,129,121)`. The reduced-motion fallback swaps the pulse for an offset outline, because motion is the only thing separating `doing` from `unproven`. `test_every_des_0004_state_is_reachable` and `test_no_legal_status_falls_through_unmarked` hold it — the second added after [[ISS-0071]] found `failing` rendering identically to unstarted work.
+- [x] A collapsed phase holding attention says so on its header — evidence: `waiting` in the phase payload and the `ov-phase-pill is-waiting` element; three `1 waiting` pills rendered in the app. A count and not ids, deliberately.
+- [x] `buildWaitingOnYou` and its three helpers are deleted, and [[TASK-0200]] / [[TASK-0210]] are marked superseded rather than emptied — evidence: both tasks are `superseded` with `superseded_by` pointing at [[ISS-0068]]; `test_the_waiting_on_you_list_is_gone` asserts the declarations are absent from source *and* the `.ov-waiting*` CSS from the stylesheet, while asserting the unrelated `buildAttentionRow` survived.
+- [x] Every `TASK-*.md` on disk is reachable, whether or not it carries frontmatter — evidence: `_task_records` unions the type lookup with the path fallback; 247 on disk, 244 typed, 247 reachable; `TASK-0182`/`0183`/`0187` confirmed in the Tasks mode in the app. `test_every_task_note_on_disk_is_reachable` asserts against a filesystem glob, not a literal.
+- [x] No Library row is a dead click — evidence: `~root/<file>` plus the server's `explicit_root` mirror of `explicit_docs`. Clicking README in the app opens the **project** README (`h1` = "project-os-cockpit"), not the docs note. **Both clients:** [[ISS-0071]] found the first fix had repaired mode 3 and broken mode 1, whose `cockpit.js` fetches the raw href; it now translates `~root/X` → `/X`, and the guard greps both.
 
 ## Notes
 

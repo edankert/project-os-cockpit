@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-011
 aliases: ["PHASE-011"]
 title: "Unproven claims become visible"
-status: planned
+status: done
 order: 11
 owner: user:edwin
 created: 2026-07-30
@@ -62,11 +62,13 @@ The phase's claim is one sentence: **where the system already knows a claim is u
 
 ## Exit Criteria
 
-- [ ] A waived or stale-verified item is visually distinguishable from a proven one on the phase strip — evidence: <the unproven mark implemented, plus a count against the 22 waived items. NOT 22 + 9: the 9 stale tests were measured on a 30-day threshold nobody adopted, and at the project's 90 there are none — see the correction above>
-- [ ] Coverage-register drift fails a check rather than waiting for a reviewer — evidence: <the ISS-0066 assertion, mutation-verified>
-- [ ] `PHASE-007` has no PHASE-CHILDREN error — evidence: <validator clean, ISS-0024 resolved>
-- [ ] An accepting design verdict is invalidated by a change to the note's prose, not only to its artifact — evidence: <ISS-0057 test>
-- [ ] FEAT-0018 is terminal, with its review verdict recorded rather than assumed — evidence: <frontmatter + independent review>
+- [x] A waived or stale-verified item is visually distinguishable from a proven one on the phase strip — evidence: the static inverted fill from [[DES-0004]], implemented in `_square_state`/`_is_unproven` and `.ov-phase-sq[data-state="unproven"]`. **22 items** carry it (every `verification_waiver` in the corpus), verified in the running app at 9px: `background: currentColor` with `inset 0 0 0 1.5px var(--bg)`, distinct from both solid and hollow. **Count is 22, not 22 + 9** — see the correction above; no test is stale at the project's 90-day threshold, and `test_the_staleness_threshold_is_the_validators` holds the cockpit to the validator's number so a second rule cannot reappear.
+- [x] Coverage-register drift fails a check rather than waiting for a reviewer — evidence: `tests/test_coverage_registers.py::test_every_test_named_in_a_note_exists`, parametrised per note. **It found four dangling citations on its first run** (TST-0019 and TST-0002, all renames the notes never followed). Mutation-verified both ways: a typo in a citation fails, and renaming a test in source while leaving the note alone fails. The reverse direction is deliberately not enforced and `test_enumeration_is_not_the_convention` records the measurement why.
+- [x] `PHASE-007` has no PHASE-CHILDREN error — evidence: [[ISS-0024]] is `fixed`; `phase_close_blockers(index, "PHASE-007")` returns `[]`; validator clean.
+- [x] An accepting design verdict is invalidated by a change to the note's prose, not only to its artifact — evidence: `cockpit.design_note_digest`, `at_note_digest` on the request, and `note_digest`/`note_moved` on the review detail. Guarded by `test_a_design_note_digest_ignores_what_recording_a_review_touches`, asserted in both directions. **Reconciled with [[ISS-0071]]:** `status` had to join the exclusions, because `stamp_design_verdict` writes it and an accepting verdict was invalidating its own digest. — [~] **The desk does not yet render `note_moved`.** The signal exists and nothing displays it, which is the shape of [[ISS-0065]]. Recorded in [[ISS-0057]] rather than closed over; the criterion is met at the payload and unmet at the surface.
+- [x] FEAT-0018 is terminal, with its review verdict recorded rather than assumed — evidence: `done`, and the mode-1 visual pass it was held for is written up in the note with measured values (badge `ok`→`failing` over SSE with `navigation.length` pinned at 1, drift rows deep-linking, amber waiver and green verdict chips). Independent review **approved** that half specifically. [[CHG-20260730]] carries the record.
+
+**Also delivered, and not foreseen when this phase was written:** [[ISS-0069]] (a second, unguarded `review_verdict` vocabulary — 10 notes carried `CLOSE`), [[ISS-0070]] (an unanchored `.gitignore` pattern had kept a whole feature out of the repository), and [[ISS-0071]] (the review's own findings, including three guards that passed while what they claimed was broken).
 
 ## Notes
 

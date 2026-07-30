@@ -47,9 +47,9 @@ counters:
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-012"
-  issue: "ISS-0071"
-  note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
+  phase: "PHASE-013"
+  issue: ""
+  note: "2026-07-30 PHASE-011 and PHASE-012 both done, both independently reviewed. The review returned changes-requested and its findings were fixed before close-out, not after: ISS-0070 (an unanchored .gitignore had kept docs/features/inbox/ — FEAT-0045 and three tasks — out of the repository entirely; a fresh clone failed the validator) and ISS-0071 (nine findings, worst being three of my own new guards passing while what they claimed was broken). 600 tests, validator clean, a fresh clone validates clean. PHASE-013 is next and is BLOCKED on a per-repo go-ahead: TASK-0231 writes to ten other repositories, and FEAT-0028 has no task breakdown yet. Owed: the desk still does not render note_moved (ISS-0057), and ISS-0069/ISS-0066 both recommend upstreaming to project-os."
 items:
   features:
     FEAT-0046:
@@ -2043,7 +2043,7 @@ items:
     PHASE-011:
       file: "docs/phases/PHASE-011-Unproven-Claims.md"
       title: "Unproven claims become visible"
-      status: planned
+      status: done
       order: 11
       features: ["FEAT-0018"]
       issues: ["ISS-0024", "ISS-0057", "ISS-0066"]
@@ -2051,7 +2051,7 @@ items:
     PHASE-012:
       file: "docs/phases/PHASE-012-Attention-In-The-Strip.md"
       title: "Attention in the strip — the overview stops re-listing what it already draws"
-      status: planned
+      status: done
       order: 12
       issues: ["ISS-0037", "ISS-0067", "ISS-0068"]
       note: "DES-0004's encoding, then delete buildWaitingOnYou and its three helpers. GATED on DES-0004 carrying a review verdict — it is a stylesheet change to the densest element on the page. Also needs tests in the phase payload (they are absent) and `blocked` computed from depends: rather than a status that does not exist. Retiring the list reverses TASK-0200/TASK-0210 and DES-0001 plate 5, so those want superseding."
