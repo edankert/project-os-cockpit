@@ -12,7 +12,9 @@ goal: "One clipboard path for the whole app, right-click menus that act on what 
 features:
   - "[[FEAT-0054-Clipboard-That-Works]]"
 requirements: []
-issues: []
+issues:
+  - "[[ISS-0079-Context-Menu-Only-Ever-Fired-For-Anchors]]"
+  - "[[ISS-0080-Console-Context-Menu-Replaced-By-Terminal-Convention]]"
 depends: ["[[PHASE-016-The-Overview-Answers-Questions]]"]
 related: ["[[FEAT-0037-Native-Text-Menus]]", "[[TASK-0167-Terminal-Context-Menu]]"]
 tags: [desktop, clipboard]
@@ -74,3 +76,13 @@ The right-click clears xterm's selection before the menu asks whether one exists
 - The link menu looked missing — it existed, was wired, and was being overridden by a second menu firing for the same click.
 
 Reading the code and re-running with focus cost twenty minutes and prevented building the wrong thing twice: the second plan would have added a **third** menu to a click that already had two.
+
+
+## Reopened and re-closed 2026-07-30
+
+Two follow-ups from Edwin trying it, both fixed:
+
+- **[[ISS-0079]]** — the note context menu keyed off `closest('a')`, so History's `<button>` rows got the word menu. My [[TASK-0262]] fix covered anchors and I verified it on an anchor.
+- **[[ISS-0080]]** — the console's context menu never worked for him across three attempts. Replaced with the terminal convention: **select copies, right-click pastes**, no menu.
+
+**The pattern in both is the same and worth naming.** Each time I verified the case I had built, on the surface I had built it for, and each time the user found the surface I had not. Right-clicking an anchor worked; right-clicking a History row did not. A dispatched `contextmenu` event worked; a real right-click did not.

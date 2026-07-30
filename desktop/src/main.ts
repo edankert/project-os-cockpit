@@ -410,6 +410,14 @@ function buildMenu(): void {
         },
         { type: 'separator' },
         {
+          // Rehomed from the console's context menu, which ISS-0080
+          // deleted. It was the only action there with no other route.
+          label: 'Restart Console',
+          click: () => {
+            mainWindow?.webContents.send('menu:restart-terminal');
+          },
+        },
+        {
           label: 'Toggle Terminal',
           accelerator: isMac ? 'Cmd+`' : 'Ctrl+`',
           click: () => {

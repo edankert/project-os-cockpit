@@ -96,6 +96,7 @@ interface CockpitApi {
   };
   menu: {
     onRescan: (cb: () => void) => () => void;
+    onRestartTerminal: (cb: () => void) => () => void;
     onToggleTerminal: (cb: () => void) => () => void;
     onEdit: (cb: (ev: { action: string }) => void) => () => void;
     onBack: (cb: () => void) => () => void;
@@ -1730,26 +1731,31 @@ function ensureXterm(): void {
   });
   // Terminal context menu (TASK-0167) — xterm's selection isn't a DOM
   // selection, so the native menu can't see it; build our own.
+  // Right-click PASTES. The terminal convention (PuTTY, mintty), and it
+  // replaces a context menu that did not work for the user across three
+  // attempts while ⌘C/⌘V did (ISS-0080). Instrumentation said the menu
+  // path wrote to the PTY and held focus — it was measuring a dispatched
+  // event, not a real right-click — so this removes the mechanism rather
+  // than repairing what could not be reproduced.
+  //
+  // Always pastes, with no selection-aware mode: a gesture that
+  // sometimes copies and sometimes pastes is worse than either, and if
+  // you have a selection you have already copied it, because selecting
+  // IS the copy.
   terminalMount.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Capture BEFORE the menu opens: by the time `showTerminalMenu`
-    // asks, the right-click has already cleared xterm's selection.
-    capturedTerminalSelection = term?.hasSelection() ? (term.getSelection() || '') : '';
-    showTerminalMenu(e.clientX, e.clientY);
+    void pasteIntoTerminal();
   });
   wireTerminalListenersOnce();
 }
 
 // ----- Terminal context menu + clipboard (TASK-0167) -------------------
-let copyOnSelect = false;
-try { copyOnSelect = localStorage.getItem('cockpit:copy-on-select') === '1'; }
-catch { /* ignore */ }
-let termMenuEl: HTMLElement | null = null;
-
-function closeTerminalMenu(): void {
-  if (termMenuEl) { termMenuEl.remove(); termMenuEl = null; }
-}
+// Selecting copies. Formerly an opt-in preference defaulting to OFF,
+// which meant "select to copy" was not the behaviour at all unless you
+// had found the toggle — half of why the console's clipboard felt
+// broken (ISS-0080). It is the convention now, not a setting.
+const copyOnSelect = true;
 
 // Multi-line pastes are wrapped in bracketed-paste markers so a shell /
 // REPL treats them as one block instead of running each line.
@@ -1771,65 +1777,11 @@ async function pasteIntoTerminal(): Promise<void> {
   scheduleHide(1200);
 }
 
-/** The selection captured when the context menu opened, if any.
- *
- *  A right-click CLEARS xterm's selection before the menu is built, so
- *  reading `term.hasSelection()` at menu time reports false and Copy
- *  renders disabled — exactly when a user reaches for it. Measured
- *  before the fix: selection true before the click, false after, the
- *  Copy item disabled (FEAT-0054 / TASK-0263).
- */
-let capturedTerminalSelection = '';
-
 function copyTerminalSelection(): void {
-  const s = capturedTerminalSelection
-    || (term?.hasSelection() ? term.getSelection() : '');
+  const s = term?.hasSelection() ? (term.getSelection() || '') : '';
   void copyText(s, 'Copied from console');
 }
 
-function showTerminalMenu(x: number, y: number): void {
-  closeTerminalMenu();
-  const menu = document.createElement('div');
-  menu.className = 'term-menu';
-  const hasSel = !!capturedTerminalSelection || !!term?.hasSelection();
-  const add = (label: string, enabled: boolean, fn: () => void): void => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'term-menu-item';
-    b.textContent = label;
-    b.disabled = !enabled;
-    b.addEventListener('click', () => {
-      closeTerminalMenu();
-      fn();
-      // Hand focus back: after a menu action the user's next keystroke
-      // belongs to the console, and a paste they cannot then type after
-      // reads as a paste that did not happen.
-      try { term?.focus(); } catch { /* terminal gone */ }
-    });
-    menu.appendChild(b);
-  };
-  add('Copy', hasSel, copyTerminalSelection);
-  add('Paste', true, () => { void pasteIntoTerminal(); });
-  add('Select All', true, () => { capturedTerminalSelection = ''; term?.selectAll(); });
-  add('Clear', true, () => term?.clear());
-  add('Restart console', !!(attachedTerminalId ?? activeId), () => { void restartTerminal(); });
-  const sep = document.createElement('div');
-  sep.className = 'term-menu-sep';
-  menu.appendChild(sep);
-  add(copyOnSelect ? '✓ Copy on select' : 'Copy on select', true, () => {
-    copyOnSelect = !copyOnSelect;
-    try { localStorage.setItem('cockpit:copy-on-select', copyOnSelect ? '1' : '0'); } catch { /* ignore */ }
-  });
-  menu.style.visibility = 'hidden';
-  document.body.appendChild(menu);
-  // Keep the menu on-screen.
-  const r = menu.getBoundingClientRect();
-  menu.style.left = `${Math.min(x, window.innerWidth - r.width - 4)}px`;
-  menu.style.top = `${Math.min(y, window.innerHeight - r.height - 4)}px`;
-  menu.style.visibility = 'visible';
-  termMenuEl = menu;
-  window.setTimeout(() => document.addEventListener('mousedown', closeTerminalMenu, { once: true }), 0);
-}
 
 // Attach the xterm to a workspace's PTY: spawn it if not yet alive,
 // otherwise replay the backlog so the screen resumes in-place.
@@ -2046,6 +1998,7 @@ cockpitApi.menu.onEdit((ev) => {
 
 cockpitApi.menu.onRescan(() => { void rescanWorkspaces(); });
 cockpitApi.menu.onToggleTerminal(() => { toggleTerminal(); });
+cockpitApi.menu.onRestartTerminal(() => { void restartTerminal(); });
 
 cockpitApi.agent.onFocus((payload) => {
   if (!payload || typeof payload !== 'object') return;

@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 54
-  ISS: 79
+  ISS: 80
   PHASE: 20
   REQ: 25
   RISK: 4
@@ -1854,6 +1854,13 @@ items:
 
 
   issues:
+    ISS-0080:
+      file: "docs/issues/ISS-0080-Console-Context-Menu-Replaced-By-Terminal-Convention.md"
+      title: "Replace the console context menu with select-copies / right-click-pastes"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-020-Clipboard-That-Works]]"
+      note: "Three reports it does not work while Cmd-C/V do; three rounds of instrumentation say the menu path writes to the PTY and focus is held. When the measurement and the user disagree three times the measurement is answering a different question. Edwin's proposal removes the mechanism rather than repairing it. Restart console lives ONLY in that menu and must be rehomed."
     ISS-0079:
       file: "docs/issues/ISS-0079-Context-Menu-Only-Ever-Fired-For-Anchors.md"
       title: "The note context menu keyed off closest('a'), so button-shaped rows got the word menu"

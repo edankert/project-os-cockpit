@@ -814,22 +814,11 @@ test('a right-click on a docs link yields to the renderer menu', async () => {
   assert.ok(fn.includes('linkURL'), 'the handler still ignores params.linkURL');
 });
 
-test('the terminal captures its selection before the menu opens', async () => {
-  // Measured before the fix: selection true before the right-click,
-  // false after, Copy disabled. Verified after: with the selection
-  // deliberately cleared, Copy stays enabled and still copies.
-  const js = await fs.readFile(
-    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
-  const i = js.indexOf("addEventListener('contextmenu'");
-  assert.notEqual(i, -1);
-  const near = js.slice(i, i + 500);
-  assert.ok(near.includes('capturedTerminalSelection'),
-    'the contextmenu handler no longer captures the selection, so Copy will '
-    + 'read hasSelection() after the click has already cleared it');
-  const copyFn = js.slice(js.indexOf('function copyTerminalSelection'), js.indexOf('function copyTerminalSelection') + 400);
-  assert.ok(copyFn.includes('capturedTerminalSelection'),
-    'copyTerminalSelection ignores the captured text');
-});
+// `the terminal captures its selection before the menu opens` was here.
+// Deleted with the menu it guarded (ISS-0080): there is no context menu
+// in the console any more, so there is nothing to capture a selection
+// for. A guard kept alive past the thing it protects is a guard that
+// gets muted, and a muted guard is worse than none.
 
 test('clipboard failures are reported, not swallowed', async () => {
   const js = await fs.readFile(
@@ -867,4 +856,42 @@ test('the note context menu fires for BUTTON rows, not just anchors (ISS-0079)',
   assert.ok(rowFn.includes('noteId') && rowFn.includes('noteRel'),
     'History rows no longer carry their note identity, so the handler '
     + 'cannot find anything to offer');
+});
+
+test('the console uses the terminal convention, not a menu (ISS-0080)', async () => {
+  // Three reports that the console's context menu did not copy or paste
+  // while ⌘C/⌘V did, against three rounds of instrumentation saying the
+  // menu path worked. The instrumentation was measuring a dispatched
+  // event, not a real right-click. Edwin's fix removes the mechanism:
+  // select copies, right-click pastes (PuTTY / mintty).
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  const css = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.css'), 'utf-8');
+
+  assert.ok(!js.includes('showTerminalMenu'), 'the console context menu is back');
+  assert.ok(!css.includes('.term-menu'), 'the console menu styling is back');
+
+  // Right-click pastes.
+  const i = js.indexOf("terminalMount.addEventListener('contextmenu'");
+  assert.notEqual(i, -1, 'the console no longer handles right-click at all');
+  assert.ok(js.slice(i, i + 300).includes('pasteIntoTerminal'),
+    'right-click on the console does not paste');
+
+  // Selecting copies — and it is the behaviour, not an opt-in that
+  // defaulted to off, which is half of why the console felt broken.
+  assert.ok(/copyOnSelect\s*=\s*true/.test(js),
+    'copy-on-select is not on by default, so "select to copy" is not the '
+    + 'behaviour and right-click-to-paste has nothing to paste');
+});
+
+test('Restart Console survived the menu deletion (ISS-0080)', async () => {
+  // It was the ONLY action in that menu with no other route.
+  const main = await fs.readFile(path.join(here, '..', 'dist', 'main.js'), 'utf-8');
+  assert.ok(main.includes("'menu:restart-terminal'"),
+    'Restart Console has no app-menu entry — deleting the context menu '
+    + 'stranded the one action that had nowhere else to live');
+  const js = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'renderer.js'), 'utf-8');
+  assert.ok(js.includes('onRestartTerminal'), 'the renderer never listens for it');
 });

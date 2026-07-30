@@ -67,6 +67,11 @@ const api = {
       ipcRenderer.on('menu:rescan', handler);
       return () => ipcRenderer.removeListener('menu:rescan', handler);
     },
+    onRestartTerminal: (cb: () => void): (() => void) => {
+      const handler = (): void => cb();
+      ipcRenderer.on('menu:restart-terminal', handler);
+      return () => ipcRenderer.removeListener('menu:restart-terminal', handler);
+    },
     onToggleTerminal: (cb: () => void): (() => void) => {
       const handler = (): void => cb();
       ipcRenderer.on('menu:toggle-terminal', handler);
