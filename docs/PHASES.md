@@ -13,7 +13,7 @@ This document is the **semantic source of truth** for development phases. It map
 |---|---|---|---|---|
 | [PHASE-001](phases/PHASE-001-MVP.md) | MVP | Renderer + live reload — the smallest useful tool. | FEAT-0001, FEAT-0002 | done |
 | [PHASE-002](phases/PHASE-002-Project-OS-Adapter.md) | Project-os adapter | ID resolution polish, auto-index pages, backlinks panel, bases-driven cockpit layout. | FEAT-0004, FEAT-0006 | active |
-| [PHASE-003](phases/PHASE-003-Downstream-Pilot.md) | Downstream pilot | Deploy under `your-applications.com/tools/project-os-cockpit/`. Validate cross-repo invocation. | FEAT-0005 | planned |
+| [PHASE-003](phases/PHASE-003-Downstream-Pilot.md) | Downstream pilot | Would have proven cross-repo invocation with one shim. **Never built** — workspace discovery (PHASE-005) replaced the need, and the shell now serves all 12 fleet repos (ISS-0078). | FEAT-0005 | superseded → PHASE-005 |
 | [PHASE-004](phases/PHASE-004-Embedded-Terminal.md) | Embedded terminal | Opt-in `ttyd`-iframe terminal panel, loopback-only. Pulled out of PHASE-001. | FEAT-0003 | planned |
 | [PHASE-005](phases/PHASE-005-Desktop-Shell.md) | Desktop shell (Electron + Python sidecar) | System-wide Electron app that wraps the existing cockpit as a sidecar. Multi-project. Additive to modes 1 + 2. | FEAT-0007 | active |
 | [PHASE-006](phases/PHASE-006-Native-Cockpit-UI.md) | Native cockpit UI (TypeScript rewrite) | Replace the iframe-mounted cockpit with native TypeScript panes. Python becomes a pure data + Markdown-render API. Mode 1 (browser) preserved. | FEAT-0008..FEAT-0013 | done |

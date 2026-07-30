@@ -2,23 +2,32 @@
 type: "[[phase]]"
 id: PHASE-015
 aliases: ["PHASE-015"]
-title: "Phase hygiene — the record says which push shipped each thing, not which one failed to plan it"
-status: done
+title: "Record hygiene (standing) — the documentation says what actually happened"
+status: active
 order: 15
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
-goal: "Make an item's phase a record of what delivered it rather than a plan-time answer nobody revisits, so completed work stops accumulating in the parking-lot sentinel."
+goal: "A standing home for corrections to the record itself — a phase that says the wrong thing, an instruction that describes something that does not exist, a status that outlived its truth. No end date; it closes only if the record stops needing correcting."
 features: []
 requirements: []
 issues:
   - "[[ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot]]"
+  - "[[ISS-0078-Downstream-Pilot-Was-Overtaken-And-CLAUDE-Md-Still-Claims-It]]"
 depends: ["[[PHASE-013-Fleet-Surfaces]]"]
 related: ["[[PHASE-014-Project-Inbox]]", "[[PHASE-999-Future]]", "[[ADR-0009]]"]
 tags: [docs-system]
 ---
 
-# Phase hygiene
+# Record hygiene (standing)
+
+## This is a standing phase
+
+Converted 2026-07-30, and it is the first application of the rule [[ISS-0077]] produced: *one long-lived phase per durable surface, that small fixes join, rather than a phase per request.*
+
+It was `done` after [[ISS-0074]]. Reopening it rather than minting PHASE-020 for the next small records correction **is the mechanism working** — that issue measured nine phases in a day precisely because there was nowhere to put a small thing.
+
+A standing phase has no end date. Its exit criteria below belong to the [[ISS-0074]] leg and stay ticked as that leg's record; the phase itself closes only if the record stops needing correcting.
 
 ## Goal
 

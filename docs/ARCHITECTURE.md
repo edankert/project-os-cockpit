@@ -76,7 +76,7 @@ Frontmatter `aliases` are also indexed, so `[[FEAT-0008]]`, `[[Your Trainer manu
 
 ## Deployment shape
 
-- Local-dev (this repo): run from source with `python -m project_os_cockpit` against any project-os repo's `docs/`.
-- Downstream project-os repo: a thin shim under `tools/project-os-cockpit/` (a `Makefile` target, a `dev.sh` wrapper, or a `pipx`-installed entrypoint) that points at the same source checkout. Per-repo configuration (port, terminal on/off) lives in the shim, not in this upstream.
+- **From a terminal**: `python -m project_os_cockpit <repo>/docs` against any project-os repo, from this source checkout. One command, no per-repo setup.
+- **From the desktop shell (mode 3)**: it discovers every `SNAPSHOT.yaml`-bearing repo under the configured roots and spawns a sidecar per workspace. Per-repo configuration lives in the workspace record the shell keeps, not in the consumed repo.
 
-See `docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md` for the deployment plan.
+**Nothing is installed into a downstream repo.** An earlier plan ([[PHASE-003]] / [[FEAT-0005]]) had each consumer carry a thin shim under `tools/project-os-cockpit/`; workspace discovery ([[PHASE-005]]) replaced the need before any shim was built, and the phase is `superseded` ([[ISS-0078]]).

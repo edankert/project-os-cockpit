@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 53
-  ISS: 77
+  ISS: 78
   PHASE: 19
   REQ: 25
   RISK: 4
@@ -47,9 +47,9 @@ counters:
 focus:
   task: ""
   feature: ""
-  phase: "PHASE-016"
+  phase: "PHASE-015"
   issue: ""
-  note: "2026-07-30 Phase granularity reviewed and consolidated (ISS-0077): nine phases opened today against nine in the preceding twelve weeks, median 4 items vs 21. PHASE-016 widened to 'The overview answers questions' and absorbed PHASE-017/018/019 — one push, four phases — leaving 19 phases at 16 and that phase at 14 items. Nothing deleted: the three are superseded with superseded_by, children re-homed first. PHASE-013/014/015 left separate with reasons; nothing before 013 touched. The RULE is in CLAUDE.md (LIFECYCLE.md is template-owned) and proposed upstream as project-os-dev ISS-0029 — the standing phase is the actual mechanism, since document-first needs a focus item and minting a phase was the cheapest way to get one. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); five upstream proposals open in project-os-dev."
+  note: "2026-07-30 PHASE-003 (downstream pilot) superseded by PHASE-005 and FEAT-0005 cancelled — never built, and workspace discovery replaced the need before it started; tablet reading settled as not wanted (ISS-0078). The shim claim was live in FIVE files including CLAUDE.md and LLM_BRIEF.md, both of which exist to tell an agent what this project is and had been describing a directory that never existed; all five now describe discovery. PHASE-015 converted to a STANDING phase for record corrections — the first application of the rule ISS-0077 produced, and the reason this needed no new phase. Earlier today: phase granularity consolidated (19 phases to 16), and PHASE-013/014/016 shipped the fleet surfaces, the inbox record and the overview work. OWED: mode 1 still has the old three history tiles and no grid; the six downstream design notes stay draft until Edwin has looked; ISS-0057 (note_moved); five upstream proposals open in project-os-dev."
 items:
   features:
     FEAT-0053:
@@ -223,7 +223,7 @@ items:
       path: "docs/features/project-os-adapter/FEAT-0004-Project-OS-Adapter.md"
     FEAT-0005:
       title: "Downstream pilot deployment (your-applications.com)"
-      status: backlog
+      status: cancelled
       phase: "[[PHASE-003-Downstream-Pilot]]"
       path: "docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md"
     FEAT-0006:
@@ -1826,6 +1826,13 @@ items:
 
 
   issues:
+    ISS-0078:
+      file: "docs/issues/ISS-0078-Downstream-Pilot-Was-Overtaken-And-CLAUDE-Md-Still-Claims-It.md"
+      title: "PHASE-003's pilot was overtaken by workspace discovery; CLAUDE.md still claims the shim exists"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-015-Phase-Hygiene]]"
+      note: "The shim was never built and is now near-worthless (its job is one command). The pattern it would have proven is in daily use across 12 repos via workspace discovery. ADR-0003, which the phase gates on, was never written and its number was taken. CLAUDE.md has been pointing every session at an integration point that does not exist."
     ISS-0077:
       file: "docs/issues/ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request.md"
       title: "A phase became the unit of a request — nine in a day at a fifth of the historical size"
@@ -2245,7 +2252,7 @@ items:
       path: "docs/phases/PHASE-002-Project-OS-Adapter.md"
     PHASE-003:
       title: "Downstream pilot"
-      status: planned
+      status: superseded
       path: "docs/phases/PHASE-003-Downstream-Pilot.md"
     PHASE-004:
       title: "Embedded terminal"

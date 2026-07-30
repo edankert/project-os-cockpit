@@ -2,7 +2,7 @@
 
 ## Project Identity
 - Name: project-os-cockpit
-- Purpose: A three-pane desktop cockpit that renders project-os Markdown notes on the fly — no build step — so a project's state, its agent sessions, and the decisions waiting on a human are readable at a glance. It is the tool the fleet is steered from, and the upstream that downstream repos consume through a thin shim under their own `tools/project-os-cockpit/`.
+- Purpose: A three-pane desktop cockpit that renders project-os Markdown notes on the fly — no build step — so a project's state, its agent sessions, and the decisions waiting on a human are readable at a glance. It is the tool the fleet is steered from. Repos are consumed by **discovery** — the desktop shell finds every `SNAPSHOT.yaml`-bearing repo and hosts a server per workspace — so nothing is installed into a consumed repo (ISS-0078).
 - Canonical runtime state: `SNAPSHOT.yaml`
 
 ## What it is for

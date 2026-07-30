@@ -376,16 +376,28 @@ def test_the_upstream_instruction_still_only_says_fix() -> None:
 
 # ---- ISS-0077: phase granularity -------------------------------------
 
-def test_no_terminal_phase_names_a_superseded_phase() -> None:
+def test_no_delivered_note_names_a_superseded_phase() -> None:
     """A merge re-homes children before superseding the parent.
 
     `superseded` is how PHASE-016 absorbed PHASE-017/018/019 without
     deleting anything. The order matters: a superseded phase still named
-    by its old children leaves the corpus asserting two homes for one
-    note, and `PHASE-CHILDREN` only catches the unresolved ones.
+    by delivered work leaves the corpus asserting two homes for one note.
+
+    **`done` band only.** The first version of this banned *every*
+    terminal note and immediately failed on a case it had not modelled:
+    PHASE-003 was superseded because it was **overtaken**, not merged,
+    and its feature was `cancelled` alongside it. Re-homing FEAT-0005 to
+    PHASE-005 would claim the desktop shell delivered the downstream
+    pilot, which is false — nothing delivered it.
+
+    So the property is narrower than "no terminal note": **delivered work
+    must name the phase that delivered it.** Work abandoned with its
+    phase stays with its phase, because that is where it was abandoned.
     """
+    from project_os_cockpit import statuses
+
     index = Index.build(DOCS)
-    superseded = set()
+    superseded: set[str] = set()
     for record in index.iter_records():
         fm = record.frontmatter or {}
         if str(fm.get("type") or "").strip("[]\"' ") != "phase":
@@ -400,13 +412,46 @@ def test_no_terminal_phase_names_a_superseded_phase() -> None:
         fm = record.frontmatter or {}
         if str(fm.get("type") or "").strip("[]\"' ") == "phase":
             continue
+        if str(fm.get("status") or "") not in statuses.BANDS["done"]:
+            continue
         m = re.search(r"PHASE-\d+", str(fm.get("phase") or ""))
         if m and m.group(0) in superseded:
-            stranded.append(f"{fm.get('id')} → {m.group(0)}")
+            stranded.append(f"{fm.get('id')} ({fm.get('status')}) → {m.group(0)}")
 
     assert not stranded, (
-        "notes still name a superseded phase — re-home them to the phase "
-        f"that absorbed it: {sorted(stranded)}"
+        "delivered notes still name a superseded phase — re-home them to "
+        f"the phase that absorbed the work: {sorted(stranded)}"
+    )
+
+
+def test_abandoned_work_may_stay_with_the_phase_it_was_abandoned_in() -> None:
+    """The other half, so the rule above cannot quietly widen back.
+
+    PHASE-003 was superseded because workspace discovery overtook it;
+    FEAT-0005 was cancelled with it. Moving that feature anywhere else
+    would assert a delivery that never happened.
+    """
+    from project_os_cockpit import statuses
+
+    index = Index.build(DOCS)
+    # A plain loop, not a comprehension: a walrus in the key of a dict
+    # comprehension is bound after the value expression is evaluated, so
+    # the first cut of this raised UnboundLocalError.
+    by_id: dict[str, dict] = {}
+    for record in index.iter_records():
+        fm = record.frontmatter or {}
+        if fm.get("id"):
+            by_id[str(fm["id"])] = fm
+    feat = by_id.get("FEAT-0005")
+    if feat is None:
+        return
+    assert str(feat.get("status")) in statuses.BANDS["archived"], (
+        "FEAT-0005 is the worked example of abandoned-with-its-phase; if it "
+        "is no longer archived this test is measuring nothing"
+    )
+    assert "PHASE-003" in str(feat.get("phase") or ""), (
+        "FEAT-0005 was moved off the superseded phase it was abandoned in — "
+        "that asserts some other phase delivered the downstream pilot"
     )
 
 

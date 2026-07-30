@@ -5,9 +5,11 @@ Read CONTEXT.md for the full project-os contract, edit policy, and invariants.
 
 ## What this repo is
 
-`project-os-cockpit` is a small Python server that renders project-os Markdown notes as a three-pane cockpit UI — on the fly, no build step. It's the upstream tool; downstream project-os repos consume it via a thin shim under their own `tools/project-os-cockpit/`.
+`project-os-cockpit` is a small Python server that renders project-os Markdown notes as a three-pane cockpit UI — on the fly, no build step — plus an Electron shell (mode 3) that hosts one server per repo.
 
-The first downstream pilot is `~/Dev/repos/your-applications.com/` — that repo's `tools/project-os-cockpit/` is the integration point used to validate this tool against real project-os content.
+**Repos are consumed by discovery, not by a shim.** The shell finds every `SNAPSHOT.yaml`-bearing repo under `~/Dev/repos/` (12 at present) and spawns a sidecar per workspace; from a terminal, `python -m project_os_cockpit <repo>/docs` does the same for one repo. Nothing is installed into a downstream repo.
+
+*(Corrected 2026-07-30, [[ISS-0078]]. This paragraph used to say the tool was consumed "via a thin shim under their own `tools/project-os-cockpit/`" and named `your-applications.com` as the pilot integration point. **That directory has never existed in any fleet repo.** The shim was [[PHASE-003]]'s plan, and workspace discovery ([[PHASE-005]]) replaced the need before it was built — so this file spent months pointing every session at something that was not there.)*
 
 ## project-os documentation system (core rules -- always active)
 
