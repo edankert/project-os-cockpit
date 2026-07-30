@@ -8,7 +8,7 @@ status: merged
 related: ["[[ISS-0016]]", "[[TASK-0186]]", "[[TASK-0185]]", "[[FEAT-0003]]"]
 reviewed_by: "opus-independent-review"
 review_date: 2026-07-22
-review_verdict: CLOSE
+review_verdict: ""
 ---
 
 # CHG-20260721 — restore mouse-tracking mode on console re-attach
@@ -30,3 +30,11 @@ The embedded console's mouse-wheel scroll was dead right after switching to it, 
 ## Files
 
 - `desktop/src/renderer/renderer.ts` — per-workspace `workspaceMouseMode` snapshot/restore in `attachTerminalTo`; async `showTerminal` ordering; `forceRefitTerminal`; `XtermTerminal` gains `resize`/`modes`.
+
+## Review verdict cleared — 2026-07-30
+
+`review_verdict` read **`CLOSE`**, which is not a value QUALITY.md defines (`approved` | `changes-requested`). Cleared per [[ISS-0069]], on the principle that a verdict nobody can interpret is not a verdict and should not satisfy a gate.
+
+**What is deliberately kept:** `reviewed_by: "opus-independent-review"` and `review_date`. A review demonstrably happened, by a named reviewer, on that date — that is real information and clearing it would destroy evidence rather than correct a claim. Only the uninterpretable value is gone.
+
+The consequence is intended: this note is now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.

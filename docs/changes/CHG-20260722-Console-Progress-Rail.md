@@ -8,7 +8,7 @@ status: merged
 related: ["[[REQ-0021]]", "[[FEAT-0038]]", "[[ISS-0018]]", "[[TASK-0191]]", "[[TASK-0192]]", "[[FEAT-0036]]"]
 reviewed_by: "opus-independent-review"
 review_date: 2026-07-22
-review_verdict: CLOSE
+review_verdict: ""
 ---
 
 # CHG-20260722 — console in-flight progress blocks
@@ -37,3 +37,11 @@ First delivery showed every docs note the session ever touched (a scaffolding-he
 - `src/project_os_cockpit/server.py` — `/api/cockpit/state` enriches `session`/`last_session` with `work_items`.
 - `desktop/src/renderer/{index.html,renderer.css,renderer.ts}` — inline in-flight boxes, enriched panel, SVG caret.
 - `tests/test_stats_scope.py`, `tests/test_agent_hooks.py` — enrichment + tracker coverage.
+
+## Review verdict cleared — 2026-07-30
+
+`review_verdict` read **`CLOSE`**, which is not a value QUALITY.md defines (`approved` | `changes-requested`). Cleared per [[ISS-0069]], on the principle that a verdict nobody can interpret is not a verdict and should not satisfy a gate.
+
+**What is deliberately kept:** `reviewed_by: "opus-independent-review"` and `review_date`. A review demonstrably happened, by a named reviewer, on that date — that is real information and clearing it would destroy evidence rather than correct a claim. Only the uninterpretable value is gone.
+
+The consequence is intended: this note is now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.

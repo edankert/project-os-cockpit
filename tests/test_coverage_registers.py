@@ -128,3 +128,49 @@ def test_enumeration_is_not_the_convention() -> None:
         "have become the convention — reconsider enforcing completeness "
         "(ISS-0066's second half)"
     )
+
+
+# ---- ISS-0069: the review-verdict vocabulary --------------------------------
+
+#: Close-out independent review (QUALITY.md).
+CLOSE_OUT_VERDICTS = {"approved", "changes-requested"}
+#: Desk plan-acceptance (ADR-0007), deliberately distinct so a plan-acceptance
+#: stamp can never satisfy the close-out gate.
+DESK_VERDICTS = {"accepted", "accepted-amended", "rejected"}
+ALLOWED_VERDICTS = CLOSE_OUT_VERDICTS | DESK_VERDICTS
+
+
+def test_review_verdicts_use_a_defined_value() -> None:
+    """ISS-0069. `review_verdict` had a second, undefined vocabulary: 10 notes
+    carried `CLOSE`, and nothing rejected it.
+
+    The validator checks *presence* (ADR-0011's REVIEW rule) and the literal
+    string `changes-requested` (the close-out gate). An arbitrary value passes
+    both — it is not absent and it is not `changes-requested` — so it read as a
+    satisfied review. This is ISS-0024 §1 one level up: a second vocabulary
+    drifting because nothing held it to its definition.
+
+    Empty is allowed: it means unreviewed, which ADR-0011 already warns about on
+    a terminal note. What is not allowed is a value nobody defined.
+
+    Reads the **parsed** frontmatter rather than matching source. The first cut
+    used a regex and reported a false positive on
+    `review_verdict: approved  # feature rounds 1-3` — it swallowed the trailing
+    YAML comment into the value. A check that matches the wrong thing is the
+    class this whole file exists for, so it uses the parser that already exists.
+    """
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(DOCS)
+    offenders = sorted(
+        (r.note_id or r.rel_path, r.frontmatter["review_verdict"].strip())
+        for r in idx.iter_records()
+        if isinstance(r.frontmatter.get("review_verdict"), str)
+        and r.frontmatter["review_verdict"].strip()
+        and r.frontmatter["review_verdict"].strip() not in ALLOWED_VERDICTS
+    )
+    assert not offenders, (
+        "undefined review_verdict values (QUALITY.md allows "
+        f"{sorted(CLOSE_OUT_VERDICTS)}, ADR-0007 adds {sorted(DESK_VERDICTS)}): "
+        f"{offenders}"
+    )

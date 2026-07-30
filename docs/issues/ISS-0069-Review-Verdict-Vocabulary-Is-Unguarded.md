@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0069
 aliases: ["ISS-0069"]
 title: "review_verdict has a second, unguarded vocabulary — 10 notes carry `CLOSE`, which QUALITY.md does not define, and nothing rejects it"
-status: open
+status: fixed
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-30
@@ -45,7 +45,7 @@ A three-day window, so almost certainly one session's convention that nothing re
 
 ## Why it matters more than a typo
 
-**These 10 notes count as reviewed and are not.** Or rather: nobody can tell. `CLOSE` might have meant approved, or "closed without review", or been a paste. The information is gone, and the notes assert a satisfied gate either way.
+**These 10 notes count as reviewed on a word nobody defined.** *(Corrected 2026-07-30 while fixing: all 10 carry `reviewed_by: "opus-independent-review"` and a date, so a review demonstrably happened — see the Resolved section. The original wording here said the information was gone, which was too pessimistic. What is unrecoverable is the verdict's meaning, not whether a review occurred.)*
 
 It also makes every count of "how much of the corpus is reviewed" wrong by up to 10 in an unknown direction. That number is load-bearing right now — [[ADR-0007]]'s settlement rests on "62 notes carrying a `review_verdict`", and the independent review of PHASE-010 already narrowed that to "nearer 51" for exactly this reason.
 
@@ -63,11 +63,38 @@ Worth keeping: the surface caught what the validator could not, which is the inv
 
 ## Next Actions
 
-- [ ] Decide the vocabulary. `approved` | `changes-requested` for close-out review, plus [[ADR-0007]]'s `accepted` / `accepted-amended` / `rejected` for desk acceptance — the two sets are deliberately distinct and both are legitimate, so the check must know which field context it is in
-- [ ] Add a validator rule: an unrecognised `review_verdict` is an error, not silence
-- [ ] Decide what the 10 `CLOSE` notes should say. They cannot be reconstructed, so the honest options are `approved` (trusting the session) or clearing the field so ADR-0011's deadline applies to them like anything else unreviewed. **Clearing is the more honest default** — a verdict nobody can interpret is not a verdict
-- [ ] Consider upstreaming: `QUALITY.md` and the review-field convention are template-owned, so every fleet repo can drift the same way
+- [x] Decide the vocabulary. `approved` | `changes-requested` for close-out review, plus [[ADR-0007]]'s `accepted` / `accepted-amended` / `rejected` for desk acceptance — the two sets are deliberately distinct and both are legitimate, so the check must know which field context it is in
+- [x] Add a check: an unrecognised `review_verdict` fails. Landed in this repo's suite rather than the template-owned validator — see *Not done*
+- [x] Decide what the 10 `CLOSE` notes should say. They cannot be reconstructed, so the honest options are `approved` (trusting the session) or clearing the field so ADR-0011's deadline applies to them like anything else unreviewed. **Clearing is the more honest default** — a verdict nobody can interpret is not a verdict
+- [ ] Consider upstreaming (open): `QUALITY.md` and the review-field convention are template-owned, so every fleet repo can drift the same way
 
 ## Notes
 
 Deliberately **not** fixed in the same pass that found it. Rewriting 10 notes' review verdicts is a decision about whether past reviews happened, which is the owner's call and not something to slip into a close-out commit — the same reasoning that kept [[FEAT-0018]]'s and [[FEAT-0045]]'s close-outs out of the planning commit.
+
+## Resolved 2026-07-30 — cleared, and guarded
+
+**Edwin's call: clear the 10.** Done, in the narrowest form that does not destroy evidence.
+
+### What the notes actually showed, which changes the reasoning
+
+All 10 carry `reviewed_by: "opus-independent-review"` and a `review_date` in 2026-07-21..23. **A review demonstrably happened, by a named reviewer, on a known date.** This note's original framing — "`CLOSE` might have been a paste; the information is gone" — was too pessimistic, and it matters: `approved` was a more defensible guess than first stated, because the alternative (no review occurred) is contradicted by the corpus.
+
+So only the uninterpretable value was cleared. `reviewed_by` and `review_date` are **kept**: they are real information, and removing them would destroy evidence rather than correct a claim. Each of the 10 notes gained a short section recording that `CLOSE` was the original value and why it went.
+
+The consequence is intended: those notes are now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies with the same 2026-10-23 deadline. They join an honest backlog instead of reading as satisfied gates.
+
+### Guarded
+
+`test_review_verdicts_use_a_defined_value` in `tests/test_coverage_registers.py`. The vocabulary is explicit and split by context, as the Next Actions required:
+
+- close-out review (QUALITY.md): `approved`, `changes-requested`
+- desk plan-acceptance ([[ADR-0007]]): `accepted`, `accepted-amended`, `rejected`
+
+Empty passes — it means unreviewed, which ADR-0011 already warns about. An undefined value fails. Mutation-verified by reintroducing `CLOSE`.
+
+**The check reads parsed frontmatter, not source, and the first cut got that wrong.** It used a regex and reported a false positive on `review_verdict: approved  # feature rounds 1-3`, swallowing the trailing YAML comment into the value. Rewritten to use the index's parser. Worth recording because it is the same class as the defect being guarded: a check that matched the wrong thing and looked like a finding.
+
+### Not done
+
+The rule lives in this repo's suite, **not** in `tools/scripts/validate-docs.py`. That validator is template-owned and has a bundled copy TST-0019 holds byte-identical; editing it here is what [[ISS-0026]] was filed for. So other fleet repos remain unguarded, and the upstream recommendation in the Next Actions stands — this is a local check for a template-wide convention.

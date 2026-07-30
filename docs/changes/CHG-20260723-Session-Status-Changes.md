@@ -8,7 +8,7 @@ status: merged
 related: ["[[ISS-0020]]", "[[TASK-0194]]", "[[FEAT-0038]]", "[[REQ-0021]]"]
 reviewed_by: "opus-independent-review"
 review_date: 2026-07-23
-review_verdict: CLOSE
+review_verdict: ""
 ---
 
 # CHG-20260723 — session status changes in the in-flight set
@@ -33,3 +33,11 @@ The user hadn't seen the tasks implemented across a session (ISS-0020). The in-f
 - `src/project_os_cockpit/server.py` — bus subscriber feeding `record_status_change`.
 - `src/project_os_cockpit/cockpit.py` — three-source union in `work_items_for_session`.
 - `tests/test_stats_scope.py` — status-change coverage.
+
+## Review verdict cleared — 2026-07-30
+
+`review_verdict` read **`CLOSE`**, which is not a value QUALITY.md defines (`approved` | `changes-requested`). Cleared per [[ISS-0069]], on the principle that a verdict nobody can interpret is not a verdict and should not satisfy a gate.
+
+**What is deliberately kept:** `reviewed_by: "opus-independent-review"` and `review_date`. A review demonstrably happened, by a named reviewer, on that date — that is real information and clearing it would destroy evidence rather than correct a claim. Only the uninterpretable value is gone.
+
+The consequence is intended: this note is now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.

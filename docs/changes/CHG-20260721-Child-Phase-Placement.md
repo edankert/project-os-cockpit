@@ -8,7 +8,7 @@ status: merged
 related: ["[[TASK-0182]]", "[[TASK-0181]]", "[[FEAT-0023]]"]
 reviewed_by: "opus-independent-review"
 review_date: 2026-07-21
-review_verdict: CLOSE
+review_verdict: ""
 ---
 
 # CHG-20260721 — child phase placement agrees across views
@@ -33,3 +33,11 @@ User report (2026-07-21): deferred TASK-0045 was visible on the project page but
 
 - `src/project_os_cockpit/cockpit.py` — `children_by_parent_id` now requires a shared phase between child and parent feature.
 - `tests/test_stats_scope.py` — added `test_child_phase_placement_agrees_across_views`.
+
+## Review verdict cleared — 2026-07-30
+
+`review_verdict` read **`CLOSE`**, which is not a value QUALITY.md defines (`approved` | `changes-requested`). Cleared per [[ISS-0069]], on the principle that a verdict nobody can interpret is not a verdict and should not satisfy a gate.
+
+**What is deliberately kept:** `reviewed_by: "opus-independent-review"` and `review_date`. A review demonstrably happened, by a named reviewer, on that date — that is real information and clearing it would destroy evidence rather than correct a claim. Only the uninterpretable value is gone.
+
+The consequence is intended: this note is now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.

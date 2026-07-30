@@ -48,7 +48,7 @@ focus:
   task: ""
   feature: ""
   phase: "PHASE-011"
-  issue: "ISS-0066"
+  issue: "ISS-0069"
   note: "2026-07-30 PHASE-011 in flight. DES-0004 accepted by Edwin, so PHASE-012 is unblocked. Closed already this pass: FEAT-0018 (the mode-1 visual pass it was held for, finally run), FEAT-0045, ISS-0024 (all six findings were fixed; only the status was open). Now on ISS-0066 — guard the TST-note prose against citing tests that do not exist; found a real dangling pointer in TST-0019 while writing it. New: ISS-0069, review_verdict has a second unguarded vocabulary (10 notes carry CLOSE), found by FEAT-0018's visual pass rendering it grey."
 items:
   features:
@@ -1715,7 +1715,7 @@ items:
     ISS-0069:
       file: "docs/issues/ISS-0069-Review-Verdict-Vocabulary-Is-Unguarded.md"
       title: "review_verdict has a second, unguarded vocabulary — 10 notes carry `CLOSE`, which QUALITY.md does not define, and nothing rejects it"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-011-Unproven-Claims]]"
       note: "Corpus holds approved 65, CLOSE 10, accepted 2. `accepted` is legitimate (ADR-0007, plan acceptance). CLOSE is undefined and all 10 are CHG notes from a three-day window. The validator checks presence, not value, so an arbitrary string reads as a satisfied review — ISS-0024 §1 one level up, in the review fields rather than the status fields. Found by FEAT-0018's visual pass rendering the chip grey; the surface caught what the validator could not. Deliberately not fixed in the same pass: rewriting 10 verdicts is a decision about whether past reviews happened."
@@ -2745,7 +2745,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
+    issues_open: 2
     issues_triage: 3
     risks_open: 4
     releases_total: 0
