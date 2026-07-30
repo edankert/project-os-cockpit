@@ -2,8 +2,8 @@
 type: "[[phase]]"
 id: PHASE-015
 aliases: ["PHASE-015"]
-title: "Record hygiene (standing) — the documentation says what actually happened"
-status: active
+title: "Record hygiene — the documentation says what actually happened"
+status: done
 order: 15
 owner: user:edwin
 created: 2026-07-30
@@ -21,13 +21,15 @@ tags: [docs-system]
 
 # Record hygiene (standing)
 
-## This is a standing phase
+## This is the standing home for record corrections — and it closes between them
 
-Converted 2026-07-30, and it is the first application of the rule [[ISS-0077]] produced: *one long-lived phase per durable surface, that small fixes join, rather than a phase per request.*
+The known place for "the documentation says something that is not true": a phase that says the wrong thing, an instruction describing something that does not exist, a status that outlived its truth. Reopen it when one arrives; close it when that one is done.
 
-It was `done` after [[ISS-0074]]. Reopening it rather than minting PHASE-020 for the next small records correction **is the mechanism working** — that issue measured nine phases in a day precisely because there was nowhere to put a small thing.
+Two legs so far: [[ISS-0074]] (sixteen delivered notes stranded in the parking lot) and [[ISS-0078]] (the downstream-pilot shim claimed in five files and never built). It was reopened for the second rather than minting PHASE-020 — which is the mechanism [[ISS-0077]] asked for, since that issue measured nine phases in a day precisely because there was nowhere to put a small thing.
 
-A standing phase has no end date. Its exit criteria below belong to the [[ISS-0074]] leg and stay ticked as that leg's record; the phase itself closes only if the record stops needing correcting.
+**Closed between legs, not left open.** The first formulation left it permanently `active`, and that lasted about an hour: with every item resolved the phase rendered `unclosed: true` and displayed a standing **"close out"** pill on the overview. A phase that never closes but whose work is finished always looks like one somebody forgot — a surface saying something untrue, which is precisely what this phase exists to correct. Edwin spotted it by asking why it was still open.
+
+Exit criteria below belong to the [[ISS-0074]] leg and stay ticked as that leg's record.
 
 ## Goal
 
@@ -58,3 +60,10 @@ Small phase, and deliberately its own rather than folded into [[PHASE-014]]: tha
 **Found by a user reading the surface.** The phase strip drew sixteen `delivered` squares inside a phase titled "Future / Unphased" and no check anywhere reported it. That is the fourth time in a week that a rendering caught what validation could not — after [[ISS-0069]], [[ISS-0072]] and [[ISS-0073]] — and the first where the reader was Edwin rather than a test.
 
 **Two spellings.** The corpus used both `[[PHASE-999-Future]]` and the bare `[[PHASE-999]]`. The first correction pass matched only the long form and stopped partway, which is the same near-miss [[PHASES.md]] already records for the never-existing `PHASE-999-Unscheduled`. The guard below matches on the resolved ID, not on either spelling.
+
+
+## Closed 2026-07-30
+
+Both legs done: [[ISS-0074]] `fixed`, [[ISS-0078]] `fixed`.
+
+Reopen this note for the next record correction rather than allocating a new phase. That is what "standing" means here — a known address, not a permanently open one.

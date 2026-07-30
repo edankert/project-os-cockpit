@@ -88,6 +88,14 @@ Three guards: no note may name a superseded phase, a superseded phase must say w
 
 Proposed upstream as `project-os-dev` ISS-0029, including a `PHASE-THIN` **warning** at close-out — a warning rather than an error, because small phases are sometimes right and the point is to make the author look.
 
+### The rule needed correcting within the hour
+
+"A standing phase has no end date" was wrong, and [[PHASE-015]] proved it the same afternoon. Left permanently `active` with every item resolved, it rendered `unclosed: true` and displayed a standing **"close out"** pill on the overview — a phase that never closes but whose work is done always looks like one somebody forgot.
+
+Corrected: a standing phase is **`done` when idle and reopened when work arrives**. The home is still known; the status is honest at every moment. Edwin found it by asking why PHASE-015 was still open.
+
+Worth noting the shape: a rule written to stop the record saying untrue things immediately made the record say an untrue thing. Writing a rule is not the same as having tried it.
+
 ### What this does not fix
 
 The incentive is still there. The rule tells me where to put small work; it does not stop the hook from wanting a focus item. If the standing phases fill up with unrelated fixes, that is the same drift wearing a different shape, and the next count will show it.

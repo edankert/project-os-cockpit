@@ -75,7 +75,11 @@ The cause is structural, not careless: the document-first rule needs a focus ite
 
 **Do not open one for** a single request, a single issue, or anything you will finish in the same session. Those get an `ISS-*` or a task inside a **standing phase** for the surface they touch.
 
-**A standing phase is the mechanism that prevents this.** One long-lived phase per durable surface — the overview, the fleet, the docs system — that small fixes join. It has no end date and closes only if the surface is retired. Reaching for one is the default; minting a phase is the exception.
+**A standing phase is the mechanism that prevents this** — one *known* phase per durable surface (the overview, the fleet, the record itself) that small fixes join, so minting a phase is the exception rather than the only move.
+
+**A standing phase is `done` when idle and reopened when work arrives.** It is *not* left permanently `active`. That was the first formulation, and it lasted about an hour: `PHASE-015` was converted to a standing phase, immediately rendered `unclosed: true` — every item resolved, phase not closed — and so displayed a permanent **"close out"** nag on the overview. A phase that never closes but whose work is finished will always look like a phase someone forgot.
+
+Reopening is cheap and honest: set it back to `active`, add the issue, close it again. The status then means what it says at every moment, and the home is still known.
 
 **A phase closing with ≤3 items is a signal**, not a small success: it should probably have joined something. Check before closing, not after.
 
