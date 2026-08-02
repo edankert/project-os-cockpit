@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 88
+  ISS: 89
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0089:
+      file: "docs/issues/ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing.md"
+      title: "Copying the context card's head styling made phase names render as labels"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "KEEP: the right pane's head names a CATEGORY, the features navigator's names a THING. TASKS is scaffolding you read past, so faint/small/uppercase is right and four frames read as structure; PHASE-007 · Agent instrumentation IS the content, and eighteen frames read as clutter. Four rounds were spent making them match. Also: the pill was wrong twice in opposite directions — suppressed by a rule whose output looked random, then unconditional so a card called Done carried a done pill. The question is whether the NAME already says it, which is the same question the divider and the summary ask."
     ISS-0088:
       file: "docs/issues/ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour.md"
       title: "The completed sections behaved like the right pane's cards but did not look like them; heads carried an icon, an uncoloured id and an inconsistent pill"

@@ -1547,6 +1547,14 @@
     });
     var rollupFrag = settledGroups.length ? document.createDocumentFragment() : null;
 
+    // Where a divider names the finished set, the live set gets a heading
+    // too — a set with no name is not one (ISS-0089).
+    if (liveGroups.length && settledGroups.length && !namesStateThemselves) {
+      frag.appendChild(el("div", {
+        class: "nav-set-heading", text: "Open \u00b7 " + liveGroups.length,
+      }));
+    }
+
     var anyVisible = false;
     liveGroups.concat(settledGroups).forEach(function (g) {
       var intoRollup = settledGroups.indexOf(g) !== -1;
@@ -1572,6 +1580,9 @@
       // ISS-0088: the head uses the ROW's grammar — a type-coloured ID and
       // a name — not an icon plus one flat string.
       var split = /^([A-Z]+-\d+)\s*\u00b7\s*(.*)$/.exec(label);
+      // A features head names a THING, not a category, so it renders at
+      // row weight rather than in the faint label treatment (ISS-0089).
+      var headerClass = "nav-group-header" + (mode === "features" ? " is-thing" : "");
       var headerChildren = split
         ? [el("span", { class: "nav-id mono ov-typed", "data-type": "phase", text: split[1] }),
            el("span", { class: "group-header-name", text: split[2], title: split[2] })]
@@ -1590,9 +1601,9 @@
       // A group's OWN status is a different fact from its items' — a done
       // phase can hold an open issue — so it survives unless it would
       // restate the summary.
-      // Always shown: a group's own status is a different fact from its
-      // items', and suppressing it conditionally read as arbitrary.
-      if (g.status) headerChildren.push(statusChip(g.status));
+      // Shown unless the group's own NAME already says it — a `done` pill
+      // on a card called `Done` is the word twice (ISS-0089).
+      if (g.status && !namesStateThemselves) headerChildren.push(statusChip(g.status));
 
       var renderItem = pickItemRenderer(g.item_layout);
       var list = el("ul", { class: "nav-items" });
@@ -1607,7 +1618,7 @@
       (intoRollup ? rollupFrag : frag).appendChild(collapsibleGroup({
         key: key,
         sectionClass: "nav-group" + sectionExtra,
-        headerClass: "nav-group-header",
+        headerClass: headerClass,
         headerChildren: headerChildren,
         bodyChildren: bodyChildren,
         // TASK-0275: a settled group opens SHUT, the context pane's own

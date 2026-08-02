@@ -20,6 +20,7 @@ issues:
   - "[[ISS-0086-The-Rollup-Hid-The-Taxonomy]]"
   - "[[ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy]]"
   - "[[ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour]]"
+  - "[[ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -222,3 +223,16 @@ Settled groups shut, counts in the heads, dividers where they belong — all cor
 The one finding worth keeping beyond this phase is the **pill inconsistency**. [[TASK-0272]] suppressed a group's own status chip when the head summary already ended in the same word, so PHASE-001 had no pill and PHASE-002 did. The rule was defensible; the result looked random. **A reader can only see the output, never the rule** — so a rule whose output looks arbitrary is a bad rule however well it reads in the source.
 
 **The review desk is deliberately left alone**, with the reasoning recorded in [[ISS-0088]]: its sections are kinds of obligation rather than collections, and a card invites collapsing something you always want to see.
+
+
+## Closed an eighth time 2026-08-03 — [[ISS-0089]]
+
+Four rounds of this phase were spent making the navigator's group heads match the context pane's. They should not match, and the reason is worth keeping:
+
+> **The right pane's head names a CATEGORY. The left pane's, in the features view, names a THING.**
+
+`TASKS` is scaffolding — you read past it to the rows, so faint, small and uppercase is exactly right, and a frame around each of four reads as structure. `PHASE-007 · Agent instrumentation` **is the content**; the same treatment renders the thing you opened the pane to find as though it were a label, and eighteen frames around eighteen things read as clutter.
+
+I copied a style without asking what the styled element was *for*. Every complaint in this round followed from that one substitution.
+
+The second thing worth keeping is that the pill was got wrong **twice in opposite directions** — suppressed by a rule whose output looked random, then made unconditional so a card called `Done` carried a `done` pill. Neither extreme was right: the question is whether **the name already says it**, which is the same question the divider and the head summary ask. One rule, three uses.

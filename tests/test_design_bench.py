@@ -1060,10 +1060,25 @@ def test_design_mode_still_fetches_the_nav() -> None:
     )
 
 
-def test_the_system_is_separated_from_the_proposals(tmp_path: Path) -> None:
-    """One standing reference and many transient ones behave differently.
-    Listed together, the system that never leaves gets buried among proposals
-    that arrive and go quiet."""
+def test_designs_are_one_list_split_by_state_not_by_role(tmp_path: Path) -> None:
+    """RETIRED SPLIT, kept as a guard against its return (ISS-0089).
+
+    This used to assert `design-system` and `design-proposals` as separate
+    groups, on the reasoning that "one standing reference and many
+    transient ones behave differently" and the system would otherwise be
+    buried.
+
+    Measured against the real corpus, that produced a section containing
+    exactly ONE note and scattered three designs across two headings, for
+    a `role:` field the reader never asked about. Edwin: *"why do we need
+    this design system section, why not just have these designs under
+    completed?"*
+
+    The split that matters is the one every other navigator makes —
+    finished against live — and a design system note is simply a design
+    that is `implemented`. `role:` still exists in frontmatter and is
+    still read by the bench; it is no longer a navigation axis.
+    """
     docs = tmp_path / "docs"
     _note(docs / "designs" / "DES-0001-System.md", {
         "type": "[[design]]", "id": "DES-0001", "title": "System",
@@ -1073,9 +1088,10 @@ def test_the_system_is_separated_from_the_proposals(tmp_path: Path) -> None:
         "status": "proposed", "role": "proposal"})
     idx = Index.build(docs)
     groups = cockpit.nav_payload(idx, mode="design")["groups"]
-    assert [g["key"] for g in groups] == ["design-system", "design-proposals"]
-    assert groups[0]["items"][0]["id"] == "DES-0001"
-    assert groups[1]["items"][0]["id"] == "DES-0002"
+    assert [g["key"] for g in groups] == ["designs"], (
+        "the role-based split is back; it put one note in a section of its own"
+    )
+    assert [i["id"] for i in groups[0]["items"]] == ["DES-0001", "DES-0002"]
 
 
 def test_nav_items_point_at_the_bench_not_the_raw_note(tmp_path: Path) -> None:
@@ -1090,16 +1106,20 @@ def test_nav_items_point_at_the_bench_not_the_raw_note(tmp_path: Path) -> None:
         assert item["url"].startswith("~design/"), item
 
 
-def test_a_design_with_no_role_is_a_proposal(tmp_path: Path) -> None:
-    """Defaulting the other way would promote every unlabelled draft into the
-    standing-reference slot, which is the slot that must stay small."""
+def test_a_design_with_no_role_still_lists(tmp_path: Path) -> None:
+    """`role:` used to decide which of two groups a design landed in, so a
+    missing one had to default somewhere. With one list it decides
+    nothing — but a design carrying no `role` must still appear, which is
+    the half of the old guard still worth having.
+    """
     docs = tmp_path / "docs"
     _note(docs / "designs" / "DES-0003-Nameless.md", {
         "type": "[[design]]", "id": "DES-0003", "title": "Nameless",
         "status": "draft"})
     idx = Index.build(docs)
     groups = cockpit.nav_payload(idx, mode="design")["groups"]
-    assert [g["key"] for g in groups] == ["design-proposals"]
+    assert [g["key"] for g in groups] == ["designs"]
+    assert [i["id"] for i in groups[0]["items"]] == ["DES-0003"]
 
 
 def test_no_designs_yields_no_empty_headings(tmp_path: Path) -> None:

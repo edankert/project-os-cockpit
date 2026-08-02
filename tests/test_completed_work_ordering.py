@@ -1128,18 +1128,25 @@ def test_a_group_head_uses_the_row_grammar() -> None:
     assert "ov-typed" in body, "the group head's id is not type-coloured"
 
 
-def test_a_groups_own_status_is_always_shown() -> None:
-    """It was suppressed when the item summary happened to end in the same
-    word, so PHASE-001 had no pill and PHASE-002 did. The rule was
-    defensible and the result looked arbitrary — a reader cannot see the
-    rule, only the inconsistency."""
+def test_the_pill_follows_whether_the_name_already_says_it() -> None:
+    """Two wrong answers preceded this one, and the shape is worth keeping.
+
+    First the pill was suppressed when the item SUMMARY happened to end in
+    the same word — defensible, and the output looked random (PHASE-001
+    bare, PHASE-002 pilled). Then ISS-0088 made it unconditional, which
+    put a `done` pill on a card called `Done`.
+
+    Neither "always" nor "never" was right. The question is whether the
+    LABEL is already the status — the same question the divider and the
+    head summary ask, so one rule serves three uses.
+    """
     ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
-    assert "if (group.status) appendIf(summary, statusChip(group.status));" in ts, (
-        "the group's own status chip is conditional again"
+    assert "if (group.status && !groupNamesStateThemselves(mode)) {" in ts, (
+        "the pill no longer keys on whether the group's name states its status"
     )
     js = COCKPIT_JS.read_text(encoding="utf-8")
-    assert "if (g.status) headerChildren.push(statusChip(g.status));" in js, (
-        "mode 1's group status chip is conditional again"
+    assert "if (g.status && !namesStateThemselves)" in js, (
+        "mode 1's pill disagrees with mode 3's"
     )
 
 
@@ -1195,3 +1202,73 @@ def test_nav_groups_carry_the_card_frame() -> None:
             f"{path.name}: the completed band nests a second identical frame "
             "around the cards it contains"
         )
+
+
+
+def test_a_features_head_names_a_thing_not_a_category() -> None:
+    """The correction four rounds of matching produced (ISS-0089).
+
+    `TASKS` is scaffolding you read past — faint, small, uppercase is
+    right. `PHASE-007 · Agent instrumentation` IS the content, and the
+    same treatment hides what the pane was opened to find.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(
+        r"function groupLabelIsCategory\(mode: NavMode\): boolean \{(.*?)\n\}",
+        ts, re.DOTALL,
+    )
+    assert fn, "groupLabelIsCategory not found"
+    assert "mode !== 'features'" in fn.group(1), (
+        "the category/thing split changed which navigator names things"
+    )
+    assert "summary.classList.add('is-thing')" in ts, (
+        "the head no longer marks itself as naming a thing"
+    )
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.nav-group-header\.is-thing \{(.*?)\}", css, re.DOTALL)
+    assert rule, "no styling distinguishes a thing-head from a category-head"
+    body = rule.group(1)
+    assert "text-transform: none" in body, "a thing's name is still uppercased like a label"
+    assert "color: var(--text)" in body, "a thing's name is still rendered faint"
+
+
+def test_a_thing_head_is_not_individually_framed() -> None:
+    """Four boxes around four categories read as structure; eighteen
+    around eighteen phases read as clutter."""
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rule = re.search(
+        r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
+    )
+    assert rule and "border: 0" in rule.group(1), (
+        "every phase is individually framed again"
+    )
+
+
+def test_the_overview_completed_card_contains_its_rows() -> None:
+    """The frame sat on the heading button alone, with the 22 phase rows
+    as a sibling outside it — a card counting phases it did not enclose."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    # Scoped to the function: `card.append(head, body)` appears twice in
+    # this file, so an unscoped check passed while the overview's own call
+    # was mutated away. Caught by mutation, not by reading.
+    fn = re.search(
+        r"function renderOverviewScopePane\(\): void \{(?:.|\n)*?\n\}", ts,
+    )
+    assert fn, "renderOverviewScopePane not found"
+    assert "card.append(head, body);" in fn.group(0), (
+        "the overview's completed card no longer contains its rows"
+    )
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    band = re.search(r"\.scope-band \{(.*?)\}", css, re.DOTALL)
+    assert band and "border: 0" in band.group(1), (
+        "the frame is back on the heading rather than on the card"
+    )
+
+
+def test_the_live_set_is_named_where_the_finished_one_is() -> None:
+    """Edwin asked for two SETS of cards. A set with no name is not one."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "`Open · ${live.length}`" in ts, "the live set has no heading"
+    assert "!groupNamesStateThemselves(currentNavMode)" in ts, (
+        "the live heading appears in the tasks view, whose groups need no divider"
+    )

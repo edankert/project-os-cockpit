@@ -2355,23 +2355,22 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     proposals that arrive, get decided and go quiet. Listing them together
     would bury the standing reference among transient ones.
     """
-    systems, proposals = [], []
-    for r in sorted(index.notes_by_type("design"),
-                    key=lambda r: (r.note_id or "", r.rel_path)):
-        if not _platform_match(r, platform):
-            continue
-        role = (r.frontmatter or {}).get("role")
-        item = {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
-        (systems if role == "system" else proposals).append(item)
-
-    out: list[dict[str, Any]] = []
-    if systems:
-        out.append({"key": "design-system", "label": "Design system", "url": None,
-                    "status": None, "item_layout": "stacked", "items": systems})
-    if proposals:
-        out.append({"key": "design-proposals", "label": "Designs", "url": None,
-                    "status": None, "item_layout": "stacked", "items": proposals})
-    return out
+    # ISS-0089: one list. The `role: system` split put a single note in a
+    # section of its own and scattered three designs across two headings,
+    # for a frontmatter field the reader never asked about. The live and
+    # completed split the navigator already applies is the one that
+    # matters here, and a design system note is simply a design that is
+    # `implemented`.
+    designs = [
+        {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
+        for r in sorted(index.notes_by_type("design"),
+                        key=lambda r: (r.note_id or "", r.rel_path))
+        if _platform_match(r, platform)
+    ]
+    if not designs:
+        return []
+    return [{"key": "designs", "label": "Designs", "url": None,
+             "status": None, "item_layout": "stacked", "items": designs}]
 
 
 def nav_payload(

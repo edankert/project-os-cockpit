@@ -7132,6 +7132,17 @@ function renderWsNav(data: NavPayload): void {
   }
 
   let any = false;
+  // ISS-0089: where a divider names the finished set, the live set gets a
+  // heading too. An unlabelled block above a labelled one reads as "and
+  // these" rather than as its own half — Edwin asked for two SETS of
+  // cards, and a set with no name is not one.
+  if (live.length > 0 && settled.length > 0
+      && !groupNamesStateThemselves(currentNavMode)) {
+    const head = document.createElement('div');
+    head.className = 'nav-set-heading';
+    head.textContent = `Open · ${live.length}`;
+    wsNavContent.appendChild(head);
+  }
   for (const group of live) {
     const node = renderNavGroup(group, currentNavMode);
     if (node) {
@@ -7526,6 +7537,25 @@ function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
  *  the next navigator added should be able to answer the question rather
  *  than look for itself in a list.
  */
+/** True when a group's LABEL names a category rather than a thing
+ *  (ISS-0089).
+ *
+ *  `Done`, `Critical`, `Designs` are categories: scaffolding you read past
+ *  to reach the rows, so the faint uppercase label treatment the context
+ *  pane uses is exactly right, and a frame around each reads as structure.
+ *
+ *  `PHASE-007 · Agent instrumentation` is a THING. It is the content, and
+ *  rendering it faint hides what the pane was opened to find — while
+ *  eighteen frames around eighteen things read as clutter rather than
+ *  structure.
+ *
+ *  Four rounds of this phase were spent making the two heads match. They
+ *  should not.
+ */
+function groupLabelIsCategory(mode: NavMode): boolean {
+  return mode !== 'features';
+}
+
 function groupNamesStateThemselves(mode: NavMode): boolean {
   return mode === 'tasks';
 }
@@ -7690,6 +7720,7 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // encoding of a fact the ID already carries in colour, and the ID
   // itself was buried inside the label so it could not be coloured at all.
   const rawLabel = group.label || group.key || '';
+  if (!groupLabelIsCategory(mode)) summary.classList.add('is-thing');
   const split = /^([A-Z]+-\d+)\s*·\s*(.*)$/.exec(rawLabel);
   if (split) {
     const idSpan = document.createElement('span');
@@ -7728,16 +7759,20 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
     cnt.textContent = summaryText;
     summary.appendChild(cnt);
   }
-  // The group's OWN status is a different fact from its items' — a done
-  // phase can hold an open issue — so it is ALWAYS shown.
+  // The pill is shown unless the group's own NAME already says it.
   //
-  // It used to be suppressed when the item summary already ended in the
-  // same word. The rule was defensible and the result looked arbitrary:
-  // PHASE-001 had no pill (summary `2 · done`, status `done`), PHASE-002
-  // did (summary `2 · 2 done`, mixed items). Edwin read that as random,
-  // and he was right to — a reader cannot see the rule, only the
-  // inconsistency it produces.
-  if (group.status) appendIf(summary, statusChip(group.status));
+  // Two wrong answers preceded this one. First it was suppressed when the
+  // item summary happened to end in the same word — defensible, and the
+  // output looked random (PHASE-001 bare, PHASE-002 pilled). Then
+  // ISS-0088 made it unconditional, which put a `done` pill on a card
+  // called `Done`.
+  //
+  // Neither "always" nor "never" was right: the question is whether the
+  // LABEL is already the status, which is the same question the divider
+  // and the head summary ask. One rule, three uses.
+  if (group.status && !groupNamesStateThemselves(mode)) {
+    appendIf(summary, statusChip(group.status));
+  }
   details.appendChild(summary);
 
   const body = document.createElement('div');
@@ -11139,7 +11174,13 @@ function renderOverviewScopePane(): void {
       head.classList.toggle('is-open', scopeCompletedOpen);
       body.hidden = !scopeCompletedOpen;
     });
-    wrap.append(head, body);
+    // ISS-0089: the card contains its rows. The frame used to sit on the
+    // heading button alone, with the 22 phase rows as a sibling outside
+    // it — so the card counted phases it did not enclose.
+    const card = document.createElement('div');
+    card.className = 'scope-band-card';
+    card.append(head, body);
+    wrap.appendChild(card);
   }
   wsNavContent.replaceChildren(wrap);
 }

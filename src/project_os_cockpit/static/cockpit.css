@@ -787,6 +787,54 @@ details:not([open]) > summary .group-chevron {
 }
 .nav-children-toggle.is-open::before { transform: rotate(90deg); }
 
+/* A head that names a THING reads as a name, not as a label (ISS-0089).
+   The faint uppercase treatment is right for `TASKS` — scaffolding you
+   read past — and wrong for `PHASE-007 · Agent instrumentation`, which is
+   the content. */
+.nav-group-header.is-thing {
+  font-size: 12.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  padding: 5px 8px;
+}
+.nav-group-header.is-thing .group-header-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.nav-group-header.is-thing .nav-id {
+  font-size: 11.5px;
+  text-transform: none;
+}
+.nav-group-header.is-thing .nav-group-summary { font-size: 11px; }
+/* …and a thing is not framed. Four boxes around four categories read as
+   structure; eighteen around eighteen phases read as clutter. A single
+   hairline between them is enough to separate one from the next. */
+.nav-group:has(> .nav-group-header.is-thing) {
+  border: 0;
+  background: none;
+  border-radius: 0;
+  padding: 0 0 0 2px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(128,128,128,0.14));
+}
+.nav-group:has(> .nav-group-header.is-thing):last-child { border-bottom: 0; }
+/* The pill has to be legible where it survives. */
+.nav-group-header .status-chip { color: var(--text-muted); }
+
+.nav-set-heading {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-group.nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
 .nav-rollup-header { padding: 6px 12px; }
