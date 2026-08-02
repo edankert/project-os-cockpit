@@ -759,6 +759,9 @@ details:not([open]) > summary .group-chevron {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* The nested row: same grammar, indented (ISS-0085). */
+.nav-item.nav-item-line.nav-item-nested { padding-left: 22px; }
+
 .nav-item.nav-item-line {
   display: block;
   padding: 3px 8px;

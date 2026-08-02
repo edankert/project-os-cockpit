@@ -1330,38 +1330,12 @@
   // in this stylesheet as the Library's file row and paints a file icon
   // through ::before.
   function navItem(item) {
-    var idNode = item.id
-      ? el("span", {
-          // Display handle only — the anchor's href carries the real
-          // target, and every lookup goes through that (ISS-0084).
-          class: "nav-id mono ov-typed", text: shortNoteId(item.id),
-          title: item.id, "data-type": item.type || null,
-        })
-      : null;
-    var titleNode = item.title
-      ? el("span", { class: "nav-title", text: item.title, title: item.title })
-      : el("span", { class: "nav-line-spacer" });
-    // The chip is suppressed when the whole group shares one status; the
-    // head says it once instead (TASK-0272).
-    var tail = itemBadges(item).concat(
-      item.chipSuppressed ? [] : [statusChip(item.status)]);
-    var topLine = el("div", { class: "nav-line" },
-      [idNode, titleNode].concat(tail));
-    var subtitleNode = item.subtitle
-      ? el("p", {
-          class: "nav-subtitle",
-          text: item.subtitle,
-          title: item.subtitle,
-        })
-      : null;
-    var card = el("a", {
-      class: "nav-item nav-item-line" + (item.url === active.url ? " is-active" : ""),
-      href: item.url,
-    }, [topLine, subtitleNode]);
+    var li = buildNavRow(item);
     var childrenNode = (item.children && item.children.length)
       ? renderItemChildren(item)
       : null;
-    return el("li", null, [card, childrenNode]);
+    if (childrenNode) li.appendChild(childrenNode);
+    return li;
   }
 
   // Collapsible nested children list (used for requirements under features).
@@ -1404,56 +1378,52 @@
 
   // Compact stacked card used for items nested under another card (reqs
   // under features). Smaller padding, single-line title with ellipsis.
-  function navItemNested(item) {
-    var topLine = el("div", { class: "nav-line" }, [
-      typeIcon(item.type, 12),
-      item.id ? el("span", { class: "nav-id mono", text: item.id }) : null,
-      el("span", { class: "nav-line-spacer" }),
-    ].concat(itemBadges(item), [statusChip(item.status)]));
-    var titleNode = item.title
-      ? el("p", {
-          class: "nav-title-nested",
-          text: item.title,
-          title: item.title,
+  // The one row every lifecycle list uses (ISS-0085).
+  //
+  // There were four renderers and TASK-0271 rewrote one, so risks and
+  // designs (`stacked`) and requirements and plans (`nested`) kept the old
+  // two-line card. One builder now, differing only by an indent class.
+  //
+  // `item.subtitle` is deliberately NOT rendered: it is the second line,
+  // and the server sends one for every feature (`goal`), design and risk
+  // (first body paragraph). The left pane is a selection list; a summary
+  // belongs in the note, not in the list of things you might open.
+  function buildNavRow(item, extraClass) {
+    var idNode = item.id
+      ? el("span", {
+          // Display handle only — the anchor's href carries the real
+          // target, and every lookup goes through that (ISS-0084).
+          class: "nav-id mono ov-typed", text: shortNoteId(item.id),
+          title: item.id, "data-type": item.type || null,
         })
       : null;
+    var titleNode = item.title
+      ? el("span", { class: "nav-title", text: item.title, title: item.title })
+      : el("span", { class: "nav-line-spacer" });
+    // The chip is suppressed when the whole group shares one status; the
+    // head says it once instead (TASK-0272).
+    var tail = itemBadges(item).concat(
+      item.chipSuppressed ? [] : [statusChip(item.status)]);
+    var topLine = el("div", { class: "nav-line" }, [idNode, titleNode].concat(tail));
     var card = el("a", {
-      class: "nav-item nav-item-nested"
+      class: "nav-item nav-item-line" + (extraClass ? " " + extraClass : "")
         + (item.url === active.url ? " is-active" : ""),
       href: item.url,
-    }, [topLine, titleNode]);
+    }, [topLine]);
     return el("li", null, [card]);
   }
 
-  // Stacked layout: icon + id on the top line (status right-aligned),
-  // human title on a second line, optional path/parent-dir subtitle on a
-  // third. Used by Project mode's pinned and rare-types sections.
+  // The same row, indented. Requirements and plans under features.
+  function navItemNested(item) {
+    return buildNavRow(item, "nav-item-nested");
+  }
+
+  // Risks and designs. Identical to the default now — "stacked" existed to
+  // give a rare type more room, and more room is the thing being removed.
+  // Kept as a function because the server still sends
+  // `item_layout: "stacked"` and the picker still routes on it.
   function navItemStacked(item) {
-    var topLine = el("div", { class: "nav-line" }, [
-      typeIcon(item.type),
-      item.id ? el("span", { class: "nav-id mono", text: item.id }) : null,
-      el("span", { class: "nav-line-spacer" }),
-    ].concat(itemBadges(item), [statusChip(item.status)]));
-    var titleNode = item.title
-      ? el("p", {
-          class: "nav-title-stacked",
-          text: item.title,
-          title: item.title,
-        })
-      : null;
-    var subtitleNode = item.subtitle
-      ? el("p", {
-          class: "nav-subtitle-stacked mono",
-          text: item.subtitle,
-          title: item.subtitle,
-        })
-      : null;
-    var card = el("a", {
-      class: "nav-item nav-item-stacked"
-        + (item.url === active.url ? " is-active" : ""),
-      href: item.url,
-    }, [topLine, titleNode, subtitleNode]);
-    return el("li", null, [card]);
+    return buildNavRow(item);
   }
 
   // Compact layout: filename only, single line, tight padding.

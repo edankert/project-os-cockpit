@@ -7234,7 +7234,25 @@ function pickItemRenderer(layout: string | undefined): ItemRenderer {
 // row 2: [title]
 // row 3: [subtitle] (when present)
 
-function navItem(item: NavItem): HTMLLIElement {
+/** The one row every lifecycle list uses (ISS-0085).
+ *
+ *  There were four renderers and TASK-0271 rewrote one of them, so risks
+ *  and designs (`stacked`) and requirements and plans (`nested`) kept the
+ *  old two-line card — 90px at worst, against the 27px the record column
+ *  sets. `pickItemRenderer` sits three lines from `navItem` and I never
+ *  followed it; the guard was written from the same reading, so it agreed.
+ *
+ *  One builder now, differing only by an indent class. A row that renders
+ *  differently per group is a decision, and there was no decision here —
+ *  only three copies that drifted apart.
+ *
+ *  `item.subtitle` is deliberately NOT rendered. It is the second line,
+ *  and the server sends one for every feature (`goal`), design and risk
+ *  (first body paragraph) — 50 rows in the pilot workspace. The left pane
+ *  is a selection list; a summary belongs in the note, not in the list of
+ *  things you might open.
+ */
+function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
   const li = document.createElement('li');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
@@ -7242,28 +7260,11 @@ function navItem(item: NavItem): HTMLLIElement {
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
-  // TASK-0271: one line — `ID  title…  chip` — at the record column's
-  // height. Measured in the running app before and after: 60px to 27px
-  // for identical text.
-  //
-  // The 33px was three things, all of them a second encoding of
-  // something already present:
-  //
-  //   the type ICON      the ID is already type-coloured by `.ov-typed`
-  //   the second LINE    the title, which fits beside the ID
-  //   the icon's GUTTER
-  //
-  // The `li` above keeps every data attribute untouched: `navigateTo`,
-  // `refreshActiveNavRow`, the context menu (`data-note-rel`) and the
-  // status-flash animation all key off them, and none of this is a
-  // change to what a row *is*.
   const card = document.createElement('div');
   // `nav-item-line`, NOT `nav-item-compact`: that class is already taken
   // by the Library's file rows in `cockpit.css`, where it paints a file
-  // icon via ::before. Reusing it here would have given every feature a
-  // file icon — the collision cost 18px and one wrong glyph before it was
-  // spotted.
-  card.className = 'nav-item nav-item-line';
+  // icon via ::before.
+  card.className = `nav-item nav-item-line${extraClass ? ` ${extraClass}` : ''}`;
 
   const line = document.createElement('div');
   line.className = 'nav-line';
@@ -7271,8 +7272,8 @@ function navItem(item: NavItem): HTMLLIElement {
     const idSpan = document.createElement('span');
     idSpan.className = 'nav-id mono ov-typed';
     if (item.type) idSpan.dataset.type = String(item.type);
-    // Display handle only — `data-id` on the `li` keeps the full
-    // value, and every lookup goes through that (ISS-0084).
+    // Display handle only — `data-id` on the `li` keeps the full value,
+    // and every lookup goes through that (ISS-0084).
     idSpan.textContent = shortNoteId(item.id);
     idSpan.title = item.id;
     line.appendChild(idSpan);
@@ -7302,14 +7303,6 @@ function navItem(item: NavItem): HTMLLIElement {
   if (!item.chipSuppressed) appendIf(line, statusChip(item.status));
   card.appendChild(line);
 
-  if (item.subtitle) {
-    const sub = document.createElement('p');
-    sub.className = 'nav-subtitle';
-    sub.textContent = item.subtitle;
-    sub.title = item.subtitle;
-    card.appendChild(sub);
-  }
-
   if (rel) {
     card.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -7317,7 +7310,11 @@ function navItem(item: NavItem): HTMLLIElement {
     });
   }
   li.appendChild(card);
+  return li;
+}
 
+function navItem(item: NavItem): HTMLLIElement {
+  const li = buildNavRow(item);
   if (item.children && item.children.length) {
     const wrap = renderItemChildren(item);
     if (wrap) li.appendChild(wrap);
@@ -7325,55 +7322,12 @@ function navItem(item: NavItem): HTMLLIElement {
   return li;
 }
 
-// ----- Stacked layout (Library mode pinned / rare types)
-
+// Risks and designs. Identical to the default now — the "stacked" layout
+// existed to give a rare type more room, and more room is the thing being
+// removed. Kept as a distinct function only because the server still
+// sends `item_layout: "stacked"` and the picker still routes on it.
 function navItemStacked(item: NavItem): HTMLLIElement {
-  const li = document.createElement('li');
-  const rel = extractRel(item.url);
-  if (rel) li.dataset.rel = rel;
-  if (item.id) li.dataset.id = String(item.id);
-  if (item.type) li.dataset.type = String(item.type);
-  if (item.status) li.dataset.status = String(item.status);
-
-  const card = document.createElement('div');
-  card.className = 'nav-item nav-item-stacked';
-
-  const line = document.createElement('div');
-  line.className = 'nav-line';
-  appendIf(line, typeIcon(item.type));
-  if (item.id) {
-    const idSpan = document.createElement('span');
-    idSpan.className = 'nav-id mono';
-    // Display handle only — `data-id` on the `li` keeps the full
-    // value, and every lookup goes through that (ISS-0084).
-    idSpan.textContent = shortNoteId(item.id);
-    idSpan.title = item.id;
-    line.appendChild(idSpan);
-  }
-  line.appendChild(navLineSpacer());
-  appendIf(line, statusChip(item.status));
-  card.appendChild(line);
-
-  if (item.title) {
-    const titleEl = document.createElement('p');
-    titleEl.className = 'nav-title-stacked';
-    titleEl.textContent = item.title;
-    titleEl.title = item.title;
-    card.appendChild(titleEl);
-  }
-  if (item.subtitle) {
-    const sub = document.createElement('p');
-    sub.className = 'nav-subtitle-stacked mono';
-    sub.textContent = item.subtitle;
-    sub.title = item.subtitle;
-    card.appendChild(sub);
-  }
-
-  if (rel) {
-    card.addEventListener('click', (e) => { e.stopPropagation(); void navigateTo(rel); });
-  }
-  li.appendChild(card);
-  return li;
+  return buildNavRow(item);
 }
 
 // ----- Compact layout (Library Docs tree)
@@ -7402,48 +7356,12 @@ function navItemCompact(item: NavItem): HTMLLIElement {
   return li;
 }
 
-// ----- Nested layout (requirements under features)
+// ----- Nested layout (requirements and plans under features)
 
+// The same row, indented. It carried its own two-line card until
+// ISS-0085 — 103 rows of it in the pilot workspace.
 function navItemNested(item: NavItem): HTMLLIElement {
-  const li = document.createElement('li');
-  const rel = extractRel(item.url);
-  if (rel) li.dataset.rel = rel;
-  if (item.id) li.dataset.id = String(item.id);
-  if (item.type) li.dataset.type = String(item.type);
-  if (item.status) li.dataset.status = String(item.status);
-
-  const card = document.createElement('div');
-  card.className = 'nav-item nav-item-nested';
-
-  const line = document.createElement('div');
-  line.className = 'nav-line';
-  appendIf(line, typeIcon(item.type, 12));
-  if (item.id) {
-    const idSpan = document.createElement('span');
-    idSpan.className = 'nav-id mono';
-    // Display handle only — `data-id` on the `li` keeps the full
-    // value, and every lookup goes through that (ISS-0084).
-    idSpan.textContent = shortNoteId(item.id);
-    idSpan.title = item.id;
-    line.appendChild(idSpan);
-  }
-  line.appendChild(navLineSpacer());
-  appendIf(line, statusChip(item.status));
-  card.appendChild(line);
-
-  if (item.title) {
-    const titleEl = document.createElement('p');
-    titleEl.className = 'nav-title-nested';
-    titleEl.textContent = item.title;
-    titleEl.title = item.title;
-    card.appendChild(titleEl);
-  }
-
-  if (rel) {
-    card.addEventListener('click', (e) => { e.stopPropagation(); void navigateTo(rel); });
-  }
-  li.appendChild(card);
-  return li;
+  return buildNavRow(item, 'nav-item-nested');
 }
 
 function renderItemChildren(item: NavItem): HTMLDetailsElement | null {

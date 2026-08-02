@@ -15,6 +15,7 @@ features:
 requirements: []
 issues:
   - "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"
+  - "[[ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -145,3 +146,20 @@ Measured in the running app, this repo's workspace:
 - **[[ISS-0084]]** — Edwin, looking at the new rows: *"Why are the change notes shown with the full file name?"* A change note's `id:` **is** its description (`CHG-YYYYMMDD-Short-Description`, LIFECYCLE.md line 95), so a row printed the description twice at five times the width of every other ID. Invisible while the ID had its own line; expensive the moment [[TASK-0271]] put ID and title on one. **A layout change made an existing inconsistency costly** — the scheme was not wrong before and is not wrong now, it just stopped being free.
 
 **What did not change:** [[TASK-0269]]'s rule. `contextGroupRows` still takes no collapse parameter, and its guards pass untouched — a closed card still names the type and its count, where the old filter rendered nothing at all. That distinction is the reason a disclosure default is allowed where a filter was not.
+
+
+## Closed a third time 2026-08-02 — [[ISS-0085]]
+
+Edwin: *"in the left pane, I still see for features and issues and possibly others that there are multiple lines… Also for some types (risks, requirements, designs and plans under features), they still use the more complex format."*
+
+Both correct, and both my omission. The left pane has **four** row renderers and `pickItemRenderer` chooses between them per group; [[TASK-0271]] rewrote one. Risks and designs (`stacked`) and requirements and plans (`nested`) kept the old two-line card at up to 90px, and the one renderer I did fix still printed `item.subtitle` — which the server sends for every feature (`goal`), design and risk.
+
+Measured before: `nav-item-line` up to 66px with 50 subtitles, `nav-item-nested` 103 rows, `nav-item-stacked` up to 90px. After: **every card 24–27px, one class, zero subtitles**, and the features navigator content at 97px.
+
+**Why the guard did not catch it.** I wrote the task against `navItem`, checked `navItem`, and wrote the guard against `navItem`. `pickItemRenderer` is three lines away and I never followed it.
+
+> A guard written from the same reading as the change confirms the reading, not the behaviour.
+
+The replacement asserts over **every renderer the picker can return**, and fails if a fifth appears without going through the shared builder.
+
+**And the guard itself was vacuous on first writing** — its body regex closed on `\n}` at column 0, but `cockpit.js` is one IIFE whose functions close at `\n  }`, so the "body" ran past the end and swallowed the helper it was looking for. Mode 1's mutation passed. Caught by mutation testing, not by reading. That is now three times in this phase that a guard needed to be *run against a break* before it could be believed.

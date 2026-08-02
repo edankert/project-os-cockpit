@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 57
-  ISS: 84
+  ISS: 85
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1952,6 +1952,27 @@ items:
 
 
   issues:
+    ISS-0085:
+      file: "docs/issues/ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers.md"
+      title: "The one-line grammar reached one of four row renderers, and the subtitle put a second line back on that one"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "The left pane has FOUR renderers and pickItemRenderer routes per group; TASK-0271 rewrote one. I wrote the task against navItem, checked navItem, and wrote the guard against navItem — a guard written from the same reading as the change confirms the reading, not the behaviour. One shared buildNavRow now, asserted over every renderer the picker can return."
+    ISS-0084:
+      file: "docs/issues/ISS-0084-Change-Ids-Print-Their-Description-Twice.md"
+      title: "A change note's id is its description, so a row rendered the description twice"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "Edwin spotted it. CHG-YYYYMMDD-Short-Description (LIFECYCLE.md line 95) means a change's id IS prose, at five times the width of every other id. Free while the id had its own line; expensive the moment TASK-0271 put id and title on one — a layout change made an existing inconsistency costly. Display-only fix; id: stays canonical."
+    ISS-0083:
+      file: "docs/issues/ISS-0083-Active-Nav-Row-Never-Highlights.md"
+      title: "The navigator never highlights the open note — refreshActiveNavRow selects li.nav-item, but that class is on the inner div"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "Pre-existing and silent: measured at f5e6637, 112 rows carrying data-rel and is-active on zero of them. Surfaced only because TASK-0273's roll-up needs the active row to open the group holding it, turning a decorative no-op into a functional one."
     ISS-0082:
       file: "docs/issues/ISS-0082-Phantom-Phase-Group-From-The-016-Merge.md"
       title: "A phase rename forked its children into a phantom group, because two code paths read the phase link differently"

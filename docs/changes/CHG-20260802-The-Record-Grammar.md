@@ -40,6 +40,14 @@ Nothing is filtered. A closed card still names the type and how many; the *filte
 
 `nav-item-line`, not `nav-item-compact`: that class already exists as the Library's file row and paints a file icon.
 
+## Follow-up, same day — [[ISS-0085]]
+
+The first pass reached **one** of the left pane's four row renderers. `pickItemRenderer` routes per group, so risks and designs (`stacked`) and requirements and plans under features (`nested`) kept the old two-line card at up to 90px — and the renderer that *was* rewritten still printed `item.subtitle`, which the server sends for every feature, design and risk.
+
+All three now go through one `buildNavRow`, and the subtitle is gone from the left pane entirely. Measured after: every card **24–27px**, one class, **zero** subtitles, features navigator content at **97px**.
+
+`navItemCompact` (the Library's file tree) is deliberately unchanged — a filename with a file icon, already one line, and not a lifecycle row.
+
 ## Restart required
 
 Mode 3 is a built bundle. The change is live after the desktop app restarts.

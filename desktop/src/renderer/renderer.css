@@ -951,6 +951,11 @@ body {
   white-space: nowrap;
 }
 
+/* The nested row: same grammar, indented (ISS-0085). */
+.nav-item-line.nav-item-nested {
+  padding-left: 14px;
+}
+
 /* The group head's count-and-status (TASK-0272), sitting where the group
    status chip used to and reading like the record card's `7 · all
    accepted`. */

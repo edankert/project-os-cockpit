@@ -232,15 +232,24 @@ def test_the_features_navigator_orders_its_items_open_first(index: Index) -> Non
 # ---------------------------------------------------------------------------
 
 
-def test_the_phase_with_open_work_sorts_first(index: Index) -> None:
-    """Measured before building: **1 of 18** feature groups had open work,
-    and it sorted seventeenth. The whole point of the view was below the
-    fold under twenty finished phases."""
+def test_the_leading_phase_group_is_never_a_finished_one(index: Index) -> None:
+    """What "groups with open work first" became under three bands.
+
+    The first version asserted the leading group contains an open item.
+    That encoded the two-band rule and expired the moment PHASE-022 was
+    reopened with every one of its features already `done` — an `active`
+    phase holding finished work legitimately leads, because the phase's
+    own status is the authored fact and the items are not.
+
+    So the assertion is about the BAND, which is the rule, rather than
+    about the items, which are the corpus.
+    """
     groups = cockpit._features_groups(index)
     first = groups[0]
-    assert cockpit._group_is_settled(
-        [type("R", (), {"status": i.get("status")})() for i in first["items"]]
-    ) == 0, f"the first phase group is entirely complete: {first['key']}"
+    rec = cockpit._resolve_phase(index, first["key"]) if first["key"].startswith("PHASE-") else None
+    assert cockpit._phase_group_rank(rec, []) < 2, (
+        f"a finished phase leads the features navigator: {first['key']}"
+    )
 
 
 def test_phase_order_survives_among_equals() -> None:
@@ -738,3 +747,94 @@ def test_mode1_shortens_change_ids_like_mode3() -> None:
         " shortNoteId('CHANGES-README'), shortNoteId('')];"
     )
     assert got == ["CHG-20260802", "FEAT-0057", "CHG-20260802", "CHANGES-README", ""], got
+
+
+# ---------------------------------------------------------------------------
+# ISS-0085 — every renderer the picker can return, not just the one I edited
+# ---------------------------------------------------------------------------
+
+
+def _renderer_bodies(src: str, names: list[str]) -> dict[str, str]:
+    """Body of each named function, respecting its indentation.
+
+    An earlier version ended the match at `\n}` in column 0. `cockpit.js`
+    is one big IIFE, so its functions close at `\n  }` — the body ran on
+    past the real end and swallowed the very helper being asserted for,
+    and the guard passed on a source that did not delegate. Verified by
+    mutation this time: breaking mode 1's `navItemNested` now fails.
+    """
+    out: dict[str, str] = {}
+    for name in names:
+        m = re.search(rf"^([ \t]*)function {name}\(", src, re.M)
+        assert m, f"{name} not found"
+        indent = m.group(1)
+        tail = src[m.start():]
+        # Close on the first line that is exactly this function's indent
+        # followed by `}` — brace matching without a JS parser.
+        close = re.search(rf"\n{indent}\}}", tail)
+        assert close, f"{name}: no closing brace at indent {len(indent)}"
+        out[name] = tail[: close.end()]
+    return out
+
+
+def test_every_lifecycle_renderer_delegates_to_one_row_builder() -> None:
+    """ISS-0085's actual defect, and the reason it went unnoticed.
+
+    `pickItemRenderer` returns one of four functions. TASK-0271 rewrote
+    `navItem` and its guard was written against `navItem` too — so the
+    guard confirmed the reading, not the behaviour, and risks, designs,
+    requirements and plans kept a 90px two-line card.
+
+    Asserting delegation rather than height because height needs a live
+    DOM: three copies that must stay identical is the thing that broke,
+    and one builder is what makes it impossible.
+    """
+    for path, decl in (
+        (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts", "buildNavRow"),
+        (COCKPIT_JS, "buildNavRow"),
+    ):
+        src = path.read_text(encoding="utf-8")
+        assert f"function {decl}(" in src, f"{path.name} has no shared row builder"
+        for name in ("navItem", "navItemStacked", "navItemNested"):
+            body = _renderer_bodies(src, [name])[name]
+            assert decl in body, (
+                f"{path.name}: {name} does not go through {decl} — that is three "
+                "copies of one row again, which is what ISS-0085 was"
+            )
+
+
+def test_no_lifecycle_renderer_emits_a_subtitle() -> None:
+    """The second line Edwin asked to remove.
+
+    The server sends a subtitle for every feature (`goal`), design and
+    risk (first body paragraph) — 50 rows in the pilot workspace — so a
+    renderer that prints it is a two-line row in practice, whatever its
+    CSS says.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts",
+        COCKPIT_JS,
+    ):
+        src = path.read_text(encoding="utf-8")
+        bodies = _renderer_bodies(src, ["buildNavRow"])
+        assert "subtitle" not in bodies["buildNavRow"], (
+            f"{path.name}: the shared row renders item.subtitle — that is the "
+            "second line, on every feature, design and risk"
+        )
+
+
+def test_the_picker_routes_only_to_known_renderers() -> None:
+    """If a fifth layout appears, it must be a deliberate addition rather
+    than a silent fall-through to a row nobody checked."""
+    for path, pat in (
+        (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts",
+         r"function pickItemRenderer\([^)]*\)[^{]*\{(.*?)\n\}"),
+        (COCKPIT_JS, r"function pickItemRenderer\(layout\) \{(.*?)\n  \}"),
+    ):
+        body = re.search(pat, path.read_text(encoding="utf-8"), re.DOTALL)
+        assert body, f"pickItemRenderer not found in {path.name}"
+        returned = set(re.findall(r"return (navItem\w*)", body.group(1)))
+        assert returned == {"navItemStacked", "navItemCompact", "navItem"}, (
+            f"{path.name}: pickItemRenderer routes to {returned}; a new renderer "
+            "must be brought into the shared row builder deliberately"
+        )
