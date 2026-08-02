@@ -952,3 +952,52 @@ def test_the_scope_name_is_not_capped_below_the_row() -> None:
     assert bar and "flex: 0 0" in bar.group(1), (
         "the progress bar grows again, which starves the name it shares a row with"
     )
+
+
+def test_the_nav_group_head_shares_the_context_head_box() -> None:
+    """ISS-0087 — FEAT-0057 matched the two panes' TYPE and stopped.
+
+    Font size, weight, transform, letter-spacing and colour were already
+    identical; every remaining difference was the box. Measured: 42px
+    against the context card head's 22px, nineteen times over in the
+    features navigator, on a pane whose rows are 27px.
+
+    Density is set by the box, not by the font — which is why "same
+    grammar" was not enough to check.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        rule = re.search(r"\.nav-group-header \{(.*?)\}", css, re.DOTALL)
+        assert rule, f"{path.name}: .nav-group-header rule not found"
+        body = rule.group(1)
+        assert "padding: 4px 8px" in body, (
+            f"{path.name}: the group head's padding no longer matches the "
+            "context card head it is aligned to"
+        )
+        assert "background: none" in body, (
+            f"{path.name}: the group head has a background again — a bar per "
+            "group is what makes nineteen heads read as nineteen bars"
+        )
+        assert "border-bottom: 0" in body, f"{path.name}: the head's rule is back"
+
+
+def test_the_chip_does_not_set_the_group_head_height() -> None:
+    """The chip measured 21px against the head text's 16px, so it alone
+    decided how tall a group head was. Trimmed to sit inside the line.
+
+    Scoped to the HEAD only: in a row the chip is the row's own subject
+    and must keep its size.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        rule = re.search(r"\.nav-group-header \.status-chip \{(.*?)\}", css, re.DOTALL)
+        assert rule, f"{path.name}: the head's chip is unconstrained again"
+        assert "line-height: 15px" in rule.group(1), (
+            f"{path.name}: the chip's line-height sets the head's height again"
+        )

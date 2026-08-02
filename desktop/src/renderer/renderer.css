@@ -962,9 +962,31 @@ body {
 /* A group header is one line. A phase title can run to 90 characters —
    PHASE-022's does — and wrapping it puts back exactly the vertical space
    the compaction removed. */
+/* The group head takes the context card head's box (ISS-0087). Type was
+   already identical; the difference was padding, a background and a
+   border — 42px against 22px, nineteen times over in the features
+   navigator, on a pane whose rows are 27px. */
 .ws-nav-content .nav-group-header {
   flex-wrap: nowrap;
+  padding: 4px 8px;
+  background: none;
+  border-bottom: 0;
+  gap: 6px;
 }
+/* The chip is the tallest thing in a group head — 21px against the text's
+   16px, so it alone set the head's height (ISS-0087). Trimmed to sit
+   inside the line rather than define it; the chip in a ROW is untouched,
+   where it is the row's own subject. */
+.nav-group-header .status-chip {
+  padding: 0 6px;
+  line-height: 15px;
+  font-size: 10px;
+}
+.ws-nav-content .nav-rollup-header { padding: 4px 8px; }
+/* No inset on the body either: the head is already indented by the
+   chevron, and a second indent per level is what turns a nested list into
+   a staircase. */
+.ws-nav-content .group-body { padding-left: 0; }
 .ws-nav-content .group-header-inner {
   min-width: 0;
   overflow: hidden;

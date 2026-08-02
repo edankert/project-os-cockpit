@@ -651,21 +651,39 @@ details:not([open]) > summary .group-chevron {
   border-bottom: 1px solid var(--border);
 }
 
+/* The group head takes the context card head's box (ISS-0087).
+   Type was already identical — 11px / 600 / uppercase / --text-faint —
+   and every remaining difference was padding, a background and a border.
+   Measured: 42px against the right pane's 22px, nineteen times over in
+   the features navigator, on a pane whose rows are 27px.
+
+   The bar goes with it. A background and a bottom border per group are
+   what make nineteen heads read as nineteen bars rather than as a list of
+   names; the right pane has neither and is the surface being copied. */
 .nav-group-header {
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 10px 14px;
+  padding: 4px 8px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-faint);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: none;
+  border-bottom: 0;
 }
 .nav-group:not([open]) > .nav-group-header {
   border-bottom: 0;
+}
+/* The chip is the tallest thing in a group head — 21px against the text's
+   16px, so it alone set the head's height (ISS-0087). Trimmed to sit
+   inside the line rather than define it; the chip in a ROW is untouched,
+   where it is the row's own subject. */
+.nav-group-header .status-chip {
+  padding: 0 6px;
+  line-height: 15px;
+  font-size: 10px;
 }
 .nav-group-header:hover {
   color: var(--text-muted);

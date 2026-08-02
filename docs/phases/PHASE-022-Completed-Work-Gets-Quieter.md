@@ -17,6 +17,7 @@ issues:
   - "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"
   - "[[ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers]]"
   - "[[ISS-0086-The-Rollup-Hid-The-Taxonomy]]"
+  - "[[ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -177,3 +178,14 @@ The overview's scope pane has had this right since [[FEAT-0043]] — `Completed 
 And the alignment ran in both directions: the overview gained the ID column it never had, and lost a `max-width: 55%` that was truncating 13 of 24 rows with 200px of the pane unused.
 
 **Four reopenings in one day** is worth recording as a smell, not a success. Each was a real correction — but three of the four were things a careful look at the running app would have caught before Edwin did, and the fourth ([[ISS-0083]]) had been broken for months. The standing-phase mechanism worked exactly as CLAUDE.md describes; what it could not do is make me check the surface I had just changed.
+
+
+## Closed a fifth time 2026-08-02 — [[ISS-0087]]
+
+Edwin: *"I still like the way things are presented… in the right pane a lot and this could be a nice way to present the stuff on the left as well. If anything it should at least use more of the minimum look of the overview pane."*
+
+[[FEAT-0057]] had matched the two panes' **type** — 11px, 600, uppercase, `--text-faint`, identical on both — and stopped there. Density is set by the box: 42px against 22px, nineteen headers over, plus a background and a bottom border the right pane's heads do not carry. Now 25px against 22px.
+
+**Five corrections, one cause.** [[ISS-0085]] checked one renderer of four. [[ISS-0086]] collapsed heads as if they were bodies. [[ISS-0087]] matched fonts and called it a grammar. Each time I verified the thing I changed instead of the surface it lives on, and each time Edwin found it by looking at the app.
+
+The cheap fix is not a rule but a habit: **render the thing beside the thing it is copying and measure both**, which is what every one of these investigations did in its first two minutes once someone asked.

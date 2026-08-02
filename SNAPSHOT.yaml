@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 57
-  ISS: 86
+  ISS: 87
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1952,6 +1952,13 @@ items:
 
 
   issues:
+    ISS-0087:
+      file: "docs/issues/ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy.md"
+      title: "The navigator's group headers were twice the height of the context cards they were aligned to"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "FEAT-0057 matched the two panes' TYPE — 11px/600/uppercase, identical already — and stopped. Density is set by the BOX: 42px against 22px, nineteen headers over, plus a background and border the right pane has not. Now 25px. Fifth correction in a row with one cause: verifying the thing changed instead of the surface it lives on."
     ISS-0086:
       file: "docs/issues/ISS-0086-The-Rollup-Hid-The-Taxonomy.md"
       title: "The roll-up collapsed the phase list, the status vocabulary and the severity ladder into one line"

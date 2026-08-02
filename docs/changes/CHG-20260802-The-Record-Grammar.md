@@ -63,6 +63,14 @@ The overview was corrected in the other direction at the same time:
 
 And [[ISS-0084]]'s ID shortening reached the **seven** remaining call sites it had missed, including the review desk, which still rendered `CHG-20260802-Completed-Work-Collapses` in full.
 
+## Third follow-up — [[ISS-0087]], the box and not the font
+
+The two panes had matching **type** — 11px, 600, uppercase, `--text-faint` — and mismatched **boxes**. A nav group header was `10px 14px` with a background and a bottom border; a context card head is `3px 2px` with neither. 42px against 22px, nineteen times over in the features navigator, on a pane whose rows are 27px.
+
+Now: header **25px**, completed band 24px, row 24px, context head 22px. Everything within 3px, which is what one grammar looks like once the box is matched and not only the font.
+
+The status chip was itself 21px against the head text's 16px, so it alone set the height; it is trimmed to sit inside the line. The chip in a *row* is untouched — there it is the row's own subject.
+
 ## Restart required
 
 Mode 3 is a built bundle. The change is live after the desktop app restarts.
