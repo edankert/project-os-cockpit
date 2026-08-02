@@ -1021,6 +1021,12 @@ body {
 }
 .right-pane-group.ctx-card[open] > .ctx-card-head .ov-chev::before { transform: rotate(90deg); }
 
+/* The review desk's completed band (TASK-0277) — the same cards the
+   context pane uses, so the desk stops being the odd one out. */
+.review-completed { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+.review-completed .ctx-card { margin: 0; padding: 0; }
+.review-completed .ctx-card-head { text-transform: uppercase; }
+
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
 .nav-rollup-header {

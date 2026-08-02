@@ -4190,8 +4190,20 @@ function renderReviewQueuePane(payload: ReviewQueuePayload): void {
   // the pane with nothing failing. Tests goes last — it is the least
   // time-sensitive thing here, a browsable list of what gets verified
   // rather than a record of what happened (Edwin's call).
-  appendIf(wrap, buildReviewedRegister(payload.registers?.reviewed ?? []));
+  // Owed work first, then the tests register, then finished work last —
+  // "completed at the bottom" is the same ordering the other three
+  // navigators use, and `buildReviewedRegister` emits both halves.
+  const reviewed = buildReviewedRegister(payload.registers?.reviewed ?? []);
+  const owed = reviewed?.querySelector('.review-completed')
+    ? (() => {
+        const band = reviewed.querySelector('.review-completed')!;
+        band.remove();
+        return { top: reviewed, bottom: band };
+      })()
+    : { top: reviewed, bottom: null };
+  appendIf(wrap, owed.top && owed.top.childElementCount > 0 ? owed.top : null);
   appendIf(wrap, buildTestsRegister(payload.registers?.tests ?? []));
+  appendIf(wrap, owed.bottom as HTMLElement | null);
   wsNavContent.replaceChildren(wrap);
 }
 
@@ -4248,6 +4260,21 @@ function buildTestsRegister(tests: ReviewRegisterTest[]): HTMLElement | null {
   return section;
 }
 
+/** True when a verdict leaves work owed (TASK-0277).
+ *
+ *  `changes-requested` means a reviewer asked for something and nothing
+ *  has recorded it happening. Counting it as finished is a
+ *  terminal-looking label on an open obligation — the error this whole
+ *  phase exists to have removed.
+ *
+ *  `accepted` and `approved` both appear in this corpus and are both read
+ *  as finished; reconciling them is ISS-0069's problem, not this one's.
+ */
+function isOwedVerdict(verdict: string | undefined): boolean {
+  const v = (verdict || '').trim().toLowerCase();
+  return v === 'changes-requested' || v === 'rejected';
+}
+
 // Sourced from note frontmatter, not the store — `_MAX_REQUESTS` trims
 // the store's tail, so a store-backed register would quietly forget.
 function buildReviewedRegister(
@@ -4256,59 +4283,86 @@ function buildReviewedRegister(
   if (items.length === 0) return null;
   const section = document.createElement('div');
   section.className = 'review-register';
-  const head = document.createElement('div');
-  head.className = 'scope-heading';
-  head.textContent = `Reviewed · ${items.length}`;
-  section.appendChild(head);
-  const SHOWN = 12;
-  const render = (list: ReviewRegisterReviewed[], into: HTMLElement): void => {
-    for (const item of list) {
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'queue-row register-row';
-      const id = document.createElement('span');
-      id.className = 'mono ov-typed';
-      id.dataset.type = item.type;
-      // Display handle only (ISS-0084). The review desk was the one
-      // surface the shortening had not reached — the third time in this
-      // phase a change landed in some renderers and not all of them.
-      id.textContent = shortNoteId(item.id);
-      id.title = item.id;
-      const title = document.createElement('span');
-      title.className = 'queue-title';
-      title.textContent = item.title;
-      title.title = item.reviewed_by
-        ? `${item.title}\nreviewed by ${item.reviewed_by}` : item.title;
-      const verdict = document.createElement('span');
-      verdict.className = 'queue-verdict';
-      verdict.dataset.verdict = item.verdict;
-      verdict.textContent = item.verdict;
-      const date = document.createElement('span');
-      date.className = 'queue-age';
-      date.textContent = item.review_date || '';
-      row.append(id, title, verdict, date);
-      row.addEventListener('click', () => void navigateTo(`/docs/${item.rel}`));
-      into.appendChild(row);
-    }
+
+  // TASK-0277. `Reviewed · 82` already WAS this desk's completed section;
+  // it only lacked the shape. But 10 of the 82 are `changes-requested` —
+  // a reviewer asked for work and nothing records it having happened.
+  //
+  // Filing those under "reviewed" is the same error the old
+  // Hide-completed switch made: a terminal-looking label on something
+  // still owed. They are promoted to sit with the live work; the rest
+  // collapse into one card per verdict.
+  const owed = items.filter((i) => isOwedVerdict(i.verdict));
+  const settled = items.filter((i) => !isOwedVerdict(i.verdict));
+
+  const renderRow = (item: ReviewRegisterReviewed): HTMLElement => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'queue-row register-row';
+    const id = document.createElement('span');
+    id.className = 'mono ov-typed';
+    id.dataset.type = item.type;
+    // Display handle only (ISS-0084).
+    id.textContent = shortNoteId(item.id);
+    id.title = item.id;
+    const title = document.createElement('span');
+    title.className = 'queue-title';
+    title.textContent = item.title;
+    title.title = item.reviewed_by
+      ? `${item.title}\nreviewed by ${item.reviewed_by}` : item.title;
+    row.append(id, title);
+    const date = document.createElement('span');
+    date.className = 'queue-age';
+    date.textContent = item.review_date || '';
+    row.appendChild(date);
+    row.addEventListener('click', () => void navigateTo(`/docs/${item.rel}`));
+    return row;
   };
-  render(items.slice(0, SHOWN), section);
-  if (items.length > SHOWN) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'ctx-disclosure';
-    const chev = document.createElement('span');
-    chev.className = 'ov-chev';
-    const label = document.createElement('span');
-    label.textContent = `${items.length - SHOWN} older`;
-    btn.append(chev, label);
-    const rest = document.createElement('div');
-    rest.hidden = true;
-    render(items.slice(SHOWN), rest);
-    btn.addEventListener('click', () => {
-      rest.hidden = !rest.hidden;
-      btn.classList.toggle('is-open', !rest.hidden);
-    });
-    section.append(btn, rest);
+
+  if (owed.length > 0) {
+    const head = document.createElement('div');
+    head.className = 'scope-heading';
+    head.textContent = `Changes requested · ${owed.length}`;
+    section.appendChild(head);
+    for (const item of owed) section.appendChild(renderRow(item));
+  }
+
+  if (settled.length > 0) {
+    // One card per verdict, all shut — the same shape the other three
+    // navigators use for finished work.
+    const byVerdict = new Map<string, ReviewRegisterReviewed[]>();
+    for (const item of settled) {
+      const key = (item.verdict || 'unrecorded').toLowerCase();
+      const list = byVerdict.get(key);
+      if (list) list.push(item); else byVerdict.set(key, [item]);
+    }
+    const band = document.createElement('div');
+    band.className = 'review-completed';
+    const head = document.createElement('div');
+    head.className = 'scope-heading';
+    head.textContent = `Completed · ${byVerdict.size}`;
+    band.appendChild(head);
+    for (const [verdict, list] of [...byVerdict].sort((a, b) => b[1].length - a[1].length)) {
+      const card = document.createElement('details');
+      card.className = 'right-pane-group ctx-card';
+      const summary = document.createElement('summary');
+      summary.className = 'ctx-card-head';
+      const chev = document.createElement('span');
+      chev.className = 'ov-chev';
+      chev.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span');
+      name.textContent = verdict;
+      const count = document.createElement('span');
+      count.className = 'ctx-card-right';
+      count.textContent = String(list.length);
+      summary.append(chev, name, count);
+      card.appendChild(summary);
+      const body = document.createElement('div');
+      for (const item of list) body.appendChild(renderRow(item));
+      card.appendChild(body);
+      band.appendChild(card);
+    }
+    section.appendChild(band);
   }
   return section;
 }
@@ -7086,10 +7140,16 @@ function renderWsNav(data: NavPayload): void {
     }
   }
   if (settled.length) {
-    const node = renderSettledRollup(settled, currentNavMode);
-    if (node) {
-      wsNavContent.appendChild(node);
-      any = true;
+    if (groupNamesStateThemselves(currentNavMode)) {
+      // No divider: `Done`, `Cancelled` and `Superseded` name their own
+      // state, so each simply sits in place as a collapsed card.
+      for (const group of settled) {
+        const node = renderNavGroup(group, currentNavMode);
+        if (node) { wsNavContent.appendChild(node); any = true; }
+      }
+    } else {
+      const node = renderSettledRollup(settled, currentNavMode);
+      if (node) { wsNavContent.appendChild(node); any = true; }
     }
   }
   if (!any) {
@@ -7421,6 +7481,25 @@ function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
 
 // ----- Group + left-pane assembly
 
+/** Modes whose group names already say a group is finished, so a
+ *  `Completed` divider would only repeat them (TASK-0276).
+ *
+ *  The tasks navigator groups BY status: `Done`, `Cancelled`,
+ *  `Superseded`. Three collapsed cards under a heading reading "Completed"
+ *  would be the word four times over.
+ *
+ *  Everywhere else the group name is on some other axis — a phase title, a
+ *  severity, a verdict — and says nothing about state, so the divider is
+ *  the only thing that can.
+ *
+ *  Named for WHY it holds rather than listed as "modes that want one":
+ *  the next navigator added should be able to answer the question rather
+ *  than look for itself in a list.
+ */
+function groupNamesStateThemselves(mode: NavMode): boolean {
+  return mode === 'tasks';
+}
+
 /** Nouns for the roll-up line, per mode.
  *
  *  "16 finished phases · 53 features" reads; "16 finished groups · 53
@@ -7552,7 +7631,16 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   const details = document.createElement('details');
   const layoutClass = group.item_layout ? ` nav-group-${group.item_layout}` : '';
   details.className = `nav-group${layoutClass}`;
-  (details as HTMLDetailsElement).open = group.default_open !== false;
+  // TASK-0275: a settled group opens SHUT — exactly `renderContextGroup`'s
+  // rule, which is why the right pane reads the way it does. A shut card
+  // still carries its name and count, so nothing is hidden that the head
+  // did not already say.
+  //
+  // The server's `default_open: false` still wins: this adds a reason to
+  // close, never a reason to open.
+  const settledGroup = groupIsSettled(group.items || []);
+  (details as HTMLDetailsElement).open =
+    group.default_open !== false && !settledGroup;
 
   const summary = document.createElement('summary');
   summary.className = 'nav-group-header';
@@ -7574,7 +7662,12 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // shares one — `PHASE-007 · Agent instrumentation · 19 · done`. This is
   // the record column's own move: its DECISIONS card says "7 · all
   // accepted" once rather than printing "accepted" on seven rows.
-  const summaryText = groupHeadSummary(group.items || []);
+  // Where the group name IS the status, the summary is the count alone —
+  // `Done · 265`, not `Done · 265 · done`. Same fact as the divider rule
+  // one function up: these names already state themselves.
+  const summaryText = groupNamesStateThemselves(mode)
+    ? String((group.items || []).length || '')
+    : groupHeadSummary(group.items || []);
   if (summaryText) {
     const cnt = document.createElement('span');
     cnt.className = 'nav-group-summary';

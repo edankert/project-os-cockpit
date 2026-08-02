@@ -12,6 +12,7 @@ goal: "Replace a switch that empties three views and the whole context pane with
 features:
   - "[[FEAT-0056-Completed-Work-Ordering]]"
   - "[[FEAT-0057-The-Record-Grammar]]"
+  - "[[FEAT-0058-One-Shape-Per-Navigator]]"
 requirements: []
 issues:
   - "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"
@@ -189,3 +190,21 @@ Edwin: *"I still like the way things are presented… in the right pane a lot an
 **Five corrections, one cause.** [[ISS-0085]] checked one renderer of four. [[ISS-0086]] collapsed heads as if they were bodies. [[ISS-0087]] matched fonts and called it a grammar. Each time I verified the thing I changed instead of the surface it lives on, and each time Edwin found it by looking at the app.
 
 The cheap fix is not a rule but a habit: **render the thing beside the thing it is copying and measure both**, which is what every one of these investigations did in its first two minutes once someone asked.
+
+
+## Closed a sixth time 2026-08-02 — [[FEAT-0058]]
+
+Edwin specified all four navigators. The three he described view-by-view turned out to be one rule:
+
+**A completed divider is needed only where a group's own name does not already say it is finished.**
+
+| view | before | after |
+|---|---|---|
+| **Tasks** | one `Completed · 3` band | **no divider** — `Done · 265`, `Cancelled · 2`, `Superseded · 2` shut in place; 367px |
+| **Issues** | band with severity heads | divider + a shut card per severity; risks live above; 297px |
+| **Features** | band of phase heads | divider + 16 phases, each opening to features and on to requirements and plans; 654px |
+| **Review** | flat list of 82 with `70 older` | `Changes requested · 10` live, `Completed · 2` last with `approved · 70` and `accepted · 2` |
+
+**The review desk was not missing a completed section — `Reviewed · 82` already was one.** What the data showed is that **10 of those 82 were `changes-requested`**: a reviewer asked for work and nothing recorded it happening. That is a terminal-looking label on an open obligation, which is the precise error this whole phase exists to have removed — and it was still live on the one surface whose job is to track obligations.
+
+Six closings in a day. The first five were corrections to work I had just shipped; this one was a specification Edwin wrote out in full, and it is the only one that produced a rule rather than a fix.

@@ -1486,6 +1486,7 @@
     var sectionExtra = group.item_layout ? " nav-group-" + group.item_layout : "";
     var indentStyle = "--tree-indent:" + String((depth || 0) * 12) + "px";
     var node = collapsibleGroup({
+      defaultOpen: !groupIsSettled(group.items || []),
       key: subKey,
       sectionClass: "nav-subgroup" + sectionExtra,
       headerClass: "nav-subgroup-header",
@@ -1530,9 +1531,16 @@
     // TASK-0273: groups still holding open work render normally; every
     // finished one goes below a divider as ONE expandable line. Sixteen
     // finished phases cost 53px of header each before this.
+    // TASK-0276: the tasks navigator groups BY status, so `Done`,
+    // `Cancelled` and `Superseded` already name their own state and a
+    // divider reading "Completed" would be the word four times over.
+    // Everywhere else the group name is on some other axis and says
+    // nothing about state, so the divider is the only thing that can.
+    var namesStateThemselves = mode === "tasks";
     var liveGroups = [], settledGroups = [];
     groups.forEach(function (g) {
-      (groupIsSettled(g.items || []) ? settledGroups : liveGroups).push(g);
+      (!namesStateThemselves && groupIsSettled(g.items || [])
+        ? settledGroups : liveGroups).push(g);
     });
     var rollupFrag = settledGroups.length ? document.createDocumentFragment() : null;
 
@@ -1562,7 +1570,11 @@
       headerChildren.push(el("span", { class: "nav-group-spacer" }));
       // The head carries the count, and the status when every item shares
       // one (TASK-0272) — the record card's `7 · all accepted` move.
-      var gSummary = groupHeadSummary(g.items || []);
+      // Where the group name IS the status, the summary is the count
+      // alone — `Done · 265`, not `Done · 265 · done`.
+      var gSummary = namesStateThemselves
+        ? String((g.items || []).length || "")
+        : groupHeadSummary(g.items || []);
       if (gSummary) {
         headerChildren.push(el("span", { class: "nav-group-summary", text: gSummary }));
       }
@@ -1589,6 +1601,9 @@
         headerClass: "nav-group-header",
         headerChildren: headerChildren,
         bodyChildren: bodyChildren,
+        // TASK-0275: a settled group opens SHUT, the context pane's own
+        // rule. A shut card still carries its name and count.
+        defaultOpen: !groupIsSettled(g.items || []),
       }));
     });
 

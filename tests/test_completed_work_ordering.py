@@ -1001,3 +1001,102 @@ def test_the_chip_does_not_set_the_group_head_height() -> None:
         assert "line-height: 15px" in rule.group(1), (
             f"{path.name}: the chip's line-height sets the head's height again"
         )
+
+
+# ---------------------------------------------------------------------------
+# FEAT-0058 — one shape per navigator
+# ---------------------------------------------------------------------------
+
+
+def test_a_settled_group_opens_shut() -> None:
+    """TASK-0275 — the context pane's rule, in the navigator.
+
+    A shut card still carries its name and count, so nothing is hidden
+    that the head did not already say. The server's `default_open: false`
+    must still win: this adds a reason to close, never a reason to open.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    m = re.search(r"\(details as HTMLDetailsElement\)\.open =\s*(.*?);", ts, re.DOTALL)
+    assert m, "the group's open state is no longer set where expected"
+    expr = m.group(1)
+    assert "!settledGroup" in expr and "default_open !== false" in expr, (
+        f"a settled group no longer opens shut, or the server's default was "
+        f"dropped: {expr!r}"
+    )
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    assert "defaultOpen: !groupIsSettled(g.items || [])" in js, (
+        "mode 1's settled groups do not open shut"
+    )
+
+
+def test_only_the_tasks_navigator_skips_the_completed_divider() -> None:
+    """TASK-0276 — the divider appears only where a group's own name does
+    not already say it is finished.
+
+    `Done`, `Cancelled`, `Superseded` say it; a phase title and a severity
+    do not. Encoded as a question the next navigator can answer, rather
+    than a list it has to find itself in.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(
+        r"function groupNamesStateThemselves\(mode: NavMode\): boolean \{(.*?)\n\}",
+        ts, re.DOTALL,
+    )
+    assert fn, "groupNamesStateThemselves not found"
+    assert "mode === 'tasks'" in fn.group(1), (
+        "the divider rule changed which modes it covers"
+    )
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    assert 'var namesStateThemselves = mode === "tasks";' in js, (
+        "mode 1 disagrees about which navigator skips the divider"
+    )
+
+
+def test_a_status_named_group_does_not_repeat_its_status() -> None:
+    """`Done · 265`, not `Done · 265 · done`."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "groupNamesStateThemselves(mode)\n    ? String((group.items || []).length" in ts, (
+        "the tasks navigator's group head prints its status twice again"
+    )
+
+
+def test_changes_requested_is_not_treated_as_finished() -> None:
+    """TASK-0277 — the sharpest point of the whole phase, on the one
+    surface that still got it wrong.
+
+    `changes-requested` means a reviewer asked for work and nothing has
+    recorded it happening. Ten of this corpus's 82 reviewed notes carry
+    it. Filing them under "reviewed" is a terminal-looking label on an
+    open obligation — the error the Hide-completed switch made.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(
+        r"function isOwedVerdict\(verdict: string \| undefined\): boolean \{(.*?)\n\}",
+        ts, re.DOTALL,
+    )
+    assert fn, "isOwedVerdict not found"
+    body = fn.group(1)
+    for owed in ("changes-requested", "rejected"):
+        assert owed in body, f"{owed!r} is counted as finished review work"
+    for done in ("approved", "accepted"):
+        assert f"'{done}'" not in body, (
+            f"{done!r} is being treated as owed — both are finished verdicts, "
+            "and reconciling the two is ISS-0069's problem, not this one's"
+        )
+    assert "`Changes requested · ${owed.length}`" in ts, (
+        "the owed verdicts no longer get their own live section"
+    )
+
+
+def test_the_review_desk_puts_completed_last() -> None:
+    """"Completed at the bottom" is the ordering the other three
+    navigators use, and the desk emits its two halves from one builder."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    order = [
+        ts.index("owed.top && owed.top.childElementCount"),
+        ts.index("buildTestsRegister(payload.registers?.tests"),
+        ts.index("appendIf(wrap, owed.bottom"),
+    ]
+    assert order == sorted(order), (
+        "the review desk's completed band is no longer last"
+    )

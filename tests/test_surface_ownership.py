@@ -568,22 +568,38 @@ def test_the_dead_stat_tiles_gained_a_destination(label: str, mode: str) -> None
 # ---- desk section order and naming (ISS-0064) -------------------------
 
 
-def test_only_one_desk_section_is_headed_reviewed() -> None:
+def test_no_desk_section_heading_is_used_twice() -> None:
     """TASK-0242 took the word `Reviewed` for its register without noticing
     the ADR-0007 tally already used it, leaving two sections a few rows
     apart both headed `Reviewed` with different counts — 1 (review
     interactions at the desk) against 62 (notes carrying a verdict).
     ISS-0064.
 
-    Still asserted after TASK-0247 removed the tally: the collision is
-    gone by subtraction now, and this keeps it gone if a future section
-    reaches for the same word.
+    Generalised at TASK-0277, which renamed `Reviewed` out of existence:
+    the desk now heads its sections `Queue`, `Changes requested`, `Tests`
+    and `Completed`. Asserting on the literal word `Reviewed` would have
+    passed vacuously from then on — it counts occurrences of a string that
+    is no longer there.
+
+    What ISS-0064 was actually about is two sections **on one surface**
+    wearing the same name with different numbers behind them, so that is
+    what is checked. `Completed` appears several times across the file,
+    but on four different surfaces (the navigator's band, the review
+    desk's, the overview's scope pane) — the guard is scoped to the desk's
+    own builders.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    headings = re.findall(r"textContent = `(\w+) · \$\{", src)
-    assert headings.count("Reviewed") == 1, (
-        f"expected exactly one Reviewed heading, found {headings}"
+    start = src.index("function renderReviewQueuePane")
+    end = src.index("function buildQueueRow")
+    desk = src[start:end]
+    headings = re.findall(r"textContent = `([A-Z][\w ]*?) · \$\{", desk)
+    dupes = {h for h in headings if headings.count(h) > 1}
+    assert not dupes, (
+        f"two desk sections share a heading with different counts: {dupes} "
+        f"(all headings: {headings})"
     )
+    assert headings, "the desk renders no counted headings at all — the "\
+        "regex has drifted from the code and this guard is now vacuous"
 
 
 def test_the_advisory_tally_is_gone_from_the_desk() -> None:
