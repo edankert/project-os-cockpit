@@ -838,3 +838,117 @@ def test_the_picker_routes_only_to_known_renderers() -> None:
             f"{path.name}: pickItemRenderer routes to {returned}; a new renderer "
             "must be brought into the shared row builder deliberately"
         )
+
+
+# ---------------------------------------------------------------------------
+# ISS-0086 — the completed band names the taxonomy, it does not hide it
+# ---------------------------------------------------------------------------
+
+
+def test_the_completed_band_defaults_open_on_both_surfaces() -> None:
+    """Collapsing a group's BODY hides items nobody is working on.
+    Collapsing its HEAD hides which phases exist — a taxonomy, not a
+    backlog. The first roll-up was a bare `<details>`, closed and
+    unpersisted, so the features navigator's whole top level became two
+    rows and the phase list left the page.
+
+    The overview's scope pane has never made that mistake, which is why
+    both surfaces now default open and persist the divergence.
+    """
+    ts = (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    band = re.search(
+        r"function navCompletedBandOpen\(mode: NavMode\): boolean \{(.*?)\n\}",
+        ts, re.DOTALL,
+    )
+    assert band, "navCompletedBandOpen not found"
+    assert "v === null ? true" in band.group(1), (
+        "the completed band no longer defaults open — an unset preference "
+        "must show the taxonomy, not hide it"
+    )
+
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    m = re.search(r'key: "nav:" \+ mode \+ ":__settled",(.*?)\}\)\);', js, re.DOTALL)
+    assert m, "the settled band was not found in cockpit.js"
+    assert "defaultOpen: true" in m.group(1), (
+        "mode 1's completed band does not default open"
+    )
+
+
+def test_both_surfaces_call_the_band_completed() -> None:
+    """One idea must not wear two names across two panes.
+
+    The overview's scope pane says `Completed · N`; the navigator said
+    `17 finished phases · 56 features`.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    assert "`Completed · ${groups.length}`" in ts, "renderer.ts does not say Completed · N"
+    assert '"Completed \\u00b7 " + settledGroups.length' in js, (
+        "cockpit.js does not say Completed · N"
+    )
+    # …and the overview, which is the surface both are aligning to.
+    assert "`Completed · ${complete.length}`" in ts, (
+        "the overview's own wording changed — the three must move together"
+    )
+
+
+def test_the_review_desk_shortens_change_ids_too() -> None:
+    """ISS-0084 reached the nav rows and the context pane but not the
+    desk's `queue-row`, which rendered
+    `CHG-20260802-Completed-Work-Collapses` in full.
+
+    Third occurrence in this phase of a change landing in some renderers
+    and not all of them — hence a guard that names every call site rather
+    than one.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    raw = re.findall(r"^\s*id\.textContent = (\w+)\.id;$", ts, re.M)
+    assert not raw, (
+        f"{len(raw)} review-desk row(s) still render the raw id: {raw}"
+    )
+    assert "shortNoteId(item.id)} ${item.title" in ts, (
+        "the queue row still concatenates the full id into its title"
+    )
+
+
+def test_the_scope_row_carries_its_phase_id() -> None:
+    """The overview's scope pane was the one surface with no IDs on it —
+    24 rows reading `MVP`, `Downstream pilot`, with nothing tying them to
+    the PHASE-nnn every other surface names them by (Edwin, 2026-08-02).
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(r"function buildScopeRow\((.*?)\n\}", ts, re.DOTALL)
+    assert fn, "buildScopeRow not found"
+    body = fn.group(1)
+    assert "shortNoteId(id)" in body, "the scope row does not render its ID"
+    assert "ov-typed" in body, (
+        "the scope row's ID does not use the shared type-coloured grammar"
+    )
+    # …and both call sites pass one.
+    assert ts.count("`~overview/${p.key}`, overviewScope === p.key") == 2
+    for call in re.findall(r"buildScopeRow\((?:.|\n)*?\)\);", ts):
+        if "~overview/${p.key}" in call:
+            assert "p.key,\n" in call or "p.key," in call.split("overviewScope")[1], (
+                f"a scope row is built without its phase id: {call[:90]}"
+            )
+
+
+def test_the_scope_name_is_not_capped_below_the_row() -> None:
+    """`flex: none; max-width: 55%` capped every name at 224px in a 424px
+    row — a cap that exists to leave room for the progress bar, applied
+    also to completed rows that carry no bar. 13 of 24 rows truncated
+    with ~200px unused.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.scope-name \{(.*?)\}", css, re.DOTALL)
+    assert rule, ".scope-name rule not found"
+    assert "max-width: 55%" not in rule.group(1), (
+        "the scope name is capped again — it must take the row's slack"
+    )
+    assert "flex: 1 1 auto" in rule.group(1), "the scope name does not grow"
+    bar = re.search(r"\.scope-bar \{(.*?)\}", css, re.DOTALL)
+    assert bar and "flex: 0 0" in bar.group(1), (
+        "the progress bar grows again, which starves the name it shares a row with"
+    )

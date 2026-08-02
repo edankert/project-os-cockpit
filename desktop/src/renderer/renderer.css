@@ -1009,7 +1009,18 @@ body {
   gap: 6px;
 }
 .nav-rollup-label {
-  font-size: 11.5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* The item count, quieter than the band's name — the name is a heading,
+   the count is a footnote to it. */
+.nav-rollup-sub {
+  margin-left: auto;
+  font-size: 11px;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -3210,12 +3221,19 @@ li[data-rel].agent-touched {
   flex: none;
 }
 .scope-row.current { background: var(--accent-soft); color: var(--accent-link); font-weight: 600; }
+/* The name takes the slack. It was `flex: none; max-width: 55%` — a cap
+   that exists to leave room for the progress bar, applied to every row
+   including the completed ones that carry no bar. Measured: a 437px pane,
+   a 424px row, the name clamped to 224px, and 13 of 24 rows truncated
+   with ~200px unused (Edwin, 2026-08-02). */
 .scope-name {
-  flex: none; max-width: 55%;
+  flex: 1 1 auto; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.scope-id { flex: none; }
+/* The bar gets a fixed share instead, so it cannot starve the name. */
 .scope-bar {
-  flex: 1; height: 4px; border-radius: 2px;
+  flex: 0 0 64px; height: 4px; border-radius: 2px;
   background: var(--border); overflow: hidden;
 }
 .scope-bar > span { display: block; height: 100%; background: var(--accent-link); }

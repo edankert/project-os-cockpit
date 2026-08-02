@@ -48,6 +48,21 @@ All three now go through one `buildNavRow`, and the subtitle is gone from the le
 
 `navItemCompact` (the Library's file tree) is deliberately unchanged — a filename with a file icon, already one line, and not a lifecycle row.
 
+## Second follow-up — [[ISS-0086]], and the overview
+
+The roll-up was the wrong shape. `16 finished phases · 54 features` behind one closed line meant the features navigator's whole top level was **two rows**, and which phases exist left the page — as did the task status vocabulary and the issue severity ladder.
+
+**Quantity lives in a group's body; structure lives in its head.** Collapsing bodies is right. Collapsing heads deletes the taxonomy.
+
+The band is now `Completed · N` — the overview's exact wording since [[FEAT-0043]] — **open by default and persisted per mode**, with every finished group named beneath it as a one-line closed head.
+
+The overview was corrected in the other direction at the same time:
+
+- it now carries **phase IDs** (`PHASE-001 · MVP`), which it never had — the only surface in the cockpit that did not name its notes
+- `.scope-name`'s `max-width: 55%` capped every name at **224px in a 424px row**, truncating 13 of 24 rows with ~200px unused. Name width is now 312px and truncation is down to genuine overflow.
+
+And [[ISS-0084]]'s ID shortening reached the **seven** remaining call sites it had missed, including the review desk, which still rendered `CHG-20260802-Completed-Work-Collapses` in full.
+
 ## Restart required
 
 Mode 3 is a built bundle. The change is live after the desktop app restarts.

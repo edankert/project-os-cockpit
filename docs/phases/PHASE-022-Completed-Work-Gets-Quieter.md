@@ -16,6 +16,7 @@ requirements: []
 issues:
   - "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"
   - "[[ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers]]"
+  - "[[ISS-0086-The-Rollup-Hid-The-Taxonomy]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -163,3 +164,16 @@ Measured before: `nav-item-line` up to 66px with 50 subtitles, `nav-item-nested`
 The replacement asserts over **every renderer the picker can return**, and fails if a fifth appears without going through the shared builder.
 
 **And the guard itself was vacuous on first writing** — its body regex closed on `\n}` at column 0, but `cockpit.js` is one IIFE whose functions close at `\n  }`, so the "body" ran past the end and swallowed the helper it was looking for. Mode 1's mutation passed. Caught by mutation testing, not by reading. That is now three times in this phase that a guard needed to be *run against a break* before it could be believed.
+
+
+## Closed a fourth time 2026-08-02 — [[ISS-0086]]
+
+The roll-up [[TASK-0273]] built was the wrong shape, and Edwin named the reason: *"I don't think the top level phases, task states, issue severities are shown."* They were not — the features navigator's entire top level had become two rows.
+
+**The distinction I had missed: quantity lives in a group's body, structure lives in its head.** Collapsing bodies is right; collapsing heads deletes the taxonomy. A phase list is not a backlog.
+
+The overview's scope pane has had this right since [[FEAT-0043]] — `Completed · 22` as a *heading*, with every phase still named beneath it. The navigator now uses that band, that wording, and that default (open, persisted per mode). Both panes now say `Completed · N` for the same idea.
+
+And the alignment ran in both directions: the overview gained the ID column it never had, and lost a `max-width: 55%` that was truncating 13 of 24 rows with 200px of the pane unused.
+
+**Four reopenings in one day** is worth recording as a smell, not a success. Each was a real correction — but three of the four were things a careful look at the running app would have caught before Edwin did, and the fourth ([[ISS-0083]]) had been broken for months. The standing-phase mechanism worked exactly as CLAUDE.md describes; what it could not do is make me check the surface I had just changed.

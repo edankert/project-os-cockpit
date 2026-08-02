@@ -2932,7 +2932,8 @@ async function fillVerificationPanel(
     const id = document.createElement('span');
     id.className = 'ov-waiting-id mono ov-typed';
     id.dataset.type = 'test';
-    id.textContent = test.id;
+    id.textContent = shortNoteId(test.id);
+    id.title = test.id;
     const title = document.createElement('span');
     title.className = 'ov-waiting-title';
     title.textContent = test.title;
@@ -3644,7 +3645,8 @@ function buildDesignRationale(d: DesignRecord): HTMLElement | null {
 
     const id = document.createElement('span');
     id.className = 'design-rationale-id';
-    id.textContent = r.id;
+    id.textContent = shortNoteId(r.id);
+    id.title = r.id;
     row.append(id);
 
     const text = document.createElement('div');
@@ -4222,7 +4224,11 @@ function buildTestsRegister(tests: ReviewRegisterTest[]): HTMLElement | null {
     const id = document.createElement('span');
     id.className = 'mono ov-typed';
     id.dataset.type = 'test';
-    id.textContent = t.id;
+    // Display handle only (ISS-0084). The review desk was the one
+    // surface the shortening had not reached — the third time in this
+    // phase a change landed in some renderers and not all of them.
+    id.textContent = shortNoteId(t.id);
+    id.title = t.id;
     const title = document.createElement('span');
     title.className = 'queue-title';
     title.textContent = t.title;
@@ -4263,7 +4269,11 @@ function buildReviewedRegister(
       const id = document.createElement('span');
       id.className = 'mono ov-typed';
       id.dataset.type = item.type;
-      id.textContent = item.id;
+      // Display handle only (ISS-0084). The review desk was the one
+      // surface the shortening had not reached — the third time in this
+      // phase a change landed in some renderers and not all of them.
+      id.textContent = shortNoteId(item.id);
+      id.title = item.id;
       const title = document.createElement('span');
       title.className = 'queue-title';
       title.textContent = item.title;
@@ -4318,8 +4328,9 @@ function buildQueueRow(item: ReviewQueueItem, groupKey: string): HTMLElement {
   const title = document.createElement('span');
   title.className = 'queue-title';
   title.textContent = item.id
-    ? `${item.id} ${item.title ?? ''}`.trim()
+    ? `${shortNoteId(item.id)} ${item.title ?? ''}`.trim()
     : (item.title || '(untitled)');
+  if (item.id) title.title = item.id;
   row.appendChild(title);
 
   const age = document.createElement('span');
@@ -4441,7 +4452,11 @@ function buildProposalView(detail: ReviewDetail): HTMLElement {
     const id = document.createElement('span');
     id.className = 'mono ov-typed';
     if (item.type) id.dataset.type = item.type;
-    id.textContent = item.id;
+    // Display handle only (ISS-0084). The review desk was the one
+    // surface the shortening had not reached — the third time in this
+    // phase a change landed in some renderers and not all of them.
+    id.textContent = shortNoteId(item.id);
+    id.title = item.id;
     const title = document.createElement('span');
     title.className = 'review-set-title';
     title.textContent = item.title || '';
@@ -5399,7 +5414,8 @@ function buildFocusChip(slot: FocusItem): HTMLElement {
   }
   const id = document.createElement('span');
   id.className = 'ov-focus-id mono ov-typed';
-  id.textContent = slot.id;
+  id.textContent = shortNoteId(slot.id);
+  id.title = slot.id;
   if (slot.type) id.dataset.type = slot.type;
   chip.appendChild(id);
   if (slot.title) {
@@ -6659,7 +6675,11 @@ function buildCommitRow(commit: CommitRow): HTMLLIElement {
     const id = document.createElement('span');
     id.className = 'mono ov-typed';
     id.dataset.type = item.type;
-    id.textContent = item.id;
+    // Display handle only (ISS-0084). The review desk was the one
+    // surface the shortening had not reached — the third time in this
+    // phase a change landed in some renderers and not all of them.
+    id.textContent = shortNoteId(item.id);
+    id.title = item.id;
     chip.appendChild(id);
     if (item.done) {
       const tick = document.createElement('span');
@@ -7416,7 +7436,30 @@ function plural(n: number, pair: [string, string]): string {
   return `${n} ${n === 1 ? pair[0] : pair[1]}`;
 }
 
-/** Everything finished, behind one line (TASK-0273). */
+/** Whether the `Completed · N` band is open, per nav mode.
+ *
+ *  Persisted, and defaulting to OPEN — both to match the overview's scope
+ *  pane, which has worked this way since FEAT-0043 and is the surface
+ *  Edwin actually reads.
+ *
+ *  The first version was a bare `<details>`: closed by default and with
+ *  no persistence, so it re-closed on every navigation. That hid *which
+ *  phases exist* (ISS-0086), and a phase list is a taxonomy rather than a
+ *  backlog. Collapsing a group's BODY hides items nobody is working on;
+ *  collapsing its HEAD hides the shape of the project.
+ *
+ *  Quantity lives in the bodies, structure lives in the heads. The
+ *  roll-up applied one rule to both.
+ */
+function navCompletedBandOpen(mode: NavMode): boolean {
+  try {
+    const v = localStorage.getItem(`cockpit:nav-completed-open:${mode}`);
+    return v === null ? true : v === '1';
+  } catch { return true; }
+}
+
+/** Everything finished, under a heading rather than behind a door
+ *  (TASK-0273, corrected by ISS-0086). */
 function renderSettledRollup(
   groups: NavGroupData[], mode: NavMode,
 ): HTMLElement | null {
@@ -7427,6 +7470,7 @@ function renderSettledRollup(
 
   const details = document.createElement('details');
   details.className = 'nav-group nav-rollup';
+  details.open = navCompletedBandOpen(mode);
   const summary = document.createElement('summary');
   summary.className = 'nav-group-header nav-rollup-header';
   const chevron = document.createElement('span');
@@ -7435,14 +7479,24 @@ function renderSettledRollup(
   summary.appendChild(chevron);
   const label = document.createElement('span');
   label.className = 'nav-rollup-label';
-  // The counts are never optional. A roll-up that does not say how much
-  // it rolled up is indistinguishable from an empty pane — the exact
-  // failure FEAT-0056 exists to have fixed.
-  const g = groups.length;
-  label.textContent =
-    `${g} finished ${g === 1 ? nouns.group[0] : nouns.group[1]} · ${plural(items, nouns.item)}`;
-  summary.appendChild(label);
+  // `Completed · N` — the overview's exact wording, so one idea does not
+  // wear two names across two panes. The count is never optional: a band
+  // that does not say how much is behind it is indistinguishable from an
+  // empty pane, which is the failure FEAT-0056 exists to have fixed.
+  label.textContent = `Completed · ${groups.length}`;
+  const sub = document.createElement('span');
+  sub.className = 'nav-rollup-sub';
+  sub.textContent = plural(items, nouns.item);
+  summary.append(label, sub);
   details.appendChild(summary);
+
+  details.addEventListener('toggle', () => {
+    try {
+      localStorage.setItem(
+        `cockpit:nav-completed-open:${mode}`, details.open ? '1' : '0',
+      );
+    } catch { /* ignore */ }
+  });
 
   const body = document.createElement('div');
   body.className = 'nav-rollup-body';
@@ -10823,14 +10877,28 @@ function buildFleetRow(r: FleetRow): HTMLElement {
 
 function buildScopeRow(
   label: string, target: string, current: boolean,
-  pct: number | null, doneCount?: number,
+  pct: number | null, doneCount?: number, id?: string | null,
 ): HTMLElement {
   const row = document.createElement('button');
   row.type = 'button';
   row.className = 'scope-row' + (current ? ' current' : '');
+  // The scope pane was the one surface with no IDs on it — 24 phase rows
+  // reading `MVP`, `Downstream pilot`, and nothing to tie them to the
+  // PHASE-nnn everything else names them by (Edwin, 2026-08-02). Same
+  // `nav-id mono ov-typed` grammar as every other row, so the type colour
+  // and the ISS-0084 shortening come along for free.
+  if (id) {
+    const idEl = document.createElement('span');
+    idEl.className = 'nav-id mono ov-typed scope-id';
+    idEl.dataset.type = 'phase';
+    idEl.textContent = shortNoteId(id);
+    idEl.title = id;
+    row.appendChild(idEl);
+  }
   const name = document.createElement('span');
   name.className = 'scope-name';
   name.textContent = label;
+  name.title = label;
   row.appendChild(name);
   // Completed phases carry a tick + item count instead of a 100% bar (dossier
   // plate C, pin 9): a full progress bar on five finished phases is exactly the
@@ -10888,6 +10956,7 @@ function renderOverviewScopePane(): void {
       const pct = total > 0 ? (p.tasks.done / total) * 100 : 0;
       wrap.appendChild(buildScopeRow(
         p.title, `~overview/${p.key}`, overviewScope === p.key, pct,
+        undefined, p.key,
       ));
     }
   }
@@ -10909,6 +10978,7 @@ function renderOverviewScopePane(): void {
       const items = p.tasks.done + p.tasks.in_progress + p.tasks.backlog;
       body.appendChild(buildScopeRow(
         p.title, `~overview/${p.key}`, overviewScope === p.key, null, items,
+        p.key,
       ));
     }
     head.addEventListener('click', () => {

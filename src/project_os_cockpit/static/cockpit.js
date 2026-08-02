@@ -1598,16 +1598,28 @@
       var nouns = ROLLUP_NOUNS[mode] || ROLLUP_NOUNS._default;
       // The counts are never optional: a roll-up that does not say how
       // much it rolled up is indistinguishable from an empty pane.
+      // `Completed · N` — the overview's exact wording (its scope pane has
+      // said this since FEAT-0043), so one idea does not wear two names
+      // across two panes. Defaults OPEN: collapsing a group's BODY hides
+      // items nobody is working on, but collapsing its HEAD hides which
+      // phases exist at all, and that is a taxonomy rather than a backlog
+      // (ISS-0086). `collapsibleGroup` persists the divergence from this
+      // default, so closing it sticks.
       frag.appendChild(collapsibleGroup({
         key: "nav:" + mode + ":__settled",
         sectionClass: "nav-group nav-rollup",
         headerClass: "nav-group-header nav-rollup-header",
-        headerChildren: [el("span", {
-          class: "nav-rollup-label",
-          text: settledGroups.length + " finished "
-              + plural(settledGroups.length, nouns.group) + " \u00b7 "
-              + nItems + " " + plural(nItems, nouns.item),
-        })],
+        defaultOpen: true,
+        headerChildren: [
+          el("span", {
+            class: "nav-rollup-label",
+            text: "Completed \u00b7 " + settledGroups.length,
+          }),
+          el("span", {
+            class: "nav-rollup-sub",
+            text: nItems + " " + plural(nItems, nouns.item),
+          }),
+        ],
         bodyChildren: [rollupFrag],
       }));
       anyVisible = true;
