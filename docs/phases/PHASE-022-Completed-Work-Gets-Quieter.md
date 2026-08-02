@@ -19,6 +19,7 @@ issues:
   - "[[ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers]]"
   - "[[ISS-0086-The-Rollup-Hid-The-Taxonomy]]"
   - "[[ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy]]"
+  - "[[ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -208,3 +209,16 @@ Edwin specified all four navigators. The three he described view-by-view turned 
 **The review desk was not missing a completed section — `Reviewed · 82` already was one.** What the data showed is that **10 of those 82 were `changes-requested`**: a reviewer asked for work and nothing recorded it happening. That is a terminal-looking label on an open obligation, which is the precise error this whole phase exists to have removed — and it was still live on the one surface whose job is to track obligations.
 
 Six closings in a day. The first five were corrections to work I had just shipped; this one was a specification Edwin wrote out in full, and it is the only one that produced a rule rather than a fix.
+
+
+## Closed a seventh time 2026-08-02 — [[ISS-0088]]
+
+Eight itemised corrections from Edwin, all of them shortfalls in [[FEAT-0058]] rather than disagreements with it. The single sentence that covers them:
+
+> **[[FEAT-0058]] gave the navigators the right pane's behaviour and none of its look.**
+
+Settled groups shut, counts in the heads, dividers where they belong — all correct, and nothing on screen read as a card, because a card is a border, a radius and a surface as much as it is an open/closed state.
+
+The one finding worth keeping beyond this phase is the **pill inconsistency**. [[TASK-0272]] suppressed a group's own status chip when the head summary already ended in the same word, so PHASE-001 had no pill and PHASE-002 did. The rule was defensible; the result looked random. **A reader can only see the output, never the rule** — so a rule whose output looks arbitrary is a bad rule however well it reads in the source.
+
+**The review desk is deliberately left alone**, with the reasoning recorded in [[ISS-0088]]: its sections are kinds of obligation rather than collections, and a card invites collapsing something you always want to see.

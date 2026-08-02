@@ -750,6 +750,43 @@ details:not([open]) > summary .group-chevron {
 }
 .ctx-type-label { display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%; }
 
+/* Nav groups ARE cards (ISS-0088) — same frame as the context pane's. */
+.nav-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated, var(--surface));
+  padding: 4px 6px;
+  margin-bottom: 6px;
+}
+/* The completed band is a card containing cards: it keeps the heading and
+   lets its children carry the frames. */
+.nav-group.nav-rollup {
+  border: 0;
+  background: none;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  margin-top: 10px;
+  padding-top: 4px;
+}
+/* Nested rows lose their rules: indentation already says they belong to
+   the row above. */
+.nav-item-nested { border-bottom: 0; }
+.nav-item-children-list { padding-left: 14px; }
+.nav-children-toggle {
+  flex: none; width: 12px; height: 12px; padding: 0; border: 0;
+  background: none; cursor: pointer; position: relative;
+}
+.nav-children-toggle::before {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  color: var(--text-faint);
+}
+.nav-children-toggle.is-open::before { transform: rotate(90deg); }
+
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-group.nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
 .nav-rollup-header { padding: 6px 12px; }

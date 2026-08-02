@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 87
+  ISS: 88
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0088:
+      file: "docs/issues/ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour.md"
+      title: "The completed sections behaved like the right pane's cards but did not look like them; heads carried an icon, an uncoloured id and an inconsistent pill"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "FEAT-0058 gave the navigators the right pane's BEHAVIOUR and none of its LOOK. Keep beyond this phase: TASK-0272 suppressed a group's status chip when the summary already ended in that word, so PHASE-001 had no pill and PHASE-002 did — defensible rule, arbitrary-looking output. A reader only ever sees the output. Review desk deliberately left alone: its sections are kinds of obligation, not collections, and a card invites collapsing the thing you always want to see."
     ISS-0087:
       file: "docs/issues/ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy.md"
       title: "The navigator's group headers were twice the height of the context cards they were aligned to"

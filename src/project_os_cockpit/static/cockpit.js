@@ -1510,6 +1510,9 @@
     features: { group: ["phase", "phases"], item: ["feature", "features"] },
     tasks:    { group: ["bucket", "buckets"], item: ["task", "tasks"] },
     issues:   { group: ["bucket", "buckets"], item: ["issue", "issues"] },
+    design:   { group: ["group", "groups"], item: ["design", "designs"] },
+    library:  { group: ["group", "groups"], item: ["note", "notes"] },
+    review:   { group: ["verdict", "verdicts"], item: ["note", "notes"] },
     _default: { group: ["group", "groups"], item: ["item", "items"] },
   };
   function plural(n, pair) { return n === 1 ? pair[0] : pair[1]; }
@@ -1566,7 +1569,13 @@
             title: "Open " + label,
           })
         : el("span", { text: label });
-      var headerChildren = [groupIcon(mode, g), titleNode];
+      // ISS-0088: the head uses the ROW's grammar — a type-coloured ID and
+      // a name — not an icon plus one flat string.
+      var split = /^([A-Z]+-\d+)\s*\u00b7\s*(.*)$/.exec(label);
+      var headerChildren = split
+        ? [el("span", { class: "nav-id mono ov-typed", "data-type": "phase", text: split[1] }),
+           el("span", { class: "group-header-name", text: split[2], title: split[2] })]
+        : [titleNode];
       headerChildren.push(el("span", { class: "nav-group-spacer" }));
       // The head carries the count, and the status when every item shares
       // one (TASK-0272) — the record card's `7 · all accepted` move.
@@ -1581,9 +1590,9 @@
       // A group's OWN status is a different fact from its items' — a done
       // phase can hold an open issue — so it survives unless it would
       // restate the summary.
-      if (g.status && !endsWithStatus(gSummary, g.status)) {
-        headerChildren.push(statusChip(g.status));
-      }
+      // Always shown: a group's own status is a different fact from its
+      // items', and suppressing it conditionally read as arbitrary.
+      if (g.status) headerChildren.push(statusChip(g.status));
 
       var renderItem = pickItemRenderer(g.item_layout);
       var list = el("ul", { class: "nav-items" });

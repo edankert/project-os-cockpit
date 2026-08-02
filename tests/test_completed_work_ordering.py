@@ -1100,3 +1100,98 @@ def test_the_review_desk_puts_completed_last() -> None:
     assert order == sorted(order), (
         "the review desk's completed band is no longer last"
     )
+
+
+# ---------------------------------------------------------------------------
+# ISS-0088 — the card is a style, not just a behaviour
+# ---------------------------------------------------------------------------
+
+
+def test_no_record_card_title_says_here() -> None:
+    """Four scoped cards were built as `Verification here`, `Decisions
+    here`, `In flight here`, `Attention here`. The pane already says what
+    it is scoped to."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    stray = re.findall(r"'([A-Z][\w ]*) here'", ts)
+    assert not stray, f"card titles still say 'here': {stray}"
+
+
+def test_a_group_head_uses_the_row_grammar() -> None:
+    """ISS-0088 — the head carried an icon and one flat label string, so
+    the ID inside it could not be type-coloured. The icon was a third
+    encoding of a fact the coloured ID already carries."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(r"function renderNavGroup\((?:.|\n)*?\n\}", ts)
+    assert fn, "renderNavGroup not found"
+    body = fn.group(0)
+    assert "groupIcon(mode, group)" not in body, "the group head paints an icon again"
+    assert "ov-typed" in body, "the group head's id is not type-coloured"
+
+
+def test_a_groups_own_status_is_always_shown() -> None:
+    """It was suppressed when the item summary happened to end in the same
+    word, so PHASE-001 had no pill and PHASE-002 did. The rule was
+    defensible and the result looked arbitrary — a reader cannot see the
+    rule, only the inconsistency."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "if (group.status) appendIf(summary, statusChip(group.status));" in ts, (
+        "the group's own status chip is conditional again"
+    )
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    assert "if (g.status) headerChildren.push(statusChip(g.status));" in js, (
+        "mode 1's group status chip is conditional again"
+    )
+
+
+def test_the_children_toggle_sits_on_the_row() -> None:
+    """It was a `<details><summary>2 requirements · plan` beneath the
+    feature — a second row describing the first. Its presence is the
+    signal; the label was spending a whole row on it."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    fn = re.search(r"function navItem\(item: NavItem\): HTMLLIElement \{(?:.|\n)*?\n\}", ts)
+    assert fn, "navItem not found"
+    body = fn.group(0)
+    assert "line.insertBefore(btn" in body, (
+        "the children toggle is no longer inserted into the row's own line"
+    )
+    assert "renderItemChildren" not in body, (
+        "navItem builds the old second-row disclosure again"
+    )
+
+
+def test_every_nav_mode_has_a_rollup_noun() -> None:
+    """`Completed · 1  1 item` on the design view — `ROLLUP_NOUNS` had no
+    entry, so it fell back to "item". Saying what is behind the line is
+    the whole value of collapsing to one."""
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    modes = set(re.findall(r"'(\w+)'", re.search(r"const NAV_MODES[^=]*=\s*\[(.*?)\]", ts, re.DOTALL).group(1)))
+    table = re.search(r"const ROLLUP_NOUNS[^=]*= \{(.*?)\n\};", ts, re.DOTALL).group(1)
+    covered = set(re.findall(r"^\s*(\w+):\s*\{", table, re.M))
+    missing = {m for m in modes if m not in covered} - {"overview", "review"}
+    assert not missing, (
+        f"these nav modes would render `N items` in their completed band: {missing}"
+    )
+
+
+def test_nav_groups_carry_the_card_frame() -> None:
+    """FEAT-0058 gave the navigators the right pane's BEHAVIOUR and none
+    of its look, so nothing read as a card."""
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        # ALL matching rules, not the first: `cockpit.css` carries an older
+        # `.nav-group { border-bottom }` further up, and a guard that read
+        # only the first block would report the frame missing while it sat
+        # thirty lines below.
+        blocks = re.findall(r"\.nav-group \{(.*?)\}", css, re.DOTALL)
+        assert blocks, f"{path.name}: no .nav-group rule at all"
+        assert any("border-radius: 6px" in b for b in blocks), (
+            f"{path.name}: the card frame is gone"
+        )
+        band = re.search(r"\.nav-group\.nav-rollup \{(.*?)\}", css, re.DOTALL)
+        assert band and "border: 0" in band.group(1), (
+            f"{path.name}: the completed band nests a second identical frame "
+            "around the cards it contains"
+        )

@@ -877,11 +877,52 @@ body {
 .ws-nav-content .nav-children-wrap[open] > .nav-children-summary::before {
   transform: rotate(90deg);
 }
+/* No rule down the side of a nested list (ISS-0088). Indentation already
+   says "these belong to the row above"; a border says it a second time
+   and turns three levels into a ladder. */
 .ws-nav-content .nav-items-nested {
   padding-left: 8px;
-  border-left: 1px solid var(--border);
   margin-left: 4px;
 }
+.ws-nav-content .nav-item-children-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+}
+/* The expand affordance, on the row's own line. Its PRESENCE is the
+   signal that a feature has requirements or a plan — which is what the
+   old `<summary>2 requirements · plan` was spending a whole row saying. */
+.nav-children-toggle {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+.nav-children-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  color: var(--text-faint);
+  transition: transform 100ms ease;
+}
+.nav-children-toggle.is-open::before { transform: rotate(90deg); }
+.nav-children-toggle:hover::before { color: var(--text-muted); }
+@media (prefers-reduced-motion: reduce) {
+  .nav-children-toggle::before { transition: none; }
+}
+/* A row without children keeps the toggle's width, so ids line up down
+   the column instead of stepping in and out by twelve pixels. */
+.nav-item-line .nav-line > .nav-id:first-child { margin-left: 18px; }
+.nav-item-line .nav-line > .nav-children-toggle + .nav-id { margin-left: 0; }
 .ws-nav-content .nav-item .nav-title {
   flex: 1;
   min-width: 0;
@@ -1026,6 +1067,32 @@ body {
 .review-completed { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
 .review-completed .ctx-card { margin: 0; padding: 0; }
 .review-completed .ctx-card-head { text-transform: uppercase; }
+
+/* Nav groups ARE cards (ISS-0088). FEAT-0058 gave them the right pane's
+   BEHAVIOUR — shut when settled, a count in the head — and none of its
+   look, so nothing read as a card. Same border, radius, surface and
+   padding as `.ctx-card`, which is the object being copied. */
+.ws-nav-content .nav-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  padding: 4px 6px;
+  margin-bottom: 6px;
+}
+/* …except the completed band, which is a card CONTAINING cards. Nesting
+   two identical borders reads as a mistake, so the outer one keeps only
+   the heading and lets its children carry the frames. */
+.ws-nav-content .nav-group.nav-rollup {
+  border: 0;
+  background: none;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  margin-top: 10px;
+  padding-top: 4px;
+}
+.ws-nav-content .nav-rollup-body { display: flex; flex-direction: column; gap: 0; }
+.ws-nav-content .nav-rollup .nav-group { margin-bottom: 6px; }
 
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
@@ -3254,6 +3321,17 @@ li[data-rel].agent-touched {
    including the completed ones that carry no bar. Measured: a 437px pane,
    a 424px row, the name clamped to 224px, and 13 of 24 rows truncated
    with ~200px unused (Edwin, 2026-08-02). */
+/* The overview's completed band takes the same card look (ISS-0088), so
+   the three surfaces stop describing one idea three ways. */
+.scope-band {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  padding: 4px 6px;
+  margin-top: 8px;
+}
+.scope-band-body { padding-top: 2px; }
+
 .scope-name {
   flex: 1 1 auto; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

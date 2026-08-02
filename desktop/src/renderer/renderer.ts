@@ -7395,9 +7395,39 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
 
 function navItem(item: NavItem): HTMLLIElement {
   const li = buildNavRow(item);
-  if (item.children && item.children.length) {
-    const wrap = renderItemChildren(item);
-    if (wrap) li.appendChild(wrap);
+  // ISS-0088: the expand affordance goes ON the row's line, not on a line
+  // of its own. It used to be a `<details><summary>2 requirements · plan`
+  // beneath the feature — a second row describing the first.
+  //
+  // The button's PRESENCE is the signal that a feature has requirements
+  // or a plan, which is what the label was spending a whole row saying.
+  const kids = openFirst(item.children || []);
+  if (kids.length) {
+    const list = document.createElement('ul');
+    list.className = 'nav-item-children-list';
+    list.hidden = true;
+    for (const child of kids) list.appendChild(navItemNested(child));
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-children-toggle';
+    btn.setAttribute('aria-expanded', 'false');
+    const plans = kids.filter((k) => k.type === 'plan').length;
+    const rest = kids.length - plans;
+    const parts: string[] = [];
+    if (rest) parts.push(`${rest} requirement${rest === 1 ? '' : 's'}`);
+    if (plans) parts.push(plans === 1 ? 'plan' : `${plans} plans`);
+    btn.title = parts.join(' · ');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      list.hidden = !list.hidden;
+      btn.classList.toggle('is-open', !list.hidden);
+      btn.setAttribute('aria-expanded', list.hidden ? 'false' : 'true');
+    });
+    const line = li.querySelector('.nav-line');
+    if (line) line.insertBefore(btn, line.firstChild);
+    li.appendChild(list);
   }
   return li;
 }
@@ -7509,6 +7539,11 @@ const ROLLUP_NOUNS: Record<string, { group: [string, string]; item: [string, str
   features: { group: ['phase', 'phases'], item: ['feature', 'features'] },
   tasks:    { group: ['bucket', 'buckets'], item: ['task', 'tasks'] },
   issues:   { group: ['bucket', 'buckets'], item: ['issue', 'issues'] },
+  design:   { group: ['group', 'groups'], item: ['design', 'designs'] },
+  library:  { group: ['group', 'groups'], item: ['note', 'notes'] },
+  review:   { group: ['verdict', 'verdicts'], item: ['note', 'notes'] },
+  active:   { group: ['group', 'groups'], item: ['item', 'items'] },
+  recent:   { group: ['group', 'groups'], item: ['note', 'notes'] },
 };
 
 function plural(n: number, pair: [string, string]): string {
@@ -7650,10 +7685,29 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   summary.appendChild(chevron);
   const inner = document.createElement('span');
   inner.className = 'group-header-inner';
-  appendIf(inner, groupIcon(mode, group));
-  const labelSpan = document.createElement('span');
-  labelSpan.textContent = group.label || group.key || '';
-  inner.appendChild(labelSpan);
+  // ISS-0088: the head uses the ROW's grammar — a type-coloured ID and a
+  // name — rather than an icon and one flat string. The icon was a third
+  // encoding of a fact the ID already carries in colour, and the ID
+  // itself was buried inside the label so it could not be coloured at all.
+  const rawLabel = group.label || group.key || '';
+  const split = /^([A-Z]+-\d+)\s*·\s*(.*)$/.exec(rawLabel);
+  if (split) {
+    const idSpan = document.createElement('span');
+    idSpan.className = 'nav-id mono ov-typed';
+    idSpan.dataset.type = 'phase';
+    idSpan.textContent = split[1];
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'group-header-name';
+    nameSpan.textContent = split[2];
+    nameSpan.title = split[2];
+    inner.append(idSpan, nameSpan);
+  } else {
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'group-header-name';
+    labelSpan.textContent = rawLabel;
+    labelSpan.title = rawLabel;
+    inner.appendChild(labelSpan);
+  }
   summary.appendChild(inner);
   const sp = document.createElement('span');
   sp.className = 'nav-group-spacer';
@@ -7674,12 +7728,16 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
     cnt.textContent = summaryText;
     summary.appendChild(cnt);
   }
-  // The group's OWN status (a phase's `active`/`done`) is a different fact
-  // from its items' — a done phase can hold an open issue — so it is still
-  // shown, and only suppressed when it would restate the item summary.
-  if (group.status && !summaryText.endsWith(`· ${group.status}`)) {
-    appendIf(summary, statusChip(group.status));
-  }
+  // The group's OWN status is a different fact from its items' — a done
+  // phase can hold an open issue — so it is ALWAYS shown.
+  //
+  // It used to be suppressed when the item summary already ended in the
+  // same word. The rule was defensible and the result looked arbitrary:
+  // PHASE-001 had no pill (summary `2 · done`, status `done`), PHASE-002
+  // did (summary `2 · 2 done`, mixed items). Edwin read that as random,
+  // and he was right to — a reader cannot see the rule, only the
+  // inconsistency it produces.
+  if (group.status) appendIf(summary, statusChip(group.status));
   details.appendChild(summary);
 
   const body = document.createElement('div');
@@ -11777,7 +11835,7 @@ function buildScopedTransientCards(data: StatsPayload): HTMLElement[] {
   const out: HTMLElement[] = [];
   const inFlight = children.filter((c) => isActiveStatus(c.status));
   if (inFlight.length > 0) {
-    const { card, body } = buildRecordCard('In flight here');
+    const { card, body } = buildRecordCard('In flight');
     for (const item of inFlight.slice(0, 5)) {
       body.appendChild(buildRecordRow(
         item.id || '', item.title, item.rel, item.type, item.status,
@@ -11791,7 +11849,7 @@ function buildScopedTransientCards(data: StatsPayload): HTMLElement[] {
       || (c.type === 'issue' && s === 'open');
   });
   if (attention.length > 0) {
-    const { card, body } = buildRecordCard('Attention here');
+    const { card, body } = buildRecordCard('Attention');
     for (const item of attention.slice(0, 5)) {
       body.appendChild(buildRecordRow(
         item.id || '', item.title, item.rel, item.type, item.status,
@@ -11856,7 +11914,7 @@ async function fillRecordColumn(
       (a) => ['accepted', 'approved'].includes((a.status || '').toLowerCase()),
     ).length;
     const { card, body } = buildRecordCard(
-      scoped ? 'Decisions here' : 'Decisions',
+      'Decisions',
       accepted === scopedAdrs.length ? `${scopedAdrs.length} · all accepted`
         : `${accepted}/${scopedAdrs.length} accepted`,
     );
@@ -11880,7 +11938,7 @@ async function fillRecordColumn(
       (t) => (t.status || '').toLowerCase() === 'passing',
     ).length;
     const { card, body } = buildRecordCard(
-      scoped ? 'Verification here' : 'Verification',
+      'Verification',
       `${passing}/${scopedTests.length}`,
     );
     const mix: Record<string, number> = {};
