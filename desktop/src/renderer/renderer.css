@@ -893,6 +893,41 @@ body {
   background: var(--accent-soft);
   border-left: 2px solid var(--accent-link);
 }
+
+/* The fold's own row (TASK-0270). NOT scoped to `.ws-nav-content`: the
+   context pane folds too, and `#right-pane-content` is outside that
+   scope — round-2 review found mode 3's context-pane row rendering as an
+   unstyled UA button while mode 1's (unscoped from the start) was fine.
+   Quiet, but never invisible: a fold that
+   hides the fact that it hid something is indistinguishable from having
+   nothing there, which is exactly how the old hide-completed switch
+   emptied three views without ever looking broken. */
+.nav-item.nav-more {
+  padding: 0;
+  background: none;
+  border-left: none;
+}
+.nav-more-btn {
+  display: block;
+  width: 100%;
+  padding: 4px 8px 4px 22px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.nav-more-btn:hover {
+  color: var(--text-muted);
+  background: var(--bg-hover, var(--accent-soft));
+}
+.nav-more-btn:focus-visible {
+  outline: 2px solid var(--accent-link);
+  outline-offset: -2px;
+}
 /* ---- Stage ---- */
 
 .stage {

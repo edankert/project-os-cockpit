@@ -4,7 +4,7 @@ id: FEAT-0051
 aliases: ["FEAT-0051"]
 title: "Validator errors are session work while a session is running, and issues once it ends"
 status: done
-phase: "[[PHASE-016-Errors-Become-Work]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

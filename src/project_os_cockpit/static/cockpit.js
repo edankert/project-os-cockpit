@@ -39,7 +39,8 @@
   ];
   var DEFAULT_MODE = "features";
 
-  // Statuses that "Hide completed" filters out. Mirrors the Done-positive
+  // Terminal statuses — what the collapse control folds at (FEAT-0056;
+  // nothing filters on them any more). Mirrors the Done-positive
   // and Done-negative palette buckets — anything terminal disappears.
   //
   // Canonical membership lives in src/project_os_cockpit/statuses.py
@@ -249,10 +250,121 @@
     saveCollapsed();
   }
 
-  function isHidden(status) {
-    if (!hideCompleted) return false;
-    if (!status) return false;
-    return !!COMPLETED_STATUSES[String(status).toLowerCase()];
+  // `isHidden` lived here until FEAT-0056. Nothing removes an item by
+  // status any more.
+  //
+  // At 99% lifecycle completion a state filter is not a filter: with
+  // Hide-completed on, 1 of 18 feature groups survived, 0 of the 4 issue
+  // severity buckets, 5 item rows of 270 tasks, and the right-hand
+  // context pane of a finished note emptied outright. The rule that
+  // replaced it is FOLD ON VOLUME, NEVER ON MEANING — the same rule the desktop renderer encodes in
+  // `completed-work.ts`, and the three functions below are its twin.
+
+  function completionRank(item) {
+    var st = item && item.status ? String(item.status).toLowerCase() : "";
+    // An UNRECOGNISED status ranks open, deliberately: sinking it would
+    // quietly bury a note whose status is a typo.
+    return COMPLETED_STATUSES[st] ? 1 : 0;
+  }
+
+  // Open work first, the server's order (ID, severity, path) preserved
+  // beneath — Array.sort is stable, so nothing else moves.
+  function openFirst(items) {
+    return (items || []).slice().sort(function (a, b) {
+      return completionRank(a) - completionRank(b);
+    });
+  }
+
+  // How much of a group renders. Two independent reasons to fold:
+  // `collapse` (the switch) folds at the first completed item — meaning;
+  // `limit` folds at a length nobody reads past — volume. Neither can
+  // return nothing, so a group can shorten but never vanish.
+  function foldGroup(items, limit, collapse) {
+    var ordered = openFirst(items);
+    if (!ordered.length) return { head: [], hidden: 0 };
+    // head + hidden must equal items.length for EVERY input, not just the
+    // ones we pass: the count is the only thing telling the reader that
+    // anything was withheld.
+    var cap = isFinite(limit) ? Math.max(0, Math.floor(limit)) : ordered.length;
+    var cut = ordered.length;
+    if (collapse) {
+      var firstDone = -1;
+      for (var i = 0; i < ordered.length; i++) {
+        if (completionRank(ordered[i]) === 1) { firstDone = i; break; }
+      }
+      // An entirely settled group cuts to ZERO rows, not one: a single
+      // arbitrary row tells the reader nothing the count does not. The
+      // group stays visible through its header and its count.
+      if (firstDone >= 0) cut = firstDone;
+    }
+    if (cut > cap) cut = cap;
+    return { head: ordered.slice(0, cut), hidden: ordered.length - cut };
+  }
+
+  // Measured group sizes in the pilot corpus: tasks 261/3/2/2/2, issues
+  // 52/18/11/2/1/1/1, features 19/10/5/3/2/2/2/2/2 then nine 1s. A clean
+  // cliff — twelve folds the four that are unreadable (261, 52, 19, 18)
+  // and leaves the other twenty-six whole.
+  // The context pane's rows: ordered, folded on length, NEVER on state.
+  // Takes no `collapse` argument on purpose — review reverted the caller
+  // from `false` to `hideCompleted` in one character with every test
+  // still green, on the pane whose emptying was the whole point of the
+  // phase. Removing the parameter is what makes that mutation impossible
+  // to write by accident.
+  function contextGroupRows(items, limit) {
+    return foldGroup(items, limit, false);
+  }
+
+  var NAV_GROUP_FOLD_LIMIT = 12;
+
+  // The fold's own row. The count is never optional: a fold that hides
+  // the fact that it hid something is indistinguishable from having
+  // nothing there — which is exactly how the old filter emptied three
+  // views without ever looking broken.
+  // The context pane's own more-row. Separate from `appendMoreRow`
+  // because this pane renders two runs (linked, then inbound) into one
+  // list and each folds independently.
+  function appendCtxMoreRow(list, folded, allItems, kind) {
+    if (!folded.hidden) return;
+    var btn = el("button", {
+      type: "button",
+      class: "nav-more-btn",
+      text: "\u2026 " + folded.hidden + " more",
+      title: "Show the rest of this group",
+    });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      var li = btn.parentNode;
+      var frag = document.createDocumentFragment();
+      openFirst(allItems).slice(folded.head.length).forEach(function (item) {
+        frag.appendChild(ctxItem(item, kind));
+      });
+      list.replaceChild(frag, li);
+    });
+    list.appendChild(el("li", { class: "nav-item nav-more" }, [btn]));
+  }
+
+  function appendMoreRow(list, folded, group, renderItem) {
+    if (!folded.hidden) return;
+    var btn = el("button", {
+      type: "button",
+      class: "nav-more-btn",
+      text: "\u2026 " + folded.hidden + " more",
+      title: "Show the rest of this group",
+    });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      // Reveal in place. Deliberately NOT a change to `hideCompleted`:
+      // expanding one group must not flip a preference governing every
+      // other group on the surface.
+      var all = openFirst(group.items || []);
+      var frag = document.createDocumentFragment();
+      all.forEach(function (item) { frag.appendChild(renderItem(item)); });
+      list.replaceChildren(frag);
+    });
+    list.appendChild(el("li", { class: "nav-item nav-more" }, [btn]));
   }
 
   // ------------------------------------------------------------------ utils
@@ -1062,14 +1174,14 @@
       type: "button",
       "aria-pressed": hideCompleted ? "true" : "false",
       title: "Toggle visibility of done / closed / obsolete items",
-      text: hideCompleted ? "Hiding completed" : "Hide completed",
+      text: hideCompleted ? "Completed collapsed" : "Collapse completed",
     });
     btn.addEventListener("click", function () {
       hideCompleted = !hideCompleted;
       saveHideCompleted(hideCompleted);
       btn.classList.toggle("is-active", hideCompleted);
       btn.setAttribute("aria-pressed", hideCompleted ? "true" : "false");
-      btn.textContent = hideCompleted ? "Hiding completed" : "Hide completed";
+      btn.textContent = hideCompleted ? "Completed collapsed" : "Collapse completed";
       if (navCache) renderLeftPane(navCache);
       if (ctxCache) renderRightPane(ctxCache);
     });
@@ -1203,13 +1315,10 @@
   // as a persisted-OPEN set (key "nav:item-children-open:<id>") so the
   // default is the inverse of the rest of the cockpit.
   function renderItemChildren(item) {
-    // Apply the Hide-completed filter to nested children too. Without
-    // this the filter only hits top-level group items (features /
-    // tasks / etc.), leaving verified / retired requirements visible
-    // under their feature card.
-    var visibleChildren = (item.children || []).filter(function (c) {
-      return !isHidden(c.status);
-    });
+    // Children order open-first like everything else, and are never
+    // removed: a feature's completed requirements are part of what the
+    // feature is.
+    var visibleChildren = openFirst(item.children || []);
     if (!visibleChildren.length) return null;
     var openedKey = "nav:item-children-open:" + (item.id || item.url || "");
     var startOpen = isCollapsed(openedKey);
@@ -1331,13 +1440,17 @@
   }
 
   function renderSubgroup(group, mode, depth) {
-    var visibleItems = (group.items || []).filter(function (it) { return !isHidden(it.status); });
+    var folded = foldGroup(group.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
+    var visibleItems = folded.head;
     var childNodes = renderSubgroups(group, mode, depth + 1);
-    if (!visibleItems.length && !childNodes.length) return null;
+    // A collapsed group cuts to zero rows and is still a group — the
+    // header and the count keep it visible.
+    if (!visibleItems.length && !childNodes.length && !folded.hidden) return null;
 
     var renderItem = pickItemRenderer(group.item_layout);
     var list = el("ul", { class: "nav-items" });
     visibleItems.forEach(function (item) { list.appendChild(renderItem(item)); });
+    appendMoreRow(list, folded, group, renderItem);
 
     var bodyChildren = [list];
     childNodes.forEach(function (node) { bodyChildren.push(node); });
@@ -1378,9 +1491,10 @@
 
     var anyVisible = false;
     groups.forEach(function (g) {
-      var visibleItems = (g.items || []).filter(function (it) { return !isHidden(it.status); });
+      var folded = foldGroup(g.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
+      var visibleItems = folded.head;
       var subgroupNodes = renderSubgroups(g, mode);
-      if (!visibleItems.length && !subgroupNodes.length) return;
+      if (!visibleItems.length && !subgroupNodes.length && !folded.hidden) return;
       anyVisible = true;
 
       var label = g.label || g.key || "";
@@ -1401,6 +1515,7 @@
       var renderItem = pickItemRenderer(g.item_layout);
       var list = el("ul", { class: "nav-items" });
       visibleItems.forEach(function (item) { list.appendChild(renderItem(item)); });
+      appendMoreRow(list, folded, g, renderItem);
 
       var bodyChildren = [list];
       subgroupNodes.forEach(function (n) { bodyChildren.push(n); });
@@ -1417,9 +1532,11 @@
     });
 
     if (!anyVisible) {
+      // Since FEAT-0056 a group folds but never disappears, so this can
+      // only mean the mode genuinely has nothing in it.
       frag.appendChild(el("p", {
         class: "cockpit-empty",
-        text: "Everything in this view is completed (toggle filter to show).",
+        text: "Nothing in this view yet.",
       }));
     }
     leftEl.replaceChildren(frag);
@@ -1530,9 +1647,19 @@
     if (!merged.length) return false;
     var any = false;
     merged.forEach(function (g) {
-      var visibleLinked = g.linked.filter(function (it) { return !isHidden(it.status); });
-      var visibleInbound = g.inbound.filter(function (it) { return !isHidden(it.status); });
-      if (!visibleLinked.length && !visibleInbound.length) return;
+      // The context pane orders by state and NEVER filters by it. The
+      // left pane is a selection list, where a completed item is one you
+      // are not going to click; this pane is a DESCRIPTION, and a note's
+      // completed children are what the note is made of. Filtering here
+      // emptied the pane of every finished note.
+      // Ordered, never filtered — but still folded on LENGTH: 11 of 3192
+      // context groups exceed the limit and the largest real one is 79.
+      var foldedLinked = contextGroupRows(g.linked, NAV_GROUP_FOLD_LIMIT);
+      var foldedInbound = contextGroupRows(g.inbound, NAV_GROUP_FOLD_LIMIT);
+      var visibleLinked = foldedLinked.head;
+      var visibleInbound = foldedInbound.head;
+      if (!visibleLinked.length && !visibleInbound.length
+          && !foldedLinked.hidden && !foldedInbound.hidden) return;
       any = true;
       var typeName = g.type;
       var typeLabel = el("span", {
@@ -1544,6 +1671,7 @@
       ]);
       var list = el("ul", { class: "ctx-items" });
       visibleLinked.forEach(function (item) { list.appendChild(ctxItem(item, "linked")); });
+      appendCtxMoreRow(list, foldedLinked, g.linked, "linked");
       if (visibleLinked.length && visibleInbound.length) {
         list.appendChild(el("li", {
           class: "ctx-divider",
@@ -1559,6 +1687,7 @@
         }));
       }
       visibleInbound.forEach(function (item) { list.appendChild(ctxItem(item, "inbound")); });
+      appendCtxMoreRow(list, foldedInbound, g.inbound, "inbound");
 
       var key = "ctx:" + (typeName || "_untyped");
       container.appendChild(collapsibleGroup({

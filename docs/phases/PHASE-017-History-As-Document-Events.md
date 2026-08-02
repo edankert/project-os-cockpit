@@ -14,7 +14,7 @@ features:
 requirements: []
 issues: []
 superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"
-depends: ["[[PHASE-016-Errors-Become-Work]]"]
+depends: ["[[PHASE-016-The-Overview-Answers-Questions]]"]
 related: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[TASK-0199-Commits-As-Documentation-Events]]", "[[ADR-0009]]"]
 tags: [overview, history]
 ---

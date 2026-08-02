@@ -34,24 +34,31 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 55
-  ISS: 81
-  PHASE: 21
+  FEAT: 56
+  ISS: 82
+  PHASE: 22
   REQ: 25
   RISK: 4
   REL: 0
-  TASK: 266
-  TST: 22
+  TASK: 270
+  TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
-  phase: "PHASE-021"
+  task: "TASK-0267"
+  feature: "FEAT-0056"
+  phase: "PHASE-022"
   issue: ""
-  note: "2026-07-30 PHASE-020 done: copy/paste reviewed end to end after Edwin reported both halves, and both reproduced. Right-clicking a note link showed the WRONG menu — a rich doc-link menu already existed and a second selection menu fired for the same click and won; attachContextMenu now yields on a docs linkURL. Console Copy was disabled exactly when needed because the right-click clears xterm's selection before the menu reads it; the selection is captured in the contextmenu listener, proven load-bearing by clearing it deliberately. All clipboard access moved to the main process (navigator.clipboard needs focus to write and a permission to read), writes are read back, and every failure surfaces. The Edit menu asks the renderer which pane has focus rather than using roles that can only see the DOM. OWED: mode 1 still has the old three history tiles and no grid; six downstream design notes stay draft; ISS-0057 (note_moved); five upstream proposals in project-os-dev."
+  note: "2026-08-02 PHASE-022 done: Edwin asked for collapse rather than a hard hide switch. Measured first — 99% of lifecycle notes are terminal, and Hide-completed left 1 of 18 feature groups, 0 of the 4 issue severity buckets, 5 task rows of 270, and EMPTIED the right context pane of FEAT-0051 and ISS-0080 outright. Edwin corrected my first review: the tasks view groups BY status so its ordering was already right; I saw 270 rows and called a volume problem an ordering problem. The rule: fold on volume, never on meaning. Left pane is a selection list (state orders, the done tail folds); right pane is a description (state orders only, length folds). Found en route: ISS-0082, a phantom PHASE-016 group from my own ISS-0077 merge — two code paths read the phase link differently. TWO review rounds, both changes-requested. Round 1: five guards could not fail under mutation, the right pane fold was documented but never built, and a two-band phase sort put PHASE-999 permanently above the phase in flight. Round 2: the CONTEXT PANE — the headline change — still had no guard on either surface, and reverting it took one character with every test green; contextGroupRows now takes no collapse parameter so the mutation cannot be written. Lesson worth keeping: two exit criteria I wrote expired at close-out because they measured the corpus mid-flight rather than the rule. OWED, unchanged: mode 1 still has the old three history tiles and no grid; six downstream design notes stay draft; ISS-0057 (note_moved); five upstream proposals in project-os-dev."
 items:
   features:
+    FEAT-0056:
+      file: "docs/features/completed-work/FEAT-0056-Completed-Work-Ordering.md"
+      title: "Open work sorts first, long lists fold, and the context pane never filters"
+      status: done
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      tasks: [TASK-0267, TASK-0268, TASK-0269, TASK-0270]
+      note: "At 99% lifecycle completion a state filter is not a filter. Each view groups on a different axis — status, severity, phase, type — and state is orthogonal to all four, which is why a global switch got invented instead of ordering."
     FEAT-0055:
       file: "docs/features/git-assist/FEAT-0055-Git-Assist.md"
       title: "Close-out commits its own work, and being behind a remote is visible"
@@ -84,7 +91,7 @@ items:
       file: "docs/features/errors-as-work/FEAT-0051-Validator-Errors-As-Session-Work.md"
       title: "Validator errors are session work while a session runs, and issues once it ends"
       status: done
-      phase: "[[PHASE-016-Errors-Become-Work]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       tasks: [TASK-0252, TASK-0253, TASK-0254]
       note: "Edwin's design, replacing three worse ones of mine. Split by WHO FIXES IT rather than how long it lasts: a row in the session work list while the agent is fixing it, a real ISS-* once it survives the session. Which is which is measured, not classified — no error-code table to drift."
     FEAT-0046:
@@ -377,6 +384,34 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0267:
+      file: "docs/features/completed-work/plan/tasks/TASK-0267-One-Comparator-Open-Before-Done.md"
+      title: "One comparator sorts open before done, within every group"
+      status: done
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      parent: FEAT-0056
+      note: "Derived from statuses.COMPLETED_STATUSES, not a second hand-written list — that is the drift ISS-0023 found across eight surfaces. Deliberately NOT applied to the tasks view, whose groups ARE statuses."
+    TASK-0268:
+      file: "docs/features/completed-work/plan/tasks/TASK-0268-Groups-With-Open-Work-Sort-First.md"
+      title: "Groups that still contain open work sort above groups that do not"
+      status: done
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      parent: FEAT-0056
+      note: "1 of 18 feature groups has open work, 0 of the 4 issue severity buckets. Two bands were not enough: PHASE-999 is permanently planned, so it outranked the phase in flight forever, and closing a phase settled it so the one just finished sank. Ranks on the phase note authored status now — in flight, upcoming, finished."
+    TASK-0269:
+      file: "docs/features/completed-work/plan/tasks/TASK-0269-The-Context-Pane-Stops-Filtering.md"
+      title: "The right context pane orders by state and never filters by it"
+      status: done
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      parent: FEAT-0056
+      note: "Smallest change, largest fix: FEAT-0051 and ISS-0080 rendered an entirely empty context pane. A note's completed children are what the note is made of. NOTE the retracted claim — I wrote that the largest group anywhere is 11 items so there is no wall to scroll past; that was 11 measured on ONE note. Swept across the corpus, 11 of 3192 groups exceed 12 and PHASE-007 renders 79. The pane folds on length like everywhere else; it just never filters on state."
+    TASK-0270:
+      file: "docs/features/completed-work/plan/tasks/TASK-0270-Folding-Keyed-On-Length.md"
+      title: "A long group shows its head and a count, keyed on length and never on status"
+      status: done
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      parent: FEAT-0056
+      note: "Last on purpose. Ordering is cheap and reversible and may be enough; the real volume problem is the tasks view's 270 rows, 261 of them in one done bucket. Limit 12 folds the four groups that are unreadable across all three views and leaves the other 26 whole."
     TASK-0264:
       file: "docs/features/git-assist/plan/tasks/TASK-0264-Commit-At-Close-Out.md"
       title: "close-out-commit.sh — stage what the work declares, refuse what it does not"
@@ -465,21 +500,21 @@ items:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0252-Validation-Errors-Reach-The-Session-Panel.md"
       title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live"
       status: done
-      phase: "[[PHASE-016-Errors-Become-Work]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
       note: "Pure plumbing — endpoint, event and EventSource all exist; the renderer just never subscribed, which is why the desktop shell has never been able to see its own repo's violations."
     TASK-0253:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0253-Error-Rows-In-The-Session-Summary.md"
       title: "One row per validator error in the session summary, closing as it is fixed"
       status: done
-      phase: "[[PHASE-016-Errors-Become-Work]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
       note: "Reuses .agent-detail-work-row's grammar so the eye does not learn a second pattern six inches from the first. Must not restate the badge's count — that is the ISS-0068 shape."
     TASK-0254:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0254-Close-Out-Files-What-Survives.md"
       title: "Close-out files what it could not fix, deduped on (code, subject)"
       status: done
-      phase: "[[PHASE-016-Errors-Become-Work]]"
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
       note: "Documentation, not code. Auto-filing declined by Edwin: issues appearing unasked is a worse failure than one occasionally missed."
     TASK-0248:
@@ -1882,6 +1917,13 @@ items:
 
 
   issues:
+    ISS-0082:
+      file: "docs/issues/ISS-0082-Phantom-Phase-Group-From-The-016-Merge.md"
+      title: "A phase rename forked its children into a phantom group, because two code paths read the phase link differently"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "Mine, from the ISS-0077 merge. _phase_id_of extracts PHASE-016 and resolves; _phase_target keeps the whole slug and does not — so the overview was right and the navigator was wrong. A phase's identity is its ID, not its title."
     ISS-0081:
       file: "docs/issues/ISS-0081-Right-Click-Selected-A-Word-And-Clobbered-The-Clipboard.md"
       title: "Right-click word-select plus copy-on-select overwrote the clipboard before the paste read it"
@@ -2976,12 +3018,12 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 55
-    features_done: 52
-    tasks_total: 266
-    tasks_done: 260
-    tests_total: 22
-    tests_passing: 22
+    features_total: 56
+    features_done: 53
+    tasks_total: 270
+    tasks_done: 264
+    tests_total: 23
+    tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0

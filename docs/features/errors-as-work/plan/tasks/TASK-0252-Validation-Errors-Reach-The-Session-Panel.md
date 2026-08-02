@@ -4,7 +4,7 @@ id: TASK-0252
 aliases: ["TASK-0252"]
 title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live in the shell"
 status: done
-phase: "[[PHASE-016-Errors-Become-Work]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

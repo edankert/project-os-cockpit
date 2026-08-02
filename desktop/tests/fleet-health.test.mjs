@@ -934,3 +934,174 @@ test('nothing pushes except a person clicking, and never to a deploy remote (FEA
   const pushes = [...renderer.matchAll(/git\.push\(/g)].length;
   assert.equal(pushes, 1, `expected exactly one push call site, found ${pushes}`);
 });
+
+// ---- completed work: ordering, not filtering (FEAT-0056) -------------
+
+let cw;
+before(async () => {
+  const src = await fs.readFile(
+    path.join(here, '..', 'dist', 'renderer', 'completed-work.js'), 'utf-8');
+  cw = new Function(`${src}
+    return { openFirst, groupIsSettled, foldGroup, completionRank, contextGroupRows };`)();
+});
+
+test('open work sorts above completed work', () => {
+  const out = cw.openFirst([
+    { id: 'a', status: 'done' },
+    { id: 'b', status: 'doing' },
+    { id: 'c', status: 'fixed' },
+    { id: 'd', status: 'open' },
+  ]).map((x) => x.id);
+  assert.deepEqual(out, ['b', 'd', 'a', 'c'],
+    'open items should lead, in the order they arrived');
+});
+
+test('order within a state is untouched', () => {
+  // A sort that also reshuffles items sharing a state makes every list
+  // move for a reason the reader cannot see. Array.sort is stable since
+  // ES2019, so the server's order (ID, severity, path) is the tiebreak.
+  const ids = 'zyxw'.split('').map((id) => ({ id, status: 'done' }));
+  assert.deepEqual(cw.openFirst(ids).map((x) => x.id), ['z', 'y', 'x', 'w']);
+});
+
+test('an unrecognised status ranks open', () => {
+  // The safe default. Sinking it would quietly bury a note whose status
+  // is a typo — hiding exactly the thing worth noticing.
+  assert.equal(cw.completionRank({ status: 'wat' }), 0);
+  assert.equal(cw.completionRank({}), 0);
+  assert.equal(cw.completionRank(undefined), 0);
+});
+
+test('openFirst does not mutate its input', () => {
+  const input = [{ id: 'a', status: 'done' }, { id: 'b', status: 'open' }];
+  cw.openFirst(input);
+  assert.equal(input[0].id, 'a', 'the caller’s array was reordered in place');
+});
+
+test('a group of only completed items is settled, and so is an empty one', () => {
+  assert.equal(cw.groupIsSettled([{ status: 'done' }, { status: 'fixed' }]), true);
+  assert.equal(cw.groupIsSettled([{ status: 'done' }, { status: 'open' }]), false);
+  assert.equal(cw.groupIsSettled([]), true, 'nothing in it to act on');
+});
+
+test('collapse folds at the first completed item but never empties', () => {
+  // The switch's new meaning. Measured before this existed: with the old
+  // hide behaviour FEAT-0051's context pane and every issue severity
+  // bucket rendered EMPTY, because 91% of the corpus is complete.
+  const items = [
+    { id: 'a', status: 'open' },
+    { id: 'b', status: 'done' },
+    { id: 'c', status: 'done' },
+  ];
+  const r = cw.foldGroup(items, 100, true);
+  assert.deepEqual(r.head.map((x) => x.id), ['a'],
+    'the open item stays; the completed tail becomes a count');
+  assert.equal(r.hidden, 2);
+});
+
+test('head + hidden always accounts for every item', () => {
+  // The invariant the whole fold rests on. If it ever fails, rows have
+  // been silently dropped — the failure the old switch made invisible.
+  const shapes = [
+    [], [{ status: 'open' }],
+    [{ status: 'done' }, { status: 'done' }],
+    Array.from({ length: 40 }, (_, i) => ({ status: i % 3 ? 'done' : 'open' })),
+  ];
+  for (const items of shapes) {
+    for (const collapse of [true, false]) {
+      for (const limit of [1, 8, 12, 1000]) {
+        const r = cw.foldGroup(items, limit, collapse);
+        assert.equal(r.head.length + r.hidden, items.length,
+          `lost rows at limit=${limit} collapse=${collapse}`);
+        assert.ok(r.hidden >= 0, 'negative hidden count');
+      }
+    }
+  }
+});
+
+test('an entirely completed group collapses to a count, not a sample row', () => {
+  // At 91% complete this IS the normal group. It cuts to zero rows and
+  // stays visible through its header and its count — showing one
+  // arbitrary row (the first by ID) would tell the reader nothing the
+  // count does not, and read as if that item were the notable one.
+  const r = cw.foldGroup(
+    [{ id: 'a', status: 'done' }, { id: 'b', status: 'fixed' }], 100, true);
+  assert.equal(r.head.length, 0);
+  assert.equal(r.hidden, 2, 'every item must be accounted for by the count');
+});
+
+test('folding is keyed on length, not on status', () => {
+  // An over-long group of ENTIRELY OPEN items folds identically.
+  // Folding on status is what produced the empty views this feature
+  // exists to undo.
+  const open = Array.from({ length: 50 }, (_, i) => ({ id: i, status: 'open' }));
+  const r = cw.foldGroup(open, 8, false);
+  assert.equal(r.head.length, 8);
+  assert.equal(r.hidden, 42);
+  assert.ok(r.head.every((x) => x.status === 'open'));
+});
+
+test('a group inside the limit is not folded', () => {
+  const r = cw.foldGroup([{ status: 'open' }, { status: 'done' }], 8, false);
+  assert.equal(r.hidden, 0, 'a short group should render whole');
+});
+
+test('the hidden count is always available', () => {
+  // A fold that hides the fact that it hid something is
+  // indistinguishable from having nothing there.
+  const items = Array.from({ length: 20 }, () => ({ status: 'done' }));
+  for (const collapse of [true, false]) {
+    const r = cw.foldGroup(items, 8, collapse);
+    assert.equal(r.head.length + r.hidden, 20,
+      'head + hidden must account for every item');
+  }
+});
+
+test('the context pane cannot be made to filter by state', () => {
+  // The feature's headline change, and for one round it had no guard on
+  // either surface: review reverted the caller from `false` to
+  // `hideCompleted` in ONE CHARACTER and every test stayed green.
+  //
+  // `contextGroupRows` takes no collapse parameter, so the only way to
+  // reintroduce the filter is to edit it — and this fails when you do.
+  const allDone = [
+    { id: 'a', status: 'done' }, { id: 'b', status: 'fixed' },
+    { id: 'c', status: 'merged' },
+  ];
+  const r = cw.contextGroupRows(allDone, 12);
+  assert.equal(r.head.length, 3,
+    'a fully completed context group must render in full — this is the ' +
+    'case that emptied FEAT-0051 and ISS-0080 entirely');
+  assert.equal(r.hidden, 0);
+  assert.equal(cw.contextGroupRows.length, 2,
+    'contextGroupRows grew a third parameter — the collapse flag is back');
+});
+
+test('the context pane still folds on length', () => {
+  const many = Array.from({ length: 79 }, (_, i) => ({ id: i, status: 'done' }));
+  const r = cw.contextGroupRows(many, 12);
+  assert.equal(r.head.length, 12, 'PHASE-007 renders a 79-item backlinks group');
+  assert.equal(r.hidden, 67);
+});
+
+test('foldGroup tolerates a missing item list', () => {
+  // The server omits empty link arrays; a sort that throws on one would
+  // blank the whole pane.
+  for (const empty of [null, undefined]) {
+    const r = cw.foldGroup(empty, 12, true);
+    assert.deepEqual(r, { head: [], hidden: 0 });
+    assert.deepEqual(cw.openFirst(empty), []);
+  }
+});
+
+test('the invariant holds at limits the constant never produces', () => {
+  // Round 1 hardened `cap` against negative and non-finite limits; round 2
+  // found the hardening itself unguarded — deleting it left 61 tests green.
+  const items = [{ status: 'open' }, { status: 'done' }, { status: 'done' }];
+  for (const limit of [-1, 0, NaN, Infinity, 1.7]) {
+    const r = cw.foldGroup(items, limit, false);
+    assert.equal(r.head.length + r.hidden, items.length,
+      `rows lost at limit=${limit}`);
+    assert.ok(r.hidden >= 0 && r.head.length >= 0, `negative counts at limit=${limit}`);
+  }
+});

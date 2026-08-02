@@ -290,6 +290,39 @@ _ACTIVE_NEXT: frozenset[str] = frozenset({
 _ACTIVE_DONE: frozenset[str] = frozenset(statuses.COMPLETED_STATUSES)
 DEFAULT_MODE = "features"
 
+
+def open_first_key(item: Any) -> tuple[int]:
+    """Sort key placing open work above completed work (TASK-0267).
+
+    Every navigator groups on a different axis — the tasks pane on
+    status, issues on severity, features on phase order, the context pane
+    on note *type* — and **state is orthogonal to all four**. No grouping
+    axis can carry it, which is why a global Hide-completed switch got
+    invented instead: it sidesteps the ordering problem rather than
+    solving it. At 91% complete that switch removed 17 of 18 feature
+    groups and every severity bucket. This is the thing it should have
+    been.
+
+    Returns a **1-tuple** on purpose. Python's sort is stable, so
+    applying this to an already-ordered list moves completed items to the
+    back and changes nothing else: the natural order (ID, severity, path)
+    survives as the tiebreak for free, and no row shifts for a reason the
+    reader cannot see.
+
+    An unrecognised status ranks **open**. Sinking it would quietly bury
+    a note whose status is a typo — hiding exactly the thing worth
+    noticing.
+
+    Not applied to the tasks pane, whose groups *are* statuses: ordering
+    open-first inside a bucket labelled ``done`` means nothing. The
+    comparator's job is to carry state where the axis cannot.
+    """
+    if isinstance(item, dict):
+        status = item.get("status")
+    else:
+        status = getattr(item, "status", None)
+    return (1 if statuses.is_completed(status) else 0,)
+
 # Library mode discovery rules.
 DOC_TREE_EXCLUDED_PREFIXES: tuple[str, ...] = ("__templates__/",)
 DOC_TREE_EXCLUDED_ROOTS: tuple[str, ...] = (
@@ -2475,7 +2508,17 @@ def _features_groups(
             phase_record.frontmatter.get("order") if phase_record else None
         )
         sortable.append((order if order is not None else float("inf"), target, records))
-    sortable.sort(key=lambda t: (t[0], t[1] or ""))
+    # Phases in flight first, then upcoming, then finished — phase order
+    # preserved within each band, so the finished half still reads as a
+    # chronology (TASK-0268). Measured when this was written: 1 of 18
+    # groups had work in flight, and it sorted seventeenth.
+    sortable.sort(
+        key=lambda t: (
+            _phase_group_rank(_resolve_phase(index, t[1]) if t[1] else None, t[2]),
+            t[0],
+            t[1] or "",
+        )
+    )
 
     out: list[dict[str, Any]] = []
     for _order, target, records in sortable:
@@ -2490,7 +2533,9 @@ def _features_groups(
             else phase_id or phase_title
         )
         items: list[dict[str, Any]] = []
-        for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path)):
+        # Open features first, ID order preserved beneath (TASK-0267).
+        ordered = sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
+        for r in sorted(ordered, key=open_first_key):
             item = _feature_item(index, r)
             children: list[dict[str, Any]] = []
             child_reqs = reqs_by_feature.get(r.note_id or "", [])
@@ -2677,6 +2722,96 @@ def _tasks_groups(
     ]
 
 
+def _settled_last(
+    buckets: list[tuple[str, list[NoteRecord]]],
+) -> list[tuple[str, list[NoteRecord]]]:
+    """Buckets with open work first, severity order preserved beneath.
+
+    Applied to the issue buckets and the risk buckets **separately**:
+    they are two blocks on one surface by design (FEAT-0047), and
+    interleaving them would make the Issues stat-tile count disagree with
+    what the pane shows.
+
+    A `medium` bucket holding the one open issue outranking an all-fixed
+    `critical` bucket is the intended reading, not a regression —
+    severity ranks what to do first among things there are to do, and a
+    settled bucket contains none.
+    """
+    return sorted(buckets, key=lambda b: _group_is_settled(b[1]))
+
+
+def _group_is_settled(records: list[NoteRecord]) -> int:
+    """1 when every record in the group is terminal (TASK-0268).
+
+    Sorts as a leading key, so ``settled`` groups fall below unsettled
+    ones while each half keeps its natural order — severity stays
+    severity. An empty group counts as settled: there is nothing in it to
+    act on.
+    """
+    return 0 if any(open_first_key(r)[0] == 0 for r in records) else 1
+
+
+def _phase_group_rank(
+    phase_record: NoteRecord | None, records: list[NoteRecord]
+) -> int:
+    """0 in flight, 1 upcoming, 2 finished — the features navigator's
+    leading sort key.
+
+    A plain settled/unsettled split was wrong here, and the review caught
+    it: ``PHASE-999 · Future / Unphased`` is the backlog pen, permanently
+    ``planned`` and therefore permanently unsettled, so it would sit above
+    the phase actually being worked **forever**. Worse, closing a phase
+    settles it — so the phase you just finished sinks and the pen takes
+    the top. The evidence written into PHASE-022's exit criteria
+    ("moved from 17th to 1st") was measured mid-flight and had already
+    stopped being true by close-out.
+
+    Three bands rather than two fixes both: the pen is *upcoming*, not
+    *in flight*, and it sorts between them.
+
+    Ranks on the phase note's **authored status** where there is one —
+    that is the field a person maintains and ADR-0009 makes the source of
+    state. Falls back to inferring from the children only when the link
+    resolves to nothing, so a corpus with no phase notes still orders.
+    """
+    band = statuses.band_of(phase_record.status if phase_record else None)
+    if band in ("active", "blocked"):
+        return 0
+    # `pending` is a phase not started; `reference` is `deferred`, a phase
+    # parked out of scope (STATUSES.md line 81 allows exactly `planned`,
+    # `active`, `done`, `deferred`, `superseded`). Both are "not now" and
+    # both rank UPCOMING.
+    #
+    # Round-2 review caught `deferred` falling through to the unknown-status
+    # arm and ranking IN FLIGHT, where it tied with the active phase and won
+    # on `order`. It is in the vocabulary; it was simply not enumerated.
+    if band in ("pending", "reference"):
+        return 1
+    if band in ("done", "archived"):
+        return 2
+    if phase_record is not None:
+        # The note exists but its status is outside the vocabulary — a typo,
+        # or a value from a corpus that has not migrated. Rank it IN FLIGHT,
+        # matching `open_first_key`: sinking it would hide the thing worth
+        # noticing.
+        return 0
+    # No phase note at all (an unresolvable link, or a corpus that links
+    # phases by title alone): fall back to what the children say.
+    return 0 if _group_is_settled(records) == 0 else 2
+
+
+def _open_first(records: list[NoteRecord]) -> list[NoteRecord]:
+    """ID order, then open work lifted above completed (TASK-0267).
+
+    Two passes rather than one composite key so the natural order is
+    visibly the thing being preserved: a stable sort by
+    :func:`open_first_key` moves terminal items to the back and touches
+    nothing else.
+    """
+    ordered = sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
+    return sorted(ordered, key=open_first_key)
+
+
 def _severity_buckets(records: list[NoteRecord]) -> list[tuple[str, list[NoteRecord]]]:
     """Bucket notes by their ``severity:`` field, in severity order."""
     grouped: dict[str, list[NoteRecord]] = {}
@@ -2715,15 +2850,14 @@ def _issues_groups(
             "url": None,
             "status": None,
             "items": [
-                _issue_item(index, r)
-                for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
+                _issue_item(index, r) for r in _open_first(records)
             ],
         }
-        for key, records in _severity_buckets(issues)
+        for key, records in _settled_last(_severity_buckets(issues))
     ]
 
     risks = [r for r in index.notes_by_type("risk") if _platform_match(r, platform)]
-    for key, records in _severity_buckets(risks):
+    for key, records in _settled_last(_severity_buckets(risks)):
         out.append({
             "key": f"risk:{key}",
             "label": (
@@ -2733,8 +2867,7 @@ def _issues_groups(
             "status": None,
             "item_layout": "stacked",
             "items": [
-                _issue_item(index, r)
-                for r in sorted(records, key=lambda x: (x.note_id or "", x.rel_path))
+                _issue_item(index, r) for r in _open_first(records)
             ],
         })
     return out
@@ -3840,13 +3973,33 @@ def _grouped_items(
 # ---------------------------------------------------------------------------
 
 
+#: The canonical part of a phase link. A phase's identity is its **ID**;
+#: the rest of the slug is a title, and titles are expected to change.
+_PHASE_ID_RE = re.compile(r"(PHASE-\d+)")
+
+
 def _phase_target(record: NoteRecord) -> str | None:
+    """The grouping key for ``record``'s phase — its ID where it has one.
+
+    Keying on the full slug forks a group whenever a phase is retitled:
+    ISS-0077's merge renamed ``PHASE-016-Errors-Become-Work`` to
+    ``PHASE-016-The-Overview-Answers-Questions``, and four notes still
+    pointing at the old slug rendered a second, unresolvable PHASE-016
+    group in the navigator. The overview was unaffected because its own
+    ``_phase_id_of`` already extracted the ID — the two paths reading the
+    same field differently *was* the bug (ISS-0082).
+
+    Falls back to the stripped slug when no ID is present, so a corpus
+    linking phases by title alone still groups.
+    """
     raw = record.frontmatter.get("phase")
     if isinstance(raw, list):
         raw = raw[0] if raw else None
     if not isinstance(raw, str):
         return None
-    return _strip_wikilink(raw) or None
+    stripped = _strip_wikilink(raw).strip()
+    m = _PHASE_ID_RE.search(stripped)
+    return m.group(1) if m else (stripped or None)
 
 
 def _resolve_phase(index: Index, target: str) -> NoteRecord | None:

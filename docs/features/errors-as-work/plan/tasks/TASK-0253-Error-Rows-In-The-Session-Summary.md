@@ -4,7 +4,7 @@ id: TASK-0253
 aliases: ["TASK-0253"]
 title: "One row per validator error in the session summary, closing as the agent fixes it"
 status: done
-phase: "[[PHASE-016-Errors-Become-Work]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30

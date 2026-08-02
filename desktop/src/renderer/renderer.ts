@@ -2583,9 +2583,36 @@ function isCompletedStatus(status: string | undefined): boolean {
   return COMPLETED_STATUSES.has(String(status).toLowerCase());
 }
 
-function isItemHidden(item: { status?: string }): boolean {
-  return hideCompleted && isCompletedStatus(item.status);
-}
+// `isItemHidden` lived here until TASK-0270. Nothing removes an item by
+// status any more: the switch collapses, and `foldGroup` is the only
+// thing that decides how much of a group renders.
+
+/** How many rows a nav group shows before folding — VOLUME, not status.
+ *
+ *  Chosen from the measured distribution rather than guessed. Group sizes
+ *  in this corpus:
+ *
+ *    tasks       261, 3, 2, 2, 2
+ *    issues       52, 18, 11, 2, 1, 1, 1
+ *    features     19, 10, 5, 3, 2, 2, 2, 2, 2, then nine 1s
+ *
+ *  There is a clean cliff. Twelve folds the four groups that are
+ *  genuinely unreadable (261, 52, 19, 18) and leaves the other twenty-six
+ *  whole.
+ *
+ *  An earlier version justified it as "just above 11, the largest context
+ *  group anywhere" — that was 11 measured on ONE note. Swept across the
+ *  corpus, 11 of 3192 context groups exceed 12 and the largest real one
+ *  is 79. The number survives; the reasoning for it did not. */
+const NAV_GROUP_FOLD_LIMIT = 12;
+
+/** The same rule in the context pane, and the same number.
+ *
+ *  One constant rather than two that can disagree: "how many rows is too
+ *  many to read" does not depend on which pane you are reading. Swept
+ *  across the corpus, 11 of 3192 context groups exceed it — the fold is
+ *  rare here, which is what a length threshold should be. */
+const CONTEXT_GROUP_FOLD_LIMIT = NAV_GROUP_FOLD_LIMIT;
 
 // Modes with a button in the top bar. `active` and `recent` stay in
 // NAV_MODES — the server still serves them and the Now board and strip
@@ -6779,10 +6806,13 @@ function initNavToolbar(): void {
     });
   });
 
-  // Hide-completed: eye-strikethrough icon. Flips the `hideCompleted`
-  // module state and re-renders the nav so the filter actually drops
-  // done/closed/verified/... items (mirrors the browser cockpit's
-  // COMPLETED_STATUSES list).
+  // Collapse-completed: eye-strikethrough icon. Flips `hideCompleted`
+  // and re-renders the nav.
+  //
+  // The name is historical and the behaviour is not: since TASK-0270 this
+  // FOLDS each group at its first completed item rather than removing
+  // items. It can shorten a view; it can no longer empty one, which is
+  // what it did to three of them.
   const eyeOff = '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>';
   hideCompletedBtn.replaceChildren(makeSvg(eyeOff, 16, {}));
   hideCompletedBtn.setAttribute('aria-pressed', hideCompleted ? 'true' : 'false');
@@ -6791,9 +6821,10 @@ function initNavToolbar(): void {
     hideCompletedBtn.setAttribute('aria-pressed', hideCompleted ? 'true' : 'false');
     try { localStorage.setItem('cockpit:hide-completed', hideCompleted ? '1' : '0'); } catch { /* ignore */ }
     if (sidecarBaseUrl) void loadWsNav();
-    // Also re-apply the filter to the right pane in place — no fetch
-    // needed since the last payload is cached.
-    if (lastContextPayload) renderRightPane(lastContextPayload);
+    // The right pane is NOT re-rendered: it no longer reads this state at
+    // all (TASK-0269). It is a description of the open note, and a note's
+    // completed children are what the note is made of — collapsing them
+    // emptied FEAT-0051's context pane entirely.
   });
 
   // Terminal toggle (existing click handler registered later in the
@@ -7016,9 +7047,10 @@ function renderWsNav(data: NavPayload): void {
     const empty = document.createElement('p');
     empty.className = 'meta';
     empty.style.padding = '24px 16px';
-    empty.textContent = hideCompleted
-      ? 'Everything in this view is completed (toggle the eye icon to show).'
-      : `(no items for mode "${data.mode}")`;
+    // No hide-completed branch any more: since TASK-0270 a group folds
+    // but never disappears, so an empty pane means the mode genuinely
+    // has nothing in it.
+    empty.textContent = `(no items for mode "${data.mode}")`;
     wsNavContent.appendChild(empty);
   }
   refreshActiveNavRow();
@@ -7351,7 +7383,11 @@ function navItemNested(item: NavItem): HTMLLIElement {
 }
 
 function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
-  const kids = item.children || [];
+  // Children order open-first like every other list (TASK-0267). Mode 1
+  // did this from the start and mode 3 did not — the review caught the
+  // two surfaces disagreeing, which is the failure mode a hand-written
+  // twin has by construction.
+  const kids = openFirst(item.children || []);
   if (!kids.length) return null;
   const details = document.createElement('details');
   details.className = 'nav-item-children';
@@ -7384,19 +7420,40 @@ function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
 // ----- Group + left-pane assembly
 
 function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null {
-  // Apply hide-completed at the group level too: drop items + cascading
-  // children that would all be filtered out.
-  const visibleItems = (group.items || []).filter((it) => !isItemHidden(it));
+  // TASK-0270: the switch COLLAPSES rather than hides.
+  //
+  // It used to filter, and at 99% lifecycle completion that is not a
+  // filter. Measured with it on: 1 of 18 feature groups survived, 0 of the
+  // 4 issue severity buckets, and 5 item rows of 270 tasks. Turning it on
+  // to reduce noise deleted the view.
+  //
+  // Now the group always renders and `foldGroup` decides how much of it
+  // does. Two independent reasons to fold, and the distinction is the
+  // whole point:
+  //
+  //   collapse (the switch)  fold at the first completed item — MEANING
+  //   NAV_GROUP_FOLD_LIMIT   fold at a length nobody reads past — VOLUME
+  //
+  // Neither empties the VIEW: a fully collapsed group cuts to zero rows
+  // and stays visible through its header and its `… N more` count, which
+  // is where visibility belongs. (An earlier draft kept one sample row
+  // for this and said so here; showing the first item by ID reads as if
+  // that item were the notable one.)
+  // The tasks pane is where volume actually bites (270 rows across five
+  // status buckets, 261 of them in one); the switch is where meaning does.
+  const folded = foldGroup(group.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
+  const visibleItems = folded.head;
   const visibleSubgroups: HTMLElement[] = [];
   for (const sub of group.subgroups || []) {
     const node = renderNavGroup(sub, mode);
     if (node) visibleSubgroups.push(node);
   }
-  if (visibleItems.length === 0 && visibleSubgroups.length === 0) {
-    // Whole group is empty after filtering — skip rendering entirely
-    // so the user doesn't see ghost "Done" buckets when the filter
-    // is on.
-    if (hideCompleted) return null;
+  // A collapsed group cuts to zero rows and is still a group: the header
+  // and the count are what keep it visible. Only a genuinely empty group
+  // renders nothing.
+  if (visibleItems.length === 0 && visibleSubgroups.length === 0
+      && folded.hidden === 0) {
+    return null;
   }
 
   const details = document.createElement('details');
@@ -7431,6 +7488,29 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   const ul = document.createElement('ul');
   ul.className = 'nav-items';
   for (const item of visibleItems) ul.appendChild(renderItem(item));
+  if (folded.hidden > 0) {
+    // The count is never optional. A fold that hides the fact that it hid
+    // something is indistinguishable from having nothing there — which is
+    // precisely how the old switch managed to empty three views without
+    // ever looking broken.
+    const li = document.createElement('li');
+    li.className = 'nav-item nav-more';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-more-btn';
+    btn.textContent = `… ${folded.hidden} more`;
+    btn.title = 'Show the rest of this group';
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      // Reveal in place. Deliberately NOT a state change on
+      // `hideCompleted`: expanding one group must not silently flip a
+      // preference that governs every other group on the surface.
+      const all = openFirst(group.items || []);
+      ul.replaceChildren(...all.map((item) => renderItem(item)));
+    });
+    li.appendChild(btn);
+    ul.appendChild(li);
+  }
   body.appendChild(ul);
   for (const sub of visibleSubgroups) body.appendChild(sub);
   details.appendChild(body);
@@ -7674,10 +7754,39 @@ function renderContextSection(heading: string, groups: ContextGroup[]): HTMLElem
 
 function renderContextGroup(group: ContextGroup): HTMLElement | null {
   // FEAT-0014 / TASK-0099: right pane uses the same nav-item renderers
-  // as the in-workspace nav. FEAT-0015: also obeys the hide-completed
-  // filter so the right pane stays in sync with the left.
-  const visible = (group.items || []).filter((it) => !isItemHidden(it));
-  if (visible.length === 0 && hideCompleted) return null;
+  // as the in-workspace nav.
+  //
+  // FEAT-0015 made it obey hide-completed too, "so the right pane stays
+  // in sync with the left". TASK-0269 undoes that: the two panes are not
+  // the same kind of thing. The left pane is a SELECTION LIST, where a
+  // completed item is one you are not going to click. The right pane is a
+  // DESCRIPTION — a note's completed children are what the note is made
+  // of, and FEAT-0051's five done tasks ARE FEAT-0051.
+  //
+  // Measured with the switch on: FEAT-0051 and ISS-0080 rendered an
+  // ENTIRELY EMPTY context pane, PHASE-016 kept 1 group of 7, FEAT-0028
+  // 3 of 11. At 91% complete the emptied pane was the normal case.
+  //
+  // The pressure that justifies folding elsewhere is also absent here:
+  // everything shown is already scoped to one note, and the largest group
+  // measured anywhere in the corpus is 11 items. There is no wall to
+  // scroll past. The group types settle it — `change` is 100% complete
+  // and `test` 96%, so a state filter here does not thin those groups, it
+  // forbids them.
+  //
+  // State still ORDERS (TASK-0267): one open task among nine done sits at
+  // the top. It just never removes — `collapse` is passed as false.
+  //
+  // LENGTH still folds, though. My first pass skipped the fold here on
+  // the grounds that "the largest group measured anywhere is 11 items";
+  // the review caught that as a measurement of ONE note. Swept across the
+  // whole corpus, 11 of 3192 context groups exceed it and PHASE-007 renders
+  // a 79-item backlinks group. The wall is real, so the length rule
+  // applies here exactly as it does on the left — which is the point of
+  // its being a length rule.
+  const folded = contextGroupRows(group.items || [], CONTEXT_GROUP_FOLD_LIMIT);
+  const visible = folded.head;
+  if (visible.length === 0 && folded.hidden === 0) return null;
   const div = document.createElement('div');
   div.className = 'right-pane-group';
   const h = document.createElement('h3');
@@ -7690,6 +7799,22 @@ function renderContextGroup(group: ContextGroup): HTMLElement | null {
     // server didn't echo it onto each item.
     const enriched: NavItem = { ...item, type: item.type || group.type };
     ul.appendChild(navItem(enriched));
+  }
+  if (folded.hidden > 0) {
+    const li = document.createElement('li');
+    li.className = 'nav-item nav-more';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-more-btn';
+    btn.textContent = `… ${folded.hidden} more`;
+    btn.title = 'Show the rest of this group';
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const all = openFirst(group.items || []);
+      ul.replaceChildren(...all.map((it) => navItem({ ...it, type: it.type || group.type })));
+    });
+    li.appendChild(btn);
+    ul.appendChild(li);
   }
   div.appendChild(ul);
   return div;

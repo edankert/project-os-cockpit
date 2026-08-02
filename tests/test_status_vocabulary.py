@@ -418,6 +418,30 @@ def test_desktop_completed_set_matches_python() -> None:
     assert not (_ts_set("COMPLETED_STATUSES") & statuses.DELIVERED_STATUSES)
 
 
+def test_completed_work_module_matches_python() -> None:
+    """A **fourth** copy, added by FEAT-0056.
+
+    `completed-work.ts` is a non-module file loaded as a plain <script>,
+    so it cannot import the renderer's set and had to restate it. That is
+    exactly the shape ISS-0023 found across eight surfaces — restated,
+    unguarded, drifted in three of them — so it is guarded here on the
+    same day it was written rather than after it breaks.
+    """
+    src = (DESKTOP_TS.parent / "completed-work.ts").read_text(encoding="utf-8")
+    m = re.search(
+        r"const COMPLETED_WORK_STATUSES: ReadonlySet<string> = new Set\(\[(.*?)\]\)",
+        src, re.DOTALL,
+    )
+    assert m, "COMPLETED_WORK_STATUSES literal not found in completed-work.ts"
+    body = re.sub(r"//[^\n]*", "", m.group(1))
+    found = set(re.findall(r"'([a-z][a-z-]*)'", body))
+    assert found == set(statuses.COMPLETED_STATUSES), (
+        "completed-work.ts has drifted from statuses.COMPLETED_STATUSES; "
+        f"missing {set(statuses.COMPLETED_STATUSES) - found}, "
+        f"extra {found - set(statuses.COMPLETED_STATUSES)}"
+    )
+
+
 def test_desktop_done_statuses_cover_the_done_band() -> None:
     """Session progress views use a separate DONE_STATUSES set."""
     done = _ts_set("DONE_STATUSES")

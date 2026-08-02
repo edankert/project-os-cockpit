@@ -711,6 +711,31 @@ details:not([open]) > summary .group-chevron {
   background: var(--surface);
   text-decoration: none;
 }
+/* The fold's own row (FEAT-0056). Quiet, but never invisible: a fold that
+   hides the fact that it hid something is indistinguishable from having
+   nothing there. */
+.nav-item.nav-more {
+  padding: 0;
+  background: none;
+}
+.nav-more-btn {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.nav-more-btn:hover { color: var(--text-muted); }
+.nav-more-btn:focus-visible {
+  outline: 2px solid var(--accent-link);
+  outline-offset: -2px;
+}
 .nav-item.is-active {
   background: var(--surface-2);
 }

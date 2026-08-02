@@ -4,7 +4,7 @@ id: TASK-0254
 aliases: ["TASK-0254"]
 title: "Close-out files the validator errors it could not fix, as issues, without filing the same one twice"
 status: done
-phase: "[[PHASE-016-Errors-Become-Work]]"
+phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
