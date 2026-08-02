@@ -148,3 +148,59 @@ function contextGroupRows<T extends StatefulItem>(
 ): { head: T[]; hidden: number } {
   return foldGroup(items, limit, false);
 }
+
+/** What a group's head should say about its items' status (TASK-0272).
+ *
+ *  `null` means "the statuses vary — leave the per-row chips alone",
+ *  because there the chip is the only thing distinguishing one row from
+ *  another. A single status means the head can say it once and every row
+ *  can drop it.
+ *
+ *  The rule, stated generally: **repeat a fact per-row only when it
+ *  varies per-row.** The tasks view prints the word "done" 261 times
+ *  without it, which is the same instinct that made a status *filter*
+ *  look reasonable — treating a near-constant as information.
+ */
+function uniformStatus(items: readonly StatefulItem[]): string | null {
+  if (!items.length) return null;
+  const first = (items[0].status || '').toLowerCase();
+  if (!first) return null;
+  for (const it of items) {
+    if ((it.status || '').toLowerCase() !== first) return null;
+  }
+  return first;
+}
+
+/** The count-and-status suffix for a group head: `19 · done`, `6 · 5 done`,
+ *  or just `4` when nothing useful can be said about the mix. */
+function groupHeadSummary(items: readonly StatefulItem[]): string {
+  const n = items.length;
+  if (!n) return '';
+  const uniform = uniformStatus(items);
+  if (uniform) return `${n} · ${uniform}`;
+  const done = items.filter((it) => completionRank(it) === 1).length;
+  return done ? `${n} · ${done} done` : String(n);
+}
+
+/** The short handle for a note ID, for the ID column (ISS-0084).
+ *
+ *  Every note type but one carries a counter-allocated ID — `FEAT-0057`,
+ *  `ISS-0084`. Changes carry `CHG-YYYYMMDD-Short-Description`
+ *  (`LIFECYCLE.md` line 95), so their ID *is* a description, and a row
+ *  rendering `id · title` printed the description twice — at three to
+ *  five times the width of every other ID, in a column whose width is set
+ *  by its widest member.
+ *
+ *  The date prefix is the handle; the title carries the description,
+ *  which is the division of labour every other row already has. Two
+ *  changes on one day share a handle, and that is honest: the date is the
+ *  identity granularity this scheme chose.
+ *
+ *  Display only. `id:` stays canonical and links resolve on the full
+ *  value — this must never be fed back into a lookup.
+ */
+function shortNoteId(id: string | undefined): string {
+  if (!id) return '';
+  const m = /^(CHG-\d{8})-.+/.exec(id);
+  return m ? m[1] : id;
+}

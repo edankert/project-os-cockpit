@@ -714,6 +714,90 @@ details:not([open]) > summary .group-chevron {
 /* The fold's own row (FEAT-0056). Quiet, but never invisible: a fold that
    hides the fact that it hid something is indistinguishable from having
    nothing there. */
+/* The one-line row (TASK-0271), matching the desktop's `.nav-item-line`.
+   `.nav-item` above sets `padding: 8px 14px 10px` and a bottom border —
+   19px of the 33px this removes — so the reset is explicit rather than
+   relying on cascade order. `.nav-line` wraps by default, which would put
+   the full-width title back on a line of its own. */
+/* The context card's count-and-status (TASK-0274), matching the
+   desktop's `.ctx-card-right`. */
+.ctx-card-right {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+.ctx-type-label { display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%; }
+
+/* The roll-up: everything finished, behind one line (TASK-0273). */
+.nav-group.nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
+.nav-rollup-header { padding: 6px 12px; }
+.nav-rollup-label {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.nav-rollup-header:hover .nav-rollup-label { color: var(--text); }
+/* A group header is one line: a phase title can run to 90 characters, and
+   wrapping it restores exactly the space the compaction removed. */
+.nav-group-header { flex-wrap: nowrap; }
+.nav-group-header .group-header-link,
+.nav-group-header > span:not(.nav-group-spacer):not(.nav-group-summary) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-group-summary {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nav-item.nav-item-line {
+  display: block;
+  padding: 3px 8px;
+  border-bottom: 0;
+  border-radius: 4px;
+}
+.nav-item-line .nav-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+}
+.nav-item-line .nav-id { flex: none; font-size: 11px; }
+.nav-item.nav-item-line .nav-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  display: block;
+  -webkit-line-clamp: none;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.nav-item-line .status-chip { flex: none; margin-left: 0; }
+.nav-item-line .nav-subtitle {
+  margin: 1px 0 0;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav-item.nav-more {
   padding: 0;
   background: none;

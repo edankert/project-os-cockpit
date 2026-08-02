@@ -889,6 +889,136 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The one-line row (TASK-0271). Measured against the record column it is
+   copying: 60px -> 27px for identical text. The difference was three
+   second-encodings — the type icon (the ID is already type-coloured by
+   `.ov-typed`), the title's own line, and the icon's gutter.
+
+   `.nav-item` in `cockpit.css` sets `padding: 8px 14px 10px` and a
+   bottom border, which is 19px of the 33px and outranks a bare class
+   here — hence the explicit reset rather than relying on cascade order.
+
+   Named `-line` and not `-compact` because `.nav-item-compact` is the
+   Library's file row, which paints a file icon through ::before. */
+.ws-nav-content .nav-item.nav-item-line,
+#right-pane-content .nav-item.nav-item-line {
+  display: block;
+  padding: 3px 6px;
+  border-bottom: 0;
+  border-radius: 4px;
+}
+.nav-item-line .nav-line {
+  display: flex;
+  /* The existing `.nav-line` wraps, because the two-line row wanted its
+     chips to spill. Here a wrap defeats the whole point: the title takes
+     the full 280px and lands on its own line, which is the second line
+     this row exists to remove (68px measured before this was set). */
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+}
+.nav-item-line .nav-id {
+  flex: none;
+  font-size: 11px;
+}
+.ws-nav-content .nav-item.nav-item-line .nav-title,
+#right-pane-content .nav-item.nav-item-line .nav-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  -webkit-line-clamp: none;
+  word-break: normal;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.nav-item-line .status-chip,
+.nav-item-line .nav-agent-chip { flex: none; margin-left: 0; }
+.nav-item-line .nav-subtitle {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The group head's count-and-status (TASK-0272), sitting where the group
+   status chip used to and reading like the record card's `7 · all
+   accepted`. */
+/* A group header is one line. A phase title can run to 90 characters —
+   PHASE-022's does — and wrapping it puts back exactly the vertical space
+   the compaction removed. */
+.ws-nav-content .nav-group-header {
+  flex-wrap: nowrap;
+}
+.ws-nav-content .group-header-inner {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The context pane's record cards (TASK-0274). A settled card renders
+   closed — which is NOT the filter TASK-0269 removed: it still names the
+   type and says how many. The filter said nothing at all. */
+.right-pane-group.ctx-card > .ctx-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  padding: 3px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.right-pane-group.ctx-card > .ctx-card-head::-webkit-details-marker { display: none; }
+.right-pane-group.ctx-card > .ctx-card-head:hover { color: var(--text-muted); }
+.right-pane-group.ctx-card .ctx-card-right {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+.right-pane-group.ctx-card[open] > .ctx-card-head .ov-chev::before { transform: rotate(90deg); }
+
+/* The roll-up: everything finished, behind one line (TASK-0273). */
+.nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
+.nav-rollup-header {
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-rollup-label {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.nav-rollup-header:hover .nav-rollup-label { color: var(--text-muted); }
+.nav-rollup-body { padding-left: 4px; }
+
+.nav-group-summary {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .ws-nav-content .nav-item.is-active {
   background: var(--accent-soft);
   border-left: 2px solid var(--accent-link);

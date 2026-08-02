@@ -2375,6 +2375,10 @@ interface NavItem {
   subtitle?: string;
   type?: string;
   children?: NavItem[];
+  /** Set by the group when every item shares one status, so the head can
+   *  say it once instead of every row repeating it (TASK-0272). Client
+   *  state, never sent by the server. */
+  chipSuppressed?: boolean;
 }
 
 interface NavGroupData {
@@ -7035,9 +7039,34 @@ function renderWsNav(data: NavPayload): void {
     wsNavContent.appendChild(empty);
     return;
   }
-  let any = false;
+  // TASK-0273: groups still holding open work render normally; everything
+  // finished goes below a divider as ONE expandable line.
+  //
+  // FEAT-0056 made a finished group cost a 53px header plus a 25px fold
+  // row. Eighteen of those is 1400px of chrome describing work nobody is
+  // doing — the folding worked and the headers became the noise. Here 16
+  // finished phases cost one line.
+  //
+  // Nothing is unreachable: two clicks (roll-up, then group) reach any
+  // note, and `openGroupsContaining` opens both automatically when the
+  // active note is inside — which at 99% completion is the normal path,
+  // not an edge.
+  const live: NavGroupData[] = [];
+  const settled: NavGroupData[] = [];
   for (const group of groups) {
+    (groupIsSettled(group.items || []) ? settled : live).push(group);
+  }
+
+  let any = false;
+  for (const group of live) {
     const node = renderNavGroup(group, currentNavMode);
+    if (node) {
+      wsNavContent.appendChild(node);
+      any = true;
+    }
+  }
+  if (settled.length) {
+    const node = renderSettledRollup(settled, currentNavMode);
     if (node) {
       wsNavContent.appendChild(node);
       any = true;
@@ -7213,20 +7242,54 @@ function navItem(item: NavItem): HTMLLIElement {
   if (item.type) li.dataset.type = String(item.type);
   if (item.status) li.dataset.status = String(item.status);
 
+  // TASK-0271: one line — `ID  title…  chip` — at the record column's
+  // height. Measured in the running app before and after: 60px to 27px
+  // for identical text.
+  //
+  // The 33px was three things, all of them a second encoding of
+  // something already present:
+  //
+  //   the type ICON      the ID is already type-coloured by `.ov-typed`
+  //   the second LINE    the title, which fits beside the ID
+  //   the icon's GUTTER
+  //
+  // The `li` above keeps every data attribute untouched: `navigateTo`,
+  // `refreshActiveNavRow`, the context menu (`data-note-rel`) and the
+  // status-flash animation all key off them, and none of this is a
+  // change to what a row *is*.
   const card = document.createElement('div');
-  card.className = 'nav-item';
+  // `nav-item-line`, NOT `nav-item-compact`: that class is already taken
+  // by the Library's file rows in `cockpit.css`, where it paints a file
+  // icon via ::before. Reusing it here would have given every feature a
+  // file icon — the collision cost 18px and one wrong glyph before it was
+  // spotted.
+  card.className = 'nav-item nav-item-line';
 
   const line = document.createElement('div');
   line.className = 'nav-line';
-  appendIf(line, typeIcon(item.type));
   if (item.id) {
     const idSpan = document.createElement('span');
-    idSpan.className = 'nav-id mono';
-    idSpan.textContent = item.id;
+    idSpan.className = 'nav-id mono ov-typed';
+    if (item.type) idSpan.dataset.type = String(item.type);
+    // Display handle only — `data-id` on the `li` keeps the full
+    // value, and every lookup goes through that (ISS-0084).
+    idSpan.textContent = shortNoteId(item.id);
+    idSpan.title = item.id;
     line.appendChild(idSpan);
   }
-  line.appendChild(navLineSpacer());
-  // Agent chip (TASK-0164): a live session is touching this note.
+  if (item.title) {
+    const titleEl = document.createElement('span');
+    titleEl.className = 'nav-title';
+    titleEl.textContent = item.title;
+    titleEl.title = item.title;
+    line.appendChild(titleEl);
+  } else {
+    line.appendChild(navLineSpacer());
+  }
+  // Agent chip (TASK-0164): a live session is touching this note. Kept
+  // through the compaction deliberately — it is the one thing on the row
+  // that is not derivable from the note, and the reason to be looking at
+  // the pane at all.
   if (item.id && sessionTouchedIds.has(item.id)) {
     const chip = document.createElement('span');
     chip.className = 'nav-agent-chip';
@@ -7234,16 +7297,11 @@ function navItem(item: NavItem): HTMLLIElement {
     chip.title = 'A live agent session is working on this';
     line.appendChild(chip);
   }
-  appendIf(line, statusChip(item.status));
+  // Suppressed when the whole group shares one status — the head says it
+  // once instead (TASK-0272).
+  if (!item.chipSuppressed) appendIf(line, statusChip(item.status));
   card.appendChild(line);
 
-  if (item.title) {
-    const titleEl = document.createElement('p');
-    titleEl.className = 'nav-title';
-    titleEl.textContent = item.title;
-    titleEl.title = item.title;
-    card.appendChild(titleEl);
-  }
   if (item.subtitle) {
     const sub = document.createElement('p');
     sub.className = 'nav-subtitle';
@@ -7286,7 +7344,10 @@ function navItemStacked(item: NavItem): HTMLLIElement {
   if (item.id) {
     const idSpan = document.createElement('span');
     idSpan.className = 'nav-id mono';
-    idSpan.textContent = item.id;
+    // Display handle only — `data-id` on the `li` keeps the full
+    // value, and every lookup goes through that (ISS-0084).
+    idSpan.textContent = shortNoteId(item.id);
+    idSpan.title = item.id;
     line.appendChild(idSpan);
   }
   line.appendChild(navLineSpacer());
@@ -7360,7 +7421,10 @@ function navItemNested(item: NavItem): HTMLLIElement {
   if (item.id) {
     const idSpan = document.createElement('span');
     idSpan.className = 'nav-id mono';
-    idSpan.textContent = item.id;
+    // Display handle only — `data-id` on the `li` keeps the full
+    // value, and every lookup goes through that (ISS-0084).
+    idSpan.textContent = shortNoteId(item.id);
+    idSpan.title = item.id;
     line.appendChild(idSpan);
   }
   line.appendChild(navLineSpacer());
@@ -7419,6 +7483,59 @@ function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
 
 // ----- Group + left-pane assembly
 
+/** Nouns for the roll-up line, per mode.
+ *
+ *  "16 finished phases · 53 features" reads; "16 finished groups · 53
+ *  items" does not, and the whole value of one line is that it says what
+ *  is behind it. */
+const ROLLUP_NOUNS: Record<string, { group: [string, string]; item: [string, string] }> = {
+  features: { group: ['phase', 'phases'], item: ['feature', 'features'] },
+  tasks:    { group: ['bucket', 'buckets'], item: ['task', 'tasks'] },
+  issues:   { group: ['bucket', 'buckets'], item: ['issue', 'issues'] },
+};
+
+function plural(n: number, pair: [string, string]): string {
+  return `${n} ${n === 1 ? pair[0] : pair[1]}`;
+}
+
+/** Everything finished, behind one line (TASK-0273). */
+function renderSettledRollup(
+  groups: NavGroupData[], mode: NavMode,
+): HTMLElement | null {
+  if (!groups.length) return null;
+  const items = groups.reduce((n, g) => n + (g.items || []).length, 0);
+  const nouns = ROLLUP_NOUNS[mode]
+    || { group: ['group', 'groups'] as [string, string], item: ['item', 'items'] as [string, string] };
+
+  const details = document.createElement('details');
+  details.className = 'nav-group nav-rollup';
+  const summary = document.createElement('summary');
+  summary.className = 'nav-group-header nav-rollup-header';
+  const chevron = document.createElement('span');
+  chevron.className = 'group-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+  summary.appendChild(chevron);
+  const label = document.createElement('span');
+  label.className = 'nav-rollup-label';
+  // The counts are never optional. A roll-up that does not say how much
+  // it rolled up is indistinguishable from an empty pane — the exact
+  // failure FEAT-0056 exists to have fixed.
+  const g = groups.length;
+  label.textContent =
+    `${g} finished ${g === 1 ? nouns.group[0] : nouns.group[1]} · ${plural(items, nouns.item)}`;
+  summary.appendChild(label);
+  details.appendChild(summary);
+
+  const body = document.createElement('div');
+  body.className = 'nav-rollup-body';
+  for (const g of groups) {
+    const node = renderNavGroup(g, mode);
+    if (node) body.appendChild(node);
+  }
+  details.appendChild(body);
+  return details;
+}
+
 function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null {
   // TASK-0270: the switch COLLAPSES rather than hides.
   //
@@ -7442,7 +7559,11 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // The tasks pane is where volume actually bites (270 rows across five
   // status buckets, 261 of them in one); the switch is where meaning does.
   const folded = foldGroup(group.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
-  const visibleItems = folded.head;
+  // When the head says the status, the rows must not repeat it.
+  const chipSuppressed = uniformStatus(group.items || []) !== null;
+  const visibleItems = folded.head.map(
+    (it) => (chipSuppressed ? { ...it, chipSuppressed: true } : it),
+  );
   const visibleSubgroups: HTMLElement[] = [];
   for (const sub of group.subgroups || []) {
     const node = renderNavGroup(sub, mode);
@@ -7474,10 +7595,24 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   labelSpan.textContent = group.label || group.key || '';
   inner.appendChild(labelSpan);
   summary.appendChild(inner);
-  if (group.status) {
-    const sp = document.createElement('span');
-    sp.className = 'nav-group-spacer';
-    summary.appendChild(sp);
+  const sp = document.createElement('span');
+  sp.className = 'nav-group-spacer';
+  summary.appendChild(sp);
+  // TASK-0272: the head carries the count, and the status when every item
+  // shares one — `PHASE-007 · Agent instrumentation · 19 · done`. This is
+  // the record column's own move: its DECISIONS card says "7 · all
+  // accepted" once rather than printing "accepted" on seven rows.
+  const summaryText = groupHeadSummary(group.items || []);
+  if (summaryText) {
+    const cnt = document.createElement('span');
+    cnt.className = 'nav-group-summary';
+    cnt.textContent = summaryText;
+    summary.appendChild(cnt);
+  }
+  // The group's OWN status (a phase's `active`/`done`) is a different fact
+  // from its items' — a done phase can hold an open issue — so it is still
+  // shown, and only suppressed when it would restate the item summary.
+  if (group.status && !summaryText.endsWith(`· ${group.status}`)) {
     appendIf(summary, statusChip(group.status));
   }
   details.appendChild(summary);
@@ -7505,7 +7640,9 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
       // Reveal in place. Deliberately NOT a state change on
       // `hideCompleted`: expanding one group must not silently flip a
       // preference that governs every other group on the surface.
-      const all = openFirst(group.items || []);
+      const all = openFirst(group.items || []).map(
+        (it) => (chipSuppressed ? { ...it, chipSuppressed: true } : it),
+      );
       ul.replaceChildren(...all.map((item) => renderItem(item)));
     });
     li.appendChild(btn);
@@ -7787,17 +7924,48 @@ function renderContextGroup(group: ContextGroup): HTMLElement | null {
   const folded = contextGroupRows(group.items || [], CONTEXT_GROUP_FOLD_LIMIT);
   const visible = folded.head;
   if (visible.length === 0 && folded.hidden === 0) return null;
-  const div = document.createElement('div');
-  div.className = 'right-pane-group';
-  const h = document.createElement('h3');
-  h.textContent = pluralizeType(group.type) || '';
+  // TASK-0274: a record card — a head naming the type with its count and
+  // status, and a body that is CLOSED when every item in it is terminal.
+  //
+  // Closing a body is not filtering, and the distinction is the whole
+  // reason this is allowed where TASK-0269's filter was not: a closed
+  // card still says the relationship exists, what type it is, and how
+  // many. The filter said nothing at all — FEAT-0051's pane rendered
+  // empty. The structural guarantee is unchanged above: `contextGroupRows`
+  // has no parameter with which to filter, so a disclosure default cannot
+  // quietly become one.
+  const items = group.items || [];
+  const settled = groupIsSettled(items);
+  const div = document.createElement('details');
+  div.className = 'right-pane-group ctx-card';
+  div.open = !settled;
+  const h = document.createElement('summary');
+  h.className = 'ctx-card-head';
+  const chev = document.createElement('span');
+  chev.className = 'ov-chev';
+  chev.setAttribute('aria-hidden', 'true');
+  const name = document.createElement('span');
+  name.textContent = pluralizeType(group.type) || '';
+  h.append(chev, name);
+  const summaryText = groupHeadSummary(items);
+  if (summaryText) {
+    const cnt = document.createElement('span');
+    cnt.className = 'ctx-card-right';
+    // `5 · done` when uniform, `6 · 5 done` when mixed — the record
+    // column's own `7 · all accepted` move (TASK-0272).
+    cnt.textContent = summaryText;
+    h.appendChild(cnt);
+  }
   div.appendChild(h);
+  const chipSuppressed = uniformStatus(items) !== null;
   const ul = document.createElement('ul');
   ul.className = 'nav-items';
   for (const item of visible) {
-    // Inject type from the group so type-icon renders even when the
-    // server didn't echo it onto each item.
-    const enriched: NavItem = { ...item, type: item.type || group.type };
+    // Inject type from the group so the ID's type colour resolves even
+    // when the server didn't echo it onto each item.
+    const enriched: NavItem = {
+      ...item, type: item.type || group.type, chipSuppressed,
+    };
     ul.appendChild(navItem(enriched));
   }
   if (folded.hidden > 0) {
@@ -7811,7 +7979,8 @@ function renderContextGroup(group: ContextGroup): HTMLElement | null {
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       const all = openFirst(group.items || []);
-      ul.replaceChildren(...all.map((it) => navItem({ ...it, type: it.type || group.type })));
+      ul.replaceChildren(...all.map(
+        (it) => navItem({ ...it, type: it.type || group.type, chipSuppressed })));
     });
     li.appendChild(btn);
     ul.appendChild(li);
@@ -7833,13 +8002,42 @@ function pluralizeType(t: string | undefined): string {
   return map[t] || t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+/** Open every collapsed ancestor of the active row (TASK-0273).
+ *
+ *  `refreshActiveNavRow` sets `is-active` on whichever `li` matches
+ *  `data-rel`. A row inside a closed `<details>` is in the DOM and
+ *  matches — so without this the pane would highlight a row nobody can
+ *  see, and show no selection at all while claiming one.
+ *
+ *  Navigating to a finished note is not the rare case: 99% of the corpus
+ *  is finished, so this is the normal path.
+ */
+function openGroupsContaining(li: Element): void {
+  let node: Element | null = li.parentElement;
+  while (node && node !== wsNavContent) {
+    if (node instanceof HTMLDetailsElement) node.open = true;
+    node = node.parentElement;
+  }
+}
+
 function refreshActiveNavRow(): void {
   // Drop any prior is-active, then add it to the row matching
   // `currentRel`. Stripping the fragment so #anchor nav doesn't
   // de-highlight the parent doc.
   const rel = currentRel ? stripFragment(currentRel) : null;
-  wsNavContent.querySelectorAll<HTMLLIElement>('li.nav-item').forEach((li) => {
-    li.classList.toggle('is-active', !!rel && li.dataset.rel === rel);
+  // ISS-0083: this selected `li.nav-item`, but `navItem` puts that class
+  // on the DIV inside the `li` — so it matched no navigable row and the
+  // highlight never appeared. Measured at f5e6637: 112 rows carrying
+  // `data-rel`, `is-active` on zero of them after navigating to one.
+  //
+  // The stylesheet was right all along (`.nav-item.is-active` targets the
+  // div); only the selector was wrong. The `li` stays the handle for
+  // walking up to the enclosing `<details>`.
+  wsNavContent.querySelectorAll<HTMLLIElement>('li[data-rel]').forEach((li) => {
+    const isActive = !!rel && li.dataset.rel === rel;
+    const card = li.querySelector('.nav-item');
+    if (card) card.classList.toggle('is-active', isActive);
+    if (isActive) openGroupsContaining(li);
   });
 }
 
@@ -8498,7 +8696,10 @@ function renderQuickResults(): void {
     line1.className = 'qs-line-1';
     const idSpan = document.createElement('span');
     idSpan.className = 'qs-id';
-    idSpan.textContent = item.id;
+    // Display handle only — `data-id` on the `li` keeps the full
+    // value, and every lookup goes through that (ISS-0084).
+    idSpan.textContent = shortNoteId(item.id);
+    idSpan.title = item.id;
     line1.appendChild(idSpan);
     const titleSpan = document.createElement('span');
     titleSpan.className = 'qs-title';

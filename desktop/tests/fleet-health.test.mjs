@@ -942,7 +942,8 @@ before(async () => {
   const src = await fs.readFile(
     path.join(here, '..', 'dist', 'renderer', 'completed-work.js'), 'utf-8');
   cw = new Function(`${src}
-    return { openFirst, groupIsSettled, foldGroup, completionRank, contextGroupRows };`)();
+    return { openFirst, groupIsSettled, foldGroup, completionRank, contextGroupRows,
+             uniformStatus, groupHeadSummary, shortNoteId };`)();
 });
 
 test('open work sorts above completed work', () => {
@@ -1104,4 +1105,65 @@ test('the invariant holds at limits the constant never produces', () => {
       `rows lost at limit=${limit}`);
     assert.ok(r.hidden >= 0 && r.head.length >= 0, `negative counts at limit=${limit}`);
   }
+});
+
+// ---- the record grammar (FEAT-0057) ----------------------------------
+
+test('a status-uniform group reports its status for the head', () => {
+  // The record column's own move: the DECISIONS card says "7 · all
+  // accepted" once rather than printing "accepted" on seven rows.
+  assert.equal(cw.uniformStatus([{ status: 'done' }, { status: 'done' }]), 'done');
+  assert.equal(cw.uniformStatus([{ status: 'DONE' }, { status: 'done' }]), 'done',
+    'status comparison must be case-insensitive');
+});
+
+test('a mixed group reports null, so its rows keep their chips', () => {
+  // Repeat a fact per-row only when it VARIES per-row. Here it varies, so
+  // the chip is the only thing telling two rows apart.
+  assert.equal(cw.uniformStatus([{ status: 'done' }, { status: 'open' }]), null);
+  assert.equal(cw.uniformStatus([]), null);
+  assert.equal(cw.uniformStatus([{}, {}]), null, 'no status at all is not a uniform status');
+});
+
+test('the head summary counts, and names the status only when uniform', () => {
+  assert.equal(cw.groupHeadSummary([{ status: 'done' }, { status: 'done' }]), '2 · done');
+  assert.equal(cw.groupHeadSummary([{ status: 'done' }, { status: 'open' }]), '2 · 1 done');
+  assert.equal(cw.groupHeadSummary([{ status: 'open' }, { status: 'doing' }]), '2');
+  assert.equal(cw.groupHeadSummary([]), '');
+});
+
+test('the head summary never loses the count', () => {
+  // The count is the part that must always survive: it is what makes a
+  // closed group distinguishable from an empty one.
+  for (const items of [
+    [{ status: 'done' }],
+    [{ status: 'done' }, { status: 'open' }],
+    [{}, {}, {}],
+    Array.from({ length: 261 }, () => ({ status: 'done' })),
+  ]) {
+    const s = cw.groupHeadSummary(items);
+    assert.ok(s.startsWith(String(items.length)),
+      `summary "${s}" does not lead with the count ${items.length}`);
+  }
+});
+
+test('a change id shortens to its date; every other id is untouched', () => {
+  // ISS-0084. Changes carry CHG-YYYYMMDD-Short-Description, so their id
+  // IS a description and the row printed it twice — at several times the
+  // width of every other id, in a column sized by its widest member.
+  assert.equal(cw.shortNoteId('CHG-20260802-Completed-Work-Collapses'), 'CHG-20260802');
+  for (const id of ['FEAT-0057', 'ISS-0084', 'TST-0023', 'ADR-0013', 'PHASE-022',
+                    'TASK-0271', 'REQ-0012', 'RISK-0004', 'DES-0004']) {
+    assert.equal(cw.shortNoteId(id), id, `${id} must not be rewritten`);
+  }
+});
+
+test('shortening never produces an empty or partial handle', () => {
+  // A handle that shortens to nothing is worse than a long one.
+  assert.equal(cw.shortNoteId(''), '');
+  assert.equal(cw.shortNoteId(undefined), '');
+  // No trailing description to drop — leave it whole rather than
+  // returning a bare date that no longer looks like an id.
+  assert.equal(cw.shortNoteId('CHG-20260802'), 'CHG-20260802');
+  assert.equal(cw.shortNoteId('CHANGES-README'), 'CHANGES-README');
 });

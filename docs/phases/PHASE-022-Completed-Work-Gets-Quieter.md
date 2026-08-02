@@ -2,7 +2,7 @@
 type: "[[phase]]"
 id: PHASE-022
 aliases: ["PHASE-022"]
-title: "Completed work gets quieter, never absent — ordering first, folding second, and never in the context pane"
+title: "Completed work gets quieter, never absent — ordering, then folding, then the density that makes folding readable"
 status: done
 order: 22
 owner: user:edwin
@@ -11,6 +11,7 @@ updated: 2026-08-02
 goal: "Replace a switch that empties three views and the whole context pane with ordering that puts open work first, and folding applied to volume rather than to meaning."
 features:
   - "[[FEAT-0056-Completed-Work-Ordering]]"
+  - "[[FEAT-0057-The-Record-Grammar]]"
 requirements: []
 issues:
   - "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"
@@ -76,6 +77,7 @@ Each view groups on a different axis — status, severity, phase — and **state
 - [x] No completed item sorts above an open one in the same group — evidence: `test_a_done_feature_with_a_lower_id_still_sorts_below_an_open_one`, on a corpus built so ID order and open-first order disagree. (The first version cited ISS-0082 leading the Medium bucket; ISS-0082 is now `fixed` and sorts to the back, so that expired on close-out too.)
 - [x] The context pane never empties — evidence: FEAT-0051 0 → 9 rows, ISS-0080 0 → 5, measured against the live sidecar
 - [x] Folding is keyed on length, never on state — evidence: `folding is keyed on length, not on status` (50 open items fold at 8)
+- [x] A finished group costs one line, not a header and a fold row — evidence: the features navigator went 1440px → **286px**, sixteen finished phases behind `16 finished phases · 54 features`
 - [x] The switch cannot empty a view — evidence: 0 groups lost across tasks/features/issues with it on; `head + hidden` accounts for every item
 
 ## Notes
@@ -112,3 +114,34 @@ Every group survives in every view; the two context panes that rendered nothing 
 **Both surfaces.** Mode 1 (`static/cockpit.js`) got the same treatment *and* the same guards, rather than the treatment alone.
 
 **Not done:** whether 12 is the right threshold is still one corpus's answer. It folds the four groups that are unreadable here and leaves twenty-six whole; nothing makes it configurable.
+
+
+## Reopened 2026-08-02 — [[FEAT-0057]]
+
+Edwin, on the shipped result: *"it still shows too many done items and too much info, not concise enough… I kinda like the very minimalist new way to present the ADR, TSTs etc FEAT, ISS etc as they are shown in the project overview context."*
+
+[[FEAT-0056]] fixed **what** was shown. It did not touch **how densely**, and at this density the fix is hard to see: measured in the running app, a nav row is **60px** against the record column's **27px** for identical text, and a nav group header is **53px** against a record card head's **15px**. The features view renders eighteen 53px headers whether or not anything in them is live — so after all that folding, the headers *became* the noise.
+
+That is a density problem, not an ordering one, and it is why the phase reopened rather than a new one being minted: the goal sentence is unchanged.
+
+Standing-phase behaviour, working as documented in CLAUDE.md — set back to `active`, take the work, close it again.
+
+
+## Closed again 2026-08-02 — [[FEAT-0057]]
+
+Measured in the running app, this repo's workspace:
+
+| | before | after |
+|---|---|---|
+| nav row | 60px | **27px** |
+| group header | 53px | 29–42px, one line, ellipsised |
+| features navigator | ~1440px | **286px** — 2 live groups + one roll-up line |
+| tasks navigator | — | **490px** |
+| context pane, FEAT-0051 | 9 rows always open | **4 closed cards**: `TASKS 5 · done` … |
+
+**Two bugs found on the way, both pre-existing and both filed:**
+
+- **[[ISS-0083]]** — `refreshActiveNavRow` selected `li.nav-item` while `navItem` puts that class on the div inside the `li`. It matched nothing, so the navigator has never highlighted the open note. Measured at `f5e6637`: 112 rows, `is-active` on zero. It surfaced because [[TASK-0273]] needs the active row in order to open the group holding it — a decorative no-op became a functional one.
+- **[[ISS-0084]]** — Edwin, looking at the new rows: *"Why are the change notes shown with the full file name?"* A change note's `id:` **is** its description (`CHG-YYYYMMDD-Short-Description`, LIFECYCLE.md line 95), so a row printed the description twice at five times the width of every other ID. Invisible while the ID had its own line; expensive the moment [[TASK-0271]] put ID and title on one. **A layout change made an existing inconsistency costly** — the scheme was not wrong before and is not wrong now, it just stopped being free.
+
+**What did not change:** [[TASK-0269]]'s rule. `contextGroupRows` still takes no collapse parameter, and its guards pass untouched — a closed card still names the type and its count, where the old filter rendered nothing at all. That distinction is the reason a disclosure default is allowed where a filter was not.

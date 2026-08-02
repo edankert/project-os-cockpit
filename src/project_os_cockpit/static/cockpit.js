@@ -305,6 +305,48 @@
   // 52/18/11/2/1/1/1, features 19/10/5/3/2/2/2/2/2 then nine 1s. A clean
   // cliff — twelve folds the four that are unreadable (261, 52, 19, 18)
   // and leaves the other twenty-six whole.
+  // What a group's head should say about its items' status (TASK-0272).
+  // null means "the statuses vary — leave the per-row chips alone". The
+  // rule: repeat a fact per-row only when it varies per-row.
+  function uniformStatus(items) {
+    if (!items || !items.length) return null;
+    var first = String(items[0].status || "").toLowerCase();
+    if (!first) return null;
+    for (var i = 0; i < items.length; i++) {
+      if (String(items[i].status || "").toLowerCase() !== first) return null;
+    }
+    return first;
+  }
+
+  // The short handle for a note ID (ISS-0084). Changes carry
+  // CHG-YYYYMMDD-Short-Description, so their id IS a description and a
+  // row printed it twice — at several times the width of every other ID,
+  // in a column whose width is set by its widest member. Display only;
+  // never feed this back into a lookup.
+  function shortNoteId(id) {
+    if (!id) return "";
+    var m = /^(CHG-\d{8})-.+/.exec(String(id));
+    return m ? m[1] : String(id);
+  }
+
+  // True when the head summary already ends in `· <status>`, so showing
+  // the group's own chip would restate it.
+  function endsWithStatus(summary, status) {
+    var suffix = "\u00b7 " + status;
+    return summary.slice(-suffix.length) === suffix;
+  }
+
+  // `19 · done`, `6 · 5 done`, or just `4`.
+  function groupHeadSummary(items) {
+    var n = items ? items.length : 0;
+    if (!n) return "";
+    var uniform = uniformStatus(items);
+    if (uniform) return n + " \u00b7 " + uniform;
+    var done = 0;
+    for (var i = 0; i < n; i++) if (completionRank(items[i]) === 1) done++;
+    return done ? n + " \u00b7 " + done + " done" : String(n);
+  }
+
   // The context pane's rows: ordered, folded on length, NEVER on state.
   // Takes no `collapse` argument on purpose — review reverted the caller
   // from `false` to `hideCompleted` in one character with every test
@@ -1278,21 +1320,33 @@
   //   row 3: [subtitle] when present (goal / parent · effort / type · date / ...)
   // Optional children render as a sibling collapsible <details> below the
   // card — used for nested requirements under features.
+  // TASK-0271: one line — `ID  title…  chip` — at the record column's
+  // height. Measured in the running desktop before and after: 60px to
+  // 27px for identical text. The 33px was three second-encodings: the
+  // type icon (the ID is already type-coloured), the title's own line,
+  // and the icon's gutter.
+  //
+  // `nav-item-line`, NOT `nav-item-compact` — that class already exists
+  // in this stylesheet as the Library's file row and paints a file icon
+  // through ::before.
   function navItem(item) {
-    var topLine = el("div", { class: "nav-line" }, [
-      typeIcon(item.type),
-      item.id
-        ? el("span", { class: "nav-id mono", text: item.id, title: item.id })
-        : null,
-      el("span", { class: "nav-line-spacer" }),
-    ].concat(itemBadges(item), [statusChip(item.status)]));
-    var titleNode = item.title
-      ? el("p", {
-          class: "nav-title",
-          text: item.title,
-          title: item.title,
+    var idNode = item.id
+      ? el("span", {
+          // Display handle only — the anchor's href carries the real
+          // target, and every lookup goes through that (ISS-0084).
+          class: "nav-id mono ov-typed", text: shortNoteId(item.id),
+          title: item.id, "data-type": item.type || null,
         })
       : null;
+    var titleNode = item.title
+      ? el("span", { class: "nav-title", text: item.title, title: item.title })
+      : el("span", { class: "nav-line-spacer" });
+    // The chip is suppressed when the whole group shares one status; the
+    // head says it once instead (TASK-0272).
+    var tail = itemBadges(item).concat(
+      item.chipSuppressed ? [] : [statusChip(item.status)]);
+    var topLine = el("div", { class: "nav-line" },
+      [idNode, titleNode].concat(tail));
     var subtitleNode = item.subtitle
       ? el("p", {
           class: "nav-subtitle",
@@ -1301,9 +1355,9 @@
         })
       : null;
     var card = el("a", {
-      class: "nav-item" + (item.url === active.url ? " is-active" : ""),
+      class: "nav-item nav-item-line" + (item.url === active.url ? " is-active" : ""),
       href: item.url,
-    }, [topLine, titleNode, subtitleNode]);
+    }, [topLine, subtitleNode]);
     var childrenNode = (item.children && item.children.length)
       ? renderItemChildren(item)
       : null;
@@ -1441,7 +1495,10 @@
 
   function renderSubgroup(group, mode, depth) {
     var folded = foldGroup(group.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
-    var visibleItems = folded.head;
+    var subUniform = uniformStatus(group.items || []) !== null;
+    var visibleItems = folded.head.map(function (it) {
+      return subUniform ? Object.assign({}, it, { chipSuppressed: true }) : it;
+    });
     var childNodes = renderSubgroups(group, mode, depth + 1);
     // A collapsed group cuts to zero rows and is still a group — the
     // header and the count keep it visible.
@@ -1475,6 +1532,17 @@
     return node;
   }
 
+  // Nouns for the roll-up line. "16 finished phases · 54 features" reads;
+  // "16 finished groups · 54 items" does not, and saying what is behind
+  // the line is the whole value of collapsing to one.
+  var ROLLUP_NOUNS = {
+    features: { group: ["phase", "phases"], item: ["feature", "features"] },
+    tasks:    { group: ["bucket", "buckets"], item: ["task", "tasks"] },
+    issues:   { group: ["bucket", "buckets"], item: ["issue", "issues"] },
+    _default: { group: ["group", "groups"], item: ["item", "items"] },
+  };
+  function plural(n, pair) { return n === 1 ? pair[0] : pair[1]; }
+
   function renderLeftPane(payload) {
     var groups = (payload && payload.groups) || [];
     var mode = (payload && payload.mode) || navMode;
@@ -1489,10 +1557,24 @@
       return;
     }
 
-    var anyVisible = false;
+    // TASK-0273: groups still holding open work render normally; every
+    // finished one goes below a divider as ONE expandable line. Sixteen
+    // finished phases cost 53px of header each before this.
+    var liveGroups = [], settledGroups = [];
     groups.forEach(function (g) {
+      (groupIsSettled(g.items || []) ? settledGroups : liveGroups).push(g);
+    });
+    var rollupFrag = settledGroups.length ? document.createDocumentFragment() : null;
+
+    var anyVisible = false;
+    liveGroups.concat(settledGroups).forEach(function (g) {
+      var intoRollup = settledGroups.indexOf(g) !== -1;
       var folded = foldGroup(g.items || [], NAV_GROUP_FOLD_LIMIT, hideCompleted);
-      var visibleItems = folded.head;
+      // When the head says the status once, the rows must not repeat it.
+      var gUniform = uniformStatus(g.items || []) !== null;
+      var visibleItems = folded.head.map(function (it) {
+        return gUniform ? Object.assign({}, it, { chipSuppressed: true }) : it;
+      });
       var subgroupNodes = renderSubgroups(g, mode);
       if (!visibleItems.length && !subgroupNodes.length && !folded.hidden) return;
       anyVisible = true;
@@ -1507,8 +1589,17 @@
           })
         : el("span", { text: label });
       var headerChildren = [groupIcon(mode, g), titleNode];
-      if (g.status) {
-        headerChildren.push(el("span", { class: "nav-group-spacer" }));
+      headerChildren.push(el("span", { class: "nav-group-spacer" }));
+      // The head carries the count, and the status when every item shares
+      // one (TASK-0272) — the record card's `7 · all accepted` move.
+      var gSummary = groupHeadSummary(g.items || []);
+      if (gSummary) {
+        headerChildren.push(el("span", { class: "nav-group-summary", text: gSummary }));
+      }
+      // A group's OWN status is a different fact from its items' — a done
+      // phase can hold an open issue — so it survives unless it would
+      // restate the summary.
+      if (g.status && !endsWithStatus(gSummary, g.status)) {
         headerChildren.push(statusChip(g.status));
       }
 
@@ -1522,7 +1613,7 @@
 
       var sectionExtra = g.item_layout ? " nav-group-" + g.item_layout : "";
       var key = "nav:" + mode + ":" + (g.key || label || "unkeyed");
-      frag.appendChild(collapsibleGroup({
+      (intoRollup ? rollupFrag : frag).appendChild(collapsibleGroup({
         key: key,
         sectionClass: "nav-group" + sectionExtra,
         headerClass: "nav-group-header",
@@ -1530,6 +1621,27 @@
         bodyChildren: bodyChildren,
       }));
     });
+
+    if (rollupFrag) {
+      var nItems = 0;
+      settledGroups.forEach(function (g) { nItems += (g.items || []).length; });
+      var nouns = ROLLUP_NOUNS[mode] || ROLLUP_NOUNS._default;
+      // The counts are never optional: a roll-up that does not say how
+      // much it rolled up is indistinguishable from an empty pane.
+      frag.appendChild(collapsibleGroup({
+        key: "nav:" + mode + ":__settled",
+        sectionClass: "nav-group nav-rollup",
+        headerClass: "nav-group-header nav-rollup-header",
+        headerChildren: [el("span", {
+          class: "nav-rollup-label",
+          text: settledGroups.length + " finished "
+              + plural(settledGroups.length, nouns.group) + " \u00b7 "
+              + nItems + " " + plural(nItems, nouns.item),
+        })],
+        bodyChildren: [rollupFrag],
+      }));
+      anyVisible = true;
+    }
 
     if (!anyVisible) {
       // Since FEAT-0056 a group folds but never disappears, so this can
@@ -1656,8 +1768,13 @@
       // context groups exceed the limit and the largest real one is 79.
       var foldedLinked = contextGroupRows(g.linked, NAV_GROUP_FOLD_LIMIT);
       var foldedInbound = contextGroupRows(g.inbound, NAV_GROUP_FOLD_LIMIT);
-      var visibleLinked = foldedLinked.head;
-      var visibleInbound = foldedInbound.head;
+      var ctxUniform = uniformStatus(
+        (g.linked || []).concat(g.inbound || [])) !== null;
+      var suppress = function (it) {
+        return ctxUniform ? Object.assign({}, it, { chipSuppressed: true }) : it;
+      };
+      var visibleLinked = foldedLinked.head.map(suppress);
+      var visibleInbound = foldedInbound.head.map(suppress);
       if (!visibleLinked.length && !visibleInbound.length
           && !foldedLinked.hidden && !foldedInbound.hidden) return;
       any = true;
@@ -1689,6 +1806,19 @@
       visibleInbound.forEach(function (item) { list.appendChild(ctxItem(item, "inbound")); });
       appendCtxMoreRow(list, foldedInbound, g.inbound, "inbound");
 
+      // TASK-0274: the card head carries the count and, when uniform, the
+      // status; a card whose every link is terminal starts CLOSED.
+      //
+      // Closing a body is not filtering, and that distinction is why this
+      // is allowed where the old filter was not: a closed card still says
+      // the relationship exists, its type and how many. The filter said
+      // nothing at all. `contextGroupRows` still has no parameter to
+      // filter with.
+      var allItems = (g.linked || []).concat(g.inbound || []);
+      var ctxSummary = groupHeadSummary(allItems);
+      if (ctxSummary) {
+        typeLabel.appendChild(el("span", { class: "ctx-card-right", text: ctxSummary }));
+      }
       var key = "ctx:" + (typeName || "_untyped");
       container.appendChild(collapsibleGroup({
         key: key,
@@ -1696,6 +1826,7 @@
         headerClass: "ctx-group-header",
         headerChildren: [typeLabel],
         bodyChildren: [list],
+        defaultOpen: !groupIsSettled(allItems),
       }));
     });
     return any;

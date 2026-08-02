@@ -637,3 +637,104 @@ def test_mode1_context_pane_still_folds_on_length() -> None:
         "var r = contextGroupRows(many, 12); return [r.head.length, r.hidden];"
     )
     assert got == [12, 67], got
+
+
+# ---------------------------------------------------------------------------
+# FEAT-0057 — the record grammar, on mode 1's twin
+# ---------------------------------------------------------------------------
+
+
+def test_mode1_uniform_status_matches_mode3() -> None:
+    got = _run_mode1(
+        "return [uniformStatus([{status:'done'},{status:'done'}]),"
+        " uniformStatus([{status:'DONE'},{status:'done'}]),"
+        " uniformStatus([{status:'done'},{status:'open'}]),"
+        " uniformStatus([]), uniformStatus([{},{}])];"
+    )
+    assert got == ["done", "done", None, None, None], got
+
+
+def test_mode1_head_summary_matches_mode3() -> None:
+    got = _run_mode1(
+        "return [groupHeadSummary([{status:'done'},{status:'done'}]),"
+        " groupHeadSummary([{status:'done'},{status:'open'}]),"
+        " groupHeadSummary([{status:'open'},{status:'doing'}]),"
+        " groupHeadSummary([])];"
+    )
+    assert got == ["2 · done", "2 · 1 done", "2", ""], got
+
+
+def test_mode1_head_summary_always_leads_with_the_count() -> None:
+    """The count is what makes a closed group distinguishable from an
+    empty one — the failure FEAT-0056 exists to have fixed."""
+    got = _run_mode1(
+        "var shapes=[[{status:'done'}],[{status:'done'},{status:'open'}],"
+        "[{},{},{}],Array.from({length:261},function(){return {status:'done'};})];"
+        "return shapes.map(function(s){"
+        "  return groupHeadSummary(s).indexOf(String(s.length))===0;});"
+    )
+    assert got == [True, True, True, True], got
+
+
+def test_the_two_surfaces_agree_on_the_rollup_nouns() -> None:
+    """`16 finished phases · 54 features` reads; `16 finished groups · 54
+    items` does not, and saying what is behind the line is the whole value
+    of collapsing to one.
+
+    Both surfaces hand-write this table, which is the shape that drifted
+    twice already in this phase.
+    """
+    ts = (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    m = re.search(r"const ROLLUP_NOUNS[^=]*= \{(.*?)\n\};", ts, re.DOTALL)
+    assert m, "ROLLUP_NOUNS not found in renderer.ts"
+    ts_pairs = set(re.findall(r"'([a-z]+)', '([a-z]+)'", m.group(1)))
+
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    m2 = re.search(r"var ROLLUP_NOUNS = \{(.*?)\n  \};", js, re.DOTALL)
+    assert m2, "ROLLUP_NOUNS not found in cockpit.js"
+    js_pairs = set(re.findall(r'"([a-z]+)", "([a-z]+)"', m2.group(1)))
+
+    assert ts_pairs <= js_pairs, (
+        "the two surfaces disagree on the roll-up nouns; "
+        f"only in renderer.ts: {ts_pairs - js_pairs}"
+    )
+
+
+def test_the_active_row_selector_matches_the_markup() -> None:
+    """ISS-0083 — `refreshActiveNavRow` selected `li.nav-item` while
+    `navItem` puts that class on the DIV inside the `li`, so it matched no
+    navigable row and the highlight never appeared (measured at f5e6637:
+    112 rows, `is-active` on zero of them).
+
+    Guarded by source shape rather than behaviour because the fix is a
+    selector, and a selector that stops matching fails silently — which is
+    exactly how it survived this long.
+    """
+    ts = (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    body = re.search(
+        r"function refreshActiveNavRow\(\): void \{(.*?)\n\}", ts, re.DOTALL
+    )
+    assert body, "refreshActiveNavRow not found"
+    src = body.group(1)
+    assert "li[data-rel]" in src, (
+        "refreshActiveNavRow no longer selects on data-rel — `li.nav-item` "
+        "matches nothing, because navItem puts that class on the inner div"
+    )
+    assert "querySelector('.nav-item')" in src, (
+        "the is-active class must land on the .nav-item div, which is what "
+        "`.ws-nav-content .nav-item.is-active` styles"
+    )
+
+
+def test_mode1_shortens_change_ids_like_mode3() -> None:
+    """ISS-0084, on the hand-written twin."""
+    got = _run_mode1(
+        "return [shortNoteId('CHG-20260802-Completed-Work-Collapses'),"
+        " shortNoteId('FEAT-0057'), shortNoteId('CHG-20260802'),"
+        " shortNoteId('CHANGES-README'), shortNoteId('')];"
+    )
+    assert got == ["CHG-20260802", "FEAT-0057", "CHG-20260802", "CHANGES-README", ""], got
