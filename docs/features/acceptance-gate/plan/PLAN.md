@@ -10,4 +10,8 @@ parent: "[[FEAT-0064-The-Acceptance-Gate]]"
 
 # Plan
 
-Tasks minted at pickup: (1) the field + template + taxonomy entry; (2) the desk queue section; (3) the ACCEPT-STALE warning; (4) the upstream proposal note.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0291]]** — acceptance: in template and taxonomy, divergence recorded
+2. **[[TASK-0292]]** — Awaiting your acceptance, first
+3. **[[TASK-0293]]** — the warning, and the convention filed with project-os

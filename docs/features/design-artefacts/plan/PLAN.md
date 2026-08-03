@@ -10,4 +10,8 @@ parent: "[[FEAT-0067-Designs-Render-Their-Artefacts]]"
 
 # Plan
 
-Tasks at pickup: (1) variant parse + sandboxed render with token injection; (2) the side-by-side layout; (3) Choose → chosen_variant + ADR scaffold as proposal.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0300]]** — fenced html, sandboxed, token-true
+2. **[[TASK-0301]]** — variants beside each other
+3. **[[TASK-0302]]** — chosen_variant, the ADR as a proposal

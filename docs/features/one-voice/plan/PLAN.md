@@ -10,4 +10,9 @@ parent: "[[FEAT-0073-One-Voice]]"
 
 # Plan
 
-Tasks at pickup: (1) the empty-state sweep; (2) toggle telemetry check → retire or defend in DES-0002; (3) the exceptions section in DES-0002; (4) the mode-1 ADR, authored with the drift record.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0318]]** — one sentence pattern, guarded
+2. **[[TASK-0319]]** — retired or defended in DES-0002
+3. **[[TASK-0320]]** — reasoning inherited, not just appearance
+4. **[[TASK-0321]]** — decided once, with the drift record as evidence

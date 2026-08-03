@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0008-The-Returning-Human]]"]
 goal: "An UNRELEASED record card counting features done since the last REL note; Draft-release scaffolds the REL from them as a draft for the actuator row; the REL note view surfaces the acceptance-tests template's own release gate."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0315-The-Unreleased-Card]]"
+  - "[[TASK-0316-Draft-Release]]"
+  - "[[TASK-0317-The-Gate-Band]]"
 release: ""
 related: ["[[FEAT-0064-The-Acceptance-Gate]]"]
 tests: []

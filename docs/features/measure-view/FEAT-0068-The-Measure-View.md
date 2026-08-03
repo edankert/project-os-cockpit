@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0007-The-Bench-Closes-The-Loop]]"]
 goal: "Pick two panes — bench artefacts or the cockpit's own surfaces — pick an element in each, and read the differences as a table: box, font, colour, named and highlighted, copyable in the shape PHASE-022's issue notes used."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0303-The-Probe-Over-Artefacts]]"
+  - "[[TASK-0304-The-Probe-Into-Own-Surfaces]]"
+  - "[[TASK-0305-The-Diff-Table]]"
 release: ""
 related: ["[[DES-0002-Cockpit-Design-System]]"]
 tests: []

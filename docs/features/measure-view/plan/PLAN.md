@@ -10,4 +10,8 @@ parent: "[[FEAT-0068-The-Measure-View]]"
 
 # Plan
 
-Tasks at pickup: (1) the probe (element pick, style harvest) over artefact iframes; (2) the same probe injected into own surfaces; (3) the diff table + copy-as-markdown.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0303]]** — pick and harvest
+2. **[[TASK-0304]]** — the by-hand CDP loop made a feature
+3. **[[TASK-0305]]** — differences named, copyable as markdown

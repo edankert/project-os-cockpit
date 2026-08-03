@@ -10,9 +10,9 @@ parent: "[[FEAT-0063-The-Acceptance-Runner]]"
 
 # Plan
 
-Tasks minted when the feature is picked up (PHASE-023's verbs must exist first). The steps:
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
 
-1. The criteria payload: a feature's requirements' criteria, resolved states, one endpoint.
-2. The runner surface on the desk: one criterion at a time, four verbs (pass / fail→issue / reconcile / attach), progress named.
-3. `stamp_acceptance`: the run log into the feature note; `accepted_by`/`accepted_date` when complete and requested.
-4. The desk queue entry and its resolution through `review-resolve`.
+1. **[[TASK-0287]]** — the endpoint, sharing the validator's parse
+2. **[[TASK-0288]]** — one criterion at a time, four verbs, keyboard-first
+3. **[[TASK-0289]]** — the run log, the witness, the gate's satisfied state
+4. **[[TASK-0290]]** — resumable runs, resolved through review-resolve

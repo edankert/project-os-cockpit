@@ -10,4 +10,8 @@ parent: "[[FEAT-0070-Design-Gating-And-Scaffolding]]"
 
 # Plan
 
-Tasks at pickup: (1) `design:` field + DESIGN-GATE warning; (2) Derive-requirements dispatch; (3) the upstream proposal note; (4) warning→error per ADR-0011 once lived with.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0309]]** — design: and the DESIGN-GATE warning
+2. **[[TASK-0310]]** — an agent drafts, the row approves
+3. **[[TASK-0311]]** — the convention filed with project-os

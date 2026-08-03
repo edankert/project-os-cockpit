@@ -10,4 +10,8 @@ parent: "[[FEAT-0066-Visual-Evidence]]"
 
 # Plan
 
-Tasks at pickup: (1) capture-to-attachments IPC + serving; (2) the attach affordances (runner verdicts, TST runs, note action); (3) the agent-callable endpoint + a CHG carrying its first before/after.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0297]]** — the path convention, serving, committed evidence
+2. **[[TASK-0298]]** — the 📷 where judgments happen
+3. **[[TASK-0299]]** — agents cite pictures; the first before/after CHG

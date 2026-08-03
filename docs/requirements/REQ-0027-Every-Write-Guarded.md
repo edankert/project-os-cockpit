@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0027
 aliases: ["REQ-0027"]
 title: "Every cockpit write is loopback-only, precondition-guarded, format-preserving, and announced"
-status: draft
+status: "approved"
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["[[RISK-0005-The-Write-Surface]]"]
 priority: high
 scope: "All note mutations, present and future — the standing terms of the viewer line's crossing"
@@ -18,6 +18,9 @@ acceptance:
   - "A write touches only its allow-listed fields or its one located line; the rest of the file is byte-identical (round-trip asserted)"
   - "Every applied write fires the SSE event that re-renders its surfaces — no optimistic UI, the file is the truth"
   - "SNAPSHOT.yaml is never written by the cockpit (ADR-0009)"
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 ---
 
 # Every write guarded

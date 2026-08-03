@@ -10,4 +10,8 @@ parent: "[[FEAT-0072-The-Release-Surface]]"
 
 # Plan
 
-Tasks at pickup: (1) the UNRELEASED payload + card; (2) Draft-release scaffold; (3) the gate band on REL notes reading the acceptance-tests suite's unchecked tiers.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0315]]** — done features since the last release
+2. **[[TASK-0316]]** — the scaffold as a draft for the actuator row
+3. **[[TASK-0317]]** — unchecked tiers rendered in the template's own words

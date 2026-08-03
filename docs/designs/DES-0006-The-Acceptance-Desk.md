@@ -4,19 +4,19 @@ id: DES-0006
 aliases: ["DES-0006"]
 title: "The acceptance desk — a guided walk over a feature's criteria, where pass ticks with a witness and fail files the issue"
 role: proposal
-status: draft
+status: "accepted"
 phase: "[[PHASE-024-Acceptance-Witnessed]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["Review 2026-08-03: the acceptance contract exists on paper (acceptance-tests template, tier rules, release gate) and has no surface; Edwin performed acceptance twelve times in PHASE-022 with no record beyond chat"]
-asset: ""
+asset: "DES-0006-acceptance-desk.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 related: ["[[FEAT-0063-The-Acceptance-Runner]]", "[[FEAT-0064-The-Acceptance-Gate]]", "[[REQ-0028-Evidence-Names-Its-Witness]]", "[[DES-0005-The-Actuator-Grammar]]"]
 ---
 

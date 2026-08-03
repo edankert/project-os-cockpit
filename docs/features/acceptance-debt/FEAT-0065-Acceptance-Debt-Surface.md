@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["Review 2026-08-03: the overview says 23/23 tests passing and never says which requirements have no test at all"]
 goal: "A record-column card answering the coverage questions the Verification card cannot: REQs with no verifying TST, criteria unresolved on non-terminal notes, ticks carrying no evidence — each count opening to its rows."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0294-The-Debt-Payload]]"
+  - "[[TASK-0295-The-Record-Card]]"
+  - "[[TASK-0296-Parity-With-The-Validator]]"
 release: ""
 related: ["[[FEAT-0018-Verification-Health-Surface]]"]
 tests: []

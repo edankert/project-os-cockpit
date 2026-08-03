@@ -4,19 +4,19 @@ id: DES-0005
 aliases: ["DES-0005"]
 title: "The actuator grammar — how a human action appears on a note, which actions exist, and why the server decides"
 role: proposal
-status: draft
+status: "accepted"
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["Review 2026-08-03: 'the human has no levers' — every transition in STATUSES.md's table is agent-owned, and the cockpit's only actuator is asking an agent in the terminal"]
-asset: ""
+asset: "DES-0005-actuator-grammar.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 related: ["[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]", "[[REQ-0026-Only-Human-Owned-Transitions]]", "[[DES-0002-Cockpit-Design-System]]"]
 ---
 

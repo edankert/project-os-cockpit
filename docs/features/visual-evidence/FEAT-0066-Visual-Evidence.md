@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["Review 2026-08-03: 'evidence: 13 passed in 0.06s' is programmer evidence; for this persona, evidence of UI work is a screenshot"]
 goal: "One capture path: the desktop shell snapshots a chosen surface to docs/attachments/, returns the relative path, and runner verdicts, TST evidence and CHG notes reference it as an image the cockpit renders."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0297-Capture-To-Attachments]]"
+  - "[[TASK-0298-Attach-At-The-Verdict]]"
+  - "[[TASK-0299-The-Agent-Side]]"
 release: ""
 related: ["[[FEAT-0063-The-Acceptance-Runner]]"]
 tests: []

@@ -11,7 +11,11 @@ updated: 2026-08-03
 source: ["Review 2026-08-03, consistency findings; the mode-1 twin drifted three times in two days"]
 goal: "Spend the consistency residue deliberately: one empty-state sentence pattern; the collapse-completed toggle retired or explicitly defended; the desk and Library exceptions recorded in DES-0002; and mode 1's fate taken as an ADR with the drift record as evidence."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0318-The-Empty-State-Sweep]]"
+  - "[[TASK-0319-The-Toggle-Decided]]"
+  - "[[TASK-0320-The-Exceptions-Recorded]]"
+  - "[[TASK-0321-The-Mode-1-ADR]]"
 release: ""
 related: ["[[DES-0002-Cockpit-Design-System]]"]
 tests: []

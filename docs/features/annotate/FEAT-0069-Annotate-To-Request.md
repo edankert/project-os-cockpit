@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0007-The-Bench-Closes-The-Loop]]"]
 goal: "Click a rendered artefact or select design text, leave a comment, and a queue entry of kind `annotation` exists — anchored, listed under the design's desk entry, resolved through the existing resolve endpoint, and honest when its anchor no longer resolves."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0306-The-Annotation-Kind]]"
+  - "[[TASK-0307-Pin-And-Selection-Capture]]"
+  - "[[TASK-0308-Queue-Rendering-And-Honest-Anchors]]"
 release: ""
 related: ["[[FEAT-0062-Desk-Resolution-Flows]]"]
 tests: []

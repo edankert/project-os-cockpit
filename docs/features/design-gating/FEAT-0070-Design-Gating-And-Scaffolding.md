@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0007-The-Bench-Closes-The-Loop]]"]
 goal: "Features gain optional `design:`; the local DESIGN-GATE validator rule holds a feature in the pending band while its design is unaccepted (warning first, ADR-0011's path); Derive-requirements on an accepted design dispatches the scaffold skills; the convention is proposed upstream."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0309-The-Design-Gate]]"
+  - "[[TASK-0310-Derive-Requirements-By-Dispatch]]"
+  - "[[TASK-0311-The-Upstream-Proposal]]"
 release: ""
 related: ["[[FEAT-0059-The-Write-Service-Widens]]"]
 tests: []

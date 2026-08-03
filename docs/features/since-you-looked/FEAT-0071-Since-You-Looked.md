@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0008-The-Returning-Human]]"]
 goal: "A server-side watermark moved only by an explicit action; the landing card says since-when and how-many; the overview carries the digest band with needs-you items lifted; all of it derived from history_payload and the registers that already exist."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0312-The-Watermark]]"
+  - "[[TASK-0313-The-Landing-Line]]"
+  - "[[TASK-0314-The-Digest-Band]]"
 release: ""
 related: ["[[FEAT-0052-History-Timeline]]"]
 tests: []

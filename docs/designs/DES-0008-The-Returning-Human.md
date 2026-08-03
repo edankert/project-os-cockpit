@@ -4,19 +4,19 @@ id: DES-0008
 aliases: ["DES-0008"]
 title: "The returning human — the first minute back: what happened, what needs you, what shipped"
 role: proposal
-status: draft
+status: "accepted"
 phase: "[[PHASE-026-The-Returning-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["Review 2026-08-03: nothing in the cockpit is addressed to the person who was away while agents worked; the landing's NEEDS-YOU cards know only about waiting terminals"]
-asset: ""
+asset: "DES-0008-returning-human.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 related: ["[[FEAT-0071-Since-You-Looked]]", "[[FEAT-0072-The-Release-Surface]]", "[[DES-0001-Overview-Redesign]]"]
 ---
 

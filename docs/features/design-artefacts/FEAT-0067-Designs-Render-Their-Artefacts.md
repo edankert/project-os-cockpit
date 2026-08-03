@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0007-The-Bench-Closes-The-Loop]]"]
 goal: "A `## Variant <name>` section with a fenced html block renders in the bench as a live, sandboxed, token-inheriting fragment; variants sit side by side; Choose stamps `chosen_variant` and scaffolds the ADR as a proposal for the actuator row to accept."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0300-Variant-Parse-And-Sandbox]]"
+  - "[[TASK-0301-Side-By-Side]]"
+  - "[[TASK-0302-Choose-Records-The-Decision]]"
 release: ""
 related: ["[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
 tests: []

@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0028
 aliases: ["REQ-0028"]
 title: "Acceptance evidence names its witness"
-status: draft
+status: "approved"
 phase: "[[PHASE-024-Acceptance-Witnessed]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["[[DES-0006-The-Acceptance-Desk]]"]
 priority: high
 scope: "Everything the acceptance runner writes; the property that makes an acceptance record worth having"
@@ -17,6 +17,9 @@ acceptance:
   - "A run's log line in the feature note names the same witness and totals (passed / failed→issues / skipped)"
   - "accepted_by is only ever written by a completed run — no path stamps it directly"
   - "An agent cannot be a witness: the runner's writes are actuator-row actions, loopback-only, human-initiated by REQ-0026's terms"
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 ---
 
 # Evidence names its witness

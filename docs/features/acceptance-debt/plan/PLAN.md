@@ -10,4 +10,8 @@ parent: "[[FEAT-0065-Acceptance-Debt-Surface]]"
 
 # Plan
 
-Tasks at pickup: (1) the debt payload (three queries over the index); (2) the record card with drill-down rows; (3) parity with the validator's criteria parse asserted, not assumed.
+Tasks minted 2026-08-03, on Edwin's plan-acceptance of the designs.
+
+1. **[[TASK-0294]]** — three queries, counts reconciled with the validator
+2. **[[TASK-0295]]** — drill-down rows, absent at zero
+3. **[[TASK-0296]]** — the criteria parse has one home

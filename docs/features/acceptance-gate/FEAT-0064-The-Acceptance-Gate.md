@@ -11,7 +11,10 @@ updated: 2026-08-03
 source: ["[[DES-0006-The-Acceptance-Desk]]"]
 goal: "An `acceptance:` field on features — absent / requested / accepted — with the desk queueing what is requested, a validator warning when it goes stale, and the upstream proposal that would make the convention fleet-wide."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0291-The-Field]]"
+  - "[[TASK-0292-The-Desk-Queue-Section]]"
+  - "[[TASK-0293-Accept-Stale-And-The-Upstream-Proposal]]"
 release: ""
 related: ["[[FEAT-0063-The-Acceptance-Runner]]"]
 tests: []

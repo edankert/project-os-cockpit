@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0026
 aliases: ["REQ-0026"]
 title: "The cockpit performs only human-owned transitions"
-status: draft
+status: "approved"
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["[[DES-0005-The-Actuator-Grammar]]"]
 priority: high
 scope: "Every write path added by PHASE-023 and consumed by later phases"
@@ -17,6 +17,9 @@ acceptance:
   - "Requesting an agent-owned transition is refused server-side with the ownership rule named, regardless of what any renderer displays"
   - "The transition vocabulary exists in exactly one module; no renderer restates it (guarded in the ISS-0023 style)"
   - "Removing a transition from the table removes it from every surface without a renderer change"
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 ---
 
 # Only human-owned transitions

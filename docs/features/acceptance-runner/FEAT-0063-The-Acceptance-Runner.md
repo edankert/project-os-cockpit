@@ -11,7 +11,11 @@ updated: 2026-08-03
 source: ["[[DES-0006-The-Acceptance-Desk]]"]
 goal: "Generalise the desk's manual-test runner to acceptance: criteria from the feature's requirements presented singly; pass ticks via the tick path with the human as evidence; fail creates a pre-linked issue inline; the run appends its log to the feature note in stamp_test_run's grammar."
 requirements: ["[[REQ-0028-Evidence-Names-Its-Witness]]"]
-tasks: []
+tasks:
+  - "[[TASK-0287-The-Criteria-Payload]]"
+  - "[[TASK-0288-The-Runner-Surface]]"
+  - "[[TASK-0289-Stamp-Acceptance]]"
+  - "[[TASK-0290-The-Queue-Entry-And-Resolution]]"
 release: ""
 related: ["[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0066-Visual-Evidence]]"]
 tests: []

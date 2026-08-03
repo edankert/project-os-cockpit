@@ -26,7 +26,7 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 8
+  ADR: 9
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
@@ -40,16 +40,16 @@ counters:
   REQ: 28
   RISK: 5
   REL: 0
-  TASK: 286
+  TASK: 321
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
+  task: "TASK-0278"
+  feature: "FEAT-0059"
   phase: "PHASE-023"
   issue: ""
-  note: "2026-08-03: the governed-loop plan landed. Edwin asked for a full UX/functionality review of the cockpit as a tool for a human who governs through docs, then for the suggestions to become phases with designs. Four planned phases: PHASE-023 Levers (the write service widens — note_writes already has the discipline; the human-owned transition table, ticks, capture, desk flows), PHASE-024 Acceptance witnessed (runner, opt-in gate distinct from ADR-0013 review, debt surface, visual evidence), PHASE-025 Design before code (variants, the measure view PHASE-022 lacked, annotate-to-request, design gate + upstream proposal), PHASE-026 The returning human (watermark digest, release surface, one voice, mode-1 ADR). Designs DES-0005..0008 are DRAFT awaiting Edwin review; REQ-0026..0028 draft; RISK-0005 open — closes only when the hardening suite attempts every forbidden thing. Investigation findings: note_writes.py already has allow-lists/mtime/loopback/DECIDE_TRANSITIONS; stamp_test_run already writes run logs into notes; design revisions + captureScreenshot exist; history_payload feeds the digest. Sequencing: 023 first (everything calls its verbs), 024 depends on it, 025/026 parallel after. Also fixed: PHASE-022 was missing from docs/PHASES.md. OWED unchanged: mode 1 history tiles; ISS-0057; upstream proposals."
+  note: "2026-08-03 (2): Edwin plan-accepted all four designs THROUGH THE DESK (review_verdict: plan-accepted stamped by stamp_review — the mechanism recorded its own approval for the first time) and approved REQ-0026..0028. Full breakdown minted: TASK-0287..0321 across FEAT-0063..0073; PHASE-023 tasks existed already. Designs advanced to accepted. NEW: ADR-0009 (proposed, on Edwin desk) — THE PRINCIPAL IS A ROLE: Edwin contemplates fully autonomous LLM maintenance; audit found the phases autonomy-neutral IF witness/ownership never hard-codes user:edwin — ownership means the party holding intent, autonomy = delegating the principal role (clean-context, distinct-from-worker, bound to an intent artifact), never weakening gates. Binding on implementation: no literal user:edwin comparisons, witness values are principal identifiers, actuator endpoints check role policy. The one hard human step left is pushing (FEAT-0055), named so it cannot relax as a side effect. Suggested but NOT minted: a standing-worker phase (scheduler + delegation policy + escalation defaults) — awaiting Edwin word. Work order: TASK-0278 (transition table) starts PHASE-023."
 items:
   features:
     FEAT-0059:
@@ -85,77 +85,77 @@ items:
       title: "Criteria walked one at a time; pass ticks with a witness, fail files the issue"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      tasks: []
+      tasks: [TASK-0287, TASK-0288, TASK-0289, TASK-0290]
       note: "The desk's manual-test runner generalised. Tasks minted at pickup — PHASE-023's verbs must exist first."
     FEAT-0064:
       file: "docs/features/acceptance-gate/FEAT-0064-The-Acceptance-Gate.md"
       title: "acceptance: absent/requested/accepted — opt-in, owed on the desk, satisfied only by a run"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      tasks: []
+      tasks: [TASK-0291, TASK-0292, TASK-0293]
       note: "The second question, distinct from independent review: is this what I asked for? Never blocks close-out; keeps the debt visible."
     FEAT-0065:
       file: "docs/features/acceptance-debt/FEAT-0065-Acceptance-Debt-Surface.md"
       title: "Unverified requirements, unresolved criteria, evidence-free ticks — as a record card"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      tasks: []
+      tasks: [TASK-0294, TASK-0295, TASK-0296]
       note: "Three numbers that exist nowhere, all derivable from parses the validator already does."
     FEAT-0066:
       file: "docs/features/visual-evidence/FEAT-0066-Visual-Evidence.md"
       title: "Captures into docs/attachments, rendered in notes, offered at the moment of verdict"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      tasks: []
+      tasks: [TASK-0297, TASK-0298, TASK-0299]
       note: "Evidence a non-code reader can trust. Images are evidence, never the comparator."
     FEAT-0067:
       file: "docs/features/design-artefacts/FEAT-0067-Designs-Render-Their-Artefacts.md"
       title: "Variants as sandboxed fragments side by side; Choose records the decision"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
-      tasks: []
+      tasks: [TASK-0300, TASK-0301, TASK-0302]
       note: "A ## Variant section with fenced html IS the variant. The ADR falls out of the act of choosing, as a proposal for the actuator row."
     FEAT-0068:
       file: "docs/features/measure-view/FEAT-0068-The-Measure-View.md"
       title: "Two surfaces, an element each, the differences as a table"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
-      tasks: []
+      tasks: [TASK-0303, TASK-0304, TASK-0305]
       note: "The tool whose absence cost PHASE-022 twelve rounds. v1: self and artefacts only."
     FEAT-0069:
       file: "docs/features/annotate/FEAT-0069-Annotate-To-Request.md"
       title: "A pin or selection on a design becomes an anchored review-queue entry"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
-      tasks: []
+      tasks: [TASK-0306, TASK-0307, TASK-0308]
       note: "The annotation channel stops being chat. Anchors degrade honestly — the subject_missing rule extended."
     FEAT-0070:
       file: "docs/features/design-gating/FEAT-0070-Design-Gating-And-Scaffolding.md"
       title: "design: gates the feature that names it; Derive-requirements dispatches, never generates"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
-      tasks: []
+      tasks: [TASK-0309, TASK-0310, TASK-0311]
       note: "Enforceable by the route every local rule took: this repo's validator first, upstream proposal alongside."
     FEAT-0071:
       file: "docs/features/since-you-looked/FEAT-0071-Since-You-Looked.md"
       title: "The watermark, the digest, and a Caught-up that means it"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
-      tasks: []
+      tasks: [TASK-0312, TASK-0313, TASK-0314]
       note: "Presence is not attention: only the explicit action moves the mark. Pulled on arrival, never pushed."
     FEAT-0072:
       file: "docs/features/release-surface/FEAT-0072-The-Release-Surface.md"
       title: "UNRELEASED as a number, Draft-release as an action, the acceptance-tests gate rendered"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
-      tasks: []
+      tasks: [TASK-0315, TASK-0316, TASK-0317]
       note: "Done and shipped are different facts; the template's release gate has waited for a surface since it was written."
     FEAT-0073:
       file: "docs/features/one-voice/FEAT-0073-One-Voice.md"
       title: "Empty states, the eye toggle, the recorded exceptions, and mode 1 decided once"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
-      tasks: []
+      tasks: [TASK-0318, TASK-0319, TASK-0320, TASK-0321]
       note: "Four small debts, each a repeat offender when left. The mode-1 ADR takes the three-drifts-in-two-days record as evidence."
     FEAT-0058:
       file: "docs/features/navigator-shape/FEAT-0058-One-Shape-Per-Navigator.md"
@@ -503,6 +503,216 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0287:
+      file: "docs/features/acceptance-runner/plan/tasks/TASK-0287-The-Criteria-Payload.md"
+      title: "The criteria payload — the endpoint, sharing the validator's parse"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0063
+    TASK-0288:
+      file: "docs/features/acceptance-runner/plan/tasks/TASK-0288-The-Runner-Surface.md"
+      title: "The runner surface — one criterion at a time, four verbs"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0063
+    TASK-0289:
+      file: "docs/features/acceptance-runner/plan/tasks/TASK-0289-Stamp-Acceptance.md"
+      title: "stamp_acceptance — the run log, the witness, the gate's satisfied state"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0063
+    TASK-0290:
+      file: "docs/features/acceptance-runner/plan/tasks/TASK-0290-The-Queue-Entry-And-Resolution.md"
+      title: "The awaiting-acceptance queue entry resolves through the run"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0063
+    TASK-0291:
+      file: "docs/features/acceptance-gate/plan/tasks/TASK-0291-The-Field.md"
+      title: "The acceptance field in template and taxonomy, divergence recorded"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0064
+    TASK-0292:
+      file: "docs/features/acceptance-gate/plan/tasks/TASK-0292-The-Desk-Queue-Section.md"
+      title: "Awaiting your acceptance — the queue's most human section"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0064
+    TASK-0293:
+      file: "docs/features/acceptance-gate/plan/tasks/TASK-0293-Accept-Stale-And-The-Upstream-Proposal.md"
+      title: "ACCEPT-STALE, and the convention proposed upstream"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0064
+    TASK-0294:
+      file: "docs/features/acceptance-debt/plan/tasks/TASK-0294-The-Debt-Payload.md"
+      title: "The debt payload — three queries over the index"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0065
+    TASK-0295:
+      file: "docs/features/acceptance-debt/plan/tasks/TASK-0295-The-Record-Card.md"
+      title: "The ACCEPTANCE DEBT record card with drill-down"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0065
+    TASK-0296:
+      file: "docs/features/acceptance-debt/plan/tasks/TASK-0296-Parity-With-The-Validator.md"
+      title: "The criteria parse has one home"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0065
+    TASK-0297:
+      file: "docs/features/visual-evidence/plan/tasks/TASK-0297-Capture-To-Attachments.md"
+      title: "Capture lands in the repo and serves back"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0066
+    TASK-0298:
+      file: "docs/features/visual-evidence/plan/tasks/TASK-0298-Attach-At-The-Verdict.md"
+      title: "The capture affordance where judgments happen"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0066
+    TASK-0299:
+      file: "docs/features/visual-evidence/plan/tasks/TASK-0299-The-Agent-Side.md"
+      title: "Agents cite pictures too"
+      status: backlog
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      parent: FEAT-0066
+    TASK-0300:
+      file: "docs/features/design-artefacts/plan/tasks/TASK-0300-Variant-Parse-And-Sandbox.md"
+      title: "Variant sections render live, sandboxed, token-true"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0067
+    TASK-0301:
+      file: "docs/features/design-artefacts/plan/tasks/TASK-0301-Side-By-Side.md"
+      title: "Variants sit beside each other"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0067
+    TASK-0302:
+      file: "docs/features/design-artefacts/plan/tasks/TASK-0302-Choose-Records-The-Decision.md"
+      title: "Choose stamps the variant and scaffolds the ADR as a proposal"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0067
+    TASK-0303:
+      file: "docs/features/measure-view/plan/tasks/TASK-0303-The-Probe-Over-Artefacts.md"
+      title: "Pick an element in an artefact, harvest its computed story"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0068
+    TASK-0304:
+      file: "docs/features/measure-view/plan/tasks/TASK-0304-The-Probe-Into-Own-Surfaces.md"
+      title: "The cockpit measures itself"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0068
+    TASK-0305:
+      file: "docs/features/measure-view/plan/tasks/TASK-0305-The-Diff-Table.md"
+      title: "The differences as a table, copyable as markdown"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0068
+    TASK-0306:
+      file: "docs/features/annotate/plan/tasks/TASK-0306-The-Annotation-Kind.md"
+      title: "The queue learns annotation, with an anchor schema"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0069
+    TASK-0307:
+      file: "docs/features/annotate/plan/tasks/TASK-0307-Pin-And-Selection-Capture.md"
+      title: "Click leaves a pin; selection quotes itself"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0069
+    TASK-0308:
+      file: "docs/features/annotate/plan/tasks/TASK-0308-Queue-Rendering-And-Honest-Anchors.md"
+      title: "Annotations under the design's entry, degrading honestly"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0069
+    TASK-0309:
+      file: "docs/features/design-gating/plan/tasks/TASK-0309-The-Design-Gate.md"
+      title: "design: on features, and the DESIGN-GATE warning"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0070
+    TASK-0310:
+      file: "docs/features/design-gating/plan/tasks/TASK-0310-Derive-Requirements-By-Dispatch.md"
+      title: "An accepted design drafts its requirements through an agent"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0070
+    TASK-0311:
+      file: "docs/features/design-gating/plan/tasks/TASK-0311-The-Upstream-Proposal.md"
+      title: "The design-gate convention proposed to project-os"
+      status: backlog
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      parent: FEAT-0070
+    TASK-0312:
+      file: "docs/features/since-you-looked/plan/tasks/TASK-0312-The-Watermark.md"
+      title: "The watermark, and the Caught-up that moves it"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0071
+    TASK-0313:
+      file: "docs/features/since-you-looked/plan/tasks/TASK-0313-The-Landing-Line.md"
+      title: "The workspace card says since-when and how-many"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0071
+    TASK-0314:
+      file: "docs/features/since-you-looked/plan/tasks/TASK-0314-The-Digest-Band.md"
+      title: "The overview's digest band, needs-you lifted"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0071
+    TASK-0315:
+      file: "docs/features/release-surface/plan/tasks/TASK-0315-The-Unreleased-Card.md"
+      title: "UNRELEASED · N — done features since the last release"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0072
+    TASK-0316:
+      file: "docs/features/release-surface/plan/tasks/TASK-0316-Draft-Release.md"
+      title: "Drafting a release becomes an action"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0072
+    TASK-0317:
+      file: "docs/features/release-surface/plan/tasks/TASK-0317-The-Gate-Band.md"
+      title: "The acceptance-tests release gate finally renders"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0072
+    TASK-0318:
+      file: "docs/features/one-voice/plan/tasks/TASK-0318-The-Empty-State-Sweep.md"
+      title: "One sentence pattern for every empty state"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0073
+    TASK-0319:
+      file: "docs/features/one-voice/plan/tasks/TASK-0319-The-Toggle-Decided.md"
+      title: "The collapse-completed eye: retired or defended, in writing"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0073
+    TASK-0320:
+      file: "docs/features/one-voice/plan/tasks/TASK-0320-The-Exceptions-Recorded.md"
+      title: "The exceptions written into the design system"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0073
+    TASK-0321:
+      file: "docs/features/one-voice/plan/tasks/TASK-0321-The-Mode-1-ADR.md"
+      title: "Mode 1 decided once, with the drift record as evidence"
+      status: backlog
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      parent: FEAT-0073
     TASK-0278:
       file: "docs/features/write-service/plan/tasks/TASK-0278-The-Transition-Table-As-Data.md"
       title: "The human-owned transition table as one data structure, and the endpoint that consults it"
@@ -3319,7 +3529,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 73
     features_done: 55
-    tasks_total: 286
+    tasks_total: 321
     tasks_done: 271
     tests_total: 23
     tests_passing: 23
@@ -3330,4 +3540,4 @@ metrics:
     issues_triage: 0
     risks_open: 5
     releases_total: 0
-    decisions_total: 8
+    decisions_total: 9

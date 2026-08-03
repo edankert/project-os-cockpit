@@ -4,19 +4,19 @@ id: DES-0007
 aliases: ["DES-0007"]
 title: "The bench closes the loop — variants rendered and chosen, surfaces measured side by side, annotations that become requests"
 role: proposal
-status: draft
+status: "accepted"
 phase: "[[PHASE-025-Design-Before-Code]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["Review 2026-08-03: a design is prose read once; PHASE-022's twelve rounds each began with hand-driven CDP measurement because the tool cannot compare its own surfaces"]
-asset: ""
+asset: "DES-0007-bench-closes-the-loop.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 related: ["[[FEAT-0067-Designs-Render-Their-Artefacts]]", "[[FEAT-0068-The-Measure-View]]", "[[FEAT-0069-Annotate-To-Request]]", "[[FEAT-0070-Design-Gating-And-Scaffolding]]", "[[DES-0002-Cockpit-Design-System]]"]
 ---
 

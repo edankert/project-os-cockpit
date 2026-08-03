@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>DES-0006 — The acceptance desk</title><style>
+:root{--bg:#1b1e21;--surface:#232629;--border:#3a3f45;--text:#dedede;--muted:#a6a6a6;--faint:#808080;--link:#79a6d2;--done:#7cb6a3;--warn:#cc9166;--phase:#bc91ca;--req:#75bd8d}
+body{background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,sans-serif;margin:0;padding:32px;max-width:900px}
+h1{font-size:18px;font-weight:600;margin:0 0 4px} .sub{color:var(--faint);font-size:12.5px;margin:0 0 28px}
+.panel{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:14px 16px;margin:18px 0}
+.cap{color:var(--warn);font-size:11.5px;margin:6px 2px 0;font-style:italic}
+.mono{font-family:ui-monospace,monospace;font-size:11px} .id{color:var(--phase)} .reqid{color:var(--req)}
+.row{display:flex;align-items:center;gap:8px;padding:4px 6px;font-size:12.5px;color:var(--muted)}
+.btn{border:1px solid var(--border);border-radius:5px;background:none;color:var(--muted);font-size:11.5px;padding:2px 10px}
+.btn.primary{color:var(--done);border-color:var(--done)} .btn.dis{opacity:.45}
+.chip{border:1px solid var(--border);border-radius:9px;font-size:10px;padding:0 6px;color:var(--muted);text-transform:lowercase}
+.head{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+.field{border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--faint);font-size:12px;padding:4px 8px;flex:1}
+.split{display:flex;gap:14px} .split>div{flex:1}
+table{border-collapse:collapse;font-size:11.5px;width:100%} td,th{border-bottom:1px solid var(--border);padding:3px 8px;text-align:left;color:var(--muted)} th{color:var(--faint);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.hot{color:var(--warn);font-weight:600}
+</style>
+<h1>The acceptance desk</h1><p class="sub">One criterion at a time; pass ticks with a witness, fail files the issue</p>
+<div class="panel">
+  <div class="row"><span class="mono" style="color:var(--link)">FEAT-0063</span> Acceptance run <span style="flex:1"></span><span class="mono" style="color:var(--faint)">3 of 7</span></div>
+  <div style="border-top:1px solid var(--border);margin:8px 0;padding:18px 8px;font-size:15px;color:var(--text)">
+    "A thought becomes a triaged issue<br>&nbsp;without composing a prompt"
+    <div class="mono reqid" style="margin-top:6px;font-size:10.5px">REQ-0026 · criterion 2</div>
+  </div>
+  <div class="row" style="gap:10px">
+    <button class="btn primary">Pass&nbsp;⏎</button>
+    <button class="btn" style="color:var(--warn);border-color:var(--warn)">Fail…&nbsp;f</button>
+    <button class="btn">Skip / reconcile…</button>
+    <button class="btn">📷</button>
+  </div>
+  <div class="cap">Fail opens inline issue capture — title prefilled from the criterion, severity pick, pre-linked to REQ + feature. The run continues; a fail is a datum, not an abort.</div>
+</div>
+<div class="panel">
+  <div class="head">What a run leaves behind (in the feature note)</div>
+  <div class="mono" style="color:var(--muted)">## Acceptance runs<br>### 2026-08-03 — user:edwin — 6 passed · 1 failed → ISS-0094 · 0 skipped</div>
+  <div class="cap">stamp_test_run's grammar, aimed at acceptance. accepted_by is only ever written by a completed run.</div>
+</div>
