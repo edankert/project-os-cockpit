@@ -21,6 +21,7 @@ issues:
   - "[[ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy]]"
   - "[[ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour]]"
   - "[[ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing]]"
+  - "[[ISS-0090-Phase-Rows-And-The-Missing-Id-Column]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -236,3 +237,12 @@ Four rounds of this phase were spent making the navigator's group heads match th
 I copied a style without asking what the styled element was *for*. Every complaint in this round followed from that one substitution.
 
 The second thing worth keeping is that the pill was got wrong **twice in opposite directions** — suppressed by a rule whose output looked random, then made unconditional so a card called `Done` carried a `done` pill. Neither extreme was right: the question is whether **the name already says it**, which is the same question the divider and the head summary ask. One rule, three uses.
+
+
+## Closed a ninth time 2026-08-03 — [[ISS-0090]]
+
+The phase head now measures the same as the overview's scope row on every axis, carries no pill, and uses `✓ N`. [[ISS-0089]] had moved it off the label treatment and stopped one step short of the row it was aiming at.
+
+The other half is small and general: a plan child carries `id: ""` on purpose, the renderer skipped the id span entirely, and the plan's title took the id's place — **78px** left of its sibling requirements. An absent value has to occupy its column, not skip it. Closing it took three passes (a handle, then a column width, then removing the handle's own smaller font, because `ch` is relative to the font), and the rule that falls out is worth more than the fix:
+
+> **A column is only a column if every cell in it is the same width — including the ones standing in for something absent.**

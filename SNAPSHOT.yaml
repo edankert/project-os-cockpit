@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 89
+  ISS: 90
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0090:
+      file: "docs/issues/ISS-0090-Phase-Rows-And-The-Missing-Id-Column.md"
+      title: "Phase rows differed from the overview's, and a plan's empty id dropped it out of the id column"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "KEEP: a column is only a column if every cell in it is the same width, including the ones standing in for something absent. A plan carries id:\"\" deliberately, the renderer skipped the span, and its title sat 78px left of its siblings. Closing it took three passes — a handle, a min-width, then removing the handle's smaller font, because ch is relative to the font."
     ISS-0089:
       file: "docs/issues/ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing.md"
       title: "Copying the context card's head styling made phase names render as labels"

@@ -1389,12 +1389,18 @@
   // (first body paragraph). The left pane is a selection list; a summary
   // belongs in the note, not in the list of things you might open.
   function buildNavRow(item, extraClass) {
-    var idNode = item.id
+    // The id column is a COLUMN: an absent value occupies it rather than
+    // skipping it, or the row lands on a different grid from its siblings
+    // (ISS-0090). A plan carries `id: ""` deliberately, so its TYPE is the
+    // handle — which is what an id is for a note with no number.
+    var handle = item.id || (item.type ? String(item.type).toUpperCase() : "");
+    var idNode = handle
       ? el("span", {
           // Display handle only — the anchor's href carries the real
           // target, and every lookup goes through that (ISS-0084).
-          class: "nav-id mono ov-typed", text: shortNoteId(item.id),
-          title: item.id, "data-type": item.type || null,
+          class: "nav-id mono ov-typed" + (item.id ? "" : " is-typeless"),
+          text: item.id ? shortNoteId(item.id) : handle,
+          title: item.id || handle, "data-type": item.type || null,
         })
       : null;
     var titleNode = item.title
@@ -1603,7 +1609,12 @@
       // restate the summary.
       // Shown unless the group's own NAME already says it — a `done` pill
       // on a card called `Done` is the word twice (ISS-0089).
-      if (g.status && !namesStateThemselves) headerChildren.push(statusChip(g.status));
+      // No pill where the head names a thing — the overview's scope rows
+      // never had one, and inside a `Completed` band it is the word a
+      // third time (ISS-0090).
+      if (g.status && !namesStateThemselves && mode !== "features") {
+        headerChildren.push(statusChip(g.status));
+      }
 
       var renderItem = pickItemRenderer(g.item_layout);
       var list = el("ul", { class: "nav-items" });

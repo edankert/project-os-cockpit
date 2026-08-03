@@ -7359,14 +7359,22 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
 
   const line = document.createElement('div');
   line.className = 'nav-line';
-  if (item.id) {
+  // The id column is a COLUMN: an absent value has to occupy it, not skip
+  // it. A plan child carries `id: ""` deliberately (an untyped plan still
+  // gets a row), and without this its title took the id's place and sat
+  // 78px left of its sibling requirements (ISS-0090).
+  //
+  // The type is the handle in that case — `PLAN` — which is what an id is
+  // for a note that has no number of its own.
+  const handle = item.id || (item.type ? item.type.toUpperCase() : '');
+  if (handle) {
     const idSpan = document.createElement('span');
-    idSpan.className = 'nav-id mono ov-typed';
+    idSpan.className = 'nav-id mono ov-typed' + (item.id ? '' : ' is-typeless');
     if (item.type) idSpan.dataset.type = String(item.type);
     // Display handle only — `data-id` on the `li` keeps the full value,
     // and every lookup goes through that (ISS-0084).
-    idSpan.textContent = shortNoteId(item.id);
-    idSpan.title = item.id;
+    idSpan.textContent = item.id ? shortNoteId(item.id) : handle;
+    idSpan.title = item.id || handle;
     line.appendChild(idSpan);
   }
   if (item.title) {
@@ -7750,12 +7758,23 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // Where the group name IS the status, the summary is the count alone —
   // `Done · 265`, not `Done · 265 · done`. Same fact as the divider rule
   // one function up: these names already state themselves.
-  const summaryText = groupNamesStateThemselves(mode)
-    ? String((group.items || []).length || '')
-    : groupHeadSummary(group.items || []);
+  // A head that names a THING takes the overview scope row's trailing
+  // form — `✓ 8` for a finished phase, a plain count for a live one
+  // (ISS-0090). It said `2 · done` beside a `done` pill, inside a band
+  // headed `Completed`: the same word three times.
+  const items = group.items || [];
+  let summaryText: string;
+  if (!groupLabelIsCategory(mode)) {
+    summaryText = items.length ? (settledGroup ? `✓ ${items.length}` : String(items.length)) : '';
+  } else if (groupNamesStateThemselves(mode)) {
+    summaryText = String(items.length || '');
+  } else {
+    summaryText = groupHeadSummary(items);
+  }
   if (summaryText) {
     const cnt = document.createElement('span');
-    cnt.className = 'nav-group-summary';
+    cnt.className = 'nav-group-summary'
+      + (!groupLabelIsCategory(mode) && settledGroup ? ' is-done' : '');
     cnt.textContent = summaryText;
     summary.appendChild(cnt);
   }
@@ -7770,7 +7789,10 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // Neither "always" nor "never" was right: the question is whether the
   // LABEL is already the status, which is the same question the divider
   // and the head summary ask. One rule, three uses.
-  if (group.status && !groupNamesStateThemselves(mode)) {
+  // …and no pill where the head names a thing: the overview's scope rows
+  // never had one, and inside a band headed `Completed` it is the word a
+  // third time.
+  if (group.status && !groupNamesStateThemselves(mode) && groupLabelIsCategory(mode)) {
     appendIf(summary, statusChip(group.status));
   }
   details.appendChild(summary);

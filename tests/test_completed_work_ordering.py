@@ -1055,7 +1055,9 @@ def test_only_the_tasks_navigator_skips_the_completed_divider() -> None:
 def test_a_status_named_group_does_not_repeat_its_status() -> None:
     """`Done · 265`, not `Done · 265 · done`."""
     ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
-    assert "groupNamesStateThemselves(mode)\n    ? String((group.items || []).length" in ts, (
+    # The summary now has three arms (thing / status-named / everything
+    # else), so the check is on the branch rather than on its old shape.
+    assert "} else if (groupNamesStateThemselves(mode)) {\n    summaryText = String(items.length || '');" in ts, (
         "the tasks navigator's group head prints its status twice again"
     )
 
@@ -1141,11 +1143,18 @@ def test_the_pill_follows_whether_the_name_already_says_it() -> None:
     head summary ask, so one rule serves three uses.
     """
     ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
-    assert "if (group.status && !groupNamesStateThemselves(mode)) {" in ts, (
+    # A third clause joined the condition at ISS-0090: a head that names a
+    # THING carries no pill either, because the overview's scope rows have
+    # never had one. Asserted on the two predicates rather than the whole
+    # line, so refining the rule again does not need this rewritten a
+    # fourth time — only inverting it does.
+    cond = re.search(r"if \(group\.status && ([^)]*\)[^{]*)\{", ts)
+    assert cond, "the pill's condition is no longer where expected"
+    assert "!groupNamesStateThemselves(mode)" in cond.group(1), (
         "the pill no longer keys on whether the group's name states its status"
     )
     js = COCKPIT_JS.read_text(encoding="utf-8")
-    assert "if (g.status && !namesStateThemselves)" in js, (
+    assert "if (g.status && !namesStateThemselves" in js, (
         "mode 1's pill disagrees with mode 3's"
     )
 
@@ -1272,3 +1281,56 @@ def test_the_live_set_is_named_where_the_finished_one_is() -> None:
     assert "!groupNamesStateThemselves(currentNavMode)" in ts, (
         "the live heading appears in the tasks view, whose groups need no divider"
     )
+
+
+def test_a_thing_head_matches_the_overview_scope_row() -> None:
+    """ISS-0090 — [[ISS-0089]] moved the phase head off the label
+    treatment and stopped one step short of the row it was aiming at:
+    weight 500 against 400, `--text` against `--text-muted`, and a `done`
+    pill beside a `· done` summary inside a band headed `Completed`.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rules = re.findall(r"\.nav-group-header\.is-thing \{(.*?)\}", css, re.DOTALL)
+    joined = "\n".join(rules)
+    assert "font-weight: 400" in joined, "the phase head is heavier than the scope row"
+    assert "color: var(--text-muted)" in joined, "the phase head is brighter than the scope row"
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "groupLabelIsCategory(mode)) {\n    appendIf(summary, statusChip(group.status));" in ts, (
+        "a head that names a thing carries a status pill again — the "
+        "overview's scope rows never had one"
+    )
+    assert "`✓ ${items.length}`" in ts, (
+        "a finished phase no longer uses the scope row's ✓ N trailing form"
+    )
+
+
+def test_an_absent_id_still_occupies_the_id_column() -> None:
+    """A plan child carries `id: ""` deliberately — an untyped plan still
+    gets a row — and the renderer skipped the id span entirely, so its
+    title took the id's place and sat **78px** left of its sibling
+    requirements.
+
+    The id column is a column: an absent value has to occupy it.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "const handle = item.id || (item.type ? item.type.toUpperCase() : '');" in ts, (
+        "an item with no id renders no handle, so it leaves the id column"
+    )
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    assert 'var handle = item.id || (item.type ? String(item.type).toUpperCase() : "");' in js, (
+        "mode 1 disagrees about the id-column placeholder"
+    )
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        assert ".nav-item-children-list .nav-id { min-width: 9ch; }" in css, (
+            f"{path.name}: the nested id column has no width, so a short handle "
+            "puts its row on a different grid"
+        )
+        stand_in = re.search(r"\.nav-id\.is-typeless \{(.*?)\}", css, re.DOTALL)
+        assert stand_in and "font-size" not in stand_in.group(1), (
+            f"{path.name}: the stand-in handle sets its own font-size — `ch` is "
+            "relative to the font, so that narrows the column it shares"
+        )

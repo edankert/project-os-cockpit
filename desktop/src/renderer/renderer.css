@@ -1104,7 +1104,9 @@ body {
   text-transform: none;
   letter-spacing: 0;
   color: var(--text);
-  padding: 5px 8px;
+  /* 3px, not 5: the chevron the scope row does not carry adds four
+     pixels, and the two rows should measure the same. */
+  padding: 3px 8px;
 }
 .nav-group-header.is-thing .group-header-name {
   font-size: 12.5px;
@@ -1143,6 +1145,35 @@ body {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+
+/* A thing-head is the overview's scope row (ISS-0090): same weight,
+   colour and gap, and the same `✓ N` trailing form. Four rounds were
+   spent walking this row toward the context card's head; it belongs
+   beside the scope row instead. */
+.nav-group-header.is-thing {
+  font-weight: 400;
+  color: var(--text-muted);
+  gap: 7px;
+}
+.nav-group-header.is-thing .group-header-name {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.nav-group-header.is-thing .nav-group-summary { font-size: 10.5px; }
+.nav-group-header.is-thing .nav-group-summary.is-done { color: var(--status-done); }
+/* A handle standing in for an absent id — `PLAN` — quieter than a real
+   one, because it names a type rather than a note. */
+/* Same SIZE as a real id — `ch` is relative to the font, so a smaller
+   handle makes a narrower column and puts the row back on its own grid.
+   Only the opacity marks it as standing in for something absent. */
+.nav-id.is-typeless { opacity: 0.7; letter-spacing: 0.04em; }
+
+/* The id column needs a WIDTH, or two rows with differently-sized ids sit
+   on different grids — `REQ-0008` is eight characters and `PLAN` is four,
+   which left the plan's title 27px adrift even once it had a handle
+   (ISS-0090). Monospace, so `ch` is exact: nine covers `REQ-0008` and
+   `TASK-0277` alike. */
+.nav-item-children-list .nav-id { min-width: 9ch; }
 
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
