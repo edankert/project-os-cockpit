@@ -30,28 +30,133 @@ counters:
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
-  DES: 4
+  DES: 8
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 58
+  FEAT: 73
   ISS: 93
-  PHASE: 22
-  REQ: 25
-  RISK: 4
+  PHASE: 26
+  REQ: 28
+  RISK: 5
   REL: 0
-  TASK: 277
+  TASK: 286
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0277"
-  feature: "FEAT-0058"
-  phase: "PHASE-022"
+  task: ""
+  feature: ""
+  phase: "PHASE-023"
   issue: ""
-  note: "2026-08-02 PHASE-022 done: Edwin asked for collapse rather than a hard hide switch. Measured first — 99% of lifecycle notes are terminal, and Hide-completed left 1 of 18 feature groups, 0 of the 4 issue severity buckets, 5 task rows of 270, and EMPTIED the right context pane of FEAT-0051 and ISS-0080 outright. Edwin corrected my first review: the tasks view groups BY status so its ordering was already right; I saw 270 rows and called a volume problem an ordering problem. The rule: fold on volume, never on meaning. Left pane is a selection list (state orders, the done tail folds); right pane is a description (state orders only, length folds). Found en route: ISS-0082, a phantom PHASE-016 group from my own ISS-0077 merge — two code paths read the phase link differently. TWO review rounds, both changes-requested. Round 1: five guards could not fail under mutation, the right pane fold was documented but never built, and a two-band phase sort put PHASE-999 permanently above the phase in flight. Round 2: the CONTEXT PANE — the headline change — still had no guard on either surface, and reverting it took one character with every test green; contextGroupRows now takes no collapse parameter so the mutation cannot be written. Lesson worth keeping: two exit criteria I wrote expired at close-out because they measured the corpus mid-flight rather than the rule. OWED, unchanged: mode 1 still has the old three history tiles and no grid; six downstream design notes stay draft; ISS-0057 (note_moved); five upstream proposals in project-os-dev."
+  note: "2026-08-03: the governed-loop plan landed. Edwin asked for a full UX/functionality review of the cockpit as a tool for a human who governs through docs, then for the suggestions to become phases with designs. Four planned phases: PHASE-023 Levers (the write service widens — note_writes already has the discipline; the human-owned transition table, ticks, capture, desk flows), PHASE-024 Acceptance witnessed (runner, opt-in gate distinct from ADR-0013 review, debt surface, visual evidence), PHASE-025 Design before code (variants, the measure view PHASE-022 lacked, annotate-to-request, design gate + upstream proposal), PHASE-026 The returning human (watermark digest, release surface, one voice, mode-1 ADR). Designs DES-0005..0008 are DRAFT awaiting Edwin review; REQ-0026..0028 draft; RISK-0005 open — closes only when the hardening suite attempts every forbidden thing. Investigation findings: note_writes.py already has allow-lists/mtime/loopback/DECIDE_TRANSITIONS; stamp_test_run already writes run logs into notes; design revisions + captureScreenshot exist; history_payload feeds the digest. Sequencing: 023 first (everything calls its verbs), 024 depends on it, 025/026 parallel after. Also fixed: PHASE-022 was missing from docs/PHASES.md. OWED unchanged: mode 1 history tiles; ISS-0057; upstream proposals."
 items:
   features:
+    FEAT-0059:
+      file: "docs/features/write-service/FEAT-0059-The-Write-Service-Widens.md"
+      title: "note_writes widens: the human-owned transition table as data, criteria ticks, issue creation"
+      status: planned
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      tasks: [TASK-0278, TASK-0279, TASK-0280]
+      note: "The foundation verb set. Everything in PHASE-023/024 calls these three; the discipline is inherited from note_writes, not invented."
+    FEAT-0060:
+      file: "docs/features/note-actuators/FEAT-0060-Transitions-And-Ticks-On-The-Note.md"
+      title: "The actuator row and live criteria checkboxes"
+      status: planned
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      tasks: [TASK-0281, TASK-0282]
+      note: "The renderer displays, never decides — no vocabulary in TypeScript, the thrice-taught lesson made structural."
+    FEAT-0061:
+      file: "docs/features/quick-capture/FEAT-0061-Quick-Capture-And-Triage.md"
+      title: "⌘N capture into triage, and the triage tray"
+      status: planned
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      tasks: [TASK-0283, TASK-0284]
+      note: "Thought → record → judgment without composing a prompt. Capture is deliberately dumber than ad-hoc-intake; the agent joins at triage."
+    FEAT-0062:
+      file: "docs/features/desk-resolution/FEAT-0062-Desk-Resolution-Flows.md"
+      title: "Changes-requested reaches re-review; questions get answered in place"
+      status: planned
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      tasks: [TASK-0285, TASK-0286]
+      note: "Every obligation the desk shows gets its verb on the same surface."
+    FEAT-0063:
+      file: "docs/features/acceptance-runner/FEAT-0063-The-Acceptance-Runner.md"
+      title: "Criteria walked one at a time; pass ticks with a witness, fail files the issue"
+      status: planned
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      tasks: []
+      note: "The desk's manual-test runner generalised. Tasks minted at pickup — PHASE-023's verbs must exist first."
+    FEAT-0064:
+      file: "docs/features/acceptance-gate/FEAT-0064-The-Acceptance-Gate.md"
+      title: "acceptance: absent/requested/accepted — opt-in, owed on the desk, satisfied only by a run"
+      status: planned
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      tasks: []
+      note: "The second question, distinct from independent review: is this what I asked for? Never blocks close-out; keeps the debt visible."
+    FEAT-0065:
+      file: "docs/features/acceptance-debt/FEAT-0065-Acceptance-Debt-Surface.md"
+      title: "Unverified requirements, unresolved criteria, evidence-free ticks — as a record card"
+      status: planned
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      tasks: []
+      note: "Three numbers that exist nowhere, all derivable from parses the validator already does."
+    FEAT-0066:
+      file: "docs/features/visual-evidence/FEAT-0066-Visual-Evidence.md"
+      title: "Captures into docs/attachments, rendered in notes, offered at the moment of verdict"
+      status: planned
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      tasks: []
+      note: "Evidence a non-code reader can trust. Images are evidence, never the comparator."
+    FEAT-0067:
+      file: "docs/features/design-artefacts/FEAT-0067-Designs-Render-Their-Artefacts.md"
+      title: "Variants as sandboxed fragments side by side; Choose records the decision"
+      status: planned
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      tasks: []
+      note: "A ## Variant section with fenced html IS the variant. The ADR falls out of the act of choosing, as a proposal for the actuator row."
+    FEAT-0068:
+      file: "docs/features/measure-view/FEAT-0068-The-Measure-View.md"
+      title: "Two surfaces, an element each, the differences as a table"
+      status: planned
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      tasks: []
+      note: "The tool whose absence cost PHASE-022 twelve rounds. v1: self and artefacts only."
+    FEAT-0069:
+      file: "docs/features/annotate/FEAT-0069-Annotate-To-Request.md"
+      title: "A pin or selection on a design becomes an anchored review-queue entry"
+      status: planned
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      tasks: []
+      note: "The annotation channel stops being chat. Anchors degrade honestly — the subject_missing rule extended."
+    FEAT-0070:
+      file: "docs/features/design-gating/FEAT-0070-Design-Gating-And-Scaffolding.md"
+      title: "design: gates the feature that names it; Derive-requirements dispatches, never generates"
+      status: planned
+      phase: "[[PHASE-025-Design-Before-Code]]"
+      tasks: []
+      note: "Enforceable by the route every local rule took: this repo's validator first, upstream proposal alongside."
+    FEAT-0071:
+      file: "docs/features/since-you-looked/FEAT-0071-Since-You-Looked.md"
+      title: "The watermark, the digest, and a Caught-up that means it"
+      status: planned
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      tasks: []
+      note: "Presence is not attention: only the explicit action moves the mark. Pulled on arrival, never pushed."
+    FEAT-0072:
+      file: "docs/features/release-surface/FEAT-0072-The-Release-Surface.md"
+      title: "UNRELEASED as a number, Draft-release as an action, the acceptance-tests gate rendered"
+      status: planned
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      tasks: []
+      note: "Done and shipped are different facts; the template's release gate has waited for a surface since it was written."
+    FEAT-0073:
+      file: "docs/features/one-voice/FEAT-0073-One-Voice.md"
+      title: "Empty states, the eye toggle, the recorded exceptions, and mode 1 decided once"
+      status: planned
+      phase: "[[PHASE-026-The-Returning-Human]]"
+      tasks: []
+      note: "Four small debts, each a repeat offender when left. The mode-1 ADR takes the three-drifts-in-two-days record as evidence."
     FEAT-0058:
       file: "docs/features/navigator-shape/FEAT-0058-One-Shape-Per-Navigator.md"
       title: "Every navigator is a live section plus collapsed cards, with a completed divider only where group names do not say finished"
@@ -398,6 +503,60 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0278:
+      file: "docs/features/write-service/plan/tasks/TASK-0278-The-Transition-Table-As-Data.md"
+      title: "The human-owned transition table as one data structure, and the endpoint that consults it"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0059
+    TASK-0279:
+      file: "docs/features/write-service/plan/tasks/TASK-0279-The-Tick-Path.md"
+      title: "Ticking a criterion rewrites one line, in the validator's own shapes, with a witness"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0059
+    TASK-0280:
+      file: "docs/features/write-service/plan/tasks/TASK-0280-Create-Issue-And-The-Hardening-Suite.md"
+      title: "Issue creation from template, and the mutation-grade hardening suite over all three verbs"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0059
+    TASK-0281:
+      file: "docs/features/note-actuators/plan/tasks/TASK-0281-The-Action-Row.md"
+      title: "The action row under the note title"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0060
+    TASK-0282:
+      file: "docs/features/note-actuators/plan/tasks/TASK-0282-Live-Checkboxes.md"
+      title: "Criteria checkboxes tick from the note view"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0060
+    TASK-0283:
+      file: "docs/features/quick-capture/plan/tasks/TASK-0283-Capture.md"
+      title: "⌘N capture — title in, triage issue out, under three seconds"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0061
+    TASK-0284:
+      file: "docs/features/quick-capture/plan/tasks/TASK-0284-The-Triage-Tray.md"
+      title: "The triage tray — accept-as-severity or decline on every row"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0061
+    TASK-0285:
+      file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
+      title: "Request re-review from a changes-requested row"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0062
+    TASK-0286:
+      file: "docs/features/desk-resolution/plan/tasks/TASK-0286-Answer-In-Place.md"
+      title: "Answer a queue question inline"
+      status: backlog
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      parent: FEAT-0062
     TASK-0275:
       file: "docs/features/navigator-shape/plan/tasks/TASK-0275-Settled-Groups-Are-Collapsed-Cards.md"
       title: "A group whose every item is terminal renders shut, with its count in the head"
@@ -3158,9 +3317,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 58
+    features_total: 73
     features_done: 55
-    tasks_total: 277
+    tasks_total: 286
     tasks_done: 271
     tests_total: 23
     tests_passing: 23
@@ -3169,6 +3328,6 @@ metrics:
     tests_failing: 0
     issues_open: 0
     issues_triage: 0
-    risks_open: 4
+    risks_open: 5
     releases_total: 0
     decisions_total: 8

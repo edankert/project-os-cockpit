@@ -252,18 +252,30 @@ def test_the_leading_phase_group_is_never_a_finished_one(index: Index) -> None:
     )
 
 
-def test_phase_order_survives_among_equals() -> None:
-    """Sorting on open-ness must not shuffle the settled half.
+def test_phase_order_survives_within_each_band() -> None:
+    """Sorting on the bands must not shuffle order inside a band.
 
-    The finished phases still read as a chronology; only the partition
-    between settled and unsettled is new.
+    Twice rewritten for the same reason, worth naming: the first version
+    excluded 'PHASE-999', the second also 'PHASE-022' — each hardcoding
+    which phases happened to be unsettled that day, and each expiring
+    when the corpus moved (the third break was four *planned* phases
+    correctly rising to the upcoming band). The rule, not the corpus:
+    within each band, phase order ascends.
     """
-    settled = [
-        g["key"] for g in cockpit._features_groups(Index.build(DOCS))
-        if g["key"].startswith("PHASE-") and g["key"] != "PHASE-999"
-    ]
-    tail = [k for k in settled if k not in ("PHASE-022",)]
-    assert tail == sorted(tail), f"phase order was disturbed: {tail}"
+    idx = Index.build(DOCS)
+    groups = [g for g in cockpit._features_groups(idx) if g["key"].startswith("PHASE-")]
+    banded: dict[int, list[str]] = {}
+    for g in groups:
+        rec = cockpit._resolve_phase(idx, g["key"])
+        banded.setdefault(cockpit._phase_group_rank(rec, []), []).append(g["key"])
+    for rank, keys in banded.items():
+        assert keys == sorted(keys), (
+            f"phase order disturbed within band {rank}: {keys}"
+        )
+    # …and the bands themselves are in order (in flight, upcoming, finished).
+    ranks = [cockpit._phase_group_rank(cockpit._resolve_phase(idx, g["key"]), [])
+             for g in groups]
+    assert ranks == sorted(ranks), f"bands interleaved: {ranks}"
 
 
 def test_a_settled_critical_bucket_falls_below_an_open_medium() -> None:
