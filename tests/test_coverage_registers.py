@@ -137,9 +137,15 @@ def test_enumeration_is_not_the_convention() -> None:
 
 #: Close-out independent review (QUALITY.md).
 CLOSE_OUT_VERDICTS = {"approved", "changes-requested"}
-#: Desk plan-acceptance (ADR-0007), deliberately distinct so a plan-acceptance
-#: stamp can never satisfy the close-out gate.
-DESK_VERDICTS = {"accepted", "accepted-amended", "rejected"}
+#: Desk decisions (ADR-0007), deliberately distinct so a desk stamp can never
+#: satisfy the close-out gate. `plan-accepted` is imported rather than
+#: restated: this guard rejected the desk's own write the first time a
+#: multi-item plan review was accepted (2026-08-03, the DES-0005..0008
+#: batch), because the vocabulary lived here as a second copy while
+#: `note_writes.PLAN_ACCEPTED_VERDICT` was the one the desk consults —
+#: ISS-0023's drift, in the guard built to prevent it.
+from project_os_cockpit.note_writes import PLAN_ACCEPTED_VERDICT
+DESK_VERDICTS = {"accepted", "accepted-amended", "rejected", PLAN_ACCEPTED_VERDICT}
 ALLOWED_VERDICTS = CLOSE_OUT_VERDICTS | DESK_VERDICTS
 
 
@@ -167,7 +173,12 @@ def test_review_verdicts_use_a_defined_value() -> None:
             continue                      # empty means unreviewed; ADR-0011 covers it
         value = value.strip()
         note_type = (r.note_type or "").lower()
-        allowed = (ALLOWED_VERDICTS if note_type == "design" else CLOSE_OUT_VERDICTS)
+        # `plan-accepted` is legal wherever ADR-0007's set-review can stamp —
+        # which is any planning artifact, not only designs. The first live
+        # batch (2026-08-03) had REQs in it, and this guard's design-only
+        # scoping was the second stale copy the batch exposed.
+        allowed = (ALLOWED_VERDICTS if note_type == "design"
+                   else CLOSE_OUT_VERDICTS | {PLAN_ACCEPTED_VERDICT})
         if value not in allowed:
             offenders.append((r.note_id or r.rel_path, note_type, value))
     assert not offenders, (
