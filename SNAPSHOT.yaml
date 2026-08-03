@@ -30,17 +30,17 @@ counters:
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
-  DES: 8
+  DES: 9
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 73
+  FEAT: 77
   ISS: 93
-  PHASE: 26
-  REQ: 28
-  RISK: 5
+  PHASE: 27
+  REQ: 31
+  RISK: 6
   REL: 0
-  TASK: 321
+  TASK: 334
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -49,9 +49,37 @@ focus:
   feature: "FEAT-0059"
   phase: "PHASE-023"
   issue: ""
-  note: "2026-08-03 (2): Edwin plan-accepted all four designs THROUGH THE DESK (review_verdict: plan-accepted stamped by stamp_review — the mechanism recorded its own approval for the first time) and approved REQ-0026..0028. Full breakdown minted: TASK-0287..0321 across FEAT-0063..0073; PHASE-023 tasks existed already. Designs advanced to accepted. NEW: ADR-0009 (proposed, on Edwin desk) — THE PRINCIPAL IS A ROLE: Edwin contemplates fully autonomous LLM maintenance; audit found the phases autonomy-neutral IF witness/ownership never hard-codes user:edwin — ownership means the party holding intent, autonomy = delegating the principal role (clean-context, distinct-from-worker, bound to an intent artifact), never weakening gates. Binding on implementation: no literal user:edwin comparisons, witness values are principal identifiers, actuator endpoints check role policy. The one hard human step left is pushing (FEAT-0055), named so it cannot relax as a side effect. Suggested but NOT minted: a standing-worker phase (scheduler + delegation policy + escalation defaults) — awaiting Edwin word. Work order: TASK-0278 (transition table) starts PHASE-023."
+  note: "2026-08-03 (3): ADR-0009 ACCEPTED by Edwin through the desk (the lone-note decide path advanced the status — the machinery governed its own governance change). PHASE-027 The Standing Worker planned on his go-ahead: FEAT-0074 driver (lease, stop conditions by drill), FEAT-0075 delegation policy (DELEGATION.md approved through the actuator row it configures; push stays never until TASK-0328 ADR decides otherwise), FEAT-0076 escalation defaults (invariant: nothing waits silently without bound), FEAT-0077 intent charter (DES-0003 graduates to oracle; delegated acceptance = FEAT-0063 runner with agent:principal witness, clean-context per ADR-0013). REQ-0029..0031 draft, RISK-0006 open (closes only after a SUPERVISED week with drill log green), DES-0009 draft on the desk. Key design points: default state everywhere is NO WORKER (opt-in per repo by approved policy); the lease is state not record (.cockpit/, never git); delegate writes stamp (agent:principal, DELEGATION.md@sha, charter@sha). First live use of the plan-review flow exposed two stale vocabulary copies in the verdict guard — both fixed at source. Next: TASK-0278 starts PHASE-023, the foundation of everything above."
 items:
   features:
+    FEAT-0074:
+      file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
+      title: "The driver: select with reasons, dispatch, watch, record, next — with the lease and stop conditions proven by drill"
+      status: planned
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      tasks: [TASK-0322, TASK-0323, TASK-0324, TASK-0325]
+      note: "A caller of existing machinery, not a second runtime. Default state everywhere: no worker — autonomy is opted into per repo by an approved DELEGATION.md."
+    FEAT-0075:
+      file: "docs/features/delegation-policy/FEAT-0075-The-Delegation-Policy.md"
+      title: "DELEGATION.md, approved through the gate it configures; delegate writes carry their authority; the push ADR"
+      status: planned
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      tasks: [TASK-0326, TASK-0327, TASK-0328]
+      note: "ADR-0009 §4 made delegation a recorded fact; this is the fact's format and enforcement. Until the push ADR is accepted, the worker's relationship to git push is: never."
+    FEAT-0076:
+      file: "docs/features/escalation-defaults/FEAT-0076-Escalation-With-Defaults.md"
+      title: "Timeouts per kind, proceed-on-recorded-assumption, and the stall alarm"
+      status: planned
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      tasks: [TASK-0329, TASK-0330, TASK-0331]
+      note: "The invariant: nothing in the system can wait silently without bound. A wrong assumption is a visible one — recorded, tagged, lifted in the digest."
+    FEAT-0077:
+      file: "docs/features/intent-charter/FEAT-0077-The-Intent-Charter.md"
+      title: "The charter as acceptance oracle, and the delegated flavour of the runner"
+      status: planned
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      tasks: [TASK-0332, TASK-0333, TASK-0334]
+      note: "Acceptance asks: is this what I asked for — so the delegate needs the asking written down. Drafted from the record's paid-for decisions, approved by the principal, sha-stamped on every judgment made under it."
     FEAT-0059:
       file: "docs/features/write-service/FEAT-0059-The-Write-Service-Widens.md"
       title: "note_writes widens: the human-owned transition table as data, criteria ticks, issue creation"
@@ -503,6 +531,84 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0322:
+      file: "docs/features/standing-worker/plan/tasks/TASK-0322-Selection-With-Reasons.md"
+      title: "Selection with reasons — step 2 as code, the ledger says why"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0074
+    TASK-0323:
+      file: "docs/features/standing-worker/plan/tasks/TASK-0323-The-Session-Loop.md"
+      title: "The session loop — dispatch, watch, record, next"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0074
+    TASK-0324:
+      file: "docs/features/standing-worker/plan/tasks/TASK-0324-The-Lease.md"
+      title: "The lease — refuse, heartbeat, expire loudly"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0074
+    TASK-0325:
+      file: "docs/features/standing-worker/plan/tasks/TASK-0325-Stop-Conditions-By-Drill.md"
+      title: "Stop conditions proven by drill"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0074
+    TASK-0326:
+      file: "docs/features/delegation-policy/plan/tasks/TASK-0326-The-Policy-Note.md"
+      title: "DELEGATION.md — approved through the gate it configures"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0075
+    TASK-0327:
+      file: "docs/features/delegation-policy/plan/tasks/TASK-0327-Role-Checks-Consult-Policy.md"
+      title: "The actions endpoint answers per caller; delegate writes carry authority"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0075
+    TASK-0328:
+      file: "docs/features/delegation-policy/plan/tasks/TASK-0328-The-Push-Decision.md"
+      title: "Publishing under autonomy taken as an ADR"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0075
+    TASK-0329:
+      file: "docs/features/escalation-defaults/plan/tasks/TASK-0329-Timeouts-Per-Kind.md"
+      title: "Timeouts per queue kind, from the approved policy"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0076
+    TASK-0330:
+      file: "docs/features/escalation-defaults/plan/tasks/TASK-0330-Proceed-On-Recorded-Assumption.md"
+      title: "The assumption path: resolve, tag, lift"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0076
+    TASK-0331:
+      file: "docs/features/escalation-defaults/plan/tasks/TASK-0331-The-Stall-Alarm.md"
+      title: "Anything past twice its clock with no default joins NEEDS-YOU"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0076
+    TASK-0332:
+      file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
+      title: "The intent page's role widens from display to oracle"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0077
+    TASK-0333:
+      file: "docs/features/intent-charter/plan/tasks/TASK-0333-The-Charter-Note.md"
+      title: "Goals, non-goals and taste constraints, drafted from the record"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0077
+    TASK-0334:
+      file: "docs/features/intent-charter/plan/tasks/TASK-0334-Delegated-Acceptance.md"
+      title: "The runner with agent:principal as witness, charter-bound"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0077
     TASK-0287:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0287-The-Criteria-Payload.md"
       title: "The criteria payload — the endpoint, sharing the validator's parse"
@@ -3527,9 +3633,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 73
+    features_total: 77
     features_done: 55
-    tasks_total: 321
+    tasks_total: 334
     tasks_done: 271
     tests_total: 23
     tests_passing: 23
@@ -3538,6 +3644,6 @@ metrics:
     tests_failing: 0
     issues_open: 0
     issues_triage: 0
-    risks_open: 5
+    risks_open: 6
     releases_total: 0
     decisions_total: 9

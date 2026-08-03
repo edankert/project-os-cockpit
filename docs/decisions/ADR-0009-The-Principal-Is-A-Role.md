@@ -3,12 +3,15 @@ type: "[[adr]]"
 id: ADR-0009
 aliases: ["ADR-0009"]
 title: "The principal is a role, not a person — autonomy is delegation of that role, never the weakening of its gates"
-status: proposed
+status: "accepted"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-03"
 source: ["Edwin 2026-08-03: 'I am contemplating allowing an LLM to do full maintenance and work on a project independently of a human, make sure the current solution we are implementing does not stop us from enabling this'"]
 related: ["[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[REQ-0026-Only-Human-Owned-Transitions]]", "[[REQ-0028-Evidence-Names-Its-Witness]]", "[[DES-0005-The-Actuator-Grammar]]"]
+reviewed_by: "user:edwin"
+review_date: "2026-08-03"
+review_verdict: "plan-accepted"
 ---
 
 # The principal is a role
