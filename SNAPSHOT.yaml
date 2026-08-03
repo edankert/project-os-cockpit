@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 91
+  ISS: 92
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0092:
+      file: "docs/issues/ISS-0092-Severity-Buckets-Straddled-The-Completed-Split.md"
+      title: "A severity bucket holding both open and fixed issues had to be placed whole"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "One open medium issue would have kept 56 fixed ones above the divider under a card headed Medium · 57. Invisible in this corpus because every issue is fixed — homogeneous by accident. Split on completion BEFORE severity and every bucket is homogeneous, so the existing live/completed rule places both halves without knowing about severity. Also: one border per object — the band is a card, its children are not; ISS-0088's opposite rule held only where the children were framed."
     ISS-0091:
       file: "docs/issues/ISS-0091-Two-Handles-And-A-Shrinking-Id.md"
       title: "Two levels of one tree drew different expand handles, and a group head's id shrank to 7px"

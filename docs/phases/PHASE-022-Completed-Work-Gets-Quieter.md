@@ -23,6 +23,7 @@ issues:
   - "[[ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing]]"
   - "[[ISS-0090-Phase-Rows-And-The-Missing-Id-Column]]"
   - "[[ISS-0091-Two-Handles-And-A-Shrinking-Id]]"
+  - "[[ISS-0092-Severity-Buckets-Straddled-The-Completed-Split]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -258,3 +259,14 @@ Two small things, and both have the same shape as most of this phase.
 **Three declarations of one expand handle**, two identical by coincidence. `.ov-chev` in the right pane and the overview had the small triangle since [[FEAT-0043]]; group heads kept an older two-border caret; and the feature toggle added at [[ISS-0088]] reinvented the triangle from scratch rather than reusing the one already there. I wrote the third copy myself, three days after using the first.
 
 That is the phase in miniature: **the answer was already on the screen, in a file I had open, and I built a new one instead of looking.**
+
+
+## Closed an eleventh time 2026-08-03 — [[ISS-0092]]
+
+Two pieces of chrome and one real bug.
+
+**The bug:** `_issues_groups` bucketed by severity alone, so the live/completed split had to place each bucket **whole**. One open medium issue would have kept fifty-six fixed ones above the divider under a card headed `Medium · 57`. Today's corpus cannot show it — every issue is fixed, so every bucket is homogeneous by accident — which is exactly the shape of guard failure this phase has hit repeatedly. Splitting on completion *before* severity makes every bucket homogeneous, and the navigator's existing rule then places both halves without knowing anything about severity.
+
+**The chrome:** eighteen frames read as clutter so [[ISS-0089]] made them eighteen hairlines, which read as a table. They are gone; rows are separated by being rows. And the completed band is a card, reversing [[ISS-0088]]'s reasoning that a card containing cards nests two frames — true where its children are framed, false where they are things.
+
+The surviving rule is **one border per object**, and it covers both cases that the earlier pair of rules each covered only one of.

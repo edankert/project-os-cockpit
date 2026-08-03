@@ -1206,10 +1206,22 @@ def test_nav_groups_carry_the_card_frame() -> None:
         assert any("border-radius: 6px" in b for b in blocks), (
             f"{path.name}: the card frame is gone"
         )
+        # REVERSED at ISS-0092. This asserted the band was frameless, on the
+        # reasoning that a card containing cards nests two identical
+        # borders. That holds where its children are framed — and not in
+        # the features view, where the phases inside are *things* and carry
+        # no frame of their own, leaving the completed section reading as
+        # whatever was left at the bottom rather than as one object.
+        #
+        # The rule is ONE BORDER PER OBJECT: the band has it, its children
+        # do not.
         band = re.search(r"\.nav-group\.nav-rollup \{(.*?)\}", css, re.DOTALL)
-        assert band and "border: 0" in band.group(1), (
-            f"{path.name}: the completed band nests a second identical frame "
-            "around the cards it contains"
+        assert band and "border: 1px solid var(--border)" in band.group(1), (
+            f"{path.name}: the completed band is not a card"
+        )
+        inner = re.search(r"\.nav-rollup \.nav-group \{(.*?)\}", css, re.DOTALL)
+        assert inner and "border: 0" in inner.group(1), (
+            f"{path.name}: the band's children carry a second frame inside its own"
         )
 
 
@@ -1390,4 +1402,71 @@ def test_one_expand_handle_across_the_tree() -> None:
     ov = re.findall(r"\.ov-chev::before \{(.*?)\}", ren, re.DOTALL)
     assert any("border-left: 4px solid currentColor" in b for b in ov), (
         "the right pane's handle changed; the three must move together"
+    )
+
+
+def test_a_severity_with_both_halves_renders_two_cards() -> None:
+    """ISS-0092 — buckets were severity alone, so the live/completed split
+    had to place each one whole. A `Medium` holding one open issue and
+    fifty-six fixed ones went live with all fifty-seven inside it.
+
+    Today's corpus cannot catch this: every issue is fixed, so every
+    bucket is homogeneous by accident. Built to disagree, as with the
+    features comparator.
+    """
+    docs = None
+    import tempfile
+    docs = Path(tempfile.mkdtemp()) / "docs"
+    _note(docs / "issues" / "ISS-0001-A.md", """
+type: "[[issue]]"
+id: ISS-0001
+title: "Open medium"
+status: open
+severity: medium
+""")
+    _note(docs / "issues" / "ISS-0002-B.md", """
+type: "[[issue]]"
+id: ISS-0002
+title: "Fixed medium"
+status: fixed
+severity: medium
+""")
+    idx = Index.build(docs)
+    groups = cockpit._issues_groups(idx)
+    keys = [g["key"] for g in groups]
+    assert keys == ["medium", "medium:done"], keys
+    assert [i["id"] for i in groups[0]["items"]] == ["ISS-0001"]
+    assert [i["id"] for i in groups[1]["items"]] == ["ISS-0002"]
+    # …and each bucket is homogeneous, which is what lets the navigator's
+    # existing rule place them without knowing about severity.
+    for g in groups:
+        done = {statuses.is_completed(i.get("status")) for i in g["items"]}
+        assert len(done) == 1, f"{g['key']} straddles the completed split"
+
+
+def test_no_rule_between_phase_rows_and_the_band_is_a_card() -> None:
+    """Eighteen frames read as clutter, so ISS-0089 replaced them with
+    eighteen hairlines — which read as a table. And the completed band was
+    a heading over a border-top, on the reasoning that a card containing
+    cards nests two frames; true where its children are framed, false in
+    the features view where the phases carry none.
+
+    One border per object.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    thing = re.search(
+        r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
+    )
+    assert thing, "the thing-group rule is gone"
+    assert "border-bottom" not in thing.group(1), (
+        "phases are ruled off from one another again"
+    )
+    band = re.search(r"\.ws-nav-content \.nav-group\.nav-rollup \{(.*?)\}", css, re.DOTALL)
+    assert band and "border: 1px solid var(--border)" in band.group(1), (
+        "the completed band is not a card"
+    )
+    assert "border-radius: 6px" in band.group(1), "the band has no card radius"
+    inner = re.search(r"\.ws-nav-content \.nav-rollup \.nav-group \{(.*?)\}", css, re.DOTALL)
+    assert inner and "border: 0" in inner.group(1), (
+        "the band's children carry a second frame inside its own"
     )

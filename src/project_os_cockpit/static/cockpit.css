@@ -777,16 +777,22 @@ details:not([open]) > summary .group-chevron::before {
   padding: 4px 6px;
   margin-bottom: 6px;
 }
-/* The completed band is a card containing cards: it keeps the heading and
-   lets its children carry the frames. */
+/* The completed band IS a card, like the overview's and the right pane's;
+   its children carry no frame of their own — one border per object. */
 .nav-group.nav-rollup {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated, var(--surface));
+  padding: 4px 6px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+.nav-rollup .nav-group {
   border: 0;
   background: none;
-  padding: 0;
-  border-top: 1px solid var(--border);
   border-radius: 0;
-  margin-top: 10px;
-  padding-top: 4px;
+  padding: 0 0 0 2px;
+  margin-bottom: 0;
 }
 /* Nested rows lose their rules: indentation already says they belong to
    the row above. */

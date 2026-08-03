@@ -2841,34 +2841,51 @@ def _issues_groups(
     disagree with what the pane shows, and a risk is not triaged the way
     an issue is.
     """
+    def _severity_cards(
+        records: list[NoteRecord], prefix: str, label_for: Any, layout: str | None,
+    ) -> list[dict[str, Any]]:
+        """One card per (severity, completion) pair.
+
+        Buckets used to be severity alone, so a severity holding both open
+        and closed issues produced ONE card that the completed/live split
+        then had to place whole — and it placed it live, hiding fifty-six
+        fixed issues behind a card headed `Medium`.
+
+        Splitting on completion first makes every bucket homogeneous, so
+        the navigator's existing rule (settled groups go below the
+        divider) puts each half where it belongs without knowing anything
+        about severity.
+        """
+        cards: list[dict[str, Any]] = []
+        for done in (False, True):
+            half = [r for r in records if statuses.is_completed(r.status) is done]
+            for key, bucket in _severity_buckets(half):
+                card: dict[str, Any] = {
+                    # The key carries the half, or the two cards for one
+                    # severity would collide in any per-key state (the
+                    # collapse memory keys off it).
+                    "key": f"{prefix}{key}{':done' if done else ''}",
+                    "label": label_for(key),
+                    "url": None,
+                    "status": None,
+                    "items": [_issue_item(index, r) for r in _open_first(bucket)],
+                }
+                if layout:
+                    card["item_layout"] = layout
+                cards.append(card)
+        return cards
+
     issues = [r for r in index.notes_by_type("issue") if _platform_match(r, platform)]
-    out: list[dict[str, Any]] = [
-        {
-            "key": key,
-            "label": key.title() if key != "unset" else "Severity unset",
-            "url": None,
-            "status": None,
-            "items": [
-                _issue_item(index, r) for r in _open_first(records)
-            ],
-        }
-        for key, records in _settled_last(_severity_buckets(issues))
-    ]
+    out: list[dict[str, Any]] = _severity_cards(
+        issues, "", lambda k: k.title() if k != "unset" else "Severity unset", None,
+    )
 
     risks = [r for r in index.notes_by_type("risk") if _platform_match(r, platform)]
-    for key, records in _settled_last(_severity_buckets(risks)):
-        out.append({
-            "key": f"risk:{key}",
-            "label": (
-                f"Risks · {key}" if key != "unset" else "Risks · severity unset"
-            ),
-            "url": None,
-            "status": None,
-            "item_layout": "stacked",
-            "items": [
-                _issue_item(index, r) for r in _open_first(records)
-            ],
-        })
+    out.extend(_severity_cards(
+        risks, "risk:",
+        lambda k: f"Risks · {k}" if k != "unset" else "Risks · severity unset",
+        "stacked",
+    ))
     return out
 
 

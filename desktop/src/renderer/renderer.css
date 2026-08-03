@@ -1077,17 +1077,28 @@ body {
   padding: 4px 6px;
   margin-bottom: 6px;
 }
-/* …except the completed band, which is a card CONTAINING cards. Nesting
-   two identical borders reads as a mistake, so the outer one keeps only
-   the heading and lets its children carry the frames. */
+/* The completed band IS a card, like the overview's and the right pane's.
+   It was a bare heading over a border-top, on the reasoning that a card
+   containing cards nests two identical frames — true where its children
+   are framed (issues, tasks), and not true in the features view, where
+   the phases inside it are things and carry no frame of their own.
+   Framing the band is what makes the completed section read as one
+   object rather than as whatever is left at the bottom. */
 .ws-nav-content .nav-group.nav-rollup {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  padding: 4px 6px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+/* Its children keep no frame of their own — one border per object. */
+.ws-nav-content .nav-rollup .nav-group {
   border: 0;
   background: none;
-  padding: 0;
-  border-top: 1px solid var(--border);
   border-radius: 0;
-  margin-top: 10px;
-  padding-top: 4px;
+  padding: 0 0 0 2px;
+  margin-bottom: 0;
 }
 .ws-nav-content .nav-rollup-body { display: flex; flex-direction: column; gap: 0; }
 .ws-nav-content .nav-rollup .nav-group { margin-bottom: 6px; }
@@ -1118,18 +1129,18 @@ body {
   text-transform: none;
 }
 .nav-group-header.is-thing .nav-group-summary { font-size: 11px; }
-/* …and a thing is not framed. Four boxes around four categories read as
-   structure; eighteen around eighteen phases read as clutter. A single
-   hairline between them is enough to separate one from the next. */
+/* …and a thing is not framed, nor ruled off. Four boxes around four
+   categories read as structure; eighteen around eighteen phases read as
+   clutter, and eighteen hairlines read as a table. The rows are already
+   separated by being rows — the overview's scope pane has never needed
+   anything between them. */
 .nav-group:has(> .nav-group-header.is-thing) {
   border: 0;
   background: none;
   border-radius: 0;
   padding: 0 0 0 2px;
   margin-bottom: 0;
-  border-bottom: 1px solid var(--border-subtle, rgba(128,128,128,0.14));
 }
-.nav-group:has(> .nav-group-header.is-thing):last-child { border-bottom: 0; }
 /* The pill has to be legible where it survives. */
 .nav-group-header .status-chip { color: var(--text-muted); }
 
