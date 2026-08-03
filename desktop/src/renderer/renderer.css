@@ -1028,12 +1028,10 @@ body {
    chevron, and a second indent per level is what turns a nested list into
    a staircase. */
 .ws-nav-content .group-body { padding-left: 0; }
-.ws-nav-content .group-header-inner {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* The inner keeps `min-width: 0` so it can shrink, but the ELLIPSIS
+   belongs on the name — a flex container cannot ellipsise its children,
+   and `overflow: hidden` here only clipped the id (ISS-0091). */
+.ws-nav-content .group-header-inner { min-width: 0; }
 
 /* The context pane's record cards (TASK-0274). A settled card renders
    closed — which is NOT the filter TASK-0269 removed: it still names the
@@ -1174,6 +1172,15 @@ body {
    (ISS-0090). Monospace, so `ch` is exact: nine covers `REQ-0008` and
    `TASK-0277` alike. */
 .nav-item-children-list .nav-id { min-width: 9ch; }
+
+/* A group head's id never shrinks (ISS-0091). `flex: none` was scoped to
+   `.nav-item-line`, so in a HEAD the id was a flexible item inside an
+   overflow-hidden container and a long phase title squeezed it —
+   `PHASE-007` rendered 7px of the 62px it needs. The name is the thing
+   with an ellipsis; the id is eight characters and fixed. */
+.nav-group-header .nav-id { flex: none; }
+.nav-group-header .group-header-name { min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
 
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }

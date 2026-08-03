@@ -1334,3 +1334,60 @@ def test_an_absent_id_still_occupies_the_id_column() -> None:
             f"{path.name}: the stand-in handle sets its own font-size — `ch` is "
             "relative to the font, so that narrows the column it shares"
         )
+
+
+def test_a_group_heads_id_never_shrinks() -> None:
+    """ISS-0091 — `flex: none` was scoped to `.nav-item-line`, so in a
+    HEAD the id was a flexible child of an overflow-hidden container and a
+    long phase title squeezed it. `PHASE-007` rendered 7px of 62.
+
+    The ellipsis belongs on the NAME: a flex container cannot ellipsise
+    its children, so `text-overflow` on the inner did nothing and
+    `overflow: hidden` merely clipped.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        assert ".nav-group-header .nav-id { flex: none; }" in css, (
+            f"{path.name}: a group head's id can shrink again"
+        )
+        assert re.search(
+            r"\.nav-group-header \.group-header-name \{[^}]*text-overflow: ellipsis", css, re.DOTALL,
+        ), f"{path.name}: the head's name does not carry the ellipsis"
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    inner = re.search(r"\.ws-nav-content \.group-header-inner \{(.*?)\}", css, re.DOTALL)
+    assert inner and "overflow: hidden" not in inner.group(1), (
+        "the head's inner clips its children again instead of letting the "
+        "name ellipsise"
+    )
+
+
+def test_one_expand_handle_across_the_tree() -> None:
+    """Three shapes for one gesture: an 8px rotated-border caret on group
+    heads, a 4px solid triangle on feature rows, and the same triangle in
+    the right pane — so two levels of one tree disagreed while a third
+    surface already had the answer.
+    """
+    css = (REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css").read_text(encoding="utf-8")
+    chev = re.search(r"\.group-chevron::before \{(.*?)\}", css, re.DOTALL)
+    assert chev, "the group chevron no longer draws a triangle"
+    body = chev.group(1)
+    assert "border-left: 4px solid currentColor" in body, (
+        "the group handle is not the 4px solid triangle used everywhere else"
+    )
+    old = re.search(r"\.group-chevron \{(.*?)\}", css, re.DOTALL)
+    assert old and "border-right" not in old.group(1), (
+        "the rotated-border caret is back on group heads"
+    )
+    # …and it matches the right pane's, which already had the right shape.
+    ren = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    # ALL blocks: `.ov-chev::before` is declared once and then overridden
+    # for the open state, and a first-match search finds the override —
+    # the same trap that made an earlier guard in this file pass on a
+    # mutated source.
+    ov = re.findall(r"\.ov-chev::before \{(.*?)\}", ren, re.DOTALL)
+    assert any("border-left: 4px solid currentColor" in b for b in ov), (
+        "the right pane's handle changed; the three must move together"
+    )

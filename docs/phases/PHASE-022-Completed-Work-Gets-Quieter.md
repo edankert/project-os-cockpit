@@ -22,6 +22,7 @@ issues:
   - "[[ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour]]"
   - "[[ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing]]"
   - "[[ISS-0090-Phase-Rows-And-The-Missing-Id-Column]]"
+  - "[[ISS-0091-Two-Handles-And-A-Shrinking-Id]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -246,3 +247,14 @@ The phase head now measures the same as the overview's scope row on every axis, 
 The other half is small and general: a plan child carries `id: ""` on purpose, the renderer skipped the id span entirely, and the plan's title took the id's place — **78px** left of its sibling requirements. An absent value has to occupy its column, not skip it. Closing it took three passes (a handle, then a column width, then removing the handle's own smaller font, because `ch` is relative to the font), and the rule that falls out is worth more than the fix:
 
 > **A column is only a column if every cell in it is the same width — including the ones standing in for something absent.**
+
+
+## Closed a tenth time 2026-08-03 — [[ISS-0091]]
+
+Two small things, and both have the same shape as most of this phase.
+
+**The id shrank because `flex: none` was scoped to rows and not to heads** — `PHASE-007` rendered 7px of the 62 it needs. The ellipsis was also on the wrong element: a flex container cannot ellipsise its children, so `text-overflow` on the inner did nothing while `overflow: hidden` clipped the id beside it.
+
+**Three declarations of one expand handle**, two identical by coincidence. `.ov-chev` in the right pane and the overview had the small triangle since [[FEAT-0043]]; group heads kept an older two-border caret; and the feature toggle added at [[ISS-0088]] reinvented the triangle from scratch rather than reusing the one already there. I wrote the third copy myself, three days after using the first.
+
+That is the phase in miniature: **the answer was already on the screen, in a file I had open, and I built a new one instead of looking.**

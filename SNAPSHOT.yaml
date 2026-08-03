@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 90
+  ISS: 91
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0091:
+      file: "docs/issues/ISS-0091-Two-Handles-And-A-Shrinking-Id.md"
+      title: "Two levels of one tree drew different expand handles, and a group head's id shrank to 7px"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "flex:none was scoped to .nav-item-line, so in a HEAD the id was a flexible child of an overflow-hidden container — PHASE-007 rendered 7px of 62. A flex container cannot ellipsise its children; the ellipsis belongs on the name. And there were THREE declarations of one expand triangle, two identical by coincidence: .ov-chev had it since FEAT-0043, group heads kept an older caret, and I reinvented it at ISS-0088 rather than reusing it."
     ISS-0090:
       file: "docs/issues/ISS-0090-Phase-Rows-And-The-Missing-Id-Column.md"
       title: "Phase rows differed from the overview's, and a plan's empty id dropped it out of the id column"

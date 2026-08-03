@@ -620,20 +620,39 @@ details > summary {
 }
 details > summary::-webkit-details-marker { display: none; }
 
+/* ONE handle across the tree (ISS-0091). Group heads drew an 8px
+   rotated-border caret and feature rows a 4px solid triangle, so two
+   levels of the same tree disagreed about what "expand" looks like.
+   The smaller solid one wins — it is the one Edwin picked, and a caret
+   built from two rotated borders never sits on the text baseline the way
+   a triangle does. */
 .group-chevron {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
+  position: relative;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-1px) rotate(45deg);   /* points down (open) */
-  transition: transform 100ms ease;
-  opacity: 0.7;
+  opacity: 1;
 }
-details:not([open]) > summary .group-chevron {
-  transform: translateY(1px) rotate(-45deg);    /* points right (closed) */
+.group-chevron::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  color: var(--text-faint);
+  transform: rotate(90deg);            /* points down (open) */
+  transition: transform 100ms ease;
+}
+details:not([open]) > summary .group-chevron::before {
+  transform: rotate(0deg);             /* points right (closed) */
+}
+@media (prefers-reduced-motion: reduce) {
+  .group-chevron::before { transition: none; }
 }
 
 .group-header-inner {
@@ -863,6 +882,15 @@ details:not([open]) > summary .group-chevron {
    (ISS-0090). Monospace, so `ch` is exact: nine covers `REQ-0008` and
    `TASK-0277` alike. */
 .nav-item-children-list .nav-id { min-width: 9ch; }
+
+/* A group head's id never shrinks (ISS-0091). `flex: none` was scoped to
+   `.nav-item-line`, so in a HEAD the id was a flexible item inside an
+   overflow-hidden container and a long phase title squeezed it —
+   `PHASE-007` rendered 7px of the 62px it needs. The name is the thing
+   with an ellipsis; the id is eight characters and fixed. */
+.nav-group-header .nav-id { flex: none; }
+.nav-group-header .group-header-name { min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
 
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-group.nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
