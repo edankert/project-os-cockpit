@@ -24,6 +24,7 @@ issues:
   - "[[ISS-0090-Phase-Rows-And-The-Missing-Id-Column]]"
   - "[[ISS-0091-Two-Handles-And-A-Shrinking-Id]]"
   - "[[ISS-0092-Severity-Buckets-Straddled-The-Completed-Split]]"
+  - "[[ISS-0093-Nested-Padding-And-Two-Heading-Styles]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]
@@ -270,3 +271,14 @@ Two pieces of chrome and one real bug.
 **The chrome:** eighteen frames read as clutter so [[ISS-0089]] made them eighteen hairlines, which read as a table. They are gone; rows are separated by being rows. And the completed band is a card, reversing [[ISS-0088]]'s reasoning that a card containing cards nests two frames — true where its children are framed, false where they are things.
 
 The surviving rule is **one border per object**, and it covers both cases that the earlier pair of rules each covered only one of.
+
+
+## Closed a twelfth time 2026-08-03 — [[ISS-0093]]
+
+A phase id sat 45px in — 23 right of the overview's, and **2px right of the features nested beneath it**. A parent indented further than its children is the one arrangement a tree must never produce.
+
+No single value was wrong. The band's 6, the group's 2 and the head's 8 compounded, with the chevron's gap on top; each was chosen sensibly in isolation. The fix that matters structurally is that the **body** carries the indent rather than the group — indenting the group moves the head too, and the head is the thing being indented *from*.
+
+Asked in the same breath to align the panes, I measured all six and found a second section-heading style I had written myself without checking `.scope-heading` existed, and design rows 3px taller than every other navigator's purely because a status chip was present — the identical failure the group head had at [[ISS-0087]].
+
+**And a mutation reported green while having silently failed to apply**, because the replacement string was written against an older version of the block. That looks exactly like a working guard. `assert old in s` belongs in the mutation script and not only in the guard: a mutation that does not apply is indistinguishable from a guard that does not work, and only one of those is worth knowing about.

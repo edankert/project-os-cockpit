@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 58
-  ISS: 92
+  ISS: 93
   PHASE: 22
   REQ: 25
   RISK: 4
@@ -1980,6 +1980,13 @@ items:
 
 
   issues:
+    ISS-0093:
+      file: "docs/issues/ISS-0093-Nested-Padding-And-Two-Heading-Styles.md"
+      title: "Three nested paddings pushed a phase id right of its own features, and a second section-heading style duplicated one that existed"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
+      note: "A parent indented further than its children is the one arrangement a tree must never produce. No single value was wrong — band 6 + group 2 + head 8 compounded. The BODY carries the indent, not the group: indenting the group moves the head too, and the head is what is being indented from. Also KEEP: assert the mutation applied, not just that the guard passed — one reported green here while silently failing to match."
     ISS-0092:
       file: "docs/issues/ISS-0092-Severity-Buckets-Straddled-The-Completed-Split.md"
       title: "A severity bucket holding both open and fixed issues had to be placed whole"

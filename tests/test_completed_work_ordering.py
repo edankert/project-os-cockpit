@@ -1470,3 +1470,63 @@ def test_no_rule_between_phase_rows_and_the_band_is_a_card() -> None:
     assert inner and "border: 0" in inner.group(1), (
         "the band's children carry a second frame inside its own"
     )
+
+
+def test_one_section_heading_style() -> None:
+    """ISS-0093 — `.nav-set-heading` was a second style for the role
+    `.scope-heading` already filled: 11px/600 spaced with padding against
+    10px/700 spaced with margin. Written without checking the first
+    existed.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        rule = re.search(r"\.nav-set-heading,\n\.nav-rollup-label \{(.*?)\}", css, re.DOTALL)
+        assert rule, f"{path.name}: the navigator headings have their own rule again"
+        body = rule.group(1)
+        assert "font-size: 10px" in body and "font-weight: 700" in body, (
+            f"{path.name}: the navigator heading does not match .scope-heading"
+        )
+        assert ".nav-set-heading { padding: 0; margin: 10px 4px 4px; }" in css, (
+            f"{path.name}: the heading spaces itself with padding, which made "
+            "the same words a 29px block against the overview's 15px"
+        )
+
+
+def test_a_chip_does_not_set_a_row_height() -> None:
+    """Design's rows were 27px and every other navigator's 24, purely
+    because a status chip was present. Same failure as the group head at
+    ISS-0087: the chip is the tallest thing on the line and it is not the
+    line's subject."""
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        rule = re.search(r"\.nav-item-line \.status-chip \{(.*?)\}", css, re.DOTALL)
+        assert rule and "line-height: 15px" in rule.group(1), (
+            f"{path.name}: a chip sets the row's height again"
+        )
+
+
+def test_the_phase_head_sits_left_of_its_features() -> None:
+    """A parent indented further than its children is the one arrangement
+    a tree must never produce — the phase id measured 45px and the
+    features beneath it 43.
+
+    The BODY carries the indent, not the group: indenting the group moves
+    the head too, which is the thing being indented from.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    assert (
+        ".nav-group:has(> .nav-group-header.is-thing) > .group-body { padding-left: 5px; }"
+        in css
+    ), "the body no longer carries the indent, so the head moves with its children"
+    thing = re.search(
+        r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
+    )
+    assert thing and "padding: 0;" in thing.group(1), (
+        "the thing-group has left padding again, pushing the head right"
+    )

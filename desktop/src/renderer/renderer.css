@@ -1088,16 +1088,21 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-elevated);
-  padding: 4px 6px;
+  /* 4px, not 6: this is one of THREE nested paddings before a phase id
+     (band, group, head), and they compounded to put the id 23px right of
+     the overview's — further right, in fact, than the features beneath
+     it (ISS-0093). */
+  padding: 4px;
   margin-top: 10px;
   margin-bottom: 6px;
 }
-/* Its children keep no frame of their own — one border per object. */
+/* Its children keep no frame of their own — one border per object — and
+   no indent either: nesting is already expressed by being inside. */
 .ws-nav-content .nav-rollup .nav-group {
   border: 0;
   background: none;
   border-radius: 0;
-  padding: 0 0 0 2px;
+  padding: 0;
   margin-bottom: 0;
 }
 .ws-nav-content .nav-rollup-body { display: flex; flex-direction: column; gap: 0; }
@@ -1115,8 +1120,13 @@ body {
   color: var(--text);
   /* 3px, not 5: the chevron the scope row does not carry adds four
      pixels, and the two rows should measure the same. */
-  padding: 3px 8px;
+  padding: 3px 4px;
 }
+/* The handle is the ONLY thing the features view has that the overview's
+   scope row does not, so it should cost the width of a handle and no
+   more. The head's 7px gap is the id-to-name gap the scope row uses; the
+   chevron sits closer than that. */
+.nav-group-header.is-thing .group-chevron { margin-right: -3px; }
 .nav-group-header.is-thing .group-header-name {
   font-size: 12.5px;
   font-weight: 500;
@@ -1138,7 +1148,11 @@ body {
   border: 0;
   background: none;
   border-radius: 0;
-  padding: 0 0 0 2px;
+  /* No left padding: this is one of three that compounded to push a phase
+     id 45px in, further right than its own features (ISS-0093). The
+     indent lives on the BODY, so the head moves left while its children
+     stay indented from it. */
+  padding: 0;
   margin-bottom: 0;
 }
 /* The pill has to be legible where it survives. */
@@ -1192,6 +1206,56 @@ body {
 .nav-group-header .nav-id { flex: none; }
 .nav-group-header .group-header-name { min-width: 0; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Left-pane consistency sweep (ISS-0093) ----------------------------
+   Measured across all six left panes, three things disagreed:
+
+     section headings   11px/600 in the navigators, 10px/700 on the
+                        overview and the review desk — two styles for one
+                        role, because `.nav-set-heading` was written
+                        without checking `.scope-heading` existed
+     row height         24px everywhere except design's 27, where a status
+                        chip is present and sets the height
+     title column       98px / 103px / 96px, because the id column is as
+                        wide as its longest id and that differs per mode
+
+   Deliberately NOT unified: a group head that names a THING is 12.5px/400
+   and one that names a CATEGORY is 11px/600. That difference is the rule
+   from ISS-0089, not drift. */
+
+/* One section heading. `.scope-heading` is the older of the two and is
+   what the overview and the review desk already use. */
+.nav-set-heading,
+.nav-rollup-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+/* MARGIN, not padding — `.scope-heading` spaces itself with margin, and
+   padding made the same words a 29px block against its 15px. */
+.nav-set-heading { padding: 0; margin: 10px 4px 4px; }
+/* A framed group's content starts 7px in (1px border + 6px padding); an
+   unframed thing-group's started at 0, so the features navigator's rows
+   sat 5px left of every other navigator's. The BODY takes the offset, not
+   the head — the head is the thing being indented from. */
+.ws-nav-content .nav-group:has(> .nav-group-header.is-thing) > .group-body { padding-left: 5px; }
+
+
+/* A chip never sets a row's height — same rule the group head got at
+   ISS-0087, for the same reason: it is the tallest thing on the line and
+   it is not the line's subject. */
+.nav-item-line .status-chip {
+  padding: 0 6px;
+  line-height: 15px;
+  font-size: 10px;
+}
+
+/* One id column across every navigator, so titles start at the same x
+   whatever the longest id in the mode happens to be. Monospace, so `ch`
+   is exact; ten covers `PHASE-022` and `TASK-0277` alike. */
+.ws-nav-content .nav-item-line .nav-id { min-width: 10ch; }
 
 /* The roll-up: everything finished, behind one line (TASK-0273). */
 .nav-rollup { border-top: 1px solid var(--border); margin-top: 6px; }
