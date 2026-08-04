@@ -12,9 +12,9 @@ project:
 retention:
   policy: active-and-recent
   recent_changes_max: 25
-  keep_closed_issues_in_snapshot: false
-  keep_done_tasks_in_snapshot: false
-  keep_done_features_in_snapshot: false
+  # Read by tools/scripts/sync-snapshot.py (ADR-0018). Absent = feature off.
+  derive_fields: true      # title/goal derived from the note
+  prune_window: 25         # keep N most recent terminal items per collection
   note: "2026-07-26 PHASE-008 complete bar one gate: FEAT-0040 and FEAT-0041 done, REQ-0022 implemented, 314 tests green, fleet migrated to the hyphen-free vocabulary (ADR-0012). The phase stays active until TST-0011 is run once through the ~review manual test runner — it is manual by design and needs Edwin at the desk. Also owed: a cross-vendor or human review pass (QUALITY.md)."
 
 docs_system:
@@ -51,157 +51,158 @@ focus:
   issue: ""
   note: "2026-08-03 (3): ADR-0009 ACCEPTED by Edwin through the desk (the lone-note decide path advanced the status — the machinery governed its own governance change). PHASE-027 The Standing Worker planned on his go-ahead: FEAT-0074 driver (lease, stop conditions by drill), FEAT-0075 delegation policy (DELEGATION.md approved through the actuator row it configures; push stays never until TASK-0328 ADR decides otherwise), FEAT-0076 escalation defaults (invariant: nothing waits silently without bound), FEAT-0077 intent charter (DES-0003 graduates to oracle; delegated acceptance = FEAT-0063 runner with agent:principal witness, clean-context per ADR-0013). REQ-0029..0031 draft, RISK-0006 open (closes only after a SUPERVISED week with drill log green), DES-0009 draft on the desk. Key design points: default state everywhere is NO WORKER (opt-in per repo by approved policy); the lease is state not record (.cockpit/, never git); delegate writes stamp (agent:principal, DELEGATION.md@sha, charter@sha). First live use of the plan-review flow exposed two stale vocabulary copies in the verdict guard — both fixed at source. Next: TASK-0278 starts PHASE-023, the foundation of everything above."
 items:
+  # Pruned 250 terminal item(s) by retention policy (ADR-0018); the notes remain the archive.
   features:
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
-      title: "The driver: select with reasons, dispatch, watch, record, next — with the lease and stop conditions proven by drill"
+      title: "The standing worker — acquire, select, dispatch, watch, record, release, next; with a lease that refuses and stops that hold"
       status: planned
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0322, TASK-0323, TASK-0324, TASK-0325]
       note: "A caller of existing machinery, not a second runtime. Default state everywhere: no worker — autonomy is opted into per repo by an approved DELEGATION.md."
     FEAT-0075:
       file: "docs/features/delegation-policy/FEAT-0075-The-Delegation-Policy.md"
-      title: "DELEGATION.md, approved through the gate it configures; delegate writes carry their authority; the push ADR"
+      title: "The delegation policy — a principal-approved note the actuators consult, delegate writes that carry their authority, and the push decision taken as an ADR"
       status: planned
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0326, TASK-0327, TASK-0328]
       note: "ADR-0009 §4 made delegation a recorded fact; this is the fact's format and enforcement. Until the push ADR is accepted, the worker's relationship to git push is: never."
     FEAT-0076:
       file: "docs/features/escalation-defaults/FEAT-0076-Escalation-With-Defaults.md"
-      title: "Timeouts per kind, proceed-on-recorded-assumption, and the stall alarm"
+      title: "Escalation with defaults — timeouts per queue kind, proceed-on-recorded-assumption, and an alarm so nothing waits silently forever"
       status: planned
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0329, TASK-0330, TASK-0331]
       note: "The invariant: nothing in the system can wait silently without bound. A wrong assumption is a visible one — recorded, tagged, lifted in the digest."
     FEAT-0077:
       file: "docs/features/intent-charter/FEAT-0077-The-Intent-Charter.md"
-      title: "The charter as acceptance oracle, and the delegated flavour of the runner"
+      title: "The intent charter — DES-0003's page graduated into the oracle a delegated acceptance judges against"
       status: planned
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0332, TASK-0333, TASK-0334]
       note: "Acceptance asks: is this what I asked for — so the delegate needs the asking written down. Drafted from the record's paid-for decisions, approved by the principal, sha-stamped on every judgment made under it."
     FEAT-0059:
       file: "docs/features/write-service/FEAT-0059-The-Write-Service-Widens.md"
-      title: "note_writes widens: the human-owned transition table as data, criteria ticks, issue creation"
+      title: "note_writes widens: the human-owned transition table as data, criteria ticks, and issue creation — behind the guards it already has"
       status: planned
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0278, TASK-0279, TASK-0280]
       note: "The foundation verb set. Everything in PHASE-023/024 calls these three; the discipline is inherited from note_writes, not invented."
     FEAT-0060:
       file: "docs/features/note-actuators/FEAT-0060-Transitions-And-Ticks-On-The-Note.md"
-      title: "The actuator row and live criteria checkboxes"
+      title: "The actuator row: a note's legal human actions as buttons under its title, and its criteria checkboxes made live"
       status: planned
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0281, TASK-0282]
       note: "The renderer displays, never decides — no vocabulary in TypeScript, the thrice-taught lesson made structural."
     FEAT-0061:
       file: "docs/features/quick-capture/FEAT-0061-Quick-Capture-And-Triage.md"
-      title: "⌘N capture into triage, and the triage tray"
+      title: "A thought becomes a triaged issue: ⌘N capture into triage, and a triage tray where those judgments get made"
       status: planned
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0283, TASK-0284]
       note: "Thought → record → judgment without composing a prompt. Capture is deliberately dumber than ad-hoc-intake; the agent joins at triage."
     FEAT-0062:
       file: "docs/features/desk-resolution/FEAT-0062-Desk-Resolution-Flows.md"
-      title: "Changes-requested reaches re-review; questions get answered in place"
+      title: "The desk's dangling flows close: changes-requested reaches re-review, and a question gets its answer written back"
       status: planned
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0285, TASK-0286]
       note: "Every obligation the desk shows gets its verb on the same surface."
     FEAT-0063:
       file: "docs/features/acceptance-runner/FEAT-0063-The-Acceptance-Runner.md"
-      title: "Criteria walked one at a time; pass ticks with a witness, fail files the issue"
+      title: "The acceptance runner — a feature's criteria walked one at a time; pass ticks with a witness, fail files the issue, the run leaves a log"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0287, TASK-0288, TASK-0289, TASK-0290]
       note: "The desk's manual-test runner generalised. Tasks minted at pickup — PHASE-023's verbs must exist first."
     FEAT-0064:
       file: "docs/features/acceptance-gate/FEAT-0064-The-Acceptance-Gate.md"
-      title: "acceptance: absent/requested/accepted — opt-in, owed on the desk, satisfied only by a run"
+      title: "Acceptance as an explicit, opt-in gate: requested at close-out, owed on the desk, satisfied only by a run"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0291, TASK-0292, TASK-0293]
       note: "The second question, distinct from independent review: is this what I asked for? Never blocks close-out; keeps the debt visible."
     FEAT-0065:
       file: "docs/features/acceptance-debt/FEAT-0065-Acceptance-Debt-Surface.md"
-      title: "Unverified requirements, unresolved criteria, evidence-free ticks — as a record card"
+      title: "The acceptance-debt surface: which requirements have no verification, which criteria sit unticked, what was ticked without evidence"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0294, TASK-0295, TASK-0296]
       note: "Three numbers that exist nowhere, all derivable from parses the validator already does."
     FEAT-0066:
       file: "docs/features/visual-evidence/FEAT-0066-Visual-Evidence.md"
-      title: "Captures into docs/attachments, rendered in notes, offered at the moment of verdict"
+      title: "Visual evidence — the shell captures a surface into the repo and the note renders it, so evidence a non-code reader can trust"
       status: planned
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0297, TASK-0298, TASK-0299]
       note: "Evidence a non-code reader can trust. Images are evidence, never the comparator."
     FEAT-0067:
       file: "docs/features/design-artefacts/FEAT-0067-Designs-Render-Their-Artefacts.md"
-      title: "Variants as sandboxed fragments side by side; Choose records the decision"
+      title: "Designs render their artefacts — variants as sandboxed fragments side by side, and choosing one records the decision"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0300, TASK-0301, TASK-0302]
       note: "A ## Variant section with fenced html IS the variant. The ADR falls out of the act of choosing, as a proposal for the actuator row."
     FEAT-0068:
       file: "docs/features/measure-view/FEAT-0068-The-Measure-View.md"
-      title: "Two surfaces, an element each, the differences as a table"
+      title: "The measure view — two surfaces side by side with a computed-style table, so comparisons happen in numbers instead of eyes"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0303, TASK-0304, TASK-0305]
       note: "The tool whose absence cost PHASE-022 twelve rounds. v1: self and artefacts only."
     FEAT-0069:
       file: "docs/features/annotate/FEAT-0069-Annotate-To-Request.md"
-      title: "A pin or selection on a design becomes an anchored review-queue entry"
+      title: "Annotate to request — a pin or a selection on a design becomes a review-queue entry with an anchor that degrades honestly"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0306, TASK-0307, TASK-0308]
       note: "The annotation channel stops being chat. Anchors degrade honestly — the subject_missing rule extended."
     FEAT-0070:
       file: "docs/features/design-gating/FEAT-0070-Design-Gating-And-Scaffolding.md"
-      title: "design: gates the feature that names it; Derive-requirements dispatches, never generates"
+      title: "An accepted design gates the feature that names it, and can scaffold that feature's requirements — by dispatch, never by fiat"
       status: planned
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0309, TASK-0310, TASK-0311]
       note: "Enforceable by the route every local rule took: this repo's validator first, upstream proposal alongside."
     FEAT-0071:
       file: "docs/features/since-you-looked/FEAT-0071-Since-You-Looked.md"
-      title: "The watermark, the digest, and a Caught-up that means it"
+      title: "Since you looked — a per-workspace watermark, a digest of what happened behind it, and a Caught-up that means it"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0312, TASK-0313, TASK-0314]
       note: "Presence is not attention: only the explicit action moves the mark. Pulled on arrival, never pushed."
     FEAT-0072:
       file: "docs/features/release-surface/FEAT-0072-The-Release-Surface.md"
-      title: "UNRELEASED as a number, Draft-release as an action, the acceptance-tests gate rendered"
+      title: "The release surface — done-but-unshipped becomes a number, drafting a release becomes an action, and the acceptance-tests gate finally renders"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0315, TASK-0316, TASK-0317]
       note: "Done and shipped are different facts; the template's release gate has waited for a surface since it was written."
     FEAT-0073:
       file: "docs/features/one-voice/FEAT-0073-One-Voice.md"
-      title: "Empty states, the eye toggle, the recorded exceptions, and mode 1 decided once"
+      title: "One voice — empty states that say what would appear, the eye toggle retired or defended, the exceptions written down, and mode 1 decided once"
       status: planned
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0318, TASK-0319, TASK-0320, TASK-0321]
       note: "Four small debts, each a repeat offender when left. The mode-1 ADR takes the three-drifts-in-two-days record as evidence."
     FEAT-0058:
       file: "docs/features/navigator-shape/FEAT-0058-One-Shape-Per-Navigator.md"
-      title: "Every navigator is a live section plus collapsed cards, with a completed divider only where group names do not say finished"
+      title: "Every navigator is a live section plus collapsed cards, and a completed divider appears only where the group names do not already say finished"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       tasks: [TASK-0275, TASK-0276, TASK-0277]
       note: "Edwin specified three views separately; they collapsed into one rule — a divider is needed only where a group's own name does not already say it is finished. Tasks name their own state (Done/Cancelled/Superseded) so they get none; phases and severities do not, so they do."
     FEAT-0057:
       file: "docs/features/record-grammar/FEAT-0057-The-Record-Grammar.md"
-      title: "Both panes adopt the record column's grammar — one-line rows, status once at the head, finished groups rolled up"
+      title: "Both panes adopt the record column's grammar — one-line rows, status said once at the head, and finished groups rolled up behind a divider"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       tasks: [TASK-0271, TASK-0272, TASK-0273, TASK-0274]
       note: "FEAT-0056 changed WHAT is shown, not how densely, and at 60px a nav row against the record column's 27px its own fix is hard to see. Eighteen 53px group headers render whether or not anything in them is live — after all that folding the headers became the noise."
     FEAT-0056:
       file: "docs/features/completed-work/FEAT-0056-Completed-Work-Ordering.md"
-      title: "Open work sorts first, long lists fold, and the context pane never filters"
+      title: "Open work sorts first, long lists fold, and the context pane never filters — so a corpus that is 99% complete reads without a switch that empties it"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       tasks: [TASK-0267, TASK-0268, TASK-0269, TASK-0270]
@@ -236,7 +237,7 @@ items:
       note: "Edwin's framing: the docs are a layer over git so you need not read git. Rows are status TRANSITIONS, not note touches — measured, the phase-hygiene commit touched 20 notes and changed 4 statuses. Commits become dividers marking what is saved. Replaces three overview tiles with one."
     FEAT-0051:
       file: "docs/features/errors-as-work/FEAT-0051-Validator-Errors-As-Session-Work.md"
-      title: "Validator errors are session work while a session runs, and issues once it ends"
+      title: "Validator errors are session work while a session is running, and issues once it ends"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       tasks: [TASK-0252, TASK-0253, TASK-0254]
@@ -315,75 +316,6 @@ items:
       requirements: ["REQ-0022"]
       tasks: ["TASK-0199", "TASK-0200", "TASK-0201", "TASK-0202", "TASK-0203", "TASK-0204", "TASK-0212"]
       note: "Design source: https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be (plates C/D). Reworks the FEAT-0017/FEAT-0023 surfaces; partially supersedes FEAT-0036's Active-mode UI (TASK-0204)."
-    FEAT-0039:
-      title: "Model routing — phase-pinned Claude Code subagents (planner/reviewer on Fable) + snapshot-driven routing-hint hook"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/model-routing/FEAT-0039-Model-Routing-Subagents.md"
-      tasks: ["TASK-0195", "TASK-0196", "TASK-0197"]
-    FEAT-0038:
-      title: "Console progress rail — live work-blocks under the session strip + enriched progress panel"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/progress-rail/FEAT-0038-Console-Progress-Rail.md"
-      requirements: ["REQ-0021"]
-      tasks: ["TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193", "TASK-0194"]
-    FEAT-0034:
-      title: "Agents centre tab + follow control — the fleet view survives; following becomes consentful"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-tab-follow/FEAT-0034-Agents-Tab-And-Follow-Control.md"
-      requirements: ["REQ-0020"]
-      tasks: ["TASK-0158", "TASK-0159"]
-    FEAT-0035:
-      title: "Account budget surface — 5h/7d rate limits in the left pane with reset countdown; session rail goes scope-pure"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/FEAT-0035-Account-Budget-Surface.md"
-      tasks: ["TASK-0160", "TASK-0161", "TASK-0169", "TASK-0170", "TASK-0171", "TASK-0172"]
-    FEAT-0036:
-      title: "Live work views — session work tab, Active nav mode, phase-less Now board"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/live-work/FEAT-0036-Live-Work-Views.md"
-      tasks: ["TASK-0162", "TASK-0163", "TASK-0164", "TASK-0165"]
-    FEAT-0037:
-      title: "Context menus & clipboard — cut/copy/paste and standard right-click everywhere, including the terminal"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/context-menus/FEAT-0037-Context-Menus-And-Clipboard.md"
-      tasks: ["TASK-0166", "TASK-0167", "TASK-0168"]
-    FEAT-0030:
-      title: "Agent inbox — docked attention panel at the bottom of the nav pane, with a sane attention lifecycle"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-inbox/FEAT-0030-Agent-Inbox.md"
-      requirements: ["REQ-0018"]
-      tasks: ["TASK-0147", "TASK-0156", "TASK-0157"]
-    FEAT-0031:
-      title: "Ambient status consolidation — one agent-status surface per scope"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/ambient-status/FEAT-0031-Ambient-Status-Consolidation.md"
-      tasks: ["TASK-0148", "TASK-0149"]
-    FEAT-0032:
-      title: "Agents screen (~agents) — cross-workspace fleet view: sessions, cost, queues, rate limits"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-screen/FEAT-0032-Agents-Screen.md"
-      requirements: ["REQ-0019"]
-      tasks: ["TASK-0150", "TASK-0151"]
-    FEAT-0033:
-      title: "Agent signal hygiene — dedup double ingestion, align semantics, unify decay, fix surface rots"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/FEAT-0033-Agent-Signal-Hygiene.md"
-      tasks: ["TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155"]
-    FEAT-0003:
-      title: "Embedded local-only terminal (Claude Code / Codex)"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/FEAT-0003-Embedded-Terminal.md"
     FEAT-0004:
       title: "Project-os adapter (ID resolution, status badges, backlinks)"
       status: superseded
@@ -394,74 +326,6 @@ items:
       status: cancelled
       phase: "[[PHASE-003-Downstream-Pilot]]"
       path: "docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md"
-    FEAT-0006:
-      title: "3-pane cockpit layout (code-driven)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/FEAT-0006-Cockpit-Layout.md"
-    FEAT-0007:
-      title: "Electron desktop shell (multi-project, Python sidecar)"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/FEAT-0007-Desktop-Shell.md"
-    FEAT-0008:
-      title: "Cockpit API hardening (Python side) for the native renderer"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-api-hardening/FEAT-0008-Cockpit-API-Hardening.md"
-    FEAT-0009:
-      title: "Native shell layout (3-pane grid, title bar, theme, status bar)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-shell-layout/FEAT-0009-Native-Shell-Layout.md"
-    FEAT-0010:
-      title: "Native nav surface — workspace rail (with agent-state dots) + in-workspace nav + right pane"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/FEAT-0010-Native-Nav-Right-Pane.md"
-    FEAT-0011:
-      title: "Native centre pane + routing (rendered Markdown, history, anchors, checkboxes)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/FEAT-0011-Native-Center-Pane.md"
-    FEAT-0012:
-      title: "Native UX wins (Cmd+P, Cmd+F, context menus, drag-drop, multi-window)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/FEAT-0012-Native-UX.md"
-    FEAT-0013:
-      title: "Agent state signal — `cockpit signal <state>` + per-workspace state pipe"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/agent-state-signal/FEAT-0013-Agent-State-Signal.md"
-    FEAT-0014:
-      title: "Cockpit IA rework — workspace tabs, mode ribbon, item-render port"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-rework/FEAT-0014-Cockpit-IA-Rework.md"
-    FEAT-0015:
-      title: "Cockpit IA v2 — mini-rail, modes-on-top, per-workspace terminal"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/FEAT-0015-Cockpit-IA-V2.md"
-    FEAT-0016:
-      title: "Project management — manual add, rename, custom icon, remove"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/project-management/FEAT-0016-Project-Management.md"
-    FEAT-0017:
-      title: "Overview dashboard — project stats in diagrams"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/overview-dashboard/FEAT-0017-Overview-Dashboard.md"
-
-    FEAT-0018:
-      title: "Verification health surface — validator status, drift panel, waiver/review badges"
-      status: done
-      phase: "[[PHASE-011-Unproven-Claims]]"
-      path: "docs/features/verification-health/FEAT-0018-Verification-Health-Surface.md"
-      tasks: ["TASK-0111", "TASK-0112", "TASK-0113"]
-      tests: ["TST-0016"]
     FEAT-0019:
       title: "Agent hook ingestion — auto-instrumented terminal sessions"
       status: done
@@ -533,97 +397,97 @@ items:
   tasks:
     TASK-0322:
       file: "docs/features/standing-worker/plan/tasks/TASK-0322-Selection-With-Reasons.md"
-      title: "Selection with reasons — step 2 as code, the ledger says why"
+      title: "Selection with reasons — LIFECYCLE step 2 as code, every choice explained in the ledger"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
     TASK-0323:
       file: "docs/features/standing-worker/plan/tasks/TASK-0323-The-Session-Loop.md"
-      title: "The session loop — dispatch, watch, record, next"
+      title: "The session loop — dispatch through the instrumented terminal, watch to close-out or failure, record, next"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
     TASK-0324:
       file: "docs/features/standing-worker/plan/tasks/TASK-0324-The-Lease.md"
-      title: "The lease — refuse, heartbeat, expire loudly"
+      title: "The lease — a claim that refuses a second worker, heartbeats, and expires loudly"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
     TASK-0325:
       file: "docs/features/standing-worker/plan/tasks/TASK-0325-Stop-Conditions-By-Drill.md"
-      title: "Stop conditions proven by drill"
+      title: "Stop conditions proven by drill — budget, backoff, validator red, and the human's stop switch"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
     TASK-0326:
       file: "docs/features/delegation-policy/plan/tasks/TASK-0326-The-Policy-Note.md"
-      title: "DELEGATION.md — approved through the gate it configures"
+      title: "DELEGATION.md — what is delegated, what escalates, approved through the gate it configures"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0075
     TASK-0327:
       file: "docs/features/delegation-policy/plan/tasks/TASK-0327-Role-Checks-Consult-Policy.md"
-      title: "The actions endpoint answers per caller; delegate writes carry authority"
+      title: "The actions endpoint answers per caller identity, and a delegate's writes carry their authority"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0075
     TASK-0328:
       file: "docs/features/delegation-policy/plan/tasks/TASK-0328-The-Push-Decision.md"
-      title: "Publishing under autonomy taken as an ADR"
+      title: "The push decision — publishing under autonomy taken as an ADR, not eroded by convenience"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0075
     TASK-0329:
       file: "docs/features/escalation-defaults/plan/tasks/TASK-0329-Timeouts-Per-Kind.md"
-      title: "Timeouts per queue kind, from the approved policy"
+      title: "Timeouts per queue kind, read from the approved policy"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0076
     TASK-0330:
       file: "docs/features/escalation-defaults/plan/tasks/TASK-0330-Proceed-On-Recorded-Assumption.md"
-      title: "The assumption path: resolve, tag, lift"
+      title: "Proceed on a recorded assumption — resolved where the answer would have gone, tagged on the work, lifted in the digest"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0076
     TASK-0331:
       file: "docs/features/escalation-defaults/plan/tasks/TASK-0331-The-Stall-Alarm.md"
-      title: "Anything past twice its clock with no default joins NEEDS-YOU"
+      title: "The stall alarm — anything past twice its clock with no default joins NEEDS-YOU"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0076
     TASK-0332:
       file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
-      title: "The intent page's role widens from display to oracle"
+      title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0333:
       file: "docs/features/intent-charter/plan/tasks/TASK-0333-The-Charter-Note.md"
-      title: "Goals, non-goals and taste constraints, drafted from the record"
+      title: "The charter note — goals, non-goals and taste constraints, drafted from the record, approved by the principal"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0334:
       file: "docs/features/intent-charter/plan/tasks/TASK-0334-Delegated-Acceptance.md"
-      title: "The runner with agent:principal as witness, charter-bound"
+      title: "Delegated acceptance — the runner with agent:principal as witness, charter in context, worker kept at arm's length"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0287:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0287-The-Criteria-Payload.md"
-      title: "The criteria payload — the endpoint, sharing the validator's parse"
+      title: "The criteria payload — a feature's requirements' criteria with their resolved states, from the parse the validator already trusts"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0063
     TASK-0288:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0288-The-Runner-Surface.md"
-      title: "The runner surface — one criterion at a time, four verbs"
+      title: "The runner surface — one criterion at a time, four verbs, progress named"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0063
     TASK-0289:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0289-Stamp-Acceptance.md"
-      title: "stamp_acceptance — the run log, the witness, the gate's satisfied state"
+      title: "stamp_acceptance — the run log into the feature note, and the gate's satisfied state"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0063
@@ -635,19 +499,19 @@ items:
       parent: FEAT-0063
     TASK-0291:
       file: "docs/features/acceptance-gate/plan/tasks/TASK-0291-The-Field.md"
-      title: "The acceptance field in template and taxonomy, divergence recorded"
+      title: "The acceptance field — absent / requested / accepted — in template and taxonomy, divergence recorded"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0064
     TASK-0292:
       file: "docs/features/acceptance-gate/plan/tasks/TASK-0292-The-Desk-Queue-Section.md"
-      title: "Awaiting your acceptance — the queue's most human section"
+      title: "Awaiting your acceptance — the queue's most human section, first"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0064
     TASK-0293:
       file: "docs/features/acceptance-gate/plan/tasks/TASK-0293-Accept-Stale-And-The-Upstream-Proposal.md"
-      title: "ACCEPT-STALE, and the convention proposed upstream"
+      title: "The ACCEPT-STALE warning, and the convention proposed upstream"
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0064
@@ -689,7 +553,7 @@ items:
       parent: FEAT-0066
     TASK-0300:
       file: "docs/features/design-artefacts/plan/tasks/TASK-0300-Variant-Parse-And-Sandbox.md"
-      title: "Variant sections render live, sandboxed, token-true"
+      title: "A ## Variant section with fenced html renders live, sandboxed, token-true"
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0067
@@ -713,7 +577,7 @@ items:
       parent: FEAT-0068
     TASK-0304:
       file: "docs/features/measure-view/plan/tasks/TASK-0304-The-Probe-Into-Own-Surfaces.md"
-      title: "The cockpit measures itself"
+      title: "The cockpit measures itself — the by-hand CDP loop made a feature"
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0068
@@ -725,7 +589,7 @@ items:
       parent: FEAT-0068
     TASK-0306:
       file: "docs/features/annotate/plan/tasks/TASK-0306-The-Annotation-Kind.md"
-      title: "The queue learns annotation, with an anchor schema"
+      title: "The queue learns `annotation`, with an anchor schema"
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0069
@@ -737,7 +601,7 @@ items:
       parent: FEAT-0069
     TASK-0308:
       file: "docs/features/annotate/plan/tasks/TASK-0308-Queue-Rendering-And-Honest-Anchors.md"
-      title: "Annotations under the design's entry, degrading honestly"
+      title: "Annotations under the design's desk entry, degrading honestly"
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0069
@@ -749,7 +613,7 @@ items:
       parent: FEAT-0070
     TASK-0310:
       file: "docs/features/design-gating/plan/tasks/TASK-0310-Derive-Requirements-By-Dispatch.md"
-      title: "An accepted design drafts its requirements through an agent"
+      title: "An accepted design drafts its requirements — through an agent, never by fiat"
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0070
@@ -809,7 +673,7 @@ items:
       parent: FEAT-0073
     TASK-0320:
       file: "docs/features/one-voice/plan/tasks/TASK-0320-The-Exceptions-Recorded.md"
-      title: "The exceptions written into the design system"
+      title: "The desk's headings and the Library's file rows, written into the design system"
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
@@ -833,70 +697,70 @@ items:
       parent: FEAT-0059
     TASK-0280:
       file: "docs/features/write-service/plan/tasks/TASK-0280-Create-Issue-And-The-Hardening-Suite.md"
-      title: "Issue creation from template, and the mutation-grade hardening suite over all three verbs"
+      title: "Issue creation from template with the next free id, and the mutation-grade hardening suite over all three verbs"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0059
     TASK-0281:
       file: "docs/features/note-actuators/plan/tasks/TASK-0281-The-Action-Row.md"
-      title: "The action row under the note title"
+      title: "The action row under the note title — drawn from the server's answer, confirming terminal moves, explaining disabled ones"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0060
     TASK-0282:
       file: "docs/features/note-actuators/plan/tasks/TASK-0282-Live-Checkboxes.md"
-      title: "Criteria checkboxes tick from the note view"
+      title: "Criteria checkboxes tick from the note view, with an inline evidence prompt and the reconcile form behind a menu"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0060
     TASK-0283:
       file: "docs/features/quick-capture/plan/tasks/TASK-0283-Capture.md"
-      title: "⌘N capture — title in, triage issue out, under three seconds"
+      title: "⌘N capture — title in, triage issue out, current note linked, under three seconds"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0061
     TASK-0284:
       file: "docs/features/quick-capture/plan/tasks/TASK-0284-The-Triage-Tray.md"
-      title: "The triage tray — accept-as-severity or decline on every row"
+      title: "The triage tray — accept-as-severity or decline on every row, siblings hinted, investigation one dispatch away"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0061
     TASK-0285:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
-      title: "Request re-review from a changes-requested row"
+      title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0062
     TASK-0286:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0286-Answer-In-Place.md"
-      title: "Answer a queue question inline"
+      title: "Answer a queue question inline — resolved with the answer as outcome, delivered to the asking session"
       status: backlog
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0062
     TASK-0275:
       file: "docs/features/navigator-shape/plan/tasks/TASK-0275-Settled-Groups-Are-Collapsed-Cards.md"
-      title: "A group whose every item is terminal renders shut, with its count in the head"
+      title: "A group whose every item is terminal renders shut, with its count in the head — the context card's behaviour, in the navigator"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0058
       note: "renderContextGroup's rule, moved into the navigator. This alone completes the tasks view, because its group names already say finished."
     TASK-0276:
       file: "docs/features/navigator-shape/plan/tasks/TASK-0276-The-Divider-Where-Names-Do-Not-Say-Finished.md"
-      title: "The completed divider appears only where a group's name does not say it is finished"
+      title: "The completed divider appears only where a group's own name does not say it is finished — issues and features, not tasks"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0058
       note: "Expressed as a question the next navigator can answer, not a list of modes it has to find itself in."
     TASK-0277:
       file: "docs/features/navigator-shape/plan/tasks/TASK-0277-Changes-Requested-Is-Not-Finished.md"
-      title: "The review desk promotes changes-requested and collapses the rest into cards per verdict"
+      title: "The review desk promotes changes-requested into a live section and collapses the rest into cards per verdict"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0058
       note: "10 of 82 reviewed notes were changes-requested — a reviewer asked for work and nothing recorded it happening. A terminal-looking label on an open obligation, still live on the one surface whose job is tracking obligations."
     TASK-0271:
       file: "docs/features/record-grammar/plan/tasks/TASK-0271-One-Line-Rows-In-Both-Panes.md"
-      title: "Nav and context rows collapse to one line at the record column's height"
+      title: "Nav and context rows collapse to one line — ID, ellipsised title, chip — at the record column's height"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0057
@@ -910,42 +774,42 @@ items:
       note: "Repeat a fact per-row only when it varies per-row. The tasks view prints the word done 261 times."
     TASK-0273:
       file: "docs/features/record-grammar/plan/tasks/TASK-0273-Finished-Groups-Roll-Up.md"
-      title: "Finished groups roll up behind one divider; a group holding the active note opens itself"
+      title: "Finished groups roll up behind one divider, and any group holding the active note opens itself"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0057
       note: "The risk is the auto-open: a row inside a closed details matches data-rel and takes is-active where nobody can see it. At 99% completion, navigating INTO the roll-up is the normal path, not an edge."
     TASK-0274:
       file: "docs/features/record-grammar/plan/tasks/TASK-0274-The-Context-Pane-Becomes-Record-Cards.md"
-      title: "The right context pane renders as record cards, body closed when the type is settled"
+      title: "The right context pane renders as record cards — a head per type with a count, body closed when the type is settled"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0057
       note: "Closing a body is NOT filtering: a closed card still says the relationship exists, its type and its count. The filter said nothing at all. contextGroupRows still has no parameter to filter with."
     TASK-0267:
       file: "docs/features/completed-work/plan/tasks/TASK-0267-One-Comparator-Open-Before-Done.md"
-      title: "One comparator sorts open before done, within every group"
+      title: "One comparator sorts open before done, applied to items within every group, so state orders where no grouping axis can carry it"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0056
       note: "Derived from statuses.COMPLETED_STATUSES, not a second hand-written list — that is the drift ISS-0023 found across eight surfaces. Deliberately NOT applied to the tasks view, whose groups ARE statuses."
     TASK-0268:
       file: "docs/features/completed-work/plan/tasks/TASK-0268-Groups-With-Open-Work-Sort-First.md"
-      title: "Groups that still contain open work sort above groups that do not"
+      title: "Groups that still contain open work sort above groups that do not, so the active phase is not buried under twenty finished ones"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0056
       note: "1 of 18 feature groups has open work, 0 of the 4 issue severity buckets. Two bands were not enough: PHASE-999 is permanently planned, so it outranked the phase in flight forever, and closing a phase settled it so the one just finished sank. Ranks on the phase note authored status now — in flight, upcoming, finished."
     TASK-0269:
       file: "docs/features/completed-work/plan/tasks/TASK-0269-The-Context-Pane-Stops-Filtering.md"
-      title: "The right context pane orders by state and never filters by it"
+      title: "The right context pane orders by state and never filters by it, because a note's completed children are what the note is made of"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0056
       note: "Smallest change, largest fix: FEAT-0051 and ISS-0080 rendered an entirely empty context pane. A note's completed children are what the note is made of. NOTE the retracted claim — I wrote that the largest group anywhere is 11 items so there is no wall to scroll past; that was 11 measured on ONE note. Swept across the corpus, 11 of 3192 groups exceed 12 and PHASE-007 renders 79. The pane folds on length like everywhere else; it just never filters on state."
     TASK-0270:
       file: "docs/features/completed-work/plan/tasks/TASK-0270-Folding-Keyed-On-Length.md"
-      title: "A long group shows its head and a count, keyed on length and never on status"
+      title: "A group longer than the fold threshold shows its head and a count, keyed on length and never on status, so the switch collapses rather than hides"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       parent: FEAT-0056
@@ -959,7 +823,7 @@ items:
       note: "Never git add -A. Measured: your-trainer 44 dirty files, your-health 8, unrelated and deliberately untouched."
     TASK-0265:
       file: "docs/features/git-assist/plan/tasks/TASK-0265-Unpushed-State-On-The-Fleet-Surface.md"
-      title: "Unpushed commits and the remote's kind, on the fleet surface"
+      title: "Unpushed commits and the remote's kind, on the surface that already reports repo health"
       status: done
       phase: "[[PHASE-021-Git-Is-Not-The-Users-Job]]"
       parent: FEAT-0055
@@ -980,21 +844,21 @@ items:
       note: "navigator.clipboard needs document focus to write and a permission to read; Electron's main-process clipboard needs neither. Five call sites, every one void-ed or bare-caught, so a copy that did not happen looked like one that did."
     TASK-0262:
       file: "docs/features/clipboard/plan/tasks/TASK-0262-Link-Aware-Context-Menu.md"
-      title: "The context menu acts on the link, not the word Chromium selected"
+      title: "The context menu acts on the link that was right-clicked, not the word Chromium selected"
       status: done
       phase: "[[PHASE-020-Clipboard-That-Works]]"
       parent: FEAT-0054
       note: "params.linkURL was always there and nothing read it. Ordering matters more than the extra items — the first thing in the menu is what the menu is about."
     TASK-0263:
       file: "docs/features/clipboard/plan/tasks/TASK-0263-Terminal-Copy-And-Paste.md"
-      title: "Terminal copy survives the right-click; Cmd-C/V route to the focused pane"
+      title: "Terminal copy survives the right-click, and ⌘C/⌘V route to whichever pane is focused"
       status: done
       phase: "[[PHASE-020-Clipboard-That-Works]]"
       parent: FEAT-0054
       note: "Measured: selection true before the right-click, false after, Copy disabled. And role:editMenu binds Cmd-C to webContents.copy(), which can only see the DOM — xterm's selection is not one."
     TASK-0258:
       file: "docs/features/history-navigation/plan/tasks/TASK-0258-Activity-Grid-Payload.md"
-      title: "activity_payload — per-day counts across the whole history, cached on HEAD"
+      title: "activity_payload — per-day transition and commit counts across the whole history, cached on HEAD"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0053
@@ -1008,21 +872,21 @@ items:
       note: "A cell that does not navigate is the sparkline again at higher resolution. Colour cannot be the only channel — five steps of one hue is what DES-0004 refused for the phase squares."
     TASK-0260:
       file: "docs/features/history-navigation/plan/tasks/TASK-0260-History-In-The-Rail.md"
-      title: "A History button in the workspace rail"
+      title: "A History button in the workspace rail, so the page is reachable from anywhere"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0053
       note: "The rail, not the top bar: those buttons set the left pane's nav mode and History has no listing. ~agents is the precedent."
     TASK-0255:
       file: "docs/features/history-timeline/plan/tasks/TASK-0255-History-Payload.md"
-      title: "history_payload — transitions from git, grouped by commit, uncommitted band on top"
+      title: "history_payload — status transitions from git, grouped by commit, with the uncommitted band on top"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0052
       note: "One git log -U0 over docs/ gives every +status: line with its commit in 0.08s. Must distinguish created-at from moved-to: most notes in a busy commit are BORN done, and an arrow implies a journey they never took."
     TASK-0256:
       file: "docs/features/history-timeline/plan/tasks/TASK-0256-History-Tile-On-The-Overview.md"
-      title: "One History tile replacing Activity, Changes and Commits"
+      title: "One History tile on the overview, replacing Activity, Changes and Commits"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0052
@@ -1036,21 +900,21 @@ items:
       note: "One more virtual page beside ~design/~review/~agents. Must state its horizon — a view that stops at 200 commits without saying so reads as complete."
     TASK-0252:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0252-Validation-Errors-Reach-The-Session-Panel.md"
-      title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live"
+      title: "Subscribe the renderer to cockpit:validation so the active repo's errors are live in the shell"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
       note: "Pure plumbing — endpoint, event and EventSource all exist; the renderer just never subscribed, which is why the desktop shell has never been able to see its own repo's violations."
     TASK-0253:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0253-Error-Rows-In-The-Session-Summary.md"
-      title: "One row per validator error in the session summary, closing as it is fixed"
+      title: "One row per validator error in the session summary, closing as the agent fixes it"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
       note: "Reuses .agent-detail-work-row's grammar so the eye does not learn a second pattern six inches from the first. Must not restate the badge's count — that is the ISS-0068 shape."
     TASK-0254:
       file: "docs/features/errors-as-work/plan/tasks/TASK-0254-Close-Out-Files-What-Survives.md"
-      title: "Close-out files what it could not fix, deduped on (code, subject)"
+      title: "Close-out files the validator errors it could not fix, as issues, without filing the same one twice"
       status: done
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       parent: FEAT-0051
@@ -1071,7 +935,7 @@ items:
       note: "Runs a script in ten repos this app does not own, so read-only is a test rather than an intention. Owns the per-repo vs uniform validator decision, to be recorded before any code."
     TASK-0250:
       file: "docs/features/fleet-health/plan/tasks/TASK-0250-Fleet-Badge-On-The-Rail.md"
-      title: "The validator badge on the rail and tabs, without colliding with the agent-state dot"
+      title: "The validator badge on the workspace rail and tabs, without colliding with the agent-state dot"
       status: done
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       parent: FEAT-0028
@@ -1105,12 +969,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       parent: FEAT-0046
       note: "The count assertion is the point: a revert to notes_by_type('plan') still returns 14 plausible rows."
-    TASK-0236:
-      file: "docs/features/plans-on-feature/plan/tasks/TASK-0236-Plan-Nested-Under-Feature.md"
-      title: "Render the plan as a child row under its feature in the Features mode"
-      status: done
-      phase: "[[PHASE-010-Surface-Ownership]]"
-      parent: FEAT-0046
     TASK-0237:
       file: "docs/features/risks-on-issues/plan/tasks/TASK-0237-Risks-Group-In-Issues-Mode.md"
       title: "Risks group in the Issues nav mode, bucketed by severity"
@@ -1118,24 +976,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       parent: FEAT-0047
       note: "Own severity groups rather than mixed into the issue buckets — mixing would make the Issues stat tile disagree with the pane."
-    TASK-0238:
-      file: "docs/features/risks-on-issues/plan/tasks/TASK-0238-Risks-Tile-Destination.md"
-      title: "The Risks stat tile navigates to the Issues mode"
-      status: done
-      phase: "[[PHASE-010-Surface-Ownership]]"
-      parent: FEAT-0047
-    TASK-0239:
-      file: "docs/features/changes-on-overview/plan/tasks/TASK-0239-Changes-Payload.md"
-      title: "Changes payload — recent plus the existing buckets, at /api/cockpit/changes"
-      status: done
-      phase: "[[PHASE-010-Surface-Ownership]]"
-      parent: FEAT-0048
-    TASK-0240:
-      file: "docs/features/changes-on-overview/plan/tasks/TASK-0240-Changes-Tile.md"
-      title: "Changes tile in the overview history band — recent expanded, archive collapsed"
-      status: done
-      phase: "[[PHASE-010-Surface-Ownership]]"
-      parent: FEAT-0048
     TASK-0241:
       file: "docs/features/review-desk-record/plan/tasks/TASK-0241-Tests-Register.md"
       title: "Tests register on the desk — every acceptance test, not the runnable slice"
@@ -1150,12 +990,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       parent: FEAT-0049
       note: "Notes, not the store: _MAX_REQUESTS = 200 trims oldest-first on every save, so a store-sourced register would silently lose its tail."
-    TASK-0243:
-      file: "docs/features/library-reduction/plan/tasks/TASK-0243-Drop-Duplicated-Groups.md"
-      title: "Drop the Design and Decisions groups — both are duplicates of existing surfaces"
-      status: done
-      phase: "[[PHASE-010-Surface-Ownership]]"
-      parent: FEAT-0050
     TASK-0244:
       file: "docs/features/library-reduction/plan/tasks/TASK-0244-Workflows-Into-The-Docs-Tree.md"
       title: "Workflows join the Docs tree, the way references already do"
@@ -1170,30 +1004,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       parent: FEAT-0050
       note: "Gated, not merely ordered — depends on TASK-0236/0237/0240/0241. This is the task REQ-0025 was written for."
-    TASK-0222:
-      file: "docs/features/design-surface/plan/tasks/TASK-0222-Fill-And-Guard-The-Brief.md"
-      title: "Fill this repo's brief, and report a placeholder brief upstream"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0043
-    TASK-0223:
-      file: "docs/features/design-surface/plan/tasks/TASK-0223-Brief-Payload-And-Identity-Band.md"
-      title: "Brief payload and the identity band"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0043
-    TASK-0224:
-      file: "docs/features/design-surface/plan/tasks/TASK-0224-Design-Mode-In-The-Strip.md"
-      title: "A design mode in the strip, positioned second"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0043
-    TASK-0225:
-      file: "docs/features/design-surface/plan/tasks/TASK-0225-Design-Rationale.md"
-      title: "Design rationale — the ADRs a design links, not all of them"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0043
     TASK-0220:
       file: "docs/features/design-bench/plan/tasks/TASK-0220-Revision-Capture.md"
       title: "Revision capture — deposit the history TASK-0216 renders"
@@ -1208,170 +1018,18 @@ items:
       phase: "[[PHASE-009-Design-Surfaces]]"
       parent: FEAT-0042
       note: "DES-0001 declares zero regions and uses non-corresponding token names; the plan built detectors without the guidance that would let an artifact pass them."
-    TASK-0214:
-      file: "docs/features/design-bench/plan/tasks/TASK-0214-Design-Note-Convention.md"
-      title: "Design-note convention and validator support"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0215:
-      file: "docs/features/design-bench/plan/tasks/TASK-0215-Design-Render-Surface.md"
-      title: "Design render surface — real viewport, live reload, sandboxed"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0216:
-      file: "docs/features/design-bench/plan/tasks/TASK-0216-Design-Revisions-And-Compare.md"
-      title: "Revisions from git, side by side, with the reason for each"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0217:
-      file: "docs/features/design-bench/plan/tasks/TASK-0217-Region-Anchored-Annotation.md"
-      title: "Region-anchored annotation, stored as Markdown"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0218:
-      file: "docs/features/design-bench/plan/tasks/TASK-0218-Design-Review-In-The-Desk.md"
-      title: "Design review through the existing desk, per-region verdicts"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0219:
-      file: "docs/features/design-bench/plan/tasks/TASK-0219-Design-Token-Parity.md"
-      title: "Design tokens checked against the implementation's CSS"
-      status: done
-      phase: "[[PHASE-009-Design-Surfaces]]"
-      parent: FEAT-0042
-    TASK-0212:
-      title: "Design-input references — convention + surfaces: in-repo dossiers wrapped by reference notes, design: frontmatter links, attachment strip, Library Design group"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0212-Design-Input-References.md"
-      parent: "FEAT-0040"
-    TASK-0211:
-      title: "Verification panel — acceptance tests by scope: durable panel on feature/phase/release renders with status, last run, staleness, and Run affordances"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0211-Verification-Panel.md"
-      parent: "FEAT-0041"
     TASK-0210:
       title: "Overview announce rows — typed decide/review/answer/run rows in Waiting-on-you deep-linking into ~review"
       status: superseded
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       path: "docs/features/review-desk/plan/tasks/TASK-0210-Overview-Announce-Rows.md"
       parent: "FEAT-0041"
-    TASK-0209:
-      title: "Manual test runner — TST Steps parsed into a stepper; Pass/Fail/Skip + evidence; status/last_run stamping + ## Runs log; fail drafts an ISS"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0209-Manual-Test-Runner.md"
-      parent: "FEAT-0041"
-    TASK-0208:
-      title: "Question/revise round-trip — dispatch-queue verbs carry agent questions out and human answers/change-requests back as prompts"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0208-Question-Revise-Round-Trip.md"
-      parent: "FEAT-0041"
-    TASK-0207:
-      title: "Proposal-set review — FEAT + children as one set; per-item ticks; Accept stamps review fields, Reject flips to cancelled via guarded POST /api/notes/review"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0207-Proposal-Set-Review.md"
-      parent: "FEAT-0041"
-    TASK-0206:
-      title: "~review virtual page — queue pane grouped Decisions/Proposals/Questions/Test runs, routing, Review mode button with count badge"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0206-Review-Virtual-Page.md"
-      parent: "FEAT-0041"
-    TASK-0205:
-      title: "Governance — decide the approval-gate policy for planning artifacts (ADR-0007 proposed → accepted/amended/superseded)"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/review-desk/plan/tasks/TASK-0205-Approval-Gate-Decision.md"
-      parent: "FEAT-0041"
-    TASK-0204:
-      title: "Retire the Active and Recent nav modes (UI-only) — mode strip slims to six; phase-less default falls back to Overview; server modes stay"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0204-Retire-Active-Recent-Modes.md"
-      parent: "FEAT-0040"
-    TASK-0203:
-      title: "Record column — right pane on both overview scopes becomes Decisions / Verification / Library cards, phase-scoped on drill-down"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0203-Record-Column.md"
-      parent: "FEAT-0040"
-    TASK-0202:
-      title: "Phase-detail rework — header fraction/gates chip, one-line health band, next-action feature rows, exit-criteria summary + evidence chips, Remaining list, scoped activity IDs"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0202-Phase-Detail-Rework.md"
-      parent: "FEAT-0040"
-    TASK-0201:
-      title: "Phase section rework — liveness-sorted accordion with expandable square strips; active-phase meta; finished phases collapse into a Completed band"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0201-Phase-Accordion-And-Completed-Band.md"
-      parent: "FEAT-0040"
     TASK-0200:
       title: "Overview stage rework — quiet-first focus band, mix-bar stat tiles (Requirements tile restored), Waiting-on-you list, full-width sparkbar + commits panel"
       status: superseded
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       path: "docs/features/overview-rework/plan/tasks/TASK-0200-Overview-Stage-Rework.md"
       parent: "FEAT-0040"
-    TASK-0199:
-      title: "Sidecar payload additions — SNAPSHOT focus block (with note date) + issue severity in _slim; new /api/cockpit/commits; SCHEMA_VERSION bump"
-      status: done
-      phase: "[[PHASE-008-State-And-Review-Surfaces]]"
-      path: "docs/features/overview-rework/plan/tasks/TASK-0199-Sidecar-Payload-Additions.md"
-      parent: "FEAT-0040"
-    TASK-0198:
-      title: "Delivered status band — one canonical status vocabulary, applied across all six palette surfaces"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0198-Delivered-Status-Band.md"
-      parent: "FEAT-0006"
-      fixes: ["ISS-0023"]
-      tests: ["TST-0019"]
-    TASK-0197:
-      title: "Upstream the routing to project-os and adopt it here — template-owned hook + generated subagents replace the local prototype"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/model-routing/plan/tasks/TASK-0197-Upstream-And-Adopt.md"
-      parent: "FEAT-0039"
-    TASK-0196:
-      title: "Snapshot-driven routing hint — UserPromptSubmit hook + settings wiring (main loop pinned to Opus)"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/model-routing/plan/tasks/TASK-0196-Routing-Hint-Hook.md"
-      parent: "FEAT-0039"
-    TASK-0195:
-      title: "Phase-pinned subagents — planner + independent-reviewer on Fable under .claude/agents/"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/model-routing/plan/tasks/TASK-0195-Phase-Pinned-Subagents.md"
-      parent: "FEAT-0039"
-    TASK-0194:
-      title: "Record per-session status changes from the watcher and include them (durably) in the in-flight work set"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/progress-rail/plan/tasks/TASK-0194-Session-Status-Changes.md"
-      parent: "FEAT-0038"
-    TASK-0193:
-      title: "Sidecar: drive the in-flight work set from SNAPSHOT focus ∪ notes-touched-this-prompt"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/progress-rail/plan/tasks/TASK-0193-Focus-Driven-Inflight.md"
-      parent: "FEAT-0038"
-    TASK-0191:
-      title: "Sidecar: prompt-scoped, index-enriched work items (id/title/status/type/done/ts) in the state payload"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/progress-rail/plan/tasks/TASK-0191-Prompt-Scoped-Work-Items.md"
-      parent: "FEAT-0038"
     TASK-0192:
       title: "Renderer: in-flight boxes inline before ctx, enriched progress rows (title/status/active), SVG triangle expand icon"
       status: done
@@ -1396,12 +1054,6 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/progress-rail/plan/tasks/TASK-0190-Progress-Rename-And-Chevron.md"
       parent: "FEAT-0038"
-    TASK-0187:
-      title: "Add a Restart console action — kill the workspace PTY + tmux session and respawn, to recover a stuck/broken console"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
-      parent: "FEAT-0003"
     TASK-0186:
       title: "Fix: restore per-workspace mouse-tracking mode on console re-attach so wheel scrolling survives a workspace switch"
       status: done
@@ -1420,414 +1072,12 @@ items:
       phase: "[[PHASE-005-Desktop-Shell]]"
       path: "docs/features/agent-inbox/plan/tasks/TASK-0184-Strip-Prompt-Bleed-On-Switch.md"
       parent: "FEAT-0030"
-    TASK-0183:
-      title: "Fix: a session that survives a sidecar restart is stuck ended — revive on fresh activity so its live cost/ctx shows"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0183-Revive-Ended-Session-On-Activity.md"
-      parent: "FEAT-0019"
-    TASK-0182:
-      title: "Nest phase drill-down children by shared phase — a task parked in another phase no longer shows under its parent's phase section"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0182-Nest-Children-By-Shared-Phase.md"
-      parent: "FEAT-0023"
-    TASK-0181:
-      title: "Unify done interpretation — phase boxes use the same per-type done sets as the hero counts"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0181-Unify-Done-Interpretation.md"
-      parent: "FEAT-0023"
-    TASK-0179:
-      title: "Displayed agent follows the live signal, not a stale last-session (ISS-0012)"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/plan/tasks/TASK-0179-Agent-Label-Live-Signal.md"
-      parent: "FEAT-0033"
-    TASK-0180:
-      title: "Agents screen: select a project to see its session history (ISS-0013)"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-screen/plan/tasks/TASK-0180-Selectable-Project-Sessions.md"
-      parent: "FEAT-0032"
-    TASK-0178:
-      title: "Overview declutter — drop agent surfaces; session history moves to the ~agents screen"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0178-Overview-Declutter-Sessions-To-Agents.md"
-      parent: "FEAT-0022"
-    TASK-0177:
-      title: "Overview: stale phase scope across workspaces errors (Unknown phase) on phase-less projects"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0177-Stale-Scope-Fallback.md"
-      parent: "FEAT-0023"
-    TASK-0176:
-      title: "Overview progress counts terminal-resolved items — retired requirements + superseded features are complete"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0176-Progress-Counts-Retired-Superseded.md"
-      parent: "FEAT-0023"
-    TASK-0175:
-      title: "Attention states must not decay — needs-input/waiting persist until acted or dismissed (REQ-0018)"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-inbox/plan/tasks/TASK-0175-Attention-No-Decay.md"
-      parent: "FEAT-0030"
-    TASK-0174:
-      title: "Fix ISS-0001 — canonicalise watcher path-case in Index.invalidate so /api/render finds post-start files"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0174-Index-Case-Canonicalisation.md"
-      parent: "FEAT-0006"
-    TASK-0158:
-      title: "Following/Manual toggle in the desktop + follow never evicts a virtual page"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-tab-follow/plan/tasks/TASK-0158-Follow-Toggle-And-Eviction-Guard.md"
-      parent: "FEAT-0034"
-    TASK-0159:
-      title: "Centre tab strip — doc tab + pinned Agents tab while ~agents is open"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-tab-follow/plan/tasks/TASK-0159-Agents-Center-Tab.md"
-      parent: "FEAT-0034"
-    TASK-0160:
-      title: "Budget block at the attention-panel foot — 5h/7d bars + reset clock; strip pip removed"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0160-Attention-Panel-Budget-Block.md"
-      parent: "FEAT-0035"
-    TASK-0161:
-      title: "Burn-rate projection — time left at current burn from recent usage samples"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0161-Burn-Rate-Projection.md"
-      parent: "FEAT-0035"
-    TASK-0169:
-      title: "Usage freshness — 2-min fleet poll, manual refresh, as-of label"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0169-Usage-Freshness.md"
-      parent: "FEAT-0035"
-    TASK-0170:
-      title: "Usage block always-visible — persist the last reading, load on startup"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0170-Usage-Always-Visible.md"
-      parent: "FEAT-0035"
-    TASK-0171:
-      title: "Usage source — expose the freshest rate-limit reading across ALL sessions, not just the last"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0171-Usage-Freshest-Across-Sessions.md"
-      parent: "FEAT-0035"
-    TASK-0172:
-      title: "Remove the Usage refresh button — no on-demand source, so it was decorative"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/account-budget/plan/tasks/TASK-0172-Remove-Usage-Refresh-Button.md"
-      parent: "FEAT-0035"
-    TASK-0162:
-      title: "Status-diff layer — note saves become transition events (cockpit:status-change)"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/live-work/plan/tasks/TASK-0162-Status-Diff-Layer.md"
-      parent: "FEAT-0036"
-    TASK-0163:
-      title: "Session rail 'work' tab — status boxes per touched note, filling live"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/live-work/plan/tasks/TASK-0163-Strip-Work-Tab.md"
-      parent: "FEAT-0036"
-    TASK-0164:
-      title: "'Active' nav mode — in-flight items only, live row migration, default for phase-less projects"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/live-work/plan/tasks/TASK-0164-Active-Nav-Mode.md"
-      parent: "FEAT-0036"
-    TASK-0165:
-      title: "Phase-less Now board — overview centre renders the Active data full-width"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/live-work/plan/tasks/TASK-0165-Phaseless-Now-Board.md"
-      parent: "FEAT-0036"
-    TASK-0166:
-      title: "Generic role-based text context menu — Cut/Copy/Paste/Select All everywhere"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/context-menus/plan/tasks/TASK-0166-Generic-Text-Context-Menu.md"
-      parent: "FEAT-0037"
-    TASK-0167:
-      title: "Terminal context menu + ⌘C/⌘V + copy-on-select setting"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/context-menus/plan/tasks/TASK-0167-Terminal-Context-Menu.md"
-      parent: "FEAT-0037"
-    TASK-0168:
-      title: "Doc-pane menu extras — Copy ID/path unification, Copy as quote, Dispatch selection as prompt"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/context-menus/plan/tasks/TASK-0168-Doc-Pane-Menu-Extras.md"
-      parent: "FEAT-0037"
-    TASK-0147:
-      title: "Docked attention panel — bottom of the nav pane, needs-input + waiting + finished one-liner; bell deleted"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-inbox/plan/tasks/TASK-0147-Inbox-Attention-Model.md"
-      parent: "FEAT-0030"
-    TASK-0156:
-      title: "Severity remap — idle_prompt means waiting, not needs-input; red reserved for blocked-mid-work"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-inbox/plan/tasks/TASK-0156-Idle-Prompt-Severity-Remap.md"
-      parent: "FEAT-0030"
-    TASK-0157:
-      title: "Seen-acknowledgement — pulse means unseen; focusing the workspace calms it to static"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-inbox/plan/tasks/TASK-0157-Seen-Acknowledgement.md"
-      parent: "FEAT-0030"
-    TASK-0148:
-      title: "Remove the footer agent dot; demote the Overview Now card to a one-liner"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/ambient-status/plan/tasks/TASK-0148-Footer-And-Now-Slimming.md"
-      parent: "FEAT-0031"
-    TASK-0149:
-      title: "Rate-limit pip in the agent strip — surface the 5h budget already collected"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/ambient-status/plan/tasks/TASK-0149-Rate-Limit-Pip.md"
-      parent: "FEAT-0031"
-    TASK-0150:
-      title: "Fleet state proxy — main-process aggregation of per-workspace agent snapshots"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-screen/plan/tasks/TASK-0150-Fleet-State-Proxy.md"
-      parent: "FEAT-0032"
-    TASK-0151:
-      title: "~agents virtual page — fleet rows, aggregate header, jump actions"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agents-screen/plan/tasks/TASK-0151-Agents-Virtual-Page.md"
-      parent: "FEAT-0032"
-    TASK-0152:
-      title: "Hook ingestion dedup — one event, one record, whichever capture paths fire"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/plan/tasks/TASK-0152-Ingestion-Dedup.md"
-      parent: "FEAT-0033"
-    TASK-0153:
-      title: "External hook adopts the Notification subtype gate"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/plan/tasks/TASK-0153-Notification-Semantics-Align.md"
-      parent: "FEAT-0033"
-    TASK-0154:
-      title: "One decay window — collapse the three independent 600s constants"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/plan/tasks/TASK-0154-Decay-Constant-Unify.md"
-      parent: "FEAT-0033"
-    TASK-0155:
-      title: "Surface rots batch — transcript link, queue tooltip, undocumented wording, feed staleness"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/signal-hygiene/plan/tasks/TASK-0155-Surface-Rots-Batch.md"
-      parent: "FEAT-0033"
-    TASK-0013:
-      title: "Cockpit shell + JS pane renderer (code-driven layout)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0013-Cockpit-Shell-And-Renderer.md"
-      parent: "FEAT-0006"
-    TASK-0014:
-      title: "Cockpit SSE-driven pane re-fetch"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0014-Cockpit-Sse-Refetch.md"
-      parent: "FEAT-0006"
-    TASK-0015:
-      title: "Cockpit left-pane modes (Features / Tasks / Issues / Recent)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0015-Cockpit-Left-Modes.md"
-      parent: "FEAT-0006"
-    TASK-0016:
-      title: "Status palette overhaul (6 buckets) + Hide-completed expansion"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0016-Status-Palette-Overhaul.md"
-      parent: "FEAT-0006"
-    TASK-0017:
-      title: "Cockpit platform filter (auto-discovered)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0017-Cockpit-Platform-Filter.md"
-      parent: "FEAT-0006"
-    TASK-0018:
-      title: "Cockpit landing page (root URL = cockpit shell, SNAPSHOT-driven home)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0018-Cockpit-Landing-Page.md"
-      parent: "FEAT-0006"
-    TASK-0019:
-      title: "Cockpit Library mode + pin button"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0019-Cockpit-Library-And-Pinning.md"
-      parent: "FEAT-0006"
-    TASK-0020:
-      title: "Release the cockpit to project-os (sync script + run.sh wrapper + LIFECYCLE rule)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/downstream-pilot/plan/tasks/TASK-0020-Release-To-Project-Os.md"
-      parent: "FEAT-0005"
-    TASK-0021:
-      title: "Cockpit: merge top-level docs into Docs tree root"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0021-Top-Level-Docs-In-Tree.md"
-      parent: "FEAT-0006"
-    TASK-0022:
-      title: "Cockpit: rare/pinned items show filename + parent dir"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0022-Rare-Item-Filename-Subtitle.md"
-      parent: "FEAT-0006"
-    TASK-0023:
-      title: "Cockpit: inline SVG type icons across panes"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0023-Type-Icons.md"
-      parent: "FEAT-0006"
-    TASK-0024:
-      title: "Cockpit: Obsidian-style file tree styling for compact trees"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0024-Obsidian-File-Tree.md"
-      parent: "FEAT-0006"
-    TASK-0025:
-      title: "Cockpit: split rare-item shapes (typed-rare keep id+title; references show filename in id slot); right-align status chip"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0025-Rare-Item-Layout-Split.md"
-      parent: "FEAT-0006"
-    TASK-0026:
-      title: "Cockpit: default nav items use stacked layout (id+status row 1, title row 2, subtitle row 3)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0026-Default-Nav-Stacked.md"
-      parent: "FEAT-0006"
-    TASK-0027:
-      title: "Cockpit: right-pane canonical type order applied to merged linked + inbound-only"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0027-Right-Pane-Canonical-Order.md"
-      parent: "FEAT-0006"
-    TASK-0028:
-      title: "Cockpit: type-aware group icons in left-pane group headers"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0028-Group-Icons.md"
-      parent: "FEAT-0006"
-    TASK-0029:
-      title: "Cockpit: vertical-centre group icons; tasks/issues subtitles use body description; references show parent dir; per-status/severity/bucket icons"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0029-Card-Subtitles-And-Bucket-Icons.md"
-      parent: "FEAT-0006"
-    TASK-0030:
-      title: "Cockpit: requirements nested under features (collapsed by default) + 'Unattached requirements' fallback"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0030-Nested-Requirements.md"
-      parent: "FEAT-0006"
-    TASK-0031:
-      title: "Index: extract bare project-os IDs from curated link-bearing frontmatter fields"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0031-Bare-Id-Frontmatter-Extraction.md"
-      parent: "FEAT-0006"
-    TASK-0032:
-      title: "Cockpit: collapsible frontmatter card + collapsible right pane (persisted)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0032-Collapsible-Metadata-And-Right-Pane.md"
-      parent: "FEAT-0006"
-    TASK-0033:
-      title: "Cockpit: right-pane toggle uses Obsidian-style panel-right SVG, moved to far right"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0033-Panel-Right-Icon.md"
-      parent: "FEAT-0006"
-    TASK-0034:
-      title: "Cockpit: left-pane toggle (panel-left SVG) at far left, bigger icons (16→20px)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0034-Left-Pane-Toggle.md"
-      parent: "FEAT-0006"
-    TASK-0035:
-      title: "Cockpit: right-pane shows severity for issues (default 'low' when unspecified)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0035-Right-Pane-Issue-Severity.md"
-      parent: "FEAT-0006"
-    TASK-0036:
-      title: "Cockpit: references inlined into Docs tree (book icon, filename only, no rare:reference group)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0036-Inline-References.md"
-      parent: "FEAT-0006"
-    TASK-0037:
-      title: "Cockpit: hide all canonical project-os container dirs from the Docs tree"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0037-Exclude-Canonical-Container-Dirs.md"
-      parent: "FEAT-0006"
-    TASK-0038:
-      title: "Cockpit: add Changes group to Project (Library) rare-types"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0038-Library-Changes-Group.md"
-      parent: "FEAT-0006"
-    TASK-0039:
-      title: "Cockpit: bucket Changes group by calendar month (most-recent month open by default)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0039-Changes-Month-Buckets.md"
-      parent: "FEAT-0006"
-    TASK-0040:
-      title: "Cockpit: hybrid Changes buckets (current week / last week / earlier this month + past months with weekly sub-buckets)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0040-Changes-Hybrid-Buckets.md"
-      parent: "FEAT-0006"
-    TASK-0041:
-      title: "Cockpit: skip weekly sub-buckets for sparse past months (<10 CHGs)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0041-Sparse-Month-Flat.md"
-      parent: "FEAT-0006"
     TASK-0042:
       title: "Cockpit: interactive markdown checkboxes (click to toggle, file write-back)"
       status: cancelled
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0042-Interactive-Checkboxes.md"
       parent: "FEAT-0006"
-    TASK-0043:
-      title: "Cockpit: bottom-panel layout in centre column (resizer + collapse + persisted height)"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/plan/tasks/TASK-0043-Bottom-Panel-Layout.md"
-      parent: "FEAT-0003"
-    TASK-0044:
-      title: "Cockpit: ttyd integration — embedded LLM CLI terminal in the bottom panel"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/plan/tasks/TASK-0044-Ttyd-Integration.md"
-      parent: "FEAT-0003"
     TASK-0045:
       title: "Cockpit: project preview tab (config-driven iframe or log-tail)"
       status: deferred
@@ -1840,114 +1090,6 @@ items:
       phase: "[[PHASE-002-Project-OS-Adapter]]"
       path: "docs/features/cockpit/plan/tasks/TASK-0046-Browser-Tab-Activity-Indicator.md"
       parent: "FEAT-0006"
-    TASK-0047:
-      title: "Cockpit: reverse-proxy ttyd through the cockpit (same-origin iframe + scrollbar CSS injection)"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/plan/tasks/TASK-0047-Reverse-Proxy-Ttyd.md"
-      parent: "FEAT-0003"
-    TASK-0048:
-      title: "Cockpit: agent-drives-cockpit — POST /api/cockpit/focus + SSE fan-out"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0048-Cockpit-Focus-Endpoint.md"
-      parent: "FEAT-0006"
-    TASK-0049:
-      title: "Cockpit: `cockpit` CLI helper (focus subcommand)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0049-Cockpit-Cli-Helper.md"
-      parent: "FEAT-0006"
-    TASK-0050:
-      title: "Cockpit: per-tab Following toggle (default ON, localStorage-persisted)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0050-Follow-Agent-Toggle.md"
-      parent: "FEAT-0006"
-    TASK-0051:
-      title: "Cockpit: discoverable URL via .cockpit/url + CLI walk-up + LLM directives"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0051-Discoverable-Url.md"
-      parent: "FEAT-0006"
-    TASK-0052:
-      title: "Cockpit: follow-mode auto-switches nav so the agent's focus is highlighted in the left nav"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0052-Follow-Mode-Auto-Switch-Nav.md"
-      parent: "FEAT-0006"
-    TASK-0053:
-      title: "Cockpit: server-side state — agent_focus, per-tab state, history (GET /api/cockpit/state, POST /api/cockpit/tab-state)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0053-Cockpit-State-Endpoint.md"
-      parent: "FEAT-0006"
-    TASK-0054:
-      title: "Cockpit: `cockpit state` + `cockpit history` CLI subcommands"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0054-Cockpit-State-CLI.md"
-      parent: "FEAT-0006"
-    TASK-0055:
-      title: "Cockpit: JS tab-state pings (nav events + 15s heartbeat + tab_id in localStorage)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0055-Cockpit-Tab-State-Pings.md"
-      parent: "FEAT-0006"
-    TASK-0056:
-      title: "Cockpit: LLM directives for reading the user's view (COCKPIT.md + cockpit-driving SKILL)"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0056-Cockpit-Awareness-Directives.md"
-      parent: "FEAT-0006"
-    TASK-0057:
-      title: "Cockpit: drain unknown-POST body to prevent HTTP/1.1 keep-alive desync"
-      status: done
-      phase: "[[PHASE-002-Project-OS-Adapter]]"
-      path: "docs/features/cockpit/plan/tasks/TASK-0057-Drain-Unknown-Post-Body.md"
-      parent: "FEAT-0006"
-    TASK-0058:
-      title: "Electron shell scaffold (desktop/ package, BrowserWindow + preload)"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0058-Electron-Shell-Scaffold.md"
-      parent: "FEAT-0007"
-    TASK-0059:
-      title: "Python sidecar contract: --no-open, /healthz, COCKPIT_DESKTOP env var"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0059-Python-Sidecar-Contract.md"
-      parent: "FEAT-0007"
-    TASK-0060:
-      title: "Workspace discovery + persistence + switcher UI"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0060-Workspace-Discovery.md"
-      parent: "FEAT-0007"
-    TASK-0061:
-      title: "Python sidecar lifecycle (spawn, health-poll, loadURL, shutdown)"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0061-Sidecar-Lifecycle.md"
-      parent: "FEAT-0007"
-    TASK-0062:
-      title: "Bundled Python runtime (python-build-standalone)"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0062-Bundled-Python-Runtime.md"
-      parent: "FEAT-0007"
-    TASK-0063:
-      title: "Native terminal pane (node-pty + xterm.js) for desktop mode"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0063-Native-Terminal.md"
-      parent: "FEAT-0007"
-    TASK-0064:
-      title: "App chrome — menu, single-instance, deep links, agent-focus bridge, window memory"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0064-App-Chrome.md"
-      parent: "FEAT-0007"
     TASK-0065:
       title: "Build pipeline — electron-forge makers, code signing, notarization, auto-update"
       status: deferred
@@ -1955,304 +1097,6 @@ items:
       path: "docs/features/desktop-shell/plan/tasks/TASK-0065-Build-Sign-Distribute.md"
       origin: "FEAT-0007"
       blocked_reason: "Parked 2026-05-25 — defer until the app needs to be handed to someone other than the developer. Dev loop (npm start) covers current use."
-    TASK-0066:
-      title: "Document existing cockpit API contract (docs/references/COCKPIT-API.md)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0066-Document-API-Contract.md"
-      parent: "FEAT-0008"
-    TASK-0067:
-      title: "Add GET /api/render — rendered Markdown HTML fragment for the native centre pane"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0067-Add-Render-Endpoint.md"
-      parent: "FEAT-0008"
-    TASK-0068:
-      title: "Codify schema-versioning rule + X-Cockpit-Schema header assertion test"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0068-Schema-Versioning-Rule.md"
-      parent: "FEAT-0008"
-    TASK-0069:
-      title: "Fill regression test gaps (focus POST, tab-state POST, SSE event shape)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-api-hardening/plan/tasks/TASK-0069-Fill-Regression-Test-Gaps.md"
-      parent: "FEAT-0008"
-    TASK-0070:
-      title: "Replace iframe with /api/render-driven mount + ship cockpit.css to the renderer"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0070-Render-Driven-Mount.md"
-      parent: "FEAT-0011"
-    TASK-0071:
-      title: "Internal link interception + soft nav + external openExternal"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0071-Internal-Link-Interception.md"
-      parent: "FEAT-0011"
-    TASK-0072:
-      title: "History stack (back / forward) + mouse buttons + menu accelerators"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0072-History-Stack.md"
-      parent: "FEAT-0011"
-    TASK-0073:
-      title: "Per-note scroll preservation + hash anchors"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0073-Scroll-Preservation-Hash-Anchors.md"
-      parent: "FEAT-0011"
-    TASK-0074:
-      title: "Interactive checkboxes — POST /api/notes/check-toggle + renderer click handler"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0074-Interactive-Checkboxes.md"
-      parent: "FEAT-0011"
-    TASK-0075:
-      title: "Pre-rendered metadata_html field in /api/render"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-center-pane/plan/tasks/TASK-0075-Pre-Rendered-Metadata-Strip.md"
-      parent: "FEAT-0011"
-    TASK-0076:
-      title: "CockpitState.agent_state storage + lazy decay in snapshot()"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/agent-state-signal/plan/tasks/TASK-0076-Agent-State-Storage.md"
-      parent: "FEAT-0013"
-    TASK-0077:
-      title: "POST /api/cockpit/agent-state + cockpit:agent-state SSE + decay thread"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/agent-state-signal/plan/tasks/TASK-0077-Endpoint-And-SSE.md"
-      parent: "FEAT-0013"
-    TASK-0078:
-      title: "`cockpit signal <state>` CLI subcommands"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/agent-state-signal/plan/tasks/TASK-0078-CLI-Signal-Subcommands.md"
-      parent: "FEAT-0013"
-    TASK-0079:
-      title: "Pretty-print agent_state in `cockpit state` + COCKPIT-API.md updates"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/agent-state-signal/plan/tasks/TASK-0079-State-Pretty-Print-And-Docs.md"
-      parent: "FEAT-0013"
-    TASK-0080:
-      title: "Activity-bar layout shell — rail + in-workspace nav + stage"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0080-Activity-Bar-Layout.md"
-      parent: "FEAT-0010"
-    TASK-0081:
-      title: "Persist agent-state to .cockpit/agent-state.json"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0081-Agent-State-File-Persistence.md"
-      parent: "FEAT-0010"
-    TASK-0082:
-      title: "Workspace rail rendering + agent-state dot polling"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0082-Workspace-Rail-With-Dots.md"
-      parent: "FEAT-0010"
-    TASK-0083:
-      title: "In-workspace nav framework + Features-by-phase mode"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0083-In-Workspace-Nav-Framework.md"
-      parent: "FEAT-0010"
-    TASK-0084:
-      title: "Other nav modes (Tasks / Issues / Library / Recent) + mode toggle"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0084-Other-Nav-Modes.md"
-      parent: "FEAT-0010"
-    TASK-0085:
-      title: "Right pane — linked + backlinks via /api/cockpit/context"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0085-Right-Pane.md"
-      parent: "FEAT-0010"
-    TASK-0086:
-      title: "SSE soft-reload + tab heartbeat + drop temporary Browse panel"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-nav-right-pane/plan/tasks/TASK-0086-Sse-Reload-Tab-Heartbeat-Cleanup.md"
-      parent: "FEAT-0010"
-    TASK-0087:
-      title: "OS notification when a workspace's agent-state flips to `waiting`"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0087-OS-Notification-On-Waiting.md"
-      parent: "FEAT-0012"
-    TASK-0088:
-      title: "Cmd+P quick-switch — fuzzy note search palette"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0088-Cmd-P-Quick-Switch.md"
-      parent: "FEAT-0012"
-    TASK-0089:
-      title: "Cmd+F find-in-doc"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0089-Cmd-F-Find.md"
-      parent: "FEAT-0012"
-    TASK-0090:
-      title: "Native context menus on nav rows + doc links + rail pills"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0090-Native-Context-Menus.md"
-      parent: "FEAT-0012"
-    TASK-0091:
-      title: "Drag-and-drop `.md` file → navigate (or offer to add workspace)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0091-Drag-Drop-Note.md"
-      parent: "FEAT-0012"
-    TASK-0092:
-      title: "Multi-window + per-workspace window state"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-ux/plan/tasks/TASK-0092-Multi-Window.md"
-      parent: "FEAT-0012"
-    TASK-0093:
-      title: "hiddenInset title bar (integrated macOS traffic lights)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-shell-layout/plan/tasks/TASK-0093-Hidden-Inset-Title-Bar.md"
-      parent: "FEAT-0009"
-    TASK-0094:
-      title: "Status bar (footer)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-shell-layout/plan/tasks/TASK-0094-Status-Bar.md"
-      parent: "FEAT-0009"
-    TASK-0095:
-      title: "Theme picker — system / light / dark"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-shell-layout/plan/tasks/TASK-0095-Theme-Picker.md"
-      parent: "FEAT-0009"
-    TASK-0096:
-      title: "Resizable column splitters"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/native-shell-layout/plan/tasks/TASK-0096-Splitters.md"
-      parent: "FEAT-0009"
-    TASK-0097:
-      title: "Workspace tabs (top strip, replacing the rail pills)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0097-Workspace-Tabs.md"
-      parent: "FEAT-0014"
-    TASK-0098:
-      title: "Mode ribbon (52 px vertical icon strip on the left)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0098-Mode-Ribbon.md"
-      parent: "FEAT-0014"
-    TASK-0099:
-      title: "Port item-render conventions from cockpit.js to renderer.ts (full)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-rework/plan/tasks/TASK-0099-Item-Render-Port.md"
-      parent: "FEAT-0014"
-    TASK-0100:
-      title: "Discord-style workspace mini-rail (far-left)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0100-Workspace-Mini-Rail.md"
-      parent: "FEAT-0015"
-    TASK-0101:
-      title: "Modes-on-top toolbar with inner-edge collapse"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0101-Modes-On-Top-Toolbar.md"
-      parent: "FEAT-0015"
-    TASK-0102:
-      title: "Platform pill row under the modes toolbar"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0102-Platform-Pills.md"
-      parent: "FEAT-0015"
-    TASK-0103:
-      title: "Right-pane collapse caret on the inner (left) edge"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0103-Right-Pane-Inner-Collapse.md"
-      parent: "FEAT-0015"
-    TASK-0104:
-      title: "Per-workspace terminal sessions"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0104-Per-Workspace-Terminal.md"
-      parent: "FEAT-0015"
-    TASK-0105:
-      title: "Bug fixes — light theme override + Cmd+P selection"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/cockpit-ia-v2/plan/tasks/TASK-0105-Bug-Fixes-Theme-And-Palette.md"
-      parent: "FEAT-0015"
-    TASK-0106:
-      title: "Manual add via directory picker"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/project-management/plan/tasks/TASK-0106-Manual-Add.md"
-      parent: "FEAT-0016"
-    TASK-0107:
-      title: "Project settings popover"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/project-management/plan/tasks/TASK-0107-Settings-Popover.md"
-      parent: "FEAT-0016"
-    TASK-0108:
-      title: "Workspace override fields + CRUD IPC"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/project-management/plan/tasks/TASK-0108-Override-Fields-And-CRUD.md"
-      parent: "FEAT-0016"
-    TASK-0109:
-      title: "Server stats endpoint (/api/cockpit/stats)"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/overview-dashboard/plan/tasks/TASK-0109-Stats-Endpoint.md"
-      parent: "FEAT-0017"
-    TASK-0110:
-      title: "Overview mode + dashboard renderer"
-      status: done
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/features/overview-dashboard/plan/tasks/TASK-0110-Overview-Mode.md"
-      parent: "FEAT-0017"
-
-    TASK-0111:
-      title: "Validation health endpoint — run validate-docs on watcher events, cache result, SSE notify"
-      status: done
-      phase: "[[PHASE-011-Unproven-Claims]]"
-      path: "docs/features/verification-health/plan/tasks/TASK-0111-Validation-Health-Endpoint.md"
-      parent: "FEAT-0018"
-      tests: ["TST-0016"]
-    TASK-0112:
-      title: "Health badge + drift panel UI — chrome badge, error list deep-linked to offending notes"
-      status: done
-      phase: "[[PHASE-011-Unproven-Claims]]"
-      path: "docs/features/verification-health/plan/tasks/TASK-0112-Health-Badge-And-Drift-Panel.md"
-      parent: "FEAT-0018"
-    TASK-0113:
-      title: "Waiver/review-verdict badges + adequacy surfacing in note and index views"
-      status: done
-      phase: "[[PHASE-011-Unproven-Claims]]"
-      path: "docs/features/verification-health/plan/tasks/TASK-0113-Waiver-Review-Adequacy-Badges.md"
-      parent: "FEAT-0018"
-      tests: ["TST-0016"]
-
-    TASK-0114:
-      title: "Agent-hook ingestion endpoint — /api/agent-hook + state mapping + SSE fan-out"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0114-Agent-Hook-Endpoint.md"
-      parent: "FEAT-0019"
     TASK-0115:
       title: "Claude Code hook injection at PTY spawn"
       status: done
@@ -2265,346 +1109,181 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/plan/tasks/TASK-0116-Codex-Hook-Injection.md"
       parent: "FEAT-0019"
-    TASK-0117:
-      title: "Statusline forwarder — cost/context/rate-limit feed"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0117-Statusline-Forwarder.md"
-      parent: "FEAT-0019"
-    TASK-0118:
-      title: "Activity strip above the terminal — prompt, tool, file, cost/context meters"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-activity/plan/tasks/TASK-0118-Activity-Strip.md"
-      parent: "FEAT-0020"
-    TASK-0119:
-      title: "Needs-input inbox — cross-workspace bell + jump-to-terminal"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-activity/plan/tasks/TASK-0119-Needs-Input-Inbox.md"
-      parent: "FEAT-0020"
-    TASK-0120:
-      title: "Live nav attribution trail + needs-input rail-dot vocabulary"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-activity/plan/tasks/TASK-0120-Nav-Trail-And-Rail-Dots.md"
-      parent: "FEAT-0020"
-    TASK-0121:
-      title: "Dispatch action — templates, context menu, agent picker, PTY input"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/task-dispatch/plan/tasks/TASK-0121-Dispatch-Action.md"
-      parent: "FEAT-0021"
-    TASK-0122:
-      title: "Dispatch round-trip — focus hint + follow-mode integration"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/task-dispatch/plan/tasks/TASK-0122-Dispatch-Follow-Mode.md"
-      parent: "FEAT-0021"
-    TASK-0123:
-      title: "Session index — per-workspace session metadata persistence"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0123-Session-Index.md"
-      parent: "FEAT-0022"
-    TASK-0124:
-      title: "Session history browser — list + detail view"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0124-Session-Browser.md"
-      parent: "FEAT-0022"
-    TASK-0125:
-      title: "Undocumented-work badge — live doc-traceability guardrail"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0125-Undocumented-Work-Badge.md"
-      parent: "FEAT-0022"
-    TASK-0126:
-      title: "CHG ↔ session linking — provenance enrichment"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0126-CHG-Session-Linking.md"
-      parent: "FEAT-0022"
     TASK-0127:
       title: "Overview sessions redesign — live banner, feeds column, virtual detail page"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/session-insight/plan/tasks/TASK-0127-Overview-Sessions-Redesign.md"
       parent: "FEAT-0022"
-    TASK-0128:
-      title: "Scoped stats endpoint + payload cache"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0128-Scoped-Stats-Endpoint.md"
-      parent: "FEAT-0023"
-    TASK-0129:
-      title: "Scope panes — left scope list, scoped centre dashboard, right Now + context"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0129-Scope-Panes.md"
-      parent: "FEAT-0023"
-    TASK-0130:
-      title: "Overview lifecycle fixes — history, refresh churn, fetch fan-out, live ticks"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0130-Overview-Lifecycle-Fixes.md"
-      parent: "FEAT-0023"
-    TASK-0173:
-      title: "Fix phase-activity title truncation — scoped feed rows land the title in the id column"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0173-Phase-Activity-Truncation.md"
-      parent: "FEAT-0023"
-    TASK-0131:
-      title: "Verb registry — per-type actions, YAML override, /api/cockpit/actions"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-verbs/plan/tasks/TASK-0131-Verb-Registry.md"
-      parent: "FEAT-0024"
-    TASK-0132:
-      title: "Verb UI — Agent submenu, verb-aware dispatch button, agent preference"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-verbs/plan/tasks/TASK-0132-Verb-UI.md"
-      parent: "FEAT-0024"
-    TASK-0133:
-      title: "Dispatch queue — enqueue when busy, auto-type on Stop/SessionEnd"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-verbs/plan/tasks/TASK-0133-Dispatch-Queue.md"
-      parent: "FEAT-0024"
     TASK-0134:
       title: "Main-process dispatch queue — persisted, workspace-independent delivery"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/dispatch-runtime/plan/tasks/TASK-0134-Main-Process-Queue.md"
       parent: "FEAT-0025"
-    TASK-0135:
-      title: "Dispatch ledger — record, session stamping, provenance UI"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0135-Dispatch-Ledger.md"
-      parent: "FEAT-0025"
-    TASK-0136:
-      title: "cockpit dispatch CLI — queue work from any terminal"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0136-Dispatch-CLI.md"
-      parent: "FEAT-0025"
-    TASK-0137:
-      title: "Status-aware verbs — when-lists in the registry, filtered menus"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/verb-polish/plan/tasks/TASK-0137-Status-Aware-Verbs.md"
-      parent: "FEAT-0026"
-    TASK-0138:
-      title: "Palette verbs — ⌘P understands 'refine TASK-0115'"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/verb-polish/plan/tasks/TASK-0138-Palette-Verbs.md"
-      parent: "FEAT-0026"
-    TASK-0139:
-      title: "Type-from-data + hardening — data attrs, agent-mismatch warning, dead code"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/verb-polish/plan/tasks/TASK-0139-Type-From-Data.md"
-      parent: "FEAT-0026"
     TASK-0140:
       title: "Doc header bar — note identity, path, verb buttons on every note"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/verb-polish/plan/tasks/TASK-0140-Doc-Header-Bar.md"
       parent: "FEAT-0026"
-    TASK-0141:
-      title: "External agent-state hook + managed ~/.claude install/uninstall"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/external-signal/plan/tasks/TASK-0141-External-Hook-Install.md"
-      parent: "FEAT-0027"
     TASK-0142:
       title: "Settings panel — enable the rail button, external-hook toggle"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
-    TASK-0143:
-      title: "Desktop discovery files + poller-side decay"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/external-signal/plan/tasks/TASK-0143-Discovery-And-Decay.md"
-      parent: "FEAT-0027"
-    TASK-0144:
-      title: "tmux-backed terminal survivability — agents outlive the desktop app"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0144-Tmux-Terminal-Survivability.md"
-      parent: "FEAT-0007"
-    TASK-0145:
-      title: "Quit guard for live agents + resume hint after an unclean terminal death"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/desktop-shell/plan/tasks/TASK-0145-Quit-Guard-And-Death-Hint.md"
-      parent: "FEAT-0007"
-    TASK-0146:
-      title: "Sidecar identity guard — reject foreign-cwd hook events, identity endpoint, stale-url janitor"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/external-signal/plan/tasks/TASK-0146-Sidecar-Identity-Guard.md"
-      parent: "FEAT-0027"
-
-
-
   issues:
     ISS-0093:
       file: "docs/issues/ISS-0093-Nested-Padding-And-Two-Heading-Styles.md"
-      title: "Three nested paddings pushed a phase id right of its own features, and a second section-heading style duplicated one that existed"
+      title: "Three nested paddings pushed a phase id further right than the features beneath it, and a second section-heading style was written without checking the first existed"
       status: fixed
       severity: low
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "A parent indented further than its children is the one arrangement a tree must never produce. No single value was wrong — band 6 + group 2 + head 8 compounded. The BODY carries the indent, not the group: indenting the group moves the head too, and the head is what is being indented from. Also KEEP: assert the mutation applied, not just that the guard passed — one reported green here while silently failing to match."
     ISS-0092:
       file: "docs/issues/ISS-0092-Severity-Buckets-Straddled-The-Completed-Split.md"
-      title: "A severity bucket holding both open and fixed issues had to be placed whole"
+      title: "A severity bucket holding both open and fixed issues had to be placed whole, so one open issue could keep fifty-six fixed ones above the completed divider"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "One open medium issue would have kept 56 fixed ones above the divider under a card headed Medium · 57. Invisible in this corpus because every issue is fixed — homogeneous by accident. Split on completion BEFORE severity and every bucket is homogeneous, so the existing live/completed rule places both halves without knowing about severity. Also: one border per object — the band is a card, its children are not; ISS-0088's opposite rule held only where the children were framed."
     ISS-0091:
       file: "docs/issues/ISS-0091-Two-Handles-And-A-Shrinking-Id.md"
-      title: "Two levels of one tree drew different expand handles, and a group head's id shrank to 7px"
+      title: "Two levels of one tree drew different expand handles, and a group head's id shrank to 7px because flex:none was scoped to rows"
       status: fixed
       severity: low
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "flex:none was scoped to .nav-item-line, so in a HEAD the id was a flexible child of an overflow-hidden container — PHASE-007 rendered 7px of 62. A flex container cannot ellipsise its children; the ellipsis belongs on the name. And there were THREE declarations of one expand triangle, two identical by coincidence: .ov-chev had it since FEAT-0043, group heads kept an older caret, and I reinvented it at ISS-0088 rather than reusing it."
     ISS-0090:
       file: "docs/issues/ISS-0090-Phase-Rows-And-The-Missing-Id-Column.md"
-      title: "Phase rows differed from the overview's, and a plan's empty id dropped it out of the id column"
+      title: "Phase rows still differ from the overview's, and a plan's empty id drops it out of the id column so it sits 78px left of its sibling requirements"
       status: fixed
       severity: low
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "KEEP: a column is only a column if every cell in it is the same width, including the ones standing in for something absent. A plan carries id:\"\" deliberately, the renderer skipped the span, and its title sat 78px left of its siblings. Closing it took three passes — a handle, a min-width, then removing the handle's smaller font, because ch is relative to the font."
     ISS-0089:
       file: "docs/issues/ISS-0089-A-Card-Head-Names-A-Category-Not-A-Thing.md"
-      title: "Copying the context card's head styling made phase names render as labels"
+      title: "Copying the context card's head styling made phase names render as labels — a card head names a category, a phase head names a thing, and only one of those can be faint"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "KEEP: the right pane's head names a CATEGORY, the features navigator's names a THING. TASKS is scaffolding you read past, so faint/small/uppercase is right and four frames read as structure; PHASE-007 · Agent instrumentation IS the content, and eighteen frames read as clutter. Four rounds were spent making them match. Also: the pill was wrong twice in opposite directions — suppressed by a rule whose output looked random, then unconditional so a card called Done carried a done pill. The question is whether the NAME already says it, which is the same question the divider and the summary ask."
     ISS-0088:
       file: "docs/issues/ISS-0088-The-Card-Is-A-Style-Not-Just-A-Behaviour.md"
-      title: "The completed sections behaved like the right pane's cards but did not look like them; heads carried an icon, an uncoloured id and an inconsistent pill"
+      title: "The completed sections behave like the right pane's cards but do not look like them, and the group heads carry an icon, an uncoloured id and an inconsistent pill"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "FEAT-0058 gave the navigators the right pane's BEHAVIOUR and none of its LOOK. Keep beyond this phase: TASK-0272 suppressed a group's status chip when the summary already ended in that word, so PHASE-001 had no pill and PHASE-002 did — defensible rule, arbitrary-looking output. A reader only ever sees the output. Review desk deliberately left alone: its sections are kinds of obligation, not collections, and a card invites collapsing the thing you always want to see."
     ISS-0087:
       file: "docs/issues/ISS-0087-Nav-Group-Headers-Are-Twice-The-Height-They-Copy.md"
-      title: "The navigator's group headers were twice the height of the context cards they were aligned to"
+      title: "The navigator's group headers are twice the height of the context cards they were aligned to, because only their type was matched and not their padding"
       status: fixed
       severity: low
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "FEAT-0057 matched the two panes' TYPE — 11px/600/uppercase, identical already — and stopped. Density is set by the BOX: 42px against 22px, nineteen headers over, plus a background and border the right pane has not. Now 25px. Fifth correction in a row with one cause: verifying the thing changed instead of the surface it lives on."
     ISS-0086:
       file: "docs/issues/ISS-0086-The-Rollup-Hid-The-Taxonomy.md"
-      title: "The roll-up collapsed the phase list, the status vocabulary and the severity ladder into one line"
+      title: "The roll-up collapsed the phase list, the status vocabulary and the severity ladder into one line — structure, not noise, and the overview never made that mistake"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "Quantity lives in a group's BODY, structure lives in its HEAD — TASK-0273 applied one rule to both, so the features navigator's whole top level became two rows. The overview's scope pane has had this right since FEAT-0043: Completed · N as a HEADING with every phase still named. Both panes now use that band and that wording. Alignment ran both ways — the overview gained the ID column it never had, and lost a max-width:55% truncating 13 of 24 rows with 200px unused."
     ISS-0085:
       file: "docs/issues/ISS-0085-One-Line-Grammar-Reached-One-Of-Four-Renderers.md"
-      title: "The one-line grammar reached one of four row renderers, and the subtitle put a second line back on that one"
+      title: "The one-line grammar reached one of the left pane's four row renderers, and the subtitle put a second line back on that one"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "The left pane has FOUR renderers and pickItemRenderer routes per group; TASK-0271 rewrote one. I wrote the task against navItem, checked navItem, and wrote the guard against navItem — a guard written from the same reading as the change confirms the reading, not the behaviour. One shared buildNavRow now, asserted over every renderer the picker can return."
     ISS-0084:
       file: "docs/issues/ISS-0084-Change-Ids-Print-Their-Description-Twice.md"
-      title: "A change note's id is its description, so a row rendered the description twice"
+      title: "A change note's id is its description, so a row renders the description twice and the CHG slug is the widest thing in the pane"
       status: fixed
       severity: low
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "Edwin spotted it. CHG-YYYYMMDD-Short-Description (LIFECYCLE.md line 95) means a change's id IS prose, at five times the width of every other id. Free while the id had its own line; expensive the moment TASK-0271 put id and title on one — a layout change made an existing inconsistency costly. Display-only fix; id: stays canonical."
     ISS-0083:
       file: "docs/issues/ISS-0083-Active-Nav-Row-Never-Highlights.md"
-      title: "The navigator never highlights the open note — refreshActiveNavRow selects li.nav-item, but that class is on the inner div"
+      title: "The navigator never highlights the open note, because refreshActiveNavRow selects li.nav-item while the class sits on the inner div"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "Pre-existing and silent: measured at f5e6637, 112 rows carrying data-rel and is-active on zero of them. Surfaced only because TASK-0273's roll-up needs the active row to open the group holding it, turning a decorative no-op into a functional one."
     ISS-0082:
       file: "docs/issues/ISS-0082-Phantom-Phase-Group-From-The-016-Merge.md"
-      title: "A phase rename forked its children into a phantom group, because two code paths read the phase link differently"
+      title: "Two code paths read the phase link differently, so renaming PHASE-016 during the merge forked its children into a phantom group in the features navigator while the overview showed them correctly"
       status: fixed
       severity: medium
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
       note: "Mine, from the ISS-0077 merge. _phase_id_of extracts PHASE-016 and resolves; _phase_target keeps the whole slug and does not — so the overview was right and the navigator was wrong. A phase's identity is its ID, not its title."
     ISS-0081:
       file: "docs/issues/ISS-0081-Right-Click-Selected-A-Word-And-Clobbered-The-Clipboard.md"
-      title: "Right-click word-select plus copy-on-select overwrote the clipboard before the paste read it"
+      title: "xterm's right-click word-select combined with unconditional copy-on-select to overwrite the clipboard with the word under the cursor, so right-click-to-paste pasted that word back"
       status: fixed
       severity: medium
       phase: "[[PHASE-020-Clipboard-That-Works]]"
       note: "Introduced by ISS-0080: copy-on-select was opt-in and off, so xterm's rightClickSelectsWord (on by default on macOS) was harmless. Turning copy-on-select on made a dormant default load-bearing — a default that was never wrong before is not a default that was checked."
     ISS-0080:
       file: "docs/issues/ISS-0080-Console-Context-Menu-Replaced-By-Terminal-Convention.md"
-      title: "Replace the console context menu with select-copies / right-click-pastes"
+      title: "The console's context menu does not work for the user across three attempts — replace it with the terminal convention (select copies, right-click pastes) rather than debug a menu a console does not need"
       status: fixed
       severity: medium
       phase: "[[PHASE-020-Clipboard-That-Works]]"
       note: "Three reports it does not work while Cmd-C/V do; three rounds of instrumentation say the menu path writes to the PTY and focus is held. When the measurement and the user disagree three times the measurement is answering a different question. Edwin's proposal removes the mechanism rather than repairing it. Restart console lives ONLY in that menu and must be rehomed."
     ISS-0079:
       file: "docs/issues/ISS-0079-Context-Menu-Only-Ever-Fired-For-Anchors.md"
-      title: "The note context menu keyed off closest('a'), so button-shaped rows got the word menu"
+      title: "The note context menu keyed off `closest('a')`, so every button-shaped row — History, the uncommitted band — got the word menu and no way to copy anything about the note it names"
       status: fixed
       severity: medium
       phase: "[[PHASE-020-Clipboard-That-Works]]"
       note: "TASK-0262 fixed the anchor path and was verified on an anchor. History rows are BUTTONs, so a right-click on a feature there still got the word menu — the symptom FEAT-0054 was raised for, on a surface it never covered."
     ISS-0078:
       file: "docs/issues/ISS-0078-Downstream-Pilot-Was-Overtaken-And-CLAUDE-Md-Still-Claims-It.md"
-      title: "PHASE-003's pilot was overtaken by workspace discovery; CLAUDE.md still claims the shim exists"
+      title: "PHASE-003's downstream pilot was overtaken by workspace discovery and never built, while CLAUDE.md still tells every session the shim exists"
       status: fixed
       severity: medium
       phase: "[[PHASE-015-Phase-Hygiene]]"
       note: "The shim was never built and is now near-worthless (its job is one command). The pattern it would have proven is in daily use across 12 repos via workspace discovery. ADR-0003, which the phase gates on, was never written and its number was taken. CLAUDE.md has been pointing every session at an integration point that does not exist."
     ISS-0077:
       file: "docs/issues/ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request.md"
-      title: "A phase became the unit of a request — nine in a day at a fifth of the historical size"
+      title: "Nine phases opened in one day against nine in the preceding twelve weeks — a phase became the unit of a request rather than of a delivery push, at a fifth of the historical size"
       status: fixed
       severity: medium
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "Nine phases opened 2026-07-30 against nine in the preceding twelve weeks; median 4 items vs 21. Cause: the document-first rule needs a focus item and an open phase is the cheapest way to get one, so every request minted one. PHASE-011/012/013 were planned together and are fine; 014-019 were reactive."
     ISS-0076:
       file: "docs/issues/ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id.md"
-      title: "The overview's Phases section shows titles and never phase IDs"
+      title: "The overview's Phases section shows each phase's title and never its ID, so the one place that lists every phase cannot be cross-referenced with anything that names them"
       status: fixed
       severity: low
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "buildPhaseRow already holds the id in p.key — it routes the title click with it — and never renders it. Everything that refers to a phase refers to it by ID, so the one surface listing every phase is the only one that cannot be cross-referenced."
     ISS-0075:
       file: "docs/issues/ISS-0075-Busiest-Grid-Cells-Render-Smallest.md"
-      title: "Contribution grid: the busiest days render 33% smaller — the second channel was subtractive"
+      title: "The contribution grid's busiest days render 33% smaller than its quietest — the 'second channel' was subtractive, so the strongest signal was the weakest mark"
       status: fixed
       severity: medium
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "An inset box-shadow in the BACKGROUND colour eats into the cell, so step 4 shows 6px of colour against step 1's 9px. Cited DES-0004 to justify it, but that rule is about HUE — lightness is already greyscale- and CVD-safe, which is why GitHub's scale works. Solved a problem that did not exist, subtractively."
     ISS-0074:
       file: "docs/issues/ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot.md"
-      title: "16 of 19 notes naming PHASE-999 are terminal — the strip draws 16 delivered squares under 'Future'"
+      title: "16 of the 19 notes naming PHASE-999 are terminal, so the phase strip draws 16 `delivered` squares inside a phase titled 'Future / Unphased'"
       status: fixed
       severity: medium
       phase: "[[PHASE-015-Phase-Hygiene]]"
       note: "Edwin's question, measured. The rule is upstream (project-os-dev ISS-0027, the mirror of PHASE-CHILDREN); this is the local corpus correction plus a guard so it cannot silently refill."
     ISS-0073:
       file: "docs/issues/ISS-0073-Swift-Unit-Interval-Colours-Read-As-Unresolved.md"
-      title: "SwiftUI 0-1 Color(red:green:blue:) reads as unresolved"
+      title: "SwiftUI's 0–1 Color(red:green:blue:) reads as unresolved, so a real colour renders as a source expression"
       status: fixed
       severity: low
       phase: "[[PHASE-013-Fleet-Surfaces]]"
       note: "Found verifying TASK-0231. The unresolved path is for colours with no honest hex; using it for a fully-specified one teaches readers to skim past the ones that matter."
     ISS-0072:
       file: "docs/issues/ISS-0072-Snapshot-Edits-Do-Not-Retrigger-Validation.md"
-      title: "SNAPSHOT.yaml edits never re-trigger validation — METRICS drift cannot clear live"
+      title: "The validator never re-runs on a SNAPSHOT.yaml edit — its dedicated project-root observer does not fire, so METRICS drift never clears live"
       status: fixed
       severity: medium
       phase: "[[PHASE-013-Fleet-Surfaces]]"
@@ -2663,182 +1342,11 @@ items:
       note: "buildStatTile renders a button only when passed a navMode; Reqs, Tests and Risks are passed none. Reqs stays dead deliberately — it has no single destination."
     ISS-0032:
       file: "docs/issues/ISS-0032-Dispatch-Agent-Vocabulary-Is-Closed-To-Two.md"
-      title: "Dispatch agent vocabulary is a closed two-value union; its ternaries coerce any third agent to 'claude'"
+      title: "The dispatch agent vocabulary is a closed two-value union restated across nine sites; a third agent is dropped from the persisted queue and coerced in two preference paths"
       status: fixed
       severity: medium
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
-    ISS-0030:
-      title: "Phase completion is inferred from task counts and ignores the phase's own status, so a superseded phase reads live; live phases also sort by order: rather than active-first"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0030-Phase-Completion-Ignores-Status.md"
-      related: ["ISS-0029"]
-    ISS-0029:
-      title: "The left Scope pane never got plate C's In-flight/Completed split — five finished phases still shout as loudly as the live one"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0029-Scope-Pane-Completed-Band.md"
-    ISS-0028:
-      title: "Requirements offer no review path, their actions ignore status, and the `verify` verb tells the agent to test-gate them — which ADR-0007 forbids"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0028-Requirement-Review-Actions.md"
-      related: ["ISS-0026"]
-    ISS-0027:
-      title: "Stat-tile mix bars don't span the tile on Features/Tasks/Issues — those tiles are buttons, and the UA stylesheet centres their flex children"
-      status: fixed
-      severity: low
-      path: "docs/issues/ISS-0027-Stat-Tile-Mixbar-Width.md"
-    ISS-0026:
-      title: "The cockpit bundles its own copy of validate-docs.py and it has already drifted from the template (875 vs 885 lines)"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0026-Bundled-Validator-Drift.md"
-      related: ["ISS-0025"]
-    ISS-0025:
-      title: "Incoming ADR-0008 taxonomy collapse empties the delivered band and retires ~12 vocabulary members across eight surfaces"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0025-Incoming-Taxonomy-Collapse.md"
-      related: ["ISS-0023"]
-    ISS-0024:
-      title: "Status surfaces outside TST-0019's guard: DONE_BY_TYPE drifted on `implemented`, and two CSS blind spots let a broken palette pass"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0024-Status-Surfaces-Outside-The-Parity-Guard.md"
-    ISS-0023:
-      title: "Six status tables disagree about `implemented`: green chip, done-band rank, collapsed by default — yet never hidden by Hide-completed and unranked in the tasks pane"
-      status: fixed
-      severity: medium
-      path: "docs/issues/ISS-0023-Implemented-Status-Band-Drift.md"
-    ISS-0020:
-      title: "Strip misses the session’s implemented tasks — status changes (esp. via non-Edit-tool writes) and cross-prompt completions never surface"
-      status: fixed
-      path: "docs/issues/ISS-0020-Strip-Misses-Session-Completions.md"
-    ISS-0019:
-      title: "Console in-flight blocks miss the work when the agent edits code, not notes — the declared SNAPSHOT focus is ignored"
-      status: fixed
-      path: "docs/issues/ISS-0019-Inflight-Ignores-Focus.md"
-    ISS-0022:
-      title: "Repo is behind the project-os template: its vendored validator cannot see 8 real errors (deferral provenance + stale metrics), and it never adopted the generated adapter surface"
-      status: fixed
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0022-Behind-Template.md"
-    ISS-0021:
-      title: "Independent review of the model-routing upstreaming returned changes-requested — independence rule weakened, opusplan claim wrong, downstream hooks.json not updated"
-      status: fixed
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0021-Model-Routing-Review-Findings.md"
-      related: ["FEAT-0039"]
-    ISS-0018:
-      title: "Progress blocks show the whole session's touched notes (reads as all-project), on a second line, without titles/status — should be prompt-scoped, inline before ctx, enriched"
-      status: fixed
-      path: "docs/issues/ISS-0018-Progress-Blocks-Wrong-Scope.md"
-    ISS-0017:
-      title: "No way to recover a stuck/broken console (e.g. a TUI wedged on a picker) — need a restart action"
-      status: fixed
-      path: "docs/issues/ISS-0017-No-Console-Restart.md"
-    ISS-0016:
-      title: "Embedded terminal: content runs off-screen below the prompt and mouse-scroll stops working after switching to the console"
-      status: fixed
-      path: "docs/issues/ISS-0016-Terminal-Stale-Dimensions.md"
-    ISS-0015:
-      title: "Agent strip shows another project's prompt after switching workspaces (stale stripLastPrompt)"
-      status: fixed
-      path: "docs/issues/ISS-0015-Strip-Prompt-Bleed.md"
-    ISS-0014:
-      title: "Agent session strip shows no current session / ctx / $ after a sidecar soft-reload (session stuck ended)"
-      status: fixed
-      path: "docs/issues/ISS-0014-Session-Stuck-Ended-After-Reload.md"
-    ISS-0012:
-      title: "Workspace agent/framework label is poisoned by a stale last-session — shows codex while live agent is claude"
-      status: fixed
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0012-Stale-Session-Poisons-Framework.md"
-    ISS-0013:
-      title: "Session history is undiscoverable after moving to the ~agents screen"
-      status: fixed
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0013-Session-History-Discoverability.md"
-    ISS-0011:
-      title: "Follow mode evicts the user's chosen view (incl. ~agents) — always-on in desktop, no Following/Manual toggle"
-      status: fixed
-      severity: medium
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0011-Follow-Mode-Evicts-Chosen-View.md"
-      component: agent-focus
-    ISS-0010:
-      title: "Agent strip (and its files view) vanishes the moment a session ends — regression from ISS-0009"
-      status: fixed
-      severity: medium
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0010-Agent-Strip-Files-Vanish-When-Idle.md"
-      component: renderer-chrome
-    ISS-0009:
-      title: "Inbox and queue popovers never visually close — CSS display:flex overrides the hidden attribute"
-      status: fixed
-      severity: medium
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0009-Popovers-Never-Hide.md"
-      component: renderer-chrome
-    ISS-0008:
-      title: "Embedded terminal agents die with the desktop app — no survivability or reattach after an app exit"
-      status: fixed
-      severity: high
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0008-Terminal-Sessions-Die-With-App.md"
-      component: terminal
-    ISS-0007:
-      title: "Stale .cockpit/url + port reuse routes one workspace's hook events into another workspace's sidecar"
-      status: fixed
-      severity: high
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0007-Stale-Url-Cross-Workspace-Poisoning.md"
-      component: agent-instrument
-    ISS-0006:
-      title: "Rail agent-state dot clipped by ws-square overflow; active bar never visible; busy/done greens indistinguishable"
-      status: fixed
-      severity: medium
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0006-Rail-Marker-Clipping.md"
-      component: renderer-rail
-    ISS-0002:
-      title: "Instrumented .zshrc breaks when the user aliases claude/codex"
-      status: fixed
-      severity: high
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0002-Zshrc-Alias-Collision.md"
-      component: agent-instrument
-    ISS-0003:
-      title: "Hook commands failed silently — unquoted userData path contains a space"
-      status: fixed
-      severity: critical
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0003-Hook-Path-Space.md"
-      component: agent-instrument
-    ISS-0005:
-      title: "Row context menu + agent-touch trail never fired — selector matched a class the <li> doesn't carry"
-      status: fixed
-      severity: medium
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0005-Nav-Row-Selector-Rot.md"
-      component: renderer-nav
-    ISS-0004:
-      title: "Overview squares for fulfilled/met requirements render unfilled"
-      status: fixed
-      severity: low
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/issues/ISS-0004-Requirement-Squares-Unfilled.md"
-      component: cockpit-stats
-    ISS-0001:
-      title: "Watcher-indexed paths poison _records under a mismatched case on macOS, so /api/render returns empty frontmatter for files created/modified after cockpit start"
-      status: fixed
-      severity: high
-      phase: "[[PHASE-006-Native-Cockpit-UI]]"
-      path: "docs/issues/ISS-0001-WatcherIndexedPathCaseMismatch.md"
-      component: index/watcher
-
   requirements:
     REQ-0025:
       file: "docs/requirements/REQ-0025-No-Type-Loses-Its-Surface.md"
@@ -2876,7 +1384,7 @@ items:
       status: implemented
       path: "docs/requirements/REQ-0018-Agent-Attention-Completeness.md"
     REQ-0019:
-      title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — on one dedicated screen"
+      title: "Cross-workspace agent detail — state, session, cost, queue, rate limits — is available on one dedicated screen"
       status: implemented
       path: "docs/requirements/REQ-0019-Agent-Fleet-Visibility.md"
     REQ-0001:
@@ -2954,7 +1462,7 @@ items:
       note: "DES-0004's encoding, then delete buildWaitingOnYou and its three helpers. GATED on DES-0004 carrying a review verdict — it is a stylesheet change to the densest element on the page. Also needs tests in the phase payload (they are absent) and `blocked` computed from depends: rather than a status that does not exist. Retiring the list reverses TASK-0200/TASK-0210 and DES-0001 plate 5, so those want superseding."
     PHASE-013:
       file: "docs/phases/PHASE-013-Fleet-Surfaces.md"
-      title: "Fleet surfaces — the cockpit reports on every repo it can see"
+      title: "Fleet surfaces — the cockpit reports on every repo it can see, not just the open one"
       status: done
       order: 13
       features: ["FEAT-0028", "FEAT-0044"]
@@ -3048,7 +1556,7 @@ items:
       path: "docs/features/cockpit/plan/tests/TST-0019-Status-Vocabulary-Parity.md"
       validates: ["TASK-0198", "ISS-0023", "REQ-0012"]
     TST-0018:
-      title: "Status-diff layer transitions emit once; non-changes and cold seed silent"
+      title: "Status-diff layer — transitions emit once, non-changes and cold seed are silent"
       status: passing
       path: "docs/features/live-work/plan/tests/TST-0018-Status-Diff-Layer.md"
       validates: ["TASK-0162"]
@@ -3063,7 +1571,7 @@ items:
       path: "docs/tests/TST-0002-Cockpit-Json-Api.md"
       validates: ["REQ-0013"]
     TST-0003:
-      title: "Unknown POST drains body — HTTP/1.1 keep-alive stays synced"
+      title: "Unknown POST drains body — keep-alive stays synced"
       status: passing
       path: "docs/features/cockpit/plan/tests/TST-0003-Unknown-Post-Drains-Body.md"
       validates: ["TASK-0057", "FEAT-0006"]
@@ -3634,9 +2142,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 77
-    features_done: 55
+    features_done: 54
     tasks_total: 334
-    tasks_done: 271
+    tasks_done: 268
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
