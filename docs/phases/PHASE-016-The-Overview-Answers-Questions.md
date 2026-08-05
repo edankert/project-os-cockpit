@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-016
 aliases: ["PHASE-016"]
 title: "The overview answers questions — every number on it leads somewhere, and every thing on it says what it is"
-status: done
+status: active
 order: 16
 owner: user:edwin
 created: 2026-07-30
@@ -15,6 +15,9 @@ features:
   - "[[FEAT-0053-History-Navigation]]"
 requirements: []
 issues:
+  - "[[ISS-0097-Scoped-List-Rows-Have-No-Layout]]"
+  - "[[ISS-0098-The-Squares-Strip-Collapses-To-A-Column]]"
+  - "[[ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed]]"
   - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
   - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"

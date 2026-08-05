@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 80
-  ISS: 96
+  ISS: 99
   PHASE: 28
   REQ: 31
   RISK: 6
@@ -49,7 +49,7 @@ focus:
   feature: "FEAT-0059"
   phase: "PHASE-023"
   issue: ""
-  note: "2026-08-05: surveyed t3.codes (pingdotgg/t3code — 1116 src files, 2259 test files, five agent CLIs behind one ProviderDriver, three client surfaces) against project-os + cockpit. FINDING: the tools are ORTHOGONAL — T3 is an agent harness with no requirements, acceptance criteria, phases or validator; it holds no opinion about what should be built. The comparison is a map of what is already solved elsewhere, not a feature list to chase. Filed: ISS-0094 (permission prompts detected but not answerable — a HOLE in FEAT-0076s not-yet-built invariant, since a tool prompt is not a queue entry), ISS-0095 (agent roster hard-coded), ISS-0096 (no surface says what changed), FEAT-0078 turn checkpoints (RISK-0006s strongest mitigation), and PHASE-028 Borrowed capability as a STANDING phase holding FEAT-0079 phone supervision + FEAT-0080 the harness survey. Amended in place: DES-0009 gains the lease-vs-worktree open question (recommendation: ship the refusal, keep worktrees for when the digest is boring), TASK-0324 makes that decision explicit, TASK-0321 gains a fourth option for the mode-1 ADR — T3 runs THREE surfaces from one shared schema with no drift, so the drift is evidence against two HAND-WRITTEN surfaces, not against two surfaces. Declines recorded for TASK-0341: multi-forge SCM, Effect-TS event sourcing, editor/conversation UI, hosted relays. Focus unchanged: TASK-0278 still starts PHASE-023."
+  note: "2026-08-05 (2): reviewed the phase-scoped overview pages Edwin named (project-os-cockpit PHASE-006, your-health PHASE-0010), captured both, measured. Three defects filed under a reopened PHASE-016 (the overview is its home; done-when-idle, reopened when work arrives). ISS-0097: .ov-waiting-list li and .verification-list li declare NO layout — no flex, no gap — so id/title/meta concatenate (TST-0005GET /api/render...). The layout was intended: .verification-meta has margin-left:auto, which does nothing outside a flex row. ISS-0098: feature row heights 32..116px because .scoped-feat-sqs has no minimum width and wraps to a 9px column; the row has no column model, so the most compressible child eats every shortfall. ISS-0099: the activity feed renders full CHG slugs, wrapping to four lines — the FOURTH surface ISS-0084 has had to reach, so the guard should enumerate id-rendering sites rather than name them. Not yet fixed — filed for Edwin to schedule. Focus unchanged: TASK-0278."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -1221,6 +1221,27 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0099:
+      file: "docs/issues/ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed.md"
+      title: "The activity feed renders a change note's full slug id, which wraps to four lines and breaks the row rhythm — ISS-0084's shortening never reached this surface"
+      status: open
+      severity: low
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "The FOURTH surface ISS-0084's shortening has had to reach. The finding is as much that the transform lives in a helper every renderer must remember to call — the guard should enumerate id-rendering sites, not name the known ones."
+    ISS-0098:
+      file: "docs/issues/ISS-0098-The-Squares-Strip-Collapses-To-A-Column.md"
+      title: "A feature's task squares wrap into a one-square-wide column when the row is tight, blowing one row to 116px against its neighbours' 32"
+      status: open
+      severity: medium
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "Measured on your-health PHASE-0010: heights 32..116, FEAT-0071's strip 9px wide by 105px tall with 9 squares. Not a squares bug — the ROW has no column model, so the most compressible child absorbs every shortfall, and a 3px square is the most compressible thing there is."
+    ISS-0097:
+      file: "docs/issues/ISS-0097-Scoped-List-Rows-Have-No-Layout.md"
+      title: "The scoped overview's Verification and Remaining rows have no layout, so the id, the title and the meta render as one run-on string"
+      status: open
+      severity: medium
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "TST-0005GET /api/render...guardauto · ran... — neither .ov-waiting-list li nor .verification-list li declares flex or gap in either stylesheet. The layout was INTENDED: .verification-meta carries margin-left:auto, which silently does nothing outside a flex row."
     ISS-0096:
       file: "docs/issues/ISS-0096-No-Surface-Says-What-Changed.md"
       title: "No surface answers what a piece of work actually changed, so acceptance has the notes and the app but never the diff between them"
@@ -2258,7 +2279,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
+    issues_open: 6
     issues_triage: 0
     risks_open: 6
     releases_total: 0
