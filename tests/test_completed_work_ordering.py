@@ -1590,7 +1590,7 @@ def test_every_id_rendering_site_shortens(  ) -> None:
 
 
 def test_the_scoped_list_rows_have_a_layout() -> None:
-    """ISS-0097 — `.ov-waiting-list` and `.verification-list` were styled
+    """ISS-0097 — `.scoped-rowlist` and `.verification-list` were styled
     nowhere at all, so their spans concatenated:
     `TST-0005GET /api/render — … guardauto · ran 2026-05-25`.
 
@@ -1599,16 +1599,16 @@ def test_the_scoped_list_rows_have_a_layout() -> None:
     nothing outside a flex row.
     """
     css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
-    row = re.search(r"\.ov-waiting-list li \{(.*?)\}", css, re.DOTALL)
+    row = re.search(r"\.scoped-rowlist li \{(.*?)\}", css, re.DOTALL)
     assert row, "the scoped list rows have no rule at all"
     body = row.group(1)
     assert "display: flex" in body, "the row is not a flex row, so its fields concatenate"
     assert "gap:" in body, "the row has no gap, so its fields touch"
-    assert re.search(r"\.ov-waiting-list \.ov-waiting-id \{[^}]*flex: none", css, re.DOTALL), (
+    assert re.search(r"\.scoped-rowlist \.scoped-row-id \{[^}]*flex: none", css, re.DOTALL), (
         "the id can shrink again — it is short and fixed; the title is what shortens"
     )
     assert re.search(
-        r"\.ov-waiting-list \.ov-waiting-title \{[^}]*text-overflow: ellipsis", css, re.DOTALL,
+        r"\.scoped-rowlist \.scoped-row-title \{[^}]*text-overflow: ellipsis", css, re.DOTALL,
     ), "the title does not ellipsise, so a long one will wrap the row"
 
 

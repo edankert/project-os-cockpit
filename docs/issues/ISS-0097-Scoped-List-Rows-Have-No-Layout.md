@@ -59,3 +59,11 @@ TST-0005  | GET /api/render — HTML fragment + …
 ```
 
 Four fields, four columns, in both the Verification and Remaining lists.
+
+## And a retirement the fix nearly undid
+
+Writing the first CSS rule these rows have ever had made `test_the_waiting_on_you_list_is_gone` fail — ISS-0068 retired the *"Waiting on you"* section and its guard refuses to see `.ov-waiting` in the stylesheet at all.
+
+The guard was right and the class names were wrong: the Remaining and Verification lists had been **squatting on the retired prefix** since the section went, invisibly, because nobody had styled them. They are now `scoped-rowlist` / `scoped-row-id` / `scoped-row-title` / `scoped-row-clear`.
+
+**Styling a live surface under a dead name is how a retirement gets quietly undone.** The guard caught it at the first moment anyone wrote a rule — which is exactly when it was cheapest to catch.

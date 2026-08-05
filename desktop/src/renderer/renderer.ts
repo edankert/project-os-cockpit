@@ -2926,16 +2926,16 @@ async function fillVerificationPanel(
   }
 
   const list = document.createElement('ul');
-  list.className = 'ov-waiting-list verification-list';
+  list.className = 'scoped-rowlist verification-list';
   for (const test of tests) {
     const li = document.createElement('li');
     const id = document.createElement('span');
-    id.className = 'ov-waiting-id mono ov-typed';
+    id.className = 'scoped-row-id mono ov-typed';
     id.dataset.type = 'test';
     id.textContent = shortNoteId(test.id);
     id.title = test.id;
     const title = document.createElement('span');
-    title.className = 'ov-waiting-title';
+    title.className = 'scoped-row-title';
     title.textContent = test.title;
     li.append(id, title);
 
@@ -11597,7 +11597,7 @@ function buildRemainingList(p: StatsPhase): HTMLElement {
 
   if (items.length === 0) {
     const empty = document.createElement('p');
-    empty.className = 'meta ov-waiting-clear';
+    empty.className = 'meta scoped-row-clear';
     empty.textContent = 'Nothing left — every item in this phase is done.';
     wrap.appendChild(empty);
     return wrap;
@@ -11610,15 +11610,15 @@ function buildRemainingList(p: StatsPhase): HTMLElement {
   });
 
   const list = document.createElement('ul');
-  list.className = 'ov-waiting-list';
+  list.className = 'scoped-rowlist';
   for (const item of items) {
     const li = document.createElement('li');
     const id = document.createElement('span');
-    id.className = 'ov-waiting-id mono ov-typed';
+    id.className = 'scoped-row-id mono ov-typed';
     id.dataset.type = item.type;
     id.textContent = item.id || '';
     const title = document.createElement('span');
-    title.className = 'ov-waiting-title';
+    title.className = 'scoped-row-title';
     title.textContent = item.title;
     li.append(id, title);
     appendIf(li, statusChip(item.status));

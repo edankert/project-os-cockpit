@@ -3917,7 +3917,13 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .run-draft { margin: 0; font-size: 11.5px; color: var(--text-faint); }
 /* Verification panel (TASK-0211) — the durable record on a scope. */
 /* ---- Scoped-overview list rows (ISS-0097) ------------------------------
-   `.ov-waiting-list` and `.verification-list` were styled NOWHERE — not one
+   Named `scoped-row*`, not `ov-waiting*`. The Remaining and Verification
+   lists were squatting on the class prefix ISS-0068 retired with the
+   "Waiting on you" section, and `test_the_waiting_on_you_list_is_gone`
+   rightly refuses to see it in CSS. Styling a live surface under a dead
+   name is how a retirement gets quietly undone — the guard caught it the
+   first time anyone wrote a rule for these rows.
+   `.scoped-rowlist` and `.verification-list` were styled NOWHERE — not one
    rule in either stylesheet — so their spans concatenated:
 
      TST-0005GET /api/render — … guardauto · ran 2026-05-25  passing
@@ -3928,12 +3934,12 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
    the meta sat flush against the title instead of at the right edge.
 
    Same grammar as `.nav-item-line` — this IS that row, in another pane. */
-.ov-waiting-list {
+.scoped-rowlist {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.ov-waiting-list li {
+.scoped-rowlist li {
   display: flex;
   flex-wrap: nowrap;
   align-items: baseline;
@@ -3944,15 +3950,15 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   font-size: 12px;
   line-height: 1.5;
 }
-.ov-waiting-list li:hover { background: var(--row-hover, var(--accent-soft)); }
+.scoped-rowlist li:hover { background: var(--row-hover, var(--accent-soft)); }
 /* The id never shrinks: it is short and fixed, the title is the part that
    should shorten (ISS-0091's rule, same reason). */
-.ov-waiting-list .ov-waiting-id {
+.scoped-rowlist .scoped-row-id {
   flex: none;
   font-size: 11px;
   min-width: 9ch;
 }
-.ov-waiting-list .ov-waiting-title {
+.scoped-rowlist .scoped-row-title {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -3960,11 +3966,11 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   white-space: nowrap;
   color: var(--text-muted);
 }
-.ov-waiting-list .status-chip,
-.ov-waiting-list .verification-run { flex: none; }
+.scoped-rowlist .status-chip,
+.scoped-rowlist .verification-run { flex: none; }
 /* A chip never sets a row's height — the rule ISS-0087 and ISS-0093
    established for the navigator's heads and rows. */
-.ov-waiting-list .status-chip {
+.scoped-rowlist .status-chip {
   padding: 0 6px;
   line-height: 15px;
   font-size: 10px;
