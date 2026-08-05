@@ -5550,7 +5550,10 @@ async function fillNowBoard(board: HTMLElement): Promise<void> {
         appendIf(card, typeIcon(it.type));
         const idl = document.createElement('span');
         idl.className = 'now-card-id mono';
-        idl.textContent = it.id || '';
+        // Found by the enumerating guard, not by looking (ISS-0099): the
+        // FIFTH surface rendering a raw id, and one nobody had reported.
+        idl.textContent = shortNoteId(it.id || '');
+        if (it.id) idl.title = String(it.id);
         card.appendChild(idl);
         if (it.id && sessionTouchedIds.has(it.id)) {
           const chip = document.createElement('span');
@@ -6818,7 +6821,11 @@ function buildRecentFeed(recent: StatsRecent[]): HTMLElement {
     const typeTag = r.type
       ? `<span class="ov-feed-type ov-feed-type-${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>`
       : '';
-    const idTag = r.id ? `<span class="ov-feed-id">${escapeHtml(r.id)}</span>` : '';
+    // Display handle only (ISS-0084, reaching this surface at ISS-0099 —
+    // the fourth straggler). `title` keeps the full value.
+    const idTag = r.id
+      ? `<span class="ov-feed-id" title="${escapeHtml(r.id)}">${escapeHtml(shortNoteId(r.id))}</span>`
+      : '';
     const featTag = r.features && r.features.length
       ? `<span class="ov-feed-tag">${escapeHtml(r.features.join(', '))}</span>`
       : '';
@@ -9545,7 +9552,8 @@ function renderAgentStripDetail(): void {
       if (done) sq.dataset.bucket = 'done';
       const idEl = document.createElement('span');
       idEl.className = 'work-id mono';
-      idEl.textContent = it.id;
+      idEl.textContent = shortNoteId(it.id);
+      idEl.title = it.id;
       row.append(sq, idEl);
       if (it.title) {
         const titleEl = document.createElement('span');
@@ -11397,10 +11405,31 @@ function buildFeatureNextLine(children: PhaseItem[]): HTMLElement | null {
     }
     line.appendChild(group);
   };
-  if (failing) add('▸ failing', 'is-fail', failing);
-  if (doing) add('▸ doing', 'is-live', doing);
-  if (triage) add(`▸ ${(triage.status || '').toLowerCase()}`, 'is-attention', triage);
-  if (doing && next) add('next', 'is-next', next);
+  // ISS-0098: at most ONE annotation on the row, in priority order, with a
+  // `+N` for the rest. Three of them stacked into a column 78px tall
+  // against neighbouring rows of 32 — and a row whose height depends on how
+  // much is wrong with it is not a row.
+  //
+  // Priority is the order below: a failing test outranks live work, which
+  // outranks something waiting on triage, which outranks what is next.
+  const candidates: Array<[string, string, PhaseItem]> = [];
+  if (failing) candidates.push(['▸ failing', 'is-fail', failing]);
+  if (doing) candidates.push(['▸ doing', 'is-live', doing]);
+  if (triage) candidates.push([`▸ ${(triage.status || '').toLowerCase()}`, 'is-attention', triage]);
+  if (doing && next) candidates.push(['next', 'is-next', next]);
+  if (!candidates.length) return null;
+
+  const [lead, cls, item] = candidates[0];
+  add(lead, cls, item);
+  if (candidates.length > 1) {
+    const more = document.createElement('span');
+    more.className = 'scoped-next-more';
+    more.textContent = `+${candidates.length - 1}`;
+    more.title = candidates.slice(1)
+      .map(([l, , it]) => `${l} ${it.id || ''} ${it.title}`.trim())
+      .join('\n');
+    line.appendChild(more);
+  }
   return line;
 }
 
@@ -11451,7 +11480,24 @@ function buildScopedFeatureRow(
 
   const sqs = document.createElement('span');
   sqs.className = 'scoped-feat-sqs';
-  for (const c of children) sqs.appendChild(makePhaseSquare(c, false));
+  // ISS-0098: a capped run, then `+N`. The strip used to render every child
+  // and wrap, which turned FEAT-0071's nine squares into a 9px-wide,
+  // 105px-tall column beside 32px neighbours — the row had no column model,
+  // so the most compressible child absorbed every shortfall, and a 3px
+  // square is the most compressible thing on the row.
+  //
+  // Capping is the honest fix rather than shrinking: squares are a
+  // per-item signal (DES-0004), and forty of them in a strip communicate
+  // no more than twelve plus a number.
+  const shown = children.slice(0, FEATURE_SQUARE_LIMIT);
+  for (const c of shown) sqs.appendChild(makePhaseSquare(c, false));
+  if (children.length > shown.length) {
+    const more = document.createElement('span');
+    more.className = 'scoped-feat-more';
+    more.textContent = `+${children.length - shown.length}`;
+    more.title = `${children.length} children in total`;
+    sqs.appendChild(more);
+  }
   if (children.length === 0) {
     const none = document.createElement('span');
     none.className = 'ov-phase-empty';
@@ -11516,6 +11562,14 @@ function buildScopedFeatures(p: StatsPhase): HTMLElement {
   }
   return wrap;
 }
+
+/** How many task squares a feature row shows before counting the rest.
+ *
+ *  Twelve is the widest run that fits beside a 260px name, a fraction, a
+ *  chip and the next-line trail at the narrowest pane width the layout
+ *  supports — measured, not chosen. Beyond it the strip says `+N`, because
+ *  a row whose height depends on its child count is not a row (ISS-0098). */
+const FEATURE_SQUARE_LIMIT = 12;
 
 // ----- Remaining work (TASK-0202) ---------------------------------------
 // What would finish this phase, spelled out. Previously only obtainable
@@ -11702,7 +11756,8 @@ function buildScopedActivity(data: StatsPayload): HTMLElement {
       : '<span class="ov-feed-type ov-feed-type-empty"></span>';
     li.innerHTML = `<span class="ov-feed-date">${escapeHtml(r.date)}</span>`
       + typeTag
-      + `<span class="ov-feed-id">${escapeHtml(r.id || '')}</span>`
+      + `<span class="ov-feed-id" title="${escapeHtml(r.id || '')}">`
+      + `${escapeHtml(shortNoteId(r.id || ''))}</span>`
       + `<span class="ov-feed-title">${escapeHtml(r.title)}</span>`;
     li.style.cursor = 'pointer';
     li.addEventListener('click', () => { if (r.rel) void navigateTo(r.rel); });

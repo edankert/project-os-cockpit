@@ -1542,3 +1542,94 @@ def test_the_phase_head_sits_left_of_its_features() -> None:
     assert thing and "padding: 0;" in thing.group(1), (
         "the thing-group has left padding again, pushing the head right"
     )
+
+
+# ---------------------------------------------------------------------------
+# ISS-0097/0098/0099 — the phase-scoped overview's rows
+# ---------------------------------------------------------------------------
+
+
+def test_every_id_rendering_site_shortens(  ) -> None:
+    """ISS-0099 — the fourth surface ISS-0084's shortening had to reach.
+
+    The nav rows, the context pane, the focus chip and the review desk were
+    each fixed as they were found; the activity feed was not among them,
+    and rendered `CHG-20260525-Agent-Waiting-Notification` in a narrow
+    column, wrapping to four lines.
+
+    So this enumerates instead of naming: **anything that puts a note id
+    into the DOM must pass it through `shortNoteId`.** A fifth surface
+    fails by existing rather than by being remembered.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    offenders: list[str] = []
+
+    # textContent assignments from an `.id` property
+    for m in re.finditer(r"^\s*(\w+)\.textContent = ([\w.]*\.id)\s*;", ts, re.M):
+        offenders.append(f"textContent = {m.group(2)}")
+    # innerHTML template literals interpolating a bare escaped id
+    for m in re.finditer(r"escapeHtml\((\w+\.id(?: \|\| '')?)\)", ts):
+        line_start = ts.rfind("\n", 0, m.start()) + 1
+        line = ts[line_start:ts.find("\n", m.start())]
+        # A `title="…"` attribute legitimately carries the full value —
+        # but the exemption is PER OCCURRENCE, not per line. Checking the
+        # line let one `title="${escapeHtml(id)}"` exempt the visible
+        # `${escapeHtml(id)}` beside it, and the mutation that reverted the
+        # visible one passed. Found by mutation, not by reading.
+        before = ts[line_start:m.start()]
+        in_title_attr = before.rstrip().endswith('title="${')
+        if in_title_attr:
+            continue
+        offenders.append(line.strip()[:70])
+
+    assert not offenders, (
+        "these render a raw note id — pass it through shortNoteId(), or the "
+        "next CHG slug wraps to four lines wherever this lands:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_the_scoped_list_rows_have_a_layout() -> None:
+    """ISS-0097 — `.ov-waiting-list` and `.verification-list` were styled
+    nowhere at all, so their spans concatenated:
+    `TST-0005GET /api/render — … guardauto · ran 2026-05-25`.
+
+    The tell that the layout was intended and never written:
+    `.verification-meta` carries `margin-left: auto`, which silently does
+    nothing outside a flex row.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    row = re.search(r"\.ov-waiting-list li \{(.*?)\}", css, re.DOTALL)
+    assert row, "the scoped list rows have no rule at all"
+    body = row.group(1)
+    assert "display: flex" in body, "the row is not a flex row, so its fields concatenate"
+    assert "gap:" in body, "the row has no gap, so its fields touch"
+    assert re.search(r"\.ov-waiting-list \.ov-waiting-id \{[^}]*flex: none", css, re.DOTALL), (
+        "the id can shrink again — it is short and fixed; the title is what shortens"
+    )
+    assert re.search(
+        r"\.ov-waiting-list \.ov-waiting-title \{[^}]*text-overflow: ellipsis", css, re.DOTALL,
+    ), "the title does not ellipsise, so a long one will wrap the row"
+
+
+def test_a_feature_rows_squares_cannot_change_its_height() -> None:
+    """ISS-0098 — `.scoped-feat-sqs` was `flex: 1` (basis 0) AND
+    `flex-wrap: wrap`, so a row whose annotation trail wanted space
+    squeezed the strip to one square wide and it wrapped to nine lines:
+    116px against its neighbours' 32.
+
+    A row whose height depends on its child count is not a row.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rules = re.findall(r"\.scoped-feat-sqs \{(.*?)\}", css, re.DOTALL)
+    assert rules, ".scoped-feat-sqs has no rule"
+    latest = rules[-1]
+    assert "flex-wrap: nowrap" in latest, "the squares strip can wrap again"
+    assert "flex: 0 0 auto" in latest, (
+        "the squares strip can shrink below its content again"
+    )
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert re.search(r"const FEATURE_SQUARE_LIMIT = \d+;", ts), (
+        "the run is uncapped, so a 37-child feature overflows"
+    )
+    assert "scoped-feat-more" in ts, "an overflowing strip does not say how many it withheld"

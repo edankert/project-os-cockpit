@@ -3538,7 +3538,47 @@ li[data-rel].agent-touched {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline; cursor: pointer; }
-.scoped-feat-sqs { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; align-items: center; }
+/* ISS-0098: the strip never wraps and never shrinks below its content.
+   It was `flex: 1` (basis 0) AND `flex-wrap: wrap`, so a row whose
+   annotation trail wanted space squeezed it to one square wide and it
+   wrapped to nine lines — 116px against its neighbours' 32. */
+.scoped-feat-sqs {
+  display: flex;
+  gap: 3px;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.scoped-feat-more {
+  flex: none;
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+/* The row's own column model: the head takes the slack and the trail is
+   clamped to one line, so no child can make the row taller than a row. */
+.scoped-feat { align-items: center; }
+.scoped-feat-top { flex: 1 1 auto; min-width: 0; }
+.scoped-feat-next {
+  flex: 1 1 40%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.scoped-feat-next .scoped-next-item {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scoped-next-more {
+  flex: none;
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
 .scoped-loose .scoped-feat-name { color: var(--text-faint); font-style: italic; }
 /* Exit criteria */
 .scoped-exit-list { list-style: none; margin: 0; padding: 0; }
@@ -3876,6 +3916,65 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .run-summary-line { margin: 0; font-size: 13px; }
 .run-draft { margin: 0; font-size: 11.5px; color: var(--text-faint); }
 /* Verification panel (TASK-0211) — the durable record on a scope. */
+/* ---- Scoped-overview list rows (ISS-0097) ------------------------------
+   `.ov-waiting-list` and `.verification-list` were styled NOWHERE — not one
+   rule in either stylesheet — so their spans concatenated:
+
+     TST-0005GET /api/render — … guardauto · ran 2026-05-25  passing
+     FEAT-0070Sessions in Health Connect  doing
+
+   The layout was intended and never written: `.verification-meta` carries
+   `margin-left: auto`, which silently does nothing outside a flex row, so
+   the meta sat flush against the title instead of at the right edge.
+
+   Same grammar as `.nav-item-line` — this IS that row, in another pane. */
+.ov-waiting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ov-waiting-list li {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ov-waiting-list li:hover { background: var(--row-hover, var(--accent-soft)); }
+/* The id never shrinks: it is short and fixed, the title is the part that
+   should shorten (ISS-0091's rule, same reason). */
+.ov-waiting-list .ov-waiting-id {
+  flex: none;
+  font-size: 11px;
+  min-width: 9ch;
+}
+.ov-waiting-list .ov-waiting-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.ov-waiting-list .status-chip,
+.ov-waiting-list .verification-run { flex: none; }
+/* A chip never sets a row's height — the rule ISS-0087 and ISS-0093
+   established for the navigator's heads and rows. */
+.ov-waiting-list .status-chip {
+  padding: 0 6px;
+  line-height: 15px;
+  font-size: 10px;
+}
+
+/* The feed's id column never wraps (ISS-0099): a CHG slug wrapped to four
+   lines beside neighbours showing `TASK-0174`, and a row three times its
+   neighbours' height is not a row. */
+.ov-feed-id { white-space: nowrap; }
+
 .verification-panel { margin-top: 20px; }
 .verification-runall { margin-left: auto; }
 .verification-list .verification-meta { flex: none; font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; margin-left: auto; }

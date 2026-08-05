@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-016
 aliases: ["PHASE-016"]
 title: "The overview answers questions — every number on it leads somewhere, and every thing on it says what it is"
-status: active
+status: done
 order: 16
 owner: user:edwin
 created: 2026-07-30
@@ -129,3 +129,16 @@ Every one of the four came from Edwin looking at the page and asking *what is th
 ### The shape of the day
 
 This phase exists in its current form because [[ISS-0077]] counted: nine phases opened on 2026-07-30 against nine in the preceding twelve weeks, at a fifth of the size. Four of them were this one push. The merge was the cleanup; the rule in `CLAUDE.md` and `project-os-dev` ISS-0029 are what stop it recurring.
+
+
+## Reopened and closed again 2026-08-05 — the scoped overview's rows
+
+Edwin reviewed the phase-scoped pages and named four symptoms across two repos. Measured, they were three defects with one shape between them: **nothing on those rows had a column model.**
+
+- [[ISS-0097]] — `.ov-waiting-list` and `.verification-list` were styled *nowhere*, so their spans concatenated (`TST-0005GET /api/render…`). The layout had been intended and never written: `.verification-meta` carries `margin-left: auto`, which silently does nothing outside a flex row.
+- [[ISS-0098]] — feature rows ran 32…116px, because the squares strip was `flex: 1` *and* `flex-wrap: wrap`, and the annotation trail stacked three deep. Whichever child was most compressible absorbed every shortfall, and a 3px square is the most compressible thing there is. Now 32…33px across twelve rows.
+- [[ISS-0099]] — the activity feed rendered raw `CHG-` slugs, wrapping to four lines.
+
+**The guard is the lasting part.** ISS-0099 asked for one that enumerates id-rendering sites rather than naming the known ones; written that way it immediately failed on two surfaces nobody had reported. Then mutation found the guard's own hole — its `title=` exemption worked per line rather than per occurrence.
+
+> A guard written to enumerate finds what a guard written to remember cannot. And a guard's exemptions need mutating too.

@@ -1224,21 +1224,21 @@ items:
     ISS-0099:
       file: "docs/issues/ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed.md"
       title: "The activity feed renders a change note's full slug id, which wraps to four lines and breaks the row rhythm — ISS-0084's shortening never reached this surface"
-      status: open
+      status: fixed
       severity: low
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "The FOURTH surface ISS-0084's shortening has had to reach. The finding is as much that the transform lives in a helper every renderer must remember to call — the guard should enumerate id-rendering sites, not name the known ones."
     ISS-0098:
       file: "docs/issues/ISS-0098-The-Squares-Strip-Collapses-To-A-Column.md"
       title: "A feature's task squares wrap into a one-square-wide column when the row is tight, blowing one row to 116px against its neighbours' 32"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "Measured on your-health PHASE-0010: heights 32..116, FEAT-0071's strip 9px wide by 105px tall with 9 squares. Not a squares bug — the ROW has no column model, so the most compressible child absorbs every shortfall, and a 3px square is the most compressible thing there is."
     ISS-0097:
       file: "docs/issues/ISS-0097-Scoped-List-Rows-Have-No-Layout.md"
       title: "The scoped overview's Verification and Remaining rows have no layout, so the id, the title and the meta render as one run-on string"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
       note: "TST-0005GET /api/render...guardauto · ran... — neither .ov-waiting-list li nor .verification-list li declares flex or gap in either stylesheet. The layout was INTENDED: .verification-meta carries margin-left:auto, which silently does nothing outside a flex row."
@@ -2279,7 +2279,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 6
+    issues_open: 3
     issues_triage: 0
     risks_open: 6
     releases_total: 0

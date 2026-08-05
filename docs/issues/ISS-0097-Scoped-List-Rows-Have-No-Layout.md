@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0097
 aliases: ["ISS-0097"]
 title: "The scoped overview's Verification and Remaining rows have no layout, so the id, the title and the meta render as one run-on string"
-status: open
+status: fixed
 severity: medium
 phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
@@ -12,8 +12,8 @@ updated: 2026-08-05
 source: ["Edwin 2026-08-05: 'the spacing and the way the different items are presented is not great' — project-os-cockpit PHASE-006 verification, your-health PHASE-0010 remaining"]
 component: desktop-renderer
 related: ["[[FEAT-0057-The-Record-Grammar]]"]
-fixed_by: []
-tests: []
+fixed_by: ["[[TASK-0271-One-Line-Rows-In-Both-Panes]]"]
+tests: ["[[TST-0023-Completed-Work-Ordering]]"]
 ---
 
 # Scoped list rows have no layout
@@ -47,3 +47,15 @@ Give both row types the row grammar the rest of the cockpit uses: flex, `gap: 7p
 ## Evidence it is fixed
 
 `TST-0005 · GET /api/render — … · ran 2026-05-25 · passing` reads as four fields, and the same row in the navigator and the scoped overview measure the same.
+
+
+## Fixed 2026-08-05
+
+`.ov-waiting-list li` gains the row grammar — flex, `gap: 7px`, a non-shrinking id column at `min-width: 9ch`, an ellipsising title, and a chip constrained so it cannot set the row's height. Measured after:
+
+```
+FEAT-0070 | Sessions in Health Connect | doing        display: flex · gap: 7px
+TST-0005  | GET /api/render — HTML fragment + …
+```
+
+Four fields, four columns, in both the Verification and Remaining lists.

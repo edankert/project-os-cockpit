@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0099
 aliases: ["ISS-0099"]
 title: "The activity feed renders a change note's full slug id, which wraps to four lines and breaks the row rhythm — ISS-0084's shortening never reached this surface"
-status: open
+status: fixed
 severity: low
 phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
 owner: user:edwin
@@ -12,8 +12,8 @@ updated: 2026-08-05
 source: ["Edwin 2026-08-05: 'activity in this phase (change notes are not displayed correctly)' — project-os-cockpit PHASE-006"]
 component: desktop-renderer
 related: ["[[ISS-0084-Change-Ids-Print-Their-Description-Twice]]"]
-fixed_by: []
-tests: []
+fixed_by: ["[[TASK-0271-One-Line-Rows-In-Both-Panes]]"]
+tests: ["[[TST-0023-Completed-Work-Ordering]]"]
 ---
 
 # Change ids unshortened in the activity feed
@@ -44,3 +44,16 @@ Call `shortNoteId` here too — and, since this is the fourth straggler, make th
 ## Evidence it is fixed
 
 The activity feed's change rows are one line, and the guard fails when any surface renders a raw note id.
+
+
+## Fixed 2026-08-05
+
+Both feed builders now pass ids through `shortNoteId` with the full value in `title`, and `.ov-feed-id` never wraps. The activity rows measure 35px each, and the change row reads `CHG-20260525` beside its neighbours' `TASK-0174`.
+
+## What the guard found that I had not
+
+The issue asked for a guard that **enumerates** id-rendering sites rather than naming the known ones. Written that way, it immediately failed on two sites nobody had reported — the Now board's cards and the agent detail's work rows — making them the **fifth and sixth** surfaces this shortening had to reach.
+
+Then mutation testing found the guard's own hole: the `title="…"` exemption was applied **per line** rather than per occurrence, so one `title="${escapeHtml(id)}"` exempted the visible `${escapeHtml(id)}` beside it, and reverting the visible one passed. Fixed to test each occurrence.
+
+A guard written to enumerate finds what a guard written to remember cannot — and a guard's own exemptions need mutating too.
