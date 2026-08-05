@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 80
-  ISS: 101
+  ISS: 102
   PHASE: 28
   REQ: 31
   RISK: 6
@@ -1221,6 +1221,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0102:
+      file: "docs/issues/ISS-0102-The-Attention-Pill-Borrowed-Another-Surfaces-Words.md"
+      title: "The attention count borrowed the agent-state vocabulary, a red used nowhere else for it, and the shape of a control it did not have"
+      status: fixed
+      severity: low
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "KEEP: a number that leads nowhere should not be dressed as a control. Asked where the pill took him the answer was nowhere; making it navigate revealed that clicking the ROW already opens the phase. Now inline after `in flight`, same font, amber. Also: `needs you` is the AGENT-state vocabulary (needs-input formats to it) — the page's own legend said `attention` all along. And the DES-0004 guard asserted the WIDGET (ov-phase-pill is-waiting) rather than the fact it protects."
     ISS-0101:
       file: "docs/issues/ISS-0101-Four-State-Fields-One-Counted-Twice.md"
       title: "The phase row carried four state fields and counted some items twice, and a feature's own status rendered after the squares describing its children"

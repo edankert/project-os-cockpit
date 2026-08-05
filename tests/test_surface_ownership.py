@@ -818,7 +818,18 @@ def test_the_phase_header_carries_what_squares_cannot(attention_index: Index) ->
     assert any(ph["waiting"] for ph in data["phases"]), "no phase reports waiting"
 
     code = _renderer_code()
-    assert "ov-phase-pill is-waiting" in code
+    # The FACT is what DES-0004 requires, not the widget carrying it.
+    # ISS-0102 moved the attention count out of a boxed pill and inline into
+    # the progress field — same number, same source, in the page's own
+    # `attention` vocabulary and its amber. Asserting the pill class would
+    # have made this guard a test of the markup rather than of the encoding
+    # it exists to protect.
+    assert "ov-phase-attn-inline" in code, (
+        "the phase header no longer reports its attention count — a collapsed "
+        "phase renders its squares with offsetParent null, so the header is "
+        "the only place that fact survives"
+    )
+    assert "${p.waiting}" in code, "the header count is not read from the payload"
     assert "ov-phase-pill is-unclosed" in code
 
 

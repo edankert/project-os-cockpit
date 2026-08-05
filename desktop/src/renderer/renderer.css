@@ -2161,14 +2161,13 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   --col-count: 148px;  /* `74/95 · 78% · 16 in flight` — measured at 137px;
                           the field absorbed `in flight` at ISS-0101 and the
                           old 96px let it run under the pill beside it */
-  --col-pill: 100px;   /* `20 needs you` — measured at 89px plus its frame */
+  --col-flags: 118px;  /* `awaiting close-out`, the only trailing flag left
+                          once attention moved inline (ISS-0102) */
   --col-frac: 34px;    /* `24/37` right-aligned */
   --col-sqs: 148px;    /* 12 squares, gaps, and a `+25` */
   --col-lead: 58px;    /* `▸ triage` */
   --col-annid: 78px;   /* `TASK-0257` */
-  --col-meta: 128px;   /* `awaiting close-out` — all the row-meta carries
-                          since ISS-0101 moved the rest into the two fields
-                          that own those facts */
+
 }
 
 .ov-phase-head {
@@ -2179,12 +2178,10 @@ button.ov-stat:hover { border-color: var(--accent-link); }
     minmax(0, 1fr)          /* title — takes the slack, ellipsises */
     var(--col-chip)         /* status    */
     var(--col-count)        /* n/m · %   */
-    var(--col-pill)         /* waiting   */
-    var(--col-meta);        /* row meta — FIXED, not auto: with the title on
-                               `1fr` an auto last column made the title
-                               518/593/701px across three rows, and the chip
-                               moved with it. A flexible column at each end
-                               is one flexible column too many. */
+    var(--col-flags);       /* `awaiting close-out`, right-aligned. Fixed,
+                               never `auto`: with the title on `1fr` an auto
+                               last column made the title 518/593/701px
+                               across three rows and the chip moved with it. */
   align-items: center;
   gap: 9px;
   min-width: 0;
@@ -2222,8 +2219,7 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .ov-phase-head > .ov-phase-title { grid-column: 3; }
 .ov-phase-head > .status-chip    { grid-column: 4; justify-self: start; }
 .ov-phase-head > .ov-phase-count { grid-column: 5; }
-.ov-phase-head > .ov-phase-pill  { grid-column: 6; justify-self: start; }
-.ov-phase-head > .ov-phase-rowmeta { grid-column: 7; }
+.ov-phase-head > .ov-phase-rowmeta { grid-column: 6; justify-self: end; }
 .ov-phase-rowmeta {
   justify-self: end;
   display: flex;
@@ -2657,7 +2653,13 @@ a.ov-phase-title:hover {
   padding: 1px 5px; border-radius: 3px;
   border: 1px solid currentColor;
 }
-.ov-phase-pill.is-waiting { color: var(--status-blocked); }
+/* Attention reads inline after `in flight`, in the progress field's own font
+   and size — only the colour differs (ISS-0102). Amber, like every other
+   attention marker on the page: `.ov-phase-attention`,
+   `.ov-health-flag.is-attention` and `.scoped-next-lead.is-attention` all use
+   `--severity-medium`. It was a red boxed pill, a colour used nowhere else
+   for this, which read as an alarm rather than a queue. */
+.ov-phase-attn-inline { color: var(--severity-medium); }
 .ov-phase-pill.is-unclosed { color: var(--status-active); }
 .ov-phase-sq[data-type="feature"]     { color: var(--type-feature); }
 .ov-phase-sq[data-type="task"]        { color: var(--type-task); }

@@ -20,6 +20,7 @@ issues:
   - "[[ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed]]"
   - "[[ISS-0100-Rows-Are-Flex-Chains-Not-Columns]]"
   - "[[ISS-0101-Four-State-Fields-One-Counted-Twice]]"
+  - "[[ISS-0102-The-Attention-Pill-Borrowed-Another-Surfaces-Words]]"
   - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
   - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"
@@ -169,3 +170,16 @@ He was right not to know. `15 waiting` was an aggregate, and three columns later
 Four state fields collapsed to three: the phase's own status, one progress field (`24/51 · 47% · 10 in flight` — three readings of one fact, reunited), and one attention field named for what it computes (`20 needs you`, breakdown in the tooltip). And a feature's own chip moved ahead of the fraction and squares that describe its children.
 
 The lesson beyond the layout: **alignment makes a row readable; it cannot make it meaningful.** This phase spent four issues on the first property and needed a fifth for the second.
+
+
+## And the vocabulary — [[ISS-0102]]
+
+[[ISS-0101]] fixed what the row *said*; this fixed what it said it **in**. Naming the attention count `needs you` collided with the agent-state vocabulary — `needs-input` formats to that exact phrase — and colouring it `--status-blocked` used a red no other attention marker uses. Both were mine, both from the day before, and the page's own stat legend had the answer in it: `done · in flight · attention · backlog`.
+
+The third correction is the one worth keeping. Asked where the pill took him, the honest answer was nowhere; the obvious fix was to make it navigate, and doing so revealed that **clicking the row already opens the phase**. So:
+
+> A number that leads nowhere should not be dressed as a control.
+
+It reads inline after `in flight` now, same font, amber — one more reading of the phase, on the line with the others.
+
+**Five issues into this phase's reopening, the pattern is stable:** the layout errors ([[ISS-0097]], [[ISS-0098]], [[ISS-0100]]) were invisible in the markup and obvious in a measurement; the meaning errors ([[ISS-0101]], [[ISS-0102]]) were invisible in a measurement and obvious to someone reading the page. Neither kind is found by the other's method.

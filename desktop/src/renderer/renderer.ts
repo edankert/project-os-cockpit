@@ -5894,6 +5894,22 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
     ? `${t.done}/${total} · ${pct}%${inFlight > 0 ? ` · ${inFlight} in flight` : ''}`
     : '(no items)';
   if (inFlight > 0) frac.title = `${inFlight} item${inFlight === 1 ? '' : 's'} being worked now`;
+  // ISS-0102: attention sits INLINE, right after `in flight`, in the same
+  // font and a different colour.
+  //
+  // It was a right-aligned pill until Edwin asked where it took him. The
+  // honest answer was nowhere — and making it navigate would only have
+  // repeated what clicking the row already does. A number that leads
+  // nowhere should not be dressed as a control; it is one more reading of
+  // the same phase, so it reads on the same line as the others.
+  if (p.waiting && p.waiting > 0) {
+    const attn = document.createElement('span');
+    attn.className = 'ov-phase-attn-inline';
+    attn.textContent = ` · ${p.waiting} attention`;
+    attn.title = attentionBreakdown(p)
+      || `${p.waiting} item${p.waiting === 1 ? '' : 's'} here need a decision or a run`;
+    frac.appendChild(attn);
+  }
   head.appendChild(frac);
 
   // DES-0004's phase-header markers: the two things no square can carry.
@@ -5916,21 +5932,6 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
   // which is the correct response to a number that is partly repeated
   // beside itself under a different name.
   //
-  // `needs you` is what `_needs_human` actually computes: triage, review, a
-  // defined-but-never-run test, a failing one. The breakdown moves to the
-  // tooltip, where a total that wants explaining belongs. Still a count and
-  // not ids — a header listing ids would be the retired Waiting-on-you list
-  // again (ISS-0068), and it still has to exist because a COLLAPSED phase
-  // renders its squares with offsetParent null (ISS-0024).
-  if (p.waiting && p.waiting > 0) {
-    const pill = document.createElement('span');
-    pill.className = 'ov-phase-pill is-waiting';
-    pill.textContent = `${p.waiting} needs you`;
-    pill.title = attentionBreakdown(p)
-      || `${p.waiting} item${p.waiting === 1 ? '' : 's'} here need a decision or a run`;
-    head.appendChild(pill);
-  }
-
   const meta = buildPhaseMeta(p, complete);
   if (meta) head.appendChild(meta);
   row.appendChild(head);

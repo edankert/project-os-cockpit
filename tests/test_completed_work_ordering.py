@@ -1675,7 +1675,10 @@ def test_overview_rows_are_grids_with_assigned_columns() -> None:
     # Every field names its column explicitly.
     for sel, col in (
         (".ov-phase-head > .ov-phase-title", 3), (".ov-phase-head > .status-chip", 4),
-        (".ov-phase-head > .ov-phase-count", 5), (".ov-phase-head > .ov-phase-pill", 6),
+        (".ov-phase-head > .ov-phase-count", 5),
+        # The trailing column holds `awaiting close-out` alone since
+        # attention moved inline into the progress field (ISS-0102).
+        (".ov-phase-head > .ov-phase-rowmeta", 6),
         # The chip is column 2 on purpose (ISS-0101): a feature's own state
         # belongs beside its NAME, ahead of the fraction and squares, which
         # describe its children. It used to render last, where `planned`
@@ -1714,8 +1717,8 @@ def test_the_column_widths_live_in_one_place() -> None:
     """Sized to each field's worst case and declared once, so the columns
     are a decision rather than an accident of content order."""
     css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
-    for tok in ("--col-chip", "--col-count", "--col-pill", "--col-frac",
-                "--col-sqs", "--col-lead", "--col-annid", "--col-meta"):
+    for tok in ("--col-chip", "--col-count", "--col-flags", "--col-frac",
+                "--col-sqs", "--col-lead", "--col-annid"):
         assert re.search(rf"{tok}: \d+px;", css), f"{tok} is not declared"
 
 
@@ -1736,8 +1739,16 @@ def test_progress_is_one_field_and_attention_is_counted_once() -> None:
     assert "` · ${inFlight} in flight`" in ts, (
         "in-flight left the progress field it is part of"
     )
-    assert "`${p.waiting} needs you`" in ts, (
-        "the attention pill is unnamed again — `waiting` said nothing"
+    # The word is `attention`: the page's own stat legend reads
+    # `done · in flight · attention · backlog`, and three CSS classes carry
+    # `is-attention`. `needs you` belongs to AGENT state (`needs-input`), a
+    # different idea — using it here collided the two (ISS-0102).
+    # The word is `attention`: the page's own stat legend reads
+    # `done · in flight · attention · backlog`, and three CSS classes carry
+    # `is-attention`. `needs you` belongs to AGENT state (`needs-input`), a
+    # different idea — using it here collided the two (ISS-0102).
+    assert "` · ${p.waiting} attention`" in ts, (
+        "the attention count uses another surface's vocabulary again"
     )
     assert "function attentionBreakdown" in ts, (
         "the breakdown has no home; it belongs in the pill's tooltip, not in "
@@ -1759,3 +1770,32 @@ def test_progress_is_one_field_and_attention_is_counted_once() -> None:
         "the one fact neither the progress nor the attention field can carry "
         "went with them"
     )
+
+
+def test_attention_reads_inline_with_the_progress_it_belongs_to() -> None:
+    """Edwin asked where the attention pill took him. Nowhere — and making
+    it navigate would only have repeated what clicking the row already
+    does, so **a number that leads nowhere should not be dressed as a
+    control.**
+
+    It now reads inline after `in flight`, in the progress field's own font
+    and size, differing only in colour: one more reading of the same phase,
+    on the same line as the others.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "ov-phase-attn-inline" in ts, "attention left the progress field"
+    assert "ov-phase-pill is-attention" not in ts, (
+        "the boxed attention pill is back — it looked like a control and was not"
+    )
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.ov-phase-attn-inline \{(.*?)\}", css, re.DOTALL)
+    assert rule, "the inline attention has no rule"
+    body = rule.group(1)
+    assert "--severity-medium" in body, (
+        "attention is not the amber every other attention marker uses"
+    )
+    for prop in ("font-size", "font-weight", "border", "background"):
+        assert prop not in body, (
+            f"the inline attention sets `{prop}` — it must differ from the "
+            "progress text it sits in by COLOUR alone"
+        )
