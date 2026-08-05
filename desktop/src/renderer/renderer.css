@@ -2147,8 +2147,40 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   border-radius: 6px;
 }
 .ov-phase.is-complete { padding: 7px 12px; background: transparent; }
+/* ISS-0100: real columns, not a flex chain.
+   Measured on your-health: the chip landed at 294 / 264 / 318 / 230 / 377 /
+   187 across six rows and the count at 354 / 336 / 390 / 301 / 448 / 258,
+   because each element sat wherever the title's natural width left it.
+   Grid gives every field a column, so a row is a row and the eye can run
+   down it. */
+/* One place for the scoped-overview column widths (ISS-0100). Sized to
+   each field's worst case in this corpus, so the columns are a decision
+   rather than an accident of content order. */
+:root {
+  --col-chip: 76px;    /* `superseded` is the longest status */
+  --col-count: 96px;   /* `24/51 · 47%` */
+  --col-pill: 104px;   /* `15 waiting` plus its frame */
+  --col-frac: 34px;    /* `24/37` right-aligned */
+  --col-sqs: 148px;    /* 12 squares, gaps, and a `+25` */
+  --col-lead: 58px;    /* `▸ triage` */
+  --col-annid: 78px;   /* `TASK-0257` */
+  --col-meta: 190px;   /* `10 in flight  2 triage` */
+}
+
 .ov-phase-head {
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    auto                    /* chevron   */
+    auto                    /* id        */
+    minmax(0, 1fr)          /* title — takes the slack, ellipsises */
+    var(--col-chip)         /* status    */
+    var(--col-count)        /* n/m · %   */
+    var(--col-pill)         /* waiting   */
+    var(--col-meta);        /* row meta — FIXED, not auto: with the title on
+                               `1fr` an auto last column made the title
+                               518/593/701px across three rows, and the chip
+                               moved with it. A flexible column at each end
+                               is one flexible column too many. */
   align-items: center;
   gap: 9px;
   min-width: 0;
@@ -2172,13 +2204,24 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   text-underline-offset: 3px;
 }
 .ov-phase-count {
-  flex: none;
   font-size: 11.5px;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+/* Columns are ASSIGNED, not inferred from source order. Auto-placement
+   fills the first free cell, so a row lacking a pill slid its row-meta
+   into the pill's column and the eye lost the line — measured as chips at
+   five different x after the grid was added but before this. */
+.ov-phase-head > .ov-chev        { grid-column: 1; }
+.ov-phase-head > .ov-phase-id    { grid-column: 2; }
+.ov-phase-head > .ov-phase-title { grid-column: 3; }
+.ov-phase-head > .status-chip    { grid-column: 4; justify-self: start; }
+.ov-phase-head > .ov-phase-count { grid-column: 5; }
+.ov-phase-head > .ov-phase-pill  { grid-column: 6; justify-self: start; }
+.ov-phase-head > .ov-phase-rowmeta { grid-column: 7; }
 .ov-phase-rowmeta {
-  margin-left: auto;
-  flex: none;
+  justify-self: end;
   display: flex;
   gap: 10px;
   font-size: 11.5px;
@@ -2250,10 +2293,30 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 }
 .scoped-gates.is-open { color: var(--severity-medium); border-color: var(--severity-medium); }
 /* Feature rows with a next-action line (TASK-0202). */
-.scoped-feat { display: block; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+/* The first-generation `.scoped-feat { display: block; … }` lived here and
+   was overridden in every declaration by the grid rule further down —
+   dead, and it made a guard read the wrong block (ISS-0100). Two rules for
+   one selector is how a stylesheet stops being readable. */
 .scoped-feat:last-child { border-bottom: 0; }
 .scoped-feat-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.scoped-feat-frac { flex: none; font-size: 11px; color: var(--text-faint); }
+.scoped-feat-frac {
+  font-size: 11px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  justify-self: end;
+}
+/* Assigned, for the same reason: a feature with no annotation trail must
+   not let its neighbours' columns shift. */
+.scoped-feat > .scoped-feat-name { grid-column: 1; }
+.scoped-feat > .scoped-feat-frac { grid-column: 2; }
+.scoped-feat > .scoped-feat-sqs  { grid-column: 3; }
+.scoped-feat > .status-chip      { grid-column: 4; justify-self: start; }
+.scoped-feat > .scoped-feat-next { grid-column: 5; }
+/* `.scoped-feat-top` is `display: contents`, so ITS children are the
+   row's grid items — the assignments above must reach them too. */
+.scoped-feat-top > .scoped-feat-name { grid-column: 1; }
+.scoped-feat-top > .scoped-feat-frac { grid-column: 2; }
+.scoped-feat-top > .scoped-feat-sqs  { grid-column: 3; }
+.scoped-feat-top > .status-chip      { grid-column: 4; justify-self: start; }
 .scoped-feat.is-done .scoped-feat-name { color: var(--text-muted); }
 .scoped-feat-next {
   display: flex;
@@ -2263,7 +2326,17 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   color: var(--text-faint);
   flex-wrap: wrap;
 }
-.scoped-next-item { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+/* The lead word varies — `▸ doing`, `▸ open`, `▸ triage` — so on a flex
+   row the id after it started at a different x on every line. Its own
+   column fixes that (ISS-0100). */
+.scoped-next-item {
+  display: grid;
+  grid-template-columns: var(--col-lead) var(--col-annid) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.scoped-next-item > .mono { white-space: nowrap; }
 .scoped-next-item:hover .scoped-next-title { color: var(--text); }
 .scoped-next-lead.is-live { color: var(--accent-link); }
 .scoped-next-lead.is-attention { color: var(--severity-medium); }
@@ -3527,13 +3600,26 @@ li[data-rel].agent-touched {
 .scoped-open-note { margin-left: auto; color: var(--accent-link); font-size: 12px; text-decoration: none; }
 .scoped-open-note:hover { text-decoration: underline; }
 /* Scoped feature rows */
+/* ISS-0100: the row had 1133px and gave its name 260 of them, then let
+   every following field sit wherever the one before it ended — chips at
+   seven different x across seven rows. Columns instead: the NAME takes the
+   slack (it is the only field whose length is unbounded), everything else
+   is a column wide enough for its worst case. */
 .scoped-feat {
-  display: flex; align-items: center; gap: 10px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)          /* name — takes the slack */
+    var(--col-frac)         /* n/m  */
+    var(--col-sqs)          /* squares */
+    var(--col-chip)         /* status  */
+    minmax(0, 1.15fr);      /* the annotation trail */
+  align-items: center;
+  gap: 10px;
   padding: 5px 0; border-bottom: 1px solid var(--border);
 }
 .scoped-feat:last-child { border-bottom: none; }
 .scoped-feat-name {
-  flex: none; width: 260px; color: var(--text);
+  min-width: 0; color: var(--text);
   font-size: 13px; text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -3556,10 +3642,13 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   font-variant-numeric: tabular-nums;
   margin-left: 2px;
 }
-/* The row's own column model: the head takes the slack and the trail is
-   clamped to one line, so no child can make the row taller than a row. */
-.scoped-feat { align-items: center; }
-.scoped-feat-top { flex: 1 1 auto; min-width: 0; }
+/* The row's own column model: the trail is clamped to one line, so no
+   child can make the row taller than a row. (`align-items` lives in the
+   grid rule above — one selector, one block.) */
+/* `.scoped-feat-top` used to wrap the first four fields; with the row on a
+   grid it must dissolve so those fields ARE the row's columns —
+   `display: contents` is exactly that. */
+.scoped-feat-top { display: contents; }
 .scoped-feat-next {
   flex: 1 1 40%;
   min-width: 0;

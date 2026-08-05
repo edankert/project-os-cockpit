@@ -1633,3 +1633,82 @@ def test_a_feature_rows_squares_cannot_change_its_height() -> None:
         "the run is uncapped, so a 37-child feature overflows"
     )
     assert "scoped-feat-more" in ts, "an overflowing strip does not say how many it withheld"
+
+
+def test_overview_rows_are_grids_with_assigned_columns() -> None:
+    """ISS-0100 — both row types were flex chains, so every field sat after
+    the natural width of the one before it and nothing lined up: chips at
+    seven different x across seven feature rows, six across six phase rows.
+
+    Two things this guard exists to keep, both learned by measuring after
+    the grid was added and finding it still wrong:
+
+    1. **Columns are assigned, not inferred.** Auto-placement fills the
+       first free cell, so a row lacking a pill slid its row-meta into the
+       pill's column.
+    2. **One flexible column, not two.** A `1fr` title with an `auto` last
+       column made the title 518/593/701px across three rows.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+
+    for sel in (r"\.ov-phase-head", r"\.scoped-feat"):
+        # ONE block per selector, and it declares the grid.
+        #
+        # Reading the first block found a dead first-generation rule;
+        # reading the last found a one-line `align-items` patch. Both were
+        # the same mistake — a selector with three blocks has no single
+        # answer to "what does this rule say", so the guard now requires
+        # there to be one. (Third time this file has hit the first-match
+        # trap; this is the version that removes the trap rather than
+        # stepping around it.)
+        blocks = re.findall(rf"^{sel} \{{(.*?)^\}}", css, re.DOTALL | re.M)
+        assert len(blocks) == 1, (
+            f"{sel} has {len(blocks)} rule blocks — merge them; a reader "
+            "cannot tell which one wins, and neither could this guard"
+        )
+        rule = type("M", (), {"group": lambda self, _n, b=blocks[0]: b})()
+        assert "display: grid" in rule.group(1), (
+            f"{sel} is a flex chain again — its fields will sit wherever the "
+            "one before them ends"
+        )
+
+    # Every field names its column explicitly.
+    for sel, col in (
+        (".ov-phase-head > .ov-phase-title", 3), (".ov-phase-head > .status-chip", 4),
+        (".ov-phase-head > .ov-phase-count", 5), (".ov-phase-head > .ov-phase-pill", 6),
+        (".scoped-feat > .scoped-feat-name", 1), (".scoped-feat > .status-chip", 4),
+        (".scoped-feat > .scoped-feat-next", 5),
+    ):
+        assert re.search(rf"{re.escape(sel)} *\{{[^}}]*grid-column: {col}", css), (
+            f"{sel} has no assigned column — auto-placement will drift it"
+        )
+
+    # Exactly one flexible column at each end of each row.
+    for sel in (r"\.ov-phase-head", r"\.scoped-feat"):
+        rule = re.findall(rf"^{sel} \{{(.*?)^\}}", css, re.DOTALL | re.M)[0]
+        tmpl = re.search(r"grid-template-columns:(.*?);", rule, re.DOTALL)
+        assert tmpl, f"{sel} declares no columns"
+        assert " auto;" not in tmpl.group(1).replace("\n", " ") + ";", (
+            f"{sel} ends on an `auto` column: with a 1fr title that makes the "
+            "title's width depend on the last column's content"
+        )
+
+
+def test_the_annotation_lead_has_its_own_column() -> None:
+    """`▸ doing`, `▸ open` and `▸ triage` are different lengths, so on a
+    flex row the id after them started at a different x on every line."""
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.scoped-next-item \{(.*?)\}", css, re.DOTALL)
+    assert rule and "display: grid" in rule.group(1), (
+        "the annotation item is not a grid, so its id moves with its lead word"
+    )
+    assert "var(--col-lead)" in rule.group(1), "the lead has no column of its own"
+
+
+def test_the_column_widths_live_in_one_place() -> None:
+    """Sized to each field's worst case and declared once, so the columns
+    are a decision rather than an accident of content order."""
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
+    for tok in ("--col-chip", "--col-count", "--col-pill", "--col-frac",
+                "--col-sqs", "--col-lead", "--col-annid", "--col-meta"):
+        assert re.search(rf"{tok}: \d+px;", css), f"{tok} is not declared"

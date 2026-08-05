@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 80
-  ISS: 99
+  ISS: 100
   PHASE: 28
   REQ: 31
   RISK: 6
@@ -49,7 +49,7 @@ focus:
   feature: "FEAT-0059"
   phase: "PHASE-023"
   issue: ""
-  note: "2026-08-05 (2): reviewed the phase-scoped overview pages Edwin named (project-os-cockpit PHASE-006, your-health PHASE-0010), captured both, measured. Three defects filed under a reopened PHASE-016 (the overview is its home; done-when-idle, reopened when work arrives). ISS-0097: .ov-waiting-list li and .verification-list li declare NO layout — no flex, no gap — so id/title/meta concatenate (TST-0005GET /api/render...). The layout was intended: .verification-meta has margin-left:auto, which does nothing outside a flex row. ISS-0098: feature row heights 32..116px because .scoped-feat-sqs has no minimum width and wraps to a 9px column; the row has no column model, so the most compressible child eats every shortfall. ISS-0099: the activity feed renders full CHG slugs, wrapping to four lines — the FOURTH surface ISS-0084 has had to reach, so the guard should enumerate id-rendering sites rather than name them. Not yet fixed — filed for Edwin to schedule. Focus unchanged: TASK-0278."
+  note: "2026-08-05 (3): fixed ISS-0097/0098/0099 and then ISS-0100 on Edwin reports, all measured in the running app before and after. The four are one story: a LIST ROW NEEDS THREE PROPERTIES and the markup shows none of them — fields separated (the two lists were styled NOWHERE), rows the same height (32..116px, squares wrapping to a 9px column), fields at the same x (flex chains: chips at seven different positions, a 260px name column wasting 873px of a 1133px row). Both row types are now CSS grids with assigned columns and tokenised widths. Guard lessons worth keeping: an ENUMERATING id guard immediately found two unreported surfaces (fifth and sixth for ISS-0084) and then its own per-line title exemption was found by mutation; the ISS-0068 waiting-on-you retirement was nearly undone by styling live rows under the dead prefix (renamed to scoped-row*); and .scoped-feat had three rule blocks so the guard read the wrong one twice. Focus unchanged: TASK-0278 starts PHASE-023."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -1221,6 +1221,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0100:
+      file: "docs/issues/ISS-0100-Rows-Are-Flex-Chains-Not-Columns.md"
+      title: "Overview rows are flex chains, so every field sits wherever the one before it ended — nothing lines up down a column, and a 260px name column wastes 873px of row"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "KEEP: three properties make a list scannable and this phase found them one at a time — fields separated (ISS-0097), rows the same height (ISS-0098), fields at the same x (ISS-0100). Two grid lessons: columns must be ASSIGNED not inferred (auto-placement filled the first free cell, so a row lacking a pill slid its meta into the pill's column); and ONE flexible column per row, not two (a 1fr title with an auto last column computed 518/593/701px across three rows). Also: .scoped-feat had THREE rule blocks, so the guard read the wrong one twice — merged, and the guard now requires exactly one."
     ISS-0099:
       file: "docs/issues/ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed.md"
       title: "The activity feed renders a change note's full slug id, which wraps to four lines and breaks the row rhythm — ISS-0084's shortening never reached this surface"

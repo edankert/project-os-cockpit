@@ -18,6 +18,7 @@ issues:
   - "[[ISS-0097-Scoped-List-Rows-Have-No-Layout]]"
   - "[[ISS-0098-The-Squares-Strip-Collapses-To-A-Column]]"
   - "[[ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed]]"
+  - "[[ISS-0100-Rows-Are-Flex-Chains-Not-Columns]]"
   - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
   - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"
@@ -142,3 +143,17 @@ Edwin reviewed the phase-scoped pages and named four symptoms across two repos. 
 **The guard is the lasting part.** ISS-0099 asked for one that enumerates id-rendering sites rather than naming the known ones; written that way it immediately failed on two surfaces nobody had reported. Then mutation found the guard's own hole — its `title=` exemption worked per line rather than per occurrence.
 
 > A guard written to enumerate finds what a guard written to remember cannot. And a guard's exemptions need mutating too.
+
+
+## And once more, for alignment — [[ISS-0100]]
+
+Edwin, on the fixed rows: the heights were right but *nothing lined up down a column*, and a 260px name column was wasting 873px of a 1133px row.
+
+Both row types were **flex chains**, so each field sat after the natural width of the one before it — chips at seven different x across seven feature rows, six across six phase rows, and the annotation ids moving with the length of `doing` / `open` / `triage`. The 260px name was the same error inverted: a fixed width on the one field whose length is unbounded, in a row where everything else is bounded.
+
+Grid, with declared columns and their widths tokenised once. Two lessons the measurement forced, neither of which reading the CSS would have given:
+
+1. **Columns must be assigned, not inferred** — auto-placement fills the first free cell, so a row lacking a pill slid its row-meta into the pill's column, and chips still landed at five different x after the grid was in.
+2. **One flexible column per row, not two** — a `1fr` title with an `auto` last column computed to 518 / 593 / 701px across three rows, because the title absorbed whatever the row-meta did not want.
+
+Three properties make a list scannable, and this phase found them one at a time: **fields separated** ([[ISS-0097]]), **rows the same height** ([[ISS-0098]]), and **fields at the same x** ([[ISS-0100]]). None of them is visible in the markup; all three are obvious in a measurement.
