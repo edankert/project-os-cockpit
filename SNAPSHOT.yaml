@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 80
-  ISS: 100
+  ISS: 101
   PHASE: 28
   REQ: 31
   RISK: 6
@@ -1221,6 +1221,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0101:
+      file: "docs/issues/ISS-0101-Four-State-Fields-One-Counted-Twice.md"
+      title: "The phase row carried four state fields and counted some items twice, and a feature's own status rendered after the squares describing its children"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-016-The-Overview-Answers-Questions]]"
+      note: "KEEP: alignment makes a row readable, it cannot make it meaningful. `15 waiting` was an aggregate and three columns later the SAME row itemised 2 triage · 1 in review — members of the set it had just totalled. Collapsed 4 state fields to 3: own status | 24/51 · 47% · 10 in flight | 20 needs you (breakdown in the tooltip). Also: a feature's chip now precedes the fraction and squares, which describe its CHILDREN. And a merged field needs its column token re-measured — at the old 96px the progress text ran under the pill beside it."
     ISS-0100:
       file: "docs/issues/ISS-0100-Rows-Are-Flex-Chains-Not-Columns.md"
       title: "Overview rows are flex chains, so every field sits wherever the one before it ended — nothing lines up down a column, and a 260px name column wastes 873px of row"

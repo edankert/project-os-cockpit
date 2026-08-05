@@ -1676,7 +1676,12 @@ def test_overview_rows_are_grids_with_assigned_columns() -> None:
     for sel, col in (
         (".ov-phase-head > .ov-phase-title", 3), (".ov-phase-head > .status-chip", 4),
         (".ov-phase-head > .ov-phase-count", 5), (".ov-phase-head > .ov-phase-pill", 6),
-        (".scoped-feat > .scoped-feat-name", 1), (".scoped-feat > .status-chip", 4),
+        # The chip is column 2 on purpose (ISS-0101): a feature's own state
+        # belongs beside its NAME, ahead of the fraction and squares, which
+        # describe its children. It used to render last, where `planned`
+        # read as a label on the squares next to it.
+        (".scoped-feat > .scoped-feat-name", 1), (".scoped-feat > .status-chip", 2),
+        (".scoped-feat > .scoped-feat-frac", 3), (".scoped-feat > .scoped-feat-sqs", 4),
         (".scoped-feat > .scoped-feat-next", 5),
     ):
         assert re.search(rf"{re.escape(sel)} *\{{[^}}]*grid-column: {col}", css), (
@@ -1712,3 +1717,45 @@ def test_the_column_widths_live_in_one_place() -> None:
     for tok in ("--col-chip", "--col-count", "--col-pill", "--col-frac",
                 "--col-sqs", "--col-lead", "--col-annid", "--col-meta"):
         assert re.search(rf"{tok}: \d+px;", css), f"{tok} is not declared"
+
+
+def test_progress_is_one_field_and_attention_is_counted_once() -> None:
+    """ISS-0101 — the phase row carried four state fields and counted some
+    items twice.
+
+    `24/51`, `47%` and `10 in flight` are three readings of one fact — how
+    far this phase has got — and sat in three columns with an unrelated
+    pill between them. Meanwhile `15 waiting` was an aggregate and, three
+    columns later, the row itemised part of the *same set* as
+    `2 triage · 1 in review`.
+
+    Edwin could not say what `waiting` meant, which is the right response
+    to a number partly repeated beside itself under another name.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "` · ${inFlight} in flight`" in ts, (
+        "in-flight left the progress field it is part of"
+    )
+    assert "`${p.waiting} needs you`" in ts, (
+        "the attention pill is unnamed again — `waiting` said nothing"
+    )
+    assert "function attentionBreakdown" in ts, (
+        "the breakdown has no home; it belongs in the pill's tooltip, not in "
+        "a column beside the count it is a subset of"
+    )
+    # buildPhaseMeta keeps only what neither field can say.
+    #
+    # Comments stripped first: the function's own comment *explains* that
+    # in-flight moved out, and matching prose would flag the explanation as
+    # the offence. That is ISS-0069's false-positive shape, and this guard
+    # walked straight into it on its first run.
+    meta = re.search(r"function buildPhaseMeta\((?:.|\n)*?\n\}", ts).group(0)
+    meta = re.sub(r"//[^\n]*", "", meta)
+    for gone in ("in flight", "triage", "in review", "failing test"):
+        assert gone not in meta, (
+            f"buildPhaseMeta counts `{gone}` again — that is the double-count"
+        )
+    assert "awaiting close-out" in meta, (
+        "the one fact neither the progress nor the attention field can carry "
+        "went with them"
+    )

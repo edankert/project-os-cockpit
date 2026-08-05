@@ -19,6 +19,7 @@ issues:
   - "[[ISS-0098-The-Squares-Strip-Collapses-To-A-Column]]"
   - "[[ISS-0099-Change-Ids-Unshortened-In-The-Activity-Feed]]"
   - "[[ISS-0100-Rows-Are-Flex-Chains-Not-Columns]]"
+  - "[[ISS-0101-Four-State-Fields-One-Counted-Twice]]"
   - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
   - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"
@@ -157,3 +158,14 @@ Grid, with declared columns and their widths tokenised once. Two lessons the mea
 2. **One flexible column per row, not two** — a `1fr` title with an `auto` last column computed to 518 / 593 / 701px across three rows, because the title absorbed whatever the row-meta did not want.
 
 Three properties make a list scannable, and this phase found them one at a time: **fields separated** ([[ISS-0097]]), **rows the same height** ([[ISS-0098]]), and **fields at the same x** ([[ISS-0100]]). None of them is visible in the markup; all three are obvious in a measurement.
+
+
+## Once more, for meaning — [[ISS-0101]]
+
+[[ISS-0097]]/[[ISS-0098]]/[[ISS-0100]] fixed how the rows *looked*. Edwin's next question was about what they *said*: *"I don't know what the x waiting item is."*
+
+He was right not to know. `15 waiting` was an aggregate, and three columns later the same row itemised `2 triage · 1 in review` — **members of the set it had just totalled.** One line, two overlapping representations, neither labelled as related. A number partly repeated beside itself under a different name cannot be interpreted, however well it is aligned.
+
+Four state fields collapsed to three: the phase's own status, one progress field (`24/51 · 47% · 10 in flight` — three readings of one fact, reunited), and one attention field named for what it computes (`20 needs you`, breakdown in the tooltip). And a feature's own chip moved ahead of the fraction and squares that describe its children.
+
+The lesson beyond the layout: **alignment makes a row readable; it cannot make it meaningful.** This phase spent four issues on the first property and needed a fifth for the second.

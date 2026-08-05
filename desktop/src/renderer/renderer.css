@@ -2158,13 +2158,17 @@ button.ov-stat:hover { border-color: var(--accent-link); }
    rather than an accident of content order. */
 :root {
   --col-chip: 76px;    /* `superseded` is the longest status */
-  --col-count: 96px;   /* `24/51 · 47%` */
-  --col-pill: 104px;   /* `15 waiting` plus its frame */
+  --col-count: 148px;  /* `74/95 · 78% · 16 in flight` — measured at 137px;
+                          the field absorbed `in flight` at ISS-0101 and the
+                          old 96px let it run under the pill beside it */
+  --col-pill: 100px;   /* `20 needs you` — measured at 89px plus its frame */
   --col-frac: 34px;    /* `24/37` right-aligned */
   --col-sqs: 148px;    /* 12 squares, gaps, and a `+25` */
   --col-lead: 58px;    /* `▸ triage` */
   --col-annid: 78px;   /* `TASK-0257` */
-  --col-meta: 190px;   /* `10 in flight  2 triage` */
+  --col-meta: 128px;   /* `awaiting close-out` — all the row-meta carries
+                          since ISS-0101 moved the rest into the two fields
+                          that own those facts */
 }
 
 .ov-phase-head {
@@ -2307,16 +2311,16 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 /* Assigned, for the same reason: a feature with no annotation trail must
    not let its neighbours' columns shift. */
 .scoped-feat > .scoped-feat-name { grid-column: 1; }
-.scoped-feat > .scoped-feat-frac { grid-column: 2; }
-.scoped-feat > .scoped-feat-sqs  { grid-column: 3; }
-.scoped-feat > .status-chip      { grid-column: 4; justify-self: start; }
+.scoped-feat > .status-chip      { grid-column: 2; justify-self: start; }
+.scoped-feat > .scoped-feat-frac { grid-column: 3; }
+.scoped-feat > .scoped-feat-sqs  { grid-column: 4; }
 .scoped-feat > .scoped-feat-next { grid-column: 5; }
 /* `.scoped-feat-top` is `display: contents`, so ITS children are the
    row's grid items — the assignments above must reach them too. */
 .scoped-feat-top > .scoped-feat-name { grid-column: 1; }
-.scoped-feat-top > .scoped-feat-frac { grid-column: 2; }
-.scoped-feat-top > .scoped-feat-sqs  { grid-column: 3; }
-.scoped-feat-top > .status-chip      { grid-column: 4; justify-self: start; }
+.scoped-feat-top > .status-chip      { grid-column: 2; justify-self: start; }
+.scoped-feat-top > .scoped-feat-frac { grid-column: 3; }
+.scoped-feat-top > .scoped-feat-sqs  { grid-column: 4; }
 .scoped-feat.is-done .scoped-feat-name { color: var(--text-muted); }
 .scoped-feat-next {
   display: flex;
@@ -3608,11 +3612,11 @@ li[data-rel].agent-touched {
 .scoped-feat {
   display: grid;
   grid-template-columns:
-    minmax(0, 1fr)          /* name — takes the slack */
-    var(--col-frac)         /* n/m  */
-    var(--col-sqs)          /* squares */
-    var(--col-chip)         /* status  */
-    minmax(0, 1.15fr);      /* the annotation trail */
+    minmax(0, 1fr)          /* name — takes the slack        */
+    var(--col-chip)         /* the FEATURE's own status      */
+    var(--col-frac)         /* n/m — its children            */
+    var(--col-sqs)          /* squares — its children        */
+    minmax(0, 1.15fr);      /* the annotation trail          */
   align-items: center;
   gap: 10px;
   padding: 5px 0; border-bottom: 1px solid var(--border);

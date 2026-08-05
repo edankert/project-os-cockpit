@@ -5884,9 +5884,16 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
   head.appendChild(title);
   appendIf(head, statusChip(p.status || undefined));
 
+  // ISS-0101: progress is ONE field. `24/51`, `47%` and `10 in flight` are
+  // three readings of the same fact — how far this phase has got — and they
+  // sat in three columns with an unrelated pill between them.
+  const inFlight = countInFlight(p);
   const frac = document.createElement('span');
   frac.className = 'ov-phase-count num';
-  frac.textContent = total > 0 ? `${t.done}/${total} · ${pct}%` : '(no items)';
+  frac.textContent = total > 0
+    ? `${t.done}/${total} · ${pct}%${inFlight > 0 ? ` · ${inFlight} in flight` : ''}`
+    : '(no items)';
+  if (inFlight > 0) frac.title = `${inFlight} item${inFlight === 1 ? '' : 's'} being worked now`;
   head.appendChild(frac);
 
   // DES-0004's phase-header markers: the two things no square can carry.
@@ -5901,15 +5908,26 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
     pill.title = 'Every item here is resolved and the phase is not closed';
     head.appendChild(pill);
   }
-  // `waiting` exists because a COLLAPSED phase renders its squares with
-  // offsetParent null — measured on ISS-0024, whose square was on the page and
-  // invisible. Without this the encoding loses information the list showed.
-  // A count and not ids: a header listing ids would be that list again.
+  // ISS-0101: ONE attention field, and named for what it means.
+  //
+  // It read `15 waiting`, and three columns later the row itemised part of
+  // the SAME set as `2 triage · 1 in review` — the aggregate and a subset of
+  // its own members, on one line. Edwin could not say what `waiting` meant,
+  // which is the correct response to a number that is partly repeated
+  // beside itself under a different name.
+  //
+  // `needs you` is what `_needs_human` actually computes: triage, review, a
+  // defined-but-never-run test, a failing one. The breakdown moves to the
+  // tooltip, where a total that wants explaining belongs. Still a count and
+  // not ids — a header listing ids would be the retired Waiting-on-you list
+  // again (ISS-0068), and it still has to exist because a COLLAPSED phase
+  // renders its squares with offsetParent null (ISS-0024).
   if (p.waiting && p.waiting > 0) {
     const pill = document.createElement('span');
     pill.className = 'ov-phase-pill is-waiting';
-    pill.textContent = `${p.waiting} waiting`;
-    pill.title = `${p.waiting} item${p.waiting === 1 ? '' : 's'} here need a human`;
+    pill.textContent = `${p.waiting} needs you`;
+    pill.title = attentionBreakdown(p)
+      || `${p.waiting} item${p.waiting === 1 ? '' : 's'} here need a decision or a run`;
     head.appendChild(pill);
   }
 
@@ -5970,47 +5988,56 @@ function buildPhaseMeta(p: StatsPhase, complete: boolean): HTMLElement | null {
   for (const feature of p.features) children.push(feature, ...feature.children);
   children.push(...p.loose);
 
-  const inFlight = children.filter((c) => isActiveStatus(c.status)).length;
-  const attention: string[] = [];
-  const triage = children.filter((c) => (c.status || '').toLowerCase() === 'triage').length;
-  const failing = children.filter(
-    (c) => c.type === 'test' && (c.status || '').toLowerCase() === 'failing',
-  ).length;
-  const review = children.filter(
-    (c) => (c.status || '').toLowerCase() === 'review',
-  ).length;
-  if (failing) attention.push(`${failing} failing test${failing === 1 ? '' : 's'}`);
-  if (triage) attention.push(`${triage} triage`);
-  if (review) attention.push(`${review} in review`);
-
+  // ISS-0101: this used to carry `N in flight` and an itemised attention
+  // list. Both moved: in-flight into the progress field it belongs to, and
+  // the itemisation into the `needs you` tooltip, because it was a subset
+  // of that pill's own count sitting three columns away from it.
+  //
+  // What is left is the one thing neither field can say — that a phase is
+  // finished and nobody closed it.
   const t = p.tasks;
   const total = t.done + t.in_progress + t.backlog;
   const unclosed = total > 0 && t.done === total
     && (p.status || '').toLowerCase() !== 'done';
-
-  if (inFlight === 0 && attention.length === 0 && !unclosed) return null;
+  if (!unclosed || complete) return null;
 
   const meta = document.createElement('span');
   meta.className = 'ov-phase-rowmeta';
-  if (inFlight > 0) {
-    const el = document.createElement('span');
-    el.className = 'ov-phase-inflight';
-    el.textContent = `${inFlight} in flight`;
-    meta.appendChild(el);
-  }
-  if (unclosed && !complete) {
-    const el = document.createElement('span');
-    el.className = 'ov-phase-attention';
-    el.textContent = 'awaiting close-out';
-    meta.appendChild(el);
-  }
-  if (attention.length > 0) {
-    const el = document.createElement('span');
-    el.className = 'ov-phase-attention';
-    el.textContent = attention.join(' · ');
-    meta.appendChild(el);
-  }
+  const el = document.createElement('span');
+  el.className = 'ov-phase-attention';
+  el.textContent = 'awaiting close-out';
+  meta.appendChild(el);
   return meta;
+}
+
+/** Items being worked right now, across a phase's features and loose items. */
+function countInFlight(p: StatsPhase): number {
+  const children: PhaseItem[] = [];
+  for (const feature of p.features) children.push(feature, ...feature.children);
+  children.push(...p.loose);
+  return children.filter((c) => isActiveStatus(c.status)).length;
+}
+
+/** What the `needs you` count is made of — for its tooltip, not the row.
+ *
+ *  A total that wants explaining explains itself on hover; itemising it in
+ *  a column beside itself was the double-count ISS-0101 removed. */
+function attentionBreakdown(p: StatsPhase): string {
+  const children: PhaseItem[] = [];
+  for (const feature of p.features) children.push(feature, ...feature.children);
+  children.push(...p.loose);
+  const n = (pred: (c: PhaseItem) => boolean): number => children.filter(pred).length;
+  const st = (c: PhaseItem): string => (c.status || '').toLowerCase();
+  const parts: string[] = [];
+  const triage = n((c) => st(c) === 'triage');
+  const review = n((c) => st(c) === 'review');
+  const ready = n((c) => c.type === 'test' && st(c) === 'ready');
+  const failing = n((c) => c.type === 'test' && st(c) === 'failing');
+  if (failing) parts.push(`${failing} failing test${failing === 1 ? '' : 's'}`);
+  if (triage) parts.push(`${triage} awaiting triage`);
+  if (review) parts.push(`${review} awaiting review`);
+  if (ready) parts.push(`${ready} test${ready === 1 ? '' : 's'} never run`);
+  return parts.length ? `Needs a decision or a run:\n· ${parts.join('\n· ')}` : '';
 }
 
 function makePhaseSquare(item: PhaseItem, isFeature: boolean): HTMLElement {
@@ -11471,6 +11498,12 @@ function buildScopedFeatureRow(
   }
   top.appendChild(name);
 
+  // ISS-0101: the chip goes with the NAME, ahead of everything describing
+  // the feature's CHILDREN. It is the feature's own state; the fraction and
+  // the squares are its children's. Rendered last, `planned` read as though
+  // it belonged to the squares beside it.
+  if (!opts.loose) appendIf(top, statusChip(feat.status));
+
   if (children.length > 0) {
     const frac = document.createElement('span');
     frac.className = 'scoped-feat-frac num';
@@ -11505,7 +11538,6 @@ function buildScopedFeatureRow(
     sqs.appendChild(none);
   }
   top.appendChild(sqs);
-  if (!opts.loose) appendIf(top, statusChip(feat.status));
   row.appendChild(top);
 
   const next = buildFeatureNextLine(children);
