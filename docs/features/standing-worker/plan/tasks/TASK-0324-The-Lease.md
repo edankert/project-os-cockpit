@@ -24,3 +24,9 @@ tests: []
 - `.cockpit/lease.json`: worker id, item, acquired, heartbeat. Acquisition refuses while a live lease exists; the refusal names the holder.
 - A lapsed heartbeat expires the lease as an **escalation event** — surfaced on the landing, never silently taken over.
 - The lease never enters git (a claim is state, not record) and never substitutes for `focus` (the statement remains documentation, per ADR-0009's frame).
+
+## The decision this task also makes
+
+DES-0009's open question (added 2026-08-05 from the t3.codes comparison): **refuse a second worker, or isolate it in its own git worktree?** T3 does the latter and treats the worktree as a property of a thread.
+
+This task ships the refusal and **records why** — the constraint here is judgment, not throughput, and a worker outrunning its supervisor's reading is not a win. The reversible choice goes first. If a later round wants throughput, worktrees reopen as their own work with the merge and per-tree-validation costs stated up front.

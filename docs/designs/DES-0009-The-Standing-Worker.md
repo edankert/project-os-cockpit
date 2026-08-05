@@ -46,6 +46,23 @@ escalate:
 
 PHASE-023's `GET /api/notes/actions` gains a caller identity: for `agent:principal` it answers from this table — an action outside policy is simply not offered, and the endpoint refuses it if asked (REQ-0030's two layers, same pattern as REQ-0026). Every write a delegate performs carries `(agent:principal, delegation: DELEGATION.md@<sha>)` — [[REQ-0029]]: the audit can always answer *who decided, under what authority, as the policy stood when*.
 
+## Open question, raised before the lease is built (2026-08-05)
+
+The lease above makes a second worker a **refusal**. The t3.codes comparison offers the other answer: a **git worktree per thread**, so parallel agents are isolated rather than excluded — T3 runs many agents on one repo this way, each in its own working tree, and the glossary makes the worktree a first-class concept of a thread.
+
+Both are defensible and they are not compatible:
+
+| | refuse (this design) | isolate (worktree per worker) |
+|---|---|---|
+| second worker | told who holds the lease | works in its own tree |
+| `focus` | one item, one statement | several in flight, focus means less |
+| close-out | commits the repo it read | commits a tree that must be merged |
+| failure mode | idle capacity | merge conflicts, and a validator run per tree |
+
+**Refusing is right if the constraint is judgment**, which is where this phase places it — one principal, one intent, sequential attention. **Isolating is right if the constraint is throughput.** The autonomy case argues for judgment: a worker outrunning its supervisor's ability to read the digest is not a throughput win.
+
+Recommendation: **ship the lease as designed, and keep worktrees for the day the digest is boring** — the cheaper path is reversible and the expensive one is not. Recorded on [[TASK-0324]] so the decision is made rather than defaulted.
+
 ## Escalation that degrades instead of stalls
 
 Each queue kind carries a timeout and a default from the policy. A question passing its timeout **proceeds on a recorded assumption**: the assumption is written as the question's resolution, the affected work is tagged with it, and the digest lifts it to needs-you — the human reads what was assumed, not what was hidden. Kinds with no default (high-severity triage, anything touching publish) **wait and alarm**: past 2× timeout they join the landing's NEEDS-YOU. Nothing in the system can wait silently forever — that is the invariant, tested by drill.

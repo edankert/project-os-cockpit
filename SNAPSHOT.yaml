@@ -34,13 +34,13 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 77
-  ISS: 93
-  PHASE: 27
+  FEAT: 80
+  ISS: 96
+  PHASE: 28
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 334
+  TASK: 342
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -49,10 +49,31 @@ focus:
   feature: "FEAT-0059"
   phase: "PHASE-023"
   issue: ""
-  note: "2026-08-03 (3): ADR-0009 ACCEPTED by Edwin through the desk (the lone-note decide path advanced the status — the machinery governed its own governance change). PHASE-027 The Standing Worker planned on his go-ahead: FEAT-0074 driver (lease, stop conditions by drill), FEAT-0075 delegation policy (DELEGATION.md approved through the actuator row it configures; push stays never until TASK-0328 ADR decides otherwise), FEAT-0076 escalation defaults (invariant: nothing waits silently without bound), FEAT-0077 intent charter (DES-0003 graduates to oracle; delegated acceptance = FEAT-0063 runner with agent:principal witness, clean-context per ADR-0013). REQ-0029..0031 draft, RISK-0006 open (closes only after a SUPERVISED week with drill log green), DES-0009 draft on the desk. Key design points: default state everywhere is NO WORKER (opt-in per repo by approved policy); the lease is state not record (.cockpit/, never git); delegate writes stamp (agent:principal, DELEGATION.md@sha, charter@sha). First live use of the plan-review flow exposed two stale vocabulary copies in the verdict guard — both fixed at source. Next: TASK-0278 starts PHASE-023, the foundation of everything above."
+  note: "2026-08-05: surveyed t3.codes (pingdotgg/t3code — 1116 src files, 2259 test files, five agent CLIs behind one ProviderDriver, three client surfaces) against project-os + cockpit. FINDING: the tools are ORTHOGONAL — T3 is an agent harness with no requirements, acceptance criteria, phases or validator; it holds no opinion about what should be built. The comparison is a map of what is already solved elsewhere, not a feature list to chase. Filed: ISS-0094 (permission prompts detected but not answerable — a HOLE in FEAT-0076s not-yet-built invariant, since a tool prompt is not a queue entry), ISS-0095 (agent roster hard-coded), ISS-0096 (no surface says what changed), FEAT-0078 turn checkpoints (RISK-0006s strongest mitigation), and PHASE-028 Borrowed capability as a STANDING phase holding FEAT-0079 phone supervision + FEAT-0080 the harness survey. Amended in place: DES-0009 gains the lease-vs-worktree open question (recommendation: ship the refusal, keep worktrees for when the digest is boring), TASK-0324 makes that decision explicit, TASK-0321 gains a fourth option for the mode-1 ADR — T3 runs THREE surfaces from one shared schema with no drift, so the drift is evidence against two HAND-WRITTEN surfaces, not against two surfaces. Declines recorded for TASK-0341: multi-forge SCM, Effect-TS event sourcing, editor/conversation UI, hosted relays. Focus unchanged: TASK-0278 still starts PHASE-023."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0078:
+      file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
+      title: "Turn checkpoints — the workspace captured per agent turn, so a wrong judgment is rewound to the turn before it instead of reverted whole"
+      status: planned
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      tasks: [TASK-0335, TASK-0336, TASK-0337]
+      note: "From the t3.codes comparison (CheckpointStore/CheckpointDiffQuery). RISK-0006's first hazard is compounding judgment; today's only undo is the close-out commit. Deliberately NOT under FEAT-0055 — checkpoints are pre-commit, private, disposable, never pushed."
+    FEAT-0079:
+      file: "docs/features/phone-supervision/FEAT-0079-Supervision-From-A-Phone.md"
+      title: "Supervision from a phone — the digest, the queue and a few approvals over one authenticated path, without widening the read surface into a write surface"
+      status: planned
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      tasks: [TASK-0338, TASK-0339]
+      note: "NOT a relaxation of the loopback rule — a second authenticated path, off by default, per-repo, allow-listed payload. RISK-0005 is re-scanned before it closes."
+    FEAT-0080:
+      file: "docs/features/harness-survey/FEAT-0080-The-Harness-Survey.md"
+      title: "The harness survey — a repeatable pass over adjacent agent tools whose output is filed issues and recorded declines, not prose"
+      status: doing
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      tasks: [TASK-0340, TASK-0341, TASK-0342]
+      note: "The first round found a hole in an UNBUILT phase (FEAT-0076's invariant misses permission prompts) — invisible from inside. Declining is recorded as carefully as adopting; that is the point, not a longer backlog."
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
       title: "The standing worker — acquire, select, dispatch, watch, record, release, next; with a lease that refuses and stops that hold"
@@ -395,6 +416,54 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0335:
+      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0335-Capture-Per-Turn.md"
+      title: "Capture the workspace at each turn boundary to a hidden ref — pruned by age and count, never pushed, never in history"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0078
+    TASK-0336:
+      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0336-The-Turn-Timeline.md"
+      title: "The turn timeline — each turn with the shape of what it changed, so the wrong turn is findable"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0078
+    TASK-0337:
+      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0337-Restore-As-A-Recorded-Action.md"
+      title: "Restore to a turn — a principal-owned action, recorded, with the conversation caveat stated where it is offered"
+      status: backlog
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      parent: FEAT-0078
+    TASK-0338:
+      file: "docs/features/phone-supervision/plan/tasks/TASK-0338-The-Authenticated-Path.md"
+      title: "The authenticated path — bearer-paired, off by default, per-repo, and re-scanned against the write-surface risk"
+      status: backlog
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      parent: FEAT-0079
+    TASK-0339:
+      file: "docs/features/phone-supervision/plan/tasks/TASK-0339-The-Supervision-Payload.md"
+      title: "The supervision payload — digest, queue, approvals, and nothing else"
+      status: backlog
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      parent: FEAT-0079
+    TASK-0340:
+      file: "docs/features/harness-survey/plan/tasks/TASK-0340-The-Survey-Method.md"
+      title: "The survey method as a skill — read the code, name the problem, keep what serves the thesis, record every no"
+      status: backlog
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      parent: FEAT-0080
+    TASK-0341:
+      file: "docs/features/harness-survey/plan/tasks/TASK-0341-The-Not-Taken-List.md"
+      title: "The not-taken list — every declined capability with the reason, so the same idea is not re-litigated each round"
+      status: backlog
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      parent: FEAT-0080
+    TASK-0342:
+      file: "docs/features/harness-survey/plan/tasks/TASK-0342-The-T3-Backlog.md"
+      title: "The t3.codes backlog — remaining candidates ranked with verdicts, including the contracts-package input to the mode-1 decision"
+      status: backlog
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      parent: FEAT-0080
     TASK-0182:
       title: "Nest phase drill-down children by shared phase — a task parked in another phase no longer shows under its parent's phase section"
       status: done
@@ -1152,6 +1221,27 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0096:
+      file: "docs/issues/ISS-0096-No-Surface-Says-What-Changed.md"
+      title: "No surface answers what a piece of work actually changed, so acceptance has the notes and the app but never the diff between them"
+      status: open
+      severity: medium
+      phase: "[[PHASE-024-Acceptance-Witnessed]]"
+      note: "Not read-the-code: for a docs-first reader the question is did this touch what it claims to. A task promising a CSS fix that rewrote the validator is one line of shape, and invisible in prose."
+    ISS-0095:
+      file: "docs/issues/ISS-0095-The-Agent-Roster-Is-Hard-Coded.md"
+      title: "The dispatchable agent roster is a hard-coded pair, so a standing worker outlives neither a vendor change nor a second opinion"
+      status: open
+      severity: low
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      note: "ADR-0009 said the principal is a role; the WORKER is a role too. One vendor as a single point of failure, and it forecloses the second-opinion runs ADR-0013 already blesses."
+    ISS-0094:
+      file: "docs/issues/ISS-0094-Permission-Prompts-Are-Detected-But-Not-Answerable.md"
+      title: "An agent's permission prompt is detected but not answerable, so the one thing most likely to stall an unattended worker sits outside the queue the stall alarm watches"
+      status: open
+      severity: high
+      phase: "[[PHASE-027-The-Standing-Worker]]"
+      note: "THE find of the t3.codes round. FEAT-0076's invariant — nothing waits silently without bound — watches the review QUEUE; a tool-permission prompt is not a queue entry, so the likeliest way an unattended worker stalls is the way the alarm cannot see. A defect in something already designed, not a new want."
     ISS-0093:
       file: "docs/issues/ISS-0093-Nested-Padding-And-Two-Heading-Styles.md"
       title: "Three nested paddings pushed a phase id further right than the features beneath it, and a second section-heading style was written without checking the first existed"
@@ -2159,16 +2249,16 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 77
+    features_total: 80
     features_done: 55
-    tasks_total: 334
+    tasks_total: 342
     tasks_done: 271
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 0
+    issues_open: 3
     issues_triage: 0
     risks_open: 6
     releases_total: 0

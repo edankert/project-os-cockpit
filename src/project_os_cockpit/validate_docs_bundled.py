@@ -669,10 +669,17 @@ def compute_metric_counts(items, note_index, claimants=None):
         for item_id, entry in coll.items():
             if isinstance(entry, dict) and str(entry.get("status", "") or ""):
                 statuses[item_id] = str(entry.get("status", "") or "")
-    # ADR-0018/FEAT-0022: the archive fallback must use only notes that
-    # genuinely CLAIM an id. `note_index` matches IDs as substrings, so a
-    # composite filename lends its status to an unrelated item once that
-    # item's snapshot entry is pruned.
+    # The archive fallback must use only notes that genuinely CLAIM an id.
+    # `note_index` matches IDs as SUBSTRINGS, so a composite filename like
+    # CHG-20260525-FEAT-0009-Chrome-Polish.md is indexed under FEAT-0009 and,
+    # sorting first, lends a change note's `merged` to a feature. Pruning
+    # FEAT-0009's entry then let that manufactured claim decide the count, and
+    # features_done fell by one against a note that says `done`.
+    # `note_statuses` was taught this lesson; this counter was not. Rejecting
+    # the impostor is not enough on its own -- it holds the index slot, so the
+    # REAL note is absent from `note_index` under that id and the item would
+    # then be counted by nobody. `claimants` knows which file actually claims
+    # an id, so it supplies the status and the index is the fallback.
     for nid, paths in (claimants or {}).items():
         if len(paths) != 1:
             continue
