@@ -43,3 +43,25 @@ Measured: same `font-size`, `font-weight` and `font-family` as the text it joins
 ## A guard that had to move with it
 
 `test_the_phase_header_carries_what_squares_cannot` ([[DES-0004]]) asserted `ov-phase-pill is-waiting` was in the renderer. The requirement it protects is real — a *collapsed* phase renders its squares with `offsetParent: null`, so the header is the only place that count survives — but it was asserting the **widget** rather than the **fact**. It now checks that the header reports the count from the payload at all, which is what DES-0004 actually requires.
+
+## Where the fields finally settled
+
+Two more passes, both Edwin's, both about order rather than content:
+
+> "Can you move this to the right now?" — then, seeing it: "the phase state does not look right now, can you move this to after the attention but make sure all the states align?"
+
+The row now reads **`chevron · id · title · [flags] · progress · state`**, with the progress field right-aligned in its column and the state chip left-aligned in a fixed last column, so every chip on the page starts at the same x:
+
+```
+PHASE-0008  Feedback, Refresh & Energy      74/95 · 78% · 16 in flight · 20 attention   active
+PHASE-0011  Nutrition: What Is Already…                                    0/10 · 0%   planned
+```
+
+The argument for the state going last is that **it is the row's verdict on everything before it**. Sitting between the title and the numbers, it split the sentence; at the end it closes it. And the numbers now end where the row ends, instead of stopping short so the usually-empty flags column could trail after them.
+
+Two measurements the reorder forced:
+
+- `--col-count` had been 148px since it held `74/95 · 78%` alone. It absorbed `in flight` and then `attention` without ever being resized, and only *looked* right because it overflowed left into a flags column that is empty in both corpora. Measured at its real worst case, 213px, and sized to 216px.
+- The worst case has therefore never actually rendered, so it was synthesised: a long count plus `awaiting close-out` on one row leaves 48px clear between them, on one line.
+
+The bug this pass produced is recorded under [[ISS-0100]] — it is a column-model defect, not a vocabulary one.

@@ -66,3 +66,16 @@ One value per column, on every visible row of both pages. Names are no longer tr
 `.scoped-feat` had **three** rule blocks — a dead first-generation `display: block`, the new grid, and a one-line `align-items` patch. The guard read the first and reported a flex chain that had not existed for an hour; reading the last found the patch.
 
 Both readings were the same mistake. A selector with three blocks has no single answer to *what does this rule say*, so the guard now requires exactly one and the blocks are merged. That is the third time this suite has hit the first-match trap, and the first time the fix removed the trap rather than stepping around it.
+
+## A fourth, found when the fields were reordered (2026-08-05)
+
+Assigning a column is only half of what "assigned, not inferred" needs. Moving the status chip to the last column ([[ISS-0102]]) left it **appended before** the count in the DOM while owning a **later** column — and sparse auto-placement never moves its cursor backwards, so the count could not fit behind it and opened a **second grid row**. The progress field dropped underneath the title.
+
+What makes this worth recording is how it measured: every x co-ordinate was still correct. Chips single-valued at 1476, counts single-valued right edge at 1467, nothing clipped, nothing overlapping. The columns were right and only the *row* was wrong, so the measurement that caught the original defect could not see this one — the screenshot could.
+
+Every child of `.ov-phase-head` now pins `grid-row: 1`. That is what makes the column assignments independent of append order, which was the entire point of assigning them. Guarded, and mutation-checked: removing the pin from either the count or the chip fails the suite.
+
+Two general readings, both cheap to forget:
+
+- **Measure the axis you changed *and* the one you did not.** A layout change that is correct on x can be wrong on y, and a numeric check written for x will report green.
+- **A guard that pins position must pin every axis of position.** `grid-column` alone is a half-specification, and the half it leaves out is the one that silently degrades rather than breaking.

@@ -1674,11 +1674,15 @@ def test_overview_rows_are_grids_with_assigned_columns() -> None:
 
     # Every field names its column explicitly.
     for sel, col in (
-        (".ov-phase-head > .ov-phase-title", 3), (".ov-phase-head > .status-chip", 4),
+        (".ov-phase-head > .ov-phase-title", 3),
+        # `awaiting close-out` alone, since attention moved inline into the
+        # progress field (ISS-0102).
+        (".ov-phase-head > .ov-phase-rowmeta", 4),
         (".ov-phase-head > .ov-phase-count", 5),
-        # The trailing column holds `awaiting close-out` alone since
-        # attention moved inline into the progress field (ISS-0102).
-        (".ov-phase-head > .ov-phase-rowmeta", 6),
+        # The phase's state reads LAST, after the numbers it qualifies
+        # (ISS-0102). Fixed column, `justify-self: start`, so every chip on
+        # the page starts at the same x.
+        (".ov-phase-head > .status-chip", 6),
         # The chip is column 2 on purpose (ISS-0101): a feature's own state
         # belongs beside its NAME, ahead of the fraction and squares, which
         # describe its children. It used to render last, where `planned`
@@ -1689,6 +1693,25 @@ def test_overview_rows_are_grids_with_assigned_columns() -> None:
     ):
         assert re.search(rf"{re.escape(sel)} *\{{[^}}]*grid-column: {col}", css), (
             f"{sel} has no assigned column — auto-placement will drift it"
+        )
+
+    # The phase row is ONE row, and says so.
+    #
+    # Assigning columns is not enough on its own. Sparse auto-placement
+    # never moves its cursor backwards, so the moment the chip (column 6)
+    # was appended to the DOM before the count (column 5), the count could
+    # not fit behind the cursor and opened a second grid row: the progress
+    # field dropped under the title while every x co-ordinate still measured
+    # correct. Pinning the row is what makes the assignments independent of
+    # append order, which is the only reason to assign them at all.
+    for sel in (
+        ".ov-phase-head > .ov-chev", ".ov-phase-head > .ov-phase-id",
+        ".ov-phase-head > .ov-phase-title", ".ov-phase-head > .ov-phase-rowmeta",
+        ".ov-phase-head > .ov-phase-count", ".ov-phase-head > .status-chip",
+    ):
+        assert re.search(rf"{re.escape(sel)} *\{{[^}}]*grid-row: 1", css), (
+            f"{sel} does not pin `grid-row: 1` — reordering the appends will "
+            "silently wrap it onto a second line"
         )
 
     # Exactly one flexible column at each end of each row.
