@@ -15,12 +15,20 @@ tasks:
   - "[[TASK-0343-The-Cache-Reader]]"
   - "[[TASK-0344-Warm-Cooling-Cold-In-The-Strip]]"
   - "[[TASK-0345-Model-Switch-Named-Where-It-Happens]]"
-fixes: ["ISS-0104"]
+  - "[[TASK-0346-Cold-Reads-Grey-And-Actually-Ticks]]"
+  - "[[TASK-0347-Cold-Sessions-Leave-The-Needs-You-List]]"
+  - "[[TASK-0348-Synthetic-Entries-Are-Not-Turns]]"
+  - "[[TASK-0349-The-Switch-Announcement-Expires]]"
+  - "[[TASK-0350-Guards-For-The-Bounded-Read]]"
+  - "[[TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge]]"
+  - "[[TASK-0352-The-Scan-Committed-And-The-Figures-Corrected]]"
+  - "[[TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways]]"
+fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112"]
 release: ""
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
 review_verdict: changes-requested
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"]
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"]
 tests: []
 ---
 
@@ -30,16 +38,20 @@ tests: []
 
 Edwin asked whether cache staleness could be identified, highlighted, or automated away. Measuring first changed the answer, and the feature is shaped by what the measurement found rather than by the original worry.
 
-Across 38 transcripts (21,607 deduplicated assistant turns, measured 2026-08-06):
+Reproduce any figure here with `python3 tools/scripts/scan-cache-economics.py` — it imports the shipped reader, so these numbers and the product's cannot drift apart. Run 2026-08-06 over 42 transcripts (21,862 deduplicated assistant turns):
 
 | | | |
 |---|---:|---|
-| Cache **reads** | ≈$5,287 | 79% of input-side spend — the cost of carrying context |
-| Cache **writes** | ≈$1,444 | 21% |
-| — of which TTL expiry (idle >60 min) | ≈$236 | 41 events, 19.0M tokens |
-| — of which sub-hour invalidation | ≈$100 | 17 events, 11 of them model switches ([[ISS-0104]]) |
+| Cache **reads** | ≈$5,340 | 79% of input-side spend — the cost of carrying context |
+| Cache **writes** | ≈$1,448 | 21% |
+| — **staleness**: TTL expiry, >60 min idle | ≈$250 | 44 events, **3.7%** of input-side spend |
+| — model switch ([[ISS-0104]]) | ≈$61 | 8 events |
+| — no discoverable cause | ≈$25 | 6 events |
+| **All avoidable re-writes** | ≈$336 | **4.9%** of input-side spend |
 
-**Staleness is real and it is ~3.5% of the input bill.** The 20× larger number is the weight of the context itself, and nothing in the cockpit says what that weight is in tokens — `ctx 62%` is a fill ratio against a window, not a cost.
+**Staleness means TTL expiry** — the cache lapsing on its own clock — and it is 3.7% of the input bill. A model switch is *invalidation*, not staleness. An earlier draft of this note quoted one word for both and the ratio of only one of them ([[ISS-0111]]).
+
+Either way the shape holds: the 20× larger number is the weight of the context itself, and nothing in the cockpit says what that weight is in tokens — `ctx 62%` is a fill ratio against a window, not a cost.
 
 So the feature is *session economics*, not *cache warnings*: what this session weighs, what state its cache is in, and what the next turn costs under each.
 
@@ -54,8 +66,9 @@ Recorded here because "just refresh the cache in the background" is the obvious 
 ### In scope
 - A reader over the session transcript (`transcript_path`, already stored per session since [[FEAT-0019]]) that yields prefix weight, cache state, last-turn model, and full-prefix re-write events. Tail-read for live state, full scan for the retrospective, both cached against mtime.
 - The strip says **warm / cooling / cold**, carries the prefix weight in tokens, and when cold names the cost of resuming.
-- Model-switch invalidation named at the point it happens ([[ISS-0104]]).
-- A retrospective per-repo figure: what full-prefix re-writes cost here, split by cause.
+- Model-switch invalidation named at the point it happens ([[ISS-0104]]), as a **recent event that expires** rather than a permanent label ([[ISS-0107]]).
+- A retrospective per-repo figure: what full-prefix re-writes cost here, split by cause. Per-workspace — `tools/scripts/scan-cache-economics.py` is the cross-fleet measurement, and the two answer different questions.
+- **The rail and the NEEDS YOU list learn the same age** ([[ISS-0105]]): a session past the TTL reads grey rather than pulsing amber, and leaves the list, so amber-pulse means *waiting and still cheap to resume*. Reusing the existing grey, never a new colour or animation.
 
 ### Out of scope
 - **Any background keep-warm, pre-warm, or cache-refresh mechanism** — see above; it costs more than it saves.
@@ -69,13 +82,19 @@ Recorded here because "just refresh the cache in the background" is the obvious 
 - Given a cold live session, the strip names the estimated cost of the next turn's re-write, and that estimate is derived from the transcript's own last-turn token counts rather than a guess.
 - Given a session whose last turn changed model while discarding ≥50k cached tokens, that event is reported with the discarded token count.
 - Given a repo with transcripts, the retrospective figure reports full-prefix re-writes split into session-start / TTL-expiry / sub-hour-invalidation, and the sub-hour bucket distinguishes model-switch from other.
+- Given a session past its TTL, the rail square reads grey rather than pulsing, and the transition happens **on a clock** with no inbound event — the premise is a session where nothing is occurring.
+- Given a session past its TTL, it is absent from the NEEDS YOU list, and present again if it takes another turn.
+- Given an API-error placeholder in a transcript, it is not counted as a turn, does not become the previous turn, and cannot produce a model-switch classification.
+- Given a session whose last turn switched model, the switch is announced while it is fresh and then gives way to the standing warm / cooling / cold state; the badge's colour always follows the actual temperature.
+- Given a turn with no usable timestamp, no badge is rendered at all — absence is never reported as a confident `cold`.
 - Reading a 30MB transcript for live state does not read 30MB: the live path reads a bounded tail.
 - No code path in this feature issues an API request, warms a cache, or schedules one.
 
 ## Links
 - Fixes: [[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]
-- Tasks: [[TASK-0343-The-Cache-Reader]], [[TASK-0344-Warm-Cooling-Cold-In-The-Strip]], [[TASK-0345-Model-Switch-Named-Where-It-Happens]]
-- Repo paths: `src/project_os_cockpit/session_cache.py`, `src/project_os_cockpit/agent_hooks.py`, `desktop/src/renderer/renderer.ts`
+- Fixes, second round (independent review, 2026-08-06): [[ISS-0106-Synthetic-API-Error-Entries-Are-Counted-As-Turns-And-Reported-As-Model-Switches]], [[ISS-0107-A-Model-Switch-Permanently-Suppresses-The-Cold-Warning]], [[ISS-0108-A-Transcript-Entry-With-No-Timestamp-Reads-As-Confidently-Cold]], [[ISS-0109-The-Bounded-Tail-Read-Has-No-Guard]], [[ISS-0110-The-Whole-Cold-Reads-Grey-Behaviour-Can-Be-Reverted-With-A-Green-Suite]], [[ISS-0111-The-Measured-Figures-Do-Not-Reproduce-And-No-Scan-Script-Was-Committed]], [[ISS-0112-FEAT-0081-Was-Never-Updated-For-Its-Second-Surface]]
+- Tasks: TASK-0343 … TASK-0353 (see frontmatter)
+- Repo paths: `src/project_os_cockpit/session_cache.py`, `src/project_os_cockpit/agent_hooks.py`, `desktop/src/renderer/cache-temperature.ts`, `desktop/src/renderer/renderer.ts`, `tools/scripts/scan-cache-economics.py`
 
 ## Independent review — 2026-08-06 (changes-requested)
 

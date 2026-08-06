@@ -30,13 +30,16 @@ TRACEABILITY.md define by convention:
      `implements:` names at most one feature (REQ-OWNER); and a feature may not
      be done while a requirement naming it has unresolved criteria
      (FEATURE-REQ).
-  9. Phase closure (STATUSES.md `[[phase]]`): a phase that is done/superseded has
+  9. Reverse links (PARENT-BACKLINK): a task or issue naming a feature as
+     `parent:` is named back by that feature in `tasks:` / `fixes:` / `issues:`.
+     A relationship declared on one end only is invisible to every other gate.
+ 10. Phase closure (STATUSES.md `[[phase]]`): a phase that is done/superseded has
      no unresolved note naming it in `phase:` (PHASE-CHILDREN), and a done phase
      has every exit criterion ticked-with-evidence or reconciled (PHASE-BOXES).
      The table of statuses that count as resolved is itself checked against the
      allowed taxonomy, so a rename cannot land in one table and not the other
      (STATUS-TABLE).
- 10. Grandfathering: items already violating a gate when that gate was promoted
+ 11. Grandfathering: items already violating a gate when that gate was promoted
      to error are listed in tools/GRANDFATHERED.yaml and report as warnings.
      Everything else errors immediately — there is no date-based exemption.
 
@@ -1607,6 +1610,44 @@ def validate(root, report):
     #    against ALLOWED_STATUS by validate_status_tables (STATUS-TABLE). They used to
     #    be locals here, which is precisely why ISS-0011 went unnoticed: no test could
     #    reach them.
+
+    # -- ISS-0112 PARENT-BACKLINK: a relationship declared on one end must be
+    #    declared on the other.
+    #
+    #    FEAT-0081 was closed as `done` while its note listed three of its five
+    #    tasks and none of the issues it fixed: the tasks named their parent, the
+    #    snapshot agreed with the tasks, and the feature knew about neither. Every
+    #    gate in the repo passed. Membership is curation `sync-snapshot.py`
+    #    deliberately leaves alone, and nothing looked back down the link — so the
+    #    feature's Acceptance section was missing criteria for half its delivered
+    #    behaviour and no check could tell.
+    #
+    #    Deliberately narrow. A task naming a feature as `parent:` must appear in
+    #    that feature's `tasks:`; an issue naming one must appear in its `fixes:`
+    #    or `issues:`. Those are the two shapes this repo actually uses, and a
+    #    check that accepted any mention (`related:` counts!) would pass the drift
+    #    it exists to catch.
+    for child_id, (c_path, c_fm) in sorted(note_index.items()):
+        ctype = note_type(c_fm)
+        back_fields = {"task": ("tasks",), "issue": ("fixes", "issues")}.get(ctype)
+        if not back_fields:
+            continue
+        for parent_id in extract_ids((c_fm or {}).get("parent")):
+            if prefix_of(parent_id) != "FEAT":
+                continue
+            parent = note_index.get(parent_id)
+            if parent is None:
+                continue          # DANGLING-LINK owns the missing-note case
+            p_fm = parent[1] or {}
+            named = set()
+            for field in back_fields:
+                named.update(extract_ids(p_fm.get(field)))
+            if child_id not in named:
+                emit = emit_for("PARENT-BACKLINK", child_id)
+                emit("PARENT-BACKLINK", "%s declares parent: %s, but %s does not name it in %s; add it, or drop the parent (%s)" % (
+                    child_id, parent_id, parent_id,
+                    " / ".join("`%s:`" % f for f in back_fields),
+                    c_path.relative_to(root)))
 
     children_by_phase = {}   # PHASE id -> [(child id, child status)]
     for child_id, (_c_path, c_fm) in note_index.items():

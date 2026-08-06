@@ -2989,6 +2989,11 @@ a.ov-phase-title:hover {
    already used for "worth knowing, not urgent". */
 .agent-strip-cache[data-cache="cooling"] { color: var(--severity-medium); }
 .agent-strip-cache[data-cache="cold"] { color: var(--severity-high); font-weight: 600; }
+/* A just-happened model switch gets its own colour rather than borrowing
+   cold's (ISS-0107): the cost is already spent, which is a different
+   fact from the next turn being expensive. Expires with the
+   announcement, so it cannot become permanent decoration. */
+.agent-strip-cache[data-switch] { color: var(--severity-medium); font-weight: 600; }
 .agent-strip-expand {
   flex: none;
   background: transparent;

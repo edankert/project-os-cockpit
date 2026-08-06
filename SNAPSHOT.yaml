@@ -40,7 +40,7 @@ counters:
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 347
+  TASK: 353
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -59,7 +59,7 @@ items:
       status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347]
-      fixes: ["ISS-0104", "ISS-0105"]
+      fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112"]
       note: "Measured before designed, and the measurement moved the target: cache staleness is ~3.5% of the input bill (TTL expiry $236, sub-hour invalidation $100) against $5,287 for cache READS. The weight of the context is the 20x lever, and nothing says what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
       file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
@@ -424,6 +424,42 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0348:
+      file: "docs/features/session-economics/plan/tasks/TASK-0348-Synthetic-Entries-Are-Not-Turns.md"
+      title: "An API-error placeholder is not a turn, and a turn with no timestamp yields no badge"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0349:
+      file: "docs/features/session-economics/plan/tasks/TASK-0349-The-Switch-Announcement-Expires.md"
+      title: "The model-switch announcement expires instead of permanently suppressing warm, cooling and cold"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0350:
+      file: "docs/features/session-economics/plan/tasks/TASK-0350-Guards-For-The-Bounded-Read.md"
+      title: "The bounded tail read gets a guard that fails when the bound is lost, and the surviving mutants get killed"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0351:
+      file: "docs/features/session-economics/plan/tasks/TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge.md"
+      title: "The rail key, the panel's id list and the badge's label become pure functions, so the behaviour is guarded and not just the decision behind it"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0352:
+      file: "docs/features/session-economics/plan/tasks/TASK-0352-The-Scan-Committed-And-The-Figures-Corrected.md"
+      title: "The measurement becomes a command anyone can run, and every quoted figure is re-derived from it"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0353:
+      file: "docs/features/session-economics/plan/tasks/TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways.md"
+      title: "FEAT-0081 gains the surface it was closed on, and the validator learns to check a relationship from both ends"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
     TASK-0346:
       file: "docs/features/session-economics/plan/tasks/TASK-0346-Cold-Reads-Grey-And-Actually-Ticks.md"
       title: "A cold session reads grey on the rail, and the transition happens on a clock rather than on an event that will never come"
@@ -1262,49 +1298,49 @@ items:
     ISS-0112:
       file: "docs/issues/ISS-0112-FEAT-0081-Was-Never-Updated-For-Its-Second-Surface.md"
       title: "FEAT-0081 does not link half its own tasks or the issue it is credited with fixing, while the change note claims the feature was updated — the note and SNAPSHOT.yaml disagree and the validator passes"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06. CHG-Cold-Sessions claims 'features: updated — FEAT-0081 reopened'; the feature note is not among that commit's eleven files. Note lists 3 of 5 tasks, omits ISS-0105 from fixes:, and has no acceptance criterion for either behaviour the CHG describes. SNAPSHOT and the note disagree, and the validator cannot see it — there is no reverse-link check."
     ISS-0111:
       file: "docs/issues/ISS-0111-The-Measured-Figures-Do-Not-Reproduce-And-No-Scan-Script-Was-Committed.md"
       title: "The measurement the whole feature is shaped by cannot be re-run — no scan script was committed, and the shipped module returns different numbers than the notes quote"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06. Re-derived with the shipped module: reads/writes/TTL-expiry all grew as expected, but sub-hour re-writes fell 17->16 and model switches 11->10, which counts of past events cannot do. With ISS-0106's <synthetic> artefacts removed the defensible figures are 8 of 14, not 11 of 17. Separately $336/$6,731 is 5.0%, not the ~3.5% quoted in five places including the commit headline."
     ISS-0110:
       file: "docs/issues/ISS-0110-The-Whole-Cold-Reads-Grey-Behaviour-Can-Be-Reverted-With-A-Green-Suite.md"
       title: "The entire ISS-0105 behaviour can be deleted and the suite stays green — the node tests guard the pure predicate, not any of the three call sites that are the fix"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06, by mutation. Removing the cold demotion, the attentionEntries filter and the tick together leaves 762 passed / 1 failed, and that failure is test_desktop_build_is_not_stale (an mtime check a rebuild clears). renderAgentStripCache has no test at all. TASK-0346/0347 disclose the tick's gap; it is wider than the tick."
     ISS-0109:
       file: "docs/issues/ISS-0109-The-Bounded-Tail-Read-Has-No-Guard.md"
       title: "The bounded tail read is an acceptance criterion with no guard — replacing it with a full-file read leaves all 26 tests green, including the one whose docstring claims boundedness"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06, mutation table in the note. Survivors: start=0 (full-file read), TAIL_BYTES 512k->1k, WRITE_MULT_5M 1.25->99, FULL_REWRITE_MIN 5000->1000, cooling threshold .75->.30, and both live model-switch preconditions. Killed: dedupe, READ_MULT, the mtime re-ageing, the TTL-before-switch order, MODEL_SWITCH_MIN_DISCARD 50k->300k. The arithmetic is guarded; the design constraint is not."
     ISS-0108:
       file: "docs/issues/ISS-0108-A-Transcript-Entry-With-No-Timestamp-Reads-As-Confidently-Cold.md"
       title: "An entry with no timestamp yields `state: cold` with a 56-year age — the Python reader has no `unknown`, which is the exact asymmetry its TypeScript half was written to avoid"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06. _turn_from_entry deliberately tolerates a missing timestamp, _parse_iso returns 0.0, and _with_age then reports cold with age_seconds 1,786,017,720. The same feature's cache-temperature.ts states the opposite principle explicitly ('absence must not render as a confident state — the ISS-0065 lesson'). Not currently firing in this fleet; the defect is that the code accepts the input and then concludes from it."
     ISS-0107:
       file: "docs/issues/ISS-0107-A-Model-Switch-Permanently-Suppresses-The-Cold-Warning.md"
       title: "Once the last turn switched model, the strip says `model switch` forever and never says `cold` again — the feature's headline output is suppressed by an event already paid for"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent review 2026-08-06. model_switch is derived from the last turn and never decays, so it outranks the state word indefinitely and forces data-cache='cold' on a warm session. Breaks FEAT-0081's acceptance ('the strip shows one of warm/cooling/cold') for the whole life of that transcript. Compounded by ISS-0106: a false <synthetic> switch silences the cold warning permanently."
     ISS-0106:
       file: "docs/issues/ISS-0106-Synthetic-API-Error-Entries-Are-Counted-As-Turns-And-Reported-As-Model-Switches.md"
       title: "Claude Code's `<synthetic>` API-error placeholders are read as real turns, so an API reset is reported as a model switch and a TTL expiry is filed as sub-hour invalidation"
-      status: triage
+      status: fixed
       severity: high
       phase: ""
       note: "Independent review 2026-08-06, the one high finding. Claude Code writes model: '<synthetic>' assistant entries with a real message.id and all-zero usage when a request fails (33 across 38 transcripts). Nothing filters them, so they become prev: the gap is measured from the placeholder, and _classify reports a model switch with prev_model '<synthetic>'. Both such events in the fleet are really TTL expiries with the SAME model on both sides. The live badge would render 'Switching <synthetic> -> claude-opus-5'."
@@ -2396,15 +2432,15 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 81
     features_done: 55
-    tasks_total: 347
-    tasks_done: 276
+    tasks_total: 353
+    tasks_done: 282
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 7
+    issues_triage: 0
     risks_open: 6
     releases_total: 0
     decisions_total: 9

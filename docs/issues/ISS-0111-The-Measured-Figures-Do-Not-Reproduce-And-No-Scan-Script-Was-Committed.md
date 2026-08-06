@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0111
 aliases: ["ISS-0111"]
 title: "The measurement the whole feature is shaped by cannot be re-run — no scan script was committed, and the shipped module returns different numbers than the notes quote"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -59,6 +59,6 @@ Prose figures, unreproducible, two of them impossible, and the headline percenta
 
 ## Next Actions
 
-- [ ] Commit the scan as a script
-- [ ] Fix [[ISS-0106]], re-run, and correct every quoted figure in FEAT-0081, ISS-0104, both CHG notes and SNAPSHOT.yaml
-- [ ] Decide whether "staleness" means TTL expiry or all avoidable re-writes, and use one definition everywhere
+- [x] Commit the scan as a script
+- [x] Fix [[ISS-0106]], re-run, and correct every quoted figure in FEAT-0081, ISS-0104, both CHG notes and SNAPSHOT.yaml
+- [x] Decide whether "staleness" means TTL expiry or all avoidable re-writes, and use one definition everywhere

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0106
 aliases: ["ISS-0106"]
 title: "Claude Code's `<synthetic>` API-error placeholders are read as real turns, so an API reset is reported as a model switch and a TTL expiry is filed as sub-hour invalidation"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -64,6 +64,6 @@ It is a turn, it is `prev`, and it is the most-reported cause of cache invalidat
 
 ## Next Actions
 
-- [ ] Filter `<synthetic>` / all-zero-usage assistant entries out of `_iter_turns`
-- [ ] Re-run the retrospective and correct the figures in ISS-0104, FEAT-0081 and both CHG notes
-- [ ] A test with a `<synthetic>` entry between two real turns of the same model, asserting `ttl-expiry` and no `model_switch`
+- [x] Filter `<synthetic>` / all-zero-usage assistant entries out of `_iter_turns`
+- [x] Re-run the retrospective and correct the figures in ISS-0104, FEAT-0081 and both CHG notes
+- [x] A test with a `<synthetic>` entry between two real turns of the same model, asserting `ttl-expiry` and no `model_switch`

@@ -25,11 +25,11 @@ related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0104-Model-
 
 Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated away. The work began by **measuring rather than reasoning from the pricing table**, and the measurement changed what got built.
 
-Across 38 transcripts under `~/.claude/projects/` (21,607 deduplicated assistant turns, 2026-08-06): cache **reads** account for ≈$5,287 of ≈$6,731 input-side spend; cache **writes** ≈$1,444. Of the writes, full-prefix re-writes cost ≈$336 — ≈$236 to TTL expiry after >60 min idle, ≈$100 to sub-hour invalidation. So staleness is real and it is **~3.5% of the input bill**, while the weight of the context itself is the 20× larger lever and appears nowhere in the UI (`ctx 62%` is fill against the window, not tokens, and not cost).
+Across 42 transcripts under `~/.claude/projects/` (21,862 deduplicated assistant turns, 2026-08-06, reproducible with `python3 tools/scripts/scan-cache-economics.py`): cache **reads** account for ≈$5,340 of ≈$6,788 input-side spend; cache **writes** ≈$1,448. Of the writes, avoidable full-prefix re-writes cost ≈$336 — ≈$250 to TTL expiry after >60 min idle, ≈$86 to sub-hour invalidation. So **staleness — the cache lapsing on its own clock — is 3.7% of the input bill, and all avoidable re-writes together are 4.9%**, while the weight of the context itself is the 20× larger lever and appears nowhere in the UI (`ctx 62%` is fill against the window, not tokens, and not cost).
 
 New module `session_cache.py` reads the transcript the tracker has stored a path to since FEAT-0019, and derives: prefix weight, cache age against the TTL the cache was written under, the cost of the next turn warm against cold, and a classification of every full-prefix re-write. Two entry points — a **bounded tail read** for the live badge (transcripts here reach 34MB and the strip re-renders on every snapshot) and a full streaming scan for the retrospective, both memoised against `(path, mtime, size)`.
 
-Of the 17 sub-hour re-writes, **11 carried a different model than the preceding turn** — the cache is model-scoped, so switching model discards the whole prefix ([[ISS-0104]]). That is now named where it happens.
+Of the 14 sub-hour re-writes, **8 carried a different model than the preceding turn** — the cache is model-scoped, so switching model discards the whole prefix ([[ISS-0104]]). That is now named where it happens.
 
 **One thing was deliberately not built.** A keep-warm ping costs 2× the full prefix *every ping*, against 2× *once* for letting the cache expire — so background re-warming is strictly more expensive than doing nothing, and `max_tokens: 0` pre-warming pays the same write. The obvious feature request would have raised the bill. It is recorded as an explicit non-goal in FEAT-0081 and in PHASE-007's scope, because it will be proposed again.
 
@@ -58,8 +58,9 @@ Of the 17 sub-hour re-writes, **11 carried a different model than the preceding 
 
 - [ ] **Independent review is owed** (QUALITY.md / LIFECYCLE step 8): this change carries a `CHG-*` note and transitions a feature to `done`. Not yet run.
 - [ ] The retrospective endpoint has no surface. It was built because it is what turns an invisible cost into a number, but where it renders on the overview is deliberately unresolved until there is a number to look at (PLAN.md, open questions).
+- [x] ~~Independent review is owed~~ — run 2026-08-06, returned `changes-requested`; the seven findings are fixed under TASK-0348…TASK-0353 and the figures above are the corrected ones.
 - [ ] The price table in `session_cache.py` drifts with published pricing and nothing detects that. Cheap to correct, invisible when wrong.
-- [ ] `warm` is a claim the reader cannot prove — entries can be evicted before their TTL, and 6 of the 17 measured sub-hour re-writes had no model change to explain them. The wording says "elapsed against the known TTL" rather than asserting presence; if that proves misleading in use, the honest fix is to weaken the word rather than the measurement.
+- [ ] `warm` is a claim the reader cannot prove — entries can be evicted before their TTL, and 6 of the 14 measured sub-hour re-writes had no model change to explain them. The wording says "elapsed against the known TTL" rather than asserting presence; if that proves misleading in use, the honest fix is to weaken the word rather than the measurement.
 
 ## Independent review — 2026-08-06 (changes-requested)
 

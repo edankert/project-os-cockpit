@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0108
 aliases: ["ISS-0108"]
 title: "An entry with no timestamp yields `state: cold` with a 56-year age — the Python reader has no `unknown`, which is the exact asymmetry its TypeScript half was written to avoid"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -55,5 +55,5 @@ Severity is medium rather than high because Claude Code does write `timestamp` o
 
 ## Next Actions
 
-- [ ] Return `None` (or `unknown`) when `_parse_iso(last_turn_at)` is `0.0`
-- [ ] Test: last entry without `timestamp` yields no badge
+- [x] Return `None` (or `unknown`) when `_parse_iso(last_turn_at)` is `0.0`
+- [x] Test: last entry without `timestamp` yields no badge

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0112
 aliases: ["ISS-0112"]
 title: "FEAT-0081 does not link half its own tasks or the issue it is credited with fixing, while the change note claims the feature was updated — the note and SNAPSHOT.yaml disagree and the validator passes"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -63,6 +63,6 @@ Filed as a documentation defect rather than a process complaint. The two commits
 
 ## Next Actions
 
-- [ ] Update FEAT-0081 (frontmatter + Scope + Acceptance + Links)
-- [ ] Correct the coverage line in [[CHG-20260806-Cold-Sessions-Read-Grey]]
-- [ ] Add a reverse-link check to `validate-docs.sh`: every note with `parent: FEAT-X` appears in FEAT-X's `tasks:`; every `fixes:` has a matching `parent:`/`related:`
+- [x] Update FEAT-0081 (frontmatter + Scope + Acceptance + Links)
+- [x] Correct the coverage line in [[CHG-20260806-Cold-Sessions-Read-Grey]]
+- [x] Add a reverse-link check to `validate-docs.sh`: every note with `parent: FEAT-X` appears in FEAT-X's `tasks:`; every `fixes:` has a matching `parent:`/`related:`

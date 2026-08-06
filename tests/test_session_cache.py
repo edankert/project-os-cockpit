@@ -16,6 +16,7 @@ from __future__ import annotations
 import datetime as _dt
 import json
 from pathlib import Path
+from typing import Any
 
 from project_os_cockpit import session_cache as sc
 
@@ -112,9 +113,8 @@ def test_live_state_reads_last_turn(tmp_path: Path) -> None:
     assert state.ttl_seconds == sc.TTL_1H
 
 
-def test_live_state_does_not_read_whole_file(tmp_path: Path) -> None:
-    """A transcript far larger than the tail budget still resolves, and
-    the read is bounded — the strip re-renders on every snapshot."""
+def test_live_state_resolves_from_a_file_larger_than_the_budget(tmp_path: Path) -> None:
+    """The last turn is found even when the file dwarfs the tail budget."""
     filler = [
         json.dumps({"type": "user", "message": {"id": f"u{i}", "pad": "x" * 4000}})
         for i in range(400)
@@ -125,6 +125,65 @@ def test_live_state_does_not_read_whole_file(tmp_path: Path) -> None:
     state = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=11)).timestamp())
     assert state is not None
     assert state.prefix_tokens == 609_000
+
+
+def test_live_read_actually_reads_a_bounded_number_of_bytes(
+    tmp_path: Path, monkeypatch: Any,
+) -> None:
+    """ISS-0109: observe the BYTES, not just the answer.
+
+    The previous guard asserted only that the right prefix came out —
+    which it does whether the read is 512KB or 34MB. Replacing
+    `start = max(0, size - budget)` with `start = 0` survived it. This
+    counts what comes off the disk, so losing the bound turns it red.
+    """
+    filler = [
+        json.dumps({"type": "user", "message": {"id": f"u{i}", "pad": "x" * 4000}})
+        for i in range(1500)
+    ]
+    path = _write(tmp_path, filler + _turn("last", 10, read=600_000, write=9_000))
+    size = Path(path).stat().st_size
+    assert size > 5_000_000, "fixture must dwarf the tail budget"
+
+    read_bytes = 0
+    real_open = open
+
+    def counting_open(file, mode="r", *args, **kwargs):  # type: ignore[no-untyped-def]
+        handle = real_open(file, mode, *args, **kwargs)
+        if "b" not in mode:
+            return handle
+        real_read = handle.read
+
+        def read(*a, **k):  # type: ignore[no-untyped-def]
+            nonlocal read_bytes
+            data = real_read(*a, **k)
+            read_bytes += len(data)
+            return data
+
+        handle.read = read  # type: ignore[method-assign]
+        return handle
+
+    monkeypatch.setattr("builtins.open", counting_open)
+    state = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=11)).timestamp())
+    assert state is not None and state.prefix_tokens == 609_000
+    assert read_bytes <= sc.TAIL_BYTES, (
+        f"live read pulled {read_bytes:,} bytes from a {size:,}-byte file; "
+        f"the tail budget is {sc.TAIL_BYTES:,}"
+    )
+
+
+def test_tail_budget_is_large_enough_to_find_a_turn_behind_real_output(
+    tmp_path: Path,
+) -> None:
+    """Guards TAIL_BYTES from below — shrinking it to 1KB survived the
+    old suite. A turn sitting behind one fat tool result must still be
+    found without the fallback read."""
+    fat = json.dumps({"type": "user", "message": {"id": "big", "pad": "x" * 200_000}})
+    path = _write(tmp_path, _turn("m1", 0, read=400_000, write=6_000) + [fat])
+    lines = sc._read_tail(path, sc.TAIL_BYTES)
+    assert list(sc._iter_turns(iter(lines))), (
+        "TAIL_BYTES is too small to see past a single large entry"
+    )
 
 
 def test_warm_cooling_cold_by_elapsed_time(tmp_path: Path) -> None:
@@ -288,6 +347,198 @@ def test_truncated_final_line_tolerated(tmp_path: Path) -> None:
     )
     assert state is not None
     assert state.prefix_tokens == 105_000
+
+
+# ---- the constants that survived mutation (ISS-0109) ------------------
+
+def test_5m_writes_are_cheaper_than_1h_writes(tmp_path: Path) -> None:
+    """`WRITE_MULT_5M` 1.25 -> 99 survived the old suite: nothing costed
+    a 5m write. A shorter TTL must cost less to create, not more."""
+    p5 = _write(tmp_path, _turn("a", 0, read=0, write=400_000, ttl="5m"), "5m.jsonl")
+    p1h = _write(tmp_path, _turn("a", 0, read=0, write=400_000, ttl="1h"), "1h.jsonl")
+    h5, h1 = sc.history(p5), sc.history(p1h)
+    assert h5 is not None and h1 is not None
+    assert h5.write_cost_usd < h1.write_cost_usd
+    assert round(h5.write_cost_usd, 4) == round(400_000 / 1e6 * 5.0 * 1.25, 4)
+
+
+def test_small_rewrites_are_below_the_reporting_floor(tmp_path: Path) -> None:
+    """`FULL_REWRITE_MIN` 5000 -> 1000 survived. A re-write under the
+    floor must not be reported as an event at all."""
+    lines = (
+        _turn("m1", 0, read=50_000, write=5_000)
+        + _turn("m2", 5, read=0, write=2_000)      # under the floor
+        + _turn("m3", 9, read=0, write=9_000)      # over it
+    )
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert [e.tokens for e in hist.events] == [9_000]
+
+
+def test_cooling_starts_in_the_last_quarter_of_the_ttl(tmp_path: Path) -> None:
+    """The 0.75 threshold -> 0.30 survived. Half-way through the TTL is
+    still warm; cooling is the final stretch, or the word means nothing."""
+    path = _write(tmp_path, _turn("m1", 0, read=400_000, write=8_000))
+    for minutes, expected in ((30, "warm"), (44, "warm"), (46, "cooling")):
+        st = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=minutes)).timestamp())
+        assert st is not None and st.state == expected, f"{minutes}min -> {st.state}"
+
+
+def test_live_switch_needs_a_discarded_prefix_not_merely_a_new_model(
+    tmp_path: Path,
+) -> None:
+    """Both live preconditions survived mutation. A model change on a
+    turn that READ its cache discarded nothing, and one that wrote only a
+    little discarded little — neither is the ISS-0104 event."""
+    # Big enough write to clear the discard floor, so the ONLY thing
+    # standing between this and a false switch is `last.read == 0`.
+    read_hit = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + _turn("m2", 2, read=600_000, write=200_000, model="claude-opus-4-8")
+    )
+    st = sc.live_state(_write(tmp_path, read_hit, "hit.jsonl"),
+                       now=(BASE + _dt.timedelta(minutes=3)).timestamp())
+    assert st is not None and st.model_switch is None, "cache was READ — nothing discarded"
+
+    tiny = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + _turn("m2", 2, read=0, write=9_000, model="claude-opus-4-8")
+    )
+    st = sc.live_state(_write(tmp_path, tiny, "tiny.jsonl"),
+                       now=(BASE + _dt.timedelta(minutes=3)).timestamp())
+    assert st is not None and st.model_switch is None, "below the discard floor"
+
+
+# ---- ISS-0106: an API-error placeholder is not a turn -----------------
+
+def _synthetic(mid: str, minutes: float) -> list[str]:
+    """The entry Claude Code writes when a request fails."""
+    return [json.dumps({
+        "type": "assistant",
+        "timestamp": _ts(minutes),
+        "message": {
+            "id": mid, "model": "<synthetic>",
+            "content": [{"type": "text",
+                         "text": "API Error: Unable to connect to API (ECONNRESET)"}],
+            "usage": {"input_tokens": 0, "cache_read_input_tokens": 0,
+                      "cache_creation_input_tokens": 0, "output_tokens": 0},
+        },
+    })]
+
+
+def test_synthetic_entry_is_not_counted_as_a_turn(tmp_path: Path) -> None:
+    lines = (
+        _turn("m1", 0, read=100_000, write=5_000)
+        + _synthetic("err1", 1)
+        + _turn("m2", 2, read=105_000, write=4_000)
+    )
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert hist.turns == 2
+
+
+def test_synthetic_entry_does_not_fabricate_a_model_switch(tmp_path: Path) -> None:
+    """The defect in full: a retry seconds after a reset made a 3-hour
+    idle gap read as one minute AND filed it as a model switch, because
+    the placeholder became `prev`. Truth: TTL expiry, same model."""
+    lines = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + _synthetic("err1", 179)
+        + _turn("m2", 180, read=0, write=610_000, model="claude-opus-5")
+    )
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert [e.cause for e in hist.events] == [sc.CAUSE_TTL_EXPIRY]
+    assert hist.events[0].prev_model == "claude-opus-5"
+    assert hist.events[0].gap_seconds == 180 * 60
+
+
+def test_synthetic_entry_never_reaches_the_strip(tmp_path: Path) -> None:
+    lines = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + _synthetic("err1", 2)
+    )
+    st = sc.live_state(_write(tmp_path, lines),
+                       now=(BASE + _dt.timedelta(minutes=3)).timestamp())
+    assert st is not None
+    assert st.model is None or st.model == "claude-opus-5"
+    assert st.model_switch is None
+    assert st.prefix_tokens == 605_000
+
+
+def test_synthetic_entry_is_skipped_even_when_it_reports_tokens(
+    tmp_path: Path,
+) -> None:
+    """The two filters are not redundant, and this is the case that
+    separates them: a request that failed after streaming some output
+    can carry non-zero usage, so the shape check passes it and only the
+    sentinel stops it becoming `prev`."""
+    partial = [json.dumps({
+        "type": "assistant", "timestamp": _ts(1),
+        "message": {"id": "err-partial", "model": "<synthetic>",
+                    "usage": {"input_tokens": 4, "cache_read_input_tokens": 0,
+                              "cache_creation_input_tokens": 0, "output_tokens": 12}},
+    })]
+    lines = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + partial
+        + _turn("m2", 180, read=0, write=610_000, model="claude-opus-5")
+    )
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert hist.turns == 2
+    assert [e.cause for e in hist.events] == [sc.CAUSE_TTL_EXPIRY]
+    assert hist.events[0].prev_model == "claude-opus-5"
+
+
+def test_zero_usage_entry_is_skipped_under_any_model_name(tmp_path: Path) -> None:
+    """The guard is on the SHAPE of the data, not the sentinel string —
+    a future placeholder under a different name must not slip through."""
+    zero = [json.dumps({
+        "type": "assistant", "timestamp": _ts(1),
+        "message": {"id": "z1", "model": "claude-opus-5",
+                    "usage": {"input_tokens": 0, "cache_read_input_tokens": 0,
+                              "cache_creation_input_tokens": 0, "output_tokens": 0}},
+    })]
+    lines = _turn("m1", 0, read=100_000, write=5_000) + zero
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert hist.turns == 1
+
+
+# ---- ISS-0107 / ISS-0108 ---------------------------------------------
+
+def test_switch_announcement_expires_and_the_state_returns(tmp_path: Path) -> None:
+    """A switch is a recent event. Left up forever it suppressed the
+    warm/cooling/cold word for the life of the transcript."""
+    lines = (
+        _turn("m1", 0, read=600_000, write=5_000, model="claude-opus-5")
+        + _turn("m2", 2, read=0, write=610_000, model="claude-opus-4-8")
+    )
+    path = _write(tmp_path, lines)
+
+    fresh = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=5)).timestamp())
+    assert fresh is not None and fresh.model_switch is not None
+    assert fresh.state == "warm"
+
+    later = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=30)).timestamp())
+    assert later is not None and later.model_switch is None, "should have expired"
+
+    cold = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=90)).timestamp())
+    assert cold is not None and cold.state == "cold" and cold.model_switch is None
+
+
+def test_turn_without_a_timestamp_yields_no_badge(tmp_path: Path) -> None:
+    """ISS-0108: `cold` with an age of 56 years, asserted from absent
+    data. An absent badge is the module's contract for every other
+    failure; it is the contract here too."""
+    entry = [json.dumps({
+        "type": "assistant",
+        "message": {"id": "n1", "model": "claude-opus-5",
+                    "usage": {"cache_read_input_tokens": 400_000,
+                              "cache_creation_input_tokens": 9_000}},
+    })]
+    assert sc.live_state(_write(tmp_path, entry, "nots.jsonl")) is None
 
 
 def test_price_table_by_family() -> None:

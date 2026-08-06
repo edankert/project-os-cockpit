@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0110
 aliases: ["ISS-0110"]
 title: "The entire ISS-0105 behaviour can be deleted and the suite stays green — the node tests guard the pure predicate, not any of the three call sites that are the fix"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -58,6 +58,6 @@ The standing decision against a JS test framework (`tests/test_desktop_node_suit
 
 ## Next Actions
 
-- [ ] Extract the two call-site decisions into pure functions and guard them in the node suite
-- [ ] Correct the coverage wording in the CHG and in TASK-0347's DoD
-- [ ] Decide whether `renderAgentStripCache` gets the same treatment (see [[ISS-0107]])
+- [x] Extract the two call-site decisions into pure functions and guard them in the node suite
+- [x] Correct the coverage wording in the CHG and in TASK-0347's DoD
+- [x] Decide whether `renderAgentStripCache` gets the same treatment (see [[ISS-0107]])

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0107
 aliases: ["ISS-0107"]
 title: "Once the last turn switched model, the strip says `model switch` forever and never says `cold` again — the feature's headline output is suppressed by an event already paid for"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -59,6 +59,6 @@ Compounded by [[ISS-0106]]: a false `<synthetic>` switch is sticky in exactly th
 
 ## Next Actions
 
-- [ ] Decide whether the switch line expires on a clock or on the next turn
-- [ ] Ensure the standing state word is reachable in every case
-- [ ] A guard over `renderAgentStripCache` — it currently has none (see [[ISS-0110]])
+- [x] Decide whether the switch line expires on a clock or on the next turn
+- [x] Ensure the standing state word is reachable in every case
+- [x] A guard over `renderAgentStripCache` — it currently has none (see [[ISS-0110]])

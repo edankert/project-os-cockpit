@@ -566,6 +566,12 @@ declare function cacheTemperature(
   now: number,
   ttlMs?: number,
 ): 'warm' | 'cold' | 'unknown';
+declare function railKey(
+  state: AgentStatePayload | null | undefined, now: number, ttlMs?: number,
+): string | null;
+declare function attentionIds(
+  states: Iterable<[string, AgentStatePayload]>, now: number, ttlMs?: number,
+): string[];
 
 /** True when this workspace's session has passed the cache TTL.
  *
@@ -596,11 +602,10 @@ function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   const existingDot = li.querySelector('.ws-dot');
   if (existingDot) existingDot.remove();
   if (!state) { applyHealthToSquare(li, ws); return; }
-  // Cold takes the same branch decay already took (ISS-0105): a session
-  // whose cache has lapsed reads as a resting session. No new state
-  // class, no new colour, no third animation — the amber pulse keeps
-  // exactly one meaning and gains an age it never had.
-  const key = (state.decayed_from || cold) ? 'idle' : state.state;
+  // Cold takes the same branch decay already took (ISS-0105). The
+  // judgment is railKey's, in the module the node suite can reach
+  // (ISS-0110); this line only applies it.
+  const key = railKey(state, Date.now()) || state.state;
   li.classList.add(`state-${key}`);
   // Acknowledged alerts go static (pulse off, colour kept) — TASK-0157.
   li.classList.toggle('acked', isAlertAcked(ws.id, state.ts || ''));
@@ -9275,64 +9280,27 @@ interface AgentCacheState {
   };
 }
 
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return String(n);
-}
 
-// Costs here are estimates — the token counts are exact but the dollars
-// come from a per-family price table that drifts, so they are rounded
-// hard and always prefixed with `~`. Sub-cent figures round to `~$0.00`
-// rather than growing a third decimal: the precision would be fiction.
-function approxUsd(n: number): string {
-  return `~$${n.toFixed(2)}`;
-}
+
+// Declared by cache-temperature.js. The judgment lives there so the node
+// suite can reach it (ISS-0110); this is the adapter that paints it.
+declare function cacheBadge(cache: AgentCacheState | null | undefined): {
+  weight: string; label: string; title: string; tone: string; switch: boolean;
+} | null;
 
 function renderAgentStripCache(cache: AgentCacheState | null | undefined): void {
-  if (!cache || !cache.prefix_tokens) {
+  const badge = cacheBadge(cache);
+  if (!badge) {
     agentStripWeight.hidden = true;
     agentStripCache.hidden = true;
     return;
   }
-  // Absolute weight, distinct from `ctx %`: the percentage is fill
-  // against the window, this is what a cold turn re-writes.
-  agentStripWeight.textContent = formatTokens(cache.prefix_tokens);
+  agentStripWeight.textContent = badge.weight;
   agentStripWeight.hidden = false;
-
-  const warm = approxUsd(cache.warm_cost_usd);
-  const cold = approxUsd(cache.resume_cost_usd);
-  let label: string;
-  let title: string;
-  if (cache.state === 'cold') {
-    label = `cold · ${cold}`;
-    title = `Cache older than its ${Math.round(cache.ttl_seconds / 60)}min TTL. `
-      + `Next turn re-writes ${formatTokens(cache.prefix_tokens)} tokens (${cold}) `
-      + `instead of reading them (${warm}). Starting a fresh session costs neither.`;
-  } else if (cache.state === 'cooling') {
-    const left = cache.cooling_minutes_left ?? 0;
-    label = `cooling ${left}m`;
-    title = `About ${left} min before this session's cache passes its TTL. `
-      + `After that the next turn re-writes ${formatTokens(cache.prefix_tokens)} tokens `
-      + `(${cold}) instead of reading them (${warm}).`;
-  } else {
-    label = 'warm';
-    title = `Last turn ${Math.round(cache.age_seconds / 60)} min ago, inside the `
-      + `${Math.round(cache.ttl_seconds / 60)}min TTL. Next turn reads `
-      + `${formatTokens(cache.prefix_tokens)} tokens (${warm}) rather than re-writing them (${cold}).`;
-  }
-  // ISS-0104: a switch that discarded a warm prefix is worth saying out
-  // loud, and it outranks the state word — the cost is already paid.
-  if (cache.model_switch) {
-    const sw = cache.model_switch;
-    label = `model switch · ${approxUsd(sw.cost_usd)}`;
-    title = `Switching ${sw.from} → ${sw.to} discarded `
-      + `${formatTokens(sw.discarded_tokens)} cached tokens; the cache is model-scoped, `
-      + `so that prefix was re-written at the cache-write rate (${approxUsd(sw.cost_usd)}).`;
-  }
-  agentStripCache.textContent = label;
-  agentStripCache.title = title;
-  agentStripCache.dataset.cache = cache.model_switch ? 'cold' : cache.state;
+  agentStripCache.textContent = badge.label;
+  agentStripCache.title = badge.title;
+  agentStripCache.dataset.cache = badge.tone;
+  agentStripCache.toggleAttribute('data-switch', badge.switch);
   agentStripCache.hidden = false;
 }
 
@@ -9903,20 +9871,23 @@ function finishedTodayCount(): number {
 function attentionEntries(): AttentionEntry[] {
   const out: AttentionEntry[] = [];
   const activeCost = lastAgentSnap?.session?.cost?.total_cost_usd;
+  // Membership is attentionIds' answer (ISS-0110): blocked on you AND
+  // still cheap to pick up. A cold entry leaves; its obligation lives on
+  // the grey square instead (ISS-0105, scope note).
+  const eligible = new Set(attentionIds(agentStates, Date.now()));
   for (const [wsId, state] of agentStates) {
-    if (state.decayed_from) continue;
-    if (state.state !== 'needs-input' && state.state !== 'waiting') continue;
-    // TASK-0347: a cold session leaves the list, so NEEDS YOU means
-    // "blocked on you AND still cheap to pick up". Same rule and same
-    // function as the rail's grey dot. The obligation does not vanish —
-    // the grey square is where it now lives (ISS-0105, scope note).
-    if (isColdWorkspace(state)) continue;
+    if (!eligible.has(wsId)) continue;
     if (isAlertDismissed(wsId, state.ts || '')) continue;
+    // `attentionIds` already guarantees this; repeated only to narrow the
+    // type, since the policy now lives in a plain-script module TypeScript
+    // cannot see through. A cast would hide a real mismatch here.
+    const kind = state.state;
+    if (kind !== 'needs-input' && kind !== 'waiting') continue;
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
-      kind: state.state,
+      kind,
       message: state.message
         || (state.state === 'needs-input' ? 'needs your input' : 'turn finished — review'),
       ts: state.ts || '',

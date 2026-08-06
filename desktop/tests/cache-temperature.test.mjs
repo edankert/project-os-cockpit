@@ -102,3 +102,111 @@ test('needs-input goes cold too — one rule, per Edwin', () => {
   assert.equal(cacheTemperature(needs, at(30 * 60 * 1000)), 'warm');
   assert.equal(cacheTemperature(needs, at(2 * HOUR)), 'cold');
 });
+
+// ---- railKey / attentionIds / cacheBadge (ISS-0110) -------------------
+//
+// `cacheTemperature` guarded the decision; the three call sites and the
+// strip renderer could all be deleted with a green suite. Their judgment
+// now lives here, so these cases guard the behaviour rather than the
+// reasoning behind it.
+
+let railKey, attentionIds, cacheBadge;
+before(async () => {
+  const src = await fs.readFile(built, 'utf-8');
+  const ctx = vm.createContext({});
+  vm.runInContext(`${src}\n;Object.assign(globalThis, {railKey, attentionIds, cacheBadge});`, ctx);
+  ({ railKey, attentionIds, cacheBadge } = ctx);
+});
+
+test('railKey: cold demotes to the grey idle dot, warm keeps its state', () => {
+  assert.equal(railKey(waiting, at(30 * 60 * 1000)), 'waiting');
+  assert.equal(railKey(waiting, at(2 * HOUR)), 'idle');
+  const needs = { ts: '2026-08-06T12:00:00Z', state: 'needs-input' };
+  assert.equal(railKey(needs, at(30 * 60 * 1000)), 'needs-input');
+  assert.equal(railKey(needs, at(2 * HOUR)), 'idle');
+});
+
+test('railKey: busy stays busy; decayed is idle; absent is null', () => {
+  assert.equal(railKey({ ts: '2026-08-06T12:00:00Z', state: 'busy' }, at(5 * HOUR)), 'busy');
+  assert.equal(railKey({ ts: '2026-08-06T12:00:00Z', state: 'waiting', decayed_from: 'busy' }, T0), 'idle');
+  assert.equal(railKey(null, T0), null);
+  assert.equal(railKey({}, T0), null);
+});
+
+test('railKey: no timestamp keeps the state rather than greying it', () => {
+  // unknown is not cold — greying here would assert an unmeasured age.
+  assert.equal(railKey({ state: 'waiting' }, at(99 * HOUR)), 'waiting');
+});
+
+test('attentionIds: only waiting/needs-input, and only while warm', () => {
+  const states = [
+    ['fresh-wait', { ts: '2026-08-06T12:00:00Z', state: 'waiting' }],
+    ['fresh-needs', { ts: '2026-08-06T12:00:00Z', state: 'needs-input' }],
+    ['busy', { ts: '2026-08-06T12:00:00Z', state: 'busy' }],
+    ['idle', { ts: '2026-08-06T12:00:00Z', state: 'idle' }],
+    ['decayed', { ts: '2026-08-06T12:00:00Z', state: 'waiting', decayed_from: 'busy' }],
+  ];
+  assert.deepEqual(Array.from(attentionIds(states, at(30 * 60 * 1000))), ['fresh-wait', 'fresh-needs']);
+  // The transition: same input, one hour later, the list is empty.
+  assert.deepEqual(Array.from(attentionIds(states, at(61 * 60 * 1000))), []);
+});
+
+test('attentionIds: the 211-hour entries from ISS-0105 are gone', () => {
+  const states = [
+    ['recent', { ts: '2026-08-06T12:00:00Z', state: 'waiting' }],
+    ['stale', { ts: '2026-07-28T13:00:00Z', state: 'waiting' }],
+  ];
+  assert.deepEqual(Array.from(attentionIds(states, at(60 * 1000))), ['recent']);
+});
+
+const baseBadge = {
+  prefix_tokens: 612_000, state: 'warm', resume_cost_usd: 6.12,
+  warm_cost_usd: 0.31, ttl_seconds: 3600, age_seconds: 120,
+};
+
+test('cacheBadge: nothing to say without a prefix', () => {
+  assert.equal(cacheBadge(null), null);
+  assert.equal(cacheBadge({ ...baseBadge, prefix_tokens: 0 }), null);
+});
+
+test('cacheBadge: each state gets its own label and its own tone', () => {
+  assert.equal(cacheBadge(baseBadge).label, 'warm');
+  assert.equal(cacheBadge(baseBadge).tone, 'warm');
+  assert.equal(cacheBadge(baseBadge).weight, '612k');
+
+  const cold = cacheBadge({ ...baseBadge, state: 'cold', age_seconds: 7200 });
+  assert.equal(cold.label, 'cold · ~$6.12');
+  assert.equal(cold.tone, 'cold');
+  assert.match(cold.title, /Starting a fresh session costs neither/);
+
+  const cooling = cacheBadge({ ...baseBadge, state: 'cooling', cooling_minutes_left: 11 });
+  assert.equal(cooling.label, 'cooling 11m');
+  assert.equal(cooling.tone, 'cooling');
+});
+
+test('cacheBadge: a switch never borrows cold\'s colour (ISS-0107)', () => {
+  const sw = { from: 'claude-opus-5', to: 'claude-opus-4-8', discarded_tokens: 612_000, cost_usd: 6.12 };
+  const warm = cacheBadge({ ...baseBadge, model_switch: sw });
+  assert.equal(warm.label, 'model switch · ~$6.12');
+  assert.equal(warm.tone, 'warm', 'tone must follow the real temperature');
+  assert.equal(warm.switch, true);
+  assert.match(warm.title, /The cache is warm now/);
+
+  const cold = cacheBadge({ ...baseBadge, state: 'cold', model_switch: sw });
+  assert.equal(cold.tone, 'cold');
+});
+
+test('cacheBadge: weight formatting across magnitudes', () => {
+  const w = (n) => cacheBadge({ ...baseBadge, prefix_tokens: n }).weight;
+  assert.equal(w(612), '612');
+  assert.equal(w(9_400), '9k');
+  assert.equal(w(612_000), '612k');
+  assert.equal(w(1_250_000), '1.3M');
+  assert.equal(w(12_000_000), '12M');
+});
+
+test('cacheBadge: costs read as estimates, never as billing', () => {
+  const cold = cacheBadge({ ...baseBadge, state: 'cold' });
+  assert.match(cold.label, /~\$/);
+  assert.ok(!/\$\d+\.\d{3}/.test(cold.title), 'no false precision');
+});

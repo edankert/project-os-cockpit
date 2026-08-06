@@ -42,11 +42,13 @@ Silent. The only signal is the bill.
 
 ## Evidence
 
-Measured 2026-08-06 across 38 transcripts under `~/.claude/projects/` (21,607 deduplicated assistant turns), by scanning for full-prefix re-writes — `cache_read_input_tokens == 0` with `cache_creation_input_tokens > 5000` on a turn that is not the session's first.
+Reproduce with `python3 tools/scripts/scan-cache-economics.py`. Run 2026-08-06 over 42 transcripts (21,862 deduplicated assistant turns), scanning for full-prefix re-writes — `cache_read_input_tokens == 0` with `cache_creation_input_tokens > 5000` on a turn that is not the session's first.
 
-- **17 full re-writes occurred after under 60 minutes idle**, so TTL expiry does not explain them: 8.5M tokens, ≈$100 at the 2× write rate.
-- **11 of those 17 carried a different `model` than the immediately preceding turn.** Model switching is the single largest identified cause of non-TTL cache invalidation in this history.
-- For scale: TTL expiry (idle >60 min) accounts for 41 events, 19.0M tokens, ≈$236. Total input-side spend across the same transcripts is ≈$6,731, of which cache reads are ≈$5,287.
+- **14 full re-writes occurred after under 60 minutes idle**, so TTL expiry does not explain them: ≈$86.
+- **8 of those 14 carried a different `model` than the immediately preceding turn** (≈$61). Model switching is the single largest identified cause of non-TTL cache invalidation in this history; the remaining 6 (≈$25) have no discoverable cause, which is a real answer — entries can be evicted before their TTL.
+- For scale: TTL expiry (idle >60 min) accounts for 44 events, 20.4M tokens, ≈$250, against ≈$6,788 of total input-side spend.
+
+**Corrected 2026-08-06 after the independent review.** This section first said *11 of 17*. Both figures were wrong: two of the counted "switches" were `<synthetic>` API-error placeholders the reader mistook for turns ([[ISS-0106]]), and the rest came from a throwaway scan that was never committed, so they could not be re-derived ([[ISS-0111]]). The conclusion is unchanged — 8 still outnumber 6 — but no number supporting it survived. The scan is now a committed script for exactly this reason.
 
 Figures are API-equivalent. Under a subscription the same tokens land as usage-limit consumption rather than dollars; the arithmetic is unchanged.
 

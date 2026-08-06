@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0109
 aliases: ["ISS-0109"]
 title: "The bounded tail read is an acceptance criterion with no guard — replacing it with a full-file read leaves all 26 tests green, including the one whose docstring claims boundedness"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -64,6 +64,6 @@ Related, minor: `desktop/tests/cache-temperature.test.mjs`'s "a future timestamp
 
 ## Next Actions
 
-- [ ] A byte-counting or line-counting guard on the live path
-- [ ] Widen the classification tests so `FULL_REWRITE_MIN` and the cooling threshold have a boundary either side
-- [ ] Cover the 5m write multiplier, or delete it as untested speculation
+- [x] A byte-counting or line-counting guard on the live path
+- [x] Widen the classification tests so `FULL_REWRITE_MIN` and the cooling threshold have a boundary either side
+- [x] Cover the 5m write multiplier, or delete it as untested speculation

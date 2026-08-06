@@ -72,6 +72,16 @@ FULL_REWRITE_MIN = 5_000
 # magnitude clear of the real cases (ISS-0104).
 MODEL_SWITCH_MIN_DISCARD = 50_000
 
+# `model` on the assistant entry Claude Code writes when a request fails.
+# Not a turn — see `_turn_from_entry` (ISS-0106).
+SYNTHETIC_MODEL = "<synthetic>"
+
+# How long a model switch stays the freshest thing the badge can say
+# (ISS-0107). Past this the standing warm/cooling/cold state renders
+# again. A switch is a recent EVENT; leaving it up for the life of the
+# transcript suppressed the cold warning this module exists to give.
+MODEL_SWITCH_NOTICE_SECONDS = 15 * 60
+
 TTL_1H = 3600
 TTL_5M = 300
 
@@ -256,7 +266,25 @@ class CacheHistory:
 
 
 def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
-    """A deduplicatable assistant turn, or ``None`` for anything else."""
+    """A deduplicatable assistant turn, or ``None`` for anything else.
+
+    **An API-error placeholder is not a turn** (ISS-0106). When a request
+    fails, Claude Code writes an assistant entry carrying a real
+    ``message.id``, ``model: "<synthetic>"``, an all-zero ``usage``, and
+    text like ``API Error: Unable to connect to API (ECONNRESET)``. There
+    are 33 across this machine's transcripts.
+
+    Letting one through does more than inflate a count: it becomes the
+    *previous* turn, so a retry seconds after a reset makes a 151-hour
+    idle gap read as 52 seconds, and the event is then filed as a model
+    switch with ``prev_model: "<synthetic>"`` — corrupting the exact
+    statistic this module was written to produce.
+
+    The rejection is on the **shape of the data** rather than the
+    sentinel alone: an entry that consumed no tokens at all did no work,
+    whatever it calls itself, so a future placeholder under a different
+    name cannot reintroduce the defect.
+    """
     if entry.get("type") != "assistant":
         return None
     msg = entry.get("message")
@@ -272,9 +300,17 @@ def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
         val = source.get(key)
         return int(val) if isinstance(val, (int, float)) else 0
 
+    model = msg.get("model")
+    if model == SYNTHETIC_MODEL:
+        return None
+    if not any(_int(usage, k) for k in (
+        "cache_read_input_tokens", "cache_creation_input_tokens",
+        "input_tokens", "output_tokens",
+    )):
+        return None
+
     ts = entry.get("timestamp")
     ts = ts if isinstance(ts, str) else ""
-    model = msg.get("model")
     return TurnUsage(
         ts=ts,
         epoch=_parse_iso(ts),
@@ -395,7 +431,15 @@ def live_state(
         return None
 
     state: LiveCacheState | None = None
-    if turns:
+    if turns and turns[-1].epoch > 0:
+        # A turn with no usable timestamp yields no badge (ISS-0108).
+        # `_with_age` would otherwise measure from epoch 0 and report
+        # `cold` with an age of 56 years — the module's most alarming
+        # state, asserted from the absence of data. The TypeScript half
+        # of this feature states the principle explicitly; this is it
+        # honoured on the Python side, and it matches the contract every
+        # other failure here follows: an absent badge, never a confident
+        # one.
         last = turns[-1]
         prev = turns[-2] if len(turns) > 1 else None
         switch = None
@@ -451,6 +495,16 @@ def _with_age(state: LiveCacheState, now: float | None) -> LiveCacheState:
         label = "cooling"
     else:
         label = "warm"
+    # The switch announcement expires with the same clock (ISS-0107).
+    # It was derived from the last turn and never decayed, so a session
+    # left alone after a switch never rendered warm, cooling or cold
+    # again — the badge kept reporting a cost already paid instead of
+    # the one about to be.
+    switch = (
+        state.model_switch
+        if state.model_switch and age < MODEL_SWITCH_NOTICE_SECONDS
+        else None
+    )
     return LiveCacheState(
         prefix_tokens=state.prefix_tokens,
         last_turn_at=state.last_turn_at,
@@ -460,7 +514,7 @@ def _with_age(state: LiveCacheState, now: float | None) -> LiveCacheState:
         state=label,
         resume_cost_usd=state.resume_cost_usd,
         warm_cost_usd=state.warm_cost_usd,
-        model_switch=state.model_switch,
+        model_switch=switch,
     )
 
 

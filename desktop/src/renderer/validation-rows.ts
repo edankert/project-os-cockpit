@@ -111,6 +111,7 @@ const VALIDATION_LABELS: Record<string, string> = {
   'SNAP-MISSING': 'no SNAPSHOT.yaml',
   'SNAP-PARSE': 'SNAPSHOT.yaml will not parse',
   'FOCUS': 'focus names something that is not there',
+  'PARENT-BACKLINK': 'relationship declared on one end only',
   'PHASE-CHILDREN': 'phase closed with unfinished work',
   'PHASE-BOXES': 'phase closed with unticked exit criteria',
   'REQ-BOXES': 'requirement closed with unticked criteria',

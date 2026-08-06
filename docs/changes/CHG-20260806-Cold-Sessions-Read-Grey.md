@@ -51,7 +51,7 @@ The general lesson, which is not new here: a cache keyed on "what I last decided
 
 ## Documentation Coverage (All Types Considered)
 
-- features: updated — [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]] reopened for its second surface, then closed
+- features: **not updated in this commit** — FEAT-0081 was reopened and re-closed, which left the note byte-identical, so it carries none of this surface. Corrected under [[ISS-0112]]: the feature now lists TASK-0346/0347, fixes ISS-0105, and has acceptance criteria for both behaviours described here.
 - requirements: not-applicable
 - tasks: new — TASK-0346, TASK-0347
 - issues: new — [[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]] (filed and fixed)
@@ -64,7 +64,8 @@ The general lesson, which is not new here: a cache keyed on "what I last decided
 
 ## Follow-ups
 
-- [ ] **Independent review is owed** for this note and [[CHG-20260806-Session-Cache-Economics]] — neither has had one.
+- [x] ~~Independent review is owed~~ — run 2026-08-06, returned `changes-requested` on both notes; findings fixed under TASK-0348…TASK-0353.
+- [x] ~~The tick has no regression test~~ — narrower than stated: it was all three call sites plus the strip renderer ([[ISS-0110]]). Their judgment now lives in `cache-temperature.ts` as `railKey` / `attentionIds` / `cacheBadge`, guarded by the node suite and verified by mutation. The DOM adapters themselves remain unguarded, which is a much smaller surface.
 - [ ] **The tick has no regression test.** Proving it needs a DOM, and jsdom would contradict the standing decision in `tests/test_desktop_node_suite.py` against bringing a JS test framework into a Python project. If the self-healing comparison regresses, nothing will fail. Worth revisiting if a second time-driven repaint ever appears.
 - [ ] **A blocked session now disappears from NEEDS YOU after an hour**, leaving only the grey square. Intended — a list that never forgets is what was fixed — but it is a lost nag. If work is ever dropped because of it, the answer is a separate stale-obligations surface, not putting them back.
 - [ ] `CACHE_TTL_MS` in the renderer duplicates `TTL_1H` in `session_cache.py`. Duplicated deliberately (the rail must decide for ten workspaces without ten sidecar round-trips, and when no sidecar is running) but nothing detects them drifting apart.
