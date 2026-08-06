@@ -25,7 +25,7 @@ tasks:
   - "[[TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways]]"
   - "[[TASK-0354-Usage-Is-Read-Where-It-Lives]]"
   - "[[TASK-0355-The-Record-Stops-Overclaiming]]"
-fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
+fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116", "ISS-0117", "ISS-0118", "ISS-0119"]
 release: ""
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06

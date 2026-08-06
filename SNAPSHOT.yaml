@@ -59,7 +59,7 @@ items:
       status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347, TASK-0348, TASK-0349, TASK-0350, TASK-0351, TASK-0352, TASK-0353, TASK-0354, TASK-0355]
-      fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
+      fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116", "ISS-0117", "ISS-0118", "ISS-0119"]
       note: "Measured before designed, and the measurement moved the target: staleness (TTL expiry) is ~$250, 3.7% of the ~$6,809 input-side bill, against ~$5,360 for cache READS; all avoidable re-writes ~$336 (4.9%). Reproduce with tools/scripts/scan-cache-economics.py — the first figures were prose and two of them were impossible (ISS-0111). The weight of the context is the 20x lever, and nothing said what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
       file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
@@ -1311,21 +1311,21 @@ items:
     ISS-0119:
       file: "docs/issues/ISS-0119-The-Round-Two-Record-Miscounts-What-It-Counts.md"
       title: "Four counts in the round-two record do not match the artefacts they count — fifteen tasks against thirteen, `39 → 45` tests against `32 → 37`, and a ~0.1% move that measures 0.03%"
-      status: triage
+      status: fixed
       severity: low
       phase: ""
       note: "Independent re-review 2026-08-06 (round 3). The scan figures all reproduce; these are counts of the work itself. 'This feature's fifteen tasks' (twice) against thirteen — and the ticked-box check is claimed to have been run over the fifteen. 'test_session_cache.py 39 -> 45' against a collected 32 -> 37 (39 -> 44 with the surface file), which is ISS-0116's own 'related, minor' finding repeated. TASK-0355's 'all eleven tasks'. And '~0.1%' for a delta measured at 0.034% by reverting _effective_usage to identity — the claim that no bucket or ratio moves is confirmed, only the magnitude is overstated."
     ISS-0118:
       file: "docs/issues/ISS-0118-Three-More-Ticked-Boxes-Name-Files-That-Were-Never-Touched.md"
       title: "Three ticked boxes in the round-two fix name artefacts the commit never touched — the duplicated follow-up in the second change note, the stale `focus`, and [[TASK-0351]]'s DoD"
-      status: triage
+      status: fixed
       severity: low
       phase: ""
       note: "Independent re-review 2026-08-06 (round 3). CHG-Cold-Sessions-Read-Grey:68-69 still carries the contradictory follow-up pair; it is not among 907fe14's staged paths, while TASK-0355 and ISS-0116 both tick 'both change notes'. focus.task TASK-0343 (done) and focus.issue ISS-0104 (fixed) are unchanged while ISS-0113 ticks 'move focus onto the work actually in flight' — and focus.note beside them WAS rewritten. TASK-0351's DoD still says reverting the behaviour means deleting a tested function, which the same commit's CHG concedes is false; ISS-0115 ticks correcting it."
     ISS-0117:
       file: "docs/issues/ISS-0117-The-Snapshot-Task-List-Was-Still-Not-Extended.md"
       title: "`items.features.FEAT-0081.tasks` still lists five of thirteen tasks — the finding [[ISS-0116]] filed, ticked as fixed and asserted as corrected in the change note, in a commit that edits the very file"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Independent re-review 2026-08-06 (round 3). items.features.FEAT-0081.tasks is still [TASK-0343..TASK-0347] against thirteen task files, thirteen in the note's frontmatter and thirteen items.tasks entries with parent: FEAT-0081. fixes: was extended in the same commit; tasks: was not. Ticked in ISS-0116, in TASK-0355's DoD and asserted in CHG-Round-Two's Summary. Fourth appearance of ISS-0112's drift, second time recorded as repaired without being repaired. The round's own corrective ('confirm the file is in the diff') cannot catch it because SNAPSHOT.yaml IS in the diff, and PARENT-BACKLINK walks note frontmatter only — verified by mutation."
@@ -2502,7 +2502,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 3
+    issues_triage: 0
     risks_open: 6
     releases_total: 0
     decisions_total: 9

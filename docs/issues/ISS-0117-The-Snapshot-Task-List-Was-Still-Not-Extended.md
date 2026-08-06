@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0117
 aliases: ["ISS-0117"]
 title: "`items.features.FEAT-0081.tasks` still lists five of thirteen tasks — the finding [[ISS-0116]] filed, ticked as fixed and asserted as corrected in the change note, in a commit that edits the very file"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -73,6 +73,6 @@ ls docs/features/session-economics/plan/tasks | wc -l          # 13
 Five of thirteen, ticked as thirteen, in the round whose subject was ticked boxes that do not match the work.
 
 ## Next Actions
-- [ ] Extend `items.features.FEAT-0081.tasks` to TASK-0343 … TASK-0355
-- [ ] Correct or untick the three places that claim it was already done
-- [ ] Decide whether the corrective is "confirm the file is in the diff" or "confirm the **claim** is in the diff" — the first does not catch this
+- [x] Extend `items.features.FEAT-0081.tasks` to TASK-0343 … TASK-0355
+- [x] Correct or untick the three places that claim it was already done
+- [x] Decide whether the corrective is "confirm the file is in the diff" or "confirm the **claim** is in the diff" — the first does not catch this

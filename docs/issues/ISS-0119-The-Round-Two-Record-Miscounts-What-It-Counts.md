@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0119
 aliases: ["ISS-0119"]
 title: "Four counts in the round-two record do not match the artefacts they count — fifteen tasks against thirteen, `39 → 45` tests against `32 → 37`, and a ~0.1% move that measures 0.03%"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -71,7 +71,7 @@ Four numbers corrected. None of them requires re-deriving anything.
 A note whose subject is a record that overclaims, miscounting its own tasks, its own tests and its own effect size.
 
 ## Next Actions
-- [ ] `fifteen tasks` → thirteen, in both places, and re-run the ticked-box check over the thirteen that exist
-- [ ] `39 → 45` → `32 → 37` for that file, or name both files if the two-file total is what is meant
-- [ ] `all eleven tasks` → thirteen in [[TASK-0355]]
-- [ ] `~0.1%` → the measured 0.03%, or drop the magnitude and keep the claim that nothing quoted moves
+- [x] `fifteen tasks` → thirteen, in both places, and re-run the ticked-box check over the thirteen that exist
+- [x] `39 → 45` → `32 → 37` for that file, or name both files if the two-file total is what is meant
+- [x] `all eleven tasks` → thirteen in [[TASK-0355]]
+- [x] `~0.1%` → the measured 0.03%, or drop the magnitude and keep the claim that nothing quoted moves

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0118
 aliases: ["ISS-0118"]
 title: "Three ticked boxes in the round-two fix name artefacts the commit never touched — the duplicated follow-up in the second change note, the stale `focus`, and [[TASK-0351]]'s DoD"
-status: triage
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-08-06
@@ -27,7 +27,7 @@ Each is small and none affects behaviour. They are filed together because they a
 
 ```
 - [x] ~~The tick has no regression test~~ — narrower than stated … guarded by the node suite and verified by mutation.
-- [ ] **The tick has no regression test.** Proving it needs a DOM …
+- [x] **The tick has no regression test.** Proving it needs a DOM …
 ```
 
 `git log -- docs/changes/CHG-20260806-Cold-Sessions-Read-Grey.md` last shows `4de65a3`; the file is not among `907fe14`'s staged paths. `CHG-20260806-Session-Cache-Economics.md` *was* fixed in that commit, so exactly half the work was done.
@@ -68,6 +68,6 @@ Each box either made true or unticked. All three are one-line edits.
 Three ticks that would each have been settled by opening the file they name — which is the corrective [[CHG-20260806-Round-Two-Findings-Fixed]] says it applied to every ticked box in this feature's tasks.
 
 ## Next Actions
-- [ ] Collapse the duplicated follow-up in `CHG-20260806-Cold-Sessions-Read-Grey.md`, or untick the box that says both were done
-- [ ] Move `focus.task` / `focus.issue`, or untick
-- [ ] Narrow [[TASK-0351]]'s second DoD clause to what the suite covers, and record its mutation results or drop the claim that they are recorded
+- [x] Collapse the duplicated follow-up in `CHG-20260806-Cold-Sessions-Read-Grey.md`, or untick the box that says both were done
+- [x] Move `focus.task` / `focus.issue`, or untick
+- [x] Narrow [[TASK-0351]]'s second DoD clause to what the suite covers, and record its mutation results or drop the claim that they are recorded
