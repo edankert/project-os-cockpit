@@ -35,12 +35,12 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 81
-  ISS: 112
+  ISS: 116
   PHASE: 28
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 353
+  TASK: 355
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -49,7 +49,7 @@ focus:
   feature: "FEAT-0081"
   phase: "PHASE-007"
   issue: "ISS-0104"
-  note: "2026-08-06: Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated. MEASURED FIRST, and the measurement moved the target — across 38 transcripts / 21,607 deduped assistant turns, cache READS are $5,287 of the $6,731 input-side spend; TTL expiry is $236 and sub-hour invalidation $100. Staleness is real and it is ~3.5%; the weight of the context is the 20x lever and nothing in the cockpit says what it weighs (ctx% is fill, not tokens). Two things filed: FEAT-0081 (session economics — weight, warm/cooling/cold, retrospective) and ISS-0104 (11 of 17 sub-hour re-writes were MODEL SWITCHES, which invalidate the whole prefix). The anti-feature is written into FEAT-0081 because it is the obvious request and it is wrong: a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill. PHASE-007 reopened rather than a new phase minted — it already owns the cost/context meters."
+  note: "2026-08-06: Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated. MEASURED FIRST, and the measurement moved the target. Figures are reproducible — `python3 tools/scripts/scan-cache-economics.py` — and these are the CORRECTED ones: across 42 transcripts / 21,924 deduped turns, cache READS are ~$5,360 of ~$6,809 input-side spend; STALENESS means TTL expiry alone at ~$250 (3.7%), and all avoidable re-writes together are ~$336 (4.9%). The weight of the context is the 20x lever and nothing in the cockpit said what it weighs (ctx% is fill, not tokens). ISS-0104: 8 of 14 sub-hour re-writes were MODEL SWITCHES. An earlier version of this note said 11 of 17 and ~3.5% — both wrong, and this note kept saying so for a whole fix round after they were retracted (ISS-0113); the figures now come from a committed script for exactly that reason. The anti-feature is written into FEAT-0081 because it is the obvious request and it is wrong: a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold. PHASE-007 reopened rather than a new phase minted — it already owns the cost/context meters. Two independent reviews, both changes-requested; round 2 found the code fixed and the NOTES overclaiming, which is the same defect as round 1 committed while fixing it."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -59,8 +59,8 @@ items:
       status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347]
-      fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112"]
-      note: "Measured before designed, and the measurement moved the target: cache staleness is ~3.5% of the input bill (TTL expiry $236, sub-hour invalidation $100) against $5,287 for cache READS. The weight of the context is the 20x lever, and nothing says what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
+      fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
+      note: "Measured before designed, and the measurement moved the target: staleness (TTL expiry) is ~$250, 3.7% of the ~$6,809 input-side bill, against ~$5,360 for cache READS; all avoidable re-writes ~$336 (4.9%). Reproduce with tools/scripts/scan-cache-economics.py — the first figures were prose and two of them were impossible (ISS-0111). The weight of the context is the 20x lever, and nothing said what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
       file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
       title: "Turn checkpoints — the workspace captured per agent turn, so a wrong judgment is rewound to the turn before it instead of reverted whole"
@@ -424,6 +424,18 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0354:
+      file: "docs/features/session-economics/plan/tasks/TASK-0354-Usage-Is-Read-Where-It-Lives.md"
+      title: "A turn's usage is read where it actually lives, and one decision keeps one implementation"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0355:
+      file: "docs/features/session-economics/plan/tasks/TASK-0355-The-Record-Stops-Overclaiming.md"
+      title: "The snapshot carries the corrected figures, and no box is ticked for work that was not done"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
     TASK-0348:
       file: "docs/features/session-economics/plan/tasks/TASK-0348-Synthetic-Entries-Are-Not-Turns.md"
       title: "An API-error placeholder is not a turn, and a turn with no timestamp yields no badge"
@@ -1295,6 +1307,34 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0116:
+      file: "docs/issues/ISS-0116-Ticked-Boxes-That-Do-Not-Match-The-Work.md"
+      title: "Five ticked boxes in the fix round describe work that was not done — including the snapshot's own task list, which is now the stale side of the exact drift [[ISS-0112]] was filed about"
+      status: fixed
+      severity: low
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 2). items.features.FEAT-0081.tasks still lists 5 of 11 while the note lists 11 — ISS-0112's drift, sides swapped, and PARENT-BACKLINK is structurally blind to the snapshot side. PARENT-BACKLINK checks parent: only, not the fixes: direction both ISS-0112 and TASK-0353 tick. TASK-0347's DoD was never touched despite ISS-0110 ticking it. '6 of the 17' survives in session_cache.py:484 and PLAN.md:34. Both earlier CHG notes now carry a ticked and an unticked copy of the same follow-up."
+    ISS-0115:
+      file: "docs/issues/ISS-0115-ISS-0110s-Repro-Still-Reproduces.md"
+      title: "[[ISS-0110]]'s repro still reproduces — deleting all three call sites leaves the suite fully green, greener than before, while the change note says it now turns red"
+      status: fixed
+      severity: medium
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 2). Re-ran ISS-0110's repro verbatim against 4de65a3: the three call sites removed, npm run build clean, pytest 784 passed / 1 skipped on a clean tree — fully green, better than the previous round's 1 failure on the mtime check. The pure functions ARE guarded (six mutations, all killed), so the fix is right; the claim 'deleting ISS-0105's behaviour now turns the suite red' is not. Separately tickTemperatures never became an adapter and still restates railKey's rule inline."
+    ISS-0114:
+      file: "docs/issues/ISS-0114-The-Zero-Usage-Filter-Discards-Real-Turns.md"
+      title: "The new all-zero-usage rejection discards five real assistant turns in the measured corpus — one of them read 461,787 cached tokens, recorded in `usage.iterations` where nothing looks"
+      status: fixed
+      severity: medium
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 2). 'An entry that consumed no tokens at all did no work' is falsified by the corpus it was derived from: 5 of 21,940 assistant ids have an all-zero top-level usage with real accounting in usage.iterations[] (420 in / 3461 out / 461,787 cache read on the largest). No quoted figure moves (verified: buckets identical, turns 21,907 -> 21,902), but such an entry can no longer be prev, and if it is the last turn the badge is now derived from the turn BEFORE it — a stale age, which is the ISS-0108 failure arriving through the ISS-0106 fix."
+    ISS-0113:
+      file: "docs/issues/ISS-0113-SNAPSHOT-Still-Quotes-The-Retracted-Figures.md"
+      title: "SNAPSHOT.yaml still carries the whole retracted figure set — `11 of 17`, `~3.5%`, `38 transcripts`, `$236`/`$100` — in the two places [[ISS-0111]] named, while the task that fixed it ticks `SNAPSHOT.yaml` as corrected"
+      status: fixed
+      severity: medium
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 2). ISS-0111 named the focus note and the items.features note explicitly; TASK-0352's DoD ticks 'every quoted figure in ... SNAPSHOT.yaml is re-derived and corrected'; CHG-Review-Findings-Fixed says 'Corrected everywhere'. Commit 4de65a3 touches SNAPSHOT.yaml and leaves both prose notes byte-identical, including '11 of 17', the figure the review proved impossible. This is the surface every session reads first."
     ISS-0112:
       file: "docs/issues/ISS-0112-FEAT-0081-Was-Never-Updated-For-Its-Second-Surface.md"
       title: "FEAT-0081 does not link half its own tasks or the issue it is credited with fixing, while the change note claims the feature was updated — the note and SNAPSHOT.yaml disagree and the validator passes"
@@ -1357,7 +1397,7 @@ items:
       status: fixed
       severity: medium
       phase: "[[PHASE-007-Agent-Instrumentation]]"
-      note: "Measured, not suspected: 11 of the 17 sub-hour full-prefix re-writes across 38 transcripts carried a different model than the preceding turn. The cockpit cannot PREVENT the switch — it does not own the session — so the ask is that it be named and priced where it happens. CLAUDE.md already documents the route in: a resumed session keeps its transcript's model, so /model gets used to correct it once the context is already large."
+      note: "Measured, not suspected: 8 of the 14 sub-hour full-prefix re-writes carried a different model than the preceding turn (corrected from 11 of 17 — see ISS-0106/ISS-0111; reproduce with tools/scripts/scan-cache-economics.py). The cockpit cannot PREVENT the switch — it does not own the session — so the ask is that it be named and priced where it happens. CLAUDE.md already documents the route in: a resumed session keeps its transcript's model, so /model gets used to correct it once the context is already large."
     ISS-0102:
       file: "docs/issues/ISS-0102-The-Attention-Pill-Borrowed-Another-Surfaces-Words.md"
       title: "The attention count borrowed the agent-state vocabulary, a red used nowhere else for it, and the shape of a control it did not have"
@@ -2432,8 +2472,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 81
     features_done: 55
-    tasks_total: 353
-    tasks_done: 282
+    tasks_total: 355
+    tasks_done: 284
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

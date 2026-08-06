@@ -56,7 +56,6 @@ Of the 14 sub-hour re-writes, **8 carried a different model than the preceding t
 
 ## Follow-ups
 
-- [ ] **Independent review is owed** (QUALITY.md / LIFECYCLE step 8): this change carries a `CHG-*` note and transitions a feature to `done`. Not yet run.
 - [ ] The retrospective endpoint has no surface. It was built because it is what turns an invisible cost into a number, but where it renders on the overview is deliberately unresolved until there is a number to look at (PLAN.md, open questions).
 - [x] ~~Independent review is owed~~ — run 2026-08-06, returned `changes-requested`; the seven findings are fixed under TASK-0348…TASK-0353 and the figures above are the corrected ones.
 - [ ] The price table in `session_cache.py` drifts with published pricing and nothing detects that. Cheap to correct, invisible when wrong.

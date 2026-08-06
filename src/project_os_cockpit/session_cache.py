@@ -265,6 +265,44 @@ class CacheHistory:
         }
 
 
+#: The token counters that decide whether an entry did any work.
+TOKEN_FIELDS = (
+    "cache_read_input_tokens", "cache_creation_input_tokens",
+    "input_tokens", "output_tokens",
+)
+
+
+def _effective_usage(usage: dict[str, Any]) -> dict[str, Any]:
+    """The usage block that actually carries this turn's numbers.
+
+    Normally that is the block itself. When every top-level counter is
+    zero but ``usage.iterations`` holds real figures, the numbers live
+    one level down and this returns the serving attempt instead
+    (ISS-0114).
+
+    The **last** iteration, not the sum: `prefix_tokens` answers "what
+    will the next turn read or re-write", which is the attempt that
+    produced this message. Summing would double-count a turn that fell
+    back between models. Every entry observed in this corpus has exactly
+    one iteration, so the two agree there — the distinction only bites
+    on a server-side fallback, and then last-attempt is the correct
+    answer for weight even though sum is the correct answer for billing.
+    """
+    def _int(source: dict[str, Any], key: str) -> int:
+        val = source.get(key)
+        return int(val) if isinstance(val, (int, float)) else 0
+
+    if any(_int(usage, k) for k in TOKEN_FIELDS):
+        return usage
+    iterations = usage.get("iterations")
+    if not isinstance(iterations, list):
+        return usage
+    for entry in reversed(iterations):
+        if isinstance(entry, dict) and any(_int(entry, k) for k in TOKEN_FIELDS):
+            return entry
+    return usage
+
+
 def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
     """A deduplicatable assistant turn, or ``None`` for anything else.
 
@@ -281,9 +319,17 @@ def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
     statistic this module was written to produce.
 
     The rejection is on the **shape of the data** rather than the
-    sentinel alone: an entry that consumed no tokens at all did no work,
-    whatever it calls itself, so a future placeholder under a different
-    name cannot reintroduce the defect.
+    sentinel alone — no tokens *anywhere* in the entry — so a future
+    placeholder under a different name cannot reintroduce the defect.
+
+    "Anywhere" is load-bearing (ISS-0114). A first version of this test
+    read only the top-level `usage` totals and argued that an entry
+    consuming nothing did no work. Five entries in the corpus it was
+    derived from falsify that: their top-level totals are all zero and
+    the real accounting sits in ``usage.iterations`` — one of them a
+    ``stop_reason: tool_use`` turn that read 461,787 cached tokens. They
+    are turns, and both dropping them and counting them as zero are
+    wrong, so the totals are taken from wherever they actually are.
     """
     if entry.get("type") != "assistant":
         return None
@@ -293,6 +339,11 @@ def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
     usage = msg.get("usage")
     if not isinstance(usage, dict):
         return None
+    model = msg.get("model")
+    if model == SYNTHETIC_MODEL:
+        return None
+
+    usage = _effective_usage(usage)
     creation = usage.get("cache_creation")
     creation = creation if isinstance(creation, dict) else {}
 
@@ -300,13 +351,7 @@ def _turn_from_entry(entry: dict[str, Any]) -> TurnUsage | None:
         val = source.get(key)
         return int(val) if isinstance(val, (int, float)) else 0
 
-    model = msg.get("model")
-    if model == SYNTHETIC_MODEL:
-        return None
-    if not any(_int(usage, k) for k in (
-        "cache_read_input_tokens", "cache_creation_input_tokens",
-        "input_tokens", "output_tokens",
-    )):
+    if not any(_int(usage, k) for k in TOKEN_FIELDS):
         return None
 
     ts = entry.get("timestamp")
@@ -481,7 +526,7 @@ def _with_age(state: LiveCacheState, now: float | None) -> LiveCacheState:
     """Re-derive age and warm/cooling/cold against the clock.
 
     ``warm`` is a claim this reader cannot actually prove — a cache entry
-    can be evicted before its TTL, and 6 of the 17 measured sub-hour
+    can be evicted before its TTL, and 6 of the 14 measured sub-hour
     re-writes had no model change to explain them. So the state is a
     statement about *elapsed time against the known TTL*, and the UI
     words it that way.

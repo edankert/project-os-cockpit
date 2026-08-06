@@ -25,7 +25,7 @@ tests: []
 - [x] The list re-evaluates on the same tick as the rail, so an entry leaves without an inbound event.
 - [x] The panel's empty state is reached when every waiting session has gone cold, and reads as a real answer rather than a rendering accident.
 - [x] No resume cost is added to the rows — the rows in question are gone, which is the point.
-- [x] The T+59min-present / T+61min-absent boundary is proven. *(Honest scope: the node suite proves it for the shared `cacheTemperature` decision; the list actually emptying was verified over CDP against the running app, not by a suite — same DOM limitation recorded in [[TASK-0346-Cold-Reads-Grey-And-Actually-Ticks]].)*
+- [x] The T+59min-present / T+61min-absent boundary is proven. *(Scope, corrected twice. Originally ticked for `cacheTemperature` alone; [[TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge]] added `attentionIds`, which is the list's own membership rule and is now guarded across the boundary. What remains unproven by any suite is the DOM adapter that calls it — [[ISS-0115]].)*
 
 ## Steps
 - [x] Filter in `attentionEntries()`.

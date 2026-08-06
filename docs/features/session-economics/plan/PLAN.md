@@ -31,5 +31,5 @@ related: ["[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"]
 
 ## Open questions
 
-- **Cooling threshold.** The 1-hour TTL is what this fleet's sessions use, but a cache entry can be evicted early — TTL is a maximum, not a guarantee, and 6 of the 17 sub-hour re-writes had no model change to explain them. So `warm` is a claim the reader cannot actually prove. Resolved for v1 by wording: the strip says what the *elapsed* time is against the known TTL, not that the cache is definitely present.
+- **Cooling threshold.** The 1-hour TTL is what this fleet's sessions use, but a cache entry can be evicted early — TTL is a maximum, not a guarantee, and 6 of the 14 sub-hour re-writes had no model change to explain them. So `warm` is a claim the reader cannot actually prove. Resolved for v1 by wording: the strip says what the *elapsed* time is against the known TTL, not that the cache is definitely present.
 - **Where the retrospective figure is rendered.** The endpoint lands in TASK-0344; its home on the overview is deliberately unresolved until there is a number to look at. Not a blocker — the API is useful to the scan script regardless.

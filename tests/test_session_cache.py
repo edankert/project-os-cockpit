@@ -491,6 +491,128 @@ def test_synthetic_entry_is_skipped_even_when_it_reports_tokens(
     assert hist.events[0].prev_model == "claude-opus-5"
 
 
+def _iterations_only(mid: str, minutes: float, *, read: int, write: int,
+                     model: str = "claude-opus-5") -> list[str]:
+    """A real turn whose totals sit in `usage.iterations` only.
+
+    Observed shape: `stop_reason: tool_use`, a thinking block, every
+    top-level counter zero, and the accounting one level down.
+    """
+    return [json.dumps({
+        "type": "assistant", "timestamp": _ts(minutes),
+        "message": {
+            "id": mid, "model": model, "stop_reason": "tool_use",
+            "content": [{"type": "thinking", "thinking": ""}],
+            "usage": {
+                "input_tokens": 0, "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 0, "output_tokens": 0,
+                "iterations": [{
+                    "type": "message", "input_tokens": 420, "output_tokens": 3461,
+                    "cache_read_input_tokens": read,
+                    "cache_creation_input_tokens": write,
+                }],
+            },
+        },
+    })]
+
+
+def test_iterations_only_entry_is_a_real_turn_with_its_real_figures(
+    tmp_path: Path,
+) -> None:
+    """ISS-0114: five of these exist in the corpus, one reading 461,787
+    cached tokens. Dropping them and counting them as zero are both
+    wrong — the numbers just live one level down."""
+    path = _write(tmp_path, _iterations_only("m1", 0, read=461_787, write=3_112))
+    hist = sc.history(path)
+    assert hist is not None
+    assert hist.turns == 1
+    assert hist.read_tokens == 461_787
+    assert hist.write_tokens == 3_112
+    st = sc.live_state(path, now=(BASE + _dt.timedelta(minutes=1)).timestamp())
+    assert st is not None
+    assert st.prefix_tokens == 464_899
+
+
+def test_iterations_only_entry_can_be_the_previous_turn(tmp_path: Path) -> None:
+    """The ISS-0106 failure mode arriving through its own fix: if this
+    entry is dropped, the gap and the model come from the turn before
+    it, which is the defect ISS-0108 records."""
+    lines = (
+        _iterations_only("m1", 0, read=461_787, write=3_112, model="claude-opus-4-8")
+        + _turn("m2", 20, read=0, write=470_000, model="claude-opus-4-8")
+    )
+    hist = sc.history(_write(tmp_path, lines))
+    assert hist is not None
+    assert hist.turns == 2
+    ev = hist.events[0]
+    assert ev.prev_model == "claude-opus-4-8"
+    assert ev.gap_seconds == 20 * 60           # not measured from an earlier turn
+    assert ev.cause == sc.CAUSE_OTHER          # 20 min gap, same model
+
+
+def test_multiple_iterations_use_the_serving_attempt(tmp_path: Path) -> None:
+    """A server-side fallback records every attempt. `prefix_tokens`
+    answers "what will the next turn read", which is the attempt that
+    produced this message — the last one. Summing would double-count a
+    prefix that only ever existed once, and taking the first would
+    report the declined attempt's numbers."""
+    entry = [json.dumps({
+        "type": "assistant", "timestamp": _ts(0),
+        "message": {
+            "id": "fb1", "model": "claude-opus-4-8",
+            "usage": {
+                "input_tokens": 0, "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 0, "output_tokens": 0,
+                "iterations": [
+                    {"type": "message", "input_tokens": 11,
+                     "cache_read_input_tokens": 100_000,
+                     "cache_creation_input_tokens": 1_000},   # declined
+                    {"type": "fallback_message", "input_tokens": 12,
+                     "cache_read_input_tokens": 400_000,
+                     "cache_creation_input_tokens": 5_000},   # served
+                ],
+            },
+        },
+    })]
+    hist = sc.history(_write(tmp_path, entry))
+    assert hist is not None
+    assert hist.read_tokens == 400_000, "must be the serving attempt, not the first"
+    assert hist.write_tokens == 5_000
+    assert hist.read_tokens + hist.write_tokens != 506_000, "must not be the sum"
+
+
+def test_synthetic_entry_is_still_rejected_even_with_iterations(
+    tmp_path: Path,
+) -> None:
+    """Widening where the totals are read must not re-admit placeholders."""
+    err = [json.dumps({
+        "type": "assistant", "timestamp": _ts(1),
+        "message": {"id": "e1", "model": "<synthetic>",
+                    "usage": {"input_tokens": 0, "cache_read_input_tokens": 0,
+                              "cache_creation_input_tokens": 0, "output_tokens": 0,
+                              "iterations": [{"type": "message", "input_tokens": 9,
+                                              "output_tokens": 1}]}},
+    })]
+    hist = sc.history(_write(tmp_path, _turn("m1", 0, read=9_000, write=5_000) + err))
+    assert hist is not None
+    assert hist.turns == 1
+
+
+def test_zero_everywhere_is_still_rejected(tmp_path: Path) -> None:
+    """An empty iterations list must not resurrect a placeholder."""
+    zero = [json.dumps({
+        "type": "assistant", "timestamp": _ts(1),
+        "message": {"id": "z2", "model": "claude-opus-5",
+                    "usage": {"input_tokens": 0, "cache_read_input_tokens": 0,
+                              "cache_creation_input_tokens": 0, "output_tokens": 0,
+                              "iterations": [{"type": "message", "input_tokens": 0,
+                                              "output_tokens": 0}]}},
+    })]
+    hist = sc.history(_write(tmp_path, _turn("m1", 0, read=9_000, write=5_000) + zero))
+    assert hist is not None
+    assert hist.turns == 1
+
+
 def test_zero_usage_entry_is_skipped_under_any_model_name(tmp_path: Path) -> None:
     """The guard is on the SHAPE of the data, not the sentinel string —
     a future placeholder under a different name must not slip through."""

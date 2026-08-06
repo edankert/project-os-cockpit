@@ -23,7 +23,9 @@ tasks:
   - "[[TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge]]"
   - "[[TASK-0352-The-Scan-Committed-And-The-Figures-Corrected]]"
   - "[[TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways]]"
-fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112"]
+  - "[[TASK-0354-Usage-Is-Read-Where-It-Lives]]"
+  - "[[TASK-0355-The-Record-Stops-Overclaiming]]"
+fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
 release: ""
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
@@ -84,7 +86,7 @@ Recorded here because "just refresh the cache in the background" is the obvious 
 - Given a repo with transcripts, the retrospective figure reports full-prefix re-writes split into session-start / TTL-expiry / sub-hour-invalidation, and the sub-hour bucket distinguishes model-switch from other.
 - Given a session past its TTL, the rail square reads grey rather than pulsing, and the transition happens **on a clock** with no inbound event — the premise is a session where nothing is occurring.
 - Given a session past its TTL, it is absent from the NEEDS YOU list, and present again if it takes another turn.
-- Given an API-error placeholder in a transcript, it is not counted as a turn, does not become the previous turn, and cannot produce a model-switch classification.
+- Given an API-error placeholder in a transcript, it is not counted as a turn, does not become the previous turn, and cannot produce a model-switch classification. A turn whose totals live in `usage.iterations` rather than at the top level is **not** a placeholder and keeps its real figures.
 - Given a session whose last turn switched model, the switch is announced while it is fresh and then gives way to the standing warm / cooling / cold state; the badge's colour always follows the actual temperature.
 - Given a turn with no usable timestamp, no badge is rendered at all — absence is never reported as a confident `cold`.
 - Reading a 30MB transcript for live state does not read 30MB: the live path reads a bounded tail.

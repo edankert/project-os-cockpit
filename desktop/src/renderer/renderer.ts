@@ -12412,9 +12412,11 @@ function tickTemperatures(): void {
     const li = listEl.querySelector<HTMLLIElement>(`li.ws-square[data-id="${CSS.escape(wsId)}"]`);
     const ws = workspaces.find((w) => w.id === wsId);
     if (!li || !ws) continue;
-    const cold = cacheTemperature(state, now) === 'cold';
+    // ISS-0115: this used to restate railKey's rule inline, so the cold
+    // decision had two implementations and only one was tested. Ask the
+    // tested one what it wants painted, and compare that to what is.
     const painted = li.classList.contains('state-idle');
-    const shouldBeIdle = cold || !!state.decayed_from || state.state === 'idle';
+    const shouldBeIdle = railKey(state, now) === 'idle';
     if (shouldBeIdle !== painted) {
       applyAgentStateToSquare(li, ws);
       listStale = true;
