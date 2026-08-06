@@ -7,7 +7,7 @@ status: done
 order: 7
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
+updated: 2026-08-06
 goal: "The embedded terminal understands the agent running inside it: lifecycle hooks feed agent state, activity, cost, and needs-input signals into the cockpit automatically, and the cockpit dispatches project-os tasks back to the agent."
 features:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
@@ -19,6 +19,9 @@ features:
   - "[[FEAT-0025-Dispatch-Runtime]]"
   - "[[FEAT-0026-Verb-Polish]]"
   - "[[FEAT-0027-External-Session-Signal]]"
+  - "[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]"
+issues:
+  - "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"
 depends: ["[[PHASE-006-Native-Cockpit-UI]]"]
 related: ["[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0013-Agent-State-Signal]]"]
 ---
@@ -63,3 +66,11 @@ On top of that push feed, this phase builds the surfaces that make the cockpit a
 ## Close-out (2026-07-20)
 
 All in-scope features and tasks are complete (FEAT-0018..0037 done, tasks 0114..0173 resolved). The phase's exit criteria above are left unchecked deliberately: they correspond to TST-0011, the manual live-agent e2e checklist (launch a real claude/codex, trigger a permission prompt, observe OS notifications) that the user chose to waive in favour of the automated verification performed across the 2026-07-20 sweep (instrumentation-pipeline smoke test against the sidecar, CDP UI checks, 409 identity guard, 218 passing unit tests, per-feature independent reviews). The criteria remain the record of what a human pass would confirm.
+
+## Reopened 2026-08-06 — session economics
+
+Set back to `active` for [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]] and [[ISS-0104-Model-Switch-Discards-The-Warm-Cache]], rather than minting a phase for a two-item request (`CLAUDE.md`, "When to open a phase — and when not to"). Reopening is the documented move: set `active`, add the work, close it again.
+
+This phase is the right home because it already owns the surface being extended. FEAT-0019's scope names the "statusline forwarder for cost/context/rate-limit data"; FEAT-0020's names "context-fill and cost meters" in the activity strip. What the new work adds is the fact those meters never carried: `ctx 62%` is fill against the window, and the strip's dollar figure is spend-to-date. Neither answers what the **next turn** costs, which depends on the prefix weight and whether the cache behind it is still warm.
+
+The scope boundary added with this reopening: **no cache warming, ever.** A keep-warm ping costs 2× the full prefix each time against 2× once for letting it expire, so the obvious automation is a net cost. See FEAT-0081, "The automation that must not be built".

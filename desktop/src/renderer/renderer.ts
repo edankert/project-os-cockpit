@@ -9208,6 +9208,8 @@ const agentStripAgent = $<HTMLSpanElement>('#agent-strip-agent');
 const agentStripText = $<HTMLSpanElement>('#agent-strip-text');
 const agentStripUndoc = $<HTMLSpanElement>('#agent-strip-undoc');
 const agentStripCtx = $<HTMLSpanElement>('#agent-strip-ctx');
+const agentStripWeight = $<HTMLSpanElement>('#agent-strip-weight');
+const agentStripCache = $<HTMLSpanElement>('#agent-strip-cache');
 const agentStripCost = $<HTMLSpanElement>('#agent-strip-cost');
 const agentStripExpand = $<HTMLButtonElement>('#agent-strip-expand');
 const agentStripDetail = $<HTMLDivElement>('#agent-strip-detail');
@@ -9229,6 +9231,84 @@ function agentStateLabel(state: string | undefined): string {
     case 'error': return 'error';
     default: return state || '';
   }
+}
+
+// Prompt-cache standing for the shown session (FEAT-0081 / TASK-0344).
+// Served on the agent snapshot, read from the transcript by the sidecar.
+interface AgentCacheState {
+  prefix_tokens: number;
+  last_turn_at: string;
+  age_seconds: number;
+  ttl_seconds: number;
+  model?: string | null;
+  state: 'warm' | 'cooling' | 'cold';
+  resume_cost_usd: number;
+  warm_cost_usd: number;
+  cooling_minutes_left?: number;
+  model_switch?: {
+    from: string; to: string; discarded_tokens: number; cost_usd: number;
+  };
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
+
+// Costs here are estimates — the token counts are exact but the dollars
+// come from a per-family price table that drifts, so they are rounded
+// hard and always prefixed with `~`. Sub-cent figures round to `~$0.00`
+// rather than growing a third decimal: the precision would be fiction.
+function approxUsd(n: number): string {
+  return `~$${n.toFixed(2)}`;
+}
+
+function renderAgentStripCache(cache: AgentCacheState | null | undefined): void {
+  if (!cache || !cache.prefix_tokens) {
+    agentStripWeight.hidden = true;
+    agentStripCache.hidden = true;
+    return;
+  }
+  // Absolute weight, distinct from `ctx %`: the percentage is fill
+  // against the window, this is what a cold turn re-writes.
+  agentStripWeight.textContent = formatTokens(cache.prefix_tokens);
+  agentStripWeight.hidden = false;
+
+  const warm = approxUsd(cache.warm_cost_usd);
+  const cold = approxUsd(cache.resume_cost_usd);
+  let label: string;
+  let title: string;
+  if (cache.state === 'cold') {
+    label = `cold · ${cold}`;
+    title = `Cache older than its ${Math.round(cache.ttl_seconds / 60)}min TTL. `
+      + `Next turn re-writes ${formatTokens(cache.prefix_tokens)} tokens (${cold}) `
+      + `instead of reading them (${warm}). Starting a fresh session costs neither.`;
+  } else if (cache.state === 'cooling') {
+    const left = cache.cooling_minutes_left ?? 0;
+    label = `cooling ${left}m`;
+    title = `About ${left} min before this session's cache passes its TTL. `
+      + `After that the next turn re-writes ${formatTokens(cache.prefix_tokens)} tokens `
+      + `(${cold}) instead of reading them (${warm}).`;
+  } else {
+    label = 'warm';
+    title = `Last turn ${Math.round(cache.age_seconds / 60)} min ago, inside the `
+      + `${Math.round(cache.ttl_seconds / 60)}min TTL. Next turn reads `
+      + `${formatTokens(cache.prefix_tokens)} tokens (${warm}) rather than re-writing them (${cold}).`;
+  }
+  // ISS-0104: a switch that discarded a warm prefix is worth saying out
+  // loud, and it outranks the state word — the cost is already paid.
+  if (cache.model_switch) {
+    const sw = cache.model_switch;
+    label = `model switch · ${approxUsd(sw.cost_usd)}`;
+    title = `Switching ${sw.from} → ${sw.to} discarded `
+      + `${formatTokens(sw.discarded_tokens)} cached tokens; the cache is model-scoped, `
+      + `so that prefix was re-written at the cache-write rate (${approxUsd(sw.cost_usd)}).`;
+  }
+  agentStripCache.textContent = label;
+  agentStripCache.title = title;
+  agentStripCache.dataset.cache = cache.model_switch ? 'cold' : cache.state;
+  agentStripCache.hidden = false;
 }
 
 function renderAgentStripCost(cost: AgentCostSnapshot | null | undefined): void {
@@ -9263,6 +9343,7 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
     agentStrip.hidden = activeQueueItems.length === 0;
     agentStripDetail.hidden = true;
     agentStripExpand.setAttribute('aria-expanded', 'false');
+    renderAgentStripCache(null);
     renderInflightBoxes();  // hides the boxes when there is no session
     return;
   }
@@ -9296,6 +9377,7 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
   agentStripText.title = stripLastPrompt;
   agentStripUndoc.hidden = !((live && activity?.undocumented) || session.undocumented);
   renderAgentStripCost(session.cost || (live ? activity?.cost : undefined));
+  renderAgentStripCache(lastAgentSnap?.cache);
   renderInflightBoxes();  // inline in-flight boxes before ctx (FEAT-0038)
 }
 
@@ -9661,6 +9743,8 @@ interface AgentSnap {
   // Freshest account-global usage across all sessions (TASK-0171).
   rate_limits?: Record<string, { used_percentage: number; resets_at?: string }>;
   rate_limits_at?: string;
+  // Prompt-cache standing of the shown session (FEAT-0081 / TASK-0344).
+  cache?: AgentCacheState | null;
 }
 let lastAgentSnap: AgentSnap | null = null;
 let agentSnapTimer: number | null = null;

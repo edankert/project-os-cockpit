@@ -1,0 +1,62 @@
+---
+type: "[[change]]"
+id: CHG-20260806-Session-Cache-Economics
+aliases: ["CHG-20260806-Session-Cache-Economics"]
+title: "The strip says what a session weighs and whether its cache is still warm; a new endpoint says what re-writes have cost"
+status: merged
+owner: user:edwin
+created: 2026-08-06
+updated: 2026-08-06
+source: ["user:edwin"]
+commit: ""
+pr: ""
+impacts: ["src/project_os_cockpit/session_cache.py", "src/project_os_cockpit/agent_hooks.py", "src/project_os_cockpit/server.py", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/index.html", "desktop/src/renderer/renderer.css"]
+issues: ["ISS-0104"]
+features: ["FEAT-0081"]
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
+related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
+---
+
+# The strip says what a session weighs and whether its cache is still warm
+
+## Summary
+
+Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated away. The work began by **measuring rather than reasoning from the pricing table**, and the measurement changed what got built.
+
+Across 38 transcripts under `~/.claude/projects/` (21,607 deduplicated assistant turns, 2026-08-06): cache **reads** account for ≈$5,287 of ≈$6,731 input-side spend; cache **writes** ≈$1,444. Of the writes, full-prefix re-writes cost ≈$336 — ≈$236 to TTL expiry after >60 min idle, ≈$100 to sub-hour invalidation. So staleness is real and it is **~3.5% of the input bill**, while the weight of the context itself is the 20× larger lever and appears nowhere in the UI (`ctx 62%` is fill against the window, not tokens, and not cost).
+
+New module `session_cache.py` reads the transcript the tracker has stored a path to since FEAT-0019, and derives: prefix weight, cache age against the TTL the cache was written under, the cost of the next turn warm against cold, and a classification of every full-prefix re-write. Two entry points — a **bounded tail read** for the live badge (transcripts here reach 34MB and the strip re-renders on every snapshot) and a full streaming scan for the retrospective, both memoised against `(path, mtime, size)`.
+
+Of the 17 sub-hour re-writes, **11 carried a different model than the preceding turn** — the cache is model-scoped, so switching model discards the whole prefix ([[ISS-0104]]). That is now named where it happens.
+
+**One thing was deliberately not built.** A keep-warm ping costs 2× the full prefix *every ping*, against 2× *once* for letting the cache expire — so background re-warming is strictly more expensive than doing nothing, and `max_tokens: 0` pre-warming pays the same write. The obvious feature request would have raised the bill. It is recorded as an explicit non-goal in FEAT-0081 and in PHASE-007's scope, because it will be proposed again.
+
+## Impact
+
+- **New:** `GET /api/cockpit/session-cache` — retrospective per-workspace accounting, split by cause (`ttl-expiry` / `model-switch` / `other` / `session-start`). Costs are estimates from a per-family price table; the token counts beside them are exact.
+- **Changed:** `/api/cockpit/state` gains an optional `cache` block for the session being shown. Absent when there is no transcript, no usage data, or an unreadable file — never an error.
+- **Changed:** the agent strip gains two spans — prefix weight (`610k`) and cache standing (`warm` / `cooling 12m` / `cold · ~$6.10`, or `model switch · ~$6.05`). Only the cold and cooling states take colour; a badge that is always lit stops being read.
+- **No behavioural change to ingestion, dispatch, or any existing surface.** Nothing in this change issues an API request.
+- Cost figures render with `~` and two decimals throughout. They are derived from a hard-coded price table that drifts, and must not be read as billing.
+
+## Documentation Coverage (All Types Considered)
+
+- features: new — [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]
+- requirements: not-applicable
+- tasks: new — TASK-0343, TASK-0344, TASK-0345
+- issues: new — [[ISS-0104-Model-Switch-Discards-The-Warm-Cache]] (filed and fixed)
+- tests: new — `tests/test_session_cache.py` (19), `tests/test_session_cache_surface.py` (7). No `TST-*` note: these are automated tests, and the feature gates on no manual verification.
+- workflows: not-applicable
+- decisions: not-applicable — the no-keep-warm rule is recorded in the feature and the phase rather than as an ADR, because it is arithmetic rather than a choice between options. Promote it if a second surface ever wants to warm a cache.
+- risks: not-applicable — read-only file parsing of a path the tracker already stores; no new dependency, env var, or credential surface.
+- changes: this note
+- snapshot: updated — counters, `items.features/tasks/issues`, focus, PHASE-007 reopened and re-closed
+
+## Follow-ups
+
+- [ ] **Independent review is owed** (QUALITY.md / LIFECYCLE step 8): this change carries a `CHG-*` note and transitions a feature to `done`. Not yet run.
+- [ ] The retrospective endpoint has no surface. It was built because it is what turns an invisible cost into a number, but where it renders on the overview is deliberately unresolved until there is a number to look at (PLAN.md, open questions).
+- [ ] The price table in `session_cache.py` drifts with published pricing and nothing detects that. Cheap to correct, invisible when wrong.
+- [ ] `warm` is a claim the reader cannot prove — entries can be evicted before their TTL, and 6 of the 17 measured sub-hour re-writes had no model change to explain them. The wording says "elapsed against the known TTL" rather than asserting presence; if that proves misleading in use, the honest fix is to weaken the word rather than the measurement.

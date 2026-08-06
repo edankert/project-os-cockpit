@@ -820,6 +820,10 @@ def _make_handler(
                 self._serve_cockpit_sessions()
                 return
 
+            if path == "/api/cockpit/session-cache":
+                self._serve_cockpit_session_cache()
+                return
+
             if path == "/api/cockpit/actions":
                 self._serve_cockpit_actions()
                 return
@@ -2082,6 +2086,22 @@ def _make_handler(
             self._respond_json({
                 "schema_version": cockpit.SCHEMA_VERSION,
                 "sessions": tracker.sessions_payload(),
+            })
+
+        def _serve_cockpit_session_cache(self) -> None:
+            """``GET /api/cockpit/session-cache`` — retrospective
+            prompt-cache accounting for this workspace (FEAT-0081 /
+            TASK-0345).
+
+            What full-prefix re-writes have cost here, split by cause:
+            TTL expiry, model switch (ISS-0104), and the honest ``other``
+            bucket for entries evicted before their TTL. Costs are
+            estimates derived from a per-family price table; the token
+            counts beside them are exact.
+            """
+            self._respond_json({
+                "schema_version": cockpit.SCHEMA_VERSION,
+                **tracker.cache_report(),
             })
 
         def _serve_check_toggle(self) -> None:

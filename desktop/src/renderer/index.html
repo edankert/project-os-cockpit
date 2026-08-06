@@ -215,6 +215,11 @@
              they complete. -->
         <span id="agent-strip-inflight" class="agent-strip-inflight" hidden></span>
         <span id="agent-strip-ctx" class="agent-strip-meter" hidden title="Context window used"></span>
+        <!-- Prefix weight and cache standing (FEAT-0081 / TASK-0344).
+             `ctx %` is fill against the window; these are what the next
+             turn actually costs. -->
+        <span id="agent-strip-weight" class="agent-strip-meter" hidden title="Conversation weight — tokens the next turn reads or re-writes"></span>
+        <span id="agent-strip-cache" class="agent-strip-meter agent-strip-cache" hidden></span>
         <span id="agent-strip-cost" class="agent-strip-meter" hidden title="Session cost"></span>
         <button id="agent-strip-queue" type="button" class="agent-strip-queue" hidden
                 title="Queued dispatches (click to manage)"></button>

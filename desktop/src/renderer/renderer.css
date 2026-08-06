@@ -2983,6 +2983,12 @@ a.ov-phase-title:hover {
   color: var(--text-muted);
 }
 .agent-strip-meter.meter-hot { color: var(--severity-critical); font-weight: 600; }
+/* Cache standing (FEAT-0081 / TASK-0344). Three states, and only the
+   cold one earns colour: warm is the expected case and a badge that is
+   always lit stops being read. `cooling` borrows the medium severity
+   already used for "worth knowing, not urgent". */
+.agent-strip-cache[data-cache="cooling"] { color: var(--severity-medium); }
+.agent-strip-cache[data-cache="cold"] { color: var(--severity-high); font-weight: 600; }
 .agent-strip-expand {
   flex: none;
   background: transparent;
