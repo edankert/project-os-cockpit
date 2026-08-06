@@ -943,7 +943,8 @@ before(async () => {
     path.join(here, '..', 'dist', 'renderer', 'completed-work.js'), 'utf-8');
   cw = new Function(`${src}
     return { openFirst, groupIsSettled, foldGroup, completionRank, contextGroupRows,
-             uniformStatus, groupHeadSummary, shortNoteId };`)();
+             uniformStatus, groupHeadSummary, shortNoteId,
+             phaseOpensByDefault, phaseIsActiveStatus };`)();
 });
 
 test('open work sorts above completed work', () => {
@@ -1166,4 +1167,56 @@ test('shortening never produces an empty or partial handle', () => {
   // returning a bare date that no longer looks like an id.
   assert.equal(cw.shortNoteId('CHG-20260802'), 'CHG-20260802');
   assert.equal(cw.shortNoteId('CHANGES-README'), 'CHANGES-README');
+});
+
+// ---- which phases expand on first paint (ISS-0103) -------------------
+
+test('a phase opens by default only when it is active AND has work in flight', () => {
+  // Both conditions, never either. The whole truth table, because "or"
+  // is the plausible mis-edit and it is one character away: it would
+  // re-open five of your-health's six phases.
+  const cases = [
+    // status,    inFlight, complete, opens
+    ['active',    3,        false,    true ],
+    ['doing',     1,        false,    true ],
+    ['active',    0,        false,    false],  // nobody is actually in it
+    ['planned',   10,       false,    false],  // work started ahead of its phase
+    ['planned',   0,        false,    false],
+    ['backlog',   4,        false,    false],
+    ['draft',     0,        false,    false],
+    ['deferred',  2,        false,    false],
+    ['active',    9,        true,     false],  // completed always closes
+  ];
+  for (const [status, inFlight, complete, opens] of cases) {
+    assert.equal(cw.phaseOpensByDefault(status, inFlight, complete), opens,
+      `${status} / ${inFlight} in flight / complete=${complete}`);
+  }
+});
+
+test('completed wins over everything, and an unknown status never opens', () => {
+  // The default is quiet-first: a status nobody has taught this function
+  // about is not evidence that someone is in the phase. This is the
+  // OPPOSITE of completionRank's unknown-ranks-open rule, and deliberately
+  // so — there, an unknown status must not be buried; here, an unknown
+  // status must not shout.
+  for (const status of ['wat', '', null, undefined, 'ACTIVE-ish', 'reactivated']) {
+    assert.equal(cw.phaseOpensByDefault(status, 5, false), false,
+      `unrecognised status ${String(status)} should not open`);
+  }
+  assert.equal(cw.phaseIsActiveStatus('ACTIVE'), true, 'case must not matter');
+  assert.equal(cw.phaseIsActiveStatus('Doing'), true);
+  assert.equal(cw.phaseIsActiveStatus('planned'), false);
+});
+
+test('a missing or nonsense in-flight count closes the phase', () => {
+  // `inFlight > 0` rather than a truthiness test: NaN is what a broken
+  // payload produces, and `if (inFlight)` on NaN is false but on -0 is
+  // also false while `-0 > 0` is false too — the comparison is the one
+  // that stays correct for every input rather than for the ones we pass.
+  for (const n of [0, -1, NaN, -0]) {
+    assert.equal(cw.phaseOpensByDefault('active', n, false), false,
+      `in-flight ${String(n)} should not open the phase`);
+  }
+  assert.equal(cw.phaseOpensByDefault('active', 0.5, false), true,
+    'any positive count is work in flight');
 });

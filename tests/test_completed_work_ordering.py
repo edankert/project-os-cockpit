@@ -1822,3 +1822,79 @@ def test_attention_reads_inline_with_the_progress_it_belongs_to() -> None:
             f"the inline attention sets `{prop}` — it must differ from the "
             "progress text it sits in by COLOUR alone"
         )
+
+
+def test_the_open_by_default_rule_is_wired_to_the_number_the_row_prints() -> None:
+    """ISS-0103. The rule itself is a truth table in `completed-work.ts` and
+    is tested as one by `fleet-health.test.mjs`; what cannot be tested there
+    is the WIRING, and the wiring is where this could go wrong silently.
+
+    Two ways it could:
+
+    1. `phaseIsOpen` stops consulting the rule and goes back to `!complete`.
+       Every phase re-opens and the page is loud again.
+    2. The rule is consulted but fed `p.tasks.in_progress` instead of
+       `countInFlight(p)`. Those are two different definitions of in-flight
+       — the row would print one number and open on the other — and ISS-0023
+       is the eight-copy version of exactly that.
+    """
+    src = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    body = _renderer_bodies(src, ["phaseIsOpen"])["phaseIsOpen"]
+    # Comments stripped before the negative assertions: the first version of
+    # this guard failed on the comment that EXPLAINS why `in_progress` must
+    # not be read here. A guard that a correct explanation can break teaches
+    # people to delete the explanation.
+    code = "\n".join(
+        ln for ln in body.splitlines() if not ln.lstrip().startswith(("//", "*", "/*"))
+    )
+
+    assert "phaseOpensByDefault" in code, (
+        "phaseIsOpen no longer consults the open-by-default rule"
+    )
+    assert "countInFlight(p)" in code, (
+        "the rule is not being fed the same in-flight count the row prints"
+    )
+    assert "in_progress" not in code, (
+        "phaseIsOpen reads `tasks.in_progress` — a SECOND definition of "
+        "in-flight, so the row would print one number and open on another"
+    )
+    # The stored value must still win, or an SSE re-render re-collapses a
+    # phase the reader opened — the accordion would fight them.
+    assert "stored === undefined" in code, (
+        "the default no longer defers to a stored open/closed state; an SSE "
+        "re-render will re-collapse whatever the reader opened"
+    )
+
+    # And the rule lives where node can execute it, not in a DOM function.
+    cw = (REPO_ROOT / "desktop" / "src" / "renderer" / "completed-work.ts").read_text(encoding="utf-8")
+    assert "function phaseOpensByDefault(" in cw, (
+        "the rule moved back into the renderer, where it can only be grepped"
+    )
+
+
+def test_one_definition_of_which_phase_statuses_are_active() -> None:
+    """`sortLivePhases` and the open-by-default rule ask the same question —
+    is anyone in this phase — and answered it from two tables until
+    ISS-0103 merged them.
+
+    Guarding this because the drift is invisible: two tables agreeing today
+    look exactly like one table, right up until someone adds a status to
+    the one they happened to be reading.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    cw = (REPO_ROOT / "desktop" / "src" / "renderer" / "completed-work.ts").read_text(encoding="utf-8")
+
+    assert "PHASE_ACTIVE_STATUSES" in cw, "the shared active-status set is gone"
+    assert "PHASE_ACTIVE_STATUSES" not in ts, (
+        "the renderer declares its own copy of the active-status set"
+    )
+    rank = re.search(r"const PHASE_LIVE_RANK[^;]*;", ts, re.DOTALL)
+    assert rank, "PHASE_LIVE_RANK not found"
+    for status in ("active", "doing"):
+        assert status not in rank.group(0), (
+            f"PHASE_LIVE_RANK names `{status}` again — that is the second "
+            "table, and rank 0 must come from phaseIsActiveStatus"
+        )
+    assert "phaseIsActiveStatus" in ts, (
+        "the renderer no longer asks the shared predicate which phases are active"
+    )

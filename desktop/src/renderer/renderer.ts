@@ -5772,17 +5772,25 @@ function phaseIsComplete(p: StatsPhase): boolean {
 // Live phases sort active-first: an `active` phase is where work is happening,
 // and burying it under `planned` ones ordered by `order:` is the same "shouting
 // as loudly as the live one" problem the Completed band fixed, one level down.
+//
+// Rank 0 comes from `phaseIsActiveStatus` rather than from this table: the
+// same question — is anyone in this phase — now also decides which phases
+// expand on first paint (ISS-0103), and two tables answering it would drift.
 const PHASE_LIVE_RANK: Record<string, number> = {
-  active: 0, doing: 0,
   planned: 1, backlog: 1, draft: 1,
 };
+
+function phaseLiveRank(p: StatsPhase): number {
+  if (phaseIsActiveStatus(p.status)) return 0;
+  return PHASE_LIVE_RANK[(p.status ?? '').toLowerCase()] ?? 2;
+}
 
 function sortLivePhases(phases: StatsPhase[]): StatsPhase[] {
   return phases
     .map((p, i) => ({ p, i }))                    // keep `order:` as the tiebreak
     .sort((a, b) => {
-      const ra = PHASE_LIVE_RANK[(a.p.status ?? '').toLowerCase()] ?? 2;
-      const rb = PHASE_LIVE_RANK[(b.p.status ?? '').toLowerCase()] ?? 2;
+      const ra = phaseLiveRank(a.p);
+      const rb = phaseLiveRank(b.p);
       return ra !== rb ? ra - rb : a.i - b.i;
     })
     .map((x) => x.p);
@@ -5790,9 +5798,17 @@ function sortLivePhases(phases: StatsPhase[]): StatsPhase[] {
 
 function phaseIsOpen(p: StatsPhase, complete: boolean): boolean {
   const stored = phaseOpenState.get(p.key);
-  // Default: live phases open (their detail is the point), completed
-  // phases closed (they're history until asked for).
-  return stored === undefined ? !complete : stored;
+  // A stored value always wins: the default describes the FIRST render, and
+  // an SSE re-render must never re-collapse a phase the reader opened.
+  //
+  // The rule itself lives in `completed-work.ts` (ISS-0103) so it can be
+  // tested as a truth table rather than grepped out of a DOM function.
+  // `countInFlight(p)` is what the row prints as `16 in flight`, so the
+  // number you can see is the number that decides — reading
+  // `p.tasks.in_progress` here would be a second definition of in-flight.
+  return stored === undefined
+    ? phaseOpensByDefault(p.status, countInFlight(p), complete)
+    : stored;
 }
 
 function buildPhaseSection(phases: StatsPhase[]): HTMLElement {

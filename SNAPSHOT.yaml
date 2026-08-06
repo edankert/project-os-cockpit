@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 80
-  ISS: 102
+  ISS: 103
   PHASE: 28
   REQ: 31
   RISK: 6

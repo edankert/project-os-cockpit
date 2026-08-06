@@ -7,7 +7,7 @@ status: done
 order: 16
 owner: user:edwin
 created: 2026-07-30
-updated: 2026-07-30
+updated: 2026-08-06
 goal: "Turn the overview from a page of numbers into a page of answers: a validator count becomes work you can watch drain, the history band becomes documents rather than a git log, that history becomes reachable and traversable, and everything on the page says which item it is."
 features:
   - "[[FEAT-0051-Validator-Errors-As-Session-Work]]"
@@ -21,6 +21,7 @@ issues:
   - "[[ISS-0100-Rows-Are-Flex-Chains-Not-Columns]]"
   - "[[ISS-0101-Four-State-Fields-One-Counted-Twice]]"
   - "[[ISS-0102-The-Attention-Pill-Borrowed-Another-Surfaces-Words]]"
+  - "[[ISS-0103-Every-Live-Phase-Opens-Its-Strip]]"
   - "[[ISS-0075-Busiest-Grid-Cells-Render-Smallest]]"
   - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
   - "[[ISS-0077-Phase-Granularity-Collapsed-To-One-Per-Request]]"

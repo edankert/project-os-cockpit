@@ -204,3 +204,57 @@ function shortNoteId(id: string | undefined): string {
   const m = /^(CHG-\d{8})-.+/.exec(id);
   return m ? m[1] : id;
 }
+
+// ---- which phases expand on first paint (ISS-0103) ---------------------
+
+/** Phase statuses that mean "someone is in this phase right now".
+ *
+ *  The single definition. `renderer.ts` sorts live phases active-first and
+ *  decides which ones open, and both used to spell the set out — the
+ *  beginning of exactly the eight-copy drift ISS-0023 measured for item
+ *  statuses. `doing` is here because the fleet's phase notes use both
+ *  words for the same state. */
+const PHASE_ACTIVE_STATUSES: ReadonlySet<string> = new Set(['active', 'doing']);
+
+function phaseIsActiveStatus(status: string | null | undefined): boolean {
+  return PHASE_ACTIVE_STATUSES.has(String(status ?? '').toLowerCase());
+}
+
+/** Whether a phase expands on FIRST render, before anyone has touched it.
+ *
+ *  Both conditions, never either: the phase's own status says someone is in
+ *  it, AND something under it is actually moving. A planned phase with work
+ *  in flight is work that started ahead of its phase; an active phase with
+ *  nothing in flight is a phase nobody is currently in. Neither earns a
+ *  strip of a hundred squares before you have asked for it.
+ *
+ *  This replaced `!complete`, which opened every live phase. Measured on
+ *  first paint before and after:
+ *
+ *    project-os-cockpit   7 of 7 phases open, 99 squares, 655px  →  1, 7, 487px
+ *    your-health          6 of 6 phases open, 303 squares, 580px →  1, 142, 440px
+ *
+ *  Five of your-health's six open strips belonged to phases whose own row
+ *  already read `planned · 0/11 · 0%`. The row had answered the question
+ *  and the strip repeated it at forty times the height.
+ *
+ *  NOTHING IS HIDDEN. A collapsed row keeps its id, title, progress,
+ *  attention count and state, and one click opens it — this is a default,
+ *  not a filter. The distinction is the whole subject of this module: the
+ *  Hide-completed switch emptied three views because it removed rows, and
+ *  the response here is to fold, count, and leave every row addressable.
+ *
+ *  `inFlight` is the caller's, and the caller passes the same
+ *  `countInFlight(p)` it prints as `16 in flight` on the row. The number
+ *  you can see is the number that decides. */
+function phaseOpensByDefault(
+  status: string | null | undefined,
+  inFlight: number,
+  complete: boolean,
+): boolean {
+  if (complete) return false;
+  if (!phaseIsActiveStatus(status)) return false;
+  // `> 0` and not truthiness: a NaN in-flight count must close the phase
+  // rather than opening every one of them, and `NaN > 0` is false.
+  return inFlight > 0;
+}
