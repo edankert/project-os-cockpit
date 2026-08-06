@@ -13,9 +13,9 @@ pr: ""
 impacts: ["desktop/src/renderer/cache-temperature.ts", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/index.html", "desktop/tests/cache-temperature.test.mjs"]
 issues: ["ISS-0105"]
 features: ["FEAT-0081"]
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-06
+review_verdict: changes-requested
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]", "[[CHG-20260806-Session-Cache-Economics]]"]
 ---
 
@@ -68,3 +68,12 @@ The general lesson, which is not new here: a cache keyed on "what I last decided
 - [ ] **The tick has no regression test.** Proving it needs a DOM, and jsdom would contradict the standing decision in `tests/test_desktop_node_suite.py` against bringing a JS test framework into a Python project. If the self-healing comparison regresses, nothing will fail. Worth revisiting if a second time-driven repaint ever appears.
 - [ ] **A blocked session now disappears from NEEDS YOU after an hour**, leaving only the grey square. Intended — a list that never forgets is what was fixed — but it is a lost nag. If work is ever dropped because of it, the answer is a separate stale-obligations surface, not putting them back.
 - [ ] `CACHE_TTL_MS` in the renderer duplicates `TTL_1H` in `session_cache.py`. Duplicated deliberately (the rail must decide for ten workspaces without ten sidecar round-trips, and when no sidecar is running) but nothing detects them drifting apart.
+
+## Independent review — 2026-08-06 (changes-requested)
+
+Reviewed by `model:claude-opus-5` from a fresh session with no access to the authoring session's reasoning; authored by `model:claude-opus-5` (same model family, different context — ADR-0013). Suites re-run green: `pytest` 764 passed / 1 skipped, `validate-docs.sh` OK. Verdict is **changes-requested** on the findings below, filed as issues.
+
+- [[ISS-0110]] — the fix itself is unguarded. Removing all three call sites (the `cold` demotion in `applyAgentStateToSquare`, the filter in `attentionEntries`, and the tick) leaves the suite at `762 passed, 1 failed`, and the one failure is `test_desktop_build_is_not_stale`, an mtime check a rebuild clears. The nine node cases guard `cacheTemperature`, which is the decision, not the fix. The gap is disclosed here for the tick only; it is wider than that, and TASK-0347's "the boundary is proven" is ticked for a list nothing proves.
+- [[ISS-0112]] — "features: updated — FEAT-0081 reopened for its second surface, then closed" is not true of this commit: FEAT-0081 is not among its eleven files. The feature note still lists three of five tasks, does not list ISS-0105 under `fixes:`, and has no acceptance criterion for either behaviour this note describes.
+
+What held up under attack: `cacheTemperature` kills every mutation aimed at it (the `>=` boundary, the busy exemption, a 60× TTL error, `unknown` → `cold`). The painted-vs-remembered comparison in `tickTemperatures` is correct, and the bug recorded above under "The bug the verification caught" is a genuinely good catch that no unit test of this shape could have made.

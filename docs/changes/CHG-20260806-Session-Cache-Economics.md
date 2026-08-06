@@ -13,9 +13,9 @@ pr: ""
 impacts: ["src/project_os_cockpit/session_cache.py", "src/project_os_cockpit/agent_hooks.py", "src/project_os_cockpit/server.py", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/index.html", "desktop/src/renderer/renderer.css"]
 issues: ["ISS-0104"]
 features: ["FEAT-0081"]
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-06
+review_verdict: changes-requested
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
 ---
 
@@ -60,3 +60,15 @@ Of the 17 sub-hour re-writes, **11 carried a different model than the preceding 
 - [ ] The retrospective endpoint has no surface. It was built because it is what turns an invisible cost into a number, but where it renders on the overview is deliberately unresolved until there is a number to look at (PLAN.md, open questions).
 - [ ] The price table in `session_cache.py` drifts with published pricing and nothing detects that. Cheap to correct, invisible when wrong.
 - [ ] `warm` is a claim the reader cannot prove — entries can be evicted before their TTL, and 6 of the 17 measured sub-hour re-writes had no model change to explain them. The wording says "elapsed against the known TTL" rather than asserting presence; if that proves misleading in use, the honest fix is to weaken the word rather than the measurement.
+
+## Independent review — 2026-08-06 (changes-requested)
+
+Reviewed by `model:claude-opus-5` from a fresh session with no access to the authoring session's reasoning; authored by `model:claude-opus-5` (same model family, different context — ADR-0013). Suites re-run green: `pytest` 764 passed / 1 skipped, `validate-docs.sh` OK. Verdict is **changes-requested** on the findings below, filed as issues.
+
+- [[ISS-0106]] (**high**) — Claude Code's `<synthetic>` API-error placeholders are read as real turns. Two of the ten model switches in the fleet retrospective are ECONNRESET artefacts whose real cause is TTL expiry with no model change, and the live badge will render `Switching <synthetic> → claude-opus-5`.
+- [[ISS-0107]] — a model switch on the last turn suppresses the warm/cooling/cold word permanently, and paints a warm session in the cold colour.
+- [[ISS-0108]] — an entry with no timestamp yields `state: cold` with a 56-year age; the Python reader has no `unknown`, which is the principle its own TypeScript half states.
+- [[ISS-0109]] — the bounded tail read has no guard: replacing it with a full-file read leaves all 26 tests green, including the one whose docstring claims boundedness. Mutation table in the issue.
+- [[ISS-0111]] — the quoted figures do not reproduce (sub-hour re-writes fell from 17 to 16 and model switches from 11 to 10 against data that only grows), no scan script was committed, and `$336 / $6,731` is 5.0%, not the ~3.5% quoted here.
+
+What held up under attack: the dedupe, the cost multipliers, the mtime memoisation re-ageing on a cache hit, the TTL-before-model-switch classification order, and every degradation path (absent, empty, truncated, usage-free). The anti-feature reasoning is correct and worth the space it takes.

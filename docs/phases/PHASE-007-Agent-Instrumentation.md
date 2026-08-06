@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-007
 aliases: ["PHASE-007"]
 title: "Agent instrumentation (hooks-aware terminal)"
-status: done
+status: active
 order: 7
 owner: user:edwin
 created: 2026-07-05

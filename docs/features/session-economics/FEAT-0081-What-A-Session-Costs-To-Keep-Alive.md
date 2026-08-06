@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0081
 aliases: ["FEAT-0081"]
 title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
-status: done
+status: doing
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-08-06
@@ -17,6 +17,9 @@ tasks:
   - "[[TASK-0345-Model-Switch-Named-Where-It-Happens]]"
 fixes: ["ISS-0104"]
 release: ""
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-06
+review_verdict: changes-requested
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"]
 tests: []
 ---
@@ -73,3 +76,13 @@ Recorded here because "just refresh the cache in the background" is the obvious 
 - Fixes: [[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]
 - Tasks: [[TASK-0343-The-Cache-Reader]], [[TASK-0344-Warm-Cooling-Cold-In-The-Strip]], [[TASK-0345-Model-Switch-Named-Where-It-Happens]]
 - Repo paths: `src/project_os_cockpit/session_cache.py`, `src/project_os_cockpit/agent_hooks.py`, `desktop/src/renderer/renderer.ts`
+
+## Independent review — 2026-08-06 (changes-requested)
+
+Reviewed by `model:claude-opus-5` from a fresh session with no access to the authoring session's reasoning; authored by `model:claude-opus-5` (same model family, different context — ADR-0013). Suites re-run green: `pytest` 764 passed / 1 skipped, `validate-docs.sh` OK. Verdict is **changes-requested** on the findings below, filed as issues.
+
+Seven issues filed: [[ISS-0106]] (high, `<synthetic>` entries misread as turns and as model switches), [[ISS-0107]] (a model switch suppresses the cold warning permanently), [[ISS-0108]] (a missing timestamp reads as confidently cold), [[ISS-0109]] (the bounded-tail acceptance criterion has no guard), [[ISS-0110]] (the ISS-0105 behaviour can be reverted with a green suite), [[ISS-0111]] (the measured figures do not reproduce and no scan script was committed), [[ISS-0112]] (this note was never updated for its second surface).
+
+Two acceptance criteria above are not met as written. *"Reading a 30MB transcript for live state does not read 30MB"* is true of the code and untested — see ISS-0109. *"Given a cold live session, the strip … one of `warm` / `cooling <n>m` / `cold`"* fails after any model switch, which replaces the state word indefinitely — see ISS-0107. A third is met but on contaminated input: *"Given a session whose last turn changed model while discarding ≥50k cached tokens"* fires for `<synthetic>` API-error placeholders too.
+
+Nothing found argues against the feature's shape. Measuring before building, and recording the keep-warm arithmetic as an explicit non-goal, are the two best decisions in this change and both survive the review intact.
