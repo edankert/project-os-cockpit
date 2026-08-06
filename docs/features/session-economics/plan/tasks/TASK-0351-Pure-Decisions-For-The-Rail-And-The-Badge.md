@@ -26,7 +26,7 @@ Fixes [[ISS-0110-The-Whole-Cold-Reads-Grey-Behaviour-Can-Be-Reverted-With-A-Gree
 - [x] `railKey(state, now)` returns the state class the square should carry; `attentionIds(states, now)` returns the ids the panel should show; `cacheBadge(cache)` returns the label, tooltip and tone the strip should render. All pure, all in the plain-script module the node suite can evaluate.
 - [x] The three call sites become one-line adapters, so reverting the behaviour means deleting a tested function rather than an untested branch.
 - [x] Node-suite cases cover each, including the boundary crossing for `railKey` and `attentionIds`, and every branch of `cacheBadge`.
-- [x] Verified by mutation: removing the cold demotion, removing the panel filter, or neutering the badge's cold branch each turns the suite red. Recorded in the task.
+- [x] Verified by mutation: neutering `railKey`'s demotion, `attentionIds`' filter, or `cacheBadge`'s cold branch each turns the suite red. **Deleting the DOM adapters that call them does not** — the guarded surface is the decisions, not the call sites ([[ISS-0115]]).
 - [x] The standing decision against a JS test framework is **not** overturned — no jsdom, no new dependency.
 
 ## Notes

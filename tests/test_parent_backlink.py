@@ -190,3 +190,49 @@ def test_the_ledger_only_covers_debt_that_still_exists() -> None:
     warned = set(re.findall(r"WARN\s+\[PARENT-BACKLINK\] (\S+)", out))
     stale = listed - warned
     assert not stale, f"ledger lists ids that no longer violate: {sorted(stale)}"
+
+
+# ---- SNAPSHOT-MEMBERSHIP (FEAT-0081 / ISS-0117) -----------------------
+#
+# PARENT-BACKLINK walks note frontmatter, so the snapshot's own copy of a
+# feature's task list was unguarded. FEAT-0081 spent four review rounds
+# with five tasks there against thirteen everywhere else, twice recorded
+# as repaired without being repaired — both attempts were string replaces
+# whose pattern no longer matched, and neither asserted the match.
+
+def _snapshot_with(tasks_in_note: str, tasks_in_snapshot: str) -> str:
+    return SNAPSHOT.replace(
+        "  features: {}",
+        '  features:\n    FEAT-0001:\n      title: "A feature"\n'
+        '      status: doing\n'
+        f'      tasks: [{tasks_in_snapshot}]\n')
+
+
+def test_snapshot_disagreeing_with_the_note_is_an_error(tmp_path: Path) -> None:
+    root = _tree(tmp_path, tasks='"[[TASK-0001]]"', fixes="")
+    (root / "SNAPSHOT.yaml").write_text(
+        _snapshot_with('"[[TASK-0001]]"', ""), encoding="utf-8")
+    out = _run(root)
+    assert "SNAPSHOT-MEMBERSHIP" in out, out
+    assert "TASK-0001" in out
+
+
+def test_snapshot_agreeing_with_the_note_is_clean(tmp_path: Path) -> None:
+    root = _tree(tmp_path, tasks='"[[TASK-0001]]"', fixes="")
+    (root / "SNAPSHOT.yaml").write_text(
+        _snapshot_with('"[[TASK-0001]]"', "TASK-0001"), encoding="utf-8")
+    assert "SNAPSHOT-MEMBERSHIP" not in _run(root)
+
+
+def test_a_task_only_in_the_snapshot_is_also_an_error(tmp_path: Path) -> None:
+    """Drift in either direction: the note is the authored source
+    (ADR-0009), so a snapshot-only task is the snapshot being wrong."""
+    root = _tree(tmp_path, tasks="", fixes="", with_task=False)
+    (root / "SNAPSHOT.yaml").write_text(
+        _snapshot_with("", "TASK-0009"), encoding="utf-8")
+    out = _run(root)
+    assert "SNAPSHOT-MEMBERSHIP" in out and "TASK-0009" in out
+
+
+def test_the_real_repo_has_no_membership_drift() -> None:
+    assert "ERROR [SNAPSHOT-MEMBERSHIP]" not in _run(REPO_ROOT)

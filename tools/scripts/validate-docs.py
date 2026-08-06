@@ -33,6 +33,8 @@ TRACEABILITY.md define by convention:
   9. Reverse links (PARENT-BACKLINK): a task or issue naming a feature as
      `parent:` is named back by that feature in `tasks:` / `fixes:` / `issues:`.
      A relationship declared on one end only is invisible to every other gate.
+     Its companion SNAPSHOT-MEMBERSHIP checks the other copy of the same list:
+     `items.features.*.tasks` must agree with the feature note's `tasks:`.
  10. Phase closure (STATUSES.md `[[phase]]`): a phase that is done/superseded has
      no unresolved note naming it in `phase:` (PHASE-CHILDREN), and a done phase
      has every exit criterion ticked-with-evidence or reconciled (PHASE-BOXES).
@@ -1610,6 +1612,45 @@ def validate(root, report):
     #    against ALLOWED_STATUS by validate_status_tables (STATUS-TABLE). They used to
     #    be locals here, which is precisely why ISS-0011 went unnoticed: no test could
     #    reach them.
+
+    # -- ISS-0117 SNAPSHOT-MEMBERSHIP: the note and the snapshot agree about
+    #    which tasks a feature owns.
+    #
+    #    PARENT-BACKLINK looks down the link from the child; nothing looked at
+    #    the snapshot's own copy of the list. FEAT-0081 spent four review rounds
+    #    with five tasks in `items.features.*.tasks` against thirteen everywhere
+    #    else — twice recorded as repaired without being repaired, because both
+    #    attempts were string replaces whose pattern no longer matched and
+    #    neither asserted the match. `SNAPSHOT.yaml` was in the diff each time,
+    #    so a "was the file edited" check could not see it either.
+    #
+    #    ADR-0009 makes the note the authored source of state, so the note wins
+    #    and the snapshot is what gets corrected. Only TASK ids are compared:
+    #    a `tasks:` list that mentions another id type is a different defect.
+    snap_features = ((items or {}).get("features") or {})
+    for feat_id, entry in sorted(snap_features.items()):
+        if not isinstance(entry, dict):
+            continue
+        note = note_index.get(feat_id)
+        if note is None:
+            continue
+        note_tasks = {t for t in extract_ids((note[1] or {}).get("tasks"))
+                      if prefix_of(t) == "TASK"}
+        snap_tasks = {t for t in extract_ids(entry.get("tasks"))
+                      if prefix_of(t) == "TASK"}
+        if not note_tasks and not snap_tasks:
+            continue
+        missing = sorted(note_tasks - snap_tasks)
+        extra = sorted(snap_tasks - note_tasks)
+        if missing or extra:
+            bits = []
+            if missing:
+                bits.append("missing from the snapshot: %s" % ", ".join(missing))
+            if extra:
+                bits.append("in the snapshot but not the note: %s" % ", ".join(extra))
+            emit = emit_for("SNAPSHOT-MEMBERSHIP", feat_id)
+            emit("SNAPSHOT-MEMBERSHIP", "%s: SNAPSHOT.yaml and the note disagree about which tasks it owns (%s); the note is the authored source (ADR-0009), so correct the snapshot (%s)" % (
+                feat_id, "; ".join(bits), note[0].relative_to(root)))
 
     # -- ISS-0112 PARENT-BACKLINK: a relationship declared on one end must be
     #    declared on the other.

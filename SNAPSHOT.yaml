@@ -35,7 +35,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 81
-  ISS: 116
+  ISS: 119
   PHASE: 28
   REQ: 31
   RISK: 6
@@ -45,10 +45,10 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0343"
+  task: ""
   feature: "FEAT-0081"
   phase: "PHASE-007"
-  issue: "ISS-0104"
+  issue: ""
   note: "2026-08-06: Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated. MEASURED FIRST, and the measurement moved the target. Figures are reproducible — `python3 tools/scripts/scan-cache-economics.py` — and these are the CORRECTED ones: across 42 transcripts / 21,924 deduped turns, cache READS are ~$5,360 of ~$6,809 input-side spend; STALENESS means TTL expiry alone at ~$250 (3.7%), and all avoidable re-writes together are ~$336 (4.9%). The weight of the context is the 20x lever and nothing in the cockpit said what it weighs (ctx% is fill, not tokens). ISS-0104: 8 of 14 sub-hour re-writes were MODEL SWITCHES. An earlier version of this note said 11 of 17 and ~3.5% — both wrong, and this note kept saying so for a whole fix round after they were retracted (ISS-0113); the figures now come from a committed script for exactly that reason. The anti-feature is written into FEAT-0081 because it is the obvious request and it is wrong: a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold. PHASE-007 reopened rather than a new phase minted — it already owns the cost/context meters. Two independent reviews, both changes-requested; round 2 found the code fixed and the NOTES overclaiming, which is the same defect as round 1 committed while fixing it."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -58,7 +58,7 @@ items:
       title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
       status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
-      tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347]
+      tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347, TASK-0348, TASK-0349, TASK-0350, TASK-0351, TASK-0352, TASK-0353, TASK-0354, TASK-0355]
       fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
       note: "Measured before designed, and the measurement moved the target: staleness (TTL expiry) is ~$250, 3.7% of the ~$6,809 input-side bill, against ~$5,360 for cache READS; all avoidable re-writes ~$336 (4.9%). Reproduce with tools/scripts/scan-cache-economics.py — the first figures were prose and two of them were impossible (ISS-0111). The weight of the context is the 20x lever, and nothing said what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
@@ -328,7 +328,7 @@ items:
       status: done
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
-      tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219"]
+      tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219", "TASK-0220", "TASK-0221", "TASK-0227", "TASK-0228", "TASK-0229"]
       note: "Phase 1 (0214-0216) is useful the day it lands and needs no upstream change. Phase 2 (0217-0219) adds annotation, desk review and token parity."
     FEAT-0041:
       title: "Review desk (~review) — agent proposals, questions, and manual test runs"
@@ -355,6 +355,7 @@ items:
       status: cancelled
       phase: "[[PHASE-003-Downstream-Pilot]]"
       path: "docs/features/downstream-pilot/FEAT-0005-Downstream-Pilot.md"
+      tasks: [TASK-0020]
     FEAT-0019:
       title: "Agent hook ingestion — auto-instrumented terminal sessions"
       status: done
@@ -384,7 +385,7 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
-      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173"]
+      tasks: [TASK-0128, TASK-0129, TASK-0130]
     FEAT-0024:
       title: "Agent verbs — drive the docs system from any note"
       status: done
@@ -1307,6 +1308,27 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0119:
+      file: "docs/issues/ISS-0119-The-Round-Two-Record-Miscounts-What-It-Counts.md"
+      title: "Four counts in the round-two record do not match the artefacts they count — fifteen tasks against thirteen, `39 → 45` tests against `32 → 37`, and a ~0.1% move that measures 0.03%"
+      status: triage
+      severity: low
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 3). The scan figures all reproduce; these are counts of the work itself. 'This feature's fifteen tasks' (twice) against thirteen — and the ticked-box check is claimed to have been run over the fifteen. 'test_session_cache.py 39 -> 45' against a collected 32 -> 37 (39 -> 44 with the surface file), which is ISS-0116's own 'related, minor' finding repeated. TASK-0355's 'all eleven tasks'. And '~0.1%' for a delta measured at 0.034% by reverting _effective_usage to identity — the claim that no bucket or ratio moves is confirmed, only the magnitude is overstated."
+    ISS-0118:
+      file: "docs/issues/ISS-0118-Three-More-Ticked-Boxes-Name-Files-That-Were-Never-Touched.md"
+      title: "Three ticked boxes in the round-two fix name artefacts the commit never touched — the duplicated follow-up in the second change note, the stale `focus`, and [[TASK-0351]]'s DoD"
+      status: triage
+      severity: low
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 3). CHG-Cold-Sessions-Read-Grey:68-69 still carries the contradictory follow-up pair; it is not among 907fe14's staged paths, while TASK-0355 and ISS-0116 both tick 'both change notes'. focus.task TASK-0343 (done) and focus.issue ISS-0104 (fixed) are unchanged while ISS-0113 ticks 'move focus onto the work actually in flight' — and focus.note beside them WAS rewritten. TASK-0351's DoD still says reverting the behaviour means deleting a tested function, which the same commit's CHG concedes is false; ISS-0115 ticks correcting it."
+    ISS-0117:
+      file: "docs/issues/ISS-0117-The-Snapshot-Task-List-Was-Still-Not-Extended.md"
+      title: "`items.features.FEAT-0081.tasks` still lists five of thirteen tasks — the finding [[ISS-0116]] filed, ticked as fixed and asserted as corrected in the change note, in a commit that edits the very file"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "Independent re-review 2026-08-06 (round 3). items.features.FEAT-0081.tasks is still [TASK-0343..TASK-0347] against thirteen task files, thirteen in the note's frontmatter and thirteen items.tasks entries with parent: FEAT-0081. fixes: was extended in the same commit; tasks: was not. Ticked in ISS-0116, in TASK-0355's DoD and asserted in CHG-Round-Two's Summary. Fourth appearance of ISS-0112's drift, second time recorded as repaired without being repaired. The round's own corrective ('confirm the file is in the diff') cannot catch it because SNAPSHOT.yaml IS in the diff, and PARENT-BACKLINK walks note frontmatter only — verified by mutation."
     ISS-0116:
       file: "docs/issues/ISS-0116-Ticked-Boxes-That-Do-Not-Match-The-Work.md"
       title: "Five ticked boxes in the fix round describe work that was not done — including the snapshot's own task list, which is now the stale side of the exact drift [[ISS-0112]] was filed about"
@@ -2480,7 +2502,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 0
+    issues_triage: 3
     risks_open: 6
     releases_total: 0
     decisions_total: 9
