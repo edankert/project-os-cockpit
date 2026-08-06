@@ -559,10 +559,31 @@ function applyFleetHealthPayload(payload: unknown): void {
   }
 }
 
+// Declared by cache-temperature.js, loaded as a plain script before this
+// one (same arrangement as healthMarks).
+declare function cacheTemperature(
+  input: { ts?: string | null; state?: string | null } | null | undefined,
+  now: number,
+  ttlMs?: number,
+): 'warm' | 'cold' | 'unknown';
+
+/** True when this workspace's session has passed the cache TTL.
+ *
+ *  ISS-0105: a session waiting 211 hours pulsed exactly like one waiting
+ *  two minutes. Cold demotes to the grey dot and leaves the NEEDS YOU
+ *  list, so amber-pulse means "waiting AND still cheap to resume".
+ */
+function isColdWorkspace(state: AgentStatePayload | undefined, now = Date.now()): boolean {
+  return cacheTemperature(state, now) === 'cold';
+}
+
 function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   const state = agentStates.get(ws.id);
+  const cold = isColdWorkspace(state);
   const stateLine = state
     ? `\nagent: ${state.state}${state.message ? ` — ${state.message}` : ''}`
+      + (cold ? `\ncold — last turn ${fmtDuration(state.ts || null, null)} ago;`
+        + ' resuming re-writes the cached prefix' : '')
     : '';
   // The base tooltip. Health appends to THIS rather than to whatever
   // `title` currently holds — otherwise two independent repaint paths
@@ -575,7 +596,11 @@ function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   const existingDot = li.querySelector('.ws-dot');
   if (existingDot) existingDot.remove();
   if (!state) { applyHealthToSquare(li, ws); return; }
-  const key = state.decayed_from ? 'idle' : state.state;
+  // Cold takes the same branch decay already took (ISS-0105): a session
+  // whose cache has lapsed reads as a resting session. No new state
+  // class, no new colour, no third animation — the amber pulse keeps
+  // exactly one meaning and gains an age it never had.
+  const key = (state.decayed_from || cold) ? 'idle' : state.state;
   li.classList.add(`state-${key}`);
   // Acknowledged alerts go static (pulse off, colour kept) — TASK-0157.
   li.classList.toggle('acked', isAlertAcked(ws.id, state.ts || ''));
@@ -9881,6 +9906,11 @@ function attentionEntries(): AttentionEntry[] {
   for (const [wsId, state] of agentStates) {
     if (state.decayed_from) continue;
     if (state.state !== 'needs-input' && state.state !== 'waiting') continue;
+    // TASK-0347: a cold session leaves the list, so NEEDS YOU means
+    // "blocked on you AND still cheap to pick up". Same rule and same
+    // function as the rail's grey dot. The obligation does not vanish —
+    // the grey square is where it now lives (ISS-0105, scope note).
+    if (isColdWorkspace(state)) continue;
     if (isAlertDismissed(wsId, state.ts || '')) continue;
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
@@ -9902,6 +9932,9 @@ function attentionEntries(): AttentionEntry[] {
 function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   const row = document.createElement('div');
   row.className = `ws-attention-row kind-${entry.kind}`;
+  // Read back by tickTemperatures to compare wanted rows against shown
+  // rows — the panel's own DOM is the truth, not a cached decision.
+  row.dataset.wsId = entry.workspaceId;
   if (isAlertAcked(entry.workspaceId, entry.ts)) row.classList.add('acked');
   const main = document.createElement('button');
   main.type = 'button';
@@ -12382,6 +12415,50 @@ function updateLiveDurations(): void {
 }
 
 window.setInterval(updateLiveDurations, 30_000);
+
+// ----- Temperature tick (FEAT-0081 / TASK-0346, ISS-0105) --------------
+//
+// The rail and the NEEDS YOU list are painted from `agentStates`, which
+// is fed by SSE. Cold is the one transition with no event behind it —
+// the premise is a session where NOTHING is happening — so without a
+// clock a dot would sit amber forever and the list would never shed the
+// entry. That is the defect ISS-0105 records, and this is the part that
+// fixes it.
+//
+// Compares against what is PAINTED, not against a remembered decision.
+//
+// An earlier version cached the last temperature per workspace and
+// repainted only on a change. That is wrong, and wrong in exactly the
+// case this feature exists for: the DOM is also repainted by inbound SSE
+// events, so after cold → warm (event) → cold (time), the cache still
+// read `cold`, the tick saw no change, and the dot stayed amber forever.
+// Reading the DOM makes the tick self-healing — it cannot disagree with
+// the screen about what is on the screen.
+function tickTemperatures(): void {
+  const now = Date.now();
+  let listStale = false;
+  for (const [wsId, state] of agentStates) {
+    const li = listEl.querySelector<HTMLLIElement>(`li.ws-square[data-id="${CSS.escape(wsId)}"]`);
+    const ws = workspaces.find((w) => w.id === wsId);
+    if (!li || !ws) continue;
+    const cold = cacheTemperature(state, now) === 'cold';
+    const painted = li.classList.contains('state-idle');
+    const shouldBeIdle = cold || !!state.decayed_from || state.state === 'idle';
+    if (shouldBeIdle !== painted) {
+      applyAgentStateToSquare(li, ws);
+      listStale = true;
+    }
+  }
+  // The panel is compared the same way: the ids it should be showing
+  // against the ids it is showing.
+  const want = attentionEntries().map((e) => e.workspaceId).join(',');
+  const have = Array.from(
+    attentionPanel.querySelectorAll<HTMLElement>('.ws-attention-row'),
+  ).map((r) => r.dataset.wsId || '').join(',');
+  if (listStale || want !== have) refreshAttention();
+}
+
+window.setInterval(tickTemperatures, 30_000);
 
 
 // ----------------------------------------------------------------------

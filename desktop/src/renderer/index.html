@@ -287,6 +287,10 @@
   <script src="./xterm.js"></script>
   <script src="./addon-fit.js"></script>
   <script src="./health-marks.js"></script>
+  <!-- Session temperature (FEAT-0081 / TASK-0346). Loaded before
+       renderer.js like health-marks, so `cacheTemperature` is a global
+       by the time the rail paints. -->
+  <script src="./cache-temperature.js"></script>
   <script src="./validation-rows.js"></script>
   <script src="./contribution-grid.js"></script>
   <script src="./completed-work.js"></script>

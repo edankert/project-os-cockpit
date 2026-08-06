@@ -35,12 +35,12 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 81
-  ISS: 104
+  ISS: 105
   PHASE: 28
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 345
+  TASK: 347
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -58,8 +58,8 @@ items:
       title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
-      tasks: [TASK-0343, TASK-0344, TASK-0345]
-      fixes: ["ISS-0104"]
+      tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347]
+      fixes: ["ISS-0104", "ISS-0105"]
       note: "Measured before designed, and the measurement moved the target: cache staleness is ~3.5% of the input bill (TTL expiry $236, sub-hour invalidation $100) against $5,287 for cache READS. The weight of the context is the 20x lever, and nothing says what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
       file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
@@ -424,6 +424,18 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0346:
+      file: "docs/features/session-economics/plan/tasks/TASK-0346-Cold-Reads-Grey-And-Actually-Ticks.md"
+      title: "A cold session reads grey on the rail, and the transition happens on a clock rather than on an event that will never come"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
+    TASK-0347:
+      file: "docs/features/session-economics/plan/tasks/TASK-0347-Cold-Sessions-Leave-The-Needs-You-List.md"
+      title: "A cold session leaves the NEEDS YOU list, so the list means blocked on you and still cheap to pick up"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
     TASK-0343:
       file: "docs/features/session-economics/plan/tasks/TASK-0343-The-Cache-Reader.md"
       title: "The cache reader — prefix weight and cache state from the transcript, tail for live, full scan for the record"
@@ -1247,6 +1259,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0105:
+      file: "docs/issues/ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours.md"
+      title: "The rail pulses identically for a session waiting two minutes and one waiting two hundred hours, so the amber never means act now"
+      status: fixed
+      severity: medium
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      note: "Edwin's observation and Edwin's fix. Measured: five of ten workspaces pulsing amber at 1min, 50h, 185h, 209h, 211h — a signal on for half the fleet permanently is decoration. Cold reads GREY (reusing the branch decayed_from already takes) and LEAVES the needs-you list, so amber means waiting AND cheap to resume. One rule, both surfaces. The requirement with teeth: the transition must fire on a clock, since the premise is a session where nothing is happening."
     ISS-0104:
       file: "docs/issues/ISS-0104-Model-Switch-Discards-The-Warm-Cache.md"
       title: "Switching model mid-session discards the whole warm prefix, and nothing anywhere says so"
@@ -1696,7 +1715,7 @@ items:
       status: done
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081"]
-      issues: ["ISS-0104"]
+      issues: ["ISS-0104", "ISS-0105"]
       note: "REOPENED 2026-08-06 for FEAT-0081/ISS-0104 rather than minting a phase (CLAUDE.md: do not open one for a single request). This phase already owns the surface — FEAT-0019's statusline cost/context forwarder and FEAT-0020's context-fill and cost meters are the things being extended. Reopening is the documented move: set active, add the work, close it again."
     PHASE-008:
       title: "State & review surfaces"
@@ -2328,8 +2347,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 81
     features_done: 56
-    tasks_total: 345
-    tasks_done: 274
+    tasks_total: 347
+    tasks_done: 276
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

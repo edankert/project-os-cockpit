@@ -22,6 +22,7 @@ features:
   - "[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]"
 issues:
   - "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"
+  - "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"
 depends: ["[[PHASE-006-Native-Cockpit-UI]]"]
 related: ["[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0013-Agent-State-Signal]]"]
 ---
@@ -74,3 +75,9 @@ Set back to `active` for [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]] and [[
 This phase is the right home because it already owns the surface being extended. FEAT-0019's scope names the "statusline forwarder for cost/context/rate-limit data"; FEAT-0020's names "context-fill and cost meters" in the activity strip. What the new work adds is the fact those meters never carried: `ctx 62%` is fill against the window, and the strip's dollar figure is spend-to-date. Neither answers what the **next turn** costs, which depends on the prefix weight and whether the cache behind it is still warm.
 
 The scope boundary added with this reopening: **no cache warming, ever.** A keep-warm ping costs 2× the full prefix each time against 2× once for letting it expire, so the obvious automation is a net cost. See FEAT-0081, "The automation that must not be built".
+
+### Second round, same day — the rail learns an age
+
+Reopened again for [[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]: the amber pulse meant "review this" with no notion of age, so a session waiting two minutes and one waiting 211 hours were the same pixels. Cold now reads grey and leaves the NEEDS YOU list, which gives the existing vocabulary a distinction rather than a third meaning.
+
+The scope line this phase gained in the first round holds here too, and gained a sibling: **no new colour, animation or state class on the rail.** Cold takes the branch `decayed_from` already took. A surface that mints a state for each new fact is how a rail stops being readable, and ISS-0102 already recorded that lesson once.
