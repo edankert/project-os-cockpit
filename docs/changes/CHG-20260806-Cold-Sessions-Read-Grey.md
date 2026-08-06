@@ -15,7 +15,7 @@ issues: ["ISS-0105"]
 features: ["FEAT-0081"]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]", "[[CHG-20260806-Session-Cache-Economics]]"]
 ---
 
@@ -77,3 +77,9 @@ Reviewed by `model:claude-opus-5` from a fresh session with no access to the aut
 - [[ISS-0112]] — "features: updated — FEAT-0081 reopened for its second surface, then closed" is not true of this commit: FEAT-0081 is not among its eleven files. The feature note still lists three of five tasks, does not list ISS-0105 under `fixes:`, and has no acceptance criterion for either behaviour this note describes.
 
 What held up under attack: `cacheTemperature` kills every mutation aimed at it (the `>=` boundary, the busy exemption, a 60× TTL error, `unknown` → `cold`). The painted-vs-remembered comparison in `tickTemperatures` is correct, and the bug recorded above under "The bug the verification caught" is a genuinely good catch that no unit test of this shape could have made.
+
+## Independent review — 2026-08-06, round 4 (approved)
+
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above.**
+
+It supersedes it because both findings are answered. [[ISS-0110]] — the decisions were extracted into `railKey` / `attentionIds` / `cacheBadge` and are guarded: this pass deleted `railKey`'s cold demotion and separately made it ignore `decayed_from`, and each turned the node suite red (93 → 92 pass, 1 fail). The residual gap is honest and disclosed in this note's own follow-ups — the DOM adapters that call them are still unguarded, which is a much smaller surface than the one ISS-0110 measured. [[ISS-0112]] — FEAT-0081 now carries thirteen tasks, sixteen fixed issues and acceptance criteria for both behaviours this note describes, and `SNAPSHOT.yaml` agrees with it, enforced from this round by the new `SNAPSHOT-MEMBERSHIP` gate. The duplicated follow-up pair that [[ISS-0118]] found in this file is collapsed. Suites: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, node suite **93 passed**. Full reasoning and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]]. No `status:` field was changed by this pass.

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0081
 aliases: ["FEAT-0081"]
 title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-08-06
@@ -25,11 +25,12 @@ tasks:
   - "[[TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways]]"
   - "[[TASK-0354-Usage-Is-Read-Where-It-Lives]]"
   - "[[TASK-0355-The-Record-Stops-Overclaiming]]"
+  - "[[TASK-0356-The-Snapshot-Membership-Gate]]"
 fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116", "ISS-0117", "ISS-0118", "ISS-0119"]
 release: ""
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"]
 tests: []
 ---
@@ -95,7 +96,7 @@ Recorded here because "just refresh the cache in the background" is the obvious 
 ## Links
 - Fixes: [[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]
 - Fixes, second round (independent review, 2026-08-06): [[ISS-0106-Synthetic-API-Error-Entries-Are-Counted-As-Turns-And-Reported-As-Model-Switches]], [[ISS-0107-A-Model-Switch-Permanently-Suppresses-The-Cold-Warning]], [[ISS-0108-A-Transcript-Entry-With-No-Timestamp-Reads-As-Confidently-Cold]], [[ISS-0109-The-Bounded-Tail-Read-Has-No-Guard]], [[ISS-0110-The-Whole-Cold-Reads-Grey-Behaviour-Can-Be-Reverted-With-A-Green-Suite]], [[ISS-0111-The-Measured-Figures-Do-Not-Reproduce-And-No-Scan-Script-Was-Committed]], [[ISS-0112-FEAT-0081-Was-Never-Updated-For-Its-Second-Surface]]
-- Tasks: TASK-0343 … TASK-0353 (see frontmatter)
+- Tasks: TASK-0343 … TASK-0356 (see frontmatter)
 - Repo paths: `src/project_os_cockpit/session_cache.py`, `src/project_os_cockpit/agent_hooks.py`, `desktop/src/renderer/cache-temperature.ts`, `desktop/src/renderer/renderer.ts`, `tools/scripts/scan-cache-economics.py`
 
 ## Independent review — 2026-08-06 (changes-requested)
@@ -107,3 +108,16 @@ Seven issues filed: [[ISS-0106]] (high, `<synthetic>` entries misread as turns a
 Two acceptance criteria above are not met as written. *"Reading a 30MB transcript for live state does not read 30MB"* is true of the code and untested — see ISS-0109. *"Given a cold live session, the strip … one of `warm` / `cooling <n>m` / `cold`"* fails after any model switch, which replaces the state word indefinitely — see ISS-0107. A third is met but on contaminated input: *"Given a session whose last turn changed model while discarding ≥50k cached tokens"* fires for `<synthetic>` API-error placeholders too.
 
 Nothing found argues against the feature's shape. Measuring before building, and recording the keep-warm arithmetic as an explicit non-goal, are the two best decisions in this change and both survive the review intact.
+
+## Independent review — 2026-08-06, round 4 (approved)
+
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, which was round one's and was answered by ISS-0106 … ISS-0112; rounds two and three were answered by ISS-0113 … ISS-0119. What was independent here: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance. No `status:` field was changed by this pass.
+
+Suites re-run: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**. The full reasoning, the mutation results, and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]] under "Independent review — round 4"; the short form:
+
+- Every acceptance criterion above that an earlier round called unmet is now met, and the two the first round named specifically were re-checked: the bounded tail read is guarded, and the switch announcement expires back to the standing state.
+- The measured figures reproduce from `tools/scripts/scan-cache-economics.py` on a fresh run — 42 transcripts, 8 / 6 / 44 re-write events, 3.7% staleness, 4.9% avoidable — allowing for a corpus that has grown to 21,957 turns.
+- `_effective_usage` and `railKey` were re-attacked rather than taken on the previous rounds' word. Round three's five mutations reproduce at exactly its recorded kill counts; a sixth survives, so "the last **non-zero** iteration" is unguarded — latent only, since every entry in this corpus has one iteration.
+- `SNAPSHOT-MEMBERSHIP` fires on the defect it was written for and dies under five of six mutations.
+
+**What is approved with a caveat, not silently:** ISS-0118's third next action is ticked while the clause it names in [[TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge]] is unchanged; the new validator gate carries no task and is absent from every `impacts:` list; and the Links section below still reads "TASK-0343 … TASK-0353" for a feature that owns through TASK-0355, and names only round one's fixes. All are understatements or one-line edits, all belong to close-out, and none makes anything shipped wrong — which is why they are follow-ups rather than a fourth round.

@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-007
 aliases: ["PHASE-007"]
 title: "Agent instrumentation (hooks-aware terminal)"
-status: active
+status: done
 order: 7
 owner: user:edwin
 created: 2026-07-05
@@ -81,3 +81,14 @@ The scope boundary added with this reopening: **no cache warming, ever.** A keep
 Reopened again for [[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]: the amber pulse meant "review this" with no notion of age, so a session waiting two minutes and one waiting 211 hours were the same pixels. Cold now reads grey and leaves the NEEDS YOU list, which gives the existing vocabulary a distinction rather than a third meaning.
 
 The scope line this phase gained in the first round holds here too, and gained a sibling: **no new colour, animation or state class on the rail.** Cold takes the branch `decayed_from` already took. A surface that mints a state for each new fact is how a rail stops being readable, and ISS-0102 already recorded that lesson once.
+
+### Closed 2026-08-06, after four review rounds
+
+FEAT-0081 closed on an `approved` verdict from the fourth independent review, each round a fresh clean-context session. The arc is worth keeping because it is unusual and because the shape of it repeated:
+
+- **Round 1** — seven findings, one high: API-error placeholders read as real turns, which corrupted the very statistic the feature was argued from. Also: eleven surviving mutants, and figures quoted as prose that could not be re-derived.
+- **Round 2** — four findings. Judgment: *the code is fixed, the notes claim more than the code does.*
+- **Round 3** — three findings, all documentation. Judgment: *the code is right and this verdict is not about it.*
+- **Round 4** — approved, with six caveats written in as follow-ups rather than waived.
+
+**The lesson is not "review more".** Every round after the first found the same defect — a claim written wider than the code — and it survived three attempts to fix it by being careful. What ended it was mechanical: `PARENT-BACKLINK`, then `SNAPSHOT-MEMBERSHIP`, and the discovery that the root cause was a string replace that silently no-opped because nothing asserted the match. A gate catches what diligence does not, and the review's own repetition was the evidence needed to justify building one.

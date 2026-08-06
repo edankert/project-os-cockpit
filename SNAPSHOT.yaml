@@ -35,12 +35,12 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 81
-  ISS: 119
+  ISS: 120
   PHASE: 28
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 355
+  TASK: 356
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -56,9 +56,9 @@ items:
     FEAT-0081:
       file: "docs/features/session-economics/FEAT-0081-What-A-Session-Costs-To-Keep-Alive.md"
       title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
-      tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347, TASK-0348, TASK-0349, TASK-0350, TASK-0351, TASK-0352, TASK-0353, TASK-0354, TASK-0355]
+      tasks: [TASK-0343, TASK-0344, TASK-0345, TASK-0346, TASK-0347, TASK-0348, TASK-0349, TASK-0350, TASK-0351, TASK-0352, TASK-0353, TASK-0354, TASK-0355, TASK-0356]
       fixes: ["ISS-0104", "ISS-0105", "ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111", "ISS-0112", "ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116", "ISS-0117", "ISS-0118", "ISS-0119"]
       note: "Measured before designed, and the measurement moved the target: staleness (TTL expiry) is ~$250, 3.7% of the ~$6,809 input-side bill, against ~$5,360 for cache READS; all avoidable re-writes ~$336 (4.9%). Reproduce with tools/scripts/scan-cache-economics.py — the first figures were prose and two of them were impossible (ISS-0111). The weight of the context is the 20x lever, and nothing said what it weighs. Records the anti-feature explicitly — a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold, so background re-warming raises the bill."
     FEAT-0078:
@@ -385,7 +385,7 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
-      tasks: [TASK-0128, TASK-0129, TASK-0130]
+      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173"]
     FEAT-0024:
       title: "Agent verbs — drive the docs system from any note"
       status: done
@@ -425,6 +425,12 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0356:
+      file: "docs/features/session-economics/plan/tasks/TASK-0356-The-Snapshot-Membership-Gate.md"
+      title: "The snapshot's copy of a feature's task list is checked against the note's"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: FEAT-0081
     TASK-0354:
       file: "docs/features/session-economics/plan/tasks/TASK-0354-Usage-Is-Read-Where-It-Lives.md"
       title: "A turn's usage is read where it actually lives, and one decision keeps one implementation"
@@ -1308,6 +1314,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0120:
+      file: "docs/issues/ISS-0120-The-Gates-Own-Severity-Is-Untested.md"
+      title: "A gate demoted from error to warning leaves every test green, so nothing guards the severity that makes a gate a gate"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "Found by mutation in round 4 of FEAT-0081's review. Demoting emit_for(...) to report.warn leaves all eleven PARENT-BACKLINK / SNAPSHOT-MEMBERSHIP cases green — the asserts match the bare code and `out` carries both tiers. Repo-wide pattern, so filed unphased for a sweep across all gate suites rather than bolted onto a feature about cache economics."
     ISS-0119:
       file: "docs/issues/ISS-0119-The-Round-Two-Record-Miscounts-What-It-Counts.md"
       title: "Four counts in the round-two record do not match the artefacts they count — fifteen tasks against thirteen, `39 → 45` tests against `32 → 37`, and a ~0.1% move that measures 0.03%"
@@ -1859,7 +1872,7 @@ items:
       path: "docs/phases/PHASE-006-Native-Cockpit-UI.md"
     PHASE-007:
       title: "Agent instrumentation (hooks-aware terminal)"
-      status: active
+      status: done
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081"]
       issues: ["ISS-0104", "ISS-0105"]
@@ -2493,16 +2506,16 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 81
-    features_done: 55
-    tasks_total: 355
-    tasks_done: 284
+    features_done: 56
+    tasks_total: 356
+    tasks_done: 285
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 0
+    issues_triage: 1
     risks_open: 6
     releases_total: 0
     decisions_total: 9

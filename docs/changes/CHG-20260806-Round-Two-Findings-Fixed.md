@@ -10,12 +10,12 @@ updated: 2026-08-06
 source: ["review:independent"]
 commit: ""
 pr: ""
-impacts: ["src/project_os_cockpit/session_cache.py", "desktop/src/renderer/renderer.ts", "SNAPSHOT.yaml"]
-issues: ["ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116"]
+impacts: ["src/project_os_cockpit/session_cache.py", "src/project_os_cockpit/validate_docs_bundled.py", "tools/scripts/validate-docs.py", "tools/GRANDFATHERED.yaml", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/validation-rows.ts", "tests/test_parent_backlink.py", "SNAPSHOT.yaml"]
+issues: ["ISS-0113", "ISS-0114", "ISS-0115", "ISS-0116", "ISS-0117", "ISS-0118", "ISS-0119"]
 features: ["FEAT-0081"]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[CHG-20260806-Review-Findings-Fixed]]"]
 ---
 
@@ -97,8 +97,33 @@ Reviewed by `model:claude-opus-5` from a fresh session that started from these n
 
 **The structural answer, since the behavioural one has now failed four times:** a new `SNAPSHOT-MEMBERSHIP` gate. `PARENT-BACKLINK` walks note frontmatter and is blind to the snapshot's own copy of the list — the third review said so, and this closes it. Three other features were drifting the same way and are corrected. The corrective that actually works is not "be careful": it is *assert the pattern matched*, and where that is not possible, *make a gate check it*.
 
+## Independent review — 2026-08-06, round 4 (approved)
+
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the same supersession is recorded on [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]], [[CHG-20260806-Session-Cache-Economics]], [[CHG-20260806-Cold-Sessions-Read-Grey]] and [[CHG-20260806-Review-Findings-Fixed]]. What was independent: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance rather than a compliance token. No `status:` field was changed by this pass — close-out is the author's step.
+
+Suites re-run by this pass: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**.
+
+**ISS-0117 — fixed, verified against the file rather than the claim.** `items.features.FEAT-0081.tasks` reads all thirteen ids, matching the note's `tasks:`, the thirteen files under `plan/tasks/`, and the thirteen `items.tasks` entries carrying `parent: FEAT-0081`. Both other claim sites now hold. The mutation that matters: restoring the five-entry list and re-running the validator produces `ERROR [SNAPSHOT-MEMBERSHIP] FEAT-0081 … missing from the snapshot: TASK-0348 … TASK-0355`. The defect can no longer be committed.
+
+**ISS-0119 — fixed, all four, each re-measured.** `pytest --collect-only`: `test_session_cache.py` **37**, `test_session_cache_surface.py` **7**, so the note's `32 → 37` is now the file it names and the review's `39 → 44` two-file figure also checks out. "fifteen tasks" is gone from both places; TASK-0355's denominator is thirteen; `~0.1%` is now the measured `0.034%`. Re-running `scan-cache-economics.py` today reproduces every quoted figure — 42 transcripts, 8 / 6 / 44 re-write events, 3.7%, 4.9% — against a corpus that has grown to 21,957 turns since.
+
+**ISS-0118 — two of three fixed; the third is half done and its box is ticked.** The duplicated follow-up pair is collapsed in `CHG-20260806-Cold-Sessions-Read-Grey.md`, and `focus.task` / `focus.issue` no longer name terminal items. But ISS-0118's third next action — *"Narrow [[TASK-0351]]'s second DoD clause to what the suite covers"* — is ticked, and that clause is unchanged: bullet 2 still reads *"so reverting the behaviour means deleting a tested function rather than an untested branch"*, which is the sentence [[ISS-0115]] refuted. The second half of that action **was** done: bullet 4 now says *"Deleting the DOM adapters that call them does not"*. So the fix is real but partial, and the file now contradicts itself five lines apart. That is a fifth consecutive ticked-box-without-the-edit, and it is recorded here rather than waived.
+
+**`SNAPSHOT-MEMBERSHIP` — sound, and it guards.** Six mutations applied to the shipped validator and each run against `tests/test_parent_backlink.py`: silencing the emit kills 2, reporting only `missing` kills 1, skipping when *either* side is empty (which would re-admit the exact ISS-0117 shape) kills 2, comparing the note against itself kills 1, dropping the snapshot-side `TASK` filter kills 2. One survives — demoting `emit_for(...)` to `report.warn` leaves all 11 green, so the gate's *severity* is untested. That matches the sibling `PARENT-BACKLINK` cases, which assert the gate name and not the level, so it is a repo-wide adequacy pattern rather than something this round introduced.
+
+**The three unrelated snapshot edits, checked against those features' notes and not merely against the gate.** FEAT-0005 (`[TASK-0020]`) and FEAT-0042 (eleven ids) now match their notes exactly, and both were corrected *upward* — the snapshot had been the understating side, the same drift as FEAT-0081. FEAT-0023 is different and the note above describes it as "the same way", which it was not: its snapshot carried `TASK-0173` and its note does not, so the gate was satisfied *downward*, by deleting a task that declares `parent: "FEAT-0023"`, lives in that feature's `plan/tasks/`, and sits in `tools/GRANDFATHERED.yaml` under `PARENT-BACKLINK` precisely because the note omits it — where the recorded remedy is "add it, or drop the parent", and neither was done. Defensible under [[ADR-0009]] (the note is the authored source, so the snapshot yields), and the debt stays visible as a warning; but it is information removed rather than added, and the sentence describing it is wider than the act.
+
+**The code was re-verified independently rather than inherited.** Round three's five mutations on `_effective_usage` all reproduce at exactly the kill counts it recorded (identity → 3, `iterations[0]` → 1, summing → 1, dropping the final all-zero rejection → 2, dropping the `<synthetic>` sentinel → 2). A sixth, not previously run, **survives**: relaxing the loop's `isinstance(entry, dict) and any(_int(entry, k) …)` to `isinstance(entry, dict)` leaves all 44 tests green, so "take the last **non-zero** iteration" is unguarded — latent only, since every entry in this corpus has a single iteration. On the renderer, deleting `railKey`'s cold demotion and ignoring `decayed_from` each turn the node suite red.
+
+**Why approved rather than a fourth `changes-requested`.** Round three withheld because a change note asserted a correction that had not been made to the canonical file, with a concrete consequence: closing on it would have hidden eight of thirteen tasks from the first surface a session reads. That sentence is now true, checked by command. What remains is one small overclaim (ISS-0118's third box) that the same file contradicts in situ, and a set of records that claim *less* than the code does rather than more — the opposite direction from the failure these four rounds have been about. None of it makes anything shipped wrong, and no reader is misled about behaviour. The remaining items are recorded below as follow-ups rather than dismissed; they are minutes of editing and belong to close-out, not to another review round.
+
 ## Follow-ups
 
-- [ ] A third review, then close FEAT-0081 and PHASE-007 on the verdict.
-- [ ] Extend `PARENT-BACKLINK` to the snapshot side, or accept that membership there is unguarded and say so.
+- [x] ~~A third review, then close FEAT-0081 and PHASE-007 on the verdict.~~ — round 3 `changes-requested`, round 4 `approved`; the close-out is now unblocked.
+- [x] ~~Extend `PARENT-BACKLINK` to the snapshot side, or accept that membership there is unguarded and say so.~~ — done for `tasks:` by `SNAPSHOT-MEMBERSHIP`. The `fixes:` / `issues:` direction on the snapshot side is still unguarded; the "What is still not fixed" bullet above is now stale for the tasks half.
+- [ ] **Round 4, ISS-0118 residue:** [[TASK-0351]]'s second DoD clause still asserts what [[ISS-0115]] refuted, five lines above the bullet that concedes it. Narrow it, or untick ISS-0118's third next action.
+- [ ] **Round 4, the gate has no task and no impact trail.** `SNAPSHOT-MEMBERSHIP` is a blocking pre-commit gate for every item in the repo, added under this note with no `TASK-*` — where its sibling `PARENT-BACKLINK` got [[TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways]] one commit earlier, and where LIFECYCLE's "No Orphaned Code" rule applies. This note's `impacts:` names three files and not `tools/scripts/validate-docs.py`, `src/project_os_cockpit/validate_docs_bundled.py`, `tests/test_parent_backlink.py` or `desktop/src/renderer/validation-rows.ts`; its `issues:` omits ISS-0117 … ISS-0119; and Documentation Coverage still reports only round two's test count. [[CHG-20260806-Review-Findings-Fixed]] listed the validator files when round one added a gate, so the norm exists in this very feature.
+- [ ] **Round 4, FEAT-0023:** decide `TASK-0173` — name it in the feature note (paying the grandfathered debt) or drop its `parent:`. The snapshot no longer records it either way.
+- [ ] **Round 4, test adequacy:** pin "the last *non-zero* iteration" in `_effective_usage`, and consider asserting `ERROR` rather than the bare gate name in the `SNAPSHOT-MEMBERSHIP` cases.
+- [ ] The Summary's "(5 of 11 listed)" was never 11 — it was thirteen at the moment it was written. Same family as [[ISS-0119]] finding 3, in a place ISS-0119 did not enumerate.
 - [ ] Work down the grandfathered ledger.

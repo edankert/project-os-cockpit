@@ -15,7 +15,7 @@ issues: ["ISS-0106", "ISS-0107", "ISS-0108", "ISS-0109", "ISS-0110", "ISS-0111",
 features: ["FEAT-0081"]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[CHG-20260806-Session-Cache-Economics]]", "[[CHG-20260806-Cold-Sessions-Read-Grey]]"]
 ---
 
@@ -85,5 +85,11 @@ Four findings, filed as issues:
 - [[ISS-0116]] (low) — five ticked boxes that name a file they did not change, including `items.features.FEAT-0081.tasks`, still 5 of 11 — [[ISS-0112]]'s drift with the sides swapped, in a direction `PARENT-BACKLINK` structurally cannot see.
 
 **This verdict does not supersede the `changes-requested` on [[FEAT-0081]], [[CHG-20260806-Session-Cache-Economics]] or [[CHG-20260806-Cold-Sessions-Read-Grey]]**, which are therefore left as they stand. FEAT-0081 stays `doing` and PHASE-007 stays `active`.
+
+## Independent review — 2026-08-06, round 4 (approved)
+
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the sentence above stating that it does not supersede [[FEAT-0081]], [[CHG-20260806-Session-Cache-Economics]] or [[CHG-20260806-Cold-Sessions-Read-Grey]] is now spent: round 4 supersedes those too, on their own notes.
+
+It supersedes it because all four findings are answered and were verified against the files rather than the claims. [[ISS-0113]] — `SNAPSHOT.yaml` carries the corrected figures in both prose notes and the retracted ones survive only inside sentences that retract them. [[ISS-0114]] — `_effective_usage` reads the totals wherever they live; round three's five mutations reproduce at exactly its recorded kill counts, and a sixth this pass added survives only in a case the corpus does not contain. [[ISS-0115]] — the false "turns the suite red" sentence in this note is corrected to what the suite actually does, and `tickTemperatures` now calls `railKey` instead of restating it. [[ISS-0116]] — the five ticked boxes were re-opened one by one; four hold, and the fifth is recorded as a caveat rather than waived. Suites: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**. Full reasoning and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]]. No `status:` field was changed by this pass.
 
 What held up under attack, and is worth saying because it is most of the work: the `<synthetic>` fix is correct and the corrected statistic is the defensible one; the switch expiry decays on the clock and survives the memoised read; the timestampless guard returns an absent badge rather than a confident one; the byte-counting tail guard observes the disk instead of the answer; the extraction of `railKey` / `attentionIds` / `cacheBadge` is exactly what [[ISS-0110]] proposed and it works; and committing the scan so the notes and the product read the same numbers is the structural fix, not a patch. None of the four findings argues against any of that.

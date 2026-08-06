@@ -13,7 +13,7 @@
 # admission that the debt was not cleared, and each one is a small backlog item.
 version: 1
 cutover: "2026-07-25"
-count: 78
+count: 77
 gates:
   VERIFY: {}
   REQ-BOXES:
@@ -81,7 +81,6 @@ gates:
     TASK-0170: "TASK-0170 declares parent: FEAT-0035, but FEAT-0035 does not name it in `tasks:`; add it, or drop the parent (docs/features/account-budget/plan/tasks/..."
     TASK-0171: "TASK-0171 declares parent: FEAT-0035, but FEAT-0035 does not name it in `tasks:`; add it, or drop the parent (docs/features/account-budget/plan/tasks/..."
     TASK-0172: "TASK-0172 declares parent: FEAT-0035, but FEAT-0035 does not name it in `tasks:`; add it, or drop the parent (docs/features/account-budget/plan/tasks/..."
-    TASK-0173: "TASK-0173 declares parent: FEAT-0023, but FEAT-0023 does not name it in `tasks:`; add it, or drop the parent (docs/features/overview-scopes/plan/tasks..."
     TASK-0174: "TASK-0174 declares parent: FEAT-0006, but FEAT-0006 does not name it in `tasks:`; add it, or drop the parent (docs/features/cockpit/plan/tasks/TASK-01..."
     TASK-0175: "TASK-0175 declares parent: FEAT-0030, but FEAT-0030 does not name it in `tasks:`; add it, or drop the parent (docs/features/agent-inbox/plan/tasks/TAS..."
     TASK-0176: "TASK-0176 declares parent: FEAT-0023, but FEAT-0023 does not name it in `tasks:`; add it, or drop the parent (docs/features/overview-scopes/plan/tasks..."

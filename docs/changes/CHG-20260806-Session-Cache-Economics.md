@@ -15,7 +15,7 @@ issues: ["ISS-0104"]
 features: ["FEAT-0081"]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
 ---
 
@@ -72,3 +72,9 @@ Reviewed by `model:claude-opus-5` from a fresh session with no access to the aut
 - [[ISS-0111]] — the quoted figures do not reproduce (sub-hour re-writes fell from 17 to 16 and model switches from 11 to 10 against data that only grows), no scan script was committed, and `$336 / $6,731` is 5.0%, not the ~3.5% quoted here.
 
 What held up under attack: the dedupe, the cost multipliers, the mtime memoisation re-ageing on a cache hit, the TTL-before-model-switch classification order, and every degradation path (absent, empty, truncated, usage-free). The anti-feature reasoning is correct and worth the space it takes.
+
+## Independent review — 2026-08-06, round 4 (approved)
+
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above.**
+
+It supersedes it because every finding that produced it has been answered and re-checked against the artefacts rather than the claims: [[ISS-0106]] / [[ISS-0107]] / [[ISS-0108]] / [[ISS-0109]] are fixed and each is now pinned by a mutation that kills a test, and [[ISS-0111]]'s central complaint — figures that do not reproduce and no committed script — is closed by `tools/scripts/scan-cache-economics.py`, which this pass re-ran: 42 transcripts, 8 / 6 / 44 re-write events, 3.7% staleness, 4.9% avoidable, matching every figure quoted here allowing for a corpus that has since grown to 21,957 turns. Suites: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**. Full reasoning and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]]; none of them touches this note's subject. No `status:` field was changed by this pass.
