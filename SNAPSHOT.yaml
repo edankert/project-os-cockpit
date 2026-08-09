@@ -26,7 +26,7 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 9
+  ADR: 10
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
@@ -34,13 +34,13 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 82
+  FEAT: 84
   ISS: 122
-  PHASE: 28
-  REQ: 31
+  PHASE: 29
+  REQ: 32
   RISK: 6
   REL: 0
-  TASK: 360
+  TASK: 365
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -53,6 +53,20 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0084:
+      file: "docs/features/view-vocabulary/FEAT-0084-One-View-Vocabulary.md"
+      title: "One view vocabulary — the view set is declared once, classified reading or actuating, and both renderers consume it"
+      status: planned
+      phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
+      tasks: [TASK-0364, TASK-0365]
+      note: "ISS-0023 one level up: the nav vocabulary is declared twice (cockpit.js and renderer.ts) with different members and different labels for one id, and nothing compares them. `recent` is already live in one and retired in the other. Deferred — Edwin's direction 2026-08-09 was to align the browser at a later stage."
+    FEAT-0083:
+      file: "docs/features/browser-front-door/FEAT-0083-The-Browser-Cockpit-Answers-Questions.md"
+      title: "The browser cockpit answers questions — the overview and the design register reach the reading surface, and the desk deliberately does not"
+      status: planned
+      phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
+      tasks: [TASK-0361, TASK-0362, TASK-0363]
+      note: "Mode 1 exposes 5 views to mode 3's 7, and is missing all three that answer a question. The 0.0.0.0 bind exists so a tablet can read; the tablet gets the pre-PHASE-008 tool. The desk stays OUT by ADR-0010 — its endpoints refuse non-loopback callers and a queue you cannot discharge is worse than none. TASK-0363 (the read-only guard) lands BEFORE the two porting tasks."
     FEAT-0082:
       file: "docs/features/desk-obligations/FEAT-0082-The-Desk-Shows-What-It-Owes.md"
       title: "The desk shows what it owes — the board as the centre pane's landing, the registers as the record, and the walk made explicit"
@@ -1731,6 +1745,13 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0032:
+      file: "docs/requirements/REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record.md"
+      title: "The two front doors agree, or differ on the record — a view present in one and absent from the other is a decision, not an oversight"
+      status: draft
+      phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
+      specifies: ["FEAT-0083", "FEAT-0084"]
+      note: "The ISS-0023 rule applied to views instead of statuses. Deliberately NOT 'the two front doors show the same views' — ADR-0010 decides they should not; this demands the difference be derivable rather than remembered."
     REQ-0025:
       file: "docs/requirements/REQ-0025-No-Type-Loses-Its-Surface.md"
       title: "No note type loses its only surface"
@@ -1828,6 +1849,13 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-029:
+      file: "docs/phases/PHASE-029-One-Tool-Two-Front-Doors.md"
+      title: "One tool, two front doors — the browser cockpit and the desktop shell answer the same questions, and differ only where a difference was decided"
+      status: planned
+      order: 29
+      features: ["FEAT-0083", "FEAT-0084"]
+      note: "Opened planned, not active: Edwin's direction 2026-08-09 was to align the browser at a LATER stage. Mode 1 exposes Project/Features/Tasks/Issues/Recent; mode 3 exposes Overview/Design/Features/Tasks/Issues/Review/Library. The browser is missing all three question-answering surfaces, and the 0.0.0.0 bind exists precisely so a tablet can read. Parity is NOT the goal — ADR-0010 gates the phase and decides what the read-only door is for."
     PHASE-011:
       file: "docs/phases/PHASE-011-Unproven-Claims.md"
       title: "Unproven claims become visible"
@@ -2491,6 +2519,10 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0010:
+      title: "What the browser cockpit is for — the read-only front door is the reading surface, and its view set follows from that rather than from history"
+      status: proposed
+      path: "docs/decisions/ADR-0010-What-The-Browser-Cockpit-Is-For.md"
     ADR-0001:
       title: "Custom Python doc-server vs Quartz/mkdocs"
       status: accepted
@@ -2526,9 +2558,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 82
+    features_total: 84
     features_done: 56
-    tasks_total: 360
+    tasks_total: 365
     tasks_done: 285
     tests_total: 23
     tests_passing: 23
@@ -2539,4 +2571,4 @@ metrics:
     issues_triage: 2
     risks_open: 6
     releases_total: 0
-    decisions_total: 9
+    decisions_total: 10

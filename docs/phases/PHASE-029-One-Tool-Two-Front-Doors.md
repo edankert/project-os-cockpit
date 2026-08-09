@@ -1,0 +1,58 @@
+---
+type: "[[phase]]"
+id: PHASE-029
+aliases: ["PHASE-029"]
+title: "One tool, two front doors — the browser cockpit and the desktop shell answer the same questions, and differ only where a difference was decided"
+status: planned
+order: 29
+owner: user:edwin
+created: 2026-08-09
+updated: 2026-08-09
+goal: "Make the browser cockpit a deliberate subset of the same tool rather than an older version of it: one view vocabulary, the question-answering surfaces reachable from both, and every remaining difference traceable to a recorded decision about what the read-only front door is for."
+features:
+  - "[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]"
+  - "[[FEAT-0084-One-View-Vocabulary]]"
+requirements:
+  - "[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"
+issues: []
+depends: ["[[PHASE-023-Levers-For-The-Human]]"]
+related: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[REQ-0013-Cockpit-Three-Pane-Layout]]", "[[RISK-0001-Render-Server-Exposure]]"]
+tags: [surfaces, mode-1]
+---
+
+# One tool, two front doors
+
+## Where this came from
+
+A review of every nav mode on 2026-08-09 (session with Edwin) measured the two surfaces side by side:
+
+| | views exposed |
+|---|---|
+| **Mode 3** (desktop shell) | Overview · Design · Features · Tasks · Issues · Review · Library |
+| **Mode 1** (browser, `0.0.0.0`) | Project · Features · Tasks · Issues · Recent |
+
+The browser has **none of the three views that answer a question** — Overview, Design, Review. It has three list navigators and `Recent`, which mode 3 classifies as retired. The render server binds `0.0.0.0` *specifically so a tablet on the same Wi-Fi can read the notes*, and what the tablet gets is the 2026-05 tool.
+
+`recent` is the sharpest instance: one view with two verdicts — a live button in `cockpit.js`, a member of `RETIRED_NAV_MODES` in `renderer.ts`. Nothing reconciles them, and nothing would notice.
+
+## The goal is not parity
+
+Parity is the wrong target and this phase says so up front. The browser surface is reachable from the LAN and must stay read-only ([[RISK-0001]]); the desk performs writes, and those endpoints refuse non-loopback callers by design. So the Review desk cannot simply appear in mode 1, and "make them the same" would be a security regression wearing a UX justification.
+
+What the phase asks for is weaker and more useful: **the difference is decided rather than inherited.** [[ADR-0010]] decides what the browser front door is *for*; everything else follows from it.
+
+## Scope
+
+[[ADR-0010]] first — it gates both features. [[FEAT-0083]] brings the question-answering surfaces that are safe to bring. [[FEAT-0084]] makes the view vocabulary single-sourced so the next divergence cannot happen silently, and resolves `recent`'s two verdicts.
+
+## Exit criteria
+
+- [ ] [[ADR-0010]] is accepted, and states what the browser cockpit is for in a sentence someone can disagree with
+- [ ] Every view present in one front door and absent from the other is absent *because ADR-0010 says so*, and the reason is readable from the code
+- [ ] The view set is declared once and consumed by both renderers; adding a view to one without deciding about the other is not possible without the guard failing
+- [ ] `recent` has one verdict
+- [ ] No write path becomes reachable from a non-loopback peer — re-scanned against [[RISK-0001]] before the phase closes
+
+## Deferred deliberately
+
+Opened `planned`, not `active`. Edwin's direction on 2026-08-09 was to align the browser view **at a later stage**; this phase exists so the finding is not lost and the work has a home, not because it is next.
