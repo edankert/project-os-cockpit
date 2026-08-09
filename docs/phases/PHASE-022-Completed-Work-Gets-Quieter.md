@@ -3,13 +3,14 @@ type: "[[phase]]"
 id: PHASE-022
 aliases: ["PHASE-022"]
 title: "Completed work gets quieter, never absent — ordering, then folding, then the density that makes folding readable"
-status: done
+status: active
 order: 22
 owner: user:edwin
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-09
 goal: "Replace a switch that empties three views and the whole context pane with ordering that puts open work first, and folding applied to volume rather than to meaning."
 features:
+  - "[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]"
   - "[[FEAT-0056-Completed-Work-Ordering]]"
   - "[[FEAT-0057-The-Record-Grammar]]"
   - "[[FEAT-0058-One-Shape-Per-Navigator]]"
@@ -282,3 +283,16 @@ No single value was wrong. The band's 6, the group's 2 and the head's 8 compound
 Asked in the same breath to align the panes, I measured all six and found a second section-heading style I had written myself without checking `.scope-heading` existed, and design rows 3px taller than every other navigator's purely because a status chip was present — the identical failure the group head had at [[ISS-0087]].
 
 **And a mutation reported green while having silently failed to apply**, because the replacement string was written against an older version of the block. That looks exactly like a working guard. `assert old in s` belongs in the mutation script and not only in the guard: a mutation that does not apply is indistinguishable from a guard that does not work, and only one of those is worth knowing about.
+
+
+## Reopened 2026-08-09 — the thirteenth leg, and the first structural one
+
+Every previous leg made *finished* work quieter: ordering, folding, density, one border per object. This one changes what the navigator is a tree **of**.
+
+Edwin, reviewing the view set: *"how about we group tasks directly under features (sorted by status) and make the phases in features selectable"*. Measured before agreeing — **355 of 358 tasks carry a `parent` feature**, 80 of 83 features carry tasks, median 3 tasks per feature and a maximum of 48. The link this needs is already there at 99%.
+
+So [[FEAT-0085]] makes Features the whole structural tree — phase → feature → requirements · plan · tasks — and retires the Tasks view, whose own measurement was the argument for it: 356 tasks in six status groups, 282 of them `done`, none `doing`, and phase appearing nowhere.
+
+**Reopened rather than minted**, per `CLAUDE.md`: this phase already owns [[FEAT-0058]] (*one shape per navigator*), the goal above is the rule this leg applies one level deeper, and a single feature is exactly what [[ISS-0077]] said must not get a phase of its own. It closes again when [[FEAT-0085]] does.
+
+**Deliberately not in this leg:** the phase *scope* Edwin asked about in the same breath. Folding finished phases already leaves 1 active and 7 planned on screen, so the tree change may remove the need entirely — and a global filter that makes every count conditional is expensive to withdraw once every view respects it. Re-asked after this lands, not before.
