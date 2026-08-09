@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<meta charset="utf-8">
+<title>DES-0010 — The desk shows what it owes</title>
+<style>
+/* Tokens verbatim from src/project_os_cockpit/static/base.css and cockpit.css,
+   both schemes, in the implementation's order. design_tokens.py compares
+   first-declaration-wins against base.css's :root, so the light block must be
+   first and must be the light values — a dark-only plate naming --status-* in
+   :root reports a divergence that does not exist. */
+:root {
+  --bg:            hsl(0 0% 99%);
+  --surface:      hsl(0 0% 96%);
+  --surface-2:    hsl(0 0% 92%);
+  --border:       hsl(0 0% 86%);
+  --border-strong: hsl(0 0% 76%);
+  --text:         hsl(0 0% 13%);
+  --text-muted:   hsl(0 0% 38%);
+  --text-faint:   hsl(0 0% 55%);
+
+  --accent-link:   hsl(212 48% 42%);
+
+  --status-active:    hsl(140 32% 38%);
+  --status-pending:   hsl(220 14% 48%);
+  --status-done:      hsl(160 28% 38%);
+  --status-archived:  hsl(0 0% 48%);
+  --status-blocked:   hsl(5 48% 46%);
+  --status-reference: hsl(180 24% 40%);
+  --status-default:   hsl(0 0% 45%);
+
+  --severity-critical: hsl(5 60% 46%);
+  --severity-high:     hsl(20 60% 46%);
+  --severity-medium:   hsl(45 55% 42%);
+  --severity-low:      hsl(0 0% 50%);
+
+  --warn-fg:  hsl(36 50% 32%);
+
+  --type-feature:     hsl(210 50% 42%);
+  --type-task:        hsl(140 35% 38%);
+  --type-requirement: hsl(270 35% 48%);
+  --type-issue:       hsl(5 50% 46%);
+  --type-risk:        hsl(25 50% 42%);
+  --type-adr:         hsl(190 40% 38%);
+  --type-change:      hsl(45 50% 38%);
+  --type-release:     hsl(165 35% 38%);
+  --type-workflow:    hsl(320 35% 48%);
+  --type-test:        hsl(100 35% 38%);
+  --type-phase:       hsl(285 35% 48%);
+  --type-plan:        hsl(225 25% 48%);
+  --type-reference:   hsl(205 20% 38%);
+  --type-default:     hsl(0 0% 45%);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+[data-theme="dark"] {
+  --bg:           hsl(0 0% 11%);
+  --surface:      hsl(0 0% 14%);
+  --surface-2:    hsl(0 0% 17%);
+  --border:       hsl(0 0% 22%);
+  --border-strong: hsl(0 0% 32%);
+  --text:         hsl(0 0% 87%);
+  --text-muted:   hsl(0 0% 65%);
+  --text-faint:   hsl(0 0% 50%);
+
+  --accent-link:   hsl(212 50% 65%);
+
+  --status-active:    hsl(140 32% 60%);
+  --status-pending:   hsl(220 14% 65%);
+  --status-done:      hsl(160 28% 60%);
+  --status-archived:  hsl(0 0% 58%);
+  --status-blocked:   hsl(5 50% 65%);
+  --status-reference: hsl(180 24% 60%);
+  --status-default:   hsl(0 0% 60%);
+
+  --severity-critical: hsl(5 60% 65%);
+  --severity-high:     hsl(20 60% 65%);
+  --severity-medium:   hsl(45 55% 60%);
+  --severity-low:      hsl(0 0% 62%);
+
+  --warn-fg:  hsl(36 48% 65%);
+
+  --type-feature:     hsl(210 50% 65%);
+  --type-task:        hsl(140 35% 60%);
+  --type-requirement: hsl(270 35% 68%);
+  --type-issue:       hsl(5 50% 65%);
+  --type-risk:        hsl(25 50% 60%);
+  --type-adr:         hsl(190 40% 60%);
+  --type-change:      hsl(45 50% 58%);
+  --type-release:     hsl(165 35% 58%);
+  --type-workflow:    hsl(320 35% 68%);
+  --type-test:        hsl(100 35% 58%);
+  --type-phase:       hsl(285 35% 68%);
+  --type-plan:        hsl(225 25% 65%);
+  --type-reference:   hsl(205 20% 68%);
+  --type-default:     hsl(0 0% 60%);
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font: 14px/1.55 var(--font-sans); margin: 0; padding: 32px 30px 80px; max-width: 1240px; }
+h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+.sub { color: var(--text-faint); font-size: 12.5px; margin: 0; }
+.lede { color: var(--text-muted); font-size: 13px; max-width: 78ch; margin: 14px 0 0; }
+.lede b { color: var(--text); font-weight: 600; }
+h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); margin: 44px 0 3px; padding-top: 22px; border-top: 1px solid var(--border); }
+h2 .n { color: var(--border-strong); margin-right: 8px; }
+h2 .lit { text-transform: none; letter-spacing: 0; font-family: var(--font-mono); font-size: 12px; }
+.h2sub { color: var(--text-muted); font-size: 12.5px; margin: 0 0 16px; max-width: 82ch; }
+.mono { font-family: var(--font-mono); }
+
+#theme { position: fixed; top: 14px; right: 18px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface); color: var(--text-muted); font: inherit; font-size: 11px; padding: 3px 11px; cursor: pointer; z-index: 20; }
+
+/* ---- three-pane shell, at the real grid (renderer.css:61) ---- */
+.shell { display: grid; grid-template-columns: 44px 240px 1fr 280px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); min-height: 330px; position: relative; }
+.rail { background: var(--surface-2); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0; }
+.rail i { width: 18px; height: 18px; border: 1.5px solid var(--text-faint); border-radius: 4px; display: block; opacity: .45; }
+.rail i.on { border-color: var(--accent-link); background: var(--surface); opacity: 1; }
+.pane { border-right: 1px solid var(--border); padding: 8px 8px 12px; overflow: hidden; }
+.pane:last-child { border-right: 0; }
+.centre { background: var(--bg); padding: 16px 18px; }
+.right { background: var(--surface); padding: 10px; }
+
+.ph { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-faint); margin: 9px 2px 5px; }
+.ph:first-child { margin-top: 1px; }
+.ph.owed { color: var(--status-blocked); }
+.row { display: flex; align-items: center; gap: 6px; padding: 3px 5px; border-radius: 4px; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; }
+.row .t { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.row .d { color: var(--text-faint); font-size: 10px; flex: none; }
+.row.cur { background: var(--surface-2); color: var(--accent-link); font-weight: 600; }
+.id { font-family: var(--font-mono); font-size: 10.5px; flex: none; }
+.id.req { color: var(--type-requirement); } .id.test { color: var(--type-test); }
+.id.feat { color: var(--type-feature); }    .id.iss  { color: var(--type-issue); }
+.id.phase { color: var(--type-phase); }     .id.chg  { color: var(--type-change); }
+.chip { border: 1px solid var(--border-strong); border-radius: 9px; font-size: 9px; padding: 0 5px; color: var(--text-muted); flex: none; line-height: 15px; }
+.chip.pending { color: var(--status-pending); }
+.fold { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-faint); padding: 3px 5px; border-top: 1px solid var(--border); margin-top: 8px; }
+.fold::before { content: "\25B8"; font-size: 9px; }
+.dim { opacity: .45; }
+
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 5px; }
+.empty h3 { font-size: 16px; font-weight: 600; margin: 0; color: var(--text); }
+.empty p { font-size: 12px; color: var(--text-faint); margin: 0; }
+
+/* ---- the proposed board ---- */
+.deskhead { display: flex; align-items: baseline; gap: 10px; margin: 0 0 13px; }
+.deskhead .title { font-size: 14.5px; font-weight: 600; }
+.deskhead .count { margin-left: auto; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.board { display: grid; gap: 12px; align-items: start; }
+.col { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px; min-width: 0; }
+.colhead { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-faint); padding: 1px 3px 7px; display: flex; gap: 6px; }
+.colhead .k { color: var(--text-muted); }
+.card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; margin-bottom: 6px; }
+.card:last-child { margin-bottom: 0; }
+.card .top { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; }
+.card .ttl { font-size: 12px; color: var(--text); line-height: 1.4; }
+.card .foot { font-size: 10px; color: var(--text-faint); margin-top: 4px; display: flex; gap: 7px; flex-wrap: wrap; }
+.card.slim .ttl { font-size: 11.5px; color: var(--text-muted); }
+.more { font-size: 10.5px; color: var(--text-faint); padding: 4px 3px 1px; }
+.rail-empty { margin-top: 13px; font-size: 11px; color: var(--text-faint); display: flex; gap: 8px; flex-wrap: wrap; }
+.rail-empty span::after { content: " \00B7"; color: var(--border-strong); }
+.rail-empty span:last-child::after { content: ""; }
+.record { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+.record .go { margin-left: auto; }
+
+/* ---- the detail (the walk) ---- */
+.detail h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; }
+.detail .meta { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); margin-bottom: 11px; }
+.acts { display: flex; align-items: center; gap: 8px; padding: 7px 0 10px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.acts .lbl { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-faint); margin-right: 2px; }
+.btn { border: 1px solid var(--border-strong); border-radius: 5px; background: none; color: var(--text-muted); font: inherit; font-size: 11.5px; padding: 2px 11px; line-height: 19px; }
+.btn.good { color: var(--status-active); }
+.btn.bad { color: var(--status-blocked); }
+.btn .k { opacity: .5; font-size: 10px; margin-left: 5px; }
+.bodytext { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+.crit { display: flex; gap: 8px; padding: 3px 0; font-size: 12px; }
+.crit .box { color: var(--text-faint); }
+.nextbar { display: flex; align-items: center; margin-top: 14px; padding-top: 9px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); }
+.nextbar .btn { margin-left: auto; }
+
+.rp { font-size: 11px; color: var(--text-muted); }
+.rp .ph { margin-top: 2px; }
+.rp p { margin: 0 0 8px; color: var(--text-faint); font-size: 11px; line-height: 1.5; }
+
+/* ---- annotations ---- */
+.pin { position: absolute; width: 17px; height: 17px; border-radius: 50%; background: var(--warn-fg); color: var(--bg); font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); z-index: 5; box-shadow: 0 0 0 3px var(--bg); }
+.pins { margin: 11px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--text-muted); }
+.pins li { padding: 3px 0 3px 26px; position: relative; line-height: 1.55; }
+.pins li b { position: absolute; left: 0; top: 3px; width: 17px; height: 17px; border-radius: 50%; background: var(--warn-fg); color: var(--bg); font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); }
+.pins li em { color: var(--text); font-style: normal; font-weight: 600; }
+.cap { color: var(--warn-fg); font-size: 12px; margin: 11px 2px 0; font-style: italic; max-width: 82ch; }
+.note { background: var(--surface); border: 1px solid var(--border); border-left: 2px solid var(--warn-fg); border-radius: 0 6px 6px 0; padding: 11px 14px; margin: 16px 0 0; font-size: 12.5px; color: var(--text-muted); max-width: 88ch; }
+.note b { color: var(--text); }
+table { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 860px; margin-top: 12px; }
+td, th { border-bottom: 1px solid var(--border); padding: 5px 9px; text-align: left; color: var(--text-muted); vertical-align: top; }
+th { color: var(--text-faint); font-size: 9.5px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
+td.num { font-family: var(--font-mono); text-align: right; white-space: nowrap; }
+.false { color: var(--status-blocked); }
+.ok { color: var(--status-done); }
+.anatomy { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; }
+.anatomy .lo { width: 250px; } .anatomy .hi { width: 430px; }
+.anatomy p { font-size: 11.5px; color: var(--text-faint); margin: 9px 0 0; line-height: 1.5; }
+.boxed { border: 1px solid var(--border); border-radius: 6px; padding: 7px; background: var(--surface); }
+</style>
+
+<button id="theme" type="button">light</button>
+
+<h1>The desk shows what it owes</h1>
+<p class="sub">DES-0010 &middot; proposed layout for <span class="mono">~review</span> &middot; drawn from the live payloads of this repo and <span class="mono">your-trainer</span>, 2026-08-09</p>
+<p class="lede">Five plates. <b>A</b> is the desk as built. <b>B</b> and <b>C</b> are the two states of the proposal &mdash; the board you arrive at, and the walk you drop into. <b>D</b> is the same code at thirteen times the load. <b>E</b> is the card, and why it needs the width.</p>
+
+<div class="note" data-design-region="notes"><b>Read plate A's pin 2 first.</b> The desk's most prominent owed section is <span class="mono">Changes requested &middot; 10</span>, and all ten of those notes are terminal &mdash; <span class="mono">fixed</span>, <span class="mono">done</span> or <span class="mono">merged</span>. <span class="mono">review_verdict</span> is sticky: nothing clears the stamp when the requested work lands. The desk's real load is <b>3</b>, not 13, and no layout fixes that. Filed as ISS-0121, to be fixed before any of this is built.</div>
+
+<section data-design-region="plate-a">
+<h2><span class="n">A</span> The desk as built &mdash; this repo, right now</h2>
+<p class="h2sub">Everything owed is in the 240&nbsp;px pane, outnumbered nine to one by registers. The widest pane holds one sentence. The third is cleared on entry.</p>
+
+<div class="shell">
+  <div class="pin" style="left:296px;top:8px">1</div>
+  <div class="pin" style="left:296px;top:96px">2</div>
+  <div class="pin" style="left:296px;top:250px">3</div>
+  <div class="pin" style="left:600px;top:150px">4</div>
+  <div class="pin" style="left:952px;top:8px">5</div>
+  <div class="rail"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+  <div class="pane">
+    <div class="ph">Queue &middot; 3</div>
+    <div class="ph">Proposals &middot; 3</div>
+    <div class="row"><span class="id req">0029</span><span class="t">A delegate is always dist&hellip;</span></div>
+    <div class="row"><span class="id req">0030</span><span class="t">The worker never outrun&hellip;</span></div>
+    <div class="row"><span class="id req">0031</span><span class="t">The loop always halts</span></div>
+    <div class="ph owed">Changes requested &middot; 10</div>
+    <div class="row"><span class="id feat">0056</span><span class="t">Open work sorts first, l&hellip;</span><span class="d">08-02</span></div>
+    <div class="row"><span class="id chg">&hellip;lapses</span><span class="t">Hide-completed became&hellip;</span><span class="d">08-02</span></div>
+    <div class="row"><span class="id phase">0013</span><span class="t">Fleet surfaces &mdash; the co&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id phase">0011</span><span class="t">Unproven claims becom&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id iss">0069</span><span class="t">review_verdict has a se&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id iss">0068</span><span class="t">The overview's Waiting-&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id iss">0057</span><span class="t">Design review staleness&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id iss">0037</span><span class="t">Library rows for top-lev&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id feat">0045</span><span class="t">A project inbox: drop an&hellip;</span><span class="d">07-30</span></div>
+    <div class="row"><span class="id chg">&hellip;losed</span><span class="t">FEAT-0018 and FEAT-00&hellip;</span><span class="d">07-30</span></div>
+    <div class="ph">Tests &middot; 23/23</div>
+    <div class="row dim"><span class="id test">0011</span><span class="t">Overview and review de&hellip;</span><span class="chip">manual</span></div>
+    <div class="row dim"><span class="id test">0022</span><span class="t">Surface ownership</span><span class="chip">manual</span></div>
+    <div class="row dim"><span class="id test">0023</span><span class="t">Completed work ordering</span></div>
+    <div class="fold">21 more test rows</div>
+    <div class="fold">Completed &middot; 4 verdicts, 93 items</div>
+  </div>
+  <div class="pane centre">
+    <div class="empty">
+      <h3>Pick something from the queue</h3>
+      <p>3 items need a human.</p>
+    </div>
+  </div>
+  <div class="pane right"></div>
+</div>
+<ul class="pins">
+  <li><b>1</b><em>39 rows in the narrowest pane</em> &mdash; 3 of them actionable. Queue, false-owed block, tests register and completed band all compete in one 240&nbsp;px column.</li>
+  <li><b>2</b><em>All ten are already done.</em> <span class="mono">FEAT-0056 done &middot; PHASE-013 done &middot; ISS-0068 fixed &middot; CHG-&hellip;-Collapses merged</span>&hellip; Genuinely owed: <span class="false">0</span>. TASK-0277 promoted these rows for a good reason &mdash; a reviewer asked for something and nothing recorded it happening &mdash; but the field it reads is never cleared.</li>
+  <li><b>3</b><em>116 register rows below the owed ones</em>: the record outweighs the obligation 9:1, in the pane that exists to show the obligation.</li>
+  <li><b>4</b><em>The widest pane shows an instruction to click.</em> Roughly 576&nbsp;&times;&nbsp;330&nbsp;px spent on eight words.</li>
+  <li><b>5</b><em>The right pane is emptied on entry</em> &mdash; <span class="mono">rightPaneContent.replaceChildren()</span>, <span class="mono">renderer.ts:4105</span>.</li>
+</ul>
+</section>
+
+<section data-design-region="plate-b">
+<h2><span class="n">B</span> Proposed &mdash; arriving at the desk</h2>
+<p class="h2sub">The centre pane's empty state becomes the board. Columns are obligation kinds and ship in the payload. Occupied columns take the width; empty kinds collapse to one line.</p>
+
+<div class="shell">
+  <div class="pin" style="left:296px;top:8px">1</div>
+  <div class="pin" style="left:600px;top:8px">2</div>
+  <div class="pin" style="left:600px;top:232px">3</div>
+  <div class="pin" style="left:600px;top:276px">4</div>
+  <div class="rail"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+  <div class="pane">
+    <div class="ph">Tests &middot; 23/23</div>
+    <div class="row"><span class="id test">0011</span><span class="t">Overview and review de&hellip;</span><span class="chip">manual</span></div>
+    <div class="row"><span class="id test">0022</span><span class="t">Surface ownership</span><span class="chip">manual</span></div>
+    <div class="row"><span class="id test">0023</span><span class="t">Completed work ordering</span></div>
+    <div class="row"><span class="id test">0019</span><span class="t">Status palette parity</span></div>
+    <div class="row"><span class="id test">0002</span><span class="t">Cockpit JSON API</span></div>
+    <div class="fold">18 more</div>
+    <div class="ph">Reviewed &middot; 103</div>
+    <div class="fold">approved &middot; 83</div>
+    <div class="fold">changes-requested &middot; 10</div>
+    <div class="fold">plan-accepted &middot; 8</div>
+    <div class="fold">accepted &middot; 2</div>
+  </div>
+  <div class="pane centre">
+    <div class="deskhead"><span class="title">Review</span><span class="count">3 owed</span></div>
+    <div class="board" style="grid-template-columns:1fr">
+      <div class="col">
+        <div class="colhead"><span>Approve</span><span class="k">3</span></div>
+        <div class="card">
+          <div class="top"><span class="id req">REQ-0029</span><span class="chip pending">draft</span></div>
+          <div class="ttl">A delegate is always distinguishable from the principal</div>
+          <div class="foot"><span>requirement</span><span>PHASE-027 &middot; The Standing Worker</span><span>created 08-03</span></div>
+        </div>
+        <div class="card">
+          <div class="top"><span class="id req">REQ-0030</span><span class="chip pending">draft</span></div>
+          <div class="ttl">The worker never outruns its policy</div>
+          <div class="foot"><span>requirement</span><span>PHASE-027 &middot; The Standing Worker</span><span>created 08-03</span></div>
+        </div>
+        <div class="card">
+          <div class="top"><span class="id req">REQ-0031</span><span class="chip pending">draft</span></div>
+          <div class="ttl">The loop always halts</div>
+          <div class="foot"><span>requirement</span><span>PHASE-027 &middot; The Standing Worker</span><span>created 08-03</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="rail-empty"><span>nothing to decide</span><span>nothing to accept</span><span>nothing to answer</span><span>no test runs waiting</span></div>
+    <div class="record">Record &middot; 23 tests, all passing &middot; 103 verdicts<span class="go">&#9656;</span></div>
+  </div>
+  <div class="pane right"></div>
+</div>
+<ul class="pins">
+  <li><b>1</b><em>The left pane holds the record only</em> &mdash; Tests and Reviewed. It stops mixing what you owe with what exists, and the queue is not duplicated because the board is showing it.</li>
+  <li><b>2</b><em>One column, because one kind is owed.</em> Same code as plate D; no <span class="mono">count === 0</span> branch. The last count-conditional layout here is <span class="mono">buildNowBoard()</span> behind <span class="mono">phases.length === 0</span> &mdash; which is why nobody has seen it.</li>
+  <li><b>3</b><em>Empty kinds are one line, not four empty columns.</em> You can still see nothing is owed there; it costs a line instead of four-fifths of the width.</li>
+  <li><b>4</b><em>The record is one strip</em>, opening the left pane's registers full-width. 116 rows, addressable, not resident.</li>
+</ul>
+<p class="cap">Note what is not here: no Doing column, no drag targets, no status axis. Every card is something a human owes a judgment on, and the judgment happens on the note (plate C), never on the board.</p>
+</section>
+
+<section data-design-region="plate-c">
+<h2><span class="n">C</span> Proposed &mdash; inside an item, walking the queue</h2>
+<p class="h2sub">Click a card and the detail view replaces the board, unchanged from today. The left pane now becomes the queue, because now there is a walk to do. The two never show the same list at the same time.</p>
+
+<div class="shell">
+  <div class="pin" style="left:296px;top:8px">1</div>
+  <div class="pin" style="left:600px;top:76px">2</div>
+  <div class="pin" style="left:600px;top:286px">3</div>
+  <div class="pin" style="left:952px;top:8px">4</div>
+  <div class="rail"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+  <div class="pane">
+    <div class="ph">Queue &middot; 3</div>
+    <div class="ph">Approve &middot; 3</div>
+    <div class="row cur"><span class="id req">0029</span><span class="t">A delegate is always dist&hellip;</span></div>
+    <div class="row"><span class="id req">0030</span><span class="t">The worker never outrun&hellip;</span></div>
+    <div class="row"><span class="id req">0031</span><span class="t">The loop always halts</span></div>
+    <div class="fold">Record &middot; 23 tests &middot; 103 verdicts</div>
+  </div>
+  <div class="pane centre">
+    <div class="detail">
+      <h3>A delegate is always distinguishable from the principal</h3>
+      <div class="meta">REQ-0029 &middot; requirement &middot; draft &middot; PHASE-027</div>
+      <div class="acts">
+        <span class="lbl">Owed</span>
+        <button class="btn good" type="button">Approve<span class="k">&#9166;</span></button>
+        <button class="btn bad" type="button">Decline&hellip;</button>
+        <span style="flex:1"></span>
+        <span style="font-size:10.5px;color:var(--text-faint)">1 of 3</span>
+      </div>
+      <div class="bodytext">
+        <p style="margin:0 0 9px">Every write a delegate makes carries its authority, and no surface renders delegate output as though a human produced it.</p>
+        <div class="crit"><span class="box">&#9744;</span><span>A delegated write is attributable to its policy and its principal</span></div>
+        <div class="crit"><span class="box">&#9744;</span><span>No surface renders delegate output as principal output</span></div>
+        <div class="crit"><span class="box">&#9744;</span><span>Revoking a policy invalidates writes made under it</span></div>
+      </div>
+      <div class="nextbar">Approving stamps <span class="mono" style="margin:0 4px">status: approved</span> on the note<button class="btn" type="button">Next &#9656;</button></div>
+    </div>
+  </div>
+  <div class="pane right">
+    <div class="rp">
+      <div class="ph">Specifies</div>
+      <div class="row"><span class="id feat">FEAT-0074</span><span class="t">The standing worker</span></div>
+      <div class="row"><span class="id feat">FEAT-0075</span><span class="t">The delegation policy</span></div>
+      <div class="ph">Source</div>
+      <p>DES-0009 &mdash; The standing worker</p>
+      <div class="ph">Phase</div>
+      <div class="row"><span class="id phase">PHASE-027</span><span class="t">The Standing Worker</span><span class="chip pending">planned</span></div>
+    </div>
+  </div>
+</div>
+<ul class="pins">
+  <li><b>1</b><em>Now the pane is the queue</em>, current row lit, record folded to one line. Board and list are one payload in two modes &mdash; never both on screen, so there is nothing to keep in sync.</li>
+  <li><b>2</b><em>The actuator row sits on the thing being actuated</em> (DES-0005): a quiet row under the title, buttons at chip height, confirmation for terminal moves only. <span class="mono">Approve</span> / <span class="mono">Decline</span> are the whole vocabulary a <span class="mono">draft</span> requirement offers, and the server decides that, not this pane.</li>
+  <li><b>3</b><em>The walk is explicit</em> &mdash; <span class="mono">1 of 3</span> and <span class="mono">Next &#9656;</span>. This is what the left pane's list silently provided and what a board alone would lose.</li>
+  <li><b>4</b><em>The right pane gets its job back</em>: what this requirement specifies, where it came from, which phase owns it. It is cleared today.</li>
+</ul>
+</section>
+
+<section data-design-region="plate-d">
+<h2><span class="n">D</span> The same board at thirteen times the load &mdash; <span class="lit">your-trainer</span></h2>
+<p class="h2sub">Live payload: 39 owed &mdash; Proposals 26, Test runs 13. No new code path; two kinds are occupied, so two columns are drawn.</p>
+
+<div class="shell" style="min-height:390px">
+  <div class="pin" style="left:600px;top:8px">1</div>
+  <div class="pin" style="left:600px;top:330px">2</div>
+  <div class="rail"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div>
+  <div class="pane">
+    <div class="ph">Tests &middot; 17</div>
+    <div class="row dim"><span class="id test">0031</span><span class="t">Session restore</span><span class="chip">manual</span></div>
+    <div class="row dim"><span class="id test">0030</span><span class="t">Strava upload path</span><span class="chip">manual</span></div>
+    <div class="fold">15 more</div>
+    <div class="ph">Reviewed &middot; 1</div>
+    <div class="fold">approved &middot; 1</div>
+  </div>
+  <div class="pane centre">
+    <div class="deskhead"><span class="title">Review</span><span class="count">39 owed</span></div>
+    <div class="board" style="grid-template-columns:1fr 1fr">
+      <div class="col">
+        <div class="colhead"><span>Approve</span><span class="k">26</span></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0194</span><span class="chip pending">draft</span></div><div class="ttl">Per-user favourites</div></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0195</span><span class="chip pending">draft</span></div><div class="ttl">Per-user Strava auth</div></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0196</span><span class="chip pending">draft</span></div><div class="ttl">Strava upload status display</div></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0197</span><span class="chip pending">draft</span></div><div class="ttl">Fit speed &amp; distance</div></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0198</span><span class="chip pending">draft</span></div><div class="ttl">Paywall family features display</div></div>
+        <div class="card slim"><div class="top"><span class="id req">REQ-0199</span><span class="chip pending">draft</span></div><div class="ttl">HRM connection UX</div></div>
+        <div class="more">+ 20 more &#9662;</div>
+      </div>
+      <div class="col">
+        <div class="colhead"><span>Run</span><span class="k">13</span></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0018</span><span class="chip">manual &middot; 9 steps</span></div><div class="ttl">Workout import round-trip</div></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0019</span><span class="chip">manual &middot; 6 steps</span></div><div class="ttl">Paywall purchase flow</div></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0020</span><span class="chip">manual &middot; 4 steps</span></div><div class="ttl">HRM pairing</div></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0021</span><span class="chip">manual &middot; 7 steps</span></div><div class="ttl">Offline queue drain</div></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0022</span><span class="chip">manual &middot; 5 steps</span></div><div class="ttl">Strava reconnect after revoke</div></div>
+        <div class="card slim"><div class="top"><span class="id test">TST-0023</span><span class="chip">manual &middot; 3 steps</span></div><div class="ttl">Widget refresh cadence</div></div>
+        <div class="more">+ 7 more &#9662;</div>
+      </div>
+    </div>
+    <div class="rail-empty"><span>nothing to decide</span><span>nothing to accept</span><span>nothing to answer</span></div>
+    <div class="record">Record &middot; 17 tests &middot; 1 verdict<span class="go">&#9656;</span></div>
+  </div>
+  <div class="pane right"></div>
+</div>
+<ul class="pins">
+  <li><b>1</b><em>This is the case a single column cannot serve.</em> 39 rows in a 240&nbsp;px pane is a scroll with no shape; here the split is legible before you read a word &mdash; most of what is owed is requirement approvals, and thirteen manual tests have never been run.</li>
+  <li><b>2</b><em>Columns cap and disclose</em> rather than growing without bound. Six cards then <span class="mono">+ 20 more</span> &mdash; the board is orientation; the walk is plate C.</li>
+</ul>
+<div class="note">Even at the fleet's busiest desk only <b>two</b> kinds are occupied. That is the honest answer to &ldquo;why not a kanban&rdquo;: the columns that carry information here are obligations, and there are never many at once. A board earns its place by making the split legible, not by having six columns.</div>
+</section>
+
+<section data-design-region="plate-e">
+<h2><span class="n">E</span> The card, and why it needs the width</h2>
+<p class="h2sub">The gain over the list is not the columns. It is that a card can carry what a 240&nbsp;px row truncates at nineteen characters.</p>
+
+<div class="anatomy">
+  <div class="lo">
+    <div class="ph" style="margin-left:0">Today &middot; the 240&nbsp;px row</div>
+    <div class="boxed">
+      <div class="row"><span class="id req">0029</span><span class="t">A delegate is always dist&hellip;</span></div>
+    </div>
+    <p>Id and nineteen characters. Type, state, phase and age are in the <span class="mono">title</span> tooltip &mdash; which a tablet cannot reach, on a server that binds <span class="mono">0.0.0.0</span> precisely so a tablet can read it.</p>
+  </div>
+  <div class="hi">
+    <div class="ph" style="margin-left:0">Proposed &middot; the card</div>
+    <div class="col">
+      <div class="card">
+        <div class="top"><span class="id req">REQ-0029</span><span class="chip pending">draft</span></div>
+        <div class="ttl">A delegate is always distinguishable from the principal</div>
+        <div class="foot"><span>requirement</span><span>PHASE-027 &middot; The Standing Worker</span><span>created 08-03</span></div>
+      </div>
+    </div>
+    <p>Full title, type, state, owning phase, age. Everything the tooltip held, on the surface, at a glance &mdash; and the id stays a display handle (ISS-0084), full value on hover.</p>
+  </div>
+</div>
+</section>
+
+<section data-design-region="columns">
+<h2><span class="n">&middot;</span> Columns, and where each comes from</h2>
+<p class="h2sub">Every column is a group in <span class="mono">review_queue_payload</span>. The verb ships in the payload beside the group &mdash; no vocabulary in TypeScript, which is the ISS-0023 rule applied before it can be broken rather than after.</p>
+<table>
+  <tr><th>Column</th><th>Source</th><th class="num">here</th><th class="num">your-trainer</th><th>Change needed</th></tr>
+  <tr><td>Decide</td><td class="mono">adr / decision @ proposed</td><td class="num">0</td><td class="num">0</td><td>none &mdash; group exists</td></tr>
+  <tr><td>Approve</td><td class="mono">requirement @ draft</td><td class="num ok">3</td><td class="num ok">26</td><td>split out of <em>Proposals</em></td></tr>
+  <tr><td>Accept</td><td class="mono">design @ proposed + ledger offers</td><td class="num">0</td><td class="num">0</td><td>split out of <em>Proposals</em></td></tr>
+  <tr><td>Answer</td><td class="mono">question requests</td><td class="num">0</td><td class="num">0</td><td>none &mdash; group exists</td></tr>
+  <tr><td>Run</td><td class="mono">test @ ready, manual</td><td class="num">0</td><td class="num ok">13</td><td>none &mdash; group exists</td></tr>
+  <tr><td>Re-review</td><td class="mono">review_verdict: changes-requested</td><td class="num false">10 &rarr; 0</td><td class="num">0</td><td><b>ISS-0121</b> &mdash; filter settled subjects</td></tr>
+  <tr><td>Accept (feature)</td><td class="mono">acceptance: requested</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td>DES-0006, unbuilt</td></tr>
+</table>
+<p class="cap">Splitting Proposals is a payload change, not a renderer change: a draft requirement is approved and an offered design revision is accepted, and DES-0005's table already says so.</p>
+</section>
+
+<section data-design-region="cost">
+<h2><span class="n">&middot;</span> What this costs, and what it must not break</h2>
+<table>
+  <tr><th>Piece</th><th>Where</th><th>Note</th></tr>
+  <tr><td>Filter settled subjects from the reviewed register</td><td class="mono">cockpit.py &middot; _reviewed_register</td><td>Do first, alone. Fixes 10 false obligations out of 13. This is ISS-0121, not this design.</td></tr>
+  <tr><td>Split groups, add <span class="mono">verb</span></td><td class="mono">cockpit.py &middot; review_queue_payload</td><td>Server owns the vocabulary; the renderer draws what it is sent.</td></tr>
+  <tr><td>Board replaces the empty state</td><td class="mono">renderer.ts &middot; buildReviewEmpty</td><td>Reuses the <span class="mono">.now-board</span> / <span class="mono">.now-col</span> rules at <span class="mono">renderer.css:3291</span>.</td></tr>
+  <tr><td>Left pane becomes mode-dependent</td><td class="mono">renderer.ts &middot; renderReviewQueuePane</td><td><b>TST-0022 step 10</b> asserts the pane order is Queue &rarr; Reviewed &rarr; Tests, source-level and manually, and a mutation swapping the two register appends was caught. Update the test; do not break it.</td></tr>
+  <tr><td>Right pane gets the note's context</td><td class="mono">renderer.ts &middot; renderReviewPage</td><td>Cleared today at line 4105.</td></tr>
+</table>
+<div class="note"><b>Not in scope, deliberately.</b> No write path is added: the board navigates, and every actuator in plate C is DES-0005's, behind REQ-0026's rule that the cockpit performs only human-owned transitions. Nothing here can move an item to <span class="mono">done</span>, <span class="mono">fixed</span> or <span class="mono">merged</span> &mdash; those are the agent's, and the server refuses them whatever a renderer draws.</div>
+</section>
+
+<script>
+(function () {
+  var btn = document.getElementById('theme');
+  btn.addEventListener('click', function () {
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+    btn.textContent = dark ? 'dark' : 'light';
+  });
+})();
+</script>
+</html>

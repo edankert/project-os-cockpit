@@ -30,29 +30,36 @@ counters:
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
-  DES: 9
+  DES: 10
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 81
-  ISS: 120
+  FEAT: 82
+  ISS: 122
   PHASE: 28
   REQ: 31
   RISK: 6
   REL: 0
-  TASK: 356
+  TASK: 360
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0081"
-  phase: "PHASE-007"
-  issue: ""
-  note: "2026-08-06: Edwin asked whether prompt-cache staleness could be identified, highlighted, or automated. MEASURED FIRST, and the measurement moved the target. Figures are reproducible — `python3 tools/scripts/scan-cache-economics.py` — and these are the CORRECTED ones: across 42 transcripts / 21,924 deduped turns, cache READS are ~$5,360 of ~$6,809 input-side spend; STALENESS means TTL expiry alone at ~$250 (3.7%), and all avoidable re-writes together are ~$336 (4.9%). The weight of the context is the 20x lever and nothing in the cockpit said what it weighs (ctx% is fill, not tokens). ISS-0104: 8 of 14 sub-hour re-writes were MODEL SWITCHES. An earlier version of this note said 11 of 17 and ~3.5% — both wrong, and this note kept saying so for a whole fix round after they were retracted (ISS-0113); the figures now come from a committed script for exactly that reason. The anti-feature is written into FEAT-0081 because it is the obvious request and it is wrong: a keep-warm ping costs 2x the prefix EVERY ping against 2x once for going cold. PHASE-007 reopened rather than a new phase minted — it already owns the cost/context meters. Two independent reviews, both changes-requested; round 2 found the code fixed and the NOTES overclaiming, which is the same defect as round 1 committed while fixing it."
+  feature: ""
+  phase: "PHASE-023"
+  issue: "ISS-0121"
+  note: "2026-08-09: Edwin asked for a kanban view on the overview. Reviewed and argued against on the status axis — MEASURED: this corpus has 1 in-flight work item (353 tasks: 282 done / 65 backlog / 0 doing), and 77 across 4,630 notes fleet-wide. DES-0001's states audit already said why — work here is bursty, so the middle column is empty at exactly the moments you would look. Drag-to-move is refused anyway by REQ-0026 (close-out statuses are agent-owned). Redirected to the review desk, which Edwin picked over a fleet board (he works one repo at a time). Rendering the desk's real payload to draw the design then found ISS-0121: all ten `Changes requested` rows are terminal, so the desk's most prominent owed section is 100% false and its real load is 3, not 13. DES-0010 is the layout proposal — board as the centre pane's empty state, registers left, actuators on the note per DES-0005. Both are PROPOSALS; nothing implemented, no write path added. Fix ISS-0121 before any layout work, or the board renders ten false cards more prominently."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0082:
+      file: "docs/features/desk-obligations/FEAT-0082-The-Desk-Shows-What-It-Owes.md"
+      title: "The desk shows what it owes — the board as the centre pane's landing, the registers as the record, and the walk made explicit"
+      status: planned
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      tasks: [TASK-0357, TASK-0358, TASK-0359, TASK-0360]
+      note: "Implements DES-0010. The desk puts 39 rows in a 240px pane (3 actionable) and one sentence in ~576px. Board replaces the empty state; columns are obligation kinds carrying their verb from the payload, not the renderer. ISS-0121 goes FIRST — 10 of the 13 owed rows are false and the board would draw them larger. No write path: actuators stay FEAT-0060's, behind REQ-0026. TASK-0359 is test-gated by TST-0022 step 10."
     FEAT-0081:
       file: "docs/features/session-economics/FEAT-0081-What-A-Session-Costs-To-Keep-Alive.md"
       title: "What a session costs to keep alive — context weight, cache state, and the invalidations nobody sees"
@@ -1314,6 +1321,20 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0122:
+      file: "docs/issues/ISS-0122-Active-Modes-Doing-Column-Counts-Notes-Nobody-Is-Working.md"
+      title: "Active mode's `Doing · 44` contains one item anybody is working — `active` on a plan, a reference or a glossary is not work in flight"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "Found by measuring every nav mode's payload, not by anyone reporting it. _active_groups buckets by status alone: Doing 44 = 1 feature at `doing` + 23 plans + 18 references + a phase + the glossary, all at `active`. Next 45 includes 14 `accepted` ADRs/designs — settled decisions. Latent here (the mode lost its button in TASK-0204) but LIVE in any phase-less repo, because buildNowBoard() on the overview is built from mode=active. Triage because fixing and retiring are both defensible."
+    ISS-0121:
+      file: "docs/issues/ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed.md"
+      title: "The reviewed register counts settled work as owed — all ten `Changes requested` rows are terminal"
+      status: open
+      severity: medium
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      note: "Found while rendering the desk payload to draw DES-0010, not by anyone reporting it. `review_verdict` is sticky: a reviewer writes changes-requested, the work lands, the note reaches fixed/done/merged, and nothing clears the stamp — so TASK-0277's owed split accumulates permanent false positives. All 10 of 10 are terminal, 8 of them since 2026-07-30. The desk's real load is 3, not 13. Fix before any ~review layout change, which would render these more prominently."
     ISS-0120:
       file: "docs/issues/ISS-0120-The-Gates-Own-Severity-Is-Untested.md"
       title: "A gate demoted from error to warning leaves every test green, so nothing guards the severity that makes a gate a gate"
@@ -2505,17 +2526,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 81
+    features_total: 82
     features_done: 56
-    tasks_total: 356
+    tasks_total: 360
     tasks_done: 285
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
-    issues_triage: 1
+    issues_open: 4
+    issues_triage: 2
     risks_open: 6
     releases_total: 0
     decisions_total: 9
