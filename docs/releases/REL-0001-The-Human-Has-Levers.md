@@ -116,7 +116,11 @@ It does not claim the record is *correct*. [[FEAT-0091]] makes the 94%-stale sta
 
 ### The goal it serves
 
-[[ISS-0127]]: the intent charter is currently scheduled in PHASE-027 because delegated acceptance reads it, and is needed far earlier because this release has nothing to be checked against. The charter is the goal; this is the first delivery against it.
+The record already states it, and no separate goal document is needed — [[ISS-0127]], which first argued the opposite and was corrected. Assembled from [[ADR-0009]], [[ADR-0020]], [[DES-0003]] and [[PHASE-028]]:
+
+> The cockpit is how a person governs a project they did not write. It must not be able to say something false about that project without saying so — and everything it shows as owed must be theirs to discharge.
+
+Every feature in this release serves one clause of that sentence. [[FEAT-0089]] and [[FEAT-0091]] make the record stop asserting things that are not true; [[FEAT-0087]], [[FEAT-0086]] and [[FEAT-0088]] put what is owed where its subject lives; [[FEAT-0059]]/[[FEAT-0060]]/[[FEAT-0061]] make those judgments the person's to discharge.
 
 ### Caveat — maintained by hand
 

@@ -2,60 +2,62 @@
 type: "[[issue]]"
 id: ISS-0127
 aliases: ["ISS-0127"]
-title: "The intent charter is scheduled last because delegated acceptance reads it — but nine phases need something to be checked against now, and nothing exists to check them against"
+title: "The goal was derivable from the record and the argument for writing it down did not hold — only the non-goals are worth a note, because only they leave no trace"
 status: triage
 phase: ""
 owner: user:edwin
 created: 2026-08-10
 updated: 2026-08-10
-source: ["Session 2026-08-10: reviewing all open phases for implementation order, Edwin asked what to use as a goal for the whole plan"]
-severity: medium
+source: ["Session 2026-08-10: filed arguing the intent charter should be pulled forward; Edwin — 'Do we actually need a goal note, now the LLMs define the goal options?' — and the original argument did not survive checking"]
+severity: low
 component: "planning"
 parent: ""
-related: ["[[FEAT-0077-The-Intent-Charter]]", "[[TASK-0333-The-Charter-Note]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[PHASE-027-The-Standing-Worker]]", "[[REL-0001-The-Human-Has-Levers]]", "[[ADR-0009-The-Principal-Is-A-Role]]"]
+related: ["[[FEAT-0077-The-Intent-Charter]]", "[[TASK-0333-The-Charter-Note]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[PHASE-027-The-Standing-Worker]]", "[[REL-0001-The-Human-Has-Levers]]", "[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]", "[[PHASE-028-Borrowed-Capability]]"]
 tests: []
 ---
 
-# The charter is scheduled by its consumer, not its value
+# The goal was derivable; only the non-goals are worth writing
 
-## Problem
+## What this issue said first, and why it was wrong
 
-[[FEAT-0077]] produces *"a durable charter — goals, non-goals, taste constraints"*. It sits in [[PHASE-027]], the last and most speculative phase, because that is where its **consumer** lives: a delegated principal judging acceptance needs the asking written down.
+Filed 2026-08-10 arguing that [[FEAT-0077]]'s intent charter should be pulled out of [[PHASE-027]] and written early, because nine phases were being ordered with nothing to check them against. Its central evidence was that a charter *"would have caught"* [[DES-0010]] — a design authored and superseded inside 48 hours.
 
-That is a reason to have it by PHASE-027. It is not a reason to *not have it before*.
+**That claim does not survive checking, and it was the load-bearing one.**
 
-Nine phases and roughly 85 open tasks are currently ordered against each other with **no written statement of what the tool is for**. Every scoping decision is therefore argued from measurement, one at a time.
+What killed [[DES-0010]] were three measurements, recorded in [[ADR-0020]]: zero questions had ever been created in the repo's history; *"am I done?"* needs a count rather than a page; and the desk held two things that were not obligations while omitting the largest one there is. **None of those is an intention.** They are facts about the corpus, discovered by rendering its payload.
 
-## Evidence: what "no charter" costs
+And the principle that replaced the design — obligations live with their subject — did not pre-date [[ADR-0020]]. It *was* [[ADR-0020]]. A charter written the week before would have contained none of it.
 
-Measured on this session, 2026-08-08 to 2026-08-10. A single line of enquiry — "add a kanban view" — produced:
+So what actually caught [[DES-0010]] was measuring the surface before designing further for it. The lesson is **measure before designing**, which this project already practises and already records, not *write a charter*.
 
-1. A kanban on the overview, refuted by measurement (1 in-flight work item here, 77 fleet-wide)
-2. A board on the review desk ([[DES-0010]], [[FEAT-0082]]) — designed, drawn in five plates, **superseded two days later**
-3. The desk retired entirely ([[ADR-0020]])
+## The goals are derivable, so a note restating them is duplication
 
-Every step was decided from evidence and every step was right on the evidence it had. But a design was authored and superseded inside 48 hours, and the thing that would have caught it is a statement of what the surfaces are *for* — checked against before drawing, not after.
+The project's thesis was assembled from the record in a single pass, from [[ADR-0009]] (the principal is a role), [[ADR-0020]] (obligations live with their subject), [[DES-0003]] (*"the cockpit cannot tell a true claim from a false one"*), [[PHASE-028]] (*"the governance thesis nobody else is building"*) and [[REQ-0026]].
 
-That is the cost, and it is not an argument about tidiness: it is one artifact's worth of work, from one question, in three days.
+A charter would therefore be **a summary of notes that already exist** — the shape this repo keeps rejecting: [[ISS-0023]] (one vocabulary in eight places), [[ISS-0068]] (a list re-listing items that already have a home), one home per fact.
 
-## Why this is not simply "do PHASE-027 sooner"
+It would also be a ninth member of the class [[ISS-0125]] just measured as **94% stale fleet-wide**. A stale statement of intent is worse than none: it is a false claim on the most authoritative-looking page in the repo.
 
-[[PHASE-027]] is the standing worker — delegation, escalation, leases. It is the biggest bet in the plan and correctly last. Only **one** of its parts is needed early, and only for a different purpose than the phase intends: [[TASK-0333]], the charter note itself.
+## What does not survive derivation
 
-[[TASK-0334]] (delegated acceptance, charter-bound) and the rest of the phase stay where they are. This is a re-homing of one task, not a re-ordering of a phase.
+One thing, and it is the reason this issue stays open rather than being closed outright.
 
-## What the charter would already say
+**Non-goals leave no trace.** What a project built is recoverable from its record; what it *deliberately did not build* produces no note, no commit, no test. [[PHASE-028]]'s *"so the cockpit's effort goes into the governance thesis nobody else is building"* is the only one written anywhere, and it is a phase goal that happens to imply a project one.
 
-The thesis is latent in the record and could be drafted from it — [[ADR-0009]] (the principal is a role, not a person), [[ADR-0020]] (obligations live with their subject), [[REQ-0026]] (only human-owned transitions), and [[PHASE-023]]'s founding finding that *the human has no levers*. Something near:
+**And so do the principal's standing constraints.** *"I work one project at a time"* (Edwin, 2026-08-09) killed the fleet board, and survives only as a line inside a superseded design note. Cheap to lose, expensive to rediscover, and unknowable from the corpus.
 
-> The cockpit is the surface through which a person governs a project they did not write. It renders the record, shows what the record owes, and lets that person discharge exactly the judgments that are theirs — never the agent's.
+## Suggested resolution
 
-**But the charter is the one artefact here that cannot be derived.** Everything else this session produced came from measurement — 94% of standing documents stale, zero questions ever asked, 39 issues at triage with a 56-day median. Goals, non-goals and taste constraints are a position, not a finding. A draft from the record is an editable starting point and nothing more; the charter is only worth having if it is Edwin's.
+- **Do not write the charter**, and **leave [[FEAT-0077]] and [[TASK-0333]] in [[PHASE-027]]**. Its real consumer is delegated acceptance — an agent judging on the principal's behalf genuinely needs the asking written down, and that is a different requirement from a person wanting a goal. Scheduling it with its consumer was right after all.
+- **Consider a short non-goals note instead**: what this tool must not become, plus the standing constraints the principal holds that the record cannot infer. Five lines, not five sections.
+- **Test it the way the original filing proposed** — the one part of it that stands: if it never refuses a proposal, it was not worth writing, and it should be deleted rather than maintained.
+
+## What this changes elsewhere
+
+[[REL-0001]]'s *"The goal it serves"* section cites this issue for the claim that the charter is the goal. It is corrected to point at the record instead — the release serves a thesis the record already states, not a document that does not exist.
 
 ## Next Actions
 
-- [ ] Re-home [[TASK-0333]] (the charter note) out of [[PHASE-027]] — to [[PHASE-030]], or standing alongside [[REL-0001]] as the goal that release serves
-- [ ] Draft it from the record so there is something to react to rather than a blank page
-- [ ] Edwin owns the non-goals in particular — those are what a charter is actually for, and the record contains almost none of them
-- [ ] Leave [[TASK-0334]] and the rest of [[PHASE-027]] where they are
-- [ ] Once it exists, check the open phases against it — the test of a charter is whether it changes an ordering decision, and if it changes none it was not worth writing
+- [ ] Decide whether the non-goals note is worth five lines, or whether the answer is simply "no note"
+- [ ] If written, place it with the standing documents ([[FEAT-0091]]) so it inherits the freshness signal — a stale non-goals note should be as loud as a stale glossary
+- [ ] Close this issue either way; the charter question is settled and the remaining decision is small
