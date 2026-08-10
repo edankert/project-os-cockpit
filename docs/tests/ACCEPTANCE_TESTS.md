@@ -39,7 +39,7 @@ The tier contract has existed since the template was written. **No repo had ever
 
 **Created unchecked, deliberately** — nothing had been walked, which is the honest starting state for a checklist created the same day, and it meant the gate on [[REL-0001]] was firing rather than passing vacuously.
 
-**13 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
+**16 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
 
 One caveat shaped the first pass and was then removed: the running shell was on the current renderer but its Python sidecar predated the session, so payload-dependent views rendered stale, and anything whose evidence was a payload rather than pixels was left unchecked. `desktop/harness/live-harness.html` closes that gap — it runs the built bundle against a **real** sidecar in a plain browser, so the visual checks are walkable without restarting anyone's app. The two it has already settled are marked *rendered*.
 
@@ -71,7 +71,7 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 1.5 The overview ([[FEAT-0017]], [[FEAT-0023]], [[FEAT-0040]], [[FEAT-0048]])
 
-- [ ] **Every stat tile lands somewhere true:** click each of Features, Tasks, Tests, Issues, Risks. Expect: each opens a view that contains that type. (Reqs is inert by decision.)
+- [x] **Every stat tile lands somewhere true:** click each of Features, Tasks, Tests, Issues, Risks. Expect: each opens a view that contains that type. (Reqs is inert by decision.) — 2026-08-10, **rendered**: all five are `<button>`, Reqs is a `<div>` — the inertness is by construction, not by a missing handler. Destinations are asserted against the live corpus by `test_every_stat_tile_lands_where_its_type_lives`, and Risks was confirmed in the constraints view by eye (`Risks · 6 · open`).
 - [ ] **Changes read on the overview:** recent change notes in the history band, older ones collapsed by month and still openable.
 
 ## 1.6 Design and the constraints view ([[FEAT-0042]], [[FEAT-0043]], [[FEAT-0044]])
@@ -126,7 +126,7 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 2.2 Stat tiles are not dead ends ([[ISS-0063]])
 
-- [ ] **Every tile navigates, and lands where its type lives:** click all five live tiles. Expect: no tile that looks clickable and does nothing, and no tile that opens a pane its type has left. (Risks pointed at Issues for a commit after risks moved to the constraints view.)
+- [x] **Every tile navigates, and lands where its type lives:** click all five live tiles. Expect: no tile that looks clickable and does nothing, and no tile that opens a pane its type has left. (Risks pointed at Issues for a commit after risks moved to the constraints view.) — 2026-08-10, **rendered**: five buttons, one inert div, and the constraints view showing `Risks · 6 · open` where the tile now points.
 
 ## 2.3 One status vocabulary ([[ISS-0023]], [[ISS-0024]])
 
@@ -146,7 +146,7 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 2.7 The record column has its own source ([[ISS-0065]])
 
-- [ ] **Decisions survive a nav-mode change:** expect the overview's Decisions card to list every ADR, sourced from its own endpoint rather than harvested from a navigator that a later change can empty.
+- [x] **Decisions survive a nav-mode change:** expect the overview's Decisions card to list every ADR, sourced from its own endpoint rather than harvested from a navigator that a later change can empty. — 2026-08-10, **rendered** after switching modes four times: the record column shows `Decisions 10/11 accepted`, `Verification 23/23` and `Reviewed 104` — the last being [[TASK-0377]]'s re-homed register in its new place.
 
 ---
 
