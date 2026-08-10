@@ -864,3 +864,33 @@ def test_the_standing_set_is_not_a_second_obligation_list(repo_index: Index) -> 
                 i.get("id") for i in group["items"] if i.get("owed")
             } & standing_ids
             assert not clashing, f"{mode}/{group['key']} also marks {clashing}"
+
+
+# ---- TASK-0313 groundwork: the digest reads the registry ------------------
+
+
+def test_the_digest_and_the_badges_count_the_same_things(repo_index: Index) -> None:
+    """`DIGEST_NEEDS_YOU` was a second list of what needs a person — six types
+    and their states, written before the registry existed. TASK-0313's own note
+    said what to do about it: *"it reads from FEAT-0089's registry once that
+    lands. If it outlives the registry it becomes exactly the drift ISS-0023
+    describes."*
+
+    The difference is not cosmetic. The old list omitted `change` (81 owed
+    here) and `feature`, and could not express the `test` predicate's
+    manual-only clause — so a digest built from it would have told the
+    returning human that 8 things needed them while the badges said 96.
+
+    The standing documents are the deliberate gap: their subject is a manifest
+    entry rather than a note, and the digest is a note digest.
+    """
+    digest = cockpit.digest_payload(
+        REPO_DOCS.parent, repo_index, "1970-01-01T00:00:00Z",
+    )
+    badges = obligations.badges_payload(repo_index)
+    standing = obligations.standing_owed(REPO_DOCS)
+    assert digest["needs_you_count"] == badges["total"] - standing
+    assert standing > 0, "the gap this asserts is no longer exercised"
+    # And every row says what is owed of it, from the registry's verb.
+    typed = [i for i in digest["needs_you"] if i.get("owed")]
+    assert typed and all(i["owed_verb"] for i in typed)

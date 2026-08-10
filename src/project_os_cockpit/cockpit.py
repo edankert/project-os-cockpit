@@ -4820,14 +4820,17 @@ _DIFF_PATH_RE = re.compile(r"^\+\+\+ b/(.+)$")
 #: NOT a second obligation vocabulary. When FEAT-0089's registry lands this
 #: reads from it; until then it is one list in one module, and the digest is
 #: the only consumer.
-DIGEST_NEEDS_YOU: dict[str, tuple[str, ...]] = {
-    "issue": ("triage",),
-    "requirement": ("draft", "proposed"),
-    "adr": ("proposed",),
-    "decision": ("proposed",),
-    "design": ("proposed",),
-    "test": ("ready",),
-}
+# `DIGEST_NEEDS_YOU` lived here — a second list of what needs a person, six
+# types and their states, written before the registry existed. TASK-0313's own
+# note said what to do about it: *"it reads from FEAT-0089's registry once that
+# lands. If it outlives the registry it becomes exactly the drift ISS-0023
+# describes."*
+#
+# It has landed, so this reads it. The difference is not cosmetic: the list
+# above omitted `change` (81 owed here) and `feature` (`acceptance: requested`),
+# and had no way to express the `test` predicate's manual-only clause. A digest
+# built from it would have told the returning human that 8 things needed them
+# while the badges said 96.
 
 
 def digest_payload(
@@ -4871,10 +4874,15 @@ def digest_payload(
             since.append({**transition, "sha": commit.get("sha"), "date": when})
 
     needs_you: list[dict[str, Any]] = []
-    for note_type, states in DIGEST_NEEDS_YOU.items():
-        for record in index.notes_by_type(note_type):
-            if (record.status or "").strip().lower() in states:
-                needs_you.append(_slim_note(record))
+    for path in index.paths():
+        record = index.get(path)
+        if record is None or not record.note_type:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        flag = _owed_flag(record)
+        if flag.get("owed"):
+            needs_you.append({**_slim_note(record), **flag})
     for record in index.iter_records():
         verdict = str(record.frontmatter.get("review_verdict") or "").strip().lower()
         if _verdict_is_owed(verdict, record.status):
