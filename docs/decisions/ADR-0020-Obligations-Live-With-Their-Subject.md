@@ -79,6 +79,20 @@ It is not a small omission. There are **116 CHG notes** — the third-largest ty
 
 **Left open, deliberately:** whether *historical* unreviewed changes are an obligation or an accepted state. Most of the 76 date to the repo's first weeks (`CHG-20260507-*`), and a badge reading `76` may drown the four kinds that are actionable today. A cutoff date, a waiver, or simply accepting the number are all defensible; the deadline makes it a real decision rather than a display preference, and it should be taken with the count in front of you rather than guessed at here.
 
+## Amendment 2026-08-10 (second) — where releases live
+
+Edwin, on reading the scaffolded plan: *"Where do the REL notes live in this new design?"* The same omission as changes, from the same cause: the re-homing table was drawn from the desk's contents, and a release was never on the desk, so it was invisible from where the table was written. This decision names the release *gate* (decision 4, as something Tests owns) and never says where a **REL note** goes.
+
+It is no longer hypothetical — [[REL-0001]] was written today, ending six months of `counters.REL: 0`.
+
+**Amended:**
+
+10. **The Overview owns the release record**, on exactly the reasoning of amendment 8: a REL note is a record of what happened, at a coarser grain than a change note, and the Overview is the surface for that. This matches [[FEAT-0072]], which already puts `UNRELEASED · N` — features `done` since the last REL — in the overview's record column.
+11. **Tests owns the gate.** *"A release is blocked while any Tier 1/2 test is unchecked"* is an obligation whose subject is a **test**, so by decision 1 it surfaces in Tests and is counted in its badge. The Overview says a release is owed; Tests says why it cannot ship.
+12. **The gate band renders on the REL note itself**, like any note's own content. That is a rendering question, not a view-ownership one, and needs no rule.
+
+**A conflict this surfaces.** [[FEAT-0072]] (PHASE-026) and [[FEAT-0086]] (PHASE-030) both claim the gate band on the release note — *"the REL note view surfaces the acceptance-tests template's own release gate"* against *"the release gate's surface — unchecked Tier 1/2 tests listed on a release note"*. Two features, two phases, one band. Under this amendment the band is **[[FEAT-0086]]'s**, because it owns the tier suite that makes the gate computable at all; [[FEAT-0072]] keeps the `UNRELEASED` card and the drafting action. Their notes should say so before either is built.
+
 ## What this does not change
 
 **[[ADR-0007]] is narrowed, not reversed.** It decided that the approval gate is *advisory*, that acceptance stamps `reviewed_by`/`review_date`/`review_verdict` into the note, that rejection flips through a guarded transition, and that the queue is runtime state while the outcome is durable in the note. All of that survives; only the location of the queue changes. Its measurement clause — revisit gating once ~20 sets have passed — survives too, and is now measured from wherever the sets are shown.
