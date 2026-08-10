@@ -1383,7 +1383,7 @@ items:
   issues:
     ISS-0125:
       file: "docs/issues/ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home.md"
-      title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — a glossary reads as work in flight, and a style guide has been `active` for six months"
+      title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — 94% of them are stale fleet-wide, and a style guide has been `active` for six months"
       status: triage
       severity: medium
       phase: ""

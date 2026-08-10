@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0379
 aliases: ["TASK-0379"]
 title: "ARCHITECTURE.md becomes a design note, gaining the status table, revisions and review it has never had"
-status: backlog
+status: cancelled
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -41,10 +41,14 @@ Edwin's call, 2026-08-10, in preference to promoting `architecture` to a first-c
 
 **The diagram is stale and that is the substantive half of this task.** It draws the original Python server — HTTP server, watcher, SSE, renderer — from a repo that is now 17,000 lines with an Electron shell, per-workspace sidecars and agent instrumentation. Converting the type without reading the content would publish a stale document with a fresh status.
 
-## Blocked 2026-08-10 — [[ISS-0125]]
+## Cancelled 2026-08-10 — [[ISS-0125]] settled it the other way
 
 Edwin, the same day this was approved: *"some notes are required but they are one-off notes, similar to glossary, we never need more than one and there is not really a state associated with them."*
 
 If `ARCHITECTURE.md` belongs to that class — singleton, stateless, human-facing — then making it a **design** is wrong for the opposite reason to the one that made a first-class `architecture` type wrong. A design has a lifecycle (`proposed` → `accepted`), revisions and review verdicts; a standing description of how the system is built has none of those, and giving it a status table would reproduce exactly what [[ISS-0125]] measures — `active` meaning "work in flight" on a document nobody is working.
 
 Both readings are defensible: an architecture document is arguably a standing description *or* a reviewable artifact. **Do not start this task until [[ISS-0125]] settles the class**, and take the decision for the class rather than for this one note.
+
+**Cancelled, not deferred.** Edwin, 2026-08-10: *"Architecture should not be a design type."* The singleton class in [[ISS-0125]] is real and `ARCHITECTURE.md` belongs to it — one per project, no lifecycle, written to be read. A design carries `proposed` → `accepted`, revisions and verdicts; none of those apply.
+
+The note stays as the record of a decision that was made and then reversed within the day, on evidence that arrived in between. What survives is the finding underneath: the diagram still describes the original Python server, and that is now [[ISS-0125]]'s to fix.

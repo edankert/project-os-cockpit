@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0125
 aliases: ["ISS-0125"]
-title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — a glossary reads as work in flight, and a style guide has been `active` for six months"
+title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — 94% of them are stale fleet-wide, and a style guide has been `active` for six months"
 status: triage
 phase: ""
 owner: user:edwin
@@ -45,6 +45,22 @@ That is the same defect [[ISS-0122]] measured from the other end: Active mode re
 
 A status field on a document with no lifecycle can only ever say something false or say nothing. `STYLEGUIDE.md` reading `active` after six untouched months is the first; `DASHBOARD.md` carrying no status at all is the second, and is the more honest of the two.
 
+## The fleet already has them, and does not maintain them
+
+Measured across all 12 repos, 2026-08-10. The set is not missing — it is **present and abandoned**:
+
+| | |
+|---|---|
+| documents present | **90** of a possible 96 (only `yourtrainer-mcp` is thin, missing 5) |
+| stale (`updated` > 90 days) | **74** |
+| carrying no `updated:` at all | **11** |
+| **stale or undated** | **85 of 90 — 94%** |
+| still recognisably template stubs | 12 |
+
+Every repo tells the same story: 7 or 8 of these documents present, 7 of them stale. `obsidian-supernote-sync` has 8 present and 8 stale.
+
+So "all projects should have them" is already true; what is missing is that **nothing names the set, nothing checks it, and nothing shows it** — and a document nobody is ever asked about is a document nobody updates. That is the case for prominence, and it is measured rather than asserted.
+
 ## `reference` is doing three unrelated jobs
 
 Of the 18 `reference` notes:
@@ -65,18 +81,17 @@ So the documents describing what the project **is** are the ones a reader cannot
 
 [[ISS-0124]] asked whether four types need status tables. If this class is real, the answer is **not more tables** — it is an explicit *status-free* category, which is the second option that issue already floated on the evidence that `dashboard` carries no status and always has.
 
-## And it puts TASK-0379 in question
+## Settled: architecture is not a design
 
-[[TASK-0379]] converts `ARCHITECTURE.md` into a **design**, on Edwin's approval, to give it the status table and review machinery it lacks. If architecture is a singleton stateless document, that is the wrong home for the opposite reason — a design has a lifecycle (`proposed` → `accepted`), revisions and verdicts, and an architecture description has none of those.
+[[TASK-0379]] would have converted `ARCHITECTURE.md` into a design. **Cancelled** (Edwin, 2026-08-10: *"Architecture should not be a design type"*). A design carries `proposed` → `accepted`, revisions and verdicts; a standing description of how the system is built has none of those, and giving it a lifecycle would reproduce the very defect measured above.
 
-**Both readings are defensible and they conflict.** An architecture document could reasonably be either a standing description or a reviewable artifact. The decision should be taken once, for the class, rather than separately for one note — so [[TASK-0379]] should not start until this is settled.
+`ARCHITECTURE.md` is a member of this class.
 
 ## Next Actions
 
 - [ ] **Remove `DASHBOARD.md`** — decided (Edwin, 2026-08-10). An Obsidian artifact whose six `.base` embeds are all dead; only `NAVIGATION.base` and `CONTEXT.base` survive, and those are the two that matter (left-hand nav, right-hand context). It names neither correctly.
 - [ ] Name the class and decide its carrier — a new type, or `reference` narrowed to it with the boilerplate and templates moved off
 - [ ] Decide the status question: no `status:` field at all, or an explicit status-free set the validator knows about ([[ISS-0124]])
-- [ ] Settle [[TASK-0379]] against that decision before it starts
 - [ ] Give the class a home in the Intent view ([[FEAT-0087]]), not the Library tree
 - [ ] Fix `PHASES.md` — it has no frontmatter and claims to be *"consumed by Bases / dashboards"*, which the dashboard removal makes false
 - [ ] Fix the two stale `updated:` dates — `GLOSSARY.md` and `ARCHITECTURE.md` were both edited long after the date they claim
