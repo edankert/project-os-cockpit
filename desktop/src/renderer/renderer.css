@@ -2382,6 +2382,50 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .scoped-exit-head h3 { margin: 0 !important; }
 .scoped-exit-frac { font-size: 11.5px; color: var(--text-muted); }
 
+/* ---- The digest band (TASK-0314) ---------------------------------------
+   Atop the overview when the watermark is behind. Owed items first and
+   marked; transitions beneath, quieter. `Caught up` at the foot, because
+   reading to the bottom is what being caught up means. */
+.digest-band {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-link);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.digest-head { font-weight: 600; font-size: 13px; }
+.digest-subhead {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.digest-subhead.is-owed { color: var(--text); font-weight: 600; }
+.digest-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.digest-list li { display: flex; gap: 8px; align-items: baseline; font-size: 12px; }
+.digest-list.is-owed li .digest-id { font-weight: 600; }
+.digest-id { flex: none; }
+.digest-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.digest-tail {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.digest-more { margin-top: 3px; font-size: 11px; color: var(--text-faint); }
+.digest-foot { margin-top: 10px; }
+
 /* ---- The release gate (TASK-0373) --------------------------------------
    Three states, three borders, and the colours come from the theme's own
    tokens so this reads the same in both schemes without a second palette. */
@@ -3211,6 +3255,21 @@ a.ov-phase-title:hover {
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
+/* The since-line (TASK-0313): `since Thu · 14 transitions · 2 need you`.
+   Quieter than the message above it — what happened while you were away is
+   context for the card, not the card's own claim. */
+.ws-attention-since {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A record card has no agent behind it, so it reads as a note rather than an
+   alarm: the dot borrows the reference colour instead of a state colour. */
+.ws-attention-row.kind-record .ws-attention-dot { background: var(--status-reference); }
+
 .ws-attention-dismiss {
   flex: none;
   width: 24px;

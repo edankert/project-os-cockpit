@@ -894,3 +894,104 @@ def test_the_digest_and_the_badges_count_the_same_things(repo_index: Index) -> N
     # And every row says what is owed of it, from the registry's verb.
     typed = [i for i in digest["needs_you"] if i.get("owed")]
     assert typed and all(i["owed_verb"] for i in typed)
+
+
+# ---- FEAT-0071: since you looked -----------------------------------------
+#
+# Source-level for the two surfaces, because the renderer is one module with
+# no exports and the repo has no DOM harness — a limitation TST-0022 already
+# discloses. The PAYLOAD half is asserted behaviourally above and in
+# `test_watermark.py`; what these pin are the decisions DES-0008 made that a
+# later edit could silently reverse.
+
+
+def _renderer_fn(name: str) -> str:
+    src = RENDERER.read_text(encoding="utf-8")
+    match = re.search(rf"function {name}\(.*?\n\}}\n", src, re.S)
+    assert match, f"{name} is gone from the renderer"
+    return match.group(0)
+
+
+def test_caught_up_records_when_the_digest_was_computed() -> None:
+    """The single most reversible decision in this feature.
+
+    `computed_at`, never `Date.now()`: anything that lands while the human is
+    reading must not be marked seen. Posting the moment of the click would be
+    a one-word edit that loses work silently and looks identical on screen.
+    """
+    band = _renderer_fn("mountDigestBand")
+    assert "'/api/cockpit/caught-up', { at: d!.computed_at }" in band
+    assert "Date.now()" not in band and "new Date()" not in band
+
+
+def test_the_caught_up_button_is_at_the_foot() -> None:
+    """DES-0008: *"`Caught up` sits at its end — reading to the bottom is what
+    being caught up means."* In the header it would be a dismiss control, and a
+    dismiss control on a digest is a way to mark unread things read."""
+    band = _renderer_fn("mountDigestBand")
+    assert band.index("digest-head") < band.index("digest-foot")
+    assert band.index("digest-list") < band.index("digest-caught-up")
+
+
+def test_owed_items_are_lifted_above_the_news() -> None:
+    """*"needs-you items lifted above the merely-informational"* — a reader who
+    stops halfway should have seen the obligations, not the news. That split is
+    the whole reason `digest_payload` returns two lists."""
+    band = _renderer_fn("mountDigestBand")
+    # On the LIST bindings, not on `d.needs_you` — which also matches
+    # `d.needs_you_count` in the absent-band guard at the top of the function,
+    # so the naive assertion passed whichever order the blocks were in. Caught
+    # by mutating the order and watching the test survive.
+    assert band.index("const owed = d.needs_you") < band.index("const moved = d.transitions")
+
+
+def test_the_band_is_absent_when_nothing_is_behind() -> None:
+    """Absent, never a permanent "nothing happened" — the shape of thing a
+    reader learns to stop seeing, which this surface has been taught twice."""
+    band = _renderer_fn("mountDigestBand")
+    assert "if (!d || (!d.transition_count && !d.needs_you_count)) return;" in band
+
+
+def test_the_landing_cards_widened_past_waiting_terminals() -> None:
+    """DES-0008's actual complaint: *"the landing's NEEDS-YOU cards know only
+    about waiting terminals"*. A repo with eleven things needing a human and a
+    quiet terminal looked exactly like a repo with nothing to do.
+
+    A `record` card fixes that — and rides on the existing card when one is
+    already there, because one workspace as two rows is the failure ISS-0068
+    names.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    entries = _renderer_fn("attentionEntries")
+    assert "'needs-input' | 'waiting' | 'record'" in src
+    assert "carded.has(wsId)" in entries, (
+        "a workspace with both an agent and owed work would get two cards"
+    )
+    # And a record card opens the overview, where the digest band is — not the
+    # terminal, which is what made these cards terminal-only in the first place.
+    row = _renderer_fn("buildAttentionRow")
+    assert "entry.kind === 'record'" in row and "'~overview'" in row
+
+
+def test_every_workspaces_sidecar_url_is_kept() -> None:
+    """"One line per workspace" looked impossible because the renderer threw
+    the data away: the shell announces one sidecar URL per workspace and the
+    `ready` handler discarded every one but the active workspace's."""
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "sidecarUrls.set(p.workspaceId, p.url);" in src
+    assert src.index("sidecarUrls.set(p.workspaceId, p.url);") < src.index(
+        "if (p.workspaceId !== activeId)",
+    ), "the URL must be kept BEFORE the active-workspace guard returns"
+
+
+def test_the_digest_is_pulled_and_rate_limited() -> None:
+    """DES-0008's Out of Scope: *"Notifications, badges, or anything pushed.
+    Pulled on arrival, always."* And `refreshAttention` is called from a dozen
+    places as a plain redraw, so the fetch behind it must not run every time."""
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "DIGEST_MIN_INTERVAL_MS = 30_000" in src
+    refresh = _renderer_fn("refreshAttention")
+    # Repaints via `paintAttention`, never itself — a slow sidecar must not be
+    # able to start a loop.
+    assert "paintAttention(attentionEntries())" in refresh
+    assert "refreshAttention()" not in refresh.split("function refreshAttention")[1]

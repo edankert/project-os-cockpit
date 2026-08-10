@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0313
 aliases: ["TASK-0313"]
 title: "The workspace card says since-when and how-many"
-status: doing
+status: done
 phase: "[[PHASE-026-The-Returning-Human]]"
 owner: user:edwin
 created: 2026-08-03
@@ -44,4 +44,39 @@ Two decisions already taken in the payload, so the surface inherits rather than 
 
 Every `needs_you` row also carries its `owed_verb` now, so the band this task builds can say *what* is owed rather than only that something is.
 
-**The renderer is still not built.** This task stays `doing`: the line the DoD describes — `since Thu · 14 transitions · 2 need you`, one per workspace — needs a place on the rail that the 44px strip does not have, and choosing that place is the work, not typing it.
+## Done 2026-08-10
+
+### "One line per workspace" looked impossible, and the reason was a discarded value
+
+The DoD says one line per workspace, and the digest is served per-sidecar — so the obvious reading was that only the active workspace could be asked, and the criterion would have to be narrowed to *"a line for the workspace we can reach"*.
+
+It did not. The shell spawns one sidecar per workspace and announces each with a `ready` event carrying `{workspaceId, url}`. The renderer's handler opened with `if (p.workspaceId !== activeId) return;` — **throwing away every URL but the active one**, at the top of the function, before doing anything with it. Keeping them in a map is two lines, and the criterion is met as written.
+
+Worth recording because the shape recurs: the surface looked impossible, the data was already arriving, and the guard that discarded it was written for a different purpose (don't re-point the *active* sidecar) and quietly took the rest with it.
+
+### The cards knew only about terminals, which was DES-0008's actual complaint
+
+`attentionEntries()` read `agentStates` and nothing else, so its kinds were `needs-input` and `waiting` — both properties of a **terminal**. A repo with eleven things needing a human and a quiet terminal rendered identically to a repo with nothing to do.
+
+A third kind, `record`, now appears for a workspace whose digest reports owed work. Three placement decisions, each with a reason:
+
+- **It rides on the existing card when one is there.** A workspace with both a waiting agent and owed work gets its since-line appended, not a second row — one thing as two rows on one screen is the failure [[ISS-0068]] names.
+- **It sorts last.** `needs-input` → `waiting` → `record`: act now, then review, then read. Nothing in a record card arrived while you were watching, so it is never urgent.
+- **It opens the overview, not the terminal.** The terminal is where the agent is; the record is read on the overview, where [[TASK-0314]]'s band sits. Sending every card to the terminal is precisely what made them terminal-only.
+
+### The line itself
+
+`since Thu · 14 transitions · 2 need you`, and **absent rather than zero** — a permanent `0 transitions · 0 need you` under every workspace is the shape of thing a reader learns to stop seeing. An unset watermark reads `since first run`, not `since 1 Jan 1970`: the epoch is the payload's way of saying *show everything*, not a date anyone wants to read.
+
+Pulled, never pushed ([[DES-0008]]'s Out of Scope), and rate-limited to once every 30 seconds — `refreshAttention` is called from a dozen places as a plain redraw, so the fetch behind it must not run every time. It repaints through `paintAttention` rather than calling itself, so a slow sidecar cannot start a loop.
+
+### Verification
+
+`927 passed, 2 skipped`; `validate-docs: OK`; `tsc --noEmit` clean; `dist/` rebuilt. Source-level assertions, which [[TST-0022]] already discloses as the limit for a renderer with no exports and no DOM harness — the payload half is behavioural, in `test_watermark.py` and `test_the_digest_and_the_badges_count_the_same_things`.
+
+Adequacy by mutation:
+
+| mutation | killed by |
+|---|---|
+| keep the URL *after* the active-workspace guard returns | `test_every_workspaces_sidecar_url_is_kept` |
+| drop the `carded` check, so a workspace can hold two cards | `test_the_landing_cards_widened_past_waiting_terminals` |

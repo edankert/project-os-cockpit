@@ -838,7 +838,12 @@ cockpitApi.sidecar.onEvent((ev) => {
   switch (ev.kind) {
     case 'ready': {
       const p = ev.payload as SidecarReadyPayload;
-      if (p.workspaceId !== activeId) return;
+      // Every workspace's sidecar URL is kept, not only the active one's
+      // (TASK-0313). The shell spawns one per workspace and announces each;
+      // discarding the rest here is why "one line per workspace" looked
+      // impossible — the data was arriving and being thrown away.
+      sidecarUrls.set(p.workspaceId, p.url);
+      if (p.workspaceId !== activeId) { void refreshAttention(); return; }
       sidecarBaseUrl = p.url;
       setSidecarStatus('ready');
       hideStatus();
@@ -3447,6 +3452,172 @@ function renderProjectOverview(data: StatsPayload): void {
   docView.hidden = false;
   placeholder.hidden = true;
   refreshFooterPath();
+  // The digest band goes at the TOP, above the focus band, when the watermark
+  // is behind (TASK-0314). Mounted after the paint because it needs a fetch,
+  // and prepended rather than inserted into `parts` so a slow sidecar delays
+  // the band and never the overview.
+  void mountDigestBand();
+}
+
+// ----- Since you looked: the digest band (FEAT-0071 / TASK-0314) --------
+//
+// DES-0008: *"a band atop the overview when the watermark is behind: the
+// transitions grouped exactly as History groups them, newest first, with the
+// needs-you items lifted above the merely-informational. `Caught up` sits at
+// its end — reading to the bottom is what being caught up means."*
+//
+// The button is at the bottom for that reason and no other. In the header it
+// would be a dismiss control, and a dismiss control on a digest is a way to
+// mark unread things read.
+
+interface DigestPayload {
+  available?: boolean;
+  seen_at?: string;
+  computed_at?: string;
+  transitions?: Array<{
+    id?: string; title?: string; rel?: string; type?: string;
+    from?: string; to?: string; sha?: string; date?: string;
+  }>;
+  needs_you?: Array<{
+    id?: string; title?: string; rel?: string; type?: string;
+    status?: string; owed_verb?: string;
+  }>;
+  transition_count?: number;
+  needs_you_count?: number;
+}
+
+async function mountDigestBand(): Promise<void> {
+  docView.querySelector('.digest-band')?.remove();
+  if (!sidecarBaseUrl) return;
+  let d: DigestPayload | null = null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/digest`);
+    if (!resp.ok) return;
+    d = (await resp.json()) as DigestPayload;
+  } catch { return; }
+  // Absent when there is nothing behind the watermark. A band reading
+  // "nothing happened" on every visit is the permanent zero this surface has
+  // been taught about twice.
+  if (!d || (!d.transition_count && !d.needs_you_count)) return;
+
+  const band = document.createElement('section');
+  band.className = 'digest-band';
+
+  const head = document.createElement('div');
+  head.className = 'digest-head';
+  const seen = d.seen_at && !d.seen_at.startsWith('1970') ? d.seen_at.slice(0, 10) : '';
+  head.textContent = seen
+    ? `Since you looked — ${relativeTime(seen)}`
+    : 'Since this cockpit first ran';
+  band.appendChild(head);
+
+  // Needs-you first, always. A reader who stops halfway should have seen the
+  // obligations, not the news — which is the whole reason the payload splits.
+  const owed = d.needs_you ?? [];
+  if (owed.length) {
+    band.appendChild(digestSubhead(
+      `${owed.length} need${owed.length === 1 ? 's' : ''} you`, true,
+    ));
+    const list = document.createElement('ul');
+    list.className = 'digest-list is-owed';
+    for (const item of owed.slice(0, DIGEST_ROW_LIMIT)) {
+      list.appendChild(digestRow(
+        item.id ?? '', item.title ?? '', item.rel ?? '',
+        item.owed_verb ? item.owed_verb.toLowerCase() : (item.status ?? ''),
+      ));
+    }
+    band.appendChild(list);
+    band.appendChild(digestMore(owed.length));
+  }
+
+  const moved = d.transitions ?? [];
+  if (moved.length) {
+    band.appendChild(digestSubhead(
+      `${moved.length} transition${moved.length === 1 ? '' : 's'}`, false,
+    ));
+    const list = document.createElement('ul');
+    list.className = 'digest-list';
+    for (const item of moved.slice(0, DIGEST_ROW_LIMIT)) {
+      list.appendChild(digestRow(
+        item.id ?? '', item.title ?? '', item.rel ?? '',
+        item.from && item.to ? `${item.from} → ${item.to}` : (item.to ?? ''),
+      ));
+    }
+    band.appendChild(list);
+    band.appendChild(digestMore(moved.length));
+  }
+
+  // `Caught up` last. It sends `computed_at`, not the moment of the click:
+  // anything that landed while this was on screen must not be marked seen.
+  const foot = document.createElement('div');
+  foot.className = 'digest-foot';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'review-btn is-primary digest-caught-up';
+  btn.textContent = 'Caught up';
+  btn.title = 'Move the watermark to the moment this digest was computed';
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    void postJson('/api/cockpit/caught-up', { at: d!.computed_at })
+      .then(() => {
+        band.remove();
+        showStatus('Caught up.');
+        void refreshDigests(true).then(() => refreshAttention());
+      })
+      .catch((err) => {
+        btn.disabled = false;
+        showStatus(`Could not record: ${String(err)}`, 'error');
+      });
+  });
+  foot.appendChild(btn);
+  band.appendChild(foot);
+
+  docView.prepend(band);
+}
+
+/** How many rows of each half the band shows before saying how many more.
+ *
+ *  Not a fold with a toggle: the band is a summary and History is the place
+ *  that holds everything. Measured on this repo — an epoch watermark yields
+ *  440 transitions and 93 owed items, which is a page nobody reads. */
+const DIGEST_ROW_LIMIT = 8;
+
+function digestSubhead(text: string, owed: boolean): HTMLElement {
+  const el = document.createElement('div');
+  el.className = `digest-subhead${owed ? ' is-owed' : ''}`;
+  el.textContent = text;
+  return el;
+}
+
+function digestMore(total: number): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'digest-more';
+  el.textContent = total > DIGEST_ROW_LIMIT
+    ? `+ ${total - DIGEST_ROW_LIMIT} more — open History for the rest` : '';
+  el.hidden = total <= DIGEST_ROW_LIMIT;
+  return el;
+}
+
+function digestRow(
+  id: string, title: string, rel: string, tail: string,
+): HTMLElement {
+  const li = document.createElement('li');
+  const idEl = document.createElement('span');
+  idEl.className = 'digest-id mono ov-typed';
+  idEl.textContent = shortNoteId(id);
+  idEl.title = id;
+  const titleEl = document.createElement('span');
+  titleEl.className = 'digest-title';
+  titleEl.textContent = title;
+  const tailEl = document.createElement('span');
+  tailEl.className = 'digest-tail';
+  tailEl.textContent = tail;
+  li.append(idEl, titleEl, tailEl);
+  if (rel) {
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => void navigateTo(rel));
+  }
+  return li;
 }
 
 // ----- Verification panel (TASK-0211) -----------------------------------
@@ -10696,10 +10867,79 @@ function flashAgentTouch(rel: string): void {
 interface AttentionEntry {
   workspaceId: string;
   name: string;
-  kind: 'needs-input' | 'waiting';
+  /** `record` is TASK-0313's widening: DES-0008's complaint was that these
+   *  cards "know only about waiting terminals", so a workspace whose RECORD
+   *  owes something now earns a card too, agent or no agent. */
+  kind: 'needs-input' | 'waiting' | 'record';
   message: string;
   ts: string;
   cost?: number;   // only known for the active workspace (live session)
+  /** The since-line: `since Thu · 14 transitions · 2 need you`. Present when
+   *  that workspace's sidecar has answered; absent, never zero. */
+  since?: string;
+}
+
+// ----- Since you looked (FEAT-0071 / TASK-0313) ------------------------
+//
+// One digest per workspace, from that workspace's own sidecar. Polled on
+// arrival rather than pushed — DES-0008's Out of Scope is explicit that
+// nothing here notifies, and presence is not attention: only `Caught up`
+// moves the watermark.
+
+const sidecarUrls = new Map<string, string>();
+
+interface DigestSummary {
+  transitions: number;
+  needsYou: number;
+  seenAt: string;
+  computedAt: string;
+}
+
+const digests = new Map<string, DigestSummary>();
+let digestFetchAt = 0;
+const DIGEST_MIN_INTERVAL_MS = 30_000;
+
+async function refreshDigests(force = false): Promise<void> {
+  const now = Date.now();
+  if (!force && now - digestFetchAt < DIGEST_MIN_INTERVAL_MS) return;
+  digestFetchAt = now;
+  await Promise.all(Array.from(sidecarUrls.entries()).map(async ([wsId, url]) => {
+    try {
+      const resp = await fetch(`${url}/api/cockpit/digest`);
+      if (!resp.ok) return;
+      const d = (await resp.json()) as {
+        available?: boolean; transition_count?: number; needs_you_count?: number;
+        seen_at?: string; computed_at?: string;
+      };
+      digests.set(wsId, {
+        transitions: d.transition_count ?? 0,
+        needsYou: d.needs_you_count ?? 0,
+        seenAt: d.seen_at ?? '',
+        computedAt: d.computed_at ?? '',
+      });
+    } catch { /* a sidecar that is down simply has no line */ }
+  }));
+}
+
+/** `since Thu · 14 transitions · 2 need you`, or nothing at all.
+ *
+ *  **Absent rather than zero.** A permanent `0 transitions · 0 need you` under
+ *  every workspace is the shape of thing a reader learns to stop seeing, and
+ *  this surface has been taught that twice.
+ *
+ *  An unset watermark reads `since first run` rather than `since 1 Jan 1970` —
+ *  the epoch is the payload's way of saying "show everything", not a date
+ *  anybody wants to read. */
+function sinceLine(d: DigestSummary | undefined): string {
+  if (!d || (d.transitions === 0 && d.needsYou === 0)) return '';
+  const bits: string[] = [];
+  const seen = d.seenAt && !d.seenAt.startsWith('1970') ? d.seenAt.slice(0, 10) : '';
+  bits.push(seen ? `since ${relativeTime(seen)}` : 'since first run');
+  if (d.transitions > 0) {
+    bits.push(`${d.transitions} transition${d.transitions === 1 ? '' : 's'}`);
+  }
+  if (d.needsYou > 0) bits.push(`${d.needsYou} need you`);
+  return bits.join(' · ');
 }
 
 // Per-alert dismissal, keyed by (workspace, state-ts): a new state
@@ -10777,8 +11017,35 @@ function attentionEntries(): AttentionEntry[] {
       cost: wsId === activeId && typeof activeCost === 'number' ? activeCost : undefined,
     });
   }
-  // needs-input above waiting; within a tier, most-recent first.
-  const rank = (k: string) => (k === 'needs-input' ? 0 : 1);
+  // The since-line rides on the card that already exists (TASK-0313). A
+  // second row for the same workspace would be one thing as two rows on one
+  // screen — the failure ISS-0068 names — so an agent-waiting workspace gets
+  // its record line appended, not a card of its own.
+  const carded = new Set(out.map((e) => e.workspaceId));
+  for (const e of out) e.since = sinceLine(digests.get(e.workspaceId));
+
+  // And a workspace whose RECORD owes something earns a card even with no
+  // agent anywhere near it. That is the whole of DES-0008's complaint: these
+  // cards knew only about waiting terminals, so a repo with eleven things
+  // needing a human and a quiet terminal looked exactly like a repo with
+  // nothing to do.
+  for (const [wsId, d] of digests) {
+    if (carded.has(wsId) || d.needsYou === 0) continue;
+    if (isAlertDismissed(wsId, d.computedAt)) continue;
+    const ws = workspaces.find((w) => w.id === wsId);
+    out.push({
+      workspaceId: wsId,
+      name: ws ? effectiveName(ws) : wsId,
+      kind: 'record',
+      message: `${d.needsYou} item${d.needsYou === 1 ? '' : 's'} need a person`,
+      ts: d.computedAt,
+      since: sinceLine(d),
+    });
+  }
+
+  // needs-input above waiting above record: act now, then review, then read.
+  // A record card is never urgent — nothing in it arrived while you watched.
+  const rank = (k: string) => (k === 'needs-input' ? 0 : k === 'waiting' ? 1 : 2);
   out.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.ts < b.ts ? 1 : -1));
   return out;
 }
@@ -10810,11 +11077,22 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   meta.className = 'ws-attention-meta';
   meta.textContent = metaBits.filter(Boolean).join(' · ');
   body.append(name, msg, meta);
+  if (entry.since) {
+    const since = document.createElement('span');
+    since.className = 'ws-attention-since';
+    since.textContent = entry.since;
+    body.appendChild(since);
+  }
   main.append(dot, body);
   main.addEventListener('click', () => {
     void (async () => {
       if (activeId !== entry.workspaceId) await openWorkspace(entry.workspaceId);
-      showTerminal();
+      // A record card opens the overview, where the digest band is; an agent
+      // card opens the terminal, where the agent is. Sending both to the
+      // terminal is what made these cards "know only about waiting
+      // terminals" in the first place.
+      if (entry.kind === 'record') void navigateTo('~overview');
+      else showTerminal();
     })();
   });
   const dismiss = document.createElement('button');
@@ -11037,8 +11315,22 @@ function budgetProjection(key: string, w: RateWindow): string | null {
   return `~${fmtMsShort(msToFull)} left at this rate`;
 }
 
+/** Repaint the attention panel, and pull fresh digests behind it.
+ *
+ *  Synchronous on purpose: a dozen call sites treat this as a redraw, and a
+ *  redraw that awaits the network is a redraw that stutters. The digest fetch
+ *  is fire-and-forget and repaints when it lands — which is also why it calls
+ *  `paintAttention` rather than itself, so a slow sidecar cannot start a loop.
+ *
+ *  Pulled on arrival, never pushed: DES-0008's Out of Scope rules out
+ *  notifications, and `refreshDigests` will not go to the network more than
+ *  once every 30 seconds however often this is called. */
 function refreshAttention(): void {
-  const entries = attentionEntries();
+  paintAttention(attentionEntries());
+  void refreshDigests().then(() => paintAttention(attentionEntries()));
+}
+
+function paintAttention(entries: AttentionEntry[]): void {
   const finished = finishedTodayCount();
   const budget = buildBudgetBlock();
   if (entries.length === 0 && finished === 0 && !budget) {

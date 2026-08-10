@@ -271,7 +271,7 @@ items:
     FEAT-0071:
       file: "docs/features/since-you-looked/FEAT-0071-Since-You-Looked.md"
       title: "Since you looked — a per-workspace watermark, a digest of what happened behind it, and a Caught-up that means it"
-      status: planned
+      status: done
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0312, TASK-0313, TASK-0314]
       note: "Presence is not attention: only the explicit action moves the mark. Pulled on arrival, never pushed."
@@ -880,13 +880,7 @@ items:
     TASK-0313:
       file: "docs/features/since-you-looked/plan/tasks/TASK-0313-The-Landing-Line.md"
       title: "The workspace card says since-when and how-many"
-      status: doing
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0071
-    TASK-0314:
-      file: "docs/features/since-you-looked/plan/tasks/TASK-0314-The-Digest-Band.md"
-      title: "The overview's digest band, needs-you lifted"
-      status: backlog
+      status: done
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0071
     TASK-0315:
@@ -2632,9 +2626,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 64
+    features_done: 65
     tasks_total: 384
-    tasks_done: 310
+    tasks_done: 312
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
