@@ -877,12 +877,6 @@ items:
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0070
-    TASK-0312:
-      file: "docs/features/since-you-looked/plan/tasks/TASK-0312-The-Watermark.md"
-      title: "The watermark, and the Caught-up that moves it"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0071
     TASK-0313:
       file: "docs/features/since-you-looked/plan/tasks/TASK-0313-The-Landing-Line.md"
       title: "The workspace card says since-when and how-many"
@@ -2646,7 +2640,7 @@ metrics:
     features_total: 91
     features_done: 60
     tasks_total: 384
-    tasks_done: 299
+    tasks_done: 300
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

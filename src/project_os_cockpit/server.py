@@ -42,6 +42,7 @@ from .agent_hooks import MAX_BODY_BYTES as _AGENT_HOOK_MAX_BYTES
 from .events import ControlEvent, EventBus, FileEvent
 from .index import Index
 from . import inbox as inbox_mod
+from .watermark import Watermark
 from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .validation import ValidationRunner
@@ -397,6 +398,7 @@ class DocsServer:
         # uniformly. Unlike the URL file, this IS written in desktop
         # mode — last-known-state is the contract, not "where is the
         # cockpit running."
+        self.watermark = Watermark(self.docs_root.parent)
         state_path = self.docs_root.parent / ".cockpit" / "agent-state.json"
         self.cockpit_state: CockpitState = CockpitState(state_path=state_path)
         # Hook-fed session tracker (FEAT-0019 / TASK-0114). Persists the
@@ -466,6 +468,7 @@ class DocsServer:
             validation_runner=self.validation,
             status_tracker=self.status_tracker,
             shell_assets=self.shell_assets,
+            watermark=self.watermark,
         )
         self.watcher.start()
         # SNAPSHOT.yaml sits above the docs root — the validation runner
@@ -581,8 +584,10 @@ def _make_handler(
     validation_runner: ValidationRunner | None = None,
     status_tracker: "StatusTracker | None" = None,
     shell_assets: Path | None = None,
+    watermark: Watermark | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
+    marker = watermark or Watermark(docs_root.parent)
     project_root = docs_root.parent.resolve()
     state = cockpit_state or CockpitState()
     tracker = agent_tracker or AgentSessionTracker(docs_root=docs_root)
@@ -697,6 +702,9 @@ def _make_handler(
             if path == "/api/notes/decide":
                 self._serve_note_decide()
                 return
+            if path == "/api/cockpit/caught-up":
+                self._serve_caught_up()
+                return
             if path == "/api/notes/transition":
                 self._serve_note_transition()
                 return
@@ -770,6 +778,10 @@ def _make_handler(
 
             if path == "/api/cockpit/identity":
                 self._serve_cockpit_identity()
+                return
+
+            if path == "/api/cockpit/watermark":
+                self._respond_json(marker.payload())
                 return
 
             if path == "/api/notes/actions":
@@ -1633,6 +1645,33 @@ def _make_handler(
                                    status=HTTPStatus.BAD_REQUEST)
                 return
             self._respond_json({"ok": True, "result": result})
+
+        def _serve_caught_up(self) -> None:
+            """``POST /api/cockpit/caught-up`` — the only thing that moves the
+            watermark (TASK-0312).
+
+            Loopback-guarded even though it writes runtime state rather than
+            `docs/`: it records *this human's* attention, and a LAN peer
+            marking someone else caught up would silently empty their digest.
+
+            `at` carries the timestamp the digest was computed from, so
+            anything that landed while they were reading is not marked seen.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - {"at"}
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            self._respond_json({"ok": True, "result": marker.catch_up(
+                str(body.get("at") or "") or None,
+            )})
 
         def _serve_note_transition(self) -> None:
             """``POST /api/notes/transition`` — one human-owned transition.
