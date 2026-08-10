@@ -44,7 +44,7 @@ counters:
   REQ: 32
   RISK: 6
   REL: 0
-  TASK: 378
+  TASK: 379
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -76,8 +76,8 @@ items:
       title: "Design widens into the project's constraints — decisions, risks, references and the brief join the designs"
       status: planned
       phase: "[[PHASE-030-Obligations-Go-Home]]"
-      tasks: [TASK-0374, TASK-0375]
-      note: "Project-level constraints here; feature-level specifications stay with their feature — so the 32 requirements do NOT move, and that line is recorded because it is one sentence away from moving them. LIBRARY STAYS (Edwin 2026-08-10): Library is a file browser, this is typed notes; one item, two addresses, which is not ISS-0068's second-list failure. The view needs a name — 'Design' no longer covers it and mode 1 already uses 'Project' for library."
+      tasks: [TASK-0374, TASK-0375, TASK-0379]
+      note: "Project-level constraints here; feature-level specifications stay with their feature — so the 32 requirements do NOT move, and that line is recorded because it is one sentence away from moving them. LIBRARY STAYS (Edwin 2026-08-10): Library is a file browser, this is typed notes; one item, two addresses, which is not ISS-0068's second-list failure. NAMED `Intent` (Edwin 2026-08-10) — covers the brief, decisions, designs, risks and glossary without straining, and is already this project's word for the idea (DES-0003's intent page, FEAT-0077's charter). ARCHITECTURE.md becomes a DESIGN rather than a first-class `architecture` type (TASK-0379): one note in three months is the evidence pattern that retired the `delivered` band, and designs already carry the status table, revisions and review it has never had."
     FEAT-0088:
       file: "docs/features/features-judgments/FEAT-0088-Features-Carries-Its-Own-Judgments.md"
       title: "Features carries its own judgments — requirement approval and acceptance surface beside the work they concern"
@@ -2632,7 +2632,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 90
     features_done: 56
-    tasks_total: 378
+    tasks_total: 379
     tasks_done: 285
     tests_total: 23
     tests_passing: 23

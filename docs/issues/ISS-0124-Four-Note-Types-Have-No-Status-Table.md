@@ -62,6 +62,10 @@ Every note type present in the corpus either has a status table, or is explicitl
 
 Four types are neither. The absence is silent, and it is silent in the direction that matters.
 
+## Update 2026-08-10 — one of the four is being resolved
+
+Edwin chose to make `architecture` a **design** rather than a first-class type ([[TASK-0379]]). Designs already have a status table, so when that lands this issue covers three types, not four: `reference` (18), `glossary` (1), `dashboard` (1). The missing corpus-versus-table check is unaffected — it is the guard that would have reported `architecture` in the first place, and it would still not report the other three.
+
 ## Not the same as the type question
 
 Whether `architecture` should become a **first-class type** — template, taxonomy entry, upstream proposal — is deliberately *not* this issue. That is a measurement to take after [[FEAT-0087]]'s Intent view exists and we can see whether architecture documents get written; one note in three months is the same evidence pattern that retired the `delivered` band ([[ADR-0006]]). This issue is only that whatever types exist should have their statuses checked.
