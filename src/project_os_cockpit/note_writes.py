@@ -154,6 +154,134 @@ _DESIGN_SETTLED: frozenset[str] = frozenset({
     "implemented", "superseded", "cancelled",
 })
 
+#: The human-owned transition table, as data (TASK-0278).
+#:
+#: DES-0005's matrix: ``(type, from-status) -> the actions a human may take``.
+#: Every entry is a judgment that is *inherently the asker's* — approving a
+#: requirement, accepting a design, triaging an issue. Deliberately absent is
+#: every agent-owned transition: close-out statuses (``done``, ``fixed``,
+#: ``merged``, ``implemented``), anything test-gated, anything the validator
+#: computes. REQ-0026 is the contract, and this table is what makes it
+#: enforceable rather than a convention — the refusal is the server's, so no
+#: display bug can widen it.
+#:
+#: Removing an entry removes the action from every surface with no renderer
+#: change. That is the point: the vocabulary exists once (the ISS-0023 rule),
+#: and `GET /api/notes/actions` is how a renderer learns it.
+HUMAN_TRANSITIONS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
+    "requirement": {
+        "draft":    (("Approve", "approved"), ("Decline", "cancelled")),
+        "proposed": (("Approve", "approved"), ("Decline", "cancelled")),
+    },
+    "adr": {
+        "proposed": (("Accept", "accepted"), ("Supersede", "superseded")),
+    },
+    "decision": {
+        "proposed": (("Accept", "accepted"), ("Supersede", "superseded")),
+    },
+    # A design accepted is not yet built — `implemented` is what shipping
+    # means. Declining writes `cancelled`, not `superseded`: superseded means a
+    # LATER design replaced it, a different fact about the future.
+    "design": {
+        "proposed": (("Accept", "accepted"), ("Decline", "cancelled")),
+    },
+    # `Defer` is the third verb ADR-0020 found missing. Measured across the
+    # fleet on 2026-08-10: 39 issues sit at `triage` with a median age of 56
+    # days, and the only offers were accept or decline — so "real, but not
+    # now" had nowhere to go, which is a fair part of why they sit. `deferred`
+    # was already legal in STATUSES.md and already has a mark in DES-0004
+    # (hollow + strike, *parked, still wanted*).
+    "issue": {
+        "triage": (
+            ("Accept", "open"),
+            ("Defer", "deferred"),
+            ("Decline", "declined"),
+        ),
+    },
+}
+
+#: Actions whose consequence is terminal, so a surface asks once before
+#: performing them. Forward moves need no confirmation: reversing an approve
+#: is itself a recorded action, so the cost of a slip is a line of history.
+CONFIRM_ACTIONS: frozenset[str] = frozenset({"Decline", "Supersede"})
+
+TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset({"id", "to", "actor", "mtime"})
+
+
+def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, Any]]:
+    """What a human may do to a note in this state, for `GET /api/notes/actions`.
+
+    Returns the empty list when nothing is offered, which is the common case:
+    most notes at most times owe nobody a decision.
+    """
+    entries = HUMAN_TRANSITIONS.get((note_type or "").strip().lower(), {})
+    offered = entries.get((status or "").strip().lower(), ())
+    return [
+        {
+            "verb": verb,
+            "to": to_status,
+            "confirm": verb in CONFIRM_ACTIONS,
+            "disabled": False,
+            "reason": "",
+        }
+        for verb, to_status in offered
+    ]
+
+
+def stamp_transition(
+    index: Index,
+    note_id: str,
+    *,
+    to_status: str,
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Perform one human-owned transition (TASK-0278).
+
+    Refuses anything the table does not offer **for this note's current
+    status**, so a stale renderer cannot replay an action that was legal a
+    moment ago. The error names the ownership rule rather than saying
+    "forbidden", because the caller is usually a person who wants to know why.
+    """
+    path = resolve_note(index, note_id)
+    record = index.get(path)
+    if record is None:
+        raise WriteError(f"{note_id} is not a note this index knows", status=404)
+
+    note_type = (record.note_type or "").strip().lower()
+    current = (record.status or "").strip().lower()
+    wanted = (to_status or "").strip().lower()
+
+    if wanted not in statuses.VOCABULARY:
+        raise WriteError(
+            f"{to_status!r} is not a status in this project's vocabulary",
+        )
+
+    allowed = {to for _verb, to in HUMAN_TRANSITIONS.get(note_type, {}).get(current, ())}
+    if wanted not in allowed:
+        offered = sorted(allowed)
+        raise WriteError(
+            f"a {note_type or 'note'} at {current!r} is not moved to {wanted!r} "
+            f"from the cockpit"
+            + (f" (offered: {offered})" if offered else "")
+            + " — REQ-0026: the cockpit performs only human-owned transitions, "
+            "and close-out statuses belong to the agent",
+        )
+
+    _check_mtime(path, mtime)
+    fm_lines, body = _split_frontmatter(path.read_text(encoding="utf-8"))
+    fm_lines = _set_field(fm_lines, "status", wanted)
+    fm_lines = _set_field(fm_lines, "updated", _today())
+    _write(path, fm_lines, body)
+    return {
+        "id": note_id,
+        "from": current,
+        "to": wanted,
+        "actor": actor,
+        "date": _today(),
+    }
+
+
 DECIDE_TRANSITIONS: dict[str, tuple[str, str | None]] = {
     "adr": ("accepted", "superseded"),
     "decision": ("accepted", "superseded"),

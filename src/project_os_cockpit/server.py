@@ -697,6 +697,9 @@ def _make_handler(
             if path == "/api/notes/decide":
                 self._serve_note_decide()
                 return
+            if path == "/api/notes/transition":
+                self._serve_note_transition()
+                return
             if path == "/api/notes/test-run":
                 self._serve_test_run()
                 return
@@ -761,6 +764,22 @@ def _make_handler(
 
             if path == "/api/cockpit/identity":
                 self._serve_cockpit_identity()
+                return
+
+            if path == "/api/notes/actions":
+                params = urllib.parse.parse_qs(parsed.query)
+                note_id = (params.get("id") or [""])[0].strip()
+                note_path = index.by_id(note_id) if note_id else None
+                record = index.get(note_path) if note_path else None
+                self._respond_json({
+                    "id": note_id,
+                    "type": (record.note_type if record else "") or "",
+                    "status": (record.status if record else "") or "",
+                    "actions": note_writes.legal_actions(
+                        record.note_type if record else None,
+                        record.status if record else None,
+                    ),
+                })
                 return
 
             if path == "/api/cockpit/transitions":
@@ -1597,6 +1616,46 @@ def _make_handler(
                     str(body.get("id") or ""),
                     reviewer=str(body.get("reviewer") or ""),
                     accept=bool(body.get("accept")),
+                    mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_note_transition(self) -> None:
+            """``POST /api/notes/transition`` — one human-owned transition.
+
+            The table in ``note_writes.HUMAN_TRANSITIONS`` decides what is
+            legal, keyed by the note's **current** status, so a stale renderer
+            cannot replay an action that has since stopped being offered. An
+            agent-owned transition is refused here with the ownership rule
+            named (REQ-0026) — the refusal is the server's, so no display bug
+            can widen it.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.TRANSITION_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = note_writes.stamp_transition(
+                    index,
+                    str(body.get("id") or ""),
+                    to_status=str(body.get("to") or ""),
+                    actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
                 )
             except note_writes.WriteError as exc:
