@@ -1193,6 +1193,12 @@ async function navigateToInner(
   currentRel = normalised;
   lastDocRel = normalised;   // the doc tab points here (TASK-0159)
 
+  // The actuator row (TASK-0281) — drawn from the server's answer for this
+  // note's current status, absent when nothing is owed.
+  void mountActuatorRow(
+    typeof data.frontmatter?.id === 'string' ? (data.frontmatter.id as string) : '',
+  );
+
   currentDispatchHistory = data.dispatch_history ?? null;
   currentNoteStatus = typeof data.frontmatter?.status === 'string'
     ? (data.frontmatter.status as string) : null;
@@ -1273,6 +1279,117 @@ async function navigateToInner(
 // every render; localStorage remembers the user's last choice so a
 // collapse on one note stays collapsed when they navigate to the next.
 const METADATA_STRIP_KEY = 'cockpit:metadata-strip-open';
+
+// ----- The actuator row (FEAT-0060 / TASK-0281) -------------------------
+//
+// DES-0005: an actuator belongs on the thing being actuated. The left pane is
+// a selection list and the right a description, so the row sits under the
+// note's own metadata strip.
+//
+// **No vocabulary here.** The server answers `GET /api/notes/actions` with the
+// legal moves for this note's *current* status, and this draws what it is
+// sent. Removing a transition from `note_writes.HUMAN_TRANSITIONS` removes the
+// button with no change to this file — which is the ISS-0023 rule, and what
+// makes REQ-0026 enforceable rather than a convention.
+
+interface NoteAction {
+  verb: string;
+  to: string;
+  confirm: boolean;
+  disabled: boolean;
+  reason: string;
+}
+
+async function mountActuatorRow(noteId: string): Promise<void> {
+  docView.querySelector('.note-actions')?.remove();
+  if (!sidecarBaseUrl || !noteId) return;
+
+  let actions: NoteAction[] = [];
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/notes/actions?id=${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) return;
+    actions = ((await resp.json()) as { actions?: NoteAction[] }).actions ?? [];
+  } catch { return; }
+
+  // Hidden entirely when nothing is owed — which is most notes, most of the
+  // time. An empty row would be a permanent reminder that there is nothing
+  // to do, on every note in the corpus.
+  if (actions.length === 0) return;
+
+  const row = document.createElement('div');
+  row.className = 'note-actions';
+  const label = document.createElement('span');
+  label.className = 'note-actions-label';
+  label.textContent = 'Owed';
+  row.appendChild(label);
+
+  for (const action of actions) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'note-action-btn';
+    // Tone comes from `confirm`, not from the verb's name. A forward move
+    // reads affirmative; a terminal one reads as something to pause over.
+    // Reading the verb string here would put the vocabulary back in the
+    // renderer by the back door, one class name at a time.
+    btn.classList.add(action.confirm ? 'is-terminal' : 'is-good');
+    btn.textContent = action.verb;
+    // A button that explains beats a button that vanishes (DES-0005).
+    if (action.disabled) {
+      btn.disabled = true;
+      btn.title = action.reason || 'not available for this note right now';
+    } else {
+      btn.title = `Sets status: ${action.to}`;
+    }
+    btn.addEventListener('click', () => {
+      void performNoteAction(noteId, action, btn);
+    });
+    row.appendChild(btn);
+  }
+
+  const strip = docView.querySelector('details.metadata-strip');
+  if (strip && strip.parentElement) {
+    strip.parentElement.insertBefore(row, strip.nextSibling);
+  } else {
+    docView.insertBefore(row, docView.firstChild);
+  }
+}
+
+async function performNoteAction(
+  noteId: string, action: NoteAction, btn: HTMLButtonElement,
+): Promise<void> {
+  // One confirmation for terminal moves, none for forward ones: reversing an
+  // approve is itself a recorded action, so the cost of a slip is an extra
+  // line of history rather than lost work.
+  if (action.confirm) {
+    const ok = window.confirm(
+      `${action.verb} ${noteId}? This sets status: ${action.to}.`,
+    );
+    if (!ok) return;
+  }
+  btn.disabled = true;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/notes/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: noteId, to: action.to, actor: 'user:edwin' }),
+    });
+    const data = (await resp.json()) as { ok?: boolean; error?: string };
+    if (!resp.ok || !data.ok) {
+      showStatus(data.error || `Transition failed: HTTP ${resp.status}`, 'error');
+      btn.disabled = false;
+      return;
+    }
+    showStatus(`${noteId} → ${action.to}`);
+    // No optimistic mutation. The file is the truth: the write lands, the
+    // watcher emits, and the note re-renders from disk.
+    if (currentRel) void navigateTo(currentRel, { replace: true });
+  } catch (err) {
+    showStatus(`Transition failed: ${String(err)}`, 'error');
+    btn.disabled = false;
+  }
+}
 
 function wireMetadataStripPersistence(): void {
   const det = docView.querySelector<HTMLDetailsElement>('details.metadata-strip');

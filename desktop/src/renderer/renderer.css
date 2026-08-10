@@ -4912,3 +4912,39 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   opacity: 0.65;
   font-style: italic;
 }
+
+
+/* ----- The actuator row (FEAT-0060 / TASK-0281) -------------------------
+   A single quiet row under the note's metadata strip. DES-0005: 11px caps
+   for the row label, buttons at chip height. Absent — not empty — when the
+   server reports nothing owed. */
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.note-actions-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.note-action-btn {
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 19px;
+  padding: 2px 11px;
+  cursor: pointer;
+}
+.note-action-btn:hover:not(:disabled) { background: var(--row-hover); color: var(--text); }
+.note-action-btn:disabled { opacity: 0.5; cursor: default; }
+.note-action-btn.is-good { color: var(--status-active); border-color: var(--status-active); }
+.note-action-btn.is-terminal { color: var(--status-blocked); border-color: var(--status-blocked); }

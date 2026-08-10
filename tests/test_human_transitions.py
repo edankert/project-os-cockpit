@@ -507,3 +507,85 @@ def test_a_criterion_containing_an_em_dash_can_be_ticked(docs_root: Path) -> Non
     )
     assert after.startswith("- [~]"), after
     assert after.count("evidence:") == 0, "the previous resolution was nested, not replaced"
+
+
+# ---- the actuator row (TASK-0281) -------------------------------------
+
+
+def _renderer_src() -> str:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+
+
+def test_the_actuator_row_declares_no_vocabulary() -> None:
+    """DES-0005: *"No vocabulary in TypeScript"* (TASK-0281).
+
+    The row draws what `GET /api/notes/actions` sends. If it restated the
+    verbs or the statuses, removing a transition from `HUMAN_TRANSITIONS`
+    would leave a button that 4xxs — which is worse than one that never
+    appeared, because it looks like a feature.
+    """
+    src = _renderer_src()
+    start = src.index("async function mountActuatorRow")
+    body = src[start:src.index("async function performNoteAction")]
+    for token in ("approved", "cancelled", "accepted", "superseded", "declined",
+                  "deferred", "Approve", "Decline", "Supersede"):
+        assert f"'{token}'" not in body, (
+            f"the actuator row names {token!r} — the verbs and the statuses "
+            "belong to note_writes.HUMAN_TRANSITIONS alone"
+        )
+    assert "/api/notes/actions" in body, "the row does not ask the server what is legal"
+
+
+def test_the_actuator_row_is_absent_not_empty_when_nothing_is_owed() -> None:
+    """Most notes owe nothing most of the time. An empty row would be a
+    permanent reminder that there is nothing to do, on every note."""
+    src = _renderer_src()
+    start = src.index("async function mountActuatorRow")
+    body = src[start:src.index("async function performNoteAction")]
+    assert "actions.length === 0) return" in body, (
+        "the row renders even when the server reports no actions"
+    )
+
+
+def test_a_completed_action_re_renders_from_the_file() -> None:
+    """No optimistic UI (TASK-0281 DoD, REQ-0027's fourth criterion).
+
+    The write lands, the watcher emits, the note re-renders from disk. A
+    local mutation would show a state the file might not have.
+    """
+    src = _renderer_src()
+    start = src.index("async function performNoteAction")
+    body = src[start:src.index("\nfunction ", start)]
+    assert "navigateTo(currentRel" in body, "the note is not re-read after a write"
+    for forbidden in ("textContent = action.to", "currentNoteStatus ="):
+        assert forbidden not in body, (
+            "the row mutates local state after a write instead of re-reading"
+        )
+
+
+def test_a_terminal_action_confirms_and_a_forward_one_does_not() -> None:
+    src = _renderer_src()
+    start = src.index("async function performNoteAction")
+    body = src[start:src.index("\nfunction ", start)]
+    assert "action.confirm" in body and "window.confirm" in body
+    # The decision of WHICH actions confirm is the server's.
+    assert "'Decline'" not in body and "'Supersede'" not in body, (
+        "the renderer decides which moves are terminal — that is CONFIRM_ACTIONS' job"
+    )
+
+
+def test_confirm_actions_match_the_terminal_moves() -> None:
+    """The server's side of the same contract."""
+    assert note_writes.CONFIRM_ACTIONS == {"Decline", "Supersede"}
+    for by_status in note_writes.HUMAN_TRANSITIONS.values():
+        for actions in by_status.values():
+            for verb, _to in actions:
+                if verb in note_writes.CONFIRM_ACTIONS:
+                    continue
+                assert verb in {"Approve", "Accept", "Defer"}, (
+                    f"{verb!r} is offered without confirmation and is not a "
+                    "known forward move — is it terminal?"
+                )

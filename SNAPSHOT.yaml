@@ -937,12 +937,6 @@ items:
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
-    TASK-0281:
-      file: "docs/features/note-actuators/plan/tasks/TASK-0281-The-Action-Row.md"
-      title: "The action row under the note title — drawn from the server's answer, confirming terminal moves, explaining disabled ones"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0060
     TASK-0282:
       file: "docs/features/note-actuators/plan/tasks/TASK-0282-Live-Checkboxes.md"
       title: "Criteria checkboxes tick from the note view, with an inline evidence prompt and the reconcile form behind a menu"
@@ -2670,7 +2664,7 @@ metrics:
     features_total: 91
     features_done: 58
     tasks_total: 384
-    tasks_done: 291
+    tasks_done: 292
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
