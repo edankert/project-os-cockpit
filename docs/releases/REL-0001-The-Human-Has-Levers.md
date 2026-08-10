@@ -136,9 +136,15 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items, **all unchecked**. Per `TESTING.md` and the skill's step 6: *release blocked, 34 tests need attention.* Each needs a **first run**, and every one is a manual procedure — the skill's step 7.2 is explicit that a manual test is *"presented to the user for execution"*.
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **Eleven were walked on 2026-08-10** and carry their evidence in the suite; **23 remain unchecked**, so the gate is still red.
 
-**No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. Thirty-four of them can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
+What was walked, and the one worth naming: **every mutation endpoint refuses a non-loopback caller** — driven over the real LAN interface `192.168.68.123:8791`, ten of ten returned **403** while reads returned **200**. That is [[REQ-0027]]'s core claim and [[ISS-0129]]'s regression, and it is the check `test_mutation_endpoints_reject_non_loopback_callers` explicitly disclosed it *could not* make (*"an honest static check, since http.server cannot spoof a peer address"*). Also walked: live reload over `/_events`, workspace discovery across ten repos, the triage-first Issues pane, 71 of 71 plans reachable, 104 verdicts with 0 owed, the badge total of 95 equalling its parts, and close-out committing its own work thirteen times.
+
+What remains needs a person at the keyboard — visual checks of rendered surfaces, an agent session, an interactive terminal. The skill's step 7.2 is explicit that a manual test is *"presented to the user for execution"*.
+
+**One caveat shaped what could be ticked.** The running shell was on the current renderer — its retirements were confirmed live, `tasks` and `review` gone from the top bar, `tests` present — but its Python sidecar predated this session and 404s on the new endpoints, so payload-dependent views rendered stale. Anything whose evidence is a payload rather than pixels was therefore **left unchecked**, even where the payload is demonstrably right. Restarting Edwin's running window to fix that is his call, not mine.
+
+**No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. The remaining twenty-three can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
 
 So the release stays `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
 

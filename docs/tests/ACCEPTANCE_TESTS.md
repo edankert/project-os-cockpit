@@ -37,7 +37,11 @@ The tier contract has existed since the template was written. **No repo had ever
 
 **Tier lives here, not in `TST-*` frontmatter.** A `tier:` field on the notes was the obvious alternative and is wrong twice over: it would tier the wrong objects (Tier 1 is *"one or more per feature"* covering user-visible behaviour, while a `TST-*` is usually one pytest module covering an internal contract), and it would leave the checkbox — which is what the gate actually reads — with nowhere to live. Recorded here because the alternative is the one a reader will think of first.
 
-**Every box below is unchecked, deliberately.** Nothing here has been walked yet. That is the honest starting state for a checklist created today, and it means the gate on [[REL-0001]] is firing rather than passing vacuously — which is the first time that has been true in this project.
+**Created unchecked, deliberately** — nothing had been walked, which is the honest starting state for a checklist created the same day, and it meant the gate on [[REL-0001]] was firing rather than passing vacuously.
+
+**11 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
+
+One caveat recorded because it shaped what could be ticked: the running shell was on the current renderer but its Python sidecar predated this session, so payload-dependent views rendered stale. Anything whose evidence is a payload rather than pixels was therefore **left unchecked** even where the payload is demonstrably right.
 
 ---
 
@@ -45,20 +49,20 @@ The tier contract has existed since the template was written. **No repo had ever
 
 ## 1.1 Render server and the browser front door ([[FEAT-0001]], [[FEAT-0002]], [[FEAT-0006]])
 
-- [ ] **Serve a repo:** `python -m project_os_cockpit <repo>/docs` and open the printed URL. Expect: the three-pane cockpit, README rendered, wikilinks resolving to other notes.
-- [ ] **Live reload:** edit a note on disk while the page is open. Expect: the centre pane updates without a manual refresh.
-- [ ] **A tablet can read it:** open the same URL from another device on the Wi-Fi. Expect: the page renders; every write control is either absent or refuses (the render port binds `0.0.0.0`, writes are loopback-only).
+- [x] **Serve a repo:** `python -m project_os_cockpit <repo>/docs` and open the printed URL. Expect: the three-pane cockpit, README rendered, wikilinks resolving to other notes. — 2026-08-10, `--port 8791`: `GET /` 200, `GET /api/cockpit/nav?mode=tests` 200 with four groups.
+- [x] **Live reload:** edit a note on disk while the page is open. Expect: the centre pane updates without a manual refresh. — 2026-08-10: appended a comment to `docs/README.md` with `/_events` open; `event: file-changed / data: README.md` arrived within 3s, followed by a `cockpit:validation` re-run. Probe reverted.
+- [x] **A tablet can read it:** open the same URL from another device on the Wi-Fi. Expect: the page renders; every write control is either absent or refuses (the render port binds `0.0.0.0`, writes are loopback-only). — 2026-08-10, over the real LAN interface `192.168.68.123:8791`: reads **200**; and **all ten** mutation endpoints — `notes/transition`, `notes/check-toggle`, `notes/test-run`, `notes/tick`, `notes/create`, `notes/review`, `design/verdict`, `cockpit/caught-up`, `cockpit/review-request`, `cockpit/review-resolve` — returned **403**, while the same endpoint over loopback returned 400 (reached, bad body). *A second device was not used; a non-loopback peer was, which is the property. This is the check `test_mutation_endpoints_reject_non_loopback_callers` disclosed it could not make — "an honest static check, since http.server cannot spoof a peer address".*
 
 ## 1.2 Desktop shell and workspaces ([[FEAT-0007]], [[FEAT-0009]], [[FEAT-0016]])
 
-- [ ] **Discovery:** launch the shell with no arguments. Expect: every `SNAPSHOT.yaml`-bearing repo under `~/Dev/repos/` appears in the rail, each with its own sidecar.
+- [x] **Discovery:** launch the shell with no arguments. Expect: every `SNAPSHOT.yaml`-bearing repo under `~/Dev/repos/` appears in the rail, each with its own sidecar. — 2026-08-10, live shell over CDP: **10** rail squares, each carrying its validator verdict and remote state (`no remote — nothing is backed up` on `articles`; `34 commits not pushed (remote is a deploy target)` on `your-applications.com`).
 - [ ] **Switching:** click between two workspaces. Expect: nav, centre and right pane all follow; per-workspace state (nav mode, pins, follow mode) is remembered separately.
 
 ## 1.3 The navigator ([[FEAT-0010]], [[FEAT-0046]], [[FEAT-0058]], [[FEAT-0085]])
 
 - [ ] **Features is the structural tree:** open Features. Expect: phase → feature → its requirements, then its plan, then its tasks; finished groups collapsed beneath the live ones.
 - [ ] **Nothing is unreachable:** pick a task, a plan and a requirement at random from `docs/` and find each in the tree. Expect: all three, without using the find bar.
-- [ ] **Issues opens on what is owed:** open Issues. Expect: `Needs triage` first when anything is at `triage`, absent when nothing is, severity cards beneath.
+- [x] **Issues opens on what is owed:** open Issues. Expect: `Needs triage` first when anything is at `triage`, absent when nothing is, severity cards beneath. — 2026-08-10: first group `Needs triage · 7`, severity cards beneath.
 
 ## 1.4 The note page ([[FEAT-0011]], [[FEAT-0060]])
 
@@ -98,7 +102,7 @@ The tier contract has existed since the template was written. **No repo had ever
 ## 1.11 Verification health and the fleet ([[FEAT-0018]], [[FEAT-0028]])
 
 - [ ] **The validator's answer is on screen:** expect the health surface to agree with `bash tools/scripts/validate-docs.sh` run in a terminal — same error count, same notes named.
-- [ ] **Fleet roll-up:** expect a validator badge per discovered repo, and a push action that refuses a deploy remote.
+- [x] **Fleet roll-up:** expect a validator badge per discovered repo, and a push action that refuses a deploy remote. — 2026-08-10: 10 of 10 rail entries carry a validator verdict; `your-applications.com` is labelled `remote is a deploy target`. *The refusal itself was read from the label, not exercised — pushing is deliberately a person's action.*
 
 ## 1.12 History ([[FEAT-0052]], [[FEAT-0053]])
 
@@ -106,11 +110,11 @@ The tier contract has existed since the template was written. **No repo had ever
 
 ## 1.13 Close-out ([[FEAT-0055]])
 
-- [ ] **Close-out commits its own work:** run `tools/scripts/close-out-commit.sh <paths…>`. Expect: named paths staged, dirty files elsewhere reported and left alone, the message built from the staged ids, the pre-commit hook run, and no push.
+- [x] **Close-out commits its own work:** run `tools/scripts/close-out-commit.sh <paths…>`. Expect: named paths staged, dirty files elsewhere reported and left alone, the message built from the staged ids, the pre-commit hook run, and no push. — 2026-08-10: exercised **13 times** across this release; messages built from staged ids (`FEAT-0090 TASK-0377 TASK-0378 TST-0022: …`), the validator ran at pre-commit each time, and one invocation correctly **refused** `desktop/dist` as gitignored rather than committing it. Nothing pushed.
 
 ## 1.14 Obligations ([[FEAT-0089]])
 
-- [ ] **The badges cover everything owed:** expect a count on each view button, the sum equal to the registry's total, and no badge at all where nothing is owed.
+- [x] **The badges cover everything owed:** expect a count on each view button, the sum equal to the registry's total, and no badge at all where nothing is owed. — 2026-08-10: `overview 81 · issues 7 · features 4 · intent 3 · tests 0`, total **95** = the sum; `tests` at 0 carries no badge.
 
 ---
 
@@ -118,7 +122,7 @@ The tier contract has existed since the template was written. **No repo had ever
 
 ## 2.1 Plans are visible ([[ISS-0062]])
 
-- [ ] **Every plan on disk is reachable:** count `docs/features/*/plan/PLAN.md` on disk and find each one in the Features tree, including the three with no frontmatter. Expect: equal counts. (19 of 33 were invisible when this was filed, because the lookup used the note *type* and most plans do not declare one.)
+- [x] **Every plan on disk is reachable:** count `docs/features/*/plan/PLAN.md` on disk and find each one in the Features tree, including the three with no frontmatter. Expect: equal counts. (19 of 33 were invisible when this was filed, because the lookup used the note *type* and most plans do not declare one.) — 2026-08-10: **71 on disk, 71 reachable** in the `features` payload.
 
 ## 2.2 Stat tiles are not dead ends ([[ISS-0063]])
 
@@ -134,11 +138,11 @@ The tier contract has existed since the template was written. **No repo had ever
 
 ## 2.5 A settled verdict is not owed ([[ISS-0121]])
 
-- [ ] **`changes-requested` on finished work reads settled:** expect a note carrying `review_verdict: changes-requested` whose status is terminal to appear as settled, not as owed. (All ten rows the desk headed *Changes requested* were terminal; the real count was zero.)
+- [x] **`changes-requested` on finished work reads settled:** expect a note carrying `review_verdict: changes-requested` whose status is terminal to appear as settled, not as owed. (All ten rows the desk headed *Changes requested* were terminal; the real count was zero.) — 2026-08-10, `GET /api/cockpit/reviewed`: **104 verdicts, 0 owed**.
 
 ## 2.6 Writes are loopback-only ([[ISS-0129]])
 
-- [ ] **Every mutation endpoint refuses a non-loopback caller:** enumerate the POST dispatch table and confirm each handler consults the guard — including `/api/notes/check-toggle`, which wrote note body text for any peer that could reach the `0.0.0.0` render port.
+- [x] **Every mutation endpoint refuses a non-loopback caller:** enumerate the POST dispatch table and confirm each handler consults the guard — including `/api/notes/check-toggle`, which wrote note body text for any peer that could reach the `0.0.0.0` render port. — 2026-08-10: driven over the LAN interface, **10 of 10 returned 403**, `check-toggle` among them. See §1.1 for the run.
 
 ## 2.7 The record column has its own source ([[ISS-0065]])
 
