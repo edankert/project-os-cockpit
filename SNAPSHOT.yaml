@@ -39,7 +39,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 90
-  ISS: 124
+  ISS: 125
   PHASE: 30
   REQ: 32
   RISK: 6
@@ -1381,6 +1381,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0125:
+      file: "docs/issues/ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home.md"
+      title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — a glossary reads as work in flight, and a style guide has been `active` for six months"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "Edwin's observation, measured: README/INDEX/OWNERSHIP/GLOSSARY/ARCHITECTURE/DESIGN/STYLEGUIDE/PHASES are one-per-project, stateless, human-facing — carried under THREE different type values, with DESIGN and STYLEGUIDE untouched since 2026-01-26. `active` is the work-in-flight band, so 18 references + the glossary are 19 of the 44 rows ISS-0122 measured as `Doing` — same defect, this is the cause. `reference` is doing three jobs (5 singletons, 9 container READMEs, 4 templates, 1 real reference). Changes ISS-0124's answer from 'more status tables' to 'a status-free category', and BLOCKS TASK-0379 — architecture cannot be both a stateless singleton and a design with a lifecycle."
     ISS-0124:
       file: "docs/issues/ISS-0124-Four-Note-Types-Have-No-Status-Table.md"
       title: "Four note types have no status table, so 21 notes carry a `status:` nothing validates — ARCHITECTURE.md has read `draft` for three months unchallenged"
@@ -2640,7 +2647,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 4
+    issues_triage: 5
     risks_open: 6
     releases_total: 0
     decisions_total: 11

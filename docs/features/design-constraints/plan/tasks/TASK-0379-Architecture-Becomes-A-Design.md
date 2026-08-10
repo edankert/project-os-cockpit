@@ -12,9 +12,9 @@ source: ["Edwin 2026-08-10: 'Happy to make architecture a design type'"]
 parent: "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]"
 effort: S
 due: ""
-depends: []
+depends: ["[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]"]
 blocks: []
-related: ["[[ISS-0124-Four-Note-Types-Have-No-Status-Table]]", "[[FEAT-0042-Design-Bench]]", "[[ADR-0006-Retire-Delivered-Band]]"]
+related: ["[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]", "[[ISS-0124-Four-Note-Types-Have-No-Status-Table]]", "[[FEAT-0042-Design-Bench]]", "[[ADR-0006-Retire-Delivered-Band]]"]
 tests: []
 ---
 
@@ -40,3 +40,11 @@ Edwin's call, 2026-08-10, in preference to promoting `architecture` to a first-c
 **`role:` is what makes this honest.** Designs are proposal-shaped by default; an architecture document is descriptive — it says what *is*, not what *should be*. Accepting one is not the same act as accepting a proposal, and the field exists to carry that difference.
 
 **The diagram is stale and that is the substantive half of this task.** It draws the original Python server — HTTP server, watcher, SSE, renderer — from a repo that is now 17,000 lines with an Electron shell, per-workspace sidecars and agent instrumentation. Converting the type without reading the content would publish a stale document with a fresh status.
+
+## Blocked 2026-08-10 — [[ISS-0125]]
+
+Edwin, the same day this was approved: *"some notes are required but they are one-off notes, similar to glossary, we never need more than one and there is not really a state associated with them."*
+
+If `ARCHITECTURE.md` belongs to that class — singleton, stateless, human-facing — then making it a **design** is wrong for the opposite reason to the one that made a first-class `architecture` type wrong. A design has a lifecycle (`proposed` → `accepted`), revisions and review verdicts; a standing description of how the system is built has none of those, and giving it a status table would reproduce exactly what [[ISS-0125]] measures — `active` meaning "work in flight" on a document nobody is working.
+
+Both readings are defensible: an architecture document is arguably a standing description *or* a reviewable artifact. **Do not start this task until [[ISS-0125]] settles the class**, and take the decision for the class rather than for this one note.
