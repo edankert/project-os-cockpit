@@ -935,6 +935,7 @@ interface RenderResponse {
 
 // Provenance of the currently open note (FEAT-0025 / TASK-0135) —
 // feeds the re-dispatch guard and the provenance line.
+let currentNoteId = '';
 let currentDispatchHistory: RenderResponse['dispatch_history'] | null = null;
 let currentNoteStatus: string | null = null;
 
@@ -1195,6 +1196,8 @@ async function navigateToInner(
 
   // The actuator row (TASK-0281) — drawn from the server's answer for this
   // note's current status, absent when nothing is owed.
+  currentNoteId =
+    typeof data.frontmatter?.id === 'string' ? (data.frontmatter.id as string) : '';
   void mountActuatorRow(
     typeof data.frontmatter?.id === 'string' ? (data.frontmatter.id as string) : '',
   );
@@ -1406,13 +1409,153 @@ function wireMetadataStripPersistence(): void {
   });
 }
 
+/** Headings whose checkboxes are *criteria*, not a planning checklist.
+ *
+ *  The same distinction the validator draws: REQ-BOXES reads "Acceptance",
+ *  PHASE-BOXES reads "Exit Criteria", and PHASE-BOXES deliberately requires
+ *  the heading because a phase note carries unrelated checklists elsewhere.
+ *  Getting this wrong in the other direction would demand evidence for a
+ *  step in someone's Steps list. */
+const CRITERIA_HEADINGS = /^(acceptance|exit criteria|acceptance criteria)\b/i;
+
+/** True when this checkbox sits under a criteria heading (TASK-0282). */
+function isCriterionBox(box: HTMLInputElement): boolean {
+  let node: Element | null = box.closest('ul, ol');
+  while (node) {
+    const prev: Element | null = node.previousElementSibling;
+    if (prev && /^H[1-6]$/.test(prev.tagName)) {
+      return CRITERIA_HEADINGS.test((prev.textContent || '').trim());
+    }
+    node = prev ?? node.parentElement;
+    if (node === docView) break;
+  }
+  return false;
+}
+
+/** The criterion's own prose, stripped of any resolution already recorded.
+ *  Mirrors `note_writes._criterion_text`; the server is what matches on it,
+ *  so this only has to produce the same string for an UNRESOLVED box. */
+function criterionTextOf(box: HTMLInputElement): string {
+  const li = box.closest('li');
+  if (!li) return '';
+  const clone = li.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('input[type=checkbox], ul, ol').forEach((n) => n.remove());
+  return (clone.textContent || '').trim();
+}
+
 function wireInteractiveCheckboxes(): void {
   // pymdownx.tasklist with `clickable_checkbox: False` renders the
   // boxes as `disabled` — mode-1 browser view stays read-only. Mode 3
   // enables them by stripping the attribute; the change handler
   // delegates from #doc-view and writes back through the new endpoint.
   const boxes = docView.querySelectorAll<HTMLInputElement>('input[type=checkbox]');
-  boxes.forEach((box) => box.removeAttribute('disabled'));
+  boxes.forEach((box) => {
+    box.removeAttribute('disabled');
+    // A criterion is not a to-do (TASK-0282). Ticking one is a claim that
+    // something is true, so it takes evidence — REQ-0028's witness, and the
+    // shape REQ-BOXES actually reads. Plain checkboxes keep the FEAT-0011
+    // toggle; only criteria are intercepted.
+    if (box.checked || !isCriterionBox(box)) return;
+    box.dataset.criterion = 'true';
+    box.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openTickPrompt(box);
+    });
+  });
+}
+
+/** Inline evidence field for one criterion (TASK-0282). */
+function openTickPrompt(box: HTMLInputElement): void {
+  const li = box.closest('li');
+  if (!li || li.querySelector('.tick-prompt')) return;
+  const criterion = criterionTextOf(box);
+  if (!criterion) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tick-prompt';
+  const field = document.createElement('input');
+  field.type = 'text';
+  field.className = 'tick-prompt-field';
+  field.placeholder = 'what shows this is met?';
+  const tick = document.createElement('button');
+  tick.type = 'button';
+  tick.className = 'note-action-btn is-good';
+  tick.textContent = 'Tick';
+  const reconcile = document.createElement('button');
+  reconcile.type = 'button';
+  reconcile.className = 'note-action-btn';
+  reconcile.textContent = 'Reconcile…';
+  reconcile.title = 'Record why this was not delivered as written';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'note-action-btn';
+  cancel.textContent = 'Cancel';
+
+  const send = (form: 'tick' | 'reconcile'): void => {
+    const text = field.value.trim();
+    if (!text) {
+      field.placeholder = form === 'tick'
+        ? 'evidence is required — what shows this is met?'
+        : 'a reason is required — why was this not delivered?';
+      field.focus();
+      return;
+    }
+    void submitTick(criterion, form, text, wrap);
+  };
+  tick.addEventListener('click', () => send('tick'));
+  reconcile.addEventListener('click', () => {
+    field.placeholder = 'why was this not delivered as written?';
+    if (field.value.trim()) send('reconcile'); else field.focus();
+  });
+  cancel.addEventListener('click', () => wrap.remove());
+  field.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') send('tick');
+    if (ev.key === 'Escape') wrap.remove();
+  });
+
+  wrap.append(field, tick, reconcile, cancel);
+  li.appendChild(wrap);
+  field.focus();
+}
+
+async function submitTick(
+  criterion: string, form: 'tick' | 'reconcile', text: string, wrap: HTMLElement,
+): Promise<void> {
+  const noteId = currentNoteId;
+  if (!sidecarBaseUrl || !noteId) return;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/notes/tick`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: noteId,
+        criterion,
+        evidence: form === 'tick' ? text : '',
+        reason: form === 'reconcile' ? text : '',
+        actor: 'user:edwin',
+      }),
+    });
+    const data = (await resp.json()) as { ok?: boolean; error?: string };
+    if (!resp.ok || !data.ok) {
+      // A refusal is never silence (TASK-0282 DoD). A stale mtime in
+      // particular means somebody else's edit is on disk, so say so and
+      // re-read rather than leaving a field that looks like it worked.
+      const stale = (data.error || '').toLowerCase().includes('changed');
+      showStatus(
+        stale ? 'note changed — reloaded' : (data.error || 'Tick failed'),
+        'error',
+      );
+      wrap.remove();
+      if (currentRel) void navigateTo(currentRel, { replace: true });
+      return;
+    }
+    wrap.remove();
+    if (currentRel) void navigateTo(currentRel, { replace: true });
+  } catch (err) {
+    showStatus(`Tick failed: ${String(err)}`, 'error');
+    wrap.remove();
+  }
 }
 
 docView.addEventListener('change', async (e) => {

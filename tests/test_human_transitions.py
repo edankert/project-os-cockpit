@@ -589,3 +589,54 @@ def test_confirm_actions_match_the_terminal_moves() -> None:
                     f"{verb!r} is offered without confirmation and is not a "
                     "known forward move — is it terminal?"
                 )
+
+
+# ---- live criteria checkboxes (TASK-0282) -----------------------------
+
+
+def test_only_criteria_boxes_are_intercepted() -> None:
+    """A criterion is not a to-do (TASK-0282).
+
+    Ticking a criterion is a claim that something is true, so it takes
+    evidence. A step in someone's Steps list is not, and demanding evidence
+    for one would make the affordance a nuisance everywhere it appears.
+
+    The heading test mirrors the validator's own: REQ-BOXES reads
+    "Acceptance", PHASE-BOXES reads "Exit Criteria".
+    """
+    src = _renderer_src()
+    assert "CRITERIA_HEADINGS" in src
+    block = src[src.index("const CRITERIA_HEADINGS"):src.index("function criterionTextOf")]
+    for heading in ("acceptance", "exit criteria"):
+        assert heading in block.lower(), f"{heading!r} is not recognised as a criteria section"
+    wiring = src[src.index("function wireInteractiveCheckboxes"):src.index("function openTickPrompt")]
+    assert "isCriterionBox(box)" in wiring, (
+        "every checkbox is intercepted, not only criteria — a Steps item would "
+        "demand evidence"
+    )
+    assert "box.checked ||" in wiring, "an already-resolved box is re-prompted"
+
+
+def test_a_tick_refusal_is_never_silence() -> None:
+    """DoD: a stale-mtime refusal surfaces as "note changed — reloaded".
+
+    Silence after a click that appeared to work is the worst of the three
+    outcomes: the reader believes the criterion is ticked and the file says
+    otherwise.
+    """
+    src = _renderer_src()
+    body = src[src.index("async function submitTick"):]
+    assert "note changed — reloaded" in body
+    assert "showStatus(" in body, "a failed tick says nothing"
+    assert "navigateTo(currentRel" in body, "the note is not re-read after a refusal"
+
+
+def test_the_prompt_requires_evidence_or_a_reason() -> None:
+    """Both forms carry their justification, or neither is sent — the server
+    refuses an empty one anyway, and a round trip to learn that is worse
+    than a placeholder that says so."""
+    src = _renderer_src()
+    body = src[src.index("function openTickPrompt"):src.index("async function submitTick")]
+    assert "evidence is required" in body
+    assert "a reason is required" in body
+    assert "Reconcile" in body, "the reconcile form is unreachable"

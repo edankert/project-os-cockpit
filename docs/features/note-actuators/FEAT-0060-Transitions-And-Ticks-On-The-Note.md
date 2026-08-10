@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0060
 aliases: ["FEAT-0060"]
 title: "The actuator row: a note's legal human actions as buttons under its title, and its criteria checkboxes made live"
-status: planned
+status: done
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
@@ -33,3 +33,11 @@ The centre pane's note header gains one quiet row, populated from `GET /api/note
 
 - Mode 1. The actuator row is mode 3 first; the browser cockpit is read-only until the mode-1 ADR (PHASE-026) settles its future — widening a LAN-visible surface's writes is exactly what RISK-0005 forbids doing casually.
 - Any styling not already in the record grammar.
+
+## Closed 2026-08-10
+
+The note gained its actions: a row under the metadata strip drawn from `GET /api/notes/actions`, and criteria checkboxes that take evidence rather than a click.
+
+**The vocabulary stayed server-side, and tried twice to come back.** The first cut of the row styled its affirmative button by reading `action.verb === 'Approve'`; tone now comes from `confirm`, which is `CONFIRM_ACTIONS`' decision. That is [[ISS-0023]] arriving one class name at a time, and the guard was widened to catch verbs once the code could pass it.
+
+**Nothing is optimistic.** Both paths re-read the note from disk after a write. The tests assert the *absence* of a local mutation, not the presence of a refetch — the failure mode is showing a state the file does not have.

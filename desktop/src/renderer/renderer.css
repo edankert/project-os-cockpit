@@ -4948,3 +4948,20 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .note-action-btn:disabled { opacity: 0.5; cursor: default; }
 .note-action-btn.is-good { color: var(--status-active); border-color: var(--status-active); }
 .note-action-btn.is-terminal { color: var(--status-blocked); border-color: var(--status-blocked); }
+
+
+/* Inline evidence prompt on a criterion (FEAT-0060 / TASK-0282). */
+.tick-prompt { display: flex; gap: 6px; align-items: center; margin: 6px 0 4px; }
+.tick-prompt-field {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+}
+.tick-prompt-field::placeholder { color: var(--text-faint); }
+input[type=checkbox][data-criterion="true"] { cursor: pointer; }

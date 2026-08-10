@@ -194,7 +194,7 @@ items:
     FEAT-0060:
       file: "docs/features/note-actuators/FEAT-0060-Transitions-And-Ticks-On-The-Note.md"
       title: "The actuator row: a note's legal human actions as buttons under its title, and its criteria checkboxes made live"
-      status: planned
+      status: done
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0281, TASK-0282]
       note: "The renderer displays, never decides — no vocabulary in TypeScript, the thrice-taught lesson made structural."
@@ -937,12 +937,6 @@ items:
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
-    TASK-0282:
-      file: "docs/features/note-actuators/plan/tasks/TASK-0282-Live-Checkboxes.md"
-      title: "Criteria checkboxes tick from the note view, with an inline evidence prompt and the reconcile form behind a menu"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0060
     TASK-0283:
       file: "docs/features/quick-capture/plan/tasks/TASK-0283-Capture.md"
       title: "⌘N capture — title in, triage issue out, current note linked, under three seconds"
@@ -2662,9 +2656,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 58
+    features_done: 59
     tasks_total: 384
-    tasks_done: 292
+    tasks_done: 293
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
