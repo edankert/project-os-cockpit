@@ -1,0 +1,55 @@
+---
+type: "[[feature]]"
+id: FEAT-0088
+aliases: ["FEAT-0088"]
+title: "Features carries its own judgments — requirement approval and acceptance surface beside the work they concern"
+status: planned
+phase: "[[PHASE-030-Obligations-Go-Home]]"
+owner: user:edwin
+created: 2026-08-10
+updated: 2026-08-10
+source: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "Edwin 2026-08-10: 'if we need any human decisions/refinement for any of these items then it makes sense to show them here'"]
+goal: "Surface the two judgments the work tree asks for — approve a draft requirement, accept a finished feature — on the feature they belong to, so approving is done with the thing being specified in view."
+requirements: []
+tasks:
+  - "[[TASK-0376-Approval-And-Acceptance-On-The-Feature]]"
+release: ""
+related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]", "[[DES-0006-The-Acceptance-Desk]]", "[[FEAT-0063-The-Acceptance-Runner]]", "[[FEAT-0064-The-Acceptance-Gate]]"]
+tests: []
+---
+
+# Features carries its own judgments
+
+## Goal
+
+Two obligations belong to the work tree, and both sat on a queue that showed them without their subject:
+
+- **A `draft` requirement awaits approval.** It is already nested under the feature it specifies. Approving it from a queue row meant judging "should this constrain the work" without the work on screen.
+- **A feature carrying `acceptance: requested` awaits an acceptance run.** [[DES-0006]] made this its first entry point — *"the desk queue gains `Awaiting your acceptance · N`"* — and [[ADR-0020]] moves that entry point here.
+
+## Scope
+
+**In:** requirement `draft` → **approve** and feature `acceptance: requested` → **accept**, as this view's obligations from [[FEAT-0089]]'s registry, with the badge; the entry point to the acceptance run; `changes-requested` on a feature or task surfacing in the tree.
+
+**Out:**
+
+- **The acceptance runner itself.** [[FEAT-0063]]/[[FEAT-0064]] under [[PHASE-024]] own the criterion-by-criterion walk, the witness evidence and the `acceptance:` gate. This gives them their entry point, nothing more.
+- The actuators. [[DES-0005]]'s row on the note performs the transition; this feature makes the obligation visible and reachable.
+- The tree's shape — [[FEAT-0085]] owns tasks joining the tree, and lands independently.
+
+## Interaction with FEAT-0085
+
+Both change the Features view and can land in either order, but they touch the same payload. [[FEAT-0085]] adds task children; this adds obligation marks and counts. Whichever lands second must not restate the other's ordering or status vocabulary — the recurring failure on this surface, and the reason [[FEAT-0089]] exists.
+
+## Acceptance
+
+- [ ] A `draft` requirement is marked as awaiting approval where it already sits, nested under its feature
+- [ ] A feature at `acceptance: requested` is marked and offers the run's entry point
+- [ ] Both are counted in the view's badge and come from the registry, not from a local list
+- [ ] Approving does not satisfy any close-out gate — [[ADR-0007]]'s separation of `plan-accepted` from `approved` survives, so a plan stamp can never silence an independent-review gate
+- [ ] A `changes-requested` feature or task is visible in the tree without a second list anywhere
+
+## Links
+
+- Decision: [[ADR-0020-Obligations-Live-With-Their-Subject]]
+- Paths: `src/project_os_cockpit/cockpit.py` (`_features_groups`, `_requirement_child_item`), `desktop/src/renderer/renderer.ts`

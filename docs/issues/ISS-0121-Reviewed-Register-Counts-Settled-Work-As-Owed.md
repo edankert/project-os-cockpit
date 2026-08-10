@@ -4,10 +4,10 @@ id: ISS-0121
 aliases: ["ISS-0121"]
 title: "The reviewed register counts settled work as owed — all ten `Changes requested` rows are terminal"
 status: open
-phase: "[[PHASE-023-Levers-For-The-Human]]"
+phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["Session 2026-08-09: reviewing a proposed board layout for ~review, the payload was rendered to see what a card would carry"]
 severity: medium
 component: "review-desk"

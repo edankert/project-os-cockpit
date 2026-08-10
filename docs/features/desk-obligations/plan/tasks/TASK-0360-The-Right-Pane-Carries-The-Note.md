@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0360
 aliases: ["TASK-0360"]
 title: "The desk's right pane carries the selected note's context instead of being cleared on entry"
-status: backlog
+status: superseded
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["[[DES-0010-The-Desk-Shows-What-It-Owes]]"]
 parent: "[[FEAT-0082-The-Desk-Shows-What-It-Owes]]"
 effort: S
@@ -34,3 +34,8 @@ tests: []
 The clear-on-entry is `renderer.ts:4105`. It made sense when the desk had no selected note to describe; with a detail view open it means the desk is the one place a note is read without its relationships.
 
 Reviewing a requirement without seeing which features it specifies is the concrete cost — that is the context the judgment needs.
+
+
+## Superseded 2026-08-10 — [[ADR-0020]]
+
+Its point survives structurally: judging happens on the note, where the context already is.

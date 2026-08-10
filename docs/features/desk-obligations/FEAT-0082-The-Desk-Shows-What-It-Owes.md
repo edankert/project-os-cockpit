@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0082
 aliases: ["FEAT-0082"]
 title: "The desk shows what it owes — the board as the centre pane's landing, the registers as the record, and the walk made explicit"
-status: planned
+status: superseded
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["[[DES-0010-The-Desk-Shows-What-It-Owes]]"]
 goal: "Give ~review's centre pane a job when nothing is selected — the shape of what is owed, by obligation kind, from the payload the desk already serves — and stop the 240px pane carrying 39 rows of which 3 are actionable."
 requirements: ["[[REQ-0026-Only-Human-Owned-Transitions]]"]
@@ -17,6 +17,7 @@ tasks:
   - "[[TASK-0359-The-Pane-Is-The-Walk]]"
   - "[[TASK-0360-The-Right-Pane-Carries-The-Note]]"
 design: "[[DES-0010-The-Desk-Shows-What-It-Owes]]"
+superseded_by: "[[ADR-0020-Obligations-Live-With-Their-Subject]]"
 release: ""
 related: ["[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]", "[[DES-0005-The-Actuator-Grammar]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0041-Review-Desk]]", "[[TST-0022-Surface-Ownership]]"]
 tests: []
@@ -67,3 +68,12 @@ The phase's goal is that the human's judgments become actions in the cockpit. [[
 - Prerequisite: [[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]
 - Requirements: [[REQ-0026-Only-Human-Owned-Transitions]]
 - Paths: `src/project_os_cockpit/cockpit.py` (`review_queue_payload`, `_reviewed_register`), `desktop/src/renderer/renderer.ts` (`buildReviewEmpty`, `renderReviewQueuePane`, `renderReviewPage`), `desktop/src/renderer/renderer.css`
+
+
+## Superseded 2026-08-10 — [[ADR-0020]]
+
+The board this builds lives on `~review`, which [[ADR-0020]] retires. [[PHASE-030]] does the same job differently: obligations surface in the view owning their subject, and the count moves to the view buttons.
+
+Its four tasks are superseded with it, and one is explicitly carried forward — [[TASK-0357]]'s server-owned obligation vocabulary is now [[FEAT-0089]]'s registry, applied to every kind rather than to the desk's four groups. [[TASK-0360]]'s point (the note's context should be on screen while it is judged) survives as a property of judging on the note rather than in a queue.
+
+[[ISS-0121]], filed while designing this, is unaffected and moved to [[PHASE-030]].

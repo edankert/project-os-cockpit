@@ -38,13 +38,13 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 85
+  FEAT: 90
   ISS: 123
-  PHASE: 29
+  PHASE: 30
   REQ: 32
   RISK: 6
   REL: 0
-  TASK: 368
+  TASK: 378
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -57,6 +57,41 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0089:
+      file: "docs/features/obligation-registry/FEAT-0089-The-Obligation-Registry-And-The-Badges.md"
+      title: "The obligation registry and the badges — one source for what is owed, of what kind, and which view owns it; a count on every view button that together covers all of them"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0369, TASK-0370]
+      note: "FIRST in PHASE-030 — every other feature reads it. ADR-0020 decision 3 (badges must cover every kind) is only enforceable if the kinds are data. Carries forward TASK-0357's rule from the superseded desk board: the obligation vocabulary ships from the server, never TypeScript. Includes `change` (76 of 116 unreviewed, gate-bearing, errors on 2026-10-23) with a cutoff PARAMETER rather than a hard-coded answer."
+    FEAT-0086:
+      file: "docs/features/tests-view/FEAT-0086-Tests-Becomes-A-View.md"
+      title: "Tests becomes a view — the register, the runner, the tier suite and a release gate that can finally fire"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0371, TASK-0372, TASK-0373]
+      note: "The only NEW capability in the phase; the rest is re-homing. Tests have no view at all today — 23 notes across 16 feature dirs plus docs/tests. And the acceptance contract (Tier 1/2/3, 'a release is blocked while any Tier 1/2 test is unchecked') has NEVER been instantiated in this repo: 85 features, zero tier classification, a gate that cannot fire. Does not build the acceptance runner — PHASE-024 owns that and gains its home here."
+    FEAT-0087:
+      file: "docs/features/design-constraints/FEAT-0087-Design-Widens-Into-The-Projects-Constraints.md"
+      title: "Design widens into the project's constraints — decisions, risks, references and the brief join the designs"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0374, TASK-0375]
+      note: "Project-level constraints here; feature-level specifications stay with their feature — so the 32 requirements do NOT move, and that line is recorded because it is one sentence away from moving them. LIBRARY STAYS (Edwin 2026-08-10): Library is a file browser, this is typed notes; one item, two addresses, which is not ISS-0068's second-list failure. The view needs a name — 'Design' no longer covers it and mode 1 already uses 'Project' for library."
+    FEAT-0088:
+      file: "docs/features/features-judgments/FEAT-0088-Features-Carries-Its-Own-Judgments.md"
+      title: "Features carries its own judgments — requirement approval and acceptance surface beside the work they concern"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0376]
+      note: "DES-0006's first entry point ('the desk queue gains Awaiting your acceptance') moves here. Touches the same payload as FEAT-0085; whichever lands second must not restate the other's ordering or status vocabulary. ADR-0007's plan-accepted/approved separation must survive — a plan stamp on a gate-bearing note silences a gate it never satisfied."
+    FEAT-0090:
+      file: "docs/features/desk-retires/FEAT-0090-The-Desk-Retires.md"
+      title: "The desk retires — its registers re-home, its route migrates, and nothing that lived on it becomes unreachable"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0377, TASK-0378]
+      note: "LAST, and only once the registry can prove every kind has an owner — removal becomes bookkeeping rather than a leap. The review LEDGER and store survive (ADR-0007's mechanism); only the display goes. ISS-0121 lands with the register move so the defect is fixed rather than relocated."
     FEAT-0085:
       file: "docs/features/navigator-tree/FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has.md"
       title: "The navigator shows the structure the record has — tasks join their feature beside its requirements and plan, and the Tasks view retires"
@@ -81,7 +116,7 @@ items:
     FEAT-0082:
       file: "docs/features/desk-obligations/FEAT-0082-The-Desk-Shows-What-It-Owes.md"
       title: "The desk shows what it owes — the board as the centre pane's landing, the registers as the record, and the walk made explicit"
-      status: planned
+      status: superseded
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0357, TASK-0358, TASK-0359, TASK-0360]
       note: "Implements DES-0010. The desk puts 39 rows in a 240px pane (3 actionable) and one sentence in ~576px. Board replaces the empty state; columns are obligation kinds carrying their verb from the payload, not the renderer. ISS-0121 goes FIRST — 10 of the 13 owed rows are false and the board would draw them larger. No write path: actuators stay FEAT-0060's, behind REQ-0026. TASK-0359 is test-gated by TST-0022 step 10."
@@ -1867,6 +1902,14 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-030:
+      file: "docs/phases/PHASE-030-Obligations-Go-Home.md"
+      title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
+      status: active
+      order: 30
+      features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090"]
+      issues: ["ISS-0121"]
+      note: "From ADR-0020, accepted 2026-08-10. Order is load-bearing: FEAT-0089 (registry) first because everything reads it, the three view features in any order, FEAT-0090 (retire) last because the registry is what PROVES nothing is homeless. Must not build a third surface (ISS-0068) and must not widen the write surface (REQ-0027)."
     PHASE-029:
       file: "docs/phases/PHASE-029-One-Tool-Two-Front-Doors.md"
       title: "One tool, two front doors — the browser cockpit and the desktop shell answer the same questions, and differ only where a difference was decided"
@@ -2539,7 +2582,7 @@ items:
   decisions:
     ADR-0020:
       title: "Obligations live with their subject — the review desk dissolves into the views, the count moves to the buttons, and Tests becomes a view"
-      status: proposed
+      status: accepted
       path: "docs/decisions/ADR-0020-Obligations-Live-With-Their-Subject.md"
     ADR-0010:
       title: "What the browser cockpit is for — the read-only front door is the reading surface, and its view set follows from that rather than from history"
@@ -2580,9 +2623,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 85
+    features_total: 90
     features_done: 56
-    tasks_total: 368
+    tasks_total: 378
     tasks_done: 285
     tests_total: 23
     tests_passing: 23

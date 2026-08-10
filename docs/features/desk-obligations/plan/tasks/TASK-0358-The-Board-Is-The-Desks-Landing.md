@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0358
 aliases: ["TASK-0358"]
 title: "The board replaces the desk's empty state — occupied columns at width, empty kinds on one line"
-status: backlog
+status: superseded
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["[[DES-0010-The-Desk-Shows-What-It-Owes]]"]
 parent: "[[FEAT-0082-The-Desk-Shows-What-It-Owes]]"
 effort: M
@@ -38,3 +38,8 @@ tests: []
 No `count === 0` branch anywhere. The precedent is `buildNowBoard()`, gated behind `phases.length === 0` and consequently never seen in a repo that has phases — a layout that changes shape by count is a layout somebody will never encounter.
 
 Occupied-columns-only is the decision that keeps this from being the status kanban that was rejected: five of six kinds are empty here, and drawing them all would reproduce exactly the "mostly empty board" failure.
+
+
+## Superseded 2026-08-10 — [[ADR-0020]]
+
+The board it builds has no page to live on. Its one durable rule — no count-conditional layout — is recorded in [[TASK-0370]].

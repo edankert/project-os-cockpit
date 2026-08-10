@@ -4,16 +4,16 @@ id: DES-0010
 aliases: ["DES-0010"]
 title: "The desk shows what it owes — the board as the centre pane's empty state, the registers as the record, and the walk unchanged"
 role: proposal
-status: "proposed"
+status: "superseded"
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["Session 2026-08-09: Edwin proposed a kanban view for the overview; the status axis was measured empty (1 in-flight work item here, 77 fleet-wide) and the request was redirected to ~review, whose obligation axis is the one with occupancy"]
 asset: "DES-0010-desk-shows-what-it-owes.html"
 implements: []
 supersedes: ""
-superseded_by: ""
+superseded_by: "[[ADR-0020-Obligations-Live-With-Their-Subject]]"
 reviewed_by: ""
 review_date: ""
 review_verdict: ""
@@ -97,3 +97,12 @@ Layout values are the shell's own: `44px` rail, `240px` nav, `1fr` centre, `280p
 ## Review
 
 <Region-anchored comments land here. Verdicts go in the frontmatter, transcribed from a review that actually happened — never anticipated.>
+
+
+## Superseded 2026-08-10 — [[ADR-0020]]
+
+Two days after this was drawn, the surface it designs was retired. [[ADR-0020]] moves every obligation to the view that owns its subject and removes `~review` entirely, so plates B, C and D describe a board on a page that will not exist.
+
+**Kept, not lost:** the finding in plate A that produced [[ISS-0121]] — ten `Changes requested` rows, all terminal — stands and is still being fixed. The principle in plate B's pin 2 (no count-conditional layout) and the card anatomy in plate E carry into [[FEAT-0089]]'s badges and the per-view obligation rows. And the payload rule from [[TASK-0357]] — *the obligation vocabulary ships from the server, never from TypeScript* — became [[FEAT-0089]]'s registry, which is the widest-scoped thing in [[PHASE-030]].
+
+Kept as the record of how the decision was reached: the plates are what made the desk's shape legible enough to argue about, and the measurement in plate A is what started it.

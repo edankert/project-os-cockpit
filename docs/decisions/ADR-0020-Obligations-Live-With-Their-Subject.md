@@ -3,15 +3,15 @@ type: "[[adr]]"
 id: ADR-0020
 aliases: ["ADR-0020"]
 title: "Obligations live with their subject — the review desk dissolves into the views, the count moves to the buttons, and Tests becomes a view"
-status: "proposed"
+status: "accepted"
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: "2026-08-10"
 source: ["Edwin 2026-08-10, reviewing the view set: 'I don't think we need the separate review item then anymore ???'", "Session 2026-08-08..10: every nav mode and the desk payload measured against the corpus and the fleet"]
 related: ["[[ADR-0007-Planning-Artifact-Approval-Gate]]", "[[DES-0005-The-Actuator-Grammar]]", "[[DES-0006-The-Acceptance-Desk]]", "[[DES-0010-The-Desk-Shows-What-It-Owes]]", "[[FEAT-0041-Review-Desk]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0082-The-Desk-Shows-What-It-Owes]]", "[[ISS-0068-Waiting-On-You-Is-A-Workaround]]", "[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]"]
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-10"
+review_verdict: "plan-accepted"
 ---
 
 # Obligations live with their subject
@@ -66,6 +66,19 @@ The judgments themselves are not uniform, either. [[DES-0006]] already concluded
 | Reviewed register | the record surfaces |
 | Questions | nowhere, deliberately |
 
+## Amendment 2026-08-10 — where changes live
+
+Edwin, on reading this: *"Where do we capture/surface changes now?"* The re-homing table says `changes-requested` re-review goes to "the view owning each note's type", and **no view owns `change`**. The table was written from the desk's contents and `change` was never on the desk, so the gap was invisible from where it was drawn.
+
+It is not a small omission. There are **116 CHG notes** — the third-largest type in the corpus — and **76 of them carry no `review_verdict`**. `change` is a `GATE_BEARING_TYPE`: those 76 are the `[REVIEW]` warnings the validator already emits, and they become **errors on 2026-10-23**. So changes carry the largest single pool of owed judgment in this repo, and this decision did not house it.
+
+**Amended:**
+
+8. **The Overview owns changes.** It already does — the history band ([[FEAT-0052]]) and the record column render them — and a change note is a record of what happened, which is what that surface is for. Nesting them under features was considered and rejected: a CHG frequently spans several items and many document process or docs rather than a feature, so the edge does not exist for all of them.
+9. **Unreviewed changes are an obligation and get the Overview's badge.** By decision 3 the badges must cover every kind, and this is a kind.
+
+**Left open, deliberately:** whether *historical* unreviewed changes are an obligation or an accepted state. Most of the 76 date to the repo's first weeks (`CHG-20260507-*`), and a badge reading `76` may drown the four kinds that are actionable today. A cutoff date, a waiver, or simply accepting the number are all defensible; the deadline makes it a real decision rather than a display preference, and it should be taken with the count in front of you rather than guessed at here.
+
 ## What this does not change
 
 **[[ADR-0007]] is narrowed, not reversed.** It decided that the approval gate is *advisory*, that acceptance stamps `reviewed_by`/`review_date`/`review_verdict` into the note, that rejection flips through a guarded transition, and that the queue is runtime state while the outcome is durable in the note. All of that survives; only the location of the queue changes. Its measurement clause — revisit gating once ~20 sets have passed — survives too, and is now measured from wherever the sets are shown.
@@ -96,6 +109,6 @@ The judgments themselves are not uniform, either. [[DES-0006]] already concluded
 ## Open questions — deliberately not decided here
 
 - **What the Design view is called** once it holds ADRs, risks, the brief and the glossary. "Design" is too narrow, and mode 1 already uses "Project" for `library`.
-- **Whether Library dissolves into it.** Its 17 rows are `reference/`, `references/` and `workflows/` — the same material — but that is a view-set change and belongs with [[PHASE-029]]'s vocabulary work.
+- ~~**Whether Library dissolves into it.**~~ **Answered 2026-08-10: it does not.** Edwin — *"I do want to keep the library view for now."* The split is by question: Library is a **file browser** (*where is that file*), the constraints view holds **typed notes** (*what constrains this project*). A `reference/` note therefore has two addresses, which is not the second-list failure [[ISS-0068]] describes. The boundary to watch is Library growing typed groups of the same notes; at that point they would genuinely duplicate.
 - **Exactly which record surface takes the reviewed register.**
 - **Whether requirements stay nested under features.** This decision assumes they do — a requirement constrains one feature and belongs beside it, while ADRs and risks constrain the project. Worth stating as an assumption because 32 notes turn on it.

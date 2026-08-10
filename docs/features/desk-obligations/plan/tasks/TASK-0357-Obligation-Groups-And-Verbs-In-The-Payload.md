@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0357
 aliases: ["TASK-0357"]
 title: "Obligation groups carry their verb, and Proposals splits into Approve and Accept"
-status: backlog
+status: superseded
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 source: ["[[DES-0010-The-Desk-Shows-What-It-Owes]]"]
 parent: "[[FEAT-0082-The-Desk-Shows-What-It-Owes]]"
 effort: S
@@ -35,3 +35,8 @@ tests: []
 The split is a payload change, not a renderer change — a `draft` requirement is *approved* and an offered design revision is *accepted*, and [[DES-0005]]'s table already distinguishes them. Keeping the vocabulary server-side is the [[ISS-0023]] rule applied before it can be broken rather than after.
 
 Depends on [[ISS-0121]] only in ordering: the re-review column is wrong until the register filter lands, and shipping the board first would make it more prominent.
+
+
+## Superseded 2026-08-10 — [[ADR-0020]]
+
+Carried forward: the server-owned obligation vocabulary is now [[FEAT-0089]]'s registry ([[TASK-0369]]), applied to every kind rather than the desk's four groups.
