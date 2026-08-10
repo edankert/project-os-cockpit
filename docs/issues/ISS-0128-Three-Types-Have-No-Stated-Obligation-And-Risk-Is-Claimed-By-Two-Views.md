@@ -81,7 +81,13 @@ So `risk` declares an owning view and **`none` for its obligation**, with that r
 
 ### Still open
 
-**3. Does a `draft` workflow carry an obligation?** All three workflows are `draft` and have never advanced. `draft` on a requirement *is* an obligation — approve it — and the asymmetry is unexplained. Either a workflow's `draft` means the same and nobody has discharged it, or `draft` is simply the wrong resting value for a workflow, the way `open` turns out to be the right one for a risk.
+**3. Does a `draft` workflow carry an obligation? — No.** Edwin: *"they are part of the tooling functionality, not docs."*
+
+The question was wrong, not just its answer. `WF-0001..0003` document how the **tooling** is used — `project-derive`, `sync-project-os.sh`, `snapshot-sync` — and ship with the template under `group:maintainers`. This project received them; it does not curate them. So their `draft` is not a claim about anything this project owes, and asking whether to advance it was asking the wrong repo.
+
+`workflow` declares **`none`**, on the grounds that it is not a docs-lifecycle type here at all.
+
+Recorded because the reasoning matters more than the entry: the sweep that produced this issue enumerated *every type in the corpus*, which is what made it complete — and completeness surfaced a type whose presence in the corpus is incidental rather than authored. A registry keyed by type will keep doing that, so *"not ours to advance"* needs to be as sayable as *"nothing owed."*
 
 **4. Where does phase close-out surface?** The machinery exists — `phase_close_blockers()`, the `unclosed` computation, the "close out" pill. Zero phases are currently due, which is exactly how `change` and `release` hid. The Overview is the obvious home since the phase accordion is already there.
 
@@ -89,6 +95,6 @@ So `risk` declares an owning view and **`none` for its obligation**, with that r
 
 - [x] Decide `risk`'s owning view — **Intent** (Edwin, 2026-08-10); Issues drops its Risks cards
 - [x] Decide whether `open` risk is an obligation — **no**: `open` is a risk's resting state, and carrying a hazard is not a debt
-- [ ] Decide whether `draft` workflow is an obligation, or whether `draft` is the wrong resting status for a workflow
+- [x] Decide whether `draft` workflow is an obligation — **no**: workflows are tooling, not this project's docs lifecycle (Edwin, 2026-08-10)
 - [ ] Home phase close-out, most likely the Overview, and record it even though nothing is currently due
 - [ ] Fold all four answers into [[TASK-0369]]'s registry declarations
