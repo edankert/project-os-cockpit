@@ -39,7 +39,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 127
+  ISS: 128
   PHASE: 30
   REQ: 33
   RISK: 6
@@ -1394,6 +1394,13 @@ items:
       status: draft
       note: "The first release note this project has written — counters.REL read 0 for six months across 85 features. 11 features across PHASE-022/023/026/030 plus 3 issues, in implementation order. DRAFTED at step 1, GATED at step 6: the Tier 1/2/3 contract has never been instantiated here, so FEAT-0086/TASK-0373 creates the suite that makes its own gate possible. Hand-maintained until FEAT-0072's release surface lands — a known, stated cost."
   issues:
+    ISS-0128:
+      file: "docs/issues/ISS-0128-Three-Types-Have-No-Stated-Obligation-And-Risk-Is-Claimed-By-Two-Views.md"
+      title: "Risk is claimed by two views at once, and risk / workflow / phase each carry a candidate obligation nothing has decided about"
+      status: triage
+      severity: medium
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      note: "Full sweep of all 17 types after `change` and `release` were each found missing by Edwin asking. RISK renders in the Issues navigator TODAY (Risks · high/medium/low) while FEAT-0087 lists it for Intent — two views, six notes, neither note aware of the other. All 6 risks are `open` and all 3 workflows are `draft`, never advanced; whether either is an obligation is unstated. Phase close-out is a judgment with machinery (phase_close_blockers, the close-out pill) and no home — 0 currently due, which is exactly how change and release hid. task/plan owe nothing CORRECTLY and must now say so explicitly. Structural fix already applied to TASK-0369: enumerate by TYPE, explicit `none`, completeness test against the corpus."
     ISS-0127:
       file: "docs/issues/ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value.md"
       title: "The intent charter is scheduled last because delegated acceptance reads it — but nine phases need something to be checked against now, and nothing exists to check them against"
@@ -2681,7 +2688,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 7
+    issues_triage: 8
     risks_open: 6
     releases_total: 1
     decisions_total: 11
