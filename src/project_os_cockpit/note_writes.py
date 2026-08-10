@@ -248,13 +248,21 @@ def _criterion_text(line: str) -> str | None:
     m = _BOX_RE.match(line)
     if not m:
         return None
+    box = m.group(2)
     body = m.group(3).strip()
-    # A criterion already ticked carries its evidence after an em dash; match
-    # on the criterion itself so re-ticking is idempotent rather than nested.
-    for sep in (" — evidence:", " — "):
-        if sep in body:
-            body = body.split(sep, 1)[0].strip()
-            break
+    # A RESOLVED criterion carries its evidence or reason after an em dash;
+    # strip that so re-resolving matches the criterion rather than nesting.
+    #
+    # Keyed on the box, not on the presence of an em dash. An earlier cut
+    # split on " — " unconditionally and so could not address any criterion
+    # that contains one — REQ-0027's fourth reads "…re-renders its surfaces —
+    # no optimistic UI…", and was unreachable. An unticked box has no
+    # resolution to strip, so there is nothing to guess at.
+    if box in ("x", "X", "~"):
+        for sep in (" — evidence:", " — "):
+            if sep in body:
+                body = body.split(sep, 1)[0].strip()
+                break
     return body
 
 
@@ -911,6 +919,128 @@ def append_revision_log(body: str, *, date: str, reason: str) -> str:
     cut = match.end() + (next_heading.start() if next_heading else len(rest))
     head, tail = body[:cut], body[cut:]
     return head.rstrip("\n") + "\n" + entry + "\n\n" + tail.lstrip("\n")
+
+
+CREATE_REQUEST_KEYS: frozenset[str] = frozenset(
+    {"type", "title", "body", "severity", "component", "phase", "related", "actor"}
+)
+
+#: The only type the cockpit may create (TASK-0280). Each further type earns
+#: its own review of what "next id" and "which template" mean — FEAT-0059's
+#: Out of Scope says so, and widening this silently is how a narrow door
+#: becomes a wide one.
+CREATABLE_TYPES: frozenset[str] = frozenset({"issue"})
+
+_SLUG_RE = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _title_slug(title: str, *, words: int = 8) -> str:
+    """Filename slug in the corpus's own convention: Capitalised-Words."""
+    parts = [p for p in _SLUG_RE.split(title) if p]
+    return "-".join(p[:1].upper() + p[1:] for p in parts[:words]) or "Untitled"
+
+
+def next_issue_id(index: Index) -> str:
+    """The next ISS id, from the **index** rather than the snapshot counter.
+
+    `sync-snapshot.py` raises `counters` to the maximum observed id at
+    pre-commit (ADR-0009), so the index and the counter agree by
+    construction — reading the index means a created issue does not depend on
+    the snapshot being fresh, and the counter confirms the same number later.
+    """
+    highest = 0
+    for record in index.notes_by_type("issue"):
+        note_id = (record.note_id or "").strip().upper()
+        if note_id.startswith("ISS-"):
+            try:
+                highest = max(highest, int(note_id[4:]))
+            except ValueError:
+                continue
+    return f"ISS-{highest + 1:04d}"
+
+
+def create_issue(
+    index: Index,
+    docs_root: Path,
+    *,
+    title: str,
+    body: str = "",
+    severity: str = "",
+    component: str = "",
+    phase: str = "",
+    related: list[str] | None = None,
+    actor: str = "",
+) -> dict[str, Any]:
+    """File an issue from the template (TASK-0280).
+
+    `status: triage` unless a severity was supplied — capture is deliberately
+    dumber than intake (FEAT-0061): a title now beats a paragraph never, and
+    an agent can be dispatched at the triage row when investigation is worth
+    it. Supplying a severity means the judgment has already been made, so the
+    issue opens rather than queueing for one.
+    """
+    clean_title = (title or "").strip()
+    if not clean_title:
+        raise WriteError("an issue needs a title")
+
+    sev = (severity or "").strip().lower()
+    if sev and sev not in {"critical", "high", "medium", "low"}:
+        raise WriteError(f"{severity!r} is not a severity this project uses")
+
+    issue_id = next_issue_id(index)
+    target = docs_root / "issues" / f"{issue_id}-{_title_slug(clean_title)}.md"
+    # Path canonicalisation, as everywhere else in this module: the computed
+    # target must land inside docs_root, whatever the title contained.
+    resolved = target.resolve()
+    if not str(resolved).startswith(str(docs_root.resolve())):
+        raise WriteError("refusing to write outside the docs root")
+    # Collide on the **id**, not the filename. Two creates against the same
+    # stale index compute the same id from different titles, so a filename
+    # check passes and two notes end up sharing an id — which the validator
+    # would report much later, on someone else's afternoon.
+    existing = sorted(resolved.parent.glob(f"{issue_id}-*.md")) if resolved.parent.is_dir() else []
+    if existing or resolved.exists():
+        raise WriteError(
+            f"{issue_id} already exists at {existing[0].name if existing else resolved.name} "
+            "— the index is stale; rebuild it and retry",
+            status=409,
+        )
+
+    today = _today()
+    lines = [
+        "---",
+        'type: "[[issue]]"',
+        f"id: {issue_id}",
+        f'aliases: ["{issue_id}"]',
+        f'title: "{clean_title.replace(chr(34), chr(39))}"',
+        f"status: {'open' if sev else 'triage'}",
+        f'phase: "{phase}"' if phase else 'phase: ""',
+        f"owner: {actor.strip() or 'unassigned'}",
+        f"created: {today}",
+        f"updated: {today}",
+        f'source: ["captured in the cockpit, {today}"]',
+        f"severity: {sev or 'medium'}",
+        f'component: "{component.strip()}"',
+        'parent: ""',
+        "related: [" + ", ".join(f'"{r}"' for r in (related or [])) + "]",
+        "tests: []",
+        "---",
+        "",
+        f"# {clean_title}",
+        "",
+        "## Problem",
+        "",
+        (body or "").strip() or "<captured without a description>",
+        "",
+    ]
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    resolved.write_text("\n".join(lines), encoding="utf-8")
+    return {
+        "id": issue_id,
+        "rel": str(resolved.relative_to(docs_root.resolve())),
+        "status": "open" if sev else "triage",
+        "severity": sev or "medium",
+    }
 
 
 def draft_issue_body(

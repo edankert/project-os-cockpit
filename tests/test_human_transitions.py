@@ -7,6 +7,7 @@ refusal rather than the offer — the offer is visible, the refusal is not.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -289,3 +290,220 @@ def test_a_stale_mtime_refuses_the_tick(docs_root: Path) -> None:
             evidence="x", mtime=1.0,
         )
     assert target.read_text(encoding="utf-8") == before
+
+
+# ---- issue creation and the hardening suite (TASK-0280) ---------------
+
+
+def test_create_issue_allocates_the_next_id_from_the_index(docs_root: Path) -> None:
+    """The id comes from the index, not the snapshot counter.
+
+    `sync-snapshot.py` raises `counters` to the maximum observed id at
+    pre-commit (ADR-0009), so the two agree by construction — reading the
+    index means a created issue does not depend on the snapshot being fresh.
+    """
+    index = Index.build(docs_root)
+    first = note_writes.create_issue(index, docs_root, title="A captured thought")
+    assert first["id"].startswith("ISS-")
+    assert first["status"] == "triage", "capture with no severity queues for triage"
+
+    fresh = Index.build(docs_root)
+    second = note_writes.create_issue(fresh, docs_root, title="Another one")
+    assert int(second["id"][4:]) == int(first["id"][4:]) + 1
+
+
+def test_create_issue_with_a_severity_opens_rather_than_queueing(docs_root: Path) -> None:
+    """Supplying a severity means the triage judgment has been made."""
+    index = Index.build(docs_root)
+    result = note_writes.create_issue(
+        index, docs_root, title="Known bad", severity="high",
+    )
+    assert result["status"] == "open"
+    assert result["severity"] == "high"
+
+
+def test_a_created_issue_is_a_note_the_index_can_read(docs_root: Path) -> None:
+    """The file has to be a real note, not a plausible-looking one."""
+    index = Index.build(docs_root)
+    result = note_writes.create_issue(
+        index, docs_root, title="Round trips", body="Some detail.",
+        component="cockpit", actor="user:edwin",
+    )
+    fresh = Index.build(docs_root)
+    record = fresh.get(fresh.by_id(result["id"]))
+    assert record is not None, "the created issue is not indexable"
+    assert record.note_type == "issue"
+    assert record.status == "triage"
+    assert record.title == "Round trips"
+
+
+def test_the_filename_follows_the_corpus_convention(docs_root: Path) -> None:
+    index = Index.build(docs_root)
+    result = note_writes.create_issue(
+        index, docs_root, title="The register counts settled work as owed!",
+    )
+    assert result["rel"].startswith("issues/")
+    assert result["rel"].endswith(".md")
+    stem = Path(result["rel"]).stem
+    assert stem.startswith(result["id"] + "-")
+    assert "!" not in stem and " " not in stem
+
+
+# --- the refusals. Each one is a guard; each is broken once below. ---
+
+
+def test_refusal_unknown_severity(docs_root: Path) -> None:
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.create_issue(index, docs_root, title="x", severity="urgent")
+    assert "severity" in exc.value.message
+
+
+def test_refusal_empty_title(docs_root: Path) -> None:
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError):
+        note_writes.create_issue(index, docs_root, title="   ")
+
+
+def test_refusal_path_traversal_in_the_title(docs_root: Path) -> None:
+    """A title is user text and reaches a filename. It must not reach a path.
+
+    The slug strips every non-alphanumeric character, so traversal cannot be
+    expressed — asserted here rather than assumed, because "the slug handles
+    it" is exactly the kind of claim that stops being true when someone
+    widens the slug to keep dots or slashes.
+    """
+    index = Index.build(docs_root)
+    result = note_writes.create_issue(
+        index, docs_root, title="../../etc/passwd and ../../../escape",
+    )
+    written = (docs_root / result["rel"]).resolve()
+    assert str(written).startswith(str(docs_root.resolve())), written
+    assert ".." not in result["rel"]
+
+
+def test_refusal_duplicate_id_race(docs_root: Path) -> None:
+    """Two creates against the SAME stale index must not overwrite each other.
+
+    The second sees the id already on disk and refuses with 409 rather than
+    silently replacing a note somebody just filed.
+    """
+    index = Index.build(docs_root)
+    first = note_writes.create_issue(index, docs_root, title="First in")
+    before = (docs_root / first["rel"]).read_text(encoding="utf-8")
+
+    # Same index object: it has not seen the file that was just written.
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.create_issue(index, docs_root, title="Second in")
+    assert exc.value.status == 409
+    assert (docs_root / first["rel"]).read_text(encoding="utf-8") == before
+
+
+def test_the_creatable_type_allow_list_is_one_type(docs_root: Path) -> None:
+    """FEAT-0059's Out of Scope: each further type earns its own review of
+    what "next id" and "which template" mean. A constant, not a parameter."""
+    assert note_writes.CREATABLE_TYPES == {"issue"}
+
+
+def test_every_note_mutating_endpoint_requires_loopback() -> None:
+    """RISK-0001's threat model, enumerated rather than hand-listed (TASK-0280).
+
+    The render server binds `0.0.0.0` so a tablet can read; the only thing
+    separating reading from writing is a per-request peer check. REQ-0027:
+    *"No write endpoint is reachable from a non-loopback peer."*
+
+    Routes are read out of the POST dispatch table rather than typed here, so
+    **a new write endpoint that forgets the guard fails this test by
+    existing**. That is the whole point: `/api/notes/check-toggle` had been
+    mutating notes for any LAN peer since FEAT-0011 because it predates
+    `note_writes.py` and nothing enumerated it (ISS-0129).
+
+    The two exemptions are named individually, so exempting a third is a
+    deliberate edit rather than a widening nobody notices.
+    """
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "src" / "project_os_cockpit" / "server.py"
+    ).read_text(encoding="utf-8")
+    # The POST dispatch table lives in `_route_post`, not in `do_POST` (which
+    # only wraps it for BrokenPipeError). Slice to the next same-level def.
+    post_block = src.split("def _route_post")[1].split("\n        def ")[0]
+    routes = re.findall(
+        r'if path == "(/api/[^"]+)"[\s\S]{0,120}?self\.(_serve_\w+)\(', post_block
+    )
+    assert len(routes) >= 10, f"the parse found only {len(routes)} POST routes"
+
+    # Endpoints that change only runtime state — what the cockpit is looking
+    # at, or its in-memory session mirror. They touch nothing in docs/.
+    RUNTIME_ONLY = {
+        "/api/cockpit/focus",       # moves the centre pane
+        "/api/cockpit/tab-state",   # which tab is open
+        "/api/cockpit/agent-state", # the agent-state mirror
+        "/api/agent-hook",          # agent session events; reads docs_root only to report a path
+        "/api/cockpit/dispatch",    # the dispatch queue, in .cockpit/ not docs/
+    }
+
+    unguarded = []
+    for route, handler in routes:
+        # Handlers vary in signature; locate by name and read to the next def.
+        marker = re.search(rf"\n        def {handler}\(", src)
+        assert marker, f"{handler} is routed but not defined"
+        body = src[marker.end():].split("\n        def ")[0]
+        if "_require_loopback" in body:
+            continue
+        if route in RUNTIME_ONLY:
+            # The exemption is only honest if the handler really writes
+            # nothing under docs/. Checked, not asserted by comment.
+            writes = ("write_text(" in body) or ("note_writes." in body)
+            assert not writes, (
+                f"{route} is exempted as runtime-only but performs a note write"
+            )
+            continue
+        unguarded.append((route, handler))
+
+    assert not unguarded, (
+        "these POST endpoints mutate without checking the caller is loopback: "
+        f"{unguarded}"
+    )
+
+
+def test_a_criterion_containing_an_em_dash_can_be_ticked(docs_root: Path) -> None:
+    """Regression (2026-08-10, found dogfooding the tick path on REQ-0027).
+
+    `_criterion_text` strips the resolution a resolved box carries after an
+    em dash. An earlier cut stripped on " — " unconditionally, so any
+    criterion *containing* an em dash was truncated and could never be
+    matched — REQ-0027's fourth criterion reads "…re-renders its surfaces —
+    no optimistic UI, the file is the truth" and was unreachable.
+
+    The discriminator is the box state: an unticked box has no resolution to
+    strip, so there is nothing to guess at.
+    """
+    target = docs_root / "REQ-0004-Em-Dash.md"
+    criterion = "The surface re-renders — no optimistic UI, the file is the truth"
+    target.write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-0004\ntitle: "Em dash"\n'
+        f'status: approved\n---\n\n## Acceptance Criteria\n\n- [ ] {criterion}\n',
+        encoding="utf-8",
+    )
+    index = Index.build(docs_root)
+    note_writes.stamp_tick(
+        index, "REQ-0004", criterion=criterion, evidence="a test", actor="user:edwin",
+    )
+    line = next(
+        ln for ln in target.read_text(encoding="utf-8").splitlines()
+        if "no optimistic UI" in ln
+    )
+    assert line.startswith("- [x]")
+    assert "evidence: a test" in line
+    # And re-resolving it matches the criterion rather than nesting.
+    fresh = Index.build(docs_root)
+    note_writes.stamp_tick(
+        fresh, "REQ-0004", criterion=criterion, reason="reconsidered", actor="user:edwin",
+    )
+    after = next(
+        ln for ln in target.read_text(encoding="utf-8").splitlines()
+        if "no optimistic UI" in ln
+    )
+    assert after.startswith("- [~]"), after
+    assert after.count("evidence:") == 0, "the previous resolution was nested, not replaced"

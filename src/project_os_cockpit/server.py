@@ -703,6 +703,9 @@ def _make_handler(
             if path == "/api/notes/tick":
                 self._serve_note_tick()
                 return
+            if path == "/api/notes/create":
+                self._serve_note_create()
+                return
             if path == "/api/notes/test-run":
                 self._serve_test_run()
                 return
@@ -1710,6 +1713,61 @@ def _make_handler(
                 return
             self._respond_json({"ok": True, "result": result})
 
+        def _serve_note_create(self) -> None:
+            """``POST /api/notes/create`` — file an issue from the template.
+
+            Only `type: issue`. Each further type earns its own review of what
+            "next id" and "which template" mean (FEAT-0059's Out of Scope), so
+            the allow-list is a constant rather than a parameter.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.CREATE_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            wanted_type = str(body.get("type") or "issue").strip().lower()
+            if wanted_type not in note_writes.CREATABLE_TYPES:
+                self._respond_json(
+                    {"ok": False,
+                     "error": f"the cockpit does not create {wanted_type} notes "
+                              f"(creatable: {sorted(note_writes.CREATABLE_TYPES)})"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            related = body.get("related") or []
+            if not isinstance(related, list):
+                self._respond_json({"ok": False, "error": "related must be a list"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            try:
+                result = note_writes.create_issue(
+                    index,
+                    docs_root,
+                    title=str(body.get("title") or ""),
+                    body=str(body.get("body") or ""),
+                    severity=str(body.get("severity") or ""),
+                    component=str(body.get("component") or ""),
+                    phase=str(body.get("phase") or ""),
+                    related=[str(r) for r in related],
+                    actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError, OSError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
         def _serve_test_run(self) -> None:
             """``POST /api/notes/test-run`` — record a manual test run."""
             if not self._require_loopback():
@@ -2219,7 +2277,16 @@ def _make_handler(
             file deterministic (the file watcher will re-emit a
             file-changed SSE for each successful write, so clients
             stay in sync).
+
+            **Loopback-only since ISS-0129.** This endpoint predates
+            `note_writes.py` (FEAT-0011) and so never inherited its
+            discipline — it mutated a note in `docs/` for any peer that could
+            reach the 0.0.0.0 render surface. REQ-0027 already said no write
+            endpoint is reachable from a non-loopback peer; this is that
+            requirement applied, not a new restriction.
             """
+            if not self._require_loopback():
+                return
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:

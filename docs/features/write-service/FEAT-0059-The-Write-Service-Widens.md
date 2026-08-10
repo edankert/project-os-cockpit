@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0059
 aliases: ["FEAT-0059"]
 title: "note_writes widens: the human-owned transition table as data, criteria ticks, and issue creation — behind the guards it already has"
-status: planned
+status: done
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
@@ -35,3 +35,12 @@ Every other feature in PHASE-023 and the PHASE-024 runner calls these three verb
 - Any agent-owned transition — refused by the table's absence, tested by mutation.
 - Generic frontmatter or prose editing.
 - Creating any type but issue. Each further type earns its own review of what "next ID" and "which template" mean.
+
+## Closed 2026-08-10
+
+Three verbs joined `note_writes.py` behind the guards it already had: **transition** ([[TASK-0278]]), **tick** ([[TASK-0279]]) and **create** ([[TASK-0280]]).
+
+The discipline held — every new endpoint is loopback-only, allow-listed, mtime-guarded and format-preserving, and `SNAPSHOT.yaml` is never written. Two things are worth carrying forward:
+
+- **The table is keyed by `(type, current status)`**, not by type alone, so a stale renderer cannot replay an action that has stopped being offered.
+- **The tests assert refusals, not offers.** The offer is visible on screen; the refusal is not. That is what found [[ISS-0129]] — an endpoint that had been LAN-writable since FEAT-0011, invisible to every hand-written list of write paths because it predates this module.

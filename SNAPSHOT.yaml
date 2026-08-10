@@ -39,7 +39,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 128
+  ISS: 129
   PHASE: 30
   REQ: 33
   RISK: 6
@@ -187,7 +187,7 @@ items:
     FEAT-0059:
       file: "docs/features/write-service/FEAT-0059-The-Write-Service-Widens.md"
       title: "note_writes widens: the human-owned transition table as data, criteria ticks, and issue creation — behind the guards it already has"
-      status: planned
+      status: done
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0278, TASK-0279, TASK-0280]
       note: "The foundation verb set. Everything in PHASE-023/024 calls these three; the discipline is inherited from note_writes, not invented."
@@ -937,12 +937,6 @@ items:
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
-    TASK-0280:
-      file: "docs/features/write-service/plan/tasks/TASK-0280-Create-Issue-And-The-Hardening-Suite.md"
-      title: "Issue creation from template with the next free id, and the mutation-grade hardening suite over all three verbs"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0059
     TASK-0281:
       file: "docs/features/note-actuators/plan/tasks/TASK-0281-The-Action-Row.md"
       title: "The action row under the note title — drawn from the server's answer, confirming terminal moves, explaining disabled ones"
@@ -1382,6 +1376,13 @@ items:
       status: draft
       note: "The first release note this project has written — counters.REL read 0 for six months across 85 features. 11 features across PHASE-022/023/026/030 plus 3 issues, in implementation order. DRAFTED at step 1, GATED at step 6: the Tier 1/2/3 contract has never been instantiated here, so FEAT-0086/TASK-0373 creates the suite that makes its own gate possible. Hand-maintained until FEAT-0072's release surface lands — a known, stated cost."
   issues:
+    ISS-0129:
+      file: "docs/issues/ISS-0129-Check-Toggle-Mutated-Notes-For-Any-LAN-Peer.md"
+      title: "`/api/notes/check-toggle` wrote to notes for any peer that could reach the 0.0.0.0 render surface — it predates note_writes.py and nothing enumerated it"
+      status: fixed
+      severity: high
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      note: "Found by TASK-0280's hardening suite on its first run — it ENUMERATES the POST dispatch table rather than listing endpoints by hand, so a route that forgets the guard fails by existing. check-toggle predates note_writes.py, writes note body text directly, and so appeared in no list of write endpoints; REQ-0027 has required loopback-only since 2026-08-03 and nothing enforced it. Fixed with _require_loopback. Remaining gap recorded, not silently accepted: it still bypasses note_writes' mtime precondition and allow-list — folded into TASK-0363."
     ISS-0128:
       file: "docs/issues/ISS-0128-Three-Types-Have-No-Stated-Obligation-And-Risk-Is-Claimed-By-Two-Views.md"
       title: "Risk is claimed by two views at once, and risk / workflow / phase each carry a candidate obligation nothing has decided about"
@@ -2667,9 +2668,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 57
+    features_done: 58
     tasks_total: 384
-    tasks_done: 290
+    tasks_done: 291
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
