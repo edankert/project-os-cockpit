@@ -39,7 +39,7 @@ The tier contract has existed since the template was written. **No repo had ever
 
 **Created unchecked, deliberately** — nothing had been walked, which is the honest starting state for a checklist created the same day, and it meant the gate on [[REL-0001]] was firing rather than passing vacuously.
 
-**16 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
+**17 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
 
 One caveat shaped the first pass and was then removed: the running shell was on the current renderer but its Python sidecar predated the session, so payload-dependent views rendered stale, and anything whose evidence was a payload rather than pixels was left unchecked. `desktop/harness/live-harness.html` closes that gap — it runs the built bundle against a **real** sidecar in a plain browser, so the visual checks are walkable without restarting anyone's app. The two it has already settled are marked *rendered*.
 
@@ -92,7 +92,7 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 ## 1.9 The embedded terminal ([[FEAT-0003]], [[FEAT-0037]])
 
 - [ ] **A real shell:** open the terminal, run an agent CLI, complete a turn. Expect: it behaves like a terminal — resize, scrollback, copy and paste from the context menu.
-- [ ] **Loopback only:** confirm the terminal endpoint refuses a connection from another device on the network.
+- [x] **Loopback only:** confirm the terminal endpoint refuses a connection from another device on the network. — 2026-08-10, against the running shell's own sidecar: `GET /api/terminal` returns **200 on loopback** and is **unreachable from `192.168.68.123`** (connection refused). Two mechanisms, both source-confirmed: the shell spawns its sidecar `--bind 127.0.0.1`, and `ttyd` itself is spawned `-i 127.0.0.1` — *"bind to loopback only — enforces REQ-0005 even…"*. **Residual, named rather than glossed:** the proxy path was not exercised from a non-loopback peer against a sidecar started with `--bind 0.0.0.0`; ttyd's own bind should still refuse it, but that configuration was not driven.
 
 ## 1.10 Agents and sessions ([[FEAT-0019]], [[FEAT-0020]], [[FEAT-0032]])
 

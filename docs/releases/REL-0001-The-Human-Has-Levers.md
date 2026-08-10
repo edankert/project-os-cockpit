@@ -136,7 +136,7 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **Sixteen were walked on 2026-08-10** and carry their evidence in the suite; **18 remain unchecked**, so the gate is still red.
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **Seventeen were walked on 2026-08-10** and carry their evidence in the suite; **17 remain unchecked**, so the gate is still red.
 
 What was walked, and the one worth naming: **every mutation endpoint refuses a non-loopback caller** — driven over the real LAN interface `192.168.68.123:8791`, ten of ten returned **403** while reads returned **200**. That is [[REQ-0027]]'s core claim and [[ISS-0129]]'s regression, and it is the check `test_mutation_endpoints_reject_non_loopback_callers` explicitly disclosed it *could not* make (*"an honest static check, since http.server cannot spoof a peer address"*). Also walked: live reload over `/_events`, workspace discovery across ten repos, the triage-first Issues pane, 71 of 71 plans reachable, 104 verdicts with 0 owed, the badge total of 95 equalling its parts, and close-out committing its own work thirteen times.
 
@@ -152,9 +152,20 @@ Two further visual checks are settled by it: the **Tests view** renders `Tier 1 
 
 Three things the harness cost, each recorded in the file because each failed by blaming the renderer: a guessed bridge member (`onChanged` for `onChange`) aborted module evaluation and turned every later `const` into a temporal-dead-zone error; two module scripts did not serialise, so the bundle could load before the bridge existed; and loading only `renderer.js` left the six plain-script globals undefined. The bridge stub is now **synthesised from `preload.ts`** and the script list read from the shell markup, so neither can drift again.
 
-**No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. The remaining eighteen can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
+**No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. The remaining seventeen can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
 
 So the release stays `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
+
+**What the last seventeen actually need**, so the pass is minutes rather than an hour:
+
+| needs | checks |
+|---|---|
+| an agent session in the terminal | 1.9.1, 1.10.1, 1.10.2 |
+| a second workspace open | 1.2.2 |
+| a write to the record (⌘N, a criterion tick, a manual run) | 1.4.2, 1.7.2, 1.7.3, 1.8.1 |
+| eyes on a rendered pane — `desktop/harness/live-harness.html` reaches all of these | 1.3.1, 1.3.2, 1.4.1, 1.5.2, 1.6.1, 1.6.2, 1.11.1, 1.12.1, 2.3.1, 2.4.1 |
+
+The last row is ten of the seventeen and needs no app restart: serve the repo and a sidecar on one origin, open the harness, click.
 
 ### Two acceptance criteria reconciled rather than ticked
 
