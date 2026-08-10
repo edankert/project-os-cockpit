@@ -1269,6 +1269,10 @@ async function navigateToInner(
   if (scopeId && ['feature', 'phase', 'release'].includes(scopeType)) {
     docView.appendChild(buildVerificationPanel(scopeId));
   }
+  // The release gate (TASK-0373). Prepended, unlike the verification panel:
+  // "this release is blocked" is not evidence to read after the prose, it is
+  // the first thing a release note has to say about itself.
+  if (scopeType === 'release') void mountReleaseGate();
   // Doc header bar (FEAT-0026 / TASK-0140): identity + path + verbs.
   docView.prepend(buildDocHeader(data, pathOnly));
   // Dispatch provenance (FEAT-0025 / TASK-0135).
@@ -1340,6 +1344,108 @@ interface NoteAction {
   confirm: boolean;
   disabled: boolean;
   reason: string;
+}
+
+// ----- The release gate (TASK-0373) ------------------------------------
+//
+// `tools/instructions/TESTING.md` has carried the rule since it was written:
+// *a release is blocked while any Tier 1/Tier 2 test is unchecked*. Nothing
+// had ever rendered it, because no repo had ever instantiated the suite the
+// rule reads — 92 test notes across twelve repos, zero tier classification.
+//
+// The band states the rule in the CONTRACT's words, sent by the server rather
+// than written here. A surface that paraphrased the rule would be a second
+// statement of it, and the two would drift the first time either was edited.
+
+interface GateItem {
+  tier: number; number: string; section: string; area: string; name: string;
+}
+interface GatePayload {
+  exists: boolean; blocked: boolean; rule: string; rel: string;
+  blocking: GateItem[];
+  counts: Record<string, { total: number; unchecked: number }>;
+}
+
+async function mountReleaseGate(): Promise<void> {
+  docView.querySelector('.release-gate')?.remove();
+  if (!sidecarBaseUrl) return;
+  let gate: GatePayload | null = null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
+    if (!resp.ok) return;
+    gate = ((await resp.json()) as { gate?: GatePayload }).gate ?? null;
+  } catch { return; }
+  if (!gate) return;
+
+  const band = document.createElement('section');
+  band.className = 'release-gate';
+
+  // Three states, and the third is the one that matters. "No suite" must not
+  // render as "nothing blocking": that was every repo's situation before this
+  // existed, and a gate that reports clear because it has nothing to read is
+  // worse than no gate — it is a green light nobody earned.
+  if (!gate.exists) {
+    band.classList.add('is-unknown');
+    band.append(
+      gateLine('No acceptance suite in this repo — the gate cannot be evaluated.'),
+      gateNote(`Scaffold ${'docs/tests/ACCEPTANCE_TESTS.md'} from `
+        + 'docs/__templates__/acceptance-tests.md to turn it on.'),
+    );
+    docView.prepend(band);
+    return;
+  }
+
+  const t1 = gate.counts.tier1, t2 = gate.counts.tier2;
+  if (!gate.blocked) {
+    band.classList.add('is-clear');
+    band.append(
+      gateLine('Release gate clear — every Tier 1 and Tier 2 test is checked.'),
+      gateNote(`${t1?.total ?? 0} Tier 1 · ${t2?.total ?? 0} Tier 2`),
+    );
+    docView.prepend(band);
+    return;
+  }
+
+  band.classList.add('is-blocked');
+  const unchecked = (t1?.unchecked ?? 0) + (t2?.unchecked ?? 0);
+  band.appendChild(gateLine(
+    `Release blocked — ${unchecked} Tier 1/2 test${unchecked === 1 ? '' : 's'} unchecked.`,
+  ));
+  band.appendChild(gateNote(gate.rule));
+
+  const list = document.createElement('ul');
+  list.className = 'release-gate-list';
+  for (const item of gate.blocking) {
+    const li = document.createElement('li');
+    const tier = document.createElement('span');
+    tier.className = 'release-gate-tier mono';
+    tier.textContent = `T${item.tier} ${item.number}`;
+    const name = document.createElement('span');
+    name.textContent = item.name;
+    const area = document.createElement('span');
+    area.className = 'release-gate-area';
+    area.textContent = item.area;
+    li.append(tier, name, area);
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => void navigateTo(gate!.rel));
+    list.appendChild(li);
+  }
+  band.appendChild(list);
+  docView.prepend(band);
+}
+
+function gateLine(text: string): HTMLElement {
+  const el = document.createElement('p');
+  el.className = 'release-gate-line';
+  el.textContent = text;
+  return el;
+}
+
+function gateNote(text: string): HTMLElement {
+  const el = document.createElement('p');
+  el.className = 'release-gate-note';
+  el.textContent = text;
+  return el;
 }
 
 /** A `Run ▸` button on a manual test note (TASK-0372).

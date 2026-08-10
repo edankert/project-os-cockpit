@@ -42,8 +42,17 @@ def repo_index() -> Index:
 
 
 def _items(groups: list) -> list[dict]:
+    """Rows from the TEST-NOTE groups only.
+
+    The view carries two populations (TASK-0373): the `TST-*` notes, and the
+    acceptance suite's tier checkboxes. Everything in this section is about the
+    first, so the tier groups are excluded here rather than by each assertion —
+    a filter written once is one that cannot be forgotten in the next test.
+    """
     out: list[dict] = []
     for group in groups:
+        if str(group.get("key") or "").startswith("tier"):
+            continue
         out.extend(group.get("items") or [])
     return out
 
@@ -133,9 +142,8 @@ def test_an_empty_group_is_absent_rather_than_zero(repo_index: Index) -> None:
     assert all(g["items"] for g in groups)
     # Vacuity guard: this corpus must be missing at least one of the five, or
     # the assertion above never exercises absence.
-    assert {g["key"] for g in groups} < {
-        "needs-run", "failing", "stale", "never", "verified",
-    }
+    note_keys = {g["key"] for g in groups if not g["key"].startswith("tier")}
+    assert note_keys < {"needs-run", "failing", "stale", "never", "verified"}
 
 
 # ---- one staleness rule --------------------------------------------------
@@ -471,3 +479,196 @@ def test_the_run_route_moved_and_the_old_one_redirects() -> None:
     # left unreachable — a "moved" surface that still exists in two places has
     # not moved.
     assert "opts.run" not in src
+
+
+# ---- TASK-0373: the tier suite and the release gate ----------------------
+#
+# The contract in `tools/instructions/TESTING.md` has described Tier 1/2/3 and
+# "a release is blocked while any Tier 1/Tier 2 test is unchecked" since the
+# template was written. Measured 2026-08-10 across the twelve repos the cockpit
+# renders: 92 `TST-*` notes, ZERO tier classification, and a gate that had
+# never been able to fire. These assert the first instance of it.
+
+from project_os_cockpit import acceptance  # noqa: E402
+
+
+SUITE = REPO_DOCS / "tests" / "ACCEPTANCE_TESTS.md"
+
+
+def test_this_repo_has_a_suite_with_tier_one_populated() -> None:
+    """The thing no repo had ever done."""
+    suite = acceptance.load(REPO_DOCS)
+    assert suite.exists, "docs/tests/ACCEPTANCE_TESTS.md is missing"
+    assert len(suite.tier(1)) >= 20, len(suite.tier(1))
+    assert suite.tier(2), "no regression tier"
+    # Every Tier 1 section names the features it covers, or the tier is a list
+    # of chores rather than feature tests.
+    for item in suite.tier(1):
+        assert any(r.startswith("FEAT-") for r in item.refs), item.key
+
+
+def test_every_tier_two_item_names_the_issue_that_created_it() -> None:
+    """TESTING.md: *"Each references the `ISS-*` that created it."* A
+    regression test that cannot say what it regressed against is a Tier 1 test
+    filed in the wrong place."""
+    suite = acceptance.load(REPO_DOCS)
+    assert suite.missing_issue_refs() == []
+
+
+def test_every_id_the_suite_names_exists() -> None:
+    """A checklist citing a feature or an issue that is not in the corpus is
+    the drift `test_every_test_named_in_a_note_exists` catches for TST notes,
+    one level up."""
+    index = Index.build(REPO_DOCS)
+    suite = acceptance.load(REPO_DOCS)
+    missing = sorted({
+        ref for item in suite.items for ref in item.refs
+        if index.by_id(ref) is None
+    })
+    assert not missing, f"the suite names ids that do not exist: {missing}"
+
+
+def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
+    """"the view renders by tier" — and keeps the two populations apart.
+
+    A `TST-*` note and a suite checkbox are different objects at different
+    granularities (TESTING.md: both systems coexist). Merging them would put an
+    automated contract test beside "click each stat tile" as though a person
+    owed both.
+    """
+    groups = {g["key"]: g for g in nav_payload(repo_index, mode="tests")["groups"]}
+    for tier in (1, 2, 3):
+        assert f"tier{tier}" in groups, sorted(groups)
+    suite = acceptance.load(REPO_DOCS)
+    assert len(groups["tier1"]["items"]) == len(suite.tier(1))
+    # The gating tiers ask something of a person while anything is unchecked;
+    # Tier 3 never does — TESTING.md is explicit that it does not gate.
+    assert groups["tier1"].get("needs_human") is True
+    assert "needs_human" not in groups["tier3"]
+    # And no note id appears in a tier group: one item, one home (ISS-0068).
+    note_ids = {r.note_id for r in repo_index.notes_by_type("test")}
+    tier_ids = {i["id"] for k, g in groups.items() if k.startswith("tier")
+                for i in g["items"]}
+    assert not (note_ids & tier_ids)
+
+
+# ---- the gate ------------------------------------------------------------
+
+
+def test_the_gate_fires_on_this_repo_right_now() -> None:
+    """Not a fixture — the live suite.
+
+    Every box was authored unchecked, because nothing in it has been walked.
+    So the gate is genuinely blocking today, which is the first time that has
+    been true in this project. If someone checks every Tier 1/2 box this will
+    start passing for the right reason.
+    """
+    gate = acceptance.gate_payload(REPO_DOCS)
+    assert gate["exists"] is True
+    assert gate["blocked"] is True
+    assert gate["blocking"], "blocked with nothing named is a bug in the gate"
+    assert all(b["tier"] in (1, 2) for b in gate["blocking"])
+
+
+def test_the_gate_states_the_contracts_own_rule() -> None:
+    """The wording is TESTING.md's, verbatim. A surface that paraphrased it
+    would be a second statement of the rule, and the two would drift."""
+    rule = acceptance.gate_payload(REPO_DOCS)["rule"]
+    contract = (REPO_ROOT / "tools" / "instructions" / "TESTING.md").read_text(
+        encoding="utf-8",
+    )
+    template = (REPO_DOCS / "__templates__" / "acceptance-tests.md").read_text(
+        encoding="utf-8",
+    )
+    assert rule in template, "the band's wording is not the template's"
+    assert "**blocked** if any Tier 1 or Tier 2 test is unchecked" in contract
+
+
+def _suite_fixture(root: Path, tier1: str, tier2: str = "- [x] **B:** b.") -> Path:
+    docs = root / "docs"
+    _write(docs / "tests" / "ACCEPTANCE_TESTS.md", (
+        "---\n"
+        'type: "[[reference]]"\n'
+        "id: ACCEPTANCE-TESTS\n"
+        "---\n\n"
+        "# Acceptance Test Suite: demo\n\n"
+        "## Rules\n\n"
+        "1. This numbered list is not a test and must not be parsed as one.\n"
+        "- [ ] **Scaffolded from the template:** and this checkbox is not one\n"
+        "  either — it sits above every tier heading, so it belongs to no tier.\n\n"
+        "---\n\n"
+        "# Tier 1 — Feature Tests\n\n"
+        "## 1.1 An area ([[FEAT-0001]])\n\n"
+        f"{tier1}\n\n"
+        "---\n\n"
+        "# Tier 2 — Regression Tests\n\n"
+        "## 2.1 A bug ([[ISS-0001]])\n\n"
+        f"{tier2}\n\n"
+        "---\n\n"
+        "# Tier 3 — Verification Tests (current build)\n\n"
+        "- [ ] **C:** never gates, whatever its state.\n"
+    ))
+    return docs
+
+
+def test_an_unchecked_tier_one_test_blocks_and_checking_it_clears(
+    tmp_path: Path,
+) -> None:
+    """The demonstration TASK-0373 asks for: prove the gate with a
+    deliberately unchecked test, then restore."""
+    blocked = acceptance.gate_payload(
+        _suite_fixture(tmp_path / "before", "- [ ] **A:** a."),
+    )
+    assert blocked["blocked"] is True
+    assert [b["name"] for b in blocked["blocking"]] == ["A"]
+
+    clear = acceptance.gate_payload(
+        _suite_fixture(tmp_path / "after", "- [x] **A:** a."),
+    )
+    assert clear["blocked"] is False
+    assert clear["blocking"] == []
+
+
+def test_tier_three_never_gates(tmp_path: Path) -> None:
+    """TESTING.md: *"Tier 3 tests do not gate releases (they are verification
+    aids, not requirements)."* The fixture's Tier 3 item is unchecked in both
+    cases above; only Tier 1/2 move the verdict."""
+    docs = _suite_fixture(tmp_path / "t3", "- [x] **A:** a.")
+    gate = acceptance.gate_payload(docs)
+    assert gate["blocked"] is False
+    assert acceptance.load(docs).tier(3), "the fixture lost its Tier 3 item"
+
+
+def test_a_repo_with_no_suite_is_unknown_not_clear(tmp_path: Path) -> None:
+    """**Absent is not passing**, and this is the assertion the whole task
+    turns on: before today every repo had no suite, so `blocking()` was empty
+    and any naive gate would have reported clear. A green light nobody earned
+    is worse than no gate."""
+    docs = tmp_path / "empty" / "docs"
+    docs.mkdir(parents=True)
+    gate = acceptance.gate_payload(docs)
+    assert gate["exists"] is False
+    assert gate["blocked"] is False        # nothing to block ON
+    # …so the surface must distinguish the two, and does:
+    src = RENDERER.read_text(encoding="utf-8")
+    band = re.search(r"async function mountReleaseGate\(\).*?\n\}", src, re.S).group(0)
+    assert "if (!gate.exists)" in band
+    assert band.index("if (!gate.exists)") < band.index("if (!gate.blocked)"), (
+        "the unknown case must be decided before the clear case, or a repo "
+        "with no suite renders as a passing gate"
+    )
+
+
+def test_nothing_above_the_first_tier_heading_is_a_test(tmp_path: Path) -> None:
+    """The template's preamble carries a numbered `## Rules` list, a `## Test
+    Tiers` bullet list and prose. A parser that swept the whole document would
+    report them as unchecked Tier 0 items — which, being unchecked, would block
+    every release forever on the strength of the rules text.
+
+    The fixture carries a **checkbox** in the preamble, not only a numbered
+    list: with prose alone this passed whether or not the guard existed, which
+    a mutation caught."""
+    docs = _suite_fixture(tmp_path / "rules", "- [ ] **A:** a.")
+    items = acceptance.load(docs).items
+    assert {i.tier for i in items} == {1, 2, 3}
+    assert all(i.name in {"A", "B", "C"} for i in items), [i.name for i in items]

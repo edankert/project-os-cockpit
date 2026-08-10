@@ -36,6 +36,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
+from . import acceptance as _acceptance
 from . import obligations as _obligations
 from . import statuses
 from . import token_sources
@@ -3346,6 +3347,79 @@ def _tests_groups(
             ],
         }
         if key == "needs-run":
+            group["needs_human"] = True
+        out.append(group)
+
+    out.extend(_acceptance_tier_groups(index))
+    return out
+
+
+#: Which suite tiers a checked box is "done" for. The Tests navigator folds on
+#: `status`, so a checklist item borrows the status vocabulary rather than
+#: inventing one — `passing` for a walked step, `ready` for one still owed.
+_TIER_LABELS: dict[int, str] = {
+    1: "Tier 1 — feature tests",
+    2: "Tier 2 — regression tests",
+    3: "Tier 3 — verification tests",
+}
+
+
+def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
+    """The acceptance suite's tiers, beneath the test notes (TASK-0373).
+
+    **Two populations, deliberately kept apart.** A ``TST-*`` note is a formal
+    specification — 22 of the 23 here are pytest modules CI runs on every
+    commit. A suite item is a manual checkbox describing user-visible
+    behaviour. TESTING.md says in as many words that the two systems coexist,
+    and merging them into one list would put an automated contract test beside
+    "click each stat tile" as though a person owed both.
+
+    So they are separate groups in one view, which is what ISS-0068 permits: it
+    forbids one item appearing twice, not two populations sharing a surface.
+
+    Absent entirely when the repo has no suite — which was every repo until
+    2026-08-10. A tier group reading `Tier 1 · 0` in a repo that never
+    instantiated the contract would say "nothing to verify" about a project
+    that has verified nothing.
+    """
+    data = _acceptance.payload(index.docs_root)
+    if not data.get("exists"):
+        return []
+    rel = str(data.get("rel") or "")
+    url = f"/{rel}" if rel else None
+
+    out: list[dict[str, Any]] = []
+    for tier in data.get("tiers") or []:
+        items = tier.get("items") or []
+        if not items:
+            continue
+        unchecked = sum(1 for i in items if not i.get("checked"))
+        group: dict[str, Any] = {
+            "key": f"tier{tier['tier']}",
+            "label": f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']}",
+            "url": url,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [
+                {
+                    "id": i["number"],
+                    "title": i["name"],
+                    # The area and the ids its heading names — a Tier 2 item's
+                    # `ISS-*` is the contract's own requirement, so it belongs
+                    # on the row rather than only in the document.
+                    "subtitle": " · ".join(
+                        [p for p in (i.get("area"), ", ".join(i.get("refs") or [])) if p]
+                    ),
+                    "status": "passing" if i.get("checked") else "ready",
+                    "url": url,
+                    "type": "test",
+                }
+                for i in items
+            ],
+        }
+        # Only the gating tiers ask anything of a person. Tier 3 is a
+        # verification aid — TESTING.md is explicit that it does not gate.
+        if tier.get("gating") and unchecked:
             group["needs_human"] = True
         out.append(group)
     return out

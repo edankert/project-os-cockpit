@@ -2381,6 +2381,43 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .scoped-exit-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .scoped-exit-head h3 { margin: 0 !important; }
 .scoped-exit-frac { font-size: 11.5px; color: var(--text-muted); }
+
+/* ---- The release gate (TASK-0373) --------------------------------------
+   Three states, three borders, and the colours come from the theme's own
+   tokens so this reads the same in both schemes without a second palette. */
+.release-gate {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface-2);
+}
+.release-gate.is-blocked { border-left-color: var(--error-fg); }
+.release-gate.is-clear   { border-left-color: var(--status-done); }
+.release-gate.is-unknown { border-left-color: var(--text-faint); }
+.release-gate-line { margin: 0; font-weight: 600; font-size: 13px; }
+.release-gate-note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.release-gate-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.release-gate-list li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.release-gate-tier { color: var(--text-faint); flex: none; }
+.release-gate-area { color: var(--text-muted); font-size: 11.5px; margin-left: auto; }
 .scoped-exit-bar {
   flex: 1;
   height: 3px;

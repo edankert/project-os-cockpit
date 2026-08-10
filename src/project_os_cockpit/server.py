@@ -34,7 +34,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import agents, cockpit, note_writes, renderer, templates, terminal_proxy
+from . import (
+    acceptance, agents, cockpit, note_writes, renderer, templates,
+    terminal_proxy,
+)
 from .agent_actions import load_actions
 from .agent_hooks import AgentSessionTracker
 from .status_diff import StatusTracker
@@ -825,6 +828,17 @@ def _make_handler(
                 self._respond_json(
                     cockpit.review_queue_payload(index, review_store)
                 )
+                return
+
+            if path == "/api/cockpit/acceptance":
+                # The tier suite and the release gate (TASK-0373). Read-only,
+                # and served from the docs root rather than the index: the
+                # suite is a checklist, not a note the graph resolves.
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    **acceptance.payload(docs_root),
+                    "gate": acceptance.gate_payload(docs_root),
+                })
                 return
 
             if path == "/api/cockpit/scope-tests":

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0086
 aliases: ["FEAT-0086"]
 title: "Tests becomes a view — the register, the runner, the tier suite and a release gate that can finally fire"
-status: doing
+status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -52,16 +52,26 @@ This is the one feature in [[PHASE-030]] that is new capability rather than re-h
 
 ## Acceptance
 
-- [ ] A Tests view exists, listing every `TST-*` in the corpus with status, kind and last run
-- [ ] Manual tests at `ready` appear as this view's obligation and carry its badge
-- [ ] The runner works from here, writing the same fields and the same `## Runs` log as before; no write path changed
-- [ ] An acceptance-tests instance exists for this repo with at least Tier 1 populated, and tests carry their tier
-- [ ] An unchecked Tier 1/2 test is visible on a release note as a blocking condition, in the template's wording
-- [ ] **The gate can fire** — demonstrated by an unchecked Tier 1 test blocking a draft release note, which has never been possible here
-- [ ] Staleness uses the project's existing threshold and config source, not a second one ([[ISS-0024]]/[[ISS-0069]])
+- [x] A Tests view exists, listing every `TST-*` in the corpus with status, kind and last run — 23 of 23, set-equality asserted ([[TASK-0371]])
+- [x] Manual tests at `ready` appear as this view's obligation and carry its badge — from [[FEAT-0089]]'s registry, and the group and the badge are asserted to be the same number by two different code paths
+- [x] The runner works from here, writing the same fields and the same `## Runs` log as before; no write path changed — round trip re-run over real HTTP ([[TASK-0372]]); one disclosure recorded there
+- [x] An acceptance-tests instance exists for this repo with at least Tier 1 populated, and tests carry their tier — 27 Tier 1, 7 Tier 2, 2 Tier 3 ([[TASK-0373]])
+- [x] An unchecked Tier 1/2 test is visible on a release note as a blocking condition, in the template's wording — the rule is sent by the server, never paraphrased
+- [x] **The gate can fire** — it *is* firing, on [[REL-0001]], on the live suite: 34 unchecked Tier 1/2 items
+- [x] Staleness uses the project's existing threshold and config source, not a second one ([[ISS-0024]]/[[ISS-0069]]) — there were already two, and the renderer's is gone
 
 ## Links
 
 - Decision: [[ADR-0020-Obligations-Live-With-Their-Subject]]
 - Contract: `tools/instructions/TESTING.md`, `docs/__templates__/acceptance-tests.md`
 - Paths: `src/project_os_cockpit/cockpit.py` (`_tests_register`, `scope_tests_payload`, `manual_test_steps`), `src/project_os_cockpit/note_writes.py` (`stamp_test_run`), `desktop/src/renderer/renderer.ts` (`buildTestRunner`)
+
+## Closed 2026-08-10
+
+Three tasks, and each found something the notes did not predict.
+
+1. **The staleness rule was already duplicated.** The DoD said "not a second one"; there were two — the validator's 90 days on `last_verified` against the renderer's 60 on `last_run`, gated to manual tests. On this corpus one calls 2 tests stale and the other calls 0. The renderer's constant is gone rather than reconciled.
+2. **The issue draft did not exist.** `draft_issue_body` had shaped a failing step into an issue since July and had no caller outside its own unit test, while [[TST-0021]] and the run summary both told the reader it was offered. Wired to the endpoint's response — never to a write.
+3. **The suite could not have been built from the test notes.** 22 of 23 are pytest modules, all `passing`; a suite built from them would have been fully checked on its first day and the gate would have reported clear having verified nothing. Tier lives on the checkbox, which is what the contract said and what the step did not.
+
+The measurement worth keeping: **92 `TST-*` notes across the twelve repos the cockpit renders, zero tier classification, and a release gate that had never been able to fire.** It fires now, and it is red — 34 unchecked Tier 1/2 items on [[REL-0001]] — which is a more useful state than the green nobody had earned.
