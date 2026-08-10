@@ -161,6 +161,43 @@ OBLIGATIONS: dict[str, Obligation] = {
 }
 
 
+#: The standing set's obligation — the one entry whose subject is **not a note
+#: type** (TASK-0382).
+#:
+#: `architecture`, `glossary` and `reference` each declare `NONE` above, and
+#: correctly: most `reference` notes are not standing documents at all (11 in
+#: this repo's Reference group, 5 of them singletons), so making the TYPE owed
+#: would count the wrong population. The subject here is a **manifest entry**,
+#: which the type-keyed table has no way to express — so it is declared
+#: separately rather than forced into a shape it does not fit.
+#:
+#: **Missing, ambiguous and stub count; stale does not.** The first three are
+#: binary and one act clears each: write the document, delete the rival, fill
+#: in the template. Staleness returns by the calendar — counting it is a badge
+#: that re-arms itself forever, which is the permanent nag this project has
+#: been bitten by twice (PHASE-015's close-out pill, `Doing · 44`). It still
+#: MARKS the row; it just does not ask.
+STANDING_OBLIGATION = Obligation(
+    (), VIEW_INTENT, "Confirm",
+    predicate="a manifest entry that is missing, ambiguous or holding its "
+              "template. Staleness marks the row and does not count.",
+)
+
+#: Finding kinds from `standing.check` that the badge counts.
+STANDING_OWED_KINDS: frozenset[str] = frozenset({"missing", "ambiguous", "stub"})
+
+
+def standing_owed(docs_root: Any) -> int:
+    """How many manifest entries are owed a person's attention."""
+    from . import standing
+
+    try:
+        findings = standing.check(docs_root)
+    except OSError:                      # pragma: no cover — unreadable tree
+        return 0
+    return sum(1 for f in findings if f.kind in STANDING_OWED_KINDS)
+
+
 def declared_types() -> frozenset[str]:
     return frozenset(OBLIGATIONS)
 
@@ -253,6 +290,11 @@ def counts(index: "Index") -> dict[str, int]:
             continue
         if _is_owed(record, ob):
             out[ob.view] += 1
+    # The one obligation whose subject is not a note (TASK-0382). Added here
+    # rather than anywhere else so `badges_payload`'s total stays the sum of
+    # what the badges show — a number that disagrees with itself on one screen
+    # is the failure this module exists to prevent.
+    out[STANDING_OBLIGATION.view] += standing_owed(index.docs_root)
     return out
 
 

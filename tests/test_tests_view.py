@@ -688,9 +688,16 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     """
     groups = nav_payload(repo_index, mode="design")["groups"]
     owed = [i for g in groups for i in g["items"] if i.get("owed")]
+    # The whole view's badge, standing documents included (TASK-0382) — the
+    # assertion is that the marks and the count are one predicate, so it must
+    # be taken over the whole view rather than one group of it.
     assert obligations.counts(repo_index)["intent"] == len(owed)
     assert all(i["owed_verb"] for i in owed)
-    assert {i["id"] for i in owed} == {"ADR-0010"}, [i["id"] for i in owed]
+    note_owed = {
+        i["id"] for g in groups if g["key"] != "standing" for i in g["items"]
+        if i.get("owed")
+    }
+    assert note_owed == {"ADR-0010"}, sorted(note_owed)
 
 
 def test_a_design_verdict_cannot_go_through_the_transition_path(
@@ -776,3 +783,84 @@ def test_the_renderer_reads_the_field_not_the_type() -> None:
     assert "action.verdict" in verdict and "action.accept" in verdict
     # Posts to the route it was SENT, so the endpoint is named once.
     assert "postJson(action.endpoint!" in verdict
+
+
+# ---- TASK-0382: the standing documents land on Intent --------------------
+
+
+def test_the_intent_view_opens_on_the_standing_set(repo_index: Index) -> None:
+    """*"What is this project?"* is the question the view answers, so it opens
+    on the documents that answer it — in manifest order, all eight, present or
+    not. A manifest of eight showing six would answer "which of these exist"
+    with silence, and a missing ARCHITECTURE is the most interesting row."""
+    from project_os_cockpit import standing
+
+    groups = nav_payload(repo_index, mode="design")["groups"]
+    assert groups[0]["key"] == "standing", [g["key"] for g in groups]
+    listed = [i["id"] for i in groups[0]["items"]]
+    assert listed == [d.name for d in standing.manifest(REPO_DOCS.parent)]
+    # Each row says when it was last confirmed, or what is wrong with it.
+    assert all(i["subtitle"] for i in groups[0]["items"])
+
+
+def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
+    """The line, and it is a decision rather than an oversight.
+
+    Missing / ambiguous / stub are binary and one act clears each: write the
+    document, delete the rival, fill in the template. Staleness returns by the
+    calendar, so counting it is a badge that re-arms itself forever — the
+    permanent nag this project has been bitten by twice (PHASE-015's close-out
+    pill, `Doing · 44`). It still marks the row.
+
+    Measured 2026-08-10: ARCHITECTURE and OWNERSHIP hold their templates;
+    DESIGN and STYLEGUIDE were last confirmed 196 days ago.
+    """
+    rows = {i["id"]: i for i in
+            nav_payload(repo_index, mode="design")["groups"][0]["items"]}
+    assert rows["ARCHITECTURE"].get("owed") is True
+    assert rows["ARCHITECTURE"]["owed_verb"] == "Confirm"
+    # Stale marks — a status the navigator can sort and fold on — but does not
+    # ask, so it carries no `owed`.
+    assert rows["DESIGN"]["status"] == "review"
+    assert "owed" not in rows["DESIGN"]
+    assert "196 days" in rows["DESIGN"]["subtitle"]
+
+
+def test_the_standing_obligation_reaches_the_intent_badge(repo_index: Index) -> None:
+    """A panel that did not reach the badge would be decoration.
+
+    The subject here is a **manifest entry**, not a note type — which is why
+    `architecture`/`glossary`/`reference` still declare `NONE` in the
+    type-keyed table and this is declared beside it. Both feed one count, so
+    the badge stays the sum of what the view marks.
+    """
+    marked = sum(
+        1 for g in nav_payload(repo_index, mode="design")["groups"]
+        for i in g["items"] if i.get("owed")
+    )
+    assert obligations.counts(repo_index)["intent"] == marked
+    assert obligations.standing_owed(REPO_DOCS) > 0, (
+        "this repo no longer exercises the standing obligation — pick another "
+        "assertion or the guard is vacuous"
+    )
+    # And the total the badges claim is still the sum of the badges.
+    badges = obligations.badges_payload(repo_index)
+    assert badges["total"] == sum(badges["views"].values())
+
+
+def test_the_standing_set_is_not_a_second_obligation_list(repo_index: Index) -> None:
+    """ISS-0068 forbids one obligation with two homes. The Library still shows
+    these as *files* in a tree, which is a different question (ISS-0125 keeps
+    that overlap deliberately) — but no other group in any view may mark them
+    as owed."""
+    standing_ids = {
+        i["id"] for i in nav_payload(repo_index, mode="design")["groups"][0]["items"]
+    }
+    for mode in ("features", "issues", "tests", "library", "design"):
+        for group in nav_payload(repo_index, mode=mode)["groups"]:
+            if group["key"] == "standing":
+                continue
+            clashing = {
+                i.get("id") for i in group["items"] if i.get("owed")
+            } & standing_ids
+            assert not clashing, f"{mode}/{group['key']} also marks {clashing}"

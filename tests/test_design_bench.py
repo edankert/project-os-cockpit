@@ -1097,6 +1097,7 @@ def test_designs_are_one_list_split_by_state_not_by_role(tmp_path: Path) -> None
         "status": "proposed", "role": "proposal"})
     idx = Index.build(docs)
     groups = cockpit.nav_payload(idx, mode="design")["groups"]
+    groups = [g for g in groups if g["key"] != "standing"]
     assert [g["key"] for g in groups] == ["designs"], (
         "the role-based split is back; it put one note in a section of its own"
     )
@@ -1130,7 +1131,8 @@ def test_a_design_with_no_role_still_lists(tmp_path: Path) -> None:
         "type": "[[design]]", "id": "DES-0003", "title": "Nameless",
         "status": "draft"})
     idx = Index.build(docs)
-    groups = cockpit.nav_payload(idx, mode="design")["groups"]
+    groups = [g for g in cockpit.nav_payload(idx, mode="design")["groups"]
+              if g["key"] != "standing"]
     assert [g["key"] for g in groups] == ["designs"]
     assert [i["id"] for i in groups[0]["items"]] == ["DES-0003"]
 
@@ -1142,7 +1144,12 @@ def test_no_designs_yields_no_empty_headings(tmp_path: Path) -> None:
     docs.mkdir()
     (docs / "README.md").write_text("# x\n", encoding="utf-8")
     idx = Index.build(docs)
-    assert cockpit.nav_payload(idx, mode="design")["groups"] == []
+    # The standing set is always present — every manifest entry renders,
+    # missing ones included, which is TASK-0382's point. What must not appear
+    # is an empty *designs* heading.
+    groups = [g for g in cockpit.nav_payload(idx, mode="design")["groups"]
+              if g["key"] != "standing"]
+    assert groups == []
 
 
 def test_the_mode_adds_and_removes_nothing() -> None:

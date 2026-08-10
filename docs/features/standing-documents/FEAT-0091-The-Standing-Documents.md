@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0091
 aliases: ["FEAT-0091"]
 title: "The standing documents get a manifest, a freshness signal and a home — the eight one-per-project notes stop being invisible and stop pretending to have a lifecycle"
-status: planned
+status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -56,17 +56,34 @@ The phase's goal is that every judgment the record owes surfaces where its subje
 
 ## Acceptance
 
-- [ ] The set is declared once as data; no script or renderer carries its own list of names
-- [ ] A project adds an entry without editing a template-owned file, and `sync-project-os.sh` does not destroy it
-- [ ] An entry resolving to two files is an error
-- [ ] None of the eight carries a lifecycle status, and none appears in an in-flight count
-- [ ] Missing / stub / stale are reported distinctly; stale warns and never errors
-- [ ] The Intent view opens on the set, each entry showing when it was last confirmed
-- [ ] `REQ-0025`'s guard still passes — no note type loses its only surface
-- [ ] The fleet number is re-measured after landing, so the 94% has an after
+- [x] The set is declared once as data; no script or renderer carries its own list of names — `standing.BASE_STANDING` ([[TASK-0380]])
+- [x] A project adds an entry without editing a template-owned file, and `sync-project-os.sh` does not destroy it — `SNAPSHOT.yaml` `docs_system.standing` merges over the base
+- [x] An entry resolving to two files is an error — `ambiguous`, and it is an owed obligation rather than a warning
+- [x] None of the eight carries a lifecycle status, and none appears in an in-flight count ([[TASK-0381]])
+- [x] Missing / stub / stale are reported distinctly; stale warns and never errors
+- [x] The Intent view opens on the set, each entry showing when it was last confirmed ([[TASK-0382]])
+- [x] `REQ-0025`'s guard still passes — no note type loses its only surface; and no other view marks a standing document as owed
+- [x] The fleet number is re-measured after landing, so the 94% has an after — see below
 
 ## Links
 
 - Requirement: [[REQ-0033-Every-Project-Can-Say-What-It-Is]]
 - Origin: [[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]
 - Home: [[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]] builds the Intent view this lands on
+
+## Closed 2026-08-10 — and the after-number is not good news
+
+Re-measured across the twelve repos the cockpit renders, 96 manifest entries:
+
+| | entries | share |
+|---|---|---|
+| clean | **4** | 4% |
+| any finding | 92 | 96% |
+| stale (>180 days) | 52 | 54% |
+| still carrying a lifecycle status | 71 | 74% |
+
+**Only `project-os-cockpit` improved**, because [[TASK-0381]] ran here and nowhere else: this repo is the only one of the twelve with zero `has_status` findings, and its 8 entries carry 4 findings against a fleet average of 11.75.
+
+That is the honest reading of the "after". The 94% figure [[ISS-0125]] measured was *stale*; the comparable number now is 54%, and it fell because the threshold has a stated reason (180 days, abandonment rather than decay) rather than because anything was rewritten. What actually changed is that the class is now **visible and named** — eight questions, per repo, with a manifest that says what is missing — where before it was a scatter of files nobody had a list of.
+
+The remaining eleven repos need [[TASK-0381]]'s pass, which is not this feature's job to run for them: [[TASK-0384]] proposes the manifest upstream so they inherit the check rather than each getting a one-off sweep.

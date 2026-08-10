@@ -2446,6 +2446,85 @@ def manual_test_steps(body: str) -> list[dict[str, Any]]:
     return steps
 
 
+#: How a manifest entry reads as a nav row. Borrowed from the status
+#: vocabulary rather than invented, so the navigator's own fold and sort work
+#: on these without learning a fifth set of words (the ISS-0023 rule).
+_STANDING_STATUS: dict[str, str] = {
+    "missing": "blocked",
+    "ambiguous": "blocked",
+    "stub": "draft",
+    "stale": "review",
+    "has_status": "review",
+}
+
+
+def _standing_group(index: Index) -> list[dict[str, Any]]:
+    """The standing set, as the Intent view's landing (TASK-0382).
+
+    *"What is this project?"* is the question this view answers, and these are
+    the documents that answer it — so the view opens on them rather than on a
+    file list. That also settles the empty-state question without a separate
+    design decision: two answers, one surface.
+
+    **Not a second list.** The Library shows these as files in a tree, which
+    ISS-0125 keeps deliberately; here they are the project's own answer, with
+    their freshness. One item, two addresses, on the boundary FEAT-0087 records
+    — and ISS-0068 forbids two lists of the same OBLIGATION, which the Library
+    tree is not.
+
+    Every entry renders, present or not. A manifest of eight that showed six
+    would be answering "which of these exist" with silence, and a missing
+    ARCHITECTURE is the most interesting row in the set.
+    """
+    from . import standing
+
+    docs_root = index.docs_root
+    try:
+        resolutions = standing.resolve(docs_root)
+        findings = standing.check(docs_root)
+    except OSError:                      # pragma: no cover — unreadable tree
+        return []
+    if not resolutions:
+        return []
+
+    by_doc: dict[str, list[Any]] = {}
+    for finding in findings:
+        by_doc.setdefault(finding.document, []).append(finding)
+
+    items: list[dict[str, Any]] = []
+    owed = 0
+    for res in resolutions:
+        name = res.document.name
+        own = by_doc.get(name, [])
+        worst = own[0] if own else None
+        rel = res.paths[0].relative_to(docs_root).as_posix() if res.paths else ""
+        item: dict[str, Any] = {
+            "id": name,
+            "title": res.document.question,
+            "status": _STANDING_STATUS.get(worst.kind, "") if worst else "active",
+            "url": f"/{rel}" if rel else None,
+            "subtitle": worst.detail if worst else "current",
+            "type": "reference",
+        }
+        if worst and worst.kind in _obligations.STANDING_OWED_KINDS:
+            item["owed"] = True
+            item["owed_verb"] = _obligations.STANDING_OBLIGATION.verb
+            owed += 1
+        items.append(item)
+
+    group: dict[str, Any] = {
+        "key": "standing",
+        "label": "What this project is",
+        "url": None,
+        "status": None,
+        "item_layout": "stacked",
+        "items": items,
+    }
+    if owed:
+        group["needs_human"] = True
+    return [group]
+
+
 def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     """Nav groups for the design mode (TASK-0224).
 
@@ -2467,6 +2546,7 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
         if _platform_match(r, platform)
     ]
     out: list[dict[str, Any]] = []
+    out.extend(_standing_group(index))
     if designs:
         out.append({"key": "designs", "label": "Designs", "url": None,
                     "status": None, "item_layout": "stacked", "items": designs})
