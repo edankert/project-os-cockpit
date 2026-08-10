@@ -67,7 +67,7 @@ items:
     FEAT-0089:
       file: "docs/features/obligation-registry/FEAT-0089-The-Obligation-Registry-And-The-Badges.md"
       title: "The obligation registry and the badges — one source for what is owed, of what kind, and which view owns it; a count on every view button that together covers all of them"
-      status: planned
+      status: done
       phase: "[[PHASE-030-Obligations-Go-Home]]"
       tasks: [TASK-0369, TASK-0370]
       note: "FIRST in PHASE-030 — every other feature reads it. ADR-0020 decision 3 (badges must cover every kind) is only enforceable if the kinds are data. Carries forward TASK-0357's rule from the superseded desk board: the obligation vocabulary ships from the server, never TypeScript. Includes `change` (76 of 116 unreviewed, gate-bearing, errors on 2026-10-23) with a cutoff PARAMETER rather than a hard-coded answer."
@@ -2638,9 +2638,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 60
+    features_done: 61
     tasks_total: 384
-    tasks_done: 302
+    tasks_done: 303
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

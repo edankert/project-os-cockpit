@@ -1385,6 +1385,7 @@ async function performNoteAction(
       return;
     }
     showStatus(`${noteId} → ${action.to}`);
+    void refreshObligationBadges();
     // No optimistic mutation. The file is the truth: the write lands, the
     // watcher emits, and the note re-renders from disk.
     if (currentRel) void navigateTo(currentRel, { replace: true });
@@ -2953,7 +2954,52 @@ function setNavMode(mode: NavMode): void {
   currentNavMode = mode;
   try { localStorage.setItem('cockpit:nav-mode', mode); } catch { /* ignore */ }
   refreshNavModeButtons();
+  void refreshObligationBadges();
   if (sidecarBaseUrl) void loadWsNav();
+}
+
+// ----- Obligation badges (FEAT-0089 / TASK-0370) -----------------------
+//
+// ADR-0020 decision 3: the count lives on the view button, and the badges
+// together must cover **every** obligation kind. That replaces the desk's one
+// number with something continuous — you learn what is owed without visiting
+// a page to ask.
+//
+// Absent, never zero. A permanent `0` is the shape of thing a reader learns to
+// stop seeing, and this surface has been taught that lesson twice already.
+
+async function refreshObligationBadges(): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let views: Record<string, number> = {};
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/obligations`);
+    if (!resp.ok) return;
+    views = ((await resp.json()) as { views?: Record<string, number> }).views ?? {};
+  } catch { return; }
+
+  // The registry's view names are the server's; the buttons' `data-mode`
+  // values are this renderer's. One mapping, here, rather than the server
+  // learning about `design` or the renderer learning about obligations.
+  const MODE_FOR_VIEW: Record<string, string> = {
+    overview: 'overview',
+    intent: 'design',     // the constraints view still answers to `design`
+    features: 'features',
+    issues: 'issues',
+    tests: 'tests',
+  };
+
+  document.querySelectorAll<HTMLElement>('.top-bar-btn[data-mode]').forEach((btn) => {
+    btn.querySelector('.mode-badge')?.remove();
+    const mode = btn.getAttribute('data-mode') || '';
+    const view = Object.keys(MODE_FOR_VIEW).find((v) => MODE_FOR_VIEW[v] === mode);
+    const n = view ? (views[view] ?? 0) : 0;
+    if (n <= 0) return;
+    const badge = document.createElement('span');
+    badge.className = 'mode-badge';
+    badge.textContent = String(n);
+    badge.title = `${n} item${n === 1 ? '' : 's'} here need a person`;
+    btn.appendChild(badge);
+  });
 }
 
 function refreshNavModeButtons(): void {

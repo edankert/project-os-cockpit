@@ -25,7 +25,10 @@ something instead of being a formality.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .index import Index
 
 #: The views an obligation may be owned by. One type, one view — otherwise the
 #: badges count it twice or neither.
@@ -198,4 +201,71 @@ def payload() -> dict[str, Any]:
             {"type": note_type, "reason": ob.reason, "view": ob.view}
             for note_type, ob in sorted(OBLIGATIONS.items()) if not ob.owed
         ],
+    }
+
+
+# ----- counting what is actually owed ---------------------------------------
+
+
+def _is_owed(record: Any, ob: Obligation) -> bool:
+    """Whether this note is currently owed under its type's declaration."""
+    if not ob.owed:
+        return False
+    status = (record.status or "").strip().lower()
+
+    if record.note_type == "change":
+        # No review verdict — a GATE_BEARING_TYPE whose warnings become errors
+        # on 2026-10-23. The historical cutoff is deliberately not applied
+        # here; it is a parameter for whoever renders the badge (ISS-0128).
+        return not str(record.frontmatter.get("review_verdict") or "").strip()
+
+    if record.note_type == "feature":
+        return str(record.frontmatter.get("acceptance") or "").strip().lower() == "requested"
+
+    if record.note_type == "test":
+        # Manual only: an automated test at `ready` waits on a runner, not a
+        # person. `kind`/`level` carry that in this corpus.
+        if status not in ob.states:
+            return False
+        blob = " ".join(
+            str(record.frontmatter.get(k) or "") for k in ("kind", "level", "runner")
+        ).lower()
+        return "manual" in blob
+
+    return status in ob.states
+
+
+def counts(index: "Index") -> dict[str, int]:
+    """Owed items per view — what each badge shows.
+
+    Absent rather than zero is the renderer's job; this reports the truth and
+    lets the surface decide what silence looks like.
+    """
+    out: dict[str, int] = {v: 0 for v in VIEWS}
+    for path in index.paths():
+        record = index.get(path)
+        if record is None or not record.note_type:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        ob = for_type(record.note_type)
+        if ob is None or not ob.owed or not ob.view:
+            continue
+        if _is_owed(record, ob):
+            out[ob.view] += 1
+    return out
+
+
+def badges_payload(index: "Index") -> dict[str, Any]:
+    """The per-view counts plus the total, so a surface can assert on both.
+
+    `total` is not decoration: ADR-0020 decision 3 says the badges must cover
+    **every** kind, and a total that disagrees with the sum is how a kind goes
+    missing without anyone noticing.
+    """
+    per_view = counts(index)
+    return {
+        "views": per_view,
+        "total": sum(per_view.values()),
+        "kinds": sorted(owed_kinds()),
     }

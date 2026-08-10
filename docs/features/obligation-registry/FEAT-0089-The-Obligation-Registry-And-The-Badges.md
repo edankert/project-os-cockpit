@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0089
 aliases: ["FEAT-0089"]
 title: "The obligation registry and the badges — one source for what is owed, of what kind, and which view owns it; a count on every view button that together covers all of them"
-status: planned
+status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -51,15 +51,24 @@ It also carries forward the one idea worth keeping from the superseded desk boar
 
 ## Acceptance
 
-- [ ] Every obligation kind is declared once, with predicate, owning view and verb; `review_queue_payload`'s intake states are replaced by it rather than duplicated
-- [ ] `issue: triage` is among them
-- [ ] The badges together equal the registry's total — asserted, so a kind cannot be added without appearing somewhere
-- [ ] A kind with no owning view fails a test
-- [ ] Removing a kind removes its badge with no renderer change
-- [ ] A settled subject is never counted as owed ([[ISS-0121]]'s predicate belongs here, not in a register)
+- [x] Every obligation kind is declared once, with predicate, owning view and verb; `review_queue_payload`'s intake states are replaced by it rather than duplicated
+- [x] `issue: triage` is among them
+- [x] The badges together equal the registry's total — asserted, so a kind cannot be added without appearing somewhere
+- [x] A kind with no owning view fails a test
+- [x] Removing a kind removes its badge with no renderer change
+- [x] A settled subject is never counted as owed ([[ISS-0121]]'s predicate belongs here, not in a register)
 
 ## Links
 
 - Decision: [[ADR-0020-Obligations-Live-With-Their-Subject]]
 - Precedent: `src/project_os_cockpit/statuses.py` + `tests/test_status_vocabulary.py` — the same shape of fix, for statuses
 - Paths: `src/project_os_cockpit/cockpit.py` (`QUEUE_INTAKE_STATES`, `review_queue_payload`), `desktop/src/renderer/renderer.ts`
+
+## Closed 2026-08-10
+
+The registry exists and the badges read it: **18 types declared, 8 owed, 10 explicit `none`**, and `overview 81 · issues 7 · features 5 · intent 1 · tests 0`.
+
+Two properties are what make it worth having, and both are asserted rather than intended:
+
+- **The corpus supplies the checklist.** A type in the notes with no declaration fails a test. The list this replaced was wrong three times in one day — `change`, `release`, then `risk`/`workflow`/`phase` — each found by Edwin asking rather than by anything failing.
+- **`none` carries its reason.** The test caught two of my own entries saying only *"a standing document; see `reference`"*. `task` and `plan` owe nothing correctly, and an unexplained absence is indistinguishable from a forgotten one.

@@ -5008,3 +5008,24 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
 .capture-field:disabled { opacity: 0.6; }
 .capture-hint { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
 .capture-hint.is-error { color: var(--severity-critical); }
+
+
+/* Obligation badge on a view button (FEAT-0089 / TASK-0370). Absent, never
+   zero — a permanent 0 is the shape of thing a reader stops seeing. */
+.top-bar-btn { position: relative; }
+.mode-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--status-blocked);
+  color: var(--bg);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  pointer-events: none;
+}

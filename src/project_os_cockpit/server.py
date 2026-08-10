@@ -43,6 +43,7 @@ from .events import ControlEvent, EventBus, FileEvent
 from .index import Index
 from . import inbox as inbox_mod
 from .watermark import Watermark
+from . import obligations as _obligations
 from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .validation import ValidationRunner
@@ -778,6 +779,10 @@ def _make_handler(
 
             if path == "/api/cockpit/identity":
                 self._serve_cockpit_identity()
+                return
+
+            if path == "/api/cockpit/obligations":
+                self._respond_json(_obligations.badges_payload(index))
                 return
 
             if path == "/api/cockpit/digest":
