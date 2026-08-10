@@ -1079,15 +1079,48 @@ async function navigateToInner(
     }
     return;
   }
+  // ~tests/<TST>/run — the manual test runner (TASK-0372). It moved off the
+  // desk with the register it belongs to; what it WRITES is untouched, and
+  // deliberately so — every guard on `/api/notes/test-run` (allow-list, mtime
+  // precondition, loopback check) lives server-side, so a renderer change that
+  // needed to edit `note_writes.py` would mean this move had gone wrong.
+  // Bare `~tests` has no page of its own — the navigator IS the view, exactly
+  // as with Features and Issues. It selects the mode and leaves the stage
+  // alone rather than falling through to the render endpoint, which would
+  // answer a plausible-looking URL with "No note here".
+  if (normalised === '~tests') {
+    setNavMode('tests');
+    return;
+  }
+  if (normalised.startsWith('~tests/') && normalised.endsWith('/run')) {
+    const id = normalised.slice('~tests/'.length, -'/run'.length);
+    const ok = await renderTestRunPage(id);
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
   // ~review — the desk (FEAT-0041). `~review` is the queue with nothing
   // selected; `~review/<id>` a proposal/decision; `~review/<TST>/run` a
-  // manual test run in progress.
+  // manual test run in progress — that last one now REDIRECTS, because the
+  // run route moved and a deep link in someone's history is exactly what a
+  // migration is for (the `RETIRED_NAV_MODES` lesson, applied to a route).
+  if (normalised.startsWith('~review/') && normalised.endsWith('/run')) {
+    const id = normalised.slice('~review/'.length, -'/run'.length);
+    await navigateTo(`~tests/${id}/run`, { replace: true });
+    return;
+  }
   if (normalised === '~review' || normalised.startsWith('~review/')) {
-    const rest = normalised === '~review'
+    // No `/run` handling left here — the branch above intercepts it. Keeping
+    // the old one as a fallback would leave a second, unreachable copy of the
+    // runner's entry point, which is how a "moved" surface stays in two places.
+    const target = normalised === '~review'
       ? '' : normalised.slice('~review/'.length);
-    const running = rest.endsWith('/run');
-    const target = running ? rest.slice(0, -'/run'.length) : rest;
-    const ok = await renderReviewPage(target, { run: running });
+    const ok = await renderReviewPage(target);
     if (ok) {
       currentRel = normalised;
       currentDispatchHistory = null;
@@ -1201,6 +1234,12 @@ async function navigateToInner(
   void mountActuatorRow(
     typeof data.frontmatter?.id === 'string' ? (data.frontmatter.id as string) : '',
   );
+  // The run affordance for a manual test (TASK-0372). Deliberately NOT an
+  // entry in the actuator row: that row is `/api/notes/actions`, which is the
+  // human-owned STATUS transitions and nothing else (REQ-0026). Starting a run
+  // sets no status — the run does, afterwards — so putting it there would put
+  // a non-transition in the one place whose whole meaning is transitions.
+  void mountTestRunButton(currentNoteId, data.frontmatter || {});
 
   currentDispatchHistory = data.dispatch_history ?? null;
   currentNoteStatus = typeof data.frontmatter?.status === 'string'
@@ -1301,6 +1340,58 @@ interface NoteAction {
   confirm: boolean;
   disabled: boolean;
   reason: string;
+}
+
+/** A `Run ▸` button on a manual test note (TASK-0372).
+ *
+ *  This is how the stepper starts from the Tests view: the navigator lists the
+ *  tests, clicking one opens the note, and the run begins where the test is
+ *  written. It replaces the desk row that used to be the only way in.
+ *
+ *  Shown only when the server says there are steps to walk — the same
+ *  `manual_test_steps` parse the runner itself uses, so a button can never
+ *  open a stepper with nothing in it. Reading `kind: manual` from the
+ *  frontmatter instead would be a second answer to "who runs this", which is
+ *  the defect TASK-0371 removed one of.
+ */
+async function mountTestRunButton(
+  noteId: string, frontmatter: Record<string, unknown>,
+): Promise<void> {
+  docView.querySelector('.note-run')?.remove();
+  if (!sidecarBaseUrl || !noteId) return;
+  if (String(frontmatter.type || '').toLowerCase().indexOf('test') === -1) return;
+
+  let detail: ReviewDetail | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/review/${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) return;
+    detail = (await resp.json()) as ReviewDetail;
+  } catch { return; }
+  const steps = detail?.steps?.length ?? 0;
+  if (steps === 0) return;
+
+  const row = document.createElement('div');
+  row.className = 'note-actions note-run';
+  const label = document.createElement('span');
+  label.className = 'note-actions-label';
+  label.textContent = 'Verify';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'note-action-btn is-good';
+  btn.textContent = `Run ▸ ${steps} steps`;
+  btn.title = detail?.last_run
+    ? `last run ${detail.last_run}` : 'never run from here';
+  btn.addEventListener('click', () => void navigateTo(`~tests/${noteId}/run`));
+  row.append(label, btn);
+
+  const strip = docView.querySelector('details.metadata-strip');
+  if (strip && strip.parentElement) {
+    strip.parentElement.insertBefore(row, strip.nextSibling);
+  } else {
+    docView.insertBefore(row, docView.firstChild);
+  }
 }
 
 async function mountActuatorRow(noteId: string): Promise<void> {
@@ -3272,7 +3363,7 @@ async function fillVerificationPanel(
     // Sequential by construction: the runner is a stepper, so "run all"
     // means "start the first and come back", not a parallel fan-out.
     all.addEventListener('click', () => {
-      void navigateTo(`~review/${runnable[0].id}/run`);
+      void navigateTo(`~tests/${runnable[0].id}/run`);
     });
     head.appendChild(all);
   }
@@ -3312,7 +3403,7 @@ async function fillVerificationPanel(
       run.title = `${test.steps} steps`;
       run.addEventListener('click', (e) => {
         e.stopPropagation();
-        void navigateTo(`~review/${test.id}/run`);
+        void navigateTo(`~tests/${test.id}/run`);
       });
       li.appendChild(run);
     }
@@ -4410,9 +4501,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
   return true;
 }
 
-async function renderReviewPage(
-  target: string, opts: { run?: boolean } = {},
-): Promise<boolean> {
+async function renderReviewPage(target: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const payload = await fetchReviewQueue();
   if (!payload) {
@@ -4450,9 +4539,7 @@ async function renderReviewPage(
     return true;
   }
 
-  if (opts.run && detail.note) {
-    docView.replaceChildren(buildTestRunner(detail));
-  } else if (detail.kind === 'question') {
+  if (detail.kind === 'question') {
     docView.replaceChildren(buildQuestionView(detail));
   } else if (detail.request && detail.request.subject_missing) {
     // The design was deleted or renamed after being offered. Accept and
@@ -4759,8 +4846,11 @@ function buildQueueRow(item: ReviewQueueItem, groupKey: string): HTMLElement {
   row.appendChild(age);
 
   row.addEventListener('click', () => {
-    const suffix = kindKey === 'run' ? '/run' : '';
-    void navigateTo(`~review/${key}${suffix}`);
+    // A `run` row leaves the desk for the Tests view (TASK-0372). The desk's
+    // own queue is the last caller pointed at the new route rather than
+    // through the redirect: the redirect exists for links already in
+    // somebody's history, not as an indirection every click goes through.
+    void navigateTo(kindKey === 'run' ? `~tests/${key}/run` : `~review/${key}`);
   });
   return row;
 }
@@ -5357,7 +5447,7 @@ function buildSingleNoteReview(detail: ReviewDetail): HTMLElement {
     run.type = 'button';
     run.className = 'review-btn is-primary';
     run.textContent = `Run ▸ ${detail.steps?.length ?? 0} steps`;
-    run.addEventListener('click', () => void navigateTo(`~review/${note.id}/run`));
+    run.addEventListener('click', () => void navigateTo(`~tests/${note.id}/run`));
     actions.appendChild(run);
   }
 
@@ -5489,7 +5579,48 @@ async function fillReviewNoteBody(target: HTMLElement, rel: string): Promise<voi
   }
 }
 
-// ----- Manual test runner (TASK-0209) -----------------------------------
+/** The server's shaping of a failing step into an issue (TASK-0209's
+ *  `draft_issue_body`, finally wired up by TASK-0372). */
+interface IssueDraft { title: string; body: string; test_id: string }
+
+// ----- Manual test runner (TASK-0209; moved to Tests by TASK-0372) ------
+//
+// `~tests/<TST>/run`. The stepper below is unchanged — it is the desk's one
+// piece of genuine machinery, and moving it means moving it, not rewriting it.
+// What changed is where you arrive from and what the left pane shows while you
+// are running: the Tests navigator, so the run happens inside the view that
+// owns the subject (ADR-0020).
+
+async function renderTestRunPage(noteId: string): Promise<boolean> {
+  if (!sidecarBaseUrl || !noteId) return false;
+  let detail: ReviewDetail | null = null;
+  try {
+    // `/api/cockpit/review/<id>` still serves this. The endpoint is not the
+    // desk: it resolves any note id and adds the test fields, and FEAT-0008's
+    // API-stability rule is explicit that a retired UI route does not retire
+    // an endpoint. TASK-0378 takes the route; this survives it.
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/review/${encodeURIComponent(noteId)}`,
+    );
+    if (resp.ok) detail = (await resp.json()) as ReviewDetail;
+  } catch { /* handled below */ }
+  if (!detail || !detail.note) {
+    showStatus(`No test found for ${noteId}`, 'error');
+    return false;
+  }
+
+  // The left pane stays the Tests navigator rather than becoming a queue.
+  // A run is one row of that list being walked, not a separate place.
+  if (currentNavMode !== 'tests') setNavMode('tests');
+
+  docView.classList.remove('overview-pane', 'agents-page',
+    'design-page', 'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildTestRunner(detail));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
 
 function buildTestRunner(detail: ReviewDetail): HTMLElement {
   const note = detail.note!;
@@ -5649,10 +5780,23 @@ function buildTestRunner(detail: ReviewDetail): HTMLElement {
     box.appendChild(actions);
 
     if (failed.length > 0) {
+      // This sentence promised a draft that did not exist. Written for
+      // TASK-0209 in the future tense — "an issue draft **will be** offered" —
+      // and nothing ever offered one: `stamp_test_run` wrote the status, the
+      // `last_run` and the `## Runs` entry, and stopped. `draft_issue_body`
+      // was there the whole time with no caller outside its unit test, while
+      // TST-0021 recorded that a failing step "produces an issue draft".
+      // Measured while moving the runner (TASK-0372) — which is when a
+      // sentence describing behaviour finally got read beside the behaviour.
+      //
+      // True now, and with no new write path: the server returns the draft in
+      // its result and `buildRunOffer` hands it to FEAT-0059's capture box.
+      // Still never filed automatically — allocating an id is a documentation
+      // decision, which is why it is offered rather than done.
       const draft = document.createElement('p');
       draft.className = 'run-draft';
       draft.textContent =
-        'An issue draft will be offered for the first failing step — filing it stays your call.';
+        'Recording the run offers an issue draft for the first failing step — filing it stays your call.';
       box.appendChild(draft);
     }
     const feedback = document.createElement('p');
@@ -5668,17 +5812,23 @@ function buildTestRunner(detail: ReviewDetail): HTMLElement {
     const failed = results.filter((r) => r.result === 'fail');
     const outcome = failed.length > 0 ? 'failing' : 'passing';
     const feedback = stage.querySelector<HTMLElement>('#run-feedback');
+    let draft: IssueDraft | null = null;
     try {
-      await postJson('/api/notes/test-run', {
+      const posted = await postJson('/api/notes/test-run', {
         id: note.id,
         outcome: aborted ? '' : outcome,
         aborted,
         runner: 'user:edwin',
         mtime: detail.mtime,
         steps: recorded.map((r) => ({
-          n: r.n, text: r.text, result: r.result, evidence: r.evidence,
+          // `expected` travels so the draft can quote it: the server shapes
+          // the issue and only the stepper knows what the note promised.
+          n: r.n, text: r.text, expected: r.expected,
+          result: r.result, evidence: r.evidence,
         })),
       });
+      draft = ((posted.result || {}) as { issue_draft?: IssueDraft })
+        .issue_draft ?? null;
     } catch (err) {
       const message = (err as Error).message;
       if (feedback) {
@@ -5695,7 +5845,52 @@ function buildTestRunner(detail: ReviewDetail): HTMLElement {
       aborted ? 'Run aborted — partial log kept in the note.'
         : `Run recorded: ${note.id} is ${outcome}.`,
     );
+    // A failing run stops here and offers the draft. Navigating straight to
+    // the note would carry the one moment the offer is worth anything off the
+    // screen — and the run is already written, so nothing is at risk in
+    // pausing. Everything else goes to the note as before.
+    if (draft) {
+      stage.replaceChildren(buildRunOffer(draft));
+      return;
+    }
     void navigateTo(note.rel);
+  };
+
+  /** What a recorded failing run leaves you with: the outcome, and the offer.
+   *
+   *  The draft's text is the SERVER'S (`draft_issue_body`) — title, the step,
+   *  what the note expected and what was observed. Shaping it here would be a
+   *  second issue-drafting vocabulary a few hundred lines from the first, and
+   *  only one of them would ever be tested.
+   */
+  const buildRunOffer = (issue: IssueDraft): HTMLElement => {
+    const box = document.createElement('div');
+    box.className = 'run-summary';
+    const line = document.createElement('p');
+    line.className = 'run-summary-line';
+    line.textContent = `Recorded — ${note.id} is failing.`;
+    const preview = document.createElement('p');
+    preview.className = 'run-draft';
+    preview.textContent = issue.title;
+
+    const actions = document.createElement('div');
+    actions.className = 'review-actions';
+    const file = document.createElement('button');
+    file.type = 'button';
+    file.className = 'review-btn is-primary';
+    file.textContent = 'Draft an issue ▸';
+    file.addEventListener('click', () => openCapture({
+      title: issue.title, body: issue.body, related: [note.id],
+    }));
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'review-btn';
+    open.textContent = `Open ${note.id}`;
+    open.addEventListener('click', () => void navigateTo(note.rel));
+    actions.append(file, open);
+
+    box.append(line, preview, actions);
+    return box;
   };
 
   wrap.appendChild(stage);
@@ -9441,12 +9636,18 @@ quickSwitchEl.addEventListener('click', (e) => {
 // It lands at `triage` rather than `open` — capture records that something was
 // noticed; deciding what it is, is the judgment the triage tray exists for.
 
-function openCapture(): void {
+function openCapture(opts: { title?: string; body?: string; related?: string[] } = {}): void {
   if (!sidecarBaseUrl) {
     showStatus('Open a workspace first', 'error');
     return;
   }
   if (document.getElementById('capture-overlay')) return;
+  // A caller may seed the text and the link — the failing-step draft
+  // (TASK-0372) is the first. It seeds rather than files: the box opens with
+  // the sentence already written and the cursor in it, because what the
+  // stepper knows is which step failed, and what the person knows is why.
+  const seedRelated = opts.related?.length
+    ? opts.related : (currentNoteId ? [currentNoteId] : []);
 
   const overlay = document.createElement('div');
   overlay.id = 'capture-overlay';
@@ -9456,14 +9657,15 @@ function openCapture(): void {
 
   const label = document.createElement('div');
   label.className = 'capture-label';
-  label.textContent = currentNoteId
-    ? `Capture an issue · linked to ${currentNoteId}`
+  label.textContent = seedRelated.length
+    ? `Capture an issue · linked to ${seedRelated.join(', ')}`
     : 'Capture an issue';
 
   const field = document.createElement('input');
   field.type = 'text';
   field.className = 'capture-field';
   field.placeholder = 'what did you notice?';
+  if (opts.title) field.value = opts.title;
 
   const hint = document.createElement('div');
   hint.className = 'capture-hint';
@@ -9494,7 +9696,8 @@ function openCapture(): void {
           body: JSON.stringify({
             type: 'issue',
             title,
-            related: currentNoteId ? [`[[${currentNoteId}]]`] : [],
+            body: opts.body || '',
+            related: seedRelated.map((id) => `[[${id}]]`),
             actor: 'user:edwin',
           }),
         });

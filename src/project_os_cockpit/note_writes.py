@@ -1071,15 +1071,20 @@ def draft_issue_body(
 ) -> dict[str, str]:
     """Shape a failing step into an issue-intake draft (TASK-0209).
 
-    Returned as data for the user to confirm — the desk never files an
+    Returned as data for the user to confirm — the cockpit never files an
     ISS on its own, because allocating an id is a documentation decision
     and LIFECYCLE puts that in preflight, not in a UI callback.
+
+    Wired into ``POST /api/notes/test-run``'s **response** by TASK-0372 — not
+    into ``stamp_test_run``, which is the write path and did not move. Until
+    then this had no caller outside its own unit test, while two records said
+    it did.
     """
     expected = str(step.get("expected") or "").strip() or "(not recorded in the test)"
     observed = str(step.get("evidence") or "").strip() or "(not recorded)"
     title = f"{test_title or test_id} — step {step.get('n')} failed"
     body = (
-        f"Found while running [[{test_id}]] manually from the review desk.\n\n"
+        f"Found while running [[{test_id}]] manually from the Tests view.\n\n"
         f"**Step {step.get('n')}:** {str(step.get('text') or '').strip()}\n\n"
         f"**Expected:** {expected}\n\n"
         f"**Observed:** {observed}\n"

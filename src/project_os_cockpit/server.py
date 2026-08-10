@@ -1854,6 +1854,34 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            # The failing-step draft (TASK-0372). `note_writes.draft_issue_body`
+            # was written for TASK-0209 and never wired to anything: TST-0021
+            # records that a failing step "produces an issue draft — returned as
+            # data for the user to confirm", and the runner told the user one
+            # "will be offered", while the function's only caller in the tree
+            # was its own unit test. Both statements were true of the function
+            # and false of the system.
+            #
+            # Assembled HERE rather than inside `stamp_test_run`, deliberately:
+            # TASK-0372's whole constraint is that the write path does not move
+            # or change, and this writes nothing. It shapes a response. The
+            # cockpit still never files the issue — allocating an id is a
+            # documentation decision LIFECYCLE puts in preflight — so the draft
+            # is offered, and a person presses Enter.
+            first_fail = next(
+                (s for s in (steps if isinstance(steps, list) else [])
+                 if isinstance(s, dict)
+                 and str(s.get("result") or "").strip().lower() == "fail"),
+                None,
+            )
+            if first_fail is not None and not body.get("aborted"):
+                note_path = index.by_id(str(body.get("id") or ""))
+                record = index.get(note_path) if note_path else None
+                result = {**result, "issue_draft": note_writes.draft_issue_body(
+                    str(body.get("id") or ""),
+                    (record.title if record else "") or str(body.get("id") or ""),
+                    first_fail,
+                )}
             self._respond_json({"ok": True, "result": result})
 
         def _serve_dispatch_requests(self) -> None:

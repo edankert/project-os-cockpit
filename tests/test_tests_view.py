@@ -21,6 +21,7 @@ has already been caught disagreeing with itself:
 
 from __future__ import annotations
 
+import datetime as _dt
 import re
 from pathlib import Path
 
@@ -284,3 +285,189 @@ def test_the_tests_badge_maps_to_the_tests_mode() -> None:
     assert re.search(r"tests:\s*'tests'", table)
     assert obligations.VIEW_TESTS in obligations.views_owed()
     assert "test" in obligations.views_owed()[obligations.VIEW_TESTS]
+
+
+# ---- TASK-0372: the runner moves ----------------------------------------
+#
+# The move is routing and placement. What gets WRITTEN must be identical, and
+# these assert that against a real HTTP server rather than by reading the
+# source — the guard the desk's own suite learned to want (ISS-0055).
+
+
+def _min_workspace(root: Path, body: str) -> Path:
+    docs = root / "docs"
+    (root / "SNAPSHOT.yaml").write_text("project: demo\n", encoding="utf-8")
+    _write(docs / "tests" / "TST-0001-Demo.md", body)
+    return docs
+
+
+TEST_NOTE = """---
+type: "[[test]]"
+id: TST-0001
+title: "A demo test"
+status: ready
+kind: manual
+owner: user:edwin
+last_verified: "2026-08-01"
+---
+
+# TST-0001
+
+## Steps
+
+1. Open the pane. Expect: it opens
+2. Press the button. Expect: something happens
+
+## Runs
+
+### 2026-08-01 — passing (by user:edwin)
+- **pass** · An earlier run, so the append has a section to land in
+
+## Later section
+
+Text under a heading that follows the Runs section — the placement bug an
+independent review found in 2026-07-26, re-asserted after the move.
+"""
+
+
+def _serve(docs: Path):
+    """The real handler on an ephemeral port, as the desk suite does it."""
+    import threading
+
+    from project_os_cockpit.server import (
+        DocsServer, _make_handler, _NoDNSThreadingHTTPServer,
+    )
+
+    server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    index = Index.build(docs)
+    handler = _make_handler(docs, index, server.bus)
+    httpd = _NoDNSThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, httpd.server_address[1]
+
+
+def _post(port: int, path: str, payload: dict) -> dict:
+    import json
+    import urllib.request
+
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}",
+        data=json.dumps(payload).encode(), method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        return json.loads(resp.read().decode())
+
+
+@pytest.fixture()
+def runner_workspace(tmp_path: Path):
+    docs = _min_workspace(tmp_path, TEST_NOTE)
+    httpd, port = _serve(docs)
+    try:
+        yield docs, port
+    finally:
+        httpd.shutdown()
+
+
+def test_a_run_writes_what_it_always_wrote(runner_workspace) -> None:
+    """The round-trip assertion, re-run after the move: the note is
+    byte-identical outside its allow-listed fields and the appended log."""
+    docs, port = runner_workspace
+    note = docs / "tests" / "TST-0001-Demo.md"
+    before = note.read_text(encoding="utf-8")
+
+    out = _post(port, "/api/notes/test-run", {
+        "id": "TST-0001", "outcome": "passing", "aborted": False,
+        "runner": "user:edwin", "mtime": note.stat().st_mtime,
+        "steps": [{"n": 1, "text": "Open the pane", "result": "pass",
+                   "evidence": "it opened"}],
+    })
+    assert out["ok"] is True
+    after = note.read_text(encoding="utf-8")
+
+    today = _dt.date.today().isoformat()
+    assert 'status: "passing"' in after
+    assert today in after           # last_run and last_verified both stamped
+    assert after.count(today) >= 3  # last_run, last_verified, updated
+    # Everything the run does not own is untouched, line for line.
+    def carried(text: str) -> list[str]:
+        head = text.split("---", 2)[1].splitlines()
+        return [ln for ln in head
+                if not ln.split(":")[0].strip() in
+                {"status", "last_run", "last_verified", "updated"}]
+    assert carried(after) == carried(before)
+    # The new entry lands at the END of `## Runs` and before the section that
+    # follows it — not simply at the end of the body, which is the defect an
+    # independent review found on 2026-07-26.
+    runs = after[after.index("## Runs"):after.index("## Later section")]
+    assert "An earlier run" in runs and "it opened" in runs
+    assert runs.index("An earlier run") < runs.index("it opened")
+
+
+def test_a_failing_run_returns_the_draft_it_always_promised(runner_workspace) -> None:
+    """`draft_issue_body` existed from TASK-0209 and had no caller outside its
+    unit test, while TST-0021 recorded that a failing step "produces an issue
+    draft" and the run summary told the user one would be offered. TASK-0372
+    wired it to the response — never to a write."""
+    docs, port = runner_workspace
+    note = docs / "tests" / "TST-0001-Demo.md"
+    out = _post(port, "/api/notes/test-run", {
+        "id": "TST-0001", "outcome": "failing", "aborted": False,
+        "runner": "user:edwin", "mtime": note.stat().st_mtime,
+        "steps": [
+            {"n": 1, "text": "Open the pane", "result": "pass", "evidence": "fine"},
+            {"n": 2, "text": "Press the button", "expected": "something happens",
+             "result": "fail", "evidence": "nothing happened"},
+        ],
+    })
+    draft = out["result"]["issue_draft"]
+    assert "step 2 failed" in draft["title"]
+    assert "[[TST-0001]]" in draft["body"]
+    assert "something happens" in draft["body"]      # what the note promised
+    assert "nothing happened" in draft["body"]       # what the person saw
+    # Offered, never filed: allocating an id is a preflight decision.
+    assert not list((docs / "issues").glob("*.md")) if (docs / "issues").is_dir() else True
+
+
+@pytest.mark.parametrize(
+    ("outcome", "aborted", "result"),
+    [
+        ("passing", False, "pass"),
+        # An ABORTED run that had already failed a step. The first version of
+        # this case sent a passing step, so `first_fail` was None whatever the
+        # code did and dropping the `aborted` guard changed nothing — a test
+        # that could not fail, caught by mutating the guard it was there for.
+        ("", True, "fail"),
+    ],
+)
+def test_only_a_completed_failure_carries_a_draft(
+    runner_workspace, outcome: str, aborted: bool, result: str,
+) -> None:
+    """A passing run has nothing to file, and an aborted one is not evidence
+    either way — the same reason it writes no status. Offering an issue for a
+    run the person walked out of would turn "I stopped here" into a finding."""
+    docs, port = runner_workspace
+    note = docs / "tests" / "TST-0001-Demo.md"
+    out = _post(port, "/api/notes/test-run", {
+        "id": "TST-0001", "outcome": outcome, "aborted": aborted,
+        "runner": "user:edwin", "mtime": note.stat().st_mtime,
+        "steps": [{"n": 1, "text": "Open the pane", "result": result,
+                   "evidence": "whatever happened"}],
+    })
+    assert "issue_draft" not in out["result"]
+
+
+def test_the_run_route_moved_and_the_old_one_redirects() -> None:
+    """A deep link in somebody's history is exactly what a migration is for —
+    the `RETIRED_NAV_MODES` lesson, applied to a route."""
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "normalised.startsWith('~tests/') && normalised.endsWith('/run')" in src
+    assert "normalised.startsWith('~review/') && normalised.endsWith('/run')" in src
+    assert "navigateTo(`~tests/${id}/run`, { replace: true })" in src
+    # Nothing navigates to the old route any more; the redirect serves links
+    # that already exist, not clicks the app is still making.
+    assert "~review/${" not in src.replace("~review/${key}", "")
+    # And the desk's own copy of the runner entry point is gone rather than
+    # left unreachable — a "moved" surface that still exists in two places has
+    # not moved.
+    assert "opts.run" not in src
