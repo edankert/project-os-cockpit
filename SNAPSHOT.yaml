@@ -937,12 +937,6 @@ items:
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
-    TASK-0279:
-      file: "docs/features/write-service/plan/tasks/TASK-0279-The-Tick-Path.md"
-      title: "Ticking a criterion rewrites one line, in the validator's own shapes, with a witness"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0059
     TASK-0280:
       file: "docs/features/write-service/plan/tasks/TASK-0280-Create-Issue-And-The-Hardening-Suite.md"
       title: "Issue creation from template with the next free id, and the mutation-grade hardening suite over all three verbs"
@@ -2675,7 +2669,7 @@ metrics:
     features_total: 91
     features_done: 57
     tasks_total: 384
-    tasks_done: 289
+    tasks_done: 290
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

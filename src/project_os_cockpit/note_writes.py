@@ -228,6 +228,109 @@ def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, A
     ]
 
 
+#: The two shapes a criterion may be resolved into (TASK-0279). Both are what
+#: `validate_docs_bundled.CHECKED_RE` / `RECONCILED_RE` parse — written here as
+#: format strings so the writer and the validator cannot drift into disagreeing
+#: about a line only one of them produces.
+TICK_TEMPLATE = "- [x] {text} — evidence: {evidence} ({actor}, {date})"
+RECONCILE_TEMPLATE = "- [~] {text} — {reason} ({actor}, {date})"
+
+TICK_REQUEST_KEYS: frozenset[str] = frozenset(
+    {"id", "criterion", "evidence", "reason", "actor", "mtime"}
+)
+
+_BOX_RE = re.compile(r"^(\s*[-*+]\s*)\[([ xX~])\]\s*(.*)$")
+
+
+def _criterion_text(line: str) -> str | None:
+    """The prose of a checkbox line, stripped of its box and any resolution
+    already appended. ``None`` when the line is not a checkbox at all."""
+    m = _BOX_RE.match(line)
+    if not m:
+        return None
+    body = m.group(3).strip()
+    # A criterion already ticked carries its evidence after an em dash; match
+    # on the criterion itself so re-ticking is idempotent rather than nested.
+    for sep in (" — evidence:", " — "):
+        if sep in body:
+            body = body.split(sep, 1)[0].strip()
+            break
+    return body
+
+
+def stamp_tick(
+    index: Index,
+    note_id: str,
+    *,
+    criterion: str,
+    evidence: str = "",
+    reason: str = "",
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Resolve one criterion on a note, rewriting **that line only** (TASK-0279).
+
+    Two forms, per DES-0005: a tick carries evidence, a reconcile carries a
+    reason. Both are written from the templates above, in exactly the shape
+    REQ-BOXES and PHASE-BOXES parse — a tick the validator cannot read is worse
+    than no tick, because it looks resolved and does not count.
+
+    **Located by exact criterion text, and ambiguity is a refusal.** Two
+    criteria with the same prose is not a case to guess at: the mtime guard
+    makes a stale match impossible to apply, and an ambiguous one would make a
+    *wrong* match easy to apply.
+    """
+    wanted = (criterion or "").strip()
+    if not wanted:
+        raise WriteError("a tick needs the criterion text it resolves")
+    if evidence and reason:
+        raise WriteError("a criterion is ticked with evidence or reconciled with a reason, not both")
+    if not evidence and not reason:
+        raise WriteError("a tick needs evidence; a reconcile needs a reason")
+
+    path = resolve_note(index, note_id)
+    _check_mtime(path, mtime)
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    matches = [
+        i for i, line in enumerate(lines)
+        if _criterion_text(line) == wanted
+    ]
+    if not matches:
+        raise WriteError(f"no criterion on {note_id} reads {wanted!r}")
+    if len(matches) > 1:
+        raise WriteError(
+            f"{len(matches)} criteria on {note_id} read {wanted!r} — "
+            "resolving one would be a guess about which",
+        )
+
+    idx_line = matches[0]
+    original = lines[idx_line]
+    leading = original[: len(original) - len(original.lstrip())]
+    stamped = (
+        TICK_TEMPLATE if evidence else RECONCILE_TEMPLATE
+    ).format(
+        text=wanted,
+        evidence=evidence.strip(),
+        reason=reason.strip(),
+        actor=actor.strip() or "user:unknown",
+        date=_today(),
+    )
+    # Keep the line's original indentation — a nested criterion stays nested.
+    lines[idx_line] = leading + stamped
+
+    trailing = "\n" if text.endswith("\n") else ""
+    path.write_text("\n".join(lines) + trailing, encoding="utf-8")
+    return {
+        "id": note_id,
+        "criterion": wanted,
+        "form": "ticked" if evidence else "reconciled",
+        "line": idx_line + 1,
+        "date": _today(),
+    }
+
+
 def stamp_transition(
     index: Index,
     note_id: str,

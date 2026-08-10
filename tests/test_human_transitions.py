@@ -154,3 +154,138 @@ def test_a_stale_mtime_refuses_and_writes_nothing(docs_root: Path) -> None:
     with pytest.raises(note_writes.WriteError):
         note_writes.stamp_transition(index, "REQ-0001", to_status="approved", mtime=1.0)
     assert target.read_text(encoding="utf-8") == before
+
+
+# ---- the tick path (TASK-0279) ----------------------------------------
+
+
+def _req_with_criteria(docs_root: Path) -> Path:
+    target = docs_root / "REQ-0002-Criteria.md"
+    target.write_text(
+        '---\n'
+        'type: "[[requirement]]"\n'
+        'id: REQ-0002\n'
+        'aliases: ["REQ-0002"]\n'
+        'title: "Has criteria"\n'
+        'status: approved\n'
+        'specifies: ["[[FEAT-0001]]"]\n'
+        '---\n\n'
+        '# Has criteria\n\n'
+        '## Acceptance Criteria\n\n'
+        '- [ ] The first thing holds\n'
+        '  - [ ] A nested thing holds\n'
+        '- [ ] The second thing holds\n',
+        encoding="utf-8",
+    )
+    return target
+
+
+def test_a_tick_writes_the_shape_the_real_validator_parses(docs_root: Path) -> None:
+    """The DoD's central proof (TASK-0279).
+
+    Not "it looks right" — the actual `validate_docs_bundled` regexes are run
+    over the written line. A tick the validator cannot read is worse than no
+    tick, because it looks resolved and does not count toward REQ-BOXES.
+    """
+    from project_os_cockpit import validate_docs_bundled as v
+
+    target = _req_with_criteria(docs_root)
+    index = Index.build(docs_root)
+    note_writes.stamp_tick(
+        index, "REQ-0002",
+        criterion="The first thing holds",
+        evidence="tests/test_human_transitions.py",
+        actor="user:edwin",
+    )
+    lines = target.read_text(encoding="utf-8").splitlines()
+    ticked = next(ln for ln in lines if "The first thing holds" in ln)
+    assert v.CHECKED_RE.match(ticked), f"the validator does not read this as ticked: {ticked!r}"
+    assert "evidence:" in ticked and "user:edwin" in ticked
+
+    unticked, checked = v.count_acceptance_boxes(target, heading=r"Acceptance\b")
+    assert checked >= 1, "the validator counted no ticked criterion"
+
+
+def test_a_reconcile_writes_the_tilde_shape(docs_root: Path) -> None:
+    from project_os_cockpit import validate_docs_bundled as v
+
+    target = _req_with_criteria(docs_root)
+    index = Index.build(docs_root)
+    note_writes.stamp_tick(
+        index, "REQ-0002",
+        criterion="The second thing holds",
+        reason="descoped, see ISS-0999",
+        actor="user:edwin",
+    )
+    line = next(
+        ln for ln in target.read_text(encoding="utf-8").splitlines()
+        if "The second thing holds" in ln
+    )
+    assert v.RECONCILED_RE.match(line), f"not the reconciled shape: {line!r}"
+    assert "descoped" in line
+
+
+def test_a_tick_preserves_indentation_and_touches_one_line(docs_root: Path) -> None:
+    target = _req_with_criteria(docs_root)
+    before = target.read_text(encoding="utf-8").splitlines()
+    index = Index.build(docs_root)
+    note_writes.stamp_tick(
+        index, "REQ-0002", criterion="A nested thing holds",
+        evidence="a test", actor="user:edwin",
+    )
+    after = target.read_text(encoding="utf-8").splitlines()
+    assert len(after) == len(before)
+    differing = [i for i, (b, a) in enumerate(zip(before, after)) if b != a]
+    assert len(differing) == 1, f"a tick rewrote {len(differing)} lines"
+    assert after[differing[0]].startswith("  - [x]"), (
+        f"nesting was lost: {after[differing[0]]!r}"
+    )
+
+
+def test_an_ambiguous_criterion_is_refused_and_writes_nothing(docs_root: Path) -> None:
+    """Two criteria with the same prose is not a case to guess at."""
+    target = docs_root / "REQ-0003-Ambiguous.md"
+    target.write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-0003\ntitle: "Ambiguous"\n'
+        'status: approved\n---\n\n## Acceptance Criteria\n\n'
+        '- [ ] It works\n- [ ] It works\n',
+        encoding="utf-8",
+    )
+    before = target.read_text(encoding="utf-8")
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.stamp_tick(index, "REQ-0003", criterion="It works", evidence="x")
+    assert "would be a guess" in exc.value.message
+    assert target.read_text(encoding="utf-8") == before
+
+
+def test_a_missing_criterion_is_refused(docs_root: Path) -> None:
+    _req_with_criteria(docs_root)
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.stamp_tick(index, "REQ-0002", criterion="Nothing says this", evidence="x")
+    assert "no criterion" in exc.value.message
+
+
+def test_a_tick_needs_evidence_and_a_reconcile_needs_a_reason(docs_root: Path) -> None:
+    _req_with_criteria(docs_root)
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError):
+        note_writes.stamp_tick(index, "REQ-0002", criterion="The first thing holds")
+    with pytest.raises(note_writes.WriteError):
+        note_writes.stamp_tick(
+            index, "REQ-0002", criterion="The first thing holds",
+            evidence="a", reason="b",
+        )
+
+
+def test_a_stale_mtime_refuses_the_tick(docs_root: Path) -> None:
+    target = _req_with_criteria(docs_root)
+    before = target.read_text(encoding="utf-8")
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError):
+        note_writes.stamp_tick(
+            index, "REQ-0002", criterion="The first thing holds",
+            evidence="x", mtime=1.0,
+        )
+    assert target.read_text(encoding="utf-8") == before

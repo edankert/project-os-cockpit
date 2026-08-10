@@ -700,6 +700,9 @@ def _make_handler(
             if path == "/api/notes/transition":
                 self._serve_note_transition()
                 return
+            if path == "/api/notes/tick":
+                self._serve_note_tick()
+                return
             if path == "/api/notes/test-run":
                 self._serve_test_run()
                 return
@@ -1655,6 +1658,45 @@ def _make_handler(
                     index,
                     str(body.get("id") or ""),
                     to_status=str(body.get("to") or ""),
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_note_tick(self) -> None:
+            """``POST /api/notes/tick`` — resolve one criterion.
+
+            Writes the exact shapes REQ-BOXES / PHASE-BOXES parse. A tick the
+            validator cannot read is worse than no tick: it looks resolved and
+            does not count.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.TICK_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = note_writes.stamp_tick(
+                    index,
+                    str(body.get("id") or ""),
+                    criterion=str(body.get("criterion") or ""),
+                    evidence=str(body.get("evidence") or ""),
+                    reason=str(body.get("reason") or ""),
                     actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
                 )
