@@ -185,3 +185,53 @@ def test_the_renderer_reads_the_count_and_declares_no_kinds() -> None:
         assert clamp not in body, f"the badge clamps the count with {clamp}"
     for kind in ("triage", "draft", "proposed", "changes-requested"):
         assert f"'{kind}'" not in body, f"the renderer names the state {kind!r}"
+
+
+def test_the_features_tree_marks_owed_rows_from_the_registry() -> None:
+    """TASK-0376: the row says it is owed, and says so in the registry's word.
+
+    Read from `obligations`, never re-derived — a row that decided for itself
+    would drift from the badge counting it, which is one number disagreeing
+    with itself on one screen.
+    """
+    from project_os_cockpit import cockpit
+
+    index = Index.build(REPO / "docs")
+    rows = []
+    for group in cockpit.nav_payload(index, mode="features")["groups"]:
+        for item in group["items"]:
+            rows.append(item)
+            rows.extend(item.get("children") or [])
+    owed = [r for r in rows if r.get("owed")]
+    assert owed, "nothing in the features tree is marked owed"
+    for row in owed:
+        assert row.get("owed_verb"), f"{row['id']} is owed with no verb"
+        ob = obligations.for_type(row["type"])
+        assert ob is not None and ob.verb == row["owed_verb"]
+
+
+def test_the_badge_counts_notes_while_the_tree_counts_rows() -> None:
+    """A requirement nests under **every** feature it specifies, so one owed
+    note can be several rows. That is the pre-existing many-to-many edge, not
+    a duplicate — and the badge counts notes, which is what "how many things
+    do I have to do" means.
+
+    Asserted because the two numbers differing looks like a bug until you know
+    why, and the next person to see `5` beside eight highlighted rows deserves
+    the explanation in a test rather than in a guess.
+    """
+    from project_os_cockpit import cockpit
+
+    index = Index.build(REPO / "docs")
+    rows = []
+    for group in cockpit.nav_payload(index, mode="features")["groups"]:
+        for item in group["items"]:
+            rows.append(item)
+            rows.extend(item.get("children") or [])
+    owed_rows = [r for r in rows if r.get("owed")]
+    distinct = {r["id"] for r in owed_rows}
+    badge = obligations.badges_payload(index)["views"]["features"]
+    assert badge == len(distinct), (
+        f"badge {badge} disagrees with {len(distinct)} distinct owed notes"
+    )
+    assert len(owed_rows) >= len(distinct)

@@ -36,6 +36,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
+from . import obligations as _obligations
 from . import statuses
 from . import token_sources
 from .index import Index, NoteRecord
@@ -2824,6 +2825,7 @@ def _requirement_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "subtitle": "",
         "type": record.note_type or "requirement",
         **_verification_flags(record),
+        **_owed_flag(record),
     }
 
 
@@ -4102,6 +4104,20 @@ def _first_body_paragraph(body: str, *, max_chars: int = 220) -> str:
     return text
 
 
+def _owed_flag(record: NoteRecord) -> dict[str, Any]:
+    """Mark a row the registry says is owed (TASK-0376).
+
+    Read from `obligations`, never re-derived: the verb and the states live in
+    one module, and a row that decided for itself would drift from the badge
+    counting it — which is the same number disagreeing with itself on one
+    screen.
+    """
+    ob = _obligations.for_type(record.note_type)
+    if ob is None or not _obligations._is_owed(record, ob):
+        return {}
+    return {"owed": True, "owed_verb": ob.verb}
+
+
 def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
     return {
         "id": record.note_id,
@@ -4111,6 +4127,7 @@ def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "subtitle": record.frontmatter.get("goal") or "",
         "type": record.note_type or "feature",
         **_verification_flags(record),
+        **_owed_flag(record),
     }
 
 
