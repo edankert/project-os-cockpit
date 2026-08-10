@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0061
 aliases: ["FEAT-0061"]
 title: "A thought becomes a triaged issue: ⌘N capture into triage, and a triage tray where those judgments get made"
-status: planned
+status: done
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
@@ -33,3 +33,13 @@ Capture without triage builds a pile; triage without capture has nothing to tria
 
 - Capturing any other type. An idea that is really a feature gets promoted by an agent at triage time.
 - Auto-deduplication at capture. The tray shows likely siblings (same words) beside the row instead; merging is a judgment.
+
+## Closed 2026-08-10
+
+The loop closes: thought → record → judgment, none of it through a prompt.
+
+⌘N files an issue at `triage` in one field; the tray lifts those issues above the severities; Accept-as-severity, Defer and Decline discharge them in one click plus at most one pick.
+
+**Two criteria on [[TASK-0284]] are reconciled rather than ticked** — sibling hints and dispatch-from-the-row. Both are additions to the row, both need surfaces this feature does not own, and the tray does its job without them.
+
+**One defect worth remembering:** the tray's first cut *added* triage issues above the severities while leaving them in their severity cards. One item, two rows, one screen — [[ISS-0068]] inside a single surface. A count identity now asserts every issue appears exactly once across the whole Issues payload.

@@ -4965,3 +4965,46 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .tick-prompt-field::placeholder { color: var(--text-faint); }
 input[type=checkbox][data-criterion="true"] { cursor: pointer; }
+
+
+/* Quick capture (FEAT-0061 / TASK-0283). Centred, one field, no chrome —
+   under three seconds from thought to record is the whole requirement. */
+.capture-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18vh;
+  z-index: 60;
+}
+.capture-box {
+  width: min(560px, 90vw);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px;
+}
+.capture-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.capture-field {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 10px;
+}
+.capture-field:disabled { opacity: 0.6; }
+.capture-hint { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
+.capture-hint.is-error { color: var(--severity-critical); }

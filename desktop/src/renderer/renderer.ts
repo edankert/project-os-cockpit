@@ -9354,6 +9354,106 @@ quickSwitchInput.addEventListener('keydown', (e) => {
 quickSwitchEl.addEventListener('click', (e) => {
   if (e.target === quickSwitchEl) closeQuickSwitch();
 });
+// ----------------------------------------------------------------------
+// Quick capture (FEAT-0061 / TASK-0283)
+// ----------------------------------------------------------------------
+//
+// A thought becomes a record without composing a prompt. Deliberately dumber
+// than the ad-hoc-intake skill: a title now beats a paragraph never, and an
+// agent can be dispatched from the triage row when investigation is worth it.
+//
+// It lands at `triage` rather than `open` — capture records that something was
+// noticed; deciding what it is, is the judgment the triage tray exists for.
+
+function openCapture(): void {
+  if (!sidecarBaseUrl) {
+    showStatus('Open a workspace first', 'error');
+    return;
+  }
+  if (document.getElementById('capture-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'capture-overlay';
+  overlay.className = 'capture-overlay';
+  const box = document.createElement('div');
+  box.className = 'capture-box';
+
+  const label = document.createElement('div');
+  label.className = 'capture-label';
+  label.textContent = currentNoteId
+    ? `Capture an issue · linked to ${currentNoteId}`
+    : 'Capture an issue';
+
+  const field = document.createElement('input');
+  field.type = 'text';
+  field.className = 'capture-field';
+  field.placeholder = 'what did you notice?';
+
+  const hint = document.createElement('div');
+  hint.className = 'capture-hint';
+  hint.textContent = 'Enter files it at triage · Esc closes';
+
+  box.append(label, field, hint);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  field.focus();
+
+  const close = (): void => { overlay.remove(); };
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay) close();
+  });
+  field.addEventListener('keydown', (ev) => {
+    ev.stopPropagation();
+    if (ev.key === 'Escape') { close(); return; }
+    if (ev.key !== 'Enter') return;
+    const title = field.value.trim();
+    if (!title) { close(); return; }
+    field.disabled = true;
+    hint.textContent = 'filing…';
+    void (async () => {
+      try {
+        const resp = await fetch(`${sidecarBaseUrl}/api/notes/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'issue',
+            title,
+            related: currentNoteId ? [`[[${currentNoteId}]]`] : [],
+            actor: 'user:edwin',
+          }),
+        });
+        const data = (await resp.json()) as
+          { ok?: boolean; error?: string; result?: { id?: string } };
+        if (!resp.ok || !data.ok) {
+          // Never lose the text. A capture that eats a thought on a failed
+          // request is worse than no capture — the whole point is that it
+          // costs nothing to use.
+          field.disabled = false;
+          hint.textContent = data.error || `failed: HTTP ${resp.status}`;
+          hint.classList.add('is-error');
+          field.focus();
+          return;
+        }
+        showStatus(`${data.result?.id ?? 'issue'} captured at triage`);
+        close();
+        // No reload: the watcher sees the new file and the pane refreshes.
+      } catch (err) {
+        field.disabled = false;
+        hint.textContent = String(err);
+        hint.classList.add('is-error');
+        field.focus();
+      }
+    })();
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+    e.preventDefault();
+    openCapture();
+  }
+});
+
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
     e.preventDefault();

@@ -201,7 +201,7 @@ items:
     FEAT-0061:
       file: "docs/features/quick-capture/FEAT-0061-Quick-Capture-And-Triage.md"
       title: "A thought becomes a triaged issue: ⌘N capture into triage, and a triage tray where those judgments get made"
-      status: planned
+      status: done
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0283, TASK-0284]
       note: "Thought → record → judgment without composing a prompt. Capture is deliberately dumber than ad-hoc-intake; the agent joins at triage."
@@ -937,18 +937,6 @@ items:
       status: backlog
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0073
-    TASK-0283:
-      file: "docs/features/quick-capture/plan/tasks/TASK-0283-Capture.md"
-      title: "⌘N capture — title in, triage issue out, current note linked, under three seconds"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0061
-    TASK-0284:
-      file: "docs/features/quick-capture/plan/tasks/TASK-0284-The-Triage-Tray.md"
-      title: "The triage tray — accept-as-severity or decline on every row, siblings hinted, investigation one dispatch away"
-      status: backlog
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
-      parent: FEAT-0061
     TASK-0285:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
       title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
@@ -2656,9 +2644,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 59
+    features_done: 60
     tasks_total: 384
-    tasks_done: 293
+    tasks_done: 295
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

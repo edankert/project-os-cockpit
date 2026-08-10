@@ -640,3 +640,114 @@ def test_the_prompt_requires_evidence_or_a_reason() -> None:
     assert "evidence is required" in body
     assert "a reason is required" in body
     assert "Reconcile" in body, "the reconcile form is unreachable"
+
+
+# ---- the triage tray (TASK-0284) --------------------------------------
+
+
+def test_the_triage_tray_regroups_rather_than_duplicates() -> None:
+    """One item, one row (TASK-0284).
+
+    The tray lifts `triage` issues above the severities. If it *added* them
+    instead of moving them, a triage issue would appear twice on one screen —
+    which is ISS-0068's failure happening inside a single surface rather than
+    across two.
+    """
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index as _I
+
+    idx = _I.build(Path(__file__).resolve().parents[1] / "docs")
+    groups = cockpit.nav_payload(idx, mode="issues")["groups"]
+
+    seen: dict[str, int] = {}
+    for group in groups:
+        for item in group["items"]:
+            seen[item["id"]] = seen.get(item["id"], 0) + 1
+    duplicated = {k: v for k, v in seen.items() if v > 1}
+    assert not duplicated, f"items appear more than once in Issues: {duplicated}"
+
+    issue_rows = sum(
+        len(g["items"]) for g in groups if not str(g["key"]).startswith("risk:")
+    )
+    assert issue_rows == len(list(idx.notes_by_type("issue"))), (
+        "the tray lost or duplicated issues"
+    )
+
+
+def test_the_tray_is_absent_when_nothing_needs_triage(docs_root: Path) -> None:
+    """A permanent `Needs triage · 0` is the shape of thing a reader learns
+    to stop seeing."""
+    from project_os_cockpit import cockpit
+
+    for path in (docs_root).rglob("ISS-*.md"):
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace("status: triage", "status: open"), encoding="utf-8")
+    index = Index.build(docs_root)
+    groups = cockpit.nav_payload(index, mode="issues")["groups"]
+    assert not any(g["key"] == "needs-triage" for g in groups)
+
+
+def test_severity_rides_the_triage_transition_and_nothing_else(docs_root: Path) -> None:
+    """Accept-as-severity is one write, not two (TASK-0284).
+
+    And narrow: only an issue leaving `triage`, only the four documented
+    values. A silently-dropped field looks exactly like one that was applied,
+    so anything else is refused rather than ignored.
+    """
+    target = docs_root / "ISS-0500-Captured.md"
+    target.write_text(
+        '---\ntype: "[[issue]]"\nid: ISS-0500\ntitle: "Captured"\n'
+        'status: triage\nseverity: medium\n---\n\n# Captured\n',
+        encoding="utf-8",
+    )
+    index = Index.build(docs_root)
+    result = note_writes.stamp_transition(
+        index, "ISS-0500", to_status="open", severity="high", actor="user:edwin",
+    )
+    assert result["severity"] == "high"
+    # `_set_field` quotes what it writes — the module's convention.
+    fm = target.read_text(encoding="utf-8").split("---", 2)[1]
+    assert any(ln.startswith("severity:") and "high" in ln for ln in fm.splitlines())
+    assert any(ln.startswith("status:") and "open" in ln for ln in fm.splitlines())
+
+    # Not on a note that is not an issue in triage — using a transition that
+    # is otherwise legal, so the severity guard is what refuses it rather
+    # than the table. (Transition legality gates first, which is the right
+    # order: an illegal move should not be reported as a severity problem.)
+    (docs_root / "REQ-0100-Draft.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-0100\ntitle: "Draft req"\n'
+        'status: draft\nspecifies: ["[[FEAT-0001]]"]\n---\n# Draft\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.stamp_transition(
+            Index.build(docs_root), "REQ-0100", to_status="approved", severity="high",
+        )
+    assert "triaging an issue" in exc.value.message
+
+
+def test_an_unknown_severity_is_refused_not_ignored(docs_root: Path) -> None:
+    target = docs_root / "ISS-0501-Captured.md"
+    target.write_text(
+        '---\ntype: "[[issue]]"\nid: ISS-0501\ntitle: "Captured"\n'
+        'status: triage\nseverity: medium\n---\n\n# Captured\n',
+        encoding="utf-8",
+    )
+    before = target.read_text(encoding="utf-8")
+    index = Index.build(docs_root)
+    with pytest.raises(note_writes.WriteError):
+        note_writes.stamp_transition(
+            index, "ISS-0501", to_status="open", severity="urgent",
+        )
+    assert target.read_text(encoding="utf-8") == before
+
+
+def test_capture_never_loses_the_text_on_failure() -> None:
+    """TASK-0283: a capture that eats a thought on a failed request is worse
+    than no capture — the whole point is that it costs nothing to use."""
+    src = _renderer_src()
+    body = src[src.index("function openCapture"):]
+    body = body[:body.index("\ndocument.addEventListener")]
+    assert "field.disabled = false" in body, "a failed create leaves the field disabled"
+    assert "is-error" in body, "a failed create does not say why"
+    assert "field.focus()" in body

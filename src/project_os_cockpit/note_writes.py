@@ -205,7 +205,12 @@ HUMAN_TRANSITIONS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
 #: is itself a recorded action, so the cost of a slip is a line of history.
 CONFIRM_ACTIONS: frozenset[str] = frozenset({"Decline", "Supersede"})
 
-TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset({"id", "to", "actor", "mtime"})
+TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset(
+    {"id", "to", "actor", "mtime", "severity"}
+)
+
+#: Severities an accept-as may record. Same list the issue template documents.
+SEVERITIES: frozenset[str] = frozenset({"critical", "high", "medium", "low"})
 
 
 def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, Any]]:
@@ -345,6 +350,7 @@ def stamp_transition(
     *,
     to_status: str,
     actor: str = "",
+    severity: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Perform one human-owned transition (TASK-0278).
@@ -379,9 +385,25 @@ def stamp_transition(
             "and close-out statuses belong to the agent",
         )
 
+    # Accept-as-severity (TASK-0284): triaging an issue *is* deciding how bad
+    # it is, so the severity rides with the transition rather than needing a
+    # second write. Narrow on purpose — only an issue leaving `triage`, only
+    # the four documented values. Anything else is refused rather than ignored,
+    # because a silently-dropped field looks exactly like one that was applied.
+    sev = (severity or "").strip().lower()
+    if sev:
+        if note_type != "issue" or current != "triage":
+            raise WriteError(
+                "a severity may only be recorded while triaging an issue",
+            )
+        if sev not in SEVERITIES:
+            raise WriteError(f"{severity!r} is not a severity this project uses")
+
     _check_mtime(path, mtime)
     fm_lines, body = _split_frontmatter(path.read_text(encoding="utf-8"))
     fm_lines = _set_field(fm_lines, "status", wanted)
+    if sev:
+        fm_lines = _set_field(fm_lines, "severity", sev)
     fm_lines = _set_field(fm_lines, "updated", _today())
     _write(path, fm_lines, body)
     return {
@@ -389,6 +411,7 @@ def stamp_transition(
         "from": current,
         "to": wanted,
         "actor": actor,
+        "severity": sev or None,
         "date": _today(),
     }
 

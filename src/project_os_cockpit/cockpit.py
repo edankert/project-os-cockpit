@@ -3038,9 +3038,37 @@ def _issues_groups(
         return cards
 
     issues = [r for r in index.notes_by_type("issue") if _platform_match(r, platform)]
-    out: list[dict[str, Any]] = _severity_cards(
-        issues, "", lambda k: k.title() if k != "unset" else "Severity unset", None,
-    )
+
+    # The triage tray, above the severities (TASK-0284). `triage` means a
+    # judgment is owed, and it was the one obligation the review desk never
+    # carried — measured 2026-08-10 across the fleet: 39 issues at `triage`,
+    # median age 56 days, 23 of them older than 30. Severity does not order
+    # them because deciding the severity is the judgment being asked for.
+    #
+    # Absent when empty. A permanent `Needs triage · 0` is the shape of thing
+    # a reader learns to stop seeing.
+    triage = [r for r in issues if (r.status or "").strip().lower() == "triage"]
+    out: list[dict[str, Any]] = []
+    if triage:
+        out.append({
+            "key": "needs-triage",
+            "label": "Needs triage",
+            "url": None,
+            "status": None,
+            "needs_human": True,
+            "items": [_issue_item(index, r) for r in sorted(
+                triage, key=lambda r: (_note_updated(r) or _dt.date.min),
+            )],
+        })
+
+    # Severity cards get everything the tray did not. An issue in both would
+    # be one item as two rows on one screen — the failure ISS-0068 names, and
+    # the reason the tray is a REGROUPING rather than an addition.
+    triaged_paths = {r.path for r in triage}
+    out.extend(_severity_cards(
+        [r for r in issues if r.path not in triaged_paths],
+        "", lambda k: k.title() if k != "unset" else "Severity unset", None,
+    ))
 
     risks = [r for r in index.notes_by_type("risk") if _platform_match(r, platform)]
     out.extend(_severity_cards(
