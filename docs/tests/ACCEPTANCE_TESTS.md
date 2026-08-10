@@ -39,9 +39,9 @@ The tier contract has existed since the template was written. **No repo had ever
 
 **Created unchecked, deliberately** — nothing had been walked, which is the honest starting state for a checklist created the same day, and it meant the gate on [[REL-0001]] was firing rather than passing vacuously.
 
-**11 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
+**13 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
 
-One caveat recorded because it shaped what could be ticked: the running shell was on the current renderer but its Python sidecar predated this session, so payload-dependent views rendered stale. Anything whose evidence is a payload rather than pixels was therefore **left unchecked** even where the payload is demonstrably right.
+One caveat shaped the first pass and was then removed: the running shell was on the current renderer but its Python sidecar predated the session, so payload-dependent views rendered stale, and anything whose evidence was a payload rather than pixels was left unchecked. `desktop/harness/live-harness.html` closes that gap — it runs the built bundle against a **real** sidecar in a plain browser, so the visual checks are walkable without restarting anyone's app. The two it has already settled are marked *rendered*.
 
 ---
 
@@ -81,7 +81,7 @@ One caveat recorded because it shaped what could be ticked: the running shell wa
 
 ## 1.7 Tests ([[FEAT-0086]])
 
-- [ ] **The view lists what we verify:** open Tests. Expect: every `TST-*` in the corpus, grouped by state, each row naming the feature it verifies; both `docs/tests/` and `plan/tests/` present with no sign of the split.
+- [x] **The view lists what we verify:** open Tests. Expect: every `TST-*` in the corpus, grouped by state, each row naming the feature it verifies; both `docs/tests/` and `plan/tests/` present with no sign of the split. — 2026-08-10, **rendered**, via `desktop/harness/live-harness.html` against a current sidecar: four groups — `Tier 1 · 8/27`, `Tier 2 · 3/7`, `Tier 3 · 0/2`, `Verified · 23`. The tier groups sort above `Verified` because they hold unchecked items and it does not, which is the settled-group rule working.
 - [ ] **A manual run works end to end:** open a manual test, press `Run ▸`, walk the steps with evidence, record. Expect: the note gains `status`, `last_run` and a `## Runs` entry, and nothing else changes.
 - [ ] **A failing run offers its issue:** fail a step and record. Expect: an offer naming the step, quoting what the note expected and what you observed; nothing is filed until you press Enter in the capture box.
 
@@ -114,7 +114,7 @@ One caveat recorded because it shaped what could be ticked: the running shell wa
 
 ## 1.14 Obligations ([[FEAT-0089]])
 
-- [x] **The badges cover everything owed:** expect a count on each view button, the sum equal to the registry's total, and no badge at all where nothing is owed. — 2026-08-10: `overview 81 · issues 7 · features 4 · intent 3 · tests 0`, total **95** = the sum; `tests` at 0 carries no badge.
+- [x] **The badges cover everything owed:** expect a count on each view button, the sum equal to the registry's total, and no badge at all where nothing is owed. — 2026-08-10, **rendered**: the buttons carry `overview 81 · design 3 · features 4 · issues 7` — sum **95**, the registry's total — and the Tests button, owed nothing, carries no badge at all.
 
 ---
 
@@ -156,7 +156,7 @@ One caveat recorded because it shaped what could be ticked: the running shell wa
 
 ## 3.1 The Tests view renders ([[TASK-0371]])
 
-- [ ] **Look at the pane:** the payload and the renderer source are both asserted; nobody has looked at the result. Expect: `Stale · over 90 days · 2` above `Verified · 21`, each row naming its feature, no settled divider. *Temporary: this is a one-time visual confirmation of a new surface; the grouping itself is covered by `tests/test_tests_view.py`.*
+- [x] **Look at the pane:** the payload and the renderer source are both asserted; nobody has looked at the result. — 2026-08-10, looked at. Not the expectation as written: `Stale · 2` is **gone**, because the release verification re-ran TST-0001 and TST-0002 the same day and they are fresh. The pane reads `Tier 1 · 8/27`, `Tier 2 · 3/7`, `Tier 3 · 0/2`, `Verified · 23`, no settled divider. *The expectation was stale before the surface was; that is the check doing its job.* Temporary: the grouping is covered by `tests/test_tests_view.py`.
 
 ## 3.2 The run route migrated ([[TASK-0372]])
 

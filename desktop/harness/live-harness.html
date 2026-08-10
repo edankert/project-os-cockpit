@@ -1,0 +1,125 @@
+<!doctype html>
+<!--
+  Renderer harness, live (TASK-0373 / REL-0001 acceptance walk).
+
+  `overview-harness.html` stubs the sidecar with captured fixtures, which is
+  right for looking at a *layout* and useless for verifying a *release*: it
+  shows the payloads of the day it was written.
+
+  This one stubs only the Electron preload bridge and lets `fetch` through to a
+  real sidecar, so the built bundle renders this repo's actual corpus. It is
+  what made the visual half of the acceptance suite walkable without launching
+  the app — which mattered because the app was already running against a
+  sidecar older than the code.
+
+  Serve the repo root and the sidecar from ONE origin, then open:
+
+      /desktop/harness/live-harness.html
+
+  Same origin is not a nicety: the sidecar sends no CORS headers, and the
+  shell-assets route deliberately serves exactly one file (`SHELL_ASSET_FILES`,
+  TASK-0227), so widening it to host this page would trade a security decision
+  for a convenience. A local reverse proxy in front of both is the cheap way.
+
+  Everything here is a stub of the SHELL, never of the record. If a check
+  passes in this harness it passed against the real payload.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cockpit live harness</title>
+  <link rel="stylesheet" href="../dist/renderer/base.css" />
+  <link rel="stylesheet" href="../dist/renderer/cockpit.css" />
+  <link rel="stylesheet" href="../dist/renderer/renderer.css" />
+</head>
+<body>
+<script type="module">
+// ---- the preload bridge, SYNTHESISED FROM `preload.ts` ------------------
+//
+// Not hand-written, and the first draft's failure is why. It guessed
+// `fleetHealth.onChanged` where the bridge exposes `onChange`; the renderer
+// called the missing name at module scope, evaluation aborted, and every
+// `const` after that point became a temporal-dead-zone error — `SVG_NS`,
+// `sidecarUrls` — which read as renderer bugs and were not. **A stub that is
+// wrong in the shape of the bridge fails by blaming the code it exists to
+// exercise.**
+//
+// So the shape comes from the source. Every `name:` under every namespace in
+// `preload.ts` becomes a member; anything called `on*` returns a no-op
+// unsubscribe (the renderer stores the return value), everything else is an
+// async no-op. A bridge method added tomorrow is stubbed tomorrow, without
+// anyone remembering this file exists.
+const noopOff = () => {};
+const src = await (await fetch('../src/preload.ts')).text();
+const bridge = {};
+let ns = null;
+for (const line of src.split('\n')) {
+  const nsm = /^  (\w+): \{/.exec(line);
+  if (nsm) { ns = nsm[1]; bridge[ns] = {}; continue; }
+  if (/^  \},?\s*$/.test(line)) { ns = null; continue; }
+  const mm = /^    (\w+):/.exec(line);
+  if (ns && mm) {
+    const name = mm[1];
+    bridge[ns][name] = /^on[A-Z]/.test(name) ? () => noopOff : async () => ({ ok: true });
+  }
+}
+// Three members need a real answer rather than `{ok:true}`: the workspace
+// list is what the shell iterates, and the sidecar callback is how the URL
+// arrives. Everything else can safely do nothing.
+bridge.workspaces.list = async () => [{
+  id: 'ws1', name: 'project-os-cockpit', root: '/repo', icon: null,
+  lastOpened: null, pinned: false, state: 'idle',
+}];
+bridge.sidecar.onEvent = (cb) => { window.__sidecarCb = cb; return noopOff; };
+bridge.fleetHealth.get = async () => [];
+bridge.agents.fleet = async () => [];
+bridge.agents.sessions = async () => [];
+bridge.dispatch.list = async () => [];
+bridge.settings.get = async () => ({});
+bridge.inbox = bridge.inbox || {};
+bridge.inbox.list = async () => ({ items: [] });
+window.cockpit = bridge;
+window.__bridgeShape = Object.fromEntries(
+  Object.entries(bridge).map(([k, v]) => [k, Object.keys(v)]));
+// `fetch` is NOT stubbed. That is the whole point.
+
+// ---- mount the shell, THEN the bundle -----------------------------------
+// One module, in order, deliberately. Two separate module scripts do not
+// serialise across each other's `await`s, so the bundle could load before
+// `window.cockpit` existed — and the renderer reads the bridge at module
+// scope, so it failed exactly like a missing member did.
+const shellHtml = await (await fetch('../dist/renderer/index.html')).text();
+const doc = new DOMParser().parseFromString(shellHtml, 'text/html');
+document.getElementById('harness-shell').replaceWith(doc.querySelector('.app'));
+
+// Every script `index.html` declares, in its order — not just the bundle.
+// Six of them are plain scripts publishing GLOBALS the module reads
+// (`attentionIds`, `cacheTemperature`, `completedWork`…), which the renderer
+// itself describes as "a plain-script module TypeScript cannot see through".
+// Loading only `renderer.js` left those undefined and the failures pointed at
+// the renderer again. Read from the shell markup so a seventh script is
+// picked up without editing this file.
+for (const el of doc.querySelectorAll('script[src]')) {
+  const src = el.getAttribute('src').replace(/^\.\//, '../dist/renderer/');
+  await new Promise((resolve) => {
+    const s = document.createElement('script');
+    if (el.type) s.type = el.type;
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = resolve;   // xterm is optional here; the terminal is stubbed
+    document.body.appendChild(s);
+  });
+}
+
+// Same origin as the page, so the proxy in front of both is transparent.
+window.setTimeout(() => {
+  window.__sidecarCb?.({
+    kind: 'ready', payload: { workspaceId: 'ws1', url: window.location.origin },
+  });
+}, 400);
+</script>
+
+<div id="harness-shell"></div>
+
+</body>
+</html>
