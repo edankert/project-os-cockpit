@@ -49,10 +49,10 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
-  phase: "PHASE-030"
-  issue: "ISS-0121"
+  task: "TASK-0366"
+  feature: "FEAT-0085"
+  phase: "PHASE-022"
+  issue: ""
   note: "2026-08-09: Edwin asked for a kanban view on the overview. Reviewed and argued against on the status axis — MEASURED: this corpus has 1 in-flight work item (353 tasks: 282 done / 65 backlog / 0 doing), and 77 across 4,630 notes fleet-wide. DES-0001's states audit already said why — work here is bursty, so the middle column is empty at exactly the moments you would look. Drag-to-move is refused anyway by REQ-0026 (close-out statuses are agent-owned). Redirected to the review desk, which Edwin picked over a fleet board (he works one repo at a time). Rendering the desk's real payload to draw the design then found ISS-0121: all ten `Changes requested` rows are terminal, so the desk's most prominent owed section is 100% false and its real load is 3, not 13. DES-0010 is the layout proposal — board as the centre pane's empty state, registers left, actuators on the note per DES-0005. Both are PROPOSALS; nothing implemented, no write path added. Fix ISS-0121 before any layout work, or the board renders ten false cards more prominently."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -2681,7 +2681,7 @@ metrics:
     features_total: 91
     features_done: 56
     tasks_total: 384
-    tasks_done: 285
+    tasks_done: 286
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

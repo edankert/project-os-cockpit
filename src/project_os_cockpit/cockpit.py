@@ -2529,6 +2529,21 @@ def _features_groups(
             reqs_by_feature.setdefault(fid, []).append(req)
             attached_req_paths.add(req.path)
 
+    # Tasks join their feature beside its requirements and plan (TASK-0366).
+    # `_task_records` rather than `notes_by_type` — three tasks carry no
+    # frontmatter and are reachable only by the path sweep (ISS-0067).
+    tasks_by_feature: dict[str, list[NoteRecord]] = {}
+    attached_task_paths: set[Path] = set()
+    all_tasks = [
+        r for r in _task_records(index)
+        if not r.rel_path.startswith("__templates__/") and _platform_match(r, platform)
+    ]
+    for task in all_tasks:
+        fid = _task_feature_id(index, task)
+        if fid:
+            tasks_by_feature.setdefault(fid, []).append(task)
+            attached_task_paths.add(task.path)
+
     grouped: dict[str | None, list[NoteRecord]] = {}
     for record in features:
         grouped.setdefault(_phase_target(record), []).append(record)
@@ -2586,6 +2601,16 @@ def _features_groups(
             plan = _feature_plan(index, r)
             if plan is not None:
                 children.append(_plan_child_item(index, plan))
+            # Tasks last: requirements say what the feature must do, the plan
+            # says how it gets built, and the tasks are that plan being done.
+            child_tasks = tasks_by_feature.get(r.note_id or "", [])
+            if child_tasks:
+                child_tasks_sorted = sorted(
+                    child_tasks, key=lambda x: (x.note_id or "", x.rel_path)
+                )
+                children.extend(
+                    _task_child_item(index, c) for c in child_tasks_sorted
+                )
             if children:
                 item["children"] = children
             items.append(item)
@@ -2596,6 +2621,19 @@ def _features_groups(
                 "url": index.url_for(phase_record.path) if phase_record else None,
                 "status": phase_record.status if phase_record else None,
                 "items": items,
+            }
+        )
+
+    task_orphans = [r for r in all_tasks if r.path not in attached_task_paths]
+    if task_orphans:
+        task_orphans.sort(key=lambda x: (x.note_id or "", x.rel_path))
+        out.append(
+            {
+                "key": "unattached-tasks",
+                "label": "Unattached tasks",
+                "url": None,
+                "status": None,
+                "items": [_task_child_item(index, r) for r in task_orphans],
             }
         )
 
@@ -2651,6 +2689,85 @@ def _requirement_feature_ids(
         if rec is not None and rec.note_type == "feature" and rec.note_id:
             ids.add(rec.note_id)
     return ids
+
+
+def _task_feature_id(index: Index, record: NoteRecord) -> str | None:
+    """The feature a task belongs to, or ``None`` (TASK-0366).
+
+    **The declared edge wins**, resolved through the index the way
+    :func:`_requirement_feature_ids` resolves its own. A slug-matched directory
+    lookup must not masquerade as the relationship — that substitution is
+    ISS-0062, and it cost 19 plans their only surface.
+
+    **Three fields, because the fleet writes three.** ``parent`` is the task
+    template's field and the only one this repo uses (379 of 384). But the
+    cockpit renders twelve repos: ``your-trainer`` has 660 tasks on ``parent``
+    and **387 on ``implements``**, plus 3 on ``feature``. A ``parent``-only
+    resolver would orphan 387 tasks in a corpus this tool is expected to show.
+    ``parent`` takes precedence where a note carries more than one.
+
+    **Path is the fallback for a task that declares nothing**, and measurement
+    is why. Of 384 task notes here: 3 carry no frontmatter at all (the ISS-0067
+    population, reachable only because :func:`_task_records` sweeps the path),
+    and 2 carry frontmatter without any feature field. **All five sit under a
+    `features/<slug>/plan/tasks/` directory**, so their feature is unambiguous;
+    resolving strictly by declaration would send 5 of 5 to an orphan group whose
+    entire population had an obvious home.
+
+    That is the rule :func:`_task_records` already states for the type — *"the
+    type is the claim wherever it is written. The path is only the fallback for
+    notes that make no claim"* — and the one :func:`_feature_plan` applies to
+    plans. A task that declares a parent and a task that declares nothing are
+    different cases, and only the second reads the filesystem.
+    """
+    for field in ("parent", "implements", "feature"):
+        raw = record.frontmatter.get(field)
+        candidates: list[str] = []
+        if isinstance(raw, str):
+            candidates.append(_strip_wikilink(raw))
+        elif isinstance(raw, list):
+            candidates.extend(
+                _strip_wikilink(v) for v in raw if isinstance(v, str)
+            )
+        for candidate in candidates:
+            candidate = candidate.strip()
+            if not candidate:
+                continue
+            path = index.by_id(candidate)
+            rec = index.get(path) if path else None
+            if rec is not None and rec.note_type == "feature" and rec.note_id:
+                return rec.note_id
+        if candidates:
+            # The note named something that is not a feature. It made a claim
+            # and the claim is wrong; do not silently re-home it by path —
+            # the orphan group is where that becomes visible.
+            return None
+
+    parts = record.rel_path.split("/")
+    if len(parts) >= 4 and parts[0] == "features" and parts[-2] == "tasks":
+        feature_dir = Path(record.rel_path).parent.parent.parent
+        for sibling in index.notes_by_type("feature"):
+            if Path(sibling.rel_path).parent == feature_dir and sibling.note_id:
+                return sibling.note_id
+    return None
+
+
+def _task_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
+    """Compact item shape for a task nested under its feature (TASK-0366).
+
+    An untyped task still gets a row, for the reason :func:`_task_records`
+    exists: three of them carry no frontmatter and would otherwise reach no
+    surface at all.
+    """
+    return {
+        "id": record.note_id or record.path.stem,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": "",
+        "type": record.note_type or "task",
+        **_verification_flags(record),
+    }
 
 
 def _requirement_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:

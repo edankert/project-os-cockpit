@@ -109,6 +109,124 @@ def test_nav_payload_features_attaches_requirements_as_children(
     assert sample["status"]  # populated from frontmatter
 
 
+def test_nav_payload_features_attaches_tasks_after_requirements_and_plan(
+    index: Index,
+) -> None:
+    """Tasks join their feature's children **last** (TASK-0366).
+
+    Requirements say what the feature must do, the plan says how it gets
+    built, and the tasks are that plan being done. The order is asserted
+    because it is the reading order the whole tree depends on, and because
+    TASK-0366's DoD requires the two existing child kinds to be unchanged.
+    """
+    payload = nav_payload(index, mode="features")
+    feat1 = next(
+        i for g in payload["groups"]
+        for i in g["items"] if i["id"] == "FEAT-0001"
+    )
+    kinds = [c["type"] for c in feat1["children"]]
+    # Every requirement precedes every plan, which precedes every task.
+    rank = {"requirement": 0, "plan": 1, "task": 2}
+    ranks = [rank[k] for k in kinds if k in rank]
+    assert ranks == sorted(ranks), f"child order broke: {kinds}"
+    assert "task" in kinds, "the fixture's task should nest under its feature"
+
+
+def test_nav_payload_features_task_edge_is_declared_not_path(
+    docs_root: Path,
+) -> None:
+    """A task's feature comes from what it declares (TASK-0366).
+
+    Three fields, because the fleet writes three: `parent` is the template's
+    and the only one this repo uses, but `your-trainer` carries 387 tasks on
+    `implements` and 3 on `feature`. A `parent`-only resolver would orphan
+    them, and the cockpit renders that repo.
+    """
+    for i, field in enumerate(("parent", "implements", "feature")):
+        (docs_root / f"TASK-055{i}-Edge.md").write_text(
+            f'---\ntype: "[[task]]"\nid: TASK-055{i}\ntitle: "Edge {i}"\n'
+            f'status: backlog\n{field}: "[[FEAT-0001]]"\n---\n# Edge\n',
+            encoding="utf-8",
+        )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="features")
+    feat1 = next(
+        i for g in payload["groups"]
+        for i in g["items"] if i["id"] == "FEAT-0001"
+    )
+    ids = {c["id"] for c in feat1["children"]}
+    for i in range(3):
+        assert f"TASK-055{i}" in ids, (
+            f"a task declaring its feature via the {i}th field was not attached"
+        )
+
+
+def test_nav_payload_features_orphan_tasks_group(
+    docs_root: Path,
+) -> None:
+    """A task naming no feature surfaces in "Unattached tasks" (TASK-0366).
+
+    Mirrors the requirements orphan group, and for the same reason: without
+    it, a task with no feature edge becomes unreachable the moment the Tasks
+    view retires (TASK-0368).
+
+    A task whose `parent` names something real that is *not* a feature lands
+    here too — measured in `your-trainer`, 14 tasks parent to an `ISS-*`.
+    The note made a claim and the claim does not resolve to a feature; the
+    orphan group is where that becomes visible rather than being silently
+    re-homed by directory.
+    """
+    (docs_root / "TASK-0560-No-Feature.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0560\ntitle: "No feature"\n'
+        'status: backlog\n---\n# No feature\n',
+        encoding="utf-8",
+    )
+    (docs_root / "TASK-0561-Parents-An-Issue.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0561\ntitle: "Parents an issue"\n'
+        'status: backlog\nparent: "[[ISS-0001]]"\n---\n# Issue-parented\n',
+        encoding="utf-8",
+    )
+    fresh = Index.build(docs_root)
+    payload = nav_payload(fresh, mode="features")
+    orphans = next(
+        (g for g in payload["groups"] if g["key"] == "unattached-tasks"), None
+    )
+    assert orphans is not None, "orphan task group should appear"
+    ids = {i["id"] for i in orphans["items"]}
+    assert "TASK-0560" in ids
+    assert "TASK-0561" in ids, "a task parented to a non-feature is unattached"
+    assert "TASK-0001" not in ids  # declares FEAT-0001, not an orphan
+
+
+def test_nav_payload_features_every_task_appears_exactly_once(
+    index: Index,
+) -> None:
+    """The count identity (TASK-0366).
+
+    Nested + unattached == every task note. This is what proves the retirement
+    of the Tasks view (TASK-0368) leaves nothing unreachable, and it is the
+    assertion the DoD names — a task silently dropped by the resolver would
+    otherwise look exactly like a task that has no feature.
+    """
+    payload = nav_payload(index, mode="features")
+    nested = sum(
+        1
+        for g in payload["groups"] if g["key"] != "unattached-tasks"
+        for it in g["items"]
+        for c in (it.get("children") or []) if c["type"] == "task"
+    )
+    orphaned = sum(
+        len(g["items"]) for g in payload["groups"] if g["key"] == "unattached-tasks"
+    )
+    total = len([
+        r for r in cockpit._task_records(index)
+        if not r.rel_path.startswith("__templates__/")
+    ])
+    assert nested + orphaned == total, (
+        f"tasks lost or duplicated: {nested} nested + {orphaned} orphaned != {total}"
+    )
+
+
 def test_nav_payload_features_orphan_requirements_group(
     index: Index, docs_root: Path
 ) -> None:
