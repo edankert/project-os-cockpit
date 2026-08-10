@@ -3039,6 +3039,11 @@ interface ReviewRegisterTest {
 interface ReviewRegisterReviewed {
   id: string; title: string; rel: string; type: string;
   verdict: string; reviewed_by?: string; review_date?: string;
+  // Server-computed (ISS-0121). NOT derivable from `verdict` alone: the
+  // field is sticky, so a `changes-requested` note that has since reached
+  // a terminal status owes nothing. The predicate lives in `cockpit.py`
+  // beside the statuses it reads — see `_verdict_is_owed`.
+  owed?: boolean;
 }
 interface ReviewQueuePayload {
   schema_version: number; total: number; groups: ReviewQueueGroup[];
@@ -4300,9 +4305,20 @@ function buildTestsRegister(tests: ReviewRegisterTest[]): HTMLElement | null {
  *  `accepted` and `approved` both appear in this corpus and are both read
  *  as finished; reconciling them is ISS-0069's problem, not this one's.
  */
-function isOwedVerdict(verdict: string | undefined): boolean {
-  const v = (verdict || '').trim().toLowerCase();
-  return v === 'changes-requested' || v === 'rejected';
+/** Whether a register row still owes work.
+ *
+ *  Reads the server's `owed` flag rather than re-deriving it. The verdict
+ *  alone was the ISS-0121 defect: `review_verdict` is sticky, so all ten
+ *  rows the desk headed `Changes requested` were terminal and none was
+ *  owed. The discriminator is the subject's current status, and it lives
+ *  in one module (`cockpit.py:_verdict_is_owed`) rather than here — the
+ *  ISS-0023 rule.
+ *
+ *  Falls back to `false` when the field is absent: an older sidecar that
+ *  does not send it should under-report rather than resurrect ten false
+ *  obligations. */
+function isOwedVerdict(item: ReviewRegisterReviewed): boolean {
+  return item.owed === true;
 }
 
 // Sourced from note frontmatter, not the store — `_MAX_REQUESTS` trims
@@ -4322,8 +4338,8 @@ function buildReviewedRegister(
   // Hide-completed switch made: a terminal-looking label on something
   // still owed. They are promoted to sit with the live work; the rest
   // collapse into one card per verdict.
-  const owed = items.filter((i) => isOwedVerdict(i.verdict));
-  const settled = items.filter((i) => !isOwedVerdict(i.verdict));
+  const owed = items.filter(isOwedVerdict);
+  const settled = items.filter((i) => !isOwedVerdict(i));
 
   const renderRow = (item: ReviewRegisterReviewed): HTMLElement => {
     const row = document.createElement('button');

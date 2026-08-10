@@ -2150,6 +2150,40 @@ def _tests_register(index: Index) -> list[dict[str, Any]]:
     return out
 
 
+#: Verdicts that leave work owed — a reviewer asked for something.
+OWED_VERDICTS: frozenset[str] = frozenset({"changes-requested", "rejected"})
+
+
+def _verdict_is_owed(verdict: str, status: str | None) -> bool:
+    """True when a verdict still owes somebody work (ISS-0121).
+
+    The verdict alone is not enough, and reading it alone is the defect this
+    replaces: ``review_verdict`` is **sticky**. A reviewer writes
+    ``changes-requested``, the work is done, the note reaches ``fixed`` /
+    ``done`` / ``merged`` — and nothing clears the stamp. Measured 2026-08-10:
+    all ten rows the desk headed *Changes requested* were terminal. Genuinely
+    owed: zero.
+
+    So the subject's **current status** is the discriminator, and it is the only
+    one available. The obvious alternative — compare the note's ``updated``
+    against its ``review_date``, on the theory that work landing after a verdict
+    settles it — was measured first and does not work: stamping the verdict *is*
+    an edit, so ``updated`` is set to the review's own day. 10 of the 10, and 85
+    of the 103 verdicts in the corpus, have ``updated <= review_date``. The
+    comparison would call every one of them still-owed, which is backwards.
+
+    **Known limitation, recorded rather than hidden.** A genuine re-review of
+    already-finished work — a ``merged`` change someone then asks changes of —
+    reads as settled here. Separating it needs the date the note *became*
+    terminal, which frontmatter does not carry; ``status_diff`` recovers it from
+    ``git log`` and wiring that into a per-request register is disproportionate
+    to a case this corpus has never produced. If it occurs, that is the fix.
+    """
+    if verdict not in OWED_VERDICTS:
+        return False
+    return not statuses.is_completed(status)
+
+
 def _reviewed_register(index: Index) -> list[dict[str, Any]]:
     """Items carrying an independent-review verdict (TASK-0242).
 
@@ -2171,10 +2205,12 @@ def _reviewed_register(index: Index) -> list[dict[str, Any]]:
         if not isinstance(verdict, str) or not verdict.strip():
             continue
         item = _slim_note(record)
+        normalised = verdict.strip().lower()
         item.update({
-            "verdict": verdict.strip().lower(),
+            "verdict": normalised,
             "reviewed_by": str(record.frontmatter.get("reviewed_by") or ""),
             "review_date": str(record.frontmatter.get("review_date") or ""),
+            "owed": _verdict_is_owed(normalised, record.status),
         })
         out.append(item)
     # Most recent first. A note with no `review_date` still lists — it

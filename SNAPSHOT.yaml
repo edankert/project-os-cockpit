@@ -36,7 +36,7 @@ counters:
   # missing counter. Upstream ships `DES: 0`.
   DES: 10
   CHG:
-    last_date: 20260724
+    last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
   ISS: 128
@@ -1446,9 +1446,9 @@ items:
     ISS-0121:
       file: "docs/issues/ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed.md"
       title: "The reviewed register counts settled work as owed — all ten `Changes requested` rows are terminal"
-      status: open
+      status: fixed
       severity: medium
-      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
       note: "Found while rendering the desk payload to draw DES-0010, not by anyone reporting it. `review_verdict` is sticky: a reviewer writes changes-requested, the work lands, the note reaches fixed/done/merged, and nothing clears the stamp — so TASK-0277's owed split accumulates permanent false positives. All 10 of 10 are terminal, 8 of them since 2026-07-30. The desk's real load is 3, not 13. Fix before any ~review layout change, which would render these more prominently."
     ISS-0120:
       file: "docs/issues/ISS-0120-The-Gates-Own-Severity-Is-Untested.md"
@@ -2687,7 +2687,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 4
+    issues_open: 3
     issues_triage: 8
     risks_open: 6
     releases_total: 1

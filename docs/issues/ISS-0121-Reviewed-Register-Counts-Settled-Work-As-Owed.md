@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0121
 aliases: ["ISS-0121"]
 title: "The reviewed register counts settled work as owed — all ten `Changes requested` rows are terminal"
-status: open
+status: fixed
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-09
@@ -12,7 +12,7 @@ source: ["Session 2026-08-09: reviewing a proposed board layout for ~review, the
 severity: medium
 component: "review-desk"
 parent: ""
-related: ["[[DES-0010-The-Desk-Shows-What-It-Owes]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[TASK-0277-Changes-Requested-Is-Not-Finished]]"]
+related: ["[[CHG-20260810-Reviewed-Register-Reads-The-Subject]]", "[[DES-0010-The-Desk-Shows-What-It-Owes]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[TASK-0277-Changes-Requested-Is-Not-Finished]]"]
 tests: []
 ---
 
@@ -78,8 +78,23 @@ A desk that overstates what it owes by a factor of four teaches its reader to di
 
 It also blocks measurement: any layout change to `~review` (see [[DES-0010]]) would render these ten more prominently, not less.
 
+## Measured 2026-08-10 — the date-based discriminator does not work
+
+The third action below proposed distinguishing *"was owed, then done"* from *"a re-review of finished work"* by comparing the note's `updated` against its `review_date`. **Measured before implementing, and it fails.**
+
+| | |
+|---|---|
+| the 10 `changes-requested` rows with `updated` **≤** `review_date` | **10 of 10** |
+| all terminal notes with a verdict, same comparison | **85 of 103** |
+
+The cause is structural: **stamping the verdict is itself the last edit.** A reviewer writes `review_verdict` and `review_date` into the note, and that write sets `updated` to the same day. So `updated` can never post-date `review_date` in the normal flow, and the comparison classifies every one of the ten as *still owed* — precisely backwards.
+
+**So the predicate is the simple one:** a `changes-requested` verdict on a note that is **now terminal** is settled.
+
+**And the inverse case is a recorded limitation rather than a solved problem.** A genuine re-review of already-finished work — a `merged` CHG that someone then asks changes of — will be misclassified as settled by this predicate, because the only evidence that would separate the two cases is *when the note became terminal*, and `updated` cannot supply it. That date is recoverable from git (`status_diff.py` already parses `git log -U0` for status transitions), but wiring git history into a per-request register is disproportionate to a case that has never occurred here. If it occurs, that is the fix.
+
 ## Next Actions
 
-- [ ] Filter the owed split on the subject's current status: a verdict whose note is terminal is settled, and joins the completed band under its own verdict name rather than the owed heading
-- [ ] Decide where the predicate lives — `_reviewed_register` server-side is preferred, so the renderer keeps drawing what it is sent (the [[ISS-0023]] rule)
-- [ ] Check the inverse case has a home: a note that reached terminal *before* its verdict date is a re-review request against finished work, which is legitimate and must not be filtered away
+- [x] Filter the owed split on the subject's current status: a verdict whose note is terminal is settled, and joins the completed band under its own verdict name rather than the owed heading — evidence: the measurement above
+- [x] Decide where the predicate lives — `_reviewed_register` server-side, so the renderer keeps drawing what it is sent (the [[ISS-0023]] rule)
+- [~] Check the inverse case has a home — **reconciled**: undetectable from note frontmatter for the reason measured above; recorded as a limitation with its remedy named

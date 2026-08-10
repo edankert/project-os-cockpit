@@ -1075,27 +1075,52 @@ def test_a_status_named_group_does_not_repeat_its_status() -> None:
 
 
 def test_changes_requested_is_not_treated_as_finished() -> None:
-    """TASK-0277 — the sharpest point of the whole phase, on the one
-    surface that still got it wrong.
+    """TASK-0277 — the sharpest point of that phase — as amended by ISS-0121.
 
-    `changes-requested` means a reviewer asked for work and nothing has
-    recorded it happening. Ten of this corpus's 82 reviewed notes carry
-    it. Filing them under "reviewed" is a terminal-looking label on an
-    open obligation — the error the Hide-completed switch made.
+    `changes-requested` means a reviewer asked for work. TASK-0277 promoted
+    those rows to sit with live work, which was right, and read the verdict
+    alone, which was not: the field is **sticky**. Measured 2026-08-10, all
+    ten rows the desk headed `Changes requested` had reached a terminal
+    status. Genuinely owed: zero.
+
+    So the assertion moved rather than relaxed. The vocabulary of owed
+    verdicts now lives in `cockpit.py` beside the statuses that qualify it
+    (the ISS-0023 rule), and the renderer reads the flag it is sent. This
+    guards both halves: the vocabulary is still complete, and the renderer
+    still does not re-derive it.
     """
+    from project_os_cockpit import cockpit
+
+    # The vocabulary half — unchanged in meaning, moved in location.
+    assert cockpit.OWED_VERDICTS == {"changes-requested", "rejected"}, (
+        "an owed verdict was added or dropped without this test noticing"
+    )
+    for done in ("approved", "accepted", "plan-accepted"):
+        assert done not in cockpit.OWED_VERDICTS, (
+            f"{done!r} is being treated as owed — all are finished verdicts, "
+            "and reconciling them is ISS-0069's problem, not this one's"
+        )
+
+    # The sticky half — ISS-0121. A terminal subject owes nothing.
+    assert cockpit._verdict_is_owed("changes-requested", "open") is True
+    assert cockpit._verdict_is_owed("changes-requested", "fixed") is False
+    assert cockpit._verdict_is_owed("changes-requested", "done") is False
+    assert cockpit._verdict_is_owed("changes-requested", "merged") is False
+    assert cockpit._verdict_is_owed("approved", "open") is False
+
+    # The renderer half — reads the server's flag, never the verdict string.
     ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
     fn = re.search(
-        r"function isOwedVerdict\(verdict: string \| undefined\): boolean \{(.*?)\n\}",
+        r"function isOwedVerdict\(item: ReviewRegisterReviewed\): boolean \{(.*?)\n\}",
         ts, re.DOTALL,
     )
-    assert fn, "isOwedVerdict not found"
+    assert fn, "isOwedVerdict not found, or no longer takes the whole item"
     body = fn.group(1)
+    assert "item.owed" in body, "the renderer is not reading the server's flag"
     for owed in ("changes-requested", "rejected"):
-        assert owed in body, f"{owed!r} is counted as finished review work"
-    for done in ("approved", "accepted"):
-        assert f"'{done}'" not in body, (
-            f"{done!r} is being treated as owed — both are finished verdicts, "
-            "and reconciling the two is ISS-0069's problem, not this one's"
+        assert owed not in body, (
+            f"{owed!r} is restated in the renderer — the vocabulary belongs to "
+            "cockpit.py alone (ISS-0023)"
         )
     assert "`Changes requested · ${owed.length}`" in ts, (
         "the owed verdicts no longer get their own live section"
