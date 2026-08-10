@@ -1,12 +1,10 @@
 ---
 type: reference
 id: DESIGN
-status: active
 owner: group:maintainers
 created: 2026-01-26
 updated: 2026-01-26
-tags: [design]
----
+tags: [design]---
 
 # Design (Reference)
 

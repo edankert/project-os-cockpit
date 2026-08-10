@@ -1,12 +1,10 @@
 ---
 type: glossary
 id: GLOSSARY
-status: active
 owner: user:edwin
 created: 2026-05-07
 updated: 2026-08-10
-tags: [glossary]
----
+tags: [glossary]---
 
 # Glossary
 

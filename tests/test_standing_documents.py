@@ -107,3 +107,75 @@ def test_adding_a_document_needs_no_code_change() -> None:
             f"{name} is named below the manifest — a consumer knows a member "
             "by name, so adding one would need a code change"
         )
+
+
+# ---- freshness, and the absence of a lifecycle (TASK-0381) -------------
+
+import datetime as _dt
+
+
+def test_no_standing_document_carries_a_lifecycle_status() -> None:
+    """ISS-0125's finding, closed (TASK-0381).
+
+    `active` is in the **work-in-flight band**, so these documents were
+    coloured, sorted and counted as work somebody was doing — 18 references
+    and the glossary made up 19 of the 44 rows Active mode called `Doing`.
+    They have no lifecycle; `updated:` is their only state.
+    """
+    offenders = [
+        f.document for f in standing.check(REPO / "docs", REPO)
+        if f.kind == "has_status"
+    ]
+    assert not offenders, f"standing documents still carrying a status: {offenders}"
+
+
+def test_staleness_warns_and_never_errors() -> None:
+    """Upstream ADR-0011's pattern. A build that fails because a glossary is
+    old gets the check disabled within a week."""
+    for finding in standing.check(REPO / "docs", REPO):
+        if finding.kind in ("stale", "stub"):
+            assert finding.severity == "warning", (
+                f"{finding.document} {finding.kind} is an error; it must warn"
+            )
+
+
+def test_the_four_kinds_are_reported_distinctly(tmp_path: Path) -> None:
+    """Collapsing them into "problem" loses the only useful part — what to do
+    about each differs completely."""
+    docs = tmp_path / "docs"
+    (docs / "sub").mkdir(parents=True)
+    (docs / "README.md").write_text("# ok\n", encoding="utf-8")
+    (docs / "GLOSSARY.md").write_text("# a\n", encoding="utf-8")
+    (docs / "sub" / "GLOSSARY.md").write_text("# b\n", encoding="utf-8")
+    (docs / "DESIGN.md").write_text(
+        '---\nupdated: 2020-01-01\n---\n# d\n<a placeholder>\n<another one>\n<a third>\n',
+        encoding="utf-8",
+    )
+    kinds = {f.document: f.kind for f in standing.check(docs, tmp_path)}
+    assert kinds["GLOSSARY"] == "ambiguous"
+    assert kinds["INDEX"] == "missing"
+    assert kinds["DESIGN"] in ("stub", "stale")
+    seen = {f.kind for f in standing.check(docs, tmp_path)}
+    assert {"ambiguous", "missing"} <= seen
+
+
+def test_the_staleness_horizon_carries_its_reason() -> None:
+    """A round number with no reason is a number somebody will change on a
+    whim. 180 was chosen against what abandonment actually looked like."""
+    src = (REPO / "src" / "project_os_cockpit" / "standing.py").read_text(encoding="utf-8")
+    block = src.split("STALE_AFTER_DAYS")[0][-1400:]
+    assert "ISS-0125" in block, "the horizon does not cite what it was measured against"
+    assert "parameter" in block.lower(), "the horizon does not say it is adjustable"
+
+
+def test_a_stale_document_is_found_by_age_not_by_name() -> None:
+    docs = REPO / "docs"
+    stale = {f.document for f in standing.check(docs, REPO) if f.kind == "stale"}
+    # Measured 2026-08-10: DESIGN and STYLEGUIDE untouched since 2026-01-26.
+    assert stale, "nothing reports stale in a corpus ISS-0125 measured at 94%"
+    for name in stale:
+        text = (docs / f"{name}.md").read_text(encoding="utf-8")
+        m = standing._UPDATED_RE.search(text)
+        if m:
+            age = (_dt.date.today() - _dt.date.fromisoformat(m.group(1))).days
+            assert age > standing.STALE_AFTER_DAYS
