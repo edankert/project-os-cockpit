@@ -39,7 +39,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 90
-  ISS: 123
+  ISS: 124
   PHASE: 30
   REQ: 32
   RISK: 6
@@ -1381,6 +1381,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0124:
+      file: "docs/issues/ISS-0124-Four-Note-Types-Have-No-Status-Table.md"
+      title: "Four note types have no status table, so 21 notes carry a `status:` nothing validates — ARCHITECTURE.md has read `draft` for three months unchallenged"
+      status: triage
+      severity: low
+      phase: ""
+      note: "`reference` (18), `architecture`, `glossary`, `dashboard` are absent from ALLOWED_STATUS. The validator guards table-against-table (_check_values errors when an internal table names a type the status table lacks) but never corpus-against-table, which is the direction a real note travels. ARCHITECTURE.md has read `draft` since 2026-05-07 unchallenged, with an `updated:` that predates content describing the desktop shell. Deliberately NOT the question of whether `architecture` becomes first-class — that is measured after FEAT-0087's Intent view exists."
     ISS-0123:
       file: "docs/issues/ISS-0123-Upstream-ADR-Namespace-Is-Cited-But-Absent.md"
       title: "ADR-0011 is cited in 26 files and ADR-0013 in 22, and neither note exists in this repo or upstream — the upstream decision namespace is quoted but unresolvable"
@@ -2633,7 +2640,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 3
+    issues_triage: 4
     risks_open: 6
     releases_total: 0
     decisions_total: 11
