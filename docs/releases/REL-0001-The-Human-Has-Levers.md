@@ -35,19 +35,21 @@ Two findings produced it. [[PHASE-023]]'s: *every transition in the ownership ta
 
 | ID | Title | Status | From |
 |---|---|---|---|
-| FEAT-0085 | The navigator shows the structure the record has | planned | PHASE-022 |
-| FEAT-0059 | note_writes widens — the transition table as data | planned | PHASE-023 |
-| FEAT-0060 | The actuator row on the note | planned | PHASE-023 |
-| FEAT-0061 | Quick capture and the triage tray | planned | PHASE-023 |
-| FEAT-0089 | The obligation registry and the badges | planned | PHASE-030 |
-| FEAT-0091 | The standing documents | planned | PHASE-030 |
-| FEAT-0087 | Design widens into the project's constraints (Intent) | planned | PHASE-030 |
-| FEAT-0086 | Tests becomes a view | planned | PHASE-030 |
-| FEAT-0088 | Features carries its own judgments | planned | PHASE-030 |
-| FEAT-0071 | Since you looked — the watermark and digest | planned | PHASE-026 |
-| FEAT-0090 | The desk retires | planned | PHASE-030 |
+| FEAT-0085 | The navigator shows the structure the record has | done | PHASE-022 |
+| FEAT-0059 | note_writes widens — the transition table as data | done | PHASE-023 |
+| FEAT-0060 | The actuator row on the note | done | PHASE-023 |
+| FEAT-0061 | Quick capture and the triage tray | done | PHASE-023 |
+| FEAT-0089 | The obligation registry and the badges | done | PHASE-030 |
+| FEAT-0091 | The standing documents | done | PHASE-030 |
+| FEAT-0087 | Design widens into the project's constraints (Intent) | done | PHASE-030 |
+| FEAT-0086 | Tests becomes a view | done | PHASE-030 |
+| FEAT-0088 | Features carries its own judgments | done | PHASE-030 |
+| FEAT-0071 | Since you looked — the watermark and digest | done | PHASE-026 |
+| FEAT-0090 | The desk retires | done | PHASE-030 |
 
 Order is the implementation order, not the table's convenience — see below.
+
+**All eleven are `done` as of 2026-08-10.** Implemented in the stated order across two sessions; each feature's own note carries what it found.
 
 ### Features NOT Included (deferred)
 
@@ -113,6 +115,27 @@ Not applicable — this is not a versioned artifact. The "release" here is a sta
 ### What this release does not claim
 
 It does not claim the record is *correct*. [[FEAT-0091]] makes the 94%-stale standing documents visible; it does not make them true. Twelve are still template stubs fleet-wide. Visibility is the deliverable.
+
+### Landed 2026-08-10 — and the gate is red
+
+Eleven features, in the release's own order. What the sessions found, rather than what they built, is the part worth keeping:
+
+- **Surfaces asserting things that were not true**, found by measurement rather than by report: 10 false *Changes requested* rows (all terminal), 8 of 8 badge kinds where a hand-written list had 6, an issue draft two records described and nothing produced, a `Risks` tile pointing at a pane its type had left, and two staleness rules disagreeing by 30 days and a field.
+- **[[ISS-0056]] had been quietly re-opened** by [[FEAT-0059]]'s generic transition table — a design could have been accepted with no `design_revision`. Unreachable only because no design here has ever been `proposed`.
+- **The tier contract had never been instantiated anywhere.** 92 `TST-*` notes across twelve repos, zero tier classification, a release gate that had never been able to fire.
+
+**It fires now, and it blocks this release.** `docs/tests/ACCEPTANCE_TESTS.md` holds 27 Tier 1 and 7 Tier 2 items, every one unchecked, because nothing in it has been walked. Per `tools/instructions/TESTING.md`: *"a release is blocked while any Tier 1/Tier 2 test is unchecked (exceptions must be documented in the release note)."*
+
+This note therefore stays `draft`. **No exceptions are claimed** — the honest state is that the code is done, the record is closed, and the manual acceptance pass has not been run. A green gate here would have meant nothing, since the suite that produces it was created the same day.
+
+### Two acceptance criteria reconciled rather than ticked
+
+- **[[FEAT-0090]]**: the desk's button and mode are gone and migrate; the **route stays served**. `.cockpit/review-requests.json` holds one OPEN entry, and retiring the route would strand it. Where proposals, questions and offered designs land is [[ISS-0126]] — one of the four decisions this note reserves.
+- **[[FEAT-0088]]**: a feature at `acceptance: requested` is marked but offers no run, because [[FEAT-0063]]'s runner does not exist. A door to nothing teaches the reader the feature works.
+
+### Still reserved for Edwin
+
+Unchanged, and none of them blocked the work: [[ISS-0126]], [[ADR-0010]] (still `proposed`, and the constraints view's single obligation), [[ISS-0127]], and the cutoff for the 81 unreviewed `CHG-*` notes ahead of [[ADR-0011]]'s 2026-10-23 deadline.
 
 ### The goal it serves
 

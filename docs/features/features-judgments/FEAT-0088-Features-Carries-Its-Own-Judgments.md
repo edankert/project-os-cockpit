@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0088
 aliases: ["FEAT-0088"]
 title: "Features carries its own judgments — requirement approval and acceptance surface beside the work they concern"
-status: planned
+status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -43,13 +43,21 @@ Both change the Features view and can land in either order, but they touch the s
 
 ## Acceptance
 
-- [ ] A `draft` requirement is marked as awaiting approval where it already sits, nested under its feature
-- [ ] A feature at `acceptance: requested` is marked and offers the run's entry point
-- [ ] Both are counted in the view's badge and come from the registry, not from a local list
-- [ ] Approving does not satisfy any close-out gate — [[ADR-0007]]'s separation of `plan-accepted` from `approved` survives, so a plan stamp can never silence an independent-review gate
-- [ ] A `changes-requested` feature or task is visible in the tree without a second list anywhere
+- [x] A `draft` requirement is marked as awaiting approval where it already sits, nested under its feature — `_owed_flag` on `_requirement_child_item`; `REQ-0029..0032` marked today ([[TASK-0376]])
+- [~] A feature at `acceptance: requested` is marked and offers the run's entry point — **marked, but the entry point is not built**: [[FEAT-0063]]'s acceptance runner does not exist, and a door to nothing teaches the reader the feature works. The mark and the badge are real; the run is [[PHASE-024]]'s
+- [x] Both are counted in the view's badge and come from the registry, not from a local list — read from `obligations`, never re-derived; the badge counts *notes* while the tree highlights *rows*, and `test_the_badge_counts_notes_while_the_tree_counts_rows` pins the relationship so the difference reads as an explanation rather than a bug
+- [x] Approving does not satisfy any close-out gate — [[ADR-0007]]'s separation survives: `stamp_review` refuses gate-bearing note types, and the human-transition table writes `approved`, never `plan-accepted`
+- [x] A `changes-requested` feature or task is visible in the tree without a second list anywhere — the row carries the mark; there are zero genuinely-owed verdicts in this corpus ([[ISS-0121]]), and [[FEAT-0090]] asserts no second list exists
 
 ## Links
 
 - Decision: [[ADR-0020-Obligations-Live-With-Their-Subject]]
 - Paths: `src/project_os_cockpit/cockpit.py` (`_features_groups`, `_requirement_child_item`), `desktop/src/renderer/renderer.ts`
+
+## Closed 2026-08-10
+
+Landed with [[TASK-0376]] and closed here after [[FEAT-0090]]'s walk confirmed the third row of [[ADR-0020]]'s table — *`changes-requested` re-review → the view owning each note's type* — is answered by these marks and by no second list.
+
+**One criterion reconciled rather than ticked.** A feature at `acceptance: requested` is marked, but the run's entry point is not built, because [[FEAT-0063]]'s runner does not exist. Offering a door to nothing is worse than offering none: it teaches the reader the feature works. [[FEAT-0086]] gave that runner its home in the Tests view; building it is the next release.
+
+The finding worth keeping: **the features badge reads 4 while the tree highlights more rows**, because a requirement nests under every feature it specifies. Both are correct — the badge counts notes. Pinned by a test so the next reader gets an explanation rather than a guess.
