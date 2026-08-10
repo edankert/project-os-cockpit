@@ -39,7 +39,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 125
+  ISS: 126
   PHASE: 30
   REQ: 33
   RISK: 6
@@ -1388,6 +1388,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0126:
+      file: "docs/issues/ISS-0126-Desk-Resolution-Flows-Target-A-Retired-Surface-And-Two-Empty-States.md"
+      title: "FEAT-0062 builds two verbs onto the surface ADR-0020 retires, for one state that is empty after ISS-0121 and one that has never occurred"
+      status: triage
+      severity: medium
+      phase: "[[PHASE-023-Levers-For-The-Human]]"
+      note: "Found reviewing all open phases for order. FEAT-0062's goal names 'the same surface' — the desk — which ADR-0020 removes. Its re-review verb targets a state ISS-0121 measured as empty (0 genuinely owed) and its answer verb a state never once written (0 questions in 8 ledger requests). PHASE-023 is the keystone for six phases; hitting this mid-phase invites a rushed answer, so decide it before the phase runs."
     ISS-0125:
       file: "docs/issues/ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home.md"
       title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — 94% of them are stale fleet-wide, and a style guide has been `active` for six months"
@@ -2661,7 +2668,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 5
+    issues_triage: 6
     risks_open: 6
     releases_total: 0
     decisions_total: 11

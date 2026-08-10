@@ -21,7 +21,7 @@ requirements:
 issues:
   - "[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]"
   - "[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]"
-depends: ["[[PHASE-023-Levers-For-The-Human]]"]
+depends: ["[[PHASE-023-Levers-For-The-Human]]"]   # PARTIAL — see "What this phase depends on, precisely"
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[DES-0005-The-Actuator-Grammar]]"]
 tags: [surfaces, obligations]
 ---
@@ -41,6 +41,14 @@ The desk was built on the premise that obligations belong in one place. Measurem
 3. **[[FEAT-0090]] last.** The desk is removed only once nothing on it is homeless — which the registry can prove rather than assert.
 
 [[ISS-0121]] is carried here as a member because the reviewed register moves in [[FEAT-0090]], and moving a register that counts settled work as owed would relocate the defect rather than fix it.
+
+## What this phase depends on, precisely
+
+The `depends:` above says [[PHASE-023]] and means **half of this phase**. Written down because the blanket claim already contradicts reality — this phase is `active` while its stated dependency is `planned`.
+
+- **Needs nothing.** [[FEAT-0089]] (the registry — server-side, read-only), [[FEAT-0091]] (standing documents), [[FEAT-0087]] (the Intent view), [[FEAT-0086]] (the Tests view, minus its runs). These *display* obligations; displaying is not writing.
+- **Needs [[PHASE-023]].** [[FEAT-0088]] — surfacing requirement approval is only worth doing once [[FEAT-0060]]'s actuator row can perform it. Likewise the triage tray's verbs, which are [[FEAT-0061]]'s.
+- **Needs [[FEAT-0071]] from [[PHASE-026]].** [[FEAT-0090]], the retirement itself — see below.
 
 ## Exit criteria
 
@@ -68,3 +76,9 @@ The desk was built on the premise that obligations belong in one place. Measurem
 [[FEAT-0091]] joined after Edwin's observation that some notes *"are one-off notes… we never need more than one and there is not really a state associated with them."*
 
 It belongs here rather than in a phase of its own because **"confirm this is still true" is a judgment the record owes**, which is this phase's subject. A six-month-old style guide is that judgment going unasked, so staleness becomes an obligation kind in [[FEAT-0089]]'s registry, owned by the Intent view [[FEAT-0087]] builds, and badged like every other. It also removes [[ISS-0122]]'s cause rather than re-bucketing its symptom.
+
+## The one cost, and where its mitigation lives
+
+[[ADR-0020]] accepts one cost honestly: discharging judgments becomes up to four visits instead of one. It names the mitigation — [[DES-0008]]'s landing digest, *"since Thu · 14 transitions · 2 need you"*.
+
+**That digest is [[FEAT-0071]], in [[PHASE-026]], and nothing scheduled it.** Retiring the desk before it lands ships the cost without the mitigation, which is how an accepted trade-off becomes an unaccepted regression. [[TASK-0378]] carries the dependency so ordering cannot skip it by accident.

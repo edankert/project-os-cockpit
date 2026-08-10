@@ -12,7 +12,7 @@ source: ["[[FEAT-0090-The-Desk-Retires]]"]
 parent: "[[FEAT-0090-The-Desk-Retires]]"
 effort: M
 due: ""
-depends: ["[[TASK-0377-The-Registers-Re-Home]]"]
+depends: ["[[TASK-0377-The-Registers-Re-Home]]", "[[FEAT-0071-Since-You-Looked]]"]
 blocks: []
 related: ["[[FEAT-0084-One-View-Vocabulary]]", "[[ISS-0063-Dead-Stat-Tiles]]"]
 tests: ["[[TST-0022-Surface-Ownership]]"]
@@ -41,3 +41,9 @@ tests: ["[[TST-0022-Surface-Ownership]]"]
 [[ISS-0063]] is the stat-tile bug in its exact form: retiring a mode is how a live tile becomes a dead click, and the Tests tile points at `~review` today.
 
 The badge-equals-registry assertion is the one that makes removal provable rather than asserted — it is the whole reason this task comes last.
+
+## Why this waits on FEAT-0071
+
+[[ADR-0020]] accepts that removing the desk costs up to four visits where there was one, and names [[DES-0008]]'s landing digest as the mitigation. That digest is [[FEAT-0071]] in [[PHASE-026]].
+
+Removing the desk first would ship the cost and not the mitigation — turning a trade-off the decision accepted into a regression it did not. The dependency is here rather than in prose so the ordering cannot lose it.

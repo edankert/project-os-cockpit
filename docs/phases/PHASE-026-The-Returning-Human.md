@@ -45,3 +45,11 @@ Design: [[DES-0008]] — the returning human's first minute.
 - [ ] Every empty state speaks in one voice and says what would appear there — evidence: <the sweep's diff>
 - [ ] Mode 1's cost has an owner: an ADR that either retires it, funds it, or scopes it — evidence: <the ADR id>
 - [ ] The deliberate exceptions (desk headings, Library file rows) are recorded in the design system note — evidence: <the section>
+
+## FEAT-0071 pulled forward 2026-08-10
+
+This phase has no dependencies and gates nothing formally, so it read as deferrable. It is not, in one respect: **[[FEAT-0071]] is the named mitigation for [[PHASE-030]]'s one accepted cost.**
+
+[[ADR-0020]] retires the review desk and concedes that discharging judgments becomes up to four visits instead of one, answered by this phase's landing digest. So `FEAT-0071` must land **before** [[TASK-0378]] removes the route, and [[TASK-0378]] now carries that dependency explicitly.
+
+The rest of this phase — [[FEAT-0072]]'s release surface and [[FEAT-0073]]'s one-voice sweep — keeps its original position and can follow later.
