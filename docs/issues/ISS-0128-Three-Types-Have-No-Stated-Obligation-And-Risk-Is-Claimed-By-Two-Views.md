@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0128
 aliases: ["ISS-0128"]
 title: "Risk is claimed by two views at once, and risk / workflow / phase each carry a candidate obligation nothing has decided about"
-status: triage
+status: fixed
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -89,12 +89,18 @@ The question was wrong, not just its answer. `WF-0001..0003` document how the **
 
 Recorded because the reasoning matters more than the entry: the sweep that produced this issue enumerated *every type in the corpus*, which is what made it complete — and completeness surfaced a type whose presence in the corpus is incidental rather than authored. A registry keyed by type will keep doing that, so *"not ours to advance"* needs to be as sayable as *"nothing owed."*
 
-**4. Where does phase close-out surface?** The machinery exists — `phase_close_blockers()`, the `unclosed` computation, the "close out" pill. Zero phases are currently due, which is exactly how `change` and `release` hid. The Overview is the obvious home since the phase accordion is already there.
+**4. Where does phase close-out surface? — Nowhere; it is not an obligation.** Edwin: *"phase close out is not obligation and it should follow the work instead."*
+
+Proposed as Features on [[ADR-0020]]'s own test — the judgment needs the work in view — then argued down, and the argument held. Every other entry in the registry is discharged by **one transition on a note**: approve, accept, triage, run. Closing a phase is not. `CLAUDE.md`'s own rule is a *procedure* — re-home the children, tick the exit criteria with evidence, set `superseded_by`, update `PHASES.md` and the snapshot — and there is no verb the actuator row could offer.
+
+`phase_close_blockers()` already reports when closing is **possible**. That is a gate, not a debt. When PHASE-022 was closed earlier today it returned empty, and nobody was owed anything — the work had finished, and closing it was part of finishing it.
+
+So `phase` declares **`none`**, and the existing `unclosed` pill on the Overview stays as a **mark**, which [[ISS-0068]]'s rule explicitly permits alongside a single home. It already works: `CLAUDE.md` records PHASE-015 being caught precisely because that nag appeared.
 
 ## Next Actions
 
 - [x] Decide `risk`'s owning view — **Intent** (Edwin, 2026-08-10); Issues drops its Risks cards
 - [x] Decide whether `open` risk is an obligation — **no**: `open` is a risk's resting state, and carrying a hazard is not a debt
 - [x] Decide whether `draft` workflow is an obligation — **no**: workflows are tooling, not this project's docs lifecycle (Edwin, 2026-08-10)
-- [ ] Home phase close-out, most likely the Overview, and record it even though nothing is currently due
-- [ ] Fold all four answers into [[TASK-0369]]'s registry declarations
+- [x] Home phase close-out — **not an obligation**; it follows the work, and the Overview's `unclosed` pill stays as a mark (Edwin, 2026-08-10)
+- [x] Fold all four answers into [[TASK-0369]]'s registry declarations

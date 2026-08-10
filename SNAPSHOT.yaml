@@ -1356,7 +1356,7 @@ items:
     ISS-0128:
       file: "docs/issues/ISS-0128-Three-Types-Have-No-Stated-Obligation-And-Risk-Is-Claimed-By-Two-Views.md"
       title: "Risk is claimed by two views at once, and risk / workflow / phase each carry a candidate obligation nothing has decided about"
-      status: triage
+      status: fixed
       severity: medium
       phase: "[[PHASE-030-Obligations-Go-Home]]"
       note: "Full sweep of all 17 types after `change` and `release` were each found missing by Edwin asking. RISK renders in the Issues navigator TODAY (Risks · high/medium/low) while FEAT-0087 lists it for Intent — two views, six notes, neither note aware of the other. All 6 risks are `open` and all 3 workflows are `draft`, never advanced; whether either is an obligation is unstated. Phase close-out is a judgment with machinery (phase_close_blockers, the close-out pill) and no home — 0 currently due, which is exactly how change and release hid. task/plan owe nothing CORRECTLY and must now say so explicitly. Structural fix already applied to TASK-0369: enumerate by TYPE, explicit `none`, completeness test against the corpus."
@@ -2640,14 +2640,14 @@ metrics:
     features_total: 91
     features_done: 60
     tasks_total: 384
-    tasks_done: 301
+    tasks_done: 302
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 8
+    issues_triage: 7
     risks_open: 6
     releases_total: 1
     decisions_total: 11
