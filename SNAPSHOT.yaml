@@ -38,13 +38,13 @@ counters:
   CHG:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 90
+  FEAT: 91
   ISS: 125
   PHASE: 30
-  REQ: 32
+  REQ: 33
   RISK: 6
   REL: 0
-  TASK: 379
+  TASK: 384
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -57,6 +57,13 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0091:
+      file: "docs/features/standing-documents/FEAT-0091-The-Standing-Documents.md"
+      title: "The standing documents get a manifest, a freshness signal and a home — the eight one-per-project notes stop being invisible and stop pretending to have a lifecycle"
+      status: planned
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0380, TASK-0381, TASK-0382, TASK-0383, TASK-0384]
+      note: "Fleet-measured 2026-08-10: 90 of 96 standing documents present, 85 of 90 stale or undated (94%), 12 still template stubs. NOT a new type — a manifest, because there will never be a second glossary; but extensible per Edwin, so the base set is template-owned and projects extend via SNAPSHOT.yaml's `docs_system` block (which exists today and NOTHING reads). Singularity is enforced, not assumed. Status comes off; `updated:` carries meaning; staleness WARNS and never blocks. Removes ISS-0122's cause rather than re-bucketing its symptom."
     FEAT-0089:
       file: "docs/features/obligation-registry/FEAT-0089-The-Obligation-Registry-And-The-Badges.md"
       title: "The obligation registry and the badges — one source for what is owed, of what kind, and which view owns it; a count on every view button that together covers all of them"
@@ -1812,6 +1819,13 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0033:
+      file: "docs/requirements/REQ-0033-Every-Project-Can-Say-What-It-Is.md"
+      title: "Every project can say what it is — the standing documents are declared as data, singular by construction, extensible without code, and their freshness is reported"
+      status: draft
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      specifies: ["FEAT-0091"]
+      note: "The two-layer manifest exists because of the SYNC, not for elegance: sync-project-os.sh overwrites tools/instructions, tools/skills, docs/__templates__ and docs/__bases__ wholesale, so a project addition living there is destroyed on the next sync. SNAPSHOT.yaml is never synced, which is what makes it the right half for extensions."
     REQ-0032:
       file: "docs/requirements/REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record.md"
       title: "The two front doors agree, or differ on the record — a view present in one and absent from the other is a decision, not an oversight"
@@ -2637,9 +2651,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 90
+    features_total: 91
     features_done: 56
-    tasks_total: 379
+    tasks_total: 384
     tasks_done: 285
     tests_total: 23
     tests_passing: 23

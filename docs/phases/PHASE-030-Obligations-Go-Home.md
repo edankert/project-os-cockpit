@@ -15,9 +15,12 @@ features:
   - "[[FEAT-0088-Features-Carries-Its-Own-Judgments]]"
   - "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]"
   - "[[FEAT-0090-The-Desk-Retires]]"
-requirements: []
+  - "[[FEAT-0091-The-Standing-Documents]]"
+requirements:
+  - "[[REQ-0033-Every-Project-Can-Say-What-It-Is]]"
 issues:
   - "[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]"
+  - "[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]"
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[DES-0005-The-Actuator-Grammar]]"]
 tags: [surfaces, obligations]
@@ -48,6 +51,7 @@ The desk was built on the premise that obligations belong in one place. Measurem
 - [ ] A stored preference or deep link to `~review` migrates rather than stranding the reader
 - [ ] `issue: triage` is a first-class obligation with `Defer` available, and the fleet's 39-item pool is visible from the Issues badge
 - [ ] No write path widened: [[REQ-0027]]'s guards re-checked, no agent-owned transition reachable
+- [ ] The standing documents are declared as data, carry no lifecycle status, and open the Intent view with their freshness visible — and the fleet's 94%-stale figure has an after
 
 ## What this phase must not do
 
@@ -58,3 +62,9 @@ The desk was built on the premise that obligations belong in one place. Measurem
 ## Superseded on opening
 
 [[DES-0010]] and [[FEAT-0082]] designed a board for `~review`, two days before it was decided the surface should go. Nothing was built. They take `superseded` with a pointer to [[ADR-0020]] — and one of their ideas is carried forward explicitly rather than lost: [[TASK-0357]]'s *"the obligation vocabulary ships in the payload, not in TypeScript"* is what [[FEAT-0089]]'s registry is.
+
+## Widened 2026-08-10 — the standing documents
+
+[[FEAT-0091]] joined after Edwin's observation that some notes *"are one-off notes… we never need more than one and there is not really a state associated with them."*
+
+It belongs here rather than in a phase of its own because **"confirm this is still true" is a judgment the record owes**, which is this phase's subject. A six-month-old style guide is that judgment going unasked, so staleness becomes an obligation kind in [[FEAT-0089]]'s registry, owned by the Intent view [[FEAT-0087]] builds, and badged like every other. It also removes [[ISS-0122]]'s cause rather than re-bucketing its symptom.
