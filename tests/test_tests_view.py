@@ -672,3 +672,107 @@ def test_nothing_above_the_first_tier_heading_is_a_test(tmp_path: Path) -> None:
     items = acceptance.load(docs).items
     assert {i.tier for i in items} == {1, 2, 3}
     assert all(i.name in {"A", "B", "C"} for i in items), [i.name for i in items]
+
+
+# ---- TASK-0375: decide and accept on the constraints view ----------------
+
+
+def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
+    """From the registry, and marked on the row rather than counted twice.
+
+    Measured 2026-08-10: the intent view owes exactly **one** thing, and it is
+    `ADR-0010` — which is also one of the four decisions REL-0001 says to raise
+    and stop on. A view whose obligation list has one member is easy to build
+    wrong and impossible to notice, so the mark and the badge are asserted to
+    be the same predicate.
+    """
+    groups = nav_payload(repo_index, mode="design")["groups"]
+    owed = [i for g in groups for i in g["items"] if i.get("owed")]
+    assert obligations.counts(repo_index)["intent"] == len(owed)
+    assert all(i["owed_verb"] for i in owed)
+    assert {i["id"] for i in owed} == {"ADR-0010"}, [i["id"] for i in owed]
+
+
+def test_a_design_verdict_cannot_go_through_the_transition_path(
+    tmp_path: Path,
+) -> None:
+    """ISS-0056, which the generic transition table re-opened.
+
+    A design accepted through `/api/notes/transition` gets `status: accepted`
+    and **no `design_revision`** — so an approval given to revision 3 silently
+    covers revision 6. Rejection is worse: it writes `cancelled` onto a design
+    that may already be `implemented`.
+
+    Refused in the writer, not only in the UI. A design reaching
+    `stamp_transition` at all means something routed around the endpoint.
+    """
+    from project_os_cockpit import note_writes
+
+    docs = tmp_path / "docs"
+    _write(docs / "designs" / "DES-0001-Demo.md", (
+        "---\n"
+        'type: "[[design]]"\n'
+        "id: DES-0001\n"
+        'title: "A demo design"\n'
+        "status: proposed\n"
+        "---\n\n# DES-0001\n"
+    ))
+    index = Index.build(docs)
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.stamp_transition(index, "DES-0001", to_status="accepted")
+    assert exc.value.status == 403
+    assert "/api/design/verdict" in exc.value.message
+    assert "ISS-0056" in exc.value.message
+    # And the note is untouched — a refusal that half-wrote would be worse
+    # than the bug.
+    assert "status: proposed" in (docs / "designs" / "DES-0001-Demo.md").read_text()
+
+
+def test_the_buttons_still_appear_and_carry_their_endpoint() -> None:
+    """Refusing the path must not remove the action.
+
+    The vocabulary stays in `HUMAN_TRANSITIONS` — a design at `proposed` is
+    still accepted or declined by a human — and each action names the endpoint
+    that has to serve it, plus what it means there. Deriving `accept` in the
+    renderer from the verb's name (or from the tone `confirm` carries) is the
+    status vocabulary leaking into TypeScript one field at a time.
+    """
+    from project_os_cockpit import note_writes
+
+    actions = note_writes.legal_actions("design", "proposed")
+    assert [a["verb"] for a in actions] == ["Accept", "Decline"]
+    assert all(a["endpoint"] == "/api/design/verdict" for a in actions)
+    assert actions[0]["accept"] is True and actions[0]["verdict"] == "approved"
+    assert actions[1]["accept"] is False
+    # Nothing else is routed away, so the field cannot become decoration.
+    assert all(
+        not a.get("endpoint")
+        for kind, status in (("adr", "proposed"), ("requirement", "draft"),
+                             ("issue", "triage"))
+        for a in note_writes.legal_actions(kind, status)
+    )
+
+
+def test_the_renderer_reads_the_field_not_the_type() -> None:
+    """One place knows designs are special, and it is not this one.
+
+    A `type === 'design'` branch in the renderer would be that knowledge in a
+    second place, and the two would drift the first time another type earned
+    its own endpoint.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = re.search(
+        r"async function performNoteAction\(.*?\n\}", src, re.S,
+    ).group(0)
+    assert "action.endpoint === '/api/design/verdict'" in fn
+    assert "noteType" not in fn and "note.type" not in fn
+    verdict = re.search(
+        r"async function performDesignVerdict\(.*?\n\}\n\n", src, re.S,
+    ).group(0)
+    # The revision is fetched, never assumed, and a dirty artifact is refused:
+    # the frame shows a working copy no revision covers.
+    assert "design-revisions/" in verdict
+    assert "revs.dirty" in verdict
+    assert "action.verdict" in verdict and "action.accept" in verdict
+    # Posts to the route it was SENT, so the endpoint is named once.
+    assert "postJson(action.endpoint!" in verdict

@@ -2461,7 +2461,7 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     # matters here, and a design system note is simply a design that is
     # `implemented`.
     designs = [
-        {**_rare_item(index, r), "url": f"~design/{r.note_id}"}
+        {**_rare_item(index, r), **_owed_flag(r), "url": f"~design/{r.note_id}"}
         for r in sorted(index.notes_by_type("design"),
                         key=lambda r: (r.note_id or "", r.rel_path))
         if _platform_match(r, platform)
@@ -2510,7 +2510,14 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
             "url": None,
             "status": None,
             "item_layout": "stacked",
-            "items": [_rare_item(index, r) for r in _open_first(records)],
+            # TASK-0375: an owed row says so, from the registry. A `proposed`
+            # ADR and a `proposed` design are this view's obligations, and the
+            # mark and the badge counting it are the same predicate — read,
+            # never re-derived, so the two cannot disagree on one screen.
+            "items": [
+                {**_rare_item(index, r), **_owed_flag(r)}
+                for r in _open_first(records)
+            ],
         })
     return out
 

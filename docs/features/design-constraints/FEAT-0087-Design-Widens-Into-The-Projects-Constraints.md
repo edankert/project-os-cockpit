@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0087
 aliases: ["FEAT-0087"]
 title: "Design widens into the project's constraints — decisions, risks, references and the brief join the designs"
-status: planned
+status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
@@ -59,14 +59,22 @@ So a `reference/` note appears in both, as a file there and as a constraint here
 
 ## Acceptance
 
-- [ ] One view lists designs, decisions, risks, references, workflows, the glossary and the brief, grouped so each kind is findable
-- [ ] The Library view still works, unchanged, and the overlap below is deliberate rather than drift
-- [ ] A `proposed` design and a `proposed` ADR appear as this view's obligations and are counted in its badge
-- [ ] Accepting a design still stamps `design_revision` through the existing guarded path — an approval given to one revision cannot launder another
-- [ ] Requirements do **not** appear here; they remain nested under their features
-- [ ] The view has a name that covers its contents, agreed rather than inherited
+- [x] One view lists designs, decisions, risks, references, workflows, the glossary and the brief, grouped so each kind is findable — `Designs 10 · Decisions 11 · Risks 6 · Workflows 3 · Reference 11` ([[TASK-0374]])
+- [x] The Library view still works, unchanged, and the overlap below is deliberate rather than drift — Edwin's call: *"I do want to keep the library view for now"*
+- [x] A `proposed` design and a `proposed` ADR appear as this view's obligations and are counted in its badge — marked on the row, from the registry, asserted to be the same predicate as the badge ([[TASK-0375]])
+- [x] Accepting a design still stamps `design_revision` through the existing guarded path — an approval given to one revision cannot launder another — **and the generic transition path, which had quietly become a second way in, now refuses designs with a 403**
+- [x] Requirements do **not** appear here; they remain nested under their features — 32 of them, deliberately unmoved
+- [~] The view has a name that covers its contents, agreed rather than inherited — **Intent** was agreed and the registry uses it, but the nav mode and the button still read `design`; the rename is a stored-preference migration of the [[TASK-0368]] kind and belongs with [[FEAT-0084]]'s view-vocabulary work, not bolted on here
 
 ## Links
 
 - Decision: [[ADR-0020-Obligations-Live-With-Their-Subject]]
 - Paths: `src/project_os_cockpit/cockpit.py` (`_design_groups`, `_library_groups`, `decisions_payload`), `desktop/src/renderer/renderer.ts`
+
+## Closed 2026-08-10
+
+The membership landed in [[TASK-0374]]; the obligations in [[TASK-0375]], which found the interesting thing.
+
+**[[ISS-0056]] had been quietly re-opened.** [[FEAT-0059]]'s generic human-transition table included `design: proposed → accepted`, so a design's actuator row offered an Accept that would have written `status: accepted` with no `design_revision` — an approval given to revision 3 covering revision 6, the failure `/api/design/verdict` was built to prevent. Unreachable in this corpus, because no design has ever been `proposed`; reachable by the first design anyone offers for review. The writer refuses it now, and the button carries the route that has to serve it.
+
+**The name is the one loose end**, and it is deliberate. Edwin agreed **Intent**; the registry's view is `intent` and the badge maps it; the mode id and the button label are still `design`, because renaming a mode means migrating a stored preference in two front doors, which is [[FEAT-0084]]'s subject and [[PHASE-029]]'s gate. The criterion is reconciled rather than ticked, so the gap is a decision with an owner instead of a claim.

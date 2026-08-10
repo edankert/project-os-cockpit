@@ -213,14 +213,56 @@ TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset(
 SEVERITIES: frozenset[str] = frozenset({"critical", "high", "medium", "low"})
 
 
+#: Types whose verdict must NOT go through the generic transition path, and
+#: the endpoint that owns each one instead (TASK-0375).
+#:
+#: **This is ISS-0056's hazard, and the generic table re-opened it.** A design
+#: accepted through `/api/notes/transition` gets `status: accepted` and no
+#: `design_revision` — so an approval given to revision 3 silently covers
+#: revision 6, which is the one way a design review is worse than no review at
+#: all. Rejection is worse still: it would write `cancelled` onto a design that
+#: may already be `implemented`.
+#:
+#: TASK-0218 built `/api/design/verdict` precisely to make a verdict name the
+#: revision it judged, and validates that revision against real git history.
+#: The actuator row still offers the buttons — the vocabulary stays in this
+#: table — but they carry the endpoint that has to serve them.
+#: The value is the route itself, not a nickname for it: the renderer posts to
+#: what it is sent, and the refusal message below can name the real URL. A
+#: nickname needed translating on both sides, and got it wrong on the first
+#: try — the message said `/api/design-verdict`, an endpoint that does not
+#: exist, which is the kind of error a person reads and then cannot act on.
+VERDICT_ENDPOINTS: dict[str, str] = {
+    "design": "/api/design/verdict",
+}
+
+#: What each verdict-routed action means to its endpoint, keyed by
+#: (type, target status). The endpoint speaks `verdict` + `accept`, not
+#: statuses, so somebody has to translate — and it is this module, beside the
+#: table the verbs come from. A renderer inferring `accept` from the button's
+#: tone (or its label) is the status vocabulary leaking into TypeScript one
+#: field at a time, which is ISS-0023 in a new costume.
+VERDICT_SEMANTICS: dict[tuple[str, str], dict[str, Any]] = {
+    ("design", "accepted"): {"verdict": "approved", "accept": True},
+    ("design", "cancelled"): {"verdict": "changes-requested", "accept": False},
+}
+
+
 def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, Any]]:
     """What a human may do to a note in this state, for `GET /api/notes/actions`.
 
     Returns the empty list when nothing is offered, which is the common case:
     most notes at most times owe nobody a decision.
+
+    An action may name an `endpoint`. Absent means the generic transition path;
+    present means that path will refuse it — see :data:`VERDICT_ENDPOINTS`. The
+    renderer reads the field rather than the type, so the one place that knows
+    designs are special is this module.
     """
-    entries = HUMAN_TRANSITIONS.get((note_type or "").strip().lower(), {})
+    kind = (note_type or "").strip().lower()
+    entries = HUMAN_TRANSITIONS.get(kind, {})
     offered = entries.get((status or "").strip().lower(), ())
+    endpoint = VERDICT_ENDPOINTS.get(kind, "")
     return [
         {
             "verb": verb,
@@ -228,6 +270,8 @@ def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, A
             "confirm": verb in CONFIRM_ACTIONS,
             "disabled": False,
             "reason": "",
+            "endpoint": endpoint,
+            **(VERDICT_SEMANTICS.get((kind, to_status), {}) if endpoint else {}),
         }
         for verb, to_status in offered
     ]
@@ -368,6 +412,18 @@ def stamp_transition(
     note_type = (record.note_type or "").strip().lower()
     current = (record.status or "").strip().lower()
     wanted = (to_status or "").strip().lower()
+
+    # Refused here rather than only in the UI, because the UI is not the guard.
+    # A design reaching this function at all means something routed around
+    # `/api/design/verdict`, and the cost of letting it through is an approval
+    # with no revision on it (ISS-0056).
+    if note_type in VERDICT_ENDPOINTS:
+        raise WriteError(
+            f"a {note_type} verdict must name the revision it judged; use "
+            f"{VERDICT_ENDPOINTS[note_type]} rather than a status transition "
+            f"(ISS-0056)",
+            status=403,
+        )
 
     if wanted not in statuses.VOCABULARY:
         raise WriteError(

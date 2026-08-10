@@ -1344,6 +1344,19 @@ interface NoteAction {
   confirm: boolean;
   disabled: boolean;
   reason: string;
+  /** Empty for the generic transition path; a name when this type's verdict
+   *  belongs somewhere else (TASK-0375). The renderer reads the FIELD, never
+   *  the note type — the one place that knows designs are special is
+   *  `note_writes.VERDICT_ENDPOINTS`, and a `type === 'design'` test here
+   *  would be that knowledge in a second place. */
+  endpoint?: string;
+  /** Set only on verdict-routed actions: what this button means to the
+   *  endpoint that serves it. Sent by `note_writes.VERDICT_SEMANTICS` rather
+   *  than inferred here — deriving `accept` from the verb's name, or from the
+   *  tone `confirm` carries, is the status vocabulary leaking into TypeScript
+   *  one field at a time. */
+  verdict?: string;
+  accept?: boolean;
 }
 
 // ----- The release gate (TASK-0373) ------------------------------------
@@ -1569,6 +1582,10 @@ async function performNoteAction(
     if (!ok) return;
   }
   btn.disabled = true;
+  if (action.endpoint === '/api/design/verdict') {
+    await performDesignVerdict(noteId, action, btn);
+    return;
+  }
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/notes/transition`, {
       method: 'POST',
@@ -1588,6 +1605,63 @@ async function performNoteAction(
     if (currentRel) void navigateTo(currentRel, { replace: true });
   } catch (err) {
     showStatus(`Transition failed: ${String(err)}`, 'error');
+    btn.disabled = false;
+  }
+}
+
+/** A design's verdict, named to the revision it judged (TASK-0375 / ISS-0056).
+ *
+ *  The button is the same button, on the same note, from the same table. What
+ *  differs is where it posts: `/api/design/verdict` requires a revision and
+ *  validates it against the artifact's real git history, so an approval given
+ *  to revision 3 cannot silently cover revision 6. The generic transition path
+ *  refuses this type outright, so a client that skipped this branch would get
+ *  a 403 rather than an unrevisioned accept.
+ *
+ *  The revision is the artifact's newest, fetched here rather than assumed —
+ *  and a **dirty** artifact is refused, because the frame is showing a working
+ *  copy no revision covers. That is the same distinction
+ *  `design_revisions_payload` exists to report.
+ */
+async function performDesignVerdict(
+  noteId: string, action: NoteAction, btn: HTMLButtonElement,
+): Promise<void> {
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/design-revisions/${encodeURIComponent(noteId)}`,
+    );
+    const revs = (await resp.json()) as
+      { available?: boolean; dirty?: boolean; revisions?: Array<{ sha: string }> };
+    const newest = revs.revisions?.[0]?.sha;
+    if (!newest) {
+      showStatus(
+        'No committed revision of this design to judge — capture one first.',
+        'error',
+      );
+      btn.disabled = false;
+      return;
+    }
+    if (revs.dirty) {
+      showStatus(
+        'This artifact has uncommitted edits; a verdict would name a revision '
+        + 'that is not what you are looking at.',
+        'error',
+      );
+      btn.disabled = false;
+      return;
+    }
+    await postJson(action.endpoint!, {
+      id: noteId,
+      reviewer: 'user:edwin',
+      verdict: action.verdict,
+      revision: newest,
+      accept: action.accept,
+    });
+    showStatus(`${noteId} → ${action.to} at ${newest.slice(0, 7)}`);
+    void refreshObligationBadges();
+    if (currentRel) void navigateTo(currentRel, { replace: true });
+  } catch (err) {
+    showStatus(`Verdict failed: ${String(err)}`, 'error');
     btn.disabled = false;
   }
 }
