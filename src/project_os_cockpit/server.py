@@ -780,6 +780,12 @@ def _make_handler(
                 self._serve_cockpit_identity()
                 return
 
+            if path == "/api/cockpit/digest":
+                self._respond_json(cockpit.digest_payload(
+                    project_root, index, marker.seen_at,
+                ))
+                return
+
             if path == "/api/cockpit/watermark":
                 self._respond_json(marker.payload())
                 return

@@ -4363,6 +4363,100 @@ _STATUS_LINE_RE = re.compile(r"^([+-])status:\s*(\S+)\s*$")
 _DIFF_PATH_RE = re.compile(r"^\+\+\+ b/(.+)$")
 
 
+#: States that mean a person owes a judgment, for the digest's `needs_you`
+#: half. Deliberately the same set the views surface — `triage` because
+#: ADR-0020 made it an obligation, `changes-requested` because a reviewer
+#: asked for something, `draft`/`proposed`/`ready` because each queues for a
+#: decision somebody has to make.
+#:
+#: NOT a second obligation vocabulary. When FEAT-0089's registry lands this
+#: reads from it; until then it is one list in one module, and the digest is
+#: the only consumer.
+DIGEST_NEEDS_YOU: dict[str, tuple[str, ...]] = {
+    "issue": ("triage",),
+    "requirement": ("draft", "proposed"),
+    "adr": ("proposed",),
+    "decision": ("proposed",),
+    "design": ("proposed",),
+    "test": ("ready",),
+}
+
+
+def digest_payload(
+    project_root: Path,
+    index: Index,
+    seen_at: str,
+    limit: int = 200,
+) -> dict[str, Any]:
+    """What happened since the human last said they were caught up (FEAT-0071).
+
+    Two halves, and the split is the point (DES-0008): **what changed** is
+    informational, **what needs you** is owed. The band lifts the second above
+    the first because a reader who stops halfway should have seen the
+    obligations, not the news.
+
+    `seen_at` is a watermark, and an unset one arrives as the epoch — so the
+    first digest shows everything rather than nothing. That asymmetry is
+    deliberate: over-reporting on a fresh install is recoverable by reading;
+    under-reporting is invisible.
+    """
+    history = history_payload(project_root, index, limit=limit)
+    marker = (seen_at or "").strip()
+
+    since: list[dict[str, Any]] = []
+    for commit in history.get("commits") or []:
+        # **Granularity mismatch, handled by choosing which way to be wrong.**
+        # `history_payload` reports commit dates at DAY granularity
+        # (`2026-08-10`) while the watermark is a full timestamp
+        # (`2026-08-10T12:00:00Z`). So a same-day commit cannot be ordered
+        # against a same-day watermark at all.
+        #
+        # Strictly-less rather than less-or-equal: the watermark's own day is
+        # INCLUDED in the digest. That re-shows commits already seen, which a
+        # reader corrects by reading — where the other choice hides commits
+        # made after catching up, which is invisible. Same asymmetry as the
+        # epoch default above, and for the same reason.
+        when = str(commit.get("date") or "")
+        if marker and when and when < marker[:10]:
+            continue
+        for transition in commit.get("transitions") or []:
+            since.append({**transition, "sha": commit.get("sha"), "date": when})
+
+    needs_you: list[dict[str, Any]] = []
+    for note_type, states in DIGEST_NEEDS_YOU.items():
+        for record in index.notes_by_type(note_type):
+            if (record.status or "").strip().lower() in states:
+                needs_you.append(_slim_note(record))
+    for record in index.iter_records():
+        verdict = str(record.frontmatter.get("review_verdict") or "").strip().lower()
+        if _verdict_is_owed(verdict, record.status):
+            needs_you.append(_slim_note(record))
+
+    # One item, one row — the same rule the triage tray had to learn.
+    seen_ids: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for item in needs_you:
+        key = str(item.get("id") or item.get("rel") or "")
+        if key in seen_ids:
+            continue
+        seen_ids.add(key)
+        deduped.append(item)
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "seen_at": marker,
+        "available": history.get("available", False),
+        # The timestamp a `Caught up` should record — the digest's own, not
+        # the moment the button is pressed, so nothing that lands while the
+        # human reads is marked seen (TASK-0312).
+        "computed_at": (history.get("commits") or [{}])[0].get("date", ""),
+        "transitions": since,
+        "transition_count": len(since),
+        "needs_you": deduped,
+        "needs_you_count": len(deduped),
+    }
+
+
 def history_payload(
     project_root: Path,
     index: Index,

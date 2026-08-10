@@ -23,3 +23,16 @@ tests: []
 
 - A band atop the overview when the watermark is behind: transitions grouped as History groups them, needs-you items (triage, questions, acceptance, changes-requested) lifted above the informational; `Caught up` at its end.
 - Reading to the bottom is what being caught up means — the button lives there, not in the header.
+
+## Groundwork landed 2026-08-10 — the payload, not the surface
+
+`GET /api/cockpit/digest` exists: `cockpit.digest_payload()` returns the transitions since the watermark and the items that need a human, split — because that split is the point. **This task's renderer is not built**, and the task stays `backlog`.
+
+Two decisions already taken in the payload, so the surface inherits rather than re-decides them:
+
+- **It errs toward re-showing, never hiding.** `history_payload` reports commit dates at *day* granularity while the watermark is a timestamp, so a same-day commit cannot be ordered against a same-day watermark. The watermark's own day is therefore **included**: re-showing what was seen is corrected by reading, whereas hiding what came after catching up is invisible. Same asymmetry as the epoch default.
+- **`computed_at` is what a `Caught up` should record**, not the moment the button is pressed — otherwise anything landing while the human reads is silently marked seen.
+
+`needs_you` is deduplicated: an item owed for two reasons is still one thing to do — the rule the triage tray had to learn the hard way.
+
+**Not a second obligation vocabulary.** `DIGEST_NEEDS_YOU` is one list in one module with one consumer, and it reads from [[FEAT-0089]]'s registry once that lands. If it outlives the registry it becomes exactly the drift [[ISS-0023]] describes.

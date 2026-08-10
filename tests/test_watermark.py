@@ -86,3 +86,55 @@ def test_the_catch_up_endpoint_is_loopback_guarded() -> None:
     assert m, "the catch-up handler is missing"
     body = src[m.end():].split("\n        def ")[0]
     assert "_require_loopback" in body
+
+
+# ---- the digest (FEAT-0071 groundwork for TASK-0313 / TASK-0314) -------
+
+
+def test_an_unset_watermark_digests_everything() -> None:
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(REPO / "docs")
+    d = cockpit.digest_payload(REPO, idx, seen_at="")
+    assert d["transition_count"] > 0, "the first digest shows nothing"
+    assert d["needs_you_count"] > 0
+
+
+def test_the_digest_errs_toward_re_showing_not_hiding() -> None:
+    """A granularity mismatch, handled by choosing which way to be wrong.
+
+    Commit dates are day-granular; the watermark is a timestamp. A same-day
+    commit cannot be ordered against a same-day watermark, so the watermark's
+    own day is *included* — re-showing what was seen, which reading corrects,
+    rather than hiding what came after, which is invisible.
+    """
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(REPO / "docs")
+    same_day = cockpit.digest_payload(REPO, idx, seen_at="2026-08-10T23:59:59Z")
+    assert same_day["transition_count"] > 0, (
+        "a watermark late on the same day hid that day's transitions entirely"
+    )
+
+
+def test_needs_you_shows_one_row_per_item() -> None:
+    """The rule the triage tray had to learn: an item owed for two reasons is
+    still one thing to do."""
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(REPO / "docs")
+    ids = [i.get("id") for i in cockpit.digest_payload(REPO, idx, seen_at="")["needs_you"]]
+    assert len(ids) == len(set(ids)), "an item appears twice in needs-you"
+
+
+def test_the_digest_reports_the_timestamp_a_catch_up_should_record() -> None:
+    """Not the moment the button is pressed (TASK-0312) — otherwise anything
+    landing while the human reads is silently marked seen."""
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    idx = Index.build(REPO / "docs")
+    assert "computed_at" in cockpit.digest_payload(REPO, idx, seen_at="")
