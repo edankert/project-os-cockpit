@@ -830,6 +830,19 @@ def _make_handler(
                 )
                 return
 
+            if path == "/api/cockpit/reviewed":
+                # The reviewed register, re-homed to the record column
+                # (TASK-0377). Its own endpoint rather than a slice of
+                # `review-queue`: FEAT-0090 retires that surface, and a record
+                # card sourced from a queue payload is exactly the harvest
+                # ISS-0065 was — a card whose contents depend on a page that
+                # is about to stop existing.
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    "reviewed": cockpit._reviewed_register(index),
+                })
+                return
+
             if path == "/api/cockpit/acceptance":
                 # The tier suite and the release gate (TASK-0373). Read-only,
                 # and served from the docs root rather than the index: the

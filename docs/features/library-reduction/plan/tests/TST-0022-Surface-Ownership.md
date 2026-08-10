@@ -94,11 +94,13 @@ One thing that first attempt established by accident and worth keeping: against 
 
 1. Open the Features mode. Pick a feature whose plan has no frontmatter (e.g. `agent-verbs`). Confirm the plan row appears under it and opens.
 2. Open the Issues mode. Confirm the four RISK notes appear, grouped by severity, distinguishable from issues.
-3. On the overview, click the Risks tile — confirm it navigates to Issues. Click the Tests tile — confirm it navigates to `~review`.
+3. On the overview, click the Risks tile — confirm it navigates to the constraints (Design) view and risks are there. Click the Tests tile — confirm it navigates to Tests and the register is there. *(Rewritten 2026-08-10, [[TASK-0378]]: both destinations moved, and the point of the step is that a tile lands where its type lives — not that it lands on a particular mode.)*
 4. On the overview, find the Changes tile. Confirm recent changes are visible and an older bucket opens.
-5. Open `~review` with an empty queue. Confirm the Tests and Reviewed registers are both present and populated.
+5. **The registers, at their new homes** *(rewritten 2026-08-10, [[TASK-0378]] — the desk they were on no longer has a button)*. Open **Tests**: confirm every `TST-*` is listed, grouped by verification state, and that the tier groups from `ACCEPTANCE_TESTS.md` follow them. Then on the project **overview**, read the right pane: confirm a `Reviewed` card reporting the verdict count and how many are still owed.
 6. Open the Library mode. Confirm it shows Pinned and the Docs tree, that `workflows/` is in the tree, and that the pane is not empty.
-7. Still on `~review`: read the left pane top to bottom. Confirm the order is Queue → Reviewed → Tests, that **no two sections share a heading word**, and that no outcomes/tally block remains. Added after [[ISS-0064]] — step 5 checked both registers existed and was blind to what they were called or where they sat.
+7. **No two surfaces share a heading word, and nothing points at the desk** *(rewritten 2026-08-10, [[TASK-0378]])*. The original step read the desk's left pane top to bottom for the `Reviewed`-twice collision [[ISS-0064]] found. The desk has no button now, so the question moves with the registers: confirm the top bar offers **no Review button**, that a stored `cockpit:nav-mode` of `review` lands on the overview rather than nowhere, and that the overview's `Reviewed` card is the only surface using that word. The ledger link under it appears only when an agent request is genuinely open — confirm it is absent when the queue is empty.
+
+    The original observation still stands and is why this step exists: step 5 checked both registers existed and was blind to what they were called or where they sat. A reachability check inherits the blind spots of the requirement it came from.
 
 8. **Back on the project overview, read the right pane.** Confirm a `Decisions` card listing ADRs (with an `N older` disclosure when there are more than four) and a `Verification` card showing `passing/total`. Added after [[ISS-0065]] — the checklist had seven steps and none of them looked at the record column, which is why a phase that emptied it passed a full manual pass. The check was performed while fixing the issue; this is the version that gets re-run.
 

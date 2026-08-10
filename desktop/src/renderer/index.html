@@ -38,7 +38,15 @@
                here is a view over the committed record in docs/, and the
                inbox is deliberately none of that. It lives in the left pane
                with the other transient state. -->
-          <button type="button" class="top-bar-btn" data-mode="review"   title="Review — proposals, questions, test runs" role="tab" aria-label="Review"></button>
+          <!-- Review retired in TASK-0378 (ADR-0020): the desk dissolved and
+               every register re-homed to the view that owns its subject —
+               decisions to Design, requirements to Features, tests and the
+               runner to Tests, the reviewed register to the record column,
+               and the "am I done" count to the badges on these buttons.
+               The `~review` route stays SERVED while the agent ledger has
+               open entries (one today) and until ISS-0126 decides where
+               proposals, questions and offered designs land; the record
+               column links to it when there is something behind it. -->
           <!-- Active and Recent retired in TASK-0204: the overview's focus
                band and phase rows carry in-flight work ambiently, the
                progress rail carries it live, and the commits panel tells

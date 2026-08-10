@@ -2382,6 +2382,19 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 .scoped-exit-head h3 { margin: 0 !important; }
 .scoped-exit-frac { font-size: 11.5px; color: var(--text-muted); }
 
+/* A record-column line that is also a link (TASK-0378): the one door left to
+   the review ledger, shown only when something is behind it. */
+.ctx-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: var(--accent-link);
+  cursor: pointer;
+  font: inherit;
+}
+.ctx-link:hover { text-decoration: underline; }
+
 /* ---- The digest band (TASK-0314) ---------------------------------------
    Atop the overview when the watermark is behind. Owed items first and
    marked; transitions beneath, quieter. `Caught up` at the foot, because

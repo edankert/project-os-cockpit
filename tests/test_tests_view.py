@@ -263,7 +263,10 @@ def test_the_shell_has_a_tests_button_and_it_is_wired() -> None:
     html = (REPO_ROOT / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
     buttons = re.findall(r'top-bar-btn[^>]*data-mode="(\w+)"', html)
     assert "tests" in buttons
-    assert buttons.index("issues") < buttons.index("tests") < buttons.index("review")
+    # `review` lost its button in TASK-0378, so the anchor is Library — the
+    # structural modes still come before the reading one.
+    assert buttons.index("issues") < buttons.index("tests") < buttons.index("library")
+    assert "review" not in buttons
 
     src = RENDERER.read_text(encoding="utf-8")
     modes = re.search(r"const NAV_MODES = \[(.*?)\]", src, re.S).group(1)
@@ -995,3 +998,117 @@ def test_the_digest_is_pulled_and_rate_limited() -> None:
     # able to start a loop.
     assert "paintAttention(attentionEntries())" in refresh
     assert "refreshAttention()" not in refresh.split("function refreshAttention")[1]
+
+
+# ---- FEAT-0090: the desk retires -----------------------------------------
+
+
+def test_every_row_of_the_rehoming_table_is_reachable(repo_index: Index) -> None:
+    """ADR-0020's table, walked against the live corpus rather than inspected.
+
+    Nine rows. Two are empty in this corpus today (no `proposed` design, no
+    manual test at `ready`) — and an empty row is exactly how `change` and
+    `release` went missing from the registry, so their homes are asserted to
+    EXIST rather than to be populated.
+    """
+    def owed_ids(mode: str) -> set[str]:
+        out: set[str] = set()
+        for group in nav_payload(repo_index, mode=mode)["groups"]:
+            for item in group["items"]:
+                if item.get("owed"):
+                    out.add(str(item.get("id")))
+                for child in item.get("children") or []:
+                    if child.get("owed"):
+                        out.add(str(child.get("id")))
+        return out
+
+    # 1. Decisions — ADR `proposed` → the constraints view.
+    assert "ADR-0010" in owed_ids("design")
+    # 2. Proposals — requirement `draft` → Features.
+    assert {i for i in owed_ids("features") if i.startswith("REQ-")}
+    # 3/4. design `proposed` and manual `ready` are empty here; their views
+    #      own the kind, which is what must survive an empty corpus.
+    views = obligations.views_owed()
+    assert "design" in views[obligations.VIEW_INTENT]
+    assert "test" in views[obligations.VIEW_TESTS]
+    # 5. The tests register → the Tests view.
+    assert any(g["key"] == "verified" or g["key"] == "stale"
+               for g in nav_payload(repo_index, mode="tests")["groups"])
+    # 6. `changes-requested` re-review → the view owning each note's type;
+    #    the predicate is `_verdict_is_owed`, and all ten rows here are
+    #    terminal, which is ISS-0121's finding.
+    reviewed = cockpit._reviewed_register(repo_index)
+    assert reviewed and not [r for r in reviewed if r["owed"]]
+    # 7. "am I done" → the badges.
+    assert obligations.badges_payload(repo_index)["total"] > 0
+    # 8. Reviewed register → the record surfaces.
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "fillReviewedCard" in src
+    assert "/api/cockpit/reviewed" in src
+    # 9. Questions → nowhere, deliberately: no obligation kind claims them.
+    assert "question" not in obligations.declared_types()
+
+
+def test_the_badges_still_total_the_registry_with_no_desk() -> None:
+    """The assertion TASK-0378 asks for by name.
+
+    The desk's one number was the thing the badges replace. If retiring it
+    left any kind uncounted, the sum stops matching — which is the same
+    property FEAT-0089 was built to make checkable.
+    """
+    index = Index.build(REPO_DOCS)
+    badges = obligations.badges_payload(index)
+    assert badges["total"] == sum(badges["views"].values())
+    per_type = obligations.views_owed()
+    assert set(badges["kinds"]) == {
+        t for types in per_type.values() for t in types
+    }
+    # And every declared owing kind has a view that exists.
+    for view, types in per_type.items():
+        assert view in obligations.VIEWS
+        for note_type in types:
+            assert obligations.for_type(note_type).view == view
+
+
+def test_the_desk_button_and_mode_are_gone_and_migrate() -> None:
+    """A stored preference pointing at a mode with no button is the trap
+    `RETIRED_NAV_MODES` exists to prevent — the reader lands somewhere they
+    cannot see is selected and cannot leave by clicking."""
+    html = (REPO_ROOT / "desktop" / "src" / "renderer" / "index.html").read_text(
+        encoding="utf-8",
+    )
+    buttons = re.findall(r'top-bar-btn[^>]*data-mode="(\w+)"', html)
+    assert "review" not in buttons
+    src = RENDERER.read_text(encoding="utf-8")
+    retired = re.search(r"const RETIRED_NAV_MODES[^=]*= \[(.*?)\]", src, re.S).group(1)
+    assert "'review'" in retired
+    fallback = re.search(
+        r"const RETIRED_MODE_FALLBACK[^=]*= \{(.*?)\n\};", src, re.S,
+    ).group(1)
+    assert re.search(r"review:\s*'overview'", fallback)
+
+
+def test_the_review_route_stays_while_the_ledger_has_open_entries() -> None:
+    """Retiring the route with a live request behind it would strand it.
+
+    Measured 2026-08-10: this repo's `.cockpit/review-requests.json` holds one
+    OPEN entry. Where proposals, questions and offered designs finally land is
+    ISS-0126 — Edwin's decision, and deliberately not guessed at — so the route
+    stays served and the record column links to it when, and only when, there
+    is something behind it.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "normalised === '~review'" in src, "the route was deleted"
+    card = _renderer_fn("fillReviewedCard")
+    assert "openReviewRequestCount" in card
+    assert "if (open <= 0) return;" in card, (
+        "the ledger link must be absent when the ledger is empty"
+    )
+    # The store itself is untouched — `review_queue_payload` and the resolve
+    # path still exist, which is the DoD's "the review ledger and its store are
+    # untouched".
+    server = (REPO_ROOT / "src" / "project_os_cockpit" / "server.py").read_text(
+        encoding="utf-8",
+    )
+    assert "/api/cockpit/review-queue" in server
+    assert "/api/cockpit/review-resolve" in server

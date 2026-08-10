@@ -2210,7 +2210,10 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
     # (TASK-0234) when it stopped being a mode at all and became a left-pane
     # tray. The set is pinned rather than merely non-empty precisely so
     # adding or removing a virtual-landing mode has to come here and say so.
-    assert modes == {"overview", "review", "design"}, modes
+    # `review` left the set in TASK-0378 with its button: the route is still
+    # served, but nothing lands there on workspace open, so claiming a landing
+    # would send the centre pane to a page nobody asked for.
+    assert modes == {"overview", "design"}, modes
 
     # And the README fallback must actually consult it.
     ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]

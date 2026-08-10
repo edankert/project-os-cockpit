@@ -3196,11 +3196,15 @@ const CONTEXT_GROUP_FOLD_LIMIT = NAV_GROUP_FOLD_LIMIT;
 // clicking the (now absent) button.
 // Modes whose `loadWsNav()` routes to a virtual page rather than a note.
 // Anything listed here must NOT be sent to README.md on workspace open.
+// `review` left this set with its button (TASK-0378). The route is still
+// served — the record column links to it while the agent ledger has open
+// entries — but nobody LANDS there any more, so it must not claim a
+// workspace-open landing.
 const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
-  'overview', 'review', 'design',
+  'overview', 'design',
 ]);
 
-const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks'];
+const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks', 'review'];
 const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   active: 'overview',   // in-flight work is ambient on the overview now
   recent: 'overview',   // "what changed" is the commits panel
@@ -3212,6 +3216,11 @@ const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   // the flat status list has nothing left to show that Features does not.
   // The server mode stays served — see `_tasks_groups` — but nobody lands here.
   tasks: 'features',
+  // TASK-0378: the desk dissolved (ADR-0020). Every register and queue group
+  // re-homed to the view that owns its subject, and the "am I done" count
+  // became the badges on the view buttons — so `overview` is where somebody
+  // whose stored mode says `review` actually wanted to be.
+  review: 'overview',
 };
 
 function loadStoredNavMode(): NavMode {
@@ -13405,6 +13414,17 @@ async function fillRecordColumn(
     rightPaneContent.appendChild(card);
   }
 
+  // Reviewed — the desk's register, re-homed (TASK-0377). 103 verdicts, and
+  // it belongs beside the ADRs and the tests for the reason ADR-0020 gives:
+  // a verdict is part of the RECORD, not a queue, and it was on the desk only
+  // because the desk was where registers went.
+  //
+  // Project scope only. A per-phase verdict list would need every note's
+  // verdict filtered against the scope's items, which the payload does not
+  // carry — and a card that silently showed the project's verdicts on a phase
+  // page would be worse than no card.
+  if (!scoped) void fillReviewedCard();
+
   // A third card, headed "Library", used to be built here from
   // `library.filter(n => n.type === 'reference')`. It never rendered, and
   // not because of PHASE-010: `fetchRecordNotes` keeps only items with an
@@ -13448,6 +13468,94 @@ async function fillRecordColumn(
       rightPaneContent.appendChild(card);
     }
   }
+}
+
+/** The reviewed register, on the record surfaces (TASK-0377).
+ *
+ *  **Owed and settled are the server's answer, not this function's.** ISS-0121
+ *  was ten rows headed *Changes requested* of which zero were genuinely owed,
+ *  because the renderer read `review_verdict` alone and the field is sticky —
+ *  a reviewer writes it, the work is done, the note reaches `fixed`, and
+ *  nothing clears the stamp. `_verdict_is_owed` compares against the subject's
+ *  current status, and moving the register was the moment to make sure the
+ *  defect did not move with it.
+ *
+ *  The inverse case is deliberately preserved and is the one that would be
+ *  missed: a verdict written AFTER its subject went terminal is a genuine
+ *  re-review request. Filtering on "subject is terminal" alone would hide it,
+ *  which is why the predicate lives in one server-side function with its
+ *  limitation written down rather than as a renderer-side `filter`.
+ */
+async function fillReviewedCard(): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let items: ReviewRegisterReviewed[] = [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/reviewed`);
+    if (!resp.ok) return;
+    items = ((await resp.json()) as { reviewed?: ReviewRegisterReviewed[] })
+      .reviewed ?? [];
+  } catch { return; }
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+  if (items.length === 0) return;
+
+  const owed = items.filter(isOwedVerdict);
+  const { card, body } = buildRecordCard(
+    'Reviewed', owed.length ? `${owed.length} owed` : `${items.length}`,
+  );
+  // Owed first and only — the settled 93 are the denominator, and the card
+  // says how many there are rather than listing them. The desk listed both
+  // halves because it was a queue; the record column is not.
+  for (const item of owed.slice(0, 8)) {
+    body.appendChild(buildRecordRow(
+      item.id ?? '', item.title ?? '', item.rel ?? '',
+    ));
+  }
+  const line = document.createElement('p');
+  line.className = 'ctx-note';
+  line.textContent = owed.length
+    ? `${items.length} verdicts recorded · ${owed.length} still owed`
+    : `${items.length} verdicts recorded, none owed`;
+  body.appendChild(line);
+
+  // The one door left to the desk (TASK-0378). Its button and mode are gone,
+  // but the review LEDGER is runtime state agents still write — proposals,
+  // questions, offered designs — and this repo has an open entry today.
+  // Retiring the route with a live request behind it would strand it, which
+  // is the trap RETIRED_NAV_MODES exists to prevent, one level up.
+  //
+  // Where those flows finally land is ISS-0126, which is Edwin's decision and
+  // deliberately not guessed at here. Until then the link appears only when
+  // there is something behind it, and never otherwise.
+  void (async () => {
+    const open = await openReviewRequestCount();
+    if (open <= 0) return;
+    if (!currentRel || !currentRel.startsWith('~overview')) return;
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'ctx-note ctx-link';
+    link.textContent =
+      `${open} agent request${open === 1 ? '' : 's'} waiting — open the ledger`;
+    link.addEventListener('click', () => void navigateTo('~review'));
+    body.appendChild(link);
+  })();
+
+  rightPaneContent.appendChild(card);
+}
+
+/** Open entries in the review ledger — proposals, questions, offered designs.
+ *
+ *  Runtime state, not note state (ADR-0007), and untouched by the desk's
+ *  retirement: agents still write it and the store still resolves it. */
+async function openReviewRequestCount(): Promise<number> {
+  if (!sidecarBaseUrl) return 0;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/review-queue`);
+    if (!resp.ok) return 0;
+    const q = (await resp.json()) as ReviewQueuePayload;
+    return (q.groups ?? [])
+      .filter((g) => g.key === 'proposals' || g.key === 'questions')
+      .reduce((n, g) => n + (g.items?.length ?? 0), 0);
+  } catch { return 0; }
 }
 
 // Waiver count + validator state for the Verification card. Waivers come
