@@ -1074,6 +1074,53 @@ def test_a_status_named_group_does_not_repeat_its_status() -> None:
     )
 
 
+def test_feature_children_summary_counts_tasks_separately() -> None:
+    """The children toggle names what a feature carries (TASK-0367).
+
+    Before tasks joined the child list (TASK-0366) both renderers computed
+    "everything that is not a plan is a requirement". With tasks in the list
+    that turns FEAT-0006 — 9 requirements, a plan and 48 tasks — into
+    "57 requirements · plan".
+
+    Asserted in both front doors because the label is hand-written twice, and
+    a count that silently mislabels is the shape of defect this phase keeps
+    finding.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    js = (REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.js").read_text(encoding="utf-8")
+    for name, src in (("renderer.ts", ts), ("cockpit.js", js)):
+        assert "childrenSummary" in src, f"{name} has no children summary helper"
+        body_start = src.index("childrenSummary")
+        window = src[body_start:body_start + 1400]
+        assert "task" in window, (
+            f"{name}'s children summary does not count tasks — a feature with "
+            "48 of them will report them as requirements"
+        )
+        assert "requirement" in window, f"{name}'s summary stopped counting requirements"
+        assert "plan" in window, f"{name}'s summary stopped counting plans"
+
+
+def test_feature_children_fold_on_volume_in_both_front_doors() -> None:
+    """A feature's children fold at the same limit its groups do (TASK-0367).
+
+    FEAT-0006 carries 58 children. The child list was previously rendered
+    whole because it only ever held a handful of requirements; tasks changed
+    the volume, not the rule. Both renderers reuse `foldGroup` and
+    `NAV_GROUP_FOLD_LIMIT` rather than growing a second fold.
+    """
+    ts = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    js = (REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.js").read_text(encoding="utf-8")
+    for name, src in (("renderer.ts", ts), ("cockpit.js", js)):
+        assert "foldGroup(kids, NAV_GROUP_FOLD_LIMIT" in src or \
+               "foldGroup(visibleChildren, NAV_GROUP_FOLD_LIMIT" in src, (
+            f"{name} does not fold feature children on the shared limit"
+        )
+        assert "nav-more-btn" in src, (
+            f"{name}'s child fold does not use the established more-row — the "
+            "count of what was withheld is never optional"
+        )
+
+
 def test_changes_requested_is_not_treated_as_finished() -> None:
     """TASK-0277 — the sharpest point of that phase — as amended by ISS-0121.
 

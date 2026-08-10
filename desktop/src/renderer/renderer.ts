@@ -7509,6 +7509,26 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
   return li;
 }
 
+/** What the children toggle says a feature carries (TASK-0367).
+ *
+ *  Counts by type. Before tasks joined the child list (TASK-0366) this was
+ *  "everything that is not a plan is a requirement", which a feature with 3
+ *  requirements, a plan and 14 tasks would have reported as
+ *  "17 requirements · plan". */
+function childrenSummary(kids: NavItem[]): string {
+  const n = (type: string): number => kids.filter((k) => k.type === type).length;
+  const reqs = n('requirement');
+  const plans = n('plan');
+  const tasks = n('task');
+  const other = kids.length - reqs - plans - tasks;
+  const parts: string[] = [];
+  if (reqs) parts.push(`${reqs} requirement${reqs === 1 ? '' : 's'}`);
+  if (plans) parts.push(plans === 1 ? 'plan' : `${plans} plans`);
+  if (tasks) parts.push(`${tasks} task${tasks === 1 ? '' : 's'}`);
+  if (other) parts.push(`${other} other`);
+  return parts.join(' · ');
+}
+
 function navItem(item: NavItem): HTMLLIElement {
   const li = buildNavRow(item);
   // ISS-0088: the expand affordance goes ON the row's line, not on a line
@@ -7522,18 +7542,37 @@ function navItem(item: NavItem): HTMLLIElement {
     const list = document.createElement('ul');
     list.className = 'nav-item-children-list';
     list.hidden = true;
-    for (const child of kids) list.appendChild(navItemNested(child));
+    // Fold on VOLUME (TASK-0367). Tasks joined this list in TASK-0366 and
+    // the largest feature carries 48 of them; the median carries 3. The
+    // same limit and the same helper the nav groups use — folding at the
+    // first completed item when Hide-completed is on, on length always.
+    const foldedKids = foldGroup(kids, NAV_GROUP_FOLD_LIMIT, hideCompleted);
+    for (const child of foldedKids.head) list.appendChild(navItemNested(child));
+    if (foldedKids.hidden > 0) {
+      // The same row the groups use, for the same reason: the count is
+      // never optional, and revealing happens in place rather than by
+      // flipping a preference that governs every other list on screen.
+      const li = document.createElement('li');
+      li.className = 'nav-item nav-more';
+      const moreBtn = document.createElement('button');
+      moreBtn.type = 'button';
+      moreBtn.className = 'nav-more-btn';
+      moreBtn.textContent = `… ${foldedKids.hidden} more`;
+      moreBtn.title = 'Show the rest of this feature\u2019s children';
+      moreBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        list.replaceChildren(...kids.map((c) => navItemNested(c)));
+      });
+      li.appendChild(moreBtn);
+      list.appendChild(li);
+    }
 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'nav-children-toggle';
     btn.setAttribute('aria-expanded', 'false');
-    const plans = kids.filter((k) => k.type === 'plan').length;
-    const rest = kids.length - plans;
-    const parts: string[] = [];
-    if (rest) parts.push(`${rest} requirement${rest === 1 ? '' : 's'}`);
-    if (plans) parts.push(plans === 1 ? 'plan' : `${plans} plans`);
-    btn.title = parts.join(' · ');
+    btn.title = childrenSummary(kids);
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();

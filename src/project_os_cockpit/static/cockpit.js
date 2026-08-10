@@ -1342,6 +1342,26 @@
   // Default = collapsed. The persisted-collapse-set storage is repurposed
   // as a persisted-OPEN set (key "nav:item-children-open:<id>") so the
   // default is the inverse of the rest of the cockpit.
+  // What the children toggle says a feature carries (TASK-0367). Counts by
+  // type: before tasks joined the list this said "N requirements" for every
+  // child, which a feature with 3 reqs, a plan and 14 tasks reported as
+  // "17 requirements".
+  function childrenSummary(kids) {
+    function n(type) {
+      var c = 0;
+      for (var i = 0; i < kids.length; i++) if (kids[i].type === type) c++;
+      return c;
+    }
+    var reqs = n("requirement"), plans = n("plan"), tasks = n("task");
+    var other = kids.length - reqs - plans - tasks;
+    var parts = [];
+    if (reqs) parts.push(reqs + " requirement" + (reqs === 1 ? "" : "s"));
+    if (plans) parts.push(plans === 1 ? "plan" : plans + " plans");
+    if (tasks) parts.push(tasks + " task" + (tasks === 1 ? "" : "s"));
+    if (other) parts.push(other + " other");
+    return parts.join(" \u00b7 ");
+  }
+
   function renderItemChildren(item) {
     // Children order open-first like everything else, and are never
     // removed: a feature's completed requirements are part of what the
@@ -1354,18 +1374,36 @@
       class: "nav-item-children",
       open: startOpen ? "" : null,
     });
-    var label = visibleChildren.length === 1
-      ? "1 requirement"
-      : visibleChildren.length + " requirements";
+    var label = childrenSummary(visibleChildren);
     var summary = el("summary", { class: "nav-item-children-toggle" }, [
       el("span", { class: "nav-children-chevron", "aria-hidden": "true" }),
       el("span", { text: label }),
     ]);
     details.appendChild(summary);
     var list = el("ul", { class: "nav-item-children-list" });
-    visibleChildren.forEach(function (child) {
+    // Fold on VOLUME (TASK-0367) — tasks joined this list in TASK-0366 and
+    // the largest feature carries 48. Same helper, same limit as the groups.
+    var foldedKids = foldGroup(visibleChildren, NAV_GROUP_FOLD_LIMIT, hideCompleted);
+    foldedKids.head.forEach(function (child) {
       list.appendChild(navItemNested(child));
     });
+    if (foldedKids.hidden > 0) {
+      var moreBtn = el("button", {
+        type: "button",
+        class: "nav-more-btn",
+        text: "\u2026 " + foldedKids.hidden + " more",
+        title: "Show the rest of this feature's children",
+      });
+      moreBtn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        while (list.firstChild) list.removeChild(list.firstChild);
+        visibleChildren.forEach(function (c) {
+          list.appendChild(navItemNested(c));
+        });
+      });
+      list.appendChild(el("li", { class: "nav-item nav-more" }, [moreBtn]));
+    }
     details.appendChild(list);
     details.addEventListener("toggle", function () {
       // Mirror the "user opened it" state into collapsed storage so it
