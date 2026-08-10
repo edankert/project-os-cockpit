@@ -2403,10 +2403,53 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
                         key=lambda r: (r.note_id or "", r.rel_path))
         if _platform_match(r, platform)
     ]
-    if not designs:
-        return []
-    return [{"key": "designs", "label": "Designs", "url": None,
-             "status": None, "item_layout": "stacked", "items": designs}]
+    out: list[dict[str, Any]] = []
+    if designs:
+        out.append({"key": "designs", "label": "Designs", "url": None,
+                    "status": None, "item_layout": "stacked", "items": designs})
+
+    # The view widens into the project's constraints (TASK-0374 / FEAT-0087).
+    #
+    # The line: **project-level constraints here; feature-level specifications
+    # stay with their feature.** An ADR, a risk or the glossary bounds the whole
+    # project. A *requirement* bounds one feature, is already nested under it,
+    # and "what must this feature do" belongs beside the feature — so the 32
+    # requirements deliberately do not move.
+    #
+    # `risk` is here by Edwin's decision (2026-08-10, ISS-0128): a risk is a
+    # standing constraint on the project rather than a problem you have. It
+    # leaves the Issues navigator in the same change — one type, one owning
+    # view, or the badge counts it twice or neither.
+    for key, label, types in (
+        ("decisions", "Decisions", ("adr", "decision")),
+        ("risks", "Risks", ("risk",)),
+        ("workflows", "Workflows", ("workflow",)),
+        ("reference", "Reference", ("reference", "architecture", "glossary")),
+    ):
+        records = [
+            r for ty in types for r in index.notes_by_type(ty)
+            if _platform_match(r, platform)
+            and not r.rel_path.startswith("__templates__/")
+            # Container-directory signposts are not constraints. ISS-0125
+            # measured `reference` doing three unrelated jobs — five project
+            # singletons, nine `docs/*/README.md` directory markers, four
+            # templates. Only the first belongs here; the signposts keep their
+            # home in the Library's docs tree, so nothing is orphaned.
+            and not (Path(r.rel_path).name == "README.md"
+                     and Path(r.rel_path).parent != Path("."))
+        ]
+        if not records:
+            continue
+        records.sort(key=lambda r: (r.note_id or "\uffff", r.rel_path))
+        out.append({
+            "key": key,
+            "label": label,
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": [_rare_item(index, r) for r in _open_first(records)],
+        })
+    return out
 
 
 def nav_payload(
@@ -3070,12 +3113,14 @@ def _issues_groups(
         "", lambda k: k.title() if k != "unset" else "Severity unset", None,
     ))
 
-    risks = [r for r in index.notes_by_type("risk") if _platform_match(r, platform)]
-    out.extend(_severity_cards(
-        risks, "risk:",
-        lambda k: f"Risks · {k}" if k != "unset" else "Risks · severity unset",
-        "stacked",
-    ))
+    # Risks moved to the Intent view (Edwin, 2026-08-10 — ISS-0128). FEAT-0047
+    # put them here because "what is wrong" and "what could go wrong" are the
+    # same question in different tenses; the decision went the other way. A
+    # risk is a standing constraint on the project, and an `open` risk is not
+    # an obligation — it is a hazard being carried, which may never arrive.
+    #
+    # One type, one owning view: leaving them in both would count them twice
+    # in the badges FEAT-0089 builds, or neither.
     return out
 
 

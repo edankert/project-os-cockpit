@@ -767,7 +767,10 @@ def test_designs_reach_the_bench_from_the_design_mode(tmp_path: Path) -> None:
     docs = _corpus(tmp_path)
     index = Index.build(docs)
     groups = cockpit._design_groups(index, None)
-    items = [item for g in groups for item in g["items"]]
+    # The `designs` group only, since TASK-0374 widened this view into the
+    # project's constraints. The guard is about the *route to the bench*, and
+    # only a design has one — an ADR or a risk in this view is a note.
+    items = [item for g in groups if g["key"] == "designs" for item in g["items"]]
     assert items, "the Design mode lists no designs"
     for item in items:
         assert item["url"].startswith("~design/"), (
@@ -1106,9 +1109,13 @@ def test_nav_items_point_at_the_bench_not_the_raw_note(tmp_path: Path) -> None:
     surface never claimed. The url is overridden deliberately."""
     idx = Index.build(_corpus(tmp_path))
     groups = cockpit.nav_payload(idx, mode="design")["groups"]
-    items = [i for g in groups for i in g["items"]]
-    assert items, "the corpus has designs; the nav found none"
-    for item in items:
+    # Scoped to the `designs` group since TASK-0374: the view widened into the
+    # project's constraints, and an ADR, a risk or a reference is a note rather
+    # than a design — the bench has nothing to render for one, so those rows
+    # correctly point at the note itself.
+    designs = [i for g in groups if g["key"] == "designs" for i in g["items"]]
+    assert designs, "the corpus has designs; the nav found none"
+    for item in designs:
         assert item["url"].startswith("~design/"), item
 
 

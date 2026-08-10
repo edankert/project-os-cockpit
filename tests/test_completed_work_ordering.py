@@ -308,17 +308,35 @@ def test_a_settled_critical_bucket_falls_below_an_open_medium() -> None:
     assert order[1:] == ["critical", "high", "low"], order
 
 
-def test_risks_stay_a_separate_block(index: Index) -> None:
-    """Two blocks on one surface by design (FEAT-0047).
+def test_risks_are_not_in_the_issues_surface_at_all() -> None:
+    """FEAT-0047's arrangement, superseded (Edwin, 2026-08-10 — ISS-0128).
 
-    Interleaving them on open-ness would make the Issues stat tile
-    disagree with what the pane shows — every risk is open, so risks
-    would take the top and the issue count would look wrong.
+    That feature put risks on the Issues surface as a *separate block*,
+    because "what is wrong" and "what could go wrong" are the same question
+    in different tenses. The decision went the other way: a risk is a
+    standing constraint on the project, so it lives in the constraints view.
+
+    **The concern the original guard protected still holds and is what is
+    asserted here.** It existed so the Issues stat tile could not disagree
+    with what the pane shows — every risk is `open`, so interleaving them
+    would have put risks at the top and made the issue count look wrong.
+    With risks gone from the surface entirely, the tile and the pane agree
+    by construction, and this asserts that rather than deleting the guard
+    along with the arrangement it guarded.
     """
-    labels = [g["label"] for g in cockpit._issues_groups(index)]
-    risk_at = [i for i, x in enumerate(labels) if x.startswith("Risks")]
-    issue_at = [i for i, x in enumerate(labels) if not x.startswith("Risks")]
-    assert min(risk_at) > max(issue_at), labels
+    from project_os_cockpit.index import Index as _I
+
+    idx = _I.build(REPO_ROOT / "docs")
+    labels = [g["label"] for g in cockpit._issues_groups(idx)]
+    assert not [x for x in labels if x.startswith("Risks")], labels
+
+    rows = [
+        item for group in cockpit._issues_groups(idx)
+        for item in group["items"]
+    ]
+    assert all(r.get("type") != "risk" for r in rows), (
+        "a risk is still rendered on the Issues surface"
+    )
 
 
 def test_an_empty_group_counts_as_settled() -> None:

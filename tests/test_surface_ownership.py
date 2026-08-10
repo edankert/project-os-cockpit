@@ -169,14 +169,24 @@ def test_every_risk_appears_in_the_issues_mode(docs_root: Path) -> None:
             encoding="utf-8",
         )
     fresh = Index.build(docs_root)
-    payload = nav_payload(fresh, mode="issues")
+    # Risks moved to the constraints view (Edwin, 2026-08-10 — ISS-0128): a
+    # risk is a standing constraint on the project, not a problem you have.
+    # What this test guards is unchanged — REQ-0025's rule that no type loses
+    # its only surface. Only the surface moved, so the assertion follows it.
     listed = {
         item["id"]
-        for group in payload["groups"]
+        for group in nav_payload(fresh, mode="design")["groups"]
         for item in group["items"]
         if item.get("type") == "risk"
     }
-    assert listed == {r.note_id for r in fresh.notes_by_type("risk")}
+    assert listed == {r.note_id for r in fresh.notes_by_type("risk")}, (
+        "a risk lost its surface in the move from Issues to the constraints view"
+    )
+    in_issues = [
+        item for group in nav_payload(fresh, mode="issues")["groups"]
+        for item in group["items"] if item.get("type") == "risk"
+    ]
+    assert not in_issues, "risks are in both views; the badge would count them twice"
 
 
 def test_risks_get_their_own_groups_not_the_issue_buckets(

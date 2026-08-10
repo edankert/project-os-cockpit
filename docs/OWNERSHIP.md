@@ -4,7 +4,8 @@ id: OWNERSHIP
 owner: user:edwin
 created: 2026-05-07
 updated: 2026-05-07
-tags: [ownership, teams, groups, users]---
+tags: [ownership, teams, groups, users]
+---
 
 # Ownership registry
 

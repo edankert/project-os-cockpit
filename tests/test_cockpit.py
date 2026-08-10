@@ -857,3 +857,37 @@ def test_retired_ui_modes_still_serve(index: Index) -> None:
             assert "label" in group and "items" in group
             for item in group["items"]:
                 assert "type" in item, f"mode={mode} item missing 'type'"
+
+
+def test_risk_appears_in_intent_and_not_in_issues() -> None:
+    """One type, one owning view (ISS-0128, Edwin 2026-08-10).
+
+    A risk is a standing constraint on the project rather than a problem you
+    have — so it surfaces in the constraints view. Leaving it in both would
+    count it twice in FEAT-0089's badges, or neither.
+    """
+    real = Index.build(Path(__file__).resolve().parents[1] / "docs")
+    issues = nav_payload(real, mode="issues")["groups"]
+    assert not [g for g in issues if str(g["key"]).startswith("risk")], (
+        "risks are still in the Issues navigator"
+    )
+    constraints = nav_payload(real, mode="design")["groups"]
+    keys = {g["key"] for g in constraints}
+    assert "risks" in keys, "risks did not arrive in the constraints view"
+
+
+def test_the_constraints_view_holds_project_level_constraints() -> None:
+    """TASK-0374's line: project-level constraints here, feature-level
+    specifications stay with their feature."""
+    real = Index.build(Path(__file__).resolve().parents[1] / "docs")
+    groups = {g["key"]: g for g in nav_payload(real, mode="design")["groups"]}
+    for expected in ("designs", "decisions", "risks"):
+        assert expected in groups, f"{expected} missing from the constraints view"
+    # Requirements deliberately do NOT move — 32 notes turn on this.
+    flat = [
+        i.get("type") for g in groups.values() for i in g["items"]
+    ]
+    assert "requirement" not in flat, (
+        "requirements moved into the constraints view; they bound one feature "
+        "and belong nested under it"
+    )

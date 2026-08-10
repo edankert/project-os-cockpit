@@ -69,10 +69,26 @@ That is right, and **it is what an omission looks like from the outside**. [[TAS
 
 This issue is the remaining **content** decisions, which a test cannot make.
 
+## Answered 2026-08-10 — two of four
+
+**1. `risk` is surfaced in Intent.** Edwin: *"Risk should be surfaced in intent."* One type, one owning view — so the six risks leave the Issues navigator's `Risks · high/medium/low` cards and join the constraints view. That reading was the stronger one: a risk is a standing constraint on the project, alongside ADRs, rather than a problem you have.
+
+**2. An `open` risk is not an obligation.** Edwin: *"An open risk is not necessarily an obligation, the risk might never materialize."*
+
+This is the more interesting answer, because it says something the measurement could not. All six risks have sat at `open` since they were written, and the tempting reading was that six items had been ignored for months. They have not: **`open` is a risk's resting state.** A risk is a thing you have decided to *carry*, and carrying it is not a debt — the hazard may simply never arrive.
+
+So `risk` declares an owning view and **`none` for its obligation**, with that reason. Which makes it the first entry to exercise [[TASK-0369]]'s requirement that a `none` be explicit and carry its justification: without the reason written down, six untouched notes look exactly like six forgotten ones.
+
+### Still open
+
+**3. Does a `draft` workflow carry an obligation?** All three workflows are `draft` and have never advanced. `draft` on a requirement *is* an obligation — approve it — and the asymmetry is unexplained. Either a workflow's `draft` means the same and nobody has discharged it, or `draft` is simply the wrong resting value for a workflow, the way `open` turns out to be the right one for a risk.
+
+**4. Where does phase close-out surface?** The machinery exists — `phase_close_blockers()`, the `unclosed` computation, the "close out" pill. Zero phases are currently due, which is exactly how `change` and `release` hid. The Overview is the obvious home since the phase accordion is already there.
+
 ## Next Actions
 
-- [ ] Decide `risk`'s owning view — Issues or Intent — and update the loser's scope so both notes agree
-- [ ] Decide whether `open` risk is an obligation, and if so its verb
+- [x] Decide `risk`'s owning view — **Intent** (Edwin, 2026-08-10); Issues drops its Risks cards
+- [x] Decide whether `open` risk is an obligation — **no**: `open` is a risk's resting state, and carrying a hazard is not a debt
 - [ ] Decide whether `draft` workflow is an obligation, or whether `draft` is the wrong resting status for a workflow
 - [ ] Home phase close-out, most likely the Overview, and record it even though nothing is currently due
 - [ ] Fold all four answers into [[TASK-0369]]'s registry declarations

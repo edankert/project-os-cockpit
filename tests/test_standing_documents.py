@@ -179,3 +179,32 @@ def test_a_stale_document_is_found_by_age_not_by_name() -> None:
         if m:
             age = (_dt.date.today() - _dt.date.fromisoformat(m.group(1))).days
             assert age > standing.STALE_AFTER_DAYS
+
+
+def test_every_standing_document_still_parses_as_a_note() -> None:
+    """Regression, 2026-08-10 (TASK-0381 → caught by TASK-0374).
+
+    Stripping `status:` glued the closing `---` onto the last frontmatter
+    line (`tags: [design]---`), so **all seven documents silently stopped
+    parsing**: `type=None`, `id=None`, invisible to every payload that reads
+    by type.
+
+    Nothing caught it. The validator passed, the suite passed, and the
+    standing checks passed because they read the file with a regex rather
+    than as a note. It surfaced only because the Intent view rendered
+    `Reference · 3` where more was expected.
+
+    So the assertion is that these are *notes*, not that the text looks
+    right — the property, not the shape.
+    """
+    from project_os_cockpit.index import Index
+
+    index = Index.build(REPO / "docs")
+    for res in standing.resolve(REPO / "docs", REPO):
+        if res.path is None:
+            continue
+        record = index.get(res.path)
+        assert record is not None, f"{res.document.name} is not in the index"
+        assert record.note_type, (
+            f"{res.document.name} has no type — its frontmatter does not parse"
+        )
