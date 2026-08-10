@@ -3,11 +3,11 @@ type: "[[test]]"
 id: TST-0002
 aliases: ["TST-0002"]
 title: "Cockpit JSON API — nav + context payloads"
-status: passing
+status: "passing"
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: "2026-08-10"
 source: []
 scope: "system"
 kind: "automated"
@@ -16,10 +16,9 @@ entrypoint: "tests/test_cockpit.py"
 verifies: ["[[REQ-0013]]"]
 artifacts: []
 evidence: ["13 passed in 0.06s (2026-05-08)"]
-last_run: "2026-05-08"
+last_run: "2026-08-10"
 related: ["[[TASK-0012]]", "[[FEAT-0006]]"]
-last_verified: 2026-05-08
-
+last_verified: "2026-08-10"
 ---
 
 # TST-0002 — Cockpit JSON API
@@ -61,3 +60,8 @@ Unit tests for `project_os_cockpit.cockpit.nav_payload` and `project_os_cockpit.
 
 ## Last result
 2026-05-08 — 13 passed in 0.06s.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/python -m pytest tests/test_cockpit.py -v` — ============================== 52 passed in 1.28s ====================

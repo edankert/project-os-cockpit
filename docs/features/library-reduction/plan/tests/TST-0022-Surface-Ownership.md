@@ -3,21 +3,21 @@ type: "[[test]]"
 id: TST-0022
 aliases: ["TST-0022"]
 title: "Surface ownership — every moved type is reachable, and Library is reduced"
-status: passing
+status: "passing"
 phase: "[[PHASE-010-Surface-Ownership]]"
 owner: user:edwin
 created: 2026-07-29
-updated: 2026-07-30
+updated: "2026-08-10"
 source: ["[[PHASE-010-Surface-Ownership]]"]
 verifies: ["[[REQ-0025-No-Type-Loses-Its-Surface]]", "[[FEAT-0046-Plans-On-The-Feature]]", "[[FEAT-0047-Risks-On-The-Issues-Surface]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0050-Library-Reduction]]", "[[ISS-0062-Most-Plans-Are-Invisible]]", "[[ISS-0063-Dead-Stat-Tiles]]"]
 path: "tests/test_surface_ownership.py"
 command: ".venv/bin/pytest tests/test_surface_ownership.py -q"
-last_run: "2026-07-30T09:09Z"
+last_run: "2026-08-10"
 exit_code: 0
 reviewed_by: "model:claude-opus-5"
 review_date: "2026-07-30"
 review_verdict: "approved"
-
+last_verified: "2026-08-10"
 ---
 
 # TST-0022 — Surface ownership
@@ -130,6 +130,9 @@ After [[TASK-0246]]. Direct children of `.review-queue` in document order: `HEAD
 After [[TASK-0247]] and [[ADR-0007]] settling. `tallyPresent: false`; pane headings are exactly `Queue`, `Reviewed · 62`, `Tests · 22/22`.
 
 Worth noting against the second run: the `Outcomes` rename was the right fix for the collision and the wrong fix for the underlying problem. Renaming made two sections legible; asking what the section was *for* made one of them unnecessary. Edwin's question ("there is nothing for me to select there") got further than the bug report did.
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_surface_ownership.py -q` — 44 passed in 2.94s
 
 ## Independent review — 2026-07-30, changes-requested
 

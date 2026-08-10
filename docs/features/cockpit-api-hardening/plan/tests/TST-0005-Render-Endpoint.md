@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0005
 aliases: ["TST-0005"]
 title: "GET /api/render — HTML fragment + metadata, error shapes, path-traversal guard"
-status: passing
+status: "passing"
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: "2026-08-10"
 source: ["[[TASK-0067]]"]
 verifies: ["[[TASK-0067]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_render_endpoint.py"
-last_verified: 2026-05-25
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0005 — `GET /api/render` contract
@@ -47,3 +47,8 @@ pattern as `test_cockpit_state.py` / `test_sidecar_contract.py`.
 
 ## Status
 `passing` — 7/7 (`pytest tests/test_render_endpoint.py -v`).
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_render_endpoint.py -q` — 8 passed in 4.15s

@@ -3,20 +3,21 @@ type: "[[test]]"
 id: TST-0021
 aliases: ["TST-0021"]
 title: "Review desk — queue without new states, guarded note write-back, manual-run logging"
-status: passing
+status: "passing"
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26
-updated: 2026-07-26
+updated: "2026-08-10"
 source: ["[[TASK-0207-Proposal-Set-Review]]"]
 verifies: ["[[TASK-0206-Review-Virtual-Page]]", "[[TASK-0207-Proposal-Set-Review]]", "[[TASK-0209-Manual-Test-Runner]]", "[[FEAT-0041-Review-Desk]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
 features: ["[[FEAT-0041-Review-Desk]]"]
 path: "tests/test_review_desk.py"
 automation: automated
-last_verified: 2026-07-26
+last_verified: "2026-08-10"
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26
 review_verdict: approved
+last_run: "2026-08-10"
 ---
 
 # TST-0021 — Review desk
@@ -79,3 +80,8 @@ Verdict **changes-requested**. The suite is real and its manual-run/transition/t
 All four findings verified fixed in the working tree, not taken on trust: (1) `test_mutation_endpoints_reject_non_loopback_callers` asserts the guard on all four mutation handlers (a source-level assertion plus a loopback sanity POST — honest about being a static check, since http.server cannot spoof a peer address) and `_serve_review_request` now requires loopback; (2) `server.py` consumes `note_writes.REVIEW_REQUEST_KEYS` / `TEST_RUN_REQUEST_KEYS` and a test pins that consumption, `updated` is declared in `ALLOWED_FIELDS` rather than written silently; (3) `stamp_review` refuses gate-bearing note types (`test`, `change`) with 403 — `test_desk_refuses_to_stamp_gate_bearing_notes` — closing the path by which a plan verdict could reach a note ADR-0011 reads; (4) block-scalar values now 409 instead of corrupting (`test_multi_line_frontmatter_values_are_refused_not_mangled`), and `plan-rejected` exists so a rejection no longer stamps an acceptance verdict. Suite re-run: 304 passed, 1 skipped; validate-docs OK.
 
 Residual accuracy nits, not blocking: the Result line above still says "23 tests" (the file now holds 30); the phrase "Loopback-only binding" above should read "per-request loopback guard" (the note_writes docstring and TASK-0207 line 29 were corrected, this line and TASK-0207's test-list line were not); and this note's prose predates the gate-bearing and `plan-rejected` guards it now relies on. Same-family caveat stands: reviewed by model:claude-fable-5 against Claude-authored work — record a cross-vendor or human pass to make this independent per QUALITY.md.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/python -m pytest tests/test_review_desk.py -q` — 37 passed in 0.68s

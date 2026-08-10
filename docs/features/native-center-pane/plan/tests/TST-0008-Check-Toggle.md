@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0008
 aliases: ["TST-0008"]
 title: "POST /api/notes/check-toggle — write-back, error shapes, nested tasks"
-status: passing
+status: "passing"
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: "2026-08-10"
 source: ["[[TASK-0074]]"]
 verifies: ["[[TASK-0074]]", "[[FEAT-0011-Native-Center-Pane]]"]
 path: "tests/test_check_toggle.py"
-last_verified: 2026-05-25
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0008 — checkbox toggle endpoint
@@ -48,3 +48,8 @@ checkbox click; getting it wrong corrupts the user's note files.
 
 ## Status
 `passing` — 10/10.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_check_toggle.py -q` — 10 passed in 5.17s

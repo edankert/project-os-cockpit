@@ -3,11 +3,11 @@ type: "[[test]]"
 id: TST-0001
 aliases: ["TST-0001"]
 title: "Index — lookup tables, link graph, invalidation"
-status: passing
+status: "passing"
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-05-08
+updated: "2026-08-10"
 source: []
 scope: "system"
 kind: "automated"
@@ -16,10 +16,9 @@ entrypoint: "tests/test_index.py"
 verifies: ["[[REQ-0002]]", "[[REQ-0008]]"]
 artifacts: []
 evidence: ["12 passed in 0.06s (2026-05-08)"]
-last_run: "2026-05-08"
+last_run: "2026-08-10"
 related: ["[[TASK-0007]]", "[[FEAT-0006]]"]
-last_verified: 2026-05-08
-
+last_verified: "2026-08-10"
 ---
 
 # TST-0001 — Index lookup + backlink graph + invalidation
@@ -59,3 +58,8 @@ Unit tests for `project_os_cockpit.index.Index`. Validates the in-memory data la
 2026-05-08 — 12 passed in 0.06s.
 
 - Added `test_invalidate_folds_path_case_to_docs_root` — regression for [[ISS-0001]] (watcher path-case re-rooted to docs_root so `Index.get` finds post-start files).
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/python -m pytest tests/test_index.py -v` — ============================== 16 passed in 0.10s ====================

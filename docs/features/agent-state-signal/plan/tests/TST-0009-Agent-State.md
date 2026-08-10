@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0009
 aliases: ["TST-0009"]
 title: "Agent-state pipe — storage, endpoint, SSE delivery, decay, CLI"
-status: passing
+status: "passing"
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: "2026-08-10"
 source: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]"]
 verifies: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]", "[[FEAT-0013-Agent-State-Signal]]"]
 path: "tests/test_cockpit_state.py + tests/test_agent_state.py + tests/test_cli_signal.py"
-last_verified: 2026-05-25
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0009 — Agent-state pipe
@@ -57,3 +57,8 @@ subscribe to.
 
 ## Status
 `passing` — 23 / 23 (8 storage + 6 HTTP + 9 CLI).
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_cockpit_state.py tests/test_agent_state.py tests/test_cli_signal.py -q` — 37 passed in 3.93s

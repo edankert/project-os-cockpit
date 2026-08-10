@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0007
 aliases: ["TST-0007"]
 title: "Wire-level coverage for focus POST, tab-state POST, and SSE event shapes"
-status: passing
+status: "passing"
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
-updated: 2026-05-25
+updated: "2026-08-10"
 source: ["[[TASK-0069]]"]
 verifies: ["[[TASK-0069]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_focus_and_tab_state.py"
-last_verified: 2026-05-25
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0007 — focus / tab-state / SSE wire shapes
@@ -68,3 +68,8 @@ exception re-surfaced.
 
 ## Status
 `passing` — 9/9.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_focus_and_tab_state.py -q` — 9 passed in 4.78s

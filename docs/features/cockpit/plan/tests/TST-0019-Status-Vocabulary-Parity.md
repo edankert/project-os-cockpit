@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0019
 aliases: ["TST-0019"]
 title: "Status vocabulary parity — one canonical band map, six surfaces held to it"
-status: passing
+status: "passing"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-24
-updated: 2026-07-24
+updated: "2026-08-10"
 source: ["[[TASK-0198-Delivered-Status-Band]]"]
 verifies: ["[[TASK-0198-Delivered-Status-Band]]", "[[ISS-0023-Implemented-Status-Band-Drift]]", "[[REQ-0012-Visual-Style]]"]
 path: "tests/test_status_vocabulary.py"
-last_verified: 2026-07-24
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0019 — Status vocabulary parity
@@ -64,3 +64,8 @@ Not covered: visual rendering of the new amber `--status-delivered` hue in a rea
 **Current (16 tests).** Independent review re-verified each guard by mutation rather than by re-reading: poisoning `DONE_REQ` with `staged` fails the delivered/done separation assertion; poisoning `DONE_ISS` with `monitoring` fails the per-type loop (a case the direct assertions do not reach); appending two bytes to `validate_docs_bundled.py` fails the byte-identity guard. All mutations restored byte-identically.
 
 **Both previously-known CSS blind spots are now closed** ([[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]] §2). A later same-specificity rule with a colour literal, and a token redefined in comma-syntax `hsl()`, both used to pass. Five constructs were tried against the hardened suite — literal `hsl()` override, comma-syntax 90%-saturated token, `color: red` keyword, deleted token, hex override — and all five now fail. The real defect in both cases was the same: a loop over an empty match set asserted nothing, so the check passed by finding nothing. The suite now asserts the match set is non-empty before judging it.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_status_vocabulary.py -q` — 25 passed in 0.05s

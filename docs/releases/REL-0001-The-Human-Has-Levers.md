@@ -128,6 +128,20 @@ Eleven features, in the release's own order. What the sessions found, rather tha
 
 This note therefore stays `draft`. **No exceptions are claimed** — the honest state is that the code is done, the record is closed, and the manual acceptance pass has not been run. A green gate here would have meant nothing, since the suite that produces it was created the same day.
 
+### Release verification, run 2026-08-10
+
+`tools/skills/release-verification/SKILL.md`, against the eleven features in scope.
+
+**Step 7 — automated re-runs.** Thirteen of the 23 `TST-*` notes resolve to an entrypoint and were re-run against the code as it stands today; all thirteen pass and carry `last_run: 2026-08-10` with the command and its output in their `## Runs` log. That closes the two genuinely `STALE` rows in the matrix — TST-0001 and TST-0002 were last verified 2026-05-08, 94 days, and the Tests view's `Stale` group is now empty rather than argued away.
+
+**Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
+
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items, **all unchecked**. Per `TESTING.md` and the skill's step 6: *release blocked, 34 tests need attention.* Each needs a **first run**, and every one is a manual procedure — the skill's step 7.2 is explicit that a manual test is *"presented to the user for execution"*.
+
+**No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. Thirty-four of them can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
+
+So the release stays `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
+
 ### Two acceptance criteria reconciled rather than ticked
 
 - **[[FEAT-0090]]**: the desk's button and mode are gone and migrate; the **route stays served**. `.cockpit/review-requests.json` holds one OPEN entry, and retiring the route would strand it. Where proposals, questions and offered designs land is [[ISS-0126]] — one of the four decisions this note reserves.

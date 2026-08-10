@@ -3,20 +3,21 @@ type: "[[test]]"
 id: TST-0020
 aliases: ["TST-0020"]
 title: "Overview payloads — focus block, issue severity, commits join, and sidecar-owned status buckets"
-status: passing
+status: "passing"
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26
-updated: 2026-07-26
+updated: "2026-08-10"
 source: ["[[TASK-0199-Sidecar-Payload-Additions]]"]
 verifies: ["[[TASK-0199-Sidecar-Payload-Additions]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[FEAT-0040-Overview-Rework]]", "[[REQ-0022-Overview-State-Above-History]]"]
 features: ["[[FEAT-0040-Overview-Rework]]"]
 path: "tests/test_overview_payloads.py"
 automation: automated
-last_verified: 2026-07-26
+last_verified: "2026-08-10"
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26
 review_verdict: approved
+last_run: "2026-08-10"
 ---
 
 # TST-0020 — Overview payloads
@@ -54,3 +55,8 @@ Authored by a Claude-family session (Opus); reviewed by model:claude-fable-5 —
 Verdict **approved**: the suite runs green (re-run 2026-07-26, 296 passed / 1 skipped), the commits tests build real git repositories and would fail on a real regression (join, clamping, non-repo fallback, undocumented flag all exercised against behaviour), the focus-block edge cases are deliberate, and the bucket-parity test is a genuine cross-surface guard. One accuracy note for the record: this note honestly says completions are marked "with the same per-type `is_done_status`" — i.e. the item's *current* status — which is correct about the code but weaker than TASK-0199's DoD wording ("status-diffing adjacent revisions"); the discrepancy is the task note's problem, not this one's.
 
 Second pass (same day): verdict stands. TASK-0199's DoD was amended to describe the current-status semantics honestly (with the cost named), which resolves the one discrepancy above; suite re-run at 304 passed / 1 skipped after the review-fix batch, this file unchanged and still green.
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/python -m pytest tests/test_overview_payloads.py tests/test_status_vocabulary.py -q` — 37 passed in 0.45s

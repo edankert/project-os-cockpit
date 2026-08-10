@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0004
 aliases: ["TST-0004"]
 title: "Sidecar contract — /healthz, COCKPIT_DESKTOP gating, mode-1 regression guard"
-status: passing
+status: "passing"
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-05-24
+updated: "2026-08-10"
 source: ["[[TASK-0059]]"]
 verifies: ["[[TASK-0059]]", "[[FEAT-0007]]"]
 path: "tests/test_sidecar_contract.py"
-last_verified: 2026-05-24
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0004 — Sidecar contract
@@ -53,3 +53,8 @@ HTTP probes.
 
 ## Status
 `passing` — 10/10 (`pytest tests/test_sidecar_contract.py -v`).
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_sidecar_contract.py -q` — 9 passed in 1.09s

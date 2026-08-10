@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0003
 aliases: ["TST-0003"]
 title: "Unknown POST drains body — keep-alive stays synced"
-status: passing
+status: "passing"
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-23
-updated: 2026-05-23
+updated: "2026-08-10"
 source: ["[[TASK-0057]]"]
 verifies: ["[[TASK-0057]]", "[[FEAT-0006]]"]
 path: "tests/test_cockpit_state.py::test_unknown_post_drains_body_to_keep_connection_synced"
-last_verified: 2026-05-23
-
+last_verified: "2026-08-10"
+last_run: "2026-08-10"
 ---
 
 # TST-0003 — Unknown POST drains body
@@ -28,3 +28,8 @@ Prior to TASK-0057, the cockpit could be put into an unstyled state simply by se
 
 ## Status
 `passing`
+
+## Runs
+
+### 2026-08-10 — passing (by model:claude-opus-5)
+- **pass** · Re-run for REL-0001 release verification: `.venv/bin/pytest tests/test_cockpit_state.py::test_unknown_post_drains_body_to_keep_connection_synced -q` — 1 passed in 0.56s
