@@ -937,6 +937,8 @@ def test_design_sits_second_before_the_structure_modes() -> None:
     modes = re.search(r"const NAV_MODES = \[([^\]]+)\]", src).group(1)
     order = [m.strip().strip("'") for m in modes.split(",")]
     assert order[:2] == ["overview", "design"], order
+    # `tasks` is still in NAV_MODES (the server serves it) but has no button
+    # since TASK-0368 — position is asserted for the modes a human can click.
     for structural in ("features", "tasks", "issues"):
         assert order.index("design") < order.index(structural)
 
@@ -946,7 +948,11 @@ def test_design_sits_second_before_the_structure_modes() -> None:
             / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
     buttons = re.findall(r'top-bar-btn[^>]*data-mode="(\w+)"', html)
     assert buttons.index("design") == 1, buttons
-    for structural in ("features", "tasks", "issues"):
+    assert "tasks" not in buttons, (
+        "the Tasks button was retired in TASK-0368 — tasks hang under their "
+        "feature, and a button here would be a second home for them"
+    )
+    for structural in ("features", "issues"):
         assert buttons.index("design") < buttons.index(structural)
 
 

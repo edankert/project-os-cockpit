@@ -2843,6 +2843,15 @@ def _task_records(index: Index) -> list[NoteRecord]:
     return typed
 
 
+# Retired from both front doors in TASK-0368 — tasks now hang under the
+# feature they serve (TASK-0366), and the flat status list showed 356 rows of
+# which 282 were `done`, none `doing`, with phase appearing nowhere.
+#
+# **Still served, deliberately.** `nav_payload(mode="tasks")` remains a working
+# endpoint: FEAT-0008's API-stability commitment is the same reason `active`
+# and `recent` kept theirs when TASK-0204 took their buttons. A retired button
+# is a UI decision; deleting an endpoint is a contract change, and nothing here
+# needs one.
 def _tasks_groups(
     index: Index, platform: str | None = None
 ) -> list[dict[str, Any]]:

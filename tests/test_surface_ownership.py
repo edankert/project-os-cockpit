@@ -482,11 +482,44 @@ def test_the_quick_palette_covers_every_type_bearing_mode() -> None:
 
     So the coverage claim is pinned. `library` alone is not enough, and
     the modes that carry the moved types must all be present.
+
+    **Tasks moved rather than left (TASK-0368).** They are no longer a mode;
+    they hang under their feature, and `flattenNavItems` descends into
+    `children`, so `features` carries all of them plus an `unattached-tasks`
+    group. Listing `tasks` here as well would add every task a second time.
+    The claim being pinned is *reachability*, so that is what is asserted —
+    against the real payload, not against a list of mode names.
     """
     code = _renderer_code()
     block = code.split("const QUICK_CORPUS_MODES = [")[1].split("]")[0]
     modes = set(re.findall(r"'([a-z]+)'", block))
-    assert {"features", "tasks", "issues", "design", "library"} <= modes, modes
+    assert {"features", "issues", "design", "library"} <= modes, modes
+    assert "tasks" not in modes, (
+        "`features` already carries every task through its children; listing "
+        "`tasks` too duplicates all of them in the palette"
+    )
+
+    # Reachability, checked rather than assumed: every task in the corpus is
+    # findable through the features payload alone.
+    from project_os_cockpit import cockpit as _c
+    from project_os_cockpit.index import Index as _I
+
+    idx = _I.build(Path(__file__).resolve().parents[1] / "docs")
+    payload = _c.nav_payload(idx, mode="features")
+    reachable: set[str] = set()
+    for group in payload["groups"]:
+        for item in group["items"]:
+            if item.get("id"):
+                reachable.add(item["id"])
+            for child in item.get("children") or []:
+                if child.get("id"):
+                    reachable.add(child["id"])
+    every_task = {
+        r.note_id for r in _c._task_records(idx)
+        if r.note_id and not r.rel_path.startswith("__templates__/")
+    }
+    missing = every_task - reachable
+    assert not missing, f"tasks unreachable from the features payload: {sorted(missing)[:5]}"
     # Changes and tests have no nav mode; they must be reached explicitly.
     corpus_fn = code.split("async function buildQuickCorpus(")[1].split("\n}\n")[0]
     assert "review-queue" in corpus_fn, "tests are not in the palette"

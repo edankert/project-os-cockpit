@@ -30,10 +30,11 @@
   // "Project" is first — the orienting mode (directory trees + pinned +
   // rare lifecycle/supporting types). The mode id stays "library" for storage compatibility,
   // but the user-facing label is "Project".
+  // Tasks retired in TASK-0368 — tasks hang under their feature (TASK-0366).
+  // The server still serves `mode=tasks`; no front door offers it.
   var NAV_MODES = [
     { id: "library",  label: "Project" },
     { id: "features", label: "Features" },
-    { id: "tasks",    label: "Tasks" },
     { id: "issues",   label: "Issues" },
     { id: "recent",   label: "Recent" },
   ];

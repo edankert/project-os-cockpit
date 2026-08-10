@@ -2660,7 +2660,7 @@ const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
   'overview', 'review', 'design',
 ]);
 
-const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox'];
+const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks'];
 const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   active: 'overview',   // in-flight work is ambient on the overview now
   recent: 'overview',   // "what changed" is the commits panel
@@ -2668,6 +2668,10 @@ const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   // still says 'inbox' would otherwise land in a mode with no button and no
   // way out, which is exactly the trap RETIRED_NAV_MODES exists to prevent.
   inbox: 'overview',
+  // TASK-0368: tasks now hang under the feature they serve (TASK-0366), so
+  // the flat status list has nothing left to show that Features does not.
+  // The server mode stays served — see `_tasks_groups` — but nobody lands here.
+  tasks: 'features',
 };
 
 function loadStoredNavMode(): NavMode {
@@ -5707,7 +5711,9 @@ function buildStatTiles(data: StatsPayload): HTMLElement {
     buildStatTile('Features', String(hero.features.done),
       `/${hero.features.total}`, buckets.features, mix.features, 'features'),
     buildStatTile('Tasks', String(hero.tasks.done),
-      `/${hero.tasks.total}`, buckets.tasks, mix.tasks, 'tasks'),
+      // TASK-0368: was 'tasks'. Retiring a mode is exactly how a live tile
+      // becomes a dead click (ISS-0063), and tasks live under Features now.
+      `/${hero.tasks.total}`, buckets.tasks, mix.tasks, 'features'),
   );
   // Requirements were computed by the sidecar all along and never
   // rendered — the tile strip is where they finally show (TASK-0200).
@@ -8886,8 +8892,11 @@ function flattenNavItems(groups: NavGroupData[] | undefined, out: QuickItem[]): 
 // reached through search instead. Enumerating the modes keeps the corpus
 // honest and makes the coverage claim checkable rather than incidental.
 const QUICK_CORPUS_MODES = [
-  'features',   // features + their requirements and plans
-  'tasks',
+  // TASK-0368: `features` now carries every task too — `flattenNavItems`
+  // descends into `children`, and TASK-0366 put tasks there plus an
+  // `unattached-tasks` group for the rest. Listing `tasks` as well would
+  // add all 384 a second time.
+  'features',   // features + their requirements, plans and tasks
   'issues',     // issues + risks (FEAT-0047)
   'design',
   'library',    // pins + the Docs tree, incl. references and workflows
@@ -11504,7 +11513,7 @@ function buildScopedHealthBand(data: StatsPayload): HTMLElement {
   band.append(
     cell(`${hero.features.done}/${hero.features.total}`, 'features', buckets.features, mix.features),
     divider(),
-    cell(`${hero.tasks.done}/${hero.tasks.total}`, 'tasks', buckets.tasks, mix.tasks),
+    cell(`${hero.tasks.done}/${hero.tasks.total}`, 'features', buckets.tasks, mix.tasks),
     divider(),
     cell(`${hero.tests.passing}/${hero.tests.total}`, 'tests'),
     divider(),

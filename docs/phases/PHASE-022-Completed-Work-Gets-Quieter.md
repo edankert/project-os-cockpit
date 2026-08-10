@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-022
 aliases: ["PHASE-022"]
 title: "Completed work gets quieter, never absent — ordering, then folding, then the density that makes folding readable"
-status: active
+status: done
 order: 22
 owner: user:edwin
 created: 2026-08-02
@@ -296,3 +296,11 @@ So [[FEAT-0085]] makes Features the whole structural tree — phase → feature 
 **Reopened rather than minted**, per `CLAUDE.md`: this phase already owns [[FEAT-0058]] (*one shape per navigator*), the goal above is the rule this leg applies one level deeper, and a single feature is exactly what [[ISS-0077]] said must not get a phase of its own. It closes again when [[FEAT-0085]] does.
 
 **Deliberately not in this leg:** the phase *scope* Edwin asked about in the same breath. Folding finished phases already leaves 1 active and 7 planned on screen, so the tree change may remove the need entirely — and a global filter that makes every count conditional is expensive to withdraw once every view respects it. Re-asked after this lands, not before.
+
+## Closed again 2026-08-10 — the thirteenth leg is done
+
+[[FEAT-0085]] landed: `phase → feature → requirements · plan · tasks`, and the Tasks view retired from both front doors. Details on [[CHG-20260810-Features-Is-The-One-Structural-Tree]].
+
+The phase's own goal — *ordering that puts open work first, and folding applied to volume rather than to meaning* — needed no amendment to cover a level it had never been applied to. The child list already sorted open-first; what it lacked was a fold, and it got the same one the groups use rather than a second.
+
+Closed rather than left open, as this phase has now done thirteen times.
