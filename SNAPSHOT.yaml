@@ -26,7 +26,11 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 10
+  ADR: 20
+  # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
+  # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
+  # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
+  # deliberately never allocated locally.
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
@@ -35,7 +39,7 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 85
-  ISS: 122
+  ISS: 123
   PHASE: 29
   REQ: 32
   RISK: 6
@@ -1342,6 +1346,13 @@ items:
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
   issues:
+    ISS-0123:
+      file: "docs/issues/ISS-0123-Upstream-ADR-Namespace-Is-Cited-But-Absent.md"
+      title: "ADR-0011 is cited in 26 files and ADR-0013 in 22, and neither note exists in this repo or upstream — the upstream decision namespace is quoted but unresolvable"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "Surfaced by allocating an ID for ADR-0020. Six upstream ADR IDs are cited and unresolvable; ADR-0011 is the review deadline in every validator [REVIEW] warning and ADR-0013 is the independence rule CLAUDE.md and QUALITY.md lean on. Nothing checks ADR citations, so 26 files went unreported. The 10->20 counter jump is a workaround, not the fix."
     ISS-0122:
       file: "docs/issues/ISS-0122-Active-Modes-Doing-Column-Counts-Notes-Nobody-Is-Working.md"
       title: "Active mode's `Doing · 44` contains one item anybody is working — `active` on a plan, a reference or a glossary is not work in flight"
@@ -2526,6 +2537,10 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0020:
+      title: "Obligations live with their subject — the review desk dissolves into the views, the count moves to the buttons, and Tests becomes a view"
+      status: proposed
+      path: "docs/decisions/ADR-0020-Obligations-Live-With-Their-Subject.md"
     ADR-0010:
       title: "What the browser cockpit is for — the read-only front door is the reading surface, and its view set follows from that rather than from history"
       status: proposed
@@ -2575,7 +2590,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 2
+    issues_triage: 3
     risks_open: 6
     releases_total: 0
-    decisions_total: 10
+    decisions_total: 11
