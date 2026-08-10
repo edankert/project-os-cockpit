@@ -39,11 +39,11 @@ counters:
     last_date: 20260724
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 126
+  ISS: 127
   PHASE: 30
   REQ: 33
   RISK: 6
-  REL: 0
+  REL: 1
   TASK: 384
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
@@ -1387,7 +1387,20 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
       parent: "FEAT-0027"
+  releases:
+    REL-0001:
+      file: "docs/releases/REL-0001-The-Human-Has-Levers.md"
+      title: "The human has levers, and every surface says what it owes"
+      status: draft
+      note: "The first release note this project has written — counters.REL read 0 for six months across 85 features. 11 features across PHASE-022/023/026/030 plus 3 issues, in implementation order. DRAFTED at step 1, GATED at step 6: the Tier 1/2/3 contract has never been instantiated here, so FEAT-0086/TASK-0373 creates the suite that makes its own gate possible. Hand-maintained until FEAT-0072's release surface lands — a known, stated cost."
   issues:
+    ISS-0127:
+      file: "docs/issues/ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value.md"
+      title: "The intent charter is scheduled last because delegated acceptance reads it — but nine phases need something to be checked against now, and nothing exists to check them against"
+      status: triage
+      severity: medium
+      phase: ""
+      note: "FEAT-0077 sits in PHASE-027 because that is where its CONSUMER lives (a delegated principal judging acceptance). Its content — goals, non-goals, taste constraints — is needed now, to arbitrate 9 phases and ~85 open tasks. Evidence is this session: kanban -> desk board -> desk retired in 3 days, with DES-0010 authored and superseded inside 48 hours. Re-homes ONE task (TASK-0333), not the phase; TASK-0334 stays. The charter is the one artefact here that CANNOT be derived from measurement — non-goals are a position, and Edwin owns them."
     ISS-0126:
       file: "docs/issues/ISS-0126-Desk-Resolution-Flows-Target-A-Retired-Surface-And-Two-Empty-States.md"
       title: "FEAT-0062 builds two verbs onto the surface ADR-0020 retires, for one state that is empty after ISS-0121 and one that has never occurred"
@@ -2668,7 +2681,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 6
+    issues_triage: 7
     risks_open: 6
-    releases_total: 0
+    releases_total: 1
     decisions_total: 11
