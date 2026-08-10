@@ -4,7 +4,7 @@ id: GLOSSARY
 status: active
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-08-10
 tags: [glossary]
 ---
 
@@ -16,7 +16,7 @@ These are defined upstream in `~/Dev/repos/project-os/`; the canonical definitio
 
 - **Project-os repo** — any repo with `SNAPSHOT.yaml` at the root and `tools/instructions/` + `docs/__templates__/` synced from the upstream template.
 - **SNAPSHOT.yaml** — canonical machine-readable state file for an LLM session.
-- **Note (item) types** — `FEAT`, `TASK`, `REQ`, `ISS`, `RISK`, `REL`, `ADR`, `TST`, `CHG`, `WF`, `PHASE`.
+- **Note (item) types** — `FEAT`, `TASK`, `REQ`, `ISS`, `RISK`, `REL`, `ADR`, `DES`, `TST`, `CHG`, `WF`, `PHASE`.
 
 ## project-os-cockpit-specific
 

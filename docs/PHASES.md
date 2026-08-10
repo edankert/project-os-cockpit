@@ -1,6 +1,18 @@
+---
+type: "[[reference]]"
+id: PHASES
+title: "Phase registry"
+owner: user:edwin
+created: 2026-05-07
+updated: 2026-08-10
+tags: [phases, registry]
+---
+
 # Phase Registry
 
-This document is the **semantic source of truth** for development phases. It maps phase IDs to specific milestones and is consumed by Bases / dashboards.
+This document is the **semantic source of truth** for development phases. It maps phase IDs to specific milestones, and is read by the cockpit's phase surfaces and by anyone orienting in the repo.
+
+*(Corrected 2026-08-10, [[ISS-0125]]: this line used to say the registry was "consumed by Bases / dashboards". `DASHBOARD.md` was removed the same day — an Obsidian artifact whose six `.base` embeds pointed at files that no longer exist — and the cockpit reads the `PHASE-*` notes directly, never this document.)*
 
 ## How Phases Work
 

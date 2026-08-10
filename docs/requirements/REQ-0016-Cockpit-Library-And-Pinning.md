@@ -46,7 +46,7 @@ The cockpit left pane SHALL gain a fifth mode, **Library**, that surfaces every 
 - `GET /api/cockpit/nav?mode=library&pinned=<comma-separated-paths>` — server resolves each pinned path to a note record (drops paths that no longer exist), then assembles the three sections in the response. Existing `platform=` and unknown-mode-fallback semantics still apply.
 
 ## Acceptance Criteria
-- Selecting "Library" from the mode tabs lists every top-level project handle (README, INDEX, ARCHITECTURE, DESIGN, GLOSSARY, OWNERSHIP, PHASES, STYLEGUIDE, DASHBOARD, etc. — whatever exists in the docs root that isn't ID-prefixed).
+- Selecting "Library" from the mode tabs lists every top-level project handle (README, INDEX, ARCHITECTURE, DESIGN, GLOSSARY, OWNERSHIP, PHASES, STYLEGUIDE, etc. — whatever exists in the docs root that isn't ID-prefixed).
 - `tests/ACCEPTANCE_TESTS.md`, `tests/ACCEPTANCE_RUN_PLAN.md`, and similar curated docs in the canonical subdirs appear in the Project handles section.
 - ADRs / Releases / Risks / Tests / Workflows / Plans appear under "By type — rare" only when at least one note of that type exists. Empty groups don't render.
 - Clicking the pin button on a feature / task / requirement note adds it to the Pinned section; clicking again removes it. State persists across reloads.

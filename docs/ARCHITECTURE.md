@@ -1,10 +1,10 @@
 ---
-type: architecture
+type: "[[architecture]]"
 id: ARCH
 status: draft
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-08-10
 tags: [architecture]
 ---
 

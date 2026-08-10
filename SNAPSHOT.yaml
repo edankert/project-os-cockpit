@@ -2646,7 +2646,7 @@ metrics:
     features_total: 91
     features_done: 60
     tasks_total: 384
-    tasks_done: 295
+    tasks_done: 296
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
