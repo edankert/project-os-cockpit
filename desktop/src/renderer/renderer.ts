@@ -2697,7 +2697,10 @@ interface NavPayload {
 // a two-day-old decision that six modes was the ceiling (taken when Active and
 // Recent were retired for Review); reversing it deliberately is fine, drifting
 // past it would not be.
-const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'review', 'active', 'library', 'recent'] as const;
+// TASK-0371 inserts `tests` after `issues`: it is the third structural view —
+// what we build, what is wrong with it, what proves it — and it must sit
+// before `review`, because the desk is what it is taking the register from.
+const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'tests', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -3189,14 +3192,23 @@ function renderProjectOverview(data: StatsPayload): void {
 
 interface ScopeTest {
   id: string; title: string; rel: string; status: string;
-  last_run: string; manual: boolean; steps: number;
+  last_run: string; manual: boolean; steps: number; stale?: boolean;
 }
 
-// Staleness threshold for a manual test: STATUSES.md treats a manual
-// pass as evidence that decays, unlike an automated one that reruns in
-// CI. 60 days is the point at which "it passed once" stops being an
-// answer to "does it pass?".
-const MANUAL_TEST_STALE_DAYS = 60;
+// `MANUAL_TEST_STALE_DAYS = 60` used to live here — a second staleness rule,
+// and a disagreeing one (TASK-0371). The project's threshold is
+// `DEFAULT_STALENESS_DAYS = 90`, overridable per repo by `SNAPSHOT.yaml`
+// `verification.staleness_days`, and both the validator and the cockpit's own
+// `unproven` marker already used it against `last_verified`. This constant
+// used 60 days against `last_run`, and only for manual tests.
+//
+// Measured across this corpus on 2026-08-10: the project's rule calls 2 tests
+// stale (TST-0001/TST-0002, 94 days); this one called 0, because both are
+// automated. A panel reading "all fresh" beside a validator saying otherwise
+// is the parallel vocabulary ISS-0024 and ISS-0069 are both about.
+//
+// The server now ships `stale` on every test row, computed once. Nothing here
+// decides it.
 
 async function fetchScopeTests(noteId: string): Promise<ScopeTest[]> {
   if (!sidecarBaseUrl) return [];
@@ -3287,7 +3299,8 @@ async function fillVerificationPanel(
       : `${test.manual ? 'manual' : 'auto'} · never run`;
     if (stale) {
       meta.classList.add('is-stale');
-      meta.title = `Last manual run is older than ${MANUAL_TEST_STALE_DAYS} days`;
+      meta.title = "Last verified longer ago than this project's staleness "
+        + 'threshold (SNAPSHOT.yaml verification.staleness_days)';
     }
     li.appendChild(meta);
 
@@ -3312,10 +3325,7 @@ async function fillVerificationPanel(
 }
 
 function isStaleRun(test: ScopeTest): boolean {
-  if (!test.manual) return false;
-  if (!test.last_run) return (test.status || '').toLowerCase() === 'passing';
-  const days = daysSince(test.last_run);
-  return days !== null && days > MANUAL_TEST_STALE_DAYS;
+  return test.stale === true;
 }
 
 // ----------------------------------------------------------------------
@@ -6031,21 +6041,30 @@ function buildStatTiles(data: StatsPayload): HTMLElement {
   }
   // Tests and Risks were passed no navMode until PHASE-010, so they
   // rendered as divs: a count that looks like a control and does nothing
-  // (ISS-0063). They were dead because the types had no page. Now they
-  // do — the test register lives on the desk (FEAT-0049) and risks list
-  // in the Issues mode (FEAT-0047).
+  // (ISS-0063). They were dead because the types had no page. Both have one
+  // now — Tests its own view (FEAT-0086), risks the constraints view.
   //
   // Reqs stays deliberately dead: requirements nest under features, so
   // the tile has no single destination. Recorded as a decision in
   // PHASE-010's Out of Scope, and asserted by TST-0022 so it does not
   // read as an oversight.
+  // TASK-0371 repointed two of these, and both were dead clicks by the time
+  // it looked. Tests went to `review` because the desk register was the only
+  // list of tests anywhere; there is a Tests view now. Risks went to `issues`
+  // — and risks left that navigator earlier the same day for the constraints
+  // view (ISS-0128), so the tile had spent a commit sending people to a pane
+  // with no risks in it. That is ISS-0063 verbatim, re-created by moving a
+  // type without re-checking who pointed at it, which is why
+  // `test_every_stat_tile_lands_where_its_type_lives` now asserts the
+  // PROPERTY — the destination contains the type — against the real corpus,
+  // rather than the mode string a reader has to verify by hand.
   strip.append(
     buildStatTile('Tests', String(hero.tests.passing),
-      `/${hero.tests.total}`, buckets.tests, mix.tests, 'review'),
+      `/${hero.tests.total}`, buckets.tests, mix.tests, 'tests'),
     buildStatTile('Issues', String(hero.issues.open),
       `open /${hero.issues.total}`, buckets.issues, mix.issues, 'issues'),
     buildStatTile('Risks', String(hero.risks.open),
-      `open /${hero.risks.total}`, buckets.risks, mix.risks, 'issues'),
+      `open /${hero.risks.total}`, buckets.risks, mix.risks, 'design'),
   );
   wrap.appendChild(strip);
 
@@ -7262,6 +7281,7 @@ function initNavToolbar(): void {
     features: TYPE_ICONS.feature,
     tasks:    TYPE_ICONS.task,
     issues:   TYPE_ICONS.issue,
+    tests:    TYPE_ICONS.test,
     // Active: a "pulse/activity" line — work in motion. Retired from the
     // strip in TASK-0204; the entry stays so a stored preference or a
     // deep link still resolves an icon.
@@ -8013,7 +8033,12 @@ function groupLabelIsCategory(mode: NavMode): boolean {
 }
 
 function groupNamesStateThemselves(mode: NavMode): boolean {
-  return mode === 'tasks';
+  // `tests` joins `tasks` here (TASK-0371) for the same reason and with more
+  // force: its groups are `Needs a run` / `Failing` / `Stale` / `Verified`,
+  // which ARE the states. Rolling them under a "settled" divider would file
+  // `Verified` — the answer the view exists to give, and today all 23 of
+  // them — behind a line that says nothing about tests at all.
+  return mode === 'tasks' || mode === 'tests';
 }
 
 /** Nouns for the roll-up line, per mode.
@@ -8025,6 +8050,11 @@ const ROLLUP_NOUNS: Record<string, { group: [string, string]; item: [string, str
   features: { group: ['phase', 'phases'], item: ['feature', 'features'] },
   tasks:    { group: ['bucket', 'buckets'], item: ['task', 'tasks'] },
   issues:   { group: ['bucket', 'buckets'], item: ['issue', 'issues'] },
+  // Present for completeness, not because it renders: `tests` groups name
+  // their own state (`groupNamesStateThemselves`), so the settled roll-up is
+  // never built for this mode. Leaving the entry out would make that a
+  // coincidence of two functions agreeing rather than a stated fact.
+  tests:    { group: ['group', 'groups'], item: ['test', 'tests'] },
   design:   { group: ['group', 'groups'], item: ['design', 'designs'] },
   library:  { group: ['group', 'groups'], item: ['note', 'notes'] },
   review:   { group: ['verdict', 'verdicts'], item: ['note', 'notes'] },

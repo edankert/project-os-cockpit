@@ -192,6 +192,47 @@ def _is_stale_verification(fm: dict[str, Any], days: int) -> bool:
         return False
     return (_dt.date.today() - seen).days > days
 
+
+def _test_last_verified(fm: dict[str, Any]) -> str:
+    """When a test was last seen to pass: ``last_verified``, else ``last_run``.
+
+    The corpus writes both. 22 of 23 tests here carry ``last_verified`` (the
+    validator's field, the one ``TEST-FIELDS`` requires); TST-0022 carries only
+    ``last_run``. Reading one field would silently treat that note as never
+    verified, which is a claim about the record rather than about the test.
+    """
+    for key in ("last_verified", "last_run"):
+        value = str(fm.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _test_is_stale(fm: dict[str, Any], days: int) -> bool:
+    """Whether a test's last verification is older than the project threshold.
+
+    Delegates to :func:`_is_stale_verification` — literally the same rule the
+    validator and the overview's ``unproven`` marker use, reached through
+    :func:`_staleness_days` and ``SNAPSHOT.yaml verification.staleness_days``.
+
+    **There was a second rule, and it disagreed.** ``MANUAL_TEST_STALE_DAYS =
+    60`` in the desktop renderer called a test stale at 60 days on ``last_run``
+    and only if it was manual; the project calls it stale at 90 on
+    ``last_verified``, whatever runs it. Measured 2026-08-10 across this
+    corpus: 2 tests stale by the project's rule (TST-0001/TST-0002, 94 days),
+    **0** by the renderer's, because both are automated. A surface that says
+    "all fresh" while the validator says otherwise is the parallel vocabulary
+    ISS-0024 and ISS-0069 are both about, so TASK-0371 removed the renderer's
+    constant rather than adding a third.
+
+    An absent date is **not** stale, per ``_is_stale_verification``: the
+    validator already errors on a manual test with no ``last_verified``
+    (``TEST-FIELDS``), and reporting that corpus defect as staleness would say
+    the wrong thing about it here.
+    """
+    return _is_stale_verification({"last_verified": _test_last_verified(fm)}, days)
+
+
 PROJECT_SUPPORT_ROOT_FILES: tuple[str, ...] = (
     "README.md",
     "ROADMAP.md",
@@ -277,7 +318,8 @@ _RECENT_BUCKETS = (
 )
 
 NAV_MODES: tuple[str, ...] = (
-    "design", "features", "tasks", "issues", "active", "recent", "library",
+    "design", "features", "tasks", "issues", "tests", "active", "recent",
+    "library",
 )
 
 # Active mode (FEAT-0036 / TASK-0164) — in-flight items across all types.
@@ -2252,6 +2294,7 @@ def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
     link_fields = ("features", "verifies", "validates", "tests", "parent",
                    "implements", "related", "phase")
 
+    days = _staleness_days(index.docs_root)
     out: list[dict[str, Any]] = []
     for test in index.notes_by_type("test"):
         linked: set[str] = set()
@@ -2273,6 +2316,12 @@ def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
             "last_run": str(fm.get("last_run") or fm.get("last_verified") or ""),
             "manual": _is_manual_test(test),
             "steps": len(manual_test_steps(test.body)),
+            # TASK-0371: the panel used to decide staleness itself, in the
+            # renderer, at 60 days on `last_run` and only for manual tests —
+            # while the validator and the overview's `unproven` marker used
+            # 90 on `last_verified` for everything. Two rules, one question.
+            # The server's is the project's, so it is the one that ships.
+            "stale": _test_is_stale(fm, days),
         })
     out.sort(key=lambda t: str(t["id"] or ""))
 
@@ -2313,8 +2362,20 @@ def _is_manual_test(record: NoteRecord) -> bool:
 
     Convention: frontmatter ``automation``/``kind``/``mode`` saying manual,
     or a body with a Steps section and no automated-runner reference.
+
+    **A recorded ``command`` settles it first** (TASK-0371). That is already
+    the project's rule — :func:`_is_unproven` reads the same field and says
+    *"executable: the runner stamps it, not a human"* — and this function did
+    not know about it, so a test with a pytest command and a checklist-shaped
+    body read as manual. TST-0022 is exactly that: ``command: .venv/bin/pytest
+    tests/test_surface_ownership.py -q``, offered a Run ▸ stepper on the desk
+    and counted among the "manual" tests a scope asks a human to walk. Swept
+    2026-08-10 across all twelve repos the cockpit renders: **1 of 92 tests**,
+    and it is this repo's own. One rule for "who runs this", not two.
     """
     fm = record.frontmatter
+    if str(fm.get("command") or "").strip():
+        return False
     for key in ("automation", "kind", "mode", "method"):
         value = str(fm.get(key) or "").lower()
         if "manual" in value:
@@ -2482,6 +2543,8 @@ def nav_payload(
         groups = _tasks_groups(index, plat)
     elif m == "issues":
         groups = _issues_groups(index, plat)
+    elif m == "tests":
+        groups = _tests_groups(index, plat)
     elif m == "active":
         groups = _active_groups(index, plat)
     elif m == "recent":
@@ -3123,6 +3186,168 @@ def _issues_groups(
     #
     # One type, one owning view: leaving them in both would count them twice
     # in the badges FEAT-0089 builds, or neither.
+    return out
+
+
+def _test_feature_ids(index: Index, record: NoteRecord) -> list[str]:
+    """The features a test verifies (TASK-0371).
+
+    Same shape as :func:`_task_feature_id` and the same rule — the declared
+    edge wins, the path is the fallback only for a note that declares nothing —
+    but it returns a **list**, because a test legitimately verifies more than
+    one feature and this corpus has four that do: TST-0011 names four
+    (FEAT-0019/0020/0021/0022), TST-0010 and TST-0014 name two each.
+
+    ``features``/``verifies``/``validates`` are the linking fields
+    :func:`scope_tests_payload` already reads; ``parent``/``implements`` join
+    them because the fleet writes those too. Measured here: 9 of 23 tests
+    declare a feature, 12 more resolve by path, and 2 (TST-0001, TST-0002)
+    live in ``docs/tests/`` and verify nothing in particular — the system-wide
+    half of LIFECYCLE.md's hybrid storage rule, and correctly unowned.
+    """
+    out: list[str] = []
+    for field in ("features", "verifies", "validates", "parent", "implements"):
+        raw = record.frontmatter.get(field)
+        candidates: list[str] = []
+        if isinstance(raw, str):
+            candidates.append(_strip_wikilink(raw))
+        elif isinstance(raw, list):
+            candidates.extend(_strip_wikilink(v) for v in raw if isinstance(v, str))
+        for candidate in candidates:
+            path = index.by_id(candidate.strip())
+            rec = index.get(path) if path else None
+            if rec is not None and rec.note_type == "feature" and rec.note_id:
+                if rec.note_id not in out:
+                    out.append(rec.note_id)
+    if out:
+        return out
+
+    parts = record.rel_path.split("/")
+    if len(parts) >= 4 and parts[0] == "features" and parts[-2] == "tests":
+        feature_dir = Path(record.rel_path).parent.parent.parent
+        for sibling in index.notes_by_type("feature"):
+            if Path(sibling.rel_path).parent == feature_dir and sibling.note_id:
+                return [sibling.note_id]
+    return []
+
+
+def _test_item(
+    index: Index, record: NoteRecord, days: int,
+) -> dict[str, Any]:
+    """One row in the Tests view."""
+    fm = record.frontmatter
+    features = _test_feature_ids(index, record)
+    manual = _is_manual_test(record)
+    verified = _test_last_verified(fm)
+    bits = [f"{len(features)} features" if len(features) > 1 else (features[0] if features else "system-wide")]
+    bits.append("manual" if manual else "automated")
+    bits.append(f"verified {verified[:10]}" if verified else "never verified")
+    return {
+        "id": record.note_id or record.path.stem,
+        "title": record.title or record.path.stem,
+        "status": record.status,
+        "url": index.url_for(record.path),
+        "subtitle": " · ".join(bits),
+        "type": record.note_type or "test",
+        "manual": manual,
+        "features": features,
+        "last_verified": verified,
+        "stale": _test_is_stale(fm, days),
+        "steps": len(manual_test_steps(record.body)),
+        **_owed_flag(record),
+        **_verification_flags(record),
+    }
+
+
+def _tests_groups(
+    index: Index, platform: str | None = None
+) -> list[dict[str, Any]]:
+    """Tests mode (TASK-0371): every ``TST-*`` in the corpus, by what it needs.
+
+    Tests had no view. The 23 notes here were reachable through a register on
+    the review desk, a per-scope verification panel, and a stat tile — three
+    surfaces that each answer a *different* question ("what is waiting on me",
+    "does this feature pass", "how many pass"), and none of which answers
+    *what do we verify*.
+
+    **Both storage locations, one list.** LIFECYCLE.md's hybrid rule puts
+    feature-scoped tests under ``docs/features/<slug>/plan/tests/`` and
+    system-wide ones under ``docs/tests/``. That split is a filing decision and
+    it is not the reader's problem: every test appears here, and a row says
+    which feature it verifies rather than which directory it sits in.
+
+    **Groups name their own state**, so the order is by what is owed rather
+    than by category:
+
+    * ``Needs a run`` — the registry's obligation for this view (``test @
+      ready``, manual only). ``needs_human``.
+    * ``Failing`` — the test ran and did not pass.
+    * ``Stale`` — passing, but last verified longer ago than the project's
+      threshold allows.
+    * ``Never verified`` — no ``last_verified`` and no ``last_run``.
+    * ``Verified`` — everything else. Today that is all 23.
+
+    Every group is **absent when empty**. A permanent ``Failing · 0`` is the
+    shape of thing a reader learns to stop seeing, and this pane has been
+    taught that lesson twice.
+
+    **Exactly one group per test**, asserted: a test in two would be one item
+    as two rows on one screen, which is the failure ISS-0068 names.
+    """
+    days = _staleness_days(index.docs_root)
+    tests = [r for r in index.notes_by_type("test") if _platform_match(r, platform)]
+
+    def sort_key(record: NoteRecord) -> tuple[str, str]:
+        # "By verification state first, then by owning feature" — the state is
+        # the group, so the feature is the order inside it. A system-wide test
+        # sorts last rather than first: an empty string would put the two least
+        # specific rows at the top of every group.
+        features = _test_feature_ids(index, record)
+        return (features[0] if features else "~", str(record.note_id or ""))
+
+    buckets: dict[str, list[NoteRecord]] = {
+        "needs-run": [], "failing": [], "stale": [], "never": [], "verified": [],
+    }
+    for record in tests:
+        status = (record.status or "").strip().lower()
+        # The registry decides what is owed, not this function: the badge on
+        # the Tests button counts the same predicate, and a group that decided
+        # for itself would be the same number disagreeing with itself.
+        if _owed_flag(record).get("owed"):
+            buckets["needs-run"].append(record)
+        elif status in ("failing", "broken", "blocked"):
+            buckets["failing"].append(record)
+        elif _test_is_stale(record.frontmatter, days):
+            buckets["stale"].append(record)
+        elif not _test_last_verified(record.frontmatter):
+            buckets["never"].append(record)
+        else:
+            buckets["verified"].append(record)
+
+    labels = (
+        ("needs-run", "Needs a run"),
+        ("failing", "Failing"),
+        ("stale", f"Stale · over {days} days"),
+        ("never", "Never verified"),
+        ("verified", "Verified"),
+    )
+    out: list[dict[str, Any]] = []
+    for key, label in labels:
+        records = buckets[key]
+        if not records:
+            continue
+        group: dict[str, Any] = {
+            "key": key,
+            "label": label,
+            "url": None,
+            "status": None,
+            "items": [
+                _test_item(index, r, days) for r in sorted(records, key=sort_key)
+            ],
+        }
+        if key == "needs-run":
+            group["needs_human"] = True
+        out.append(group)
     return out
 
 

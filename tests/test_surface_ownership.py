@@ -597,15 +597,75 @@ def _stat_tile_call(label: str) -> str:
     raise AssertionError(f"unbalanced parens in the {label} tile call")
 
 
-@pytest.mark.parametrize(
-    ("label", "mode"), [("Risks", "issues"), ("Tests", "review")],
-)
-def test_the_dead_stat_tiles_gained_a_destination(label: str, mode: str) -> None:
+def test_every_stat_tile_has_a_destination() -> None:
     """`buildStatTile` renders a <button> only when passed a navMode.
     Risks and Tests were passed none, so they showed a count and
     navigated nowhere (ISS-0063) — indistinguishable on inspection from
-    the three that worked, and only detectable by clicking."""
-    assert f"'{mode}'" in _stat_tile_call(label)
+    the three that worked, and only detectable by clicking.
+
+    Reqs is the one deliberate exception and has its own assertion below
+    (`test_the_reqs_tile_stays_dead_on_purpose`), so it is not repeated here.
+    """
+    for label in ("Features", "Tasks", "Tests", "Issues", "Risks"):
+        call = _stat_tile_call(label)
+        assert re.search(r",\s*'(\w+)'\s*\)\s*$", call), (
+            f"the {label} tile has no navMode and so navigates nowhere:\n{call}"
+        )
+
+
+#: The type each stat tile counts. `Tasks` is the one row where the tile's
+#: destination does not carry its own type as a top-level item — tasks hang
+#: under their feature since TASK-0366 — so it names `feature` and the
+#: reachability of tasks themselves is asserted in `test_design_bench.py`.
+_TILE_TYPES: tuple[tuple[str, str], ...] = (
+    ("Features", "feature"),
+    ("Tasks", "feature"),
+    ("Tests", "test"),
+    ("Issues", "issue"),
+    ("Risks", "risk"),
+)
+
+
+@pytest.mark.parametrize(("label", "note_type"), _TILE_TYPES)
+def test_every_stat_tile_lands_where_its_type_lives(
+    label: str, note_type: str,
+) -> None:
+    """A tile's destination must be a view that actually holds its type.
+
+    ISS-0063 was three tiles that navigated nowhere. The subtler version is a
+    tile that navigates *somewhere wrong*, and TASK-0371 found two at once:
+    Tests still pointed at the review desk, and Risks pointed at Issues —
+    which risks had left that morning for the constraints view (ISS-0128). The
+    Risks one had been live for a commit.
+
+    Asserting the mode *string* would not have caught it: `'issues'` was
+    exactly what the old test demanded. So this asserts the property instead,
+    against the real corpus — render the mode the tile points at, and require
+    the type to be in it. A test that checks the mechanism goes stale when the
+    mechanism moves; one that checks the property does not (TASK-0368).
+    """
+    call = _stat_tile_call(label)
+    mode = re.search(r",\s*'(\w+)'\s*\)\s*$", call).group(1)
+    # The renderer's mode names are the server's, except `design`, which
+    # serves the constraints view. `overview` has no nav payload at all.
+    index = Index.build(REPO_DOCS)
+    groups = nav_payload(index, mode=mode)["groups"]
+
+    def types_in(items: list) -> set[str]:
+        out: set[str] = set()
+        for item in items:
+            out.add(str(item.get("type") or ""))
+            out |= types_in(item.get("children") or [])
+        return out
+
+    found: set[str] = set()
+    for group in groups:
+        found |= types_in(group.get("items") or [])
+    assert note_type in found, (
+        f"the {label} tile sends you to mode {mode!r}, which contains no "
+        f"{note_type} rows — a dead click of the ISS-0063 kind. Types there: "
+        f"{sorted(found)}"
+    )
 
 
 # ---- desk section order and naming (ISS-0064) -------------------------

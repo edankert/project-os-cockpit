@@ -58,3 +58,11 @@ Fresh session, `model:claude-opus-5`, from the notes and the diff for `bed48ea`;
 Mutation-tested rather than re-read. Removing `'issues'` from the `buildStatTile('Risks', …)` call fails `test_the_dead_stat_tiles_gained_a_destination[Risks-issues]`; pointing the tile at `'features'` instead also fails, so the assertion pins the destination and not merely the presence of one. `test_risks_get_their_own_groups_not_the_issue_buckets` genuinely separates the populations (no group mixes types; every risk group key is prefixed `risk:`), and `test_a_corpus_with_no_risks_is_unchanged` holds. Measured live: `mode=issues` yields `critical/high/medium/low` plus `risk:high`, `risk:medium`, `risk:low`.
 
 One limit, disclosed in [[TST-0022]] and not a defect here: the tile assertions read the call site, so a `buildStatTile` that stopped honouring `navMode` altogether would pass. The manual step covers the behaviour. No findings.
+
+## Superseded as a placement, 2026-08-10 ([[ISS-0128]])
+
+Risks left the Issues navigator for the constraints (Intent) view. Edwin's call, and the reasoning is the part worth keeping: *"an open risk is not necessarily an obligation, the risk might never materialize."* A risk is a standing constraint on the project, read alongside the ADRs — not a problem you have, which is the question Issues answers. This feature's premise was that the two are "the same question in different tenses"; on the evidence they are not.
+
+**What this feature won stands.** Before it, risks appeared only in a Library by-type group and the Risks stat tile navigated nowhere — [[ISS-0063]]. The type has a navigable home and a live tile today because of this work; only the address changed. [[REQ-0025]] is satisfied by the new one.
+
+Left uncorrected for a commit and worth recording: the tile went on pointing at `issues` after the risks were gone, so it was a dead click of exactly the kind this feature fixed. The assertion above — mutation-tested, and correct at the time — could not catch it, because it pinned the *word* `'issues'` rather than the property that risks are there. [[TASK-0371]] replaced it with one that renders the destination and looks.

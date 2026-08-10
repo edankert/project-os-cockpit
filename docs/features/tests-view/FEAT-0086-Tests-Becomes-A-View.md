@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0086
 aliases: ["FEAT-0086"]
 title: "Tests becomes a view — the register, the runner, the tier suite and a release gate that can finally fire"
-status: planned
+status: doing
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10

@@ -1555,6 +1555,11 @@
     features: { group: ["phase", "phases"], item: ["feature", "features"] },
     tasks:    { group: ["bucket", "buckets"], item: ["task", "tasks"] },
     issues:   { group: ["bucket", "buckets"], item: ["issue", "issues"] },
+    // `tests` has no button in this front door yet — the Tests view landed in
+    // the shell first (TASK-0371) and PHASE-029 owns the alignment. The noun
+    // is here because `mode=tests` is served and reachable by URL, and
+    // because the parity guard is the reason the two tables have not drifted.
+    tests:    { group: ["group", "groups"], item: ["test", "tests"] },
     design:   { group: ["group", "groups"], item: ["design", "designs"] },
     library:  { group: ["group", "groups"], item: ["note", "notes"] },
     review:   { group: ["verdict", "verdicts"], item: ["note", "notes"] },
