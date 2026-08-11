@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — turn checkpoints"
-status: active
+status: done
 owner: user:edwin
 created: 2026-08-05
 updated: 2026-08-05

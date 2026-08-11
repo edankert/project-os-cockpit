@@ -138,7 +138,7 @@ items:
     FEAT-0078:
       file: "docs/features/turn-checkpoints/FEAT-0078-Turn-Checkpoints.md"
       title: "Turn checkpoints — the workspace captured per agent turn, so a wrong judgment is rewound to the turn before it instead of reverted whole"
-      status: planned
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0335, TASK-0336, TASK-0337]
       note: "From the t3.codes comparison (CheckpointStore/CheckpointDiffQuery). RISK-0006's first hazard is compounding judgment; today's only undo is the close-out commit. Deliberately NOT under FEAT-0055 — checkpoints are pre-commit, private, disposable, never pushed."
@@ -173,7 +173,7 @@ items:
     FEAT-0076:
       file: "docs/features/escalation-defaults/FEAT-0076-Escalation-With-Defaults.md"
       title: "Escalation with defaults — timeouts per queue kind, proceed-on-recorded-assumption, and an alarm so nothing waits silently forever"
-      status: planned
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0329, TASK-0330, TASK-0331]
       note: "The invariant: nothing in the system can wait silently without bound. A wrong assumption is a visible one — recorded, tagged, lifted in the digest."
@@ -592,13 +592,13 @@ items:
     TASK-0336:
       file: "docs/features/turn-checkpoints/plan/tasks/TASK-0336-The-Turn-Timeline.md"
       title: "The turn timeline — each turn with the shape of what it changed, so the wrong turn is findable"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0078
     TASK-0337:
       file: "docs/features/turn-checkpoints/plan/tasks/TASK-0337-Restore-As-A-Recorded-Action.md"
       title: "Restore to a turn — a principal-owned action, recorded, with the conversation caveat stated where it is offered"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0078
     TASK-0338:
@@ -691,24 +691,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0075
-    TASK-0329:
-      file: "docs/features/escalation-defaults/plan/tasks/TASK-0329-Timeouts-Per-Kind.md"
-      title: "Timeouts per queue kind, read from the approved policy"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0076
-    TASK-0330:
-      file: "docs/features/escalation-defaults/plan/tasks/TASK-0330-Proceed-On-Recorded-Assumption.md"
-      title: "Proceed on a recorded assumption — resolved where the answer would have gone, tagged on the work, lifted in the digest"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0076
-    TASK-0331:
-      file: "docs/features/escalation-defaults/plan/tasks/TASK-0331-The-Stall-Alarm.md"
-      title: "The stall alarm — anything past twice its clock with no default joins NEEDS-YOU"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0076
     TASK-0332:
       file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
       title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
@@ -1412,7 +1394,7 @@ items:
     ISS-0095:
       file: "docs/issues/ISS-0095-The-Agent-Roster-Is-Hard-Coded.md"
       title: "The dispatchable agent roster is a hard-coded pair, so a standing worker outlives neither a vendor change nor a second opinion"
-      status: open
+      status: fixed
       severity: low
       phase: "[[PHASE-027-The-Standing-Worker]]"
       note: "ADR-0009 said the principal is a role; the WORKER is a role too. One vendor as a single point of failure, and it forecloses the second-opinion runs ADR-0013 already blesses."
@@ -2515,15 +2497,15 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 77
+    features_done: 79
     tasks_total: 385
-    tasks_done: 347
+    tasks_done: 352
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
+    issues_open: 2
     issues_triage: 6
     risks_open: 5
     releases_total: 1

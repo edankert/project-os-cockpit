@@ -120,3 +120,118 @@ def test_the_namespace_is_stated_once() -> None:
     ).read_text(encoding="utf-8")
     assert src.count('REF_NAMESPACE = "refs/cockpit/turns"') == 1
     assert "refs/heads" not in src.split("REF_NAMESPACE =")[1].split("\n")[0]
+
+
+# ---------------------------------------------------------------------------
+# TASK-0336 — the turn timeline
+# ---------------------------------------------------------------------------
+
+
+def test_turns_are_newest_first_even_within_one_second(repo: Path) -> None:
+    """The bug this caught, kept as the guard.
+
+    Git's `creatordate` has SECOND granularity, so two checkpoints in the same
+    second tie — and the first rendering of this timeline came out **reversed**,
+    attributing each turn's changes to its neighbour. For a "where did it go
+    wrong" slider, out-of-order turns are worse than no turns.
+    """
+    for n in range(4):
+        (repo / f"file{n}.py").write_text(f"x = {n}\n", encoding="utf-8")
+        checkpoints.capture(repo, label=f"turn {n}")
+    rows = checkpoints.turns(repo)
+    labels = [r["subject"] for r in rows]
+    assert labels == sorted(labels, reverse=True), labels
+    assert "turn 3" in labels[0], labels
+
+
+def test_a_turn_reports_what_changed_since_the_one_before(repo: Path) -> None:
+    checkpoints.capture(repo, label="turn 1")
+    (repo / "style.css").write_text("body{}\n", encoding="utf-8")
+    (repo / "docs").mkdir(exist_ok=True)
+    (repo / "docs" / "note.md").write_text("# n\n", encoding="utf-8")
+    checkpoints.capture(repo, label="turn 2")
+
+    newest = checkpoints.turns(repo)[0]
+    assert newest["files"] == 2, newest
+    assert newest["kinds"] == {"assets": 1, "notes": 1}, newest["kinds"]
+
+
+def test_the_first_turn_says_so_rather_than_reporting_nothing(repo: Path) -> None:
+    """`0 files` on the earliest checkpoint would read as "this turn did
+    nothing" rather than "we started measuring here"."""
+    checkpoints.capture(repo, label="only turn")
+    oldest = checkpoints.turns(repo)[-1]
+    assert oldest["from_start"] is True
+
+
+def test_the_timeline_shares_the_shape_function_it_does_not_copy_it() -> None:
+    """"Which files, grouped by kind" is one question with one answer.
+
+    Computing it a second way here is how the two would come to disagree about
+    what counts as a test — ISS-0023's failure, in a new place.
+    """
+    src = (
+        Path(__file__).resolve().parent.parent
+        / "src" / "project_os_cockpit" / "checkpoints.py"
+    ).read_text(encoding="utf-8")
+    assert "from .cockpit import _shape_kind" in src
+    assert "tests/" not in src, "the kind buckets are restated here instead of imported"
+
+
+# ---------------------------------------------------------------------------
+# TASK-0337 — restore, which is principal-owned
+# ---------------------------------------------------------------------------
+
+
+def test_a_worker_may_never_rewind_itself(repo: Path) -> None:
+    """ADR-0009 puts rewind with the principal, and the reason is not ceremony:
+    a loop that can undo its own turns can erase the evidence of having gone
+    wrong — which is the one thing checkpoints exist to preserve."""
+    cp = checkpoints.capture(repo, label="good")
+    for who in ("agent", "worker", "agent:worker", "agent:something"):
+        got = checkpoints.restore(repo, cp["sha"], actor=who)
+        assert got["ok"] is False, f"{who} was allowed to restore"
+        assert "principal-owned" in got["error"]
+
+
+def test_restore_without_an_actor_is_refused(repo: Path) -> None:
+    """An unattributed rewind is indistinguishable from a worker's."""
+    cp = checkpoints.capture(repo, label="good")
+    assert checkpoints.restore(repo, cp["sha"], actor="")["ok"] is False
+
+
+def test_a_restore_captures_the_state_it_replaces_first(repo: Path) -> None:
+    """A restore is never the end of a road.
+
+    Without this, `restore` is a destructive verb wearing a safe name: the
+    state being rewound away would be gone.
+    """
+    (repo / "tracked.txt").write_text("good\n", encoding="utf-8")
+    cp = checkpoints.capture(repo, label="good state")
+    (repo / "tracked.txt").write_text("damaged\n", encoding="utf-8")
+
+    got = checkpoints.restore(repo, cp["sha"], actor="user:edwin")
+    assert got["ok"] is True, got
+    assert (repo / "tracked.txt").read_text(encoding="utf-8") == "good\n"
+
+    # The damaged state is still reachable.
+    safety = got["safety_checkpoint"]
+    blob = subprocess.run(
+        ["git", "-C", str(repo), "show", f"{safety}:tracked.txt"],
+        capture_output=True, text=True, check=False,
+    ).stdout
+    assert blob == "damaged\n", "the state being replaced was lost"
+
+
+def test_restoring_an_unknown_checkpoint_changes_nothing(repo: Path) -> None:
+    (repo / "tracked.txt").write_text("intact\n", encoding="utf-8")
+    got = checkpoints.restore(repo, "0" * 40, actor="user:edwin")
+    assert got["ok"] is False
+    assert (repo / "tracked.txt").read_text(encoding="utf-8") == "intact\n"
+
+
+def test_the_principal_identity_is_allowed(repo: Path) -> None:
+    """`agent:principal` is the delegated principal (ADR-0009), not a worker —
+    the distinction the whole delegation model rests on."""
+    cp = checkpoints.capture(repo, label="good")
+    assert checkpoints.restore(repo, cp["sha"], actor="agent:principal")["ok"] is True

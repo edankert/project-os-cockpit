@@ -22,6 +22,7 @@ carrying it.
 
 from __future__ import annotations
 
+import datetime as _dt
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -90,7 +91,13 @@ def capture(root: Path, *, label: str = "", session: str = "") -> dict[str, Any]
         return {"ok": False, "error": made.stderr.strip()[:200]}
     sha = made.stdout.strip()
 
-    ref = f"{REF_NAMESPACE}/{sha[:12]}"
+    # **Sortable by name, to microseconds.** Git's `creatordate` has SECOND
+    # granularity, and two checkpoints in the same second tie — which reversed
+    # the timeline the first time it was rendered. For a "where did it go
+    # wrong" slider, out-of-order turns are worse than no turns, so the order
+    # lives in the ref name where it cannot tie.
+    stamp = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    ref = f"{REF_NAMESPACE}/{stamp}-{sha[:8]}"
     updated = _git(root, "update-ref", ref, sha)
     if updated.returncode != 0:
         return {"ok": False, "error": updated.stderr.strip()[:200]}
@@ -102,8 +109,10 @@ def listing(root: Path, limit: int = 50) -> list[dict[str, Any]]:
     """Checkpoints, newest first."""
     if not available(root):
         return []
+    # Sort by REFNAME descending, not `creatordate`: the name carries a
+    # microsecond stamp precisely because the date ties (see `capture`).
     out = _git(
-        root, "for-each-ref", f"--count={limit}", "--sort=-creatordate",
+        root, "for-each-ref", f"--count={limit}", "--sort=-refname",
         "--format=%(refname)%09%(objectname)%09%(creatordate:iso-strict)%09%(contents:subject)",
         REF_NAMESPACE,
     )
@@ -126,3 +135,101 @@ def prune(root: Path, keep: int = MAX_CHECKPOINTS) -> int:
         if _git(root, "update-ref", "-d", row["ref"]).returncode == 0:
             dropped += 1
     return dropped
+
+
+def turns(root: Path, limit: int = 50) -> list[dict[str, Any]]:
+    """The turn timeline: each checkpoint with what changed since the one
+    before it (TASK-0336).
+
+    **Shares [[ISS-0096]]'s shape function rather than growing a second one.**
+    "Which files, grouped by kind" is one question and it now has one answer;
+    computing it a second way here is how the two would come to disagree about
+    what counts as a test.
+
+    Newest first, and each row describes the step *into* it — so reading down
+    the list is reading the work backwards, which is how somebody looks for
+    where a thing went wrong.
+    """
+    from .cockpit import _shape_kind
+
+    rows = listing(root, limit=limit + 1)
+    out: list[dict[str, Any]] = []
+    for i, row in enumerate(rows[:limit]):
+        parent = rows[i + 1]["sha"] if i + 1 < len(rows) else None
+        files: list[str] = []
+        if parent:
+            diffed = _git(root, "diff", "--name-only", parent, row["sha"])
+            files = [ln.strip() for ln in diffed.stdout.splitlines() if ln.strip()]
+        kinds: dict[str, int] = {}
+        for path in files:
+            kind = _shape_kind(path)
+            kinds[kind] = kinds.get(kind, 0) + 1
+        out.append({
+            **row,
+            "files": len(files),
+            "kinds": kinds,
+            # No parent means the first checkpoint: there is nothing to diff
+            # against, and reporting 0 files would read as "this turn did
+            # nothing" rather than "we started measuring here".
+            "from_start": parent is None,
+        })
+    return out
+
+
+#: Identities that may never restore. ADR-0009 makes rewind principal-owned:
+#: **a worker can never rewind itself.** A loop that can undo its own turns can
+#: erase the evidence of having gone wrong, which is the one thing the
+#: checkpoints exist to preserve.
+WORKER_IDENTITIES: frozenset[str] = frozenset({"agent", "worker", "agent:worker"})
+
+
+def restore(root: Path, sha: str, *, actor: str = "") -> dict[str, Any]:
+    """Rewind the working tree to a checkpoint (TASK-0337).
+
+    Two guards, and they are the feature:
+
+    **Principal-owned.** A worker identity is refused as firmly as the server
+    refuses an agent-owned transition (REQ-0026's shape, applied to rewind).
+    ADR-0009 puts this judgment with the principal, and the reason is not
+    ceremony: a loop that can undo its own turns can erase the evidence of
+    having gone wrong.
+
+    **A restore is never the end of a road.** The current state is captured
+    *first*, so the thing being rewound away is itself recoverable. Without
+    that, "restore" is a destructive verb wearing a safe name.
+    """
+    if not available(root):
+        return {"ok": False, "error": "not a git repository"}
+    who = (actor or "").strip().lower()
+    if not who:
+        return {"ok": False, "error": "restore needs an actor; rewind is principal-owned (ADR-0009)"}
+    if who in WORKER_IDENTITIES or who.startswith("agent:") and who != "agent:principal":
+        return {
+            "ok": False,
+            "error": (
+                f"{actor!r} may not restore: rewind is principal-owned (ADR-0009). "
+                "A worker that can undo its own turns can erase the evidence of "
+                "having gone wrong."
+            ),
+        }
+
+    target = _git(root, "rev-parse", "--verify", f"{sha}^{{commit}}")
+    if target.returncode != 0:
+        return {"ok": False, "error": f"no such checkpoint: {sha}"}
+    resolved = target.stdout.strip()
+
+    # Capture BEFORE rewinding. A restore that lost the state it replaced
+    # would make this feature a way to destroy work rather than recover it.
+    safety = capture(root, label=f"before restore to {resolved[:8]}", session=actor)
+    if not safety.get("ok"):
+        return {"ok": False, "error": f"refusing to restore: could not capture first ({safety.get('error')})"}
+
+    applied = _git(root, "checkout", resolved, "--", ".")
+    if applied.returncode != 0:
+        return {"ok": False, "error": applied.stderr.strip()[:200]}
+    return {
+        "ok": True,
+        "restored": resolved,
+        "safety_checkpoint": safety["sha"],
+        "actor": actor,
+    }
