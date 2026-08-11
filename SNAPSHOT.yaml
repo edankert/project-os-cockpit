@@ -39,7 +39,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 130
+  ISS: 135
   PHASE: 30
   REQ: 33
   RISK: 6
@@ -1328,6 +1328,36 @@ items:
       status: draft
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. Still `draft`, and now for a second reason: 17 leg-1 Tier 1/2 checks unwalked AND four phases barely started."
   issues:
+    ISS-0135:
+      file: "docs/issues/ISS-0135-Every-Standing-Document-Is-A-Dead-Click.md"
+      title: "Every one of the eight standing documents is a dead click — the group emits `/README.md` where the convention is `/docs/README.md`, and `extractRel` drops exactly that shape on purpose"
+      status: triage
+      severity: high
+      note: "Reported by Edwin 2026-08-11. ONE-LINE server fix: _standing_group emits f'/{rel}' where every other builder emits '/docs/{rel}'; extractRel discards the bare form deliberately, so the row gets no data-rel and the delegated handler does nothing. Recurrence of ISS-0037's class in a new surface (that one is fixed, for the Library). FEAT-0091's entire landing is unclickable. The durable fix is the sweep test: every nav item url in every mode starts with /docs/, starts with ~, or is null."
+    ISS-0134:
+      file: "docs/issues/ISS-0134-Caught-Up-Cannot-Clear-The-Digest.md"
+      title: "`Caught up` cannot clear the digest — the needs-you half is never filtered by the watermark at all, and the watermark it writes is a commit date rather than a moment"
+      status: triage
+      severity: high
+      note: "Reported by Edwin 2026-08-11 after clicking it 3 times (caught_up_count: 3, seen_at still 2026-08-10). TWO causes: (1) THE DEFECT — digest_payload builds needs_you by walking the whole index with no seen_at comparison anywhere, so that half is identical before and after, 93 rows either way; (2) computed_at is the newest COMMIT's date at day granularity, not a moment, so on any day with commits the watermark cannot advance past them. Cause 2's comparison is a documented trade-off that holds; its day-granularity source does not. Cause 1 needs a DESIGN decision in DES-0008 (does Caught up dismiss obligations at all?), not just a code fix."
+    ISS-0133:
+      file: "docs/issues/ISS-0133-The-View-Badges-Say-A-Number-And-Not-What-It-Counts.md"
+      title: "The view badges say a number and not what it counts — the registry knows the kinds, the tooltip discards them, and it is hover-only"
+      status: triage
+      severity: medium
+      note: "Reported by Edwin 2026-08-11. FEAT-0089 made the obligation kinds DATA precisely so ADR-0020 decision 3 was enforceable, and the badge render drops the breakdown for a total plus a generic hover string ('N items here need a person', identical for every view). Hover-only also fails the tablet read-path the 0.0.0.0 bind exists for. Prefer explaining the count in the view's own header over a better tooltip."
+    ISS-0132:
+      file: "docs/issues/ISS-0132-A-Phase-Cannot-Be-Opened-From-The-Navigator-That-Groups-By-It.md"
+      title: "A phase cannot be opened from the navigator that groups by it — the server sends every phase group's `url` and the renderer never reads it"
+      status: triage
+      severity: medium
+      note: "Reported by Edwin 2026-08-11. The payload has carried a working target all along: NavGroupData.url is DECLARED in the renderer's own type and `group.url` appears nowhere in renderer.ts. Sharper since REL-0001's re-scope — the release is now defined by phase exit criteria, which live in the note this view cannot open. Fix must keep the fold working: chevron toggles, label navigates."
+    ISS-0131:
+      file: "docs/issues/ISS-0131-Phase-Groups-Render-Flat-While-Test-Groups-Render-As-Cards.md"
+      title: "Phase groups in the features navigator render flat while the Tests view's groups render as cards — one missing `item_layout` field, and the two views disagree about what a group looks like"
+      status: triage
+      severity: low
+      note: "Reported by Edwin 2026-08-11. _tests_groups sets item_layout: stacked, _features_groups sets nothing, and the renderer turns that into nav-group-stacked. Decide the RULE rather than adding the field — groupLabelIsCategory(mode) already distinguishes a group that names a thing from one that names a category, and the layout could follow the same predicate."
     ISS-0129:
       file: "docs/issues/ISS-0129-Check-Toggle-Mutated-Notes-For-Any-LAN-Peer.md"
       title: "`/api/notes/check-toggle` wrote to notes for any peer that could reach the 0.0.0.0 render surface — it predates note_writes.py and nothing enumerated it"
@@ -2674,7 +2704,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 7
+    issues_triage: 12
     risks_open: 6
     releases_total: 1
     decisions_total: 11
