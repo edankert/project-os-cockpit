@@ -126,16 +126,27 @@ def test_the_count_matches_the_rows_and_the_rows_can_navigate(docs: Path) -> Non
 def test_the_real_repo_reports_its_actual_state() -> None:
     """The number this project should be showing today.
 
-    REL-0001 is `draft` and names 27 features, so nothing has shipped and every
-    done feature is unreleased. Asserted as a floor rather than an exact count,
-    which would fail every time a feature closes.
+    Written while REL-0001 was `draft`, asserting `since is None` — nothing had
+    shipped, so every done feature was unreleased — with the failure message
+    saying what to do on the day that stopped being true: *"if that is real,
+    this project's first release has happened and this assertion should record
+    it."* **2026-08-11: it happened.** REL-0001 is `released` at `1.0.0`, so the
+    card now measures against it instead of against nothing.
+
+    The floor stays a floor rather than an exact count, which would fail every
+    time a feature closes.
     """
     payload = cockpit.unreleased_payload(Index.build(REPO_DOCS))
-    assert payload["since"] is None, (
-        "a release now reports as shipped; if that is real, this project's "
-        "first release has happened and this assertion should record it"
+    since = payload["since"]
+    assert since is not None, "the first release has un-shipped itself"
+    assert since["id"] == "REL-0001" and since["date"] == "2026-08-11"
+    # The 27 features REL-0001 names are shipped; what remains is everything
+    # done before it that the release did not claim.
+    assert payload["count"] >= 40, payload["count"]
+    shipped = {"FEAT-0085", "FEAT-0059", "FEAT-0072", "FEAT-0090"}
+    assert not shipped & {row["id"] for row in payload["items"]}, (
+        "a feature this release names is still counted as unreleased"
     )
-    assert payload["count"] >= 50, payload["count"]
 
 
 # ---------------------------------------------------------------------------

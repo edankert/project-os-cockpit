@@ -3,10 +3,10 @@ type: "[[release]]"
 id: REL-0001
 aliases: ["REL-0001"]
 title: "The human has levers, and every surface says what it owes"
-status: draft
-version: ""
-tag: ""
-date: ""
+status: released
+version: "1.0.0"
+tag: "v1.0.0"
+date: 2026-08-11
 platform:
 owner: user:edwin
 created: 2026-08-10
@@ -83,7 +83,15 @@ The last thing to move was not code. [[DES-0009]] sat `proposed` for eleven hour
 
 Two things stay open by decision and neither is a phase: [[RISK-0006]]'s supervised week, re-homed to [[PHASE-031]] with the risk still `open`; and [[ADR-0022]], `proposed`, whose unaccepted state *is* the operative rule that the worker never pushes.
 
-**What the release still owed was verification, not work** — and on the evening of 2026-08-11 that closed too. **34 of 34 Tier 1/2 checks are settled and the gate is green**, on its first firing, with no exception claimed. `status: draft` no longer means the gate is red; it means nobody has said *ship it*, which is the one lever left and the right hand on it.
+**What the release still owed was verification, not work** — and on the evening of 2026-08-11 that closed too. **34 of 34 Tier 1/2 checks are settled and the gate is green**, on its first firing, with no exception claimed.
+
+### Shipped — 2026-08-11, `1.0.0`, tag `v1.0.0`
+
+**The last thing to move was a person saying so.** With the gate green, `draft` meant one thing and it was not a technical condition: *"prepared and verified, not yet live"*. `STATUSES.md` puts `draft → released` on the agent's side of the ownership table after verification — and there was nothing left to verify. Edwin shipped it, chose the version, and asked for the tag; the note's own *"not a versioned artifact"* is amended below rather than deleted, because the reasoning was sound and the conclusion was overtaken.
+
+**Nothing was pushed.** The tag is local, which is this project's rule about publishing and not an oversight — see [[FEAT-0055]].
+
+*A release whose final act is a human decision, on a release whose sentence is that the human has levers. That is either fitting or a coincidence, and the record does not need to decide which.*
 
 ### The completion bar
 
@@ -179,6 +187,10 @@ Existing suite, currently green. Each feature adds its own; [[FEAT-0089]]'s badg
 
 Not applicable — this is not a versioned artifact. The "release" here is a stated, gated, shippable state of the record and the tool, which is what makes the gate meaningful.
 
+**Amended on shipping, 2026-08-11: `1.0.0`, tagged `v1.0.0`.** Nothing about the artifact changed — there is still no build, no bundle and nothing to install. What the number buys is the *state* being addressable: `git checkout v1.0.0` returns the record and the tool exactly as this note verified them, which the paragraph above quietly assumed a reader could already do. Edwin's call, and the right correction to make at the moment the state stops moving rather than a month later from the log.
+
+**The tag is local and stays local.** Committing is reversible; publishing is not, and this repo's rule is that pushing is a person clicking the action, never a script and never an agent ([[FEAT-0055]]). `v1.0.0` exists on this machine, which is where the release does.
+
 ## Notes
 
 ### What this release does not claim
@@ -266,7 +278,7 @@ Three things the harness cost, each recorded in the file because each failed by 
 
 **And none was ever claimed.** All seventeen were walked or settled with their reasoning on the line — the ones that looked blocked turned out to be blocked by two defects and a gap ([[ISS-0137]], [[ISS-0138]], the unnamed validator errors), each of which was fixed and then walked. That is what the paragraph above was betting on, and the bet came in.
 
-So the release stayed `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
+So the release stayed `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's. **It got it, and then it got the other thing a person owes a release: the decision to ship. `released` as of 2026-08-11.**
 
 **Since 2026-08-11 that is no longer the only thing it waits on.** With the definition widened, `draft` meant what it should have meant from the start: five phases open, 76 unresolved children, and a suite whose denominator had not finished growing. *All three closed the same day: the phases are `done`, the children are 0, and the suite is 36 of 36.* The reason for walking the leg-1 debt early held — they guard what already shipped, and evidence collected months after the fact is evidence about a different codebase.
 
