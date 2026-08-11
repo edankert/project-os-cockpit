@@ -788,6 +788,14 @@ def _make_handler(
                 self._respond_json(_obligations.badges_payload(index))
                 return
 
+            # Done-but-unshipped (FEAT-0072 / TASK-0315). Its own endpoint
+            # rather than a field on the overview: the record column fetches
+            # its cards independently, and a card that arrived only with the
+            # overview could not refresh when a release shipped.
+            if path == "/api/cockpit/unreleased":
+                self._respond_json(cockpit.unreleased_payload(index))
+                return
+
             if path == "/api/cockpit/digest":
                 self._respond_json(cockpit.digest_payload(
                     project_root, index, marker.seen_at,
@@ -1824,6 +1832,38 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": "related must be a list"},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+
+            if wanted_type == "release":
+                # The done-but-unshipped set is computed HERE, from the same
+                # function the card reads, so the note carries the number the
+                # human saw (TASK-0316). Deriving it a second time inside
+                # `create_release` is how the two would come to disagree.
+                unreleased = cockpit.unreleased_payload(index)
+                features = [str(r.get("id") or "") for r in unreleased["items"]]
+                features = [f for f in features if f]
+                since = unreleased.get("since") or {}
+                try:
+                    result = note_writes.create_release(
+                        index,
+                        docs_root,
+                        title=str(body.get("title") or ""),
+                        features=features,
+                        previous_release=str(
+                            body.get("previous_release") or since.get("id") or ""
+                        ),
+                        actor=str(body.get("actor") or ""),
+                    )
+                except note_writes.WriteError as exc:
+                    self._respond_json({"ok": False, "error": exc.message},
+                                       status=HTTPStatus(exc.status))
+                    return
+                except (TypeError, ValueError, OSError) as exc:
+                    self._respond_json({"ok": False, "error": str(exc)},
+                                       status=HTTPStatus.BAD_REQUEST)
+                    return
+                self._respond_json({"ok": True, "result": result})
+                return
+
             try:
                 result = note_writes.create_issue(
                     index,

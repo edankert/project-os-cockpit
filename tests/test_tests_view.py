@@ -700,7 +700,29 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
         i["id"] for g in groups if g["key"] != "standing" for i in g["items"]
         if i.get("owed")
     }
-    assert note_owed == {"ADR-0010"}, sorted(note_owed)
+    # The PROPERTY, not the membership. This asserted `== {"ADR-0010"}` and
+    # broke the moment a second ADR was proposed ([[ADR-0021]], 2026-08-11) —
+    # correct behaviour failing a test that had pinned the corpus's state on
+    # the day it was written. What matters is that every `proposed` ADR is
+    # owed here and nothing settled is.
+    proposed_adrs = {
+        (r.note_id or "")
+        for r in repo_index.notes_by_type("adr")
+        if str(r.status or "").strip().lower() == "proposed"
+        and not r.rel_path.startswith("__templates__/")
+    }
+    proposed_adrs |= {
+        (r.note_id or "")
+        for r in repo_index.notes_by_type("decision")
+        if str(r.status or "").strip().lower() == "proposed"
+        and not r.rel_path.startswith("__templates__/")
+    }
+    assert proposed_adrs, "no proposed ADR in the corpus; this test proves nothing"
+    assert note_owed == proposed_adrs, (
+        f"owed set {sorted(note_owed)} does not match the proposed ADRs "
+        f"{sorted(proposed_adrs)}"
+    )
+    assert "ADR-0010" in note_owed, "the long-standing proposed ADR stopped being owed"
 
 
 def test_a_design_verdict_cannot_go_through_the_transition_path(

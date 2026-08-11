@@ -1001,14 +1001,23 @@ def append_revision_log(body: str, *, date: str, reason: str) -> str:
 
 
 CREATE_REQUEST_KEYS: frozenset[str] = frozenset(
-    {"type", "title", "body", "severity", "component", "phase", "related", "actor"}
+    {"type", "title", "body", "severity", "component", "phase", "related", "actor",
+     # release only (TASK-0316) — the done-but-unshipped set, computed by the
+     # caller so the note carries the number the card showed.
+     "features", "previous_release"}
 )
 
-#: The only type the cockpit may create (TASK-0280). Each further type earns
-#: its own review of what "next id" and "which template" mean — FEAT-0059's
-#: Out of Scope says so, and widening this silently is how a narrow door
-#: becomes a wide one.
-CREATABLE_TYPES: frozenset[str] = frozenset({"issue"})
+#: The types the cockpit may create. Each earns its own review of what "next
+#: id" and "which template" mean — FEAT-0059's Out of Scope says so, and
+#: widening this silently is how a narrow door becomes a wide one.
+#:
+#: - ``issue`` (TASK-0280): `next_issue_id` off the index, issue template,
+#:   `triage` unless a severity was supplied.
+#: - ``release`` (TASK-0316): `next_release_id` off the index, release
+#:   template, **always `draft`** and always with an empty `date` — the note
+#:   records that a release was PREPARED, and shipping stays a person's
+#:   deliberate act. Drafting writes one file and publishes nothing.
+CREATABLE_TYPES: frozenset[str] = frozenset({"issue", "release"})
 
 _SLUG_RE = re.compile(r"[^A-Za-z0-9]+")
 
@@ -1146,3 +1155,118 @@ def draft_issue_body(
         f"**Observed:** {observed}\n"
     )
     return {"title": title, "body": body, "test_id": test_id}
+
+
+def next_release_id(index: Index) -> str:
+    """The next REL id, from the index — same rule as :func:`next_issue_id`.
+
+    `counters.REL` read `0` for six months across 85 features, so this is the
+    first allocation path that has ever incremented it.
+    """
+    highest = 0
+    for record in index.notes_by_type("release"):
+        note_id = (record.note_id or "").strip().upper()
+        if note_id.startswith("REL-"):
+            try:
+                highest = max(highest, int(note_id[4:]))
+            except ValueError:
+                continue
+    return f"REL-{highest + 1:04d}"
+
+
+def create_release(
+    index: Index,
+    docs_root: Path,
+    *,
+    title: str,
+    features: list[str] | None = None,
+    previous_release: str = "",
+    actor: str = "",
+) -> dict[str, Any]:
+    """Scaffold a release note from the template, as a **draft** (TASK-0316).
+
+    `status: draft` is not a placeholder — `STATUSES.md` defines it as
+    *"prepared and verified, not yet live"*, and the actuator row is what
+    advances it to `released`. **Drafting publishes nothing**: it allocates an
+    id and writes one file under `docs/releases/`. No push, no deploy, no
+    remote — FEAT-0055's line, that a commit is local and reversible while
+    publishing is a person's deliberate act, applies with more force here.
+
+    `features:` arrives already computed (the done-but-unshipped set) rather
+    than being derived here, so the number the card showed is the number the
+    note carries. Deriving it a second time is how the two would disagree.
+
+    `date:` is deliberately left empty. It records when the release *shipped*,
+    and a drafted note has not.
+    """
+    clean_title = (title or "").strip()
+    if not clean_title:
+        raise WriteError("a release needs a title")
+
+    release_id = next_release_id(index)
+    target = docs_root / "releases" / f"{release_id}-{_title_slug(clean_title)}.md"
+    resolved = target.resolve()
+    if not str(resolved).startswith(str(docs_root.resolve())):
+        raise WriteError("refusing to write outside the docs root")
+    # Collide on the id, not the filename — `create_issue`'s reasoning, which
+    # is about two creates racing a stale index rather than about issues.
+    existing = sorted(resolved.parent.glob(f"{release_id}-*.md")) if resolved.parent.is_dir() else []
+    if existing or resolved.exists():
+        raise WriteError(
+            f"{release_id} already exists at {existing[0].name if existing else resolved.name} "
+            "— the index is stale; rebuild it and retry",
+            status=409,
+        )
+
+    today = _today()
+    feature_links = ", ".join(f'"[[{f}]]"' for f in (features or []))
+    lines = [
+        "---",
+        'type: "[[release]]"',
+        f"id: {release_id}",
+        f'aliases: ["{release_id}"]',
+        f'title: "{clean_title.replace(chr(34), chr(39))}"',
+        "status: draft",
+        'version: ""',
+        'tag: ""',
+        # Empty on purpose: `date` is when it shipped, and this has not.
+        'date: ""',
+        "platform:",
+        f"owner: {actor.strip() or 'unassigned'}",
+        f"created: {today}",
+        f"updated: {today}",
+        f"features: [{feature_links}]",
+        "changes: []",
+        "tests_verified: []",
+        f'previous_release: "{previous_release}"',
+        "related: []",
+        "tags: [release]",
+        "---",
+        "",
+        f"# {clean_title}",
+        "",
+        "## Scope",
+        "",
+        f"Scaffolded in the cockpit on {today} from the done-but-unshipped set — "
+        f"{len(features or [])} feature(s). Drafting allocated an id and wrote this "
+        "file; it published nothing.",
+        "",
+        "## Verification",
+        "",
+        "The Tier 1/2 gate blocks a release while any check is unticked "
+        "(`tools/instructions/TESTING.md`). Record exceptions here, with "
+        "justification, or walk the checks.",
+        "",
+        "## Notes",
+        "",
+        "<what this release is, and what it does not claim>",
+        "",
+    ]
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    resolved.write_text("\n".join(lines), encoding="utf-8")
+    return {
+        "id": release_id,
+        "rel": str(resolved.relative_to(docs_root.resolve())),
+        "status": "draft",
+        "features": list(features or []),
+    }

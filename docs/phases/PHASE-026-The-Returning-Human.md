@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-026
 aliases: ["PHASE-026"]
 title: "The returning human — the cockpit addresses the person who was away: what happened, what needs you, what shipped, in one voice"
-status: planned
+status: done
 order: 26
 owner: user:edwin
 created: 2026-08-03
@@ -40,11 +40,11 @@ Design: [[DES-0008]] — the returning human's first minute.
 
 ## Exit Criteria
 
-- [ ] Opening a workspace after time away answers "what happened" in one screen — evidence: <the digest>
-- [ ] "Done but not shipped" is a number somewhere true — evidence: <the release card>
-- [ ] Every empty state speaks in one voice and says what would appear there — evidence: <the sweep's diff>
-- [ ] Mode 1's cost has an owner: an ADR that either retires it, funds it, or scopes it — evidence: <the ADR id>
-- [ ] The deliberate exceptions (desk headings, Library file rows) are recorded in the design system note — evidence: <the section>
+- [x] Opening a workspace after time away answers "what happened" in one screen — evidence: the digest band, `Since you looked — 13h ago`, needs-you above the news ([[FEAT-0071]]). Its `Caught up` now advances the watermark to an **instant** rather than a day, so it works on a day someone is committing ([[ISS-0134]])
+- [x] "Done but not shipped" is a number somewhere true — evidence: `Unreleased · 70` on the record column, *"70 features done, none in a shipped release yet"*. True because only a `released` release ships anything: REL-0001 is `draft`, so it subtracts nothing ([[TASK-0315]])
+- [x] Every empty state speaks in one voice and says what would appear there — evidence: nine rewritten, including the three that named nothing (`(no items)`, `(no children)`, `All clear.`); `tests/test_empty_state_voice.py` sweeps the literals and requires both halves ([[TASK-0318]])
+- [x] Mode 1's cost has an owner: an ADR that either retires it, funds it, or scopes it — evidence: [[ADR-0021]], `proposed`. It takes the **fourth** option the task added — share the contract — on the evidence that a fourth drift arrived on 2026-08-11 and was *not* caught by review ([[TASK-0321]])
+- [x] The deliberate exceptions (desk headings, Library file rows) are recorded in the design system note — evidence: [[DES-0002]]'s `Deliberate exceptions` section, which also defends the collapse-completed eye rather than retiring it ([[TASK-0319]], [[TASK-0320]])
 
 ## FEAT-0071 pulled forward 2026-08-10
 

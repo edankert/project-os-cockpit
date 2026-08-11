@@ -1,10 +1,10 @@
 ---
 type: "[[plan]]"
 title: "Plan — the release surface"
-status: active
+status: done
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 parent: "[[FEAT-0072-The-Release-Surface]]"
 ---
 

@@ -26,7 +26,7 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 20
+  ADR: 21
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -278,14 +278,14 @@ items:
     FEAT-0072:
       file: "docs/features/release-surface/FEAT-0072-The-Release-Surface.md"
       title: "The release surface — done-but-unshipped becomes a number, drafting a release becomes an action, and the acceptance-tests gate finally renders"
-      status: planned
+      status: done
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0315, TASK-0316, TASK-0317]
       note: "Done and shipped are different facts; the template's release gate has waited for a surface since it was written."
     FEAT-0073:
       file: "docs/features/one-voice/FEAT-0073-One-Voice.md"
       title: "One voice — empty states that say what would appear, the eye toggle retired or defended, the exceptions written down, and mode 1 decided once"
-      status: planned
+      status: done
       phase: "[[PHASE-026-The-Returning-Human]]"
       tasks: [TASK-0318, TASK-0319, TASK-0320, TASK-0321]
       note: "Four small debts, each a repeat offender when left. The mode-1 ADR takes the three-drifts-in-two-days record as evidence."
@@ -880,39 +880,9 @@ items:
     TASK-0315:
       file: "docs/features/release-surface/plan/tasks/TASK-0315-The-Unreleased-Card.md"
       title: "UNRELEASED · N — done features since the last release"
-      status: backlog
+      status: done
       phase: "[[PHASE-026-The-Returning-Human]]"
       parent: FEAT-0072
-    TASK-0316:
-      file: "docs/features/release-surface/plan/tasks/TASK-0316-Draft-Release.md"
-      title: "Drafting a release becomes an action"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0072
-    TASK-0318:
-      file: "docs/features/one-voice/plan/tasks/TASK-0318-The-Empty-State-Sweep.md"
-      title: "One sentence pattern for every empty state"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0073
-    TASK-0319:
-      file: "docs/features/one-voice/plan/tasks/TASK-0319-The-Toggle-Decided.md"
-      title: "The collapse-completed eye: retired or defended, in writing"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0073
-    TASK-0320:
-      file: "docs/features/one-voice/plan/tasks/TASK-0320-The-Exceptions-Recorded.md"
-      title: "The desk's headings and the Library's file rows, written into the design system"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0073
-    TASK-0321:
-      file: "docs/features/one-voice/plan/tasks/TASK-0321-The-Mode-1-ADR.md"
-      title: "Mode 1 decided once, with the drift record as evidence"
-      status: backlog
-      phase: "[[PHASE-026-The-Returning-Human]]"
-      parent: FEAT-0073
     TASK-0285:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
       title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
@@ -1337,7 +1307,7 @@ items:
     ISS-0134:
       file: "docs/issues/ISS-0134-Caught-Up-Cannot-Clear-The-Digest.md"
       title: "`Caught up` cannot clear the digest — the needs-you half is never filtered by the watermark at all, and the watermark it writes is a commit date rather than a moment"
-      status: triage
+      status: fixed
       severity: high
       note: "OPEN and NOT part of the PHASE-030 batch — it is PHASE-026. Two causes: (1) needs_you is built with no seen_at comparison at all, so that half is identical before and after Caught up (93 rows either way); (2) computed_at is the newest COMMIT date at day granularity, so on any day with commits the watermark cannot advance. Cause 1 needs a DESIGN decision in DES-0008 (does Caught up dismiss obligations at all?), which is why it was not swept into a bug-fix commit."
     ISS-0133:
@@ -1936,7 +1906,7 @@ items:
     PHASE-026:
       file: "docs/phases/PHASE-026-The-Returning-Human.md"
       title: "The returning human — the cockpit addresses the person who was away: what happened, what needs you, what shipped, in one voice"
-      status: planned
+      status: done
       order: 26
       features: ["FEAT-0072", "FEAT-0073"]
       note: "REL-0001 leg 2, FIRST — not because it is largest but because FEAT-0072's release surface is what stops REL-0001 being hand-maintained, and that note already drifted (FEAT-0078 missing from its own deferred table). FEAT-0071 is done; 8 of 14 children unresolved, no issues/risks/requirements. TASK-0315 (UNRELEASED · N) then TASK-0316 (drafting becomes an action)."
@@ -2695,16 +2665,16 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 67
+    features_done: 69
     tasks_total: 385
-    tasks_done: 315
+    tasks_done: 321
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 8
-    risks_open: 6
+    issues_triage: 7
+    risks_open: 5
     releases_total: 1
-    decisions_total: 11
+    decisions_total: 12

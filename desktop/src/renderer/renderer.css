@@ -2438,6 +2438,13 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   color: var(--text-muted);
 }
 .digest-subhead.is-owed { color: var(--text); font-weight: 600; }
+/* ISS-0134: the line saying `Caught up` does not clear the obligations half.
+   Muted — it is a qualifier on the button, not a row. */
+.digest-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-faint, var(--text-muted));
+}
 .digest-list {
   margin: 4px 0 0;
   padding: 0;

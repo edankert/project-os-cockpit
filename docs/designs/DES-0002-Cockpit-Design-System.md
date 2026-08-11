@@ -131,6 +131,33 @@ What *is* guaranteed is stronger and lives elsewhere: the **style-guide page rea
 
 Everything else here — spacing, type scale, icon rules — is currently **descriptive, not enforced**. Two of those sections record gaps (no spacing scale, no type scale) that a future task may close. Recording them as gaps is the point: this note's value is that it can be checked, and a section that cannot be checked yet should say so rather than imply it can.
 
+## Deliberate exceptions
+
+Sections above describe rules. This one records the places the record **breaks** them on purpose, so the next session inherits the reasoning rather than the appearance — and so a future pass does not "fix" a considered decision back into a bug.
+
+### Two collapse mechanisms, and why that is not two mechanisms for one idea ([[TASK-0319]])
+
+The nav carries a global `Collapse completed` eye **and** a per-card default that opens a settled group shut. That looks like the duplication [[PHASE-022]] warned about — *"two mechanisms for one idea is how the pill got wrong twice"* — and it is not. They answer different questions:
+
+| | what it acts on | what it does |
+|---|---|---|
+| per-card default | a group whose items are **all** settled | renders the group closed; header and count still show |
+| the eye | **any** group, including mixed ones | folds the completed **tail** to `… N more` |
+
+The overlap is only the fully-settled case. For a mixed group — PHASE-023 today is three done and two open — the per-card default does nothing at all, because the group is not settled, and only the eye shortens it. Retiring the eye would leave every in-flight phase listing its finished work at full length, which is the common case rather than the edge one.
+
+**So the eye stays**, and the name is the misleading part rather than the mechanism: since [[TASK-0270]] it folds rather than filters, so it can shorten a view and can no longer empty one.
+
+### The desk's headings are obligations, not collections ([[TASK-0320]])
+
+The review registers are headed by what is **owed** — `Decisions`, `Proposals`, `Questions`, `Test runs` — rather than by note type, while every navigator groups by type or phase. That is deliberate: a queue's reader is asking *"what is waiting on me"*, and grouping by type answers *"what kinds of note exist"*, which they did not ask. [[ADR-0020]] generalised this into the rule that obligations live with their subject.
+
+### The Library's rows are files, not lifecycle notes ([[TASK-0320]])
+
+Library rows show filenames and carry no status chip, no type colour and no ID, unlike every other row in the app. Also deliberate: the Library is a **file browser** over `docs/`, and most of what it lists has no project-os identity — [[TASK-0036]] emits reference rows with `id: ""` by design. Giving those rows the lifecycle grammar would assert a lifecycle they do not have.
+
+This is the boundary [[ISS-0125]] and [[FEAT-0091]] kept: one document can appear both in the Library (as a file) and on Intent (as a standing document with freshness). One item, two addresses, on purpose — and **not** [[ISS-0068]]'s two-lists-of-one-obligation failure, because the Library lists files rather than obligations.
+
 ## Revisions
 
 - 2026-07-28 — Read tokens declared inside @media, @supports and @layer — a one-level walk skipped them silently (ISS-0055)

@@ -2240,6 +2240,71 @@ def _verdict_is_owed(verdict: str, status: str | None) -> bool:
     return not statuses.is_completed(status)
 
 
+def unreleased_payload(index: Index) -> dict[str, Any]:
+    """Done features no shipped release names (FEAT-0072 / TASK-0315).
+
+    *"Done" and "shipped" are different facts and the cockpit knows only one.*
+    This is the second fact.
+
+    **Membership, not dates.** A feature counts as shipped when a `[[release]]`
+    note names it in `features:`. Deriving it from dates instead would need a
+    completion timestamp features do not carry — `updated:` moves for a typo —
+    and would silently mis-sort anything closed out late.
+
+    **Only a `released` release ships anything.** `draft` means *"prepared and
+    verified, not yet live"* (STATUSES.md), so a drafted note must not empty
+    this card: drafting is not shipping, and a count that fell to zero the
+    moment somebody wrote a plan would be asserting the release had happened.
+    That matters here today — REL-0001 is `draft` and names 27 features, none
+    of which have shipped.
+
+    Returns the count, the newest shipped release if there is one, and the
+    rows themselves so the card can navigate.
+    """
+    shipped_ids: set[str] = set()
+    latest: dict[str, Any] | None = None
+    for record in index.notes_by_type("release"):
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if str(record.status or "").strip().lower() != "released":
+            continue
+        # `_design_link_ids` despite the name — it is the module's one
+        # wikilink-to-ids reader and works on any `[[TYPE-0000-Slug]]`.
+        shipped_ids.update(_design_link_ids(record.frontmatter.get("features")))
+        # Newest by date, falling back to id so a note with no date still
+        # orders deterministically rather than by filesystem order.
+        key = (str(record.frontmatter.get("date") or ""), record.note_id or "")
+        if latest is None or key > latest["_key"]:
+            latest = {
+                "_key": key,
+                "id": record.note_id or "",
+                "title": record.title or "",
+                "rel": record.rel_path,
+                "date": str(record.frontmatter.get("date") or ""),
+            }
+
+    rows: list[dict[str, Any]] = []
+    for record in index.notes_by_type("feature"):
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if not statuses.is_completed(record.status or ""):
+            continue
+        if (record.note_id or "") in shipped_ids:
+            continue
+        rows.append(_slim_note(record))
+    rows.sort(key=lambda r: str(r.get("id") or ""))
+
+    since = None
+    if latest is not None:
+        since = {k: v for k, v in latest.items() if k != "_key"}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "count": len(rows),
+        "since": since,
+        "items": rows,
+    }
+
+
 def _reviewed_register(index: Index) -> list[dict[str, Any]]:
     """Items carrying an independent-review verdict (TASK-0242).
 
@@ -4856,6 +4921,30 @@ _DIFF_PATH_RE = re.compile(r"^\+\+\+ b/(.+)$")
 # while the badges said 96.
 
 
+def _parse_instant(value: str) -> _dt.datetime | None:
+    """An aware datetime out of an ISO-8601 string, or None (ISS-0134).
+
+    Returns None for a **date-only** value on purpose: `2026-08-11` names a
+    day, not an instant, and silently promoting it to midnight would order
+    every commit that day as "after the watermark" — reintroducing the bug
+    this exists to fix, in the opposite direction and invisibly.
+
+    Naive input is read as UTC. The watermark and git's `%aI` both carry an
+    offset in practice; this keeps a hand-edited `last-seen.json` comparable
+    rather than silently unordered.
+    """
+    raw = (value or "").strip()
+    if len(raw) <= 10:
+        return None
+    try:
+        parsed = _dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=_dt.timezone.utc)
+    return parsed
+
+
 def digest_payload(
     project_root: Path,
     index: Index,
@@ -4878,20 +4967,26 @@ def digest_payload(
     marker = (seen_at or "").strip()
 
     since: list[dict[str, Any]] = []
+    marker_at = _parse_instant(marker)
     for commit in history.get("commits") or []:
-        # **Granularity mismatch, handled by choosing which way to be wrong.**
-        # `history_payload` reports commit dates at DAY granularity
-        # (`2026-08-10`) while the watermark is a full timestamp
-        # (`2026-08-10T12:00:00Z`). So a same-day commit cannot be ordered
-        # against a same-day watermark at all.
+        # **The granularity mismatch is gone** (ISS-0134). Commits now carry
+        # their full `%aI` instant as `ts` beside the day, so when the
+        # watermark also has one they are ordered exactly and a catch-up
+        # advances *within* a day. That was the whole defect: `computed_at`
+        # was a day, every commit was a day, so on any day somebody was
+        # working the comparison could never move and three clicks of
+        # `Caught up` changed nothing.
         #
-        # Strictly-less rather than less-or-equal: the watermark's own day is
-        # INCLUDED in the digest. That re-shows commits already seen, which a
-        # reader corrects by reading — where the other choice hides commits
-        # made after catching up, which is invisible. Same asymmetry as the
-        # epoch default above, and for the same reason.
+        # The day rule survives as the fallback, and keeps its original
+        # reasoning: strictly-less, so the watermark's own day is INCLUDED.
+        # Re-showing a commit already seen is corrected by reading; hiding one
+        # made after catching up is invisible.
         when = str(commit.get("date") or "")
-        if marker and when and when < marker[:10]:
+        commit_at = _parse_instant(str(commit.get("ts") or ""))
+        if marker_at is not None and commit_at is not None:
+            if commit_at <= marker_at:
+                continue
+        elif marker and when and when < marker[:10]:
             continue
         for transition in commit.get("transitions") or []:
             since.append({**transition, "sha": commit.get("sha"), "date": when})
@@ -4928,7 +5023,18 @@ def digest_payload(
         # The timestamp a `Caught up` should record — the digest's own, not
         # the moment the button is pressed, so nothing that lands while the
         # human reads is marked seen (TASK-0312).
-        "computed_at": (history.get("commits") or [{}])[0].get("date", ""),
+        #
+        # The newest commit's full INSTANT, not its day (ISS-0134). As a day
+        # it could never order against same-day commits, so catching up on a
+        # working day wrote a watermark that changed nothing — measured at
+        # `caught_up_count: 3` with the digest unmoved. Falls back to the day
+        # only when git gave no instant, and to now when there are no commits
+        # at all, so the button always records something orderable.
+        "computed_at": (
+            (history.get("commits") or [{}])[0].get("ts")
+            or (history.get("commits") or [{}])[0].get("date")
+            or _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+        ),
         "transitions": since,
         "transition_count": len(since),
         "needs_you": deduped,
@@ -5100,6 +5206,12 @@ def _parse_history_log(
             sha, full, when, author, subject = parts
             current = {
                 "sha": sha, "full_sha": full, "date": when[:10],
+                # The full `%aI` instant, kept alongside the day (ISS-0134).
+                # It was being truncated here and nowhere else had it, which
+                # is why the digest could only ever compare whole days — and
+                # so could never advance its watermark on a day someone was
+                # still committing. Display keeps using `date`.
+                "ts": when,
                 "author": author, "subject": subject, "transitions": [],
             }
             pending, path = {}, None

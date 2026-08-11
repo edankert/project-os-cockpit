@@ -399,10 +399,27 @@ def test_refusal_duplicate_id_race(docs_root: Path) -> None:
     assert (docs_root / first["rel"]).read_text(encoding="utf-8") == before
 
 
-def test_the_creatable_type_allow_list_is_one_type(docs_root: Path) -> None:
+def test_the_creatable_type_allow_list_is_reviewed_not_open(docs_root: Path) -> None:
     """FEAT-0059's Out of Scope: each further type earns its own review of
-    what "next id" and "which template" mean. A constant, not a parameter."""
-    assert note_writes.CREATABLE_TYPES == {"issue"}
+    what "next id" and "which template" mean. A constant, not a parameter.
+
+    Widened once, on 2026-08-11, from `{"issue"}` to `{"issue", "release"}`
+    (TASK-0316). The review the rule demands is recorded on the constant
+    itself: `next_release_id` off the index, the release template's fields,
+    always `draft`, always an empty `date` — because the date records when a
+    release SHIPPED and drafting is not shipping.
+
+    Asserted as an exact set rather than a membership check, so the next
+    widening is a visible decision in a diff rather than a silent one.
+    """
+    assert note_writes.CREATABLE_TYPES == {"issue", "release"}
+
+    # The property that made `release` admissible: it cannot be created in a
+    # state that claims to have shipped.
+    import inspect
+    src = inspect.getsource(note_writes.create_release)
+    assert '"status: draft"' in src, "a created release is not forced to draft"
+    assert "'date: \"\"'" in src, "a created release stamps a ship date"
 
 
 def test_every_note_mutating_endpoint_requires_loopback() -> None:

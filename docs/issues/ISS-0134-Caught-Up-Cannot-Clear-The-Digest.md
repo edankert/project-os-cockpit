@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0134
 aliases: ["ISS-0134"]
 title: "`Caught up` cannot clear the digest — the needs-you half is never filtered by the watermark at all, and the watermark it writes is a commit date rather than a moment"
-status: triage
+status: fixed
 phase: "[[PHASE-026-The-Returning-Human]]"
 owner: user:edwin
 created: 2026-08-11
@@ -86,3 +86,29 @@ What it does not survive is a **working day**: while commits are still landing o
 - [ ] Decide what `Caught up` means for the needs-you half — dismiss-until-changed, or leave it and stop implying the button covers it. This is a design decision, not a code fix; [[DES-0008]] is where it belongs.
 - [ ] Give the digest a real `computed_at` (an actual timestamp) and store watermarks at that precision, so a same-day catch-up can advance. The day-granularity commit date is the source of the "working day" failure, not the comparison operator.
 - [ ] A test that clicks catch-up twice and asserts the second digest differs from the first — the assertion that would have caught this on the day it shipped.
+
+## Resolution — 2026-08-11
+
+Both causes addressed, and **asymmetrically**, because only one of them was a bug.
+
+### Cause 1 — fixed: the watermark is an instant again
+
+Git hands `%aI` to `history_payload`, which truncated it at `when[:10]` and threw the instant away. Commits now carry `ts` alongside `date` (display still uses `date`), `computed_at` is the newest commit's **instant**, and the comparison orders exact instants when both sides have them — falling back to the original day rule, with its original reasoning, when they do not.
+
+`_parse_instant` returns `None` for a date-only value **on purpose**: promoting `2026-08-11` to midnight would order every commit that day as *after* the watermark, which is the same bug mirrored and invisible.
+
+Verified live: `seen_at` moved from `2026-08-11` to `2026-08-11T13:09:26+01:00`, and the server went from 12 transitions to **0** while `needs_you` stayed at 97.
+
+### Cause 2 — not a bug, and the presentation was
+
+The needs-you half is not filtered by the watermark and **must not be**: an obligation is discharged by acting on it, not by reading it. So the half is right and the surface was lying about it — the button sat under both halves, and clicking removed the whole band, showing a dismissal that had not happened.
+
+Now the band carries *"These stay until they are discharged — Caught up covers what changed, not what is owed."*, and the click **re-renders** instead of removing.
+
+### A second defect found while fixing the first
+
+Removing `band.remove()` was not enough. `refreshDigests` updates the rail's per-workspace cache and never touches the band, so the first fix traded a false dismissal for **stale content sitting on screen** — measured at `12 transitions` still displayed four seconds after the click, correcting itself only on the next navigation. The handler now calls `mountDigestBand()` explicitly, and a test asserts it does.
+
+### Guarded
+
+`tests/test_digest_watermark.py` — 6 tests over a real git repo, including the one this issue asked for: catch up, commit again the same day, and assert the caught-up commit does not reappear. That is the case the day-granularity version could not express at all.

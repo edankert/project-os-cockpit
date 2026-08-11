@@ -412,7 +412,11 @@ function renderWorkspaceRail(): void {
   if (workspaces.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
+    // TASK-0318's pattern, split across two carriers because the rail is a
+    // column of ~40px squares and a sentence cannot render in it. The visible
+    // label stays the path; the title carries what the rail shows.
     li.textContent = '+ to add';
+    li.title = 'No workspaces yet — + adds a repo with a SNAPSHOT.yaml.';
     listEl.appendChild(li);
     return;
   }
@@ -3589,6 +3593,16 @@ async function mountDigestBand(): Promise<void> {
     }
     band.appendChild(list);
     band.appendChild(digestMore(owed.length));
+    // ISS-0134: say that `Caught up` does not cover these. The needs-you half
+    // is NOT filtered by the watermark and must not be — an obligation is
+    // discharged by acting on it, not by reading it — but the button sat
+    // below both halves implying it cleared both, and clicking it removed the
+    // whole band. Three clicks, `caught_up_count: 3`, nothing changed.
+    const persists = document.createElement('p');
+    persists.className = 'digest-note';
+    persists.textContent =
+      'These stay until they are discharged — Caught up covers what changed, not what is owed.';
+    band.appendChild(persists);
   }
 
   const moved = d.transitions ?? [];
@@ -3621,8 +3635,19 @@ async function mountDigestBand(): Promise<void> {
     btn.disabled = true;
     void postJson('/api/cockpit/caught-up', { at: d!.computed_at })
       .then(() => {
-        band.remove();
+        // Re-render rather than remove (ISS-0134). Removing the band showed
+        // the reader a dismissal that had not happened: the obligations half
+        // came straight back on the next paint, unchanged, which is what
+        // "it shows the same info again" was. Re-rendering shows the truth —
+        // the news is gone, what is owed remains.
+        //
+        // `mountDigestBand` explicitly: `refreshDigests` updates the rail's
+        // per-workspace cache and does NOT touch this band, so leaving it out
+        // traded a false dismissal for stale content sitting on screen until
+        // the next navigation. Measured — the band still read `12
+        // transitions` four seconds after the click.
         showStatus('Caught up.');
+        void mountDigestBand();
         void refreshDigests(true).then(() => refreshAttention());
       })
       .catch((err) => {
@@ -3747,7 +3772,7 @@ async function fillVerificationPanel(
   if (tests.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'meta';
-    empty.textContent = 'No acceptance tests link to this scope yet.';
+    empty.textContent = 'No acceptance tests link to this scope yet — a test joins it by naming it in `scope:`.';
     body.replaceChildren(empty);
     return;
   }
@@ -4637,7 +4662,7 @@ function buildDesignRevisionRail(d: DesignRecord, repaint: () => void): HTMLElem
   if (!designRevisions.length) {
     const p2 = document.createElement('p');
     p2.className = 'design-empty';
-    p2.textContent = 'No committed revisions yet.';
+    p2.textContent = 'No committed revisions yet — a revision is recorded when this design is accepted.';
     rail.append(p2);
   }
   return rail;
@@ -5019,7 +5044,7 @@ function renderReviewQueuePane(payload: ReviewQueuePayload): void {
   if (payload.total === 0) {
     const empty = document.createElement('p');
     empty.className = 'meta review-queue-empty';
-    empty.textContent = 'All clear.';
+    empty.textContent = 'Nothing is waiting on you — proposals, questions and manual test runs appear here.';
     wrap.appendChild(empty);
   }
 
@@ -6503,7 +6528,7 @@ async function fillNowBoard(board: HTMLElement): Promise<void> {
     if (data.groups.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'meta';
-      empty.textContent = 'Nothing in flight right now.';
+      empty.textContent = 'Nothing in flight right now — work appears here while its status is doing.';
       board.appendChild(empty);
       return;
     }
@@ -6955,7 +6980,7 @@ function buildPhaseRow(p: StatsPhase, complete: boolean): HTMLElement {
   if (p.features.length === 0 && p.loose.length === 0) {
     const empty = document.createElement('span');
     empty.className = 'ov-phase-empty';
-    empty.textContent = '(no items)';
+    empty.textContent = 'No features or issues in this phase yet — add one with a `phase:` naming it.';
     bar.appendChild(empty);
   }
   bar.hidden = !open;
@@ -10807,7 +10832,7 @@ function renderAgentStripDetail(): void {
     if (items.length === 0) {
       const e = document.createElement('div');
       e.className = 'agent-detail-empty';
-      e.textContent = 'No documented work yet.';
+      e.textContent = 'No documented work yet — items appear as this session touches notes.';
       list.appendChild(e);
     }
     // Rich rows from the enriched work_items (TASK-0192): current-prompt
@@ -10866,7 +10891,7 @@ function renderAgentStripDetail(): void {
     if (files.length === 0) {
       const li = document.createElement('li');
       li.className = 'agent-detail-empty';
-      li.textContent = 'No files touched yet.';
+      li.textContent = 'No files touched yet — paths appear as this session edits them.';
       list.appendChild(li);
     }
     for (const f of files) {
@@ -12288,7 +12313,7 @@ function buildFleetHealthSection(): HTMLElement {
   if (!rows.length) {
     const p = document.createElement('p');
     p.className = 'agents-health-empty';
-    p.textContent = 'No workspaces discovered.';
+    p.textContent = 'No workspaces discovered — the shell looks for SNAPSHOT.yaml under ~/Dev/repos.';
     wrap.appendChild(p);
     return wrap;
   }
@@ -12922,7 +12947,7 @@ function buildScopedFeatureRow(
   if (children.length === 0) {
     const none = document.createElement('span');
     none.className = 'ov-phase-empty';
-    none.textContent = '(no children)';
+    none.textContent = 'Nothing names this phase yet — a note joins it by setting `phase:`.';
     sqs.appendChild(none);
   }
   top.appendChild(sqs);
@@ -13524,6 +13549,12 @@ async function fillRecordColumn(
   // page would be worse than no card.
   if (!scoped) void fillReviewedCard();
 
+  // Unreleased — done-but-unshipped (TASK-0315). Project scope only, for the
+  // reason the Reviewed card gives one comment up: the payload carries no
+  // per-phase slice, and a card silently showing the project's number on a
+  // phase page would be worse than no card.
+  if (!scoped) void fillUnreleasedCard();
+
   // A third card, headed "Library", used to be built here from
   // `library.filter(n => n.type === 'reference')`. It never rendered, and
   // not because of PHASE-010: `fetchRecordNotes` keeps only items with an
@@ -13585,6 +13616,98 @@ async function fillRecordColumn(
  *  which is why the predicate lives in one server-side function with its
  *  limitation written down rather than as a renderer-side `filter`.
  */
+interface UnreleasedPayload {
+  count?: number;
+  since?: { id?: string; title?: string; rel?: string; date?: string } | null;
+  items?: Array<{ id?: string; title?: string; rel?: string }>;
+}
+
+/** UNRELEASED · N — done features no shipped release names (TASK-0315).
+ *
+ *  "Done" and "shipped" are different facts and the cockpit knew only one.
+ *  This card is the second, and it is deliberately a RECORD card rather than
+ *  an obligation: nothing here is owed to anybody. Shipping is a person's
+ *  deliberate act (FEAT-0055's line), so this reports a state and offers no
+ *  verb — which is also why it carries no badge.
+ */
+async function fillUnreleasedCard(): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: UnreleasedPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/unreleased`);
+    if (!resp.ok) return;
+    data = (await resp.json()) as UnreleasedPayload;
+  } catch { return; }
+  // The fetch is async, so the reader may have navigated away while it was in
+  // flight — the same guard `fillReviewedCard` carries, for the same reason.
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+
+  const items = data.items ?? [];
+  const count = data.count ?? items.length;
+  // Absent when zero, per the task: a card reading `UNRELEASED · 0` is a row
+  // of furniture asserting nothing. Silence already says everything shipped.
+  if (count <= 0) return;
+
+  const { card, body } = buildRecordCard('Unreleased', String(count));
+  for (const item of items.slice(0, 8)) {
+    body.appendChild(buildRecordRow(item.id ?? '', item.title ?? '', item.rel ?? ''));
+  }
+  const line = document.createElement('p');
+  line.className = 'ctx-note';
+  const since = data.since;
+  line.textContent = since && since.id
+    ? `${count} done since ${since.id}${since.date ? ` (${since.date})` : ''}`
+    // No shipped release at all is this project's actual state, and saying
+    // "since the last release" would name something that does not exist.
+    : `${count} features done, none in a shipped release yet`;
+  body.appendChild(line);
+  if (items.length > 8) {
+    const more = document.createElement('p');
+    more.className = 'ctx-note';
+    more.textContent = `Showing 8 of ${items.length}.`;
+    body.appendChild(more);
+  }
+
+  // `Draft release note` (TASK-0316). The one verb on this card, and it is
+  // deliberately the weakest one available: it allocates an id and writes a
+  // file with `status: draft`. It does not ship, tag, push or deploy —
+  // FEAT-0055's line, that a commit is local and reversible while publishing
+  // is a person's deliberate act, and REL-0001's own note that pushing a
+  // fleet repo can deploy a live website.
+  const draft = document.createElement('button');
+  draft.type = 'button';
+  draft.className = 'review-btn';
+  draft.textContent = 'Draft release note';
+  draft.title = `Scaffold a REL note listing these ${count} features, as a draft`;
+  draft.addEventListener('click', () => {
+    const title = window.prompt(
+      `Title for the release note?\n\n${count} unshipped feature(s) will be listed. `
+      + 'This writes one file as a draft — it ships nothing.',
+    );
+    if (title === null) return;                     // cancelled, not confirmed
+    if (!title.trim()) { showStatus('A release needs a title', 'error'); return; }
+    draft.disabled = true;
+    void postJson('/api/notes/create', { type: 'release', title: title.trim() })
+      .then((res) => {
+        const created = (res as { result?: { id?: string; rel?: string } }).result;
+        if (!created?.rel) { showStatus('Drafted, but no path came back', 'error'); return; }
+        showStatus(`Drafted ${created.id}`);
+        scheduleHide(2500);
+        void navigateTo(created.rel);
+      })
+      .catch((err) => {
+        draft.disabled = false;
+        showStatus(`Could not draft: ${String(err)}`, 'error');
+      });
+  });
+  const foot = document.createElement('div');
+  foot.className = 'digest-foot';
+  foot.appendChild(draft);
+  body.appendChild(foot);
+
+  rightPaneContent.appendChild(card);
+}
+
 async function fillReviewedCard(): Promise<void> {
   if (!sidecarBaseUrl) return;
   let items: ReviewRegisterReviewed[] = [];
