@@ -1,0 +1,74 @@
+<!doctype html><meta charset="utf-8"><title>DES-0009 — The standing worker</title><style>
+:root{--bg:#1b1e21;--surface:#232629;--border:#3a3f45;--text:#dedede;--muted:#a6a6a6;--faint:#808080;--link:#79a6d2;--done:#7cb6a3;--warn:#cc9166;--stop:#c98080;--phase:#bc91ca}
+body{background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,sans-serif;margin:0;padding:32px;max-width:900px}
+h1{font-size:18px;font-weight:600;margin:0 0 4px} .sub{color:var(--faint);font-size:12.5px;margin:0 0 28px}
+.head{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:26px 0 8px}
+.panel{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:14px 16px;margin:10px 0}
+.states{display:flex;gap:10px;flex-wrap:wrap}
+.state{border:1px solid var(--border);border-radius:6px;background:var(--surface);padding:10px 12px;min-width:168px;flex:1}
+.state .n{font-weight:600;font-size:13px} .state .d{color:var(--faint);font-size:11.5px;margin-top:3px}
+.state.esc{border-color:var(--warn)} .state.esc .n{color:var(--warn)}
+.state.halt{border-color:var(--stop)} .state.halt .n{color:var(--stop)}
+table{border-collapse:collapse;font-size:12px;width:100%} td,th{border-bottom:1px solid var(--border);padding:4px 8px;text-align:left;color:var(--muted)}
+th{color:var(--faint);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+td.k{color:var(--text);font-weight:600;white-space:nowrap}
+.mono{font-family:ui-monospace,monospace;font-size:11px;color:var(--phase)}
+.cap{color:var(--warn);font-size:11.5px;margin:8px 2px 0;font-style:italic}
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.step{border:1px solid var(--border);border-radius:5px;padding:3px 9px}
+.arrow{color:var(--faint)}
+</style>
+<h1>The standing worker</h1>
+<p class="sub">The loop, the lease, the policy it consults, and every way it stops</p>
+
+<div class="head">One turn</div>
+<div class="panel">
+  <div class="flow">
+    <span class="step">can start?</span><span class="arrow">→</span>
+    <span class="step">claim the lease</span><span class="arrow">→</span>
+    <span class="step">select, with reasons</span><span class="arrow">→</span>
+    <span class="step">dispatch</span><span class="arrow">→</span>
+    <span class="step">record the outcome</span><span class="arrow">→</span>
+    <span class="step">release</span>
+  </div>
+  <p class="cap">The lease is released on every path, including a raising dispatcher — a worker that died holding it would block the next one until the heartbeat aged out.</p>
+</div>
+
+<div class="head">States</div>
+<div class="states">
+  <div class="state"><div class="n">idle</div><div class="d">no workable item — a stop condition, not a busy-wait</div></div>
+  <div class="state"><div class="n">working</div><div class="d">lease held · budget counting · one item</div></div>
+  <div class="state esc"><div class="n">escalated</div><div class="d">waiting on a person — lapses to a recorded assumption, or alarms</div></div>
+  <div class="state halt"><div class="n">halted</div><div class="d">files what and why — an obligation on the desk, not an absence</div></div>
+</div>
+
+<div class="head">Every way it stops</div>
+<div class="panel">
+  <table>
+    <tr><th>reason</th><th>when</th></tr>
+    <tr><td class="k">stop-switch</td><td>a human asked — outranks every computed halt</td></tr>
+    <tr><td class="k">no-delegation</td><td><strong>the default</strong>: no approved policy, no worker</td></tr>
+    <tr><td class="k">validator-red</td><td>working on a broken record compounds it</td></tr>
+    <tr><td class="k">parked-items</td><td>three parked — failure is compounding, not clearing</td></tr>
+    <tr><td class="k">session-budget</td><td>sessions per day</td></tr>
+    <tr><td class="k">wall-clock</td><td>minutes in one session</td></tr>
+  </table>
+  <p class="cap">Every halt carries a reason. A halt with no reason is indistinguishable from a worker that merely went quiet — and only one of those is fine.</p>
+</div>
+
+<div class="head">What a selection records</div>
+<div class="panel">
+  <div class="mono">chose ISS-1 — first by phase order, then severity, then id</div>
+  <div class="mono" style="color:var(--faint)">passed over: TASK-3: status done is not workable; TASK-4: blocked on TASK-9; TASK-2: ranked below the choice</div>
+  <p class="cap">“Why not that one?” is the question a person actually asks when a choice looks wrong, and the choice alone cannot answer it.</p>
+</div>
+
+<div class="head">What is never delegated</div>
+<div class="panel">
+  <table>
+    <tr><td class="k">accepting a design or requirement</td><td>the server refuses it to an agent regardless of policy</td></tr>
+    <tr><td class="k">answering a permission prompt</td><td>the prompt exists because a different party decides</td></tr>
+    <tr><td class="k">rewinding a checkpoint</td><td>a worker that can undo its turns can erase the evidence of going wrong</td></tr>
+    <tr><td class="k">pushing</td><td>ADR-0022 — until accepted, the answer is never</td></tr>
+  </table>
+</div>

@@ -4,13 +4,13 @@ id: DES-0009
 aliases: ["DES-0009"]
 title: "The standing worker — the loop, the lease, the policy it consults, and what the human reads afterwards"
 role: proposal
-status: draft
+status: proposed
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
 updated: 2026-08-11
 source: ["[[ADR-0009-The-Principal-Is-A-Role]]", "Edwin 2026-08-03: full maintenance independent of a human"]
-asset: ""
+asset: "DES-0009-standing-worker.html"
 implements: []
 supersedes: ""
 superseded_by: ""
@@ -81,7 +81,7 @@ No new surfaces. The week lands in what PHASE-024/026 already build: the digest 
 - **Silent takeover of stale leases.** An expired lease means something went wrong; wrongness escalates.
 - **A global autonomy switch.** Per-repo opt-in by approved policy keeps the blast radius the size of one repo's DELEGATION.md.
 
-## Not yet offered for review — 2026-08-11
+## Offered for review — 2026-08-11
 
 I moved this `draft → proposed` while working [[REL-0001]]'s leg 2, and **the validator refused it**:
 
@@ -138,3 +138,8 @@ Offering is an agent's act and accepting is not — `note_writes.HUMAN_TRANSITIO
 ```
 
 *Both variants render what this note already specifies — they are the shape a reviewer judges, not a new proposal. Added by [[TASK-0332]]: the validator refuses a `proposed` design that declares no artifact, and correctly, because offering a design for review means asking somebody to look at something.*
+
+
+**Now offered.** `DES-0009-standing-worker.html` renders one turn, the four states, every halt reason, what a selection records, and what is never delegated — all of it what this note already specifies, drawn so a reviewer judges a *shape* rather than reads prose. `draft → proposed` is an agent's act; **accepting it is not** — `HUMAN_TRANSITIONS` puts `design: proposed → accepted` with the principal, and the server refuses it to an agent ([[REQ-0026]]).
+
+Every mechanism drawn here exists and is tested: the six halts drilled in `tests/test_worker.py`, the lease, the policy defaulting closed, the escalation clock, and the selection ledger. So this is a design offered *after* its subject was built rather than before — unusual, and worth saying plainly: what it documents is real, and what it asks is whether the shape is right.
