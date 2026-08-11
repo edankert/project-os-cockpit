@@ -676,7 +676,7 @@ items:
     TASK-0334:
       file: "docs/features/intent-charter/plan/tasks/TASK-0334-Delegated-Acceptance.md"
       title: "Delegated acceptance — the runner with agent:principal as witness, charter in context, worker kept at arm's length"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0315:
@@ -2469,7 +2469,7 @@ metrics:
     features_total: 91
     features_done: 80
     tasks_total: 385
-    tasks_done: 357
+    tasks_done: 358
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

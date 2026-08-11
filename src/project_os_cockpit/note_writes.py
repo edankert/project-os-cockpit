@@ -47,6 +47,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from . import charter as _charter
 from . import statuses
 from .index import Index
 
@@ -1425,6 +1426,17 @@ def stamp_acceptance_run(
     stamps = complete and requested == "requested"
 
     witness = (actor or "").strip() or "unassigned"
+    # **A delegated run must name its authority** (REQ-0029, TASK-0334).
+    # `agent:principal` alone is not enough: *delegation without
+    # distinguishability is impersonation*, and an attribution that could be
+    # confused with a person's is the whole failure. So a delegate witness has
+    # to carry its charter and delegation shas, and one that does not is
+    # refused rather than silently recorded as if a human stood behind it.
+    if witness.lower().startswith("agent:") and not _charter.is_delegate_witness(witness):
+        raise WriteError(
+            f"{witness!r} is a delegate but names no charter — a delegated "
+            "acceptance must carry its charter and delegation (REQ-0029)"
+        )
     today = _today()
     filed = ", ".join(issues or [])
     outcome = (
