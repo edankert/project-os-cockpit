@@ -41,7 +41,20 @@ GATING_TIERS: tuple[int, ...] = (1, 2)
 
 _TIER_HEADING_RE = re.compile(r"^#\s+Tier\s+(\d)\s*[—-]\s*(.+?)\s*$", re.M)
 _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
-_ITEM_RE = re.compile(r"^-\s+\[( |x|X)\]\s+(.*?)\s*$")
+#: **Any** single-character mark, decided below rather than filtered here
+#: (ISS-0141). The first version matched `( |x|X)` and skipped everything else,
+#: which gave the parser a way to say nothing: `- [~]` — the record's own mark
+#: for a check settled by decision — was dropped from the suite entirely, along
+#: with any typo. A checklist that silently loses lines reports a fuller bar
+#: than the document holds, and it feeds a release gate.
+_ITEM_RE = re.compile(r"^-\s+\[(.)\]\s+(.*?)\s*$")
+#: Walked. `X` is Markdown-legal and appears in the wild.
+_CHECKED_MARKS = frozenset({"x", "X"})
+#: Settled by a decision rather than by being walked — the check describes a
+#: surface that was retired, or asks for a precondition that cannot be made.
+#: It does not block; it is counted and named, which is the difference between
+#: reconciling something and losing it.
+_RECONCILED_MARKS = frozenset({"~"})
 _NAME_RE = re.compile(r"^\*\*(.+?):?\*\*:?\s*(.*)$")
 _ID_RE = re.compile(r"\[\[([A-Z]+-[0-9A-Za-z-]+?)(?:\|[^\]]*)?\]\]")
 
@@ -55,7 +68,12 @@ class Item:
     area: str             # "The navigator"
     name: str
     text: str
+    #: Walked, with evidence on the line.
     checked: bool
+    #: Settled by a decision instead (ISS-0141). Never both — a mark is one
+    #: thing — and anything the parser cannot classify is neither, so it is
+    #: owed and blocks. That is the direction that fails safely.
+    reconciled: bool = False
     #: 1-based position within its section, so every item has a unique number
     #: (`1.3.2`). Two items in one section otherwise share the section's id,
     #: and a navigator that keys rows on it would address the wrong one.
@@ -64,6 +82,12 @@ class Item:
     #: features; Tier 2 sections name the `ISS-*` that created the test, which
     #: TESTING.md requires and `missing_issue_refs` enforces.
     refs: tuple[str, ...] = ()
+
+    @property
+    def settled(self) -> bool:
+        """Walked or reconciled — what the gate reads. Not "done": a
+        reconciled item was never performed, and the tier count says so."""
+        return self.checked or self.reconciled
 
     @property
     def number(self) -> str:
@@ -87,8 +111,13 @@ class Suite:
         return [i for i in self.items if i.tier == n]
 
     def blocking(self) -> list[Item]:
-        """Unchecked Tier 1/2 items — what stops a release."""
-        return [i for i in self.items if i.tier in GATING_TIERS and not i.checked]
+        """Unsettled Tier 1/2 items — what stops a release.
+
+        `settled`, not `checked`: a reconciled item is a decision the release
+        note carries, and blocking on it would make the mark meaningless. An
+        item with a mark nobody recognises is neither, so it lands here.
+        """
+        return [i for i in self.items if i.tier in GATING_TIERS and not i.settled]
 
     def missing_issue_refs(self) -> list[Item]:
         """Tier 2 items whose section names no ``ISS-*``.
@@ -142,7 +171,7 @@ def parse(text: str) -> list[Item]:
         item = _ITEM_RE.match(line)
         if not item:
             continue
-        checked = item.group(1).lower() == "x"
+        mark = item.group(1)
         rest = item.group(2)
         named = _NAME_RE.match(rest)
         name, detail = (named.group(1), named.group(2)) if named else (rest, "")
@@ -150,7 +179,9 @@ def parse(text: str) -> list[Item]:
         items.append(Item(
             tier=tier, section=section, area=area,
             name=name.strip(), text=detail.strip(),
-            checked=checked, refs=refs, ordinal=ordinal,
+            checked=mark in _CHECKED_MARKS,
+            reconciled=mark in _RECONCILED_MARKS,
+            refs=refs, ordinal=ordinal,
         ))
     return items
 
@@ -183,12 +214,18 @@ def payload(docs_root: Path) -> dict[str, Any]:
                 "tier": n,
                 "total": len(suite.tier(n)),
                 "checked": sum(1 for i in suite.tier(n) if i.checked),
+                # Reported beside `checked` rather than folded into it: the two
+                # are different claims, and a suite that showed 27/27 for 26
+                # walked and 1 reconciled would be the drop this replaced,
+                # rounded up instead of down (ISS-0141).
+                "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
                 "gating": n in GATING_TIERS,
                 "items": [
                     {
                         "key": i.key, "number": i.number,
                         "section": i.section, "area": i.area,
                         "name": i.name, "text": i.text, "checked": i.checked,
+                        "reconciled": i.reconciled,
                         "refs": list(i.refs),
                     }
                     for i in suite.tier(n)
@@ -224,7 +261,8 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
         "counts": {
             f"tier{n}": {
                 "total": len(suite.tier(n)),
-                "unchecked": sum(1 for i in suite.tier(n) if not i.checked),
+                "unchecked": sum(1 for i in suite.tier(n) if not i.settled),
+                "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
             }
             for n in GATING_TIERS
         },

@@ -544,9 +544,15 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
         assert f"tier{tier}" in groups, sorted(groups)
     suite = acceptance.load(REPO_DOCS)
     assert len(groups["tier1"]["items"]) == len(suite.tier(1))
-    # The gating tiers ask something of a person while anything is unchecked;
-    # Tier 3 never does — TESTING.md is explicit that it does not gate.
-    assert groups["tier1"].get("needs_human") is True
+    # The gating tiers ask something of a person while anything is unsettled;
+    # Tier 3 never does — TESTING.md is explicit that it does not gate. Stated
+    # as the rule rather than as today's answer: the first version asserted
+    # `needs_human is True` because everything was unwalked on the day it was
+    # written, and it failed the moment the last box was ticked — reporting a
+    # green gate as a broken test.
+    for tier in (1, 2):
+        owed = any(not i.settled for i in suite.tier(tier))
+        assert groups[f"tier{tier}"].get("needs_human", False) is owed
     assert "needs_human" not in groups["tier3"]
     # And no note id appears in a tier group: one item, one home (ISS-0068).
     note_ids = {r.note_id for r in repo_index.notes_by_type("test")}
@@ -558,19 +564,31 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
 # ---- the gate ------------------------------------------------------------
 
 
-def test_the_gate_fires_on_this_repo_right_now() -> None:
+def test_the_gate_reads_the_live_suite_and_agrees_with_it() -> None:
     """Not a fixture — the live suite.
 
-    Every box was authored unchecked, because nothing in it has been walked.
-    So the gate is genuinely blocking today, which is the first time that has
-    been true in this project. If someone checks every Tier 1/2 box this will
-    start passing for the right reason.
+    This test was written as *"the gate fires on this repo right now"*, asserting
+    `blocked is True`, because every box was authored unchecked and nothing had
+    been walked. On 2026-08-11 the last Tier 1/2 item was settled and the
+    assertion inverted: a green gate arrived as a red test. Its own docstring
+    had predicted the day and got the direction wrong.
+
+    So it asserts the *agreement* instead, which is true in both states: the
+    gate blocks exactly when the document has an unsettled gating item, and
+    names each one. The blocking direction is proved against fixtures by
+    `test_an_unchecked_tier_one_test_blocks_and_checking_it_clears`, which is
+    where a claim about mechanism belongs — a live corpus is evidence about
+    today.
     """
     gate = acceptance.gate_payload(REPO_DOCS)
+    suite = acceptance.load(REPO_DOCS)
     assert gate["exists"] is True
-    assert gate["blocked"] is True
-    assert gate["blocking"], "blocked with nothing named is a bug in the gate"
+    owed = [i for i in suite.items if i.tier in (1, 2) and not i.settled]
+    assert gate["blocked"] is bool(owed)
+    assert len(gate["blocking"]) == len(owed)
     assert all(b["tier"] in (1, 2) for b in gate["blocking"])
+    if gate["blocked"]:
+        assert gate["blocking"], "blocked with nothing named is a bug in the gate"
 
 
 def test_the_gate_states_the_contracts_own_rule() -> None:
@@ -630,6 +648,52 @@ def test_an_unchecked_tier_one_test_blocks_and_checking_it_clears(
     )
     assert clear["blocked"] is False
     assert clear["blocking"] == []
+
+
+def test_a_reconciled_item_is_settled_and_still_counted(tmp_path: Path) -> None:
+    """ISS-0141. `- [~]` is the record's mark for a check settled by decision
+    rather than walked — 1.5.2 describes a surface retired before the suite was
+    written. It must not block, and it must not disappear: the first parser
+    matched only ` |x|X`, so the line was never an item at all and the view
+    reported a full bar over a document with one more row in it."""
+    docs = _suite_fixture(tmp_path / "recon", "- [~] **A:** cut by decision.")
+    suite = acceptance.load(docs)
+    item = suite.tier(1)[0]
+    assert (item.checked, item.reconciled, item.settled) == (False, True, True)
+    gate = acceptance.gate_payload(docs)
+    assert gate["blocked"] is False
+    assert gate["counts"]["tier1"] == {
+        "total": 1, "unchecked": 0, "reconciled": 1,
+    }
+    tier1 = acceptance.payload(docs)["tiers"][0]
+    assert (tier1["total"], tier1["checked"], tier1["reconciled"]) == (1, 0, 1)
+
+
+def test_a_mark_nobody_recognises_blocks_rather_than_vanishing(
+    tmp_path: Path,
+) -> None:
+    """The half of ISS-0141 that had no behaviour to test, because the line was
+    skipped: a typo removed a check from the gate and every surface then agreed
+    the suite was complete. Unclassifiable is **owed** — the direction that
+    fails safely."""
+    docs = _suite_fixture(tmp_path / "typo", "- [v] **A:** a typo, not a tick.")
+    item = acceptance.load(docs).tier(1)[0]
+    assert (item.checked, item.reconciled, item.settled) == (False, False, False)
+    gate = acceptance.gate_payload(docs)
+    assert gate["blocked"] is True
+    assert [b["name"] for b in gate["blocking"]] == ["A"]
+
+
+def test_a_clear_gate_says_which_of_its_tests_were_reconciled() -> None:
+    """A clear band reading *"every Tier 1 and Tier 2 test is checked"* is
+    false when one of them was settled by decision instead — and the clear
+    state is where an overstatement costs most, because nobody looks twice at
+    a green light. The band must have both sentences and pick on the count."""
+    src = RENDERER.read_text(encoding="utf-8")
+    band = re.search(r"async function mountReleaseGate\(\).*?\n\}", src, re.S).group(0)
+    assert "reconciled" in band, "the clear band cannot distinguish walked from settled"
+    assert "by reconciliation rather than by being walked" in band
+    assert band.index("const reconciled") < band.index("Release gate clear")
 
 
 def test_tier_three_never_gates(tmp_path: Path) -> None:

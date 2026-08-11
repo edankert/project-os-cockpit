@@ -39,7 +39,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 140
+  ISS: 142
   PHASE: 31
   REQ: 33
   RISK: 6
@@ -52,8 +52,8 @@ focus:
   task: "TASK-0315"
   feature: "FEAT-0072"
   phase: "PHASE-026"
-  issue: "ISS-0126"
-  note: "2026-08-11: REL-0001 RE-SCOPED by Edwin — the release is now defined by PHASES RESOLVED, not by a feature list. 'It is complete according to its definition, but the definition was incomplete.' PHASE-023/024/025/026/027 must all reach `done`; PHASE-028 and PHASE-029 are explicitly deferred. MEASURED 2026-08-11: 16 features and 50 tasks remain, but the real bar is PHASE-CHILDREN + PHASE-BOXES — 76 unresolved children across the five phases and 25 unticked exit criteria (5 per phase, none ticked anywhere). 13 of those 76 are not features or tasks: ISS-0126, ISS-0096, ISS-0094, ISS-0095, REQ-0028, REQ-0029, REQ-0030, REQ-0031, DES-0009, RISK-0005, RISK-0006. ORDER: (0) ISS-0126 FIRST and it is a DECISION not work — does FEAT-0062 survive ADR-0020; it gates the smallest phase and may shrink scope, so nothing starts while it is open. (1) PHASE-026 FEAT-0072 then FEAT-0073 — the release surface FIRST, because this note is hand-maintained until it exists and already drifted (FEAT-0078 was missing from its own deferred table). (2) PHASE-023 close-out incl. RISK-0005. (3) PHASE-024 FEAT-0063 first — the acceptance runner closes the door-to-nothing FEAT-0088 created and makes the release gate real. (4) PHASE-025 — no issues, risks, requirements or gates; the parallel-work phase, use it whenever something else blocks. (5) PHASE-027 LAST — 28 of 28 children unresolved, opens with APPROVAL work (3 draft REQs + draft DES-0009) not build work, and RISK-0006 must be mitigated before any unattended loop runs. HARD ORDERING: PHASE-027 after PHASE-024 — the worker delegates acceptance, so acceptance must exist and be recorded first. Leg 1 (11 features, done 2026-08-10) is CLOSED; do not reopen it. Its 17 unwalked Tier 1/2 checks remain owed and each leg-2 feature adds its own Tier 1 items AT CLOSE-OUT, not in a sweep at the end. Every write path stays behind REQ-0026/REQ-0027."
+  issue: "ISS-0141"
+  note: "2026-08-11 (evening): REL-0001 IS VERIFIED AND UNSHIPPED, and that is the whole state. The five phases (PHASE-023/024/025/026/027) are all `done` — 76 unresolved children and 25 unticked exit criteria are 0. THE ACCEPTANCE GATE IS GREEN on its first firing: 34 of 34 Tier 1/2 settled (33 walked, 1 reconciled), 36 of 36 with Tier 3, NO exception claimed. The last check (1.10.1, the agent chip) fell in `desktop/harness/live-harness.html` against a sidecar started from the working tree — the blocker was never a relaunched shell, it was a renderer and sidecar you can date. ONE THING IS LEFT AND IT IS A DECISION, NOT WORK: `release: draft -> released`. STATUSES.md calls that transition agent-owned after verification, but nothing here deploys, so `released` is a statement Edwin makes, not a step a script performs — and version/tag stay empty by the note's own argument unless he wants them. DO NOT re-run the suite to \"confirm\": it was walked today and every item carries its evidence. Open by decision, neither blocking the release: RISK-0006's supervised week (re-homed to PHASE-031, `planned`) and ADR-0022 `proposed`, whose unaccepted state IS the rule that the worker never pushes. PHASE-028 (`active`) and PHASE-029 (`planned`) remain explicitly deferred; PHASE-030 is `active` with its work done and should be closed out when someone walks its exit criteria. Four defects came out of the acceptance pass and are all fixed: ISS-0137, ISS-0138, ISS-0140, ISS-0141 — the last one found the gate under-reporting (a `- [~]` reconciled mark was dropped by the parser) on the day it first passed. Every write path stays behind REQ-0026/REQ-0027."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -2463,7 +2463,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 1
+    issues_open: 2
     issues_triage: 8
     risks_open: 5
     releases_total: 1

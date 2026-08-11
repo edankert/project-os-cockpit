@@ -3623,10 +3623,19 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         items = tier.get("items") or []
         if not items:
             continue
-        unchecked = sum(1 for i in items if not i.get("checked"))
+        unchecked = sum(
+            1 for i in items if not (i.get("checked") or i.get("reconciled"))
+        )
+        # `26/27 · 1 reconciled`, never `26/26` (ISS-0141): the denominator is
+        # what the document holds, and a check settled by decision is named
+        # rather than quietly removed from both halves of the fraction.
+        reconciled = int(tier.get("reconciled") or 0)
+        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']}"
+        if reconciled:
+            label = f"{label} · {reconciled} reconciled"
         group: dict[str, Any] = {
             "key": f"tier{tier['tier']}",
-            "label": f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']}",
+            "label": label,
             "url": url,
             "status": None,
             "item_layout": "stacked",
@@ -3640,7 +3649,11 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
                     "subtitle": " · ".join(
                         [p for p in (i.get("area"), ", ".join(i.get("refs") or [])) if p]
                     ),
-                    "status": "passing" if i.get("checked") else "ready",
+                    "status": (
+                        "passing" if i.get("checked")
+                        else "reconciled" if i.get("reconciled")
+                        else "ready"
+                    ),
                     "url": url,
                     "type": "test",
                 }

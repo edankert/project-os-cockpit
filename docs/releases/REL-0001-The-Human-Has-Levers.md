@@ -13,9 +13,9 @@ created: 2026-08-10
 updated: 2026-08-11
 features: ["[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]", "[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0091-The-Standing-Documents]]", "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[FEAT-0086-Tests-Becomes-A-View]]", "[[FEAT-0088-Features-Carries-Its-Own-Judgments]]", "[[FEAT-0071-Since-You-Looked]]", "[[FEAT-0090-The-Desk-Retires]]", "[[FEAT-0062]]", "[[FEAT-0063]]", "[[FEAT-0064]]", "[[FEAT-0065]]", "[[FEAT-0066]]", "[[FEAT-0067]]", "[[FEAT-0068]]", "[[FEAT-0069]]", "[[FEAT-0070]]", "[[FEAT-0072]]", "[[FEAT-0073]]", "[[FEAT-0074]]", "[[FEAT-0075]]", "[[FEAT-0076]]", "[[FEAT-0077]]", "[[FEAT-0078]]"]
 changes: []
-tests_verified: []
+tests_verified: ["[[TST-0001]]", "[[TST-0002]]", "[[TST-0003]]", "[[TST-0004]]", "[[TST-0005]]", "[[TST-0006]]", "[[TST-0007]]", "[[TST-0008]]", "[[TST-0009]]", "[[TST-0019]]", "[[TST-0020]]", "[[TST-0021]]", "[[TST-0022]]"]
 previous_release: ""
-related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ISS-0126]]", "[[ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value]]", "[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-025-Design-Before-Code]]", "[[PHASE-026-The-Returning-Human]]", "[[PHASE-027-The-Standing-Worker]]", "[[PHASE-030-Obligations-Go-Home]]"]
+related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ISS-0126]]", "[[ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value]]", "[[ISS-0140-The-Shell-Goes-Stale-Silently]]", "[[ISS-0141-A-Checkbox-The-Gate-Cannot-Read-Leaves-The-Suite-Silently]]", "[[ACCEPTANCE-TESTS]]", "[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-025-Design-Before-Code]]", "[[PHASE-026-The-Returning-Human]]", "[[PHASE-027-The-Standing-Worker]]", "[[PHASE-030-Obligations-Go-Home]]"]
 tags: [release]
 ---
 
@@ -83,7 +83,7 @@ The last thing to move was not code. [[DES-0009]] sat `proposed` for eleven hour
 
 Two things stay open by decision and neither is a phase: [[RISK-0006]]'s supervised week, re-homed to [[PHASE-031]] with the risk still `open`; and [[ADR-0022]], `proposed`, whose unaccepted state *is* the operative rule that the worker never pushes.
 
-**What the release still owes is verification, not work** — see below. `status: draft` now means exactly one thing: the acceptance gate is red.
+**What the release still owed was verification, not work** — and on the evening of 2026-08-11 that closed too. **34 of 34 Tier 1/2 checks are settled and the gate is green**, on its first firing, with no exception claimed. `status: draft` no longer means the gate is red; it means nobody has said *ship it*, which is the one lever left and the right hand on it.
 
 ### The completion bar
 
@@ -116,6 +116,12 @@ Only two phases defer, and both were named by Edwin on 2026-08-11.
 | ISS-0121 | The reviewed register counts settled work as owed | medium |
 | ISS-0125 | The singleton documents have no lifecycle and no home | medium |
 | ISS-0124 | Four note types have no status table | low |
+| ISS-0137 | A criterion containing inline markup cannot be ticked at all | high |
+| ISS-0138 | The browser front door's nav and context panes throw on every page | medium |
+| ISS-0140 | Nothing says the shell is running old code | medium |
+| ISS-0141 | A checkbox the gate cannot read leaves the suite silently | medium |
+
+**The last four were found by the acceptance pass, not by the code.** Three are defects in surfaces this release shipped; the fourth is a defect in the gate that was about to declare it green. None was visible to the 1149-test suite, which was passing throughout.
 
 ### Known Issues (shipping with)
 
@@ -191,6 +197,8 @@ Eleven features, in the release's own order. What the sessions found, rather tha
 
 This note therefore stays `draft`. **No exceptions are claimed** — the honest state is that the code is done, the record is closed, and the manual acceptance pass has not been run. A green gate here would have meant nothing, since the suite that produces it was created the same day.
 
+*Kept as written. **The gate went green on 2026-08-11**, by the checks being walked rather than by anything above being softened — 34 of 34 Tier 1/2, no exception claimed, and four defects filed along the way. The paragraph is the reason that is worth something.*
+
 ### Release verification, run 2026-08-10
 
 `tools/skills/release-verification/SKILL.md`, against the eleven features in scope.
@@ -199,7 +207,7 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **18 more on 2026-08-11 and one unticked**, so **33 of 34 are settled — 32 ticked, 1 reconciled — and 1 remains** — the gate is still red, on a single clause.
+**Step 5/6 — the tier gate. Green, 2026-08-11.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **18 more across three passes on 2026-08-11, one unticked and re-earned, and the last one that evening** — so **34 of 34 are settled: 33 walked, 1 reconciled**, and 36 of 36 counting Tier 3. No exception is claimed, which was the point of not claiming any earlier.
 
 **Four of those were taken to the running shell over CDP**, the way [[PHASE-013]]'s fleet check was walked on 2026-08-10. **1.2.2 and 1.10.2 are walked there**: workspace switching carries nav, centre and context to a different corpus and remembers each workspace's own mode; and `~agents` reports every workspace's session with cost and queue state — including, at the top, *this session*, `project-os-cockpit · claude · working · ctx 46% · $356.92`.
 
@@ -207,7 +215,11 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **1.9.1 closed on 2026-08-11 and cost nothing.** Reading the terminal buffer showed the acceptance walk was running *inside the terminal it was testing* — the *"run an agent CLI, complete a turn"* clause had been satisfied dozens of turns over, and the request for it was mine to withdraw. Resize was driven (26 rows → 40 → 26), scrollback fell once the input events and the read shared one CDP connection, and Edwin witnessed the native context-menu copy.
 
-**What is left is one clause of [[REL-0001]]'s 34.** 1.10.1's agent chip needs a **relaunched shell** first: `renderer.ts` has 25 commits since that window opened, so nothing it shows about nav rows can be attributed. The terminal, by contrast, has none — which is why 1.9.1's evidence stands on this build and 1.10.1's cannot.
+**1.10.1 closed the same evening, and the blocker had been misnamed.** It was held for a *relaunched shell* — `renderer.ts` had 25 commits since that window opened, so nothing it showed about nav rows could be attributed. True, and the wrong conclusion: what the check needed was a **current renderer against a current sidecar**, not somebody else's restart. `desktop/harness/live-harness.html` in front of a sidecar started off this working tree is such a pair, and the walk took minutes there — baseline 482 rows and zero chips, one edit to a note, then exactly one `agent` chip in 141 rows, on the note that was edited. *Read a blocker as the property the evidence needs, not as a task belonging to someone else; only one of those is ever yours to fix.*
+
+**And the observation the check was held open for turned out to be correct code.** The two chips that looked wrong on 2026-08-10 sat on FEAT-0087 and TASK-0385 — both in that session's own `work_notes` in `.cockpit/sessions.json`. It had touched them, earlier in its life; *"the notes it touches"* was read as *"since the current prompt"*. The caution was still right: distrusting an observation you cannot attribute costs an hour, and trusting one costs a false defect report. [[ISS-0140]] stands on that distinction rather than on the bug it was filed beside.
+
+**One finding came out of closing the gate itself, and it is the one worth keeping.** With every box settled, `acceptance.py` reported Tier 1 as `26/26` — over a document holding 27. Its item regex matched `[ ]`, `[x]` and `[X]` only, so `- [~]`, the record's own mark for a check settled by decision, **was not parsed as an item at all**: not counted, not gating, not rendered. The verdict was right and the mechanism was not, and the same path drops a typo just as quietly — one mistaken character removes a check from the gate and every surface then agrees the suite is complete. Filed and fixed as [[ISS-0141]]: any mark is now read, `~` means reconciled and is *named* in the count, and anything unrecognised is **owed**, so it blocks. The Tests view reads `Tier 1 · 26/27 · 1 reconciled`. *A gate found under-reporting on the day it first passes is exactly the gate you want to have built.*
 
 **Two left this list by being fixed rather than waived.** 2.3.1 was blocked by [[ISS-0138]] — two of the browser front door's three panes rendered an error box on every page — so the defect was fixed, guarded, and the check walked on **both** doors. [[ISS-0137]] was fixed the same way, and it mattered more: it was a defect in [[FEAT-0060]], a feature *this release shipped*, silently making half the corpus's open criteria untickable. And 1.11.1 was not blocked by a bug so much as by a **gap the check found**: the Verification card counted validator errors without naming them, which no test could have noticed because on a clean corpus zero agrees with zero. The card now reads the per-error `id`/`rel` that [[FEAT-0018]]'s payload has carried all along.
 
@@ -252,21 +264,23 @@ Three things the harness cost, each recorded in the file because each failed by 
 
 **No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. The remaining seventeen can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
 
-So the release stays `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
+**And none was ever claimed.** All seventeen were walked or settled with their reasoning on the line — the ones that looked blocked turned out to be blocked by two defects and a gap ([[ISS-0137]], [[ISS-0138]], the unnamed validator errors), each of which was fixed and then walked. That is what the paragraph above was betting on, and the bet came in.
 
-**Since 2026-08-11 that is no longer the only thing it waits on.** With the definition widened, `draft` now means what it should have meant from the start: five phases open, 76 unresolved children, and a suite whose denominator has not finished growing. The seventeen unwalked checks are a leg-1 debt inside a release that is roughly a fifth built. Walking them is still worth doing early — they guard what already shipped, and evidence collected months after the fact is evidence about a different codebase.
+So the release stayed `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
 
-**What the remaining checks actually need**, so the pass is minutes rather than an hour. **The `eyes on a rendered pane` row was walked on 2026-08-11** and is struck through below; the harness did reach all of it, as predicted:
+**Since 2026-08-11 that is no longer the only thing it waits on.** With the definition widened, `draft` meant what it should have meant from the start: five phases open, 76 unresolved children, and a suite whose denominator had not finished growing. *All three closed the same day: the phases are `done`, the children are 0, and the suite is 36 of 36.* The reason for walking the leg-1 debt early held — they guard what already shipped, and evidence collected months after the fact is evidence about a different codebase.
+
+**What the remaining checks needed**, written when they were still owed and kept because every row was answered by the end of 2026-08-11 — all struck through, none waived:
 
 | needs | checks |
 |---|---|
-| an agent session in the terminal | 1.9.1, 1.10.1, 1.10.2 |
-| a second workspace open | 1.2.2 |
-| a write to the record (⌘N, a criterion tick, a manual run) | 1.4.2, 1.7.2, 1.7.3, 1.8.1 |
-| ~~eyes on a rendered pane~~ — **7 of 10 walked 2026-08-11** via `desktop/harness/live-harness.html` | ~~1.3.1, 1.3.2, 1.4.1, 1.6.1, 1.6.2, 1.11.1, 1.12.1~~ · still open: 1.5.2, 2.3.1, 2.4.1 |
-| a manual test with a `Run ▸` | 1.7.2, 1.7.3 |
+| ~~an agent session in the terminal~~ — the walk was already running in it | ~~1.9.1, 1.10.1, 1.10.2~~ |
+| ~~a second workspace open~~ — driven live over CDP | ~~1.2.2~~ |
+| ~~a write to the record~~ (⌘N, a criterion tick, a manual run) — against an isolated clone | ~~1.4.2, 1.7.2, 1.7.3, 1.8.1~~ |
+| ~~eyes on a rendered pane~~ — via `desktop/harness/live-harness.html` | ~~1.3.1, 1.3.2, 1.4.1, 1.6.1, 1.6.2, 1.11.1, 1.12.1, 1.5.2, 2.3.1, 2.4.1~~ |
+| ~~a manual test with a `Run ▸`~~ | ~~1.7.2, 1.7.3~~ |
 
-The prediction held: the harness reached every one of them and needed no app restart — serve the repo and a sidecar on one origin, open the harness, click. **Seven of the ten were walked on 2026-08-11**; three were left because the session ran out of room, not because the harness could not reach them.
+The prediction held: the harness reached every one of them and needed no app restart — serve the repo and a sidecar on one origin, open the harness, click. **The row that aged worst is the first one.** Two of its three checks were satisfied by the session doing the asking, and the third by a harness pair; none needed a restart, and the requirement was never *an agent session in the terminal* so much as *an agent session whose renderer and sidecar you can date*.
 
 One finding came out of the pass rather than the code: five of nine committed design artifacts hard-code a dark palette and render wrong under a light app ([[ISS-0136]]). [[DES-0009]]'s is among them and is deliberately **not** being fixed — its artifact sha is what this release's last acceptance is pinned to.
 

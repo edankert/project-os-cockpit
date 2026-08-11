@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0139
 aliases: ["ISS-0139"]
 title: "fillChanges and /api/cockpit/changes survive with no caller and no consumer — the tile FEAT-0052 replaced left its code behind"
-status: triage
+status: "open"
 severity: low
 owner: user:edwin
 created: 2026-08-11
-updated: 2026-08-11
+updated: "2026-08-11"
 phase: "[[PHASE-999-Future]]"
 features: ["[[FEAT-0052]]"]
 tasks: []
@@ -37,3 +37,16 @@ Dead code that still answers correctly is the expensive kind: it survives every 
 ## Resolution
 
 Either delete both, or — if the archive is wanted back — say where. The check it served is being reconciled as **cut** rather than left open, so nothing depends on this decision.
+
+## Correction — 2026-08-11: half of this is wrong, and it is the half that says "delete both"
+
+**`GET /api/cockpit/changes` has a live consumer.** `buildQuickCorpus` fetches it at `renderer.ts:10044` — deliberately, under the comment *"Changes and tests have no nav mode … Both are still worth finding by name"* — and that is how change notes reach the quick-switch palette. Observed the same day in the live harness: typing `CHG-20260811` returns two rows, which can only have come from that endpoint.
+
+So the two halves of this issue have different answers:
+
+- **`fillChanges` is dead** — `grep` still returns one line, its own definition. That was and is correct.
+- **The endpoint is load-bearing.** Deleting it would silently remove 126 change notes from the only surface that can find them by name.
+
+The original text found the endpoint by reading the overview's assembly and concluded from its absence there; the consumer is 2,700 lines away in a function about something else. *Dead code and code you have not found yet look identical from the call site you happened to read* — which is the same lesson this issue was filed to teach, taken one level further in.
+
+Related: [[ISS-0142]], which is what came of reading `buildQuickCorpus` closely enough to find this — releases are the one type that never got the patch changes and tests both have.

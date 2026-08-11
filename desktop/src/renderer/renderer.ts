@@ -1421,7 +1421,7 @@ interface GateItem {
 interface GatePayload {
   exists: boolean; blocked: boolean; rule: string; rel: string;
   blocking: GateItem[];
-  counts: Record<string, { total: number; unchecked: number }>;
+  counts: Record<string, { total: number; unchecked: number; reconciled?: number }>;
 }
 
 async function mountReleaseGate(): Promise<void> {
@@ -1456,8 +1456,14 @@ async function mountReleaseGate(): Promise<void> {
   const t1 = gate.counts.tier1, t2 = gate.counts.tier2;
   if (!gate.blocked) {
     band.classList.add('is-clear');
+    // "every test is checked" is false when one was reconciled instead of
+    // walked, and a clear gate is exactly where an overstatement costs most
+    // (ISS-0141). Say which kind of settled, or say nothing about kinds.
+    const reconciled = (t1?.reconciled ?? 0) + (t2?.reconciled ?? 0);
     band.append(
-      gateLine('Release gate clear — every Tier 1 and Tier 2 test is checked.'),
+      gateLine(reconciled
+        ? `Release gate clear — every Tier 1 and Tier 2 test is settled, ${reconciled} by reconciliation rather than by being walked.`
+        : 'Release gate clear — every Tier 1 and Tier 2 test is checked.'),
       gateNote(`${t1?.total ?? 0} Tier 1 · ${t2?.total ?? 0} Tier 2`),
     );
     docView.prepend(band);

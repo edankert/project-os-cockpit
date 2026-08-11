@@ -78,3 +78,13 @@ Suite 1152 → 1156.
 ## What it does not do
 
 It does not make the two remaining acceptance checks (1.9.1, 1.10.1) walkable — those still need an agent CLI started in the app's own terminal. What it does is make the answer **trustworthy when they are walked**: the surface will say if the window is behind, instead of leaving it to somebody remembering to check `ps`.
+
+## The re-walk it enabled — 2026-08-11
+
+The paragraph above is half right and the half it gets wrong is worth keeping. 1.9.1 closed the same evening from *inside* the terminal it was testing. 1.10.1's chip clause did not need a relaunched window either — it needed a **current renderer against a current sidecar**, which is a different requirement wearing the same clothes, and `desktop/harness/live-harness.html` already supplies both.
+
+So the re-walk was conducted there rather than in Edwin's two-day-old window: a sidecar started from this working tree (which answers `sidecar_stale: false` at this issue's own endpoint — the first use of the thing it filed), the built bundle in front of it, and this session as the live agent. **Restarting somebody's window is still their call; the check no longer waits on it.**
+
+**The chip was right the whole time.** Baseline: 482 nav rows, zero chips, `work_notes: []`. One edit — to this note — and the payload gained it; the next nav build carried **exactly one** `nav-agent-chip`, on ISS-0140, in 141 rows. Which settles the finding at the top of this issue in the other direction: `.cockpit/sessions.json` records session `cedfddb4…` with **FEAT-0087 and TASK-0385 in its own `work_notes`**, so the two chips that looked wrong were on notes that session had genuinely touched, earlier in its life. *"The notes it touches"* was read as *"since the current prompt"*, and a correct surface was read as a broken one.
+
+**That does not retire this issue.** The caution was correct and cost an hour; the alternative was filing a defect against working code, which costs more. What was missing then and exists now is the ability to *tell the two apart* — which is what `/api/cockpit/runtime` is for, and why the fix stands on its own even though the defect it was filed beside turned out not to be one.
