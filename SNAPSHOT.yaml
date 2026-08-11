@@ -264,7 +264,7 @@ items:
     FEAT-0070:
       file: "docs/features/design-gating/FEAT-0070-Design-Gating-And-Scaffolding.md"
       title: "An accepted design gates the feature that names it, and can scaffold that feature's requirements — by dispatch, never by fiat"
-      status: planned
+      status: done
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0309, TASK-0310, TASK-0311]
       note: "Enforceable by the route every local rule took: this repo's validator first, upstream proposal alongside."
@@ -727,18 +727,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
-    TASK-0300:
-      file: "docs/features/design-artefacts/plan/tasks/TASK-0300-Variant-Parse-And-Sandbox.md"
-      title: "A ## Variant section with fenced html renders live, sandboxed, token-true"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0067
-    TASK-0301:
-      file: "docs/features/design-artefacts/plan/tasks/TASK-0301-Side-By-Side.md"
-      title: "Variants sit beside each other"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0067
     TASK-0302:
       file: "docs/features/design-artefacts/plan/tasks/TASK-0302-Choose-Records-The-Decision.md"
       title: "Choose stamps the variant and scaffolds the ADR as a proposal"
@@ -781,24 +769,6 @@ items:
       status: backlog
       phase: "[[PHASE-025-Design-Before-Code]]"
       parent: FEAT-0069
-    TASK-0309:
-      file: "docs/features/design-gating/plan/tasks/TASK-0309-The-Design-Gate.md"
-      title: "design: on features, and the DESIGN-GATE warning"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0070
-    TASK-0310:
-      file: "docs/features/design-gating/plan/tasks/TASK-0310-Derive-Requirements-By-Dispatch.md"
-      title: "An accepted design drafts its requirements — through an agent, never by fiat"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0070
-    TASK-0311:
-      file: "docs/features/design-gating/plan/tasks/TASK-0311-The-Upstream-Proposal.md"
-      title: "The design-gate convention proposed to project-os"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0070
     TASK-0315:
       file: "docs/features/release-surface/plan/tasks/TASK-0315-The-Unreleased-Card.md"
       title: "UNRELEASED · N — done features since the last release"
@@ -2587,9 +2557,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 73
+    features_done: 74
     tasks_total: 385
-    tasks_done: 334
+    tasks_done: 339
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

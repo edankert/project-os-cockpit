@@ -5195,3 +5195,20 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
 .accept-hint { margin-top: 14px; font-size: 11px; color: var(--text-faint, var(--text-muted)); }
 .accept-empty { font-size: 13px; color: var(--text-muted); }
 .accept-summary { font-size: 13px; }
+
+/* Variants side by side (FEAT-0067 / TASK-0301). A row that scrolls rather
+   than a grid that wraps: two arrangements are compared by looking across,
+   and wrapping one under the other turns a comparison into a list. */
+.variant-strip {
+  display: flex; gap: 12px; overflow-x: auto; padding: 12px;
+  align-items: stretch; min-height: 240px;
+}
+.variant-cell {
+  margin: 0; display: flex; flex-direction: column; min-width: 320px; flex: 1 1 0;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg-elevated);
+}
+.variant-name {
+  padding: 6px 10px; font-size: 11.5px; font-weight: 600;
+  border-bottom: 1px solid var(--border); color: var(--text);
+}
+.variant-frame { flex: 1; width: 100%; border: 0; background: var(--bg); min-height: 200px; }

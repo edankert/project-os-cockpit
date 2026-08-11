@@ -747,6 +747,55 @@ def _design_link_ids(value: Any) -> list[str]:
     return out
 
 
+#: `## Variant <name>` followed (eventually) by a fenced ```html block.
+_VARIANT_HEADING_RE = re.compile(r"^##\s+Variant\s+(.+?)\s*$", re.MULTILINE)
+_HTML_FENCE_RE = re.compile(r"^```html\s*$(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
+
+
+def _read_note_body(record: NoteRecord) -> str:
+    """A note's text, or empty when it cannot be read.
+
+    Variants are parsed from the body rather than declared in frontmatter, so
+    an unreadable note degrades to "no variants" instead of failing the whole
+    design payload.
+    """
+    try:
+        return record.path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def design_variants(text: str) -> list[dict[str, Any]]:
+    """`## Variant <name>` sections carrying a fenced html block (TASK-0300).
+
+    **Convention over machinery.** A variant is a markdown section, so an agent
+    or a human authors one with what they already have — no new note type, no
+    editor, no upload. The bench does the rest.
+
+    Only the FIRST html fence in a section counts. A variant is one shape; a
+    section with two fences is a section that has not decided, and rendering
+    both side by side under one name would misreport which was chosen.
+    """
+    out: list[dict[str, Any]] = []
+    matches = list(_VARIANT_HEADING_RE.finditer(text))
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        section = text[m.end():end]
+        # Stop at the next `##` of any kind, so prose after the variants does
+        # not get swallowed into the last one.
+        nxt = re.search(r"^##\s", section, re.MULTILINE)
+        if nxt:
+            section = section[:nxt.start()]
+        fence = _HTML_FENCE_RE.search(section)
+        if not fence:
+            continue
+        out.append({
+            "name": m.group(1).strip(),
+            "html": fence.group(1).strip("\n"),
+        })
+    return out
+
+
 def _design_stylesheets(fm: dict) -> list[str]:
     """Project-relative stylesheet paths a design declares (TASK-0230).
 
@@ -1022,6 +1071,11 @@ def designs_payload(index: Index) -> dict:
             # allow-list IS this list, gathered across every design note, so a
             # path nobody declared is a path nobody can fetch.
             "stylesheets": _design_stylesheets(fm),
+            # Live variants (TASK-0300). `scripts: true` in frontmatter is the
+            # opt-in; without it the bench sandboxes without scripts, because a
+            # mockup that can run code is a mockup that can read the cockpit.
+            "variants": design_variants(_read_note_body(record)),
+            "variant_scripts": str(fm.get("scripts") or "").strip().lower() == "true",
         })
     return {"schema_version": SCHEMA_VERSION, "designs": designs}
 

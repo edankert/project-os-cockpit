@@ -4281,6 +4281,8 @@ interface DesignRecord {
   viewport: number | null; implements: string[];
   rationale: DesignRationale[];
   stylesheets?: string[];
+  variants?: DesignVariant[];
+  variant_scripts?: boolean;
 }
 
 /** An ADR this design links. `missing` = the link resolves to nothing, which
@@ -4892,8 +4894,21 @@ async function renderDesignPage(target: string): Promise<boolean> {
       // show the layout changing rather than the design.
       body.classList.add('is-compare');
       body.append(buildDesignFrame(d), buildDesignFrame(d, designCompareSha));
+    } else if ((d.variants ?? []).length && !d.has_asset) {
+      // A note with variants and no artifact IS its variants — the strip is
+      // the stage rather than an addition to it (TASK-0301). With an artifact
+      // present the artifact stays the subject and the strip goes beneath.
+      const strip = buildVariantStrip(
+        d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
+      );
+      if (strip) body.append(strip);
+      else body.append(buildDesignFrame(d));
     } else {
       body.append(buildDesignFrame(d));
+      const strip = buildVariantStrip(
+        d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
+      );
+      if (strip) body.append(strip);
     }
     const side = document.createElement('aside');
     side.className = 'design-side';
@@ -13664,6 +13679,53 @@ interface UnreleasedPayload {
   count?: number;
   since?: { id?: string; title?: string; rel?: string; date?: string } | null;
   items?: Array<{ id?: string; title?: string; rel?: string }>;
+}
+
+interface DesignVariant { name?: string; html?: string; }
+
+/** `## Variant <name>` fenced html, side by side (TASK-0300 / TASK-0301).
+ *
+ *  **Convention over machinery**: a variant is a markdown section, so it is
+ *  authored with what an agent or a human already has. Rendered into
+ *  `srcdoc` iframes so a mockup is a live fragment rather than a picture of
+ *  one — and sandboxed **without** `allow-scripts` unless the note opts in,
+ *  because a mockup that can run code is a mockup that can reach the cockpit.
+ *  The artifact frame allows scripts (DES-0001 carries a theme toggle); a
+ *  variant fenced inside a note has not earned that by default.
+ */
+function buildVariantStrip(
+  variants: DesignVariant[], stylesheets: string[], allowScripts: boolean,
+): HTMLElement | null {
+  if (!variants.length) return null;
+  const strip = document.createElement('div');
+  strip.className = 'variant-strip';
+  for (const variant of variants) {
+    const cell = document.createElement('figure');
+    cell.className = 'variant-cell';
+    const cap = document.createElement('figcaption');
+    cap.className = 'variant-name';
+    cap.textContent = variant.name || 'unnamed';
+    cell.appendChild(cap);
+
+    const frame = document.createElement('iframe');
+    frame.className = 'variant-frame';
+    frame.setAttribute('sandbox', allowScripts ? 'allow-scripts' : '');
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    // The design-system stylesheets are injected so a mockup wears real
+    // tokens. A variant whose note declares none renders unstyled rather
+    // than failing — an unstyled shape still answers "which arrangement",
+    // which is what a variant is for.
+    const links = stylesheets
+      .map((href) => `<link rel="stylesheet" href="${sidecarBaseUrl}/design-asset/${href}">`)
+      .join('');
+    frame.srcdoc =
+      `<!doctype html><html><head><meta charset="utf-8">${links}`
+      + `<style>body{margin:0;padding:12px;font:13px/1.5 system-ui}</style>`
+      + `</head><body>${variant.html ?? ''}</body></html>`;
+    cell.appendChild(frame);
+    strip.appendChild(cell);
+  }
+  return strip;
 }
 
 interface ShapePayload {

@@ -1594,6 +1594,47 @@ def validate(root, report):
                 else "requirements it owns have")
         emit("FEATURE-REQ", "%s is done but %s unresolved acceptance criteria: %s; tick with evidence, reconcile, or descope the requirement before closing the feature (ADR-0007)" % (feat_id, noun, ", ".join(unresolved)))
 
+    # -- FEAT-0070 DESIGN-GATE: a feature naming a design that is not accepted.
+    #
+    #    "Design before code" is the phase's title, and this is the only
+    #    mechanical part of it. A WARNING, on the same reasoning as
+    #    ACCEPT-STALE and independent review: the judgment being gated
+    #    (is this design right?) cannot be automated, and a blocking gate on
+    #    it gets cleared to unblock the build rather than because somebody
+    #    looked. Escalation is deferred until the convention has been lived
+    #    with, which is ADR-0011's path.
+    #
+    #    Only while the feature is PAST the pending band: naming a design you
+    #    have not accepted yet is the normal state of planning, and warning
+    #    about it would fire on every feature the moment it was written.
+    _PENDING = {"backlog", "planned", "deferred", "cancelled", "superseded"}
+    for feat_id in sorted(i for i in note_index if prefix_of(i) == "FEAT"):
+        f_path, f_fm = note_index.get(feat_id, (None, {}))
+        if f_path is None:
+            continue
+        if effective_status(feat_id) in _PENDING:
+            continue
+        for des_id in extract_ids((f_fm or {}).get("design")):
+            if prefix_of(des_id) != "DES":
+                continue
+            d_path, d_fm = note_index.get(des_id, (None, {}))
+            if d_path is None:
+                report.warn("DESIGN-GATE", "%s names design %s, which is not in the corpus (%s)" % (
+                    feat_id, des_id, f_path.relative_to(root)))
+                continue
+            d_status = str((d_fm or {}).get("status") or "").strip().strip('"').lower()
+            # `accepted` is the gate, but it is not the only status PAST it:
+            # STATUSES.md's progression is `proposed -> accepted ->
+            # implemented`, and `superseded` means a later design replaced one
+            # that had been accepted. Warning on those was the first cut, and
+            # it fired five times on this corpus the moment it was written —
+            # every one a false positive. A nag that fires wrongly is the
+            # fastest way to teach somebody to ignore it, which is the whole
+            # argument for making these warnings rather than errors.
+            if d_status not in {"accepted", "implemented", "superseded"}:
+                report.warn("DESIGN-GATE", "%s has left the pending band but its design %s is '%s' — never accepted; accept the design or drop the `design:` link (%s)" % (
+                    feat_id, des_id, d_status or "unset", f_path.relative_to(root)))
+
     # -- FEAT-0064 ACCEPT-STALE: a `done` feature that asked for acceptance and
     #    has not had it, for longer than the staleness window.
     #

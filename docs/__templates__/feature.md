@@ -18,6 +18,10 @@ release: ""
 # agent when the feature opted in — the agent asks, it never answers.
 # `accepted` is written only by a completed acceptance run (REQ-0028).
 acceptance: ""
+# Optional design gate (FEAT-0070). Names the `[[design]]` this feature is
+# built against. DESIGN-GATE warns — never blocks — when the feature has left
+# the pending band while that design was never accepted.
+design: ""
 related: []
 tests: []
 ---

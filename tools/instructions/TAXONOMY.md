@@ -62,5 +62,15 @@ Distinct from the test kind above, and easy to confuse with it: this is a **fron
 
 *Locally added ahead of upstream — see the local divergence note in `SYNCING.md` and the upstream proposal that carries it home.*
 
+## `design:` on a feature (FEAT-0070)
+
+Optional. Names the `[[design]]` a feature is built against — *design before code*, made mechanical to the extent it can be.
+
+`DESIGN-GATE` **warns** when a feature has left the pending band (`backlog`, `planned`, `deferred`, `cancelled`, `superseded`) while the design it names was **never accepted**. `accepted`, `implemented` and `superseded` all satisfy it: `accepted → implemented` is the normal progression and `superseded` means a later design replaced one that had been accepted.
+
+That set was narrowed after the first cut fired **five false positives on this corpus immediately** — every one a design that had progressed past `accepted`. A nag that fires wrongly is the fastest way to teach somebody to ignore it, which is also why this warns rather than blocks: the judgment being gated (*is this design right?*) cannot be automated, and a blocking gate on it gets cleared to unblock the build.
+
+*Locally added ahead of upstream, like `acceptance:` above.*
+
 ## `scope` (tests)
 - `feature`, `system`
