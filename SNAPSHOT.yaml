@@ -159,7 +159,7 @@ items:
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
       title: "The standing worker — acquire, select, dispatch, watch, record, release, next; with a lease that refuses and stops that hold"
-      status: planned
+      status: doing
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0322, TASK-0323, TASK-0324, TASK-0325]
       note: "A caller of existing machinery, not a second runtime. Default state everywhere: no worker — autonomy is opted into per repo by an approved DELEGATION.md."
@@ -658,18 +658,6 @@ items:
     TASK-0323:
       file: "docs/features/standing-worker/plan/tasks/TASK-0323-The-Session-Loop.md"
       title: "The session loop — dispatch through the instrumented terminal, watch to close-out or failure, record, next"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0074
-    TASK-0324:
-      file: "docs/features/standing-worker/plan/tasks/TASK-0324-The-Lease.md"
-      title: "The lease — a claim that refuses a second worker, heartbeats, and expires loudly"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0074
-    TASK-0325:
-      file: "docs/features/standing-worker/plan/tasks/TASK-0325-Stop-Conditions-By-Drill.md"
-      title: "Stop conditions proven by drill — budget, backoff, validator red, and the human's stop switch"
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
@@ -2493,7 +2481,7 @@ metrics:
     features_total: 91
     features_done: 79
     tasks_total: 385
-    tasks_done: 353
+    tasks_done: 355
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
