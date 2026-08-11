@@ -39,7 +39,7 @@ The tier contract has existed since the template was written. **No repo had ever
 
 **Created unchecked, deliberately** — nothing had been walked, which is the honest starting state for a checklist created the same day, and it meant the gate on [[REL-0001]] was firing rather than passing vacuously.
 
-**17 of 34 walked 2026-08-10**, each carrying how. The rest need a person at the keyboard: they are visual checks of rendered surfaces, or they require an agent session, a second device, or an interactive terminal. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
+**23 of 34 Tier 1/2 walked — 16 on 2026-08-10 and 7 more on 2026-08-11** (24 of 36 counting Tier 3), each carrying how. *The line here used to read "17 of 34", which mixed the tiers: 17 was the whole-suite count and 34 is the Tier 1/2 denominator the gate actually reads. Corrected on the recount, and worth a sentence because a gate figure that is off by one in the reader's favour is the kind of drift this document exists to stop.* The second pass was the *eyes on a rendered pane* row of [[REL-0001]]'s table — the tree, the actuator row, the Intent brief, a design artifact, the validator's answer and the History rows — all through `desktop/harness/live-harness.html` against a live sidecar, so what was judged is this repo's real corpus rather than a fixture. **The gate is still red: eleven Tier 1/2 checks remain unchecked**, and they need what the harness cannot supply — an agent session in the terminal (3), a second workspace (1), a write to the record (4), a manual run and its failure path (2), a real shell (1). One Tier 3 deep-link check is also open. **No exceptions are claimed** — an unwalked check is unchecked, not excused.
 
 One caveat shaped the first pass and was then removed: the running shell was on the current renderer but its Python sidecar predated the session, so payload-dependent views rendered stale, and anything whose evidence was a payload rather than pixels was left unchecked. `desktop/harness/live-harness.html` closes that gap — it runs the built bundle against a **real** sidecar in a plain browser, so the visual checks are walkable without restarting anyone's app. The two it has already settled are marked *rendered*.
 
@@ -60,13 +60,13 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 1.3 The navigator ([[FEAT-0010]], [[FEAT-0046]], [[FEAT-0058]], [[FEAT-0085]])
 
-- [ ] **Features is the structural tree:** open Features. Expect: phase → feature → its requirements, then its plan, then its tasks; finished groups collapsed beneath the live ones.
-- [ ] **Nothing is unreachable:** pick a task, a plan and a requirement at random from `docs/` and find each in the tree. Expect: all three, without using the find bar.
+- [x] **Features is the structural tree:** open Features. Expect: phase → feature → its requirements, then its plan, then its tasks; finished groups collapsed beneath the live ones. — 2026-08-11, **rendered**, live harness against a current sidecar: `OPEN · 3` (PHASE-028/029/999, expanded) above `COMPLETED · 86 FEATURES` (collapsed). FEAT-0083 expands to `REQ-0032` then `TASK-0361..0363`; FEAT-0079 to `PLAN` then `TASK-0338/0339` — requirements, then plan, then tasks, on two features that between them carry both. (user:edwin, 2026-08-11)
+- [x] **Nothing is unreachable:** pick a task, a plan and a requirement at random from `docs/` and find each in the tree. Expect: all three, without using the find bar. — 2026-08-11, **rendered**, sampled by stride from `ls` rather than chosen: **TASK-0160** (`account-budget`), **`docs/features/agent-activity/plan/PLAN.md`**, **REQ-0007**. All three reached by expanding only — PHASE-007 → FEAT-0035 → PLAN → TASK-0160; PHASE-007 → FEAT-0020 → PLAN (opened, `docs/features/agent-activity/plan/PLAN.md` in the centre pane); PHASE-001 → FEAT-0001 → REQ-0007. **FEAT-0035 sits behind the fold**, not missing: PHASE-007 has 20 features against `NAV_GROUP_FOLD_LIMIT = 12`, and the `… 8 more` control reveals exactly the eight the DOM was holding back. Fold on volume, never on meaning — the check would have failed if the eight had no way in. (user:edwin, 2026-08-11)
 - [x] **Issues opens on what is owed:** open Issues. Expect: `Needs triage` first when anything is at `triage`, absent when nothing is, severity cards beneath. — 2026-08-10: first group `Needs triage · 7`, severity cards beneath.
 
 ## 1.4 The note page ([[FEAT-0011]], [[FEAT-0060]])
 
-- [ ] **Actuators:** open a note whose status is a human-owned intake state (a `draft` requirement, a `proposed` ADR). Expect: an `Owed` row of buttons naming that type's own vocabulary; a note with nothing owed shows no row at all.
+- [x] **Actuators:** open a note whose status is a human-owned intake state (a `draft` requirement, a `proposed` ADR). Expect: an `Owed` row of buttons naming that type's own vocabulary; a note with nothing owed shows no row at all. — 2026-08-11, **rendered**: [[ADR-0022]] at `proposed` shows `OWED  [Accept] [Supersede]` beneath the frontmatter strip — the `decision` vocabulary, not a generic pair. [[DES-0009]], now `accepted`, shows **no row**, and `GET /api/notes/actions?id=DES-0009` answers `"actions": []` — the surface and the server agree that nothing is owed. (user:edwin, 2026-08-11)
 - [ ] **A criterion ticks with evidence:** tick an acceptance criterion from the note page. Expect: the box fills, the line gains `— evidence: … (actor, date)`, and the rest of the file is untouched.
 
 ## 1.5 The overview ([[FEAT-0017]], [[FEAT-0023]], [[FEAT-0040]], [[FEAT-0048]])
@@ -76,8 +76,8 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 1.6 Design and the constraints view ([[FEAT-0042]], [[FEAT-0043]], [[FEAT-0044]])
 
-- [ ] **The brief opens first:** open Design. Expect: the project's own brief, not a file list.
-- [ ] **A design renders its artifact:** open a `DES-*` with a committed artifact. Expect: it renders in the frame, in this project's own tokens, in both light and dark.
+- [x] **The brief opens first:** open Intent (`~design`, the view Design was renamed to). Expect: the project's own brief, not a file list. — 2026-08-11, **rendered**: the pane opens on `project-os-cockpit` and its four questions — *where is this project now / what is an agent doing / what needs my decision / what should this look like* — with `Read the full brief` beneath, and the design register only after it. Nav carries `WHAT THIS PROJECT IS · 8`, `DESIGNS 10 · 3 DONE`, `DECISIONS 13`. Clicking `README` in the standing set opens `docs/README.md` — [[ISS-0135]]'s fix confirmed by hand, the row that used to go nowhere. (user:edwin, 2026-08-11)
+- [x] **A design renders its artifact:** open a `DES-*` with a committed artifact. Expect: it renders in the frame, in this project's own tokens, in both light and dark. — 2026-08-11, **rendered**, [[DES-0010]]: the artifact renders in the frame with its Revisions rail (`Working copy · current`, `2026-08-09 · 5ed3a68`) and `Annotate selection` beside it, and its own light/dark control round-trips both ways. **Finding, filed as [[ISS-0136]]:** five of the nine committed artifacts hard-code a dark palette and stay dark under a light app — DES-0009 among them. Ticked on DES-0010 rather than waived, because the check says *a* design and one demonstrably satisfies it; the other five are a defect in the artifacts, not in the frame. **DES-0009's is deliberately not being fixed** — its `design_revision: 31eac79` is what Edwin's acceptance is pinned to, and editing the artifact would move the sha out from under the verdict. (user:edwin, 2026-08-11)
 
 ## 1.7 Tests ([[FEAT-0086]])
 
@@ -101,12 +101,12 @@ One caveat shaped the first pass and was then removed: the running shell was on 
 
 ## 1.11 Verification health and the fleet ([[FEAT-0018]], [[FEAT-0028]])
 
-- [ ] **The validator's answer is on screen:** expect the health surface to agree with `bash tools/scripts/validate-docs.sh` run in a terminal — same error count, same notes named.
+- [x] **The validator's answer is on screen:** expect the health surface to agree with `bash tools/scripts/validate-docs.sh` run in a terminal — same error count, same notes named. — 2026-08-11, **rendered**, both read within the same minute: the overview's VERIFICATION card says `23/23 · Every recorded test is passing. · validator clean`, and the terminal run says `validate-docs: OK` with **0** `ERROR` lines. Zero on both sides, so *same notes named* is vacuous here and is recorded as such rather than claimed. (user:edwin, 2026-08-11)
 - [x] **Fleet roll-up:** expect a validator badge per discovered repo, and a push action that refuses a deploy remote. — 2026-08-10: 10 of 10 rail entries carry a validator verdict; `your-applications.com` is labelled `remote is a deploy target`. *The refusal itself was read from the label, not exercised — pushing is deliberately a person's action.*
 
 ## 1.12 History ([[FEAT-0052]], [[FEAT-0053]])
 
-- [ ] **State changes are the rows:** open History. Expect: status transitions as rows with commits as dividers, and the contribution grid clicking through to a day.
+- [x] **State changes are the rows:** open History. Expect: status transitions as rows with commits as dividers, and the contribution grid clicking through to a day. — 2026-08-11, **rendered**: `History — what changed state, and which commit carried it`, with `08-11 94bf4ee` as a divider over `DES-0009 proposed → "accepted"` and `PHASE-027 planned → done` — this session's own commit, read back off the surface. Clicking the grid's 2026-08-09 cell (`24 state changes, 3 commits`) routes to `~history/2026-08-09` and the header becomes *what changed state on or before 2026-08-09*. (user:edwin, 2026-08-11)
 
 ## 1.13 Close-out ([[FEAT-0055]])
 

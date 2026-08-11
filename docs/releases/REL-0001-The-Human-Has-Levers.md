@@ -199,7 +199,9 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **Seventeen were walked on 2026-08-10** and carry their evidence in the suite; **17 remain unchecked**, so the gate is still red.
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **7 more on 2026-08-11**, so **23 of 34 are walked and 11 remain unchecked** — the gate is still red.
+
+*The 2026-08-10 figure was written as "seventeen", which counted the one Tier 3 check against a Tier 1/2 denominator. Corrected on the recount; the suite carries the same correction and the reason for it.*
 
 What was walked, and the one worth naming: **every mutation endpoint refuses a non-loopback caller** — driven over the real LAN interface `192.168.68.123:8791`, ten of ten returned **403** while reads returned **200**. That is [[REQ-0027]]'s core claim and [[ISS-0129]]'s regression, and it is the check `test_mutation_endpoints_reject_non_loopback_callers` explicitly disclosed it *could not* make (*"an honest static check, since http.server cannot spoof a peer address"*). Also walked: live reload over `/_events`, workspace discovery across ten repos, the triage-first Issues pane, 71 of 71 plans reachable, 104 verdicts with 0 owed, the badge total of 95 equalling its parts, and close-out committing its own work thirteen times.
 
@@ -223,16 +225,19 @@ So the release stays `draft`, which `STATUSES.md` defines as *"prepared and veri
 
 **Since 2026-08-11 that is no longer the only thing it waits on.** With the definition widened, `draft` now means what it should have meant from the start: five phases open, 76 unresolved children, and a suite whose denominator has not finished growing. The seventeen unwalked checks are a leg-1 debt inside a release that is roughly a fifth built. Walking them is still worth doing early — they guard what already shipped, and evidence collected months after the fact is evidence about a different codebase.
 
-**What the last seventeen actually need**, so the pass is minutes rather than an hour:
+**What the remaining checks actually need**, so the pass is minutes rather than an hour. **The `eyes on a rendered pane` row was walked on 2026-08-11** and is struck through below; the harness did reach all of it, as predicted:
 
 | needs | checks |
 |---|---|
 | an agent session in the terminal | 1.9.1, 1.10.1, 1.10.2 |
 | a second workspace open | 1.2.2 |
 | a write to the record (⌘N, a criterion tick, a manual run) | 1.4.2, 1.7.2, 1.7.3, 1.8.1 |
-| eyes on a rendered pane — `desktop/harness/live-harness.html` reaches all of these | 1.3.1, 1.3.2, 1.4.1, 1.5.2, 1.6.1, 1.6.2, 1.11.1, 1.12.1, 2.3.1, 2.4.1 |
+| ~~eyes on a rendered pane~~ — **7 of 10 walked 2026-08-11** via `desktop/harness/live-harness.html` | ~~1.3.1, 1.3.2, 1.4.1, 1.6.1, 1.6.2, 1.11.1, 1.12.1~~ · still open: 1.5.2, 2.3.1, 2.4.1 |
+| a manual test with a `Run ▸` | 1.7.2, 1.7.3 |
 
-The last row is ten of the seventeen and needs no app restart: serve the repo and a sidecar on one origin, open the harness, click.
+The prediction held: the harness reached every one of them and needed no app restart — serve the repo and a sidecar on one origin, open the harness, click. **Seven of the ten were walked on 2026-08-11**; three were left because the session ran out of room, not because the harness could not reach them.
+
+One finding came out of the pass rather than the code: five of nine committed design artifacts hard-code a dark palette and render wrong under a light app ([[ISS-0136]]). [[DES-0009]]'s is among them and is deliberately **not** being fixed — its artifact sha is what this release's last acceptance is pinned to.
 
 ### Two acceptance criteria reconciled rather than ticked
 
