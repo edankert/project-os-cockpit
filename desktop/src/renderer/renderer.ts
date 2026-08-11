@@ -14074,20 +14074,50 @@ async function openReviewRequestCount(): Promise<number> {
   } catch { return 0; }
 }
 
+/** How many failing notes the card names before it folds.
+ *
+ *  Four, matching the failing-tests list directly above it: the card is a
+ *  240px rail column, and the point is *which* notes, not all of them.
+ *  Anything beyond is counted, never dropped silently. */
+const VALIDATOR_NAMED_LIMIT = 4;
+
 // Waiver count + validator state for the Verification card. Waivers come
 // from the corpus (`verification_waiver` frontmatter, surfaced by the
 // context payload's `waived` flag); validator state from FEAT-0018's
 // endpoint. Best-effort: an older sidecar simply leaves the line off.
+//
+// **The card names the notes, not just the count** (acceptance check
+// 1.11.1). It used to render `validator: 4 errors` and stop, which agrees
+// with a terminal run on the number and tells the reader nothing they can
+// act on — and the check asks for *same error count, same notes named*.
+// That gap was invisible for as long as the corpus was clean: zero errors
+// on both sides looks like agreement. It only showed up when the surface
+// was driven against a repo with real errors in it.
+//
+// The payload has carried `id`, `rel` and `url` per error since FEAT-0018;
+// nothing new is needed from the server, which is the other half of why
+// this sat unnoticed.
+/** One validator error, as FEAT-0018's endpoint has always sent it. */
+interface ValidatorError {
+  code?: string;
+  message?: string;
+  id?: string;
+  rel?: string;
+  url?: string;
+}
+
 async function fillVerificationHealth(target: HTMLElement): Promise<void> {
   if (!sidecarBaseUrl) return;
   let validator = '';
+  let errorRows: ValidatorError[] = [];
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/validation`);
     if (resp.ok) {
       const v = (await resp.json()) as {
-        state?: string; errors?: unknown[]; warnings?: unknown[];
+        state?: string; errors?: ValidatorError[]; warnings?: unknown[];
       };
-      const errors = v.errors?.length ?? 0;
+      errorRows = Array.isArray(v.errors) ? v.errors : [];
+      const errors = errorRows.length;
       validator = v.state === 'ok' ? 'validator clean'
         : v.state === 'unavailable' ? 'validator unavailable'
         : `validator: ${errors} error${errors === 1 ? '' : 's'}`;
@@ -14095,9 +14125,36 @@ async function fillVerificationHealth(target: HTMLElement): Promise<void> {
   } catch { /* best-effort */ }
   if (!currentRel || !currentRel.startsWith('~overview')) return;
   target.textContent = validator;
-  target.classList.toggle(
-    'is-warn', validator.startsWith('validator:'),
-  );
+  const failing = validator.startsWith('validator:');
+  target.classList.toggle('is-warn', failing);
+
+  // Rows go AFTER the line, as siblings, so the summary keeps its own
+  // shape and an older sidecar's payload simply produces none.
+  target.parentElement?.querySelectorAll('.ctx-validator-row')
+    .forEach((n) => n.remove());
+  if (!failing || !errorRows.length) return;
+
+  const named = errorRows.slice(0, VALIDATOR_NAMED_LIMIT);
+  for (const err of named) {
+    // The validator's message opens with the note's own id, which the id
+    // column is already showing. Saying it twice in a 240px rail spends the
+    // width that would otherwise carry what is actually wrong.
+    let msg = err.message || err.code || '';
+    if (err.id && msg.startsWith(err.id)) {
+      msg = msg.slice(err.id.length).replace(/^[\s:—-]+/, '') || msg;
+    }
+    const row = buildRecordRow(err.id || '', msg, err.rel, 'issue');
+    row.classList.add('ctx-validator-row');
+    if (err.code) row.title = `[${err.code}] ${err.message || ''}`.trim();
+    target.parentElement?.appendChild(row);
+  }
+  if (errorRows.length > named.length) {
+    const more = document.createElement('p');
+    more.className = 'ctx-note ctx-validator-row';
+    // Never a silent truncation: the reader is told the list is short.
+    more.textContent = `+${errorRows.length - named.length} more`;
+    target.parentElement?.appendChild(more);
+  }
 }
 
 function buildRecordDisclosure(
