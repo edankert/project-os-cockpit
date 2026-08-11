@@ -718,6 +718,10 @@ def _make_handler(
             if path == "/api/notes/create":
                 self._serve_note_create()
                 return
+            if path == "/api/notes/attach":
+                self._serve_note_attach()
+                return
+
             if path == "/api/notes/acceptance-run":
                 self._serve_acceptance_run()
                 return
@@ -833,6 +837,21 @@ def _make_handler(
                 params = urllib.parse.parse_qs(parsed.query)
                 feature_id = (params.get("id") or [""])[0].strip()
                 self._respond_json(criteria.payload(index, feature_id))
+                return
+
+            # Acceptance debt (FEAT-0065 / TASK-0294) — three numbers derived
+            # from the same criteria parse the runner and REQ-BOXES share.
+            # The shape of a change, keyed to a note (ISS-0096). Counts, not
+            # contents — the cockpit is not an editor.
+            if path == "/api/notes/shape":
+                params = urllib.parse.parse_qs(parsed.query)
+                self._respond_json(cockpit.change_shape_payload(
+                    project_root, (params.get("id") or [""])[0].strip(),
+                ))
+                return
+
+            if path == "/api/cockpit/acceptance-debt":
+                self._respond_json(criteria.debt_payload(index))
                 return
 
             if path == "/api/cockpit/transitions":
@@ -1897,6 +1916,73 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_note_attach(self) -> None:
+            """``POST /api/notes/attach`` — file a capture as evidence (TASK-0297).
+
+            Loopback-guarded: it writes into `docs/`, which is the record.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.ATTACH_REQUEST_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            # The desktop capture bridge writes into `inbox/` and hands back a
+            # name. `inbox/` is gitignored staging whose success condition is
+            # being EMPTY (LIFECYCLE.md), so filing the capture as evidence
+            # means moving it out — read it here, and remove it once it has a
+            # home under `docs/attachments/`.
+            png_b64 = str(body.get("png_base64") or "")
+            inbox_name = str(body.get("inbox_name") or "").strip()
+            staged: Path | None = None
+            if inbox_name and not png_b64:
+                import base64 as _b64
+                # Basename only: a name arriving from a renderer must not be
+                # able to read an arbitrary path.
+                safe = Path(inbox_name).name
+                staged = (project_root / "inbox" / safe).resolve()
+                if not str(staged).startswith(str((project_root / "inbox").resolve())):
+                    self._respond_json({"ok": False, "error": "refusing to read outside inbox/"},
+                                       status=HTTPStatus.BAD_REQUEST)
+                    return
+                try:
+                    png_b64 = _b64.b64encode(staged.read_bytes()).decode()
+                except OSError as exc:
+                    self._respond_json({"ok": False, "error": f"no staged capture: {exc}"},
+                                       status=HTTPStatus.BAD_REQUEST)
+                    return
+            try:
+                result = note_writes.attach_capture(
+                    index, docs_root, str(body.get("id") or ""),
+                    png_base64=png_b64,
+                    caption=str(body.get("caption") or ""),
+                    actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError, OSError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            # Filed, so it leaves staging. Best-effort: the evidence is already
+            # committed-able under docs/, and a capture left in inbox/ is a
+            # tidiness problem rather than a lost one.
+            if staged is not None:
+                try:
+                    staged.unlink()
+                    result["staged_removed"] = True
+                except OSError:
+                    result["staged_removed"] = False
             self._respond_json({"ok": True, "result": result})
 
         def _serve_acceptance_run(self) -> None:

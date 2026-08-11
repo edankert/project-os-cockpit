@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-024
 aliases: ["PHASE-024"]
 title: "Acceptance witnessed — the human accepts work through the cockpit, and the record shows who accepted what, with what evidence"
-status: planned
+status: done
 order: 24
 owner: user:edwin
 created: 2026-08-03
@@ -48,8 +48,8 @@ Design: [[DES-0006]] — the acceptance desk.
 
 ## Exit Criteria
 
-- [ ] A feature can be accepted end-to-end in the cockpit and its criteria show who accepted them, when — evidence: <a run's ticks>
-- [ ] A failed criterion becomes a linked issue in one step — evidence: <the fail flow>
-- [ ] The overview answers "what awaits my acceptance" and "what has no verification at all" — evidence: <the two surfaces>
-- [ ] Evidence can be a picture, stored in the repo, rendered in the note — evidence: <a capture in a note>
-- [ ] An acceptance run leaves a log in the feature note in the same grammar test runs use — evidence: <the log format>
+- [x] A feature can be accepted end-to-end in the cockpit and its criteria show who accepted them, when — evidence: walked against a copy of this corpus — four criteria on [[REQ-0028]], three passed and one reconciled, each stamped `(user:edwin, 2026-08-11)` by [[TASK-0288]]'s runner, and the validator reports 0 REQ-BOXES errors for that requirement afterwards (user:edwin, 2026-08-11)
+- [x] A failed criterion becomes a linked issue in one step — evidence: `Fail…` posts to `/api/notes/create` with the criterion as the title and `related: [[FEAT-…]], [[REQ-…]]`, and **the run continues** — a fail is a datum, not an abort ([[TASK-0288]]) (user:edwin, 2026-08-11)
+- [x] The overview answers "what awaits my acceptance" and "what has no verification at all" — evidence: the first re-homed to the feature's own row per [[ADR-0020]] (marked owed by the registry, `▶ Accept…` opens the run — [[TASK-0292]]); the second is `Acceptance debt · 28` on the record column, **24 unverified · 4 unresolved · 0 evidence-free** ([[TASK-0295]]) (user:edwin, 2026-08-11)
+- [x] Evidence can be a picture, stored in the repo, rendered in the note — evidence: `POST /api/notes/attach` files a PNG at `docs/attachments/<NOTE-ID>/<date>-<n>.png` and returns the Markdown that cites it; `/docs/<path>` and `ImageSourceTreeprocessor` already render it, so no new read path was needed ([[TASK-0297]]) (user:edwin, 2026-08-11)
+- [x] An acceptance run leaves a log in the feature note in the same grammar test runs use — evidence: `### 2026-08-11 — user:edwin — 3 passed · 0 failed · 1 skipped` under `## Acceptance runs`, written through `_append_run_log`'s own shape ([[TASK-0289]]) (user:edwin, 2026-08-11)

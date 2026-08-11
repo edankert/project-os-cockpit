@@ -45,4 +45,6 @@ Fixed by letting a first tick **create** the box, guarded so the criterion must 
 
 ### Walked, not just compiled
 
-Against a throwaway copy of the corpus: four criteria on REQ-0028 — three passed, one reconciled — then the run recorded on FEAT-0063. The resulting note carries a proper `## Acceptance Criteria` section, and the validator reports **0 REQ-BOXES errors** on the walked copy, so the boxes the runner writes are exactly the shape the gate parses. The real record was untouched.
+Against a throwaway copy of the corpus: four criteria on REQ-0028 — three passed, one reconciled — then the run recorded on FEAT-0063. The resulting note carries a proper `## Acceptance Criteria` section, and the validator reports **0 REQ-BOXES errors for REQ-0028** on the walked copy, so the boxes the runner writes are exactly the shape the gate parses. The real record was untouched.
+
+**Correction, same day.** The first run of that check invoked `validate-docs.py` with a positional path; the script takes `--repo-root`, so it exited on a usage error and printed nothing. `grep -c ERROR` counted zero and I read it as a pass. The claim was right and the evidence was not — re-run correctly against a copy carrying `docs/`, `SNAPSHOT.yaml` **and** `tools/`, with REQ-0028 restored to its pre-close-out state (approved, four declared criteria, zero boxes) so the walk had something to prove.

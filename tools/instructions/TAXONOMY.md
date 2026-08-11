@@ -46,5 +46,21 @@ Project-defined free text label, but keep it stable. Examples:
 - `unit`, `integration`, `system`, `e2e`, `acceptance`
 - `acceptance` marks user-level acceptance checks that gate releases (see `TESTING.md` tiers and `../skills/release-verification/SKILL.md`).
 
+## `acceptance:` on a feature (FEAT-0064)
+
+Distinct from the test kind above, and easy to confuse with it: this is a **frontmatter field on a `[[feature]]`**, recording whether a human has accepted the work against its requirements' criteria.
+
+| value | meaning |
+|---|---|
+| absent / `""` | **no gate** — the default, and it stays the default |
+| `requested` | the feature opted in; a human owes it an acceptance run. Stamped at **close-out** by the agent |
+| `accepted` | a completed run stamped it, together with `accepted_by` and `accepted_date` |
+
+**Opt-in, never mandatory.** A gate on the one judgment that cannot be automated becomes a rubber stamp — `PHASE-024`'s framing, and the reason `requested` never blocks an agent's close-out. It keeps the debt visible until a run discharges it.
+
+**The agent asks; it never answers.** An agent may stamp `requested`. Only a completed acceptance run writes `accepted`/`accepted_by`, and that run is loopback-only and human-initiated (`REQ-0026`, `REQ-0028`).
+
+*Locally added ahead of upstream — see the local divergence note in `SYNCING.md` and the upstream proposal that carries it home.*
+
 ## `scope` (tests)
 - `feature`, `system`

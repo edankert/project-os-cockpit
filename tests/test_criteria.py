@@ -152,3 +152,91 @@ def test_a_feature_with_no_criteria_says_so_rather_than_erroring(index: Index) -
 def test_an_unknown_feature_is_an_error_not_an_empty_run(index: Index) -> None:
     """An empty runner screen for a typo'd id would look like a clean feature."""
     assert "error" in criteria.payload(index, "FEAT-9999")
+
+
+# ---------------------------------------------------------------------------
+# FEAT-0065 / TASK-0294 — acceptance debt
+# ---------------------------------------------------------------------------
+
+
+def test_the_three_debt_numbers_are_distinct_questions(index: Index) -> None:
+    """Each answers something different about the gap between claimed and shown."""
+    debt = criteria.debt_payload(index)
+    assert set(debt["counts"]) == {"unverified", "unresolved", "evidence_free"}
+    assert debt["total"] == sum(debt["counts"].values())
+    # The live corpus must exercise at least one, or this proves nothing.
+    assert debt["total"] > 0, debt["counts"]
+
+
+def test_an_unverified_requirement_is_one_no_test_names(tmp_path: Path) -> None:
+    """`verifies:` is the link; a requirement may be perfectly implemented and
+    still have nothing mechanical checking it."""
+    docs = tmp_path / "docs"
+    (docs / "requirements").mkdir(parents=True)
+    (docs / "tests").mkdir(parents=True)
+    for rid in ("REQ-9001", "REQ-9002"):
+        (docs / "requirements" / f"{rid}-X.md").write_text(
+            f'---\ntype: "[[requirement]]"\nid: {rid}\naliases: ["{rid}"]\n'
+            f'title: "X"\nstatus: approved\n---\n\n## Acceptance\n\n- [ ] a thing\n',
+            encoding="utf-8",
+        )
+    (docs / "tests" / "TST-9001-X.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-9001\naliases: ["TST-9001"]\n'
+        'title: "X"\nstatus: passing\nverifies: ["[[REQ-9001]]"]\n---\n\n# X\n',
+        encoding="utf-8",
+    )
+    debt = criteria.debt_payload(Index.build(docs))
+    ids = [r["id"] for r in debt["unverified"]]
+    assert "REQ-9002" in ids and "REQ-9001" not in ids, ids
+
+
+def test_an_evidence_free_tick_is_debt_because_it_looks_settled(tmp_path: Path) -> None:
+    """The most interesting of the three.
+
+    A `[x]` with nothing behind it reads exactly like one with proof — which
+    is the failure REQ-0028 was written about.
+    """
+    docs = tmp_path / "docs"
+    (docs / "requirements").mkdir(parents=True)
+    (docs / "requirements" / "REQ-9003-X.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-9003\naliases: ["REQ-9003"]\n'
+        'title: "X"\nstatus: implemented\n---\n\n## Acceptance\n\n'
+        "- [x] ticked with nothing behind it\n"
+        "- [x] ticked properly — evidence: a test (user:edwin, 2026-08-11)\n",
+        encoding="utf-8",
+    )
+    debt = criteria.debt_payload(Index.build(docs))
+    rows = {r["id"]: r for r in debt["evidence_free"]}
+    assert "REQ-9003" in rows
+    assert rows["REQ-9003"]["count"] == 1, "the properly-evidenced tick was counted as debt"
+
+
+def test_a_terminal_requirement_is_not_unresolved_debt(tmp_path: Path) -> None:
+    """A cancelled requirement's open boxes are not owed to anybody."""
+    docs = tmp_path / "docs"
+    (docs / "requirements").mkdir(parents=True)
+    (docs / "requirements" / "REQ-9004-X.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-9004\naliases: ["REQ-9004"]\n'
+        'title: "X"\nstatus: cancelled\n---\n\n## Acceptance\n\n- [ ] never done\n',
+        encoding="utf-8",
+    )
+    debt = criteria.debt_payload(Index.build(docs))
+    assert "REQ-9004" not in [r["id"] for r in debt["unresolved"]]
+    assert "REQ-9004" not in [r["id"] for r in debt["unverified"]], (
+        "a cancelled requirement was reported as needing a test"
+    )
+
+
+def test_declared_criteria_with_no_boxes_count_as_open(tmp_path: Path) -> None:
+    """Zero boxes means "no verification record", not "nothing owed" — the
+    exact state REQ-0028 was in when the runner first tried to write to it."""
+    docs = tmp_path / "docs"
+    (docs / "requirements").mkdir(parents=True)
+    (docs / "requirements" / "REQ-9005-X.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-9005\naliases: ["REQ-9005"]\n'
+        'title: "X"\nstatus: approved\nacceptance:\n  - "one"\n  - "two"\n---\n\n# X\n',
+        encoding="utf-8",
+    )
+    debt = criteria.debt_payload(Index.build(docs))
+    row = next(r for r in debt["unresolved"] if r["id"] == "REQ-9005")
+    assert row["open"] == 2, row

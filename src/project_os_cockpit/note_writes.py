@@ -1433,3 +1433,96 @@ def stamp_acceptance_run(
         "requested": requested or "",
         "outcome": outcome,
     }
+
+
+#: What an attach request may carry.
+ATTACH_REQUEST_KEYS: frozenset[str] = frozenset(
+    {"id", "png_base64", "caption", "actor", "inbox_name"}
+)
+
+#: Where evidence lands. Under `docs/` **on purpose**: `inbox/` is gitignored
+#: staging for material nobody has decided about, and a screenshot that proves
+#: a criterion is the opposite of that — it is the record (FEAT-0066).
+ATTACHMENTS_DIR = "attachments"
+
+#: A conservative ceiling. A window capture is a few hundred KB; anything past
+#: this is either not a screenshot or not something to put in git history,
+#: where it cannot be removed by deleting the file later.
+MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024
+
+
+def attach_capture(
+    index: Index,
+    docs_root: Path,
+    note_id: str,
+    *,
+    png_base64: str,
+    caption: str = "",
+    actor: str = "",
+) -> dict[str, Any]:
+    """Store a capture as evidence against a note (TASK-0297).
+
+    Lands at ``docs/attachments/<NOTE-ID>/<date>-<n>.png`` and returns the
+    Markdown that cites it, ready to paste into a criterion's evidence or a
+    run log. The `/docs/<path>` route already serves anything under `docs/`
+    and the renderer already rewrites image sources, so the picture renders
+    with no new read path — which is why this lands here rather than beside
+    the design artifacts.
+
+    **Committed, deliberately.** Evidence that lives only on one machine is
+    the chat-transcript problem [[REQ-0028]] exists to prevent, one layer
+    down: a witness with no artifact.
+
+    The note must exist. Writing evidence for an id nobody allocated would
+    create a directory the record cannot explain.
+    """
+    import base64
+    import binascii
+
+    resolve_note(index, note_id)              # raises if the note is unknown
+    raw = (png_base64 or "").strip()
+    if raw.startswith("data:"):
+        raw = raw.split(",", 1)[-1]
+    if not raw:
+        raise WriteError("an attachment needs image data")
+    try:
+        blob = base64.b64decode(raw, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise WriteError(f"attachment is not valid base64: {exc}") from None
+    if len(blob) > MAX_ATTACHMENT_BYTES:
+        raise WriteError(
+            f"attachment is {len(blob)} bytes; the ceiling is "
+            f"{MAX_ATTACHMENT_BYTES} — git history cannot forget a large blob",
+            status=413,
+        )
+    # A PNG and nothing else: the renderer will emit an <img> for whatever is
+    # here, and serving an arbitrary uploaded byte stream from the docs tree
+    # is a different feature with a different threat model.
+    if not blob.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise WriteError("attachment is not a PNG")
+
+    safe_id = re.sub(r"[^A-Za-z0-9-]", "", note_id.upper())
+    if not safe_id:
+        raise WriteError(f"{note_id!r} is not an id an attachment can be filed under")
+    target_dir = (docs_root / ATTACHMENTS_DIR / safe_id).resolve()
+    if not str(target_dir).startswith(str(docs_root.resolve())):
+        raise WriteError("refusing to write outside the docs root")
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    today = _today()
+    n = 1
+    while (target_dir / f"{today}-{n}.png").exists():
+        n += 1
+    target = target_dir / f"{today}-{n}.png"
+    target.write_bytes(blob)
+
+    rel = target.relative_to(docs_root.resolve()).as_posix()
+    alt = (caption or "").strip() or f"{note_id} evidence {today}"
+    return {
+        "id": note_id,
+        "rel": rel,
+        "url": f"/docs/{rel}",
+        "markdown": f"![{alt}](/docs/{rel})",
+        "bytes": len(blob),
+        "actor": (actor or "").strip(),
+    }

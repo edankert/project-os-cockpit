@@ -1594,6 +1594,37 @@ def validate(root, report):
                 else "requirements it owns have")
         emit("FEATURE-REQ", "%s is done but %s unresolved acceptance criteria: %s; tick with evidence, reconcile, or descope the requirement before closing the feature (ADR-0007)" % (feat_id, noun, ", ".join(unresolved)))
 
+    # -- FEAT-0064 ACCEPT-STALE: a `done` feature that asked for acceptance and
+    #    has not had it, for longer than the staleness window.
+    #
+    #    A WARNING, never an error, and that is the phase's whole argument:
+    #    acceptance is the one judgment that cannot be automated, and a gate
+    #    that BLOCKS on it becomes a rubber stamp — somebody clears it to get
+    #    the build green rather than because they looked. So it nags, visibly
+    #    and forever, and never stops the work.
+    #
+    #    Same shape independent review took (warning first, ADR-0011's deadline
+    #    mechanism only if it earns one), and proposed upstream on that basis.
+    for feat_id in sorted(i for i in note_index if prefix_of(i) == "FEAT"):
+        f_path, f_fm = note_index.get(feat_id, (None, {}))
+        if f_path is None or effective_status(feat_id) != "done":
+            continue
+        if str((f_fm or {}).get("acceptance") or "").strip().lower() != "requested":
+            continue
+        # Age from `updated:`, the only date every note carries. A feature
+        # closed today and asking for acceptance is not yet debt.
+        # `_parse_date` / `_today` rather than a fresh datetime import: this
+        # file has its own helpers and a malformed date must be skipped, not
+        # raise, on a validator that walks the whole corpus.
+        when = _parse_date((f_fm or {}).get("updated"))
+        if when is None:
+            continue
+        age = (_today() - when).days
+        if age <= staleness_days:
+            continue
+        report.warn("ACCEPT-STALE", "%s is done and has asked for acceptance for %d days (threshold %d); walk its criteria in the cockpit or drop the request (%s)" % (
+            feat_id, age, staleness_days, f_path.relative_to(root)))
+
     # -- ISS-0357 PHASE-CHILDREN / PHASE-BOXES: a closed phase must have closed
     #    its children and recorded evidence for its exit criteria.
     #

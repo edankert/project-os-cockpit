@@ -5401,3 +5401,100 @@ def _quartile_buckets(active: list[int]) -> list[int]:
         if cuts[i] <= cuts[i - 1]:
             cuts[i] = cuts[i - 1] + 1
     return cuts
+
+
+#: How a touched path is bucketed. Order matters — first match wins — and the
+#: buckets answer the reader's question ("did this touch what it claims to")
+#: rather than mirroring the directory tree.
+_SHAPE_KINDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("tests", ("tests/", "test_")),
+    ("notes", ("docs/",)),
+    ("tools", ("tools/",)),
+    ("source", ("src/", "desktop/src/")),
+    ("assets", (".css", ".png", ".svg", ".html")),
+)
+
+
+def _shape_kind(path: str) -> str:
+    low = path.lower()
+    for kind, needles in _SHAPE_KINDS:
+        for needle in needles:
+            if needle.startswith(".") and low.endswith(needle):
+                return kind
+            if not needle.startswith(".") and (low.startswith(needle) or needle in low):
+                return kind
+    return "other"
+
+
+def change_shape_payload(
+    project_root: Path, note_id: str, limit: int = 200,
+) -> dict[str, Any]:
+    """What a note's commits actually touched (ISS-0096).
+
+    History answers *what moved* — status transitions grouped by commit, which
+    [[FEAT-0052]] measured as the honest signal. It cannot answer **the shape
+    of a change**: this task touched 6 files, 4 notes and 2 CSS.
+
+    That gap matters at acceptance time specifically. The reader is judging
+    *did this touch what it claims to touch*, and a task promising a CSS fix
+    that rewrote the validator is one line of shape and invisible in prose.
+    `commits_payload` cannot answer it because it **discards every non-`.md`
+    path** — deliberately, for its own question.
+
+    **Counts, not contents.** The cockpit is not an editor and the persona is
+    not reading implementations; the full diff stays one deliberate click
+    away, which is this issue's own out-of-scope line.
+    """
+    import subprocess          # local, as every other git caller here does
+
+    wanted = (note_id or "").strip().upper()
+    unavailable = {"schema_version": SCHEMA_VERSION, "id": wanted,
+                   "available": False, "commits": [], "kinds": {}, "files": 0}
+    if not wanted or not (project_root / ".git").exists():
+        return unavailable
+
+    sep = _COMMIT_RECORD_SEP
+    fmt = _COMMIT_FIELD_SEP.join(["%h", "%aI", "%s"])
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            ["git", "-C", str(project_root), "log", f"-n{limit}", "--no-merges",
+             "--name-only", f"--grep={wanted}", f"--format={sep}{fmt}"],
+            capture_output=True, text=True, timeout=_GIT_TIMEOUT_SECONDS, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return unavailable
+    if proc.returncode != 0:
+        return unavailable
+
+    commits: list[dict[str, Any]] = []
+    kinds: dict[str, int] = {}
+    seen_files: set[str] = set()
+    for chunk in proc.stdout.split(sep):
+        if not chunk.strip():
+            continue
+        head, _, rest = chunk.partition("\n")
+        parts = head.split(_COMMIT_FIELD_SEP)
+        if len(parts) < 3:
+            continue
+        sha, when, subject = parts[0], parts[1], parts[2]
+        files = [ln.strip() for ln in rest.splitlines() if ln.strip()]
+        per_commit: dict[str, int] = {}
+        for f in files:
+            kind = _shape_kind(f)
+            per_commit[kind] = per_commit.get(kind, 0) + 1
+            if f not in seen_files:
+                seen_files.add(f)
+                kinds[kind] = kinds.get(kind, 0) + 1
+        commits.append({
+            "sha": sha, "date": when[:10], "ts": when, "subject": subject,
+            "files": len(files), "kinds": per_commit,
+        })
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "id": wanted,
+        "available": True,
+        "commits": commits,
+        "kinds": kinds,
+        "files": len(seen_files),
+    }

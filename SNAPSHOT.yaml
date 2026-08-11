@@ -222,21 +222,21 @@ items:
     FEAT-0064:
       file: "docs/features/acceptance-gate/FEAT-0064-The-Acceptance-Gate.md"
       title: "Acceptance as an explicit, opt-in gate: requested at close-out, owed on the desk, satisfied only by a run"
-      status: planned
+      status: done
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0291, TASK-0292, TASK-0293]
       note: "The second question, distinct from independent review: is this what I asked for? Never blocks close-out; keeps the debt visible."
     FEAT-0065:
       file: "docs/features/acceptance-debt/FEAT-0065-Acceptance-Debt-Surface.md"
       title: "The acceptance-debt surface: which requirements have no verification, which criteria sit unticked, what was ticked without evidence"
-      status: planned
+      status: done
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0294, TASK-0295, TASK-0296]
       note: "Three numbers that exist nowhere, all derivable from parses the validator already does."
     FEAT-0066:
       file: "docs/features/visual-evidence/FEAT-0066-Visual-Evidence.md"
       title: "Visual evidence — the shell captures a surface into the repo and the note renders it, so evidence a non-code reader can trust"
-      status: planned
+      status: done
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0297, TASK-0298, TASK-0299]
       note: "Evidence a non-code reader can trust. Images are evidence, never the comparator."
@@ -727,60 +727,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
-    TASK-0291:
-      file: "docs/features/acceptance-gate/plan/tasks/TASK-0291-The-Field.md"
-      title: "The acceptance field — absent / requested / accepted — in template and taxonomy, divergence recorded"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0064
-    TASK-0292:
-      file: "docs/features/acceptance-gate/plan/tasks/TASK-0292-The-Desk-Queue-Section.md"
-      title: "Awaiting your acceptance — the queue's most human section, first"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0064
-    TASK-0293:
-      file: "docs/features/acceptance-gate/plan/tasks/TASK-0293-Accept-Stale-And-The-Upstream-Proposal.md"
-      title: "The ACCEPT-STALE warning, and the convention proposed upstream"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0064
-    TASK-0294:
-      file: "docs/features/acceptance-debt/plan/tasks/TASK-0294-The-Debt-Payload.md"
-      title: "The debt payload — three queries over the index"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0065
-    TASK-0295:
-      file: "docs/features/acceptance-debt/plan/tasks/TASK-0295-The-Record-Card.md"
-      title: "The ACCEPTANCE DEBT record card with drill-down"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0065
-    TASK-0296:
-      file: "docs/features/acceptance-debt/plan/tasks/TASK-0296-Parity-With-The-Validator.md"
-      title: "The criteria parse has one home"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0065
-    TASK-0297:
-      file: "docs/features/visual-evidence/plan/tasks/TASK-0297-Capture-To-Attachments.md"
-      title: "Capture lands in the repo and serves back"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0066
-    TASK-0298:
-      file: "docs/features/visual-evidence/plan/tasks/TASK-0298-Attach-At-The-Verdict.md"
-      title: "The capture affordance where judgments happen"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0066
-    TASK-0299:
-      file: "docs/features/visual-evidence/plan/tasks/TASK-0299-The-Agent-Side.md"
-      title: "Agents cite pictures too"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0066
     TASK-0300:
       file: "docs/features/design-artefacts/plan/tasks/TASK-0300-Variant-Parse-And-Sandbox.md"
       title: "A ## Variant section with fenced html renders live, sandboxed, token-true"
@@ -1531,7 +1477,7 @@ items:
     ISS-0096:
       file: "docs/issues/ISS-0096-No-Surface-Says-What-Changed.md"
       title: "No surface answers what a piece of work actually changed, so acceptance has the notes and the app but never the diff between them"
-      status: open
+      status: fixed
       severity: medium
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       note: "Not read-the-code: for a docs-first reader the question is did this touch what it claims to. A task promising a CSS fix that rewrote the validator is one line of shape, and invisible in prose."
@@ -1898,7 +1844,7 @@ items:
     PHASE-024:
       file: "docs/phases/PHASE-024-Acceptance-Witnessed.md"
       title: "Acceptance witnessed — the human accepts work through the cockpit, and the record shows who accepted what, with what evidence"
-      status: planned
+      status: done
       order: 24
       features: ["FEAT-0063", "FEAT-0064", "FEAT-0065", "FEAT-0066"]
       issues: ["ISS-0096"]
@@ -2641,15 +2587,15 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 70
+    features_done: 73
     tasks_total: 385
-    tasks_done: 325
+    tasks_done: 334
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 4
+    issues_open: 3
     issues_triage: 6
     risks_open: 5
     releases_total: 1

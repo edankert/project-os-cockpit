@@ -160,6 +160,26 @@ def _requirements_of(index: Index, feature_id: str) -> list[NoteRecord]:
     return out
 
 
+#: Any project-os id inside a wikilink — `[[REQ-0026-Some-Slug]]` -> REQ-0026.
+_ANY_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{4})\b")
+
+
+def _link_ids(value: Any) -> list[str]:
+    """IDs out of a scalar or list of wikilinks, order preserved, deduped.
+
+    A local reader rather than importing `cockpit._design_link_ids`: this
+    module is imported BY the server alongside `cockpit`, and reaching across
+    for one regex would couple the criteria parse to the payload builder it is
+    meant to be independent of.
+    """
+    out: list[str] = []
+    for item in (value if isinstance(value, list) else [value] if value else []):
+        for m in _ANY_ID_RE.finditer(str(item)):
+            if m.group(1) not in out:
+                out.append(m.group(1))
+    return out
+
+
 #: `(user:edwin, 2026-08-10)` at the end of a ticked criterion.
 WITNESS_RE = re.compile(r"\(([^()]*?),\s*(\d{4}-\d{2}-\d{2})\)\s*$")
 
@@ -232,4 +252,88 @@ def payload(index: Index, feature_id: str) -> dict[str, Any]:
         "totals": totals,
         "total": total,
         "nothing_to_accept": total == 0,
+    }
+
+
+#: Statuses at which a note's unresolved criteria are still LIVE debt. A
+#: cancelled or superseded requirement's open boxes are not owed to anyone.
+_LIVE = frozenset({"draft", "approved", "proposed", "planned", "doing", "review", "open"})
+
+
+def debt_payload(index: Index) -> dict[str, Any]:
+    """Three numbers that exist nowhere (FEAT-0065 / TASK-0294).
+
+    All derivable from frontmatter and the criteria parse this module already
+    owns — a payload, not new data. Each answers a different question about the
+    same gap between *claimed* and *shown*:
+
+    * **unverified** — requirements no `[[test]]` names in `verifies:`. The
+      requirement may be perfectly implemented; nothing mechanical checks it.
+    * **unresolved** — open criteria on notes that are still live. Not an
+      error (REQ-BOXES only fires at terminal), but it is the work in front of
+      an acceptance run.
+    * **evidence-free** — criteria ticked with no `evidence:` and no witness.
+      The most interesting of the three, because it looks *settled*: a `[x]`
+      with nothing behind it reads exactly like one with proof, which is the
+      failure [[REQ-0028]] was written about.
+    """
+    verified_ids: set[str] = set()
+    for record in index.notes_by_type("test"):
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        verified_ids.update(_link_ids(record.frontmatter.get("verifies")))
+
+    unverified: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
+    evidence_free: list[dict[str, Any]] = []
+
+    for record in index.notes_by_type("requirement"):
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        rid = record.note_id or ""
+        status = str(record.status or "").strip().lower()
+        slim = {"id": rid, "title": record.title or "", "rel": record.rel_path,
+                "status": status}
+
+        if rid and rid not in verified_ids and status not in {"cancelled", "superseded", "retired"}:
+            unverified.append(slim)
+
+        try:
+            parsed = parse_criteria(record.path.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        if status in _LIVE:
+            open_n = sum(1 for c in parsed if c["state"] == "open")
+            # A requirement that declares criteria and has no boxes at all is
+            # counted at its declared size: zero open boxes there means "no
+            # verification record", not "nothing owed".
+            if not parsed:
+                open_n = len(_declared_criteria(record))
+            if open_n:
+                unresolved.append({**slim, "open": open_n})
+
+        bare = [
+            c for c in parsed
+            if c["state"] == "ticked" and not c["evidence"] and not c["witness"]
+        ]
+        if bare:
+            evidence_free.append({
+                **slim,
+                "count": len(bare),
+                "criteria": [c["text"][:120] for c in bare[:5]],
+            })
+
+    for bucket in (unverified, unresolved, evidence_free):
+        bucket.sort(key=lambda r: str(r.get("id") or ""))
+
+    return {
+        "unverified": unverified,
+        "unresolved": unresolved,
+        "evidence_free": evidence_free,
+        "counts": {
+            "unverified": len(unverified),
+            "unresolved": len(unresolved),
+            "evidence_free": len(evidence_free),
+        },
+        "total": len(unverified) + len(unresolved) + len(evidence_free),
     }

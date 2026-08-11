@@ -9232,10 +9232,15 @@ function renderRightPane(data: ContextPayload): void {
       ? 'No links from or to this note.'
       : 'Everything linked here is completed (toggle the eye icon to show).';
     rightPaneContent.innerHTML = `<p class="meta">${msg}</p>`;
+    void fillChangeShapeCard(currentFrontmatterId() ?? '');
     return;
   }
   if (linkedNode) rightPaneContent.appendChild(linkedNode);
   if (backlinksNode) rightPaneContent.appendChild(backlinksNode);
+  // The shape of what this note's commits touched (ISS-0096). Last, and
+  // absent when git has nothing — it is context for a judgment, not a claim
+  // the note makes about itself.
+  void fillChangeShapeCard(currentFrontmatterId() ?? '');
 }
 
 function renderContextSection(heading: string, groups: ContextGroup[]): HTMLElement | null {
@@ -13591,6 +13596,9 @@ async function fillRecordColumn(
   // phase page would be worse than no card.
   if (!scoped) void fillUnreleasedCard();
 
+  // Acceptance debt (TASK-0295) — what is claimed against what is shown.
+  if (!scoped) void fillAcceptanceDebtCard();
+
   // A third card, headed "Library", used to be built here from
   // `library.filter(n => n.type === 'reference')`. It never rendered, and
   // not because of PHASE-010: `fetchRecordNotes` keeps only items with an
@@ -13656,6 +13664,62 @@ interface UnreleasedPayload {
   count?: number;
   since?: { id?: string; title?: string; rel?: string; date?: string } | null;
   items?: Array<{ id?: string; title?: string; rel?: string }>;
+}
+
+interface ShapePayload {
+  id?: string;
+  available?: boolean;
+  commits?: Array<{ sha?: string; date?: string; subject?: string; files?: number }>;
+  kinds?: Record<string, number>;
+  files?: number;
+}
+
+/** CHANGED — the shape of what a note's commits touched (ISS-0096).
+ *
+ *  History answers *what moved*; this answers *what was touched*. The question
+ *  it serves is the acceptance-time one: did this touch what it claims to?
+ *  A task promising a CSS fix that rewrote the validator is one line here and
+ *  invisible in prose.
+ *
+ *  Counts, never contents — the cockpit is not an editor and the persona is
+ *  not reading implementations.
+ */
+async function fillChangeShapeCard(noteId: string): Promise<void> {
+  if (!sidecarBaseUrl || !noteId) return;
+  let data: ShapePayload;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/notes/shape?id=${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) return;
+    data = (await resp.json()) as ShapePayload;
+  } catch { return; }
+  if (!data.available || !(data.files ?? 0)) return;   // absent when nothing touched it
+
+  const { card, body } = buildRecordCard('Changed', String(data.files ?? 0));
+  const kinds = Object.entries(data.kinds ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([kind, n]) => `${n} ${kind}`);
+  const line = document.createElement('p');
+  line.className = 'ctx-note';
+  line.textContent = kinds.join(' · ');
+  body.appendChild(line);
+
+  for (const commit of (data.commits ?? []).slice(0, 4)) {
+    const row = document.createElement('p');
+    row.className = 'ctx-note';
+    row.textContent = `${commit.sha} · ${commit.date} · ${commit.files} files`;
+    row.title = commit.subject ?? '';
+    body.appendChild(row);
+  }
+  const total = (data.commits ?? []).length;
+  if (total > 4) {
+    const more = document.createElement('p');
+    more.className = 'ctx-note';
+    more.textContent = `…and ${total - 4} more commits.`;
+    body.appendChild(more);
+  }
+  rightPaneContent.appendChild(card);
 }
 
 /** UNRELEASED · N — done features no shipped release names (TASK-0315).
@@ -13741,6 +13805,59 @@ async function fillUnreleasedCard(): Promise<void> {
   foot.appendChild(draft);
   body.appendChild(foot);
 
+  rightPaneContent.appendChild(card);
+}
+
+interface DebtRow { id?: string; title?: string; rel?: string; count?: number; open?: number; }
+interface DebtPayload {
+  unverified?: DebtRow[];
+  unresolved?: DebtRow[];
+  evidence_free?: DebtRow[];
+  counts?: Record<string, number>;
+  total?: number;
+}
+
+/** ACCEPTANCE DEBT — three numbers that existed nowhere (TASK-0295).
+ *
+ *  A record card rather than an obligation badge, deliberately: none of this
+ *  is owed to a person on a deadline. It is the gap between what the record
+ *  CLAIMS and what it SHOWS, and the point of surfacing it is that the gap
+ *  was previously invisible — not that somebody must close it today.
+ */
+async function fillAcceptanceDebtCard(): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let data: DebtPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance-debt`);
+    if (!resp.ok) return;
+    data = (await resp.json()) as DebtPayload;
+  } catch { return; }
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+  const total = data.total ?? 0;
+  if (total <= 0) return;                       // absent at zero, like the rest
+
+  const { card, body } = buildRecordCard('Acceptance debt', String(total));
+  const sections: Array<[string, DebtRow[], string]> = [
+    ['unverified', data.unverified ?? [], 'no test names them in `verifies:`'],
+    ['unresolved', data.unresolved ?? [], 'open criteria on live notes'],
+    ['evidence-free ticks', data.evidence_free ?? [], 'ticked with nothing behind it'],
+  ];
+  for (const [label, rows, why] of sections) {
+    if (!rows.length) continue;                 // an empty band says nothing
+    const head = document.createElement('p');
+    head.className = 'ctx-note';
+    head.textContent = `${rows.length} ${label} — ${why}`;
+    body.appendChild(head);
+    for (const row of rows.slice(0, 4)) {
+      body.appendChild(buildRecordRow(row.id ?? '', row.title ?? '', row.rel ?? ''));
+    }
+    if (rows.length > 4) {
+      const more = document.createElement('p');
+      more.className = 'ctx-note';
+      more.textContent = `…and ${rows.length - 4} more.`;
+      body.appendChild(more);
+    }
+  }
   rightPaneContent.appendChild(card);
 }
 
@@ -14089,6 +14206,31 @@ interface RunState {
 
 let activeRun: RunState | null = null;
 
+/** A capture taken but not yet spent. Held until the next verdict, so the
+ *  picture is filed as evidence FOR a criterion rather than as a loose file —
+ *  DES-0006: "attach a capture to whatever the next verdict is". */
+let pendingCapture: string | null = null;
+
+async function captureForVerdict(): Promise<void> {
+  if (!activeId) return;
+  try {
+    const shot = await cockpitApi.app.captureScreenshot(activeId);
+    if (!shot?.ok) {
+      if (!shot?.cancelled) showStatus(`Capture failed: ${shot?.error ?? 'unknown'}`, 'error');
+      return;
+    }
+    // The bridge writes to `inbox/` and hands back a name. The runner does not
+    // want it there — `inbox/` is gitignored staging — so the attach endpoint
+    // re-files it under `docs/attachments/` when the verdict lands.
+    pendingCapture = shot.name ?? null;
+    showStatus('Capture attached to the next verdict.');
+    scheduleHide(2000);
+    void renderAcceptanceRun(activeRun?.featureId ?? '');
+  } catch (err) {
+    showStatus(`Capture failed: ${String(err)}`, 'error');
+  }
+}
+
 /** `accepted in cockpit run, user:edwin, 2026-08-03` — REQ-0028's witness,
  *  by construction. Composed here and never typed: the requirement's first
  *  criterion is that it is "machine-composed — never typed, never omitted". */
@@ -14195,6 +14337,10 @@ function paintAcceptanceRun(data: AcceptancePayload): void {
     acceptButton('Pass', 'is-primary', () => void verdict('pass')),
     acceptButton('Fail…', '', () => void verdict('fail')),
     acceptButton('Skip / reconcile…', '', () => void verdict('skip')),
+    // 📷 — capture at the moment of the verdict (TASK-0298, DES-0006). It
+    // attaches to whatever the NEXT verdict is rather than writing on its own,
+    // so a picture is always evidence FOR something rather than a loose file.
+    acceptButton(pendingCapture ? '📷 attached' : '📷', '', () => void captureForVerdict()),
   );
   wrap.appendChild(actions);
 
@@ -14273,10 +14419,28 @@ async function verdict(kind: 'pass' | 'fail' | 'skip'): Promise<void> {
   if (!run || run.at >= run.steps.length) return;
   const step = run.steps[run.at];
   const criterion = step.criterion.text || '';
+  // Spend any pending capture on THIS verdict, before it is recorded, so the
+  // evidence string can cite the picture (TASK-0298). Filing it first also
+  // means a failed attach does not silently drop the only proof.
+  let shot = '';
+  if (pendingCapture) {
+    try {
+      const filed = await postJson('/api/notes/attach', {
+        id: step.req, inbox_name: pendingCapture,
+        caption: criterion.slice(0, 80), actor: loadDispatchActor(),
+      });
+      shot = String((filed.result as { markdown?: string } | undefined)?.markdown ?? '');
+      pendingCapture = null;
+    } catch (err) {
+      showStatus(`Could not file the capture: ${String(err)}`, 'error');
+      return;                       // the verdict waits; the picture is not lost
+    }
+  }
   try {
     if (kind === 'pass') {
       await postJson('/api/notes/tick', {
-        id: step.req, criterion, evidence: acceptanceEvidence(),
+        id: step.req, criterion,
+        evidence: acceptanceEvidence() + (shot ? ` ${shot}` : ''),
         actor: loadDispatchActor(),
       });
       run.passed += 1;
@@ -14299,7 +14463,8 @@ async function verdict(kind: 'pass' | 'fail' | 'skip'): Promise<void> {
         type: 'issue',
         title: `Acceptance failed: ${criterion}`.slice(0, 120),
         body: (what.trim() || 'Failed during an acceptance run.')
-          + `\n\nFound accepting ${run.featureId}, criterion of ${step.req}.`,
+          + `\n\nFound accepting ${run.featureId}, criterion of ${step.req}.`
+          + (shot ? `\n\n${shot}` : ''),
         related: [`[[${run.featureId}]]`, `[[${step.req}]]`],
         actor: loadDispatchActor(),
       });
