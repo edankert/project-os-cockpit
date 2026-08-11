@@ -5,10 +5,10 @@ aliases: ["RISK-0006"]
 title: "The unattended worker — compounding wrong judgment at machine speed, spend without ceiling, and an audit trail that lags the actions it explains"
 status: open
 severity: high
-phase: "[[PHASE-027-The-Standing-Worker]]"
+phase: "[[PHASE-031-The-Supervised-Week]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["Preflight risk scan for PHASE-027"]
 component: driver
 mitigation: "[[REQ-0030-The-Worker-Never-Outruns-Its-Policy]]"
@@ -33,3 +33,13 @@ The mitigations are designed ([[REQ-0030]], [[REQ-0031]], the digest's assumed-a
 ## Trigger review
 
 Any budget raise, any new delegated judgment kind, the first correction of a delegate's assumption, and the push ADR ([[TASK-0328]]) whatever it decides.
+
+## Re-homed to [[PHASE-031]] — 2026-08-11
+
+**Still `open`, and nothing about it has been decided.** Edwin's call while closing out [[REL-0001]]: the risk moves to a phase that owns the supervised week, rather than holding [[PHASE-027]] open around it or being marked `deferred`.
+
+`STATUSES.md` provides exactly this: *"`deferred` does not resolve a child: park it under a real future phase so the relationship, not the status word, records where the work went."* The distinction matters here more than usual — `deferred` would say the week was descoped, and it has not been. It has an owner and a date-less home.
+
+**What changed is where it lives, not what it requires.** The closing condition is unchanged: a supervised week, worker on, human watching daily, drill log green, audit query returning zero orphans against real data. [[PHASE-031]]'s exit criteria restate it as the phase's own work.
+
+**What PHASE-027 delivered toward it** is listed on that phase: the policy defaulting closed, six drilled halt paths, an escalation clock nothing waits silently under, permission prompts brought onto it, turn checkpoints with principal-owned restore, a picker that records its passovers, and a delegate that cannot write without naming its authority. The week starts with brakes rather than hope.

@@ -49,13 +49,13 @@ Design: [[DES-0009]].
 
 ## Exit Criteria
 
-- [ ] A repo runs a week of maintenance with the human touching only the digest and the desk — evidence: <the week's ledger, and what the digest showed>
+- [~] A repo runs a week of maintenance with the human touching only the digest and the desk — **re-homed to [[PHASE-031]], not cut** (Edwin, 2026-08-11). This phase built every mechanism the week needs and cannot supply the week itself; [[RISK-0006]] moved with it, still `open` and unchanged in what it requires. `STATUSES.md`: *"park it under a real future phase so the relationship, not the status word, records where the work went"* — so this criterion is answered by PHASE-031's exit criteria rather than abandoned here (user:edwin, 2026-08-11)
 - [~] Every autonomous transition traces to a delegation entry — **reconciled: enforced by construction, unauditable by data.** No autonomous transition has occurred, so the audit query returns zero orphans **vacuously**, and ticking on a vacuous pass is the kind of green this release exists to refuse. What *is* proven: a delegate write that cannot name its charter and delegation is **refused at the write path** ([[REQ-0029]], `test_a_bare_agent_witness_is_refused`), so an untraceable autonomous transition cannot be recorded in the first place. The query becomes meaningful during [[RISK-0006]]'s supervised week (user:edwin, 2026-08-11)
 - [x] An unanswered question cannot stall the loop silently: it proceeds on a recorded assumption or alarms — evidence: both paths exercised in `tests/test_escalation.py` (13). A kind with a `default` **lapses carrying its assumption**; a kind with none, or an unknown kind, **alarms** — and `test_the_drill_no_entry_waits_silently` enumerates every silent-wait shape rather than sampling. `permission` was added to the clock by [[ISS-0094]], closing the one way an unattended worker most likely stops (user:edwin, 2026-08-11)
 - [x] The worker halts on each stop condition in a drill, not just in theory — evidence: six halt paths, each with its own drill in `tests/test_worker.py` (32) — stop-switch, no-delegation, validator-red, parked-items, session-budget, wall-clock. Written **before** the loop that needs them, which is [[REQ-0031]]'s own order: *brakes are tested before the hill*. `test_every_halt_carries_a_reason` sweeps them, because a halt with no reason is indistinguishable from a worker that went quiet (user:edwin, 2026-08-11)
 - [x] Publishing under autonomy has a decision, not a habit — evidence: [[ADR-0022]], `proposed`. It weighs all three options and proposes keeping the status quo, on the ground that no delegate has yet made a single autonomous judgment here. **Until it is accepted the worker's relationship to `git push` is: never** — which is the operative rule, not a placeholder (user:edwin, 2026-08-11)
 
-## Why this phase is `planned` and not `done` — 2026-08-11
+## Why this phase stayed open, and how it closed — 2026-08-11
 
 Every feature is `done`, every task is resolved, all three requirements are `implemented`, and four of five exit criteria are settled. **One criterion is left standing, deliberately, and it is not an oversight:**
 
@@ -70,3 +70,11 @@ The same reasoning holds [[RISK-0006]] open. Its own text: *"closes when a repo 
 [[DES-0009]] is `proposed` with its artifact and waits on an Accept, which `HUMAN_TRANSITIONS` reserves for the principal and the server refuses to an agent.
 
 **What the phase delivered**, so the remaining gap is not mistaken for a hole in the work: the delegation policy defaulting closed, the escalation clock with nothing waiting silently, permission prompts brought under it, turn checkpoints with a principal-owned restore, a picker that records what it passed over, six drilled halt paths, and a session loop that spawns nothing of its own. Every mechanism the supervised week needs exists and is tested. What is missing is the week.
+
+### Resolved by re-homing, same day
+
+Edwin's decision: the supervised week gets its own phase, [[PHASE-031]], and [[RISK-0006]] moves there **still `open`**.
+
+That is not the week being waived. It is the week getting an owner, which is what `STATUSES.md` provides for precisely this shape — *"park it under a real future phase so the relationship, not the status word, records where the work went."* `deferred` would have said the week was descoped; re-homing says it is somebody's next job.
+
+What this phase claims, now that the criterion has moved, is exactly what it built: **the machinery an unattended worker needs, with brakes drilled before the hill.** What it never claimed and now cannot appear to claim is that the machinery has been watched running.
