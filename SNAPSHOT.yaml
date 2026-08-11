@@ -166,7 +166,7 @@ items:
     FEAT-0075:
       file: "docs/features/delegation-policy/FEAT-0075-The-Delegation-Policy.md"
       title: "The delegation policy — a principal-approved note the actuators consult, delegate writes that carry their authority, and the push decision taken as an ADR"
-      status: planned
+      status: doing
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0326, TASK-0327, TASK-0328]
       note: "ADR-0009 §4 made delegation a recorded fact; this is the fact's format and enforcement. Until the push ADR is accepted, the worker's relationship to git push is: never."
@@ -673,12 +673,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
-    TASK-0326:
-      file: "docs/features/delegation-policy/plan/tasks/TASK-0326-The-Policy-Note.md"
-      title: "DELEGATION.md — what is delegated, what escalates, approved through the gate it configures"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0075
     TASK-0327:
       file: "docs/features/delegation-policy/plan/tasks/TASK-0327-Role-Checks-Consult-Policy.md"
       title: "The actions endpoint answers per caller identity, and a delegate's writes carry their authority"
@@ -2499,7 +2493,7 @@ metrics:
     features_total: 91
     features_done: 79
     tasks_total: 385
-    tasks_done: 352
+    tasks_done: 353
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

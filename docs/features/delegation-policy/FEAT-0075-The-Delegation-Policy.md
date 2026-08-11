@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0075
 aliases: ["FEAT-0075"]
 title: "The delegation policy — a principal-approved note the actuators consult, delegate writes that carry their authority, and the push decision taken as an ADR"
-status: planned
+status: doing
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["[[DES-0009-The-Standing-Worker]]", "[[ADR-0009-The-Principal-Is-A-Role]]"]
 goal: "DELEGATION.md as the per-repo record of what is delegated and what escalates, approved through the actuator row it configures; the actions endpoint answering per caller identity; every delegate write stamped with its authority; and publishing under autonomy decided, not eroded."
 requirements: ["[[REQ-0029-A-Delegate-Is-Always-Distinguishable]]", "[[REQ-0030-The-Worker-Never-Outruns-Its-Policy]]"]
