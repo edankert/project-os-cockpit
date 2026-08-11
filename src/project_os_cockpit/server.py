@@ -718,6 +718,10 @@ def _make_handler(
             if path == "/api/notes/create":
                 self._serve_note_create()
                 return
+            if path == "/api/notes/acceptance-run":
+                self._serve_acceptance_run()
+                return
+
             if path == "/api/notes/test-run":
                 self._serve_test_run()
                 return
@@ -1884,6 +1888,53 @@ def _make_handler(
                     phase=str(body.get("phase") or ""),
                     related=[str(r) for r in related],
                     actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError, OSError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_acceptance_run(self) -> None:
+            """``POST /api/notes/acceptance-run`` — record a run (TASK-0289).
+
+            Loopback-guarded like every write path. REQ-0028's *"an agent
+            cannot be a witness"* rests on this guard plus REQ-0026's terms:
+            the run is an actuator-row action, human-initiated, and the
+            witness is whoever the guarded caller says it is.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.ACCEPTANCE_RUN_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            issues = body.get("issues") or []
+            if not isinstance(issues, list):
+                self._respond_json({"ok": False, "error": "issues must be a list"},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            try:
+                result = note_writes.stamp_acceptance_run(
+                    index,
+                    str(body.get("id") or ""),
+                    passed=int(body.get("passed") or 0),
+                    failed=int(body.get("failed") or 0),
+                    skipped=int(body.get("skipped") or 0),
+                    issues=[str(i) for i in issues],
+                    complete=bool(body.get("complete", True)),
+                    actor=str(body.get("actor") or ""),
+                    mtime=body.get("mtime"),
                 )
             except note_writes.WriteError as exc:
                 self._respond_json({"ok": False, "error": exc.message},

@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0126
 aliases: ["ISS-0126"]
 title: "FEAT-0062 builds two verbs onto the surface ADR-0020 retires, for one state that is empty after ISS-0121 and one that has never occurred"
-status: triage
+status: fixed
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-11
 source: ["Session 2026-08-10: reviewing all open phases for implementation order"]
 severity: medium
 component: "review-desk"
@@ -76,3 +76,18 @@ So the position is exactly as filed on 2026-08-10, with a day's more evidence an
 **What the record points at**, stated so the decision is one reading rather than a re-investigation: *cancel it, and keep the inverse case*. Both verbs address states that do not occur, on a surface that no longer exists. The one thing worth preserving is the case [[ISS-0121]]'s fix already preserves — a `changes-requested` note whose subject is **not** terminal is a genuine obligation, and if one ever appears it surfaces in the view owning that note's type, which is where [[ADR-0020]] puts it. The dispatch machinery FEAT-0062 would have used already exists and is not lost.
 
 Once answered, PHASE-023 closes with its exit criteria in the same pass.
+
+## Resolved — 2026-08-11
+
+**Edwin's decision: cancel [[FEAT-0062]].** Done — the feature and both its tasks ([[TASK-0285]], [[TASK-0286]]) are `cancelled`, with the reasoning on the feature note.
+
+### Why `fixed` rather than `declined`
+
+Set to `declined` first, then corrected. The distinction is not bookkeeping:
+
+- **`declined`** is *deliberate no-action, keep the note* — right if FEAT-0062 had been left standing and this issue closed with a shrug.
+- **`fixed`** is what happened. This issue reported a defect in the record — a `planned` feature in the keystone phase aimed at a surface [[ADR-0020]] had removed — and asked for one of three outcomes. It got one, and **the record changed as a result**: three notes moved to `cancelled`.
+
+An issue whose report caused a correction is fixed, whatever shape the correction took. Cancelling was the fix.
+
+The note stays, as every terminal note does, because the argument for *not* building it is the durable part.

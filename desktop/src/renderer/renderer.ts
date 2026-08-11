@@ -1097,6 +1097,23 @@ async function navigateToInner(
   // as with Features and Issues. It selects the mode and leaves the stage
   // alone rather than falling through to the render endpoint, which would
   // answer a plausible-looking URL with "No note here".
+  // ~accept/<FEAT-id> — the acceptance runner (TASK-0288, DES-0006). One
+  // criterion at a time, deliberately not a checklist page: a list invites
+  // skimming, and the runner's whole value is that each criterion was
+  // actually tried.
+  if (normalised.startsWith('~accept/')) {
+    const featureId = normalised.slice('~accept/'.length).toUpperCase();
+    const ok = await renderAcceptanceRun(featureId);
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
+
   if (normalised === '~tests') {
     setNavMode('tests');
     return;
@@ -14001,3 +14018,297 @@ settingExternalHook.addEventListener('change', () => {
   });
 });
 
+
+// ----------------------------------------------------------------------
+// The acceptance runner (FEAT-0063 / TASK-0288, DES-0006)
+// ----------------------------------------------------------------------
+
+interface AcceptanceCriterion {
+  index?: number;
+  text?: string;
+  raw?: string;
+  state?: string;
+  evidence?: string;
+  witness?: string;
+  witness_date?: string;
+}
+
+interface AcceptanceRequirement {
+  id?: string;
+  title?: string;
+  rel?: string;
+  status?: string;
+  declared?: number;
+  criteria?: AcceptanceCriterion[];
+}
+
+interface AcceptancePayload {
+  id?: string;
+  title?: string;
+  rel?: string;
+  requirements?: AcceptanceRequirement[];
+  totals?: Record<string, number>;
+  total?: number;
+  nothing_to_accept?: boolean;
+  error?: string;
+}
+
+/** One criterion, flattened with the requirement that owns it. */
+interface RunStep { req: string; reqRel: string; criterion: AcceptanceCriterion; }
+
+/** A run in progress. Held in memory only — an abandoned run leaves the
+ *  record exactly as it found it, which is what makes `esc` safe. */
+interface RunState {
+  featureId: string;
+  steps: RunStep[];
+  at: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  issues: string[];
+}
+
+let activeRun: RunState | null = null;
+
+/** `accepted in cockpit run, user:edwin, 2026-08-03` — REQ-0028's witness,
+ *  by construction. Composed here and never typed: the requirement's first
+ *  criterion is that it is "machine-composed — never typed, never omitted". */
+function acceptanceEvidence(): string {
+  const who = loadDispatchActor();
+  const when = new Date().toISOString().slice(0, 10);
+  return `accepted in cockpit run, ${who}, ${when}`;
+}
+
+function loadDispatchActor(): string {
+  try { return localStorage.getItem('cockpit:actor') || 'user:edwin'; }
+  catch { return 'user:edwin'; }
+}
+
+async function renderAcceptanceRun(featureId: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  let data: AcceptancePayload;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/notes/acceptance?id=${encodeURIComponent(featureId)}`,
+    );
+    data = (await resp.json()) as AcceptancePayload;
+  } catch (err) {
+    showStatus(`Could not load criteria: ${String(err)}`, 'error');
+    return false;
+  }
+  if (data.error) { showStatus(data.error, 'error'); return false; }
+
+  // Resume rather than restart when the run is already open on this feature —
+  // reselecting the route is not a request to lose your place, the same rule
+  // the Intent mode follows for an open artifact.
+  if (!activeRun || activeRun.featureId !== featureId) {
+    const steps: RunStep[] = [];
+    for (const req of data.requirements ?? []) {
+      for (const criterion of req.criteria ?? []) {
+        // Settled criteria are shown in the summary but not walked: re-asking
+        // about something already ticked with a witness invites re-ticking it
+        // without re-trying it.
+        if (criterion.state === 'open') {
+          steps.push({ req: req.id ?? '', reqRel: req.rel ?? '', criterion });
+        }
+      }
+    }
+    activeRun = {
+      featureId, steps, at: 0, passed: 0, failed: 0, skipped: 0, issues: [],
+    };
+  }
+  paintAcceptanceRun(data);
+  return true;
+}
+
+function paintAcceptanceRun(data: AcceptancePayload): void {
+  const run = activeRun;
+  if (!run) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'accept-run';
+
+  const head = document.createElement('div');
+  head.className = 'accept-head';
+  const title = document.createElement('span');
+  title.textContent = `${data.id} · Acceptance run`;
+  const progress = document.createElement('span');
+  progress.className = 'accept-progress';
+  const total = run.steps.length;
+  progress.textContent = total ? `${Math.min(run.at + 1, total)} of ${total}` : '—';
+  head.append(title, progress);
+  wrap.appendChild(head);
+
+  if (data.nothing_to_accept) {
+    const none = document.createElement('p');
+    none.className = 'accept-empty';
+    none.textContent =
+      'No acceptance criteria on this feature — a criterion arrives when a '
+      + 'requirement names it in `acceptance:`.';
+    wrap.appendChild(none);
+    docView.replaceChildren(wrap);
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return;
+  }
+
+  if (run.at >= total) {
+    wrap.appendChild(buildRunSummary(run, data));
+    docView.replaceChildren(wrap);
+    docView.hidden = false;
+    placeholder.hidden = true;
+    return;
+  }
+
+  const step = run.steps[run.at];
+  const where = document.createElement('div');
+  where.className = 'accept-where';
+  where.textContent = `${step.req} · criterion ${(step.criterion.index ?? 0) + 1}`;
+  wrap.appendChild(where);
+
+  const text = document.createElement('blockquote');
+  text.className = 'accept-criterion';
+  text.textContent = step.criterion.text || '(no text)';
+  wrap.appendChild(text);
+
+  const actions = document.createElement('div');
+  actions.className = 'accept-actions';
+  actions.append(
+    acceptButton('Pass', 'is-primary', () => void verdict('pass')),
+    acceptButton('Fail…', '', () => void verdict('fail')),
+    acceptButton('Skip / reconcile…', '', () => void verdict('skip')),
+  );
+  wrap.appendChild(actions);
+
+  const hint = document.createElement('p');
+  hint.className = 'accept-hint';
+  hint.textContent = 'enter passes · f fails · s reconciles · esc leaves the run resumable';
+  wrap.appendChild(hint);
+
+  docView.replaceChildren(wrap);
+  docView.hidden = false;
+  placeholder.hidden = true;
+}
+
+function acceptButton(label: string, cls: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `review-btn ${cls}`.trim();
+  b.textContent = label;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function buildRunSummary(run: RunState, data: AcceptancePayload): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'accept-summary';
+  const line = document.createElement('p');
+  line.textContent =
+    `${run.passed} passed · ${run.failed} failed`
+    + (run.issues.length ? ` → ${run.issues.join(', ')}` : '')
+    + ` · ${run.skipped} skipped`;
+  box.appendChild(line);
+
+  const note = document.createElement('p');
+  note.className = 'accept-hint';
+  note.textContent = run.failed
+    ? 'Recording this run stamps the feature only if nothing failed — a fail is a datum, not an acceptance.'
+    : 'Recording this run stamps the feature with your name and today.';
+  box.appendChild(note);
+
+  const foot = document.createElement('div');
+  foot.className = 'digest-foot';
+  foot.appendChild(acceptButton('Record run', 'is-primary', () => {
+    void postJson('/api/notes/acceptance-run', {
+      id: run.featureId,
+      passed: run.passed,
+      failed: run.failed,
+      skipped: run.skipped,
+      issues: run.issues,
+      // A run with a failure is COMPLETE as a walk but must not stamp
+      // acceptance — DES-0006: "a fail is a datum, not an abort", and
+      // REQ-0028: accepted_by only on a run where everything resolved.
+      complete: run.failed === 0,
+      actor: loadDispatchActor(),
+    }).then(() => {
+      showStatus(`Run recorded on ${run.featureId}`);
+      scheduleHide(2500);
+      activeRun = null;
+      void navigateTo(data.rel || '');
+    }).catch((err) => showStatus(`Could not record: ${String(err)}`, 'error'));
+  }));
+  foot.appendChild(acceptButton('Discard', '', () => {
+    activeRun = null;
+    showStatus('Run discarded — nothing was written for the unrecorded steps.');
+    scheduleHide(2500);
+    void navigateTo(data.rel || '');
+  }));
+  box.appendChild(foot);
+  return box;
+}
+
+/** Apply one verdict, then advance. Each verdict writes IMMEDIATELY through
+ *  the guarded verbs, so an abandoned run keeps the work already done rather
+ *  than discarding it — the record is the ledger, not this object. */
+async function verdict(kind: 'pass' | 'fail' | 'skip'): Promise<void> {
+  const run = activeRun;
+  if (!run || run.at >= run.steps.length) return;
+  const step = run.steps[run.at];
+  const criterion = step.criterion.text || '';
+  try {
+    if (kind === 'pass') {
+      await postJson('/api/notes/tick', {
+        id: step.req, criterion, evidence: acceptanceEvidence(),
+        actor: loadDispatchActor(),
+      });
+      run.passed += 1;
+    } else if (kind === 'skip') {
+      const reason = window.prompt(
+        `Why is this criterion reconciled rather than met?\n\n${criterion}`,
+      );
+      if (reason === null) return;                    // cancelled, not skipped
+      if (!reason.trim()) { showStatus('A reconcile needs a reason', 'error'); return; }
+      await postJson('/api/notes/tick', {
+        id: step.req, criterion, reason: reason.trim(), actor: loadDispatchActor(),
+      });
+      run.skipped += 1;
+    } else {
+      const what = window.prompt(
+        `What failed?\n\n${criterion}\n\n(files an issue, pre-linked; the run continues)`,
+      );
+      if (what === null) return;
+      const created = await postJson('/api/notes/create', {
+        type: 'issue',
+        title: `Acceptance failed: ${criterion}`.slice(0, 120),
+        body: (what.trim() || 'Failed during an acceptance run.')
+          + `\n\nFound accepting ${run.featureId}, criterion of ${step.req}.`,
+        related: [`[[${run.featureId}]]`, `[[${step.req}]]`],
+        actor: loadDispatchActor(),
+      });
+      const issue = (created.result as { id?: string } | undefined)?.id;
+      if (issue) run.issues.push(issue);
+      run.failed += 1;
+    }
+  } catch (err) {
+    showStatus(`Could not record: ${String(err)}`, 'error');
+    return;
+  }
+  run.at += 1;
+  void renderAcceptanceRun(run.featureId);
+}
+
+document.addEventListener('keydown', (ev) => {
+  if (!activeRun || !currentRel || !currentRel.startsWith('~accept/')) return;
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const target = ev.target as HTMLElement | null;
+  if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
+  if (ev.key === 'Enter') { ev.preventDefault(); void verdict('pass'); }
+  else if (ev.key === 'f') { ev.preventDefault(); void verdict('fail'); }
+  else if (ev.key === 's') { ev.preventDefault(); void verdict('skip'); }
+  else if (ev.key === 'Escape') {
+    // Resumable, not discarded: the steps already recorded are in the notes,
+    // and `activeRun` survives so returning to the route continues the walk.
+    ev.preventDefault();
+    showStatus('Run paused — reopen it to continue where you left off.');
+    scheduleHide(2500);
+  }
+});

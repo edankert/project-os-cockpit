@@ -5173,3 +5173,25 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
   text-align: center;
   pointer-events: none;
 }
+
+/* The acceptance runner (FEAT-0063 / TASK-0288, DES-0006).
+   One criterion at a time and deliberately roomy: a list invites skimming,
+   and the runner's whole value is that each criterion was actually tried. */
+.accept-run { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+.accept-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-weight: 600; font-size: 13px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--border); padding-bottom: 8px;
+}
+.accept-progress { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.accept-where { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+.accept-criterion {
+  margin: 0 0 22px; padding: 14px 16px;
+  border-left: 3px solid var(--accent-link);
+  background: var(--bg-elevated);
+  font-size: 15px; line-height: 1.5;
+}
+.accept-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.accept-hint { margin-top: 14px; font-size: 11px; color: var(--text-faint, var(--text-muted)); }
+.accept-empty { font-size: 13px; color: var(--text-muted); }
+.accept-summary { font-size: 13px; }

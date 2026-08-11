@@ -1270,3 +1270,106 @@ def create_release(
         "status": "draft",
         "features": list(features or []),
     }
+
+
+_ACCEPTANCE_RUNS_RE = re.compile(r"^##\s+Acceptance runs\s*$", re.IGNORECASE | re.MULTILINE)
+
+#: What a completed run may leave on the feature. `accepted_by` is written by
+#: **this path only** (REQ-0028): "no path stamps it directly".
+ACCEPTANCE_RUN_KEYS: frozenset[str] = frozenset(
+    {"id", "passed", "failed", "skipped", "issues", "actor", "mtime", "complete"}
+)
+
+
+def stamp_acceptance_run(
+    index: Index,
+    feature_id: str,
+    *,
+    passed: int,
+    failed: int,
+    skipped: int,
+    issues: list[str] | None = None,
+    complete: bool = True,
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Record an acceptance run on a feature (TASK-0289).
+
+    Appends under ``## Acceptance runs`` in `_append_run_log`'s grammar, and —
+    **only when the run completed** — stamps `accepted_by` / `accepted_date`.
+
+    REQ-0028's four criteria, each load-bearing:
+
+    * *"Every tick the runner writes carries who and when, machine-composed —
+      never typed, never omitted"* — the witness comes from `actor`, which the
+      server takes from the request, and the date from `_today()`. Neither is
+      free text on this path.
+    * *"A run's log line names the same witness and totals"* — one composed
+      line, so the log and the frontmatter cannot disagree.
+    * *"accepted_by is only ever written by a completed run"* — an incomplete
+      run appends its log and stamps nothing. A partial walk is evidence of
+      progress, not of acceptance.
+    * *"An agent cannot be a witness"* — enforced at the route by
+      `_require_loopback` plus REQ-0026's ownership terms, not here; this
+      records whoever the guarded caller says it is.
+
+    A feature that never requested acceptance is refused: stamping
+    `accepted_by` on a feature nobody asked about would manufacture a judgment.
+    """
+    path = resolve_note(index, feature_id)
+    record = index.get(path)
+    note_type = (record.note_type if record else "") or ""
+    if note_type != "feature":
+        raise WriteError(
+            f"{feature_id} is a {note_type or 'note'}; acceptance runs are recorded "
+            "on features"
+        )
+    _check_mtime(path, mtime)
+
+    text = path.read_text(encoding="utf-8")
+    fm_lines, body = _split_frontmatter(text)
+    requested = _get_field(fm_lines, "acceptance").strip().strip('"').lower()
+    if complete and requested != "requested":
+        raise WriteError(
+            f"{feature_id} has not requested acceptance (acceptance: "
+            f"{requested or 'unset'}); a completed run may not stamp a feature "
+            "nobody asked about"
+        )
+
+    witness = (actor or "").strip() or "unassigned"
+    today = _today()
+    filed = ", ".join(issues or [])
+    outcome = (
+        f"{passed} passed · {failed} failed"
+        + (f" → {filed}" if filed else "")
+        + f" · {skipped} skipped"
+    )
+    if not complete:
+        outcome += " · INCOMPLETE"
+
+    heading_match = _ACCEPTANCE_RUNS_RE.search(body)
+    block = f"### {today} — {witness} — {outcome}"
+    if not heading_match:
+        body = body.rstrip("\n") + "\n\n## Acceptance runs\n\n" + block + "\n"
+    else:
+        rest = body[heading_match.end():]
+        nxt = re.search(r"^##\s", rest, re.MULTILINE)
+        cut = heading_match.end() + (nxt.start() if nxt else len(rest))
+        head, tail = body[:cut], body[cut:]
+        body = head.rstrip("\n") + "\n\n" + block + "\n\n" + tail.lstrip("\n")
+
+    if complete:
+        fm_lines = _set_field(fm_lines, "accepted_by", witness)
+        fm_lines = _set_field(fm_lines, "accepted_date", today)
+        fm_lines = _set_field(fm_lines, "acceptance", "accepted")
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": feature_id,
+        "rel": record.rel_path if record else "",
+        "witness": witness,
+        "date": today,
+        "complete": complete,
+        "accepted": complete,
+        "outcome": outcome,
+    }

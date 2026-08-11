@@ -208,7 +208,7 @@ items:
     FEAT-0062:
       file: "docs/features/desk-resolution/FEAT-0062-Desk-Resolution-Flows.md"
       title: "The desk's dangling flows close: changes-requested reaches re-review, and a question gets its answer written back"
-      status: planned
+      status: cancelled
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       tasks: [TASK-0285, TASK-0286]
       note: "Every obligation the desk shows gets its verb on the same surface."
@@ -733,12 +733,6 @@ items:
       status: backlog
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       parent: FEAT-0063
-    TASK-0289:
-      file: "docs/features/acceptance-runner/plan/tasks/TASK-0289-Stamp-Acceptance.md"
-      title: "stamp_acceptance — the run log into the feature note, and the gate's satisfied state"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0063
     TASK-0290:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0290-The-Queue-Entry-And-Resolution.md"
       title: "The awaiting-acceptance queue entry resolves through the run"
@@ -880,13 +874,13 @@ items:
     TASK-0285:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
       title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
-      status: backlog
+      status: cancelled
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0062
     TASK-0286:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0286-Answer-In-Place.md"
       title: "Answer a queue question inline — resolved with the answer as outcome, delivered to the asking session"
-      status: backlog
+      status: cancelled
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       parent: FEAT-0062
     TASK-0275:
@@ -1346,7 +1340,7 @@ items:
     ISS-0126:
       file: "docs/issues/ISS-0126-Desk-Resolution-Flows-Target-A-Retired-Surface-And-Two-Empty-States.md"
       title: "FEAT-0062 builds two verbs onto the surface ADR-0020 retires, for one state that is empty after ISS-0121 and one that has never occurred"
-      status: triage
+      status: fixed
       severity: medium
       phase: "[[PHASE-023-Levers-For-The-Human]]"
       note: "Found reviewing all open phases for order. FEAT-0062's goal names 'the same surface' — the desk — which ADR-0020 removes. Its re-review verb targets a state ISS-0121 measured as empty (0 genuinely owed) and its answer verb a state never once written (0 questions in 8 ledger requests). PHASE-023 is the keystone for six phases; hitting this mid-phase invites a rushed answer, so decide it before the phase runs."
@@ -1907,7 +1901,7 @@ items:
     PHASE-023:
       file: "docs/phases/PHASE-023-Levers-For-The-Human.md"
       title: "Levers for the human — the cockpit writes the record it renders, wherever the transition is the human's to make"
-      status: planned
+      status: done
       order: 23
       features: ["FEAT-0062"]
       issues: ["ISS-0126"]
@@ -2661,14 +2655,14 @@ metrics:
     features_total: 91
     features_done: 69
     tasks_total: 385
-    tasks_done: 322
+    tasks_done: 323
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 7
+    issues_triage: 6
     risks_open: 5
     releases_total: 1
     decisions_total: 12

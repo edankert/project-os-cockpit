@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0285
 aliases: ["TASK-0285"]
 title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
-status: backlog
+status: cancelled
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["[[FEAT-0062-Desk-Resolution-Flows]]"]
 parent: "[[FEAT-0062-Desk-Resolution-Flows]]"
 effort: M

@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0286
 aliases: ["TASK-0286"]
 title: "Answer a queue question inline — resolved with the answer as outcome, delivered to the asking session"
-status: backlog
+status: cancelled
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["[[FEAT-0062-Desk-Resolution-Flows]]"]
 parent: "[[FEAT-0062-Desk-Resolution-Flows]]"
 effort: M
