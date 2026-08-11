@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0132
 aliases: ["ISS-0132"]
 title: "A phase cannot be opened from the navigator that groups by it — the server sends every phase group's `url` and the renderer never reads it"
-status: triage
+status: fixed
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-11
@@ -57,3 +57,11 @@ The header is a `<summary>` whose only behaviour is toggling `<details>`. `group
 
 - [ ] Give the header a nav target from `group.url` via `extractRel`, without breaking the fold — the chevron toggles, the label navigates.
 - [ ] Check the other modes whose groups carry a `url` (the tier groups point at `/tests/ACCEPTANCE_TESTS.md`) so this is fixed as a rule rather than for phases alone.
+
+## Resolution — 2026-08-11
+
+The group header's label now navigates via `extractRel(group.url)`; the chevron still folds. Binding the whole `<summary>` would have taken the fold away, so the handler sits on `.group-header-inner` and calls `preventDefault()` — without it the group folds underneath the reader as the note opens.
+
+**Verified in the running app:** clicking `PHASE-028` opens `phases/PHASE-028-Borrowed-Capability.md` (`h1: Borrowed capability`) and the group's `open` state is `true` before *and* after the click. 27 headers render, all navigable, each titled `Open PHASE-0NN`.
+
+Hover shows an underline and a pointer; the head is deliberately **not** given a permanent link colour — it is the group's name first and a target second, and eight phase names in link blue would read as a list of links rather than as the structure they are.

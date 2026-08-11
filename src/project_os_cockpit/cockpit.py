@@ -2502,7 +2502,14 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
             "id": name,
             "title": res.document.question,
             "status": _STANDING_STATUS.get(worst.kind, "") if worst else "active",
-            "url": f"/{rel}" if rel else None,
+            # `/docs/<rel>`, NOT `/<rel>` (ISS-0135). The renderer's
+            # `extractRel` deliberately discards the bare form -- `/README.md`
+            # and `/docs/README.md` both reduce to `README.md`, so routing it
+            # would collapse two distinct files onto one fetch (ISS-0037). A
+            # row with no rel gets no `data-rel`, and the delegated click
+            # handler keys entirely off `data-rel`: every one of these eight
+            # was a dead click, on the view whose whole job is reaching them.
+            "url": f"/docs/{rel}" if rel else None,
             "subtitle": worst.detail if worst else "current",
             "type": "reference",
         }

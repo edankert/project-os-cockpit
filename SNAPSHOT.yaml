@@ -1331,33 +1331,33 @@ items:
     ISS-0135:
       file: "docs/issues/ISS-0135-Every-Standing-Document-Is-A-Dead-Click.md"
       title: "Every one of the eight standing documents is a dead click — the group emits `/README.md` where the convention is `/docs/README.md`, and `extractRel` drops exactly that shape on purpose"
-      status: triage
+      status: fixed
       severity: high
-      note: "Reported by Edwin 2026-08-11. ONE-LINE server fix: _standing_group emits f'/{rel}' where every other builder emits '/docs/{rel}'; extractRel discards the bare form deliberately, so the row gets no data-rel and the delegated handler does nothing. Recurrence of ISS-0037's class in a new surface (that one is fixed, for the Library). FEAT-0091's entire landing is unclickable. The durable fix is the sweep test: every nav item url in every mode starts with /docs/, starts with ~, or is null."
+      note: "FIXED 2026-08-11 (CHG-20260811). _standing_group now emits /docs/{rel}; one line, server-side. Verified in the running app: GLOSSARY opens. The DURABLE part is tests/test_nav_url_shape.py — a sweep over every mode/group/subgroup/item asserting each url is /docs/..., ~..., or absent, confirmed to FAIL on the pre-fix code. Third occurrence of this class after ISS-0037; now guarded rather than re-fixed."
     ISS-0134:
       file: "docs/issues/ISS-0134-Caught-Up-Cannot-Clear-The-Digest.md"
       title: "`Caught up` cannot clear the digest — the needs-you half is never filtered by the watermark at all, and the watermark it writes is a commit date rather than a moment"
       status: triage
       severity: high
-      note: "Reported by Edwin 2026-08-11 after clicking it 3 times (caught_up_count: 3, seen_at still 2026-08-10). TWO causes: (1) THE DEFECT — digest_payload builds needs_you by walking the whole index with no seen_at comparison anywhere, so that half is identical before and after, 93 rows either way; (2) computed_at is the newest COMMIT's date at day granularity, not a moment, so on any day with commits the watermark cannot advance past them. Cause 2's comparison is a documented trade-off that holds; its day-granularity source does not. Cause 1 needs a DESIGN decision in DES-0008 (does Caught up dismiss obligations at all?), not just a code fix."
+      note: "OPEN and NOT part of the PHASE-030 batch — it is PHASE-026. Two causes: (1) needs_you is built with no seen_at comparison at all, so that half is identical before and after Caught up (93 rows either way); (2) computed_at is the newest COMMIT date at day granularity, so on any day with commits the watermark cannot advance. Cause 1 needs a DESIGN decision in DES-0008 (does Caught up dismiss obligations at all?), which is why it was not swept into a bug-fix commit."
     ISS-0133:
       file: "docs/issues/ISS-0133-The-View-Badges-Say-A-Number-And-Not-What-It-Counts.md"
       title: "The view badges say a number and not what it counts — the registry knows the kinds, the tooltip discards them, and it is hover-only"
-      status: triage
+      status: fixed
       severity: medium
-      note: "Reported by Edwin 2026-08-11. FEAT-0089 made the obligation kinds DATA precisely so ADR-0020 decision 3 was enforceable, and the badge render drops the breakdown for a total plus a generic hover string ('N items here need a person', identical for every view). Hover-only also fails the tablet read-path the 0.0.0.0 bind exists for. Prefer explaining the count in the view's own header over a better tooltip."
+      note: "FIXED 2026-08-11 (CHG-20260811). badges_payload gained breakdown/verbs/nouns; '81 items here need a person' became '81 change notes to review'. Title moved from the 14px badge to the button + aria-label. NOUNS SHIP FROM THE SERVER — the first cut pluralised in TypeScript and test_the_renderer_reads_the_count_and_declares_no_kinds (TASK-0357's guard) caught it. NOT done: explaining the count in the view header rather than on hover — hover does not exist on the tablet the 0.0.0.0 bind serves."
     ISS-0132:
       file: "docs/issues/ISS-0132-A-Phase-Cannot-Be-Opened-From-The-Navigator-That-Groups-By-It.md"
       title: "A phase cannot be opened from the navigator that groups by it — the server sends every phase group's `url` and the renderer never reads it"
-      status: triage
+      status: fixed
       severity: medium
-      note: "Reported by Edwin 2026-08-11. The payload has carried a working target all along: NavGroupData.url is DECLARED in the renderer's own type and `group.url` appears nowhere in renderer.ts. Sharper since REL-0001's re-scope — the release is now defined by phase exit criteria, which live in the note this view cannot open. Fix must keep the fold working: chevron toggles, label navigates."
+      note: "FIXED 2026-08-11 (CHG-20260811). The header label navigates via extractRel(group.url); the chevron still folds. The payload had carried the target all along and NavGroupData.url was declared but never read. Verified live: PHASE-028 opens and the group stays expanded."
     ISS-0131:
       file: "docs/issues/ISS-0131-Phase-Groups-Render-Flat-While-Test-Groups-Render-As-Cards.md"
       title: "Phase groups in the features navigator render flat while the Tests view's groups render as cards — one missing `item_layout` field, and the two views disagree about what a group looks like"
       status: triage
       severity: low
-      note: "Reported by Edwin 2026-08-11. _tests_groups sets item_layout: stacked, _features_groups sets nothing, and the renderer turns that into nav-group-stacked. Decide the RULE rather than adding the field — groupLabelIsCategory(mode) already distinguishes a group that names a thing from one that names a category, and the layout could follow the same predicate."
+      note: "OPEN BY DECISION, and the note's ORIGINAL DIAGNOSIS WAS WRONG — corrected 2026-08-11. item_layout does not style anything (nav-group-stacked is in no stylesheet; it does select the item renderer). The real mechanism is a CSS rule stripping the card from is-thing groups, added deliberately: 'Four boxes around four categories read as structure; eighteen around eighteen phases read as clutter.' Fixing it REVERSES a recorded decision, so it is Edwin's call. One fact that reasoning may not have had: the view now opens on OPEN · 8 with the rest rolled up, so the choice is ~8 boxes, not 26."
     ISS-0129:
       file: "docs/issues/ISS-0129-Check-Toggle-Mutated-Notes-For-Any-LAN-Peer.md"
       title: "`/api/notes/check-toggle` wrote to notes for any peer that could reach the 0.0.0.0 render surface — it predates note_writes.py and nothing enumerated it"
@@ -2704,7 +2704,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 12
+    issues_triage: 9
     risks_open: 6
     releases_total: 1
     decisions_total: 11

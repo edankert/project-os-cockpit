@@ -183,6 +183,28 @@ STANDING_OBLIGATION = Obligation(
               "template. Staleness marks the row and does not count.",
 )
 
+#: What the standing obligation calls itself in a per-kind breakdown
+#: (ISS-0133). It is the one obligation whose subject is not a note, so it has
+#: no `note_type` to be keyed by and needs a name of its own.
+STANDING_OBLIGATION_KIND = "standing document"
+
+#: How a kind names itself when a badge counts it (ISS-0133), singular and
+#: plural. Here rather than in the renderer because the obligation vocabulary
+#: ships from the server and never from TypeScript (TASK-0357) — a plural rule
+#: in the client is a second vocabulary, and `adr` -> `adrs` is exactly the
+#: kind of thing it would get wrong on its own.
+KIND_NOUNS: dict[str, tuple[str, str]] = {
+    "adr": ("ADR", "ADRs"),
+    "decision": ("decision", "decisions"),
+    "design": ("design", "designs"),
+    "requirement": ("requirement", "requirements"),
+    "issue": ("issue", "issues"),
+    "test": ("test", "tests"),
+    "feature": ("feature", "features"),
+    "change": ("change note", "change notes"),
+    STANDING_OBLIGATION_KIND: ("standing document", "standing documents"),
+}
+
 #: Finding kinds from `standing.check` that the badge counts.
 STANDING_OWED_KINDS: frozenset[str] = frozenset({"missing", "ambiguous", "stub"})
 
@@ -272,13 +294,16 @@ def _is_owed(record: Any, ob: Obligation) -> bool:
     return status in ob.states
 
 
-def counts(index: "Index") -> dict[str, int]:
-    """Owed items per view — what each badge shows.
+def counts_by_kind(index: "Index") -> dict[str, dict[str, int]]:
+    """Owed items per view, **split by the kind that owes them** (ISS-0133).
 
-    Absent rather than zero is the renderer's job; this reports the truth and
-    lets the surface decide what silence looks like.
+    The badge has always shown a bare number, and the only explanation of it
+    was a tooltip reading `N items here need a person` — the same sentence
+    under every view, naming nothing. The kinds have been data since this
+    module replaced a hand-written list of seven, so the breakdown costs one
+    dict instead of one int and the surface stops having to say "items".
     """
-    out: dict[str, int] = {v: 0 for v in VIEWS}
+    out: dict[str, dict[str, int]] = {v: {} for v in VIEWS}
     for path in index.paths():
         record = index.get(path)
         if record is None or not record.note_type:
@@ -289,13 +314,31 @@ def counts(index: "Index") -> dict[str, int]:
         if ob is None or not ob.owed or not ob.view:
             continue
         if _is_owed(record, ob):
-            out[ob.view] += 1
+            bucket = out[ob.view]
+            bucket[record.note_type] = bucket.get(record.note_type, 0) + 1
     # The one obligation whose subject is not a note (TASK-0382). Added here
     # rather than anywhere else so `badges_payload`'s total stays the sum of
     # what the badges show — a number that disagrees with itself on one screen
     # is the failure this module exists to prevent.
-    out[STANDING_OBLIGATION.view] += standing_owed(index.docs_root)
+    standing = standing_owed(index.docs_root)
+    if standing:
+        bucket = out[STANDING_OBLIGATION.view]
+        key = STANDING_OBLIGATION_KIND
+        bucket[key] = bucket.get(key, 0) + standing
     return out
+
+
+def counts(index: "Index") -> dict[str, int]:
+    """Owed items per view — what each badge shows.
+
+    Absent rather than zero is the renderer's job; this reports the truth and
+    lets the surface decide what silence looks like.
+
+    Derived from :func:`counts_by_kind` rather than counted separately: two
+    passes over the same rule is how the total and the breakdown would come to
+    disagree, which is the exact failure `badges_payload` exists to prevent.
+    """
+    return {view: sum(kinds.values()) for view, kinds in counts_by_kind(index).items()}
 
 
 def badges_payload(index: "Index") -> dict[str, Any]:
@@ -305,9 +348,23 @@ def badges_payload(index: "Index") -> dict[str, Any]:
     **every** kind, and a total that disagrees with the sum is how a kind goes
     missing without anyone noticing.
     """
-    per_view = counts(index)
+    detail = counts_by_kind(index)
+    per_view = {view: sum(kinds.values()) for view, kinds in detail.items()}
     return {
         "views": per_view,
+        # Per view, `{kind: n}` for the kinds actually owed there right now
+        # (ISS-0133) — so a badge can say `4 · requirements to approve` rather
+        # than `4 items here need a person`, which was every view's tooltip.
+        "breakdown": {view: kinds for view, kinds in detail.items() if kinds},
+        # The verb each kind is owed, so the surface names the ACTION and does
+        # not re-derive a vocabulary the registry already owns.
+        "verbs": {
+            note_type: ob.verb
+            for note_type, ob in OBLIGATIONS.items() if ob.owed and ob.verb
+        } | {STANDING_OBLIGATION_KIND: STANDING_OBLIGATION.verb},
+        # `{kind: [singular, plural]}` — the noun the badge says. Shipped so
+        # the renderer picks a string rather than owning a plural rule.
+        "nouns": {kind: list(pair) for kind, pair in KIND_NOUNS.items()},
         "total": sum(per_view.values()),
         "kinds": sorted(owed_kinds()),
     }

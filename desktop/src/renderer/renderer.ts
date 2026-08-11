@@ -3259,10 +3259,22 @@ function setNavMode(mode: NavMode): void {
 async function refreshObligationBadges(): Promise<void> {
   if (!sidecarBaseUrl) return;
   let views: Record<string, number> = {};
+  let breakdown: Record<string, Record<string, number>> = {};
+  let verbs: Record<string, string> = {};
+  let nouns: Record<string, string[]> = {};
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/obligations`);
     if (!resp.ok) return;
-    views = ((await resp.json()) as { views?: Record<string, number> }).views ?? {};
+    const payload = (await resp.json()) as {
+      views?: Record<string, number>;
+      breakdown?: Record<string, Record<string, number>>;
+      verbs?: Record<string, string>;
+      nouns?: Record<string, string[]>;
+    };
+    views = payload.views ?? {};
+    breakdown = payload.breakdown ?? {};
+    verbs = payload.verbs ?? {};
+    nouns = payload.nouns ?? {};
   } catch { return; }
 
   // The registry's view names are the server's; the buttons' `data-mode`
@@ -3280,13 +3292,48 @@ async function refreshObligationBadges(): Promise<void> {
     btn.querySelector('.mode-badge')?.remove();
     const mode = btn.getAttribute('data-mode') || '';
     const view = Object.keys(MODE_FOR_VIEW).find((v) => MODE_FOR_VIEW[v] === mode);
+    // The button's own description, kept once so repeated refreshes compose
+    // against the original rather than against last refresh's sentence.
+    if (btn.dataset.baseTitle === undefined) btn.dataset.baseTitle = btn.title || '';
+    const base = btn.dataset.baseTitle || '';
+    // Reset before the early return, so a view whose count has just dropped to
+    // zero loses last refresh's sentence instead of keeping it as a tooltip
+    // describing work that is no longer owed.
+    btn.title = base;
+    btn.removeAttribute('aria-label');
     const n = view ? (views[view] ?? 0) : 0;
     if (n <= 0) return;
+
+    // ISS-0133: say WHAT is owed, not that something is. The old string was
+    // `N items here need a person` under every view — the same sentence for
+    // requirements to approve, changes to review and issues to triage, which
+    // told the reader only that the number was not decoration. The kinds and
+    // their verbs are registry data (ADR-0020 decision 3 made them so), and
+    // the badge was the one surface not using them.
+    const kinds = (view && breakdown[view]) || {};
+    const parts = Object.entries(kinds)
+      .sort((a, b) => b[1] - a[1])
+      .map(([kind, count]) => {
+        const verb = (verbs[kind] || '').toLowerCase();
+        // The noun ships from the registry (TASK-0357). Falling back to the
+        // bare kind keeps a new kind readable on an old renderer rather than
+        // reintroducing a plural rule here to cover it.
+        const pair = nouns[kind] || [];
+        const noun = (count === 1 ? pair[0] : pair[1]) || kind;
+        return verb ? `${count} ${noun} to ${verb}` : `${count} ${noun}`;
+      });
+    const owed = parts.length ? parts.join(', ') : `${n} waiting on you`;
+
     const badge = document.createElement('span');
     badge.className = 'mode-badge';
     badge.textContent = String(n);
-    badge.title = `${n} item${n === 1 ? '' : 's'} here need a person`;
     btn.appendChild(badge);
+    // On the BUTTON, not the badge (ISS-0133): the badge is ~14px and was the
+    // only hover target, while the review badge already titled its button —
+    // two hover behaviours for one control. Hovering anywhere on the button
+    // now answers the question the number raises.
+    btn.title = base ? `${base}\n${owed}` : owed;
+    btn.setAttribute('aria-label', base ? `${base} — ${owed}` : owed);
   });
 }
 
@@ -8779,6 +8826,29 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
     labelSpan.textContent = rawLabel;
     labelSpan.title = rawLabel;
     inner.appendChild(labelSpan);
+  }
+  // ISS-0132: the head OPENS the thing it names. The server has always sent
+  // `url` on a group that names a note -- every phase group carries
+  // `/docs/phases/PHASE-...md`, and `NavGroupData.url` was declared here --
+  // and nothing ever read it, so the navigator organised entirely around
+  // phases could not reach one. Sharper since REL-0001 was re-scoped to be
+  // defined by phase exit criteria: the release's own definition lived in a
+  // note this view listed and could not open.
+  //
+  // The label navigates, the chevron folds. Binding the whole `summary`
+  // would take the fold away, which is the one thing the head already did.
+  const groupRel = extractRel(group.url);
+  if (groupRel) {
+    inner.classList.add('is-navigable');
+    inner.title = `Open ${group.key || 'this note'}`;
+    inner.addEventListener('click', (ev) => {
+      // `summary` toggles `<details>` on click by default; this click is a
+      // navigation instead, so the default has to go or the group folds
+      // underneath the reader as the note opens.
+      ev.preventDefault();
+      ev.stopPropagation();
+      void navigateTo(groupRel);
+    });
   }
   summary.appendChild(inner);
   const sp = document.createElement('span');

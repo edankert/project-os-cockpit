@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0135
 aliases: ["ISS-0135"]
 title: "Every one of the eight standing documents is a dead click — the group emits `/README.md` where the convention is `/docs/README.md`, and `extractRel` drops exactly that shape on purpose"
-status: triage
+status: fixed
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-11
@@ -72,3 +72,13 @@ Dead click. No navigation, no error, no status message.
 
 - [ ] Emit `/docs/{rel}` from `_standing_group`. One-line fix, server-side, no renderer change.
 - [ ] A test that asserts every nav item url in every mode either starts with `/docs/`, starts with `~`, or is null — the sweep that turns this class of bug from recurring into impossible. This is the third time it has appeared ([[ISS-0037]], the Library rows it fixed, and now this).
+
+## Resolution — 2026-08-11
+
+`_standing_group` now emits `/docs/{rel}`. One line, server-side; the renderer was never wrong.
+
+**Verified in the running app**, not only in the suite: clicking GLOSSARY opens `GLOSSARY.md` and the centre pane renders `Glossary`. Before the fix the row carried no `data-rel` at all.
+
+**The guard is the sweep, not this fix.** `tests/test_nav_url_shape.py` walks every mode, every group, subgroup, item and child, and requires each url to be `/docs/…`, `~…`, or absent — the shape `extractRel` accepts. Confirmed to fail on the pre-fix code with `standing document 'README' has url '/README.md'`, so it catches the bug it was written for rather than merely passing alongside it. A floor assertion (`seen >= 10`) keeps an empty walk from passing vacuously.
+
+That converts this class — third occurrence, after [[ISS-0037]] and the Library rows it fixed — from recurring to impossible, which is the part worth more than the one-line change.

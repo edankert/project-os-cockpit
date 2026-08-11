@@ -1127,6 +1127,12 @@ body {
    more. The head's 7px gap is the id-to-name gap the scope row uses; the
    chevron sits closer than that. */
 .nav-group-header.is-thing .group-chevron { margin-right: -3px; }
+/* ISS-0132: a head that opens something says so on hover. Deliberately not
+   a permanent link colour -- the head is the group's name first and a
+   target second, and eight phase names in link blue would read as a list of
+   links rather than as the structure they are. */
+.group-header-inner.is-navigable { cursor: pointer; }
+.group-header-inner.is-navigable:hover .group-header-name { text-decoration: underline; }
 .nav-group-header.is-thing .group-header-name {
   font-size: 12.5px;
   font-weight: 500;

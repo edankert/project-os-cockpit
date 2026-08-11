@@ -817,6 +817,13 @@ def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
 
     Measured 2026-08-10: ARCHITECTURE and OWNERSHIP hold their templates;
     DESIGN and STYLEGUIDE were last confirmed 196 days ago.
+
+    That last number is **not** asserted. It was, and the test began failing on
+    2026-08-11 for the only reason it could: the day count is computed from
+    today, so a literal `196 days` is true for one day and false forever after.
+    A test that expires by the calendar is the same re-arming-by-time problem
+    this very test exists to keep OUT of the badge. What matters is that the
+    row reports a staleness at all, and that reporting it does not make it owed.
     """
     rows = {i["id"]: i for i in
             nav_payload(repo_index, mode="design")["groups"][0]["items"]}
@@ -826,7 +833,9 @@ def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
     # ask, so it carries no `owed`.
     assert rows["DESIGN"]["status"] == "review"
     assert "owed" not in rows["DESIGN"]
-    assert "196 days" in rows["DESIGN"]["subtitle"]
+    assert re.search(r"last confirmed \d+ days ago", rows["DESIGN"]["subtitle"]), (
+        f"the row should report its staleness in days; got {rows['DESIGN']['subtitle']!r}"
+    )
 
 
 def test_the_standing_obligation_reaches_the_intent_badge(repo_index: Index) -> None:

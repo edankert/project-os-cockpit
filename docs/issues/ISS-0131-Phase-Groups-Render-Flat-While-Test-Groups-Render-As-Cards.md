@@ -20,18 +20,24 @@ tests: []
 
 ## Problem
 
-The Tests view draws each of its groups — `Tier 1`, `Tier 2`, `Tier 3`, `Verified` — as a bordered card. The Features view draws each phase group as a plain collapsible row. Same navigator, same renderer, different result, and nothing decided it should be so.
+The Tests view draws each of its groups — `Tier 1`, `Tier 2`, `Tier 3`, `Verified` — as a bordered card. The Features view draws each phase group as a plain collapsible row.
 
-The cause is a single field. `_tests_groups` sets `"item_layout": "stacked"` on its tier groups; `_features_groups` sets nothing. The renderer turns that into a class:
+**Correction, 2026-08-11 — the first diagnosis in this note was wrong.** It claimed the cause was a missing `item_layout: "stacked"` field on the features groups. That field is real, and the tier groups do set it, but it is **inert**: `nav-group-stacked` appears nowhere in any stylesheet, so `item_layout` currently styles nothing at all. Adding it to `_features_groups` would have changed the class list and nothing on screen, and this note would have recorded a fix that fixed nothing.
 
-```ts
-const layoutClass = group.item_layout ? ` nav-group-${group.item_layout}` : '';
-details.className = `nav-group${layoutClass}`;
+The actual mechanism is the opposite of a missing field — it is a deliberate removal:
+
+```css
+.ws-nav-content .nav-group { border: 1px solid var(--border); … }   /* all groups */
+.nav-group:has(> .nav-group-header.is-thing) { border: 0; background: none; }
 ```
 
-So `nav-group-stacked` is what produces the card, and phase groups never get it.
+Every group gets a card by default. The second rule **takes it away**, and `is-thing` is added only in features mode (`if (!groupLabelIsCategory(mode))`, where `groupLabelIsCategory = mode !== 'features'`). So phase groups are un-carded on purpose, and the stylesheet records why:
 
-**Why it reads as a regression rather than a preference.** A phase is the largest structural unit the record has — it is the thing [[REL-0001]] is now *defined* by — and it is drawn less prominently than a test tier. The `item_layout` field is a presentation hint the server hands the client, so which groups are cards is currently decided one call site at a time rather than by any rule.
+> *"…and a thing is not framed, nor ruled off. Four boxes around four categories read as structure; eighteen around eighteen phases read as clutter, and eighteen hairlines read as a table. The rows are already separated by being rows — the overview's scope pane has never needed anything between them."*
+
+**So this is not a defect. It is a design decision, with a stated reason, and "fixing" it means reversing it.** That is Edwin's call rather than an implementation detail, which is why this note stays open while the other three PHASE-030 issues are fixed.
+
+**One fact the decision's reasoning may not have.** Its argument is about count — eighteen boxes read as clutter. The features view no longer shows all phases at once: it opens on `OPEN · 8` with the completed phases folded into a roll-up. So the choice today is roughly **8 boxes, not 26**, which is much closer to the "four categories read as structure" case the same comment endorses. The count argument might now point the other way; it deserves re-testing rather than assuming either answer.
 
 ## Repro
 

@@ -235,3 +235,56 @@ def test_the_badge_counts_notes_while_the_tree_counts_rows() -> None:
         f"badge {badge} disagrees with {len(distinct)} distinct owed notes"
     )
     assert len(owed_rows) >= len(distinct)
+
+
+def test_the_breakdown_explains_the_badge_and_sums_to_it() -> None:
+    """ISS-0133: the badge says WHAT it counts, and cannot contradict itself.
+
+    The badge showed a bare number whose only gloss was `N items here need a
+    person` — the same sentence under every view, naming no kind. The kinds
+    have been registry data since this module replaced a hand-written list, so
+    the breakdown is the badge's own explanation rather than a second source.
+
+    Which makes the sum the thing to guard. A breakdown that disagrees with
+    the count is worse than no breakdown: it is one number contradicting
+    itself on one screen, the exact failure `badges_payload` exists to prevent
+    (ADR-0020 decision 3).
+    """
+    index = Index.build(REPO / "docs")
+    payload = obligations.badges_payload(index)
+    views, breakdown = payload["views"], payload["breakdown"]
+
+    for view, kinds in breakdown.items():
+        assert sum(kinds.values()) == views[view], (
+            f"{view}: breakdown {kinds} sums to {sum(kinds.values())}, "
+            f"badge says {views[view]}"
+        )
+    # A view absent from the breakdown owes nothing — silence and zero agree.
+    for view, count in views.items():
+        if view not in breakdown:
+            assert count == 0, f"{view} shows {count} with no breakdown to explain it"
+    assert sum(sum(k.values()) for k in breakdown.values()) == payload["total"]
+
+
+def test_every_owed_kind_can_name_itself_and_its_verb() -> None:
+    """The sentence the badge builds needs both halves, for every kind.
+
+    A kind reaching a badge with no noun renders as its raw type, and one with
+    no verb renders as a count with no action — both are the old "items"
+    problem wearing a narrower hat. Asserted over the registry rather than
+    over today's corpus, so a kind added later fails here and not on screen.
+    """
+    payload = obligations.badges_payload(Index.build(REPO / "docs"))
+    nouns, verbs = payload["nouns"], payload["verbs"]
+
+    for kind in obligations.owed_kinds():
+        assert kind in nouns, f"owed kind {kind!r} has no noun for the badge to say"
+        singular, plural = nouns[kind]
+        assert singular and plural, f"{kind!r} has an empty noun"
+        assert kind in verbs and verbs[kind], f"owed kind {kind!r} has no verb"
+
+    standing = obligations.STANDING_OBLIGATION_KIND
+    assert standing in nouns and standing in verbs, (
+        "the standing obligation is the one whose subject is not a note, so it "
+        "is the one most likely to be left out of a per-kind vocabulary"
+    )
