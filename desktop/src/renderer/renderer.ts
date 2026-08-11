@@ -4283,6 +4283,7 @@ interface DesignRecord {
   stylesheets?: string[];
   variants?: DesignVariant[];
   variant_scripts?: boolean;
+  chosen_variant?: string;
 }
 
 /** An ADR this design links. `missing` = the link resolves to nothing, which
@@ -4900,6 +4901,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
       // present the artifact stays the subject and the strip goes beneath.
       const strip = buildVariantStrip(
         d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
+        d.id, d.chosen_variant ?? '',
       );
       if (strip) body.append(strip);
       else body.append(buildDesignFrame(d));
@@ -4907,9 +4909,21 @@ async function renderDesignPage(target: string): Promise<boolean> {
       body.append(buildDesignFrame(d));
       const strip = buildVariantStrip(
         d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
+        d.id, d.chosen_variant ?? '',
       );
       if (strip) body.append(strip);
     }
+    // `Annotate` — FEAT-0069. On the design page rather than a global verb:
+    // an annotation is always about a design, and offering it elsewhere would
+    // invite anchors to things that have no revisions to be lost across.
+    const annotate = document.createElement('button');
+    annotate.type = 'button';
+    annotate.className = 'review-btn';
+    annotate.textContent = 'Annotate selection';
+    annotate.title = 'Comment on the selected text, anchored to the quote';
+    annotate.addEventListener('click', () => annotationFromSelection(d.id));
+    body.appendChild(annotate);
+
     const side = document.createElement('aside');
     side.className = 'design-side';
     side.hidden = !designSideOpen;
@@ -13695,6 +13709,7 @@ interface DesignVariant { name?: string; html?: string; }
  */
 function buildVariantStrip(
   variants: DesignVariant[], stylesheets: string[], allowScripts: boolean,
+  designId = '', chosen = '',
 ): HTMLElement | null {
   if (!variants.length) return null;
   const strip = document.createElement('div');
@@ -13705,6 +13720,33 @@ function buildVariantStrip(
     const cap = document.createElement('figcaption');
     cap.className = 'variant-name';
     cap.textContent = variant.name || 'unnamed';
+    if (chosen && variant.name === chosen) {
+      const mark = document.createElement('span');
+      mark.className = 'variant-chosen';
+      mark.textContent = 'chosen';
+      cap.appendChild(mark);
+    } else if (designId) {
+      // `Choose` records the shape and NOTHING else (TASK-0302). It does not
+      // accept the design: choosing a shape and accepting a design are two
+      // judgments, and a click on a thumbnail must not carry an acceptance
+      // nobody made. The ADR it offers arrives `proposed`, like any proposal.
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'variant-choose';
+      pick.textContent = 'Choose';
+      pick.title = `Record ${variant.name} as the chosen shape — this does not accept the design`;
+      pick.addEventListener('click', () => {
+        void postJson('/api/notes/choose-variant', {
+          id: designId, variant: variant.name, actor: loadDispatchActor(),
+        }).then(() => {
+          showStatus(`Chose ${variant.name} — the design is not accepted by this.`);
+          scheduleHide(3000);
+          offerVariantAdr(designId, variant.name ?? '', variants);
+          void navigateTo(`~design/${designId}`);
+        }).catch((err) => showStatus(`Could not record: ${String(err)}`, 'error'));
+      });
+      cap.appendChild(pick);
+    }
     cell.appendChild(cap);
 
     const frame = document.createElement('iframe');
@@ -13726,6 +13768,28 @@ function buildVariantStrip(
     strip.appendChild(cell);
   }
   return strip;
+}
+
+/** Offer the ADR that records WHY a shape was chosen (TASK-0302).
+ *
+ *  Dispatched, never written: the options-considered are prefilled from the
+ *  variants, but the reasoning is the part that matters and the cockpit does
+ *  not have it. `status: proposed` — nothing is auto-accepted, and the ADR
+ *  waits for the actuator row like any other proposal.
+ */
+function offerVariantAdr(designId: string, chosen: string, variants: DesignVariant[]): void {
+  const others = variants.map((v) => v.name).filter((n) => n && n !== chosen);
+  showActionStatus(`Chose ${chosen}`, 'record why (ADR)', () => {
+    const prompt =
+      `Author an ADR for the shape chosen on ${designId}: read docs/designs/, `
+      + `record the decision as \`status: proposed\` (never accepted — that is `
+      + `the actuator row's), with options considered = ${chosen} (chosen)`
+      + (others.length ? `, ${others.join(', ')}` : '')
+      + `. The variants are in the design note; the REASONING is not, and it is `
+      + `the only part worth writing down.`;
+    void dispatchToAgent(designId, '', prompt);
+  });
+  scheduleHide(8000);
 }
 
 interface ShapePayload {
@@ -14558,3 +14622,194 @@ document.addEventListener('keydown', (ev) => {
     scheduleHide(2500);
   }
 });
+
+// ----------------------------------------------------------------------
+// The measure view (FEAT-0068 / TASK-0303-0305)
+// ----------------------------------------------------------------------
+//
+// **The cockpit measures itself.** That is TASK-0304's path and it is the one
+// that actually works: variant frames are sandboxed with an opaque origin, so
+// a parent cannot reach into them by construction — the same property that
+// makes them safe makes them unmeasurable from outside. Same-origin artefact
+// frames remain measurable and go through the identical probe.
+//
+// Scoped to self and artefacts, per the feature's out-of-scope line. Pointing
+// this at an external app is its own phase with its own risk scan.
+
+// `measure.js` is loaded as a plain script before this one, exactly as
+// `completed-work.js` is, so its functions are already in scope. No `declare`
+// block: TypeScript sees the sibling's own declarations, and re-declaring them
+// here collides with them (caught at build).
+
+interface MeasureMetrics { label: string; selector: string; values: Record<string, string>; }
+interface MeasureRow { group: string; property: string; a: string; b: string; differs: boolean; }
+
+let measurePicking: 'A' | 'B' | null = null;
+let measureA: MeasureMetrics | null = null;
+let measureB: MeasureMetrics | null = null;
+
+/** Arm the picker. The next click anywhere in the app harvests that element.
+ *
+ *  A click rather than a hover-commit: hovering commits by accident, and the
+ *  thing being measured is usually under the pointer on the way to somewhere
+ *  else. Escape disarms.
+ */
+function armMeasure(slot: 'A' | 'B'): void {
+  measurePicking = slot;
+  document.body.classList.add('is-measuring');
+  showStatus(`Click the element for pane ${slot} — esc cancels.`);
+}
+
+function disarmMeasure(): void {
+  measurePicking = null;
+  document.body.classList.remove('is-measuring');
+}
+
+document.addEventListener('click', (ev) => {
+  if (!measurePicking) return;
+  const target = ev.target as Element | null;
+  if (!target || !(target instanceof Element)) return;
+  // The picker's own chrome is not a measurement subject.
+  if (target.closest('.measure-panel')) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const slot = measurePicking;
+  const metrics = harvest(target, `pane ${slot}`);
+  if (slot === 'A') measureA = metrics; else measureB = metrics;
+  disarmMeasure();
+  renderMeasurePanel();
+}, true);
+
+document.addEventListener('keydown', (ev) => {
+  if (measurePicking && ev.key === 'Escape') {
+    ev.preventDefault();
+    disarmMeasure();
+    showStatus('Measure cancelled.');
+    scheduleHide(1500);
+  }
+});
+
+function renderMeasurePanel(): void {
+  document.querySelector('.measure-panel')?.remove();
+  const panel = document.createElement('section');
+  panel.className = 'measure-panel';
+
+  const head = document.createElement('div');
+  head.className = 'measure-head';
+  head.textContent = 'Measure';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'measure-close';
+  close.textContent = '✕';
+  close.title = 'Close the measure panel';
+  close.addEventListener('click', () => {
+    measureA = measureB = null;
+    disarmMeasure();
+    document.querySelector('.measure-panel')?.remove();
+  });
+  head.appendChild(close);
+  panel.appendChild(head);
+
+  const picks = document.createElement('div');
+  picks.className = 'measure-picks';
+  for (const slot of ['A', 'B'] as const) {
+    const held = slot === 'A' ? measureA : measureB;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'review-btn';
+    btn.textContent = held ? `${slot}: ${held.selector}` : `Pick ${slot}…`;
+    btn.addEventListener('click', () => armMeasure(slot));
+    picks.appendChild(btn);
+  }
+  panel.appendChild(picks);
+
+  if (measureA && measureB) {
+    const rows = diff(measureA, measureB);
+    const table = document.createElement('table');
+    table.className = 'measure-table';
+    let lastGroup = '';
+    for (const row of rows) {
+      if (row.group !== lastGroup) {
+        lastGroup = row.group;
+        const gr = table.insertRow();
+        const gc = gr.insertCell();
+        gc.colSpan = 3;
+        gc.className = 'measure-group';
+        gc.textContent = row.group;
+      }
+      const tr = table.insertRow();
+      if (row.differs) tr.className = 'differs';
+      tr.insertCell().textContent = row.property;
+      tr.insertCell().textContent = row.a || '—';
+      tr.insertCell().textContent = row.b || '—';
+    }
+    panel.appendChild(table);
+
+    const foot = document.createElement('div');
+    foot.className = 'digest-foot';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'review-btn is-primary';
+    copy.textContent = 'Copy differences as markdown';
+    copy.addEventListener('click', () => {
+      void copyText(toMarkdown(measureA!, measureB!, rows), 'Copied the table');
+    });
+    foot.appendChild(copy);
+    panel.appendChild(foot);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'measure-hint';
+    hint.textContent =
+      'Pick two elements to compare — the cockpit measures its own surfaces and '
+      + 'same-origin artefacts.';
+    panel.appendChild(hint);
+  }
+  document.body.appendChild(panel);
+}
+
+// ----------------------------------------------------------------------
+// Annotations on a design (FEAT-0069 / TASK-0307)
+// ----------------------------------------------------------------------
+//
+// **Selection, not a pixel pin.** `append_design_comment` learned this once:
+// *"the anchor is a region id, never a coordinate. Pixel pins die on the next
+// revision, and the founding artifact went through six in one session."* A
+// quoted selection is the richer version of that lesson — it survives a
+// reflow, and when it does not survive an edit it can SAY SO rather than
+// float to whatever is now at those coordinates.
+//
+// esc costs nothing: the selection is read at click time, so dismissing the
+// prompt leaves the record untouched.
+
+/** Offer `Annotate` when text is selected inside a design note. */
+function annotationFromSelection(designId: string): void {
+  const sel = window.getSelection();
+  const quote = (sel?.toString() ?? '').trim();
+  if (!quote) {
+    showStatus('Select the text the comment is about first.', 'error');
+    return;
+  }
+  const text = window.prompt(`Comment on:\n\n“${quote.slice(0, 160)}”`);
+  if (text === null) return;                       // esc costs nothing
+  if (!text.trim()) { showStatus('An annotation needs a comment', 'error'); return; }
+
+  // The variant it sits in, when the selection is inside one — read from the
+  // nearest variant cell rather than guessed from position.
+  const node = sel?.anchorNode as Element | null;
+  const cell = (node?.nodeType === 1 ? node : node?.parentElement)?.closest('.variant-cell');
+  const variant = cell?.querySelector('.variant-name')?.firstChild?.textContent?.trim() ?? '';
+
+  void postJson('/api/cockpit/review-request', {
+    kind: 'annotation',
+    title: text.trim().slice(0, 120),
+    body: text.trim(),
+    items: [designId],
+    subject: designId,
+    // Quote first: it is what lets a moved anchor be re-found and a lost one
+    // admit it. No coordinates — the store's allow-list would drop them anyway.
+    anchor: { quote: quote.slice(0, 300), variant },
+  }).then(() => {
+    showStatus('Annotation recorded against the selection.');
+    scheduleHide(2500);
+  }).catch((err) => showStatus(`Could not record: ${String(err)}`, 'error'));
+}

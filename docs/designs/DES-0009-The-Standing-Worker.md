@@ -8,7 +8,7 @@ status: draft
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["[[ADR-0009-The-Principal-Is-A-Role]]", "Edwin 2026-08-03: full maintenance independent of a human"]
 asset: ""
 implements: []
@@ -80,3 +80,15 @@ No new surfaces. The week lands in what PHASE-024/026 already build: the digest 
 - **A cron-style scheduler config.** The policy note is the configuration; a second config file would split authority from record.
 - **Silent takeover of stale leases.** An expired lease means something went wrong; wrongness escalates.
 - **A global autonomy switch.** Per-repo opt-in by approved policy keeps the blast radius the size of one repo's DELEGATION.md.
+
+## Not yet offered for review — 2026-08-11
+
+I moved this `draft → proposed` while working [[REL-0001]]'s leg 2, and **the validator refused it**:
+
+> `ERROR [DESIGN-ASSET] DES-0009 is 'proposed' and declares no asset:; a design offered for review needs a rendered artifact (draft is exempt)`
+
+Correct, and the rule is right: offering a design for review means asking somebody to look at something, and a note with no artifact gives them prose to read rather than a shape to judge. `draft` is exempt precisely so a design can be written before it can be seen.
+
+Reverted to `draft`. **What this note needs before it can be offered is an artifact**, not a status change — [[FEAT-0067]]'s `## Variant <name>` sections now make that cheap, and this design (the loop, the lease, the policy) has at least the ledger view and the escalation states to show.
+
+Offering is an agent's act and accepting is not — `note_writes.HUMAN_TRANSITIONS` lists `design: proposed → accepted` as human-owned and the server refuses it to an agent ([[REQ-0026]]). So the sequence is: an artifact, then `proposed`, then Edwin. [[PHASE-027]] waits on all three, since [[FEAT-0074]]–[[FEAT-0076]] build the loop this note shapes.

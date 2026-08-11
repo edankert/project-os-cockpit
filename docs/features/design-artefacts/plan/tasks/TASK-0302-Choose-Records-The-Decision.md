@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0302
 aliases: ["TASK-0302"]
 title: "Choose stamps the variant and scaffolds the ADR as a proposal"
-status: backlog
+status: done
 phase: "[[PHASE-025-Design-Before-Code]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 source: ["[[FEAT-0067-Designs-Render-Their-Artefacts]]"]
 parent: "[[FEAT-0067-Designs-Render-Their-Artefacts]]"
 effort: M

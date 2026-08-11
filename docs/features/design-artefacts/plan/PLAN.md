@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — designs render their artefacts"
-status: active
+status: done
 owner: user:edwin
 created: 2026-08-03
 updated: 2026-08-03

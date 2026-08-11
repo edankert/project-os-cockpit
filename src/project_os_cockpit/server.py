@@ -47,6 +47,7 @@ from .index import Index
 from . import inbox as inbox_mod
 from .watermark import Watermark
 from . import obligations as _obligations
+from . import review
 from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .validation import ValidationRunner
@@ -718,6 +719,10 @@ def _make_handler(
             if path == "/api/notes/create":
                 self._serve_note_create()
                 return
+            if path == "/api/notes/choose-variant":
+                self._serve_choose_variant()
+                return
+
             if path == "/api/notes/attach":
                 self._serve_note_attach()
                 return
@@ -1602,8 +1607,11 @@ def _make_handler(
             body = self._read_json_body()
             if body is None:
                 return
+            # Read from the store's own vocabulary rather than a second list
+            # here (FEAT-0069 added `annotation` and this literal would have
+            # silently refused it — the two-lists failure ISS-0023 is about).
             kind = str(body.get("kind") or "review")
-            if kind not in ("review", "question"):
+            if kind not in review.KINDS:
                 self._respond_json({"ok": False, "error": f"unknown kind: {kind}"},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
@@ -1616,6 +1624,10 @@ def _make_handler(
                 session_id=body.get("session_id"),
                 prompt=body.get("prompt"),
                 agent=body.get("agent"),
+                subject=body.get("subject"),
+                # Anchors are normalised by the store, so a coordinate cannot
+                # be persisted whatever a caller sends (FEAT-0069).
+                anchor=body.get("anchor"),
             )
             # Provenance: the ledger keeps the prompt→session→request
             # chain the proposal view shows (FEAT-0025 + FEAT-0019).
@@ -1907,6 +1919,42 @@ def _make_handler(
                     phase=str(body.get("phase") or ""),
                     related=[str(r) for r in related],
                     actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError, OSError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_choose_variant(self) -> None:
+            """``POST /api/notes/choose-variant`` — record a chosen shape.
+
+            It does NOT accept the design: choosing and accepting are two
+            judgments, and a click on a thumbnail must not carry an
+            acceptance nobody made (TASK-0302).
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - note_writes.CHOOSE_VARIANT_KEYS
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = note_writes.stamp_chosen_variant(
+                    index, str(body.get("id") or ""),
+                    variant=str(body.get("variant") or ""),
+                    actor=str(body.get("actor") or ""),
+                    mtime=body.get("mtime"),
                 )
             except note_writes.WriteError as exc:
                 self._respond_json({"ok": False, "error": exc.message},

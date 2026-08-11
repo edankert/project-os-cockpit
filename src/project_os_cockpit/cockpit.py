@@ -1074,8 +1074,9 @@ def designs_payload(index: Index) -> dict:
             # Live variants (TASK-0300). `scripts: true` in frontmatter is the
             # opt-in; without it the bench sandboxes without scripts, because a
             # mockup that can run code is a mockup that can read the cockpit.
-            "variants": design_variants(_read_note_body(record)),
+            "variants": design_variants(_read_note_body(r)),
             "variant_scripts": str(fm.get("scripts") or "").strip().lower() == "true",
+            "chosen_variant": str(fm.get("chosen_variant") or "").strip(),
         })
     return {"schema_version": SCHEMA_VERSION, "designs": designs}
 

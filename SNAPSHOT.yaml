@@ -243,21 +243,21 @@ items:
     FEAT-0067:
       file: "docs/features/design-artefacts/FEAT-0067-Designs-Render-Their-Artefacts.md"
       title: "Designs render their artefacts — variants as sandboxed fragments side by side, and choosing one records the decision"
-      status: planned
+      status: done
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0300, TASK-0301, TASK-0302]
       note: "A ## Variant section with fenced html IS the variant. The ADR falls out of the act of choosing, as a proposal for the actuator row."
     FEAT-0068:
       file: "docs/features/measure-view/FEAT-0068-The-Measure-View.md"
       title: "The measure view — two surfaces side by side with a computed-style table, so comparisons happen in numbers instead of eyes"
-      status: planned
+      status: done
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0303, TASK-0304, TASK-0305]
       note: "The tool whose absence cost PHASE-022 twelve rounds. v1: self and artefacts only."
     FEAT-0069:
       file: "docs/features/annotate/FEAT-0069-Annotate-To-Request.md"
       title: "Annotate to request — a pin or a selection on a design becomes a review-queue entry with an anchor that degrades honestly"
-      status: planned
+      status: done
       phase: "[[PHASE-025-Design-Before-Code]]"
       tasks: [TASK-0306, TASK-0307, TASK-0308]
       note: "The annotation channel stops being chat. Anchors degrade honestly — the subject_missing rule extended."
@@ -586,7 +586,7 @@ items:
     TASK-0335:
       file: "docs/features/turn-checkpoints/plan/tasks/TASK-0335-Capture-Per-Turn.md"
       title: "Capture the workspace at each turn boundary to a hidden ref — pruned by age and count, never pushed, never in history"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0078
     TASK-0336:
@@ -727,48 +727,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
-    TASK-0302:
-      file: "docs/features/design-artefacts/plan/tasks/TASK-0302-Choose-Records-The-Decision.md"
-      title: "Choose stamps the variant and scaffolds the ADR as a proposal"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0067
-    TASK-0303:
-      file: "docs/features/measure-view/plan/tasks/TASK-0303-The-Probe-Over-Artefacts.md"
-      title: "Pick an element in an artefact, harvest its computed story"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0068
-    TASK-0304:
-      file: "docs/features/measure-view/plan/tasks/TASK-0304-The-Probe-Into-Own-Surfaces.md"
-      title: "The cockpit measures itself — the by-hand CDP loop made a feature"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0068
-    TASK-0305:
-      file: "docs/features/measure-view/plan/tasks/TASK-0305-The-Diff-Table.md"
-      title: "The differences as a table, copyable as markdown"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0068
-    TASK-0306:
-      file: "docs/features/annotate/plan/tasks/TASK-0306-The-Annotation-Kind.md"
-      title: "The queue learns `annotation`, with an anchor schema"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0069
-    TASK-0307:
-      file: "docs/features/annotate/plan/tasks/TASK-0307-Pin-And-Selection-Capture.md"
-      title: "Click leaves a pin; selection quotes itself"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0069
-    TASK-0308:
-      file: "docs/features/annotate/plan/tasks/TASK-0308-Queue-Rendering-And-Honest-Anchors.md"
-      title: "Annotations under the design's desk entry, degrading honestly"
-      status: backlog
-      phase: "[[PHASE-025-Design-Before-Code]]"
-      parent: FEAT-0069
     TASK-0315:
       file: "docs/features/release-surface/plan/tasks/TASK-0315-The-Unreleased-Card.md"
       title: "UNRELEASED · N — done features since the last release"
@@ -1822,7 +1780,7 @@ items:
     PHASE-025:
       file: "docs/phases/PHASE-025-Design-Before-Code.md"
       title: "Design before code — the bench renders what a design proposes, measures it against what exists, and holds implementation to what was accepted"
-      status: planned
+      status: done
       order: 25
       features: ["FEAT-0067", "FEAT-0068", "FEAT-0069", "FEAT-0070"]
       note: "REL-0001 leg 2, fourth by queue position but genuinely PARALLEL: the only phase in the release with no issues, no risks, no requirements and no external gate. 16 of 17 children unresolved, all of them features and tasks. Use it whenever something else blocks rather than waiting for its turn."
@@ -2557,9 +2515,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 74
+    features_done: 77
     tasks_total: 385
-    tasks_done: 339
+    tasks_done: 347
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

@@ -1526,3 +1526,58 @@ def attach_capture(
         "bytes": len(blob),
         "actor": (actor or "").strip(),
     }
+
+
+CHOOSE_VARIANT_KEYS: frozenset[str] = frozenset({"id", "variant", "actor", "mtime"})
+
+
+def stamp_chosen_variant(
+    index: Index,
+    note_id: str,
+    *,
+    variant: str,
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Record which variant a design chose (TASK-0302).
+
+    Writes `chosen_variant` and nothing else — **it does not accept the
+    design**. Choosing a shape and accepting a design are two judgments, and
+    collapsing them would let a click on a thumbnail carry an acceptance
+    nobody made. Acceptance still goes through `stamp_design_verdict`, pinned
+    to the revision it judged (ISS-0056's rule).
+
+    The variant must exist in the note. A `chosen_variant` naming a section
+    that was never written is a record of a decision about nothing.
+    """
+    from .cockpit import design_variants
+
+    wanted = (variant or "").strip()
+    if not wanted:
+        raise WriteError("a choice needs the variant's name")
+    path = resolve_note(index, note_id)
+    record = index.get(path)
+    if (record.note_type if record else "") != "design":
+        raise WriteError(f"{note_id} is not a design; variants live on designs")
+    _check_mtime(path, mtime)
+
+    text = path.read_text(encoding="utf-8")
+    names = [v["name"] for v in design_variants(text)]
+    if wanted not in names:
+        raise WriteError(
+            f"{note_id} has no variant named {wanted!r} "
+            f"(it has: {', '.join(names) or 'none'})"
+        )
+
+    fm_lines, body = _split_frontmatter(text)
+    fm_lines = _set_field(fm_lines, "chosen_variant", wanted)
+    fm_lines = _set_field(fm_lines, "updated", _today())
+    _write(path, fm_lines, body)
+    return {
+        "id": note_id,
+        "chosen_variant": wanted,
+        "variants": names,
+        "actor": (actor or "").strip(),
+        # Said explicitly so a caller cannot read silence as acceptance.
+        "accepted": False,
+    }

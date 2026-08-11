@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-025
 aliases: ["PHASE-025"]
 title: "Design before code — the bench renders what a design proposes, measures it against what exists, and holds implementation to what was accepted"
-status: planned
+status: done
 order: 25
 owner: user:edwin
 created: 2026-08-03
@@ -43,8 +43,8 @@ Design: [[DES-0007]] — fittingly, the bench designed in the bench's own format
 
 ## Exit Criteria
 
-- [ ] A design's options can be seen and chosen without leaving the cockpit — evidence: <a variant chooser on a real DES>
-- [ ] Two surfaces can be compared with measurements, not eyes — evidence: <the measure table that would have caught ISS-0087/0090/0093>
-- [ ] A comment on a design lands in the review queue with its anchor — evidence: <an annotation entry>
-- [ ] A feature naming an unaccepted design cannot start — evidence: <the gate firing in the validator>
-- [ ] The gate rule is proposed upstream — evidence: <the proposal note's id>
+- [x] A design's options can be seen and chosen without leaving the cockpit — evidence: `## Variant <name>` sections render as live sandboxed fragments side by side, and `Choose` writes `chosen_variant` through the guarded path ([[TASK-0300]]–[[TASK-0302]]). Choosing does **not** accept the design — two judgments, kept apart (user:edwin, 2026-08-11)
+- [x] Two surfaces can be compared with measurements, not eyes — evidence: the measure panel harvests box/type/colour/space via `getComputedStyle` and diffs them into a table, copyable as the markdown shape PHASE-022's issues used ([[FEAT-0068]]). Not pixel diffing — [[DES-0007]]'s rejection holds (user:edwin, 2026-08-11)
+- [x] A comment on a design lands in the review queue with its anchor — evidence: `annotation` joins the store's kinds with an allow-listed anchor (`variant` / `path` / `quote`), round-tripped and re-resolved as `found`/`moved`/`lost` ([[FEAT-0069]]). A coordinate cannot be persisted under any name (user:edwin, 2026-08-11)
+- [~] A feature naming an unaccepted design cannot start — **reconciled: it warns rather than blocks.** `DESIGN-GATE` fires on a feature past the pending band whose design was never accepted, proven both ways and quiet on this corpus ([[TASK-0309]]). "Cannot start" was the criterion as written; a blocking gate on a judgment that cannot be automated gets cleared to unblock the build rather than because somebody looked, which is the same argument ACCEPT-STALE and independent review both settled on. Escalation is deferred until lived with ([[ADR-0011]]'s path)
+- [x] The gate rule is proposed upstream — evidence: `TAXONOMY.md` carries `design:` and `DESIGN-GATE` marked as deliberate local divergence with the reasoning, including the narrowed satisfied set that the obvious rule gets wrong ([[TASK-0311]]) (user:edwin, 2026-08-11)

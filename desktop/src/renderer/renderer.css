@@ -5212,3 +5212,41 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
   border-bottom: 1px solid var(--border); color: var(--text);
 }
 .variant-frame { flex: 1; width: 100%; border: 0; background: var(--bg); min-height: 200px; }
+.variant-name { display: flex; align-items: center; gap: 8px; }
+.variant-chosen {
+  margin-left: auto; font-size: 10.5px; font-weight: 600;
+  color: var(--status-done, var(--accent-link));
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.variant-choose {
+  margin-left: auto; font-size: 11px; padding: 2px 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text);
+}
+.variant-choose:hover { background: var(--bg-elevated); }
+
+/* The measure view (FEAT-0068). A floating panel rather than a pane: the
+   subject is whatever is already on screen, so taking layout away from it to
+   show the measurements would change what is being measured. */
+.measure-panel {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60;
+  width: 460px; max-height: 70vh; overflow: auto;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-elevated); box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  padding: 10px 12px; font-size: 12px;
+}
+.measure-head { display: flex; align-items: center; font-weight: 600; margin-bottom: 8px; }
+.measure-close { margin-left: auto; background: none; border: 0; color: var(--text-muted); cursor: pointer; }
+.measure-picks { display: flex; gap: 8px; margin-bottom: 10px; }
+.measure-hint { color: var(--text-muted); font-size: 11px; }
+.measure-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.measure-table td { padding: 2px 6px; border-bottom: 1px solid var(--border-subtle, rgba(128,128,128,0.14)); }
+.measure-table .measure-group {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-faint, var(--text-muted)); padding-top: 8px; border-bottom: 0;
+}
+/* Only the differences are tinted. Highlighting every row would make the
+   table one colour, which is the same as no colour. */
+.measure-table tr.differs td { background: var(--accent-soft); }
+/* While armed, the pointer says what a click will do. */
+body.is-measuring, body.is-measuring * { cursor: crosshair !important; }

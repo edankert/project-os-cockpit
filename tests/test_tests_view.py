@@ -717,6 +717,15 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
         if str(r.status or "").strip().lower() == "proposed"
         and not r.rel_path.startswith("__templates__/")
     }
+    # A `proposed` DESIGN is owed here too — it is waiting on an Accept, which
+    # is the same obligation wearing a different type. Left out of the first
+    # generalisation and caught when DES-0009 was briefly offered for review.
+    proposed_adrs |= {
+        (r.note_id or "")
+        for r in repo_index.notes_by_type("design")
+        if str(r.status or "").strip().lower() == "proposed"
+        and not r.rel_path.startswith("__templates__/")
+    }
     assert proposed_adrs, "no proposed ADR in the corpus; this test proves nothing"
     assert note_owed == proposed_adrs, (
         f"owed set {sorted(note_owed)} does not match the proposed ADRs "
