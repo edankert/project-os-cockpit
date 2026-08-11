@@ -10,12 +10,12 @@ date: ""
 platform:
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
-features: ["[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]", "[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0091-The-Standing-Documents]]", "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[FEAT-0086-Tests-Becomes-A-View]]", "[[FEAT-0088-Features-Carries-Its-Own-Judgments]]", "[[FEAT-0071-Since-You-Looked]]", "[[FEAT-0090-The-Desk-Retires]]"]
+updated: 2026-08-11
+features: ["[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]", "[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0091-The-Standing-Documents]]", "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[FEAT-0086-Tests-Becomes-A-View]]", "[[FEAT-0088-Features-Carries-Its-Own-Judgments]]", "[[FEAT-0071-Since-You-Looked]]", "[[FEAT-0090-The-Desk-Retires]]", "[[FEAT-0062]]", "[[FEAT-0063]]", "[[FEAT-0064]]", "[[FEAT-0065]]", "[[FEAT-0066]]", "[[FEAT-0067]]", "[[FEAT-0068]]", "[[FEAT-0069]]", "[[FEAT-0070]]", "[[FEAT-0072]]", "[[FEAT-0073]]", "[[FEAT-0074]]", "[[FEAT-0075]]", "[[FEAT-0076]]", "[[FEAT-0077]]", "[[FEAT-0078]]"]
 changes: []
 tests_verified: []
 previous_release: ""
-related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value]]", "[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-030-Obligations-Go-Home]]"]
+related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ISS-0126]]", "[[ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value]]", "[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-025-Design-Before-Code]]", "[[PHASE-026-The-Returning-Human]]", "[[PHASE-027-The-Standing-Worker]]", "[[PHASE-030-Obligations-Go-Home]]"]
 tags: [release]
 ---
 
@@ -25,9 +25,19 @@ tags: [release]
 
 ## What this release is
 
-One sentence: **a person can see every judgment the record owes them, in the place that owns it, and can make it without asking an agent.**
+One sentence: **a person governs a project through the cockpit — they can see every judgment the record owes them, make it in the place that owns it, accept the work that results, and step out of the daily loop without the project stalling.**
 
-Two findings produced it. [[PHASE-023]]'s: *every transition in the ownership table is agent-owned; the cockpit's only actuator is asking an agent in the terminal.* And [[ADR-0020]]'s: the surface built to collect those judgments held two things that were not obligations and omitted the largest one there is.
+Two findings opened it. [[PHASE-023]]'s: *every transition in the ownership table is agent-owned; the cockpit's only actuator is asking an agent in the terminal.* And [[ADR-0020]]'s: the surface built to collect those judgments held two things that were not obligations and omitted the largest one there is.
+
+### The definition widened on 2026-08-11
+
+**This note first defined the release as eleven features, and closed when they were done. That definition was wrong — not incorrectly executed, incorrectly drawn.** Edwin's correction: *"it is complete according to its definition, but the definition was incomplete."*
+
+Eleven features shipped the *levers*. They did not ship the thing the levers are for. A person can now make a judgment on a note — and then has nowhere to accept the work it produced ([[PHASE-024]]), no way to design the surface before it is built ([[PHASE-025]]), no answer to "what shipped" ([[PHASE-026]]), and no way to be absent ([[PHASE-027]]). Each of those was deferred *individually* and defensibly; together they deferred the release's own sentence.
+
+**So the release is now defined by phases resolved, not by a feature list.** [[PHASE-023]], [[PHASE-024]], [[PHASE-025]], [[PHASE-026]] and [[PHASE-027]] must all reach `done` for this release to ship. A feature list is a scope that can be satisfied while the goal is not; a phase carries exit criteria, and cannot close while a child of it is unresolved.
+
+That is a deliberately harder bar, and it is the point — see **The completion bar** below.
 
 ## Scope
 
@@ -49,18 +59,45 @@ Two findings produced it. [[PHASE-023]]'s: *every transition in the ownership ta
 
 Order is the implementation order, not the table's convenience — see below.
 
-**All eleven are `done` as of 2026-08-10.** Implemented in the stated order across two sessions; each feature's own note carries what it found.
+**All eleven are `done` as of 2026-08-10.** Implemented in the stated order across two sessions; each feature's own note carries what it found. This is leg 1 of the release, and it is finished; nothing below reopens it.
+
+### Leg 2 — in scope, not yet built
+
+The five phases that must reach `done`. Sixteen features, and the `planned` status on every one of them is the honest state as of 2026-08-11.
+
+| Phase | Goal, in a clause | Features | Tasks |
+|---|---|---|---|
+| [[PHASE-023]] | the levers, finished | FEAT-0062 | 2 |
+| [[PHASE-024]] | the human accepts work, with evidence | FEAT-0063, FEAT-0064, FEAT-0065, FEAT-0066 | 13 |
+| [[PHASE-025]] | design happens before code, on the bench | FEAT-0067, FEAT-0068, FEAT-0069, FEAT-0070 | 12 |
+| [[PHASE-026]] | the returning human is addressed | FEAT-0072, FEAT-0073 | 7 (1 done) |
+| [[PHASE-027]] | the project runs without its human daily | FEAT-0074, FEAT-0075, FEAT-0076, FEAT-0077, FEAT-0078 | 16 |
+
+**[[FEAT-0078]] was missing from this note's deferred table** — it listed FEAT-0074..0077 for a phase that has five features. Corrected here; it is the kind of drift the caveat at the foot predicted.
+
+### The completion bar
+
+"The sixteen features are done" is **not** the bar, and stating it as one would repeat the error this revision fixes. `STATUSES.md` gates a phase twice: **PHASE-CHILDREN** — no phase closes while any note naming it in `phase:` is unresolved; and **PHASE-BOXES** — no phase closes with an unticked exit criterion. Measured 2026-08-11:
+
+| Phase | Unresolved children | Of which are not features/tasks | Exit criteria unticked |
+|---|---|---|---|
+| PHASE-023 | 5 of 25 | [[ISS-0126]], [[RISK-0005]] | 5 |
+| PHASE-024 | 19 of 20 | [[ISS-0096]], [[REQ-0028]] | 5 |
+| PHASE-025 | 16 of 17 | — | 5 |
+| PHASE-026 | 8 of 14 | — | 5 |
+| PHASE-027 | 28 of 28 | [[DES-0009]], [[REQ-0029]], [[REQ-0030]], [[REQ-0031]], [[ISS-0094]], [[ISS-0095]], [[RISK-0006]] | 5 |
+| **total** | **76** | **13** | **25** |
+
+Two open risks — [[RISK-0005]] (the write surface on a LAN-visible server) and [[RISK-0006]] (the unattended worker) — are among them. **An open risk is not resolved by the phase that raised it closing**; each needs mitigation or an accepted rationale before its phase can.
 
 ### Features NOT Included (deferred)
 
+Only two phases defer, and both were named by Edwin on 2026-08-11.
+
 | ID | Title | Status | Reason |
 |---|---|---|---|
-| FEAT-0062 | Desk resolution flows | planned | Targets a surface this release retires; [[ISS-0126]] decides whether it survives at all |
-| FEAT-0063..0066 | Acceptance runner, gate, debt, visual evidence | planned | PHASE-024. [[FEAT-0086]] gives the runner its home here; building it is the next release |
-| FEAT-0067..0070 | The design bench | planned | PHASE-025. Self-contained; defers at no cost |
-| FEAT-0072, FEAT-0073 | Release surface, one voice | planned | PHASE-026 remainder. **See the caveat below** — the release surface being deferred is why this note is maintained by hand |
-| FEAT-0074..0077 | The standing worker | planned | PHASE-027. Biggest bet, most dependencies, deliberately last |
-| FEAT-0083, FEAT-0084 | The browser front door | planned | PHASE-029, gated on [[ADR-0010]] which is still `proposed` |
+| FEAT-0079, FEAT-0080 | Borrowed capability — the harness survey | planned / doing | PHASE-028. Deferred by decision; FEAT-0080 is mid-flight and does not block |
+| FEAT-0083, FEAT-0084 | The browser front door | planned | PHASE-029, gated on [[ADR-0010]] which is still `proposed` — the gate, not the effort, is why it defers |
 
 ### Issues Fixed
 
@@ -80,6 +117,8 @@ Order is the implementation order, not the table's convenience — see below.
 
 ## Implementation order
 
+### Leg 1 — done, 2026-08-10
+
 1. **[[ISS-0121]]** — smallest, unblocked, and stops a live surface stating something false
 2. **[[FEAT-0085]]** — closes PHASE-022, taking three active phases down to two
 3. **[[FEAT-0059]] → [[FEAT-0060]] → [[FEAT-0061]]** — the keystone; six phases depend on PHASE-023
@@ -90,17 +129,31 @@ Order is the implementation order, not the table's convenience — see below.
 8. **[[FEAT-0071]]** — the digest, **before** the desk goes
 9. **[[FEAT-0090]]** — last, and only once the registry can prove nothing is homeless
 
+### Leg 2 — the order, and why it is this one
+
+**Step 0, and it is not work: [[ISS-0126]].** Does [[FEAT-0062]] survive [[ADR-0020]]? It builds two verbs onto the surface this release just retired. It is `triage`, it is a decision rather than an effort, and it gates the *smallest* remaining phase. Answering it costs minutes and either removes a feature from the release or unblocks it. **Nothing below should start while it is open**, because the answer may shrink the scope.
+
+1. **[[PHASE-026]] — [[FEAT-0072]] then [[FEAT-0073]].** First, against the instinct to do the biggest thing first, because **this note is the argument for it**. The caveat at the foot says REL-0001 is hand-maintained and will drift until FEAT-0072's release surface exists — and it already did drift ([[FEAT-0078]] missing, above). A release that just grew from 11 features to five phases will be hand-maintained for far longer, so the surface that computes it is worth the most on day one and least on the last day. Two features, 6 open tasks, no external blocker: the cheapest item here is also the most urgent.
+2. **[[PHASE-023]] — [[FEAT-0062]] (if ISS-0126 spares it), plus [[RISK-0005]].** Closing the nearest phase. Five unresolved children against twenty-five resolved; the work is small and the value is a phase that stops being 83% forever. RISK-0005 needs mitigation or an accepted rationale — the write surface it names is now shipped, so the risk is live rather than anticipated.
+3. **[[PHASE-024]] — [[FEAT-0063]] first.** The acceptance runner. It closes a door-to-nothing this release *created*: [[FEAT-0088]] marks a feature `acceptance: requested` and offers no way to run it, which the leg-1 record already lists as a reconciled-not-ticked criterion. It also makes the release gate real rather than notional — the Tier 1/2/3 suite exists now, and FEAT-0063 is what walks it. Then FEAT-0064 (gate), FEAT-0065 (debt), FEAT-0066 (visual evidence). [[REQ-0028]] advances to `implemented` at close-out; [[ISS-0096]] resolves here.
+4. **[[PHASE-025]] — the design bench.** Deliberately fourth and not later: it is the only phase with **no issues, no risks, no requirements and no external gate** — 4 features, 12 tasks, entirely self-contained. It can therefore run in parallel with any of the above whenever something else blocks, which is the role it should play rather than a queue position.
+5. **[[PHASE-027]] — last, and it earns it.** 28 unresolved children, every one of them. Its three requirements ([[REQ-0029]], [[REQ-0030]], [[REQ-0031]]) are still `draft` and its design [[DES-0009]] is still `draft` — so it opens with **approval work, not build work**. [[RISK-0006]] (compounding wrong judgment at machine speed) must be mitigated before an unattended loop runs at all. Everything the worker delegates is a judgment the earlier phases made human-ownable, so it is genuinely last rather than conventionally last.
+
+**The one hard ordering:** PHASE-027 after PHASE-024. The worker delegates acceptance; acceptance must exist and be recorded before anything may be delegated to a machine.
+
 ## Verification
 
 ### Acceptance Tests
 
-**None exist yet, and that is a scope item rather than an omission.** The Tier 1/2/3 contract in `tools/instructions/TESTING.md` has never been instantiated in this repo — 85 features, 23 test notes, zero tier classification, and a release gate that has never been able to fire. [[FEAT-0086]] / [[TASK-0373]] creates the suite.
+**The suite now exists** — created by [[FEAT-0086]] / [[TASK-0373]], which is what the original text below said was still missing. `docs/tests/ACCEPTANCE_TESTS.md` holds 27 Tier 1, 7 Tier 2 and 2 Tier 3 items.
 
-So this release is **drafted at step 1 and gated at step 6**. Until then its verification section is honestly empty, not passing.
+- **Tier 1 (Feature Tests):** 27 items, 11 walked as of 2026-08-11
+- **Tier 2 (Regression Tests):** 7 items, 5 walked
+- **Tier 3 (Verification Tests):** 2 items, 1 walked
 
-- **Tier 1 (Feature Tests):** to be created by [[TASK-0373]]
-- **Tier 2 (Regression Tests):** to be created — [[ISS-0121]], [[ISS-0125]] and [[ISS-0124]] each want one
-- **Tier 3 (Verification Tests):** n/a
+**The widened scope widens this too, and the suite does not yet know it.** Those 36 items were written against leg 1. Sixteen more features, each with acceptance criteria, will add Tier 1 items — so the gate's denominator grows as leg 2 lands, and a green gate today would not be a green gate for the release. **Each leg-2 feature adds its Tier 1 items at close-out**, rather than a sweep at the end; that is the rule this release should establish, since a suite written after the fact is written by someone reading the diff rather than the intent.
+
+The original entry read: *"None exist yet, and that is a scope item rather than an omission… 85 features, 23 test notes, zero tier classification, and a release gate that has never been able to fire."* Kept because the gate firing at all is the thing leg 1 bought.
 
 ### Unit Tests
 
@@ -144,6 +197,8 @@ What remains needs a person at the keyboard — visual checks of rendered surfac
 
 **The obstacle, and what removed it.** The running shell was on the current renderer — its retirements were confirmed live, `tasks` and `review` gone from the top bar, `tests` present — but its Python sidecar predated this session and 404s on the new endpoints, so payload-dependent views rendered stale. Restarting Edwin's window is his call, not mine.
 
+**Settled 2026-08-11, and it cost a false bug report.** Edwin restarted it. The sidecar had been running since 2026-08-09 19:47 against code from 2026-08-10 20:48, and the gap produced two view complaints that were not view problems: the Tests view appeared to show phases and features (on stale code `mode=tests` is unknown, so `nav_payload` falls back to `DEFAULT_MODE = "features"` and renders the features tree under the Tests label), and tasks appeared to be missing under features (they were added by [[TASK-0366]], which that process had never loaded). Both were correct in the code the whole time. Sidecars are an editable install, so they need no rebuild — but a running process never re-imports, and the SSE soft-reload refreshes documents only, never Python modules. **Nothing restarts a sidecar when the code changes and nothing says one is stale**, which on the one repo whose code *is* the cockpit means the developer sees yesterday's tool while reading today's record.
+
 So the harness got built instead: **`desktop/harness/live-harness.html`** runs the built bundle against a *real* sidecar in a plain browser. Its sibling `overview-harness.html` stubs the sidecar with captured fixtures — right for looking at a layout, useless for verifying a release, because it shows the payloads of the day it was written. This one stubs only the Electron bridge.
 
 The harness also confirmed, by eye, three things this release built and nothing had looked at: the **digest band renders first on the overview**, above the focus band, headed *"Since this cockpit first ran"* with `Caught up` at its foot ([[FEAT-0071]]); the **Intent view opens on the standing set** — `What this project is · 8` — with `Risks · 6 · open` beneath it, where [[ISS-0128]] moved them; and the **record column carries `Reviewed · 104`**, [[TASK-0377]]'s re-homed register in its new home.
@@ -155,6 +210,8 @@ Three things the harness cost, each recorded in the file because each failed by 
 **No exceptions are claimed, and that is a decision.** The contract permits a test to be marked a release exception *"if it cannot be completed"*, documented with justification. The remaining seventeen can be completed; they simply have not been. Granting myself exceptions to clear a gate created the same day would hollow it out on its first use — which is the one thing that would make this feature worse than not having built it.
 
 So the release stays `draft`, which `STATUSES.md` defines as *"prepared and verified, not yet live"* — prepared, and awaiting the half of the verification that is a person's.
+
+**Since 2026-08-11 that is no longer the only thing it waits on.** With the definition widened, `draft` now means what it should have meant from the start: five phases open, 76 unresolved children, and a suite whose denominator has not finished growing. The seventeen unwalked checks are a leg-1 debt inside a release that is roughly a fifth built. Walking them is still worth doing early — they guard what already shipped, and evidence collected months after the fact is evidence about a different codebase.
 
 **What the last seventeen actually need**, so the pass is minutes rather than an hour:
 
@@ -172,9 +229,13 @@ The last row is ten of the seventeen and needs no app restart: serve the repo an
 - **[[FEAT-0090]]**: the desk's button and mode are gone and migrate; the **route stays served**. `.cockpit/review-requests.json` holds one OPEN entry, and retiring the route would strand it. Where proposals, questions and offered designs land is [[ISS-0126]] — one of the four decisions this note reserves.
 - **[[FEAT-0088]]**: a feature at `acceptance: requested` is marked but offers no run, because [[FEAT-0063]]'s runner does not exist. A door to nothing teaches the reader the feature works.
 
+**Both are now in scope rather than reconciled away.** [[FEAT-0063]] is step 3 of leg 2, so the second door leads somewhere before this release ships; and [[ISS-0126]], which the first bullet defers to, is step 0. Reconciling a criterion is the right move when the gap outlives the release — neither of these does any more.
+
 ### Still reserved for Edwin
 
-Unchanged, and none of them blocked the work: [[ISS-0126]], [[ADR-0010]] (still `proposed`, and the constraints view's single obligation), [[ISS-0127]], and the cutoff for the 81 unreviewed `CHG-*` notes ahead of [[ADR-0011]]'s 2026-10-23 deadline.
+Three of the four are unchanged and none blocked leg 1: [[ADR-0010]] (still `proposed` — it gates PHASE-029, which is now explicitly deferred, so it no longer sits on the critical path), [[ISS-0127]], and the cutoff for the 81 unreviewed `CHG-*` notes ahead of [[ADR-0011]]'s 2026-10-23 deadline.
+
+**[[ISS-0126]] has been promoted out of this list.** It is step 0 of leg 2 and the only reserved decision that now blocks work — it decides whether [[FEAT-0062]] is in the release at all, and PHASE-023 cannot close either way until it is answered.
 
 ### The goal it serves
 
@@ -184,6 +245,10 @@ The record already states it, and no separate goal document is needed — [[ISS-
 
 Every feature in this release serves one clause of that sentence. [[FEAT-0089]] and [[FEAT-0091]] make the record stop asserting things that are not true; [[FEAT-0087]], [[FEAT-0086]] and [[FEAT-0088]] put what is owed where its subject lives; [[FEAT-0059]]/[[FEAT-0060]]/[[FEAT-0061]] make those judgments the person's to discharge.
 
-### Caveat — maintained by hand
+**And the last clause is why leg 2 exists.** *"…governs a project they did not write"* is not satisfied by seeing and judging alone. Governing includes accepting the result ([[PHASE-024]]), settling the shape before it is built ([[PHASE-025]]), being told what happened while away ([[PHASE-026]]), and being able to be away at all ([[PHASE-027]]). Leg 1 built the levers; the goal names what the levers are for. The widened definition is the goal read to its end rather than a new ambition bolted on.
 
-[[FEAT-0072]]'s release surface is deferred to PHASE-026's remainder, so nothing renders this note and nothing computes its unshipped set. Until then it is hand-maintained, and it will drift unless someone updates it as features land. That is a known cost of writing the first release note before the surface that displays it.
+### Caveat — maintained by hand, and for how much longer
+
+[[FEAT-0072]]'s release surface would render this note and compute its unshipped set. Until it exists, this note is hand-maintained and drifts — **which it demonstrably did**: [[FEAT-0078]] was absent from the deferred table above, discovered only by counting PHASE-027's features rather than reading them.
+
+**That is now a scope item rather than a standing cost.** FEAT-0072 is step 1 of leg 2, deliberately first, so the window in which this note is hand-maintained is as short as the plan can make it. The original caveat read: *"a known cost of writing the first release note before the surface that displays it"* — correct, and the right response to a known cost is to stop paying it early rather than to note it repeatedly.
