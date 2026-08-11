@@ -199,7 +199,21 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **7 more on 2026-08-11**, so **23 of 34 are walked and 11 remain unchecked** — the gate is still red.
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **11 more on 2026-08-11 and one unticked**, so **26 of 34 are walked and 8 remain** — the gate is still red.
+
+The second day's passes were the *rendered pane* row and then the *write to the record* row — the latter against an **isolated clone** of this repo, so a probe tick, a probe capture and a probe test run drove the real endpoints without leaving probe writes in the record.
+
+**They cost three defects, all filed, none of them visible to the 1137-test suite:**
+
+| | what it breaks |
+|---|---|
+| [[ISS-0136]] | five of nine design artifacts are dark-only |
+| [[ISS-0137]] | **a criterion containing inline markup cannot be ticked at all** — 26 of this corpus's 53 open criteria, and the button accepts your evidence before refusing |
+| [[ISS-0138]] | **the browser front door's nav and context panes throw on every page** — `groupIsSettled` is called four times in `cockpit.js` and defined only in a mode-3 plain script |
+
+[[ISS-0137]] lands on [[FEAT-0060]], which is *in this release*; [[ISS-0138]] lands on [[PHASE-029]], which is deferred from it. Neither was found by reading code — both took driving the surface, which is the case for keeping a manual suite at all.
+
+**[[REQ-0028]]'s own standard applied to this pass:** one check was **unticked** on 2026-08-11 after being ticked the same morning. 1.11.1 had compared a clean repo against a clean terminal — true, and vacuous. Driven against a dirty one the count still matched exactly, and the surface named none of the four erroring notes, which is half of what the check asks. A green that was green for the wrong reason is worse than red.
 
 *The 2026-08-10 figure was written as "seventeen", which counted the one Tier 3 check against a Tier 1/2 denominator. Corrected on the recount; the suite carries the same correction and the reason for it.*
 

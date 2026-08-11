@@ -39,12 +39,12 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 91
-  ISS: 136
+  ISS: 138
   PHASE: 31
   REQ: 33
   RISK: 6
   REL: 1
-  TASK: 385
+  TASK: 386
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -154,7 +154,7 @@ items:
       title: "The harness survey — a repeatable pass over adjacent agent tools whose output is filed issues and recorded declines, not prose"
       status: doing
       phase: "[[PHASE-028-Borrowed-Capability]]"
-      tasks: [TASK-0340, TASK-0341, TASK-0342]
+      tasks: [TASK-0340, TASK-0341, TASK-0342, TASK-0386]
       note: "The first round found a hole in an UNBUILT phase (FEAT-0076's invariant misses permission prompts) — invisible from inside. Declining is recorded as carefully as adopting; that is the point, not a longer backlog."
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
@@ -2456,7 +2456,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 91
     features_done: 82
-    tasks_total: 385
+    tasks_total: 386
     tasks_done: 362
     tests_total: 23
     tests_passing: 23
@@ -2464,7 +2464,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 7
+    issues_triage: 9
     risks_open: 5
     releases_total: 1
     decisions_total: 13

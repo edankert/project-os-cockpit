@@ -7,7 +7,7 @@ status: doing
 phase: "[[PHASE-028-Borrowed-Capability]]"
 owner: user:edwin
 created: 2026-08-05
-updated: 2026-08-05
+updated: 2026-08-11
 source: ["Edwin 2026-08-05: 'create a separate feature to consider porting more t3.codes functionality/features'"]
 goal: "Turn the one-off t3.codes comparison into a repeatable survey: a named method, a living not-taken list, and a round whose output is filed work — so adjacent tools are mined deliberately instead of whenever someone remembers."
 requirements: []
@@ -15,6 +15,7 @@ tasks:
   - "[[TASK-0340-The-Survey-Method]]"
   - "[[TASK-0341-The-Not-Taken-List]]"
   - "[[TASK-0342-The-T3-Backlog]]"
+  - "[[TASK-0386-The-Omnigent-Round]]"
 release: ""
 related: ["[[FEAT-0078-Turn-Checkpoints]]", "[[FEAT-0079-Supervision-From-A-Phone]]", "[[ISS-0094-Permission-Prompts-Are-Detected-But-Not-Answerable]]", "[[ISS-0095-The-Agent-Roster-Is-Hard-Coded]]", "[[ISS-0096-No-Surface-Says-What-Changed]]"]
 tests: []
