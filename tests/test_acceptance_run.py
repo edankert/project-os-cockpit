@@ -87,15 +87,31 @@ def test_an_incomplete_run_logs_but_stamps_nothing(docs: Path) -> None:
     assert result["accepted"] is False
 
 
-def test_a_feature_that_never_asked_is_refused(docs: Path) -> None:
-    """Stamping a feature nobody asked about manufactures a judgment."""
-    _feature(docs, "FEAT-9003", acceptance="")
-    with pytest.raises(note_writes.WriteError) as exc:
-        note_writes.stamp_acceptance_run(
-            Index.build(docs), "FEAT-9003",
-            passed=1, failed=0, skipped=0, actor="user:edwin",
-        )
-    assert "not requested acceptance" in exc.value.message
+def test_a_feature_that_never_asked_is_logged_but_not_stamped(docs: Path) -> None:
+    """The run records; the STAMP is what requires the opt-in.
+
+    DES-0006's second entry point is the feature note itself, "for accepting
+    anything on demand, opted-in or not" — so refusing the whole call would
+    make a walk impossible on most features. What must not happen is
+    `accepted_by` on a feature nobody asked about.
+
+    An earlier cut refused outright, and was caught walking a real run against
+    FEAT-0063, which carries no `acceptance:` field at all.
+    """
+    path = _feature(docs, "FEAT-9003", acceptance="")
+    result = note_writes.stamp_acceptance_run(
+        Index.build(docs), "FEAT-9003",
+        passed=1, failed=0, skipped=0, actor="user:edwin",
+    )
+    text = path.read_text(encoding="utf-8")
+
+    assert "## Acceptance runs" in text, "the walk was not recorded at all"
+    assert result["accepted"] is False
+    assert "accepted_by" not in text, "stamped a feature that never asked"
+    assert "not accepted (acceptance was not requested)" in text, (
+        "the log line does not say why it did not stamp — a completed walk "
+        "would read as an acceptance"
+    )
 
 
 def test_an_incomplete_run_may_log_against_a_feature_that_did_not_ask(docs: Path) -> None:

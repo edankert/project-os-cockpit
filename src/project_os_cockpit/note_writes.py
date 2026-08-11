@@ -315,6 +315,34 @@ def _criterion_text(line: str) -> str | None:
     return body
 
 
+_ACCEPTANCE_HEADING_RE = re.compile(r"^##\s+Acceptance(\s+Criteria)?\s*$", re.IGNORECASE)
+
+
+def _append_criterion_box(lines: list[str], text: str) -> list[str]:
+    """Add an unticked box for a declared criterion, creating the section.
+
+    Written unticked and then rewritten by the caller, rather than written
+    already-ticked: one code path composes every stamped line, so the tick and
+    the reconcile forms cannot drift from the shapes REQ-BOXES parses.
+    """
+    out = list(lines)
+    for i, line in enumerate(out):
+        if not _ACCEPTANCE_HEADING_RE.match(line):
+            continue
+        # End of that section: the next `##`, or the end of the note.
+        j = i + 1
+        while j < len(out) and not re.match(r"^##\s", out[j]):
+            j += 1
+        while j - 1 > i and not out[j - 1].strip():
+            j -= 1
+        out.insert(j, f"- [ ] {text}")
+        return out
+    while out and not out[-1].strip():
+        out.pop()
+    out.extend(["", "## Acceptance Criteria", "", f"- [ ] {text}"])
+    return out
+
+
 def stamp_tick(
     index: Index,
     note_id: str,
@@ -355,7 +383,29 @@ def stamp_tick(
         if _criterion_text(line) == wanted
     ]
     if not matches:
-        raise WriteError(f"no criterion on {note_id} reads {wanted!r}")
+        # **The criteria-of-record case** (TASK-0288). A requirement may declare
+        # its criteria in frontmatter `acceptance:` and carry no checkboxes at
+        # all — REQ-BOXES calls that "no verification record", and it is
+        # precisely the state an acceptance run exists to move out of. REQ-0028
+        # is in it today: four criteria, zero boxes.
+        #
+        # So a first tick may CREATE the box, and the guard is that the
+        # criterion must appear **verbatim in that note's own `acceptance:`
+        # list**. Without it this verb would become "write any line into any
+        # note"; with it, the runner can only record verdicts on criteria the
+        # record already declares.
+        record = index.get(path)
+        declared = (record.frontmatter.get("acceptance") if record else None) or []
+        declared = [str(x).strip() for x in declared] if isinstance(declared, list) else []
+        if wanted not in declared:
+            raise WriteError(f"no criterion on {note_id} reads {wanted!r}")
+        lines = _append_criterion_box(lines, wanted)
+        matches = [
+            i for i, line in enumerate(lines)
+            if _criterion_text(line) == wanted
+        ]
+        if not matches:                       # pragma: no cover — defensive
+            raise WriteError(f"could not record a criterion box on {note_id}")
     if len(matches) > 1:
         raise WriteError(
             f"{len(matches)} criteria on {note_id} read {wanted!r} — "
@@ -1329,12 +1379,16 @@ def stamp_acceptance_run(
     text = path.read_text(encoding="utf-8")
     fm_lines, body = _split_frontmatter(text)
     requested = _get_field(fm_lines, "acceptance").strip().strip('"').lower()
-    if complete and requested != "requested":
-        raise WriteError(
-            f"{feature_id} has not requested acceptance (acceptance: "
-            f"{requested or 'unset'}); a completed run may not stamp a feature "
-            "nobody asked about"
-        )
+    # **The run is always recorded; only the STAMP is conditional** (DES-0006).
+    # The feature-note entry point exists "for accepting anything on demand,
+    # opted-in or not", so refusing the whole call would make a walk impossible
+    # on any feature that had not opted in — which is most of them. What must
+    # not happen is `accepted_by` appearing on a feature nobody asked about,
+    # because that manufactures a judgment.
+    #
+    # An earlier cut refused the call outright and was caught walking a real
+    # run against FEAT-0063, which carries no `acceptance:` field at all.
+    stamps = complete and requested == "requested"
 
     witness = (actor or "").strip() or "unassigned"
     today = _today()
@@ -1346,6 +1400,8 @@ def stamp_acceptance_run(
     )
     if not complete:
         outcome += " · INCOMPLETE"
+    elif not stamps:
+        outcome += " · not accepted (acceptance was not requested)"
 
     heading_match = _ACCEPTANCE_RUNS_RE.search(body)
     block = f"### {today} — {witness} — {outcome}"
@@ -1358,7 +1414,7 @@ def stamp_acceptance_run(
         head, tail = body[:cut], body[cut:]
         body = head.rstrip("\n") + "\n\n" + block + "\n\n" + tail.lstrip("\n")
 
-    if complete:
+    if stamps:
         fm_lines = _set_field(fm_lines, "accepted_by", witness)
         fm_lines = _set_field(fm_lines, "accepted_date", today)
         fm_lines = _set_field(fm_lines, "acceptance", "accepted")
@@ -1370,6 +1426,10 @@ def stamp_acceptance_run(
         "witness": witness,
         "date": today,
         "complete": complete,
-        "accepted": complete,
+        "accepted": stamps,
+        # Said out loud so the surface can report it: a completed walk on a
+        # feature that never opted in is a recorded run and NOT an acceptance,
+        # and silence about that difference is how one would read as the other.
+        "requested": requested or "",
         "outcome": outcome,
     }

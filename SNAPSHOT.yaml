@@ -215,7 +215,7 @@ items:
     FEAT-0063:
       file: "docs/features/acceptance-runner/FEAT-0063-The-Acceptance-Runner.md"
       title: "The acceptance runner — a feature's criteria walked one at a time; pass ticks with a witness, fail files the issue, the run leaves a log"
-      status: planned
+      status: done
       phase: "[[PHASE-024-Acceptance-Witnessed]]"
       tasks: [TASK-0287, TASK-0288, TASK-0289, TASK-0290]
       note: "The desk's manual-test runner generalised. Tasks minted at pickup — PHASE-023's verbs must exist first."
@@ -727,18 +727,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
-    TASK-0288:
-      file: "docs/features/acceptance-runner/plan/tasks/TASK-0288-The-Runner-Surface.md"
-      title: "The runner surface — one criterion at a time, four verbs, progress named"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0063
-    TASK-0290:
-      file: "docs/features/acceptance-runner/plan/tasks/TASK-0290-The-Queue-Entry-And-Resolution.md"
-      title: "The awaiting-acceptance queue entry resolves through the run"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0063
     TASK-0291:
       file: "docs/features/acceptance-gate/plan/tasks/TASK-0291-The-Field.md"
       title: "The acceptance field — absent / requested / accepted — in template and taxonomy, divergence recorded"
@@ -2653,9 +2641,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 69
+    features_done: 70
     tasks_total: 385
-    tasks_done: 323
+    tasks_done: 325
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

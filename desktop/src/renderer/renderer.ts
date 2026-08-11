@@ -1026,6 +1026,25 @@ function buildDocHeader(data: RenderResponse, rel: string): HTMLElement {
       right.appendChild(btn);
     }
   }
+  // `Start acceptance run` — DES-0006's second entry point, on the feature
+  // note itself, "for accepting anything on demand, opted-in or not". The
+  // queue entry is the other one (TASK-0290).
+  if (noteType === 'feature' && fmId) {
+    const run = document.createElement('button');
+    run.type = 'button';
+    run.className = 'doc-header-verb';
+    const requested =
+      String((data.frontmatter as Record<string, unknown> | undefined)?.acceptance ?? '')
+        .trim().toLowerCase() === 'requested';
+    run.textContent = requested ? '▶ Accept…' : 'Accept…';
+    run.title = requested
+      ? `${fmId} has requested acceptance — walk its criteria`
+      : `Walk ${fmId}'s acceptance criteria (it has not requested acceptance)`;
+    run.addEventListener('click', () => {
+      void navigateTo(`~accept/${fmId.toUpperCase()}`);
+    });
+    right.appendChild(run);
+  }
   appendIf(right, statusChip(currentNoteStatus || undefined));
   if (right.childElementCount > 0) row.appendChild(right);
   bar.appendChild(row);
