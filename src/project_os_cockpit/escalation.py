@@ -43,6 +43,16 @@ DEFAULT_POLICY: dict[str, dict[str, Any]] = {
     # on it, so alarming would be noise — but it is NOT silent, because it
     # sits in the queue with its age.
     "annotation": {"timeout_hours": None, "default": None},
+    # A tool-permission prompt (ISS-0094). **No default, deliberately**: a
+    # permission request asks to take an action with effects outside the
+    # record, so lapsing it into "yes" would be the system granting itself
+    # authority nobody delegated, and lapsing into "no" would silently change
+    # what the agent did. It has a short timeout that makes it ALARM.
+    #
+    # This is the entry that closes the hole: without it, the most likely way
+    # an unattended worker stops — "may I run this command?" — is the one way
+    # the alarm could not see, because a permission prompt is not a queue entry.
+    "permission": {"timeout_hours": 1, "default": None},
 }
 
 #: Kinds whose judgment may never be assumed. Empty today and deliberately

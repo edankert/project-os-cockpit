@@ -1401,7 +1401,7 @@ items:
     ISS-0094:
       file: "docs/issues/ISS-0094-Permission-Prompts-Are-Detected-But-Not-Answerable.md"
       title: "An agent's permission prompt is detected but not answerable, so the one thing most likely to stall an unattended worker sits outside the queue the stall alarm watches"
-      status: open
+      status: fixed
       severity: high
       phase: "[[PHASE-027-The-Standing-Worker]]"
       note: "THE find of the t3.codes round. FEAT-0076's invariant — nothing waits silently without bound — watches the review QUEUE; a tool-permission prompt is not a queue entry, so the likeliest way an unattended worker stalls is the way the alarm cannot see. A defect in something already designed, not a new want."
@@ -2505,7 +2505,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 2
+    issues_open: 1
     issues_triage: 6
     risks_open: 5
     releases_total: 1

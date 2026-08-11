@@ -48,6 +48,8 @@ from . import inbox as inbox_mod
 from .watermark import Watermark
 from . import obligations as _obligations
 from . import review
+from .approvals import ApprovalStore
+from . import escalation
 from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
 from .validation import ValidationRunner
@@ -621,6 +623,7 @@ def _make_handler(
     # a proposal can wait days — and deliberately separate from note
     # state: pending-ness is runtime, verdicts live in the notes.
     review_store = ReviewStore(project_root)
+    approval_store = ApprovalStore(project_root)
     # Lazy-instantiated; ttyd doesn't actually spawn until the first
     # /api/terminal request (the JS client only fetches when the user
     # opens the bottom panel). cockpit_url is propagated into the
@@ -719,6 +722,10 @@ def _make_handler(
             if path == "/api/notes/create":
                 self._serve_note_create()
                 return
+            if path == "/api/cockpit/approve":
+                self._serve_approve()
+                return
+
             if path == "/api/notes/choose-variant":
                 self._serve_choose_variant()
                 return
@@ -853,6 +860,18 @@ def _make_handler(
                 self._respond_json(cockpit.change_shape_payload(
                     project_root, (params.get("id") or [""])[0].strip(),
                 ))
+                return
+
+            # Permission prompts as durable state (ISS-0094) — so they can be
+            # answered from here and counted by the same clock as the queue.
+            if path == "/api/cockpit/approvals":
+                open_prompts = approval_store.open_prompts()
+                self._respond_json({
+                    "approvals": open_prompts,
+                    # The escalation state per prompt, so the surface shows the
+                    # clock rather than only the amber.
+                    "escalation": escalation.sweep(open_prompts)["counts"],
+                })
                 return
 
             if path == "/api/cockpit/acceptance-debt":
@@ -1928,6 +1947,42 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            self._respond_json({"ok": True, "result": result})
+
+        def _serve_approve(self) -> None:
+            """``POST /api/cockpit/approve`` — answer a permission prompt.
+
+            Loopback-guarded like every write path. It changes runtime state
+            rather than `docs/`, but it authorises an agent to act, which is a
+            larger thing than editing a note.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            extra = set(body) - {"approval_id", "decision", "actor"}
+            if extra:
+                self._respond_json(
+                    {"ok": False, "error": f"unsupported fields: {sorted(extra)}"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                result = approval_store.answer(
+                    str(body.get("approval_id") or ""),
+                    decision=str(body.get("decision") or ""),
+                    actor=str(body.get("actor") or ""),
+                )
+            except ValueError as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            if result is None:
+                self._respond_json({"ok": False, "error": "no such approval"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+            bus.publish(ControlEvent("cockpit:approval", result))
             self._respond_json({"ok": True, "result": result})
 
         def _serve_choose_variant(self) -> None:
