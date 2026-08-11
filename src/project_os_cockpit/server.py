@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from . import (
-    acceptance, agents, cockpit, note_writes, renderer, templates,
+    acceptance, agents, cockpit, criteria, note_writes, renderer, templates,
     terminal_proxy,
 )
 from .agent_actions import load_actions
@@ -820,6 +820,15 @@ def _make_handler(
                         record.status if record else None,
                     ),
                 })
+                return
+
+            # The acceptance runner's input (TASK-0287). A GET: it reads the
+            # criteria and their state and writes nothing — a run's writes go
+            # through the guarded `note_writes` verbs, not through here.
+            if path == "/api/notes/acceptance":
+                params = urllib.parse.parse_qs(parsed.query)
+                feature_id = (params.get("id") or [""])[0].strip()
+                self._respond_json(criteria.payload(index, feature_id))
                 return
 
             if path == "/api/cockpit/transitions":

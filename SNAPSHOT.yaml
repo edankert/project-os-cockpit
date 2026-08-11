@@ -727,12 +727,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
-    TASK-0287:
-      file: "docs/features/acceptance-runner/plan/tasks/TASK-0287-The-Criteria-Payload.md"
-      title: "The criteria payload — a feature's requirements' criteria with their resolved states, from the parse the validator already trusts"
-      status: backlog
-      phase: "[[PHASE-024-Acceptance-Witnessed]]"
-      parent: FEAT-0063
     TASK-0288:
       file: "docs/features/acceptance-runner/plan/tasks/TASK-0288-The-Runner-Surface.md"
       title: "The runner surface — one criterion at a time, four verbs, progress named"
@@ -2667,7 +2661,7 @@ metrics:
     features_total: 91
     features_done: 69
     tasks_total: 385
-    tasks_done: 321
+    tasks_done: 322
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

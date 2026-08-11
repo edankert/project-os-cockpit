@@ -55,3 +55,24 @@ It is `planned`, unchanged since before the decision that removes its subject.
 - [ ] Decide: cancel, re-point re-review at the owning view, or keep and defer
 - [ ] If cancelled, record what survives — the dispatch machinery and [[ISS-0121]]'s inverse case are both real and independent of this feature
 - [ ] Update [[PHASE-023]]'s feature list so the phase's scope matches what it will build
+
+## Re-measured 2026-08-11 — the evidence is unchanged, and this is the last thing holding PHASE-023
+
+Working [[REL-0001]]'s leg 2, [[PHASE-023]] reduced to **exactly this decision**: its only unresolved children are [[FEAT-0062]], its two tasks, and this issue. [[RISK-0005]] closed today, so nothing else stands between the keystone phase and `done`.
+
+Both states re-counted against the live corpus:
+
+| state | count |
+|---|---|
+| `changes-requested` notes | 10 |
+| …whose subject is **not** terminal — the genuine obligation | **0** |
+| review-ledger entries | 8 |
+| …of kind `question` | **0** |
+
+So the position is exactly as filed on 2026-08-10, with a day's more evidence and the desk now actually gone ([[FEAT-0090]] shipped).
+
+**Not decided here, deliberately.** The snapshot records this as *"BLOCKED PENDING A HUMAN DECISION, do not guess"*, and cancelling a feature in the keystone phase is a scope call with an owner. Cancelling is reversible — the note stays, `cancelled` is a status — but it is still Edwin's.
+
+**What the record points at**, stated so the decision is one reading rather than a re-investigation: *cancel it, and keep the inverse case*. Both verbs address states that do not occur, on a surface that no longer exists. The one thing worth preserving is the case [[ISS-0121]]'s fix already preserves — a `changes-requested` note whose subject is **not** terminal is a genuine obligation, and if one ever appears it surfaces in the view owning that note's type, which is where [[ADR-0020]] puts it. The dispatch machinery FEAT-0062 would have used already exists and is not lost.
+
+Once answered, PHASE-023 closes with its exit criteria in the same pass.
