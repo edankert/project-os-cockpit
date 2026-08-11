@@ -13620,6 +13620,7 @@ async function fillRecordColumn(
     health.className = 'ctx-note';
     body.appendChild(health);
     void fillVerificationHealth(health);
+  void fillRuntimeFreshness(health);
     rightPaneContent.appendChild(card);
   }
 
@@ -14155,6 +14156,50 @@ async function fillVerificationHealth(target: HTMLElement): Promise<void> {
     more.textContent = `+${errorRows.length - named.length} more`;
     target.parentElement?.appendChild(more);
   }
+}
+
+/** Say so when the running code is older than the code on disk (ISS-0140).
+ *
+ *  Two long-running processes, the same trap. A sidecar never re-imports;
+ *  a renderer bundle is read once at window creation. Neither notices a
+ *  rebuild, and nothing on screen said so — which cost a false bug report
+ *  on 2026-08-10 (a stale sidecar rendering the Tests view as Features)
+ *  and a false observation on 2026-08-11 (a shell running 1 day 23 hours,
+ *  showing agent chips for notes nobody had touched).
+ *
+ *  **Reports, never reloads.** Reloading a window under someone mid-session
+ *  is worse than the staleness. This is an obligation the reader
+ *  discharges, in the voice the surface already uses for `validator: N`.
+ *
+ *  The window's own age is `performance.timeOrigin` — when *this* document
+ *  began, which is when the bundle was read. Comparing it to the newest
+ *  asset mtime is the whole check.
+ */
+async function fillRuntimeFreshness(target: HTMLElement): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  let stale: string[] = [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/runtime`);
+    if (!resp.ok) return;                       // older sidecar: no line
+    const r = (await resp.json()) as {
+      sidecar_stale?: boolean; assets_newest?: number;
+    };
+    if (r.sidecar_stale) stale.push('sidecar');
+    const built = (r.assets_newest ?? 0) * 1000;
+    if (built && built > performance.timeOrigin) stale.push('window');
+  } catch { return; }
+  if (!currentRel || !currentRel.startsWith('~overview')) return;
+  target.parentElement?.querySelectorAll('.ctx-stale-row').forEach((n) => n.remove());
+  if (!stale.length) return;
+
+  const p = document.createElement('p');
+  p.className = 'ctx-note is-warn ctx-stale-row';
+  // Names WHICH one, because the two need different actions: a sidecar
+  // restarts itself on reopen, a window needs relaunching.
+  p.textContent = stale.length === 2
+    ? 'sidecar and window are older than the code — restart to trust this'
+    : `${stale[0]} is older than the code — restart to trust this`;
+  target.parentElement?.appendChild(p);
 }
 
 function buildRecordDisclosure(

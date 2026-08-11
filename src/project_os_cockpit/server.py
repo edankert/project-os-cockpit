@@ -27,6 +27,7 @@ import os
 import queue
 import subprocess
 import threading
+import time as _time
 import time
 import urllib.parse
 from http import HTTPStatus
@@ -804,6 +805,10 @@ def _make_handler(
                 self._serve_cockpit_identity()
                 return
 
+            if path == "/api/cockpit/runtime":
+                self._serve_cockpit_runtime()
+                return
+
             if path == "/api/cockpit/obligations":
                 self._respond_json(_obligations.badges_payload(index))
                 return
@@ -1317,6 +1322,62 @@ def _make_handler(
             )
             bus.publish(ControlEvent("cockpit:agent-state", payload))
             self._respond_json({"ok": True})
+
+        def _serve_cockpit_runtime(self) -> None:
+            """``GET /api/cockpit/runtime`` — is what you are looking at built
+            from the code that is on disk? (ISS-0140)
+
+            **Two long-running processes, the same trap, twice in two days.**
+            A sidecar is an editable install, so it needs no rebuild — but a
+            running process never re-imports, and the SSE soft-reload
+            refreshes documents, never modules. The renderer has the same
+            shape for a different reason: `dist/renderer/*.js` is read once at
+            window creation and nothing reloads it when a build rewrites the
+            files underneath.
+
+            Both cost the same thing when they go unnoticed, and it is not
+            the stale code — it is hours spent investigating a defect that
+            does not exist. On 2026-08-10 a stale sidecar produced two bug
+            reports that were not bugs. On 2026-08-11 a shell running for
+            **1 day 23 hours** produced a third, caught only because somebody
+            checked the process table before writing it up.
+
+            So the answer is computed rather than remembered: the newest
+            mtime under the package (and under the shell's asset directory,
+            when the shell passed one) against the moment this process
+            started. A client compares the asset stamp to its own window
+            start; the sidecar's own answer needs no client help.
+
+            **Reporting, never reloading.** Reloading a window under someone
+            mid-session is worse than telling them, and this is an obligation
+            the reader discharges, not an action the tool takes.
+            """
+            def _newest(root: Path | None, suffixes: tuple[str, ...]) -> float:
+                if not root or not root.exists():
+                    return 0.0
+                newest = 0.0
+                for child in root.rglob("*"):
+                    if child.suffix not in suffixes or not child.is_file():
+                        continue
+                    try:
+                        newest = max(newest, child.stat().st_mtime)
+                    except OSError:
+                        continue
+                return newest
+
+            pkg = Path(__file__).resolve().parent
+            source_newest = _newest(pkg, (".py",))
+            assets_newest = _newest(shell_assets, (".js", ".css", ".html"))
+            self._respond_json({
+                "schema_version": cockpit.SCHEMA_VERSION,
+                "started_at": _PROCESS_STARTED_AT,
+                "source_newest": source_newest,
+                # The comparison, made here rather than left to each caller:
+                # one definition of "behind" is the point of the endpoint.
+                "sidecar_stale": source_newest > _PROCESS_STARTED_AT,
+                "assets_newest": assets_newest,
+                "assets_dir": str(shell_assets) if shell_assets else "",
+            })
 
         def _serve_cockpit_identity(self) -> None:
             """``GET /api/cockpit/identity`` — who is this sidecar?
@@ -3623,6 +3684,12 @@ import re as _re
 # back to the renderer, so two toggles in quick succession can race on
 # the same file. One lock per absolute path; lookups are themselves
 # guarded by a module lock so the dict mutation is safe.
+#: When this process began. Captured at import rather than asked for
+#: later: the question ISS-0140 needs answered is "is the running code
+#: older than the code on disk", and a value read at request time would
+#: be the wrong end of that comparison.
+_PROCESS_STARTED_AT = _time.time()
+
 _TASK_TOGGLE_LOCKS_MUTEX = threading.Lock()
 _TASK_TOGGLE_LOCKS: dict[str, threading.Lock] = {}
 
