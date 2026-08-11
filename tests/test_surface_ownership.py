@@ -503,7 +503,8 @@ def test_the_quick_palette_covers_every_type_bearing_mode() -> None:
     code = _renderer_code()
     block = code.split("const QUICK_CORPUS_MODES = [")[1].split("]")[0]
     modes = set(re.findall(r"'([a-z]+)'", block))
-    assert {"features", "issues", "design", "library"} <= modes, modes
+    # `design` became `intent` (TASK-0385) — the view was renamed, not removed.
+    assert {"features", "issues", "intent", "library"} <= modes, modes
     assert "tasks" not in modes, (
         "`features` already carries every task through its children; listing "
         "`tasks` too duplicates all of them in the palette"

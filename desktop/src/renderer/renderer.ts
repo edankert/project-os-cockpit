@@ -2976,7 +2976,7 @@ interface NavPayload {
 // TASK-0371 inserts `tests` after `issues`: it is the third structural view —
 // what we build, what is wrong with it, what proves it — and it must sit
 // before `review`, because the desk is what it is taking the register from.
-const NAV_MODES = ['overview', 'design', 'features', 'tasks', 'issues', 'tests', 'review', 'active', 'library', 'recent'] as const;
+const NAV_MODES = ['overview', 'intent', 'features', 'tasks', 'issues', 'tests', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -3201,10 +3201,10 @@ const CONTEXT_GROUP_FOLD_LIMIT = NAV_GROUP_FOLD_LIMIT;
 // entries — but nobody LANDS there any more, so it must not claim a
 // workspace-open landing.
 const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
-  'overview', 'design',
+  'overview', 'intent',
 ]);
 
-const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks', 'review'];
+const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks', 'review', 'design'];
 const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   active: 'overview',   // in-flight work is ambient on the overview now
   recent: 'overview',   // "what changed" is the commits panel
@@ -3221,6 +3221,11 @@ const RETIRED_MODE_FALLBACK: Record<string, NavMode> = {
   // became the badges on the view buttons — so `overview` is where somebody
   // whose stored mode says `review` actually wanted to be.
   review: 'overview',
+  // TASK-0385: the view is called Intent — the name Edwin agreed, which the
+  // obligation registry has used since FEAT-0089 while the nav kept the
+  // inherited `design`. Anyone whose stored preference still says `design`
+  // is migrated here rather than dropped into the features fallback.
+  design: 'intent',
 };
 
 function loadStoredNavMode(): NavMode {
@@ -3282,7 +3287,7 @@ async function refreshObligationBadges(): Promise<void> {
   // learning about `design` or the renderer learning about obligations.
   const MODE_FOR_VIEW: Record<string, string> = {
     overview: 'overview',
-    intent: 'design',     // the constraints view still answers to `design`
+    intent: 'intent',     // TASK-0385: it answers to its own name now
     features: 'features',
     issues: 'issues',
     tests: 'tests',
@@ -6666,7 +6671,9 @@ function buildStatTiles(data: StatsPayload): HTMLElement {
     buildStatTile('Issues', String(hero.issues.open),
       `open /${hero.issues.total}`, buckets.issues, mix.issues, 'issues'),
     buildStatTile('Risks', String(hero.risks.open),
-      `open /${hero.risks.total}`, buckets.risks, mix.risks, 'design'),
+      // The Risks tile lands on Intent, where ISS-0128 moved risks. The
+      // argument is a nav MODE, so it moved with the rename (TASK-0385).
+      `open /${hero.risks.total}`, buckets.risks, mix.risks, 'intent'),
   );
   wrap.appendChild(strip);
 
@@ -7892,11 +7899,15 @@ function initNavToolbar(): void {
     review:   '<rect x="8" y="2" width="8" height="4" rx="1"/>'
       + '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'
       + '<path d="m9 14 2 2 4-4"/>',
-    // Design: a drafting compass — the instrument you set a shape with
+    // Intent: a drafting compass — the instrument you set a shape with
     // before you build it, which is what this mode is for. Deliberately
     // not a paintbrush: the mode carries the project's identity and its
     // rules, not decoration.
-    design:   '<circle cx="12" cy="5" r="2"/><path d="M12 7v3"/>'
+    //
+    // Keyed by `data-mode` (TASK-0385): when the mode id became `intent`
+    // and this key did not, the lookup fell through to `TYPE_ICONS._default`
+    // and the button silently lost its compass.
+    intent:   '<circle cx="12" cy="5" r="2"/><path d="M12 7v3"/>'
       + '<path d="m10.5 10-5 10"/><path d="m13.5 10 5 10"/>',
     // Inbox: a tray. The one place things arrive before anyone has decided
     // what they are.
@@ -8094,7 +8105,7 @@ async function loadWsNav(): Promise<void> {
     void navigateTo(target, { replace: currentRel === target });
     return;
   }
-  if (currentNavMode === 'design') {
+  if (currentNavMode === 'intent') {
     // Unlike Overview and Review, Design has BOTH a nav list and a page:
     // the left pane lists the design system and the proposals, the main
     // pane frames whichever is open. So this does not return early — it
@@ -8657,7 +8668,7 @@ const ROLLUP_NOUNS: Record<string, { group: [string, string]; item: [string, str
   // never built for this mode. Leaving the entry out would make that a
   // coincidence of two functions agreeing rather than a stated fact.
   tests:    { group: ['group', 'groups'], item: ['test', 'tests'] },
-  design:   { group: ['group', 'groups'], item: ['design', 'designs'] },
+  intent:   { group: ['group', 'groups'], item: ['design', 'designs'] },
   library:  { group: ['group', 'groups'], item: ['note', 'notes'] },
   review:   { group: ['verdict', 'verdicts'], item: ['note', 'notes'] },
   active:   { group: ['group', 'groups'], item: ['item', 'items'] },
@@ -9877,7 +9888,7 @@ const QUICK_CORPUS_MODES = [
   // add all 384 a second time.
   'features',   // features + their requirements, plans and tasks
   'issues',     // issues + risks (FEAT-0047)
-  'design',
+  'intent',     // designs, decisions, risks, references (TASK-0385: was `design`)
   'library',    // pins + the Docs tree, incl. references and workflows
 ] as const;
 

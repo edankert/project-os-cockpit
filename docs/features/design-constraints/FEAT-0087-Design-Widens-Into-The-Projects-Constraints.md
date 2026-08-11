@@ -15,6 +15,7 @@ tasks:
   - "[[TASK-0374-Constraints-Membership]]"
   - "[[TASK-0375-Decide-And-Accept-On-The-Constraints-View]]"
   - "[[TASK-0379-Architecture-Becomes-A-Design]]"
+  - "[[TASK-0385-The-View-Is-Called-Intent]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0042-Design-Bench]]", "[[FEAT-0050-Library-Reduction]]", "[[FEAT-0077-The-Intent-Charter]]", "[[DES-0003-Intent-Page-And-Claims-Board]]"]
 tests: []
@@ -64,7 +65,7 @@ So a `reference/` note appears in both, as a file there and as a constraint here
 - [x] A `proposed` design and a `proposed` ADR appear as this view's obligations and are counted in its badge — marked on the row, from the registry, asserted to be the same predicate as the badge ([[TASK-0375]])
 - [x] Accepting a design still stamps `design_revision` through the existing guarded path — an approval given to one revision cannot launder another — **and the generic transition path, which had quietly become a second way in, now refuses designs with a 403**
 - [x] Requirements do **not** appear here; they remain nested under their features — 32 of them, deliberately unmoved
-- [~] The view has a name that covers its contents, agreed rather than inherited — **Intent** was agreed and the registry uses it, but the nav mode and the button still read `design`; the rename is a stored-preference migration of the [[TASK-0368]] kind and belongs with [[FEAT-0084]]'s view-vocabulary work, not bolted on here
+- [x] The view has a name that covers its contents, agreed rather than inherited — **Intent**, done in [[TASK-0385]] on 2026-08-11: the button, the mode id, the server's mode and the stored preference. This criterion was reconciled rather than ticked on the reasoning quoted below, and **both halves of that reasoning were wrong** — it is one front door, not two (mode 1 has never exposed this view), and the migration is existing machinery (`RETIRED_NAV_MODES`, four entries already). Edwin re-read [[FEAT-0084]] and found it declines naming decisions by its own scope, so the park had no owner
 
 ## Links
 
@@ -77,4 +78,8 @@ The membership landed in [[TASK-0374]]; the obligations in [[TASK-0375]], which 
 
 **[[ISS-0056]] had been quietly re-opened.** [[FEAT-0059]]'s generic human-transition table included `design: proposed → accepted`, so a design's actuator row offered an Accept that would have written `status: accepted` with no `design_revision` — an approval given to revision 3 covering revision 6, the failure `/api/design/verdict` was built to prevent. Unreachable in this corpus, because no design has ever been `proposed`; reachable by the first design anyone offers for review. The writer refuses it now, and the button carries the route that has to serve it.
 
-**The name is the one loose end**, and it is deliberate. Edwin agreed **Intent**; the registry's view is `intent` and the badge maps it; the mode id and the button label are still `design`, because renaming a mode means migrating a stored preference in two front doors, which is [[FEAT-0084]]'s subject and [[PHASE-029]]'s gate. The criterion is reconciled rather than ticked, so the gap is a decision with an owner instead of a claim.
+**The name was the one loose end, and it is closed** — [[TASK-0385]], 2026-08-11. What follows is the reasoning that deferred it, kept because the deferral was reasonable and still wrong.
+
+> *(superseded 2026-08-11)* **The name is the one loose end**, and it is deliberate. Edwin agreed **Intent**; the registry's view is `intent` and the badge maps it; the mode id and the button label are still `design`, because renaming a mode means migrating a stored preference in two front doors, which is [[FEAT-0084]]'s subject and [[PHASE-029]]'s gate. The criterion is reconciled rather than ticked, so the gap is a decision with an owner instead of a claim.
+
+**Measured when it was finally done:** *"two front doors"* was one — the browser cockpit's `NAV_MODES` is `library / features / issues / recent` and has never carried this view. *"a stored-preference migration"* was `RETIRED_NAV_MODES`, which already had four entries and took a fifth. The deferral was written while the surface was being built and never re-checked, which is the failure mode worth naming: **a reconciled criterion is a closed decision, and this one closed on a cost nobody measured.**

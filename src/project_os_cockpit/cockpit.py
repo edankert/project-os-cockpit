@@ -319,9 +319,21 @@ _RECENT_BUCKETS = (
 )
 
 NAV_MODES: tuple[str, ...] = (
-    "design", "features", "tasks", "issues", "tests", "active", "recent",
+    "intent", "features", "tasks", "issues", "tests", "active", "recent",
     "library",
 )
+
+#: Old mode ids that must keep answering (TASK-0385). `design` became
+#: `intent` — the name Edwin agreed, which the obligation registry has used
+#: since FEAT-0089 while the nav kept the inherited one.
+#:
+#: An alias rather than a removal, because an unknown mode falls back to
+#: `DEFAULT_MODE` **silently**. On 2026-08-11 that exact behaviour made the
+#: Tests view look broken for 33 hours: a stale client asked for `tests`,
+#: got the features tree, and nothing anywhere said the mode was unknown.
+#: A rename that drops the old id would do the same thing to every stored
+#: preference and bookmark still saying `design`.
+MODE_ALIASES: dict[str, str] = {"design": "intent"}
 
 # Active mode (FEAT-0036 / TASK-0164) — in-flight items across all types.
 _ACTIVE_DOING: frozenset[str] = frozenset({
@@ -2626,11 +2638,15 @@ def nav_payload(
     whether to show the picker at all.
     """
     m = (mode or DEFAULT_MODE).lower()
+    m = MODE_ALIASES.get(m, m)
     if m not in NAV_MODES:
         m = DEFAULT_MODE
     plat = _normalise_platform(platform)
 
-    if m == "design":
+    # `_design_groups` keeps its name: it builds groups OF designs (plus the
+    # decisions, risks and references the Intent view gathers). The VIEW was
+    # renamed, not the note type (TASK-0385).
+    if m == "intent":
         groups = _design_groups(index, plat)
     elif m == "features":
         groups = _features_groups(index, plat)

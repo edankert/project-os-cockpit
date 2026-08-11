@@ -37,6 +37,7 @@ from project_os_cockpit.index import Index
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "index_basic"
+REPO = Path(__file__).resolve().parent.parent
 
 
 @pytest.fixture()
@@ -94,13 +95,13 @@ def test_every_nav_url_is_routable_by_extract_rel(index: Index) -> None:
 def test_standing_documents_are_routable(index: Index) -> None:
     """The specific regression, kept alongside the sweep.
 
-    The sweep would catch it, but only while the design mode happens to build
+    The sweep would catch it, but only while the Intent mode happens to build
     a standing group. This says the thing ISS-0135 was about: the view whose
     entire landing is these documents can open them.
     """
-    groups = nav_payload(index, mode="design").get("groups") or []
+    groups = nav_payload(index, mode="intent").get("groups") or []
     standing = next((g for g in groups if g.get("key") == "standing"), None)
-    assert standing is not None, "the design mode no longer lands on the standing set"
+    assert standing is not None, "the Intent mode no longer lands on the standing set"
     items = standing.get("items") or []
     assert items, "the standing group is empty"
     present = [it for it in items if it.get("url")]
@@ -110,3 +111,72 @@ def test_standing_documents_are_routable(index: Index) -> None:
             f"standing document {item.get('id')!r} has url {item['url']!r}; "
             "the bare form is dropped by extractRel (ISS-0135/ISS-0037)"
         )
+
+
+# ---------------------------------------------------------------------------
+# TASK-0385 — the view is called Intent, and the old id still answers
+# ---------------------------------------------------------------------------
+
+
+def test_intent_is_the_mode_and_design_still_answers(index: Index) -> None:
+    """A renamed mode must not fall back silently.
+
+    `nav_payload` maps an unknown mode to `DEFAULT_MODE` without complaint.
+    That is the behaviour which, on 2026-08-11, made the Tests view look
+    broken for 33 hours: a client asked for `tests`, a server that predated
+    the mode answered with the features tree, and nothing anywhere said the
+    request had not been understood.
+
+    Renaming `design` to `intent` sets up exactly that failure for every
+    stored preference and bookmark still saying `design` — so the old id is
+    aliased, and this asserts the alias rather than trusting it.
+    """
+    from project_os_cockpit.cockpit import NAV_MODES as SERVER_MODES
+
+    assert "intent" in SERVER_MODES and "design" not in SERVER_MODES
+
+    intent = nav_payload(index, mode="intent")
+    assert intent["mode"] == "intent"
+
+    aliased = nav_payload(index, mode="design")
+    assert aliased["mode"] == "intent", (
+        "`design` fell through to the default instead of aliasing to `intent` — "
+        "the silent-fallback trap, on every bookmark that still says design"
+    )
+    assert [g.get("key") for g in aliased["groups"]] == [
+        g.get("key") for g in intent["groups"]
+    ], "the alias answers with different content than the mode it aliases to"
+
+    # A genuinely unknown mode must STILL fall back — the alias is a rename,
+    # not a licence for anything to resolve.
+    assert nav_payload(index, mode="not-a-mode")["mode"] == "features"
+
+
+def test_the_renderer_and_the_server_agree_the_mode_is_intent() -> None:
+    """Both front doors, and the icon key that is easy to forget.
+
+    The button icon is looked up by `data-mode`. When the id moved and the
+    icon map's key did not, the lookup fell through to `TYPE_ICONS._default`
+    and the button lost its compass without any error — found while writing
+    this task, which is why it is asserted rather than remembered.
+    """
+    ts = (REPO / "desktop" / "src" / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    html = (REPO / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
+
+    assert 'data-mode="intent"' in html, "the button still declares the old mode id"
+    assert 'data-mode="design"' not in html
+    assert 'aria-label="Intent"' in html, "the accessible name still says Design"
+
+    assert "'overview', 'intent', 'features'" in ts, "renderer NAV_MODES not renamed"
+    assert "intent:   '<circle" in ts, (
+        "the mode icon map is keyed by data-mode; without an `intent` key the "
+        "button falls back to the default glyph and loses its compass"
+    )
+    assert "design: 'intent'," in ts, (
+        "a stored `cockpit:nav-mode` of `design` no longer migrates, so anyone "
+        "carrying the old preference lands in the features fallback"
+    )
+    assert "intent: 'intent'," in ts, (
+        "MODE_FOR_VIEW still translates the registry's `intent` to `design`, so "
+        "the badge would attach to a button that no longer exists"
+    )

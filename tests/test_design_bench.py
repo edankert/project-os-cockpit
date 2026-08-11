@@ -939,24 +939,24 @@ def test_design_sits_second_before_the_structure_modes() -> None:
     src = _renderer()
     modes = re.search(r"const NAV_MODES = \[([^\]]+)\]", src).group(1)
     order = [m.strip().strip("'") for m in modes.split(",")]
-    assert order[:2] == ["overview", "design"], order
+    assert order[:2] == ["overview", "intent"], order
     # `tasks` is still in NAV_MODES (the server serves it) but has no button
     # since TASK-0368 — position is asserted for the modes a human can click.
     for structural in ("features", "tasks", "issues"):
-        assert order.index("design") < order.index(structural)
+        assert order.index("intent") < order.index(structural)
 
     # The strip's markup carries its own order; both must agree, because the
     # buttons are what a human actually sees.
     html = (Path(__file__).resolve().parents[1]
             / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
     buttons = re.findall(r'top-bar-btn[^>]*data-mode="(\w+)"', html)
-    assert buttons.index("design") == 1, buttons
+    assert buttons.index("intent") == 1, buttons
     assert "tasks" not in buttons, (
         "the Tasks button was retired in TASK-0368 — tasks hang under their "
         "feature, and a button here would be a second home for them"
     )
     for structural in ("features", "issues"):
-        assert buttons.index("design") < buttons.index(structural)
+        assert buttons.index("intent") < buttons.index(structural)
 
 
 def test_the_mode_has_a_button_an_icon_and_a_server_that_serves_it() -> None:
@@ -965,10 +965,13 @@ def test_the_mode_has_a_button_an_icon_and_a_server_that_serves_it() -> None:
     with a payload nothing could reach; this asserts the whole path."""
     html = (Path(__file__).resolve().parents[1]
             / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
-    assert 'data-mode="design"' in html
+    assert 'data-mode="intent"' in html
     src = _renderer()
-    assert re.search(r"design:\s*'<circle", src), "no icon; the button renders blank"
-    assert "design" in cockpit.NAV_MODES
+    # Keyed by `data-mode`: when the id became `intent` (TASK-0385) and this
+    # key did not, the lookup fell through to `TYPE_ICONS._default` and the
+    # button silently wore the wrong glyph. This assertion caught it.
+    assert re.search(r"intent:\s*'<circle", src), "no icon; the button renders blank"
+    assert "intent" in cockpit.NAV_MODES
     assert cockpit._design_groups is not None
 
 
@@ -977,7 +980,7 @@ def test_reselecting_design_keeps_the_open_artifact() -> None:
     must not throw you back to the register — reselecting a mode is not a
     request to lose your place, and equality here would make it one."""
     src = _renderer()
-    block = src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+    block = src.split("if (currentNavMode === 'intent') {")[1].split("const platform =")[0]
     assert "currentRel.startsWith('~design')" in block
     assert "currentRel === '~design'" not in block
 
@@ -991,7 +994,7 @@ def _design_branch(src: str) -> str:
     restate what the source says — ISS-0034 found three tests here that a
     permanently-unreachable mode passed unchanged.
     """
-    return src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+    return src.split("if (currentNavMode === 'intent') {")[1].split("const platform =")[0]
 
 
 def test_the_guard_polarity_is_the_one_that_navigates() -> None:
@@ -1063,7 +1066,7 @@ def test_design_mode_still_fetches_the_nav() -> None:
     is both, so an early return here would leave the left pane showing
     whatever the previous mode put there."""
     src = _renderer()
-    block = src.split("if (currentNavMode === 'design') {")[1].split("const platform =")[0]
+    block = src.split("if (currentNavMode === 'intent') {")[1].split("const platform =")[0]
     assert "return;" not in block, (
         "design mode returned early; the nav list would never load"
     )
@@ -1155,13 +1158,25 @@ def test_no_designs_yields_no_empty_headings(tmp_path: Path) -> None:
 def test_the_mode_adds_and_removes_nothing() -> None:
     """This adds a seventh button; it must not quietly retire an existing one.
     A stored preference pointing at any prior mode still has to resolve, and
-    `design` must not land in the retired list where it would be migrated
-    away the moment someone selected it."""
+    the mode must not land in the retired list where it would be migrated
+    away the moment someone selected it.
+
+    TASK-0385 renamed the mode `design` -> `intent`, so the id under test is
+    `intent`. `design` is now deliberately IN the retired list, mapped to
+    `intent`, which is how an old stored preference migrates instead of
+    falling through to the features default."""
     src = _renderer()
     for prior in ("overview", "features", "tasks", "issues", "review", "library"):
         assert "'%s'" % prior in src.split("const NAV_MODES = [")[1].split("]")[0]
     retired = src.split("const RETIRED_NAV_MODES: readonly string[] = [")[1].split("]")[0]
-    assert "design" not in retired
+    assert "intent" not in retired, (
+        "the live mode is in the retired list; selecting it would migrate it away"
+    )
+    assert "design" in retired, (
+        "the old id must stay retired-and-mapped, or a stored `design` lands in "
+        "the features fallback instead of on Intent"
+    )
+    assert "design: 'intent'," in src, "the retired `design` has no fallback target"
     assert "active" in retired and "recent" in retired, (
         "the retirement list changed; stored preferences would migrate differently"
     )
@@ -1174,9 +1189,13 @@ def test_the_button_is_keyboard_reachable_like_the_others() -> None:
     unreachable without a mouse."""
     html = (Path(__file__).resolve().parents[1]
             / "desktop" / "src" / "renderer" / "index.html").read_text(encoding="utf-8")
-    btn = re.search(r'<button[^>]*data-mode="design"[^>]*>', html).group(0)
+    btn = re.search(r'<button[^>]*data-mode="intent"[^>]*>', html).group(0)
     assert btn.startswith("<button")
-    assert 'role="tab"' in btn and 'aria-label="Design"' in btn
+    assert 'role="tab"' in btn and 'aria-label="Intent"' in btn, (
+        "the accessible name must be the name on screen — TASK-0385 renamed "
+        "the view to Intent, and a screen reader saying 'Design' would be the "
+        "rename half-done in the place it is hardest to notice"
+    )
 
 
 # ---- design rationale (TASK-0225) ----------------------------------------
@@ -2213,7 +2232,7 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
     # `review` left the set in TASK-0378 with its button: the route is still
     # served, but nothing lands there on workspace open, so claiming a landing
     # would send the centre pane to a page nobody asked for.
-    assert modes == {"overview", "design"}, modes
+    assert modes == {"overview", "intent"}, modes
 
     # And the README fallback must actually consult it.
     ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]
