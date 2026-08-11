@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0030
 aliases: ["REQ-0030"]
 title: "The worker never outruns its policy"
-status: draft
+status: "approved"
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-11"
 source: ["[[ADR-0009-The-Principal-Is-A-Role]]"]
 priority: high
 scope: "The driver, the actuator endpoints under a delegate identity, and every escalation default"

@@ -26,7 +26,7 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 21
+  ADR: 22
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -166,7 +166,7 @@ items:
     FEAT-0075:
       file: "docs/features/delegation-policy/FEAT-0075-The-Delegation-Policy.md"
       title: "The delegation policy — a principal-approved note the actuators consult, delegate writes that carry their authority, and the push decision taken as an ADR"
-      status: doing
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0326, TASK-0327, TASK-0328]
       note: "ADR-0009 §4 made delegation a recorded fact; this is the fact's format and enforcement. Until the push ADR is accepted, the worker's relationship to git push is: never."
@@ -661,18 +661,6 @@ items:
       status: backlog
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0074
-    TASK-0327:
-      file: "docs/features/delegation-policy/plan/tasks/TASK-0327-Role-Checks-Consult-Policy.md"
-      title: "The actions endpoint answers per caller identity, and a delegate's writes carry their authority"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0075
-    TASK-0328:
-      file: "docs/features/delegation-policy/plan/tasks/TASK-0328-The-Push-Decision.md"
-      title: "The push decision — publishing under autonomy taken as an ADR, not eroded by convenience"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0075
     TASK-0332:
       file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
       title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
@@ -2479,9 +2467,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 79
+    features_done: 80
     tasks_total: 385
-    tasks_done: 355
+    tasks_done: 357
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
@@ -2491,4 +2479,4 @@ metrics:
     issues_triage: 6
     risks_open: 5
     releases_total: 1
-    decisions_total: 12
+    decisions_total: 13

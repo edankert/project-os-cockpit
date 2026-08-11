@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0031
 aliases: ["REQ-0031"]
 title: "The loop always halts"
-status: draft
+status: "approved"
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: "2026-08-11"
 source: ["[[DES-0009-The-Standing-Worker]]"]
 priority: high
 scope: "The standing worker's every loop and budget"

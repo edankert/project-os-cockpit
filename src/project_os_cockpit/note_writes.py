@@ -248,11 +248,29 @@ VERDICT_SEMANTICS: dict[tuple[str, str], dict[str, Any]] = {
 }
 
 
-def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, Any]]:
+def legal_actions(
+    note_type: str | None,
+    status: str | None,
+    *,
+    caller: str = "",
+    policy: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """What a human may do to a note in this state, for `GET /api/notes/actions`.
 
     Returns the empty list when nothing is offered, which is the common case:
     most notes at most times owe nobody a decision.
+
+    **`caller` and `policy` are REQ-0030's first layer** (TASK-0327). A human
+    caller sees the table as written. A *delegate* — any `agent:*` — sees only
+    what an **approved** delegation policy names, so an out-of-policy action is
+    never offered. The second layer is the write path, which checks again,
+    because a display bug must not be able to widen authority: exactly the
+    REQ-0026 pattern, one level up.
+
+    A caller of `""` is treated as human. That keeps every existing call site
+    working unchanged — and it is safe because a delegate is identified by
+    saying so, while the guard that actually stops a delegate lives at the
+    write path where the identity is checked rather than assumed.
 
     An action may name an `endpoint`. Absent means the generic transition path;
     present means that path will refuse it — see :data:`VERDICT_ENDPOINTS`. The
@@ -263,7 +281,7 @@ def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, A
     entries = HUMAN_TRANSITIONS.get(kind, {})
     offered = entries.get((status or "").strip().lower(), ())
     endpoint = VERDICT_ENDPOINTS.get(kind, "")
-    return [
+    actions = [
         {
             "verb": verb,
             "to": to_status,
@@ -274,6 +292,22 @@ def legal_actions(note_type: str | None, status: str | None) -> list[dict[str, A
             **(VERDICT_SEMANTICS.get((kind, to_status), {}) if endpoint else {}),
         }
         for verb, to_status in offered
+    ]
+
+    # **REQ-0030's first layer** (TASK-0327): a delegate is offered only what an
+    # approved policy names. A human sees the table as written.
+    #
+    # The second layer is the write path, which checks the same policy again —
+    # because a display bug must not be able to widen authority. That is
+    # REQ-0026's pattern applied one level up, and the reason this filter is
+    # not the guard: it is the *offer*.
+    who = (caller or "").strip().lower()
+    if not who.startswith("agent:"):
+        return actions
+    from . import delegation as _delegation
+    return [
+        action for action in actions
+        if _delegation.permits(policy or {}, f"{action['verb']} {kind}", who)
     ]
 
 

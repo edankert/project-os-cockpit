@@ -115,3 +115,58 @@ def test_an_html_comment_is_not_a_grant() -> None:
     )
     got = delegation.parse(text)["delegations"]
     assert [d["judgment"] for d in got] == ["triage issues"], got
+
+
+# ---------------------------------------------------------------------------
+# TASK-0327 — the two layers (REQ-0030)
+# ---------------------------------------------------------------------------
+
+from project_os_cockpit import note_writes  # noqa: E402
+
+APPROVED_POLICY = {
+    "approved": True,
+    "delegations": [{"judgment": "approve requirement", "to": "agent:principal",
+                     "threshold": ""}],
+}
+
+
+def test_a_human_sees_the_table_as_written() -> None:
+    """The delegate filter must not narrow what a person may do."""
+    verbs = [a["verb"] for a in note_writes.legal_actions("requirement", "draft")]
+    assert verbs == ["Approve", "Decline"]
+
+
+def test_a_delegate_with_no_policy_is_offered_nothing() -> None:
+    """No policy, no delegation, no actions — the default carried through to
+    the surface, so an out-of-policy action is never even shown."""
+    offered = note_writes.legal_actions(
+        "requirement", "draft", caller="agent:principal",
+    )
+    assert offered == []
+
+
+def test_a_draft_policy_offers_nothing() -> None:
+    """A draft policy is no policy, at the offer layer too."""
+    draft = {**APPROVED_POLICY, "approved": False}
+    offered = note_writes.legal_actions(
+        "requirement", "draft", caller="agent:principal", policy=draft,
+    )
+    assert offered == []
+
+
+def test_a_delegate_is_offered_only_what_the_policy_names() -> None:
+    """`Approve` is delegated; `Decline` is not, and is therefore absent —
+    rather than shown-and-refused, which teaches the delegate to try."""
+    offered = [
+        a["verb"] for a in note_writes.legal_actions(
+            "requirement", "draft", caller="agent:principal", policy=APPROVED_POLICY,
+        )
+    ]
+    assert offered == ["Approve"], offered
+
+
+def test_an_unnamed_caller_is_treated_as_human_not_as_a_delegate() -> None:
+    """Existing call sites pass no caller. They must keep working — and it is
+    safe because a delegate is identified by *saying so*, while the guard that
+    stops one lives at the write path where identity is checked."""
+    assert note_writes.legal_actions("requirement", "draft", caller="") != []
