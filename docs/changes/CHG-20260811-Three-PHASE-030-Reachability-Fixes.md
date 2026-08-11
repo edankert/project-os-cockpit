@@ -47,3 +47,37 @@ The sweep test was confirmed to **fail on the pre-fix code** before being kept �
 **A vocabulary leak, caught by an existing test.** The badge's first cut pluralised kinds in TypeScript. `test_the_renderer_reads_the_count_and_declares_no_kinds` is the guard [[TASK-0357]] left for exactly that, and it worked: the nouns now ship from the server.
 
 **[[ISS-0131]] is deliberately not fixed.** Phase groups render flat where the Tests view's groups render as cards, and the first diagnosis in that note — a missing `item_layout` field — was **wrong**; that field styles nothing (`nav-group-stacked` appears in no stylesheet, though it does select the item renderer). The real mechanism is a CSS rule that strips the card from `is-thing` groups, added on purpose, with its reasoning recorded: *"Four boxes around four categories read as structure; eighteen around eighteen phases read as clutter."* Reversing a decision that argued its own case is Edwin's call, not a bug fix. The note now carries the corrected mechanism and the one fact the original reasoning may not have had: the view now opens on `OPEN · 8` with the rest rolled up, so the real choice is about 8 boxes rather than 26.
+
+## Follow-up, same day — the fourth issue, and the grammar of the third
+
+Edwin looked at the result and reported three things. All are fixed here; the change note keeps its original title, but the batch is now four issues rather than three.
+
+**[[ISS-0131]] is fixed after all — by his decision.** It was left open above because reversing a recorded design decision is not a bug fix. He asked for the cards, so phase groups are framed again. The original argument was a count (*eighteen boxes read as clutter where four read as structure*) and the count had changed underneath it: the view opens on `OPEN · 8` with the rest rolled up, so the live choice was about eight. ISS-0093's indent protection is kept.
+
+**[[ISS-0132]]'s fix had the wrong grammar.** Only the label navigated, so a click slightly to the right folded the group instead — one row doing two things depending on the pixel. The whole head now opens the note and the chevron alone folds, matching the feature row (select from anywhere, separate control for children).
+
+**And the selected phase never looked selected.** `refreshActiveNavRow` sweeps `li[data-rel]`; a group head is a `<summary>`, so it was invisible to the only function that marks what is current. Heads now carry `data-rel` and take the same highlight as a selected row.
+
+### What this says about the first pass
+
+The ISS-0132 fix was verified — the note opened, the group stayed open, the suite was green — and was still wrong. It had been checked against **its own description** ("a phase cannot be opened") rather than against how every neighbouring row behaves. Reachability was the defect; matching the surface's existing grammar was the actual requirement, and no test asserted it because the note never said it.
+
+Worth carrying into [[ISS-0133]]'s outstanding half and [[ISS-0134]]: a fix that satisfies its issue note can still be wrong for the surface.
+
+### The card fix landed twice, because the stylesheet exists twice
+
+The first attempt at [[ISS-0131]] edited `desktop/src/renderer/renderer.css`, rebuilt, reloaded — and changed **nothing on screen**. Computed style still read `border: 0px none`.
+
+`renderer.css` (mode 3) and `src/project_os_cockpit/static/cockpit.css` (mode 1) each carry their own copy of `.nav-group:has(> .nav-group-header.is-thing)`, **the desktop shell loads both, and cockpit.css wins.** So a UI change to the desktop renderer can be complete, correct, built and deployed while the surface it targets is governed by the other file.
+
+This is the exact cost [[FEAT-0073]] already names — *"a hand-written mode-1 twin whose every UI change costs double — three drifts in two days, all caught by review, none by tests-as-first-written."* This is the fourth, and it was caught by Edwin looking at the screen rather than by review or by tests.
+
+Both files now carry the change, and **both updated guards read both files**, so a one-sided edit fails the suite instead of looking fixed. That is the narrow fix. The general one is FEAT-0073's, and this is another measurement for it.
+
+Phase groups now measure identically to Issues and Intent — `4px 6px · 1px solid · rgb(35,38,41) · 6px` in all three — with the head still left of its features (74px against 86px).
+
+### Still open, and asked rather than assumed
+
+**The Intent rename.** Edwin asked whether the design view was not meant to be renamed. It was: [[FEAT-0087]]'s acceptance criterion is reconciled `[~]`, not ticked — *"**Intent** was agreed and the registry uses it, but the nav mode and the button still read `design`"* — and it was parked on [[FEAT-0084]], which sits in [[PHASE-029]], the phase REL-0001 deferred on 2026-08-11. So the rename is currently scheduled for after this release, which is worth revisiting now that it is being hit repeatedly.
+
+The two halves cost very differently: the **button label** is one string in `index.html`, while the **mode id** is a `localStorage['cockpit:nav-mode']` migration across two front doors. Renaming the label alone would remove the visible mismatch today without the migration. Left undone pending his answer rather than folded in.

@@ -8839,14 +8839,25 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // would take the fold away, which is the one thing the head already did.
   const groupRel = extractRel(group.url);
   if (groupRel) {
-    inner.classList.add('is-navigable');
-    inner.title = `Open ${group.key || 'this note'}`;
-    inner.addEventListener('click', (ev) => {
-      // `summary` toggles `<details>` on click by default; this click is a
-      // navigation instead, so the default has to go or the group folds
-      // underneath the reader as the note opens.
+    // `data-rel` on the summary, so `refreshActiveNavRow` finds the head the
+    // same way it finds a row and the selected phase highlights like the
+    // selected feature (Edwin, 2026-08-11 -- it did not, because that sweep
+    // walks `li[data-rel]` and a group head is a `<summary>`).
+    summary.dataset.rel = groupRel;
+    summary.classList.add('is-navigable');
+    summary.title = `Open ${group.key || 'this note'}`;
+    summary.addEventListener('click', (ev) => {
+      // THE WHOLE HEAD OPENS THE NOTE, and the chevron alone folds -- one
+      // grammar with the feature row, which selects from anywhere on the card
+      // and keeps a separate control for its children. Binding only the label
+      // (the first cut) meant a click an inch to the right folded the group
+      // instead of opening it: the same row doing two things depending on
+      // which pixel was hit.
+      if ((ev.target as HTMLElement | null)?.closest('.group-chevron')) return;
+      // `summary` toggles `<details>` by default; this click navigates
+      // instead, so the default has to go or the group collapses underneath
+      // the reader as the note opens.
       ev.preventDefault();
-      ev.stopPropagation();
       void navigateTo(groupRel);
     });
   }
@@ -9321,6 +9332,13 @@ function refreshActiveNavRow(): void {
     const card = li.querySelector('.nav-item');
     if (card) card.classList.toggle('is-active', isActive);
     if (isActive) openGroupsContaining(li);
+  });
+  // Group heads that name a note highlight on the same rule (ISS-0132). They
+  // are `<summary>` rather than `li`, so the sweep above cannot see them and
+  // an open phase showed no selection at all -- the one row on the surface
+  // that could be current and never looked it.
+  wsNavContent.querySelectorAll<HTMLElement>('summary[data-rel]').forEach((summary) => {
+    summary.classList.toggle('is-active', !!rel && summary.dataset.rel === rel);
   });
 }
 

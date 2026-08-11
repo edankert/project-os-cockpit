@@ -65,3 +65,15 @@ The group header's label now navigates via `extractRel(group.url)`; the chevron 
 **Verified in the running app:** clicking `PHASE-028` opens `phases/PHASE-028-Borrowed-Capability.md` (`h1: Borrowed capability`) and the group's `open` state is `true` before *and* after the click. 27 headers render, all navigable, each titled `Open PHASE-0NN`.
 
 Hover shows an underline and a pointer; the head is deliberately **not** given a permanent link colour — it is the group's name first and a target second, and eight phase names in link blue would read as a list of links rather than as the structure they are.
+
+## Reopened and completed — 2026-08-11
+
+The first fix opened the phase but got the *grammar* wrong, and Edwin caught both halves within minutes: *"the phase selection mechanism seems to be different from the feature selection. Also it does not show the phase as being selected."*
+
+**Only the label navigated.** A click an inch to the right of the phase name hit the `<summary>` and folded the group — the same row doing two different things depending on which pixel was hit, where a feature row selects from anywhere on its card. Now the whole head opens the note and **the chevron alone folds**, which is the feature row's own arrangement: select from anywhere, with a separate control for the children.
+
+**And the selected phase did not look selected.** `refreshActiveNavRow` sweeps `li[data-rel]`, and a group head is a `<summary>` — so it was invisible to the one function that marks what is current. The head now carries `data-rel` and the sweep marks it, with the same tint and left rule a selected row gets.
+
+Walked in the running app: clicking the spacer well right of the label opens `PHASE-024` with the group still expanded; the chevron folds without navigating and leaves the document alone; selecting `FEAT-0063` afterwards moves the highlight off the head, so exactly one thing is ever marked current.
+
+**The lesson worth keeping.** The first fix was verified — it opened the note, the group stayed open, a test passed — and was still wrong, because it was verified against *its own description* rather than against how the surface behaves everywhere else. Reachability was the bug; matching the grammar of the thing next to it was the requirement.

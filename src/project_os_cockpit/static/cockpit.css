@@ -839,15 +839,19 @@ details:not([open]) > summary .group-chevron::before {
 /* …and a thing is not framed. Four boxes around four categories read as
    structure; eighteen around eighteen phases read as clutter. A single
    hairline between them is enough to separate one from the next. */
-.nav-group:has(> .nav-group-header.is-thing) {
-  border: 0;
-  background: none;
-  border-radius: 0;
-  padding: 0 0 0 2px;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--border-subtle, rgba(128,128,128,0.14));
-}
-.nav-group:has(> .nav-group-header.is-thing):last-child { border-bottom: 0; }
+/* ISS-0131, reversed on Edwin's decision 2026-08-11: a phase group is a card,
+   the same card the Issues and Intent groups get. It keeps the base
+   `.nav-group` box entirely -- border, radius, background, padding -- so the
+   three views cannot drift apart again by carrying separate numbers.
+
+   The count argument this replaces (eighteen boxes read as clutter) was true
+   when written; the view now opens on `OPEN · 8` with finished phases folded
+   into a roll-up, so the live choice is about eight.
+
+   ISS-0093's protection is unaffected: the head's indent came from three
+   paddings compounding, and the body still carries its own 5px below, so the
+   head stays left of its own features. */
+.nav-group:has(> .nav-group-header.is-thing) { margin-bottom: 6px; }
 /* The pill has to be legible where it survives. */
 .nav-group-header .status-chip { color: var(--text-muted); }
 

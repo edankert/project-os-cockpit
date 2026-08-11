@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0131
 aliases: ["ISS-0131"]
 title: "Phase groups in the features navigator render flat while the Tests view's groups render as cards — one missing `item_layout` field, and the two views disagree about what a group looks like"
-status: triage
+status: fixed
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-11
@@ -62,3 +62,22 @@ Phase groups read as cards, or a stated rule says which groups are cards and why
 
 - [ ] Decide the rule: is a card for groups that name a *thing* (a phase, a tier) rather than a category? `groupLabelIsCategory(mode)` already draws that distinction in the renderer for the header's grammar, and the layout could follow the same predicate instead of a per-call-site field.
 - [ ] Apply it to `_features_groups`, and to any other group builder the rule catches.
+
+## Resolution — 2026-08-11
+
+**Edwin decided it: the frame comes back.** This note had been left open on purpose, because fixing it reverses a decision that argued its own case. He looked at the result and asked for the cards, so the reversal is his rather than inferred.
+
+The change is to the override, not to `item_layout`:
+
+```css
+.nav-group:has(> .nav-group-header.is-thing) {
+  padding: 2px 4px;      /* was: border:0; background:none; border-radius:0; padding:0 */
+  margin-bottom: 6px;
+}
+```
+
+**The original reasoning is answered rather than ignored.** Its argument was a count — *eighteen boxes read as clutter where four read as structure* — and the count changed underneath it: the view now opens on `OPEN · 8` with finished phases folded into a roll-up, so the live choice is about eight boxes, which is the case that same comment endorses. Its second worry, that hairlines read as a table, does not return either: these are spaced cards, not rules.
+
+What it was also protecting is kept. ISS-0093's 45px indent came from three paddings compounding, so the head keeps a small one (4px against the body's 5px) and still sits left of its own features.
+
+`item_layout` was **not** touched, because it is not the mechanism — see the correction above. It remains inert for styling while still selecting the item renderer, which is worth a separate look one day.

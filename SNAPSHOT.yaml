@@ -1355,7 +1355,7 @@ items:
     ISS-0131:
       file: "docs/issues/ISS-0131-Phase-Groups-Render-Flat-While-Test-Groups-Render-As-Cards.md"
       title: "Phase groups in the features navigator render flat while the Tests view's groups render as cards — one missing `item_layout` field, and the two views disagree about what a group looks like"
-      status: triage
+      status: fixed
       severity: low
       note: "OPEN BY DECISION, and the note's ORIGINAL DIAGNOSIS WAS WRONG — corrected 2026-08-11. item_layout does not style anything (nav-group-stacked is in no stylesheet; it does select the item renderer). The real mechanism is a CSS rule stripping the card from is-thing groups, added deliberately: 'Four boxes around four categories read as structure; eighteen around eighteen phases read as clutter.' Fixing it REVERSES a recorded decision, so it is Edwin's call. One fact that reasoning may not have had: the view now opens on OPEN · 8 with the rest rolled up, so the choice is ~8 boxes, not 26."
     ISS-0129:
@@ -2704,7 +2704,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 9
+    issues_triage: 8
     risks_open: 6
     releases_total: 1
     decisions_total: 11

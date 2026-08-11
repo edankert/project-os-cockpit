@@ -1131,8 +1131,17 @@ body {
    a permanent link colour -- the head is the group's name first and a
    target second, and eight phase names in link blue would read as a list of
    links rather than as the structure they are. */
-.group-header-inner.is-navigable { cursor: pointer; }
-.group-header-inner.is-navigable:hover .group-header-name { text-decoration: underline; }
+.nav-group-header.is-navigable { cursor: pointer; }
+.nav-group-header.is-navigable:hover .group-header-name { text-decoration: underline; }
+/* The chevron is now the ONLY fold control, so it has to be a target rather
+   than a glyph: the rest of the head navigates. */
+.nav-group-header.is-navigable .group-chevron { padding: 2px 4px; margin-left: -2px; }
+/* Selected reads the same as a selected row -- same tint, same rule down the
+   left edge (Edwin, 2026-08-11: the phase never showed as selected). */
+.ws-nav-content .nav-group-header.is-active {
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent-link);
+}
 .nav-group-header.is-thing .group-header-name {
   font-size: 12.5px;
   font-weight: 500;
@@ -1150,17 +1159,26 @@ body {
    clutter, and eighteen hairlines read as a table. The rows are already
    separated by being rows — the overview's scope pane has never needed
    anything between them. */
-.nav-group:has(> .nav-group-header.is-thing) {
-  border: 0;
-  background: none;
-  border-radius: 0;
-  /* No left padding: this is one of three that compounded to push a phase
-     id 45px in, further right than its own features (ISS-0093). The
-     indent lives on the BODY, so the head moves left while its children
-     stay indented from it. */
-  padding: 0;
-  margin-bottom: 0;
-}
+/* ISS-0131, reversed on Edwin's decision 2026-08-11. The frame comes back.
+
+   The argument above was a count: eighteen boxes read as clutter where four
+   read as structure. It was right when it was written and the count has since
+   changed -- the view opens on `OPEN · 8` with the finished phases folded into
+   a roll-up, so the choice today is about EIGHT boxes, not eighteen, which is
+   the case that same comment endorses. The hairline worry does not return
+   either: these are cards with space between them, not rules.
+
+   The group keeps the base `.nav-group` box entirely — border, radius,
+   background, padding — so Features, Issues and Intent cannot drift apart by
+   carrying separate numbers. ISS-0093's protection is unaffected: that 45px
+   indent came from three paddings compounding, and the body still carries its
+   own 5px below, so the head stays left of its own features.
+
+   NOTE: `cockpit.css` carries its own copy of this rule and the desktop shell
+   loads BOTH stylesheets, with cockpit.css winning. Editing only this file
+   changed nothing on screen — the mode-1 twin FEAT-0073 names as making every
+   UI change cost double. Both are edited; they must stay in step. */
+.nav-group:has(> .nav-group-header.is-thing) { margin-bottom: 6px; }
 /* The pill has to be legible where it survives. */
 .nav-group-header .status-chip { color: var(--text-muted); }
 

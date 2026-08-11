@@ -1355,16 +1355,41 @@ def test_a_features_head_names_a_thing_not_a_category() -> None:
     assert "color: var(--text)" in body, "a thing's name is still rendered faint"
 
 
-def test_a_thing_head_is_not_individually_framed() -> None:
-    """Four boxes around four categories read as structure; eighteen
-    around eighteen phases read as clutter."""
-    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
-    rule = re.search(
-        r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
-    )
-    assert rule and "border: 0" in rule.group(1), (
-        "every phase is individually framed again"
-    )
+def test_a_thing_head_is_framed_like_every_other_group() -> None:
+    """Reversed on Edwin's decision, 2026-08-11 (ISS-0131).
+
+    This test used to assert the opposite — `border: 0` — on the reasoning
+    that *four boxes around four categories read as structure; eighteen around
+    eighteen phases read as clutter*. That was true when written and the count
+    changed underneath it: the view opens on `OPEN · 8` with finished phases
+    folded into a roll-up, so the live choice is about eight boxes, which is
+    the case the same argument endorses.
+
+    So the assertion is inverted rather than deleted, and it now says the
+    stronger thing: a phase group keeps the BASE `.nav-group` box, so Features,
+    Issues and Intent cannot drift apart by carrying separate numbers.
+
+    **Both stylesheets, because there are two.** `renderer.css` (mode 3) and
+    `cockpit.css` (mode 1) each carry this rule and the desktop shell loads
+    both, with cockpit.css winning. Editing only the renderer's copy changed
+    nothing on screen — exactly the double cost [[FEAT-0073]] names. A guard
+    that reads one file would have called that fixed.
+    """
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        rule = re.search(
+            r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
+        )
+        assert rule, f"{path.name}: the is-thing group rule is gone"
+        body = rule.group(1)
+        for stripped in ("border: 0", "background: none", "border-radius: 0"):
+            assert stripped not in body, (
+                f"{path.name}: `{stripped}` takes the card back off the phase group; "
+                "Features would stop matching Issues and Intent"
+            )
 
 
 def test_the_overview_completed_card_contains_its_rows() -> None:
@@ -1620,18 +1645,34 @@ def test_the_phase_head_sits_left_of_its_features() -> None:
 
     The BODY carries the indent, not the group: indenting the group moves
     the head too, which is the thing being indented from.
+
+    The rule is the INVARIANT — head left of its children — not one way of
+    achieving it. It used to assert `padding: 0` on the group, which stopped
+    being the mechanism when the card came back (ISS-0131): the group now
+    carries the base box's padding and the body still adds its own on top, so
+    the head is left of its features by construction. Measured live after the
+    change: phase id at 74px, its first feature id at 86px.
+
+    What must not return is a SECOND left indent on the group itself, which is
+    what compounded to 45px in ISS-0093.
     """
-    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(encoding="utf-8")
-    assert (
-        ".nav-group:has(> .nav-group-header.is-thing) > .group-body { padding-left: 5px; }"
-        in css
-    ), "the body no longer carries the indent, so the head moves with its children"
-    thing = re.search(
-        r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
-    )
-    assert thing and "padding: 0;" in thing.group(1), (
-        "the thing-group has left padding again, pushing the head right"
-    )
+    for path in (
+        REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css",
+        REPO_ROOT / "src" / "project_os_cockpit" / "static" / "cockpit.css",
+    ):
+        css = path.read_text(encoding="utf-8")
+        assert re.search(
+            r"\.nav-group:has\(> \.nav-group-header\.is-thing\) > \.group-body \{[^}]*padding-left:",
+            css,
+        ), f"{path.name}: the body no longer carries the indent, so the head moves with its children"
+        thing = re.search(
+            r"\.nav-group:has\(> \.nav-group-header\.is-thing\) \{(.*?)\}", css, re.DOTALL,
+        )
+        assert thing, f"{path.name}: the is-thing group rule is gone"
+        assert "padding-left:" not in thing.group(1), (
+            f"{path.name}: the thing-group declares its own left padding again — "
+            "the second indent that compounded to 45px in ISS-0093"
+        )
 
 
 # ---------------------------------------------------------------------------
