@@ -170,8 +170,17 @@ def test_the_module_starts_nothing() -> None:
         Path(__file__).resolve().parent.parent
         / "src" / "project_os_cockpit" / "worker.py"
     ).read_text(encoding="utf-8")
-    for launcher in ("subprocess", "Popen", "spawn", "os.system", "threading"):
-        assert launcher not in src, f"worker.py can launch something via {launcher}"
+    # Imports and calls, not words: the first version searched for "spawn" and
+    # tripped on a docstring saying "something else decides how to spawn" —
+    # a guard that fails on prose describing the property it protects is a
+    # guard people delete.
+    code = "\n".join(
+        line for line in src.splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    for launcher in ("import subprocess", "Popen(", "os.system(",
+                     "import threading", "import asyncio"):
+        assert launcher not in code, f"worker.py can launch something via {launcher}"
 
 
 # ---- selection with reasons (TASK-0322) -----------------------------------
@@ -241,3 +250,94 @@ def test_every_selection_explains_what_it_passed_over() -> None:
 
 def test_the_idle_ledger_line_says_why_too() -> None:
     assert "idle" in worker.ledger_line(worker.select([]))
+
+
+# ---- the session loop (TASK-0323) -----------------------------------------
+
+LOOP_ITEMS = [{"id": "TASK-1", "status": "backlog", "phase": "[[PHASE-023]]"}]
+
+
+def _ok(_item):
+    return {"outcome": "closed-out"}
+
+
+def test_a_turn_refuses_without_a_policy(tmp_path: Path) -> None:
+    """The default reaches the loop, not just the predicate."""
+    got = worker.run_once(tmp_path, worker_id="w1", candidates=LOOP_ITEMS, dispatch=_ok)
+    assert got["ran"] is False and got["why"] == "no-delegation"
+
+
+def test_a_turn_runs_and_records_its_outcome(repo: Path) -> None:
+    got = worker.run_once(repo, worker_id="w1", candidates=LOOP_ITEMS, dispatch=_ok)
+    assert got["ran"] is True
+    assert got["item"] == "TASK-1" and got["outcome"] == "closed-out"
+    assert got["ledger"].startswith("chose TASK-1")
+
+
+def test_the_lease_is_released_on_every_path(repo: Path) -> None:
+    """A worker that died holding its lease blocks the next one until the
+    heartbeat ages out — one bad turn becoming ten minutes of silence."""
+    worker.run_once(repo, worker_id="w1", candidates=LOOP_ITEMS, dispatch=_ok)
+    assert worker.lease_state(repo)["state"] == "absent"
+
+    def raises(_item):
+        raise RuntimeError("boom")
+
+    got = worker.run_once(repo, worker_id="w1", candidates=LOOP_ITEMS, dispatch=raises)
+    assert got["outcome"] == "failed"
+    assert "boom" in got["detail"]
+    assert worker.lease_state(repo)["state"] == "absent", "the lease survived a failure"
+
+
+def test_an_unknown_outcome_is_a_failure_not_a_success(repo: Path) -> None:
+    """Reading an unrecognised value optimistically is how a broken dispatcher
+    looks like a working one."""
+    got = worker.run_once(
+        repo, worker_id="w1", candidates=LOOP_ITEMS,
+        dispatch=lambda _i: {"outcome": "probably fine"},
+    )
+    assert got["outcome"] == "failed"
+
+
+def test_a_turn_that_does_nothing_says_which_gate_stopped_it(repo: Path) -> None:
+    """"The worker did nothing" and "the worker was stopped by its budget" look
+    identical from outside, and only one of them is a problem."""
+    for kwargs, expected in (
+        ({"candidates": []}, "idle"),
+        ({"candidates": LOOP_ITEMS, "sessions_today": worker.MAX_SESSIONS_PER_DAY},
+         "session-budget"),
+    ):
+        got = worker.run_once(repo, worker_id="w1", dispatch=_ok, **kwargs)
+        assert got["ran"] is False
+        assert got["why"] == expected, got
+        assert got["detail"], "a refusal with no detail"
+
+
+def test_a_held_lease_stops_a_second_worker_mid_loop(repo: Path) -> None:
+    worker.acquire(repo, worker_id="other", now=NOW)
+    got = worker.run_once(
+        repo, worker_id="w1", candidates=LOOP_ITEMS, dispatch=_ok, now=NOW,
+    )
+    assert got["ran"] is False and got["why"] == "lease-held"
+
+
+def test_the_stop_switch_stops_a_turn_before_it_claims(repo: Path) -> None:
+    worker.request_stop(repo, reason="stop", actor="user:edwin")
+    got = worker.run_once(repo, worker_id="w1", candidates=LOOP_ITEMS, dispatch=_ok)
+    assert got["ran"] is False and got["why"] == "stop-switch"
+    assert worker.lease_state(repo)["state"] == "absent", "a halted turn claimed the lease"
+
+
+def test_the_dispatcher_is_injected_so_this_module_spawns_nothing() -> None:
+    """The design, not a testing convenience.
+
+    This module decides *whether* and *what*; something else decides *how to
+    spawn*. That is why every halt path above could be drilled without a test
+    ever starting a session — and why this file cannot start one either.
+    """
+    src = (
+        Path(__file__).resolve().parent.parent
+        / "src" / "project_os_cockpit" / "worker.py"
+    ).read_text(encoding="utf-8")
+    for launcher in ("subprocess", "Popen", "os.system", "threading", "asyncio"):
+        assert launcher not in src, f"worker.py can launch something via {launcher}"

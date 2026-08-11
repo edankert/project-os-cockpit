@@ -317,3 +317,92 @@ def ledger_line(selection: dict[str, Any]) -> str:
     )
     line = f"chose {chosen.get('id')} — {selection.get('why')}"
     return f"{line} | passed over: {passed}" if passed else line
+
+
+# ---- the session loop (TASK-0323) -----------------------------------------
+
+#: Outcomes a session may end with. `stalled` is distinct from `failed`
+#: deliberately: a session that stopped answering and one that finished badly
+#: need different responses, and collapsing them loses the difference at
+#: exactly the moment somebody is trying to work out what happened.
+OUTCOMES: tuple[str, ...] = ("closed-out", "failed", "stalled", "halted")
+
+
+def run_once(
+    root: Path,
+    *,
+    worker_id: str,
+    candidates: list[dict[str, Any]],
+    dispatch: Any,
+    focus: str = "",
+    parked: set[str] | None = None,
+    sessions_today: int = 0,
+    now: _dt.datetime | None = None,
+) -> dict[str, Any]:
+    """One turn: check, claim, select, dispatch, record, release.
+
+    **`dispatch` is injected, and that is the design rather than a testing
+    convenience.** This module decides *whether* and *what*; something else
+    decides *how to spawn*. Keeping the spawn out means the halt logic can be
+    exercised — and has been, over every path — without a test ever starting a
+    session, and it means this file cannot start one either.
+
+    Returns what happened and why, always. A turn that produced nothing must
+    still say which gate stopped it, because "the worker did nothing" and "the
+    worker was stopped by its budget" look identical from outside and only one
+    of them is a problem.
+
+    **The lease is released on every path**, including failure. A worker that
+    died holding its lease would block the next one until the heartbeat aged
+    out, turning one bad turn into ten minutes of silence.
+    """
+    now = now or _now()
+
+    gate = can_start(root, worker_id=worker_id, now=now)
+    if not gate["ok"]:
+        return {"ran": False, "outcome": "halted", "why": gate["why"],
+                "detail": gate["detail"]}
+
+    budget = assess_halt(root, sessions_today=sessions_today, now=now)
+    if budget["halt"]:
+        return {"ran": False, "outcome": "halted", "why": budget["reason"],
+                "detail": budget["detail"]}
+
+    picked = select(candidates, focus=focus, parked=parked)
+    if picked["state"] == "idle":
+        return {"ran": False, "outcome": "halted", "why": "idle",
+                "detail": picked["why"], "ledger": ledger_line(picked)}
+
+    item = picked["chosen"]
+    item_id = str(item.get("id") or "")
+    claim = acquire(root, worker_id=worker_id, item=item_id, now=now)
+    if not claim["ok"]:
+        return {"ran": False, "outcome": "halted", "why": "lease",
+                "detail": claim["error"]}
+
+    try:
+        result = dispatch(item)
+        outcome = str((result or {}).get("outcome") or "failed")
+        if outcome not in OUTCOMES:
+            # An unrecognised outcome is a failure, not a success. Reading an
+            # unknown value optimistically is how a broken dispatcher would
+            # look like a working one.
+            outcome = "failed"
+        detail = str((result or {}).get("detail") or "")
+    except Exception as exc:                      # noqa: BLE001 — recorded, not swallowed
+        # A raising dispatcher is a failed session, not a crashed worker. The
+        # exception is recorded rather than propagated so the lease is released
+        # and the failure counts toward parking, which is what makes failure
+        # compound *toward stopping*.
+        outcome, detail = "failed", f"dispatch raised: {exc}"
+    finally:
+        release(root)
+
+    return {
+        "ran": True,
+        "item": item_id,
+        "outcome": outcome,
+        "detail": detail,
+        "why": picked["why"],
+        "ledger": ledger_line(picked),
+    }

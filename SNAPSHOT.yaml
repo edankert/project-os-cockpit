@@ -159,7 +159,7 @@ items:
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
       title: "The standing worker — acquire, select, dispatch, watch, record, release, next; with a lease that refuses and stops that hold"
-      status: doing
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0322, TASK-0323, TASK-0324, TASK-0325]
       note: "A caller of existing machinery, not a second runtime. Default state everywhere: no worker — autonomy is opted into per repo by an approved DELEGATION.md."
@@ -649,12 +649,6 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
       parent: "FEAT-0003"
-    TASK-0323:
-      file: "docs/features/standing-worker/plan/tasks/TASK-0323-The-Session-Loop.md"
-      title: "The session loop — dispatch through the instrumented terminal, watch to close-out or failure, record, next"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0074
     TASK-0332:
       file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
       title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
@@ -2461,9 +2455,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 81
+    features_done: 82
     tasks_total: 385
-    tasks_done: 361
+    tasks_done: 362
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
