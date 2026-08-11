@@ -2464,7 +2464,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 1
-    issues_triage: 10
+    issues_triage: 8
     risks_open: 5
     releases_total: 1
     decisions_total: 13

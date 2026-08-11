@@ -259,13 +259,31 @@
   // severity buckets, 5 item rows of 270 tasks, and the right-hand
   // context pane of a finished note emptied outright. The rule that
   // replaced it is FOLD ON VOLUME, NEVER ON MEANING — the same rule the desktop renderer encodes in
-  // `completed-work.ts`, and the three functions below are its twin.
+  // `completed-work.ts`, and the four functions below are its twin.
 
   function completionRank(item) {
     var st = item && item.status ? String(item.status).toLowerCase() : "";
     // An UNRECOGNISED status ranks open, deliberately: sinking it would
     // quietly bury a note whose status is a typo.
     return COMPLETED_STATUSES[st] ? 1 : 0;
+  }
+
+  // True when every item is terminal — the group has nothing to act on.
+  // An EMPTY group counts as settled, same as the desktop twin.
+  //
+  // ISS-0138: this file CALLED this function four times and defined it
+  // nowhere, so `groupIsSettled is not defined` threw on the first group
+  // either side pane rendered — which is every page. Both panes showed an
+  // error box and mode 1 has been unusable since. The desktop shell got
+  // away with it because `completed-work.js` publishes the name as a
+  // global there; nothing loads that file here, and `templates.py` emits
+  // exactly one script tag.
+  //
+  // The comment above says "the three functions below are its twin" and
+  // there were only two. That is the twin problem stated by its own
+  // comment and not noticed — ADR-0021 is the proposal to end it.
+  function groupIsSettled(items) {
+    return !(items || []).some(function (it) { return completionRank(it) === 0; });
   }
 
   // Open work first, the server's order (ID, severity, path) preserved

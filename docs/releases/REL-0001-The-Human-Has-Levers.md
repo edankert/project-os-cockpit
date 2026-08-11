@@ -199,9 +199,11 @@ This note therefore stays `draft`. **No exceptions are claimed** — the honest 
 
 **Step 7 — what could not be re-run.** Ten notes declare no entrypoint. One (TST-0011) is correctly manual. The other **nine are automated pytest modules that run green in `pytest -q` and cannot say so** — filed as [[ISS-0130]]. That is a real finding of the verification step rather than an obstacle to it: the gate exists to catch stale evidence, and evidence that cannot be refreshed by machine is the case it cannot see.
 
-**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **13 more on 2026-08-11 and one unticked**, so **28 of 34 are settled — 27 ticked, 1 reconciled — and 6 remain** — the gate is still red.
+**Step 5/6 — the tier gate.** 27 Tier 1 and 7 Tier 2 items. **16 were walked on 2026-08-10** and carry their evidence in the suite; **14 more on 2026-08-11 and one unticked**, so **29 of 34 are settled — 28 ticked, 1 reconciled — and 5 remain** — the gate is still red.
 
-**The six are two shapes, and neither shrinks by looking harder.** Four need the app itself: a live agent session in the embedded terminal (1.9.1, 1.10.1, 1.10.2) and two workspaces open at once (1.2.2). Two need a fix first: 2.3.1 is blocked by [[ISS-0138]] (the browser front door does not render, and the check asks about *both* doors), and 1.11.1 asks the health surface to name the notes it is counting, which it does not do.
+**Four of the five need the app itself:** a live agent session in the embedded terminal (1.9.1, 1.10.1, 1.10.2) and two workspaces open at once (1.2.2). The fifth, 1.11.1, asks the health surface to name the notes it is counting, which it does not do.
+
+**One left this list by being fixed rather than waived.** 2.3.1 was blocked by [[ISS-0138]] — two of the browser front door's three panes rendered an error box on every page — so the defect was fixed, guarded, and the check walked on **both** doors. [[ISS-0137]] was fixed the same way, and it mattered more: it was a defect in [[FEAT-0060]], a feature *this release shipped*, silently making half the corpus's open criteria untickable.
 
 That is the honest end state of what can be verified without the shell, and it is stated rather than rounded up.
 
@@ -215,6 +217,8 @@ The second day's passes were the *rendered pane* row and then the *write to the 
 | [[ISS-0137]] | **a criterion containing inline markup cannot be ticked at all** — 26 of this corpus's 53 open criteria, and the button accepts your evidence before refusing |
 | [[ISS-0138]] | **the browser front door's nav and context panes throw on every page** — `groupIsSettled` is called four times in `cockpit.js` and defined only in a mode-3 plain script |
 | [[ISS-0139]] | the Changes tile's code and endpoint outlived the tile [[FEAT-0052]] replaced |
+
+**[[ISS-0137]] and [[ISS-0138]] are `fixed`**, both with a regression guard: `tests/test_criterion_raw_text.py` drives render → read the box → write and fails on exactly the marked-up cases when sabotaged; `tests/test_mode1_identifiers_resolve.py` statically resolves every name `cockpit.js` calls, which is the check that would have caught a four-times-called, never-defined function. Suite 1137 → 1149.
 
 [[ISS-0137]] lands on [[FEAT-0060]], which is *in this release*; [[ISS-0138]] lands on [[PHASE-029]], which is deferred from it. Neither was found by reading code — both took driving the surface, which is the case for keeping a manual suite at all.
 

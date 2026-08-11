@@ -16,7 +16,12 @@ import markdown
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
+import html as _html
+import itertools as _it
+import re as _re
+
 from . import templates
+from .note_writes import _criterion_text
 from .wikilinks import Resolver, WikilinkExtension
 
 
@@ -145,7 +150,59 @@ def _markdown_to_html(
         output_format="html5",
         tab_length=2,
     )
-    return md.convert(text)
+    return _annotate_checkbox_source(md.convert(text), text)
+
+
+#: A rendered task-list checkbox, as pymdownx.tasklist emits it. Matched on
+#: the input element rather than the `<li>`, because that is the node the
+#: renderer already holds when a criterion is clicked.
+_RENDERED_BOX_RE = _re.compile(r"<input(?=[^>]*\btype=\"checkbox\")")
+
+
+def _annotate_checkbox_source(html: str, source_md: str) -> str:
+    """Carry each checkbox's **raw** source prose onto its rendered input.
+
+    ISS-0137. Markdown consumes inline markup on the way out: `` `x` ``
+    becomes ``<code>x</code>``, ``[[y]]`` becomes an anchor, ``**z**``
+    becomes ``<strong>``. A client that recovers the criterion by reading
+    ``textContent`` therefore produces a string the *source* does not
+    contain — and `note_writes.resolve_criterion` matches against the source
+    line, exactly and deliberately, because ambiguity there is a refusal
+    rather than a guess.
+
+    The two never agreed for any criterion carrying markup, which measured
+    on this corpus was **26 of 53 open criteria**. The tick prompt accepted
+    the evidence and then the write was refused, which is the worst order to
+    fail in: the reader has already done the thinking.
+
+    So the raw line travels with the box. The correspondence is ordinal —
+    the Nth rendered checkbox is the Nth task-list line in the source — the
+    same walk `server._toggle_task_at` has always relied on for plain
+    toggles, and the same document order Markdown guarantees.
+
+    ``data-raw`` is the criterion's prose after ``_criterion_text``, so a
+    ticked box carries the criterion rather than the criterion plus its
+    evidence, and re-resolving addresses the criterion.
+    """
+    raws = [
+        _criterion_text(line) for line in source_md.splitlines()
+        if _criterion_text(line) is not None
+    ]
+    if not raws:
+        return html
+
+    counter = _it.count()
+
+    def _sub(match: "_re.Match[str]") -> str:
+        idx = next(counter)
+        if idx >= len(raws):
+            # More rendered boxes than source lines should be impossible;
+            # leaving the attribute off degrades to the old behaviour rather
+            # than mislabelling a box with somebody else's text.
+            return match.group(0)
+        return f'{match.group(0)} data-raw="{_html.escape(raws[idx], quote=True)}"'
+
+    return _RENDERED_BOX_RE.sub(_sub, html)
 
 
 class ImageSourceTreeprocessor(Treeprocessor):

@@ -3,12 +3,12 @@ type: "[[issue]]"
 id: ISS-0137
 aliases: ["ISS-0137"]
 title: "A criterion containing inline markup cannot be ticked — the renderer sends the rendered text and the server matches the raw line, so half the open criteria are unreachable from the note page"
-status: triage
+status: fixed
 severity: high
 owner: user:edwin
 created: 2026-08-11
 updated: 2026-08-11
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-023-Levers-For-The-Human]]"
 features: ["[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
 tasks: []
 related: ["[[REQ-0028-Evidence-Names-Its-Witness]]", "[[FEAT-0063-The-Acceptance-Runner]]", "[[REL-0001-The-Human-Has-Levers]]", "[[PHASE-023-Levers-For-The-Human]]"]
@@ -67,3 +67,21 @@ Send the **raw** criterion text, not the rendered text. The rendered `<li>` cann
 ## Verification
 
 A test that ticks a criterion containing a code span, a bold run and a wikilink, and asserts the line is rewritten — driven through the same path the renderer uses, not by calling `resolve_criterion` with the raw string, which is exactly the assertion that would have passed while this was broken.
+
+## Homed with the feature it broke
+
+Filed under [[PHASE-999]] because it was `triage` and had no scheduled home; **re-homed to [[PHASE-023]] on being fixed** — the phase that delivered [[FEAT-0060]], which is what the defect was in. `test_no_terminal_note_sits_in_the_parking_lot` refuses a terminal note in the parking lot, and correctly: the lot is for work with no home *yet*, and a fixed defect's home is the phase that shipped its subject. The check caught this within a minute of the status changing.
+
+## Fixed — 2026-08-11
+
+**The raw line now travels with the box.** `renderer._annotate_checkbox_source` walks the rendered HTML and the source in the same document order — the correspondence `server._toggle_task_at` has always relied on — and stamps each checkbox with `data-raw`, the criterion's prose after `_criterion_text`. `criterionTextOf` reads that attribute and only falls back to `textContent` when an older sidecar does not send it.
+
+**Fixed at the caller, not by loosening the match.** The alternative — normalising markup away on the server before comparing — was rejected in this note before the fix was written, and the reason held: it would make two criteria differing only in markup collide, and `stamp_tick` treats ambiguity as a refusal *by design*. Trading a visible failure for a silent wrong write is not a fix.
+
+**Verified twice, and the second one is the real one.** `tests/test_criterion_raw_text.py` drives render → read the box → write, parametrised over a code span, a wikilink, a bold run and a plain control. Sabotaged to send rendered text instead, **all three marked-up cases fail and the plain one passes** — which is the bug's exact signature, so the test discriminates rather than merely covering. Then on the surface: the criterion that refused this morning —
+
+> Mode 1 exposes the project overview, rendering the same `/api/cockpit/stats` payload as the shell, with phases and scope rows
+
+— ticked first time through the harness, backticks intact, one line changed.
+
+*The tempting test — call `stamp_tick` with the raw string and watch it work — would have passed throughout. It always worked. The defect was in what the caller sent, so the test has to include the caller.*

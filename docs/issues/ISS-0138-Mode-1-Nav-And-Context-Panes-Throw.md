@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0138
 aliases: ["ISS-0138"]
 title: "The browser front door's nav and context panes are dead — cockpit.js calls groupIsSettled four times and nothing defines it there, so both panes render an error box"
-status: triage
+status: fixed
 severity: high
 owner: user:edwin
 created: 2026-08-11
@@ -58,3 +58,15 @@ Either way the regression guard is the same and is the part that must not be ski
 
 - A test that fails while `cockpit.js` calls a name it cannot resolve.
 - Then re-walk this note in mode 1 and confirm all three panes render.
+
+## Fixed — 2026-08-11
+
+`groupIsSettled` is now defined in `cockpit.js`, beside the `completionRank` it calls. Three lines.
+
+**Yes, this is a fifth hand-copied twin, and it is the wrong long-term answer.** [[ADR-0021]] proposes the shared module; that is a decision for the principal and a larger change than a page that does not render can wait for. The function carries a comment saying so, and the file's own header — which said *"the three functions below are its twin"* while the desktop side had four — now says four.
+
+**The guard is the part that matters**, and it is what this note asked for: `tests/test_mode1_identifiers_resolve.py` statically resolves every name `cockpit.js` calls against what it defines plus a list of real browser globals. Deleting `groupIsSettled` again fails two tests and names it in the message. A fourth test asserts all four fold functions exist on **both** front doors, so the next missing twin fails here rather than in someone's browser.
+
+*The guard's own first draft was wrong in an instructive way: it stripped `//` comments before strings, so any string containing `//` left an unpaired quote and prose downstream started parsing as code — it reported `drift`, `events` and `mismatch` as undefined functions. Strings are stripped first now, and the reason is in the test.*
+
+**Verified on the surface:** `/docs/requirements/REQ-0007-Auto-Index.md` in the browser front door renders all three panes — the nav tree with `OPEN · 3` and `COMPLETED · 23`, the note, and a context pane carrying `FEATURES 2 · done`, `CHANGES 1 · merged`, `PHASES 1 · done` — with the validator chip reading `OK`. This also unblocked acceptance check 2.3.1, which asks about both front doors and could not be answered while one of them was dark.

@@ -1749,10 +1749,25 @@ function isCriterionBox(box: HTMLInputElement): boolean {
   return false;
 }
 
-/** The criterion's own prose, stripped of any resolution already recorded.
- *  Mirrors `note_writes._criterion_text`; the server is what matches on it,
- *  so this only has to produce the same string for an UNRESOLVED box. */
+/** The criterion's own prose, as it reads **in the source**.
+ *
+ *  `data-raw` is put here by `renderer._annotate_checkbox_source`, and it is
+ *  the only correct answer (ISS-0137). This function used to read the
+ *  rendered `textContent`, and the comment above it claimed to mirror
+ *  `note_writes._criterion_text` — it mirrored the *rendered* text instead.
+ *  Markdown has already eaten the markup by then: `` `x` `` arrives as
+ *  `<code>x</code>` whose textContent has no backticks, `[[y]]` as an anchor
+ *  with no brackets. The server matches the source line exactly, so every
+ *  criterion carrying inline markup was untickable — measured at **26 of
+ *  this corpus's 53 open criteria**, each failing only *after* the reader
+ *  had typed their evidence.
+ *
+ *  The textContent path stays as a fallback for a page served by an older
+ *  sidecar that does not send the attribute: wrong for marked-up criteria,
+ *  which is what it always was, and right for plain ones. */
 function criterionTextOf(box: HTMLInputElement): string {
+  const raw = box.dataset.raw;
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
   const li = box.closest('li');
   if (!li) return '';
   const clone = li.cloneNode(true) as HTMLElement;
