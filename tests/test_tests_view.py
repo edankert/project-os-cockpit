@@ -492,7 +492,7 @@ def test_the_run_route_moved_and_the_old_one_redirects() -> None:
 # renders: 92 `TST-*` notes, ZERO tier classification, and a gate that had
 # never been able to fire. These assert the first instance of it.
 
-from project_os_cockpit import acceptance  # noqa: E402
+from project_os_cockpit import acceptance, statuses  # noqa: E402
 
 
 SUITE = REPO_DOCS / "tests" / "ACCEPTANCE_TESTS.md"
@@ -605,6 +605,42 @@ def test_the_gate_states_the_contracts_own_rule() -> None:
     assert "**blocked** if any Tier 1 or Tier 2 test is unchecked" in contract
 
 
+def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> None:
+    """The two surfaces the tier fix produced, neither of which had a test.
+
+    The label must carry the denominator the document holds *and* name the
+    reconciled count — `26/27 · 1 reconciled`, never `26/26`, which is the
+    rounding-down this fixed. And the row's status must be `reconciled`, which
+    is a real member of `statuses.BANDS["archived"]`: if it were a bare string
+    the renderer did not know, `groupIsSettled` would rank it **open** and a
+    fully-settled tier would render as outstanding work — which is what
+    happened, and what independent review caught.
+    """
+    groups = {g["key"]: g for g in nav_payload(repo_index, mode="tests")["groups"]}
+    suite = acceptance.load(REPO_DOCS)
+    for tier in (1, 2, 3):
+        items, group = suite.tier(tier), groups[f"tier{tier}"]
+        walked = sum(1 for i in items if i.checked)
+        reconciled = sum(1 for i in items if i.reconciled)
+        assert f"· {walked}/{len(items)}" in group["label"], group["label"]
+        if reconciled:
+            assert f"· {reconciled} reconciled" in group["label"], group["label"]
+        else:
+            assert "reconciled" not in group["label"], group["label"]
+        by_number = {i.number: i for i in items}
+        for row in group["items"]:
+            item = by_number[row["id"]]
+            expected = ("passing" if item.checked
+                        else "reconciled" if item.reconciled else "ready")
+            assert row["status"] == expected, (row["id"], row["status"])
+    # The property the status buys, stated where it can fail: every value the
+    # view emits is one the vocabulary knows, so no surface ranks it open.
+    emitted = {row["status"] for k, g in groups.items() if k.startswith("tier")
+               for row in g["items"]}
+    assert emitted <= statuses.VOCABULARY, emitted - statuses.VOCABULARY
+    assert "reconciled" in statuses.COMPLETED_STATUSES
+
+
 def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None:
     """The contract blocks on *unchecked* and names one escape: a documented
     release exception. This repo clears a check a second way — reconciliation —
@@ -622,6 +658,15 @@ def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None
     assert "not release exceptions" in local, (
         "the extension must distinguish itself from the contract's escape, or "
         "a reader counts one as the other"
+    )
+    # …and it must reach a surface. A payload nobody renders is the same
+    # silence, one layer down — re-review's finding, since the blocked band is
+    # precisely where a reader asks why a `[~]` item is not in the list.
+    src = RENDERER.read_text(encoding="utf-8")
+    band = re.search(r"async function mountReleaseGate\(\).*?\n\}", src, re.S).group(0)
+    assert "gate.local_rule" in band
+    assert band.index("gate.rule") < band.index("gate.local_rule"), (
+        "the contract's own sentence comes first; the local extension follows it"
     )
 
 
@@ -723,6 +768,27 @@ def test_a_mark_nobody_recognises_blocks_rather_than_vanishing(
     assert [b["name"] for b in gate["blocking"]] == ["A"]
 
 
+def test_a_checkbox_inside_a_code_fence_is_an_example(tmp_path: Path) -> None:
+    """`criteria.py` and the validator's box counter both skip fences on the
+    stated ground that a `- [ ]` in a code block is an example, not a
+    criterion. This module did not — so a documentation example inside the
+    suite would have been a real gating item, blocking a release on a line
+    nobody wrote as a check.
+
+    Found by re-review, and it is the one drop the raw-line guard could not
+    have caught: raw and parsed would both have counted it. The two agree on
+    fences and on nothing else."""
+    docs = _suite_fixture(tmp_path / "fence", (
+        "- [x] **A:** walked.\n\n"
+        "```markdown\n"
+        "- [ ] **Example:** how to write one of these.\n"
+        "```\n"
+    ))
+    suite = acceptance.load(docs)
+    assert [i.name for i in suite.tier(1)] == ["A"], [i.name for i in suite.tier(1)]
+    assert acceptance.gate_payload(docs)["blocked"] is False
+
+
 def test_the_live_suite_loses_no_line_to_the_parser() -> None:
     """The one non-tautological claim about the live document.
 
@@ -740,7 +806,17 @@ def test_the_live_suite_loses_no_line_to_the_parser() -> None:
     # Only what sits under a tier heading — the preamble's own checkbox is
     # deliberately not a test (`test_nothing_above_the_first_tier_heading…`).
     body = re.split(r"(?m)^#\s+Tier\s+1\b", text, maxsplit=1)[1]
-    raw = len(re.findall(r"(?m)^\s*[-*+]\s+\[", body))
+    # Fences are skipped on both sides: a `- [ ]` in a code block is an example
+    # of a checkbox, not one. That is the single structural rule this counter
+    # shares with the parser — it deliberately shares no *item* regex, which is
+    # the independence that makes the comparison worth anything.
+    raw, in_fence = 0, False
+    for line in body.splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if not in_fence and re.match(r"^\s*[-*+]\s+\[", line):
+            raw += 1
     parsed = len(acceptance.load(REPO_DOCS).items)
     assert parsed == raw, (
         f"{raw - parsed} checkbox line(s) in the suite are invisible to the "

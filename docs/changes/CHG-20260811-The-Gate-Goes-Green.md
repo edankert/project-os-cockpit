@@ -9,7 +9,7 @@ related: ["[[REL-0001-The-Human-Has-Levers]]", "[[ACCEPTANCE-TESTS]]", "[[ISS-01
 tags: [change]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-11
-review_verdict: changes-requested
+review_verdict: approved
 ---
 
 # The gate goes green
@@ -79,3 +79,40 @@ Four findings, none blocking the release, all against claims this note or [[ISS-
 **4. The wording, in all five places.** "34 of 34, no exception claimed" now reads "34 of 34 settled — 33 walked and 1 settled by decision", and `gate_payload` gained `local_rule`, stating the reconciliation extension *beside* the contract's verbatim sentence rather than paraphrasing it, and saying plainly that a reconciled check is not a release exception. `TESTING.md` is template-owned and is still owed the change upstream.
 
 Also fixed from the review's low findings: `unreleased_payload`'s docstring (said REL-0001 was `draft`), `SNAPSHOT.yaml`'s release note (ended "Still `draft`"), 1.10.1's missing statement of *where* the agent ran, and 3.2's citation of an instruction it did not follow. The verdict on this note is the reviewer's to change, not mine.
+
+## Independent review, round two — 2026-08-11 (model:claude-opus-5, same reviewer, fresh look at `73827d1`) — approved
+
+**All four findings are fixed, and I re-established each one rather than reading the response.**
+
+- **The line shape.** Every shape in the parametrised set behaves: `- [ x]`, `- [x ]`, `- []`, `- [ ~]` and a multi-word mark are all owed and blocking; indented, `*`, `+` and tab-indented bullets parse. `[ x]` classifies **unstripped** — the inversion was the thing to get wrong here and it was not gotten wrong. A markdown link bullet (`- [text](url)`) correctly stays out.
+- **The status.** Executing the rebuilt `completed-work.js`: `groupIsSettled` is now **true** for Tier 1 (26 passing + 1 reconciled) and Tier 3, and an unrecognised status still ranks open — the deliberate property survived the addition. The claim that `validate-docs.py` still refuses `reconciled` as note frontmatter was tested, not believed: setting it on a feature and on an issue produces `NOTE-STATUS ... not allowed`, and no per-type table admits it. `archived` is the right band — terminal, without the thing having been done — and it carries the consequences a reader would want (muted colour, dead-group rank, hidden by Hide-completed).
+- **The guard.** `test_the_live_suite_loses_no_line_to_the_parser` catches the exact mutant that used to pass silently: the parser made to drop one Tier 1 item now fails **one** test, this one, where the whole file previously stayed green at 52 passed. An unreadable line added to the live suite (`- [x]**A:**`) also fails it, and only it.
+- **The wording.** Precise, not merely longer: "33 walked and 1 settled by decision" separates two facts that "34 of 34" fused, and `local_rule` states the extension beside the contract's sentence instead of paraphrasing it — including that a reconciled check is *not* a release exception, which is the distinction that was doing the damage.
+
+Arithmetic recounted from scratch under the new parser, not carried forward: **Tier 1 27 (26 walked, 1 reconciled), Tier 2 7 walked, Tier 3 2 (1 walked, 1 reconciled) — 34 of 34 gating, 36 of 36 overall, 36 raw checkbox lines and 36 parsed.** Suite 1168 passed / 1 skipped; validator clean.
+
+**Residuals, none blocking, listed so the next reader has them.** The first is the only one I would fix before this module is next edited:
+
+1. **`_ITEM_RE`'s docstring contradicts the code, in the dangerous direction.** It ends *"the mark is classified after stripping, so `[ x]` is an unrecognised mark"* — but the code does **not** strip, the comment beside `mark = item.group(1)` says so explicitly and explains why, and after stripping `[ x]` would classify as `x`, a **walked check**. The docstring describes the inversion the fix exists to avoid, and it is what a future cleanup will read first.
+2. **A `- [ ]` inside a fenced code block is a real gating item.** `criteria.py` and `validate_docs_bundled.count_acceptance_boxes` both skip fences deliberately; `acceptance.py` does not, so a fenced example blocks a release — and the new guard is blind to it by construction, since raw and parsed both count it. No fences in the suite today.
+3. **`-[x] text` — no space after the bullet — is dropped by the parser and invisible to the guard**, both regexes agreeing to skip it. Mitigated: CommonMark does not render it as a list item either, so a human reading the rendered page sees a literal line.
+4. **`local_rule` reaches no surface.** The blocked-state band still renders `gate.rule` alone, which is exactly when a reader asks why a `[~]` item is not blocking. One `gateNote(gate.local_rule)` closes it.
+5. **The tier label and the item status still have no test** — `· 1 reconciled` and the `passing`/`reconciled`/`ready` mapping in `_acceptance_tier_groups` are asserted nowhere.
+6. **A sixth place the wording sweep did not reach**: this suite's own *"No exceptions are claimed — an unwalked check is unchecked, not excused"*, which sits near a reconciled unwalked check that is settled by decision. True under the new vocabulary; the second clause reads against it.
+7. **"They retire when the next release opens" has no tracking item.** The Tier 3 deferral is the right call — removing evidence a shipped release cites is worse than carrying two items — but a commitment with no `ISS-*` behind it is a commitment to the next person's memory.
+
+## Re-review — 2026-08-11, `approved`, and seven residuals
+
+The re-review verified each fix against behaviour rather than against the response above: `- [ x]` blocks (and so do `[x ]`, `[]`, `[ ~]` and a multi-word mark) while a `[text](url)` link correctly stays out; `groupIsSettled` executed against the rebuilt bundle now returns **true** for Tier 1 and Tier 3 while an unknown status still ranks open; `status: reconciled` on a real note is refused by the validator, so vocabulary membership did not become frontmatter permission; and the mutant that used to pass silently now fails exactly one test.
+
+**Five of the seven residuals are fixed here.** Two are not, and both are decisions:
+
+1. **The docstring said "classified after stripping"** — describing, in the first place a future cleanup reads, precisely the inversion the code refuses to make (`" x".strip()` is `"x"`, a walked check). Corrected, with the trap named.
+2. **A `- [ ]` inside a code fence was a real gating item.** `criteria.py` and the validator's box counter both skip fences deliberately; this module did not. It does now, and this is the one drop the raw-line guard could never have caught, because raw and parsed would both have counted it.
+3. **`local_rule` reached no surface.** The blocked band renders it beneath the contract's own sentence — which is exactly where a reader asks why a `[~]` item is not in the list.
+4. **The tier label and item status now have a test**, including that every status the view emits is a member of the vocabulary.
+5. **A sixth wording site** in the suite — *"an unwalked check is unchecked, not excused"* — now says *release* exception and names the two that were settled rather than walked.
+6. **`-[x]` with no space after the bullet stays dropped, by decision.** CommonMark does not render it as a list item either, so the parser agreeing with the renderer is the correct behaviour rather than a gap.
+7. **The Tier 3 retirement is now [[ISS-0143]]** rather than a promise in a Markdown comment — which was the reviewer's question, and the honest answer was that nothing tracked it.
+
+One precision it added and this note adopts: the process tree shows the walking session was *started under* the app's `tmux -L cockpit` instrument config, which is what the embedded terminal attaches to. That establishes the clause *"start an agent in the terminal"*; it does not by itself exclude a detached pane, and 1.10.1 should not be read as claiming more.

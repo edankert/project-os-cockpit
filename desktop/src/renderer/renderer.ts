@@ -1422,6 +1422,7 @@ interface GatePayload {
   exists: boolean; blocked: boolean; rule: string; rel: string;
   blocking: GateItem[];
   counts: Record<string, { total: number; unchecked: number; reconciled?: number }>;
+  local_rule?: string;
 }
 
 async function mountReleaseGate(): Promise<void> {
@@ -1476,6 +1477,12 @@ async function mountReleaseGate(): Promise<void> {
     `Release blocked — ${unchecked} Tier 1/2 test${unchecked === 1 ? '' : 's'} unchecked.`,
   ));
   band.appendChild(gateNote(gate.rule));
+  // The contract's sentence blocks on *unchecked*; this repo also settles a
+  // check by reconciliation, and the blocked band is exactly where a reader
+  // asks why some `[~]` item below is not in the list. Stated beside the rule,
+  // never folded into it — found by re-review, which noted the payload carried
+  // this and no surface said it.
+  if (gate.local_rule) band.appendChild(gateNote(gate.local_rule));
 
   const list = document.createElement('ul');
   list.className = 'release-gate-list';

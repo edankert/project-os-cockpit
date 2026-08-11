@@ -39,6 +39,15 @@ SUITE_REL = "tests/ACCEPTANCE_TESTS.md"
 #: — TESTING.md's release-gating section says so in as many words.
 GATING_TIERS: tuple[int, ...] = (1, 2)
 
+#: A `- [ ]` inside a code fence is an *example* of a checkbox, not one. Found
+#: by re-review (ISS-0141): `criteria.py` and the validator's box counter both
+#: skip fences deliberately and this module did not, so a documentation example
+#: in the suite would have been a real, blocking, unwalkable gating item — and
+#: the raw-line guard could not have seen it, because raw and parsed would both
+#: have counted it. Same regex as `criteria.FENCE_RE`, restated rather than
+#: imported to keep this module free of a dependency it otherwise has no use
+#: for; `test_a_checkbox_inside_a_code_fence_is_an_example` pins the pair.
+_FENCE_RE = re.compile(r"^\s*(```|~~~)")
 _TIER_HEADING_RE = re.compile(r"^#\s+Tier\s+(\d)\s*[—-]\s*(.+?)\s*$", re.M)
 _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
 #: **Any** bullet, **any** mark, decided below rather than filtered here
@@ -53,8 +62,13 @@ _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
 #: `- [v]` and `- [-]` blocked afterwards, but `- [ x]` — two characters —
 #: still vanished, as did an indented `  - [ ]` and a `* [ ]` bullet. Widening
 #: one axis of a silent-drop bug leaves the bug. Both axes are open now, and
-#: the mark is classified after stripping, so `[ x]` is an unrecognised mark
-#: (owed, blocking) rather than a line that was never there.
+#: the mark is classified **without stripping**, so `[ x]` is an unrecognised
+#: mark (owed, blocking) rather than a line that was never there.
+#:
+#: *This sentence said "classified after stripping" until the re-review caught
+#: it — describing, in the first place a future cleanup reads, precisely the
+#: inversion the code below refuses to make. `" x".strip()` is `"x"`, so a
+#: parser written from that comment would read a typo as a walked check.*
 _ITEM_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*?)\s*$")
 #: Walked. `X` is Markdown-legal and appears in the wild.
 _CHECKED_MARKS = frozenset({"x", "X"})
@@ -159,7 +173,13 @@ def parse(text: str) -> list[Item]:
     refs: tuple[str, ...] = ()
     ordinal = 0
 
+    in_fence = False
     for line in body.splitlines():
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         tier_head = _TIER_HEADING_RE.match(line)
         if tier_head:
             tier = int(tier_head.group(1))
