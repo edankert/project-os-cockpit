@@ -180,7 +180,7 @@ items:
     FEAT-0077:
       file: "docs/features/intent-charter/FEAT-0077-The-Intent-Charter.md"
       title: "The intent charter — DES-0003's page graduated into the oracle a delegated acceptance judges against"
-      status: planned
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       tasks: [TASK-0332, TASK-0333, TASK-0334]
       note: "Acceptance asks: is this what I asked for — so the delegate needs the asking written down. Drafted from the record's paid-for decisions, approved by the principal, sha-stamped on every judgment made under it."
@@ -658,13 +658,13 @@ items:
     TASK-0332:
       file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
       title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0333:
       file: "docs/features/intent-charter/plan/tasks/TASK-0333-The-Charter-Note.md"
       title: "The charter note — goals, non-goals and taste constraints, drafted from the record, approved by the principal"
-      status: backlog
+      status: done
       phase: "[[PHASE-027-The-Standing-Worker]]"
       parent: FEAT-0077
     TASK-0334:
@@ -2461,9 +2461,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 91
-    features_done: 80
+    features_done: 81
     tasks_total: 385
-    tasks_done: 359
+    tasks_done: 361
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

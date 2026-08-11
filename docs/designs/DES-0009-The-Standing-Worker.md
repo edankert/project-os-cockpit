@@ -92,3 +92,49 @@ Correct, and the rule is right: offering a design for review means asking somebo
 Reverted to `draft`. **What this note needs before it can be offered is an artifact**, not a status change — [[FEAT-0067]]'s `## Variant <name>` sections now make that cheap, and this design (the loop, the lease, the policy) has at least the ledger view and the escalation states to show.
 
 Offering is an agent's act and accepting is not — `note_writes.HUMAN_TRANSITIONS` lists `design: proposed → accepted` as human-owned and the server refuses it to an agent ([[REQ-0026]]). So the sequence is: an artifact, then `proposed`, then Edwin. [[PHASE-027]] waits on all three, since [[FEAT-0074]]–[[FEAT-0076]] build the loop this note shapes.
+
+## Variant Worker states
+
+```html
+<div style="font:13px/1.5 system-ui;display:flex;gap:10px;flex-wrap:wrap">
+  <div style="border:1px solid #3a3f45;border-radius:6px;padding:10px 12px;min-width:150px">
+    <div style="font-weight:600">idle</div>
+    <div style="opacity:.7;font-size:11.5px">no workable item — a stop condition, not a busy-wait</div>
+  </div>
+  <div style="border:1px solid #3a3f45;border-radius:6px;padding:10px 12px;min-width:150px">
+    <div style="font-weight:600">working</div>
+    <div style="opacity:.7;font-size:11.5px">lease held · budget counting · one item</div>
+  </div>
+  <div style="border:1px solid #7a5a2a;border-radius:6px;padding:10px 12px;min-width:150px">
+    <div style="font-weight:600">escalated</div>
+    <div style="opacity:.7;font-size:11.5px">waiting on a person — lapses to an assumption, or alarms</div>
+  </div>
+  <div style="border:1px solid #7a3a3a;border-radius:6px;padding:10px 12px;min-width:150px">
+    <div style="font-weight:600">halted</div>
+    <div style="opacity:.7;font-size:11.5px">files what and why — an obligation on the desk, not an absence</div>
+  </div>
+</div>
+```
+
+## Variant The six halt reasons
+
+```html
+<div style="font:13px/1.5 system-ui">
+  <table style="border-collapse:collapse;width:100%">
+    <tr><td style="padding:4px 8px;font-weight:600">stop-switch</td>
+        <td style="padding:4px 8px;opacity:.75">a human asked — outranks every computed halt</td></tr>
+    <tr><td style="padding:4px 8px;font-weight:600">no-delegation</td>
+        <td style="padding:4px 8px;opacity:.75">the default: no approved policy, no worker</td></tr>
+    <tr><td style="padding:4px 8px;font-weight:600">validator-red</td>
+        <td style="padding:4px 8px;opacity:.75">working on a broken record compounds it</td></tr>
+    <tr><td style="padding:4px 8px;font-weight:600">parked-items</td>
+        <td style="padding:4px 8px;opacity:.75">three parked — failure is compounding, not clearing</td></tr>
+    <tr><td style="padding:4px 8px;font-weight:600">session-budget</td>
+        <td style="padding:4px 8px;opacity:.75">sessions per day</td></tr>
+    <tr><td style="padding:4px 8px;font-weight:600">wall-clock</td>
+        <td style="padding:4px 8px;opacity:.75">minutes in one session</td></tr>
+  </table>
+</div>
+```
+
+*Both variants render what this note already specifies — they are the shape a reviewer judges, not a new proposal. Added by [[TASK-0332]]: the validator refuses a `proposed` design that declares no artifact, and correctly, because offering a design for review means asking somebody to look at something.*
