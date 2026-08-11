@@ -4,20 +4,21 @@ id: DES-0009
 aliases: ["DES-0009"]
 title: "The standing worker — the loop, the lease, the policy it consults, and what the human reads afterwards"
 role: proposal
-status: proposed
+status: "accepted"
 phase: "[[PHASE-027-The-Standing-Worker]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-11
+updated: "2026-08-11"
 source: ["[[ADR-0009-The-Principal-Is-A-Role]]", "Edwin 2026-08-03: full maintenance independent of a human"]
 asset: "DES-0009-standing-worker.html"
 implements: []
 supersedes: ""
 superseded_by: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
+reviewed_by: "user:edwin"
+review_date: "2026-08-11"
+review_verdict: "approved"
 related: ["[[FEAT-0074-The-Standing-Worker]]", "[[FEAT-0075-The-Delegation-Policy]]", "[[FEAT-0076-Escalation-With-Defaults]]", "[[FEAT-0077-The-Intent-Charter]]", "[[RISK-0006-The-Unattended-Worker]]"]
+design_revision: "31eac79"
 ---
 
 # The standing worker
@@ -143,3 +144,11 @@ Offering is an agent's act and accepting is not — `note_writes.HUMAN_TRANSITIO
 **Now offered.** `DES-0009-standing-worker.html` renders one turn, the four states, every halt reason, what a selection records, and what is never delegated — all of it what this note already specifies, drawn so a reviewer judges a *shape* rather than reads prose. `draft → proposed` is an agent's act; **accepting it is not** — `HUMAN_TRANSITIONS` puts `design: proposed → accepted` with the principal, and the server refuses it to an agent ([[REQ-0026]]).
 
 Every mechanism drawn here exists and is tested: the six halts drilled in `tests/test_worker.py`, the lease, the policy defaulting closed, the escalation clock, and the selection ledger. So this is a design offered *after* its subject was built rather than before — unusual, and worth saying plainly: what it documents is real, and what it asks is whether the shape is right.
+
+## Accepted — 2026-08-11
+
+**Edwin, in session: *"I accept DES-0009."*** Recorded through `/api/design/verdict` with `reviewer: user:edwin`, `verdict: approved`, pinned to revision `31eac79` — the artifact's only committed revision and the one that was on screen. Not a status hand-edited into the frontmatter: the same write the actuator row's Accept performs, so the revision check, the dirty-artifact refusal and the `design_revision` stamp all applied exactly as they would have.
+
+**The instruction arrived in chat rather than through the button, and that is worth stating plainly rather than smoothing over.** [[REQ-0026]] reserves `design: proposed → accepted` for the principal; what it reserves is the *judgment*, not the keystroke. The judgment is Edwin's, given in his own words, and `reviewed_by` names him because he is who decided. What the record does **not** claim is that he clicked — hence this paragraph, so a reader who later wonders why there is no click in the session log has the answer in the note rather than in a transcript.
+
+The guard held for the eleven hours it mattered: an agent asked for this transition and was refused, and it was only ever going to move when the principal said so.

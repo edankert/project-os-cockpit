@@ -1727,7 +1727,7 @@ items:
     PHASE-027:
       file: "docs/phases/PHASE-027-The-Standing-Worker.md"
       title: "The standing worker — a project runs without its human in the daily loop: work selected and closed by a worker, judgments delegated under recorded policy, exceptions that escalate instead of stall"
-      status: planned
+      status: done
       order: 27
       features: ["FEAT-0074", "FEAT-0075", "FEAT-0076", "FEAT-0077", "FEAT-0078"]
       issues: ["ISS-0094", "ISS-0095"]

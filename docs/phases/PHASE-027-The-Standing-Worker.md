@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-027
 aliases: ["PHASE-027"]
 title: "The standing worker — a project runs without its human in the daily loop: work selected and closed by a worker, judgments delegated under recorded policy, exceptions that escalate instead of stall"
-status: planned
+status: done
 order: 27
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-11
 goal: "Make ADR-0009 operational: a driver that selects, works and closes; a delegation policy the actuator endpoints consult; escalation defaults so no unanswered question stalls the loop; and an intent charter the delegated principal judges against."
 features:
   - "[[FEAT-0074-The-Standing-Worker]]"
@@ -57,17 +57,19 @@ Design: [[DES-0009]].
 
 ## Why this phase stayed open, and how it closed — 2026-08-11
 
-Every feature is `done`, every task is resolved, all three requirements are `implemented`, and four of five exit criteria are settled. **One criterion is left standing, deliberately, and it is not an oversight:**
+*Written while the phase was still open, and kept as the record of how it got there — the two subsections below are what settled it.*
+
+Every feature is `done`, every task is resolved, all three requirements are `implemented`, and four of five exit criteria were settled. **One criterion was left standing, deliberately, and it was not an oversight:**
 
 > A repo runs a week of maintenance with the human touching only the digest and the desk
 
 It has not happened. No worker has executed a single turn — `run_once` refuses without an approved `DELEGATION.md` and this repo has none.
 
-**It is left `[ ]` rather than reconciled**, and the distinction is the point. `STATUSES.md` offers `- [~]` for a criterion that was **cut** — departed from, with the reason. This one was not cut; it is *not yet done*. Marking it reconciled would record a decision nobody made, and the difference between *"we chose not to"* and *"we haven't"* is exactly the kind of thing a record exists to keep straight.
+**It was left `[ ]` rather than reconciled**, and the distinction is the point. `STATUSES.md` offers `- [~]` for a criterion that was **cut** — departed from, with the reason. This one was not cut; it is *not yet done*. Marking it reconciled would record a decision nobody made, and the difference between *"we chose not to"* and *"we haven't"* is exactly the kind of thing a record exists to keep straight.
 
 The same reasoning holds [[RISK-0006]] open. Its own text: *"closes when a repo has run a supervised week — worker on, human watching daily — with the drill log green and the audit query returning zero orphans. **Unattended operation before that standard is the risk realised, not accepted.**"* Closing it now would put a false statement in the record about whether a machine making judgments unattended is safe — assessed by a machine, unattended.
 
-[[DES-0009]] is `proposed` with its artifact and waits on an Accept, which `HUMAN_TRANSITIONS` reserves for the principal and the server refuses to an agent.
+[[DES-0009]] was `proposed` with its artifact and waited on an Accept, which `HUMAN_TRANSITIONS` reserves for the principal and the server refuses to an agent. **Edwin accepted it on 2026-08-11** — recorded through `/api/design/verdict` at revision `31eac79`, `reviewed_by: user:edwin`. That was the phase's last unresolved child, and the guard did its job in the meantime: an agent asked and was refused, for eleven hours, until the principal said so.
 
 **What the phase delivered**, so the remaining gap is not mistaken for a hole in the work: the delegation policy defaulting closed, the escalation clock with nothing waiting silently, permission prompts brought under it, turn checkpoints with a principal-owned restore, a picker that records what it passed over, six drilled halt paths, and a session loop that spawns nothing of its own. Every mechanism the supervised week needs exists and is tested. What is missing is the week.
 
@@ -78,3 +80,11 @@ Edwin's decision: the supervised week gets its own phase, [[PHASE-031]], and [[R
 That is not the week being waived. It is the week getting an owner, which is what `STATUSES.md` provides for precisely this shape — *"park it under a real future phase so the relationship, not the status word, records where the work went."* `deferred` would have said the week was descoped; re-homing says it is somebody's next job.
 
 What this phase claims, now that the criterion has moved, is exactly what it built: **the machinery an unattended worker needs, with brakes drilled before the hill.** What it never claimed and now cannot appear to claim is that the machinery has been watched running.
+
+### Closed — 2026-08-11
+
+`planned → done`. Both gates are satisfied on their own terms rather than by argument: **PHASE-CHILDREN** — every note naming this phase is resolved, [[DES-0009]] last; **PHASE-BOXES** — no exit criterion is unticked, three ticked with evidence and two reconciled with where they went.
+
+**With this, [[REL-0001]]'s five phases are all `done`** — PHASE-023, 024, 025, 026 and this one. The release's widened definition, *"phases resolved, not a feature list"*, is met. What it still owes is its own verification pass, which is a different thing and is tracked there.
+
+The last thing to move was a human judgment, and it took eleven hours of an agent not being able to make it. That is the phase's own subject working correctly on the phase itself.

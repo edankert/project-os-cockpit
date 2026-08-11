@@ -75,6 +75,16 @@ The five phases that must reach `done`. Sixteen features, and the `planned` stat
 
 **[[FEAT-0078]] was missing from this note's deferred table** — it listed FEAT-0074..0077 for a phase that has five features. Corrected here; it is the kind of drift the caveat at the foot predicted.
 
+### Leg 2 closed — 2026-08-11
+
+**All five phases are `done`.** [[PHASE-023]], [[PHASE-024]], [[PHASE-025]], [[PHASE-026]] and [[PHASE-027]] each cleared both gates on their own terms: no unresolved child, no unticked exit criterion. The 76 unresolved children measured at the top of the day are 0; the 25 unticked criteria are 0, of which the settled-rather-than-ticked ones each name where they went.
+
+The last thing to move was not code. [[DES-0009]] sat `proposed` for eleven hours with its artifact rendered and every mechanism it describes built and tested, because `design: proposed → accepted` is in `HUMAN_TRANSITIONS` and the server refuses it to an agent ([[REQ-0026]]). Edwin accepted it in session; it is recorded through `/api/design/verdict` at revision `31eac79` with `reviewed_by: user:edwin`. **The release's own sentence, enforced against the release.**
+
+Two things stay open by decision and neither is a phase: [[RISK-0006]]'s supervised week, re-homed to [[PHASE-031]] with the risk still `open`; and [[ADR-0022]], `proposed`, whose unaccepted state *is* the operative rule that the worker never pushes.
+
+**What the release still owes is verification, not work** — see below. `status: draft` now means exactly one thing: the acceptance gate is red.
+
 ### The completion bar
 
 "The sixteen features are done" is **not** the bar, and stating it as one would repeat the error this revision fixes. `STATUSES.md` gates a phase twice: **PHASE-CHILDREN** — no phase closes while any note naming it in `phase:` is unresolved; and **PHASE-BOXES** — no phase closes with an unticked exit criterion. Measured 2026-08-11:
