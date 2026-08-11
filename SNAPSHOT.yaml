@@ -649,12 +649,6 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
       parent: "FEAT-0003"
-    TASK-0322:
-      file: "docs/features/standing-worker/plan/tasks/TASK-0322-Selection-With-Reasons.md"
-      title: "Selection with reasons — LIFECYCLE step 2 as code, every choice explained in the ledger"
-      status: backlog
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0074
     TASK-0323:
       file: "docs/features/standing-worker/plan/tasks/TASK-0323-The-Session-Loop.md"
       title: "The session loop — dispatch through the instrumented terminal, watch to close-out or failure, record, next"
@@ -2469,7 +2463,7 @@ metrics:
     features_total: 91
     features_done: 80
     tasks_total: 385
-    tasks_done: 358
+    tasks_done: 359
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182

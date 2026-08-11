@@ -172,3 +172,72 @@ def test_the_module_starts_nothing() -> None:
     ).read_text(encoding="utf-8")
     for launcher in ("subprocess", "Popen", "spawn", "os.system", "threading"):
         assert launcher not in src, f"worker.py can launch something via {launcher}"
+
+
+# ---- selection with reasons (TASK-0322) -----------------------------------
+
+ITEMS = [
+    {"id": "TASK-1", "status": "backlog", "phase": "[[PHASE-027]]"},
+    {"id": "TASK-2", "status": "backlog", "phase": "[[PHASE-023]]"},
+    {"id": "TASK-3", "status": "done", "phase": "[[PHASE-023]]"},
+    {"id": "TASK-4", "status": "backlog", "phase": "[[PHASE-023]]", "depends": ["TASK-9"]},
+    {"id": "ISS-1", "status": "triage", "phase": "[[PHASE-023]]", "severity": "critical"},
+]
+
+
+def test_the_focus_item_wins_when_it_is_workable() -> None:
+    """LIFECYCLE step 2's first clause — the focus is a decision somebody
+    already made, and overriding it silently discards that."""
+    got = worker.select(ITEMS, focus="TASK-1")
+    assert got["chosen"]["id"] == "TASK-1"
+    assert "focus item" in got["why"]
+
+
+def test_otherwise_phase_order_then_severity_then_id() -> None:
+    got = worker.select(ITEMS)
+    assert got["chosen"]["id"] == "ISS-1", got["chosen"]
+    assert "phase order" in got["why"]
+
+
+def test_an_unworkable_status_is_passed_over_with_its_reason() -> None:
+    """`review` and `blocked` are states where somebody else is mid-thought;
+    picking one up is taking work off a *person* rather than off a queue."""
+    reasons = {c["id"]: c["passed"] for c in worker.select(ITEMS)["considered"]}
+    assert "not workable" in reasons["TASK-3"]
+
+
+def test_a_blocked_item_is_passed_over_naming_its_blocker() -> None:
+    reasons = {c["id"]: c["passed"] for c in worker.select(ITEMS)["considered"]}
+    assert "blocked on TASK-9" in reasons["TASK-4"]
+
+
+def test_parked_items_are_skipped() -> None:
+    """Failure backoff: an item that has failed twice is parked, and a picker
+    that kept choosing it would retry forever — which is exactly the direction
+    REQ-0031 forbids failure from compounding."""
+    got = worker.select(ITEMS, parked={"ISS-1", "TASK-2"})
+    assert got["chosen"]["id"] == "TASK-1"
+    reasons = {c["id"]: c["passed"] for c in got["considered"]}
+    assert "parked" in reasons["ISS-1"]
+
+
+def test_an_empty_backlog_is_idle_which_is_a_stop_condition() -> None:
+    """A loop that spins looking for work it will not find burns budget to
+    discover nothing, repeatedly."""
+    got = worker.select([])
+    assert got["state"] == "idle" and got["chosen"] is None
+    assert "stop condition" in got["why"]
+
+
+def test_every_selection_explains_what_it_passed_over() -> None:
+    """*"Why not that one?"* is the question a person actually asks when a
+    worker's choice looks wrong, and it cannot be answered from the choice."""
+    line = worker.ledger_line(worker.select(ITEMS))
+    assert line.startswith("chose ISS-1")
+    assert "passed over:" in line
+    for other in ("TASK-3", "TASK-4"):
+        assert other in line, line
+
+
+def test_the_idle_ledger_line_says_why_too() -> None:
+    assert "idle" in worker.ledger_line(worker.select([]))

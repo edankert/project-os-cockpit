@@ -212,3 +212,108 @@ def can_start(root: Path, *, worker_id: str = "", now: _dt.datetime | None = Non
         return {"ok": False, "why": "lease-held",
                 "detail": f"held by {state['lease'].get('worker_id')!r}"}
     return {"ok": True, "why": "", "detail": "policy approved, no halt, lease free"}
+
+
+# ---- selection ------------------------------------------------------------
+
+#: Statuses a worker may pick up. Deliberately narrow — `review` and `blocked`
+#: are states where somebody else is mid-thought, and picking one up is taking
+#: work off a person rather than off a queue.
+WORKABLE: frozenset[str] = frozenset({"backlog", "next", "doing", "triage", "open"})
+
+#: Severity order for issues, worst first.
+_SEVERITY = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def select(
+    candidates: list[dict[str, Any]],
+    *,
+    focus: str = "",
+    parked: set[str] | None = None,
+) -> dict[str, Any]:
+    """Pick the next item, **and say why** (TASK-0322, LIFECYCLE step 2).
+
+    Order: the focus item when workable, else by phase order, then severity,
+    then id. Items parked by failure backoff are skipped.
+
+    **Every selection explains itself, including what it passed over.** An
+    unattended system's first duty is to be explainable afterwards: "why is it
+    working on that?" asked three hours later must have an answer that does not
+    require re-deriving the state the picker saw.
+
+    An empty workable backlog returns `idle` — which is a **stop condition**,
+    not a busy-wait. A loop that spins looking for work it will not find burns
+    budget to discover nothing, repeatedly.
+    """
+    parked = parked or set()
+    considered: list[dict[str, str]] = []
+    workable: list[dict[str, Any]] = []
+
+    for item in candidates:
+        item_id = str(item.get("id") or "")
+        status = str(item.get("status") or "").strip().lower()
+        if item_id in parked:
+            considered.append({"id": item_id, "passed": "parked by failure backoff"})
+            continue
+        if status not in WORKABLE:
+            considered.append({"id": item_id, "passed": f"status {status or 'unset'} is not workable"})
+            continue
+        blockers = [b for b in (item.get("depends") or []) if b not in (item.get("resolved") or [])]
+        if blockers:
+            considered.append({"id": item_id, "passed": f"blocked on {', '.join(blockers)}"})
+            continue
+        workable.append(item)
+
+    if not workable:
+        return {
+            "state": "idle",
+            "chosen": None,
+            "why": "no workable item — idle is a stop condition, not a busy-wait",
+            "considered": considered,
+        }
+
+    focused = next((i for i in workable if str(i.get("id")) == focus), None)
+    if focused is not None:
+        chosen, why = focused, f"the focus item {focus} is workable"
+    else:
+        def key(item: dict[str, Any]) -> tuple[Any, ...]:
+            return (
+                _coerce_phase(item.get("phase")),
+                _SEVERITY.get(str(item.get("severity") or "").lower(), 9),
+                str(item.get("id") or ""),
+            )
+        workable.sort(key=key)
+        chosen = workable[0]
+        why = (
+            f"focus {focus!r} not workable; " if focus else ""
+        ) + "first by phase order, then severity, then id"
+
+    for item in workable:
+        if item is not chosen:
+            considered.append({"id": str(item.get("id") or ""), "passed": "ranked below the choice"})
+
+    return {"state": "selected", "chosen": chosen, "why": why, "considered": considered}
+
+
+def _coerce_phase(value: Any) -> int:
+    """Phase order out of a `PHASE-0027` link, or last."""
+    import re as _re
+    m = _re.search(r"PHASE-(\d+)", str(value or ""))
+    return int(m.group(1)) if m else 9999
+
+
+def ledger_line(selection: dict[str, Any]) -> str:
+    """One line recording a selection, for the worker's ledger.
+
+    Carries the passed-over items as well as the choice, because *"why not that
+    one?"* is the question a person actually asks when a worker's choice looks
+    wrong, and it cannot be answered from the choice alone.
+    """
+    if selection.get("state") == "idle":
+        return f"idle — {selection.get('why')}"
+    chosen = selection.get("chosen") or {}
+    passed = "; ".join(
+        f"{c['id']}: {c['passed']}" for c in (selection.get("considered") or [])
+    )
+    line = f"chose {chosen.get('id')} — {selection.get('why')}"
+    return f"{line} | passed over: {passed}" if passed else line
