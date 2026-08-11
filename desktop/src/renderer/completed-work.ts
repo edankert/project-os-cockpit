@@ -44,7 +44,7 @@ const COMPLETED_WORK_STATUSES: ReadonlySet<string> = new Set([
   'fulfilled', 'met', 'complete', 'implemented',
   'verified', 'passing', 'published', 'released', 'closed',
   'obsolete', 'retired', 'cancelled', 'superseded',
-  'declined', 'reverted', 'deprecated',
+  'declined', 'reverted', 'deprecated', 'reconciled',
 ]);
 
 /** 1 for terminal work, 0 for anything else.

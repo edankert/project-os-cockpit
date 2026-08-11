@@ -14,6 +14,7 @@ explicitly.
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -142,9 +143,18 @@ def test_the_real_repo_reports_its_actual_state() -> None:
     assert since["id"] == "REL-0001" and since["date"] == "2026-08-11"
     # The 27 features REL-0001 names are shipped; what remains is everything
     # done before it that the release did not claim.
-    assert payload["count"] >= 40, payload["count"]
-    shipped = {"FEAT-0085", "FEAT-0059", "FEAT-0072", "FEAT-0090"}
-    assert not shipped & {row["id"] for row in payload["items"]}, (
+    assert payload["count"] >= 50, payload["count"]
+    # **The whole named set**, not a sample of it. Independent review pointed
+    # out that four names cannot catch a membership bug in the other 23, and
+    # that a floor of 40 against a live 59 is looser than the state it guards.
+    # The release note's `features:` list is the set membership is computed
+    # from, so read it rather than restating it here.
+    note = (REPO_DOCS / "releases" / "REL-0001-The-Human-Has-Levers.md").read_text(
+        encoding="utf-8",
+    )
+    named = set(re.findall(r"\[\[(FEAT-\d+)", note.split("features:", 1)[1].split("\n", 1)[0]))
+    assert len(named) == 27, sorted(named)
+    assert not named & {row["id"] for row in payload["items"]}, (
         "a feature this release names is still counted as unreleased"
     )
 

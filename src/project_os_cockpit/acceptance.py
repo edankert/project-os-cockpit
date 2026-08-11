@@ -41,13 +41,21 @@ GATING_TIERS: tuple[int, ...] = (1, 2)
 
 _TIER_HEADING_RE = re.compile(r"^#\s+Tier\s+(\d)\s*[—-]\s*(.+?)\s*$", re.M)
 _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
-#: **Any** single-character mark, decided below rather than filtered here
-#: (ISS-0141). The first version matched `( |x|X)` and skipped everything else,
-#: which gave the parser a way to say nothing: `- [~]` — the record's own mark
-#: for a check settled by decision — was dropped from the suite entirely, along
-#: with any typo. A checklist that silently loses lines reports a fuller bar
-#: than the document holds, and it feeds a release gate.
-_ITEM_RE = re.compile(r"^-\s+\[(.)\]\s+(.*?)\s*$")
+#: **Any** bullet, **any** mark, decided below rather than filtered here
+#: (ISS-0141). The first version matched `^-\s+\[( |x|X)\]`, which gave the
+#: parser a way to say nothing: `- [~]` — the record's own mark for a check
+#: settled by decision — was dropped from the suite entirely, along with any
+#: typo. A checklist that silently loses lines reports a fuller bar than the
+#: document holds, and it feeds a release gate.
+#:
+#: **The first fix widened the mark and left the line shape alone**, which
+#: independent review caught by pointing at ISS-0141's own list of examples:
+#: `- [v]` and `- [-]` blocked afterwards, but `- [ x]` — two characters —
+#: still vanished, as did an indented `  - [ ]` and a `* [ ]` bullet. Widening
+#: one axis of a silent-drop bug leaves the bug. Both axes are open now, and
+#: the mark is classified after stripping, so `[ x]` is an unrecognised mark
+#: (owed, blocking) rather than a line that was never there.
+_ITEM_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*?)\s*$")
 #: Walked. `X` is Markdown-legal and appears in the wild.
 _CHECKED_MARKS = frozenset({"x", "X"})
 #: Settled by a decision rather than by being walked — the check describes a
@@ -171,6 +179,10 @@ def parse(text: str) -> list[Item]:
         item = _ITEM_RE.match(line)
         if not item:
             continue
+        # NOT stripped before comparing: `[ ]` and `[]` are both the plain
+        # unchecked box, but `[ x]` is a two-character mark nobody recognises,
+        # and stripping it into `x` would silently promote a typo to a walked
+        # check — the failure this whole regex exists to stop, inverted.
         mark = item.group(1)
         rest = item.group(2)
         named = _NAME_RE.match(rest)
@@ -253,6 +265,19 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
         "rule": "A release is blocked while any Tier 1/Tier 2 test is "
                 "unchecked (exceptions must be documented in the release "
                 "note).",
+        # The contract's sentence is quoted verbatim above and must stay that
+        # way — a paraphrase becomes a second statement of the rule and the two
+        # drift. But this repo now clears a check by a second mechanism the
+        # contract does not name, and a gate that quotes one rule while
+        # implementing another is that same drift wearing the quote as cover.
+        # So the extension is stated beside it rather than folded into it, and
+        # `TESTING.md` is owed the change upstream (ISS-0141). Found by
+        # independent review.
+        "local_rule": "This repo also settles a check by reconciliation — a "
+                      "`- [~]` mark, meaning the check was closed by a "
+                      "decision recorded on its own line rather than by being "
+                      "walked. Reconciled checks do not block and are counted "
+                      "separately; they are not release exceptions.",
         "blocking": [
             {"tier": i.tier, "number": i.number, "section": i.section,
              "area": i.area, "name": i.name, "refs": list(i.refs)}

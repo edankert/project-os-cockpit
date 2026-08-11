@@ -83,7 +83,7 @@ The last thing to move was not code. [[DES-0009]] sat `proposed` for eleven hour
 
 Two things stay open by decision and neither is a phase: [[RISK-0006]]'s supervised week, re-homed to [[PHASE-031]] with the risk still `open`; and [[ADR-0022]], `proposed`, whose unaccepted state *is* the operative rule that the worker never pushes.
 
-**What the release still owed was verification, not work** — and on the evening of 2026-08-11 that closed too. **34 of 34 Tier 1/2 checks are settled and the gate is green**, on its first firing, with no exception claimed.
+**What the release still owed was verification, not work** — and on the evening of 2026-08-11 that closed too. **34 of 34 Tier 1/2 checks are settled and the gate is green**, on its first firing — **33 walked and 1 settled by decision**, and no release exception claimed under `TESTING.md`'s clause. *Stated that way after independent review: "34 of 34, no exception claimed" is true and reads as 34 walked, which is a different and better-sounding fact.*
 
 ### Shipped — 2026-08-11, `1.0.0`, tag `v1.0.0`
 
@@ -209,7 +209,7 @@ Eleven features, in the release's own order. What the sessions found, rather tha
 
 This note therefore stays `draft`. **No exceptions are claimed** — the honest state is that the code is done, the record is closed, and the manual acceptance pass has not been run. A green gate here would have meant nothing, since the suite that produces it was created the same day.
 
-*Kept as written. **The gate went green on 2026-08-11**, by the checks being walked rather than by anything above being softened — 34 of 34 Tier 1/2, no exception claimed, and four defects filed along the way. The paragraph is the reason that is worth something.*
+*Kept as written. **The gate went green on 2026-08-11**, by the checks being walked rather than by anything above being softened — 34 of 34 Tier 1/2 (33 walked, 1 settled by decision), no release exception claimed, and four defects filed along the way. The paragraph is the reason that is worth something.*
 
 ### Release verification, run 2026-08-10
 

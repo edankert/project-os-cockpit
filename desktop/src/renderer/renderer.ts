@@ -3053,7 +3053,7 @@ const COMPLETED_STATUSES = new Set([
   'done', 'merged', 'fixed', 'resolved', 'fulfilled', 'met', 'complete',
   'implemented', 'verified', 'passing', 'published', 'released', 'closed',
   'obsolete', 'retired', 'cancelled', 'superseded',
-  'declined', 'reverted', 'deprecated',
+  'declined', 'reverted', 'deprecated', 'reconciled',
 ]);
 
 let hideCompleted = false;

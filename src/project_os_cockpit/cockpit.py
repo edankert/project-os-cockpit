@@ -299,7 +299,7 @@ TASK_STATUS_ORDER: tuple[str, ...] = (
     "implemented",
     "verified", "passing", "published", "released", "closed",
     "obsolete", "retired", "cancelled", "superseded", "declined", "reverted",
-    "deprecated",
+    "deprecated", "reconciled",
     "reference",
 )
 _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}
@@ -2310,8 +2310,10 @@ def unreleased_payload(index: Index) -> dict[str, Any]:
     verified, not yet live"* (STATUSES.md), so a drafted note must not empty
     this card: drafting is not shipping, and a count that fell to zero the
     moment somebody wrote a plan would be asserting the release had happened.
-    That matters here today — REL-0001 is `draft` and names 27 features, none
-    of which have shipped.
+    That mattered here for exactly one day. **REL-0001 went `released` on
+    2026-08-11** at 1.0.0, so the card stopped counting every done feature (86)
+    and started measuring against a release (59 — the 27 it names are shipped).
+    The paragraph above is why the number moved by 27 rather than to zero.
 
     Returns the count, the newest shipped release if there is one, and the
     rows themselves so the card can navigate.
@@ -3586,7 +3588,15 @@ def _tests_groups(
 
 #: Which suite tiers a checked box is "done" for. The Tests navigator folds on
 #: `status`, so a checklist item borrows the status vocabulary rather than
-#: inventing one — `passing` for a walked step, `ready` for one still owed.
+#: inventing one — `passing` for a walked step, `ready` for one still owed,
+#: `reconciled` for one settled by decision.
+#:
+#: That third value was first emitted from here as a bare string, which is the
+#: ISS-0023 failure exactly: `groupIsSettled` ranks an unrecognised status
+#: **open**, deliberately, so two fully-settled tiers rendered as outstanding
+#: work while their own gate read clear. Found by independent review. It is now
+#: a member of `statuses.BANDS["archived"]` — terminal, and terminal without the
+#: thing having been done — which is what makes every surface agree at once.
 _TIER_LABELS: dict[int, str] = {
     1: "Tier 1 — feature tests",
     2: "Tier 2 — regression tests",

@@ -605,6 +605,26 @@ def test_the_gate_states_the_contracts_own_rule() -> None:
     assert "**blocked** if any Tier 1 or Tier 2 test is unchecked" in contract
 
 
+def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None:
+    """The contract blocks on *unchecked* and names one escape: a documented
+    release exception. This repo clears a check a second way — reconciliation —
+    so the gate implements something looser than the sentence it quotes.
+
+    Independent review's finding. The answer is not to paraphrase the contract
+    (that is the drift `rule` exists to prevent) but to state the extension
+    beside it, and to say plainly that the two are different things: a
+    reconciled check is **not** a release exception.
+    """
+    gate = acceptance.gate_payload(REPO_DOCS)
+    assert "unchecked" in gate["rule"]
+    local = gate["local_rule"]
+    assert "reconcil" in local.lower()
+    assert "not release exceptions" in local, (
+        "the extension must distinguish itself from the contract's escape, or "
+        "a reader counts one as the other"
+    )
+
+
 def _suite_fixture(root: Path, tier1: str, tier2: str = "- [x] **B:** b.") -> Path:
     docs = root / "docs"
     _write(docs / "tests" / "ACCEPTANCE_TESTS.md", (
@@ -669,19 +689,63 @@ def test_a_reconciled_item_is_settled_and_still_counted(tmp_path: Path) -> None:
     assert (tier1["total"], tier1["checked"], tier1["reconciled"]) == (1, 0, 1)
 
 
+@pytest.mark.parametrize("line", [
+    "- [v] **A:** a typo, not a tick.",
+    "- [-] **A:** another one.",
+    "- [ x] **A:** a space before the x.",
+    "  - [ ] **A:** indented under something.",
+    "* [ ] **A:** a star bullet.",
+    "+ [ ] **A:** a plus bullet.",
+    "- [] **A:** no gap at all.",
+])
 def test_a_mark_nobody_recognises_blocks_rather_than_vanishing(
-    tmp_path: Path,
+    tmp_path: Path, line: str,
 ) -> None:
     """The half of ISS-0141 that had no behaviour to test, because the line was
     skipped: a typo removed a check from the gate and every surface then agreed
     the suite was complete. Unclassifiable is **owed** — the direction that
-    fails safely."""
-    docs = _suite_fixture(tmp_path / "typo", "- [v] **A:** a typo, not a tick.")
+    fails safely.
+
+    Parametrised after independent review, which found the first fix had
+    widened the *mark* and left the *line shape* alone: `- [v]` blocked, and
+    `- [ x]`, an indented bullet and a `*` bullet all still vanished. Every
+    shape ISS-0141 names is a case here, plus the two it does not.
+
+    `- [ x]` earns its own mention: it must block, **not** be stripped into a
+    tick. A parser generous enough to read a typo as a walked check is worse
+    than one that drops it.
+    """
+    docs = _suite_fixture(tmp_path / "shape", line)
     item = acceptance.load(docs).tier(1)[0]
     assert (item.checked, item.reconciled, item.settled) == (False, False, False)
     gate = acceptance.gate_payload(docs)
     assert gate["blocked"] is True
     assert [b["name"] for b in gate["blocking"]] == ["A"]
+
+
+def test_the_live_suite_loses_no_line_to_the_parser() -> None:
+    """The one non-tautological claim about the live document.
+
+    Every other live-corpus assertion derives its expectation from
+    `acceptance.load` — the same function under test — so a line the parser
+    drops shrinks both sides together and nothing fails. Independent review
+    demonstrated it: one Tier 1 item made to vanish from `ACCEPTANCE_TESTS.md`,
+    **ISS-0141's exact defect**, and this file stayed green at 52 passed.
+
+    So: count the checkbox lines with a regex that shares no code with the
+    parser, and require the parsed count to equal it. A dropped line fails
+    here and only here.
+    """
+    text = REPO_DOCS.joinpath(acceptance.SUITE_REL).read_text(encoding="utf-8")
+    # Only what sits under a tier heading — the preamble's own checkbox is
+    # deliberately not a test (`test_nothing_above_the_first_tier_heading…`).
+    body = re.split(r"(?m)^#\s+Tier\s+1\b", text, maxsplit=1)[1]
+    raw = len(re.findall(r"(?m)^\s*[-*+]\s+\[", body))
+    parsed = len(acceptance.load(REPO_DOCS).items)
+    assert parsed == raw, (
+        f"{raw - parsed} checkbox line(s) in the suite are invisible to the "
+        "parser — the gate is counting a smaller document than the one on disk"
+    )
 
 
 def test_a_clear_gate_says_which_of_its_tests_were_reconciled() -> None:
