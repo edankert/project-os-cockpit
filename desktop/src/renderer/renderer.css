@@ -5250,3 +5250,34 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
 .measure-table tr.differs td { background: var(--accent-soft); }
 /* While armed, the pointer says what a click will do. */
 body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
+
+/* ---- View landings (FEAT-0092) ------------------------------------------
+   Each view's page, leading with what its badge counts. Deliberately the
+   same type scale as the overview's bands: this is the same kind of object —
+   a page you land on — and two landings that looked different would read as
+   two different features. */
+.view-landing { padding: 18px 22px 28px; max-width: 900px; }
+.view-landing-head {
+  font-size: 20px; font-weight: 600; margin: 0 0 4px; color: var(--text);
+}
+.view-landing-lead { margin: 0 0 18px; color: var(--text-muted); font-size: 13px; }
+.view-landing-quiet { margin: 0 0 6px; color: var(--text); font-size: 14px; }
+.view-landing-group { margin-bottom: 22px; }
+.view-landing-group-head {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.view-landing-list { list-style: none; margin: 0; padding: 0; }
+.view-landing-row {
+  display: flex; align-items: baseline; gap: 10px; width: 100%;
+  padding: 7px 8px; background: transparent; border: none; border-radius: 5px;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.view-landing-row:hover { background: var(--bg-elevated); }
+.view-landing-id { flex: none; color: var(--accent-link); font-size: 12px; }
+.view-landing-title {
+  flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 13px;
+}

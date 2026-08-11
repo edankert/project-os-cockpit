@@ -1178,25 +1178,44 @@ def test_the_caught_up_button_is_at_the_foot() -> None:
     band = _renderer_fn("mountDigestBand")
     assert band.index("digest-head") < band.index("digest-foot")
     assert band.index("digest-list") < band.index("digest-caught-up")
+    # …and it clears the band it sits under (ISS-0145). Re-rendering was the
+    # right answer while the band also held obligations; with those gone,
+    # anything short of removal is a dismiss control that does not dismiss.
+    assert "band.remove()" in band
+    assert "void mountDigestBand()" not in band
 
 
-def test_owed_items_are_lifted_above_the_news() -> None:
-    """*"needs-you items lifted above the merely-informational"* — a reader who
-    stops halfway should have seen the obligations, not the news. That split is
-    the whole reason `digest_payload` returns two lists."""
+def test_the_band_carries_news_and_not_obligations() -> None:
+    """This asserted the reverse until 2026-08-11, and the reversal is the
+    point (ISS-0145).
+
+    DES-0008 lifted *"needs-you items above the merely-informational"* because
+    the digest was the only surface gathering obligations. The badges and the
+    view landings ([[FEAT-0092]]) are that surface now, so a band headed
+    *"Since you looked"* carrying things that did not happen while you were
+    away files them under the wrong sentence — and made `Caught up` a control
+    that could not clear what it sat beneath.
+
+    The payload still returns both lists: `needs_you_count` feeds the rail's
+    per-workspace attention dot, which is a different surface with a different
+    question.
+    """
     band = _renderer_fn("mountDigestBand")
-    # On the LIST bindings, not on `d.needs_you` — which also matches
-    # `d.needs_you_count` in the absent-band guard at the top of the function,
-    # so the naive assertion passed whichever order the blocks were in. Caught
-    # by mutating the order and watching the test survive.
-    assert band.index("const owed = d.needs_you") < band.index("const moved = d.transitions")
+    assert "const moved = d.transitions" in band
+    assert "const owed = d.needs_you" not in band, (
+        "the obligations half is back in the digest; it belongs to the badges"
+    )
+    assert "digest-list is-owed" not in band
 
 
 def test_the_band_is_absent_when_nothing_is_behind() -> None:
     """Absent, never a permanent "nothing happened" — the shape of thing a
     reader learns to stop seeing, which this surface has been taught twice."""
     band = _renderer_fn("mountDigestBand")
-    assert "if (!d || (!d.transition_count && !d.needs_you_count)) return;" in band
+    # `needs_you_count` deliberately no longer keeps it open (ISS-0145): an
+    # obligation is not news, and a band that stayed for one was a band whose
+    # dismiss control could not dismiss it.
+    assert "if (!d || !d.transition_count) return;" in band
 
 
 def test_the_landing_cards_widened_past_waiting_terminals() -> None:

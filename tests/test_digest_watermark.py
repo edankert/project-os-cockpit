@@ -116,8 +116,13 @@ def test_the_owed_half_survives_catching_up(repo: Path) -> None:
     """Cause 2, asserted as the DECISION rather than as a bug.
 
     An obligation is discharged by acting on it, not by reading it, so
-    `Caught up` must not empty this half. The defect was the presentation
-    implying otherwise — which is fixed in the band, not here.
+    `Caught up` must not empty this half.
+
+    Still true of the *payload* after ISS-0145, and still worth asserting:
+    `needs_you_count` feeds the rail's per-workspace attention dot. What
+    changed is that the digest **band** no longer renders it — the presentation
+    problem was solved by moving the half to the badges and the view landings
+    rather than by captioning it.
     """
     index = Index.build(repo / "docs")
     before = cockpit.digest_payload(repo, index, "")
@@ -146,22 +151,36 @@ def test_a_date_only_watermark_does_not_pretend_to_be_an_instant() -> None:
     )
 
 
-def test_the_band_says_caught_up_does_not_clear_the_owed_half() -> None:
-    """The presentation half of the fix, where the false promise lived."""
+def test_caught_up_clears_the_band_it_sits_under() -> None:
+    """**This asserted the exact opposite until 2026-08-11** (ISS-0145), and
+    the reversal is deliberate rather than a regression.
+
+    ISS-0134 found `Caught up` removing a band whose obligations half came
+    straight back on the next paint — a dismissal that had not happened — and
+    answered it by re-rendering instead, with a caption saying the button
+    covered *"what changed, not what is owed"*. Correct, for that design.
+
+    Edwin, using it: *"I think this should clear the since you looked section
+    fully … notes that need a follow up should not be a reason to keep this
+    section open."* The obligations half therefore left the band entirely —
+    the badges and the view landings are where what is owed lives — and with
+    nothing left to come back, removal is the honest answer while the caption
+    now describes a design that does not exist.
+
+    What survives from the old test is its second assertion, which was about
+    staleness rather than about the design: the click must not leave content
+    on screen that it has invalidated.
+    """
     src = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts").read_text(
         encoding="utf-8",
     )
-    assert "Caught up covers what changed, not what is owed" in src, (
-        "the band no longer qualifies what the button does"
+    assert "Caught up covers what changed, not what is owed" not in src, (
+        "the caption is back, qualifying a half the band no longer carries"
     )
     handler = src.split("digest-caught-up")[1].split("foot.appendChild")[0]
-    assert "band.remove()" not in handler, (
-        "the band is removed on click again — that shows a dismissal which did "
-        "not happen, and the obligations return unchanged on the next paint"
+    assert "band.remove()" in handler, (
+        "Caught up does not clear the band it sits under"
     )
-    assert "mountDigestBand()" in handler, (
-        "the band is not re-rendered on click. `refreshDigests` only updates "
-        "the rail's per-workspace cache, so without this the band sits on "
-        "screen with stale content until the reader navigates away — measured "
-        "at `12 transitions` still shown four seconds after catching up"
+    assert "refreshDigests(true)" in handler, (
+        "the rail's per-workspace digest cache is left stale"
     )

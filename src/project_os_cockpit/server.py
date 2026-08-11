@@ -813,6 +813,15 @@ def _make_handler(
                 self._respond_json(_obligations.badges_payload(index))
                 return
 
+            # What one view owes, with the rows (FEAT-0092 / TASK-0387). The
+            # badge's own numbers, plus what they count — the pairing the
+            # badge could not make on its own.
+            if path == "/api/cockpit/landing":
+                params = urllib.parse.parse_qs(parsed.query)
+                view = (params.get("view") or [""])[0]
+                self._respond_json(cockpit.landing_payload(index, view))
+                return
+
             # Done-but-unshipped (FEAT-0072 / TASK-0315). Its own endpoint
             # rather than a field on the overview: the record column fetches
             # its cards independently, and a card that arrived only with the

@@ -341,13 +341,28 @@ let currentRel: string | null = null;
 // setTimeout(hideStatus, …).
 let statusHideTimer: number | null = null;
 
+//: How long a toast stays before it dismisses itself. Errors dwell longer
+//: because an error that vanishes in two seconds is one the reader misses —
+//: but "longer" is not "forever", which is what they were (ISS-0144).
+const STATUS_DWELL_MS = 4000;
+const STATUS_ERROR_DWELL_MS = 12000;
+
 function showStatus(text: string, kind: 'info' | 'error' = 'info'): void {
   if (statusHideTimer != null) { clearTimeout(statusHideTimer); statusHideTimer = null; }
   statusBar.replaceChildren(document.createTextNode(text));
   statusBar.classList.toggle('error', kind === 'error');
   statusBar.classList.remove('is-actionable');
-  statusBar.onclick = null;
+  // Click anywhere on the bar dismisses it. It is an absolutely-positioned
+  // panel over the pane, and a panel with no exit is a modal nobody chose.
+  statusBar.onclick = () => hideStatus();
   statusBar.hidden = false;
+  // **The default is that it goes away** (ISS-0144). It used to be that it
+  // stayed, with dismissal delegated to each caller through `scheduleHide` —
+  // and 78 of 110 call sites did not make that call, so the app's normal
+  // behaviour was a permanent overlay and the 32 that remembered were the
+  // exception. A caller wanting a different dwell still overrides: this
+  // schedules, and `scheduleHide` clears and replaces the pending timer.
+  scheduleHide(kind === 'error' ? STATUS_ERROR_DWELL_MS : STATUS_DWELL_MS);
 }
 
 function scheduleHide(ms: number): void {
@@ -368,6 +383,11 @@ function showActionStatus(text: string, action: string, onClick: () => void): vo
   statusBar.appendChild(link);
   statusBar.classList.remove('error');
   statusBar.classList.add('is-actionable');
+  // Dismissible, but NOT self-dismissing (ISS-0144): this one is an offer, and
+  // an offer that expires before it can be taken is worse than one that waits.
+  // The link stops propagation, so taking the action never doubles as a
+  // dismissal of something the reader has not read.
+  statusBar.onclick = () => hideStatus();
   statusBar.hidden = false;
 }
 
@@ -1112,10 +1132,15 @@ async function navigateToInner(
   // deliberately so — every guard on `/api/notes/test-run` (allow-list, mtime
   // precondition, loopback check) lives server-side, so a renderer change that
   // needed to edit `note_writes.py` would mean this move had gone wrong.
-  // Bare `~tests` has no page of its own — the navigator IS the view, exactly
-  // as with Features and Issues. It selects the mode and leaves the stage
-  // alone rather than falling through to the render endpoint, which would
-  // answer a plausible-looking URL with "No note here".
+  // Bare `~tests` USED to have no page of its own — "the navigator IS the
+  // view" — and selected the mode instead. FEAT-0092 gave it one, and the two
+  // could not coexist: `setNavMode('tests')` calls `loadWsNav`, which now
+  // navigates to `~tests`, which reached this branch and called `setNavMode`
+  // again. **An infinite loop that froze the renderer**, found by clicking the
+  // button in the harness — the landing branch below is a hundred lines
+  // further down, so it never ran and Tests silently kept the previous view's
+  // page. A route claimed twice does not error; it takes whichever claim is
+  // written first.
   // ~accept/<FEAT-id> — the acceptance runner (TASK-0288, DES-0006). One
   // criterion at a time, deliberately not a checklist page: a list invites
   // skimming, and the runner's whole value is that each criterion was
@@ -1133,10 +1158,6 @@ async function navigateToInner(
     return;
   }
 
-  if (normalised === '~tests') {
-    setNavMode('tests');
-    return;
-  }
   if (normalised.startsWith('~tests/') && normalised.endsWith('/run')) {
     const id = normalised.slice('~tests/'.length, -'/run'.length);
     const ok = await renderTestRunPage(id);
@@ -1190,6 +1211,20 @@ async function navigateToInner(
     pushHistory(normalised, opts.replace ?? false);
     await renderInboxItemView(name);
     void renderInboxPanel();
+    return;
+  }
+  // The view landings (FEAT-0092). `~features`, `~issues`, `~tests` — three
+  // views that changed the navigator and left the centre pane on whatever you
+  // were reading, while their badges counted things the view never gathered.
+  if (VIEW_LANDING_RELS.has(normalised)) {
+    const ok = await renderViewLanding(normalised.slice(1));
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
     return;
   }
   if (normalised === '~design' || normalised.startsWith('~design/')) {
@@ -3269,7 +3304,13 @@ const CONTEXT_GROUP_FOLD_LIMIT = NAV_GROUP_FOLD_LIMIT;
 // entries — but nobody LANDS there any more, so it must not claim a
 // workspace-open landing.
 const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
-  'overview', 'intent',
+  // FEAT-0092 widened this from `{overview, intent}`. Those two had a landing
+  // because FEAT-0071 and FEAT-0087 each built one for their own reasons; the
+  // other four sent the reader to README.md and left their badges pointing at
+  // nothing a view gathered. The Library keeps no landing deliberately — it
+  // owes nothing and is a file browser, and a summary in front of a tree is
+  // the thing people open the tree to avoid.
+  'overview', 'intent', 'features', 'issues', 'tests',
 ]);
 
 const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks', 'review', 'design'];
@@ -3627,7 +3668,13 @@ async function mountDigestBand(): Promise<void> {
   // Absent when there is nothing behind the watermark. A band reading
   // "nothing happened" on every visit is the permanent zero this surface has
   // been taught about twice.
-  if (!d || (!d.transition_count && !d.needs_you_count)) return;
+  //
+  // **`needs_you` no longer keeps it open** (ISS-0145). The band's subject is
+  // *since you looked*; an obligation is not news, did not happen while you
+  // were away, and now has a view of its own to live on (FEAT-0092). Counting
+  // it here is what made `Caught up` a button that could not clear the thing
+  // it sat under.
+  if (!d || !d.transition_count) return;
 
   const band = document.createElement('section');
   band.className = 'digest-band';
@@ -3640,35 +3687,14 @@ async function mountDigestBand(): Promise<void> {
     : 'Since this cockpit first ran';
   band.appendChild(head);
 
-  // Needs-you first, always. A reader who stops halfway should have seen the
-  // obligations, not the news — which is the whole reason the payload splits.
-  const owed = d.needs_you ?? [];
-  if (owed.length) {
-    band.appendChild(digestSubhead(
-      `${owed.length} need${owed.length === 1 ? 's' : ''} you`, true,
-    ));
-    const list = document.createElement('ul');
-    list.className = 'digest-list is-owed';
-    for (const item of owed.slice(0, DIGEST_ROW_LIMIT)) {
-      list.appendChild(digestRow(
-        item.id ?? '', item.title ?? '', item.rel ?? '',
-        item.owed_verb ? item.owed_verb.toLowerCase() : (item.status ?? ''),
-      ));
-    }
-    band.appendChild(list);
-    band.appendChild(digestMore(owed.length));
-    // ISS-0134: say that `Caught up` does not cover these. The needs-you half
-    // is NOT filtered by the watermark and must not be — an obligation is
-    // discharged by acting on it, not by reading it — but the button sat
-    // below both halves implying it cleared both, and clicking it removed the
-    // whole band. Three clicks, `caught_up_count: 3`, nothing changed.
-    const persists = document.createElement('p');
-    persists.className = 'digest-note';
-    persists.textContent =
-      'These stay until they are discharged — Caught up covers what changed, not what is owed.';
-    band.appendChild(persists);
-  }
-
+  // **The needs-you half is gone from this band** (ISS-0145). It was here
+  // because the digest was the only surface gathering obligations; the badges
+  // and the view landings are that surface now, so this one is news and only
+  // news. The caption explaining that `Caught up` did not cover the other half
+  // went with it — it was a caption for a design that no longer exists.
+  //
+  // ISS-0134's answer (re-render rather than remove, because the obligations
+  // came straight back) was right about its own design and is retired with it.
   const moved = d.transitions ?? [];
   if (moved.length) {
     band.appendChild(digestSubhead(
@@ -3699,19 +3725,14 @@ async function mountDigestBand(): Promise<void> {
     btn.disabled = true;
     void postJson('/api/cockpit/caught-up', { at: d!.computed_at })
       .then(() => {
-        // Re-render rather than remove (ISS-0134). Removing the band showed
-        // the reader a dismissal that had not happened: the obligations half
-        // came straight back on the next paint, unchanged, which is what
-        // "it shows the same info again" was. Re-rendering shows the truth —
-        // the news is gone, what is owed remains.
-        //
-        // `mountDigestBand` explicitly: `refreshDigests` updates the rail's
-        // per-workspace cache and does NOT touch this band, so leaving it out
-        // traded a false dismissal for stale content sitting on screen until
-        // the next navigation. Measured — the band still read `12
-        // transitions` four seconds after the click.
+        // **Remove the band** (ISS-0145). ISS-0134 answered this by
+        // re-rendering, because the obligations half came back on the next
+        // paint and removal would have shown a dismissal that had not
+        // happened. That half is gone, so removal is now the honest answer:
+        // the band's whole subject is what changed since you looked, and you
+        // have just said you looked.
+        band.remove();
         showStatus('Caught up.');
-        void mountDigestBand();
         void refreshDigests(true).then(() => refreshAttention());
       })
       .catch((err) => {
@@ -4868,6 +4889,169 @@ function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
   });
   band.append(a);
   return band;
+}
+
+// ---- The view landings (FEAT-0092 / TASK-0388) --------------------------
+//
+// Two of Edwin's observations with one cause: four of the six view buttons
+// left the centre pane on whatever you were last reading, and the badges —
+// honest and complete since FEAT-0089 — counted things the view then never
+// gathered. Issues appeared to work only because its NAVIGATOR happens to
+// open on `Needs triage`.
+//
+// So each of these views gets the thing Overview and Intent already had: a
+// page, leading with what its badge counts, named with the registry's own
+// verb. The count comes from the same walk as the badge (`landing_payload`),
+// because a page disagreeing with the button that opened it is the failure
+// FEAT-0089 exists to prevent.
+
+const VIEW_LANDING_RELS: ReadonlySet<string> = new Set([
+  '~features', '~issues', '~tests',
+]);
+
+//: The heading each landing carries. Read from the top bar's own `title`
+//: attributes rather than restated, so the page and the button that opens it
+//: cannot come to call the same view two different things.
+const VIEW_LABELS: Record<string, string> = Object.fromEntries(
+  Array.from(document.querySelectorAll<HTMLElement>('.top-bar-btn[data-mode]'))
+    .map((b) => [b.dataset.mode ?? '', b.title || b.dataset.mode || ''])
+    .filter(([mode]) => mode),
+);
+
+interface LandingPayload {
+  view: string;
+  known: boolean;
+  total: number;
+  groups: Array<{
+    kind: string; count: number; verb: string; noun: string; label: string;
+    items: Array<{ id: string; title: string; rel: string; type: string; status: string; verb: string }>;
+  }>;
+}
+
+//: What each landing says when it owes nothing. Never a `0` and never an
+//: empty panel — this project's standing rule about zero, and FEAT-0073's
+//: about empty states saying what the pane is FOR.
+const LANDING_QUIET: Record<string, { head: string; note: string }> = {
+  features: {
+    head: 'Nothing owed on features.',
+    note: 'Requirements awaiting approval and features awaiting acceptance appear here. The tree on the left is the whole structure.',
+  },
+  issues: {
+    head: 'Nothing owed on issues.',
+    note: 'Issues at triage appear here, with the verb that settles them. Everything filed is on the left, by severity.',
+  },
+  tests: {
+    head: 'Nothing owed on tests.',
+    note: 'Manual tests waiting for a run appear here. The register and the acceptance tiers are on the left.',
+  },
+};
+
+async function renderViewLanding(view: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  let data: LandingPayload | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/landing?view=${encodeURIComponent(view)}`,
+    );
+    if (!resp.ok) return false;
+    data = (await resp.json()) as LandingPayload;
+  } catch { return false; }
+  if (!data || !data.known) return false;
+
+  // `hidden = false` + `placeholder.hidden = true`, exactly as every other
+  // virtual page does. Without the pair the section renders into a doc view
+  // the stage is still hiding: the DOM is right, `.view-landing` is present
+  // and correct, and the pane is **blank**. Found by taking a screenshot after
+  // a run of DOM assertions had all passed — which is the argument for looking
+  // at a surface rather than querying it.
+  docView.replaceChildren();
+  docView.hidden = false;
+  placeholder.hidden = true;
+  const page = document.createElement('section');
+  page.className = 'view-landing';
+  page.dataset.view = view;
+
+  const head = document.createElement('h1');
+  head.className = 'view-landing-head';
+  head.textContent = VIEW_LABELS[view] ?? view;
+  page.appendChild(head);
+
+  if (data.total === 0) {
+    const quiet = LANDING_QUIET[view] ?? {
+      head: 'Nothing owed here.', note: '',
+    };
+    const line = document.createElement('p');
+    line.className = 'view-landing-quiet';
+    line.textContent = quiet.head;
+    page.appendChild(line);
+    if (quiet.note) {
+      const note = document.createElement('p');
+      note.className = 'meta';
+      note.textContent = quiet.note;
+      page.appendChild(note);
+    }
+    docView.appendChild(page);
+    return true;
+  }
+
+  const lead = document.createElement('p');
+  lead.className = 'view-landing-lead';
+  lead.textContent = `${data.total} need${data.total === 1 ? 's' : ''} you here.`;
+  page.appendChild(lead);
+
+  for (const group of data.groups) {
+    if (!group.count) continue;
+    const section = document.createElement('div');
+    section.className = 'view-landing-group';
+    const gh = document.createElement('div');
+    gh.className = 'view-landing-group-head';
+    // The registry's verb and noun, never "items" (ISS-0133's rule, applied
+    // to the page the badge opens rather than only to the tooltip).
+    gh.textContent = group.label;
+    section.appendChild(gh);
+
+    if (group.items.length === 0) {
+      // A counted group with no rows: the standing-document obligation, whose
+      // subject is a manifest entry rather than a note. Say where it lives
+      // instead of rendering an empty list under a number.
+      const where = document.createElement('p');
+      where.className = 'meta';
+      where.textContent = 'Listed under “What this project is” on the left.';
+      section.appendChild(where);
+      page.appendChild(section);
+      continue;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'view-landing-list';
+    for (const item of group.items) {
+      const li = document.createElement('li');
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'view-landing-row';
+      const id = document.createElement('span');
+      id.className = 'view-landing-id mono';
+      id.textContent = shortNoteId(item.id);
+      id.title = item.id;
+      row.appendChild(id);
+      const title = document.createElement('span');
+      title.className = 'view-landing-title';
+      title.textContent = item.title;
+      title.title = item.title;
+      row.appendChild(title);
+      appendIf(row, statusChip(item.status));
+      // Straight to the note that carries the actuator, so the verb named
+      // above is the verb available when you arrive.
+      row.addEventListener('click', () => void navigateTo(item.rel));
+      li.appendChild(row);
+      list.appendChild(li);
+    }
+    section.appendChild(list);
+    page.appendChild(section);
+  }
+
+  docView.appendChild(page);
+  return true;
 }
 
 async function renderDesignPage(target: string): Promise<boolean> {
@@ -8222,6 +8406,23 @@ async function loadWsNav(): Promise<void> {
       ? currentRel : '~review';
     void navigateTo(target, { replace: currentRel === target });
     return;
+  }
+  // FEAT-0092: land the three views that had no page, the same way Intent
+  // does — the nav list still loads beneath, so this does NOT return early.
+  // `startsWith` and not equality for the same reason Intent gives:
+  // reselecting a mode while a note is open is not a request to lose your
+  // place, so the landing is only claimed when nothing else is.
+  if (VIEW_LANDING_RELS.has(`~${currentNavMode}`)) {
+    const target = `~${currentNavMode}`;
+    // Mirrors Intent's shape: land unless you are already on THIS view's
+    // page. The first draft guarded on `startsWith('~')`, which read every
+    // other view's landing as "somewhere you already are" — so arriving from
+    // Overview left the reader on the overview with the Issues nav beside it.
+    // Caught in the harness, not by a test, which is the argument for driving
+    // a surface before calling it done.
+    if (currentRel !== target) {
+      void navigateTo(target, { replace: false });
+    }
   }
   if (currentNavMode === 'intent') {
     // Unlike Overview and Review, Design has BOTH a nav list and a page:

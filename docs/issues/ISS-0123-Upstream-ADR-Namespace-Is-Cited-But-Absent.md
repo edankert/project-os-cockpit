@@ -61,3 +61,19 @@ Six IDs cite nothing. The validator does not check ADR citations, so nothing has
 - [ ] **If they exist somewhere:** import or reference them so citations resolve; decide whether upstream ADRs share this repo's ID space or need a prefix
 - [ ] **If they were never written:** the rules they authorise are still in force and being followed (the review deadline, the independence rule) — so they need writing, or the instructions need to stop citing an authority that does not exist
 - [ ] Consider a validator check for unresolvable `ADR-####` citations, in the style of the existing wikilink checks — this went unreported across 26 files
+
+## Measured upstream — 2026-08-11
+
+`~/Dev/repos/project-os/docs/decisions/` contains **one file, `README.md`**, and upstream's `counters.ADR` reads **0**. The template has never written an ADR at all, so `ADR-0011` is not merely missing from this repo — **the namespace it belongs to is empty everywhere.**
+
+It is cited in **41 files here and 6 upstream**, and the upstream six are all *code*, citing it by clause:
+
+- `validate-docs.py`: *"ADR-0011 clause 2: a warning is legal ONLY as a dated migration state"*
+- `grandfather.py`: *"ADR-0011 clause 3 says a check is promoted to error only once the fleet carries…"*
+- `note_writes.py`: *"(ADR-0011 checks tests and changes for an independent-review stamp)"*
+
+**So the rule is reconstructible only from the implementations that cite it**, and one of its clauses gates every repo's CI on 2026-10-23.
+
+### And it now has a second obligation attached
+
+[[ADR-0023]] retires the change-note review this decision's clause is what enforces. Because `tools/scripts/` is template-owned, the validator keeps warning — and will error — until the change lands upstream. **Two things are owed there, not one:** write `ADR-0011` (or retire the citation), and carry `ADR-0023` into `QUALITY.md` and the `[REVIEW]` gate. Neither is this repo's to do downstream.

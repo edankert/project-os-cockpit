@@ -2224,7 +2224,9 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
         r"const MODES_WITH_VIRTUAL_LANDING[^=]*=\s*new Set\(\[([^\]]*)\]",
         src)
     assert decl, "the boot guard's mode set is gone; README will race again"
-    modes = {m.strip().strip("'\"") for m in decl.group(1).split(",") if m.strip()}
+    # Quoted literals only — the block carries prose now, and splitting on
+    # commas swept the comments into the set (they contain both).
+    modes = set(re.findall(r"'([a-z]+)'", decl.group(1)))
     # `inbox` joined on 2026-07-28 (FEAT-0045) and left again the same day
     # (TASK-0234) when it stopped being a mode at all and became a left-pane
     # tray. The set is pinned rather than merely non-empty precisely so
@@ -2232,7 +2234,13 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
     # `review` left the set in TASK-0378 with its button: the route is still
     # served, but nothing lands there on workspace open, so claiming a landing
     # would send the centre pane to a page nobody asked for.
-    assert modes == {"overview", "intent"}, modes
+    # **Widened by FEAT-0092 on 2026-08-11**, which is exactly the event this
+    # pinning exists to force a sentence about: Features, Issues and Tests
+    # each gained a landing page leading with what their badge counts, so all
+    # three must be here or the boot path sends them to README.md and the
+    # landing loses the race it was written to win. The Library is still
+    # absent, deliberately — it owes nothing and is a file browser.
+    assert modes == {"overview", "intent", "features", "issues", "tests"}, modes
 
     # And the README fallback must actually consult it.
     ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]

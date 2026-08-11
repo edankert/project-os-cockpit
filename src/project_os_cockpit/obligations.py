@@ -83,11 +83,17 @@ OBLIGATIONS: dict[str, Obligation] = {
         predicate="`acceptance: requested` in frontmatter, not a status "
                   "(DES-0006's opt-in gate)",
     ),
-    "change": Obligation(
-        (), VIEW_OVERVIEW, "Review",
-        predicate="no `review_verdict`; a GATE_BEARING_TYPE whose warnings "
-                  "become errors on 2026-10-23. 76 of 116 here — whether the "
-                  "historical ones count is a cutoff parameter, not a constant",
+    # ADR-0023 retired this obligation on 2026-08-11. It was the largest one
+    # in the registry — the overview badge read 87 and **all 87 were change
+    # reviews** — and the decision it enforced (`ADR-0011`) does not exist in
+    # any repo: upstream `docs/decisions/` holds a README and nothing else.
+    # A change note records what happened; the review that catches something
+    # happens at the gates below, against the diff, while the work is live.
+    "change": NONE(
+        "ADR-0023: a change note is a record, not a claim. Reviewing the note "
+        "months later reviews the prose; the review that matters happens on "
+        "the TST-* note, the requirement, the feature and the release.",
+        VIEW_OVERVIEW,
     ),
 
     # ---- owed nothing, and why -----------------------------------------
@@ -272,12 +278,6 @@ def _is_owed(record: Any, ob: Obligation) -> bool:
         return False
     status = (record.status or "").strip().lower()
 
-    if record.note_type == "change":
-        # No review verdict — a GATE_BEARING_TYPE whose warnings become errors
-        # on 2026-10-23. The historical cutoff is deliberately not applied
-        # here; it is a parameter for whoever renders the badge (ISS-0128).
-        return not str(record.frontmatter.get("review_verdict") or "").strip()
-
     if record.note_type == "feature":
         return str(record.frontmatter.get("acceptance") or "").strip().lower() == "requested"
 
@@ -325,6 +325,52 @@ def counts_by_kind(index: "Index") -> dict[str, dict[str, int]]:
         bucket = out[STANDING_OBLIGATION.view]
         key = STANDING_OBLIGATION_KIND
         bucket[key] = bucket.get(key, 0) + standing
+    return out
+
+
+def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
+    """The **rows** behind :func:`counts_by_kind`, per view (TASK-0387).
+
+    The badge said a number and the view never gathered what it counted, so a
+    reader who saw `4` had to go looking (Edwin, 2026-08-11: *"it is very
+    unclear what they relate to … these items need to be immediately visible
+    so the user can resolve them"*).
+
+    **The same walk as `counts_by_kind`, deliberately.** Two passes over one
+    predicate is how a page and its own button come to disagree, which is the
+    failure this module exists to prevent — so this is the walk, and
+    `counts_by_kind` is asserted against it rather than the other way round.
+
+    The standing-document obligation has no rows here: its subject is a
+    manifest entry rather than a note, so the Intent view renders it from
+    `standing.check` where it lives. The count still includes it, which is why
+    a caller must not infer the total from `len()`.
+    """
+    out: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
+    for path in index.paths():
+        record = index.get(path)
+        if record is None or not record.note_type:
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        ob = for_type(record.note_type)
+        if ob is None or not ob.owed or not ob.view:
+            continue
+        if not _is_owed(record, ob):
+            continue
+        out[ob.view].append({
+            "id": record.note_id or "",
+            "title": record.title or "",
+            "rel": record.rel_path,
+            "type": record.note_type,
+            "status": record.status or "",
+            # The verb is the registry's, never the surface's — TASK-0357's
+            # rule, and the reason `Approve` and `Triage` do not become
+            # "resolve" in one pane and "handle" in another.
+            "verb": ob.verb,
+        })
+    for rows in out.values():
+        rows.sort(key=lambda r: (str(r["type"]), str(r["id"])))
     return out
 
 

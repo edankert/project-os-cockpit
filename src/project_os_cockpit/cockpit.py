@@ -2666,6 +2666,28 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
     return [group]
 
 
+def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
+    """Rel paths of every document the standing manifest claims (ISS-0146).
+
+    Read from the same resolution the standing group renders, so a manifest
+    entry cannot be claimed by one group and missed by the other.
+    """
+    from . import standing
+
+    try:
+        resolutions = standing.resolve(docs_root)
+    except OSError:  # pragma: no cover — unreadable tree, as the sibling has
+        return frozenset()
+    out: set[str] = set()
+    for res in resolutions:
+        for path in res.paths:
+            try:
+                out.add(path.relative_to(docs_root).as_posix())
+            except ValueError:
+                continue
+    return frozenset(out)
+
+
 def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     """Nav groups for the design mode (TASK-0224).
 
@@ -2704,6 +2726,15 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     # standing constraint on the project rather than a problem you have. It
     # leaves the Issues navigator in the same change — one type, one owning
     # view, or the badge counts it twice or neither.
+    # Every file the standing manifest already claims, by REL PATH (ISS-0146).
+    # All eight appeared twice on this view — once from the manifest and once
+    # in `Reference` — because the two name them differently: the manifest
+    # synthesises an id from the document's role (`ARCHITECTURE`, `README`,
+    # `STYLEGUIDE`) while the note carries its own (`ARCH`, `DOCS-README`,
+    # `STYLE`). **A duplicate that renames itself is invisible to a check that
+    # compares names**, which is why ISS-0068's guard saw nothing for a
+    # fortnight. The path is the identity that cannot be forged.
+    claimed = _standing_rel_paths(index.docs_root)
     for key, label, types in (
         ("decisions", "Decisions", ("adr", "decision")),
         ("risks", "Risks", ("risk",)),
@@ -2714,6 +2745,7 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
             r for ty in types for r in index.notes_by_type(ty)
             if _platform_match(r, platform)
             and not r.rel_path.startswith("__templates__/")
+            and r.rel_path not in claimed
             # Container-directory signposts are not constraints. ISS-0125
             # measured `reference` doing three unrelated jobs — five project
             # singletons, nine `docs/*/README.md` directory markers, four
@@ -5021,6 +5053,61 @@ def _parse_instant(value: str) -> _dt.datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=_dt.timezone.utc)
     return parsed
+
+
+def landing_payload(index: "Index", view: str) -> dict[str, Any]:
+    """What a view owes, for the page it lands on (FEAT-0092 / TASK-0387).
+
+    **One computation behind the badge and the page.** The rows come from
+    `obligations.owed_items` and the counts from `obligations.counts_by_kind`,
+    which walk the same predicate — a page whose number disagreed with the
+    button that opened it is the failure `FEAT-0089` was built to prevent, and
+    the fastest way to reintroduce it is a second count here.
+
+    Grouped by kind and labelled with the registry's own verb and noun, so the
+    page says `Approve requirement` and never `1 item`. Absent groups are
+    absent: a view that owes nothing gets an empty list and the surface decides
+    what silence looks like, which is this project's standing rule about zero.
+    """
+    view = (view or "").strip().lower()
+    if view not in _obligations.VIEWS:
+        return {"view": view, "known": False, "groups": [], "total": 0}
+    rows = _obligations.owed_items(index).get(view, [])
+    counts = _obligations.counts_by_kind(index).get(view, {})
+    groups: list[dict[str, Any]] = []
+    for kind in sorted(counts):
+        items = [r for r in rows if r["type"] == kind]
+        singular, plural = _obligations.KIND_NOUNS.get(kind, (kind, kind + "s"))
+        n = counts[kind]
+        # The standing-document kind has no note type, so `for_type` cannot
+        # answer for it — its verb lives on the constant. Without this the
+        # group rendered "2 standing documents" with no verb, which is the
+        # "N items" phrasing the registry exists to replace.
+        if items:
+            verb = str(items[0]["verb"])
+        elif kind == _obligations.STANDING_OBLIGATION_KIND:
+            verb = _obligations.STANDING_OBLIGATION.verb
+        else:
+            ob_kind = _obligations.for_type(kind)
+            verb = ob_kind.verb if ob_kind else ""
+        groups.append({
+            "kind": kind,
+            "count": n,
+            "verb": verb,
+            "noun": singular if n == 1 else plural,
+            "label": f"{verb} {n} {singular if n == 1 else plural}".strip(),
+            # Empty for the standing-document obligation, whose subject is a
+            # manifest entry rather than a note — the Intent view renders those
+            # from `standing.check`, and a row-less group still carries its
+            # count so the page and the badge agree.
+            "items": items,
+        })
+    return {
+        "view": view,
+        "known": True,
+        "groups": groups,
+        "total": sum(counts.values()),
+    }
 
 
 def digest_payload(
