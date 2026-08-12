@@ -391,3 +391,39 @@ def test_each_owed_kind_names_its_own_verb() -> None:
     assert obligations.STANDING_VERBS["ambiguous"] == "Resolve"
     assert obligations.STANDING_VERBS["stale"] == "Confirm"
     assert set(obligations.STANDING_OWED_KINDS) <= set(obligations.STANDING_VERBS)
+
+
+# ---- FEAT-0098: unpushed work, where you work ----------------------------
+
+
+def test_the_overview_says_when_this_workspace_is_unpushed() -> None:
+    """Both halves existed before this — FEAT-0055 built the count and the push
+    — on the `~agents` fleet screen, plus one line inside a rail-square
+    tooltip. Nothing on the surface a person lands on.
+
+    ADR-0022 changed what that costs: the delegate may push to non-deploy
+    remotes, and where it does not, the human has to be told.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "mountUnpushedBand" in src
+    fn = re.search(r"async function mountUnpushedBand\(\).*?\n\}", src, re.S).group(0)
+    assert "if (ahead <= 0 && !noRemote) return;" in fn, (
+        "an up-to-date workspace would render a permanent 'nothing to push'"
+    )
+    assert "remoteKind === 'none'" in fn, (
+        "no remote at all is a different fact from nothing unpushed, and the "
+        "worse one"
+    )
+
+
+def test_the_push_has_exactly_one_implementation() -> None:
+    """The deploy-remote refusal is the one rule in this app that stops a
+    click from publishing a live website. It lives in `buildBehindRow`, and
+    the overview renders **that** rather than its own row — a second copy is
+    how one of them comes to disagree."""
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = re.search(r"async function mountUnpushedBand\(\).*?\n\}", src, re.S).group(0)
+    assert "buildBehindRow(mine)" in fn
+    assert src.count("'deploy remote'") == 1, (
+        "the deploy refusal is written twice; one of them will drift"
+    )

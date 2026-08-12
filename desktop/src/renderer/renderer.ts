@@ -3802,6 +3802,54 @@ function renderProjectOverview(data: StatsPayload): void {
   // and prepended rather than inserted into `parts` so a slow sidecar delays
   // the band and never the overview.
   void mountDigestBand();
+  // …and whether this workspace has work nobody has published (FEAT-0098).
+  void mountUnpushedBand();
+}
+
+// ----- Unpushed work, on the overview (FEAT-0098 / TASK-0404) -----------
+//
+// Both halves of this existed before it — FEAT-0055 built the count and the
+// push — on the `~agents` fleet screen, plus one line inside a rail-square
+// tooltip. Nothing on the surface a person lands on.
+//
+// That was survivable while a human made every commit. ADR-0022 changed it on
+// 2026-08-12: the delegate may push to non-deploy remotes, and where it does
+// not, the human has to be told. Edwin, accepting it: *"if not pushed
+// automatically then this should clearly be identified in the tool."*
+//
+// **Rendered by the fleet screen's own row builder**, deliberately. The rule
+// that a deploy remote is never offered lives in `buildBehindRow` and stays
+// there; a second copy here is how one of them comes to disagree with the
+// other, on the one action in this app that publishes.
+
+async function mountUnpushedBand(): Promise<void> {
+  docView.querySelector('.ov-unpushed')?.remove();
+  if (!activeId) return;
+  let rows: FleetHealthRow[] = [];
+  try {
+    rows = (await cockpitApi.fleetHealth.get()).rows;
+  } catch { return; }
+  const mine = rows.find((r) => r.workspaceId === activeId);
+  if (!mine) return;
+
+  const ahead = typeof mine.ahead === 'number' ? mine.ahead : 0;
+  const noRemote = mine.remoteKind === 'none';
+  // Absent when there is nothing to say. "Up to date" on every visit is the
+  // permanent zero this surface has been taught about twice.
+  if (ahead <= 0 && !noRemote) return;
+
+  const band = document.createElement('section');
+  band.className = 'ov-unpushed';
+  const head = document.createElement('div');
+  head.className = 'ov-unpushed-head';
+  head.textContent = noRemote
+    // A different fact, and the worse one: not "unpushed" but "nowhere to
+    // push to". Folding it into the same sentence would hide it.
+    ? 'No remote — nothing here is backed up.'
+    : `${ahead} commit${ahead === 1 ? '' : 's'} not pushed.`;
+  band.appendChild(head);
+  if (!noRemote) band.appendChild(buildBehindRow(mine));
+  docView.prepend(band);
 }
 
 // ----- Since you looked: the digest band (FEAT-0071 / TASK-0314) --------

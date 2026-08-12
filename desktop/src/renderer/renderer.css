@@ -5363,3 +5363,15 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   background: var(--bg); color: var(--text);
   border: 1px solid var(--border); border-radius: 4px;
 }
+
+/* ---- Unpushed work, on the overview (FEAT-0098) ------------------------
+   Sits with the digest at the top: what happened, then what is unpublished,
+   then where the project is. Absent when there is nothing to say. */
+.ov-unpushed {
+  border: 1px solid var(--status-blocked);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
+  background: var(--bg-elevated);
+}
+.ov-unpushed-head {
+  font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px;
+}
