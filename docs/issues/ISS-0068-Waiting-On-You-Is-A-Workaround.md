@@ -159,3 +159,14 @@ Zero risks carry a `phase:` today, so this is latent — but PHASE-012 itself re
 **4. `failing` is the one legal status with no mark and no dot.** Enumerating `ALLOWED_STATUS` through `_square_state`/`_needs_human`, every value lands somewhere except `test`/`failing` (and `requirement`/`approved`, which reads as not-started defensibly). A failing test renders pixel-identical to work nobody started — and this change both added tests to the strip and deleted `appendAsyncWaitingRows`, whose `status === 'failing'` branch was the overview's only failing-test surface, at rank 0. The row-ownership table assigns it to "the desk's test register, the Verification card", which is a different screen. `DES-0004`'s table has no row for the `blocked` band at all, so this is a design gap the implementation inherited faithfully.
 
 **Minor:** the post-implementation counts do not reproduce. At this commit the payload yields 390 squares / 349 delivered / 8 dropped / 7 not-started / 3 dotted / 3 waiting pills, against "406 / 354 / 6 / 20 / 3 / three". The dot and pill counts match, so the shape is right; the note gives no measurement method, so a later reader cannot tell whether the difference is DOM-versus-payload or an error. Also `test_every_des_0004_state_is_reachable` checks presence only — swapping `deferred` and `dropped` in `_square_state` keeps it green.
+
+
+## Narrowed — 2026-08-12 (ADR-0025)
+
+The rule this note established is cited across the codebase as *"one item, one home"*. It now reads: **one obligation, one owning view.**
+
+A view may list an owed row twice — once in a leading `Needs you` shortcut group, once in its structural place, marked. What it may not do is claim the same obligation in two views, which is the failure this issue actually found.
+
+The distinction matters because the strict reading was starting to cost the thing it protects: a requirement removed from under its feature *because* it needs approving makes the Features tree wrong at the moment the reader most needs it right. [[ADR-0025]] carries the reasoning and the two exemptions it creates, both asserted in tests rather than left implied.
+
+**And it carries a hazard worth stating here:** any surface that *counts* owed marks now double-counts. Two tests caught it the day the group shipped. Count distinct ids.

@@ -186,6 +186,17 @@ def test_no_document_appears_twice_on_the_intent_view(repo_index: Index) -> None
     groups = cockpit.nav_payload(repo_index, mode="intent")["groups"]
     seen: dict[str, str] = {}
     for group in groups:
+        # **The one exception, stated rather than implied** (ADR-0025). The
+        # leading `Needs you` group is a shortcut list: its rows also keep
+        # their structural place, marked, because a decision that vanished
+        # from Decisions *because* it needs deciding would make that list
+        # answer a different question than the one it is labelled with.
+        #
+        # Written as an exemption here rather than by loosening the check,
+        # because a rule narrowed in silence is a rule abandoned. Everything
+        # outside this group still obeys ISS-0068 on rel path.
+        if group.get("key") == "needs-you":
+            continue
         for item in group.get("items") or []:
             url = str(item.get("url") or "")
             if not url:
@@ -246,3 +257,75 @@ def test_the_brief_section_arrives_rendered(repo_index: Index) -> None:
     assert fn, "the identity band is gone"
     assert "forSection.body_html" in fn.group(0)
     assert "textContent = forSection.body;" not in src
+
+
+# ---- FEAT-0094: needs you leads every view --------------------------------
+
+
+def test_the_needs_you_group_equals_the_badge_in_every_view(repo_index: Index) -> None:
+    """Three surfaces, one walk. The group, the badge and the landing page all
+    read `obligations.owed_items`, so a view whose group disagreed with its own
+    button would be the failure FEAT-0089 exists to prevent, reintroduced one
+    pane to the left.
+
+    Intent is the case that made this necessary: its group came out 3 against a
+    badge of 5, because two of the five are standing documents whose subject is
+    a manifest entry rather than a note.
+    """
+    counts = obligations.counts(repo_index)
+    for view in ("features", "intent"):
+        first = cockpit.nav_payload(repo_index, mode=view)["groups"][0]
+        if counts[view] == 0:
+            assert first["key"] != "needs-you", "a zero group is showing"
+            continue
+        assert first["key"] == "needs-you", f"{view} does not lead with what it owes"
+        assert first["needs_human"] is True
+        assert len(first["items"]) == counts[view], view
+        assert all(i["owed"] and i["owed_verb"] for i in first["items"])
+
+
+def test_the_views_that_already_gather_get_no_second_group(repo_index: Index) -> None:
+    """ADR-0025 permits the duplication and does not require it. `Needs triage`
+    and `Needs a run` already gather the same set under names that say more, so
+    a shared group there would duplicate where it buys nothing."""
+    for view in ("issues", "tests"):
+        keys = [g["key"] for g in cockpit.nav_payload(repo_index, mode=view)["groups"]]
+        assert "needs-you" not in keys, view
+    # …and Issues still leads with its own, or the uniformity claim is false.
+    if obligations.counts(repo_index)["issues"]:
+        first = cockpit.nav_payload(repo_index, mode="issues")["groups"][0]
+        assert first["needs_human"] is True
+
+
+def test_the_structural_copy_is_marked(repo_index: Index) -> None:
+    """ADR-0025's condition for permitting the copy: a row met in the tree is
+    visibly the same one gathered above. Unmarked, the reader has no way to
+    know why it appears twice."""
+    owed_ids = {r["id"] for r in obligations.owed_items(repo_index)["features"]}
+    assert owed_ids, "no owed feature-view rows; this asserts nothing"
+    seen: dict[str, bool] = {}
+
+    def walk(items: list) -> None:
+        for item in items:
+            if item.get("id") in owed_ids:
+                seen[item["id"]] = bool(item.get("owed") and item.get("owed_verb"))
+            walk(item.get("children") or [])
+
+    for group in cockpit.nav_payload(repo_index, mode="features")["groups"]:
+        if group["key"] == "needs-you":
+            continue
+        walk(group.get("items") or [])
+    assert seen and all(seen.values()), seen
+
+
+def test_the_overview_carries_it_too() -> None:
+    """*"As well as showing this on the desk page."* Grouped by owning view,
+    because "who owes this" is what decides where you go to discharge it."""
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "mountNeedsYouBand" in src
+    fn = re.search(r"async function mountNeedsYouBand\(\).*?\n\}", src, re.S).group(0)
+    assert "if (owed.length === 0) return;" in fn, "a zero band would render"
+    assert "/api/cockpit/landing?view=" in fn, (
+        "the overview computes its own set instead of reading the one the "
+        "badge and the landing page share"
+    )

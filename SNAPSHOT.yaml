@@ -26,7 +26,7 @@ docs_system:
     - docs/PHASES.md
 
 counters:
-  ADR: 24
+  ADR: 25
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -38,13 +38,13 @@ counters:
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 93
+  FEAT: 94
   ISS: 151
   PHASE: 31
   REQ: 33
   RISK: 6
   REL: 1
-  TASK: 392
+  TASK: 395
   TST: 23
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -2454,10 +2454,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 93
-    features_done: 84
-    tasks_total: 392
-    tasks_done: 368
+    features_total: 94
+    features_done: 85
+    tasks_total: 395
+    tasks_done: 371
     tests_total: 23
     tests_passing: 23
     test_cases_total: 182
@@ -2467,4 +2467,4 @@ metrics:
     issues_triage: 9
     risks_open: 5
     releases_total: 1
-    decisions_total: 15
+    decisions_total: 16

@@ -3733,6 +3733,94 @@ function renderProjectOverview(data: StatsPayload): void {
   // and prepended rather than inserted into `parts` so a slow sidecar delays
   // the band and never the overview.
   void mountDigestBand();
+  // …and what needs a person, beneath it (FEAT-0094 / TASK-0395). Same fetch
+  // pattern and the same reason: a slow sidecar delays the band, never the
+  // overview.
+  void mountNeedsYouBand();
+}
+
+// ----- Needs you, on the overview (FEAT-0094 / TASK-0395) ---------------
+//
+// Edwin: *"as well as showing this on the desk page"*. The badge counts it and
+// each view's navigator now leads with it; the overview is where a person
+// arrives, so it answers the question there too — grouped BY VIEW, because
+// "who owes this" is the fact that decides where you go to discharge it.
+//
+// Absent at zero, like every other count on this surface.
+
+async function mountNeedsYouBand(): Promise<void> {
+  docView.querySelector('.ov-needs-you')?.remove();
+  if (!sidecarBaseUrl) return;
+  const views = ['intent', 'features', 'issues', 'tests'];
+  const results = await Promise.all(views.map(async (view) => {
+    try {
+      const resp = await fetch(
+        `${sidecarBaseUrl}/api/cockpit/landing?view=${encodeURIComponent(view)}`,
+      );
+      if (!resp.ok) return null;
+      return { view, data: await resp.json() as LandingPayload };
+    } catch { return null; }
+  }));
+  const owed = results.filter((r): r is { view: string; data: LandingPayload } =>
+    !!r && r.data.total > 0);
+  if (owed.length === 0) return;
+
+  const band = document.createElement('section');
+  band.className = 'ov-needs-you';
+  const total = owed.reduce((n, r) => n + r.data.total, 0);
+  const head = document.createElement('div');
+  head.className = 'ov-needs-you-head';
+  head.textContent = `${total} need${total === 1 ? 's' : ''} you`;
+  band.appendChild(head);
+
+  for (const { view, data } of owed) {
+    const col = document.createElement('div');
+    col.className = 'ov-needs-you-view';
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'ov-needs-you-view-head';
+    label.textContent = `${VIEW_LABELS[view] ?? view} · ${data.total}`;
+    // The heading is the way into that view's own page, which is the same
+    // set at more length — not a third rendering of it.
+    label.addEventListener('click', () => {
+      setNavMode(view as NavMode);
+      void navigateTo(`~${view}`);
+    });
+    col.appendChild(label);
+    for (const group of data.groups) {
+      for (const item of group.items) {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'ov-needs-you-row';
+        const verb = document.createElement('span');
+        verb.className = 'ov-needs-you-verb';
+        verb.textContent = group.verb;
+        row.appendChild(verb);
+        const id = document.createElement('span');
+        id.className = 'ov-needs-you-id mono';
+        id.textContent = shortNoteId(item.id);
+        row.appendChild(id);
+        const title = document.createElement('span');
+        title.className = 'ov-needs-you-title';
+        title.textContent = item.title;
+        title.title = item.title;
+        row.appendChild(title);
+        row.addEventListener('click', () => void navigateTo(item.rel));
+        col.appendChild(row);
+      }
+      // A counted group with no rows is the standing-document obligation,
+      // whose subject is a manifest entry rather than a note. Say where it
+      // lives rather than dropping the count silently.
+      if (group.count && group.items.length === 0) {
+        const note = document.createElement('p');
+        note.className = 'meta ov-needs-you-note';
+        note.textContent = `${group.label} — in ${VIEW_LABELS[view] ?? view}`;
+        col.appendChild(note);
+      }
+    }
+    band.appendChild(col);
+  }
+  docView.prepend(band);
 }
 
 // ----- Since you looked: the digest band (FEAT-0071 / TASK-0314) --------

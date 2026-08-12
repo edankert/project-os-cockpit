@@ -894,15 +894,23 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     be the same predicate.
     """
     groups = nav_payload(repo_index, mode="design")["groups"]
-    owed = [i for g in groups for i in g["items"] if i.get("owed")]
+    # `needs-you` is a SHORTCUT list, not a group of this view's own
+    # making (ADR-0025): its rows keep their structural place too, and
+    # counting or enumerating them here would count the same obligation
+    # twice. Excluded explicitly rather than by loosening the assertion.
+    owed = [
+        i for g in groups if g["key"] != "needs-you"
+        for i in g["items"] if i.get("owed")
+    ]
     # The whole view's badge, standing documents included (TASK-0382) — the
     # assertion is that the marks and the count are one predicate, so it must
     # be taken over the whole view rather than one group of it.
     assert obligations.counts(repo_index)["intent"] == len(owed)
     assert all(i["owed_verb"] for i in owed)
     note_owed = {
-        i["id"] for g in groups if g["key"] != "standing" for i in g["items"]
-        if i.get("owed")
+        i["id"] for g in groups
+        if g["key"] not in ("standing", "needs-you")
+        for i in g["items"] if i.get("owed")
     }
     # The PROPERTY, not the membership. This asserted `== {"ADR-0010"}` and
     # broke the moment a second ADR was proposed ([[ADR-0021]], 2026-08-11) —
@@ -1034,11 +1042,19 @@ def test_the_intent_view_opens_on_the_standing_set(repo_index: Index) -> None:
     from project_os_cockpit import standing
 
     groups = nav_payload(repo_index, mode="design")["groups"]
-    assert groups[0]["key"] == "standing", [g["key"] for g in groups]
-    listed = [i["id"] for i in groups[0]["items"]]
+    # **Amended 2026-08-12 (FEAT-0094).** Intent now opens on what needs a
+    # person, and the standing set leads everything after it — Edwin's
+    # request, and the same shape every other view got. The claim this test
+    # protects is unchanged in substance: the standing set is the first thing
+    # about the PROJECT that the view says, ahead of designs and decisions.
+    own = [g for g in groups if g["key"] != "needs-you"]
+    assert own[0]["key"] == "standing", [g["key"] for g in groups]
+    if groups[0]["key"] == "needs-you":
+        assert groups[0]["needs_human"] is True
+    listed = [i["id"] for g in groups if g["key"] == "standing" for i in g["items"]]
     assert listed == [d.name for d in standing.manifest(REPO_DOCS.parent)]
     # Each row says when it was last confirmed, or what is wrong with it.
-    assert all(i["subtitle"] for i in groups[0]["items"])
+    assert all(i["subtitle"] for g in groups if g["key"] == "standing" for i in g["items"])
 
 
 def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
@@ -1060,8 +1076,10 @@ def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
     this very test exists to keep OUT of the badge. What matters is that the
     row reports a staleness at all, and that reporting it does not make it owed.
     """
-    rows = {i["id"]: i for i in
-            nav_payload(repo_index, mode="design")["groups"][0]["items"]}
+    rows = {i["id"]: i
+            for g in nav_payload(repo_index, mode="design")["groups"]
+            if g["key"] == "standing"
+            for i in g["items"]}
     assert rows["ARCHITECTURE"].get("owed") is True
     assert rows["ARCHITECTURE"]["owed_verb"] == "Confirm"
     # Stale marks — a status the navigator can sort and fold on — but does not
@@ -1081,10 +1099,15 @@ def test_the_standing_obligation_reaches_the_intent_badge(repo_index: Index) -> 
     type-keyed table and this is declared beside it. Both feed one count, so
     the badge stays the sum of what the view marks.
     """
-    marked = sum(
-        1 for g in nav_payload(repo_index, mode="design")["groups"]
+    # DISTINCT ids, not a count of marks (ADR-0025). The `needs-you` group is
+    # a shortcut list whose rows keep their structural place, so counting
+    # marks now counts the same obligation twice — which is the one hazard
+    # that decision introduces, and the badge is exactly the surface it would
+    # have broken.
+    marked = len({
+        i["id"] for g in nav_payload(repo_index, mode="design")["groups"]
         for i in g["items"] if i.get("owed")
-    )
+    })
     assert obligations.counts(repo_index)["intent"] == marked
     assert obligations.standing_owed(REPO_DOCS) > 0, (
         "this repo no longer exercises the standing obligation — pick another "
@@ -1101,11 +1124,18 @@ def test_the_standing_set_is_not_a_second_obligation_list(repo_index: Index) -> 
     that overlap deliberately) — but no other group in any view may mark them
     as owed."""
     standing_ids = {
-        i["id"] for i in nav_payload(repo_index, mode="design")["groups"][0]["items"]
+        i["id"]
+        for g in nav_payload(repo_index, mode="design")["groups"]
+        if g["key"] == "standing"
+        for i in g["items"]
     }
     for mode in ("features", "issues", "tests", "library", "design"):
         for group in nav_payload(repo_index, mode=mode)["groups"]:
-            if group["key"] == "standing":
+            # `needs-you` joins `standing` as an exemption (ADR-0025): it is
+            # a shortcut list, so the same obligation appearing there and in
+            # its structural place is the decision rather than the defect.
+            # Everything else still obeys ISS-0068.
+            if group["key"] in ("standing", "needs-you"):
                 continue
             clashing = {
                 i.get("id") for i in group["items"] if i.get("owed")

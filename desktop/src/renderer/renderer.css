@@ -5288,3 +5288,38 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; font-size: 13px;
 }
+
+/* ---- Needs you, on the overview (FEAT-0094) -----------------------------
+   Grouped by owning view, because "who owes this" is what decides where you
+   go to discharge it. Sits under the digest band and above the focus band:
+   news first, then what is owed, then where the project is. */
+.ov-needs-you {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 14px; background: var(--bg-elevated);
+}
+.ov-needs-you-head {
+  font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px;
+}
+.ov-needs-you-view { margin-bottom: 10px; }
+.ov-needs-you-view-head {
+  background: none; border: none; padding: 0 0 4px; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.ov-needs-you-view-head:hover { color: var(--accent-link); }
+.ov-needs-you-row {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 4px 6px; background: none; border: none; border-radius: 4px;
+  font: inherit; font-size: 12px; color: var(--text); text-align: left;
+  cursor: pointer;
+}
+.ov-needs-you-row:hover { background: var(--bg); }
+.ov-needs-you-verb {
+  flex: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--status-pending); min-width: 52px;
+}
+.ov-needs-you-id { flex: none; color: var(--accent-link); font-size: 11px; }
+.ov-needs-you-title {
+  flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ov-needs-you-note { margin: 2px 0 0 6px; font-size: 11px; }

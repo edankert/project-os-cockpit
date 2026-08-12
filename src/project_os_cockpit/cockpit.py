@@ -2753,6 +2753,65 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
     return frozenset(out)
 
 
+#: Views whose navigator already leads with what they owe, under a name that
+#: says more than "needs you" — `Needs triage` and `Needs a run`. Adding the
+#: shared group there would duplicate in the one place it buys nothing, which
+#: ADR-0025 permits and does not require.
+_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset({"issues", "tests"})
+
+
+def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
+    """The leading `Needs you` group for a view (FEAT-0094 / TASK-0393).
+
+    **A shortcut list, not a second home** (ADR-0025). The rows also stay in
+    their structural place, marked, because a requirement that vanished from
+    under its feature *because* it needs approving would make the tree wrong at
+    the moment the reader most needs it right — they are about to approve it
+    and cannot see what it belongs to.
+
+    From `obligations.owed_items`, which is the walk behind the badge and the
+    landing page, so the three surfaces cannot disagree. Absent at zero: a
+    permanent `Needs you · 0` is the shape a reader learns to stop seeing.
+    """
+    if view in _VIEWS_THAT_ALREADY_GATHER:
+        return []
+    rows = _obligations.owed_items(index).get(view, [])
+    # The standing-document obligation has no note behind it — its subject is
+    # a manifest entry — so `owed_items` carries no rows for it and Intent's
+    # group came out 3 against a badge of 5. The rows exist, in the standing
+    # group, already carrying `owed` and their verb: take them from there
+    # rather than recomputing, so the count matches the badge for the same
+    # reason the badge matches itself.
+    extra: list[dict[str, Any]] = []
+    if view == _obligations.STANDING_OBLIGATION.view:
+        for group in _standing_group(index):
+            extra.extend(i for i in (group.get("items") or []) if i.get("owed"))
+    if not rows and not extra:
+        return []
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        items.append({
+            "id": row["id"],
+            "title": row["title"],
+            "url": f"/docs/{row['rel']}",
+            "status": row["status"],
+            "type": row["type"],
+            # The registry's verb, never the surface's (TASK-0357's rule).
+            "owed": True,
+            "owed_verb": row["verb"],
+        })
+    items.extend(extra)
+    return [{
+        "key": "needs-you",
+        "label": "Needs you",
+        "url": None,
+        "status": None,
+        "item_layout": "stacked",
+        "needs_human": True,
+        "items": items,
+    }]
+
+
 def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     """Nav groups for the design mode (TASK-0224).
 
@@ -2883,6 +2942,12 @@ def nav_payload(
         groups = _library_groups(index, plat, pinned or [], project_root)
     else:  # pragma: no cover — guarded above
         groups = []
+
+    # What needs a person goes first, in every view that does not already
+    # gather it (FEAT-0094 / ADR-0025). Prepended here rather than inside each
+    # builder so the four views cannot drift into four answers, which is the
+    # state this replaces.
+    groups = _needs_you_group(index, m) + groups
 
     return {
         "schema_version": SCHEMA_VERSION,
