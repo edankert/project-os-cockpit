@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-12
 source: ["[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]", "[[REQ-0033-Every-Project-Can-Say-What-It-Is]]"]
 goal: "Declare the one-per-project standing documents as extensible data, drop the lifecycle status they never had, report presence/singularity/placeholders/freshness, and land them on the Intent view so the documents describing the project are the first thing its view shows."
 requirements: ["[[REQ-0033-Every-Project-Can-Say-What-It-Is]]"]
@@ -49,7 +49,7 @@ The phase's goal is that every judgment the record owes surfaces where its subje
 
 **Out:**
 
-- **A new note type.** [[REQ-0033]] records why: a type is for an open population, and there will never be a second glossary.
+- **A new note type.** [[REQ-0033]] records why: a type is for an open population, and there will never be a second glossary. *(2026-08-12: this reasoning was generalised into an upstream law at Edwin's request — [[project-os-dev#ADR-0022]] "Conventions before types", proposed; rule-ADRs, [[project-os-dev#ADR-0023]], are its second application.)*
 - **Rewriting the documents.** This makes their staleness visible; it does not make them true. Twelve are still recognisable template stubs and that is a finding to surface, not a backlog to clear here.
 - **Blocking anything.** No build fails because a glossary is old.
 - **`docs/references/COCKPIT-API.md`** and the nine container `README.md` signposts. They are `reference`-typed and stay that way; only the singleton set is in scope.
