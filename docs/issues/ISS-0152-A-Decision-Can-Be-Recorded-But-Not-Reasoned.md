@@ -3,12 +3,12 @@ type: "[[issue]]"
 id: ISS-0152
 aliases: ["ISS-0152"]
 title: "A human can record that they decided and never why — every write path carries a verdict or a vocabulary, and only the criterion tick carries the person's own words"
-status: triage
+status: fixed
 severity: medium
 owner: user:edwin
 created: 2026-08-12
 updated: 2026-08-12
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-032-The-Reasoning-Is-Recorded]]"
 features: ["[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
 tasks: []
 related: ["[[ADR-0010]]", "[[ISS-0126]]", "[[DES-0005-The-Actuator-Grammar]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
@@ -63,3 +63,14 @@ The `adr` vocabulary is `Accept` or `Supersede`. **There is no way to say "not a
 **Recommended: 3 then 1**, and not 2. Option 3 costs nothing and answers ADR-0010 specifically — its open threads become answerable this afternoon. Option 1 is the general fix and is small, and prose beside a verdict is a pattern this codebase already has rather than one it would be inventing. Option 4 is worth doing with 1, since they are the same shape: a verb that records a judgment other than yes.
 
 Filed at `triage`: which of these to build is Edwin's, and the ADR it blocks is his to decide either way.
+
+
+## Fixed — 2026-08-12
+
+Edwin took **3 then 1**, which is what [[PHASE-032]] built.
+
+Option 3 needed no code: `criteria.py` already read an `## Acceptance` section on any note and the tick was never gated by type, so [[ADR-0010]]'s two open threads became answerable by writing them down. Option 1 added `note` to the transition, appended as a dated Obsidian callout under `## Decision record` — and found on the way that the cockpit **did not render callouts at all**, printing the literal `[!note]` in a plain blockquote, which had to be built before anything started writing them.
+
+Option 2 stayed rejected. Option 4 — `Request changes` on the ADR vocabulary — is still open and still worth doing; it is the same shape as option 1 and was deliberately kept out of the first pass.
+
+Both conventions are captured upstream, which Edwin asked for explicitly: `project-os-dev` ADR-0020, and `DECISIONS.md` + `OBSIDIAN.md` in the template.
