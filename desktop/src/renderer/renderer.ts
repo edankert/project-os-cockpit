@@ -890,6 +890,13 @@ cockpitApi.sidecar.onEvent((ev) => {
       // bug on the days they were added (ISS-0040).
       if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)) void navigateTo('README.md');
       void renderInboxPanel();
+      // ISS-0149: the badges' own refresh bails on `!sidecarBaseUrl`, and on a
+      // fresh window `setNavMode` runs from stored state before any sidecar
+      // exists — so without this call every view button stays bare until the
+      // first mode click. Since FEAT-0092 the badge is the way INTO each
+      // view's landing page, which makes a blank one the entry point to the
+      // list of what you owe, missing exactly when you open the app to ask.
+      void refreshObligationBadges();
       void refreshAgentSnapshot();
       void loadAgentActions();
       void loadAgentRegistry();

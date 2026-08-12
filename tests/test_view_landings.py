@@ -200,3 +200,23 @@ def test_no_document_appears_twice_on_the_intent_view(repo_index: Index) -> None
     # Vacuity guard: the view must actually carry file-backed rows, or the
     # loop above asserts nothing.
     assert len(seen) >= 8, sorted(seen)
+
+
+def test_the_ready_path_refreshes_the_badges() -> None:
+    """ISS-0149. `refreshObligationBadges` returns early without a sidecar, and
+    on a fresh window `setNavMode` runs from stored state before one exists —
+    so the badges stayed bare until the first mode click.
+
+    The `ready` block already refreshes seven surfaces and carries ISS-0040's
+    guard for this same class of omission. Membership is asserted rather than
+    left to a reviewer noticing the eighth, and it matters more since
+    FEAT-0092: the badge is now the way into each view's landing page, so a
+    blank one hides the list of what a person owes at the moment they open the
+    app to ask.
+    """
+    src = _renderer()
+    ready = src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0]
+    assert "refreshObligationBadges()" in ready, (
+        "a freshly launched window shows no obligation badges until the first "
+        "mode click"
+    )
