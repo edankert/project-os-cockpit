@@ -8640,10 +8640,9 @@ function renderWsNav(data: NavPayload): void {
     count.textContent = String((owedGroup.items || []).length);
     head.appendChild(count);
     section.appendChild(head);
-    const note = document.createElement('p');
-    note.className = 'nav-needs-you-note';
-    note.textContent = 'the count on this view\u2019s button';
-    section.appendChild(note);
+    // No caption. The count is rendered in the badge's own shape, which says
+    // these are the items the button counts; a line saying so as well is the
+    // surface explaining its own notation.
     const node = renderNavGroup(owedGroup, currentNavMode);
     if (node) { section.appendChild(node); }
     wsNavContent.appendChild(section);

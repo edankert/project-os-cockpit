@@ -5304,7 +5304,4 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   text-transform: uppercase; color: var(--status-pending);
 }
 .nav-needs-you-count { position: static; transform: none; }
-.nav-needs-you-note {
-  margin: 2px 0 6px; font-size: 10px; color: var(--text-faint);
-}
 .nav-needs-you .nav-group-header { display: none; }

@@ -61,6 +61,8 @@ The badge says a number, the landing page lists it, and the navigator — the pa
 
 **It rendered under `Open`.** Being the first group is not the same as being the first thing in the pane: `renderWsNav` splits groups into live and settled, and a group with open items is live — so `Needs you` landed beneath a heading about work in flight and read as one more phase. What needs a person is not a kind of open work; it is the reason to be looking at the pane. Lifted out of the split before the split happens.
 
-**Its count says whose it is.** Edwin: *"it could do with a way to indicate that these are the issues identified in the badge."* The number is rendered in the badge's own shape with the line *"the count on this view's button"* — a count rendered as a count leaves the reader to notice the coincidence.
+**Its count says whose it is.** Edwin: *"it could do with a way to indicate that these are the issues identified in the badge."* The number is rendered in the badge's own shape — a count rendered as a count leaves the reader to notice the coincidence.
+
+*The first attempt added a caption under it, "the count on this view's button", and Edwin removed it. Rightly: the shape already carries the claim, and a line explaining it is the surface annotating its own notation.*
 
 **And the overview band is gone** ([[TASK-0395]]), which was never asked for.
