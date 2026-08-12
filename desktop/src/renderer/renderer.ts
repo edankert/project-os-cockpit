@@ -1129,7 +1129,13 @@ function buildDocHeader(data: RenderResponse, rel: string): HTMLElement {
   const pathEl = document.createElement('button');
   pathEl.type = 'button';
   pathEl.className = 'doc-header-path';
-  pathEl.textContent = `docs/${rel}`;
+  // `~root/LLM_BRIEF.md` is a file at the REPO root, not `docs/~root/…`.
+  // Standing documents may live beside the docs tree (FEAT-0091's extension
+  // point), and the header was composing a path that does not exist — the
+  // content rendered correctly while the label lied about where it came from.
+  pathEl.textContent = rel.startsWith('~root/')
+    ? rel.slice('~root/'.length)
+    : `docs/${rel}`;
   pathEl.title = 'Click to copy path';
   pathEl.addEventListener('click', () => {
     void copyText(`docs/${rel}`, 'Path copied');

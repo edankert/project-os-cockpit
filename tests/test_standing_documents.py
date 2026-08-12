@@ -243,3 +243,21 @@ def test_every_standing_document_still_parses_as_a_note() -> None:
         assert record.note_type, (
             f"{res.document.name} has no type — its frontmatter does not parse"
         )
+
+
+def test_a_root_level_document_is_not_labelled_under_docs() -> None:
+    """`~root/LLM_BRIEF.md` is a file at the repo root. The doc header composed
+    `docs/${rel}` unconditionally and printed `docs/~root/LLM_BRIEF.md` — a
+    path that does not exist, while the content beneath it rendered perfectly.
+
+    A standing document may live beside the docs tree rather than inside it
+    (FEAT-0091's extension point), so the label has to know the difference.
+    """
+    import re as _r
+    renderer = REPO / "desktop" / "src" / "renderer" / "renderer.ts"
+    fn = _r.search(r"function buildDocHeader\(.*?\n\}", renderer.read_text(), _r.S)
+    assert fn, "buildDocHeader is gone"
+    body = fn.group(0)
+    assert "rel.startsWith('~root/')" in body, (
+        "a repo-root document is still labelled as living under docs/"
+    )
