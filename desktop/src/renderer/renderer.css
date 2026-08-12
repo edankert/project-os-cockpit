@@ -5302,6 +5302,10 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   display: flex; align-items: center; gap: 8px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
   text-transform: uppercase; color: var(--status-pending);
+  /* The caption used to carry this gap in its own margin; removing the
+     caption removed the spacing with it and left the heading sitting on the
+     card. */
+  margin-bottom: 9px;
 }
 .nav-needs-you-count { position: static; transform: none; }
 .nav-needs-you .nav-group-header { display: none; }
