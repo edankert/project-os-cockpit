@@ -586,6 +586,13 @@ function applyFleetHealthPayload(payload: unknown): void {
     const ws = workspaces.find((w) => w.id === li.dataset.id);
     if (ws) applyHealthToSquare(li, ws);
   }
+  // …and the overview's unpushed band, which is built from this payload
+  // (FEAT-0098). Git state is probed asynchronously, so on a fresh window the
+  // row exists with no `ahead` at all and the band correctly renders nothing —
+  // and then nothing ever re-renders it. **Third time today**: the obligation
+  // badges (ISS-0149) and the cross-repo jump both had the same shape, which
+  // is data arriving after the surface that needs it has already painted.
+  if (currentRel && currentRel.startsWith('~overview')) void mountUnpushedBand();
 }
 
 // Declared by cache-temperature.js, loaded as a plain script before this
@@ -3825,11 +3832,15 @@ function renderProjectOverview(data: StatsPayload): void {
 async function mountUnpushedBand(): Promise<void> {
   docView.querySelector('.ov-unpushed')?.remove();
   if (!activeId) return;
-  let rows: FleetHealthRow[] = [];
-  try {
-    rows = (await cockpitApi.fleetHealth.get()).rows;
-  } catch { return; }
-  const mine = rows.find((r) => r.workspaceId === activeId);
+  // The cached map first — `applyFleetHealthPayload` keeps it current and
+  // calls back here — falling back to a fetch on the first paint.
+  let mine = fleetHealth.get(activeId) ?? null;
+  if (!mine) {
+    try {
+      mine = ((await cockpitApi.fleetHealth.get()).rows ?? [])
+        .find((r) => r.workspaceId === activeId) ?? null;
+    } catch { return; }
+  }
   if (!mine) return;
 
   const ahead = typeof mine.ahead === 'number' ? mine.ahead : 0;

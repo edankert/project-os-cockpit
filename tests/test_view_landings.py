@@ -427,3 +427,28 @@ def test_the_push_has_exactly_one_implementation() -> None:
     assert src.count("'deploy remote'") == 1, (
         "the deploy refusal is written twice; one of them will drift"
     )
+
+
+def test_the_unpushed_band_re_renders_when_the_git_state_lands() -> None:
+    """Git state is probed asynchronously, so on a fresh window the fleet row
+    exists with no `ahead` at all — the band correctly renders nothing, and
+    then nothing ever re-renders it. Measured live: 142 commits unpushed and
+    the band absent.
+
+    **Third time today for this shape.** The obligation badges (ISS-0149) and
+    the cross-repo jump both failed the same way: data arriving after the
+    surface that needs it has already painted. Asserting it here rather than
+    trusting the next surface to remember.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    apply_fn = re.search(
+        r"function applyFleetHealthPayload\(payload: unknown\): void \{.*?\n\}",
+        src, re.S,
+    ).group(0)
+    assert "mountUnpushedBand()" in apply_fn, (
+        "the band is built once and never rebuilt; on a fresh window it shows "
+        "nothing however many commits are unpushed"
+    )
+    assert "currentRel.startsWith('~overview')" in apply_fn, (
+        "it rebuilds while the reader is somewhere else"
+    )
