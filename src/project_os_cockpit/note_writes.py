@@ -207,7 +207,7 @@ HUMAN_TRANSITIONS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
 CONFIRM_ACTIONS: frozenset[str] = frozenset({"Decline", "Supersede"})
 
 TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset(
-    {"id", "to", "actor", "mtime", "severity", "note"}
+    {"id", "to", "actor", "mtime", "severity", "note", "option"}
 )
 
 #: The heading every decision record lives under, and there is only ever one
@@ -527,6 +527,7 @@ def stamp_transition(
     actor: str = "",
     severity: str = "",
     note: str = "",
+    option: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Perform one human-owned transition (TASK-0278).
@@ -600,6 +601,24 @@ def stamp_transition(
          if to == wanted),
         wanted.capitalize(),
     )
+    # Which option was chosen, when the note offered any (FEAT-0097). A
+    # decision that listed three and recorded only "accepted" has lost the
+    # answer — so it goes in the frontmatter, where a machine reads it, AND in
+    # the callout, where a person does.
+    chosen = (option or "").strip()
+    if chosen:
+        from . import decisions as _decisions
+        offered = _decisions.parse_options(body)
+        numbers = {str(o["number"]) for o in offered}
+        if chosen not in numbers:
+            raise WriteError(
+                f"{note_id} offers options {sorted(numbers) or '(none)'}; "
+                f"{chosen!r} is not one of them",
+                status=400,
+            )
+        label = next(o["label"] for o in offered if str(o["number"]) == chosen)
+        fm_lines = _set_field(fm_lines, "decided_option", chosen)
+        verb = f"{verb} — option {chosen}: {label}"
     body = _append_decision_record(body, verb=verb, actor=actor, note=note)
     _write(path, fm_lines, body)
     return {
@@ -609,6 +628,7 @@ def stamp_transition(
         "actor": actor,
         "severity": sev or None,
         "note": bool((note or "").strip()),
+        "option": chosen or None,
         "date": _today(),
     }
 

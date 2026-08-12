@@ -50,3 +50,23 @@ tags: [change]
 ## Two of the four tasks needed no code
 
 `criteria.py` already parsed an Acceptance section on any note and `stamp_tick` was never gated by type — so a decision's criteria were tickable before the convention existed. The owed mark on a structural row was the same story a day earlier. **The mechanism existed and had never been pointed at the case**, which is worth more than either fix: it is the second time in two days that reading the code first turned a feature into a convention.
+
+## And what was judged — 2026-08-12, [[FEAT-0097]]
+
+Edwin, on the first note the phase made decidable: *"why for ADR-0010 do I not have a way to select an option? (how can we make sure the LLM formats the document correctly for me to be able to make these decisions?)"* — and, on the other ADRs, *"it is the same issue"*.
+
+**A decision now declares its options and the surface offers them.** Both forms already in the corpus parse — `N. **Label.**` and `### N. Label` — because both were in use and neither is ambiguous; a convention that invalidated notes already written would be a migration wearing a convention's clothes. The proposed option is read from the `## Decision` section, not the list, since every option names itself by number.
+
+**Choosing one records it in both registers:** `decided_option: "3"` in the frontmatter where a machine reads it, and `> [!note] Accept — option 3: Mode 1 is the reading surface — 2026-08-12 (user:edwin)` where a person does. An option the note does not offer is refused. Accepting without choosing stays legal.
+
+**And the reasoning field is a textarea**, full row width and three lines — *"way too small"* was right; a 220px single line asks for a fragment.
+
+### The check is the answer, not the control
+
+A widget that silently disappears when the document drifts is not an answer to *"how do we make sure it's formatted correctly"*. So:
+
+- The convention is in the template's `DECISIONS.md` **and in the ADR template itself**, so it is where an author starts rather than something they are told afterwards.
+- **`DECISION-OPTIONS` errors** on an `## Options` section that yields fewer than two readable options, or options that do not number `1..N`. Proved by breaking a real note: mangling two of ADR-0021's reported `numbers its options [3, 4]`, and restoring cleared it.
+- An error on day one rather than a dated warning, which is ADR-0011 applied rather than ignored: a new convention has nothing to grandfather.
+
+Upstream: `project-os-dev` **ADR-0021**, and the template's `DECISIONS.md`, `docs/__templates__/adr.md` and `validate-docs.py` (`c8b6bbb`).

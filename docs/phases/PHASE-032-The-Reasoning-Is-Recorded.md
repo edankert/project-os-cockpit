@@ -8,7 +8,7 @@ order: 32
 owner: user:edwin
 created: 2026-08-12
 updated: 2026-08-12
-features: ["[[FEAT-0095]]", "[[FEAT-0096]]"]
+features: ["[[FEAT-0095]]", "[[FEAT-0096]]", "[[FEAT-0097]]"]
 issues: ["[[ISS-0152]]"]
 related: ["[[ADR-0010]]", "[[DES-0005-The-Actuator-Grammar]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
 tags: [phase]
@@ -44,8 +44,23 @@ Out: the `Comment` verb that changes no status ([[ISS-0152]] option 2, rejected 
 - [x] [[ISS-0152]] closes, and closes because the gap it measured is gone rather than because the two verbs that exposed it were special-cased.
 
 
-## Closed — 2026-08-12
+## Reopened — 2026-08-12
+
+Edwin, on the first note the phase made decidable: *"why for ADR-0010 do I not have a way to select an option? (how can we make sure the LLM formats the document correctly for me to be able to make these decisions?)"*
+
+Both halves belong here. A decision that offers three options and records only *accepted* has lost the answer — and the tool can only offer a choice if the note declares one in a form it can read, which nothing has ever required. [[FEAT-0097]] adds the convention, the check that keeps it, and the control.
+
+Reopening rather than minting a phase: `CLAUDE.md`'s rule, and this is the same sentence — *a judgment carries what was judged*.
+
+## Closed once — 2026-08-12
 
 All five criteria met, including the one that could not be met in this repo: [[ADR-0020]] in `project-os-dev` (`d8b4742`) records the decision, and `DECISIONS.md` + `OBSIDIAN.md` in the template (`e4f3a44`) carry both conventions.
 
 **Two of the four tasks needed no code.** The criteria machinery was already ungated by note type, and the owed mark was already on the row. The phase's real content turned out to be one write path, one renderer, and two conventions written down where the next project will find them.
+
+
+## Closed again — 2026-08-12
+
+[[FEAT-0097]] answered the second half: a decision now declares its options, the surface offers them, the choice is recorded in both a field and the callout, and `DECISION-OPTIONS` keeps the shape. Upstream: `project-os-dev` ADR-0021 and the template's `DECISIONS.md`, `adr.md` and validator.
+
+**The phase's shape in one line:** three features, of which two turned out to be conventions the machinery already supported, and the one that needed real code needed a *check* more than it needed a control.

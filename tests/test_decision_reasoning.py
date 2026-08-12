@@ -106,7 +106,7 @@ def test_the_field_reads_at_click_time() -> None:
         "the field is created outside mountActuatorRow; a shared anchor put it "
         "on another row"
     )
-    assert "querySelector<HTMLInputElement>('.note-action-note')" in fn, (
+    assert "querySelector<HTMLTextAreaElement>('.note-action-note')" in fn, (
         "the field's value is captured when the row is built, so it is always "
         "the empty string by the time anyone clicks"
     )
@@ -182,3 +182,124 @@ def test_accepting_with_questions_open_is_allowed(corpus: Index) -> None:
     text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
     assert "status: accepted" in text or 'status: "accepted"' in text
     assert "- [ ]" in text, "the open thread was closed by accepting"
+
+
+# ---- FEAT-0097: a decision offers its options ----------------------------
+
+
+def test_both_option_forms_in_this_corpus_parse() -> None:
+    """Two forms were already in use when the convention was written — `N.
+    **Label.**` in two decisions and `### N. Label` in a third — because
+    nothing had ever said which was right. Both parse, deliberately: a
+    convention that invalidated notes already written would be a migration
+    wearing a convention's clothes."""
+    from project_os_cockpit import decisions
+    seen = {}
+    for path in sorted((REPO_DOCS / "decisions").glob("ADR-*.md")):
+        payload = decisions.payload(path.read_text(encoding="utf-8"))
+        if payload["options"]:
+            seen[path.stem.split("-")[1]] = payload
+    assert len(seen) >= 3, sorted(seen)
+    for adr, payload in seen.items():
+        numbers = [o["number"] for o in payload["options"]]
+        assert numbers == list(range(1, len(numbers) + 1)), (adr, numbers)
+        assert all(o["label"] for o in payload["options"]), adr
+        assert payload["proposed"] in numbers, (adr, payload["proposed"])
+
+
+def test_the_proposed_option_is_read_from_the_decision_not_the_list() -> None:
+    """Every option in the list mentions itself by number, so scanning the
+    whole note returns option 1 every time."""
+    from project_os_cockpit import decisions
+    text = (REPO_DOCS / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    assert decisions.proposed_option(text) == 3
+
+
+def test_a_note_with_no_options_is_unaffected() -> None:
+    from project_os_cockpit import decisions
+    assert decisions.payload("# x\n\n## Decision\n\nJust do it.\n") == {
+        "options": [], "proposed": None,
+    }
+
+
+def test_choosing_an_option_records_it_in_both_places(corpus: Index) -> None:
+    """A decision that listed three and recorded only `accepted` has lost the
+    answer. It goes in the frontmatter, where a machine reads it, and in the
+    callout, where a person does."""
+    note_writes.stamp_transition(
+        corpus, "ADR-0010", to_status="accepted", actor="user:edwin",
+        option="3", note="The reading surface.",
+    )
+    text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    assert 'decided_option: "3"' in text
+    assert "> [!note] Accept — option 3: Mode 1 is the reading surface" in text
+
+
+def test_an_option_the_note_does_not_offer_is_refused(corpus: Index) -> None:
+    """The number is a claim about the document; a surface that recorded 9
+    against a note offering three would put a lie in the frontmatter."""
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.stamp_transition(
+            corpus, "ADR-0010", to_status="accepted", actor="user:edwin", option="9",
+        )
+    assert "is not one of them" in exc.value.message
+
+
+def test_accepting_without_choosing_records_nothing_extra(corpus: Index) -> None:
+    """A decision may be accepted as proposed. Demanding a choice would make
+    the control a gate rather than an offer."""
+    note_writes.stamp_transition(
+        corpus, "ADR-0010", to_status="accepted", actor="user:edwin",
+    )
+    text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    assert "decided_option" not in text
+
+
+def test_the_validator_reports_a_section_it_cannot_read(tmp_path: Path) -> None:
+    """The half that makes the convention stick. Edwin: *"how can we make sure
+    the LLM formats the document correctly?"* — by checking it, at pre-commit
+    and in CI, rather than by writing it down and hoping.
+
+    An **error** and not a dated warning: the convention is new, so there is no
+    fleet debt to grandfather, and ADR-0011 forbids a warning with nothing to
+    migrate.
+    """
+    import subprocess
+    docs = tmp_path / "docs" / "decisions"
+    docs.mkdir(parents=True)
+    (tmp_path / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+    (docs / "ADR-0001-Bad.md").write_text(
+        '---\ntype: "[[adr]]"\nid: ADR-0001\nstatus: proposed\n---\n\n'
+        "# Bad\n\n## Options\n\n- one thing\n- another thing\n",
+        encoding="utf-8",
+    )
+    out = subprocess.run(
+        ["python3", str(REPO_ROOT / "tools" / "scripts" / "validate-docs.py"),
+         "--repo-root", str(tmp_path)],
+        capture_output=True, text=True,
+    )
+    assert "DECISION-OPTIONS" in out.stdout + out.stderr
+
+
+def test_the_reasoning_field_is_a_textarea() -> None:
+    """*"way too small"* — a single 220px line asks for a fragment, and this is
+    a sentence about a decision."""
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = src.split("async function mountActuatorRow", 1)[1].split("\nasync function", 1)[0]
+    assert "createElement('textarea')" in fn
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text()
+    rule = css.split(".note-action-note {", 1)[1].split("}", 1)[0]
+    assert "min-height" in rule and "220px" not in rule
+
+
+def test_the_chooser_defaults_to_what_the_note_proposes() -> None:
+    """Defaulting to anything else would be the surface quietly disagreeing
+    with the document it is displaying."""
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = src.split("async function mountActuatorRow", 1)[1].split("\nasync function", 1)[0]
+    assert "note-action-option" in fn
+    assert "opt.number === proposed" in fn
+    assert "payload.options ?? []" in fn, (
+        "the surface parses the markdown itself; that is a second parser to "
+        "keep in step with decisions.py"
+    )

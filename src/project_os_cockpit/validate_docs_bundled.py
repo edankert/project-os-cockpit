@@ -1068,6 +1068,96 @@ def validate_unregistered_notes(root, items, note_index, claimants, allowed_stat
 _BRIEF_PLACEHOLDER_RE = re.compile(r"REPLACE[ _-]?ME", re.IGNORECASE)
 
 
+def validate_decision_options(root, report):
+    """DECISION-OPTIONS — a decision's options can be read, or nobody can pick one.
+
+    Edwin, 2026-08-12, on a `proposed` ADR listing three options: *"why do I not
+    have a way to select an option? how can we make sure the LLM formats the
+    document correctly for me to be able to make these decisions?"*
+
+    A control can only offer what a document declares. Measured that day across
+    one corpus: three decisions carried an ``## Options`` section in **two**
+    different forms, because nothing had ever said which was right — and a form
+    the tool cannot read is a decision nobody can record an answer to.
+
+    Both observed forms are legal; what is checked is that the section can be
+    read **at all**:
+
+        1. **Label.** rationale…
+        ### 1. Label
+
+    An **error**, not a dated warning, and that is ADR-0011 applied rather than
+    ignored: the convention is new, so there is no fleet debt to grandfather,
+    and a check with nothing to migrate has no reason to warn first.
+    """
+    decisions_dir = root / "docs" / "decisions"
+    if not decisions_dir.is_dir():
+        return
+    for path in sorted(decisions_dir.glob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        body = text
+        if not re.search(r"(?m)^##\s+Options\s*$", body):
+            continue
+        options = _parse_decision_options(body)
+        rel = path.relative_to(root).as_posix()
+        if len(options) < 2:
+            report.error(
+                "DECISION-OPTIONS",
+                "%s has an `## Options` section that yields %d readable option(s); "
+                "a decision offering options must state each as `N. **Label.** …` "
+                "or `### N. Label` so the surface can offer them (%s)"
+                % (path.stem.split("-")[0] + "-" + path.stem.split("-")[1],
+                   len(options), rel),
+            )
+            continue
+        numbers = [o[0] for o in options]
+        if numbers != list(range(1, len(numbers) + 1)):
+            report.error(
+                "DECISION-OPTIONS",
+                "%s numbers its options %s; they must run 1..N so a recorded "
+                "choice means the same thing to every reader (%s)"
+                % (path.stem.split("-")[0] + "-" + path.stem.split("-")[1],
+                   numbers, rel),
+            )
+
+
+def _parse_decision_options(text):
+    """The validator's own reader — deliberately a second implementation.
+
+    `decisions.py` in the cockpit parses these for the surface. This one exists
+    so the *check* does not depend on the tool being installed, which is the
+    same reason the validator ships standalone at all.
+    """
+    out = []
+    inside = False
+    in_fence = False
+    for line in text.splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if re.match(r"(?m)^##\s+Options\s*$", line):
+            inside = True
+            continue
+        if inside and re.match(r"^##\s+", line):
+            break
+        if not inside:
+            continue
+        stripped = line.strip()
+        m = re.match(r"^(\d+)\.\s+\*\*(.+?)\.?\*\*", stripped)
+        if m:
+            out.append((int(m.group(1)), m.group(2)))
+            continue
+        m = re.match(r"^###\s+(\d+)\.\s+(.+?)\s*$", stripped)
+        if m:
+            out.append((int(m.group(1)), m.group(2)))
+    return out
+
+
 def validate_brief(root, report):
     """BRIEF-PLACEHOLDER — the project says what it is, or says nothing.
 
@@ -1323,6 +1413,7 @@ def validate(root, report):
     NOTE_INDEX_FOR_PLANS.clear()
     NOTE_INDEX_FOR_PLANS.update(note_index)
     validate_brief(root, report)
+    validate_decision_options(root, report)
     validate_design_notes(root, docs_dir, report)
     validate_plan_notes(root, docs_dir, allowed_status, grandfathered, report)
 

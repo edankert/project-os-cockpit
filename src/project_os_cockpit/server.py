@@ -35,6 +35,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterable
 
+from . import decisions
 from . import (
     acceptance, agents, cockpit, criteria, note_writes, renderer, templates,
     terminal_proxy,
@@ -863,6 +864,19 @@ def _make_handler(
                 note_id = (params.get("id") or [""])[0].strip()
                 note_path = index.by_id(note_id) if note_id else None
                 record = index.get(note_path) if note_path else None
+                # A decision's options travel with its actions (FEAT-0097).
+                # The surface never parses markdown: a renderer reading the
+                # note itself would be a second parser to keep in step.
+                opts: dict[str, Any] = {"options": [], "proposed": None}
+                if record is not None and (record.note_type or "").lower() in (
+                    "adr", "decision",
+                ):
+                    try:
+                        opts = decisions.payload(
+                            note_path.read_text(encoding="utf-8"),
+                        )
+                    except OSError:
+                        pass
                 self._respond_json({
                     "id": note_id,
                     "type": (record.note_type if record else "") or "",
@@ -871,6 +885,7 @@ def _make_handler(
                         record.note_type if record else None,
                         record.status if record else None,
                     ),
+                    **opts,
                 })
                 return
 
@@ -1900,6 +1915,7 @@ def _make_handler(
                     actor=str(body.get("actor") or ""),
                     severity=str(body.get("severity") or ""),
                     note=str(body.get("note") or ""),
+                    option=str(body.get("option") or ""),
                     mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
                 )
             except note_writes.WriteError as exc:

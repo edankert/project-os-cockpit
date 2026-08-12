@@ -5071,6 +5071,10 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
    server reports nothing owed. */
 .note-actions {
   display: flex;
+  /* Wraps since FEAT-0095/0097: the verbs and the option chooser sit on one
+     line, and the reasoning box takes the next one at full width. `center`
+     would stretch the buttons to the textarea's height. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 8px 0 10px;
@@ -5311,9 +5315,12 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 .nav-needs-you .nav-group-header { display: none; }
 
 /* ---- The reasoning field on the actuator row (FEAT-0095) ---------------- */
+/* A sentence about a decision, not a fragment: a 220px single line asked for
+   the wrong thing (Edwin, 2026-08-12 — "way too small"). Full width of the
+   row, three lines tall, and resizable. */
 .note-action-note {
-  flex: 1 1 220px; min-width: 160px; max-width: 420px;
-  padding: 4px 8px; font: inherit; font-size: 12px;
+  flex: 1 1 100%; width: 100%; min-height: 62px; resize: vertical;
+  padding: 6px 9px; font: inherit; font-size: 12px; line-height: 1.45;
   background: var(--bg); color: var(--text);
   border: 1px solid var(--border); border-radius: 4px;
 }
@@ -5348,3 +5355,11 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 .callout[data-callout="quote"], .callout[data-callout="cite"],
 .callout[data-callout="abstract"], .callout[data-callout="summary"],
 .callout[data-callout="tldr"] { border-left-color: var(--status-archived); }
+
+/* ---- The option chooser (FEAT-0097) ------------------------------------ */
+.note-action-option {
+  flex: 0 1 auto; max-width: 340px;
+  padding: 4px 8px; font: inherit; font-size: 12px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+}

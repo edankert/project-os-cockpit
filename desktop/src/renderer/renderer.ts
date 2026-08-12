@@ -1524,6 +1524,12 @@ const METADATA_STRIP_KEY = 'cockpit:metadata-strip-open';
 // button with no change to this file — which is the ISS-0023 rule, and what
 // makes REQ-0026 enforceable rather than a convention.
 
+interface DecisionOption {
+  number: number;
+  label: string;
+  body: string;
+}
+
 interface NoteAction {
   verb: string;
   to: string;
@@ -1718,12 +1724,21 @@ async function mountActuatorRow(noteId: string): Promise<void> {
   if (!sidecarBaseUrl || !noteId) return;
 
   let actions: NoteAction[] = [];
+  let options: DecisionOption[] = [];
+  let proposed: number | null = null;
   try {
     const resp = await fetch(
       `${sidecarBaseUrl}/api/notes/actions?id=${encodeURIComponent(noteId)}`,
     );
     if (!resp.ok) return;
-    actions = ((await resp.json()) as { actions?: NoteAction[] }).actions ?? [];
+    const payload = (await resp.json()) as {
+      actions?: NoteAction[];
+      options?: DecisionOption[];
+      proposed?: number | null;
+    };
+    actions = payload.actions ?? [];
+    options = payload.options ?? [];
+    proposed = payload.proposed ?? null;
   } catch { return; }
 
   // Hidden entirely when nothing is owed — which is most notes, most of the
@@ -1759,10 +1774,37 @@ async function mountActuatorRow(noteId: string): Promise<void> {
       // Read at CLICK time: the row is built before the reader has typed
       // anything, so capturing the value in the closure would always send
       // the empty string.
-      const field = row.querySelector<HTMLInputElement>('.note-action-note');
-      void performNoteAction(noteId, action, btn, field?.value ?? '');
+      const field = row.querySelector<HTMLTextAreaElement>('.note-action-note');
+      const pick = row.querySelector<HTMLSelectElement>('.note-action-option');
+      void performNoteAction(noteId, action, btn, field?.value ?? '', pick?.value ?? '');
     });
     row.appendChild(btn);
+  }
+
+  // Which option, when the note offers any (FEAT-0097). A decision that
+  // listed three and recorded only "accepted" has lost the answer, and
+  // choosing a different one from the proposed was not expressible at all.
+  //
+  // The options arrive in the payload — the surface never parses markdown,
+  // or there would be a second parser to keep in step with `decisions.py`.
+  if (options.length > 0) {
+    const pick = document.createElement('select');
+    pick.className = 'note-action-option';
+    pick.title = 'Recorded in the note and in `decided_option`';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'no option recorded';
+    pick.appendChild(none);
+    for (const opt of options) {
+      const el = document.createElement('option');
+      el.value = String(opt.number);
+      el.textContent = `${opt.number}. ${opt.label}`;
+      // Default to what the NOTE proposes. Defaulting to anything else would
+      // be the surface quietly disagreeing with the document.
+      if (proposed != null && opt.number === proposed) el.selected = true;
+      pick.appendChild(el);
+    }
+    row.appendChild(pick);
   }
 
   // The reasoning, optional, read by whichever verb is clicked (FEAT-0095).
@@ -1772,9 +1814,12 @@ async function mountActuatorRow(noteId: string): Promise<void> {
   // would ask the reader to pick where to type before they have picked what
   // to do. Empty is the normal case and costs nothing — the file is
   // byte-identical to a transition made before this existed.
-  const note = document.createElement('input');
-  note.type = 'text';
+  //
+  // A textarea and not an input: this is a sentence about a decision, and a
+  // 220px box asks for a fragment. Edwin, 2026-08-12: *"way too small"*.
+  const note = document.createElement('textarea');
   note.className = 'note-action-note';
+  note.rows = 3;
   note.placeholder = 'why (optional)';
   note.title = 'Recorded on this note under “Decision record”, dated and attributed';
   row.appendChild(note);
@@ -1789,6 +1834,7 @@ async function mountActuatorRow(noteId: string): Promise<void> {
 
 async function performNoteAction(
   noteId: string, action: NoteAction, btn: HTMLButtonElement, note = '',
+  option = '',
 ): Promise<void> {
   // One confirmation for terminal moves, none for forward ones: reversing an
   // approve is itself a recorded action, so the cost of a slip is an extra
@@ -1811,6 +1857,7 @@ async function performNoteAction(
       body: JSON.stringify({
         id: noteId, to: action.to, actor: 'user:edwin',
         ...(note.trim() ? { note: note.trim() } : {}),
+        ...(option.trim() ? { option: option.trim() } : {}),
       }),
     });
     const data = (await resp.json()) as { ok?: boolean; error?: string };
