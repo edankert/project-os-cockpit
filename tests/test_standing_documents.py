@@ -217,9 +217,26 @@ def test_every_standing_document_still_parses_as_a_note() -> None:
     """
     from project_os_cockpit.index import Index
 
-    index = Index.build(REPO / "docs")
-    for res in standing.resolve(REPO / "docs", REPO):
+    import frontmatter as _fm
+
+    docs = REPO / "docs"
+    index = Index.build(docs)
+    for res in standing.resolve(docs, REPO):
         if res.path is None:
+            continue
+        try:
+            res.path.relative_to(docs)
+        except ValueError:
+            # A repo-root member (LLM_BRIEF, SECURITY). The docs index walks
+            # `docs/` only, so it can never appear there — but the property
+            # this test is about is that the file **parses as a note**, and
+            # that holds wherever it lives. Read it directly rather than
+            # excusing it.
+            post = _fm.loads(res.path.read_text(encoding="utf-8"))
+            assert post.metadata.get("type"), (
+                f"{res.document.name} has no type — its frontmatter does not parse"
+            )
+            assert post.metadata.get("id"), f"{res.document.name} has no id"
             continue
         record = index.get(res.path)
         assert record is not None, f"{res.document.name} is not in the index"

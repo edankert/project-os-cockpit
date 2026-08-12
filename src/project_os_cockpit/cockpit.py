@@ -2696,7 +2696,17 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
         name = res.document.name
         own = by_doc.get(name, [])
         worst = own[0] if own else None
-        rel = res.paths[0].relative_to(docs_root).as_posix() if res.paths else ""
+        # A member may live at the repo root rather than under `docs/`
+        # (LLM_BRIEF, SECURITY) — three of this project's most-read documents
+        # ship beside the docs tree, not inside it. `~root/<file>` is the route
+        # that already serves those (ISS-0037); `relative_to(docs_root)` raises
+        # on them, which is how the extension announced itself.
+        rel, root_rel = "", ""
+        if res.paths:
+            try:
+                rel = res.paths[0].relative_to(docs_root).as_posix()
+            except ValueError:
+                root_rel = res.paths[0].name
         item: dict[str, Any] = {
             "id": name,
             "title": res.document.question,
@@ -2708,7 +2718,8 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
             # row with no rel gets no `data-rel`, and the delegated click
             # handler keys entirely off `data-rel`: every one of these eight
             # was a dead click, on the view whose whole job is reaching them.
-            "url": f"/docs/{rel}" if rel else None,
+            "url": (f"/docs/{rel}" if rel
+                    else f"~root/{root_rel}" if root_rel else None),
             "subtitle": worst.detail if worst else "current",
             "type": "reference",
         }
@@ -2749,7 +2760,13 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
     for res in resolutions:
         for path in res.paths:
             try:
-                out.add(path.relative_to(docs_root).as_posix())
+                try:
+                    out.add(path.relative_to(docs_root).as_posix())
+                except ValueError:
+                    # A repo-root member: it has no docs-relative path, and the
+                    # Reference group it would collide with only ever lists
+                    # documents inside `docs/`.
+                    continue
             except ValueError:
                 continue
     return frozenset(out)

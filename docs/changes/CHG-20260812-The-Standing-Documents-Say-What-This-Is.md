@@ -58,3 +58,24 @@ Each now **constructs** what it asserts — a document stamped 400 days old, a s
 - tests: updated (three, moved onto constructed fixtures)
 - changes: new (this note)
 - snapshot: updated (metrics)
+
+## And the one that was not in the set — `LLM_BRIEF.md`
+
+Edwin: *"Did you update the LLM-brief as well?"* No. And the reason is the finding:
+
+**The first document an agent reads was outside every freshness signal.** It is not in the base manifest, and it carried **no `updated:` field at all** — so it could not go stale, because nothing dated it. Its only check, `BRIEF-PLACEHOLDER`, fires on template placeholders and then passes forever however wrong the file becomes.
+
+It had become wrong. It described `~review` — a surface [[FEAT-0090]] retired — as the answer to *"what needs my decision"*, and named `overview-harness.html` as the way to see the UI, which stubs the sidecar with captured fixtures and is useless for verifying anything.
+
+**Rewritten**, and the invariants now carry what the last three months decided: the obligation registry, the release gate, [[ADR-0010]]'s parity-behind-authentication, [[ADR-0022]]'s push rule, the two upstream repos, and three fast-failure checks that each cost a session to learn.
+
+### It joins the standing set, and so does `SECURITY.md`
+
+`SNAPSHOT.yaml`'s `docs_system.standing` block — [[FEAT-0091]]'s extension point, which nothing had used — now carries both. Ten documents, all reporting current.
+
+Two things had to change for that to work, and both were worth the finding:
+
+- **The resolver never looked outside `docs/`.** Root-level members now resolve, with the repo root as a **fallback rather than an additional match** — the first attempt made it an extra match and reported `README` ambiguous, because this repo legitimately has both `docs/README.md` and `README.md`.
+- **The standing group crashed on them.** It built every URL with `relative_to(docs_root)`, which raises on a root-level file; they carry the `~root/<file>` route that already existed for exactly these documents.
+
+**`CONTEXT.md` is deliberately left out**, with the reason in the snapshot: it belongs in this class by every other measure, but it is template-owned and ships with a lifecycle `status:` that [[FEAT-0091]]'s rule forbids a standing document. Adding it would report a finding this repo cannot fix, on every run, forever. Proposed upstream instead.

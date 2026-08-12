@@ -24,6 +24,24 @@ docs_system:
     - tools/instructions/LIFECYCLE.md
   references:
     - docs/PHASES.md
+  # This project's additions to the standing set (FEAT-0091's extension point).
+  #
+  # LLM_BRIEF.md is the FIRST thing an agent reads and it was outside every
+  # freshness signal: not in the base manifest, and carrying no `updated:` at
+  # all, so it could not go stale because nothing dated it. Its only check
+  # (BRIEF-PLACEHOLDER) fires on template placeholders and then passes forever
+  # however wrong the file becomes — which it had, describing `~review` (a
+  # retired surface) and a fixture harness as the way to see the UI.
+  standing:
+    - name: LLM_BRIEF
+      question: "what should an agent read first?"
+    - name: SECURITY
+      question: "what is the threat model, and what is the boundary?"
+  # CONTEXT.md is deliberately NOT here. It belongs in this class by every
+  # other measure — but it is template-owned (`tools/sync/MANIFEST.yaml`) and
+  # ships with a lifecycle `status:`, which FEAT-0091's rule says a standing
+  # document must not carry. Adding it would report a finding this repo cannot
+  # fix, every run, forever. Proposed upstream instead.
 
 counters:
   ADR: 25

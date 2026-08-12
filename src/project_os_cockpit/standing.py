@@ -157,12 +157,27 @@ def resolve(docs_root: Path, project_root: Path | None = None) -> list[Resolutio
 
     `README` is root-only, because eight container directories carry one and
     none of them is the project's.
+
+    **A member may live at the repo root instead**, and three of this project's
+    do: `LLM_BRIEF.md`, `SECURITY.md` and `CONTEXT.md` are read before anything
+    in `docs/` and ship beside it, not inside it. The docs root is still tried
+    first — an entry that exists in both is the rival case, reported as
+    ambiguous exactly as a deep copy would be.
     """
     root = project_root or docs_root.parent
     out: list[Resolution] = []
     for doc in manifest(root):
         canonical = docs_root / doc.filename
         matches: list[Path] = [canonical] if canonical.is_file() else []
+        # The repo root is a **fallback**, never an additional match: this
+        # repo has both `docs/README.md` (the docs signpost) and `README.md`
+        # (the project's), and treating the root as a rival reported the entry
+        # ambiguous when nothing was wrong. An entry the docs tree answers is
+        # answered; only an unanswered one looks outward.
+        if not matches:
+            at_root = root / doc.filename
+            if at_root.is_file():
+                matches.append(at_root)
         if doc.name.upper() not in _ROOT_ONLY:
             matches.extend(sorted(
                 p for p in docs_root.glob(f"**/{doc.filename}")
