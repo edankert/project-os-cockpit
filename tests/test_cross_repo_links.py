@@ -129,3 +129,37 @@ def test_the_jump_survives_the_workspace_switch() -> None:
     )
     # …and before the landing, or the landing wins the race.
     assert ready.index("pendingCrossRepoJump") < ready.index("renderInboxPanel")
+
+
+def test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it() -> None:
+    """Both are async and the landing has a head start, so "be quick" is not a
+    mechanism. Measured before the fix: the click switched to project-os-dev
+    and the centre pane read *"Features (by phase) — Nothing owed on
+    features"*, the arriving workspace's landing having overwritten the note.
+
+    This is the third time this shape has been got wrong here — ISS-0040 is
+    the README fetch beating a virtual landing, and then the guard naming one
+    mode while Review and Design inherited the bug — which is why the
+    suppression is asserted on every branch that can navigate rather than on
+    the one that happened to lose.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "suppressLandingOnce" in src and "consumeLandingSuppression" in src
+    nav = src.split("async function loadWsNav(", 1)[1].split("\nasync function", 1)[0]
+    assert "const skipLanding = consumeLandingSuppression();" in nav
+    # Every landing navigation inside loadWsNav is guarded.
+    for line in nav.splitlines():
+        if "void navigateTo(" in line and "~" in line:
+            assert "skipLanding" in line or "skipLanding" in nav[:nav.index(line)][-400:], line
+    # …and the README fallback, for a jump arriving into a mode with no
+    # landing at all.
+    ready = src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0]
+    assert "!pendingCrossRepoJump) void navigateTo('README.md')" in ready
+
+
+def test_the_suppression_cannot_outlive_its_jump() -> None:
+    """A flag that stayed armed would swallow the next legitimate landing —
+    you would click Issues and stay where you were, once, unreproducibly."""
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = re.search(r"function consumeLandingSuppression\(\).*?\n\}", src, re.S)
+    assert fn and "suppressLandingOnce = false;" in fn.group(0)

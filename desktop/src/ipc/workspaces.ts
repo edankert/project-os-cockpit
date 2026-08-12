@@ -207,6 +207,15 @@ async function loadStored(): Promise<Workspace[]> {
       const icon = await findWorkspaceIcon(ws.root);
       if (icon) ws.icon = icon;
     }
+    // `projectId` is RECOMPUTED, not backfilled-when-missing like the icon
+    // above (ADR-0024). It is derived from `SNAPSHOT.yaml` on disk, so a store
+    // written before the field existed has none — every entry on this machine
+    // was in that state — and one written before someone edited `project.id`
+    // has a stale one. Trusting the store would make a cross-repo link resolve
+    // against yesterday's identity, which is the staleness class ISS-0140 is
+    // about, in the one place where the symptom is a link that silently goes
+    // to the wrong project.
+    ws.projectId = await readProjectId(ws.root);
     alive.push(ws);
   }
   return alive;

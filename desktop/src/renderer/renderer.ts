@@ -816,6 +816,27 @@ function withAlpha(color: string, alpha: number): string {
 
 let pendingCrossRepoJump: { project: string; noteId: string } | null = null;
 
+// A cross-repo jump has to beat the arriving workspace's own landing, and it
+// cannot win by being fast: both are async, and the landing has a head start.
+// So it does not race — it suppresses, once.
+//
+// This is the third time this exact shape has been got wrong here. ISS-0040:
+// the README fetch raced a virtual landing and won, so you selected Design,
+// restarted, and got README with the Design button lit. Then the guard named
+// only `overview` and Review and Design inherited it. Now a jump arrives into
+// a workspace whose landing overwrites the note that was clicked — measured
+// live: the workspace switched to project-os-dev and the centre pane read
+// "Features (by phase) — Nothing owed on features."
+let suppressLandingOnce = false;
+
+/** True once per arm, so a suppression can never outlive the jump that set it
+ *  and silently swallow the next legitimate landing. */
+function consumeLandingSuppression(): boolean {
+  if (!suppressLandingOnce) return false;
+  suppressLandingOnce = false;
+  return true;
+}
+
 async function jumpToCrossRepoNote(project: string, noteId: string): Promise<void> {
   const target = workspaces.find((w) => w.projectId === project);
   if (!target) {
@@ -831,6 +852,7 @@ async function jumpToCrossRepoNote(project: string, noteId: string): Promise<voi
     return;
   }
   pendingCrossRepoJump = { project, noteId };
+  suppressLandingOnce = true;
   await openWorkspace(target.id);
 }
 
@@ -957,7 +979,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       // still lit. The guard named only `overview` because it was written
       // when overview was the only such mode; Review and Design inherited the
       // bug on the days they were added (ISS-0040).
-      if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)) void navigateTo('README.md');
+      if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode) && !pendingCrossRepoJump) void navigateTo('README.md');
       // A cross-repo jump parked here while the workspace switched
       // (FEAT-0093). Consumed before the default landing so the reader ends
       // up at the note they clicked rather than on this workspace's overview.
@@ -8477,18 +8499,21 @@ document.addEventListener('keydown', (e) => {
 
 async function loadWsNav(): Promise<void> {
   if (!sidecarBaseUrl) return;
+  // Checked once at the top: exactly one landing branch runs per call, and
+  // reading it per-branch would clear it in whichever happened to be first.
+  const skipLanding = consumeLandingSuppression();
   if (currentNavMode === 'overview') {
     // Overview is a virtual page (FEAT-0023 / TASK-0130): route through
     // navigateTo so it lands in history and back/forward can reach it.
     const target = overviewScope ? `~overview/${overviewScope}` : '~overview';
-    void navigateTo(target, { replace: currentRel === target });
+    if (!skipLanding) void navigateTo(target, { replace: currentRel === target });
     return;
   }
   if (currentNavMode === 'review') {
     // Same virtual-page treatment for the desk (FEAT-0041 / TASK-0206).
     const target = currentRel && currentRel.startsWith('~review')
       ? currentRel : '~review';
-    void navigateTo(target, { replace: currentRel === target });
+    if (!skipLanding) void navigateTo(target, { replace: currentRel === target });
     return;
   }
   // FEAT-0092: land the three views that had no page, the same way Intent
@@ -8504,7 +8529,7 @@ async function loadWsNav(): Promise<void> {
     // Overview left the reader on the overview with the Issues nav beside it.
     // Caught in the harness, not by a test, which is the argument for driving
     // a surface before calling it done.
-    if (currentRel !== target) {
+    if (currentRel !== target && !skipLanding) {
       void navigateTo(target, { replace: false });
     }
   }
@@ -8517,7 +8542,7 @@ async function loadWsNav(): Promise<void> {
     // `startsWith('~design')` and not an equality check: switching back
     // to Design while a specific artifact is open must keep that artifact
     // open. Reselecting a mode is not a request to lose your place.
-    if (!currentRel || !currentRel.startsWith('~design')) {
+    if ((!currentRel || !currentRel.startsWith('~design')) && !skipLanding) {
       void navigateTo('~design', { replace: false });
     }
   }

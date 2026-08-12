@@ -42,6 +42,15 @@ tags: [change]
 - changes: new (this note)
 - snapshot: updated (counters, metrics)
 
+## Driven in the live app, and it took two more fixes
+
+Walking it in the running shell after a restart, both found by clicking rather than by asserting:
+
+- **The workspaces carried no project id.** They are persisted in `workspaces.json`, and `loadStored` returns stored entries as-is — so every entry on this machine predated the field. It is now **recomputed** on load rather than backfilled-when-missing like the icon beside it: it is derived from `SNAPSHOT.yaml`, so a stale one would make a link resolve against yesterday's identity, which is [[ISS-0140]]'s staleness class in the one place where the symptom is a link that goes silently to the wrong project.
+- **The jump lost the race to the arriving workspace's landing.** The click switched to `project-os-dev` and the centre pane read *"Features (by phase) — Nothing owed on features"*. Both navigations are async and the landing has a head start, so being quick is not a mechanism: the jump now **suppresses** the landing once, on every branch that can navigate. This is the third time this shape has been got wrong here — [[ISS-0040]] was the README fetch beating a virtual landing, and then the guard named one mode while Review and Design inherited it.
+
+**End state, driven:** on [[ISS-0123]] in this repo, clicking `project-os-dev#ADR-0011` switches workspace and opens `decisions/ADR-0011-No-Permanent-Warning-Tier.md`, `accepted`, in the centre pane.
+
 ## Follow-ups
 
 - [ ] Upstream: the notation is a fleet convention, so `OBSIDIAN.md` and `TRACEABILITY.md` should carry it and the decision belongs in `project-os-dev` beside [[ADR-0019]].
