@@ -244,11 +244,17 @@ def test_both_option_forms_in_this_corpus_parse() -> None:
         assert payload["proposed"] in numbers, (adr, payload["proposed"])
 
 
-def test_the_proposed_option_is_read_from_the_decision_not_the_list() -> None:
+def test_the_proposed_option_is_read_from_the_decision_not_the_list(corpus: Index) -> None:
     """Every option in the list mentions itself by number, so scanning the
-    whole note returns option 1 every time."""
+    whole note returns option 1 every time.
+
+    Reads the fixture, not the corpus: this named `ADR-0010` and expected 3,
+    and on 2026-08-12 that note was rewritten to decide option 4 — the same
+    lesson the other five learned an hour earlier. A test about a parser
+    should not fail because a decision was taken.
+    """
     from project_os_cockpit import decisions
-    text = (REPO_DOCS / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    text = (corpus.docs_root / "decisions" / "ADR-9001-Probe.md").read_text()
     assert decisions.proposed_option(text) == 3
 
 

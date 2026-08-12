@@ -34,3 +34,13 @@ review_verdict: "plan-accepted"
 - [x] A write touches only its allow-listed fields or its one located line; the rest of the file is byte-identical — evidence: test_a_legal_transition_writes_only_status_and_updated and test_a_tick_preserves_indentation_and_touches_one_line — body compared byte-for-byte, one line changed (user:edwin, 2026-08-10)
 - [x] Every applied write fires the SSE event that re-renders its surfaces — no optimistic UI, the file is the truth — evidence: every new verb writes through the filesystem, so the docs watcher emits file-changed exactly as an editor save does; no endpoint mutates a cache (user:edwin, 2026-08-10)
 - [x] SNAPSHOT.yaml is never written by the cockpit — evidence: note_writes.py contains no reference to SNAPSHOT; ADR-0009 puts propagation in sync-snapshot.py at pre-commit (user:edwin, 2026-08-10)
+
+## Unweakened by ADR-0010 — 2026-08-12
+
+[[ADR-0010]] option 4 decided that parity across surfaces is the goal and that **authentication is its precondition** ([[REQ-0034]]).
+
+**Nothing in that decision relaxes this requirement.** Until REQ-0034 is implemented and its acceptance is met, every clause here holds exactly as written: no write endpoint is reachable from a non-loopback peer, and the `0.0.0.0` render surface stays read-only.
+
+Recorded here because this is the note a person will open when they wonder whether the rule still applies — and an ADR that says "eventually, differently" is the easiest thing in the world to read as "not any more".
+
+When REQ-0034 lands, the loopback clause is **replaced** by proof-of-identity rather than deleted. The requirement that a write be authorised does not change; only what counts as authorisation does.

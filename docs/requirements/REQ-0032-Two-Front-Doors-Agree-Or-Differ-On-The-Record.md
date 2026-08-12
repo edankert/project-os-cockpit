@@ -30,3 +30,14 @@ The rule [[ISS-0023]] taught, applied one level up. There, a status vocabulary r
 The requirement is deliberately not "the two front doors show the same views". [[ADR-0010]] decides that they should not — the reading surface must not carry actuators. What it demands is that the *difference be derivable*: a reader of either renderer can see which views exist, which are missing here, and why, without consulting the other file or anyone's memory.
 
 The fourth criterion is the one that matters for safety and is written to be *tested* rather than reasoned about. "The browser cannot write" is true today because `note_writes`' callers check the peer address; it must stay true when a view is added by someone who has not read [[RISK-0001]].
+
+## Under ADR-0010 option 4 — 2026-08-12
+
+This requirement was written while the answer might have been *"they differ, permanently, and the difference is a property of the surface"* ([[ADR-0010]] option 3).
+
+**Option 4 changes what a difference means.** The two front doors are on their way to agreeing; until [[REQ-0034]] lands they differ on exactly one axis, and it is a stated stage rather than a principle:
+
+- A **reading** view present in one and absent from the other is still a defect, and this requirement's rule applies to it unchanged.
+- An **actuating** view absent from mode 1 is neither a defect nor a permanent property. It is waiting on REQ-0034, and the record must say so — *"absent"* and *"absent for now"* are different claims and the classification carries which.
+
+The requirement therefore gains a clause rather than losing one: a difference is on the record **and names what would end it**, if anything would.

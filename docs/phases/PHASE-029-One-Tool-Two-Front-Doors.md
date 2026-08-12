@@ -14,6 +14,7 @@ features:
   - "[[FEAT-0084-One-View-Vocabulary]]"
 requirements:
   - "[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"
+  - "[[REQ-0034]]"
 issues: []
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
 related: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[REQ-0013-Cockpit-Three-Pane-Layout]]", "[[RISK-0001-Render-Server-Exposure]]"]
@@ -56,3 +57,16 @@ What the phase asks for is weaker and more useful: **the difference is decided r
 ## Deferred deliberately
 
 Opened `planned`, not `active`. Edwin's direction on 2026-08-09 was to align the browser view **at a later stage**; this phase exists so the finding is not lost and the work has a home, not because it is next.
+
+## Unblocked, and reshaped — 2026-08-12
+
+The gate is decided: [[ADR-0010]] took **option 4** — parity across surfaces, gated on an authenticated write path.
+
+**What that changes about this phase.** It was waiting on a decision that could have gone three ways, two of which would have shrunk it. It now has a known shape and one precondition it did not have before:
+
+- **[[REQ-0034]] joins the phase** and gates every actuating surface in it. A write from a non-loopback peer must prove who is asking; until that exists, mode 1 gains reading views only.
+- **The reading half can proceed immediately** — the overview and the design register, read-only, wait on nothing.
+- **[[RISK-0005]] re-opens before REQ-0034 is implemented**, and the phase does not close over a risk left closed on a mitigation it replaced.
+- **The view set is classified** as reading or actuating, and an actuating view absent from mode 1 now says *what it waits on* — "absent" and "absent for now" stopped meaning the same thing.
+
+**The trap this avoids** is the one the decision was reconsidered to avoid: starting the parity work, meeting the loopback check halfway through, and deleting it because it is in the way. The precondition is a phase member now, so it is scheduled rather than discovered.

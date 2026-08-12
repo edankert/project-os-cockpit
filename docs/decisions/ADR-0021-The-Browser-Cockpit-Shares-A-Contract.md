@@ -3,13 +3,15 @@ type: "[[decision]]"
 id: ADR-0021
 aliases: ["ADR-0021"]
 title: "The browser cockpit stays, and stops being hand-written — the two front doors share a generated contract instead of two maintained twins"
-status: proposed
+status: "accepted"
 date: 2026-08-11
 owner: user:edwin
 supersedes: []
 superseded_by: ""
 related: ["[[TASK-0321]]", "[[FEAT-0073-One-Voice]]", "[[FEAT-0084]]", "[[ADR-0010]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[PHASE-026-The-Returning-Human]]"]
 tags: [decision]
+updated: "2026-08-12"
+decided_option: "4"
 ---
 
 # The browser cockpit shares a contract

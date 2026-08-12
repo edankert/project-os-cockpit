@@ -3,13 +3,15 @@ type: "[[decision]]"
 id: ADR-0022
 aliases: ["ADR-0022"]
 title: "Whether a delegate may push — the status quo holds until this is accepted, and the deploy refusal is untouchable in every option"
-status: proposed
+status: "accepted"
 date: 2026-08-11
 owner: user:edwin
 supersedes: []
 superseded_by: ""
 related: ["[[TASK-0328]]", "[[FEAT-0075-The-Delegation-Policy]]", "[[ADR-0009-The-Principal-Is-A-Role]]", "[[FEAT-0055]]", "[[RISK-0006]]", "[[PHASE-027-The-Standing-Worker]]"]
 tags: [decision]
+updated: "2026-08-12"
+decided_option: "3"
 ---
 
 # Whether a delegate may push
@@ -57,3 +59,8 @@ Option 2 is the one to revisit first, and the condition for revisiting it is sta
 - The worker never pushes. `FEAT-0055`'s line stands unchanged, and the delegation policy's *"what is never delegated"* section names pushing among the four.
 - **The deploy refusal is untouchable in every option**, including the ones this rejects. No delegation may reach it, and no policy line may name it — which is worth stating even under option 1, so a later widening cannot quietly acquire it.
 - Revisiting is scheduled against evidence rather than a date: the supervised week's ledger.
+
+## Decision record
+
+> [!note] Accept — option 3: Full delegation, deploy-refusal untouchable — 2026-08-12 (user:edwin)
+> The deploy and running CI/CD regressions issues are however real and should be considered.  However if not pushed automatically then this should clearly be identified in the tool and should be automated for the human to do this by possibly creating some kind of button.

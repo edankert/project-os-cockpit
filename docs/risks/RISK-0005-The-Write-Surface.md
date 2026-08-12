@@ -44,3 +44,15 @@ The condition this note set for itself is met: *"closes when the hardening suite
 Failure shape 2 (scope creep by precedent) is answered by [[REQ-0026]]'s ownership table plus the `CREATABLE_TYPES` allow-list, which is asserted as an **exact set** so each widening is a visible decision. It widened once today, from `{issue}` to `{issue, release}`, with the review recorded on the constant ([[TASK-0316]]).
 
 **Trigger review stands.** Any new mutation endpoint, any change to the bind addresses, or any proposal to let mode 1 write reopens this. The desktop sidecar currently binds `127.0.0.1` only; the render server's `0.0.0.0` remains read-only by peer check, not by hope.
+
+## Re-opens by decision — 2026-08-12
+
+[[ADR-0010]] option 4 makes parity the goal and an authenticated write path its precondition ([[REQ-0034]]).
+
+**This risk closed on the strength of the mitigation that decision plans to replace.** Its own trigger already anticipated the moment — *"any proposal to let mode 1 (the LAN-served cockpit) write"* — and that proposal has now been accepted, in principle, with the guard held until the replacement exists.
+
+So the position is stated rather than left to be noticed:
+
+- **It stays `closed` today**, honestly: loopback-only is enforced, enumerated by walking the route table, and driven over a real LAN interface at ten of ten.
+- **It re-opens before [[REQ-0034]] is implemented**, not after. A risk whose mitigation is being swapped is live again from the moment the swap starts, and re-closing it must rest on the new evidence rather than inheriting the old closure.
+- The re-close condition is [[REQ-0034]]'s acceptance, in full — including that the enumerating guard still fails a forgetful endpoint **by existing**, which is the property that made the first closure worth anything.
