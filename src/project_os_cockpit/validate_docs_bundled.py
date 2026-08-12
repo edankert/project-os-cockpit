@@ -194,9 +194,13 @@ PLAN_FOLLOWS_FEATURE = {
 #: `(("tests", {"passing"}), ("changes", {"merged"}))` until ISS-0014 -- the
 #: last inline status collection in the file, and the one that falsified
 #: ISS-0013's "no inline status literal remains" claim.
+#: **`changes` left this table on 2026-08-12 (upstream ADR-0019).** Synced
+#: from the canonical script rather than edited here: `tools/scripts/` is
+#: template-owned, and the decision it implements lives in project-os-dev.
+#: The registry stopped counting the obligation a day earlier (ADR-0023),
+#: and the surface and the validator disagreed until this landed.
 REVIEW_SETTLED_STATUSES = {
     "tests": ("passing",),
-    "changes": ("merged",),
 }
 
 #: Test statuses that only the runner may write (TEST-FIELDS, ADR-0010).

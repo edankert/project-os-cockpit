@@ -77,3 +77,28 @@ It is cited in **41 files here and 6 upstream**, and the upstream six are all *c
 ### And it now has a second obligation attached
 
 [[ADR-0023]] retires the change-note review this decision's clause is what enforces. Because `tools/scripts/` is template-owned, the validator keeps warning — and will error — until the change lands upstream. **Two things are owed there, not one:** write `ADR-0011` (or retire the citation), and carry `ADR-0023` into `QUALITY.md` and the `[REVIEW]` gate. Neither is this repo's to do downstream.
+
+
+## Corrected — 2026-08-12: they exist, in a third repo
+
+**The notes are not missing. `ADR-0011` and `ADR-0013` are in `~/Dev/repos/project-os-dev/docs/decisions/`, along with sixteen others** — `ADR-0001` through `ADR-0018`, `counters.ADR: 18`. Found by looking there before writing a replacement, which is the only reason a duplicate was not created.
+
+The topology nobody had written down:
+
+| repo | what it holds | ADRs |
+|---|---|---|
+| `project-os-dev` | the design record for the system — *"features, requirements, decisions and tasks for evolving the documentation system"* | **all 18** |
+| `project-os` | the distributable template every repo syncs `tools/` from | none (`counters.ADR: 0`) |
+| this repo and nine others | downstream projects | their own, locally numbered |
+
+**So this issue's subject changes rather than closes.** The defect was never *"the decision was not written"* — `ADR-0011` is a careful note with a measured context table, four rejected alternatives and six consequences. The defect is that **41 files here and 6 in the template cite an id with no indication of which repo holds it**, while the two repos a reader would look in — this one and the template — contain neither. Every citation is a dead reference for anyone who does not already know `project-os-dev` exists.
+
+That is a smaller defect and a more annoying one, and it cost this session an hour of preparing to write a note that already existed.
+
+### What it should be
+
+A citation to an upstream decision should say so: `ADR-0011 (project-os-dev)`, or a line in `CONTEXT.md` naming where the upstream namespace lives. The first is 47 edits across two repos; the second is one sentence and covers every future citation, which makes it the obvious first move.
+
+### And ADR-0011 had already asked the question this repo answered
+
+Its consequences include: *"REVIEW is the hardest case … it is either wired into close-out so it does run, or its scope narrows."* [[ADR-0023]] answered that here on 2026-08-11 without knowing the question had been asked upstream a year earlier; [[ADR-0019]] in `project-os-dev` now answers it there, and the template's `QUALITY.md` and `REVIEW_SETTLED_STATUSES` carry it. **The downstream decision was right and was made blind** — which is exactly what an unreachable citation costs.

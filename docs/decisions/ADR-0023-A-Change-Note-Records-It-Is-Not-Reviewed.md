@@ -23,7 +23,9 @@ The obligation comes from `tools/instructions/QUALITY.md` line 48: *"Any change 
 
 ### The rule's source cannot be read
 
-`ADR-0011` does not exist. Not in this repo, and not upstream: `~/Dev/repos/project-os/docs/decisions/` contains a single `README.md` and `counters.ADR` reads `0` — **the template has never written an ADR at all**. Forty-one files here cite it, six upstream do, and the upstream six are all code, citing it *by clause*:
+`ADR-0011` could not be read from either repo a reader would look in. Not here, and not in the template: `~/Dev/repos/project-os/docs/decisions/` contains a single `README.md` and `counters.ADR` reads `0`.
+
+> **Corrected 2026-08-12: it exists.** `ADR-0011-No-Permanent-Warning-Tier` is in `project-os-dev`, with sixteen siblings — the repo holding the design record for the system, which no citation names and which neither this repo nor the template contains. **The decision below was taken without it and stands**; ADR-0011 had itself left this very scope question open (*"it is either wired into close-out so it does run, or its scope narrows"*), so the two agree. What follows is kept as written, because what an unreachable citation costs is the point. [[ISS-0123]] carries the correction; [[ADR-0019]] is the upstream twin, and the template's `QUALITY.md` and `REVIEW_SETTLED_STATUSES` now carry it. Forty-one files here cite it, six upstream do, and the upstream six are all code, citing it *by clause*:
 
 > `ADR-0011 clause 2: a warning is legal ONLY as a dated migration state.`
 > `ADR-0011 clause 3 says a check is promoted to error only once the fleet carries…`
@@ -58,7 +60,7 @@ Independent review is required for, and only for:
 ## Consequences
 
 - `obligations.py` drops `change` from the owed kinds. The overview badge goes **87 → 0**; the registry total falls by 87 and its parts still sum to it, which `test_badge_total_equals_its_parts` already asserts.
-- **The validator is not changed here, and that is a limitation rather than an oversight.** `tools/scripts/` is template-owned in `tools/sync/MANIFEST.yaml`, so a local edit to `validate-docs.py` would be reverted by the next sync and reported as divergence before then. The `[REVIEW]` gate therefore keeps warning on `CHG-*` in every repo, and **still promotes to an error on 2026-10-23** — a fleet-wide CI break for a rule this project no longer holds. Landing it upstream is the work; [[ISS-0123]] carries it.
+- **The validator was not changed here on the day, and that was a limitation rather than an oversight.** `tools/scripts/` is template-owned, so a local edit would have been reverted by the next sync. **Landed upstream on 2026-08-12** instead: [[ADR-0019]] in `project-os-dev`, and `QUALITY.md` + `REVIEW_SETTLED_STATUSES` in the template, from where this repo took it. The 87 `[REVIEW]` warnings are 0 and the 2026-10-23 promotion now lands on tests alone. The disagreement between the surface and the validator lasted one day and is recorded rather than tidied away.
 - What changes today is what this repo owns: the registry. `change` leaves the owed kinds, so the surface stops asking for something the decision says is not owed, while the validator keeps saying it until upstream catches up. The two disagreeing is uncomfortable and is the honest state — recorded rather than hidden by editing a file that would be overwritten.
 - `QUALITY.md` is **template-owned**, so this repo's copy is not the place to edit the sentence. The rule lives here until it is proposed and accepted upstream — the same shape as the close-out-commit and file-what-you-cannot-fix rules already recorded in `CLAUDE.md`.
 - Reviewing a change note remains *possible* and is never wrong; it stops being *owed*.
