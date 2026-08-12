@@ -39,7 +39,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 97
-  ISS: 152
+  ISS: 153
   PHASE: 32
   REQ: 33
   RISK: 6
@@ -2417,7 +2417,7 @@ items:
       path: "docs/decisions/ADR-0020-Obligations-Live-With-Their-Subject.md"
     ADR-0010:
       title: "What the browser cockpit is for — the read-only front door is the reading surface, and its view set follows from that rather than from history"
-      status: proposed
+      status: accepted
       path: "docs/decisions/ADR-0010-What-The-Browser-Cockpit-Is-For.md"
     ADR-0001:
       title: "Custom Python doc-server vs Quartz/mkdocs"

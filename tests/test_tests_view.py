@@ -60,6 +60,35 @@ def _items(groups: list) -> list[dict]:
 # ---- the register --------------------------------------------------------
 
 
+#: A corpus with a real stub and a real proposed ADR, built rather than
+#: borrowed. Five tests here asserted the live corpus's *state* — "ARCHITECTURE
+#: holds its template", "some ADR is proposed" — and all five broke on
+#: 2026-08-12 for reasons that were not defects: Edwin decided three ADRs in
+#: the app, and ISS-0153 fixed a false stub. **A vacuity guard against a live
+#: corpus is a test that expires when the project makes progress.**
+@pytest.fixture()
+def owed_corpus(tmp_path: Path) -> Index:
+    import shutil
+    docs = tmp_path / "docs"
+    shutil.copytree(REPO_DOCS, docs)
+    (tmp_path / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+    # A document that really does hold its template.
+    (docs / "GLOSSARY.md").write_text(
+        '---\ntype: "[[reference]]"\nid: GLOSSARY\nupdated: 2026-08-12\n---\n\n'
+        "# Glossary\n\n- <Term>: <what it means>\n- <Another>: <what it means>\n",
+        encoding="utf-8",
+    )
+    # …and a decision still awaiting one.
+    (docs / "decisions" / "ADR-9002-Probe.md").write_text(
+        '---\ntype: "[[adr]]"\nid: ADR-9002\naliases: ["ADR-9002"]\n'
+        'title: "A probe decision awaiting a human"\nstatus: "proposed"\n'
+        "owner: user:edwin\ncreated: 2026-08-12\nupdated: 2026-08-12\n---\n\n"
+        "# A probe decision\n\nIt awaits a person.\n",
+        encoding="utf-8",
+    )
+    return Index.build(docs)
+
+
 def test_the_view_holds_the_whole_test_corpus(repo_index: Index) -> None:
     """Set equality against the corpus, not non-emptiness.
 
@@ -884,7 +913,7 @@ def test_nothing_above_the_first_tier_heading_is_a_test(tmp_path: Path) -> None:
 # ---- TASK-0375: decide and accept on the constraints view ----------------
 
 
-def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
+def test_a_proposed_adr_is_this_views_obligation(owed_corpus: Index) -> None:
     """From the registry, and marked on the row rather than counted twice.
 
     Measured 2026-08-10: the intent view owes exactly **one** thing, and it is
@@ -893,7 +922,7 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     wrong and impossible to notice, so the mark and the badge are asserted to
     be the same predicate.
     """
-    groups = nav_payload(repo_index, mode="design")["groups"]
+    groups = nav_payload(owed_corpus, mode="design")["groups"]
     # `needs-you` is a SHORTCUT list, not a group of this view's own
     # making (ADR-0025): its rows keep their structural place too, and
     # counting or enumerating them here would count the same obligation
@@ -905,7 +934,7 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     # The whole view's badge, standing documents included (TASK-0382) — the
     # assertion is that the marks and the count are one predicate, so it must
     # be taken over the whole view rather than one group of it.
-    assert obligations.counts(repo_index)["intent"] == len(owed)
+    assert obligations.counts(owed_corpus)["intent"] == len(owed)
     assert all(i["owed_verb"] for i in owed)
     note_owed = {
         i["id"] for g in groups
@@ -919,13 +948,13 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     # owed here and nothing settled is.
     proposed_adrs = {
         (r.note_id or "")
-        for r in repo_index.notes_by_type("adr")
+        for r in owed_corpus.notes_by_type("adr")
         if str(r.status or "").strip().lower() == "proposed"
         and not r.rel_path.startswith("__templates__/")
     }
     proposed_adrs |= {
         (r.note_id or "")
-        for r in repo_index.notes_by_type("decision")
+        for r in owed_corpus.notes_by_type("decision")
         if str(r.status or "").strip().lower() == "proposed"
         and not r.rel_path.startswith("__templates__/")
     }
@@ -934,7 +963,7 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
     # generalisation and caught when DES-0009 was briefly offered for review.
     proposed_adrs |= {
         (r.note_id or "")
-        for r in repo_index.notes_by_type("design")
+        for r in owed_corpus.notes_by_type("design")
         if str(r.status or "").strip().lower() == "proposed"
         and not r.rel_path.startswith("__templates__/")
     }
@@ -943,7 +972,10 @@ def test_a_proposed_adr_is_this_views_obligation(repo_index: Index) -> None:
         f"owed set {sorted(note_owed)} does not match the proposed ADRs "
         f"{sorted(proposed_adrs)}"
     )
-    assert "ADR-0010" in note_owed, "the long-standing proposed ADR stopped being owed"
+    # The fixture's own proposed ADR, not a corpus id (ISS-0153's lesson):
+    # `ADR-0010` was named here and stopped being owed on 2026-08-12 when Edwin
+    # accepted it — a project making progress must not fail its own tests.
+    assert "ADR-9002" in note_owed, "the fixture's proposed ADR is not owed"
 
 
 def test_a_design_verdict_cannot_go_through_the_transition_path(
@@ -1057,7 +1089,7 @@ def test_the_intent_view_opens_on_the_standing_set(repo_index: Index) -> None:
     assert all(i["subtitle"] for g in groups if g["key"] == "standing" for i in g["items"])
 
 
-def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
+def test_a_stub_is_owed_and_staleness_only_marks(owed_corpus: Index) -> None:
     """The line, and it is a decision rather than an oversight.
 
     Missing / ambiguous / stub are binary and one act clears each: write the
@@ -1077,11 +1109,17 @@ def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
     row reports a staleness at all, and that reporting it does not make it owed.
     """
     rows = {i["id"]: i
-            for g in nav_payload(repo_index, mode="design")["groups"]
+            for g in nav_payload(owed_corpus, mode="design")["groups"]
             if g["key"] == "standing"
             for i in g["items"]}
-    assert rows["ARCHITECTURE"].get("owed") is True
-    assert rows["ARCHITECTURE"]["owed_verb"] == "Confirm"
+    # `GLOSSARY` is the fixture's genuine stub. `ARCHITECTURE` was named here
+    # and stopped being one when ISS-0153 taught the check that inline code is
+    # not a template — which is the check getting *better*, not the row.
+    assert rows["GLOSSARY"].get("owed") is True
+    assert rows["GLOSSARY"]["owed_verb"] == "Write", (
+        "a stub is written, not confirmed — you cannot confirm a document "
+        "nobody has written (ISS-0153)"
+    )
     # Stale marks — a status the navigator can sort and fold on — but does not
     # ask, so it carries no `owed`.
     assert rows["DESIGN"]["status"] == "review"
@@ -1091,7 +1129,7 @@ def test_a_stub_is_owed_and_staleness_only_marks(repo_index: Index) -> None:
     )
 
 
-def test_the_standing_obligation_reaches_the_intent_badge(repo_index: Index) -> None:
+def test_the_standing_obligation_reaches_the_intent_badge(owed_corpus: Index) -> None:
     """A panel that did not reach the badge would be decoration.
 
     The subject here is a **manifest entry**, not a note type — which is why
@@ -1105,16 +1143,16 @@ def test_the_standing_obligation_reaches_the_intent_badge(repo_index: Index) -> 
     # that decision introduces, and the badge is exactly the surface it would
     # have broken.
     marked = len({
-        i["id"] for g in nav_payload(repo_index, mode="design")["groups"]
+        i["id"] for g in nav_payload(owed_corpus, mode="design")["groups"]
         for i in g["items"] if i.get("owed")
     })
-    assert obligations.counts(repo_index)["intent"] == marked
-    assert obligations.standing_owed(REPO_DOCS) > 0, (
+    assert obligations.counts(owed_corpus)["intent"] == marked
+    assert obligations.standing_owed(owed_corpus.docs_root) > 0, (
         "this repo no longer exercises the standing obligation — pick another "
         "assertion or the guard is vacuous"
     )
     # And the total the badges claim is still the sum of the badges.
-    badges = obligations.badges_payload(repo_index)
+    badges = obligations.badges_payload(owed_corpus)
     assert badges["total"] == sum(badges["views"].values())
 
 
@@ -1146,7 +1184,7 @@ def test_the_standing_set_is_not_a_second_obligation_list(repo_index: Index) -> 
 # ---- TASK-0313 groundwork: the digest reads the registry ------------------
 
 
-def test_the_digest_and_the_badges_count_the_same_things(repo_index: Index) -> None:
+def test_the_digest_and_the_badges_count_the_same_things(owed_corpus: Index) -> None:
     """`DIGEST_NEEDS_YOU` was a second list of what needs a person — six types
     and their states, written before the registry existed. TASK-0313's own note
     said what to do about it: *"it reads from FEAT-0089's registry once that
@@ -1162,10 +1200,10 @@ def test_the_digest_and_the_badges_count_the_same_things(repo_index: Index) -> N
     entry rather than a note, and the digest is a note digest.
     """
     digest = cockpit.digest_payload(
-        REPO_DOCS.parent, repo_index, "1970-01-01T00:00:00Z",
+        owed_corpus.docs_root.parent, owed_corpus, "1970-01-01T00:00:00Z",
     )
-    badges = obligations.badges_payload(repo_index)
-    standing = obligations.standing_owed(REPO_DOCS)
+    badges = obligations.badges_payload(owed_corpus)
+    standing = obligations.standing_owed(owed_corpus.docs_root)
     assert digest["needs_you_count"] == badges["total"] - standing
     assert standing > 0, "the gap this asserts is no longer exercised"
     # And every row says what is owed of it, from the registry's verb.
@@ -1296,7 +1334,7 @@ def test_the_digest_is_pulled_and_rate_limited() -> None:
 # ---- FEAT-0090: the desk retires -----------------------------------------
 
 
-def test_every_row_of_the_rehoming_table_is_reachable(repo_index: Index) -> None:
+def test_every_row_of_the_rehoming_table_is_reachable(owed_corpus: Index) -> None:
     """ADR-0020's table, walked against the live corpus rather than inspected.
 
     Nine rows. Two are empty in this corpus today (no `proposed` design, no
@@ -1306,7 +1344,7 @@ def test_every_row_of_the_rehoming_table_is_reachable(repo_index: Index) -> None
     """
     def owed_ids(mode: str) -> set[str]:
         out: set[str] = set()
-        for group in nav_payload(repo_index, mode=mode)["groups"]:
+        for group in nav_payload(owed_corpus, mode=mode)["groups"]:
             for item in group["items"]:
                 if item.get("owed"):
                     out.add(str(item.get("id")))
@@ -1316,7 +1354,7 @@ def test_every_row_of_the_rehoming_table_is_reachable(repo_index: Index) -> None
         return out
 
     # 1. Decisions — ADR `proposed` → the constraints view.
-    assert "ADR-0010" in owed_ids("design")
+    assert "ADR-9002" in owed_ids("design")
     # 2. Proposals — requirement `draft` → Features.
     assert {i for i in owed_ids("features") if i.startswith("REQ-")}
     # 3/4. design `proposed` and manual `ready` are empty here; their views
@@ -1326,14 +1364,14 @@ def test_every_row_of_the_rehoming_table_is_reachable(repo_index: Index) -> None
     assert "test" in views[obligations.VIEW_TESTS]
     # 5. The tests register → the Tests view.
     assert any(g["key"] == "verified" or g["key"] == "stale"
-               for g in nav_payload(repo_index, mode="tests")["groups"])
+               for g in nav_payload(owed_corpus, mode="tests")["groups"])
     # 6. `changes-requested` re-review → the view owning each note's type;
     #    the predicate is `_verdict_is_owed`, and all ten rows here are
     #    terminal, which is ISS-0121's finding.
-    reviewed = cockpit._reviewed_register(repo_index)
+    reviewed = cockpit._reviewed_register(owed_corpus)
     assert reviewed and not [r for r in reviewed if r["owed"]]
     # 7. "am I done" → the badges.
-    assert obligations.badges_payload(repo_index)["total"] > 0
+    assert obligations.badges_payload(owed_corpus)["total"] > 0
     # 8. Reviewed register → the record surfaces.
     src = RENDERER.read_text(encoding="utf-8")
     assert "fillReviewedCard" in src

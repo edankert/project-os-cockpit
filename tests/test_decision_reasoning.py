@@ -22,10 +22,47 @@ REPO_DOCS = REPO_ROOT / "docs"
 RENDERER = REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.ts"
 
 
+#: A decision that offers options, written here rather than borrowed from the
+#: corpus. The first version of these tests used the live `ADR-0010`, and on
+#: 2026-08-12 Edwin accepted it in the app mid-session — six tests broke, none
+#: of them because the code was wrong. **A test that depends on the status of a
+#: note a human can change is a test about the corpus, not about the code.**
+DECISION_FIXTURE = """---
+type: "[[adr]]"
+id: ADR-9001
+aliases: ["ADR-9001"]
+title: "A probe decision that offers three options"
+status: "proposed"
+owner: user:edwin
+created: 2026-08-12
+updated: 2026-08-12
+---
+
+# A probe decision
+
+## Options
+
+1. **Do nothing.** The status quo, and its cost.
+2. **Do the middle thing.** What it buys and what it costs.
+3. **Do the whole thing.** The most expensive path.
+
+## Decision (proposed)
+
+**Option 3**, because the probe says so.
+
+## Acceptance
+
+- [ ] **An open thread:** answered separately from the decision itself.
+"""
+
+
 @pytest.fixture()
 def corpus(tmp_path: Path) -> Index:
     shutil.copytree(REPO_DOCS, tmp_path / "docs")
     (tmp_path / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+    (tmp_path / "docs" / "decisions" / "ADR-9001-Probe.md").write_text(
+        DECISION_FIXTURE, encoding="utf-8",
+    )
     return Index.build(tmp_path / "docs")
 
 
@@ -37,10 +74,10 @@ def test_a_transition_records_the_reasoning(corpus: Index) -> None:
     reviewed/decided/agreed, dated and added to the end in its own notes
     section, maybe we can use the callout notation from Obsidian."*"""
     note_writes.stamp_transition(
-        corpus, "ADR-0022", to_status="accepted", actor="user:edwin",
+        corpus, "ADR-9001", to_status="accepted", actor="user:edwin",
         note="Option 3, but consequence 3 is not settled.",
     )
-    text = (corpus.docs_root / "decisions" / "ADR-0022-Whether-A-Delegate-May-Push.md").read_text()
+    text = (corpus.docs_root / "decisions" / "ADR-9001-Probe.md").read_text()
     assert "## Decision record" in text
     assert re.search(r"> \[!note\] Accept — \d{4}-\d{2}-\d{2} \(user:edwin\)", text)
     assert "> Option 3, but consequence 3 is not settled." in text
@@ -49,9 +86,9 @@ def test_a_transition_records_the_reasoning(corpus: Index) -> None:
 def test_no_note_leaves_the_body_untouched(corpus: Index) -> None:
     """Omitting it must cost nothing. A verb that started appending an empty
     section to every note it touched would be worse than the gap."""
-    path = corpus.docs_root / "decisions" / "ADR-0022-Whether-A-Delegate-May-Push.md"
+    path = corpus.docs_root / "decisions" / "ADR-9001-Probe.md"
     before = path.read_text()
-    note_writes.stamp_transition(corpus, "ADR-0022", to_status="accepted", actor="user:edwin")
+    note_writes.stamp_transition(corpus, "ADR-9001", to_status="accepted", actor="user:edwin")
     after = path.read_text()
     assert "Decision record" not in after
     # Only the frontmatter moved.
@@ -86,7 +123,7 @@ def test_a_note_has_a_ceiling(corpus: Index) -> None:
     silently truncating what someone wrote."""
     with pytest.raises(note_writes.WriteError):
         note_writes.stamp_transition(
-            corpus, "ADR-0022", to_status="accepted", actor="user:edwin",
+            corpus, "ADR-9001", to_status="accepted", actor="user:edwin",
             note="x" * (note_writes.NOTE_MAX_CHARS + 1),
         )
 
@@ -158,28 +195,28 @@ def test_a_decision_can_carry_tickable_criteria(corpus: Index) -> None:
     note and the tick is not gated by type. Asserted because the *convention*
     is new even though the machinery is not."""
     from project_os_cockpit import criteria
-    path = corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md"
+    path = corpus.docs_root / "decisions" / "ADR-9001-Probe.md"
     parsed = criteria.parse_criteria(path.read_text())
-    assert len(parsed) == 2, [c["text"] for c in parsed]
+    assert len(parsed) == 1, [c["text"] for c in parsed]
     assert all(c["state"] == "open" for c in parsed)
 
     note_writes.stamp_tick(
-        corpus, "ADR-0010", criterion=parsed[1]["raw"],
+        corpus, "ADR-9001", criterion=parsed[0]["raw"],
         evidence="Dropped from both.", actor="user:edwin",
     )
     after = path.read_text()
     assert "— evidence: Dropped from both. (user:edwin," in after
-    assert after.count("- [x]") == 1 and after.count("- [ ]") == 1
+    assert after.count("- [x]") == 1 and after.count("- [ ]") == 0
 
 
 def test_accepting_with_questions_open_is_allowed(corpus: Index) -> None:
     """Tempting to block and wrong: a person may take a decision while a
     thread stands, and the record should show that rather than prevent it."""
     note_writes.stamp_transition(
-        corpus, "ADR-0010", to_status="accepted", actor="user:edwin",
-        note="Option 3. The digest thread stays open deliberately.",
+        corpus, "ADR-9001", to_status="accepted", actor="user:edwin",
+        note="Option 3. The open thread stays open deliberately.",
     )
-    text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    text = (corpus.docs_root / "decisions" / "ADR-9001-Probe.md").read_text()
     assert "status: accepted" in text or 'status: "accepted"' in text
     assert "- [ ]" in text, "the open thread was closed by accepting"
 
@@ -227,12 +264,12 @@ def test_choosing_an_option_records_it_in_both_places(corpus: Index) -> None:
     answer. It goes in the frontmatter, where a machine reads it, and in the
     callout, where a person does."""
     note_writes.stamp_transition(
-        corpus, "ADR-0010", to_status="accepted", actor="user:edwin",
-        option="3", note="The reading surface.",
+        corpus, "ADR-9001", to_status="accepted", actor="user:edwin",
+        option="3", note="Do the whole thing.",
     )
-    text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    text = (corpus.docs_root / "decisions" / "ADR-9001-Probe.md").read_text()
     assert 'decided_option: "3"' in text
-    assert "> [!note] Accept — option 3: Mode 1 is the reading surface" in text
+    assert "> [!note] Accept — option 3: Do the whole thing" in text
 
 
 def test_an_option_the_note_does_not_offer_is_refused(corpus: Index) -> None:
@@ -240,7 +277,7 @@ def test_an_option_the_note_does_not_offer_is_refused(corpus: Index) -> None:
     against a note offering three would put a lie in the frontmatter."""
     with pytest.raises(note_writes.WriteError) as exc:
         note_writes.stamp_transition(
-            corpus, "ADR-0010", to_status="accepted", actor="user:edwin", option="9",
+            corpus, "ADR-9001", to_status="accepted", actor="user:edwin", option="9",
         )
     assert "is not one of them" in exc.value.message
 
@@ -249,9 +286,9 @@ def test_accepting_without_choosing_records_nothing_extra(corpus: Index) -> None
     """A decision may be accepted as proposed. Demanding a choice would make
     the control a gate rather than an offer."""
     note_writes.stamp_transition(
-        corpus, "ADR-0010", to_status="accepted", actor="user:edwin",
+        corpus, "ADR-9001", to_status="accepted", actor="user:edwin",
     )
-    text = (corpus.docs_root / "decisions" / "ADR-0010-What-The-Browser-Cockpit-Is-For.md").read_text()
+    text = (corpus.docs_root / "decisions" / "ADR-9001-Probe.md").read_text()
     assert "decided_option" not in text
 
 

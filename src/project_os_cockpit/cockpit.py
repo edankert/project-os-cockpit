@@ -2714,7 +2714,9 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
         }
         if worst and worst.kind in _obligations.STANDING_OWED_KINDS:
             item["owed"] = True
-            item["owed_verb"] = _obligations.STANDING_OBLIGATION.verb
+            item["owed_verb"] = _obligations.STANDING_VERBS.get(
+                worst.kind, _obligations.STANDING_OBLIGATION.verb,
+            )
             owed += 1
         items.append(item)
 

@@ -194,6 +194,23 @@ STALE_AFTER_DAYS = 180
 #: counting `brief_payload` does for `LLM_BRIEF.md` — one implementation of
 #: "this was never filled in", not two.
 _PLACEHOLDER_RE = re.compile(r"<[A-Za-z][^>\n]{2,40}>|TODO|FIXME|replace_me|YYYY-MM-DD")
+
+#: Code is not template (ISS-0153). `<[A-Za-z]…>` matches an angle-bracket
+#: token, and technical prose is full of legitimate ones — `GET /index/<type>`,
+#: `user:<handle>`, `python -m project_os_cockpit <repo>/docs`. All of them are
+#: correctly written inside backticks, and all of them were being counted:
+#: `ARCHITECTURE.md` was reported as still holding its template while carrying
+#: a full architecture diagram, because it explains a path convention.
+#:
+#: A real placeholder is prose in angle brackets — `<What is wrong?>`,
+#: `<Change Title>` — and is never inside code. So code comes out first.
+_FENCE_BLOCK_RE = re.compile(r"(?ms)^\s*(```|~~~).*?^\s*\1\s*$")
+_INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+
+
+def _without_code(text: str) -> str:
+    """Body with fenced blocks and inline spans removed."""
+    return _INLINE_CODE_RE.sub("", _FENCE_BLOCK_RE.sub("", text))
 _PLACEHOLDER_THRESHOLD = 3
 
 _UPDATED_RE = re.compile(r'^updated:\s*"?(\d{4}-\d{2}-\d{2})', re.M)
@@ -266,7 +283,7 @@ def check(docs_root: Path, project_root: Path | None = None,
                 "warning",
             ))
 
-        body = text.split("---", 2)[-1]
+        body = _without_code(text.split("---", 2)[-1])
         if len(_PLACEHOLDER_RE.findall(body)) >= _PLACEHOLDER_THRESHOLD:
             findings.append(Finding(
                 name, "stub", "still holds its template", "warning",

@@ -14,6 +14,7 @@ built to prevent, and it is the cheapest thing to get wrong.
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -340,3 +341,53 @@ def test_the_needs_you_group_sits_above_the_open_split() -> None:
     assert fn.index("nav-needs-you") < fn.index("`Open · ${live.length}`")
     # …and it says whose count it is.
     assert "mode-badge nav-needs-you-count" in fn
+
+
+# ---- ISS-0153: the stub check reads code as template ---------------------
+
+
+@pytest.mark.parametrize("doc,notation", [
+    ("ARCHITECTURE.md", ["`GET /index/<type>`", "<repo>", "<path>"]),
+    ("OWNERSHIP.md", ["`user:<handle>`", "`group:<name>`", "`system:<name>`"]),
+])
+def test_technical_notation_is_not_a_template_placeholder(doc, notation) -> None:
+    """Both were reported as *"still holds its template"* while being fully
+    written — `ARCHITECTURE.md` carries an architecture diagram — because
+    `<[A-Za-z]…>` matches an angle-bracket token and technical prose is full of
+    legitimate ones. All of them are correctly inside backticks.
+
+    Named individually so a future tightening of the regex cannot quietly
+    re-break the two documents that exposed it.
+    """
+    from project_os_cockpit import standing
+    text = (REPO_DOCS / doc).read_text(encoding="utf-8")
+    for token in notation:
+        assert token in text, f"{doc} no longer contains {token}; this asserts nothing"
+    kinds = {f.kind for f in standing.check(REPO_DOCS) if f.document == doc.split(".")[0]}
+    assert "stub" not in kinds, f"{doc} is reported as a template stub"
+
+
+def test_a_document_that_really_holds_its_template_is_still_a_stub(tmp_path: Path) -> None:
+    """The vacuity guard. Without it the fix is indistinguishable from
+    deleting the check."""
+    from project_os_cockpit import standing
+    docs = tmp_path / "docs"
+    shutil.copytree(REPO_DOCS, docs)
+    (docs / "GLOSSARY.md").write_text(
+        '---\ntype: "[[reference]]"\nid: GLOSSARY\nupdated: 2026-08-12\n---\n\n'
+        "# Glossary\n\n- <Term>: <what it means>\n- <Another term>: <what it means>\n",
+        encoding="utf-8",
+    )
+    kinds = {f.document: f.kind for f in standing.check(docs)}
+    assert kinds.get("GLOSSARY") == "stub", kinds
+
+
+def test_each_owed_kind_names_its_own_verb() -> None:
+    """`Confirm` was the label on every kind, and it fits only the one that is
+    deliberately not owed: you cannot confirm a document nobody has written."""
+    from project_os_cockpit import obligations
+    assert obligations.STANDING_VERBS["missing"] == "Create"
+    assert obligations.STANDING_VERBS["stub"] == "Write"
+    assert obligations.STANDING_VERBS["ambiguous"] == "Resolve"
+    assert obligations.STANDING_VERBS["stale"] == "Confirm"
+    assert set(obligations.STANDING_OWED_KINDS) <= set(obligations.STANDING_VERBS)

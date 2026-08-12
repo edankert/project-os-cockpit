@@ -189,6 +189,23 @@ STANDING_OBLIGATION = Obligation(
               "template. Staleness marks the row and does not count.",
 )
 
+#: The verb per finding kind (ISS-0153). One constant was wrong for every kind
+#: it was applied to: **you cannot confirm a document nobody has written**, and
+#: the three owed kinds want three different things. `Confirm` is right for
+#: exactly the kind that is deliberately NOT owed — `stale`, meaning *is this
+#: still true?* — which is how it came to be the label on all of them.
+#:
+#: None of these is a status transition, and that is not a gap. The row opens
+#: the document, and a surface that says `Write` and then opens the file has
+#: told the truth twice; a button would be a third thing to build for an act
+#: that is just editing.
+STANDING_VERBS: dict[str, str] = {
+    "missing": "Create",
+    "stub": "Write",
+    "ambiguous": "Resolve",
+    "stale": "Confirm",
+}
+
 #: What the standing obligation calls itself in a per-kind breakdown
 #: (ISS-0133). It is the one obligation whose subject is not a note, so it has
 #: no `note_type` to be keyed by and needs a name of its own.
