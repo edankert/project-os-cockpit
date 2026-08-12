@@ -1704,19 +1704,6 @@ async function mountTestRunButton(
   btn.addEventListener('click', () => void navigateTo(`~tests/${noteId}/run`));
   row.append(label, btn);
 
-  // The reasoning, optional, read by whichever verb is clicked (FEAT-0095).
-  //
-  // One field for the row rather than one per verb: the note is about the
-  // decision, not about which button records it, and a field per button
-  // would ask the reader to pick where to type before they have picked what
-  // to do. Empty is the normal case and costs nothing — the file is
-  // byte-identical to a transition made before this existed.
-  const note = document.createElement('input');
-  note.type = 'text';
-  note.className = 'note-action-note';
-  note.placeholder = 'why (optional)';
-  note.title = 'Recorded on this note under “Decision record”, dated and attributed';
-  row.appendChild(note);
 
   const strip = docView.querySelector('details.metadata-strip');
   if (strip && strip.parentElement) {
@@ -1777,6 +1764,20 @@ async function mountActuatorRow(noteId: string): Promise<void> {
     });
     row.appendChild(btn);
   }
+
+  // The reasoning, optional, read by whichever verb is clicked (FEAT-0095).
+  //
+  // One field for the row rather than one per verb: the note is about the
+  // decision, not about which button records it, and a field per button
+  // would ask the reader to pick where to type before they have picked what
+  // to do. Empty is the normal case and costs nothing — the file is
+  // byte-identical to a transition made before this existed.
+  const note = document.createElement('input');
+  note.type = 'text';
+  note.className = 'note-action-note';
+  note.placeholder = 'why (optional)';
+  note.title = 'Recorded on this note under “Decision record”, dated and attributed';
+  row.appendChild(note);
 
   const strip = docView.querySelector('details.metadata-strip');
   if (strip && strip.parentElement) {

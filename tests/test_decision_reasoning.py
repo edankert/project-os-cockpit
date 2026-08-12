@@ -97,6 +97,15 @@ def test_the_field_reads_at_click_time() -> None:
     src = RENDERER.read_text(encoding="utf-8")
     assert "class=\"note-action-note\"" in src or "'note-action-note'" in src
     fn = src.split("async function mountActuatorRow", 1)[1].split("\nasync function", 1)[0]
+    # **Built inside this function**, not merely referenced from it. The first
+    # attempt anchored on `docView.querySelector('details.metadata-strip')`,
+    # which appears in `mountTestRunButton` too — so the field was created on
+    # the test-run row and the actuator row had none. Every assertion here
+    # passed; the field was simply not on the note. Found by looking.
+    assert "note.className = 'note-action-note'" in fn, (
+        "the field is created outside mountActuatorRow; a shared anchor put it "
+        "on another row"
+    )
     assert "querySelector<HTMLInputElement>('.note-action-note')" in fn, (
         "the field's value is captured when the row is built, so it is always "
         "the empty string by the time anyone clicks"
