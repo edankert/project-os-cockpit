@@ -75,6 +75,27 @@ def render_markdown_body(
     )
 
 
+def render_markdown_text(
+    body: str,
+    *,
+    source_path: Path,
+    resolver: Resolver | None = None,
+    asset_resolver: AssetResolver | None = None,
+) -> str:
+    """Render a markdown *fragment* already in memory (ISS-0151).
+
+    `render_markdown_body` reads a file; the brief's sections are slices of one
+    that has already been parsed, and re-reading to re-split it would put the
+    section boundaries in two places.
+    """
+    return _markdown_to_html(
+        body,
+        resolver=resolver,
+        asset_resolver=asset_resolver,
+        source_path=source_path,
+    )
+
+
 def render_markdown_file(
     source_path: Path,
     *,

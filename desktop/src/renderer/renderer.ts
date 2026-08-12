@@ -3787,7 +3787,12 @@ async function mountDigestBand(): Promise<void> {
 
   const head = document.createElement('div');
   head.className = 'digest-head';
-  const seen = d.seen_at && !d.seen_at.startsWith('1970') ? d.seen_at.slice(0, 10) : '';
+  // The INSTANT, not `.slice(0, 10)` (ISS-0150). Truncating to the date made
+  // `relativeTime` measure from midnight, so catching up at 08:52 reported
+  // *8 hours ago* — a clock reading wearing an elapsed time's clothes. The
+  // payload has always carried the instant and a test asserts it does; the
+  // precision was thrown away one line before it was used.
+  const seen = d.seen_at && !d.seen_at.startsWith('1970') ? d.seen_at : '';
   head.textContent = seen
     ? `Since you looked — ${relativeTime(seen)}`
     : 'Since this cockpit first ran';
@@ -4892,7 +4897,10 @@ function buildDesignNoteBanner(rel: string): HTMLElement | null {
 interface BriefPayload {
   state: 'absent' | 'unfilled' | 'filled';
   name: string; purpose: string; placeholders: number; rel: string;
-  sections: Array<{ heading: string; body: string }>;
+  // `body_html` is the section rendered by the sidecar (ISS-0151); optional
+  // so an older sidecar degrades to an empty band rather than to raw
+  // markdown printed as text, which is the defect it replaces.
+  sections: Array<{ heading: string; body: string; body_html?: string }>;
 }
 let briefCache: BriefPayload | null = null;
 
@@ -4970,7 +4978,12 @@ function buildIdentityBand(brief: BriefPayload | null): HTMLElement | null {
   if (forSection) {
     const det = document.createElement('div');
     det.className = 'design-identity-for';
-    det.textContent = forSection.body;
+    // Rendered by the sidecar, inserted as markup (ISS-0151). This printed
+    // `forSection.body` — raw markdown — as `textContent` under a `pre-wrap`
+    // rule, so the file's own newlines showed as hard breaks and its syntax
+    // showed as syntax. It reads exactly like a wrapped source file, and the
+    // file was never wrapped: measured across twelve repos, zero.
+    det.innerHTML = forSection.body_html || '';
     band.append(det);
   }
   // A filled identity with placeholders still in the file used to render as

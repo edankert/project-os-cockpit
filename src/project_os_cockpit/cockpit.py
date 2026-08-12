@@ -956,6 +956,23 @@ def _brief_state(name: str, purpose: str, placeholders: int, sections: list) -> 
     return "unfilled"
 
 
+def _markdown_fragment(body: str, source_path: Path) -> str:
+    """One brief section as HTML, through the pipeline every note uses.
+
+    Failure is silent and falls back to the escaped source: the brief is
+    hand-written prose whose whole surface is tolerant by design, and a
+    section that will not parse must not take the identity band down with it.
+    """
+    if not body.strip():
+        return ""
+    try:
+        from . import renderer as _renderer
+        return _renderer.render_markdown_text(body, source_path=source_path)
+    except Exception:                              # pragma: no cover
+        from html import escape
+        return f"<p>{escape(body)}</p>"
+
+
 def brief_payload(project_root: Path) -> dict:
     """``LLM_BRIEF.md`` as the identity band consumes it (TASK-0223).
 
@@ -1049,7 +1066,20 @@ def brief_payload(project_root: Path) -> dict:
         "state": _brief_state(name, purpose, placeholders, sections),
         "name": name,
         "purpose": purpose,
-        "sections": sections,
+        # Each section's body **rendered**, beside the source (ISS-0151). The
+        # band printed `body` as text under `white-space: pre-wrap`, so the
+        # file's own newlines became hard breaks and its markdown rendered as
+        # syntax — a defect that reads exactly like a wrapped source file and
+        # invites reflowing documents that are already correct.
+        #
+        # Rendered here rather than in the shell: the sidecar renders and the
+        # shell arranges, which is the boundary every other note already
+        # keeps. `body` stays, because a caller wanting the source should not
+        # have to unparse HTML to get it.
+        "sections": [
+            {**s, "body_html": _markdown_fragment(s.get("body", ""), path)}
+            for s in sections
+        ],
         "placeholders": placeholders,
         "rel": "LLM_BRIEF.md",
     }

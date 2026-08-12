@@ -184,3 +184,23 @@ def test_caught_up_clears_the_band_it_sits_under() -> None:
     assert "refreshDigests(true)" in handler, (
         "the rail's per-workspace digest cache is left stale"
     )
+
+
+def test_the_header_measures_from_the_instant_not_the_day() -> None:
+    """ISS-0150. The header did `d.seen_at.slice(0, 10)`, so `relativeTime`
+    measured from **midnight** — catching up at 08:52 reported *8 hours ago*,
+    and would have reported *2 minutes ago* only at 00:02.
+
+    Asserted against the **built bundle**, not the source: that is what was on
+    screen when the wrong number appeared, and the payload half of this was
+    already guarded by `test_a_commit_carries_its_instant_not_only_its_day`.
+    The producer was correct and the consumer threw the precision away, which
+    is why a payload assertion could pass forever while the screen lied.
+    """
+    bundle = (REPO_ROOT / "desktop" / "dist" / "renderer" / "renderer.js")
+    assert bundle.is_file(), "the renderer is not built"
+    src = bundle.read_text(encoding="utf-8")
+    assert "seen_at.slice(0, 10)" not in src and "seen_at.slice(0,10)" not in src, (
+        "the watermark is truncated to a date before it reaches relativeTime; "
+        "the header reports time since midnight"
+    )

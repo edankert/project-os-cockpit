@@ -220,3 +220,29 @@ def test_the_ready_path_refreshes_the_badges() -> None:
         "a freshly launched window shows no obligation badges until the first "
         "mode click"
     )
+
+
+def test_the_brief_section_arrives_rendered(repo_index: Index) -> None:
+    """ISS-0151. The Intent band printed the brief's markdown as `textContent`
+    under `white-space: pre-wrap`, so the file's own newlines showed as hard
+    breaks and its syntax showed as syntax — a symptom that reads exactly like
+    a hard-wrapped source file. The file was never wrapped: measured across
+    twelve repos, zero.
+    """
+    from project_os_cockpit.cockpit import brief_payload
+    payload = brief_payload(REPO_DOCS.parent)
+    section = next(s for s in payload["sections"] if "What it is for" in s["heading"])
+    assert section["body_html"].startswith("<"), "the section is not rendered"
+    assert "<li>" in section["body_html"], "its list is still plain text"
+    assert section["body"], "the source is gone; a caller wanting it must not unparse HTML"
+
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text()
+    rule = css.split(".design-identity-for {", 1)[1].split("}", 1)[0]
+    assert "pre-wrap" not in rule, (
+        "the compensation is back; it re-breaks the lines the fix un-breaks"
+    )
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = re.search(r"function buildIdentityBand\(.*?\n\}", src, re.S)
+    assert fn, "the identity band is gone"
+    assert "forSection.body_html" in fn.group(0)
+    assert "textContent = forSection.body;" not in src
