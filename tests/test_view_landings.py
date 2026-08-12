@@ -318,14 +318,25 @@ def test_the_structural_copy_is_marked(repo_index: Index) -> None:
     assert seen and all(seen.values()), seen
 
 
-def test_the_overview_carries_it_too() -> None:
-    """*"As well as showing this on the desk page."* Grouped by owning view,
-    because "who owes this" is what decides where you go to discharge it."""
+def test_the_needs_you_group_sits_above_the_open_split() -> None:
+    """FEAT-0094, corrected. It rendered **under** the `Open · N` heading,
+    because the navigator splits groups into live and settled and a group with
+    open items is live by definition.
+
+    That heading is about work in flight, and what needs a person is not a kind
+    of open work — it is the reason to be looking at the pane. Under it, the
+    group read as one more phase. So it is lifted out of the split before the
+    split happens, and its count is rendered in the badge's own shape rather
+    than as a number the reader is left to connect.
+    """
     src = RENDERER.read_text(encoding="utf-8")
-    assert "mountNeedsYouBand" in src
-    fn = re.search(r"async function mountNeedsYouBand\(\).*?\n\}", src, re.S).group(0)
-    assert "if (owed.length === 0) return;" in fn, "a zero band would render"
-    assert "/api/cockpit/landing?view=" in fn, (
-        "the overview computes its own set instead of reading the one the "
-        "badge and the landing page share"
+    fn = src.split("function renderWsNav(", 1)[1].split("\nfunction ", 1)[0]
+    assert "const owedGroup = groups.find((g) => g.key === 'needs-you')" in fn
+    # Lifted BEFORE the live/settled split, or it lands under `Open` again.
+    assert fn.index("const owedGroup") < fn.index("const live: NavGroupData[]")
+    assert "for (const group of rest)" in fn, (
+        "the split still walks every group, so the owed group is in it twice"
     )
+    assert fn.index("nav-needs-you") < fn.index("`Open · ${live.length}`")
+    # …and it says whose count it is.
+    assert "mode-badge nav-needs-you-count" in fn

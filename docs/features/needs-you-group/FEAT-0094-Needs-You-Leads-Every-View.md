@@ -14,7 +14,7 @@ requirements: []
 tasks:
   - "[[TASK-0393-The-Needs-You-Group]]"
   - "[[TASK-0394-The-Owed-Mark-In-Place]]"
-  - "[[TASK-0395-Needs-You-On-The-Overview]]"
+  - "[[TASK-0395-Needs-You-On-The-Overview]]"   # cancelled
 related: ["[[ADR-0025]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0092]]"]
 tests: []
 ---
@@ -33,11 +33,11 @@ The badge says a number, the landing page lists it, and the navigator — the pa
 
 ## Acceptance
 
-- [x] `Needs you` is the **first** group in Features and Intent when anything is owed, and **absent** when nothing is — never a zero.
+- [x] `Needs you` is the **first thing in the pane** in Features and Intent when anything is owed, and **absent** when nothing is — never a zero. *Corrected 2026-08-12: it was first among the groups, which put it under the `Open · N` heading, because the navigator splits groups into live and settled and a group with open items is live by definition. It is lifted out of that split now, above the heading, with its count in the badge's own shape.*
 - [x] Its count equals that view's badge, from the same walk (`obligations.owed_items`), so the three surfaces cannot disagree.
 - [x] Each row names its verb from the registry — `Approve`, `Decide`, `Confirm` — never "items".
 - [x] The structural copy is **marked** as owed where it sits, so meeting it in the tree is not a surprise ([[ADR-0025]]).
-- [x] The overview carries the same set, grouped by view, with each row one click from its note.
+- [~] The overview carries the same set, grouped by view, with each row one click from its note. — **withdrawn 2026-08-12**: built, then removed at Edwin's request. It was never asked for; *"as well as showing this on the desk page"* was read as the overview, and the reading was a guess ([[TASK-0395]]).
 - [x] Intent's rel-path dedupe guard still holds everywhere except the owed group, and the exception is asserted rather than implied.
 
 
@@ -55,3 +55,12 @@ The badge says a number, the landing page lists it, and the navigator — the pa
 **The structural mark needed no code.** `REQ-0032` already carried `owed: True, owed_verb: "Approve"` in the features tree, so [[ADR-0025]]'s condition for permitting the copy was met before it was written down.
 
 **Eleven tests failed on the first run and every one was worth reading.** Nine were positional — `groups[0]` meaning "the standing set" or "the designs list" — and are now selected by key. The other two were the hazard this decision introduces, caught immediately: `test_a_proposed_adr_is_this_views_obligation` and `test_the_standing_obligation_reaches_the_intent_badge` **counted owed marks**, which double-counts once a row can appear twice. They count distinct ids now, which is the rule any future surface must follow.
+
+
+## Two corrections the day it shipped
+
+**It rendered under `Open`.** Being the first group is not the same as being the first thing in the pane: `renderWsNav` splits groups into live and settled, and a group with open items is live — so `Needs you` landed beneath a heading about work in flight and read as one more phase. What needs a person is not a kind of open work; it is the reason to be looking at the pane. Lifted out of the split before the split happens.
+
+**Its count says whose it is.** Edwin: *"it could do with a way to indicate that these are the issues identified in the badge."* The number is rendered in the badge's own shape with the line *"the count on this view's button"* — a count rendered as a count leaves the reader to notice the coincidence.
+
+**And the overview band is gone** ([[TASK-0395]]), which was never asked for.

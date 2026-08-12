@@ -3733,94 +3733,6 @@ function renderProjectOverview(data: StatsPayload): void {
   // and prepended rather than inserted into `parts` so a slow sidecar delays
   // the band and never the overview.
   void mountDigestBand();
-  // …and what needs a person, beneath it (FEAT-0094 / TASK-0395). Same fetch
-  // pattern and the same reason: a slow sidecar delays the band, never the
-  // overview.
-  void mountNeedsYouBand();
-}
-
-// ----- Needs you, on the overview (FEAT-0094 / TASK-0395) ---------------
-//
-// Edwin: *"as well as showing this on the desk page"*. The badge counts it and
-// each view's navigator now leads with it; the overview is where a person
-// arrives, so it answers the question there too — grouped BY VIEW, because
-// "who owes this" is the fact that decides where you go to discharge it.
-//
-// Absent at zero, like every other count on this surface.
-
-async function mountNeedsYouBand(): Promise<void> {
-  docView.querySelector('.ov-needs-you')?.remove();
-  if (!sidecarBaseUrl) return;
-  const views = ['intent', 'features', 'issues', 'tests'];
-  const results = await Promise.all(views.map(async (view) => {
-    try {
-      const resp = await fetch(
-        `${sidecarBaseUrl}/api/cockpit/landing?view=${encodeURIComponent(view)}`,
-      );
-      if (!resp.ok) return null;
-      return { view, data: await resp.json() as LandingPayload };
-    } catch { return null; }
-  }));
-  const owed = results.filter((r): r is { view: string; data: LandingPayload } =>
-    !!r && r.data.total > 0);
-  if (owed.length === 0) return;
-
-  const band = document.createElement('section');
-  band.className = 'ov-needs-you';
-  const total = owed.reduce((n, r) => n + r.data.total, 0);
-  const head = document.createElement('div');
-  head.className = 'ov-needs-you-head';
-  head.textContent = `${total} need${total === 1 ? 's' : ''} you`;
-  band.appendChild(head);
-
-  for (const { view, data } of owed) {
-    const col = document.createElement('div');
-    col.className = 'ov-needs-you-view';
-    const label = document.createElement('button');
-    label.type = 'button';
-    label.className = 'ov-needs-you-view-head';
-    label.textContent = `${VIEW_LABELS[view] ?? view} · ${data.total}`;
-    // The heading is the way into that view's own page, which is the same
-    // set at more length — not a third rendering of it.
-    label.addEventListener('click', () => {
-      setNavMode(view as NavMode);
-      void navigateTo(`~${view}`);
-    });
-    col.appendChild(label);
-    for (const group of data.groups) {
-      for (const item of group.items) {
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = 'ov-needs-you-row';
-        const verb = document.createElement('span');
-        verb.className = 'ov-needs-you-verb';
-        verb.textContent = group.verb;
-        row.appendChild(verb);
-        const id = document.createElement('span');
-        id.className = 'ov-needs-you-id mono';
-        id.textContent = shortNoteId(item.id);
-        row.appendChild(id);
-        const title = document.createElement('span');
-        title.className = 'ov-needs-you-title';
-        title.textContent = item.title;
-        title.title = item.title;
-        row.appendChild(title);
-        row.addEventListener('click', () => void navigateTo(item.rel));
-        col.appendChild(row);
-      }
-      // A counted group with no rows is the standing-document obligation,
-      // whose subject is a manifest entry rather than a note. Say where it
-      // lives rather than dropping the count silently.
-      if (group.count && group.items.length === 0) {
-        const note = document.createElement('p');
-        note.className = 'meta ov-needs-you-note';
-        note.textContent = `${group.label} — in ${VIEW_LABELS[view] ?? view}`;
-        col.appendChild(note);
-      }
-    }
-    band.appendChild(col);
-  }
-  docView.prepend(band);
 }
 
 // ----- Since you looked: the digest band (FEAT-0071 / TASK-0314) --------
@@ -8696,13 +8608,47 @@ function renderWsNav(data: NavPayload): void {
   // note, and `openGroupsContaining` opens both automatically when the
   // active note is inside — which at 99% completion is the normal path,
   // not an edge.
+  // `Needs you` is lifted OUT of the live/settled split before it happens
+  // (FEAT-0094). It was landing under the `Open · N` heading, which is a
+  // heading about work in flight — and what needs a person is not a kind of
+  // open work, it is the reason to be looking at the pane at all. Under that
+  // heading it read as one more phase.
+  const owedGroup = groups.find((g) => g.key === 'needs-you') || null;
+  const rest = owedGroup ? groups.filter((g) => g !== owedGroup) : groups;
+
   const live: NavGroupData[] = [];
   const settled: NavGroupData[] = [];
-  for (const group of groups) {
+  for (const group of rest) {
     (groupIsSettled(group.items || []) ? settled : live).push(group);
   }
 
   let any = false;
+  if (owedGroup) {
+    const section = document.createElement('div');
+    section.className = 'nav-needs-you';
+    const head = document.createElement('div');
+    head.className = 'nav-needs-you-head';
+    const label = document.createElement('span');
+    label.textContent = 'Needs you';
+    head.appendChild(label);
+    // The same number, in the same shape as the button that carries it —
+    // Edwin: *"it could do with a way to indicate that these are the issues
+    // identified in the badge"*. A count rendered as a count would leave the
+    // reader to notice the coincidence; rendered as the badge, it says so.
+    const count = document.createElement('span');
+    count.className = 'mode-badge nav-needs-you-count';
+    count.textContent = String((owedGroup.items || []).length);
+    head.appendChild(count);
+    section.appendChild(head);
+    const note = document.createElement('p');
+    note.className = 'nav-needs-you-note';
+    note.textContent = 'the count on this view\u2019s button';
+    section.appendChild(note);
+    const node = renderNavGroup(owedGroup, currentNavMode);
+    if (node) { section.appendChild(node); }
+    wsNavContent.appendChild(section);
+    any = true;
+  }
   // ISS-0089: where a divider names the finished set, the live set gets a
   // heading too. An unlabelled block above a labelled one reads as "and
   // these" rather than as its own half — Edwin asked for two SETS of

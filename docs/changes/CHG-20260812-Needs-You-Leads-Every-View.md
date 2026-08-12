@@ -53,3 +53,16 @@ Edwin chose copy, and [[ADR-0025]] narrows the rule to **one obligation, one own
 Nine were **positional** — `groups[0]` standing in for "the standing set" or "the designs list" — and broke the moment anything was prepended. They select by key now. A test that identifies a group by its position asserts the layout as well as the fact, and only one of those is the thing it means.
 
 The other two were the real finding, and they failed for exactly the reason [[ADR-0025]] predicted rather than for a reason nobody had thought about.
+
+
+## Corrected the same day
+
+Three changes after Edwin looked at it:
+
+- **The overview band is removed.** It was never asked for: *"as well as showing this on the desk page"* was read as the overview, on the ground that [[FEAT-0090]] retired the desk and the overview is what a person lands on. That was a guess dressed as a reading, and it was cheap to check. [[TASK-0395]] is `cancelled` with the reason rather than deleted.
+- **`Needs you` moved out from under `Open`.** It was the first *group*, which is not the same as the first thing in the pane — the navigator splits groups into live and settled, and a group with open items is live by definition. It sits above that split now.
+- **Its count is rendered in the badge's shape**, with the line *"the count on this view's button"*, so the surface says the two are the same set instead of leaving the reader to notice.
+
+## And the brief still did not flow
+
+[[ISS-0151]] fixed the *breaks* and left the *measure*: `.design-identity-purpose` and `.design-identity-for` carried `max-width: 68ch`, so sentences still wrapped at 68 characters however wide the pane. Removed. The rule was a deliberate typographic measure and it was answering a question nobody had asked here — Edwin's standing position is that the file should not wrap and **the application should use the space it has**.
