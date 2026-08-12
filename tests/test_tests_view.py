@@ -78,6 +78,18 @@ def owed_corpus(tmp_path: Path) -> Index:
         "# Glossary\n\n- <Term>: <what it means>\n- <Another>: <what it means>\n",
         encoding="utf-8",
     )
+    # …a document nobody has confirmed in a long time — constructed, because
+    # on 2026-08-12 the corpus stopped having one: every standing document was
+    # brought current, and a test that waits for neglect fails when the
+    # project stops being neglectful.
+    import datetime as _d, re as _r
+    old_day = (_d.date.today() - _d.timedelta(days=400)).isoformat()
+    styleguide = docs / "STYLEGUIDE.md"
+    styleguide.write_text(
+        _r.sub(r"^updated: .*$", f"updated: {old_day}",
+               styleguide.read_text(encoding="utf-8"), count=1, flags=_r.M),
+        encoding="utf-8",
+    )
     # …and a decision still awaiting one.
     (docs / "decisions" / "ADR-9002-Probe.md").write_text(
         '---\ntype: "[[adr]]"\nid: ADR-9002\naliases: ["ADR-9002"]\n'
@@ -1122,10 +1134,13 @@ def test_a_stub_is_owed_and_staleness_only_marks(owed_corpus: Index) -> None:
     )
     # Stale marks — a status the navigator can sort and fold on — but does not
     # ask, so it carries no `owed`.
-    assert rows["DESIGN"]["status"] == "review"
-    assert "owed" not in rows["DESIGN"]
-    assert re.search(r"last confirmed \d+ days ago", rows["DESIGN"]["subtitle"]), (
-        f"the row should report its staleness in days; got {rows['DESIGN']['subtitle']!r}"
+    # `STYLEGUIDE` is the fixture's constructed stale document. `DESIGN` was
+    # named here and stopped being stale on 2026-08-12 when it was rewritten —
+    # a test about an age rule must not depend on a document being neglected.
+    assert rows["STYLEGUIDE"]["status"] == "review"
+    assert "owed" not in rows["STYLEGUIDE"]
+    assert re.search(r"last confirmed \d+ days ago", rows["STYLEGUIDE"]["subtitle"]), (
+        f"the row should report its staleness in days; got {rows['STYLEGUIDE']['subtitle']!r}"
     )
 
 

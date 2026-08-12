@@ -347,7 +347,10 @@ def test_the_needs_you_group_sits_above_the_open_split() -> None:
 
 
 @pytest.mark.parametrize("doc,notation", [
-    ("ARCHITECTURE.md", ["`GET /index/<type>`", "<repo>", "<path>"]),
+    # The tokens are re-picked when a document is rewritten — ARCHITECTURE.md
+    # was, on 2026-08-12, and the vacuity guard caught it immediately, which
+    # is the guard doing its job rather than the test being brittle.
+    ("ARCHITECTURE.md", ["`python -m project_os_cockpit <repo>/docs`"]),
     ("OWNERSHIP.md", ["`user:<handle>`", "`group:<name>`", "`system:<name>`"]),
 ])
 def test_technical_notation_is_not_a_template_placeholder(doc, notation) -> None:

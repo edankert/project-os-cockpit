@@ -112,6 +112,7 @@ def test_adding_a_document_needs_no_code_change() -> None:
 # ---- freshness, and the absence of a lifecycle (TASK-0381) -------------
 
 import datetime as _dt
+import re as _re
 
 
 def test_no_standing_document_carries_a_lifecycle_status() -> None:
@@ -168,14 +169,31 @@ def test_the_staleness_horizon_carries_its_reason() -> None:
     assert "parameter" in block.lower(), "the horizon does not say it is adjustable"
 
 
-def test_a_stale_document_is_found_by_age_not_by_name() -> None:
-    docs = REPO / "docs"
-    stale = {f.document for f in standing.check(docs, REPO) if f.kind == "stale"}
-    # Measured 2026-08-10: DESIGN and STYLEGUIDE untouched since 2026-01-26.
-    assert stale, "nothing reports stale in a corpus ISS-0125 measured at 94%"
+def test_a_stale_document_is_found_by_age_not_by_name(tmp_path) -> None:
+    """Staleness is **constructed**, not borrowed.
+
+    This read the live corpus and relied on DESIGN and STYLEGUIDE having sat
+    untouched since 2026-01-26. On 2026-08-12 both were rewritten and the
+    corpus had no stale document at all — so a test about an age rule failed
+    because the documents got looked after, which is the outcome the rule
+    exists to produce.
+    """
+    import shutil
+    docs = tmp_path / "docs"
+    shutil.copytree(REPO / "docs", docs)
+    (tmp_path / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+    old_day = _dt.date.today() - _dt.timedelta(days=standing.STALE_AFTER_DAYS + 40)
+    target = docs / "GLOSSARY.md"
+    text = target.read_text(encoding="utf-8")
+    target.write_text(
+        _re.sub(r"^updated: .*$", f"updated: {old_day.isoformat()}", text, count=1,
+                flags=_re.M),
+        encoding="utf-8",
+    )
+    stale = {f.document for f in standing.check(docs, tmp_path) if f.kind == "stale"}
+    assert "GLOSSARY" in stale, stale
     for name in stale:
-        text = (docs / f"{name}.md").read_text(encoding="utf-8")
-        m = standing._UPDATED_RE.search(text)
+        m = standing._UPDATED_RE.search((docs / f"{name}.md").read_text(encoding="utf-8"))
         if m:
             age = (_dt.date.today() - _dt.date.fromisoformat(m.group(1))).days
             assert age > standing.STALE_AFTER_DAYS

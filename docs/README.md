@@ -3,11 +3,13 @@ type: reference
 id: DOCS-README
 owner: team:docs
 created: 2026-01-26
-updated: 2026-05-08
+updated: 2026-08-12
 tags: [docs]
 ---
 
 # Docs structure
+
+*This is `project-os-cockpit`'s record. The layout below is project-os's and is the same in every repo; what this project **is** lives in [[ARCHITECTURE]], [[GLOSSARY]], [[DESIGN]] and `../LLM_BRIEF.md`.*
 
 This folder is a reusable documentation system intended to be reused across projects (Obsidian-enabled; Obsidian optional). It can hold both structured project-os lifecycle records and normal project documentation.
 Without Obsidian, the Markdown remains usable; Obsidian wiki-links (`[[...]]`) and `.base` files can be treated as plain text.
