@@ -22,6 +22,7 @@ import re as _re
 
 from . import templates
 from .note_writes import _criterion_text
+from .callouts import CalloutExtension
 from .wikilinks import Resolver, WikilinkExtension
 
 
@@ -155,7 +156,11 @@ def _markdown_to_html(
     asset_resolver: AssetResolver | None,
     source_path: Path,
 ) -> str:
-    extensions: list[Any] = list(MARKDOWN_EXTENSIONS_BASE)
+    # Callouts before the wikilink extension for no ordering reason — they
+    # are independent — but registered ALWAYS, including for notes rendered
+    # without a resolver, because a decision record is prose in a file and
+    # is read from more places than the note page (FEAT-0095).
+    extensions: list[Any] = [*MARKDOWN_EXTENSIONS_BASE, CalloutExtension()]
     if resolver is not None:
         image_resolver = (
             (lambda target: asset_resolver(target, source_path))

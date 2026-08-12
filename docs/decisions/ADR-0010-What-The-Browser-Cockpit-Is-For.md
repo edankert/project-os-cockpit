@@ -51,6 +51,15 @@ Consequences:
 - The shell keeps views the browser lacks, and that is now a stated property rather than a backlog item.
 - This decision does not itself widen any surface. [[REQ-0032]] and [[PHASE-029]]'s exit criteria carry the guard, and [[RISK-0001]] is re-scanned before the phase closes.
 
+## Acceptance
+
+**Its own open threads, as criteria** ([[FEAT-0096]]). This decision is not a yes/no: it proposes Option 3 and leaves two things unsettled inside its own consequences. Each can be answered on its own, with evidence, from the note page — and accepting the ADR with either still open is allowed, because a person may take a decision while a thread stands and the record should show that rather than prevent it.
+
+- [ ] **The read-only digest of what is owed:** consequence 3 defers it to [[FEAT-0079]]'s authenticated path rather than deciding it. Decide it, or record where it is deferred to and why that home is right.
+- [ ] **`Recent`'s two verdicts:** the consequences resolve it *"by the same rule"* — a reading view lives in both surfaces or neither — without saying which it is. Say which.
+
 ## Status
 
 `proposed`. This is the gate on [[PHASE-029]]: both features are shaped by which option is taken, so nothing there should start until it is decided.
+
+*Updated 2026-08-12: the two criteria above are why this sat undecided. `Accept` stamped five consequences and both open threads in one click, and there was nowhere to say "yes to option 3, but not consequence 3 as written" ([[ISS-0152]]). Now there is — each thread is answerable on its own, and the verb itself can carry a sentence.*

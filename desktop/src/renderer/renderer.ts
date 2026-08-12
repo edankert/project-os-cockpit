@@ -1704,6 +1704,20 @@ async function mountTestRunButton(
   btn.addEventListener('click', () => void navigateTo(`~tests/${noteId}/run`));
   row.append(label, btn);
 
+  // The reasoning, optional, read by whichever verb is clicked (FEAT-0095).
+  //
+  // One field for the row rather than one per verb: the note is about the
+  // decision, not about which button records it, and a field per button
+  // would ask the reader to pick where to type before they have picked what
+  // to do. Empty is the normal case and costs nothing — the file is
+  // byte-identical to a transition made before this existed.
+  const note = document.createElement('input');
+  note.type = 'text';
+  note.className = 'note-action-note';
+  note.placeholder = 'why (optional)';
+  note.title = 'Recorded on this note under “Decision record”, dated and attributed';
+  row.appendChild(note);
+
   const strip = docView.querySelector('details.metadata-strip');
   if (strip && strip.parentElement) {
     strip.parentElement.insertBefore(row, strip.nextSibling);
@@ -1755,7 +1769,11 @@ async function mountActuatorRow(noteId: string): Promise<void> {
       btn.title = `Sets status: ${action.to}`;
     }
     btn.addEventListener('click', () => {
-      void performNoteAction(noteId, action, btn);
+      // Read at CLICK time: the row is built before the reader has typed
+      // anything, so capturing the value in the closure would always send
+      // the empty string.
+      const field = row.querySelector<HTMLInputElement>('.note-action-note');
+      void performNoteAction(noteId, action, btn, field?.value ?? '');
     });
     row.appendChild(btn);
   }
@@ -1769,7 +1787,7 @@ async function mountActuatorRow(noteId: string): Promise<void> {
 }
 
 async function performNoteAction(
-  noteId: string, action: NoteAction, btn: HTMLButtonElement,
+  noteId: string, action: NoteAction, btn: HTMLButtonElement, note = '',
 ): Promise<void> {
   // One confirmation for terminal moves, none for forward ones: reversing an
   // approve is itself a recorded action, so the cost of a slip is an extra
@@ -1789,7 +1807,10 @@ async function performNoteAction(
     const resp = await fetch(`${sidecarBaseUrl}/api/notes/transition`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: noteId, to: action.to, actor: 'user:edwin' }),
+      body: JSON.stringify({
+        id: noteId, to: action.to, actor: 'user:edwin',
+        ...(note.trim() ? { note: note.trim() } : {}),
+      }),
     });
     const data = (await resp.json()) as { ok?: boolean; error?: string };
     if (!resp.ok || !data.ok) {

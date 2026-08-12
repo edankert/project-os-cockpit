@@ -1899,6 +1899,7 @@ def _make_handler(
                     to_status=str(body.get("to") or ""),
                     actor=str(body.get("actor") or ""),
                     severity=str(body.get("severity") or ""),
+                    note=str(body.get("note") or ""),
                     mtime=(float(body["mtime"]) if body.get("mtime") is not None else None),
                 )
             except note_writes.WriteError as exc:

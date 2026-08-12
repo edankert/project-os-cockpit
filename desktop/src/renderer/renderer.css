@@ -5309,3 +5309,42 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 }
 .nav-needs-you-count { position: static; transform: none; }
 .nav-needs-you .nav-group-header { display: none; }
+
+/* ---- The reasoning field on the actuator row (FEAT-0095) ---------------- */
+.note-action-note {
+  flex: 1 1 220px; min-width: 160px; max-width: 420px;
+  padding: 4px 8px; font: inherit; font-size: 12px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+.note-action-note::placeholder { color: var(--text-faint); }
+.note-action-note:focus { outline: none; border-color: var(--accent-link); }
+
+/* ---- Obsidian callouts (FEAT-0095 / TASK-0397) -------------------------
+   One syntax, two readers: Obsidian renders these natively and so does the
+   cockpit now. An unknown type keeps its title and the default palette
+   rather than printing its own marker at the reader. */
+.callout {
+  border-left: 3px solid var(--status-pending);
+  background: var(--bg-elevated);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px; margin: 12px 0;
+}
+.callout-title {
+  font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--text);
+}
+.callout-body { font-size: 13px; color: var(--text-muted); }
+.callout-body p:first-child { margin-top: 0; }
+.callout-body p:last-child { margin-bottom: 0; }
+.callout[data-callout="question"], .callout[data-callout="help"],
+.callout[data-callout="faq"] { border-left-color: var(--accent-link); }
+.callout[data-callout="warning"], .callout[data-callout="caution"],
+.callout[data-callout="attention"] { border-left-color: var(--status-blocked); }
+.callout[data-callout="danger"], .callout[data-callout="error"],
+.callout[data-callout="bug"], .callout[data-callout="failure"],
+.callout[data-callout="fail"] { border-left-color: var(--status-blocked); }
+.callout[data-callout="success"], .callout[data-callout="check"],
+.callout[data-callout="done"] { border-left-color: var(--status-done); }
+.callout[data-callout="quote"], .callout[data-callout="cite"],
+.callout[data-callout="abstract"], .callout[data-callout="summary"],
+.callout[data-callout="tldr"] { border-left-color: var(--status-archived); }

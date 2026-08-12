@@ -1795,3 +1795,26 @@ details:not([open]) > summary .group-chevron::before {
   color: var(--text-muted);
 }
 .home-indexes .index-list a:hover { color: var(--accent-link); }
+
+
+/* ---- Obsidian callouts (FEAT-0095 / TASK-0397) -------------------------
+   Mode 1 renders the same notes through the same pipeline, so it needs the
+   same rules — a decision record legible in the shell and not on the tablet
+   would be the two-front-doors divergence ADR-0010 is about. */
+.callout {
+  border-left: 3px solid var(--status-pending);
+  background: var(--bg-elevated);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px; margin: 12px 0;
+}
+.callout-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--text); }
+.callout-body { font-size: 13px; color: var(--text-muted); }
+.callout-body p:first-child { margin-top: 0; }
+.callout-body p:last-child { margin-bottom: 0; }
+.callout[data-callout="question"], .callout[data-callout="help"],
+.callout[data-callout="faq"] { border-left-color: var(--accent-link); }
+.callout[data-callout="warning"], .callout[data-callout="caution"],
+.callout[data-callout="danger"], .callout[data-callout="error"],
+.callout[data-callout="bug"] { border-left-color: var(--status-blocked); }
+.callout[data-callout="success"], .callout[data-callout="check"],
+.callout[data-callout="done"] { border-left-color: var(--status-done); }

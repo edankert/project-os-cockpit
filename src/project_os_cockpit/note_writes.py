@@ -207,8 +207,18 @@ HUMAN_TRANSITIONS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
 CONFIRM_ACTIONS: frozenset[str] = frozenset({"Decline", "Supersede"})
 
 TRANSITION_REQUEST_KEYS: frozenset[str] = frozenset(
-    {"id", "to", "actor", "mtime", "severity"}
+    {"id", "to", "actor", "mtime", "severity", "note"}
 )
+
+#: The heading every decision record lives under, and there is only ever one
+#: of it per note (FEAT-0095).
+DECISION_RECORD_HEADING = "## Decision record"
+
+#: How long a note may be. Prose, not an essay: this is the sentence a person
+#: writes at the moment they decide, and a surface that invites a page will get
+#: a page nobody reads. The tick's evidence has no cap and has not needed one;
+#: this does, because it is appended to a note rather than to a line.
+NOTE_MAX_CHARS = 2000
 
 #: Severities an accept-as may record. Same list the issue template documents.
 SEVERITIES: frozenset[str] = frozenset({"critical", "high", "medium", "low"})
@@ -473,6 +483,42 @@ def stamp_tick(
     }
 
 
+def _append_decision_record(body: str, *, verb: str, actor: str, note: str) -> str:
+    """Append one dated, attributed callout under `## Decision record`.
+
+    **Appends, never edits.** A second decision adds a second callout and the
+    first stays exactly as written — a decision record that can be rewritten is
+    not one.
+
+    The Obsidian callout form is deliberate and is Edwin's (2026-08-12):
+    `> [!note] Accepted — 2026-08-12 (user:edwin)`. **One syntax, two readers**
+    — Obsidian renders it natively and the cockpit renders it since
+    TASK-0397, so the record does not acquire a form only the tool understands.
+
+    Prose is neutralised on the way in rather than trusted: every line is
+    prefixed `> `, so a note containing `---`, a heading, or its own `> [!` can
+    change the frontmatter of nothing and closes no block it did not open.
+    """
+    text = (note or "").strip()
+    if not text:
+        return body
+    if len(text) > NOTE_MAX_CHARS:
+        raise WriteError(
+            f"note is {len(text)} characters; the limit is {NOTE_MAX_CHARS}",
+            status=400,
+        )
+    who = (actor or "unknown").strip()
+    title = f"{verb} — {_today()} ({who})"
+    quoted = "\n".join(f"> {line}" if line.strip() else ">"
+                       for line in text.splitlines())
+    block = f"> [!note] {title}\n{quoted}"
+
+    trimmed = body.rstrip()
+    if DECISION_RECORD_HEADING in trimmed:
+        return f"{trimmed}\n\n{block}\n"
+    return f"{trimmed}\n\n{DECISION_RECORD_HEADING}\n\n{block}\n"
+
+
 def stamp_transition(
     index: Index,
     note_id: str,
@@ -480,6 +526,7 @@ def stamp_transition(
     to_status: str,
     actor: str = "",
     severity: str = "",
+    note: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Perform one human-owned transition (TASK-0278).
@@ -546,6 +593,14 @@ def stamp_transition(
     if sev:
         fm_lines = _set_field(fm_lines, "severity", sev)
     fm_lines = _set_field(fm_lines, "updated", _today())
+    # The reasoning, if the person gave any (FEAT-0095). Omitted, the file is
+    # byte-identical to what this wrote before the field existed.
+    verb = next(
+        (v for v, to in HUMAN_TRANSITIONS.get(note_type, {}).get(current, ())
+         if to == wanted),
+        wanted.capitalize(),
+    )
+    body = _append_decision_record(body, verb=verb, actor=actor, note=note)
     _write(path, fm_lines, body)
     return {
         "id": note_id,
@@ -553,6 +608,7 @@ def stamp_transition(
         "to": wanted,
         "actor": actor,
         "severity": sev or None,
+        "note": bool((note or "").strip()),
         "date": _today(),
     }
 
