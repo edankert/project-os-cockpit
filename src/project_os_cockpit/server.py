@@ -840,6 +840,24 @@ def _make_handler(
                 self._respond_json(marker.payload())
                 return
 
+            # Where a note id lives in THIS repo (FEAT-0093 / TASK-0392).
+            # A cross-repo jump switches workspace first and then asks the
+            # arriving sidecar; the shell holds the fleet map and each sidecar
+            # holds its own corpus, and neither can answer the other's half.
+            if path == "/api/cockpit/locate":
+                params = urllib.parse.parse_qs(parsed.query)
+                wanted = (params.get("id") or [""])[0].strip()
+                found = index.by_id(wanted) if wanted else None
+                record = index.get(found) if found else None
+                self._respond_json({
+                    "id": wanted,
+                    "project": cockpit.project_id(docs_root),
+                    "found": bool(record),
+                    "rel": record.rel_path if record else "",
+                    "title": (record.title if record else "") or "",
+                })
+                return
+
             if path == "/api/notes/actions":
                 params = urllib.parse.parse_qs(parsed.query)
                 note_id = (params.get("id") or [""])[0].strip()

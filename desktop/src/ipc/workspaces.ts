@@ -102,6 +102,21 @@ async function findWorkspaceIcon(repoRoot: string): Promise<string | undefined> 
   return undefined;
 }
 
+// The repo's stable, writable identity (ADR-0024). `project.id` when set,
+// else the directory name. NOT `project.name`, which is a display string —
+// measured across the fleet it carries spaces and capitals (`Your Health`)
+// and the template's reads `REPLACE ME` — and not the workspace `id`, which
+// is a sha1 of an absolute path and so is machine-local by construction.
+async function readProjectId(repoRoot: string): Promise<string> {
+  try {
+    const raw = await fs.readFile(path.join(repoRoot, 'SNAPSHOT.yaml'), 'utf-8');
+    const data = yaml.load(raw) as { project?: { id?: string } } | null;
+    const declared = (data?.project?.id ?? '').toString().trim();
+    if (declared) return declared;
+  } catch { /* unreadable snapshot — the directory name still identifies it */ }
+  return path.basename(path.resolve(repoRoot));
+}
+
 async function readSnapshotName(repoRoot: string): Promise<string | null> {
   try {
     const raw = await fs.readFile(
@@ -157,12 +172,14 @@ async function discoverWorkspaces(roots: string[]): Promise<Workspace[]> {
     for await (const repoRoot of walk(root, SCAN_DEPTH)) {
       const id = idFor(repoRoot);
       const name = (await readSnapshotName(repoRoot)) ?? path.basename(repoRoot);
+      const projectId = await readProjectId(repoRoot);
       const icon = await findWorkspaceIcon(repoRoot);
       console.log(`[workspaces]   found ${name} at ${repoRoot}${icon ? ' (icon)' : ''}`);
       found.set(id, {
         id,
         root: repoRoot,
         name,
+        projectId,
         lastOpened: null,
         pinned: false,
         icon,
@@ -203,8 +220,9 @@ async function persist(): Promise<void> {
 async function buildWorkspace(repoRoot: string): Promise<Workspace> {
   const id = idFor(repoRoot);
   const name = (await readSnapshotName(repoRoot)) ?? path.basename(repoRoot);
+  const projectId = await readProjectId(repoRoot);
   const icon = await findWorkspaceIcon(repoRoot);
-  return { id, root: repoRoot, name, lastOpened: null, pinned: false, icon };
+  return { id, root: repoRoot, name, projectId, lastOpened: null, pinned: false, icon };
 }
 
 export function getWorkspace(id: string): Workspace | null {

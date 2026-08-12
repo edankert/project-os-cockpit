@@ -15,6 +15,11 @@ interface Workspace {
   id: string;
   root: string;
   name: string;
+  /** ADR-0024: `project.id` or the directory name — what `[[project#ID]]`
+   *  matches. Optional here so an older main process (a shell that has not
+   *  been relaunched since this shipped) degrades to "no such project" rather
+   *  than to a crash. */
+  projectId?: string;
   lastOpened: string | null;
   pinned: boolean;
   icon?: string;
@@ -796,6 +801,70 @@ function withAlpha(color: string, alpha: number): string {
   return color + Math.round(alpha * 255).toString(16).padStart(2, '0');
 }
 
+// ---- Following a cross-repo link (FEAT-0093 / TASK-0392) ---------------
+//
+// `[[project-os-dev#ADR-0011]]` renders as an anchor carrying the two parts
+// as data rather than an href (ADR-0024): a sidecar serves ONE repo and
+// cannot resolve another, so it must not emit a URL it cannot honour. The
+// shell can — it discovers every SNAPSHOT-bearing repo and runs a sidecar per
+// workspace — so the lookup happens here.
+//
+// The jump is two-legged and the legs are in different processes: switch the
+// workspace, then ask the ARRIVING sidecar where that id lives. Neither half
+// can answer the other's, which is why this is deferred through
+// `pendingCrossRepoJump` and consumed when the sidecar reports ready.
+
+let pendingCrossRepoJump: { project: string; noteId: string } | null = null;
+
+async function jumpToCrossRepoNote(project: string, noteId: string): Promise<void> {
+  const target = workspaces.find((w) => w.projectId === project);
+  if (!target) {
+    // Said out loud, never a dead click. A reference to a project that is not
+    // on this machine is a real answer — the note may exist and simply not be
+    // here — and it must not look identical to one that resolves.
+    showStatus(`No project “${project}” on this machine — ${noteId} is not reachable from here.`, 'error');
+    return;
+  }
+  if (target.id === activeId) {
+    // Already here: no switch, no wait, just locate.
+    void locateAndOpen(noteId, project);
+    return;
+  }
+  pendingCrossRepoJump = { project, noteId };
+  await openWorkspace(target.id);
+}
+
+async function locateAndOpen(noteId: string, project: string): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/locate?id=${encodeURIComponent(noteId)}`,
+    );
+    if (!resp.ok) { showStatus(`Could not look up ${noteId}`, 'error'); return; }
+    const found = await resp.json() as { found?: boolean; rel?: string };
+    if (!found.found || !found.rel) {
+      showStatus(`${project} has no ${noteId}`, 'error');
+      return;
+    }
+    void navigateTo(found.rel);
+  } catch (err) {
+    showStatus(`Could not open ${noteId}: ${String(err)}`, 'error');
+  }
+}
+
+// One delegated listener on the document: cross-repo links appear in the note
+// body, in the frontmatter strip and in the context pane, and three listeners
+// would be three places to forget one.
+document.addEventListener('click', (ev) => {
+  const el = (ev.target as HTMLElement | null)?.closest?.('a.cross-repo-link');
+  if (!el) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const project = el.getAttribute('data-project') || '';
+  const noteId = el.getAttribute('data-note-id') || '';
+  if (project && noteId) void jumpToCrossRepoNote(project, noteId);
+});
+
 async function openWorkspace(id: string): Promise<void> {
   if (id === activeId) return;
   activeId = id;
@@ -889,6 +958,14 @@ cockpitApi.sidecar.onEvent((ev) => {
       // when overview was the only such mode; Review and Design inherited the
       // bug on the days they were added (ISS-0040).
       if (!MODES_WITH_VIRTUAL_LANDING.has(currentNavMode)) void navigateTo('README.md');
+      // A cross-repo jump parked here while the workspace switched
+      // (FEAT-0093). Consumed before the default landing so the reader ends
+      // up at the note they clicked rather than on this workspace's overview.
+      if (pendingCrossRepoJump) {
+        const jump = pendingCrossRepoJump;
+        pendingCrossRepoJump = null;
+        void locateAndOpen(jump.noteId, jump.project);
+      }
       void renderInboxPanel();
       // ISS-0149: the badges' own refresh bails on `!sidecarBaseUrl`, and on a
       // fresh window `setNavMode` runs from stored state before any sidecar

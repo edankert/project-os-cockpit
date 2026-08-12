@@ -7,6 +7,13 @@ export interface Workspace {
   root: string;
   /** Auto-derived name — from SNAPSHOT.yaml `project.name`, fallback to dirname. */
   name: string;
+  /**
+   * The repo's stable, writable identity (ADR-0024): SNAPSHOT.yaml
+   * `project.id`, else the directory name. What `[[project#NOTE-ID]]`
+   * matches on. Distinct from `id` (a sha1 of the absolute path, machine
+   * local) and from `name` (a display string that carries spaces).
+   */
+  projectId: string;
   /** ISO timestamp of last open, or null if never opened. */
   lastOpened: string | null;
   /** True when the user has explicitly added or pinned this workspace. */

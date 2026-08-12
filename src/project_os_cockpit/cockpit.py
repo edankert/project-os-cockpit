@@ -157,6 +157,41 @@ def phase_close_blockers(index: Index, phase_id: str) -> list[str]:
 
 
 
+def project_id(docs_root: Path) -> str:
+    """This repo's stable, writable identity (ADR-0024 / TASK-0390).
+
+    `project.id` from `SNAPSHOT.yaml`, falling back to the repo's **directory
+    name**. Neither of the two things that look like an id can be one:
+    `project.name` is a display string — measured across the fleet on
+    2026-08-12 it carries spaces and capitals (`Obsidian-Supernote Sync`,
+    `Your Health`) and the template's still reads `REPLACE ME` — and the
+    shell's workspace id is `sha1(absolute path)`, which is machine-local and
+    can never appear in a committed note.
+
+    The directory name is unique across all twelve repos and is what a person
+    types when they mean that project. The explicit field exists for the case
+    the default cannot survive: a repo renamed or cloned into a different
+    folder changes identity silently, and every reference to it breaks with no
+    error anywhere.
+    """
+    root = docs_root.parent
+    try:
+        text = (root / "SNAPSHOT.yaml").read_text(encoding="utf-8")
+    except OSError:
+        return root.name
+    m = re.search(r"^project:\s*$", text, re.M)
+    if m:
+        for line in text[m.end():].splitlines():
+            if line and not line[0].isspace():
+                break
+            got = re.match(r"^\s+id\s*:\s*(.+?)\s*$", line)
+            if got:
+                value = got.group(1).strip().strip('"').strip("'")
+                if value:
+                    return value
+    return root.name
+
+
 def _staleness_days(docs_root: Path) -> int:
     """The project's staleness threshold, from the snapshot or the default."""
     try:

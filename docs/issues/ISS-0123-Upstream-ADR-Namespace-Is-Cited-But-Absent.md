@@ -97,7 +97,9 @@ That is a smaller defect and a more annoying one, and it cost this session an ho
 
 ### What it should be
 
-A citation to an upstream decision should say so: `ADR-0011 (project-os-dev)`, or a line in `CONTEXT.md` naming where the upstream namespace lives. The first is 47 edits across two repos; the second is one sentence and covers every future citation, which makes it the obvious first move.
+A citation to an upstream decision should say so. **It can, as of 2026-08-12**: [[ADR-0024]] settled the notation and [[FEAT-0093]] built it, so this is now a link rather than a sentence about one — [[project-os-dev#ADR-0011]], and its sibling [[project-os-dev#ADR-0013]]. Clicking either switches workspace and opens the note.
+
+The other half still stands: a line in `CONTEXT.md` naming where the upstream namespace lives costs one sentence and covers all 47 existing citations without rewriting any of them. The first is 47 edits across two repos; the second is one sentence and covers every future citation, which makes it the obvious first move.
 
 ### And ADR-0011 had already asked the question this repo answered
 
