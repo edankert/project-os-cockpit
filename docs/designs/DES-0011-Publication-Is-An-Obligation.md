@@ -41,20 +41,37 @@ Fixing the data would restore three surfaces that were already the wrong shape. 
 
 [[ADR-0025]] is what permits the row to be in two places: the `Needs you` group is a shortcut list, and the commits stay in their structural place. Same rule, same reason.
 
+## The ladder History already half-draws
+
+History renders as `[uncommitted band] → [commit divider] → [transition rows] → [commit divider] → …`. A commit **is** a divider, with the notes it saved listed beneath it, and the band above the first divider exists because *"the question 'is this written down yet' should not require leaving the page"*.
+
+That is a ladder in time with its middle rung missing:
+
+1. **not saved** — the uncommitted band. Exists.
+2. **saved, not published** — nothing says it.
+3. **published** — every other divider.
+
+**So an unpushed commit says so on its own divider** (Edwin, 2026-08-13: *"should this not be shown as a not pushed commit?"*). Not a separate boundary element: git guarantees the unpushed commits are a **contiguous run at the top** — everything after `@{u}` — so marking each one produces the boundary for free, and a second mechanism drawing a line would be a thing that could disagree with the marks beneath it.
+
+The band and the marks then read as one scale, which is the point: *in flight → saved → published*, top to bottom, in the order they happen.
+
 ## Regions
 
 *(Named now so the artifact can anchor annotations to them; the artifact is [[TASK-0418]].)*
 
 - `overview-button-badge` — the count on the Overview view button, and its hover text.
 - `needs-you-row` — the git row inside the overview's leading `Needs you` group: subject, count, verb, and where it goes when clicked.
-- `history-unpushed-marker` — how the history list distinguishes published from unpublished commits.
-- `history-push-action` — the button, its label, and its three refusal states.
+- `history-unpushed-marker` — the mark an unpushed commit divider carries, and how it sits against the uncommitted band above it.
+- `history-push-action` — the button and its label. **Where it attaches is the artifact's to settle** — the topmost unpushed divider, or a small header over the run — and it is a layout question, not a design fork.
 - `no-remote-state` — the different and worse message, which must not be folded into the unpushed sentence.
+- `deploy-remote-state` — counted, named, and not offered.
 
 ## The four states, which must not collapse into two
 
 1. **Ahead, backup remote** — `N` on the badge, a row in `Needs you`, `Push N` offered in history.
-2. **Ahead, deploy remote** — counted and shown, **push refused**, and the refusal must read as a decision rather than a broken button. One fleet repo's only remote is a server path and pushing it publishes a live website. Whether this even counts as an obligation is an open question below.
+2. **Ahead, deploy remote** — **counted** (Edwin, 2026-08-13: *"deploy remote should count"*), shown, and the push **refused**, with the refusal reading as a decision rather than a broken button. One fleet repo's only remote is a server path and pushing it publishes a live website.
+
+   It counts under a **kind of its own** — `commits to deploy`, not `commits to push` — so the badge's breakdown can say `2 · commits to push, 3 · commits to deploy` rather than merging two things a person must treat differently. One number, two nouns, and the verb the row names is not one the cockpit performs: [[ADR-0027]] test 3 requires an action the cockpit can *offer **or** name*, and this is the case that clause was written for.
 3. **No remote at all** — *"nothing here is backed up"*. Worse than unpushed and deliberately its own sentence, as the current overview band already has it. Not a count; there is no number of commits that fixes it.
 4. **Unknown** — **not permitted.** [[ADR-0027]] admission test 4: absent-at-zero means unknown renders exactly like nothing-owed. This design is inert and quietly wrong until [[ISS-0156]] is fixed, which is why that fix is the first task and not a footnote.
 
@@ -64,8 +81,13 @@ Fixing the data would restore three surfaces that were already the wrong shape. 
 - **It does not add a header button beside the project name.** Considered and dropped by Edwin on 2026-08-13 in favour of this shape. Recorded because it is the obvious idea and will be re-proposed: a permanently visible publish control 22px from the settings kebab, on the one action in this app that publishes.
 - **It does not retire the Agents-screen group.** That surface answers *which of my twelve repos*, which no per-project surface can. This design answers *this project, and do it now*.
 
+## Settled 2026-08-13
+
+- **A deploy remote counts** — Edwin's call, under its own kind and its own verb. A badge that omitted it would make *nothing owed* false about a repo with a real backlog, and the alternative — one kind covering both — would merge two things a person must treat differently.
+- **An unpushed commit says so on its own divider.** Edwin: *"should this not be shown as a not pushed commit?"* The three-option question that preceded this was badly posed: because the unpushed commits are always a contiguous run, per-commit marking yields the boundary as a side effect, so there was never a real choice between marking commits and drawing a line.
+
 ## Open questions
 
-- **Is a deploy remote an obligation?** It needs a person (nobody else may push it), it has a subject, it is countable — but the verb is not `Push`; it is something closer to *deploy deliberately, elsewhere*. Counting it makes the badge include work the cockpit will not let you finish; not counting it hides a real backlog. Leaning: **count it, with its own verb**, since a badge that omits it makes "0 owed" false.
-- **Does the count survive a fleet, or only the active workspace?** The registry payload is per-sidecar, so the badge is inherently per-project. That is right for this design and leaves the fleet question where it already lives.
-- **What marks an unpushed commit in history** — a dividing line above them, a per-row mark, or a bounded group? The artifact decides; the note names the region so the decision is annotatable.
+- **Does the count survive a fleet, or only the active workspace?** The registry payload is per-sidecar, so the badge is inherently per-project. That is right for this design and leaves the fleet question where it already lives — the Agents screen.
+- **Where the push button attaches within the unpushed run** — topmost divider, or a header over the run. Layout, for the artifact.
+- **What the deploy row's verb actually reads.** It names an action performed elsewhere, and the words matter more than usual: too imperative and it looks like a button that is broken, too soft and a real backlog reads as a note.

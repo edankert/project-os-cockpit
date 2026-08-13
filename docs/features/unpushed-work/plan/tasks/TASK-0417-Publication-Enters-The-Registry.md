@@ -29,7 +29,7 @@ Both halves of this already exist. `refreshObligationBadges()` paints `.mode-bad
 - [ ] **Absent at zero, everywhere.** Nothing to publish means no badge and no row — not a zero, not an empty group.
 - [ ] The badge, the group and the landing page agree **by construction**, asserted in a test rather than checked by eye.
 - [ ] The no-remote state is expressed as itself, not as a count: *nothing here is backed up* is not `0 commits to push`.
-- [ ] The deploy-remote question from [[DES-0011]] is answered in one direction with its reasoning recorded — counted with its own verb, or excluded and the reason written down. Not left implicit in code.
+- [ ] **A deploy remote is counted, under its own kind** — `commits to deploy`, distinct from `commits to push` (Edwin, 2026-08-13). The breakdown reads both separately, the total includes both, and the deploy row **names** its action without offering it: [[ADR-0027]] test 3's *offer **or** name* clause exists for exactly this. The refusal must read as a decision, never as a control that failed.
 
 ## Steps
 

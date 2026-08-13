@@ -24,8 +24,9 @@ tests: []
 ## Definition of Done
 
 - [ ] [[DES-0011]]'s artifact exists and the design leaves `draft`. It has five declared regions and no rendering; `DESIGN-ASSET` exempts a draft and nothing else, and the design gate is [[PHASE-025]]'s.
-- [ ] History distinguishes published from unpublished commits, in both the overview tile and `~history`.
-- [ ] The push action sits with them, labelled with what it will publish.
+- [ ] **Each unpushed commit divider says it is not pushed**, in both the overview tile and `~history` — which share `fillHistory()`, so this is one change. Not a separate boundary element: the unpushed commits are a contiguous run, so per-commit marking gives the boundary for free and a second mechanism could only disagree with the marks beneath it.
+- [ ] The result reads as one ladder with the uncommitted band above it — *in flight → saved → published*, top to bottom, in the order those things happen.
+- [ ] The push action sits with the run, labelled with what it will publish. Where exactly it attaches — topmost divider or a header over the run — is the artifact's call.
 - [ ] **The deploy-remote refusal is not re-implemented.** It has one home, and the code says why: *"a second copy here is how one of them comes to disagree with the other, on the one action in this app that publishes."* This surface calls it.
 - [ ] After a successful push the surfaces go quiet together — badge, `Needs you` row, and the history marks — because they read one source, not because three code paths each remembered to clear.
 - [ ] The overview band from [[FEAT-0098]] is reconciled: kept, folded into this, or retired with the reason recorded. Two surfaces on one overview saying the same sentence is the duplication [[ISS-0068]] was about.

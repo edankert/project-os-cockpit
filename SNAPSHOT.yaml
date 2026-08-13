@@ -2595,7 +2595,7 @@ items:
       status: draft
       owner: user:edwin
       phase: "[[PHASE-030-Obligations-Go-Home]]"
-      note: "DRAFT with an empty asset:, which DESIGN-ASSET permits only for a draft — the five regions are named so the artifact can anchor annotations, and TASK-0418 builds it. Records two rejected placements (rail square, header button beside the project name) because both are the obvious idea and will be re-proposed. Four states that must not collapse into two; unknown is not one of them, by ADR-0027."
+      note: "DRAFT with an empty asset:, which DESIGN-ASSET permits only for a draft — the six regions are named so the artifact can anchor annotations, and TASK-0418 builds it. Records two rejected placements (rail square, header button beside the project name) because both are the obvious idea and will be re-proposed. Four states that must not collapse into two; unknown is not one of them, by ADR-0027. SETTLED 2026-08-13 by Edwin: a deploy remote COUNTS, under its own kind (`commits to deploy`) so the breakdown does not merge two things a person treats differently; and an unpushed commit says so on its own divider — the run is contiguous, so per-commit marking yields the boundary for free and the preceding three-option question was badly posed."
     DES-0004:
       file: "docs/designs/DES-0004-Attention-In-The-Squares.md"
       title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
