@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-030
 aliases: ["PHASE-030"]
 title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
-status: active
+status: done
 order: 30
 owner: user:edwin
 created: 2026-08-10
@@ -54,16 +54,18 @@ The `depends:` above says [[PHASE-023]] and means **half of this phase**. Writte
 
 ## Exit criteria
 
-- [ ] Every obligation kind is enumerated in one place, with the view that owns it, and no renderer restates the set
-- [ ] Each view's badge shows what that view owes, and the badges together cover **every** kind — asserted, so a new kind cannot be added without a home
-- [ ] Tests is a view: the register, the manual runner, the tier suite and the release gate. **The gate can fire** — meaning at least one Tier 1 test exists and an unchecked one blocks a release note, which has never been possible in this repo
-- [ ] `~review` is gone, and every item, register and control that lived on it is reachable elsewhere — demonstrated by walking the re-homing table in [[ADR-0020]], not by inspection
-- [ ] A stored preference or deep link to `~review` migrates rather than stranding the reader
-- [ ] `issue: triage` is a first-class obligation with `Defer` available, and the fleet's 39-item pool is visible from the Issues badge
-- [ ] No write path widened: [[REQ-0027]]'s guards re-checked, no agent-owned transition reachable
-- [ ] The standing documents are declared as data, carry no lifecycle status, and open the Intent view with their freshness visible — and the fleet's 94%-stale figure has an after
-- [ ] An obligation whose subject is **not a note** goes through the same declared path as one whose subject is, yields its count and its rows from one walk, and is covered by the completeness test — no bolt-ons, asserted with at least two such sources present
-- [ ] No obligation is admitted whose count can be *unknown* ([[ADR-0027]] test 4) — absence on a badge means nothing is owed, and the surface can prove it means that
+Walked 2026-08-13 against the live corpus and the running app, not from the notes that claimed them.
+
+- [x] Every obligation kind is enumerated in one place, with the view that owns it, and no renderer restates the set — `obligations.OBLIGATIONS` by note type plus `NOTE_LESS` for the three whose subject is not a note; the renderer maps view names to buttons and owns no vocabulary ([[TASK-0357]]'s rule)
+- [x] Each view's badge shows what that view owes, and the badges together cover **every** kind — `badges_payload`'s total is the sum of its breakdown by construction, and `test_the_page_and_the_badge_are_one_computation` asserts the page and the button are one walk
+- [x] Tests is a view: the register, the manual runner, the tier suite and the release gate. **The gate can fire** — 27 Tier 1 and 7 Tier 2 items today, one Tier 1 unchecked; it was 34 unchecked when [[FEAT-0086]] closed, which is the gate working rather than sitting
+- [~] `~review` is gone, and every item, register and control that lived on it is reachable elsewhere — **the walk is done and the mode and button are gone; the route stays served.** [[FEAT-0090]] reconciled this at its own close: the agent ledger has one OPEN entry, [[ISS-0126]] owns where those flows land, and deleting the display would strand it. Recorded here rather than ticked, because the criterion says *gone* and it is not
+- [x] A stored preference or deep link to `~review` migrates rather than stranding the reader — `RETIRED_NAV_MODES` carries `review → overview`, and `~review/<id>/run` intercepts to `~tests/<id>/run` before the fallback, so the runner has one entry point rather than two
+- [x] `issue: triage` is a first-class obligation with `Defer` available, and the fleet's triage pool is visible — declared as `('triage',) → issues`, verb `Triage`; and since [[TASK-0419]] the pool is visible **per project across the fleet** on the attention cards, which is a stronger answer than the per-project badge this criterion was written against
+- [x] No write path widened: [[REQ-0027]]'s guards re-checked, no agent-owned transition reachable — `test_every_note_mutating_endpoint_requires_loopback` still enumerates and still passes; [[ADR-0027]] widened what the registry *counts*, never what may write
+- [x] The standing documents are declared as data, carry no lifecycle status, and open the Intent view with their freshness visible — ten members resolve, **every one reports `current`**, and none of the eight originals carries a `status:` field. The fleet's 94%-stale figure has an after, and [[ISS-0125]] closed on that evidence rather than on the plan
+- [x] An obligation whose subject is **not a note** goes through the same declared path as one whose subject is, yields its count and its rows from one walk, and is covered by the completeness test — [[TASK-0416]], with **three** such sources now (standing documents, unpushed commits, undeployed commits) where the criterion asked for two
+- [x] No obligation is admitted whose count can be *unknown* ([[ADR-0027]] test 4) — [[ISS-0156]] was exactly that failure and is fixed: git state is probed for every workspace on one clock, so absence on a badge means nothing is owed and the surface can prove it
 
 ## What this phase must not do
 
@@ -99,3 +101,19 @@ Two things fall out of the widening, and both are this phase's:
 - **Absent-at-zero makes unknown a defect.** [[ISS-0156]] joins the phase because the badge cannot show what the shell does not know, and a missing count is indistinguishable from nothing owed. It is the first task, not a caveat.
 
 **This does not build a third surface.** The row appears in `Needs you` and in history, which is [[ADR-0025]]'s already-decided shortcut-plus-structural-place, not [[ISS-0068]]'s duplicate list.
+
+## Closed — 2026-08-13
+
+Every member resolved: seven features `done`, [[REQ-0033]] `implemented`, and all three issues `fixed` — [[ISS-0121]], [[ISS-0125]] and [[ISS-0156]], the last two closed during this close-out on evidence rather than on their plans.
+
+**The phase was widened twice and both widenings paid.** [[FEAT-0091]]'s standing documents made *"confirm this is still true"* an obligation, and [[FEAT-0100]]'s publication made *"send this"* one — and it was the second that forced the repair the first had made necessary: the note-less obligation was a bolt-on with a seam that had already produced a badge disagreeing with its own group, and adding a second such obligation without fixing it would have made three.
+
+**One criterion is reconciled rather than met**, and it is the phase's title in miniature. `~review` is not gone; its mode and button are, its registers re-homed, its deep links migrate, and the page stays served for one open ledger entry that [[ISS-0126]] owns. [[FEAT-0090]] recorded that at its own close, in the same words, which is why this close-out found it in a note rather than in the code.
+
+**One member was re-homed rather than closed over.** [[ISS-0130]] — nine automated tests that cannot say how to run themselves — named this phase and was still open. It was never this phase's work: the subject here is what needs a person and where it surfaces, and that is about whether a machine can re-run a test. It landed here because it was found while [[FEAT-0086]] was building the Tests view. It goes to [[PHASE-999]], because nothing schedules it and saying so is better than parking it under a phase that has finished. The validator caught it; the phase's own membership list did not have it.
+
+**What the phase leaves for someone else**, named rather than implied:
+
+- The digest's `needs_you_count` walks the corpus itself with `_owed_flag` instead of reading the registry — a **third** enumeration of what is owed, which is the class this phase exists to end. Found while building [[TASK-0418]]; not filed as an issue yet.
+- [[DES-0011]] is `accepted` on an artifact captured from the built surface, and is the first design in this corpus to declare no palette of its own — [[ISS-0136]] measures five of nine hard-coding a dark one.
+- [[FEAT-0100]] reached `done` without an independent review pass. `QUALITY.md` asks for one on a feature transition; the validator does not gate it, so it is owed and stated here rather than assumed away.

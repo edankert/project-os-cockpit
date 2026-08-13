@@ -3,8 +3,8 @@ type: "[[issue]]"
 id: ISS-0125
 aliases: ["ISS-0125"]
 title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — 94% of them are stale fleet-wide, and a style guide has been `active` for six months"
-status: triage
-phase: ""
+status: fixed
+phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-10
 updated: 2026-08-10
@@ -96,3 +96,16 @@ So the documents describing what the project **is** are the ones a reader cannot
 - [ ] Fix `PHASES.md` — it has no frontmatter and claims to be *"consumed by Bases / dashboards"*, which the dashboard removal makes false
 - [ ] Fix the two stale `updated:` dates — `GLOSSARY.md` and `ARCHITECTURE.md` were both edited long after the date they claim
 - [ ] Consider proposing upstream: this is a template-owned taxonomy question, and every project-os repo has the same eight documents
+
+## Fixed — 2026-08-13, by [[FEAT-0091]]
+
+Every action above is satisfied, and the evidence is the corpus rather than the plan:
+
+- **The class is named and carried as data.** `standing.manifest` declares ten members; `standing.entries()` resolves each one. Not a new note type — [[ADR-0022]] upstream (*conventions before types*), of which rule-ADRs were the second application.
+- **The status question is answered by removal.** None of `README`, `INDEX`, `ARCHITECTURE`, `GLOSSARY`, `OWNERSHIP`, `DESIGN`, `STYLEGUIDE`, `PHASES` carries a `status:` field. A document with no lifecycle now says nothing about one, which was the honest option this issue identified.
+- **They reach a surface.** The Intent view opens on the standing set, and staleness is an obligation the registry counts — the answer to *"give them a home in the projects and not in the library section"*.
+- **`DASHBOARD.md` is removed**, as decided.
+- **`PHASES.md` has frontmatter.**
+- **Every member reports `current`** as of today: the first time the freshness check has been silent, against the 94%-stale figure this issue measured fleet-wide.
+
+The two members that live beside the docs tree rather than inside it — `LLM_BRIEF.md` and `SECURITY.md` — arrived through the same manifest and route through `~root/`, which is the extension [[FEAT-0091]] built and this issue did not anticipate.

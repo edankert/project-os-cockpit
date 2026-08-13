@@ -3,13 +3,13 @@ type: "[[design]]"
 id: DES-0011
 aliases: ["DES-0011"]
 title: "Publication is an obligation — unpushed work joins Needs you, the push lives with the commits, and the overview button carries the number"
-status: draft
+status: accepted
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13
 source: ["Edwin 2026-08-13: 'let's add the git status to the needs you section instead and have the actual push solution in the overview history. Can we then have an indication of having to push using a number on the overview icon?'"]
-asset: ""
+asset: "DES-0011-publication-is-an-obligation.html"
 implements: ["[[FEAT-0100-Unpushed-Work-Needs-A-Person]]", "[[PHASE-030-Obligations-Go-Home]]"]
 supersedes: ""
 superseded_by: ""
@@ -21,7 +21,7 @@ related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Ob
 
 # Publication is an obligation
 
-> **Draft, and it must stay draft until its artifact exists.** `DESIGN-ASSET` exempts a draft from declaring an artifact, which is the only reason this note validates with an empty `asset:`. A design offered for review renders; this one does not yet. That is [[TASK-0418]], and until it is done this note cannot leave `draft` honestly.
+> **Accepted 2026-08-13, on the built surface.** Edwin, using it: *"I like the history functionality now, do not change."* The artifact beside this note is not a drawing — every element in it is markup the shipped builders emitted, captured from the running app, wearing the implementation's own `renderer.css` through `/_shell/`. That was the route chosen deliberately over mocking it first, and it is why this note could honestly stay `draft` until the thing existed.
 
 ## Problem
 

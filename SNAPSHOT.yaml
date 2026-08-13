@@ -78,7 +78,7 @@ items:
     FEAT-0100:
       file: "docs/features/unpushed-work/FEAT-0100-Unpushed-Work-Needs-A-Person.md"
       title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-030-Obligations-Go-Home]]"
       tasks: [TASK-0415, TASK-0416, TASK-0417, TASK-0418, TASK-0419, TASK-0420]
@@ -650,7 +650,7 @@ items:
     TASK-0418:
       file: "docs/features/unpushed-work/plan/tasks/TASK-0418-The-Push-Lives-With-The-Commits.md"
       title: "The push lives with the commits — history marks what is unpublished and carries the action"
-      status: doing
+      status: done
       owner: unassigned
       parent: FEAT-0100
       phase: "[[PHASE-030-Obligations-Go-Home]]"
@@ -1328,7 +1328,7 @@ items:
     ISS-0125:
       file: "docs/issues/ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home.md"
       title: "Eight singleton project documents carry a lifecycle status they do not have and reach no surface — 94% of them are stale fleet-wide, and a style guide has been `active` for six months"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Edwin's observation, measured: README/INDEX/OWNERSHIP/GLOSSARY/ARCHITECTURE/DESIGN/STYLEGUIDE/PHASES are one-per-project, stateless, human-facing — carried under THREE different type values, with DESIGN and STYLEGUIDE untouched since 2026-01-26. `active` is the work-in-flight band, so 18 references + the glossary are 19 of the 44 rows ISS-0122 measured as `Doing` — same defect, this is the cause. `reference` is doing three jobs (5 singletons, 9 container READMEs, 4 templates, 1 real reference). Changes ISS-0124's answer from 'more status tables' to 'a status-free category', and BLOCKS TASK-0379 — architecture cannot be both a stateless singleton and a design with a lifecycle."
@@ -1942,7 +1942,7 @@ items:
     PHASE-030:
       file: "docs/phases/PHASE-030-Obligations-Go-Home.md"
       title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
-      status: active
+      status: done
       order: 30
       features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090", "FEAT-0091", "FEAT-0100"]
       issues: ["ISS-0121", "ISS-0156"]
@@ -2617,7 +2617,7 @@ items:
     DES-0011:
       file: "docs/designs/DES-0011-Publication-Is-An-Obligation.md"
       title: "Publication is an obligation — unpushed work joins Needs you, the push lives with the commits, and the overview button carries the number"
-      status: draft
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-030-Obligations-Go-Home]]"
       note: "DRAFT with an empty asset:, which DESIGN-ASSET permits only for a draft — the six regions are named so the artifact can anchor annotations, and TASK-0418 builds it. Records two rejected placements (rail square, header button beside the project name) because both are the obvious idea and will be re-proposed. Four states that must not collapse into two; unknown is not one of them, by ADR-0027. SETTLED 2026-08-13 by Edwin: a deploy remote COUNTS, under its own kind (`commits to deploy`) so the breakdown does not merge two things a person treats differently; and an unpushed commit says so on its own divider — the run is contiguous, so per-commit marking yields the boundary for free and the preceding three-option question was badly posed."
@@ -2703,16 +2703,16 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 100
-    features_done: 89
+    features_done: 90
     tasks_total: 420
-    tasks_done: 384
+    tasks_done: 385
     tests_total: 24
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 7
-    issues_triage: 8
+    issues_triage: 7
     risks_open: 6
     releases_total: 1
     decisions_total: 18

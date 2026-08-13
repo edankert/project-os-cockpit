@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<meta charset="utf-8">
+<title>DES-0011 — Publication is an obligation</title>
+
+<!-- The implementation's own stylesheet, not a copy of its palette.
+     TASK-0227 built this route so an artifact can show REAL widgets; every
+     mark below is markup the shipped builders emitted, captured from the
+     running app rather than drawn. That also sidesteps ISS-0136 — five of nine
+     committed artifacts hard-code a dark palette and therefore lie in light
+     mode — because there is no palette here to hard-code.
+
+     Absent in mode 1 (no Electron build), which is a normal state rather than
+     a fault, so the page says so instead of rendering unstyled markup that
+     would read as a design regression. -->
+<link rel="stylesheet" href="/_shell/renderer.css" id="shell-css" />
+
+<style>
+  body { margin: 0; padding: 28px 32px 60px; background: var(--bg); color: var(--text);
+         font: 13px/1.5 ui-sans-serif, -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--text-faint); margin: 0 0 26px; font-size: 12px; }
+  section.region { margin: 0 0 30px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+       color: var(--text-faint); margin: 0 0 8px; font-weight: 700; }
+  .why { color: var(--text-muted); font-size: 12px; margin: 6px 0 12px; max-width: 60em; }
+  .stage { border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+           background: var(--bg-elevated); }
+  .stage.rail { max-width: 320px; }
+  .miss { display: none; border: 1px solid var(--status-blocked); border-radius: 8px;
+          padding: 12px 14px; margin-bottom: 22px; color: var(--status-blocked); }
+</style>
+
+<h1>Publication is an obligation</h1>
+<p class="sub">DES-0011 · captured from the built surface, 2026-08-13 · every element below is
+   markup the shipped builders emitted</p>
+
+<div class="miss" id="no-shell">
+  <strong>The shell stylesheet did not load.</strong> This artifact wears the implementation's
+  own <code>renderer.css</code> through <code>/_shell/</code>, which exists only when the
+  desktop build is present. What you are seeing is unstyled markup, not a design regression.
+</div>
+
+<section class="region" data-design-region="overview-button-badge">
+  <h2>overview-button-badge</h2>
+  <p class="why">The count, on the view button that already carries every other kind. No new UI:
+     registering the obligation made this appear. Its hover names the kind from the registry's own
+     vocabulary — <em>11 commits to push</em>, never “11 items here need a person”.</p>
+  <div class="stage">
+    <button type="button" class="top-bar-btn active" data-mode="overview" title="Overview
+11 commits to push" role="tab" aria-label="Overview — 11 commits to push"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="20" y2="10"></line><line x1="18" x2="18" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="16"></line></svg><span class="mode-badge">11</span></button>
+  </div>
+</section>
+
+<section class="region" data-design-region="needs-you-row">
+  <h2>needs-you-row</h2>
+  <p class="why">One card per project. The headline is always the agent — what it is doing and for
+     how long — because that is the liveliest fact and the owed count says itself on the line below.
+     The git line carries both rungs of the ladder: work in flight in amber, work saved but not sent
+     in red, separated by the dot the two lines above already use. No push button here; it lives
+     with the commits. The ✕ is keyed on a fingerprint of everything shown, so the card returns when
+     anything in the project changes.</p>
+  <div class="stage rail">
+    <div class="ws-attention-row kind-record agent-busy"><button type="button" class="ws-attention-main" title="Review"><span class="ws-attention-dot"></span><span class="ws-attention-body"><span class="ws-attention-name">project-os-cockpit</span><span class="ws-attention-msg">working… · &lt;1 min</span><span class="ws-attention-since">since 13m ago · 1 transition · 13 need you</span><span class="ws-attention-git"><span class="ws-attention-dirty">2 not committed</span><span class="ws-attention-publish">11 commits not pushed</span></span></span></button><button type="button" class="ws-attention-dismiss" title="Dismiss" aria-label="Dismiss project-os-cockpit">✕</button></div>
+    <div class="ws-attention-row kind-publish"><button type="button" class="ws-attention-main" title="Open the history and see what is unpublished"><span class="ws-attention-dot"></span><span class="ws-attention-body"><span class="ws-attention-name">Your Trainer</span><span class="ws-attention-msg">idle · 7d 1h</span><span class="ws-attention-git"><span class="ws-attention-dirty">23 not committed</span></span></span></button><button type="button" class="ws-attention-dismiss" title="Dismiss" aria-label="Dismiss Your Trainer">✕</button></div>
+  </div>
+</section>
+
+<section class="region" data-design-region="history-unpushed-marker">
+  <h2>history-unpushed-marker</h2>
+  <p class="why">A bounded block, in the red the retired FEAT-0098 band wore, enclosing the header,
+     the unpublished commits <em>and</em> their transition rows. Membership in the box is the mark,
+     so nothing can disagree about where the run ends — and the run is contiguous by construction,
+     everything after <code>@{u}</code>.</p>
+  <div class="stage">
+    <section class="ov-history-unpublished kind-backup"><div class="ov-history-unpublished-head"><span class="ov-history-unpublished-label">11 commits not pushed</span><span class="ov-history-unpublished-more">6 shown</span><button type="button" class="ov-history-push" title="Publish 11 commits from project-os-cockpit">Push 11</button></div><div class="ov-history-divider is-unpublished" data-date="2026-08-13"><span class="ov-history-date mono">08-13</span><span class="ov-history-sha mono">8865901</span><span class="ov-history-subject">DES-0011 FEAT-0100 TASK-0417 …: close-out on Edwin's word</span></div><div class="ov-history-divider is-unpublished" data-date="2026-08-13"><span class="ov-history-date mono">08-13</span><span class="ov-history-sha mono">e44da54</span><span class="ov-history-subject">ISS-0157 TASK-0418: three things Edwin asked for</span></div></section>
+  </div>
+</section>
+
+<section class="region" data-design-region="history-push-action">
+  <h2>history-push-action</h2>
+  <p class="why">Filled rather than a faint outline, because it is the one control on this surface
+     that publishes. Its label is the true total, not the number of commits this window happens to
+     have loaded — that distinction was a live defect: the header said 6 over a button that would
+     have pushed 7.</p>
+  <div class="stage">
+    <button type="button" class="ov-history-push" title="Publish 11 commits from project-os-cockpit">Push 11</button>
+  </div>
+</section>
+
+<section class="region" data-design-region="deploy-remote-state">
+  <h2>deploy-remote-state</h2>
+  <p class="why">Counted, named, and never offered. One fleet repo's only remote is a server path
+     and pushing it publishes a live website, so the refusal reads as a decision rather than a
+     control that broke. The verb differs from the pushable case because the act does.</p>
+  <div class="stage">
+    <section class="ov-history-unpublished kind-deploy"><div class="ov-history-unpublished-head"><span class="ov-history-unpublished-label">34 commits not deployed</span><span class="ov-history-unpublished-more">6 shown</span><button type="button" class="ov-history-push" disabled title="This repo’s remote is a deployment target, not a backup. Pushing it would publish a running site, so it is never offered here.">deploy remote</button></div></section>
+  </div>
+</section>
+
+<section class="region" data-design-region="no-remote-state">
+  <h2>no-remote-state</h2>
+  <p class="why">The same slot, because two places for one subject is the thing that gets answered
+     twice and then differently. Not a count — no number of commits fixes having nowhere to send
+     them, and zero would say the opposite.</p>
+  <div class="stage">
+    <section class="ov-history-unpublished kind-none"><div class="ov-history-unpublished-head"><span class="ov-history-unpublished-label">No remote — nothing here is backed up</span></div></section>
+  </div>
+</section>
+
+<script>
+  // Say it plainly when the implementation's stylesheet is absent, rather than
+  // letting unstyled markup read as a regression.
+  const sheet = document.getElementById('shell-css');
+  const loaded = [...document.styleSheets].some((s) => (s.href || '').includes('/_shell/'));
+  if (!loaded) document.getElementById('no-shell').style.display = 'block';
+</script>
+</html>

@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0418
 aliases: ["TASK-0418"]
 title: "The push lives with the commits — history marks what is unpublished and carries the action"
-status: doing
+status: done
 owner: unassigned
 created: 2026-08-13
 updated: 2026-08-13
@@ -38,12 +38,12 @@ The concern that made me discount it — *"that panel is agent-state driven; fol
 
 ## Definition of Done
 
-- [ ] [[DES-0011]]'s artifact exists and the design leaves `draft` — **captured from the built surface** via `POST /api/design/capture`, not drawn in advance (Edwin, 2026-08-13: *"probably easier to build it and we can change then"*). `DESIGN-ASSET` exempts a draft and nothing else, and `DESIGN-GATE` fires only past the pending band, so the order is legal; the capture endpoint exists for exactly this iterate-then-deposit shape.
-- [ ] **Each unpushed commit divider says it is not pushed**, in both the overview tile and `~history` — which share `fillHistory()`, so this is one change. Not a separate boundary element: the unpushed commits are a contiguous run, so per-commit marking gives the boundary for free and a second mechanism could only disagree with the marks beneath it.
-- [ ] The result reads as one ladder with the uncommitted band above it — *in flight → saved → published*, top to bottom, in the order those things happen.
-- [ ] The push action sits with the run, labelled with what it will publish. Where exactly it attaches — topmost divider or a header over the run — is the artifact's call.
-- [ ] **The deploy-remote refusal is not re-implemented.** It has one home, and the code says why: *"a second copy here is how one of them comes to disagree with the other, on the one action in this app that publishes."* This surface calls it.
-- [ ] After a successful push the surfaces go quiet together — badge, `Needs you` row, and the history marks — because they read one source, not because three code paths each remembered to clear.
+- [x] [[DES-0011]]'s artifact exists and the design leaves `draft` — **captured from the built surface** via `POST /api/design/capture`, not drawn in advance (Edwin, 2026-08-13: *"probably easier to build it and we can change then"*). `DESIGN-ASSET` exempts a draft and nothing else, and `DESIGN-GATE` fires only past the pending band, so the order is legal; the capture endpoint exists for exactly this iterate-then-deposit shape.
+- [x] **Each unpushed commit divider says it is not pushed**, in both the overview tile and `~history` — which share `fillHistory()`, so this is one change. Not a separate boundary element: the unpushed commits are a contiguous run, so per-commit marking gives the boundary for free and a second mechanism could only disagree with the marks beneath it.
+- [x] The result reads as one ladder with the uncommitted band above it — *in flight → saved → published*, top to bottom, in the order those things happen.
+- [x] The push action sits with the run, labelled with what it will publish. Where exactly it attaches — topmost divider or a header over the run — is the artifact's call.
+- [x] **The deploy-remote refusal is not re-implemented.** It has one home, and the code says why: *"a second copy here is how one of them comes to disagree with the other, on the one action in this app that publishes."* This surface calls it.
+- [x] After a successful push the surfaces go quiet together — badge, `Needs you` row, and the history marks — because they read one source, not because three code paths each remembered to clear.
 - [x] **The [[FEAT-0098]] band is narrowed, not retired.** Built and looked at, the duplication was immediate and literal: *"7 commits not pushed"* twice on one page, with two Push buttons. The unpushed half is History's now — the obligation surfaces where its subject lives ([[ADR-0020]]) — and the cross-workspace shortcut is the attention card.
 
   What stays is the half with **no subject to live with**: a repo with no remote has no unpublished commits to mark, because there is nowhere for them to be unpublished *to*. It is also the worse fact, and no count says it — zero would say the opposite.
@@ -72,8 +72,16 @@ A consequence worth noting: a repo with **no remote** and work in flight now ear
 
 ## Steps
 
-- [ ] Implement the attention-panel card (the `Needs you` half Edwin asked for).
-- [ ] Implement the marking and the action in History, calling the existing guard.
-- [ ] Decide the band's fate and record it.
+- [x] Implement the attention-panel card (the `Needs you` half Edwin asked for).
+- [x] Implement the marking and the action in History, calling the existing guard.
+- [x] Decide the band's fate and record it.
 - [~] **The History tile stays a card.** Declined by Edwin on 2026-08-13 after using it: *"I like the history functionality now, do not change."* Recorded rather than dropped — it was his own suggestion, and the next person to look at that tile should find the answer rather than the question.
-- [ ] Build the artifact against the six regions; take annotations on it. **The only thing this task still owes** — the behaviour is accepted, so what remains is depositing the built surface as [[DES-0011]]'s artifact so the design can leave `draft`.
+- [x] Build the artifact against the six regions. **Captured, not drawn** — the behaviour is accepted, so what remains is depositing the built surface as [[DES-0011]]'s artifact so the design can leave `draft`.
+
+## Closed — 2026-08-13
+
+The artifact is `DES-0011-publication-is-an-obligation.html`, and it is the built surface rather than a picture of one: every element in it is markup the shipped builders emitted, pulled out of the running app, wearing the implementation's own `renderer.css` through `/_shell/`. Six regions, all anchorable; served and styled, checked rather than assumed.
+
+It also declares **no palette of its own**, which is the first artifact in this corpus not to — [[ISS-0136]] measured five of nine hard-coding a dark one, so they lie in light mode. There is nothing here to drift.
+
+**After the push, all three surfaces went quiet together** — badge, card and History block — because they read one source, which was the acceptance criterion that mattered most.

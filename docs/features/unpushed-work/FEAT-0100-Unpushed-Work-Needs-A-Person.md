@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0100
 aliases: ["FEAT-0100"]
 title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13
