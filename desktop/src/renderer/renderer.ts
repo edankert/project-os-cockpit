@@ -192,7 +192,11 @@ declare const FitAddon: { FitAddon: new () => XtermFitAddon };
 
 interface XtermTerminal {
   open(elem: HTMLElement): void;
-  write(data: string | Uint8Array): void;
+  /** `callback` fires once the parser has consumed the data — needed to know
+   *  when a backlog replay has finished, so xterm's mouth can be unmuted at
+   *  the right moment (ISS-0161). This declaration is a hand-written subset of
+   *  xterm's API; the callback has always existed upstream. */
+  write(data: string | Uint8Array, callback?: () => void): void;
   loadAddon(addon: unknown): void;
   onData(cb: (data: string) => void): void;
   onResize(cb: (size: { cols: number; rows: number }) => void): void;
@@ -2609,6 +2613,14 @@ function ensureXterm(): void {
   new ResizeObserver(refit).observe(terminalMount);
 
   term.onData((data) => {
+    // Nothing xterm generates during a backlog replay may reach the PTY
+    // (ISS-0161). The backlog contains the app's original capability queries —
+    // Device Attributes, DSR, OSC colour — and replaying them makes xterm
+    // ANSWER them again, into whatever is running now. A shell that never
+    // asked reads `ESC [ ? 1 ; 2 c` as ESC followed by letters, and zsh's vi
+    // keymap goes to command mode: `k` is up, `g` is top, `l` is right, and
+    // Enter is the way out. Which is exactly what was reported, key for key.
+    if (suppressTerminalWrites) return;
     if (attachedTerminalId) cockpitApi.terminal.write(attachedTerminalId, data);
   });
   term.onResize(({ cols, rows }) => {
@@ -2681,17 +2693,18 @@ function copyTerminalSelection(): void {
 
 // Attach the xterm to a workspace's PTY: spawn it if not yet alive,
 // otherwise replay the backlog so the screen resumes in-place.
-// Per-workspace mouse-tracking mode (ISS-0016). One xterm is shared across
-// workspaces; switching calls term.reset(), which wipes the app's mouse-
-// tracking mode, and the raw backlog can't restore it (the enable sequence
-// predates the ring buffer). We snapshot the mode when leaving a workspace
-// and re-assert it on return so wheel forwarding to a TUI (e.g. Claude Code)
-// resumes immediately instead of waiting — maybe forever — for the app to
-// redraw. A plain shell stays 'none', so its native scrollback still works.
-const workspaceMouseMode = new Map<string, string>();
-const MOUSE_TRACK_DECSET: Record<string, string> = {
-  x10: '9', vt200: '1000', drag: '1002', any: '1003',
-};
+
+// ----- Mouse tracking is the app's business (ISS-0160) ------------------
+//
+// A per-workspace snapshot of xterm's mouse-tracking mode lived here, and was
+// re-asserted on return so wheel forwarding resumed immediately (ISS-0016)
+// rather than waiting — maybe forever — for the app to redraw.
+//
+// Both are gone. Re-asserting a mode the app may have left typed escape
+// sequences into the PTY on every mouse movement, and the snapshot existed
+// only to feed the re-assert: once that went, the map was written on every
+// switch and read by nothing. Dead state that still looks purposeful is the
+// expensive kind (ISS-0139), so it goes with the code that needed it.
 
 /** Bumped on every attach, so a call that finishes late can tell it has been
  *  overtaken (ISS-0154). `attachedTerminalId` is set synchronously and the
@@ -2699,16 +2712,19 @@ const MOUSE_TRACK_DECSET: Record<string, string> = {
  *  now showing A — the "stale completion replays data" the issue predicted. */
 let terminalAttachGeneration = 0;
 
+/** True while a backlog is being replayed into xterm.
+ *
+ *  Suppressing at the DATA boundary rather than filtering the backlog is
+ *  deliberate: it catches every reply-provoking sequence, including the ones
+ *  nobody has thought of. A filter would need a list, and the list would be
+ *  wrong the first time a terminal gains a new query. */
+let suppressTerminalWrites = false;
+
 async function attachTerminalTo(workspaceId: string): Promise<void> {
   ensureXterm();
   if (!term) return;
   if (attachedTerminalId === workspaceId) return;
   const generation = ++terminalAttachGeneration;
-  // Snapshot the mouse-tracking mode of the workspace we're leaving, before
-  // reset() wipes it, so we can restore it when the user comes back.
-  if (attachedTerminalId) {
-    workspaceMouseMode.set(attachedTerminalId, term.modes?.mouseTrackingMode || 'none');
-  }
   attachedTerminalId = workspaceId;
   term.reset();
   const cwd = workspaces.find((w) => w.id === workspaceId)?.root;
@@ -2730,18 +2746,43 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   // Overtaken while the backlog was in flight: writing it now would paint one
   // workspace's scrollback into another's terminal.
   if (generation !== terminalAttachGeneration) return;
-  if (res.ok && res.backlog) term.write(res.backlog);
-  // Restore this workspace's mouse-tracking mode (ISS-0016). reset() above
-  // wiped it; re-assert it (with SGR encoding, which modern TUIs use) so
-  // xterm resumes forwarding wheel events to the app and scrolling works
-  // immediately. Written to xterm only — it changes xterm's mode, not the
-  // PTY. Skipped for 'none' (plain shells keep native scrollback scroll).
-  // Known limitation: if the app exited to a plain shell in this same PTY
-  // while we were detached, we'll briefly re-assert the stale tracking mode
-  // until the next redraw disables it — recoverable, and rare.
-  const savedMode = workspaceMouseMode.get(workspaceId);
-  const decset = savedMode ? MOUSE_TRACK_DECSET[savedMode] : undefined;
-  if (decset) term.write(`\x1b[?${decset}h\x1b[?1006h`);
+  if (res.ok && res.backlog) {
+    // Replay with xterm's mouth shut (ISS-0161). The keystrokes a user manages
+    // to type inside this window are lost, which is milliseconds and is the
+    // right trade against injecting an ESC into their shell.
+    suppressTerminalWrites = true;
+    await new Promise<void>((resolve) => {
+      term?.write(res.backlog, () => resolve());
+    });
+    // One frame beyond the parser's callback: a reply can be emitted from the
+    // tail of the parse, and clearing on the same tick would let it through.
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    suppressTerminalWrites = false;
+    if (generation !== terminalAttachGeneration) return;
+  }
+  // **The mouse mode is NOT re-asserted** (ISS-0160). ISS-0016 restored it
+  // here so wheel scrolling survived a switch, and accepted a limitation in
+  // writing: *"if the app exited to a plain shell in this same PTY while we
+  // were detached, we'll briefly re-assert the stale tracking mode until the
+  // next redraw disables it — recoverable, and rare."*
+  //
+  // It was neither. At mode `any` (DEC 1003, report every motion) xterm writes
+  // `\e[<35;col;row M` into the PTY on every mouse movement across the pane —
+  // measured at 84 such sequences in one recorded session. An app no longer in
+  // mouse mode does not see a mouse report; it sees ESC and then letters, and
+  // an ESC into a vi-mode readline or a TUI switches it to command mode. That
+  // is why `g` and `l` stopped being letters while the arrow keys still worked.
+  //
+  // So the app re-enables its own mouse mode, which is the only party that
+  // knows whether it wants one. What makes that safe now and unsafe then is
+  // ISS-0154's repair: every attach goes through `attachAndFocusTerminal`,
+  // which forces a genuine SIGWINCH *after* the attach completes, where
+  // ISS-0016's resize raced ahead of the reset and the redraw could not be
+  // relied on.
+  //
+  // The trade, stated: an app that does not re-enable on redraw leaves wheel
+  // scrolling asleep until it does. That is better than a terminal which
+  // silently retypes your mouse movements into a running agent.
   // Re-send our current geometry; main may have lost track if the
   // window resized while detached.
   cockpitApi.terminal.resize(workspaceId, term.cols, term.rows);
@@ -2801,7 +2842,6 @@ async function restartTerminal(): Promise<void> {
   )) return;
   await cockpitApi.terminal.dispose(wsId);
   liveTerminals.delete(wsId);
-  workspaceMouseMode.delete(wsId);
   attachedTerminalId = null;
   term.reset();
   await attachAndFocusTerminal(wsId);

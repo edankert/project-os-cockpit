@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0123
 aliases: ["ISS-0123"]
 title: "ADR-0011 is cited in 26 files and ADR-0013 in 22, and neither note exists in this repo or upstream — the upstream decision namespace is quoted but unresolvable"
-status: triage
+status: "fixed"
 phase: ""
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: "2026-08-13"
 source: ["Session 2026-08-10: allocating an ID for [[ADR-0020-Obligations-Live-With-Their-Subject]] surfaced the collision"]
 severity: medium
 component: "docs-namespace"
@@ -104,3 +104,11 @@ The other half still stands: a line in `CONTEXT.md` naming where the upstream na
 ### And ADR-0011 had already asked the question this repo answered
 
 Its consequences include: *"REVIEW is the hardest case … it is either wired into close-out so it does run, or its scope narrows."* [[ADR-0023]] answered that here on 2026-08-11 without knowing the question had been asked upstream a year earlier; [[ADR-0019]] in `project-os-dev` now answers it there, and the template's `QUALITY.md` and `REVIEW_SETTLED_STATUSES` carry it. **The downstream decision was right and was made blind** — which is exactly what an unreachable citation costs.
+
+## Closed — 2026-08-13: the premise is no longer true, and the remainder has a home
+
+**Both notes exist.** `ADR-0011-No-Permanent-Warning-Tier` and `ADR-0013-Independence-Is-Clean-Context` are in `~/Dev/repos/project-os-dev/docs/decisions/`, with fifteen siblings. [[ADR-0023]] recorded that correction on 2026-08-12 in passing — *"Corrected 2026-08-12: it exists"* — and this note was never updated, which is its own small instance of the problem it describes.
+
+What survives is **reachability**, not absence: 45 files here cite decisions that live in another repo, and nothing in this tool can resolve them. That is [[ISS-0148]]'s subject exactly — *"a note in another project cannot be referenced"* — and it carries the same 47-citation measurement.
+
+Closed rather than left open beside it: two notes on one problem is how the second one goes unread, and ISS-0148 is the one whose title names the thing that needs building.

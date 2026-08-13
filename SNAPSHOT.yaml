@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 159
+  ISS: 161
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -1222,6 +1222,24 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0161:
+      file: "docs/issues/ISS-0161-The-Backlog-Replay-Makes-Xterm-Answer-Questions-Nobody-Asked.md"
+      title: "Replaying the backlog makes xterm answer capability queries into the live shell, and zsh reads the reply as ESC — the keymap goes vi and `k` becomes up"
+      status: fixed
+      owner: user:edwin
+      severity: high
+      component: desktop-terminal
+      related: [ISS-0154, ISS-0160, ISS-0016, FEAT-0003]
+      note: "The actual cause of 'the CLI takes no input'. It always took it: tmux had every keystroke, and zsh was in vi command mode because the replay made xterm re-answer the app's capability queries into a shell that never asked. Fixed by muting xterm for the replay's duration at the data boundary, not by filtering sequences. Records three wrong turns, including three probes whose interceptor was silently frozen by contextBridge and whose silence was read as evidence."
+    ISS-0160:
+      file: "docs/issues/ISS-0160-A-Stale-Mouse-Mode-Types-Escape-Sequences-Into-The-CLI.md"
+      title: "A re-asserted mouse mode types escape sequences into the CLI on every mouse movement — the agent goes modal and `g` and `l` stop being letters"
+      status: fixed
+      owner: user:edwin
+      severity: high
+      component: desktop-terminal
+      related: [ISS-0016, ISS-0154, FEAT-0003]
+      note: "The defect UNDERNEATH ISS-0154, and the reason its symptom survived that fix: keystrokes were arriving all along and being interpreted, because mouse motion had put the app into command mode. ISS-0016 accepted this in writing as 'recoverable, and rare'; measured at 84 motion sequences in one session. Option 1 taken — the app re-enables its own mouse mode on redraw, which is only safe because ISS-0154's repair forces the SIGWINCH after the attach where ISS-0016's raced ahead of the reset."
     ISS-0159:
       file: "docs/issues/ISS-0159-The-Digest-Walks-The-Corpus-Instead-Of-Reading-The-Registry.md"
       title: "The digest counts what needs you with its own walk, so it cannot see an obligation whose subject is not a note — measured 13 against the registry's 14"
@@ -1351,7 +1369,7 @@ items:
     ISS-0123:
       file: "docs/issues/ISS-0123-Upstream-ADR-Namespace-Is-Cited-But-Absent.md"
       title: "ADR-0011 is cited in 26 files and ADR-0013 in 22, and neither note exists in this repo or upstream — the upstream decision namespace is quoted but unresolvable"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Surfaced by allocating an ID for ADR-0020. Six upstream ADR IDs are cited and unresolvable; ADR-0011 is the review deadline in every validator [REVIEW] warning and ADR-0013 is the independence rule CLAUDE.md and QUALITY.md lean on. Nothing checks ADR citations, so 26 files went unreported. The 10->20 counter jump is a workaround, not the fix."
@@ -2721,7 +2739,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 5
-    issues_triage: 6
+    issues_triage: 4
     risks_open: 6
     releases_total: 1
     decisions_total: 18

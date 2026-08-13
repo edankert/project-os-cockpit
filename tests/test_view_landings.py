@@ -628,3 +628,31 @@ def test_the_digest_never_under_reports_what_the_badges_show(owed_corpus: Index)
     }
     digest_ids = {str(i.get("id") or "") for i in digest["needs_you"]}
     assert owed_ids <= digest_ids, sorted(owed_ids - digest_ids)
+
+
+def test_the_terminal_never_re_asserts_a_mouse_mode(tmp_path: Path = None) -> None:
+    """Mouse tracking is the app's business (ISS-0160).
+
+    Re-asserting a saved mode wrote `\\e[<35;col;row M` into the PTY on every
+    mouse movement — 84 such sequences in one recorded session. An app no
+    longer in mouse mode sees ESC and then letters, and an ESC into a vi-mode
+    readline switches it to command mode, which is why `g` and `l` stopped
+    being letters while the arrow keys still worked.
+
+    ISS-0016 accepted that in writing — *"recoverable, and rare"* — and it was
+    neither. The snapshot went with it: once nothing re-asserted, the map was
+    written on every switch and read by nothing.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "MOUSE_TRACK_DECSET" not in src, (
+        "the DECSET table is back; something is re-enabling mouse tracking on "
+        "the app's behalf, and the app is the only party that knows"
+    )
+    assert "workspaceMouseMode" not in src, (
+        "the per-workspace mouse-mode snapshot is back; it exists only to feed "
+        "a re-assert, so its return means the re-assert has returned too"
+    )
+    fn = re.search(r"async function attachTerminalTo\(.*?\n\}\n", src, re.S).group(0)
+    assert "\\x1b[?" not in fn, (
+        f"the attach writes a DEC private mode into the terminal: {fn}"
+    )

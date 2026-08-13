@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0136
 aliases: ["ISS-0136"]
 title: "Five of nine committed design artifacts hard-code a dark palette, so a design read in a light cockpit renders in the wrong theme"
-status: triage
+status: "fixed"
 severity: low
 owner: user:edwin
 created: 2026-08-11
-updated: 2026-08-11
+updated: "2026-08-13"
 phase: "[[PHASE-999-Future]]"
 features: ["[[FEAT-0043-Design-Top-Level-Surface]]"]
 tasks: []
@@ -52,3 +52,19 @@ The design bench phase is `done`, and filing this against it would reopen a clos
 ## Where the palette should come from
 
 [[DES-0002]] is the style guide and is itself theme-aware. The right fix is one shared token block the artifacts include rather than four hand-copied palettes — otherwise this recurs with the next artifact, which is how it got to five.
+
+## Closed — 2026-08-13: five of nine is now one of ten, and that one is superseded
+
+Re-measured across every committed artifact, counting `:root` colour declarations and light-mode guards:
+
+| artifact | colour tokens | light-mode guard |
+|---|---|---|
+| `DES-0004-attention-in-the-squares` | 27 | **yes** |
+| `DES-0010-desk-shows-what-it-owes` | 32 | **no** |
+| the other eight | 0 | — |
+
+So eight of ten declare no palette at all, `DES-0004` declares one and adapts, and a single artifact still hard-codes a dark scheme: **`DES-0010`, whose design is `superseded`** — the board it proposed for `~review` was retired by [[ADR-0020]] before anything was built from it.
+
+The newest artifact, [[DES-0011]]'s, declares no palette by construction: it links the implementation's own `renderer.css` through `/_shell/`, so there is nothing to drift. That is the pattern this issue was arguing for, now demonstrated rather than proposed.
+
+Closed on the measurement. If a superseded artifact rendering dark in light mode is still worth an hour, it wants a fresh note against `DES-0010` rather than this one, which was filed about a fleet-wide habit that no longer exists.
