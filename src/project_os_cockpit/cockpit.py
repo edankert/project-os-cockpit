@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from . import acceptance as _acceptance
+from . import git_state as _git_state
 from . import obligations as _obligations
 from . import statuses
 from . import token_sources
@@ -5447,11 +5448,40 @@ def history_payload(
         return unavailable
 
     commits = _parse_history_log(proc.stdout, _resolve)
+    # Mark what is committed but not published (FEAT-0100 / TASK-0418), by
+    # IDENTITY rather than by position. The count alone would let a surface
+    # infer "the first N are unpushed", which is true only while nothing
+    # filters or reorders the list — an assumption that costs nothing to avoid
+    # and is silently wrong the day it breaks.
+    #
+    # The ladder this completes: the uncommitted band says NOT SAVED, these say
+    # SAVED BUT NOT PUBLISHED, and the rest are published — top to bottom, in
+    # the order those things happen.
+    try:
+        state = _git_state.read(project_root)
+    except OSError:                      # pragma: no cover — unreadable repo
+        state = _git_state.GitState(remote=None, kind="none", ahead=None, commits=())
+    unpublished = {c.sha for c in state.commits}
+    if unpublished:
+        for commit in commits:
+            # `sha` is the short form here and in `git_state`; both come from
+            # `%h`, so they compare directly.
+            if commit.get("sha") in unpublished:
+                commit["unpublished"] = True
     return {
         "schema_version": SCHEMA_VERSION,
         "available": True,
         "anchored_at": until if anchored else None,
         "commits": commits,
+        # How the unpublished commits may leave: `backup` offers a push,
+        # `deploy` names it and refuses, `none` has nowhere to go at all.
+        "remote_kind": state.kind,
+        # The TRUE count, which is not the number of marked commits in this
+        # window. The overview tile loads a handful, and counting the marks
+        # inside it undercounted the run — measured live at 6 against 7, on a
+        # button that would have pushed all seven while offering to push six.
+        # A push publishes everything; the label has to mean that.
+        "unpublished_count": len(state.commits),
         # Work in flight belongs to now. Showing it above a window that
         # ends three months ago would place today's edits inside May.
         "uncommitted": ([] if anchored

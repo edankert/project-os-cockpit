@@ -469,37 +469,59 @@ def test_each_owed_kind_names_its_own_verb() -> None:
 # ---- FEAT-0098: unpushed work, where you work ----------------------------
 
 
-def test_the_overview_says_when_this_workspace_is_unpushed() -> None:
-    """Both halves existed before this — FEAT-0055 built the count and the push
-    — on the `~agents` fleet screen, plus one line inside a rail-square
-    tooltip. Nothing on the surface a person lands on.
+def test_the_overview_band_is_now_only_the_no_remote_half() -> None:
+    """Narrowed 2026-08-13 (TASK-0418), and the narrowing is the assertion.
 
-    ADR-0022 changed what that costs: the delegate may push to non-deploy
-    remotes, and where it does not, the human has to be told.
+    The band was built when nothing on the surface a person lands on said that
+    work was unpublished. History now says it, beside the commits it would
+    publish — an obligation surfacing where its subject lives (ADR-0020) — and
+    keeping the band as well put the same sentence and a second Push button on
+    one page, which is the duplication ISS-0068 is about.
+
+    What survives is the half with **no subject to live with**: a repo with no
+    remote has no unpublished commits to mark, because there is nowhere for
+    them to be unpublished *to*. No count says that, and zero says the opposite.
     """
     src = RENDERER.read_text(encoding="utf-8")
     assert "mountUnpushedBand" in src
     fn = re.search(r"async function mountUnpushedBand\(\).*?\n\}", src, re.S).group(0)
-    assert "if (ahead <= 0 && !noRemote) return;" in fn, (
-        "an up-to-date workspace would render a permanent 'nothing to push'"
+    assert "remoteKind !== 'none'" in fn, (
+        "the band must return early for anything that HAS a remote — its "
+        "unpushed half belongs to History now"
     )
-    assert "remoteKind === 'none'" in fn, (
+    assert "nothing here is backed up" in fn, (
         "no remote at all is a different fact from nothing unpushed, and the "
         "worse one"
+    )
+    assert "Push" not in fn, (
+        "a push control here is the second one on the overview; History owns it"
     )
 
 
 def test_the_push_has_exactly_one_implementation() -> None:
-    """The deploy-remote refusal is the one rule in this app that stops a
-    click from publishing a live website. It lives in `buildBehindRow`, and
-    the overview renders **that** rather than its own row — a second copy is
-    how one of them comes to disagree."""
+    """The deploy-remote refusal is the one rule in this app that stops a click
+    from publishing a live website.
+
+    Three surfaces offer a push now — the fleet screen, the attention card, and
+    the unpublished run in History — so the rule is written **once**, in
+    `buildPushControl`, and rendered everywhere. `git.ts` re-derives the
+    classification and refuses regardless, because a UI state is not a guard;
+    this is the other half, so a deploy remote is never *offered* in the first
+    place, identically, wherever it appears.
+    """
     src = RENDERER.read_text(encoding="utf-8")
-    fn = re.search(r"async function mountUnpushedBand\(\).*?\n\}", src, re.S).group(0)
-    assert "buildBehindRow(mine)" in fn
     assert src.count("'deploy remote'") == 1, (
         "the deploy refusal is written twice; one of them will drift"
     )
+    assert src.count("is a deployment target, not a backup") == 1, (
+        "the refusal SENTENCE is written twice; the two will drift apart"
+    )
+    # Every surface builds its control through the one function rather than
+    # assembling a button and deciding for itself whether to disable it.
+    assert src.count("buildPushControl({") == 3, (
+        "a surface is offering a push without going through buildPushControl"
+    )
+    assert src.count("function buildPushControl(") == 1
 
 
 def test_the_unpushed_band_re_renders_when_the_git_state_lands() -> None:

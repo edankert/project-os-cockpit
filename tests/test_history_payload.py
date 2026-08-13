@@ -341,3 +341,122 @@ def test_a_malformed_until_is_ignored_rather_than_passed_to_git() -> None:
         payload = history_payload(REPO_ROOT, index, limit=3, until=bad)
         assert payload["available"] is True, bad
         assert payload["anchored_at"] is None, bad
+
+
+# ---- the unpublished run (FEAT-0100 / TASK-0418) ----------------------
+
+def test_unpublished_commits_are_marked_by_identity_not_by_position(
+    tmp_path: Path,
+) -> None:
+    """The middle rung of the ladder: saved, not published.
+
+    Marked from the sha set rather than from the count. A surface given only
+    "N are unpushed" would infer *the first N in the list*, which is true only
+    while nothing filters or reorders the list — an assumption that costs
+    nothing to avoid and is silently wrong the day it breaks.
+    """
+    from project_os_cockpit import git_state
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=main", "."], check=False)
+    repo = tmp_path / "r"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+    run = lambda *a: subprocess.run(  # noqa: E731
+        ["git", "-C", str(repo), *a], capture_output=True, check=False)
+    run("init", "-q", "--initial-branch=main")
+    run("config", "user.email", "t@e.st")
+    run("config", "user.name", "T")
+    run("config", "commit.gpgsign", "false")
+    (repo / "docs" / "a.md").write_text("---\nstatus: doing\n---\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "published one")
+    run("remote", "add", "origin", str(bare))
+    run("push", "-q", "-u", "origin", "main")
+
+    # …then two commits nobody has sent.
+    for name in ("b", "c"):
+        (repo / "docs" / f"{name}.md").write_text(
+            "---\nstatus: done\n---\n", encoding="utf-8")
+        run("add", "-A")
+        run("commit", "-qm", f"unpublished {name}")
+
+    git_state.clear_cache()
+    index = Index.build(repo / "docs")
+    payload = history_payload(repo, index)
+
+    marked = [c["subject"] for c in payload["commits"] if c.get("unpublished")]
+    assert marked == ["unpublished c", "unpublished b"], payload["commits"]
+    published = [c["subject"] for c in payload["commits"] if not c.get("unpublished")]
+    assert published == ["published one"]
+    # A local path is not a forge, so it classifies as a deploy target — the
+    # safe default for "I do not recognise this" — and the surface must be
+    # told which, because one offers a button and the other refuses.
+    assert payload["remote_kind"] == "deploy"
+
+
+def test_a_repo_with_nothing_unpublished_marks_nothing(tmp_path: Path) -> None:
+    """Absent, never a flag reading `false` on every row."""
+    from project_os_cockpit import git_state
+
+    repo = tmp_path / "r"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+    run = lambda *a: subprocess.run(  # noqa: E731
+        ["git", "-C", str(repo), *a], capture_output=True, check=False)
+    run("init", "-q", "--initial-branch=main")
+    run("config", "user.email", "t@e.st")
+    run("config", "user.name", "T")
+    (repo / "docs" / "a.md").write_text("---\nstatus: doing\n---\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "only")
+
+    git_state.clear_cache()
+    payload = history_payload(repo, Index.build(repo / "docs"))
+    assert all("unpublished" not in c for c in payload["commits"])
+    # No remote at all: a different and worse fact than "nothing to publish".
+    assert payload["remote_kind"] == "none"
+
+
+def test_the_unpublished_total_is_not_the_windows_marks(tmp_path: Path) -> None:
+    """The count a push button may legally show.
+
+    A push publishes the whole run, so a label counted from the commits a
+    window happens to have loaded is a button that offers less than it does —
+    measured live at 6 against 7 on the overview tile, whose window is a
+    handful.
+    """
+    from project_os_cockpit import git_state
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=main", "."], check=False)
+    repo = tmp_path / "r"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+    run = lambda *a: subprocess.run(  # noqa: E731
+        ["git", "-C", str(repo), *a], capture_output=True, check=False)
+    run("init", "-q", "--initial-branch=main")
+    run("config", "user.email", "t@e.st")
+    run("config", "user.name", "T")
+    (repo / "docs" / "a.md").write_text("---\nstatus: doing\n---\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "base")
+    run("remote", "add", "origin", str(bare))
+    run("push", "-q", "-u", "origin", "main")
+    for i in range(5):
+        (repo / "docs" / f"n{i}.md").write_text(
+            "---\nstatus: done\n---\n", encoding="utf-8")
+        run("add", "-A")
+        run("commit", "-qm", f"unpublished {i}")
+
+    git_state.clear_cache()
+    index = Index.build(repo / "docs")
+    window = history_payload(repo, index, limit=2)
+    assert len([c for c in window["commits"] if c.get("unpublished")]) == 2
+    assert window["unpublished_count"] == 5, (
+        "the total is the run's, not the window's"
+    )

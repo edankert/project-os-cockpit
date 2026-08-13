@@ -21,15 +21,20 @@ tests: []
 
 [[ADR-0020]]: an obligation surfaces in the view that owns its subject. The subject of *not pushed* is those specific commits, and the overview's history tile and `~history` already draw commits. So the action goes there, beside the thing it publishes — and a person sees **which** work is unpublished, not only how much.
 
-## Inherited from [[TASK-0417]], 2026-08-13
+## Where the row goes — answered by Edwin, 2026-08-13
 
-The registry now reports publication and the Overview button carries the number, with no renderer change. **The `Needs you` row has nowhere to go yet**: that group is a navigator group, the overview is not a nav mode, and the view landings exist only for `~features`/`~issues`/`~tests`. `landing_payload(index, "overview")` already returns the group and its rows — nothing fetches it.
+[[TASK-0417]] left this open because the overview has no navigator and no landing. I listed three candidates and guessed the third. **Edwin meant the second**, and said so by looking for it there: *"I don't see the push message in the needs you section"* — the rail's attention panel, the one with the project cards and the usage block under it, not the navigator group of the same name.
 
-So this task owns one more thing than it did: **where the overview shows what it owes.** Three candidates, and the third is probably right:
+That settles it, and it is the better answer for a reason the guess missed: the attention panel is **cross-workspace**. Publication is the one obligation whose original failure was fleet-shaped — *312 commits across eight repos, nothing mentioning it* ([[FEAT-0055]]) — and measured again on 2026-08-13 the fleet carried unpushed work in three repos at once, two of them not the one on screen.
 
-1. Give the overview a landing like the other three views — wrong, it is a dashboard, not a tree.
-2. Add the rows to the rail's attention panel — that panel is agent-state driven and fleet-wide; folding registry obligations in would give one heading two sources.
-3. **Fold it into the overview itself**, where [[FEAT-0098]]'s band already says *"N commits not pushed"* — which this task was already going to reconcile. One band, sourced from the registry, next to the history it acts on.
+The concern that made me discount it — *"that panel is agent-state driven; folding registry obligations in would give one heading two sources"* — is already false: the panel gained `record` cards in TASK-0313 for exactly this reason, and those come from the digest, not from agent state.
+
+**A related finding, not this task's to fix:** the digest's `needs_you_count` walks the corpus itself with `_owed_flag` rather than reading the registry. It is a **third** enumeration of what is owed, which is the class of thing [[FEAT-0089]] exists to end, and it is why publication would never have reached that card on its own.
+
+## Also asked for, same message
+
+- *"the x number of commits not pushed and the push button to be in the history section below"* — this task's original subject, unchanged.
+- *"btw, this can become a strip instead of this big card"* — the overview's History tile. Recorded as its own step below rather than folded in silently: it is a change to a surface that is not otherwise being touched.
 
 ## Definition of Done
 
@@ -39,10 +44,16 @@ So this task owns one more thing than it did: **where the overview shows what it
 - [ ] The push action sits with the run, labelled with what it will publish. Where exactly it attaches — topmost divider or a header over the run — is the artifact's call.
 - [ ] **The deploy-remote refusal is not re-implemented.** It has one home, and the code says why: *"a second copy here is how one of them comes to disagree with the other, on the one action in this app that publishes."* This surface calls it.
 - [ ] After a successful push the surfaces go quiet together — badge, `Needs you` row, and the history marks — because they read one source, not because three code paths each remembered to clear.
-- [ ] The overview band from [[FEAT-0098]] is reconciled: kept, folded into this, or retired with the reason recorded. Two surfaces on one overview saying the same sentence is the duplication [[ISS-0068]] was about.
+- [x] **The [[FEAT-0098]] band is narrowed, not retired.** Built and looked at, the duplication was immediate and literal: *"7 commits not pushed"* twice on one page, with two Push buttons. The unpushed half is History's now — the obligation surfaces where its subject lives ([[ADR-0020]]) — and the cross-workspace shortcut is the attention card.
+
+  What stays is the half with **no subject to live with**: a repo with no remote has no unpublished commits to mark, because there is nowhere for them to be unpublished *to*. It is also the worse fact, and no count says it — zero would say the opposite.
+
+- [ ] **The attention panel carries a publication card** per workspace with unpublished work — the count, and the action or the refusal. Deploy remotes say what they are and offer no button.
 
 ## Steps
 
-- [ ] Build the artifact against the five regions; take annotations on it.
-- [ ] Implement the marking and the action, calling the existing guard.
+- [ ] Implement the attention-panel card (the `Needs you` half Edwin asked for).
+- [ ] Implement the marking and the action in History, calling the existing guard.
 - [ ] Decide the band's fate and record it.
+- [ ] The History tile becomes a strip rather than a card (Edwin's aside) — separate step, because it changes a surface this work is not otherwise altering.
+- [ ] Build the artifact against the six regions; take annotations on it.

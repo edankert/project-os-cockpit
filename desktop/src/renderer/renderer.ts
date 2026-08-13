@@ -3819,21 +3819,24 @@ function renderProjectOverview(data: StatsPayload): void {
   void mountUnpushedBand();
 }
 
-// ----- Unpushed work, on the overview (FEAT-0098 / TASK-0404) -----------
+// ----- No remote, on the overview (FEAT-0098 / TASK-0404, narrowed) ------
 //
-// Both halves of this existed before it — FEAT-0055 built the count and the
-// push — on the `~agents` fleet screen, plus one line inside a rail-square
-// tooltip. Nothing on the surface a person lands on.
+// This band was built when the count and the push lived only on the `~agents`
+// fleet screen and in a rail-square tooltip — nothing on the surface a person
+// lands on. ADR-0022 made that untenable: the delegate may push to non-deploy
+// remotes, and where it does not, the human has to be told.
 //
-// That was survivable while a human made every commit. ADR-0022 changed it on
-// 2026-08-12: the delegate may push to non-deploy remotes, and where it does
-// not, the human has to be told. Edwin, accepting it: *"if not pushed
-// automatically then this should clearly be identified in the tool."*
+// **Narrowed on 2026-08-13 (TASK-0418).** The unpushed half now lives in
+// History, with the commits it publishes (ADR-0020: an obligation surfaces
+// where its subject lives), and the cross-workspace shortcut is the attention
+// card. Keeping the band as well put the same sentence and a second Push
+// button on one page — the duplication ISS-0068 is about, at the top of the
+// very surface it was built to inform.
 //
-// **Rendered by the fleet screen's own row builder**, deliberately. The rule
-// that a deploy remote is never offered lives in `buildBehindRow` and stays
-// there; a second copy here is how one of them comes to disagree with the
-// other, on the one action in this app that publishes.
+// What stays is the half with **no subject to live with**: a repo with no
+// remote has no unpublished commits to mark, because there is nowhere for
+// them to be unpublished *to*. It is also the worse fact, and it keeps its own
+// sentence rather than being folded into a count that would read as zero.
 
 async function mountUnpushedBand(): Promise<void> {
   docView.querySelector('.ov-unpushed')?.remove();
@@ -3849,23 +3852,19 @@ async function mountUnpushedBand(): Promise<void> {
   }
   if (!mine) return;
 
-  const ahead = typeof mine.ahead === 'number' ? mine.ahead : 0;
-  const noRemote = mine.remoteKind === 'none';
   // Absent when there is nothing to say. "Up to date" on every visit is the
-  // permanent zero this surface has been taught about twice.
-  if (ahead <= 0 && !noRemote) return;
+  // permanent zero this surface has been taught about twice — and the
+  // unpushed count is History's now, not this band's.
+  if (mine.remoteKind !== 'none') return;
 
   const band = document.createElement('section');
   band.className = 'ov-unpushed';
   const head = document.createElement('div');
   head.className = 'ov-unpushed-head';
-  head.textContent = noRemote
-    // A different fact, and the worse one: not "unpushed" but "nowhere to
-    // push to". Folding it into the same sentence would hide it.
-    ? 'No remote — nothing here is backed up.'
-    : `${ahead} commit${ahead === 1 ? '' : 's'} not pushed.`;
+  // Not "unpushed" but "nowhere to push to" — no number would say this, and
+  // a count of zero would say the opposite.
+  head.textContent = 'No remote — nothing here is backed up.';
   band.appendChild(head);
-  if (!noRemote) band.appendChild(buildBehindRow(mine));
   docView.prepend(band);
 }
 
@@ -7816,11 +7815,19 @@ interface HistoryCommit {
   subject: string;
   transitions: HistoryTransition[];
   undocumented: boolean;
+  /** Committed, not published (FEAT-0100). Marked by the sidecar from the
+   *  sha set rather than inferred from a count and a position. */
+  unpublished?: boolean;
 }
 
 interface HistoryPayload {
   available: boolean;
   commits: HistoryCommit[];
+  /** Where the unpublished commits could go — `backup` offers a push,
+   *  `deploy` names it and refuses, `none` has nowhere to send them. */
+  remote_kind?: 'backup' | 'deploy' | 'none';
+  /** How many are unpublished in TOTAL — not how many this window shows. */
+  unpublished_count?: number;
   uncommitted: Array<{
     id: string | null; type: string | null; title: string | null;
     rel: string | null; path: string; status: string | null; code: string;
@@ -8082,7 +8089,25 @@ async function fillHistory(
     parts.push(buildUncommittedBand(data.uncommitted));
   }
 
+  // The unpublished run, and its action (FEAT-0100 / TASK-0418). Above the
+  // first of them rather than on each: they are a contiguous run by
+  // construction — everything after `@{u}` — so one header names the run and
+  // each divider carries its own mark, and no second element can disagree
+  // with the marks beneath it.
+  //
+  // The count is the payload's, NOT the number of marks in this window. The
+  // overview tile loads a handful of commits, so counting the marks it can see
+  // undercounted the run — measured live at 6 against 7, on a button that
+  // would have pushed all seven while offering to push six. A push publishes
+  // everything; the label has to mean that.
+  const shown = data.commits.filter((c) => c.unpublished).length;
+  const total = data.unpublished_count ?? shown;
+  let headerPlaced = shown === 0;
   for (const commit of data.commits) {
+    if (!headerPlaced && commit.unpublished) {
+      parts.push(buildUnpublishedHeader(total, shown, data.remote_kind ?? 'backup'));
+      headerPlaced = true;
+    }
     parts.push(buildCommitDivider(commit));
     for (const tr of commit.transitions) parts.push(buildTransitionRow(tr));
   }
@@ -8161,11 +8186,58 @@ function buildUncommittedBand(
  *  under a transition-based list it has no rows at all, so the flag has
  *  to live here or it disappears entirely (FEAT-0022's guardrail).
  */
+/** The header over the unpublished run, carrying the push (TASK-0418).
+ *
+ *  Completes the ladder History already half-drew: the uncommitted band says
+ *  NOT SAVED, this says SAVED BUT NOT PUBLISHED, and everything below it is
+ *  published — top to bottom, in the order those things happen.
+ */
+function buildUnpublishedHeader(
+  count: number, shown: number, remoteKind: 'backup' | 'deploy' | 'none',
+): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'ov-history-unpublished';
+
+  const label = document.createElement('span');
+  label.className = 'ov-history-unpublished-label';
+  label.textContent = remoteKind === 'deploy'
+    // A different sentence, because it is a different fact: these are not
+    // waiting for a click, they are waiting for a deliberate deploy elsewhere.
+    ? `${count} commit${count === 1 ? '' : 's'} not deployed`
+    : `${count} commit${count === 1 ? '' : 's'} not pushed`;
+  el.appendChild(label);
+
+  // When the window is shorter than the run, say so rather than letting the
+  // marks below quietly contradict the number above.
+  if (shown < count) {
+    const more = document.createElement('span');
+    more.className = 'ov-history-unpublished-more';
+    more.textContent = `${shown} shown`;
+    el.appendChild(more);
+  }
+
+  if (activeId) {
+    const ws = workspaces.find((w) => w.id === activeId);
+    const act = buildPushControl({
+      workspaceId: activeId,
+      name: ws ? effectiveName(ws) : 'this project',
+      ahead: count,
+      remoteKind,
+      className: 'ov-history-push',
+    });
+    if (act) el.appendChild(act);
+  }
+  return el;
+}
+
 function buildCommitDivider(commit: HistoryCommit): HTMLElement {
   const el = document.createElement('div');
   el.className = 'ov-history-divider';
   el.dataset.date = commit.date;   // the anchor a grid cell lands on
   if (commit.undocumented) el.classList.add('is-undocumented');
+  // Each unpublished commit says so on its own divider (Edwin, 2026-08-13:
+  // "should this not be shown as a not pushed commit?").
+  if (commit.unpublished) el.classList.add('is-unpublished');
 
   const date = document.createElement('span');
   date.className = 'ov-history-date mono';
@@ -11591,9 +11663,14 @@ interface AttentionEntry {
   /** `record` is TASK-0313's widening: DES-0008's complaint was that these
    *  cards "know only about waiting terminals", so a workspace whose RECORD
    *  owes something now earns a card too, agent or no agent. */
-  kind: 'needs-input' | 'waiting' | 'record';
+  /** `publish` is FEAT-0100's card: work committed and not sent. Its own kind
+   *  rather than a `record` card, because it is the only one carrying an
+   *  ACTION that publishes, and because the record cards count notes. */
+  kind: 'needs-input' | 'waiting' | 'record' | 'publish';
   message: string;
   ts: string;
+  /** `publish` only: how many commits, and where they would go. */
+  publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none' };
   cost?: number;   // only known for the active workspace (live session)
   /** The since-line: `since Thu · 14 transitions · 2 need you`. Present when
    *  that workspace's sidecar has answered; absent, never zero. */
@@ -11764,9 +11841,42 @@ function attentionEntries(): AttentionEntry[] {
     });
   }
 
-  // needs-input above waiting above record: act now, then review, then read.
-  // A record card is never urgent — nothing in it arrived while you watched.
-  const rank = (k: string) => (k === 'needs-input' ? 0 : k === 'waiting' ? 1 : 2);
+  // Work that is committed and not published (FEAT-0100 / TASK-0418). Edwin
+  // asked for it HERE — "I don't see the push message in the needs you
+  // section" — and this panel is the right home for a reason the overview
+  // could not be: it is CROSS-WORKSPACE, and publication is the one obligation
+  // whose original failure was fleet-shaped (FEAT-0055: 312 commits across
+  // eight repos, nothing mentioning it). Measured 2026-08-13: three repos at
+  // once, two of them not the one on screen.
+  //
+  // A card of its own even when the workspace already has one: an agent
+  // waiting and work unpublished are two different asks, and folding the
+  // second into the first's since-line would hide an action behind a sentence.
+  for (const [wsId, row] of fleetHealth) {
+    const ahead = typeof row.ahead === 'number' ? row.ahead : 0;
+    if (ahead <= 0) continue;
+    const kind = row.remoteKind === 'deploy' ? 'deploy' : row.remoteKind === 'none' ? 'none' : 'backup';
+    if (kind === 'none') continue;  // nothing to be ahead of; a different card
+    const ws = workspaces.find((w) => w.id === wsId);
+    out.push({
+      workspaceId: wsId,
+      name: ws ? effectiveName(ws) : wsId,
+      kind: 'publish',
+      message: `${ahead} commit${ahead === 1 ? '' : 's'} not pushed`,
+      // No timestamp of its own: unpushed work did not *happen* at a moment
+      // the way a turn finishing did, and stamping it `now` would make it sort
+      // as the newest thing on screen every refresh.
+      ts: '',
+      publish: { ahead, remoteKind: kind },
+    });
+  }
+
+  // needs-input above waiting above publish above record: act now, then
+  // review, then publish, then read. A record card is never urgent — nothing
+  // in it arrived while you watched — and publishing is deliberate, so it
+  // sits below the two that are waiting on a reply.
+  const rank = (k: string) => (
+    k === 'needs-input' ? 0 : k === 'waiting' ? 1 : k === 'publish' ? 2 : 3);
   out.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.ts < b.ts ? 1 : -1));
   return out;
 }
@@ -11781,7 +11891,9 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   const main = document.createElement('button');
   main.type = 'button';
   main.className = 'ws-attention-main';
-  main.title = entry.kind === 'needs-input' ? 'Respond' : 'Review';
+  main.title = entry.kind === 'needs-input' ? 'Respond'
+    : entry.kind === 'publish' ? 'Open the history and see what is unpublished'
+    : 'Review';
   const dot = document.createElement('span');
   dot.className = 'ws-attention-dot';
   const body = document.createElement('span');
@@ -11813,9 +11925,29 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
       // terminal is what made these cards "know only about waiting
       // terminals" in the first place.
       if (entry.kind === 'record') void navigateTo('~overview');
+      // A publish card opens History, where its subjects are (ADR-0020): the
+      // commits themselves, marked, with the push beside them.
+      else if (entry.kind === 'publish') void navigateTo('~history');
       else showTerminal();
     })();
   });
+
+  // A publish card carries the action instead of a dismiss (TASK-0418). There
+  // is nothing to dismiss: unpushed work does not stop being unpushed because
+  // you looked at it, and a ✕ here would be a button that lies.
+  if (entry.kind === 'publish' && entry.publish) {
+    const act = buildPushControl({
+      workspaceId: entry.workspaceId,
+      name: entry.name,
+      ahead: entry.publish.ahead,
+      remoteKind: entry.publish.remoteKind,
+      className: 'ws-attention-push',
+    });
+    row.append(main);
+    if (act) row.appendChild(act);
+    return row;
+  }
+
   const dismiss = document.createElement('button');
   dismiss.type = 'button';
   dismiss.className = 'ws-attention-dismiss';
@@ -11828,6 +11960,73 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   });
   row.append(main, dismiss);
   return row;
+}
+
+/** The push control, for **every** surface that offers it (TASK-0418).
+ *
+ *  There are now three — the fleet screen, the attention card, and the
+ *  unpublished run in History — and the rule they must not each own a copy of
+ *  is the one that stops a click from publishing a live website. `git.ts`
+ *  re-derives the classification and refuses regardless, because a UI state is
+ *  not a guard; this is the other half, so that a deploy remote is never
+ *  *offered* in the first place, identically, wherever it appears.
+ *
+ *  `remoteKind: 'none'` returns nothing: a repo with nowhere to push has no
+ *  control, not a disabled one.
+ */
+function buildPushControl(opts: {
+  workspaceId: string;
+  name: string;
+  ahead: number;
+  remoteKind: 'backup' | 'deploy' | 'none';
+  className: string;
+}): HTMLButtonElement | null {
+  if (opts.remoteKind === 'none') return null;
+  const act = document.createElement('button');
+  act.type = 'button';
+  act.className = opts.className;
+  if (opts.remoteKind === 'deploy') {
+    // The refusal is the feature, and it reads as a decision rather than a
+    // control that broke. One sentence, one place.
+    act.textContent = 'deploy remote';
+    act.disabled = true;
+    act.title = 'This repo’s remote is a deployment target, not a backup. '
+      + 'Pushing it would publish a running site, so it is never offered here.';
+    return act;
+  }
+  act.textContent = `Push ${opts.ahead}`;
+  act.title = `Publish ${opts.ahead} commit${opts.ahead === 1 ? '' : 's'} from ${opts.name}`;
+  act.addEventListener('click', (e) => {
+    e.stopPropagation();
+    void runPush(opts.workspaceId, opts.name, act, opts.ahead);
+  });
+  return act;
+}
+
+/** Push one workspace and report, for every surface that offers it.
+ *
+ *  Extracted so the fleet screen, the attention card and the History run
+ *  cannot drift into three behaviours for one action — and so that a surface
+ *  added later gets the reporting for free rather than reinventing it.
+ */
+async function runPush(
+  workspaceId: string, name: string, btn: HTMLButtonElement, ahead: number,
+): Promise<void> {
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Pushing…';
+  const res = await cockpitApi.git.push(workspaceId);
+  if (res.ok) {
+    showStatus(`Pushed ${name}`);
+    btn.textContent = 'Pushed';
+    // The count is now wrong everywhere until the next probe. Ask for a fresh
+    // one rather than waiting up to a minute with a stale number on screen.
+    void cockpitApi.fleetHealth.recheck();
+  } else {
+    showStatus(`Push failed: ${res.error ?? 'unknown error'}`, 'error');
+    btn.disabled = false;
+    btn.textContent = original ?? `Push ${ahead}`;
+  }
 }
 
 // ----- Account budget block (FEAT-0035 / TASK-0160) --------------------
@@ -12060,12 +12259,18 @@ function paintAttention(entries: AttentionEntry[]): void {
     return;
   }
   attentionPanel.replaceChildren();
+  // Everything that is a LIST goes in the scroller; the usage block does not
+  // (ISS-0157). It is a standing readout rather than work to get through, and
+  // it was the first thing to leave the viewport when the list grew — which is
+  // exactly when its number is most worth seeing.
+  const scroll = document.createElement('div');
+  scroll.className = 'ws-attention-scroll';
   if (entries.length > 0) {
     const head = document.createElement('div');
     head.className = 'ws-attention-head';
     head.textContent = 'Needs you';
-    attentionPanel.appendChild(head);
-    for (const entry of entries) attentionPanel.appendChild(buildAttentionRow(entry));
+    scroll.appendChild(head);
+    for (const entry of entries) scroll.appendChild(buildAttentionRow(entry));
   }
   if (finished > 0) {
     const foot = document.createElement('button');
@@ -12077,8 +12282,9 @@ function paintAttention(entries: AttentionEntry[]): void {
     arrow.textContent = 'sessions ›';
     foot.appendChild(arrow);
     foot.addEventListener('click', () => { void navigateTo('~agents'); });
-    attentionPanel.appendChild(foot);
+    scroll.appendChild(foot);
   }
+  attentionPanel.appendChild(scroll);
   if (budget) attentionPanel.appendChild(budget);
   attentionPanel.hidden = false;
 }
@@ -12966,39 +13172,22 @@ function buildBehindRow(r: FleetHealthRow): HTMLElement {
   name.className = 'agents-health-name';
   name.textContent = r.name;
 
-  const act = document.createElement('button');
-  act.type = 'button';
-  act.className = 'agents-health-push';
+  // One control builder for all three surfaces (TASK-0418). Say what will be
+  // published BEFORE doing it: these counts are large and surprising — 117
+  // commits and six days for one repo. And the refusal is the feature — one
+  // fleet repo's only remote is a server path, and pushing it deploys a live
+  // website — so it is written once and rendered everywhere, rather than
+  // copied into each surface that offers a push.
+  const act = buildPushControl({
+    workspaceId: r.workspaceId,
+    name: r.name,
+    ahead: r.ahead ?? 0,
+    remoteKind: r.remoteKind ?? 'none',
+    className: 'agents-health-push',
+  });
 
-  if (r.remoteKind === 'deploy') {
-    // The refusal is the feature. One fleet repo's only remote is a
-    // server path; pushing it deploys a live website.
-    act.textContent = 'deploy remote';
-    act.disabled = true;
-    act.title = 'This repo\u2019s remote is a deployment target, not a backup. '
-      + 'Pushing it would publish a running site, so it is never offered here.';
-  } else {
-    act.textContent = `Push ${r.ahead}`;
-    act.title = `Publish ${r.ahead} commit${r.ahead === 1 ? '' : 's'} from ${r.name}`;
-    act.addEventListener('click', () => {
-      // Say what will be published BEFORE doing it: these counts are
-      // large and surprising — 117 commits and six days for one repo.
-      act.disabled = true;
-      act.textContent = 'Pushing…';
-      void cockpitApi.git.push(r.workspaceId).then((res) => {
-        if (res.ok) {
-          showStatus(`Pushed ${r.name}`);
-          act.textContent = 'Pushed';
-        } else {
-          showStatus(`Push failed: ${res.error ?? 'unknown error'}`, 'error');
-          act.disabled = false;
-          act.textContent = `Push ${r.ahead}`;
-        }
-      });
-    });
-  }
-
-  row.append(count, name, act);
+  row.append(count, name);
+  if (act) row.appendChild(act);
   row.title = `${r.remote ?? 'no remote'}`;
   return row;
 }

@@ -3220,6 +3220,11 @@ a.ov-phase-title:hover {
  * Docked at the bottom of the nav pane, below the tree behind a hard
  * separator. flex:none so it takes only the height it needs while the
  * tree scrolls above; the [hidden] rule collapses it to nothing. */
+/* The panel is a FRAME, not a scroller (ISS-0157). It used to scroll as one
+ * piece, which meant the usage block — the one region that is a standing
+ * readout rather than a list to work through — left the viewport exactly when
+ * there was most going on, and a readout you have to scroll to is one nobody
+ * reads. The cards scroll inside; usage is anchored below them. */
 .ws-attention {
   flex: none;
   display: flex;
@@ -3227,11 +3232,22 @@ a.ov-phase-title:hover {
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
   max-height: 45%;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 4px;
   gap: 1px;
 }
 .ws-attention[hidden] { display: none !important; }
+/* `min-height: 0` is load-bearing and easy to omit: a flex child defaults to
+ * `min-height: auto`, refuses to shrink below its content, and this region
+ * would grow the panel instead of scrolling inside it. */
+.ws-attention-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .ws-attention-head {
   font-size: 10px;
   font-weight: 700;
@@ -3325,6 +3341,38 @@ a.ov-phase-title:hover {
   border-radius: 6px;
 }
 .ws-attention-dismiss:hover { color: var(--text); background: var(--accent-soft); }
+
+/* The publish card's action, in place of a dismiss (FEAT-0100 / TASK-0418).
+ * Same visual language as the fleet screen's push, because it is the same
+ * action — a person publishing, deliberately — and two appearances of one
+ * action that look different read as two actions. */
+.ws-attention-push {
+  align-self: center;
+  margin-right: 4px;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ws-attention-push:hover:not(:disabled) {
+  color: var(--accent-link);
+  border-color: var(--accent-link);
+}
+/* A deploy remote is refused, not merely disabled — the label says what it
+ * is rather than looking like a control that broke. */
+.ws-attention-push:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  font-style: italic;
+}
+/* Publication is not an alert: no pulse, no urgency colour. It has been true
+ * for however long it has been true, and nothing about it arrived while you
+ * were watching. */
+.ws-attention-row.kind-publish .ws-attention-dot { background: var(--text-faint); }
 .ws-attention-finished {
   display: flex;
   align-items: center;
@@ -3343,6 +3391,8 @@ a.ov-phase-title:hover {
 .ws-attention-arrow { margin-left: auto; color: var(--accent-link); }
 /* Account budget block (FEAT-0035 / TASK-0160) — 5h/7d usage bars. */
 .ws-budget {
+  /* Anchored, never scrolled away with the cards above it (ISS-0157). */
+  flex: none;
   border-top: 1px solid var(--border);
   padding: 6px 9px 7px;
   display: flex;
@@ -4862,6 +4912,67 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
  * has no rows at all, so this flag is the only thing keeping it visible
  * — which is the point, since it is the commit most worth seeing. */
 .ov-history-divider.is-undocumented { color: var(--severity-medium); }
+
+/* Committed, not published (FEAT-0100 / TASK-0418).
+ *
+ * A left rule rather than a colour: `is-undocumented` already owns colour on
+ * this element, the two are orthogonal — a commit can be both — and stacking
+ * two colour rules on one line would make each unreadable. The rule also
+ * draws the RUN as a continuous edge without a second element claiming to
+ * bound it, which is the property that keeps the marks and the boundary from
+ * ever disagreeing. */
+.ov-history-divider.is-unpublished {
+  border-left: 2px solid var(--accent-link);
+  padding-left: 7px;
+  margin-left: -9px;
+}
+.ov-history-unpublished {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 3px 0 3px 7px;
+  margin-left: -9px;
+  border-left: 2px solid var(--accent-link);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-link);
+}
+.ov-history-unpublished-label { flex: none; }
+/* Said only when the window is shorter than the run, so the marks below
+ * cannot quietly contradict the number above. */
+.ov-history-unpublished-more {
+  flex: none;
+  color: var(--text-faint);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.ov-history-push {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+.ov-history-push:hover:not(:disabled) {
+  color: var(--accent-link);
+  border-color: var(--accent-link);
+}
+/* Refused, not broken — the label says which. */
+.ov-history-push:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  font-style: italic;
+}
 .ov-history-flag {
   flex: none;
   margin-left: auto;
