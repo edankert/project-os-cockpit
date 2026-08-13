@@ -499,6 +499,8 @@ interface FleetHealthRow {
   ahead?: number | null;
   remoteKind?: 'backup' | 'deploy' | 'none';
   remote?: string | null;
+  /** Since-you-looked numbers for a workspace with no sidecar (TASK-0419). */
+  digest?: { seenAt: string; transitions: number; needsYou: number; computedAt: string };
 }
 
 const fleetHealth = new Map<string, FleetHealthRow>();
@@ -897,6 +899,11 @@ document.addEventListener('click', (ev) => {
 async function openWorkspace(id: string): Promise<void> {
   if (id === activeId) return;
   activeId = id;
+  // Selecting a project releases every card you dismissed on it (TASK-0420).
+  // A stronger signal than any card: you are looking at it. Nothing else
+  // expires a dismissal, so without this one it could outlive its reason
+  // indefinitely.
+  clearDismissalsFor(id);
   // Tell main which workspace is active so the agent-state poller
   // can suppress notifications about the one the user is on (TASK-0087).
   cockpitApi.workspaces.notifyActiveChanged(id);
@@ -3860,15 +3867,31 @@ interface DigestPayload {
   needs_you_count?: number;
 }
 
+/** Bumped on every mount, so a call that finishes late can tell it has been
+ *  overtaken (ISS-0158). The last call to START is the one whose data is
+ *  freshest, so it is the one allowed to paint. */
+let digestBandGeneration = 0;
+
 async function mountDigestBand(): Promise<void> {
-  docView.querySelector('.digest-band')?.remove();
-  if (!sidecarBaseUrl) return;
+  // The clear used to happen HERE, before the fetch, and the insert after it —
+  // so two overlapping calls each found nothing to clear and both prepended.
+  // Edwin, 2026-08-13: *"sometimes the since you looked section gets
+  // repeated."* Same family as TASK-0187's PTY identity guard: an async step
+  // between deciding and doing.
+  const generation = ++digestBandGeneration;
+  if (!sidecarBaseUrl) { docView.querySelector('.digest-band')?.remove(); return; }
   let d: DigestPayload | null = null;
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/digest`);
     if (!resp.ok) return;
     d = (await resp.json()) as DigestPayload;
   } catch { return; }
+  // Overtaken: a later mount is in flight with fresher data, and two winners
+  // is exactly the bug.
+  if (generation !== digestBandGeneration) return;
+  // Cleared only now that there is an answer to replace it with — which also
+  // stops the band blinking out and back on every refresh.
+  docView.querySelector('.digest-band')?.remove();
   // Absent when there is nothing behind the watermark. A band reading
   // "nothing happened" on every visit is the permanent zero this surface has
   // been taught about twice.
@@ -11665,14 +11688,11 @@ interface AttentionEntry {
   ts: string;
   /** `publish` only: how many commits, and where they would go. */
   publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none' };
-  /** What a dismissal is keyed on, when `ts` is not it.
+  /** A fingerprint of everything this card shows (TASK-0420).
    *
-   *  An agent alert is dismissed per (workspace, state-ts): a new transition
-   *  mints a fresh ts, so the card returns only when something genuinely new
-   *  happened. Unpushed work has no such moment — it is a standing state — so
-   *  it keys on the COUNT instead, which gives the same promise: dismissing
-   *  "8 commits not pushed" hides it until that number changes, and a ninth
-   *  commit brings it back. */
+   *  What the ✕ is keyed on, so the card returns when **anything** about the
+   *  project changes — not only the one field whichever kind of card happened
+   *  to key on. Assigned after every entry is built, in one place. */
   dismissKey?: string;
   cost?: number;   // only known for the active workspace (live session)
   /** The since-line: `since Thu · 14 transitions · 2 need you`. Present when
@@ -11770,37 +11790,68 @@ function publicationText(
     : `${ahead} commit${plural} not pushed`;
 }
 
-/** What an agent is doing, for a card's headline (TASK-0418).
+/** The agent line: what the LLM is doing, how long it has been doing it, and
+ *  what it has cost (TASK-0418).
  *
- *  Every card's first line is the **liveliest** fact about its project, and
- *  nothing is livelier than a running turn. Edwin, 2026-08-13: *"why does it
- *  now display 14 items need a person when the llm is busy — why not show the
- *  current llm state/message?"* The count is standing information and belongs
- *  on the since-line beneath, where it already is.
+ *  **Always agent information, never the record's.** The headline briefly fell
+ *  back to the owed count when no agent was live, and Edwin saw *"61 items
+ *  need a person"* in the LLM status line — a number the card already carries
+ *  on its since-line, occupying the one slot that should say what the agent is
+ *  doing. `idle` is a real answer to that question; the owed count is an
+ *  answer to a different one.
  *
- *  Returns null when there is no live agent, so the card falls back to its own
- *  reason for existing rather than inventing a state.
+ *  The duration rides HERE rather than in a slot of its own. It used to sit in
+ *  a separate `meta` span filled from `entry.ts`, which meant something
+ *  different on every kind of card — on a record card it was *time since the
+ *  last commit*, rendered directly beneath the word "working…", where anyone
+ *  would read it as the agent's runtime. Edwin: *"what does the 13min/14min
+ *  trying to convey?"* Nothing, was the honest answer. On this line it is
+ *  unambiguous: it is the age of the state named beside it.
  */
-function agentHeadline(st: AgentStatePayload | undefined): string | null {
-  if (!st || !st.state) return null;
-  // A decayed or cold entry is not news about now (TASK-0347); the card should
-  // not report a turn that stopped being live hours ago.
-  if (st.decayed_from) return null;
-  if (cacheTemperature(st, Date.now()) === 'cold') return null;
-  const msg = (st.message || '').trim();
-  switch (st.state) {
-    case 'needs-input': return msg || 'needs your input';
-    case 'waiting':     return msg || 'turn finished — review';
-    case 'busy':        return msg || 'working…';
-    case 'done':        return msg || 'finished';
-    case 'error':       return msg || 'stopped on an error';
-    default:            return null;   // `idle` is not a headline
+function agentLine(wsId: string, cost?: number): string {
+  const st = agentStates.get(wsId);
+  const bits: string[] = [];
+  const stale = !st?.state || !!st.decayed_from
+    || cacheTemperature(st, Date.now()) === 'cold';
+  const msg = (st?.message || '').trim();
+  if (stale) {
+    bits.push(st?.state ? 'idle' : 'no agent yet');
+  } else {
+    switch (st?.state) {
+      case 'needs-input': bits.push(msg || 'needs your input'); break;
+      case 'waiting':     bits.push(msg || 'turn finished — review'); break;
+      case 'busy':        bits.push(msg || 'working…'); break;
+      case 'done':        bits.push(msg || 'finished'); break;
+      case 'error':       bits.push(msg || 'stopped on an error'); break;
+      default:            bits.push('idle'); break;
+    }
   }
+  // How long it has been in that state — including how long it has been idle,
+  // which is the question a quiet project actually raises.
+  const age = fmtDuration(st?.ts || null, null);
+  if (age) bits.push(age);
+  if (typeof cost === 'number') bits.push(`$${cost.toFixed(2)}`);
+  return bits.join(' · ');
 }
 
-// Per-alert dismissal, keyed by (workspace, state-ts): a new state
-// transition mints a fresh ts, so a dismissed alert reappears only when
-// something genuinely new happens. Persisted, pruned after 24h.
+
+// Dismissal, keyed by (workspace, FINGERPRINT of everything the card shows).
+//
+// It used to key on one field, and which field depended on the card: an agent
+// alert on its state timestamp, publication on its commit count. Each was
+// right about its own fact and blind to every other — a card dismissed for its
+// agent state stayed dismissed while the project's owed count doubled.
+//
+// Edwin, 2026-08-13: *"the card will not be displayed until an actual state
+// changes in that project or the user selects the project, this should be
+// preserved across application start-ups."* A fingerprint is the only key that
+// keeps that promise as the card grows another line — a new line joins the
+// fingerprint where it is built, and cannot be forgotten separately.
+//
+// **No clock.** The old store expired anything older than 24 hours, so a
+// dismissal came undone because a day passed rather than because anything
+// happened. Bounded instead by liveness: keys for workspaces that no longer
+// exist, and keys a newer fingerprint has replaced, are dead weight and go.
 const ATTENTION_DISMISS_KEY = 'cockpit.attention.dismissed';
 let dismissedAlerts: Record<string, number> = loadDismissedAlerts();
 
@@ -11808,12 +11859,11 @@ function loadDismissedAlerts(): Record<string, number> {
   try {
     const raw = localStorage.getItem(ATTENTION_DISMISS_KEY);
     const obj = raw ? JSON.parse(raw) : {};
-    const cutoff = Date.now() - 24 * 3600_000;
-    const pruned: Record<string, number> = {};
+    const out: Record<string, number> = {};
     for (const [k, v] of Object.entries(obj)) {
-      if (typeof v === 'number' && v > cutoff) pruned[k] = v;
+      if (typeof v === 'number') out[k] = v;
     }
-    return pruned;
+    return out;
   } catch { return {}; }
 }
 
@@ -11826,6 +11876,56 @@ function dismissAlert(wsId: string, ts: string): void {
   try { localStorage.setItem(ATTENTION_DISMISS_KEY, JSON.stringify(dismissedAlerts)); }
   catch { /* storage full/unavailable — dismissal is best-effort */ }
   refreshAttention();
+}
+
+/** Everything the card displays, as one string (TASK-0420).
+ *
+ *  Built beside the entry so it cannot drift from what is rendered: if a line
+ *  is on the card, it is in here, and any of it moving is *"an actual state
+ *  changing in that project"* — which is the promise the ✕ makes.
+ */
+function attentionFingerprint(e: AttentionEntry, d: DigestSummary | undefined): string {
+  const live = agentStates.get(e.workspaceId);
+  return [
+    e.kind,
+    live?.state ?? '',
+    live?.ts ?? '',
+    d ? d.needsYou : '',
+    d ? d.transitions : '',
+    e.publish ? e.publish.ahead : '',
+    e.publish ? e.publish.remoteKind : '',
+  ].join('|');
+}
+
+/** Opening a workspace releases every dismissal on it (TASK-0420).
+ *
+ *  A stronger signal than any card: you are looking at the project. Without
+ *  this a dismissal could outlive the reason for it indefinitely, since
+ *  nothing else expires one. */
+function clearDismissalsFor(wsId: string): void {
+  let changed = false;
+  for (const k of Object.keys(dismissedAlerts)) {
+    if (k.startsWith(`${wsId}::`)) { delete dismissedAlerts[k]; changed = true; }
+  }
+  if (!changed) return;
+  try { localStorage.setItem(ATTENTION_DISMISS_KEY, JSON.stringify(dismissedAlerts)); }
+  catch { /* best-effort */ }
+}
+
+/** Drop keys nothing can bring back: vanished workspaces, and fingerprints a
+ *  newer one has replaced. Keeps the store bounded without a clock. */
+function pruneDismissedAlerts(liveKeys: Set<string>): void {
+  let changed = false;
+  for (const k of Object.keys(dismissedAlerts)) {
+    const wsId = k.slice(0, k.indexOf('::'));
+    if (!workspaces.some((w) => w.id === wsId) || !liveKeys.has(k)) {
+      delete dismissedAlerts[k];
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  try { localStorage.setItem(ATTENTION_DISMISS_KEY, JSON.stringify(dismissedAlerts)); }
+  catch { /* best-effort */ }
 }
 
 // Ephemeral "finished today" tally (interim until the ~agents fleet log,
@@ -11847,6 +11947,28 @@ function finishedTodayCount(): number {
   return finishedToday.length;
 }
 
+/** The digest for a workspace — live if its sidecar is running, else the cold
+ *  pass's (TASK-0419).
+ *
+ *  A live sidecar wins: it is fresher, and it updates between cold passes.
+ *  Without the fallback a project you have not opened got a card with a
+ *  headline and no since-line — the intermediate state Edwin refused, and one
+ *  nobody had chosen: it was simply where the two data sources stopped
+ *  overlapping.
+ */
+function digestFor(wsId: string): DigestSummary | undefined {
+  const live = digests.get(wsId);
+  if (live) return live;
+  const cold = fleetHealth.get(wsId)?.digest;
+  if (!cold) return undefined;
+  return {
+    transitions: cold.transitions,
+    needsYou: cold.needsYou,
+    seenAt: cold.seenAt,
+    computedAt: cold.computedAt,
+  };
+}
+
 function attentionEntries(): AttentionEntry[] {
   const out: AttentionEntry[] = [];
   const activeCost = lastAgentSnap?.session?.cost?.total_cost_usd;
@@ -11856,7 +11978,6 @@ function attentionEntries(): AttentionEntry[] {
   const eligible = new Set(attentionIds(agentStates, Date.now()));
   for (const [wsId, state] of agentStates) {
     if (!eligible.has(wsId)) continue;
-    if (isAlertDismissed(wsId, state.ts || '')) continue;
     // `attentionIds` already guarantees this; repeated only to narrow the
     // type, since the policy now lives in a plain-script module TypeScript
     // cannot see through. A cast would hide a real mismatch here.
@@ -11884,21 +12005,21 @@ function attentionEntries(): AttentionEntry[] {
   // cards knew only about waiting terminals, so a repo with eleven things
   // needing a human and a quiet terminal looked exactly like a repo with
   // nothing to do.
-  for (const [wsId, d] of digests) {
-    if (carded.has(wsId) || d.needsYou === 0) continue;
-    if (isAlertDismissed(wsId, d.computedAt)) continue;
+  // Every discovered workspace, not only those with a sidecar (TASK-0419):
+  // `digestFor` falls back to the cold pass, so a project you have not opened
+  // earns its card on the same terms as one you have.
+  const digestIds = new Set([...digests.keys(), ...fleetHealth.keys()]);
+  for (const wsId of digestIds) {
+    const d = digestFor(wsId);
+    if (!d || carded.has(wsId) || d.needsYou === 0) continue;
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
       kind: 'record',
-      // The headline is what the agent is DOING, when there is one — the
-      // liveliest fact about this project (Edwin, 2026-08-13). The owed count
-      // is standing information and says itself on the since-line beneath.
-      // Only when no agent is live does the count become the headline, because
-      // then it is the only thing this card has to say.
-      message: agentHeadline(agentStates.get(wsId))
-        ?? `${d.needsYou} item${d.needsYou === 1 ? '' : 's'} need a person`,
+      // Always the agent line — the owed count is on the since-line beneath and
+      // must not take this slot (Edwin, 2026-08-13).
+      message: agentLine(wsId),
       ts: d.computedAt,
       since: sinceLine(d),
     });
@@ -11931,17 +12052,14 @@ function attentionEntries(): AttentionEntry[] {
       existing.publish = { ahead, remoteKind: kind };
       continue;
     }
-    // Dismissed until the count changes — the same promise an agent alert
-    // makes, keyed on the thing that moves rather than on a clock.
-    if (isAlertDismissed(wsId, `unpushed:${ahead}`)) continue;
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
       kind: 'publish',
-      // Same rule as the record card: a live agent is the headline, and the
+      // Same rule as the record card: the agent line is the headline, and the
       // reason this card exists moves to its own line below.
-      message: agentHeadline(agentStates.get(wsId)) ?? publicationText(ahead, kind),
+      message: agentLine(wsId),
       // No timestamp of its own: unpushed work did not *happen* at a moment
       // the way a turn finishing did, and stamping it `now` would make it sort
       // as the newest thing on screen every refresh.
@@ -11962,12 +12080,24 @@ function attentionEntries(): AttentionEntry[] {
   // could never carry one however much its project had moved — the cards
   // looked different for a reason nobody chose (Edwin, 2026-08-13: *"why does
   // the project-os-cockpit card look different"*).
-  for (const e of out) if (!e.since) e.since = sinceLine(digests.get(e.workspaceId));
+  for (const e of out) if (!e.since) e.since = sinceLine(digestFor(e.workspaceId));
+
+  // Dismissal decided ONCE, here, against the whole card (TASK-0420) — after
+  // every entry exists and every line is on it. Deciding per kind while the
+  // entries were being built is how one card's ✕ came to promise something
+  // different from another's.
+  const live = new Set<string>();
+  for (const e of out) {
+    e.dismissKey = attentionFingerprint(e, digestFor(e.workspaceId));
+    live.add(alertKey(e.workspaceId, e.dismissKey));
+  }
+  pruneDismissedAlerts(live);
+  const kept = out.filter((e) => !isAlertDismissed(e.workspaceId, e.dismissKey as string));
 
   const rank = (k: string) => (
     k === 'needs-input' ? 0 : k === 'waiting' ? 1 : k === 'publish' ? 2 : 3);
-  out.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.ts < b.ts ? 1 : -1));
-  return out;
+  kept.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.ts < b.ts ? 1 : -1));
+  return kept;
 }
 
 function buildAttentionRow(entry: AttentionEntry): HTMLElement {
@@ -11977,7 +12107,8 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   // project is DOING rather than as why the card was minted. A record card
   // over a running turn was a grey dot beside the word "working…".
   const liveState = agentStates.get(entry.workspaceId);
-  if (liveState?.state && agentHeadline(liveState)) {
+  if (liveState?.state && !liveState.decayed_from
+      && cacheTemperature(liveState, Date.now()) !== 'cold') {
     row.classList.add(`agent-${liveState.state}`);
   }
   // Read back by tickTemperatures to compare wanted rows against shown
@@ -12001,12 +12132,7 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   const msg = document.createElement('span');
   msg.className = 'ws-attention-msg';
   msg.textContent = entry.message;
-  const metaBits = [fmtDuration(entry.ts || null, null)];
-  if (typeof entry.cost === 'number') metaBits.push(`$${entry.cost.toFixed(2)}`);
-  const meta = document.createElement('span');
-  meta.className = 'ws-attention-meta';
-  meta.textContent = metaBits.filter(Boolean).join(' · ');
-  body.append(name, msg, meta);
+  body.append(name, msg);
   if (entry.since) {
     const since = document.createElement('span');
     since.className = 'ws-attention-since';
@@ -12779,7 +12905,12 @@ function fmtDuration(started: string | null, ended: string | null): string {
   const mins = Math.round((b - a) / 60_000);
   if (mins < 1) return '<1 min';
   if (mins < 60) return `${mins} min`;
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return `${hours}h ${mins % 60}m`;
+  // Beyond two days, hours stop being a duration and become a number to do
+  // arithmetic on: the attention panel rendered an untouched project as
+  // `idle · 162h 15m`, which is six and a half days wearing a stopwatch.
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
 }
 
 function fmtSessionDate(ts: string | null): string {

@@ -78,6 +78,19 @@ export interface HealthRow {
    *  repo's only remote is a server path, and pushing it deploys a live
    *  website. Derived from the URL, never configured. */
   remoteKind?: 'backup' | 'deploy' | 'none';
+  /** Since-you-looked numbers for a repo with no sidecar (TASK-0419).
+   *
+   *  The attention panel's cards read the digest from each project's own
+   *  sidecar, which exists only for a workspace someone has opened — so an
+   *  unopened project got half a card. The cold pass answers for the rest of
+   *  the fleet. A live sidecar still wins: it is fresher, and it updates
+   *  between cold passes. */
+  digest?: {
+    seenAt: string;
+    transitions: number;
+    needsYou: number;
+    computedAt: string;
+  };
 }
 
 export interface FleetHealthPayload {
@@ -361,6 +374,12 @@ interface ColdLine {
   warnings?: number;
   checked_at?: string | null;
   detail?: string;
+  digest?: {
+    seen_at?: string;
+    transitions?: number;
+    needs_you?: number;
+    computed_at?: string;
+  } | null;
 }
 
 function runColdValidator(roots: string[]): Promise<ColdLine[]> {
@@ -402,6 +421,15 @@ export async function refreshColdWorkspaces(): Promise<void> {
     }, 'cold');
     if (line.validator === 'repo' || line.validator === 'bundled') {
       row.validator = line.validator;
+    }
+    const d = line.digest;
+    if (d && typeof d.transitions === 'number' && typeof d.needs_you === 'number') {
+      row.digest = {
+        seenAt: d.seen_at ?? '',
+        transitions: d.transitions,
+        needsYou: d.needs_you,
+        computedAt: d.computed_at ?? '',
+      };
     }
     // `line.ahead` / `line.remote_kind` are deliberately NOT read here
     // (ISS-0156). The cold pass answered the git question for cold

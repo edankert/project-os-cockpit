@@ -11,7 +11,7 @@ phase: "[[PHASE-030-Obligations-Go-Home]]"
 source: ["Edwin 2026-08-13: 'let's add the git status to the needs you section instead and have the actual push solution in the overview history. Can we then have an indication of having to push using a number on the overview icon?'", "Edwin 2026-08-13: 'widen the registry's definition'"]
 goal: "A person learns that work is unpublished the same way they learn everything else that needs them — a number on the view button, a row in Needs you — and publishes it from the surface that already draws the commits."
 requirements: []
-tasks: ["[[TASK-0415-Git-State-For-Every-Workspace]]", "[[TASK-0416-Generalise-The-Note-Less-Obligation]]", "[[TASK-0417-Publication-Enters-The-Registry]]", "[[TASK-0418-The-Push-Lives-With-The-Commits]]"]
+tasks: ["[[TASK-0415-Git-State-For-Every-Workspace]]", "[[TASK-0416-Generalise-The-Note-Less-Obligation]]", "[[TASK-0417-Publication-Enters-The-Registry]]", "[[TASK-0418-The-Push-Lives-With-The-Commits]]", "[[TASK-0419-Every-Card-Is-A-Full-Card]]", "[[TASK-0420-A-Dismissal-Means-Until-Something-Changes]]"]
 design: "[[DES-0011-Publication-Is-An-Obligation]]"
 release: ""
 related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0025]]", "[[ADR-0022]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0098]]", "[[FEAT-0055]]", "[[ISS-0156-The-Open-Workspace-Is-The-One-Whose-Unpushed-Count-Is-Never-Computed]]"]

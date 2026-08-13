@@ -62,6 +62,48 @@ def summarise(project_root: Path) -> dict[str, object]:
         "warnings": len(report.get("warnings") or []),
         "checked_at": report.get("checked_at"),
         **({"detail": report["detail"]} if report.get("detail") else {}),
+        **({"digest": digest} if (digest := _digest_counts(project_root)) else {}),
+    }
+
+
+def _digest_counts(project_root: Path) -> dict[str, object] | None:
+    """Since-you-looked numbers for a repo **nobody has open** (TASK-0419).
+
+    The attention panel's cards were drawing on two sources with two different
+    reaches: publication from the shell, which sees every discovered workspace,
+    and the since-line from that project's own sidecar, which exists only for a
+    workspace opened this session. Ten workspaces, one digest — so an unopened
+    project got a card with a headline and no second line, an intermediate
+    state nobody chose.
+
+    This rides the batch that already runs rather than adding a process per
+    repo. It costs one index build and one `git log` per repo per cold pass,
+    beside the validator subprocess already being spawned for each.
+
+    Returns None rather than a wrong answer: a repo with no ``docs/``, no git,
+    or an unreadable watermark has nothing to say here, and saying nothing is
+    what leaves the card honest.
+    """
+    docs_root = project_root / "docs"
+    if not docs_root.is_dir():
+        return None
+    try:
+        from .cockpit import digest_payload
+        from .index import Index
+        from .watermark import Watermark
+
+        payload = digest_payload(
+            project_root, Index.build(docs_root), Watermark(project_root).seen_at,
+        )
+    except Exception:  # noqa: BLE001 — one bad repo must not take the batch down
+        return None
+    if not payload.get("available"):
+        return None
+    return {
+        "seen_at": payload.get("seen_at") or "",
+        "transitions": payload.get("transition_count") or 0,
+        "needs_you": payload.get("needs_you_count") or 0,
+        "computed_at": payload.get("computed_at") or "",
     }
 
 

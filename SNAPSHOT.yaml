@@ -57,12 +57,12 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 157
+  ISS: 158
   PHASE: 33
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 418
+  TASK: 420
   TST: 24
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -81,7 +81,7 @@ items:
       status: backlog
       owner: user:edwin
       phase: "[[PHASE-030-Obligations-Go-Home]]"
-      tasks: [TASK-0415, TASK-0416, TASK-0417, TASK-0418]
+      tasks: [TASK-0415, TASK-0416, TASK-0417, TASK-0418, TASK-0419, TASK-0420]
       design: DES-0011
       note: "Edwin chose the shape 2026-08-13: git status into Needs you, the push into the overview history, the count as a number on the Overview button. Both surfaces ALREADY EXIST — registering the obligation is what makes them appear, with no new UI. Two things gate it: ISS-0156 first (absent-at-zero means an unknown count renders as nothing-owed, and the open workspace has no count today), then TASK-0416 (the note-less obligation path, which is two bolt-ons whose seam already produced a badge disagreeing with its own group). ADR-0027 is the widening that admits it."
     FEAT-0099:
@@ -597,6 +597,25 @@ items:
       effort: M
       depends: [TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0411, TASK-0412, TASK-0413]
       note: "The walk must be run from a SECOND unprivileged account on the remote host. A pass without that account is not a pass — it is the only step that tests the boundary the 2026-08-13 decisions moved."
+    TASK-0419:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0419-Every-Card-Is-A-Full-Card.md"
+      title: "Every card is a full card — the cold pass carries the digest, so a project you have not opened says as much as one you have"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: M
+      note: "Edwin chose 'full card always' over 'only card what you have opened'. The cheap option resolves the inconsistency by deleting the signal: your-applications.com sat at 34 commits on a deploy remote, unopened, and would have shown nothing. The partial card was never a design — publication comes from the shell (fleet-wide) and the since-line from a per-project sidecar (opened only), and ten workspaces yielded one digest."
+    TASK-0420:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0420-A-Dismissal-Means-Until-Something-Changes.md"
+      title: "A dismissal means until something changes — the ✕ holds against the project's whole state, releases when the user opens it, and survives a restart"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: M
+      depends: [TASK-0419]
+      note: "Keyed on a FINGERPRINT of everything the card shows, not on one field — an agent alert keyed on its state ts and publication on its commit count, each right about its own fact and blind to the rest. The 24h expiry goes: a dismissal must end because something happened, not because a day passed."
     TASK-0415:
       file: "docs/features/unpushed-work/plan/tasks/TASK-0415-Git-State-For-Every-Workspace.md"
       title: "Git state for every workspace, including the one you have open"
@@ -731,18 +750,6 @@ items:
     TASK-0353:
       file: "docs/features/session-economics/plan/tasks/TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways.md"
       title: "FEAT-0081 gains the surface it was closed on, and the validator learns to check a relationship from both ends"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0346:
-      file: "docs/features/session-economics/plan/tasks/TASK-0346-Cold-Reads-Grey-And-Actually-Ticks.md"
-      title: "A cold session reads grey on the rail, and the transition happens on a clock rather than on an event that will never come"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0347:
-      file: "docs/features/session-economics/plan/tasks/TASK-0347-Cold-Sessions-Leave-The-Needs-You-List.md"
-      title: "A cold session leaves the NEEDS YOU list, so the list means blocked on you and still cheap to pick up"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: FEAT-0081
@@ -1215,6 +1222,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0158:
+      file: "docs/issues/ISS-0158-The-Since-You-Looked-Band-Can-Mount-Twice.md"
+      title: "The since-you-looked band can mount twice — it removes the old one before its fetch and inserts the new one after"
+      status: fixed
+      owner: user:edwin
+      severity: medium
+      component: desktop-renderer
+      related: [FEAT-0071, TASK-0314]
+      note: "Edwin 2026-08-13, on your-health's overview. The dedupe and the insert are separated by the network: two overlapping calls each find nothing to clear and both prepend. Third occurrence in this file of the async-step-between-deciding-and-doing family (TASK-0187's PTY identity guard, ISS-0149's data-after-paint) and the first that DUPLICATES rather than drops."
     ISS-0157:
       file: "docs/issues/ISS-0157-The-Usage-Block-Scrolls-Out-Of-The-Attention-Panel.md"
       title: "The usage block scrolls away with the cards it is meant to sit under — the attention panel scrolls as one piece"
@@ -2688,7 +2704,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 100
     features_done: 89
-    tasks_total: 418
+    tasks_total: 420
     tasks_done: 381
     tests_total: 24
     tests_passing: 23
