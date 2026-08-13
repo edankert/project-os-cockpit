@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0420
 aliases: ["TASK-0420"]
 title: "A dismissal means until something changes — the ✕ holds against the project's whole state, releases when the user opens it, and survives a restart"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13

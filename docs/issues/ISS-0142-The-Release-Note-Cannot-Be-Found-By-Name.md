@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0142
 aliases: ["ISS-0142"]
 title: "Releases are the one note type the quick-switch corpus has never carried — typing REL-0001 into the bar that says 'files, IDs, or commands' finds nothing"
-status: triage
+status: "open"
 severity: low
 owner: user:edwin
 created: 2026-08-11
-updated: 2026-08-11
+updated: "2026-08-13"
 phase: "[[PHASE-999-Future]]"
 features: ["[[FEAT-0072]]"]
 tasks: []
@@ -45,3 +45,8 @@ There is a route: the overview's record column carries `Unreleased · N` and the
 ## Resolution, when it is picked up
 
 Either give releases a nav home (they are few and permanent, so a group rather than a mode), or add the third patch beside the other two. The second is minutes; the first is the better answer if release notes are ever going to be more than one.
+
+## Decision record
+
+> [!note] Accept — 2026-08-13 (user:edwin)
+> Is this still an issue?

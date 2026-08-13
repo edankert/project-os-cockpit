@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0418
 aliases: ["TASK-0418"]
 title: "The push lives with the commits — history marks what is unpublished and carries the action"
-status: backlog
+status: doing
 owner: unassigned
 created: 2026-08-13
 updated: 2026-08-13
@@ -75,5 +75,5 @@ A consequence worth noting: a repo with **no remote** and work in flight now ear
 - [ ] Implement the attention-panel card (the `Needs you` half Edwin asked for).
 - [ ] Implement the marking and the action in History, calling the existing guard.
 - [ ] Decide the band's fate and record it.
-- [ ] The History tile becomes a strip rather than a card (Edwin's aside) — separate step, because it changes a surface this work is not otherwise altering.
-- [ ] Build the artifact against the six regions; take annotations on it.
+- [~] **The History tile stays a card.** Declined by Edwin on 2026-08-13 after using it: *"I like the history functionality now, do not change."* Recorded rather than dropped — it was his own suggestion, and the next person to look at that tile should find the answer rather than the question.
+- [ ] Build the artifact against the six regions; take annotations on it. **The only thing this task still owes** — the behaviour is accepted, so what remains is depositing the built surface as [[DES-0011]]'s artifact so the design can leave `draft`.

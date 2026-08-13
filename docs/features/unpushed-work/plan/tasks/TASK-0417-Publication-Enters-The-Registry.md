@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0417
 aliases: ["TASK-0417"]
 title: "Publication enters the registry — the overview button carries the number and Needs you carries the row"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13

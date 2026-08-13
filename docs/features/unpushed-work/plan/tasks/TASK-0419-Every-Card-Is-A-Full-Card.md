@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0419
 aliases: ["TASK-0419"]
 title: "Every card is a full card — the cold pass carries the digest, so a project you have not opened says as much as one you have"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13

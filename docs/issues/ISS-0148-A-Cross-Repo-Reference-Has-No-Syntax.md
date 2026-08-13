@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0148
 aliases: ["ISS-0148"]
 title: "A note in another project cannot be referenced — 47 citations of upstream ADRs name an id with no repo, and the reader has to already know which of twelve repos holds it"
-status: triage
+status: "open"
 severity: medium
 owner: user:edwin
 created: 2026-08-12
-updated: 2026-08-12
+updated: "2026-08-13"
 phase: "[[PHASE-999-Future]]"
 features: []
 tasks: []
@@ -50,3 +50,8 @@ Neither piece back-fills the 47 existing citations. One sentence in `CONTEXT.md`
 ## Not decided
 
 Whether to sweep the 47, whether the syntax is template-owned (it is — `OBSIDIAN.md` and `TRACEABILITY.md` would carry it, so it is an upstream decision in `project-os-dev`), and whether the cockpit resolves or merely renders them legibly. Filed at `triage` because the first two are Edwin's and the third depends on them.
+
+## Decision record
+
+> [!note] Accept — 2026-08-13 (user:edwin)
+> I think this one has been resolved and that we used the # notation? If resolved already please close and update the note with the resolution.

@@ -100,3 +100,11 @@ The two remaining layout questions are therefore not blockers, and are recorded 
 
 - Where the push button attaches within the unpushed run — topmost divider, or a header line above it.
 - What the deploy row's words are. They matter more than usual: too imperative and it reads as a button that is broken, too soft and a real backlog reads as a footnote.
+
+## Accepted in use, 2026-08-13 — the artifact is what remains
+
+Edwin, after using the built surface: *"I like the history functionality now, do not change."* The behaviour this design specifies is accepted; the History tile stays a **card** rather than becoming a strip, which was his own earlier suggestion and is recorded as declined in [[TASK-0418]] rather than dropped.
+
+What the design still owes is its **artifact** — the built surface deposited via `POST /api/design/capture`, which is the route chosen deliberately over drawing one in advance. Until then this note stays `draft`, honestly: `DESIGN-ASSET` exempts a draft and nothing else, and a design offered for review renders.
+
+Everything the regions name is now built and running: the badge, the card's git line with its two rungs, the bounded red block in History with the push over the run, and the no-remote message in that same slot.
