@@ -78,6 +78,9 @@ export interface HealthRow {
    *  repo's only remote is a server path, and pushing it deploys a live
    *  website. Derived from the URL, never configured. */
   remoteKind?: 'backup' | 'deploy' | 'none';
+  /** Record files whose working tree differs from HEAD — `docs/` and
+   *  `SNAPSHOT.yaml`, the same scope History's uncommitted band counts. */
+  dirty?: number;
   /** Since-you-looked numbers for a repo with no sidecar (TASK-0419).
    *
    *  The attention panel's cards read the digest from each project's own
@@ -127,6 +130,7 @@ const gitState = new Map<string, {
   ahead: number | null;
   remote: string | null;
   remoteKind: 'backup' | 'deploy' | 'none';
+  dirty: number;
 }>();
 
 let notify: (() => void) | null = null;

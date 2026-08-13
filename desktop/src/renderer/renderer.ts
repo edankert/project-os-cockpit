@@ -499,6 +499,8 @@ interface FleetHealthRow {
   ahead?: number | null;
   remoteKind?: 'backup' | 'deploy' | 'none';
   remote?: string | null;
+  /** Record files whose working tree differs from HEAD. */
+  dirty?: number;
   /** Since-you-looked numbers for a workspace with no sidecar (TASK-0419). */
   digest?: { seenAt: string; transitions: number; needsYou: number; computedAt: string };
 }
@@ -11686,8 +11688,8 @@ interface AttentionEntry {
   kind: 'needs-input' | 'waiting' | 'record' | 'publish';
   message: string;
   ts: string;
-  /** `publish` only: how many commits, and where they would go. */
-  publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none' };
+  /** The project's git state: work in flight, and work not published. */
+  publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none'; dirty: number };
   /** A fingerprint of everything this card shows (TASK-0420).
    *
    *  What the ✕ is keyed on, so the card returns when **anything** about the
@@ -11784,10 +11786,23 @@ function sinceLine(d: DigestSummary | undefined): string {
 function publicationText(
   ahead: number, remoteKind: 'backup' | 'deploy' | 'none',
 ): string {
+  if (ahead <= 0 || remoteKind === 'none') return '';
   const plural = ahead === 1 ? '' : 's';
   return remoteKind === 'deploy'
     ? `${ahead} commit${plural} not deployed`
     : `${ahead} commit${plural} not pushed`;
+}
+
+/** Work in flight, for the card's git line (TASK-0418).
+ *
+ *  Scoped to the record — `docs/` and `SNAPSHOT.yaml` — because History's
+ *  uncommitted band counts exactly that, and two numbers behind one word on
+ *  two surfaces describing one project is the defect this feature keeps
+ *  finding. The wording follows that band's too: *not committed*.
+ */
+function uncommittedText(dirty: number): string {
+  if (dirty <= 0) return '';
+  return `${dirty} not committed`;
 }
 
 /** The agent line: what the LLM is doing, how long it has been doing it, and
@@ -11894,6 +11909,7 @@ function attentionFingerprint(e: AttentionEntry, d: DigestSummary | undefined): 
     d ? d.transitions : '',
     e.publish ? e.publish.ahead : '',
     e.publish ? e.publish.remoteKind : '',
+    e.publish ? e.publish.dirty : '',
   ].join('|');
 }
 
@@ -12043,13 +12059,19 @@ function attentionEntries(): AttentionEntry[] {
   const cardFor = new Map(out.map((e) => [e.workspaceId, e]));
   for (const [wsId, row] of fleetHealth) {
     const ahead = typeof row.ahead === 'number' ? row.ahead : 0;
-    if (ahead <= 0) continue;
+    const dirty = typeof row.dirty === 'number' ? row.dirty : 0;
+    // Either rung of the ladder is worth saying: work not saved, and work
+    // saved but not published (Edwin, 2026-08-13 — *"the git line should also
+    // include uncommitted items"*).
+    if (ahead <= 0 && dirty <= 0) continue;
     const kind = row.remoteKind === 'deploy' ? 'deploy'
       : row.remoteKind === 'none' ? 'none' : 'backup';
-    if (kind === 'none') continue;  // nothing to be ahead of; History says so
+    // A repo with no remote can still have work in flight; it just has nowhere
+    // to publish it, which History says rather than this card.
+    if (kind === 'none' && dirty <= 0) continue;
     const existing = cardFor.get(wsId);
     if (existing) {
-      existing.publish = { ahead, remoteKind: kind };
+      existing.publish = { ahead, remoteKind: kind, dirty };
       continue;
     }
     const ws = workspaces.find((w) => w.id === wsId);
@@ -12064,8 +12086,7 @@ function attentionEntries(): AttentionEntry[] {
       // the way a turn finishing did, and stamping it `now` would make it sort
       // as the newest thing on screen every refresh.
       ts: '',
-      dismissKey: `unpushed:${ahead}`,
-      publish: { ahead, remoteKind: kind },
+      publish: { ahead, remoteKind: kind, dirty },
     });
   }
 
@@ -12144,13 +12165,26 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   // which it is only on a publish card with no live agent, since a running
   // turn takes the headline and pushes this down here.
   if (entry.publish) {
-    const text = publicationText(entry.publish.ahead, entry.publish.remoteKind);
-    if (text !== entry.message) {
-      const pub = document.createElement('span');
-      pub.className = 'ws-attention-publish';
-      pub.textContent = text;
-      body.appendChild(pub);
+    const { ahead, remoteKind, dirty } = entry.publish;
+    const line = document.createElement('span');
+    line.className = 'ws-attention-git';
+    // In flight first, then saved-but-unsent: the order those things happen,
+    // the same order History draws them down the page.
+    const flight = uncommittedText(dirty);
+    if (flight) {
+      const el = document.createElement('span');
+      el.className = 'ws-attention-dirty';
+      el.textContent = flight;
+      line.appendChild(el);
     }
+    const unsent = publicationText(ahead, remoteKind);
+    if (unsent && unsent !== entry.message) {
+      const el = document.createElement('span');
+      el.className = 'ws-attention-publish';
+      el.textContent = unsent;
+      line.appendChild(el);
+    }
+    if (line.childElementCount > 0) body.appendChild(line);
   }
   main.append(dot, body);
   main.addEventListener('click', () => {

@@ -3356,12 +3356,34 @@ a.ov-phase-title:hover {
  * belongs in History beside the commits, and one item gets one row (ISS-0068).
  * So a workspace already carded for another reason gains this line, and a
  * workspace carded only for this gets the message as its own. */
-.ws-attention-publish {
+/* The git line: work in flight, then work saved but not published — the order
+ * those things happen, and the order History draws them down the page. */
+.ws-attention-git {
+  display: flex;
+  gap: 6px;
   font-size: 10px;
-  color: var(--status-blocked);
+  min-width: 0;
+}
+.ws-attention-git > span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* Amber, not red (Edwin, 2026-08-13). Uncommitted work is a normal state of
+ * working, one rung below "committed and not sent" — and grey was the other
+ * candidate but is already the colour of the meta and since lines on this
+ * card, which would have made a live state read as metadata. */
+.ws-attention-dirty { color: var(--severity-medium); }
+.ws-attention-publish { color: var(--status-blocked); }
+/* `·` between the two halves, the same separator the agent and since lines
+ * already use on this card — and in neither half's colour, because it belongs
+ * to the line rather than to either state. Present only when both halves are:
+ * the adjacent-sibling selector makes that structural rather than a condition
+ * somebody has to remember. */
+.ws-attention-dirty + .ws-attention-publish::before {
+  content: '·';
+  margin-right: 6px;
+  color: var(--text-faint);
 }
 /* Publication is not an alert: no pulse, no urgency colour on the dot. It has
  * been true for however long it has been true, and nothing about it arrived

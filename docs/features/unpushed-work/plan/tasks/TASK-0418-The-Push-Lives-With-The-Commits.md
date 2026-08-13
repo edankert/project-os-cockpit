@@ -53,6 +53,23 @@ The concern that made me discount it — *"that panel is agent-state driven; fol
 - [x] **One place for everything this surface says about publication.** Edwin: *"reuse the same place for other messages if no remote has been configured for instance, this should not be displayed in a different place."* So [[FEAT-0098]]'s band is **retired**, not merely narrowed, and `buildPublicationBlock` renders all three states in the same slot: pushable, deploy-only, and no remote at all.
 - [x] **The boundary is red and around the run.** The colour was `--accent-link` (blue) and read as a link; it is now `--status-blocked`, which is the red the retired band wore — *"keep the red boundary around it"* was about that band. And it is a box enclosing the header, the unpublished commits and their transition rows, rather than a rule beside them.
 
+## The card's git line carries both rungs, 2026-08-13
+
+Edwin: *"The git line should also include uncommitted items, not using the red color (amber or grey??)."*
+
+So the line reads **in flight, then saved-but-unsent** — the order those things happen, and the order History draws them down the page:
+
+```
+2 not committed   11 commits not pushed
+     amber              red
+```
+
+**Amber, not grey**, of the two he offered: grey is already the colour of the meta and since lines on that card, so grey would have made a live state read as metadata. Amber sits one rung below the red, which is what it is.
+
+**Scoped to the record** — `docs/` and `SNAPSHOT.yaml` — because History's uncommitted band counts exactly that, and two numbers behind one word on two surfaces describing one project is the defect this feature has hit repeatedly. Verified live: History says *"not committed yet · 2 files"*, the card says *"2 not committed"*, `git status` on the same scope says 2.
+
+A consequence worth noting: a repo with **no remote** and work in flight now earns a card, where before it earned nothing. `Your Trainer` showed *"23 not committed"* the moment this landed.
+
 ## Steps
 
 - [ ] Implement the attention-panel card (the `Needs you` half Edwin asked for).

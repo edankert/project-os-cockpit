@@ -58,6 +58,7 @@ export async function probeGitState(root: string): Promise<{
   ahead: number | null;
   remote: string | null;
   remoteKind: 'backup' | 'deploy' | 'none';
+  dirty: number;
 }> {
   // 5s, not the push's 60s: this runs for every workspace on a timer,
   // and a hung git on one repo must not stall the fleet.
@@ -73,8 +74,20 @@ export async function probeGitState(root: string): Promise<{
       url = other.ok ? other.out.trim() : '';
     }
   }
+  // Work in flight — the rung below "saved but not published" (FEAT-0100).
+  //
+  // **Scoped to the record**, `docs/` and `SNAPSHOT.yaml`, because that is what
+  // the only other surface reporting uncommitted work counts: History's band
+  // uses exactly this scope. Counting the whole repo here would put two
+  // different numbers behind one word on two surfaces describing one project,
+  // which is the defect this feature has hit repeatedly.
+  const status = await run(root, ['status', '--porcelain', '--', 'docs/', 'SNAPSHOT.yaml'], 5_000);
+  const dirty = status.ok
+    ? status.out.split('\n').filter((l) => l.trim().length > 0).length
+    : 0;
+
   const kind = remoteKind(url);
-  if (kind === 'none') return { ahead: null, remote: null, remoteKind: 'none' };
+  if (kind === 'none') return { ahead: null, remote: null, remoteKind: 'none', dirty };
 
   const counted = await run(root, ['rev-list', '--count', '@{u}..HEAD'], 5_000);
   const parsed = counted.ok ? Number.parseInt(counted.out.trim(), 10) : Number.NaN;
@@ -85,6 +98,7 @@ export async function probeGitState(root: string): Promise<{
     ahead: Number.isFinite(parsed) ? parsed : null,
     remote: url || null,
     remoteKind: kind,
+    dirty,
   };
 }
 
