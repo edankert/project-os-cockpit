@@ -5489,3 +5489,11 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 /* ---- FEAT-0098's band is retired (TASK-0418) ---------------------------
    Its subject moved to History, where the commits are; its red boundary came
    with it, which is the treatment Edwin asked to keep. */
+
+/* The dot follows the LIVE agent state when there is one, whatever minted the
+ * card (TASK-0418). A record card over a running turn was a grey dot beside
+ * the word "working…" — the card's reason for existing colouring the one
+ * element that should say what is happening now. */
+.ws-attention-row.agent-busy .ws-attention-dot { background: var(--accent-link); }
+.ws-attention-row.agent-done .ws-attention-dot { background: var(--status-done); }
+.ws-attention-row.agent-error .ws-attention-dot { background: var(--severity-critical); }

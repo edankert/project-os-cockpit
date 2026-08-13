@@ -11665,6 +11665,15 @@ interface AttentionEntry {
   ts: string;
   /** `publish` only: how many commits, and where they would go. */
   publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none' };
+  /** What a dismissal is keyed on, when `ts` is not it.
+   *
+   *  An agent alert is dismissed per (workspace, state-ts): a new transition
+   *  mints a fresh ts, so the card returns only when something genuinely new
+   *  happened. Unpushed work has no such moment — it is a standing state — so
+   *  it keys on the COUNT instead, which gives the same promise: dismissing
+   *  "8 commits not pushed" hides it until that number changes, and a ninth
+   *  commit brings it back. */
+  dismissKey?: string;
   cost?: number;   // only known for the active workspace (live session)
   /** The since-line: `since Thu · 14 transitions · 2 need you`. Present when
    *  that workspace's sidecar has answered; absent, never zero. */
@@ -11722,21 +11731,71 @@ async function refreshDigests(force = false): Promise<void> {
  *  An unset watermark reads `since first run` rather than `since 1 Jan 1970` —
  *  the epoch is the payload's way of saying "show everything", not a date
  *  anybody wants to read. */
-function sinceLine(
-  d: DigestSummary | undefined, opts?: { omitNeedsYou?: boolean },
-): string {
+function sinceLine(d: DigestSummary | undefined): string {
   if (!d || (d.transitions === 0 && d.needsYou === 0)) return '';
   const bits: string[] = [];
-  const seen = d.seenAt && !d.seenAt.startsWith('1970') ? d.seenAt.slice(0, 10) : '';
+  // **The INSTANT, not `.slice(0, 10)`.** ISS-0150 fixed exactly this in the
+  // overview's digest band — truncating to the date makes `relativeTime`
+  // measure from midnight, so a catch-up at 08:52 reports *8 hours ago*, a
+  // clock reading wearing an elapsed time's clothes — and this sibling kept
+  // the defect. Measured 2026-08-13: the band said 47m and this said 16h, from
+  // one watermark. Fixing a bug in one of two copies is how the second one
+  // survives, which is the argument for the copies not existing.
+  const seen = d.seenAt && !d.seenAt.startsWith('1970') ? d.seenAt : '';
   bits.push(seen ? `since ${relativeTime(seen)}` : 'since first run');
   if (d.transitions > 0) {
     bits.push(`${d.transitions} transition${d.transitions === 1 ? '' : 's'}`);
   }
-  // Omitted when the caller's own message already carries the number, which is
-  // the record card: "14 items need a person" over "… · 14 need you".
-  if (d.needsYou > 0 && !opts?.omitNeedsYou) bits.push(`${d.needsYou} need you`);
+  // The owed count lives HERE and only here (Edwin, 2026-08-13). It briefly
+  // moved into the card's headline instead, which cost the headline the one
+  // thing it should carry: what the agent is doing right now.
+  if (d.needsYou > 0) bits.push(`${d.needsYou} need you`);
   // `since first run` alone says nothing once its two clauses are gone.
   return bits.length > 1 ? bits.join(' · ') : '';
+}
+
+/** How a project's unpublished work reads, on a card (TASK-0418).
+ *
+ *  Written once because it was briefly written twice, and the two disagreed:
+ *  `your-applications.com` carried the headline *"34 commits not pushed"* over
+ *  the line *"34 commits not deployed"* — the same fact, contradicting itself,
+ *  on one card. The remote kind decides the verb and nothing else may.
+ */
+function publicationText(
+  ahead: number, remoteKind: 'backup' | 'deploy' | 'none',
+): string {
+  const plural = ahead === 1 ? '' : 's';
+  return remoteKind === 'deploy'
+    ? `${ahead} commit${plural} not deployed`
+    : `${ahead} commit${plural} not pushed`;
+}
+
+/** What an agent is doing, for a card's headline (TASK-0418).
+ *
+ *  Every card's first line is the **liveliest** fact about its project, and
+ *  nothing is livelier than a running turn. Edwin, 2026-08-13: *"why does it
+ *  now display 14 items need a person when the llm is busy — why not show the
+ *  current llm state/message?"* The count is standing information and belongs
+ *  on the since-line beneath, where it already is.
+ *
+ *  Returns null when there is no live agent, so the card falls back to its own
+ *  reason for existing rather than inventing a state.
+ */
+function agentHeadline(st: AgentStatePayload | undefined): string | null {
+  if (!st || !st.state) return null;
+  // A decayed or cold entry is not news about now (TASK-0347); the card should
+  // not report a turn that stopped being live hours ago.
+  if (st.decayed_from) return null;
+  if (cacheTemperature(st, Date.now()) === 'cold') return null;
+  const msg = (st.message || '').trim();
+  switch (st.state) {
+    case 'needs-input': return msg || 'needs your input';
+    case 'waiting':     return msg || 'turn finished — review';
+    case 'busy':        return msg || 'working…';
+    case 'done':        return msg || 'finished';
+    case 'error':       return msg || 'stopped on an error';
+    default:            return null;   // `idle` is not a headline
+  }
 }
 
 // Per-alert dismissal, keyed by (workspace, state-ts): a new state
@@ -11819,11 +11878,6 @@ function attentionEntries(): AttentionEntry[] {
   // screen — the failure ISS-0068 names — so an agent-waiting workspace gets
   // its record line appended, not a card of its own.
   const carded = new Set(out.map((e) => e.workspaceId));
-  for (const e of out) e.since = sinceLine(digests.get(e.workspaceId));
-  // …and it must not repeat what the card's own message already says. A record
-  // card reading "14 items need a person" above "since 16h ago · 1 transition ·
-  // 14 need you" says fourteen twice (Edwin, 2026-08-13: *"that card seems to
-  // show some duplicate info"*).
 
   // And a workspace whose RECORD owes something earns a card even with no
   // agent anywhere near it. That is the whole of DES-0008's complaint: these
@@ -11838,13 +11892,15 @@ function attentionEntries(): AttentionEntry[] {
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
       kind: 'record',
-      message: `${d.needsYou} item${d.needsYou === 1 ? '' : 's'} need a person`,
+      // The headline is what the agent is DOING, when there is one — the
+      // liveliest fact about this project (Edwin, 2026-08-13). The owed count
+      // is standing information and says itself on the since-line beneath.
+      // Only when no agent is live does the count become the headline, because
+      // then it is the only thing this card has to say.
+      message: agentHeadline(agentStates.get(wsId))
+        ?? `${d.needsYou} item${d.needsYou === 1 ? '' : 's'} need a person`,
       ts: d.computedAt,
-      // Without the needs-you clause: this card's message IS that number, and
-      // printing it twice on two adjacent lines is the duplicate info Edwin
-      // reported. The since-line keeps what the message does not say — how
-      // long ago you looked, and what moved since.
-      since: sinceLine(d, { omitNeedsYou: true }),
+      since: sinceLine(d),
     });
   }
 
@@ -11875,16 +11931,22 @@ function attentionEntries(): AttentionEntry[] {
       existing.publish = { ahead, remoteKind: kind };
       continue;
     }
+    // Dismissed until the count changes — the same promise an agent alert
+    // makes, keyed on the thing that moves rather than on a clock.
+    if (isAlertDismissed(wsId, `unpushed:${ahead}`)) continue;
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
       kind: 'publish',
-      message: `${ahead} commit${ahead === 1 ? '' : 's'} not pushed`,
+      // Same rule as the record card: a live agent is the headline, and the
+      // reason this card exists moves to its own line below.
+      message: agentHeadline(agentStates.get(wsId)) ?? publicationText(ahead, kind),
       // No timestamp of its own: unpushed work did not *happen* at a moment
       // the way a turn finishing did, and stamping it `now` would make it sort
       // as the newest thing on screen every refresh.
       ts: '',
+      dismissKey: `unpushed:${ahead}`,
       publish: { ahead, remoteKind: kind },
     });
   }
@@ -11893,6 +11955,15 @@ function attentionEntries(): AttentionEntry[] {
   // review, then publish, then read. A record card is never urgent — nothing
   // in it arrived while you watched — and publishing is deliberate, so it
   // sits below the two that are waiting on a reply.
+  //
+  // The since-line is assigned HERE, after every card exists, rather than
+  // beside the loop that mints the first of them. Assigned earlier it reached
+  // only the cards that happened to be built by then, so a publish-only card
+  // could never carry one however much its project had moved — the cards
+  // looked different for a reason nobody chose (Edwin, 2026-08-13: *"why does
+  // the project-os-cockpit card look different"*).
+  for (const e of out) if (!e.since) e.since = sinceLine(digests.get(e.workspaceId));
+
   const rank = (k: string) => (
     k === 'needs-input' ? 0 : k === 'waiting' ? 1 : k === 'publish' ? 2 : 3);
   out.sort((a, b) => rank(a.kind) - rank(b.kind) || (a.ts < b.ts ? 1 : -1));
@@ -11902,9 +11973,17 @@ function attentionEntries(): AttentionEntry[] {
 function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   const row = document.createElement('div');
   row.className = `ws-attention-row kind-${entry.kind}`;
+  // The live agent state as a second class, so the dot reads as what the
+  // project is DOING rather than as why the card was minted. A record card
+  // over a running turn was a grey dot beside the word "working…".
+  const liveState = agentStates.get(entry.workspaceId);
+  if (liveState?.state && agentHeadline(liveState)) {
+    row.classList.add(`agent-${liveState.state}`);
+  }
   // Read back by tickTemperatures to compare wanted rows against shown
   // rows — the panel's own DOM is the truth, not a cached decision.
   row.dataset.wsId = entry.workspaceId;
+  const dismissKey = entry.dismissKey ?? entry.ts;
   if (isAlertAcked(entry.workspaceId, entry.ts)) row.classList.add('acked');
   const main = document.createElement('button');
   main.type = 'button';
@@ -11934,18 +12013,18 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
     since.textContent = entry.since;
     body.appendChild(since);
   }
-  // Publication on a card that exists for another reason: a line, not a second
-  // card and not a button (Edwin, 2026-08-13). The card already names the
-  // project and why it wants you; this adds the one fact that would otherwise
-  // have duplicated it.
-  if (entry.kind !== 'publish' && entry.publish) {
-    const pub = document.createElement('span');
-    pub.className = 'ws-attention-publish';
-    const { ahead, remoteKind } = entry.publish;
-    pub.textContent = remoteKind === 'deploy'
-      ? `${ahead} commit${ahead === 1 ? '' : 's'} not deployed`
-      : `${ahead} commit${ahead === 1 ? '' : 's'} not pushed`;
-    body.appendChild(pub);
+  // Publication as a line, not a second card and not a button (Edwin,
+  // 2026-08-13). Rendered whenever the headline is not already saying it —
+  // which it is only on a publish card with no live agent, since a running
+  // turn takes the headline and pushes this down here.
+  if (entry.publish) {
+    const text = publicationText(entry.publish.ahead, entry.publish.remoteKind);
+    if (text !== entry.message) {
+      const pub = document.createElement('span');
+      pub.className = 'ws-attention-publish';
+      pub.textContent = text;
+      body.appendChild(pub);
+    }
   }
   main.append(dot, body);
   main.addEventListener('click', () => {
@@ -11966,16 +12045,14 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   // A publish card carries the action instead of a dismiss (TASK-0418). There
   // is nothing to dismiss: unpushed work does not stop being unpushed because
   // you looked at it, and a ✕ here would be a button that lies.
-  // A publish-only card has nothing to dismiss — unpushed work does not stop
-  // being unpushed because you looked at it — and no button either: the push
-  // lives in History, beside the commits it publishes (Edwin, 2026-08-13:
-  // *"there is no need to have the push button there"*). The card's job is to
-  // say the fact and take you to where it is acted on.
-  if (entry.kind === 'publish') {
-    row.appendChild(main);
-    return row;
-  }
-
+  // Every card carries the same furniture and closes the same way (Edwin,
+  // 2026-08-13: *"the other items should show the same lines … and be able to
+  // close using the x"*). The first cut gave a publish card no dismiss,
+  // reasoning that unpushed work does not stop being unpushed because you
+  // looked at it — true, and beside the point: a panel whose rows behave
+  // differently for reasons only its author knows is harder to use than one
+  // that is occasionally over-permissive. What a publish card still does NOT
+  // carry is a push button; that lives in History, beside the commits.
   const dismiss = document.createElement('button');
   dismiss.type = 'button';
   dismiss.className = 'ws-attention-dismiss';
@@ -11984,7 +12061,7 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   dismiss.setAttribute('aria-label', `Dismiss ${entry.name}`);
   dismiss.addEventListener('click', (e) => {
     e.stopPropagation();
-    dismissAlert(entry.workspaceId, entry.ts);
+    dismissAlert(entry.workspaceId, dismissKey);
   });
   row.append(main, dismiss);
   return row;
