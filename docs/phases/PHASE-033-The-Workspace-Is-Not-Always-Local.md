@@ -12,7 +12,7 @@ goal: "A project-os repository on another machine is a workspace like any other 
 features: ["[[FEAT-0099-Remote-SSH-Workspaces]]"]
 requirements: ["[[REQ-0035-Secure-Remote-Workspace-Connection]]", "[[REQ-0036-Remote-Development-Workflow]]"]
 issues: []
-related: ["[[ADR-0026-Remote-Workspace-Transport]]", "[[RISK-0007-Remote-Workspace-Trust-Boundary]]", "[[REQ-0034-A-Non-Loopback-Write-Is-Authenticated]]", "[[REQ-0027]]", "[[REQ-0005-Terminal-Local-Only]]", "[[ADR-0010]]", "[[ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch]]", "[[TST-0024-Remote-SSH-Workspace-Walk]]"]
+related: ["[[ADR-0026-Remote-Workspace-Transport]]", "[[RISK-0007-Remote-Workspace-Trust-Boundary]]", "[[REQ-0034-A-Non-Loopback-Write-Is-Authenticated]]", "[[REQ-0027]]", "[[REQ-0005-Terminal-Local-Only]]", "[[ADR-0010]]", "[[ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch]]", "[[TST-0024-Remote-SSH-Workspace-Walk]]", "[[TASK-0414-The-Remote-Transport-Round]]", "[[PHASE-028-Borrowed-Capability]]"]
 tags: [phase, security]
 ---
 
@@ -62,6 +62,16 @@ So this phase's security work is not "keep SSH tidy". It is: **decide what autho
 - [ ] **The record says which machine a note lives on**, readable from the note and the workspace identity rather than inferred from which rail entry is highlighted. A remote repo and a same-named local clone cannot be confused by any surface, including deep links.
 - [ ] **[[TST-0024-Remote-SSH-Workspace-Walk]] passes on two real machines, including a second user account on the remote host** attempting to reach the sidecar and the terminal. A pass without that account is not a pass.
 - [ ] **[[RISK-0007]] closes on that evidence**, and [[REQ-0035]]/[[REQ-0036]] reach `implemented` with every criterion ticked or reconciled.
+
+## Surveyed before building, 2026-08-13
+
+[[TASK-0414-The-Remote-Transport-Round]] ran [[PHASE-028]]'s survey against VS Code Remote-SSH, the VS Code Agent Host, and t3.code — fired by the trigger *a phase about to build something adjacent*, which is this one.
+
+It changed the phase before a line was written. **VS Code has already solved the co-tenant problem twice**: its default is a loopback listener holding a randomly generated key readable only by the owning user, and its documented multi-user mode moves the listener to a Unix domain socket where file permissions do the excluding. Both keep the existing HTTP/SSE design. So [[TASK-0413]] shrank from *design an authentication mechanism* to *adopt one of two known ones, or prove the property structurally* — and [[ADR-0026]]'s eliminated alternative turns out to be one sentence short rather than unsound, which is a better thing for the record to say.
+
+It also **overruled one of this phase's own task definitions**: [[TASK-0411]] said a version mismatch should "degrade explicitly with named unavailable capabilities". VS Code refuses outright. Refusal is the take.
+
+The round read **documentation, not source** — the opposite of the survey method's first line — and says so, with a verification list that [[TASK-0405]] must work through first. A finding good enough to reshape an ADR's alternatives is not yet good enough to implement against.
 
 ## Notes
 

@@ -33,13 +33,19 @@ The cockpit SHALL connect to a remote workspace only through an authenticated SS
 
 The sidecar guards twenty mutating routes with a single check, `_require_loopback()` (`src/project_os_cockpit/server.py:1578`) — note writes and decisions, approvals, inbox, design verdicts, and `POST /api/cockpit/dispatch`, which starts agent commands. Bind that on a shared host and every other account there passes the gate without ever authenticating over SSH. REQ-0034 does not reach the case: it authenticates a **non-loopback** write, and this write is a loopback write.
 
+## Disconnect kills the claim, not the process
+
+The fourth criterion below says a disconnect revokes the connection's capabilities and clears live remote state. That is about the **claim** — what the cockpit is entitled to assert and to do. It is **not** a licence to kill the remote process, and must not be implemented as one: a dropped Wi-Fi would then end a running agent mid-task, which is the failure the local terminal's tmux backing exists to prevent.
+
+VS Code draws the line in the same place and puts a number on it — the remote server survives a dropped client for a default of three hours (`remote.SSH.reconnectionGraceTime`). The selected design states its own grace policy explicitly, including what happens at expiry, rather than leaving "revokes capabilities" to be read either way ([[TASK-0414-The-Remote-Transport-Round]]).
+
 ## Acceptance Criteria
 
 - [ ] The remote host is authenticated through OpenSSH host-key verification and a mismatch cannot be silently accepted — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
 - [ ] Private keys, passwords, agent credentials, and remote environment secrets are neither stored in project records nor copied to the remote host by default — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
 - [ ] Remote docs and PTY services have no externally reachable listener; all traffic travels inside the authenticated SSH connection — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
 - [ ] **A second local account on the remote host cannot write a note, dispatch an agent, or open a cockpit terminal against the connected workspace** — the enumerated mutating-route set is covered, not a sample — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
-- [ ] A disconnect or integrity failure revokes the connection's capabilities and clears live remote state until a fresh verification succeeds — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
+- [ ] A disconnect or integrity failure revokes the connection's capabilities and clears live remote state until a fresh verification succeeds — **and does not terminate the remote process; the grace policy is stated, and expiry is deliberate** — evidence: [[TST-0024-Remote-SSH-Workspace-Walk]]
 
 ## Traceability
 

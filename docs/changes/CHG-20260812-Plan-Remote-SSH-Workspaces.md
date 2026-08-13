@@ -33,6 +33,20 @@ Added the documentation-first backlog for authenticated remote SSH workspaces: a
 - **One trap recorded before it was built:** `loadStored()` drops any workspace whose root does not stat, so a naively modelled remote workspace would delete itself on the first offline launch ([[TASK-0406]]).
 - **[[TST-0024]]'s `last_verified` cleared** — it had been set to the authoring date for a walk that was never run, starting a staleness clock from a run that did not happen — and the walk gained the co-tenant, fleet-surface and offline-relaunch steps.
 
+## Revised again, later on 2026-08-13 — the survey round
+
+[[TASK-0414-The-Remote-Transport-Round]] surveyed VS Code Remote-SSH, the VS Code Agent Host and t3.code against the phase's gating question, and folded the takes back in:
+
+- **[[ADR-0026]] gained two alternatives it should never have been without** — a remote Unix socket forwarded over SSH (VS Code's multi-user mode), and a loopback listener holding a per-connection key (VS Code's default). Both keep the existing HTTP/SSE design; neither needs a new protocol. The eliminated unauthenticated forward is now recorded as *one mechanism short*, not unsound.
+- **[[TASK-0413]] shrank.** It is no longer "design an authentication mechanism" but "adopt a key or a socket, or prove the property structurally — and do not build a token service".
+- **[[TASK-0411]] was overruled by the survey.** Its "degrade explicitly on version mismatch" is withdrawn in favour of VS Code's *refuse*, plus version-keyed install, a download fallback for hosts with no outbound HTTPS, and a first-class uninstall.
+- **[[TASK-0412]] gained a shape**: capability flags on the target (t3.code `#671`) rather than `if (remote)` in five surfaces.
+- **[[REQ-0035]] and [[TASK-0408]] gained the distinction our notes were missing** — disconnect kills the *claim*, not the remote *process*, with a stated grace policy.
+- **[[TASK-0405]] became a comparison rather than a search**, on a Linux host, and inherits the round's source-verification list.
+- Four declines recorded in [[TASK-0341]], including t3's pairing-token session — a shape [[REQ-0034]] had already rejected in writing before the survey saw it.
+
+The round read documentation rather than source, which the round note states rather than glosses.
+
 ## Impact
 
 - Desktop workspace lifecycle and rail identity.

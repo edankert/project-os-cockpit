@@ -62,7 +62,7 @@ counters:
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 413
+  TASK: 414
   TST: 24
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -183,8 +183,8 @@ items:
       title: "The harness survey — a repeatable pass over adjacent agent tools whose output is filed issues and recorded declines, not prose"
       status: doing
       phase: "[[PHASE-028-Borrowed-Capability]]"
-      tasks: [TASK-0340, TASK-0341, TASK-0342, TASK-0386]
-      note: "The first round found a hole in an UNBUILT phase (FEAT-0076's invariant misses permission prompts) — invisible from inside. Declining is recorded as carefully as adopting; that is the point, not a longer backlog."
+      tasks: [TASK-0340, TASK-0341, TASK-0342, TASK-0386, TASK-0414]
+      note: "The first round found a hole in an UNBUILT phase (FEAT-0076's invariant misses permission prompts) — invisible from inside. Declining is recorded as carefully as adopting; that is the point, not a longer backlog. Round 3 (TASK-0414, 2026-08-13) tested the second trigger — a phase about to build something adjacent — and paid again: it reshaped ADR-0026's alternatives and overruled one of PHASE-033's own task definitions. It also produced the method's first honest failure, reading docs rather than source, recorded as such."
     FEAT-0074:
       file: "docs/features/standing-worker/FEAT-0074-The-Standing-Worker.md"
       title: "The standing worker — acquire, select, dispatch, watch, record, release, next; with a lease that refuses and stops that hold"
@@ -588,6 +588,16 @@ items:
       effort: M
       depends: [TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0411, TASK-0412, TASK-0413]
       note: "The walk must be run from a SECOND unprivileged account on the remote host. A pass without that account is not a pass — it is the only step that tests the boundary the 2026-08-13 decisions moved."
+    TASK-0414:
+      file: "docs/features/harness-survey/plan/tasks/TASK-0414-The-Remote-Transport-Round.md"
+      title: "The remote-transport round — VS Code Remote-SSH, the VS Code Agent Host, and t3.code, surveyed against the one question PHASE-033 has to answer"
+      status: doing
+      owner: user:edwin
+      parent: FEAT-0080
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      effort: M
+      blocks: [TASK-0405]
+      note: "Round 3, fired by the trigger 'a phase about to build something adjacent'. Changed PHASE-033 before a line was written: VS Code has solved the co-tenant problem TWICE (per-connection key file; Unix socket forwarded over SSH), so TASK-0413 shrank and ADR-0026's eliminated option is one mechanism short rather than unsound. It also OVERRULED TASK-0411's own DoD — refuse a version mismatch, do not degrade. Read docs, NOT source: the method's first line is the one it broke, and it carries a source-verification list TASK-0405 must work first."
     TASK-0411:
       file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0411-Deliver-And-Version-The-Remote-Sidecar.md"
       title: "Deliver the remote sidecar and keep it version-matched"
@@ -2612,7 +2622,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 99
     features_done: 89
-    tasks_total: 413
+    tasks_total: 414
     tasks_done: 379
     tests_total: 24
     tests_passing: 23
