@@ -586,13 +586,13 @@ function applyFleetHealthPayload(payload: unknown): void {
     const ws = workspaces.find((w) => w.id === li.dataset.id);
     if (ws) applyHealthToSquare(li, ws);
   }
-  // …and the overview's unpushed band, which is built from this payload
-  // (FEAT-0098). Git state is probed asynchronously, so on a fresh window the
-  // row exists with no `ahead` at all and the band correctly renders nothing —
-  // and then nothing ever re-renders it. **Third time today**: the obligation
-  // badges (ISS-0149) and the cross-repo jump both had the same shape, which
-  // is data arriving after the surface that needs it has already painted.
-  if (currentRel && currentRel.startsWith('~overview')) void mountUnpushedBand();
+  // The attention panel reads this payload too — publication rides its cards
+  // (TASK-0418) — and git state is probed asynchronously, so it must repaint
+  // when the numbers land rather than only when an agent state changes.
+  // **The shape this guards against**: data arriving after the surface that
+  // needs it has already painted, which cost three separate surfaces a day's
+  // debugging (the obligation badges, ISS-0149, and the cross-repo jump).
+  refreshAttention();
 }
 
 // Declared by cache-temperature.js, loaded as a plain script before this
@@ -3815,58 +3815,23 @@ function renderProjectOverview(data: StatsPayload): void {
   // and prepended rather than inserted into `parts` so a slow sidecar delays
   // the band and never the overview.
   void mountDigestBand();
-  // …and whether this workspace has work nobody has published (FEAT-0098).
-  void mountUnpushedBand();
 }
 
-// ----- No remote, on the overview (FEAT-0098 / TASK-0404, narrowed) ------
+// ----- FEAT-0098's band is retired (TASK-0418) --------------------------
 //
-// This band was built when the count and the push lived only on the `~agents`
-// fleet screen and in a rail-square tooltip — nothing on the surface a person
-// lands on. ADR-0022 made that untenable: the delegate may push to non-deploy
-// remotes, and where it does not, the human has to be told.
+// It was built when nothing on the surface a person lands on said that work
+// was unpublished — the count and the push lived only on the `~agents` fleet
+// screen and in a rail-square tooltip. ADR-0022 made that untenable: the
+// delegate may push to non-deploy remotes, and where it does not, the human
+// has to be told.
 //
-// **Narrowed on 2026-08-13 (TASK-0418).** The unpushed half now lives in
-// History, with the commits it publishes (ADR-0020: an obligation surfaces
-// where its subject lives), and the cross-workspace shortcut is the attention
-// card. Keeping the band as well put the same sentence and a second Push
-// button on one page — the duplication ISS-0068 is about, at the top of the
-// very surface it was built to inform.
-//
-// What stays is the half with **no subject to live with**: a repo with no
-// remote has no unpublished commits to mark, because there is nowhere for
-// them to be unpublished *to*. It is also the worse fact, and it keeps its own
-// sentence rather than being folded into a count that would read as zero.
-
-async function mountUnpushedBand(): Promise<void> {
-  docView.querySelector('.ov-unpushed')?.remove();
-  if (!activeId) return;
-  // The cached map first — `applyFleetHealthPayload` keeps it current and
-  // calls back here — falling back to a fetch on the first paint.
-  let mine = fleetHealth.get(activeId) ?? null;
-  if (!mine) {
-    try {
-      mine = ((await cockpitApi.fleetHealth.get()).rows ?? [])
-        .find((r) => r.workspaceId === activeId) ?? null;
-    } catch { return; }
-  }
-  if (!mine) return;
-
-  // Absent when there is nothing to say. "Up to date" on every visit is the
-  // permanent zero this surface has been taught about twice — and the
-  // unpushed count is History's now, not this band's.
-  if (mine.remoteKind !== 'none') return;
-
-  const band = document.createElement('section');
-  band.className = 'ov-unpushed';
-  const head = document.createElement('div');
-  head.className = 'ov-unpushed-head';
-  // Not "unpushed" but "nowhere to push to" — no number would say this, and
-  // a count of zero would say the opposite.
-  head.textContent = 'No remote — nothing here is backed up.';
-  band.appendChild(head);
-  docView.prepend(band);
-}
+// History says it now, beside the commits it publishes — an obligation
+// surfacing where its subject lives (ADR-0020) — and the cross-workspace
+// shortcut is the attention card. The band was narrowed to its no-remote half
+// first, and then removed: Edwin, 2026-08-13, *"reuse the same place for other
+// messages if no remote has been configured for instance, this should not be
+// displayed in a different place."* Two places for one subject is the thing
+// that gets answered twice and then differently.
 
 // ----- Since you looked: the digest band (FEAT-0071 / TASK-0314) --------
 //
@@ -8102,14 +8067,32 @@ async function fillHistory(
   // everything; the label has to mean that.
   const shown = data.commits.filter((c) => c.unpublished).length;
   const total = data.unpublished_count ?? shown;
-  let headerPlaced = shown === 0;
+  const remoteKind = data.remote_kind ?? 'backup';
+
+  // No remote at all says so HERE, in the same place, rather than in a band of
+  // its own at the top of the page (Edwin, 2026-08-13: *"reuse the same place
+  // for other messages if no remote has been configured for instance, this
+  // should not be displayed in a different place"*). One home for everything
+  // this surface has to say about publication.
+  if (remoteKind === 'none') {
+    parts.push(buildPublicationBlock({ kind: 'none' }));
+  }
+
+  // The unpublished run, bounded (Edwin: *"keep the … boundary around it"*).
+  // A wrapper rather than a rule on each divider: the run is contiguous by
+  // construction — everything after `@{u}` — so one box can enclose the
+  // commits AND the transition rows beneath them, which a per-row mark cannot.
+  let run: HTMLElement | null = null;
   for (const commit of data.commits) {
-    if (!headerPlaced && commit.unpublished) {
-      parts.push(buildUnpublishedHeader(total, shown, data.remote_kind ?? 'backup'));
-      headerPlaced = true;
+    if (commit.unpublished && !run) {
+      run = buildPublicationBlock({ kind: remoteKind, total, shown });
+      parts.push(run);
     }
-    parts.push(buildCommitDivider(commit));
-    for (const tr of commit.transitions) parts.push(buildTransitionRow(tr));
+    const target = commit.unpublished && run ? run : parts;
+    const divider = buildCommitDivider(commit);
+    const rows = commit.transitions.map(buildTransitionRow);
+    if (target === parts) parts.push(divider, ...rows);
+    else (target as HTMLElement).append(divider, ...rows);
   }
 
   if (parts.length === 0) {
@@ -8192,41 +8175,52 @@ function buildUncommittedBand(
  *  NOT SAVED, this says SAVED BUT NOT PUBLISHED, and everything below it is
  *  published — top to bottom, in the order those things happen.
  */
-function buildUnpublishedHeader(
-  count: number, shown: number, remoteKind: 'backup' | 'deploy' | 'none',
-): HTMLElement {
-  const el = document.createElement('div');
-  el.className = 'ov-history-unpublished';
+function buildPublicationBlock(opts: {
+  kind: 'backup' | 'deploy' | 'none';
+  total?: number;
+  shown?: number;
+}): HTMLElement {
+  const el = document.createElement('section');
+  el.className = `ov-history-unpublished kind-${opts.kind}`;
+
+  const head = document.createElement('div');
+  head.className = 'ov-history-unpublished-head';
 
   const label = document.createElement('span');
   label.className = 'ov-history-unpublished-label';
-  label.textContent = remoteKind === 'deploy'
-    // A different sentence, because it is a different fact: these are not
-    // waiting for a click, they are waiting for a deliberate deploy elsewhere.
-    ? `${count} commit${count === 1 ? '' : 's'} not deployed`
-    : `${count} commit${count === 1 ? '' : 's'} not pushed`;
-  el.appendChild(label);
+  const count = opts.total ?? 0;
+  label.textContent = opts.kind === 'none'
+    // No number says this, and zero says the opposite: not "nothing to push"
+    // but "nowhere to push to".
+    ? 'No remote — nothing here is backed up'
+    : opts.kind === 'deploy'
+      // A different sentence for a different fact: these are not waiting for a
+      // click, they are waiting for a deliberate deploy elsewhere.
+      ? `${count} commit${count === 1 ? '' : 's'} not deployed`
+      : `${count} commit${count === 1 ? '' : 's'} not pushed`;
+  head.appendChild(label);
 
   // When the window is shorter than the run, say so rather than letting the
-  // marks below quietly contradict the number above.
-  if (shown < count) {
+  // commits below quietly contradict the number above.
+  if (opts.shown !== undefined && opts.shown < count) {
     const more = document.createElement('span');
     more.className = 'ov-history-unpublished-more';
-    more.textContent = `${shown} shown`;
-    el.appendChild(more);
+    more.textContent = `${opts.shown} shown`;
+    head.appendChild(more);
   }
 
-  if (activeId) {
+  if (activeId && opts.kind !== 'none') {
     const ws = workspaces.find((w) => w.id === activeId);
     const act = buildPushControl({
       workspaceId: activeId,
       name: ws ? effectiveName(ws) : 'this project',
       ahead: count,
-      remoteKind,
+      remoteKind: opts.kind,
       className: 'ov-history-push',
     });
-    if (act) el.appendChild(act);
+    if (act) head.appendChild(act);
   }
+  el.appendChild(head);
   return el;
 }
 
@@ -11728,7 +11722,9 @@ async function refreshDigests(force = false): Promise<void> {
  *  An unset watermark reads `since first run` rather than `since 1 Jan 1970` —
  *  the epoch is the payload's way of saying "show everything", not a date
  *  anybody wants to read. */
-function sinceLine(d: DigestSummary | undefined): string {
+function sinceLine(
+  d: DigestSummary | undefined, opts?: { omitNeedsYou?: boolean },
+): string {
   if (!d || (d.transitions === 0 && d.needsYou === 0)) return '';
   const bits: string[] = [];
   const seen = d.seenAt && !d.seenAt.startsWith('1970') ? d.seenAt.slice(0, 10) : '';
@@ -11736,8 +11732,11 @@ function sinceLine(d: DigestSummary | undefined): string {
   if (d.transitions > 0) {
     bits.push(`${d.transitions} transition${d.transitions === 1 ? '' : 's'}`);
   }
-  if (d.needsYou > 0) bits.push(`${d.needsYou} need you`);
-  return bits.join(' · ');
+  // Omitted when the caller's own message already carries the number, which is
+  // the record card: "14 items need a person" over "… · 14 need you".
+  if (d.needsYou > 0 && !opts?.omitNeedsYou) bits.push(`${d.needsYou} need you`);
+  // `since first run` alone says nothing once its two clauses are gone.
+  return bits.length > 1 ? bits.join(' · ') : '';
 }
 
 // Per-alert dismissal, keyed by (workspace, state-ts): a new state
@@ -11821,6 +11820,10 @@ function attentionEntries(): AttentionEntry[] {
   // its record line appended, not a card of its own.
   const carded = new Set(out.map((e) => e.workspaceId));
   for (const e of out) e.since = sinceLine(digests.get(e.workspaceId));
+  // …and it must not repeat what the card's own message already says. A record
+  // card reading "14 items need a person" above "since 16h ago · 1 transition ·
+  // 14 need you" says fourteen twice (Edwin, 2026-08-13: *"that card seems to
+  // show some duplicate info"*).
 
   // And a workspace whose RECORD owes something earns a card even with no
   // agent anywhere near it. That is the whole of DES-0008's complaint: these
@@ -11837,7 +11840,11 @@ function attentionEntries(): AttentionEntry[] {
       kind: 'record',
       message: `${d.needsYou} item${d.needsYou === 1 ? '' : 's'} need a person`,
       ts: d.computedAt,
-      since: sinceLine(d),
+      // Without the needs-you clause: this card's message IS that number, and
+      // printing it twice on two adjacent lines is the duplicate info Edwin
+      // reported. The since-line keeps what the message does not say — how
+      // long ago you looked, and what moved since.
+      since: sinceLine(d, { omitNeedsYou: true }),
     });
   }
 
@@ -11849,14 +11856,25 @@ function attentionEntries(): AttentionEntry[] {
   // eight repos, nothing mentioning it). Measured 2026-08-13: three repos at
   // once, two of them not the one on screen.
   //
-  // A card of its own even when the workspace already has one: an agent
-  // waiting and work unpublished are two different asks, and folding the
-  // second into the first's since-line would hide an action behind a sentence.
+  // **One card per project.** The first cut gave publication a card of its own
+  // even when the workspace already had one, reasoning that an agent waiting
+  // and work unpublished are two different asks. Edwin, seeing it: *"you have
+  // created 2 cards for the same project… this needs to be changed to one
+  // card"* — and one item, one row is the rule this panel already learned
+  // (ISS-0068). So publication rides the card that exists, and mints one only
+  // when nothing else has.
+  const cardFor = new Map(out.map((e) => [e.workspaceId, e]));
   for (const [wsId, row] of fleetHealth) {
     const ahead = typeof row.ahead === 'number' ? row.ahead : 0;
     if (ahead <= 0) continue;
-    const kind = row.remoteKind === 'deploy' ? 'deploy' : row.remoteKind === 'none' ? 'none' : 'backup';
-    if (kind === 'none') continue;  // nothing to be ahead of; a different card
+    const kind = row.remoteKind === 'deploy' ? 'deploy'
+      : row.remoteKind === 'none' ? 'none' : 'backup';
+    if (kind === 'none') continue;  // nothing to be ahead of; History says so
+    const existing = cardFor.get(wsId);
+    if (existing) {
+      existing.publish = { ahead, remoteKind: kind };
+      continue;
+    }
     const ws = workspaces.find((w) => w.id === wsId);
     out.push({
       workspaceId: wsId,
@@ -11916,6 +11934,19 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
     since.textContent = entry.since;
     body.appendChild(since);
   }
+  // Publication on a card that exists for another reason: a line, not a second
+  // card and not a button (Edwin, 2026-08-13). The card already names the
+  // project and why it wants you; this adds the one fact that would otherwise
+  // have duplicated it.
+  if (entry.kind !== 'publish' && entry.publish) {
+    const pub = document.createElement('span');
+    pub.className = 'ws-attention-publish';
+    const { ahead, remoteKind } = entry.publish;
+    pub.textContent = remoteKind === 'deploy'
+      ? `${ahead} commit${ahead === 1 ? '' : 's'} not deployed`
+      : `${ahead} commit${ahead === 1 ? '' : 's'} not pushed`;
+    body.appendChild(pub);
+  }
   main.append(dot, body);
   main.addEventListener('click', () => {
     void (async () => {
@@ -11935,16 +11966,13 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   // A publish card carries the action instead of a dismiss (TASK-0418). There
   // is nothing to dismiss: unpushed work does not stop being unpushed because
   // you looked at it, and a ✕ here would be a button that lies.
-  if (entry.kind === 'publish' && entry.publish) {
-    const act = buildPushControl({
-      workspaceId: entry.workspaceId,
-      name: entry.name,
-      ahead: entry.publish.ahead,
-      remoteKind: entry.publish.remoteKind,
-      className: 'ws-attention-push',
-    });
-    row.append(main);
-    if (act) row.appendChild(act);
+  // A publish-only card has nothing to dismiss — unpushed work does not stop
+  // being unpushed because you looked at it — and no button either: the push
+  // lives in History, beside the commits it publishes (Edwin, 2026-08-13:
+  // *"there is no need to have the push button there"*). The card's job is to
+  // say the fact and take you to where it is acted on.
+  if (entry.kind === 'publish') {
+    row.appendChild(main);
     return row;
   }
 

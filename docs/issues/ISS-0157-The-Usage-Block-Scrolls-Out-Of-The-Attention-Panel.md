@@ -50,3 +50,11 @@ The panel is a frame; a `.ws-attention-scroll` region inside it holds the headin
 `min-height: 0` on the scroll region is the load-bearing line, and it is written down in the CSS rather than left as folklore: a flex child defaults to `min-height: auto` and refuses to shrink below its content, so without it the region grows the panel instead of scrolling inside it.
 
 Verified in the running app: the scroll region exists and `.ws-budget` is a direct child of the panel rather than of the scroller.
+
+## Reopened and completed — 2026-08-13
+
+The first fix handled the panel's own scrolling and missed the case with **no project selected**, which Edwin found: *"The usage section when not having a project selected does not sit at the bottom where it should be anchored."*
+
+Different cause, same symptom. `.ws-nav` is a flex column, and with no workspace open the pane shows `#ws-nav-placeholder` instead of `#ws-nav-content`. The content has `flex: 1`; the placeholder had none — so it was only as tall as its one sentence, and everything below it floated up under the text rather than being pushed down. `flex: 1; min-height: 0` on the placeholder makes it fill the pane, which is what anchors the panel and its usage block to the bottom.
+
+Measured after: placeholder 986px in a 1286px viewport, usage block ending at 1258px.

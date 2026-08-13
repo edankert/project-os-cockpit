@@ -469,32 +469,31 @@ def test_each_owed_kind_names_its_own_verb() -> None:
 # ---- FEAT-0098: unpushed work, where you work ----------------------------
 
 
-def test_the_overview_band_is_now_only_the_no_remote_half() -> None:
-    """Narrowed 2026-08-13 (TASK-0418), and the narrowing is the assertion.
+def test_the_overview_band_is_retired_and_history_says_it_instead() -> None:
+    """Retired 2026-08-13 (TASK-0418), in two steps, and the second is Edwin's.
 
     The band was built when nothing on the surface a person lands on said that
-    work was unpublished. History now says it, beside the commits it would
-    publish — an obligation surfacing where its subject lives (ADR-0020) — and
-    keeping the band as well put the same sentence and a second Push button on
-    one page, which is the duplication ISS-0068 is about.
+    work was unpublished. History says it now, beside the commits it publishes
+    — an obligation surfacing where its subject lives (ADR-0020) — and keeping
+    the band as well put the same sentence and a second Push button on one
+    page. It was narrowed to its no-remote half first; then: *"reuse the same
+    place for other messages if no remote has been configured for instance,
+    this should not be displayed in a different place."*
 
-    What survives is the half with **no subject to live with**: a repo with no
-    remote has no unpublished commits to mark, because there is nowhere for
-    them to be unpublished *to*. No count says that, and zero says the opposite.
+    Two places for one subject is the thing that gets answered twice and then
+    differently, which is why this is asserted rather than remembered.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    assert "mountUnpushedBand" in src
-    fn = re.search(r"async function mountUnpushedBand\(\).*?\n\}", src, re.S).group(0)
-    assert "remoteKind !== 'none'" in fn, (
-        "the band must return early for anything that HAS a remote — its "
-        "unpushed half belongs to History now"
+    assert "mountUnpushedBand" not in src, (
+        "the band is back; History owns everything this surface says about "
+        "publication, including having nowhere to publish to"
     )
+    fn = re.search(r"function buildPublicationBlock\(opts: \{.*?\n\}\n", src, re.S).group(0)
     assert "nothing here is backed up" in fn, (
-        "no remote at all is a different fact from nothing unpushed, and the "
-        "worse one"
+        "the no-remote message must live in the SAME place as the count"
     )
-    assert "Push" not in fn, (
-        "a push control here is the second one on the overview; History owns it"
+    assert "not deployed" in fn and "not pushed" in fn, (
+        "all three states share one block: pushable, deploy-only, no remote"
     )
 
 
@@ -502,9 +501,10 @@ def test_the_push_has_exactly_one_implementation() -> None:
     """The deploy-remote refusal is the one rule in this app that stops a click
     from publishing a live website.
 
-    Three surfaces offer a push now — the fleet screen, the attention card, and
-    the unpublished run in History — so the rule is written **once**, in
-    `buildPushControl`, and rendered everywhere. `git.ts` re-derives the
+    Two surfaces offer a push — the fleet screen and the unpublished run in
+    History — so the rule is written **once**, in `buildPushControl`, and
+    rendered in both. The attention card deliberately offers none: it says the
+    fact and takes you to where it is acted on (Edwin, 2026-08-13). `git.ts` re-derives the
     classification and refuses regardless, because a UI state is not a guard;
     this is the other half, so a deploy remote is never *offered* in the first
     place, identically, wherever it appears.
@@ -518,32 +518,34 @@ def test_the_push_has_exactly_one_implementation() -> None:
     )
     # Every surface builds its control through the one function rather than
     # assembling a button and deciding for itself whether to disable it.
-    assert src.count("buildPushControl({") == 3, (
+    assert src.count("buildPushControl({") == 2, (
         "a surface is offering a push without going through buildPushControl"
+    )
+    assert "ws-attention-push" not in src, (
+        "the attention card has grown a push button again; the push lives in "
+        "History, beside the commits it publishes"
     )
     assert src.count("function buildPushControl(") == 1
 
 
-def test_the_unpushed_band_re_renders_when_the_git_state_lands() -> None:
+def test_the_publication_surfaces_repaint_when_the_git_state_lands() -> None:
     """Git state is probed asynchronously, so on a fresh window the fleet row
-    exists with no `ahead` at all — the band correctly renders nothing, and
-    then nothing ever re-renders it. Measured live: 142 commits unpushed and
-    the band absent.
+    exists with no `ahead` at all — the surface correctly renders nothing, and
+    then nothing ever re-renders it.
 
-    **Third time today for this shape.** The obligation badges (ISS-0149) and
-    the cross-repo jump both failed the same way: data arriving after the
-    surface that needs it has already painted. Asserting it here rather than
-    trusting the next surface to remember.
+    **Third time in one day for this shape.** The obligation badges (ISS-0149)
+    and the cross-repo jump both failed the same way: data arriving after the
+    surface that needs it has already painted. The surface that depends on it
+    is now the attention panel — History reads `unpublished` from the sidecar's
+    own payload and is correct at fetch time — so the assertion moved with it
+    rather than being dropped when the band was retired.
     """
     src = RENDERER.read_text(encoding="utf-8")
     apply_fn = re.search(
         r"function applyFleetHealthPayload\(payload: unknown\): void \{.*?\n\}",
         src, re.S,
     ).group(0)
-    assert "mountUnpushedBand()" in apply_fn, (
-        "the band is built once and never rebuilt; on a fresh window it shows "
-        "nothing however many commits are unpushed"
-    )
-    assert "currentRel.startsWith('~overview')" in apply_fn, (
-        "it rebuilds while the reader is somewhere else"
+    assert "refreshAttention()" in apply_fn, (
+        "the cards are built once and never rebuilt; on a fresh window they "
+        "show nothing however many commits are unpushed"
     )

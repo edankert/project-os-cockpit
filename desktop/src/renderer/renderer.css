@@ -817,12 +817,19 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+/* Fills the pane so the attention panel and its usage block sit at the BOTTOM
+ * when no project is selected (Edwin, 2026-08-13). Without `flex: 1` the
+ * placeholder is only as tall as its sentence and everything below it floats
+ * up under the text — the usage readout least of all where it belongs. */
 .ws-nav-placeholder {
+  flex: 1;
+  min-height: 0;
   padding: 24px 16px;
   color: var(--text-faint);
   font-size: 12px;
   line-height: 1.5;
 }
+.ws-nav-placeholder[hidden] { display: none !important; }
 .ws-nav-placeholder p {
   margin: 0 0 6px;
 }
@@ -3342,37 +3349,24 @@ a.ov-phase-title:hover {
 }
 .ws-attention-dismiss:hover { color: var(--text); background: var(--accent-soft); }
 
-/* The publish card's action, in place of a dismiss (FEAT-0100 / TASK-0418).
- * Same visual language as the fleet screen's push, because it is the same
- * action — a person publishing, deliberately — and two appearances of one
- * action that look different read as two actions. */
-.ws-attention-push {
-  align-self: center;
-  margin-right: 4px;
+/* Publication on an attention card (FEAT-0100 / TASK-0418).
+ *
+ * A LINE, not a button and not a card of its own. The first cut gave it both,
+ * and Edwin saw two cards for one project with a push on one of them: the push
+ * belongs in History beside the commits, and one item gets one row (ISS-0068).
+ * So a workspace already carded for another reason gains this line, and a
+ * workspace carded only for this gets the message as its own. */
+.ws-attention-publish {
   font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
+  color: var(--status-blocked);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.ws-attention-push:hover:not(:disabled) {
-  color: var(--accent-link);
-  border-color: var(--accent-link);
-}
-/* A deploy remote is refused, not merely disabled — the label says what it
- * is rather than looking like a control that broke. */
-.ws-attention-push:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-  font-style: italic;
-}
-/* Publication is not an alert: no pulse, no urgency colour. It has been true
- * for however long it has been true, and nothing about it arrived while you
- * were watching. */
-.ws-attention-row.kind-publish .ws-attention-dot { background: var(--text-faint); }
+/* Publication is not an alert: no pulse, no urgency colour on the dot. It has
+ * been true for however long it has been true, and nothing about it arrived
+ * while you were watching. */
+.ws-attention-row.kind-publish .ws-attention-dot { background: var(--status-blocked); }
 .ws-attention-finished {
   display: flex;
   align-items: center;
@@ -4915,63 +4909,80 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 
 /* Committed, not published (FEAT-0100 / TASK-0418).
  *
- * A left rule rather than a colour: `is-undocumented` already owns colour on
- * this element, the two are orthogonal — a commit can be both — and stacking
- * two colour rules on one line would make each unreadable. The rule also
- * draws the RUN as a continuous edge without a second element claiming to
- * bound it, which is the property that keeps the marks and the boundary from
- * ever disagreeing. */
-.ov-history-divider.is-unpublished {
-  border-left: 2px solid var(--accent-link);
-  padding-left: 7px;
-  margin-left: -9px;
-}
+ * A BOUNDED block, in the red the retired FEAT-0098 band wore — Edwin asked to
+ * keep that boundary and to put it around the run rather than beside it. The
+ * box encloses the header, the unpublished commits and their transition rows,
+ * which a per-commit rule could not: membership in the box IS the mark, so
+ * nothing can disagree with anything about where the run ends.
+ *
+ * Colour is `--status-blocked`, not `--accent-link`: unpublished work is a
+ * held state, not a destination, and the first cut's blue read as a link. */
 .ov-history-unpublished {
+  border: 1px solid var(--status-blocked);
+  border-radius: 8px;
+  padding: 8px 10px 4px;
+  margin: 10px 0 12px;
+  background: color-mix(in srgb, var(--status-blocked) 7%, transparent);
+}
+.ov-history-unpublished-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 10px 0 0;
-  padding: 3px 0 3px 7px;
-  margin-left: -9px;
-  border-left: 2px solid var(--accent-link);
-  font-size: 10px;
-  font-weight: 600;
+  margin-bottom: 4px;
+}
+/* The run's own dividers need no second boundary — the box is the boundary —
+ * so the first one loses the rule that would otherwise sit inside it. */
+.ov-history-unpublished .ov-history-divider:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.ov-history-unpublished-label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--accent-link);
+  color: var(--status-blocked);
 }
-.ov-history-unpublished-label { flex: none; }
-/* Said only when the window is shorter than the run, so the marks below
+/* Said only when the window is shorter than the run, so the commits below
  * cannot quietly contradict the number above. */
 .ov-history-unpublished-more {
   flex: none;
+  font-size: 10px;
   color: var(--text-faint);
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
 }
+/* The one control on this surface that publishes, so it looks like a control
+ * rather than a hint: filled, not a faint outline (Edwin, 2026-08-13 —
+ * "make the button a little clearer"). */
 .ov-history-push {
   margin-left: auto;
-  font-size: 10px;
-  padding: 1px 7px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--status-blocked);
+  background: var(--status-blocked);
+  color: var(--bg);
   cursor: pointer;
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: 500;
 }
 .ov-history-push:hover:not(:disabled) {
-  color: var(--accent-link);
-  border-color: var(--accent-link);
+  filter: brightness(1.12);
 }
-/* Refused, not broken — the label says which. */
+/* Refused, not broken — and visibly not the filled control above, so a deploy
+ * remote never looks like one click away from publishing. */
 .ov-history-push:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  background: transparent;
+  color: var(--status-blocked);
+  opacity: 0.8;
   font-style: italic;
+  font-weight: 500;
+}
+/* Nothing to publish TO is its own state: the same place, no count, no
+ * control (Edwin: "reuse the same place for other messages"). */
+.ov-history-unpublished.kind-none {
+  padding-bottom: 8px;
 }
 .ov-history-flag {
   flex: none;
@@ -5475,14 +5486,6 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   border: 1px solid var(--border); border-radius: 4px;
 }
 
-/* ---- Unpushed work, on the overview (FEAT-0098) ------------------------
-   Sits with the digest at the top: what happened, then what is unpublished,
-   then where the project is. Absent when there is nothing to say. */
-.ov-unpushed {
-  border: 1px solid var(--status-blocked);
-  border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;
-  background: var(--bg-elevated);
-}
-.ov-unpushed-head {
-  font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px;
-}
+/* ---- FEAT-0098's band is retired (TASK-0418) ---------------------------
+   Its subject moved to History, where the commits are; its red boundary came
+   with it, which is the treatment Edwin asked to keep. */

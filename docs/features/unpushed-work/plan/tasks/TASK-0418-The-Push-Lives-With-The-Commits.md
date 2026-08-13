@@ -48,7 +48,10 @@ The concern that made me discount it — *"that panel is agent-state driven; fol
 
   What stays is the half with **no subject to live with**: a repo with no remote has no unpublished commits to mark, because there is nowhere for them to be unpublished *to*. It is also the worse fact, and no count says it — zero would say the opposite.
 
-- [ ] **The attention panel carries a publication card** per workspace with unpublished work — the count, and the action or the refusal. Deploy remotes say what they are and offer no button.
+- [x] **The attention panel carries the fact, one card per project, and no button.** Corrected on sight: the first cut gave publication a card of its own even when the workspace already had one, reasoning that an agent waiting and work unpublished are two different asks. Edwin: *"you have created 2 cards for the same project… this needs to be changed to one card and there is no need to have the push button there."* One item, one row is the rule this panel already learned ([[ISS-0068]]), and the push belongs where the commits are. A carded workspace gains a line; an uncarded one gets a card of its own.
+- [x] **The duplicate on the record card is gone.** It read *"14 items need a person"* over *"since 16h ago · 1 transition · 14 need you"* — fourteen twice, on two adjacent lines. The since-line now omits the clause its own card's message carries.
+- [x] **One place for everything this surface says about publication.** Edwin: *"reuse the same place for other messages if no remote has been configured for instance, this should not be displayed in a different place."* So [[FEAT-0098]]'s band is **retired**, not merely narrowed, and `buildPublicationBlock` renders all three states in the same slot: pushable, deploy-only, and no remote at all.
+- [x] **The boundary is red and around the run.** The colour was `--accent-link` (blue) and read as a link; it is now `--status-blocked`, which is the red the retired band wore — *"keep the red boundary around it"* was about that band. And it is a box enclosing the header, the unpublished commits and their transition rows, rather than a rule beside them.
 
 ## Steps
 
