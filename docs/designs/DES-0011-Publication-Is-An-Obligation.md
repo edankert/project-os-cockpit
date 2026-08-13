@@ -86,8 +86,17 @@ The band and the marks then read as one scale, which is the point: *in flight �
 - **A deploy remote counts** — Edwin's call, under its own kind and its own verb. A badge that omitted it would make *nothing owed* false about a repo with a real backlog, and the alternative — one kind covering both — would merge two things a person must treat differently.
 - **An unpushed commit says so on its own divider.** Edwin: *"should this not be shown as a not pushed commit?"* The three-option question that preceded this was badly posed: because the unpushed commits are always a contiguous run, per-commit marking yields the boundary as a side effect, so there was never a real choice between marking commits and drawing a line.
 
-## Open questions
+- **The count is per project only** — Edwin's call. The registry payload is per-sidecar, so this is also what the machinery does by construction. The fleet question stays where it already lives, on the Agents screen, which is the only surface that can answer *which of my twelve repos*.
 
-- **Does the count survive a fleet, or only the active workspace?** The registry payload is per-sidecar, so the badge is inherently per-project. That is right for this design and leaves the fleet question where it already lives — the Agents screen.
-- **Where the push button attaches within the unpushed run** — topmost divider, or a header over the run. Layout, for the artifact.
-- **What the deploy row's verb actually reads.** It names an action performed elsewhere, and the words matter more than usual: too imperative and it looks like a button that is broken, too soft and a real backlog reads as a note.
+## The artifact comes from the built surface, not before it
+
+Edwin, 2026-08-13: *"probably easier to build it and we can change then."* Taken, and it is compatible with the design gate rather than an exception to it:
+
+- `DESIGN-GATE` fires only once a feature has **left** the pending band (`backlog`, `planned`, `deferred`, `cancelled`, `superseded`). [[FEAT-0100]] is `backlog`, so building breaks nothing; the gate bites when the feature would close, which is where it is meant to bite.
+- **Three of the four tasks contain no layout decision at all.** [[TASK-0415]] is data, [[TASK-0416]] is a refactor of existing code, and [[TASK-0417]] makes the badge and the row appear through machinery that already exists. Only [[TASK-0418]] touches pixels.
+- `POST /api/design/capture` exists precisely because *"an agent iterating against the live surface edits the working copy six times and commits once"*. So the built surface is deposited as this design's artifact, with its reason, and the design is accepted **on evidence rather than on a drawing** — which for a change of one mark and one button is the truer artifact anyway.
+
+The two remaining layout questions are therefore not blockers, and are recorded as things to look at rather than decide in advance:
+
+- Where the push button attaches within the unpushed run — topmost divider, or a header line above it.
+- What the deploy row's words are. They matter more than usual: too imperative and it reads as a button that is broken, too soft and a real backlog reads as a footnote.
