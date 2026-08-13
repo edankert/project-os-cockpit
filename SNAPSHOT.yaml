@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 158
+  ISS: 159
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -1222,6 +1222,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0159:
+      file: "docs/issues/ISS-0159-The-Digest-Walks-The-Corpus-Instead-Of-Reading-The-Registry.md"
+      title: "The digest counts what needs you with its own walk, so it cannot see an obligation whose subject is not a note — measured 13 against the registry's 14"
+      status: fixed
+      owner: user:edwin
+      severity: medium
+      component: docs-system
+      related: [FEAT-0089, ADR-0027, TASK-0416, PHASE-030]
+      note: "The predicate was the registry's; the WALK was its own, and a walk over notes cannot see an obligation whose subject is not one. PHASE-030's close-out named it as work being left behind and it was fixed the same day: digest_payload reads owed_items, the verdict set is a declared addition, and a test asserts digest >= registry by id rather than by total."
     ISS-0158:
       file: "docs/issues/ISS-0158-The-Since-You-Looked-Band-Can-Mount-Twice.md"
       title: "The since-you-looked band can mount twice — it removes the old one before its fetch and inserts the new one after"
@@ -1261,7 +1270,7 @@ items:
     ISS-0154:
       file: "docs/issues/ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch.md"
       title: "Existing terminal sessions stop receiving keyboard input after a workspace switch"
-      status: open
+      status: fixed
       owner: user:edwin
       severity: high
       component: desktop-terminal
@@ -1363,7 +1372,7 @@ items:
     ISS-0120:
       file: "docs/issues/ISS-0120-The-Gates-Own-Severity-Is-Untested.md"
       title: "A gate demoted from error to warning leaves every test green, so nothing guards the severity that makes a gate a gate"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Found by mutation in round 4 of FEAT-0081's review. Demoting emit_for(...) to report.warn leaves all eleven PARENT-BACKLINK / SNAPSHOT-MEMBERSHIP cases green — the asserts match the bare code and `out` carries both tiers. Repo-wide pattern, so filed unphased for a sweep across all gate suites rather than bolted onto a feature about cache economics."
@@ -2711,8 +2720,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 7
-    issues_triage: 7
+    issues_open: 5
+    issues_triage: 6
     risks_open: 6
     releases_total: 1
     decisions_total: 18

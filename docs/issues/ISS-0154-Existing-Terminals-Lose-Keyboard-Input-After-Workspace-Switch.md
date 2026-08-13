@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0154
 title: "Existing terminal sessions stop receiving keyboard input after a workspace switch"
-status: "open"
+status: "fixed"
 owner: user:edwin
 created: 2026-08-12
 updated: "2026-08-13"
@@ -48,3 +48,13 @@ The initial open/spawn path accepts input. Existing sessions after a workspace s
 - [ ] Reproduce against two live CLI sessions and inspect `document.activeElement`, `attachedTerminalId`, and `terminal:input` IPC while switching A → B → A.
 - [ ] Make workspace attachment ordered/cancellable and restore keyboard focus only after the winning active-workspace attachment completes.
 - [ ] Add a renderer-level regression test that exercises visible-terminal workspace switching and proves typed bytes reach the returning workspace's PTY, not merely that its backlog renders.
+
+## Fixed — 2026-08-13
+
+Both halves, and the second was the one the issue predicted rather than observed.
+
+**The keyboard.** `showTerminal` and `restartTerminal` each scheduled `term.focus()` after their attach; `openWorkspace` — the path a *switch* takes — did not. That is exactly the reported difference: a freshly opened console takes keys, the same console after A→B→A does not. All three now go through `attachAndFocusTerminal`, which re-checks that the workspace is still active and the pane still open before taking focus, so a slow attach cannot yank the caret out of something you started typing meanwhile.
+
+**The race.** `attachedTerminalId` is assigned synchronously and the attach is awaited, so A→B→A could let B's backlog land in the terminal now showing A. A generation token now guards every await — the same shape as [[TASK-0187]]'s PTY identity guard and [[ISS-0158]]'s duplicated band, which is three of this family in one file.
+
+**Guards, mutation-checked**: `test_every_terminal_attach_restores_the_keyboard` asserts nothing calls the bare attach, and `test_the_terminal_attach_cannot_replay_a_stale_backlog` asserts every await re-checks. Reverting either fix fails its own test.

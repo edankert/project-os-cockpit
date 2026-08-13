@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0120
 aliases: ["ISS-0120"]
 title: "A gate demoted from error to warning leaves every test green, so nothing guards the severity that makes a gate a gate"
-status: triage
+status: "fixed"
 phase: ""
 owner: user:edwin
 created: 2026-08-06
-updated: 2026-08-06
+updated: "2026-08-13"
 source: ["review:independent"]
 severity: medium
 component: "validator"
@@ -52,3 +52,9 @@ Deliberately filed rather than fixed with [[FEAT-0081]]. It is not a defect of t
 - [ ] Assert the tier in the synthetic cases for `PARENT-BACKLINK` and `SNAPSHOT-MEMBERSHIP`
 - [ ] Sweep the other gate suites for the same shape
 - [ ] Consider a helper that asserts `ERROR [CODE]` / `WARN [CODE]` so the bare-code form is hard to write by accident
+
+## Fixed — 2026-08-13
+
+Every synthetic case in `tests/test_parent_backlink.py` now asserts the **tier** through `_assert_error` / `_assert_absent` rather than the bare code, and the helper carries the reason so the next gate's tests inherit the shape instead of reinventing `assert "CODE" in out`.
+
+**Verified with this issue's own repro.** Demoting `SNAPSHOT-MEMBERSHIP` to `report.warn` used to leave 11 passing; it now fails 2. Demoting `PARENT-BACKLINK` fails 3. `validate-docs.py` is unchanged — it is template-owned, and only the mutation was applied and reverted.

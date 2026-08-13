@@ -913,7 +913,10 @@ async function openWorkspace(id: string): Promise<void> {
   if (ws) setProjectHeader(ws);
   // If the terminal pane is open, swap the xterm to the new
   // workspace's PTY (FEAT-0015 / TASK-0104).
-  if (!terminalPane.hidden) void attachTerminalTo(id);
+  // A switch with the console open re-attaches AND restores the keyboard
+  // (ISS-0154). This line used to be `void attachTerminalTo(id)` — attached,
+  // never focused, so the running agent looked frozen.
+  if (!terminalPane.hidden) void attachAndFocusTerminal(id);
   renderWorkspaceRail();
   refreshFollowButton();  // reflect the new workspace's follow mode
   scheduleAck();  // looking at this workspace may acknowledge its alert
@@ -2690,10 +2693,17 @@ const MOUSE_TRACK_DECSET: Record<string, string> = {
   x10: '9', vt200: '1000', drag: '1002', any: '1003',
 };
 
+/** Bumped on every attach, so a call that finishes late can tell it has been
+ *  overtaken (ISS-0154). `attachedTerminalId` is set synchronously and the
+ *  attach is awaited, so A→B→A used to let B's backlog land in the terminal
+ *  now showing A — the "stale completion replays data" the issue predicted. */
+let terminalAttachGeneration = 0;
+
 async function attachTerminalTo(workspaceId: string): Promise<void> {
   ensureXterm();
   if (!term) return;
   if (attachedTerminalId === workspaceId) return;
+  const generation = ++terminalAttachGeneration;
   // Snapshot the mouse-tracking mode of the workspace we're leaving, before
   // reset() wipes it, so we can restore it when the user comes back.
   if (attachedTerminalId) {
@@ -2706,6 +2716,7 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
     const res = await cockpitApi.terminal.spawn({
       workspaceId, cwd, cols: term.cols, rows: term.rows,
     });
+    if (generation !== terminalAttachGeneration) return;  // overtaken
     if (!res.ok) {
       term.write(`\x1b[31m[failed to spawn terminal: ${res.error ?? 'unknown'}]\x1b[0m\r\n`);
       return;
@@ -2716,6 +2727,9 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   // PTY already running for this workspace — re-attach and replay
   // the captured backlog so the user sees the previous screen.
   const res = await cockpitApi.terminal.attach(workspaceId);
+  // Overtaken while the backlog was in flight: writing it now would paint one
+  // workspace's scrollback into another's terminal.
+  if (generation !== terminalAttachGeneration) return;
   if (res.ok && res.backlog) term.write(res.backlog);
   // Restore this workspace's mouse-tracking mode (ISS-0016). reset() above
   // wiped it; re-assert it (with SGR encoding, which modern TUIs use) so
@@ -2731,6 +2745,29 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   // Re-send our current geometry; main may have lost track if the
   // window resized while detached.
   cockpitApi.terminal.resize(workspaceId, term.cols, term.rows);
+}
+
+/** Attach a workspace's terminal and give it back the keyboard (ISS-0154).
+ *
+ *  The focus restore is the whole bug: `showTerminal` and `restartTerminal`
+ *  both scheduled `term.focus()` after their attach, and `openWorkspace` — the
+ *  path a workspace SWITCH takes — did not. So a freshly opened console took
+ *  keys and the same console after A→B→A did not, which is exactly the
+ *  difference Edwin reported: *"a newly created terminal accepts input at
+ *  first, then fails after leaving and returning."*
+ *
+ *  One helper rather than three call sites remembering, and it re-checks that
+ *  the workspace is still active and the pane still open before stealing
+ *  focus — a slow attach must not yank the caret out of something the user
+ *  started typing in meanwhile.
+ */
+async function attachAndFocusTerminal(workspaceId: string): Promise<void> {
+  await attachTerminalTo(workspaceId);
+  if (activeId !== workspaceId || terminalPane.hidden) return;
+  requestAnimationFrame(() => {
+    forceRefitTerminal();
+    term?.focus();
+  });
 }
 
 // Force a genuine terminal resize so the PTY gets a real SIGWINCH and the
@@ -2767,8 +2804,7 @@ async function restartTerminal(): Promise<void> {
   workspaceMouseMode.delete(wsId);
   attachedTerminalId = null;
   term.reset();
-  await attachTerminalTo(wsId);
-  requestAnimationFrame(() => { forceRefitTerminal(); term?.focus(); });
+  await attachAndFocusTerminal(wsId);
   // attachTerminalTo only adds to liveTerminals on a successful spawn, so
   // it's our signal for whether the fresh shell actually came up.
   if (liveTerminals.has(wsId)) {
@@ -2828,11 +2864,7 @@ async function showTerminal(): Promise<void> {
   // and only THEN force the real resize — otherwise the resize's SIGWINCH
   // races ahead of the reset and the app never gets prompted to re-enable
   // mouse tracking, leaving the wheel dead until a manual drag (ISS-0016).
-  if (activeId) await attachTerminalTo(activeId);
-  requestAnimationFrame(() => {
-    forceRefitTerminal();
-    term?.focus();
-  });
+  if (activeId) await attachAndFocusTerminal(activeId);
   scheduleAck();  // terminal now visible — start the seen-timer (TASK-0157)
   rememberTerminalOpen(true);
 }
@@ -7711,62 +7743,25 @@ function donutGradient(mix: Record<string, number>): string {
 
 // ----- Activity + commits (TASK-0200) -----------------------------------
 
-// ----- Changes tile (FEAT-0048 / TASK-0240) -----------------------------
-// The history band's missing middle grain. Activity counts note churn by
-// week, Commits shows what git saw; a CHG note is the only one of the
-// three carrying a written reason for the change.
+// ----- Changes: the tile is gone, the payload is not (ISS-0139) ---------
 //
-// Recent renders expanded, the pre-existing week/month buckets collapse
-// beneath it. That shape is the owner's call (2026-07-29) over routing
-// the archive through the Docs tree: the archive travels with the recent
-// items rather than being left behind on a surface that no longer lists
-// them.
+// `fillChanges` and the Changes tile were removed on 2026-08-13. FEAT-0052
+// took the tile off the overview in July — three history tiles answering one
+// question three ways — and left ~50 lines behind it that nothing called.
+// *Dead code that still answers correctly is the expensive kind: it survives
+// every test, reads as live to the next person, and misdirects exactly the
+// reader who is being careful.*
+//
+// **`GET /api/cockpit/changes` stays, and is load-bearing.** `buildQuickCorpus`
+// fetches it so change notes can be found by name in the quick-switch palette
+// — the consumer is 2,700 lines away in a function about something else, which
+// is why this issue's first draft said "delete both" and was half wrong.
+// `ChangesPayload` therefore stays too; it is that consumer's type now.
 
 interface ChangesPayload {
   total: number;
   recent: NavItem[];
   buckets: NavGroupData[];
-}
-
-async function fillChanges(
-  wrap: HTMLElement, body: HTMLElement,
-): Promise<void> {
-  if (!sidecarBaseUrl) return;
-  let data: ChangesPayload;
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/changes`);
-    // An older sidecar has no such endpoint. Drop the tile rather than
-    // leaving an empty box on the overview.
-    if (!resp.ok) { wrap.remove(); return; }
-    data = (await resp.json()) as ChangesPayload;
-  } catch { wrap.remove(); return; }
-
-  if (data.total === 0) {
-    const p = document.createElement('p');
-    p.className = 'meta';
-    p.textContent = 'No change notes yet.';
-    body.replaceChildren(p);
-    return;
-  }
-
-  const head = wrap.querySelector('h3');
-  if (head) {
-    const count = document.createElement('span');
-    count.className = 'ctx-card-right';
-    count.textContent = String(data.total);
-    head.appendChild(count);
-  }
-
-  const parts: HTMLElement[] = [];
-  for (const item of data.recent) parts.push(buildChangeRow(item));
-  if (data.recent.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'meta';
-    p.textContent = 'Nothing this week.';
-    parts.push(p);
-  }
-  for (const bucket of data.buckets) parts.push(buildChangeBucket(bucket));
-  body.replaceChildren(...parts);
 }
 
 // ----- History (FEAT-0052 / TASK-0256) ---------------------------------

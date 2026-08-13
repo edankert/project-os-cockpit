@@ -52,3 +52,11 @@ They describe project-os's *own* machinery — initialise a project, sync the te
 3. **The other seven repos keep theirs until the template stops shipping them** — a downstream repo is not the place to fix a template defect one copy at a time, which is the rule `CLAUDE.md` already states for `tools/`.
 
 Filed rather than swept: eight repos is a fleet change, and the fleet is not this session's to edit.
+
+## Status — 2026-08-13: the downstream half is done, the upstream half is not
+
+Step 2 of the resolution — *"remove this repo's three copies"* — landed in `f67e04e`. `docs/workflows/` here holds `README.md` and nothing else, so the category keeps its home for anything this project actually authors.
+
+Steps 1 and 3 are untouched and are **not this repo's to do**: `~/Dev/repos/project-os/docs/workflows/` still ships `WF-0001`, `WF-0002` and `WF-0003`, and seven other repos still carry their copies. Fixing a template defect one downstream copy at a time is the thing `CLAUDE.md` forbids for `tools/`, and the same reasoning holds here.
+
+This issue therefore stays **open as the tracker for the upstream proposal**, not because anything here is unfinished. Checked while fixing a batch of bugs on 2026-08-13; the check itself is the reason this note exists rather than someone re-deriving the fleet measurement.

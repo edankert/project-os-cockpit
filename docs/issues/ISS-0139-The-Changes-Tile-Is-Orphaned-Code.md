@@ -3,12 +3,12 @@ type: "[[issue]]"
 id: ISS-0139
 aliases: ["ISS-0139"]
 title: "fillChanges and /api/cockpit/changes survive with no caller and no consumer — the tile FEAT-0052 replaced left its code behind"
-status: "open"
+status: "fixed"
 severity: low
 owner: user:edwin
 created: 2026-08-11
-updated: "2026-08-11"
-phase: "[[PHASE-999-Future]]"
+updated: "2026-08-13"
+phase: ""
 features: ["[[FEAT-0052]]"]
 tasks: []
 related: ["[[FEAT-0048-Changes-On-The-Overview]]", "[[REL-0001-The-Human-Has-Levers]]"]
@@ -50,3 +50,11 @@ So the two halves of this issue have different answers:
 The original text found the endpoint by reading the overview's assembly and concluded from its absence there; the consumer is 2,700 lines away in a function about something else. *Dead code and code you have not found yet look identical from the call site you happened to read* — which is the same lesson this issue was filed to teach, taken one level further in.
 
 Related: [[ISS-0142]], which is what came of reading `buildQuickCorpus` closely enough to find this — releases are the one type that never got the patch changes and tests both have.
+
+## Fixed — 2026-08-13
+
+*(`phase:` cleared from `[[PHASE-999-Future]]` at the same time. The sentinel answers "which phase will deliver this", and once the work has shipped that question is a category error — [[PHASE-015]]'s rule, and `test_no_terminal_note_sits_in_the_parking_lot` caught it the moment this note went terminal. Nothing delivered it but a bug batch with no phase, which is what an empty value says.)*
+
+`fillChanges` and its Changes-tile comment block are gone — 57 lines that nothing called.
+
+**The endpoint stays, and so does `ChangesPayload`**, exactly as this issue's own correction insisted: `buildQuickCorpus` fetches `/api/cockpit/changes` so change notes can be found by name, and the type is that consumer's now. The comment left in place says so, because the next person to grep for the tile will find the same absence that produced this issue's first, half-wrong draft.

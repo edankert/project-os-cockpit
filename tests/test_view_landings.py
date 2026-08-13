@@ -549,3 +549,82 @@ def test_the_publication_surfaces_repaint_when_the_git_state_lands() -> None:
         "the cards are built once and never rebuilt; on a fresh window they "
         "show nothing however many commits are unpushed"
     )
+
+
+# ---- the terminal keeps the keyboard across a switch (ISS-0154) ----------
+
+def test_every_terminal_attach_restores_the_keyboard() -> None:
+    """A workspace switch used to attach the console and never focus it.
+
+    `showTerminal` and `restartTerminal` both scheduled `term.focus()` after
+    their attach; `openWorkspace` — the path a SWITCH takes — did not. So a
+    freshly opened console took keys and the same console after A→B→A did not,
+    which is exactly the difference reported: *"a newly created terminal
+    accepts input at first, then fails after leaving and returning."*
+
+    The repair is one helper rather than three call sites remembering, so the
+    assertion is that nothing calls the bare attach.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "async function attachAndFocusTerminal(" in src
+    # The bare attach is called only by the helper and by nothing else.
+    bare = re.findall(r"(?<!async function )attachTerminalTo\(", src)
+    assert len(bare) == 2, (
+        "attachTerminalTo is called outside attachAndFocusTerminal; that call "
+        "site will attach the console without giving it back the keyboard"
+    )
+    helper = re.search(
+        r"async function attachAndFocusTerminal\(.*?\n\}", src, re.S).group(0)
+    assert "term?.focus()" in helper
+    assert "activeId !== workspaceId" in helper and "terminalPane.hidden" in helper, (
+        "a slow attach must not steal focus back for a workspace the reader "
+        "has already left, or into a pane they have closed"
+    )
+
+
+def test_the_terminal_attach_cannot_replay_a_stale_backlog() -> None:
+    """`attachedTerminalId` is set synchronously and the attach is awaited, so
+    A→B→A could let B's backlog land in the terminal now showing A.
+
+    Same family as TASK-0187's PTY identity guard and ISS-0158's duplicated
+    band: an async step between deciding and doing.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    fn = re.search(r"async function attachTerminalTo\(.*?\n\}\n", src, re.S).group(0)
+    assert "terminalAttachGeneration" in fn
+    assert fn.count("generation !== terminalAttachGeneration") >= 2, (
+        "every await in the attach must re-check that it has not been "
+        "overtaken; one unguarded await is the whole defect"
+    )
+
+
+def test_the_digest_never_under_reports_what_the_badges_show(owed_corpus: Index) -> None:
+    """One walk, so the card and the badges cannot disagree (ISS-0159).
+
+    The digest built its own pass over the corpus and asked the registry's
+    predicate per record — the right rule, the wrong walk, because a walk over
+    notes cannot see an obligation whose subject is not a note. Measured on
+    2026-08-13 it said 13 where the badges said 14, and the difference *was*
+    the note-less count.
+
+    The digest is legitimately a superset: it also carries notes whose
+    `review_verdict` still owes work, which the registry does not count. So the
+    assertion is `>=` and the excess is enumerable, never a silent shortfall.
+    """
+    from project_os_cockpit.watermark import Watermark
+
+    root = owed_corpus.docs_root.parent
+    digest = cockpit.digest_payload(root, owed_corpus, Watermark(root).seen_at)
+    registry = sum(obligations.counts(owed_corpus).values())
+    assert registry > 0, "fixture owes nothing — the assertion would be vacuous"
+    assert digest["needs_you_count"] >= registry, (
+        f"the digest under-reports: {digest['needs_you_count']} against the "
+        f"badges' {registry}; a note-less obligation is invisible to it again"
+    )
+    # And every kind the registry counts is actually present by id, not merely
+    # covered by the total.
+    owed_ids = {
+        r["id"] for rows in obligations.owed_items(owed_corpus).values() for r in rows
+    }
+    digest_ids = {str(i.get("id") or "") for i in digest["needs_you"]}
+    assert owed_ids <= digest_ids, sorted(owed_ids - digest_ids)

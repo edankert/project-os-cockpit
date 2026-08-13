@@ -5292,16 +5292,42 @@ def digest_payload(
         for transition in commit.get("transitions") or []:
             since.append({**transition, "sha": commit.get("sha"), "date": when})
 
+    # **The registry's walk, not a second one** (ISS-0159). This built its own
+    # pass over `index.paths()` and asked `_owed_flag` per record — the right
+    # predicate, the wrong walk, because a walk over notes cannot see an
+    # obligation whose subject is not a note. Measured 2026-08-13: the digest
+    # said 13 where the badges said 14, and the difference WAS the note-less
+    # count (ADR-0027's standing documents and unpublished commits).
+    #
+    # That is the failure PHASE-030 existed to end, surviving inside it: the
+    # registry's promise is one walk so the badge and the page cannot disagree,
+    # and `counts_by_kind` is asserted against `owed_items` for exactly that
+    # reason. A third walk sits outside that assertion and so cannot be caught
+    # by it.
     needs_you: list[dict[str, Any]] = []
-    for path in index.paths():
-        record = index.get(path)
-        if record is None or not record.note_type:
-            continue
-        if record.rel_path.startswith("__templates__/"):
-            continue
-        flag = _owed_flag(record)
-        if flag.get("owed"):
-            needs_you.append({**_slim_note(record), **flag})
+    for rows in _obligations.owed_items(index).values():
+        for row in rows:
+            item: dict[str, Any] = {
+                "id": row["id"],
+                "title": row["title"],
+                "type": row["type"],
+                "status": row["status"],
+                "rel": row["rel"],
+                "owed": True,
+                "owed_verb": row["verb"],
+            }
+            # A note-less row carries its own route; `_slim_note` cannot build
+            # one for a subject that has no note behind it.
+            if row.get("url"):
+                item["url"] = row["url"]
+            elif row["rel"]:
+                item["url"] = f"/docs/{row['rel']}"
+            needs_you.append(item)
+    # …plus the one set the registry deliberately does not count: a note whose
+    # `review_verdict` still owes work. ISS-0121's discriminator applies — the
+    # stamp is sticky, so the subject's CURRENT status decides. Declared here
+    # rather than arriving from a second pass nobody named, so the digest is
+    # the registry's total plus an enumerable set and never silently less.
     for record in index.iter_records():
         verdict = str(record.frontmatter.get("review_verdict") or "").strip().lower()
         if _verdict_is_owed(verdict, record.status):

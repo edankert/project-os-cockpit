@@ -127,29 +127,52 @@ def _run(root: Path) -> str:
     return out
 
 
+def _assert_error(out: str, code: str) -> None:
+    """Assert the code appears **as an error**, not merely somewhere (ISS-0120).
+
+    Severity is the whole point of a gate: a check that warns is a check the
+    pre-commit hook and CI both ignore. Every synthetic case here used to
+    assert the bare code, and `out` carries both tiers — so replacing
+    `emit_for(...)` with `report.warn` left all eleven passing, which is
+    precisely the edit that silently disables the gate.
+
+    Found by mutation during round 4 of FEAT-0081's independent review, not by
+    reading, which is the argument for mutating a suite you are relying on.
+    """
+    assert f"ERROR [{code}]" in out, (
+        f"{code} did not fire as an ERROR — a warning is a gate nobody "
+        f"enforces:\n{out}"
+    )
+
+
+def _assert_absent(out: str, code: str) -> None:
+    """Neither tier: a clean tree must not warn about this either."""
+    assert code not in out, out
+
+
 def test_a_task_its_feature_does_not_list_is_an_error(tmp_path: Path) -> None:
     """The drift exactly as it existed on FEAT-0081."""
     out = _run(_tree(tmp_path, tasks="", fixes=""))
-    assert "PARENT-BACKLINK" in out, out
+    _assert_error(out, "PARENT-BACKLINK")
     assert "TASK-0001" in out and "FEAT-0001" in out
 
 
 def test_a_listed_task_is_clean(tmp_path: Path) -> None:
     out = _run(_tree(tmp_path, tasks='"[[TASK-0001]]"', fixes=""))
-    assert "PARENT-BACKLINK" not in out, out
+    _assert_absent(out, "PARENT-BACKLINK")
 
 
 def test_an_issue_its_feature_does_not_list_is_an_error(tmp_path: Path) -> None:
     out = _run(_tree(tmp_path, tasks='"[[TASK-0001]]"', fixes="",
                      with_issue=True))
-    assert "PARENT-BACKLINK" in out, out
+    _assert_error(out, "PARENT-BACKLINK")
     assert "ISS-0001" in out
 
 
 def test_an_issue_listed_under_fixes_is_clean(tmp_path: Path) -> None:
     out = _run(_tree(tmp_path, tasks='"[[TASK-0001]]"', fixes='"ISS-0001"',
                      with_issue=True))
-    assert "PARENT-BACKLINK" not in out, out
+    _assert_absent(out, "PARENT-BACKLINK")
 
 
 def test_related_alone_does_not_satisfy_the_check(tmp_path: Path) -> None:
@@ -161,7 +184,7 @@ def test_related_alone_does_not_satisfy_the_check(tmp_path: Path) -> None:
         note.read_text(encoding="utf-8").replace(
             "fixes: []", 'fixes: []\nrelated: ["[[TASK-0001]]"]'),
         encoding="utf-8")
-    assert "PARENT-BACKLINK" in _run(root)
+    _assert_error(_run(root), "PARENT-BACKLINK")
 
 
 def test_the_real_repo_has_no_new_backlink_errors() -> None:
@@ -213,7 +236,7 @@ def test_snapshot_disagreeing_with_the_note_is_an_error(tmp_path: Path) -> None:
     (root / "SNAPSHOT.yaml").write_text(
         _snapshot_with('"[[TASK-0001]]"', ""), encoding="utf-8")
     out = _run(root)
-    assert "SNAPSHOT-MEMBERSHIP" in out, out
+    _assert_error(out, "SNAPSHOT-MEMBERSHIP")
     assert "TASK-0001" in out
 
 
@@ -221,7 +244,7 @@ def test_snapshot_agreeing_with_the_note_is_clean(tmp_path: Path) -> None:
     root = _tree(tmp_path, tasks='"[[TASK-0001]]"', fixes="")
     (root / "SNAPSHOT.yaml").write_text(
         _snapshot_with('"[[TASK-0001]]"', "TASK-0001"), encoding="utf-8")
-    assert "SNAPSHOT-MEMBERSHIP" not in _run(root)
+    _assert_absent(_run(root), "SNAPSHOT-MEMBERSHIP")
 
 
 def test_a_task_only_in_the_snapshot_is_also_an_error(tmp_path: Path) -> None:
@@ -231,7 +254,8 @@ def test_a_task_only_in_the_snapshot_is_also_an_error(tmp_path: Path) -> None:
     (root / "SNAPSHOT.yaml").write_text(
         _snapshot_with("", "TASK-0009"), encoding="utf-8")
     out = _run(root)
-    assert "SNAPSHOT-MEMBERSHIP" in out and "TASK-0009" in out
+    _assert_error(out, "SNAPSHOT-MEMBERSHIP")
+    assert "TASK-0009" in out
 
 
 def test_the_real_repo_has_no_membership_drift() -> None:

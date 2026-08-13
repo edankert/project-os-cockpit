@@ -1176,16 +1176,47 @@ def test_the_digest_and_the_badges_count_the_same_things(owed_corpus: Index) -> 
     manual-only clause — so a digest built from it would have told the
     returning human that 8 things needed them while the badges said 96.
 
-    The standing documents are the deliberate gap: their subject is a manifest
-    entry rather than a note, and the digest is a note digest.
+    **The standing gap closed on 2026-08-13** (ISS-0159). This asserted
+    `badges - standing`, on the reasoning that *"their subject is a manifest
+    entry rather than a note, and the digest is a note digest"*. Two things
+    that were true when it was written stopped being true:
+
+    - `owed_items` had no rows for a note-less obligation, so the digest could
+      not have included one had it wanted to. TASK-0416 gave them rows.
+    - The digest's `needs_you` **list** is no longer rendered anywhere — ISS-0145
+      took it off the band, because *"an obligation is not news"*. What survives
+      is the **count**, on the attention card, sitting beside the very badges it
+      disagreed with. A note-shaped list was a defensible thing to scope to
+      notes; a count of what needs a person is not.
+
+    So the gap was a limitation described as a principle, and the number was
+    short by exactly the note-less obligations — 13 against 14 on the live repo,
+    and thirty-eight apart on one with stale standing documents and unpushed
+    work. TASK-0313's own intent is what now holds: *"it reads from FEAT-0089's
+    registry."*
+
+    The digest remains a legitimate **superset**: it also carries notes whose
+    `review_verdict` still owes work, which the registry does not count.
     """
     digest = cockpit.digest_payload(
         owed_corpus.docs_root.parent, owed_corpus, "1970-01-01T00:00:00Z",
     )
     badges = obligations.badges_payload(owed_corpus)
-    standing = obligations.standing_owed(owed_corpus.docs_root)
-    assert digest["needs_you_count"] == badges["total"] - standing
-    assert standing > 0, "the gap this asserts is no longer exercised"
+    assert digest["needs_you_count"] >= badges["total"], (
+        "the digest under-reports what the badges show — a note-less "
+        "obligation has gone invisible to it again (ISS-0159)"
+    )
+    owed_ids = {
+        r["id"] for rows in obligations.owed_items(owed_corpus).values() for r in rows
+    }
+    digest_ids = {str(i.get("id") or "") for i in digest["needs_you"]}
+    assert owed_ids <= digest_ids, sorted(owed_ids - digest_ids)
+    # The note-less kinds are what this used to exclude, so assert they are
+    # actually present rather than trusting the totals to have covered them.
+    assert obligations.standing_owed(owed_corpus.docs_root) > 0, (
+        "the fixture's standing set is clean — the case this closes is not "
+        "exercised, and the assertions above would pass vacuously"
+    )
     # And every row says what is owed of it, from the registry's verb.
     typed = [i for i in digest["needs_you"] if i.get("owed")]
     assert typed and all(i["owed_verb"] for i in typed)
