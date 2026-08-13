@@ -45,29 +45,67 @@ def test_the_page_and_the_badge_are_one_computation(repo_index: Index) -> None:
         assert sum(g["count"] for g in landing["groups"]) == badges[view], view
 
 
-def test_every_row_carries_its_verb_and_a_destination(repo_index: Index) -> None:
+@pytest.mark.parametrize("corpus", ["repo_index", "owed_corpus"])
+def test_every_row_carries_its_verb_and_a_destination(corpus: str, request) -> None:
     """A row that names no verb is the "N items" phrasing the registry
-    replaced; a row with no rel is a dead click."""
+    replaced; a row with nowhere to go is a dead click.
+
+    The destination is a `rel` **or** a `url` (TASK-0416). A note-backed row
+    points at its file; a note-less one carries its own route — `~root/<file>`
+    for a standing document that lives beside the docs tree, `~history` for an
+    unpublished commit — because `/docs/<rel>` addresses neither. What is being
+    protected is "no dead click", which both shapes satisfy; requiring `rel`
+    specifically was the note-typed assumption this task removed.
+    """
+    index = request.getfixturevalue(corpus)
     for view in sorted(obligations.VIEWS):
-        for group in cockpit.landing_payload(repo_index, view)["groups"]:
+        for group in cockpit.landing_payload(index, view)["groups"]:
             assert group["verb"], (view, group["kind"])
             assert group["noun"] and "item" not in group["label"].lower()
             for row in group["items"]:
-                assert row["rel"] and not row["rel"].startswith("/"), row
+                assert row["rel"] or row.get("url"), row
+                if row["rel"]:
+                    assert not row["rel"].startswith("/"), row
                 assert row["id"] and row["verb"], row
 
 
-def test_the_counted_group_with_no_rows_is_the_standing_one(repo_index: Index) -> None:
-    """The one obligation whose subject is not a note keeps its count and has
-    no rows — asserted rather than left as a surprise, because a group with a
-    number and an empty list looks like a bug from the outside."""
+def test_no_counted_group_is_left_without_its_rows(owed_corpus: Index) -> None:
+    """A group with a number and an empty list looks like a bug from the
+    outside, and for one kind it *was* one.
+
+    This assertion used to be the opposite: a rowless counted group was legal
+    so long as it was the standing-document kind, whose subject is a manifest
+    entry rather than a note. TASK-0416 removed the carve-out by giving
+    note-less obligations the same declared path — one walk yielding a count
+    **and** its rows — so the exception has nothing left to describe.
+
+    Run against `owed_corpus` deliberately: this repo's own standing set is
+    currently clean, and a corpus that owes nothing cannot fail this.
+    """
     rowless = [
-        (view, g["kind"])
+        (view, g["kind"], g["count"])
         for view in sorted(obligations.VIEWS)
-        for g in cockpit.landing_payload(repo_index, view)["groups"]
+        for g in cockpit.landing_payload(owed_corpus, view)["groups"]
         if g["count"] and not g["items"]
     ]
-    assert all(k == obligations.STANDING_OBLIGATION_KIND for _, k in rowless), rowless
+    assert rowless == [], rowless
+
+
+def test_the_standing_kind_now_carries_rows(owed_corpus: Index) -> None:
+    """The kind that used to be counted-but-rowless brings its subjects.
+
+    `owed_corpus` constructs a stub GLOSSARY, so the count is non-zero and the
+    assertion is not vacuous — a test that waits for neglect fails when the
+    project stops being neglectful, which is why the corpus manufactures it.
+    """
+    rows = obligations.owed_items(owed_corpus)[obligations.STANDING_OBLIGATION.view]
+    standing = [r for r in rows if r["type"] == obligations.STANDING_OBLIGATION_KIND]
+    assert standing, "the standing obligation must now produce rows"
+    for row in standing:
+        assert row["id"] and row["verb"], row
+        # Its own route: a standing document may live beside the docs tree,
+        # where `/docs/<rel>` addresses nothing (ISS-0037).
+        assert row["url"], row
 
 
 def test_an_unknown_view_is_reported_as_unknown(repo_index: Index) -> None:
@@ -77,21 +115,53 @@ def test_an_unknown_view_is_reported_as_unknown(repo_index: Index) -> None:
     assert payload["known"] is False and payload["groups"] == []
 
 
-def test_owed_items_and_counts_agree_kind_by_kind(repo_index: Index) -> None:
-    """The two functions in `obligations` that walk the predicate. They are
-    separate calls and could drift; the standing kind is the one legitimate
-    difference, because its subject is a manifest entry rather than a note."""
-    rows = obligations.owed_items(repo_index)
-    counts = obligations.counts_by_kind(repo_index)
+@pytest.mark.parametrize("corpus", ["repo_index", "owed_corpus"])
+def test_owed_items_and_counts_agree_kind_by_kind(corpus: str, request) -> None:
+    """The two functions in `obligations` that walk the predicate.
+
+    They are separate calls and could drift. There used to be one legitimate
+    difference — the standing kind, counted but never enumerated — and that
+    exception is exactly where they *did* drift, by five against three. It is
+    gone: every kind agrees, with no carve-out to hide behind.
+
+    Both corpora, because the repo's own is currently clean of the note-less
+    kind and would not exercise the case that broke.
+    """
+    index = request.getfixturevalue(corpus)
+    rows = obligations.owed_items(index)
+    counts = obligations.counts_by_kind(index)
     for view in sorted(obligations.VIEWS):
         by_kind: dict[str, int] = {}
         for row in rows[view]:
             by_kind[row["type"]] = by_kind.get(row["type"], 0) + 1
-        expected = {
-            k: v for k, v in counts[view].items()
-            if k != obligations.STANDING_OBLIGATION_KIND
-        }
-        assert by_kind == expected, view
+        assert by_kind == counts[view], view
+
+
+def test_every_note_less_source_is_declared_and_enumerable(owed_corpus: Index) -> None:
+    """The completeness burden the note-typed side already carries.
+
+    `OBLIGATIONS` fails a test when a note type in the corpus has no
+    declaration — the corpus supplies the checklist. A note-less source has no
+    corpus to supply it, so the guard is the other way round: everything
+    declared must name a noun, a verb, a view the badges know, and must
+    actually enumerate. A source that ships without rows would produce a badge
+    nobody could explain, which is the defect this path was built to end.
+    """
+    assert obligations.NOTE_LESS, "at least one note-less source is declared"
+    for kind, source in obligations.note_less_sources().items():
+        assert kind == source.kind
+        assert source.view in obligations.VIEWS, kind
+        assert source.verb, kind
+        assert kind in obligations.KIND_NOUNS, f"{kind} has no noun for the badge"
+        rows = source.rows(owed_corpus)
+        assert isinstance(rows, list), kind
+        for row in rows:
+            assert row["type"] == kind, row
+            assert row["id"] and row["verb"] and row["url"], row
+    # And the payload the renderer reads carries every one of their verbs.
+    verbs = obligations.badges_payload(owed_corpus)["verbs"]
+    for kind, source in obligations.NOTE_LESS.items():
+        assert verbs.get(kind) == source.verb, kind
 
 
 # ---- the renderer half ---------------------------------------------------

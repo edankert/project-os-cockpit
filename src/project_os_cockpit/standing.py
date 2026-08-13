@@ -317,3 +317,68 @@ def check(docs_root: Path, project_root: Path | None = None,
                     f"last confirmed {age} days ago", "warning",
                 ))
     return findings
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One manifest entry, resolved and judged — the shape both the Intent
+    group and the obligation registry render from (TASK-0416).
+
+    Two surfaces used to derive this independently: `cockpit._standing_group`
+    resolved paths and picked a route, and `obligations` counted findings. They
+    agreed by coincidence, and when they stopped, *"Intent's group came out 3
+    against a badge of 5"*. One walk, two readers, is the repair.
+
+    `kind` is the worst finding for this document, or `""` when nothing is
+    wrong. Whether that kind is **owed** is deliberately not decided here —
+    that is the registry's judgment, and this module must not grow a second
+    opinion about it.
+    """
+
+    name: str
+    question: str
+    #: `/docs/<rel>` for a document under the docs root, `~root/<file>` for one
+    #: beside it (LLM_BRIEF, SECURITY), `None` when it does not exist at all.
+    url: str | None
+    detail: str
+    kind: str
+
+
+def entries(docs_root: Path, project_root: Path | None = None) -> list[Entry]:
+    """Every manifest entry, in manifest order, resolved and judged.
+
+    Present or absent: a manifest of eight that yielded six would answer
+    *"which of these exist"* with silence, and a missing ARCHITECTURE is the
+    most interesting row in the set.
+    """
+    resolutions = resolve(docs_root, project_root)
+    if not resolutions:
+        return []
+    by_doc: dict[str, list[Finding]] = {}
+    for finding in check(docs_root, project_root):
+        by_doc.setdefault(finding.document, []).append(finding)
+
+    out: list[Entry] = []
+    for res in resolutions:
+        name = res.document.name
+        own = by_doc.get(name, [])
+        worst = own[0] if own else None
+        # A member may live at the repo root rather than under `docs/`
+        # (LLM_BRIEF, SECURITY) — three of this project's most-read documents
+        # ship beside the docs tree. `~root/<file>` is the route that already
+        # serves those (ISS-0037); `relative_to(docs_root)` raises on them,
+        # which is how the extension announced itself.
+        url: str | None = None
+        if res.paths:
+            try:
+                url = f"/docs/{res.paths[0].relative_to(docs_root).as_posix()}"
+            except ValueError:
+                url = f"~root/{res.paths[0].name}"
+        out.append(Entry(
+            name=name,
+            question=res.document.question,
+            url=url,
+            detail=worst.detail if worst else "current",
+            kind=worst.kind if worst else "",
+        ))
+    return out

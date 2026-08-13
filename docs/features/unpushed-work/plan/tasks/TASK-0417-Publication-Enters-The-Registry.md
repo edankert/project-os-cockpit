@@ -3,8 +3,8 @@ type: "[[task]]"
 id: TASK-0417
 aliases: ["TASK-0417"]
 title: "Publication enters the registry — the overview button carries the number and Needs you carries the row"
-status: backlog
-owner: unassigned
+status: doing
+owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13
 phase: "[[PHASE-030-Obligations-Go-Home]]"
@@ -33,6 +33,18 @@ Both halves of this already exist. `refreshObligationBadges()` paints `.mode-bad
 
 ## Steps
 
-- [ ] Add the source; wire it to the git state [[TASK-0415]] restored.
-- [ ] Extend the vocabulary (`KIND_NOUNS`, verb) server-side.
+- [x] Add the source; wire it to the git state [[TASK-0415]] restored.
+- [x] Extend the vocabulary (`KIND_NOUNS`, verb) server-side.
 - [ ] Assert badge/group/landing agreement, and absence at zero.
+
+## Found while building, 2026-08-13 — the row has no surface yet
+
+The badge needed **no renderer change at all**, as predicted: registering the source made `/api/cockpit/obligations` report `overview: 6`, `breakdown: {"unpushed commit": 6}`, and the existing `refreshObligationBadges()` paints it. Measured on this repo: the Overview button reads **6**, hovering says *"6 commits to push"*.
+
+The `Needs you` row did **not** come free, and the reason is worth recording because it was invisible from the notes:
+
+- The leading `Needs you` group is a **navigator** group, built per nav mode.
+- The overview is **not a nav mode** — `nav_payload` falls back to `features` when asked for one — because the overview is a dashboard, not a tree.
+- The view **landings** that would carry it (`renderViewLanding`) exist for `~features`, `~issues` and `~tests` only. `landing_payload(index, "overview")` is correct and already returns the group with its six rows; **nothing fetches it.**
+
+So the server half is complete and asserted, and the surfacing of the row is [[TASK-0418]]'s — where it belongs, since that task already owns the overview's history and the fate of [[FEAT-0098]]'s band. Recorded rather than quietly re-scoped: this task claimed a row that it cannot, by itself, put anywhere.

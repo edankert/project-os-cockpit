@@ -600,7 +600,7 @@ items:
     TASK-0415:
       file: "docs/features/unpushed-work/plan/tasks/TASK-0415-Git-State-For-Every-Workspace.md"
       title: "Git state for every workspace, including the one you have open"
-      status: backlog
+      status: done
       owner: unassigned
       parent: FEAT-0100
       phase: "[[PHASE-030-Obligations-Go-Home]]"
@@ -610,7 +610,7 @@ items:
     TASK-0416:
       file: "docs/features/unpushed-work/plan/tasks/TASK-0416-Generalise-The-Note-Less-Obligation.md"
       title: "Generalise the note-less obligation — one walk that yields a count and its rows, with standing documents as its first caller"
-      status: backlog
+      status: done
       owner: unassigned
       parent: FEAT-0100
       phase: "[[PHASE-030-Obligations-Go-Home]]"
@@ -620,7 +620,7 @@ items:
     TASK-0417:
       file: "docs/features/unpushed-work/plan/tasks/TASK-0417-Publication-Enters-The-Registry.md"
       title: "Publication enters the registry — the overview button carries the number and Needs you carries the row"
-      status: backlog
+      status: doing
       owner: unassigned
       parent: FEAT-0100
       phase: "[[PHASE-030-Obligations-Go-Home]]"
@@ -1218,7 +1218,7 @@ items:
     ISS-0156:
       file: "docs/issues/ISS-0156-The-Open-Workspace-Is-The-One-Whose-Unpushed-Count-Is-Never-Computed.md"
       title: "The workspace you have open is the one whose unpushed count is never computed — `ahead` is a cold-pass-only field, and the cold pass skips live sidecars"
-      status: open
+      status: fixed
       owner: user:edwin
       severity: high
       component: desktop-fleet-health
@@ -2680,13 +2680,13 @@ metrics:
     features_total: 100
     features_done: 89
     tasks_total: 418
-    tasks_done: 379
+    tasks_done: 381
     tests_total: 24
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 8
+    issues_open: 7
     issues_triage: 8
     risks_open: 6
     releases_total: 1

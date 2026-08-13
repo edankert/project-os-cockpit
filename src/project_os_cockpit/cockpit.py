@@ -2677,57 +2677,46 @@ def _standing_group(index: Index) -> list[dict[str, Any]]:
     """
     from . import standing
 
-    docs_root = index.docs_root
     try:
-        resolutions = standing.resolve(docs_root)
-        findings = standing.check(docs_root)
+        # One walk, shared with the registry (TASK-0416). This function used to
+        # resolve paths and pick routes itself while `obligations` counted
+        # findings separately; they agreed by coincidence until they did not.
+        #
+        # `standing.entries` resolves and describes — including the `~root/`
+        # route for the members that live beside the docs tree rather than
+        # inside it (LLM_BRIEF, SECURITY), which `/docs/<rel>` cannot address
+        # and where every one of those rows was a dead click (ISS-0037).
+        entries = standing.entries(index.docs_root)
     except OSError:                      # pragma: no cover — unreadable tree
         return []
-    if not resolutions:
+    if not entries:
         return []
 
-    by_doc: dict[str, list[Any]] = {}
-    for finding in findings:
-        by_doc.setdefault(finding.document, []).append(finding)
+    # Which entries are OWED, and under what verb, is the registry's judgment
+    # and is asked of it rather than re-derived here — the marking on this
+    # group and the count on the badge are now the same answer.
+    owed_by_id = {
+        str(row["id"]): row
+        for row in _obligations.note_less_rows(index).get(
+            _obligations.STANDING_OBLIGATION.view, [])
+        if row.get("type") == _obligations.STANDING_OBLIGATION_KIND
+    }
 
     items: list[dict[str, Any]] = []
     owed = 0
-    for res in resolutions:
-        name = res.document.name
-        own = by_doc.get(name, [])
-        worst = own[0] if own else None
-        # A member may live at the repo root rather than under `docs/`
-        # (LLM_BRIEF, SECURITY) — three of this project's most-read documents
-        # ship beside the docs tree, not inside it. `~root/<file>` is the route
-        # that already serves those (ISS-0037); `relative_to(docs_root)` raises
-        # on them, which is how the extension announced itself.
-        rel, root_rel = "", ""
-        if res.paths:
-            try:
-                rel = res.paths[0].relative_to(docs_root).as_posix()
-            except ValueError:
-                root_rel = res.paths[0].name
+    for entry in entries:
         item: dict[str, Any] = {
-            "id": name,
-            "title": res.document.question,
-            "status": _STANDING_STATUS.get(worst.kind, "") if worst else "active",
-            # `/docs/<rel>`, NOT `/<rel>` (ISS-0135). The renderer's
-            # `extractRel` deliberately discards the bare form -- `/README.md`
-            # and `/docs/README.md` both reduce to `README.md`, so routing it
-            # would collapse two distinct files onto one fetch (ISS-0037). A
-            # row with no rel gets no `data-rel`, and the delegated click
-            # handler keys entirely off `data-rel`: every one of these eight
-            # was a dead click, on the view whose whole job is reaching them.
-            "url": (f"/docs/{rel}" if rel
-                    else f"~root/{root_rel}" if root_rel else None),
-            "subtitle": worst.detail if worst else "current",
+            "id": entry.name,
+            "title": entry.question,
+            "status": _STANDING_STATUS.get(entry.kind, "") if entry.kind else "active",
+            "url": entry.url,
+            "subtitle": entry.detail,
             "type": "reference",
         }
-        if worst and worst.kind in _obligations.STANDING_OWED_KINDS:
+        owed_row = owed_by_id.get(entry.name)
+        if owed_row is not None:
             item["owed"] = True
-            item["owed_verb"] = _obligations.STANDING_VERBS.get(
-                worst.kind, _obligations.STANDING_OBLIGATION.verb,
-            )
+            item["owed_verb"] = owed_row["verb"]
             owed += 1
         items.append(item)
 
@@ -2794,32 +2783,28 @@ def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
     """
     if view in _VIEWS_THAT_ALREADY_GATHER:
         return []
+    # Every owed row, note-backed or not, from one walk (TASK-0416). This used
+    # to fetch note-backed rows here and scrape the note-less ones out of the
+    # standing group — a second source that drifted, and Intent's group came
+    # out 3 against a badge of 5. `owed_items` now carries both.
     rows = _obligations.owed_items(index).get(view, [])
-    # The standing-document obligation has no note behind it — its subject is
-    # a manifest entry — so `owed_items` carries no rows for it and Intent's
-    # group came out 3 against a badge of 5. The rows exist, in the standing
-    # group, already carrying `owed` and their verb: take them from there
-    # rather than recomputing, so the count matches the badge for the same
-    # reason the badge matches itself.
-    extra: list[dict[str, Any]] = []
-    if view == _obligations.STANDING_OBLIGATION.view:
-        for group in _standing_group(index):
-            extra.extend(i for i in (group.get("items") or []) if i.get("owed"))
-    if not rows and not extra:
+    if not rows:
         return []
     items: list[dict[str, Any]] = []
     for row in rows:
         items.append({
             "id": row["id"],
             "title": row["title"],
-            "url": f"/docs/{row['rel']}",
+            # A note-less subject carries its own route: a standing document
+            # may live beside the docs tree rather than inside it, and
+            # composing `/docs/<rel>` for it produced a dead click.
+            "url": row.get("url") or f"/docs/{row['rel']}",
             "status": row["status"],
             "type": row["type"],
             # The registry's verb, never the surface's (TASK-0357's rule).
             "owed": True,
             "owed_verb": row["verb"],
         })
-    items.extend(extra)
     return [{
         "key": "needs-you",
         "label": "Needs you",
@@ -5228,14 +5213,15 @@ def landing_payload(index: "Index", view: str) -> dict[str, Any]:
         items = [r for r in rows if r["type"] == kind]
         singular, plural = _obligations.KIND_NOUNS.get(kind, (kind, kind + "s"))
         n = counts[kind]
-        # The standing-document kind has no note type, so `for_type` cannot
-        # answer for it — its verb lives on the constant. Without this the
-        # group rendered "2 standing documents" with no verb, which is the
-        # "N items" phrasing the registry exists to replace.
+        # A note-less kind has no note type, so `for_type` cannot answer for
+        # it — its verb lives on its source. Without this the group rendered
+        # "2 standing documents" with no verb, which is the "N items" phrasing
+        # the registry exists to replace.
+        note_less = _obligations.note_less_sources().get(kind)
         if items:
             verb = str(items[0]["verb"])
-        elif kind == _obligations.STANDING_OBLIGATION_KIND:
-            verb = _obligations.STANDING_OBLIGATION.verb
+        elif note_less is not None:
+            verb = note_less.verb
         else:
             ob_kind = _obligations.for_type(kind)
             verb = ob_kind.verb if ob_kind else ""

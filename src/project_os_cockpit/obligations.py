@@ -25,7 +25,8 @@ something instead of being a formality.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:  # pragma: no cover
     from .index import Index
@@ -211,6 +212,20 @@ STANDING_VERBS: dict[str, str] = {
 #: no `note_type` to be keyed by and needs a name of its own.
 STANDING_OBLIGATION_KIND = "standing document"
 
+#: Publication, ADR-0027's first new subject (FEAT-0100). Two kinds rather than
+#: one: a repo has exactly one remote kind so only one is ever non-zero, but
+#: merging them would put two things a person must treat differently behind one
+#: number — `Push` is offered, `Deploy` is named and refused.
+PUSH_OBLIGATION_KIND = "unpushed commit"
+DEPLOY_OBLIGATION_KIND = "undeployed commit"
+
+#: Every obligation whose subject is not a note. A source here with no rows
+#: function, or a kind with no noun, fails a test — the same completeness
+#: burden the note-typed side carries, for the same reason.
+#:
+#: Populated below `_standing_rows`, which it names.
+NOTE_LESS: dict[str, "NoteLessObligation"] = {}
+
 #: How a kind names itself when a badge counts it (ISS-0133), singular and
 #: plural. Here rather than in the renderer because the obligation vocabulary
 #: ships from the server and never from TypeScript (TASK-0357) — a plural rule
@@ -226,21 +241,187 @@ KIND_NOUNS: dict[str, tuple[str, str]] = {
     "feature": ("feature", "features"),
     "change": ("change note", "change notes"),
     STANDING_OBLIGATION_KIND: ("standing document", "standing documents"),
+    # The badge composes `<count> <noun> to <verb>`, so these read as
+    # "6 commits to push" and "2 commits to deploy" — the sentence DES-0011
+    # asks for, from the registry rather than from a string in the renderer.
+    PUSH_OBLIGATION_KIND: ("commit", "commits"),
+    DEPLOY_OBLIGATION_KIND: ("commit", "commits"),
 }
 
 #: Finding kinds from `standing.check` that the badge counts.
 STANDING_OWED_KINDS: frozenset[str] = frozenset({"missing", "ambiguous", "stub"})
 
 
-def standing_owed(docs_root: Any) -> int:
-    """How many manifest entries are owed a person's attention."""
+# ----- obligations whose subject is not a note (ADR-0027 / TASK-0416) -------
+#
+# The registry enumerates **by note type**, which is its best idea and stays:
+# the corpus supplies the checklist, so a type nobody declared fails a test
+# rather than waiting to be noticed.
+#
+# But not every obligation has a note behind it. The standing document was the
+# first — its subject is a manifest entry — and it was carried by two bolt-ons:
+# an addition inside `counts_by_kind`, and a second inside the `Needs you`
+# group because `owed_items` produced no rows for it. That seam has already
+# failed once: *"Intent's group came out 3 against a badge of 5."*
+#
+# ADR-0027 widened the registry's scope to **what needs a person**, which makes
+# note-less obligations the normal case rather than the exception. So they get
+# a declared path: one walk yielding a count AND its rows, exactly as the
+# note-typed side already does, and asserted the same way.
+
+
+@dataclass(frozen=True)
+class NoteLessObligation:
+    """An obligation whose subject is not a note (ADR-0027).
+
+    `rows` returns owed rows in the same shape as :func:`owed_items` produces,
+    so a caller never has to know which side of the registry an obligation came
+    from. The count is `len(rows)` — never counted separately, because two
+    passes over one predicate is how a page and its own button come to
+    disagree.
+    """
+
+    kind: str      # its key in KIND_NOUNS
+    view: str
+    verb: str      # the default; a row may carry a more specific one
+    rows: "Callable[[Any], list[dict[str, Any]]]"
+    predicate: str = ""
+
+
+def _standing_rows(index: Any) -> list[dict[str, Any]]:
+    """Owed manifest entries, as rows (TASK-0416).
+
+    The judgment of *which* kinds are owed, and *what verb* each is owed,
+    stays here — `standing.entries` resolves and describes, this decides.
+    """
     from . import standing
 
     try:
-        findings = standing.check(docs_root)
+        entries = standing.entries(index.docs_root)
     except OSError:                      # pragma: no cover — unreadable tree
-        return 0
-    return sum(1 for f in findings if f.kind in STANDING_OWED_KINDS)
+        return []
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        if entry.kind not in STANDING_OWED_KINDS:
+            continue
+        out.append({
+            "id": entry.name,
+            "title": entry.question,
+            # A standing document may live beside the docs tree rather than
+            # inside it, so the row carries its own route rather than letting
+            # a caller compose `/docs/<rel>` and land on a dead click.
+            "url": entry.url,
+            "rel": "",
+            "type": STANDING_OBLIGATION_KIND,
+            "status": entry.kind,
+            "detail": entry.detail,
+            "verb": STANDING_VERBS.get(entry.kind, STANDING_OBLIGATION.verb),
+        })
+    return out
+
+
+# ----- publication (FEAT-0100 / TASK-0417) ----------------------------------
+#
+# ADR-0027's first new subject. Committed work that nobody has published is not
+# a judgment about the record — it is work already judged and not yet sent —
+# which is precisely the widening that decision made: the registry counts what
+# needs a **person**, and ADR-0022 made the human the publisher of last resort.
+#
+# Two kinds, not one. A repo has exactly one remote kind, so only one of these
+# is ever non-zero for a given project, but merging them would put two things a
+# person must treat differently behind one number: `Push` is offered, `Deploy`
+# is named and refused — one fleet repo's only remote is a server path, and
+# pushing it publishes a live website.
+
+def _publication_rows(index: Any, kind: str, verb: str,
+                      remote_kind: str) -> list[dict[str, Any]]:
+    """One row per unpublished commit — the obligation's subjects.
+
+    The count is `len()` of this list, which is why it is not capped: a total
+    that outruns its own rows is the disagreement TASK-0416 removed.
+    """
+    from . import git_state
+
+    project_root = Path(str(index.docs_root)).parent
+    try:
+        state = git_state.read(project_root)
+    except OSError:                      # pragma: no cover — unreadable repo
+        return []
+    if state.kind != remote_kind or not state.commits:
+        return []
+    return [{
+        "id": commit.sha,
+        "title": commit.subject,
+        # History is where the commits live and where the action goes
+        # (ADR-0020, DES-0011). The row is a shortcut to its own subject.
+        "url": "~history",
+        "rel": "",
+        "type": kind,
+        "status": state.kind,
+        "detail": commit.when,
+        "verb": verb,
+    } for commit in state.commits]
+
+
+NOTE_LESS[PUSH_OBLIGATION_KIND] = NoteLessObligation(
+    kind=PUSH_OBLIGATION_KIND,
+    view=VIEW_OVERVIEW,
+    verb="Push",
+    rows=lambda index: _publication_rows(
+        index, PUSH_OBLIGATION_KIND, "Push", "backup"),
+    predicate="a commit on HEAD that the tracked remote does not have, where "
+              "that remote is a backup rather than a deployment target",
+)
+
+NOTE_LESS[DEPLOY_OBLIGATION_KIND] = NoteLessObligation(
+    kind=DEPLOY_OBLIGATION_KIND,
+    view=VIEW_OVERVIEW,
+    verb="Deploy",
+    rows=lambda index: _publication_rows(
+        index, DEPLOY_OBLIGATION_KIND, "Deploy", "deploy"),
+    # Counted, and NOT offered (Edwin 2026-08-13). ADR-0027 admission test 3
+    # requires an action the cockpit can offer **or name**; this is the case
+    # that clause was written for. A badge that omitted these would make
+    # "nothing owed" false about a repo with a real backlog.
+    predicate="the same commits, where the remote is a deployment target — "
+              "named here, never pushed from here",
+)
+
+NOTE_LESS[STANDING_OBLIGATION_KIND] = NoteLessObligation(
+    kind=STANDING_OBLIGATION_KIND,
+    view=STANDING_OBLIGATION.view,
+    verb=STANDING_OBLIGATION.verb,
+    rows=_standing_rows,
+    predicate=STANDING_OBLIGATION.predicate,
+)
+
+
+def note_less_sources() -> dict[str, "NoteLessObligation"]:
+    """Every declared note-less obligation, keyed by kind."""
+    return dict(NOTE_LESS)
+
+
+def note_less_rows(index: Any) -> dict[str, list[dict[str, Any]]]:
+    """Owed rows per view from every note-less source — the one walk."""
+    out: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
+    for source in NOTE_LESS.values():
+        out[source.view].extend(source.rows(index))
+    return out
+
+
+def standing_owed(docs_root: Any) -> int:
+    """How many manifest entries are owed a person's attention.
+
+    Kept as the narrow question some callers still ask, but derived from the
+    rows rather than counted independently — the count and the list cannot
+    disagree if only one of them is computed.
+    """
+    class _Shim:
+        pass
+
+    shim = _Shim()
+    shim.docs_root = docs_root  # type: ignore[attr-defined]
+    return len(_standing_rows(shim))
 
 
 def declared_types() -> frozenset[str]:
@@ -333,15 +514,14 @@ def counts_by_kind(index: "Index") -> dict[str, dict[str, int]]:
         if _is_owed(record, ob):
             bucket = out[ob.view]
             bucket[record.note_type] = bucket.get(record.note_type, 0) + 1
-    # The one obligation whose subject is not a note (TASK-0382). Added here
-    # rather than anywhere else so `badges_payload`'s total stays the sum of
-    # what the badges show — a number that disagrees with itself on one screen
-    # is the failure this module exists to prevent.
-    standing = standing_owed(index.docs_root)
-    if standing:
-        bucket = out[STANDING_OBLIGATION.view]
-        key = STANDING_OBLIGATION_KIND
-        bucket[key] = bucket.get(key, 0) + standing
+    # Obligations whose subject is not a note (TASK-0416), counted from the
+    # rows rather than by a second pass — `len()` of the very list `owed_items`
+    # returns, so the badge cannot disagree with the group beneath it. This was
+    # one bolt-on for one kind; it is now the declared path for all of them.
+    for view, rows in note_less_rows(index).items():
+        for row in rows:
+            kind = str(row["type"])
+            out[view][kind] = out[view].get(kind, 0) + 1
     return out
 
 
@@ -358,10 +538,12 @@ def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
     failure this module exists to prevent — so this is the walk, and
     `counts_by_kind` is asserted against it rather than the other way round.
 
-    The standing-document obligation has no rows here: its subject is a
-    manifest entry rather than a note, so the Intent view renders it from
-    `standing.check` where it lives. The count still includes it, which is why
-    a caller must not infer the total from `len()`.
+    **Note-less obligations are included** (TASK-0416). They used not to be —
+    the standing document's subject is a manifest entry, so this walk skipped
+    it while `counts_by_kind` added it, and the two surfaces disagreed by
+    exactly that number. A caller may now infer the count from `len()`, which
+    is the property that makes the disagreement unrepresentable rather than
+    merely absent.
     """
     out: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
     for path in index.paths():
@@ -386,6 +568,8 @@ def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
             # "resolve" in one pane and "handle" in another.
             "verb": ob.verb,
         })
+    for view, rows in note_less_rows(index).items():
+        out[view].extend(rows)
     for rows in out.values():
         rows.sort(key=lambda r: (str(r["type"]), str(r["id"])))
     return out
@@ -424,7 +608,7 @@ def badges_payload(index: "Index") -> dict[str, Any]:
         "verbs": {
             note_type: ob.verb
             for note_type, ob in OBLIGATIONS.items() if ob.owed and ob.verb
-        } | {STANDING_OBLIGATION_KIND: STANDING_OBLIGATION.verb},
+        } | {src.kind: src.verb for src in NOTE_LESS.values()},
         # `{kind: [singular, plural]}` — the noun the badge says. Shipped so
         # the renderer picks a string rather than owning a plural rule.
         "nouns": {kind: list(pair) for kind, pair in KIND_NOUNS.items()},

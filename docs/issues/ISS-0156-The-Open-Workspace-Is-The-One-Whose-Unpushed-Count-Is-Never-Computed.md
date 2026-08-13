@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0156
 aliases: ["ISS-0156"]
 title: "The workspace you have open is the one whose unpushed count is never computed — `ahead` is a cold-pass-only field, and the cold pass skips live sidecars"
-status: "open"
+status: "fixed"
 owner: user:edwin
 created: 2026-08-13
 updated: 2026-08-13
@@ -68,3 +68,13 @@ Whichever is chosen, **the row merge must stop clobbering**: a live report shoul
 ## Note on the class
 
 `renderer.ts:589-594` already records this shape — *"data arriving after the surface that needs it has already painted"* — and counts it as the third occurrence that day. This is a fourth, but a different mechanism: not late data, **absent data**. The comment's confidence that "the band correctly renders nothing" is what kept it invisible; the band renders nothing correctly, from a field that is wrong.
+
+## Fixed — 2026-08-13 ([[TASK-0415-Git-State-For-Every-Workspace]])
+
+Candidate 1, taken one step further than proposed. Rather than probing git for live workspaces *as well*, the shell now probes **every** workspace on one clock (`refreshGitState`, 60s) and the cold pass reports git no longer. The live/cold split belongs to the validator — a repo with its own sidecar genuinely has a better answer about its notes — and never belonged to git, where the sidecar knows nothing the shell cannot ask `git` directly. **Applying that split to git is what this defect was**, so removing it removes the defect rather than patching one side.
+
+The clobber is fixed structurally: git state now lives in its own map and is composed into the row at read time in `fleetHealth()`. No validator code path *can* drop it. That is the class, not the instance.
+
+`fleet_validate.py` still emits `ahead`/`remote_kind` for anyone running it standalone; the shell simply stops reading them, and says so where it stopped.
+
+**Evidence:** `desktop/tests/git-state.test.mjs`, against real git repositories rather than a mock of `git` — the defect was invisible to every existing test, and a mock would have been written by the same person who misread which workspaces got probed. Adequacy checked by mutation: reverting the composition fails four of the five cases and leaves the pure-function one green.

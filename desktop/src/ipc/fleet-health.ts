@@ -32,6 +32,7 @@ import * as path from 'node:path';
 
 import { getAllWorkspaces } from './workspaces';
 import { sidecarUrlFor, pythonExecutable } from './sidecar';
+import { probeGitState } from './git';
 import type { Workspace } from '../types';
 
 type WorkspacesGetter = () => Workspace[];
@@ -93,6 +94,27 @@ interface Subscription {
 const health = new Map<string, HealthRow>();
 /** workspaceId → live SSE subscription. */
 const subs = new Map<string, Subscription>();
+
+/** workspaceId → git state, kept **outside** the validator row (ISS-0156).
+ *
+ *  It used to live on the row, assigned only by the cold pass — which
+ *  skips any workspace with a live sidecar, so the repo you had open,
+ *  the one accumulating commits, was the one with no count. Worse than
+ *  unrefreshed: the live path replaces the row wholesale, so a count
+ *  learned while a workspace was cold was *erased* the moment its
+ *  sidecar reported.
+ *
+ *  Separating the maps is the fix rather than a fix: git state and
+ *  validator state answer to different clocks and different sources, so
+ *  no validator code path can clobber a git field by construction. They
+ *  are composed in `fleetHealth()`, which is the only place that needs
+ *  them to look like one row.
+ */
+const gitState = new Map<string, {
+  ahead: number | null;
+  remote: string | null;
+  remoteKind: 'backup' | 'deploy' | 'none';
+}>();
 
 let notify: (() => void) | null = null;
 
@@ -381,11 +403,14 @@ export async function refreshColdWorkspaces(): Promise<void> {
     if (line.validator === 'repo' || line.validator === 'bundled') {
       row.validator = line.validator;
     }
-    row.ahead = typeof line.ahead === 'number' ? line.ahead : null;
-    if (line.remote_kind === 'backup' || line.remote_kind === 'deploy'
-        || line.remote_kind === 'none') {
-      row.remoteKind = line.remote_kind;
-    }
+    // `line.ahead` / `line.remote_kind` are deliberately NOT read here
+    // (ISS-0156). The cold pass answered the git question for cold
+    // workspaces only, which is what made the open one invisible.
+    // `refreshGitState()` now answers it for every workspace on one
+    // clock; taking it here as well would restore the split that caused
+    // the defect, with the two disagreeing whenever a repo changed hands
+    // between passes. `fleet_validate.py` still emits the fields for
+    // anyone running it standalone.
     health.set(ws.id, row);
   }
   notify?.();
@@ -407,12 +432,43 @@ export function markStale(rows: HealthRow[], now: number): HealthRow[] {
   });
 }
 
+/** Probe git for **every** workspace, live or cold (TASK-0415).
+ *
+ *  One clock for the whole fleet. The live/cold split belongs to the
+ *  validator — a repo with its own sidecar genuinely has a better
+ *  answer about its notes — and does not belong to git, where the
+ *  sidecar knows nothing the shell cannot ask `git` directly. Applying
+ *  it to both is what ISS-0156 was.
+ */
+export async function refreshGitState(): Promise<void> {
+  const all = getWorkspaces();
+  await Promise.all(all.map(async (ws) => {
+    try {
+      gitState.set(ws.id, await probeGitState(ws.root));
+    } catch {
+      // An unreadable repo keeps its last answer rather than claiming a
+      // clean one. Absence here renders as "no claim", never as "pushed".
+    }
+  }));
+  const live = new Set(all.map((ws) => ws.id));
+  for (const id of Array.from(gitState.keys())) {
+    if (!live.has(id)) gitState.delete(id);
+  }
+  notify?.();
+}
+
 /** Current fleet health, one row per discovered workspace. */
 export function fleetHealth(): FleetHealthPayload {
   const now = Date.now();
   const rows = markStale(
     getWorkspaces().map((ws) => health.get(ws.id) ?? emptyRow(ws)), now);
-  return { rows, generatedAt: now };
+  // Git is composed in at read time from its own map, so that no
+  // validator write path can drop it (ISS-0156).
+  const composed = rows.map((row) => {
+    const git = gitState.get(row.workspaceId);
+    return git ? { ...row, ...git } : row;
+  });
+  return { rows: composed, generatedAt: now };
 }
 
 /** Record a row obtained some other way (TASK-0249's cold path). */
@@ -446,11 +502,17 @@ export function __resetFleetHealth(): void {
     try { sub?.request.destroy(); } catch { /* ignore */ }
   }
   health.clear();
+  gitState.clear();
 }
 
 const RECONCILE_MS = 30_000;
+/** Git is cheap — two `git` invocations per repo — but it runs for the
+ *  whole fleet, so it gets its own slower clock rather than riding the
+ *  30s subscription reconcile. */
+export const GIT_INTERVAL_MS = 60_000;
 let reconcileTimer: NodeJS.Timeout | null = null;
 let coldTimer: NodeJS.Timeout | null = null;
+let gitTimer: NodeJS.Timeout | null = null;
 
 interface FleetHealthDeps {
   getAllWindows: () => BrowserWindow[];
@@ -477,6 +539,7 @@ export function registerFleetHealthIpc(deps: FleetHealthDeps): void {
   // the same single-subprocess batch.
   ipcMain.handle('fleet:health-recheck', async (): Promise<FleetHealthPayload> => {
     await refreshLiveWorkspaces();
+    await refreshGitState();
     await refreshColdWorkspaces();
     return fleetHealth();
   });
@@ -489,6 +552,10 @@ export function registerFleetHealthIpc(deps: FleetHealthDeps): void {
   coldTimer = setInterval(() => { void refreshColdWorkspaces(); }, COLD_INTERVAL_MS);
   coldTimer.unref?.();
 
+  if (gitTimer) clearInterval(gitTimer);
+  gitTimer = setInterval(() => { void refreshGitState(); }, GIT_INTERVAL_MS);
+  gitTimer.unref?.();
+
   // Delayed, for the reason main.ts's janitor is delayed: at
   // `app.whenReady` the renderer has not asked for the workspace list
   // yet, so discovery is empty and a pass here validates nothing —
@@ -500,6 +567,10 @@ export function registerFleetHealthIpc(deps: FleetHealthDeps): void {
   // the cold pass skips whatever it claimed. The other order would
   // validate repos that were about to answer for themselves.
   setTimeout(() => {
+    // Git first of the three: it is the fastest and the only one whose
+    // absence reads as good news (ISS-0156 — no badge looks exactly
+    // like nothing to publish), so it should be the first thing true.
+    void refreshGitState();
     void refreshLiveWorkspaces().then(() => refreshColdWorkspaces());
   }, 4000);
 }
@@ -507,5 +578,6 @@ export function registerFleetHealthIpc(deps: FleetHealthDeps): void {
 export function stopFleetHealth(): void {
   if (reconcileTimer) { clearInterval(reconcileTimer); reconcileTimer = null; }
   if (coldTimer) { clearInterval(coldTimer); coldTimer = null; }
+  if (gitTimer) { clearInterval(gitTimer); gitTimer = null; }
   for (const id of Array.from(subs.keys())) degrade(id);
 }
