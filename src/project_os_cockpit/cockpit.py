@@ -377,7 +377,25 @@ _ACTIVE_DOING: frozenset[str] = frozenset({
     "mitigating", "reproducing", "reopened", "blocked", "failing",
 })
 _ACTIVE_NEXT: frozenset[str] = frozenset({
-    "next", "ready", "planned", "approved", "accepted", "triage",
+    # `accepted` is gone (ISS-0122). An accepted ADR or design is a decision
+    # that HAS been made; listing it as upcoming work put 14 settled items in a
+    # column of 45. The work an accepted decision implies is the feature or task
+    # that implements it, and those carry their own status.
+    "next", "ready", "planned", "approved", "triage",
+})
+
+#: Types whose `active` means something other than "somebody is working on it"
+#: (ISS-0122). A **plan**'s status follows its parent feature by design
+#: (STATUSES.md); a **reference** is `active` while it is current; a
+#: **glossary** is `active` permanently. Reading any of them as work in flight
+#: is a category error, and it is the same one that queued plans on the review
+#: desk — reported 2026-07-26 and fixed there, not here.
+#:
+#: Measured before this exclusion: `Doing` held 27 items, of which 24 were
+#: `reference` (14) and `plan` (10), against one feature, one task and one
+#: phase anybody was actually working.
+_ACTIVE_NON_WORK_TYPES: frozenset[str] = frozenset({
+    "plan", "reference", "glossary",
 })
 _ACTIVE_DONE: frozenset[str] = frozenset(statuses.COMPLETED_STATUSES)
 DEFAULT_MODE = "features"
@@ -3864,6 +3882,11 @@ def _active_groups(
         if not _platform_match(record, platform):
             continue
         st = (record.status or "").strip().lower()
+        # A note whose `active` is not about work never reaches the in-flight
+        # buckets — but it is still eligible for `Done today`, where a plan
+        # closing with its feature is a real event.
+        if record.note_type in _ACTIVE_NON_WORK_TYPES and st not in _ACTIVE_DONE:
+            continue
         if st in _ACTIVE_DOING:
             doing.append(record)
         elif st in _ACTIVE_NEXT:

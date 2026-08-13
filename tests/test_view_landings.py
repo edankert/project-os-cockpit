@@ -656,3 +656,48 @@ def test_the_terminal_never_re_asserts_a_mouse_mode(tmp_path: Path = None) -> No
     assert "\\x1b[?" not in fn, (
         f"the attach writes a DEC private mode into the terminal: {fn}"
     )
+
+
+# ---- Active mode counts work, not statuses (ISS-0122) --------------------
+
+def test_the_doing_column_names_only_work_somebody_is_doing(repo_index: Index) -> None:
+    """`_active_groups` bucketed by status alone, and `active` is what a plan
+    carries while its parent feature is open, what a reference carries while it
+    is current, and what a glossary carries permanently.
+
+    Measured before the fix: `Doing` held 27 items, of which 24 were `reference`
+    and `plan`, against one feature, one task and one phase anybody was working
+    — and 44:1 noise when the issue was filed. After: three items, all work.
+
+    This matters where nobody looks: `active` lost its top-bar button, but
+    `buildNowBoard` — the overview for a phase-less project — is built from it,
+    so the defect is latent here and live in any repo without phases.
+    """
+    groups = {g["label"]: g for g in cockpit.nav_payload(repo_index, mode="active")["groups"]}
+    for label in ("Doing", "Next"):
+        group = groups.get(label)
+        if not group:
+            continue
+        offenders = [
+            (i.get("id"), i.get("type")) for i in group["items"]
+            if i.get("type") in cockpit._ACTIVE_NON_WORK_TYPES
+        ]
+        assert not offenders, (
+            f"{label} lists notes whose status is not about work: {offenders}"
+        )
+
+
+def test_an_accepted_decision_is_not_upcoming_work(repo_index: Index) -> None:
+    """An accepted ADR is a decision that HAS been made (ISS-0122).
+
+    It put 14 settled items into a column of 45. The work an accepted decision
+    implies is the feature or task implementing it, and those carry their own
+    status — so the column reads them instead.
+    """
+    assert "accepted" not in cockpit._ACTIVE_NEXT
+    groups = {g["label"]: g for g in cockpit.nav_payload(repo_index, mode="active")["groups"]}
+    nxt = groups.get("Next")
+    if nxt:
+        assert not [i for i in nxt["items"] if i.get("status") == "accepted"], (
+            "settled decisions are listed as upcoming work"
+        )

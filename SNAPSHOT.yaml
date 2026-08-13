@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 161
+  ISS: 162
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -1376,7 +1376,7 @@ items:
     ISS-0122:
       file: "docs/issues/ISS-0122-Active-Modes-Doing-Column-Counts-Notes-Nobody-Is-Working.md"
       title: "Active mode's `Doing · 44` contains one item anybody is working — `active` on a plan, a reference or a glossary is not work in flight"
-      status: triage
+      status: fixed
       severity: medium
       phase: ""
       note: "Found by measuring every nav mode's payload, not by anyone reporting it. _active_groups buckets by status alone: Doing 44 = 1 feature at `doing` + 23 plans + 18 references + a phase + the glossary, all at `active`. Next 45 includes 14 `accepted` ADRs/designs — settled decisions. Latent here (the mode lost its button in TASK-0204) but LIVE in any phase-less repo, because buildNowBoard() on the overview is built from mode=active. Triage because fixing and retiring are both defensible."
@@ -2739,7 +2739,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 5
-    issues_triage: 4
+    issues_triage: 3
     risks_open: 6
     releases_total: 1
     decisions_total: 18

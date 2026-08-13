@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0148
 aliases: ["ISS-0148"]
 title: "A note in another project cannot be referenced — 47 citations of upstream ADRs name an id with no repo, and the reader has to already know which of twelve repos holds it"
-status: "open"
+status: "fixed"
 severity: medium
 owner: user:edwin
 created: 2026-08-12
@@ -55,3 +55,21 @@ Whether to sweep the 47, whether the syntax is template-owned (it is — `OBSIDI
 
 > [!note] Accept — 2026-08-13 (user:edwin)
 > I think this one has been resolved and that we used the # notation? If resolved already please close and update the note with the resolution.
+
+## Resolved — verified 2026-08-13
+
+Edwin was right, and the answer is **`#`, not `/`**. [[ADR-0024]] decided `[[project#ID]]`, and [[FEAT-0093]] / [[TASK-0392]] built it: `wikilinks.split_cross_repo` parses the target, the renderer follows it, and the shell opens the owning workspace at that note — the thing this issue said only the cockpit could do, because only it has the fleet.
+
+Verified rather than assumed:
+
+```
+'project-os-dev#ADR-0011'  ->  ('project-os-dev', 'ADR-0011')
+'project-os#REQ-0001'      ->  ('project-os', 'REQ-0001')
+'ADR-0011'                 ->  None          (a bare ID stays local)
+```
+
+Eight notes in this corpus already carry the form, including citations of `project-os-dev#ADR-0011`, `#ADR-0013`, `#ADR-0022` and `#ADR-0023`.
+
+**Why the slash lost.** This note recommended `[[project-os-dev/ADR-0011]]` on the strength of one column: it resolves natively if an Obsidian vault is ever opened at `~/Dev/repos`. ADR-0024 chose `#` anyway, and the reason holds up — a slash reads as a path into *this* vault, so a wrong link fails silently as a missing file, where `#` is unambiguous about crossing a boundary and can be told apart from a typo. The recommendation here was made on a hypothetical vault layout nobody uses.
+
+**What is still open, and it is this note's third suggestion.** The syntax back-fills nothing: `CONTEXT.md` still does not name where the upstream ADR namespace lives, and the bare `[[ADR-0011]]` citations across this repo remain unresolvable. That was called *"cheaper than both"* and is the only part left undone — filed separately rather than keeping this note open, because the thing it asked for exists and works.
