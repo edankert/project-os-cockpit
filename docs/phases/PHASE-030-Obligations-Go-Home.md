@@ -7,7 +7,7 @@ status: active
 order: 30
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 goal: "Move every owed human judgment out of a single queue and into the view that owns its subject, with a count on each view button that together covers every kind — so what needs a person is visible without going to look for it, and the surface that once collected them can be removed without anything becoming unreachable."
 features:
   - "[[FEAT-0086-Tests-Becomes-A-View]]"
@@ -16,13 +16,15 @@ features:
   - "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]"
   - "[[FEAT-0090-The-Desk-Retires]]"
   - "[[FEAT-0091-The-Standing-Documents]]"
+  - "[[FEAT-0100-Unpushed-Work-Needs-A-Person]]"
 requirements:
   - "[[REQ-0033-Every-Project-Can-Say-What-It-Is]]"
 issues:
   - "[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]"
   - "[[ISS-0125-The-Singleton-Documents-Have-No-Lifecycle-And-No-Home]]"
+  - "[[ISS-0156-The-Open-Workspace-Is-The-One-Whose-Unpushed-Count-Is-Never-Computed]]"
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]   # PARTIAL — see "What this phase depends on, precisely"
-related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[DES-0005-The-Actuator-Grammar]]"]
+related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[DES-0011-Publication-Is-An-Obligation]]", "[[PHASE-024-Acceptance-Witnessed]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[DES-0005-The-Actuator-Grammar]]"]
 tags: [surfaces, obligations]
 ---
 
@@ -60,6 +62,8 @@ The `depends:` above says [[PHASE-023]] and means **half of this phase**. Writte
 - [ ] `issue: triage` is a first-class obligation with `Defer` available, and the fleet's 39-item pool is visible from the Issues badge
 - [ ] No write path widened: [[REQ-0027]]'s guards re-checked, no agent-owned transition reachable
 - [ ] The standing documents are declared as data, carry no lifecycle status, and open the Intent view with their freshness visible — and the fleet's 94%-stale figure has an after
+- [ ] An obligation whose subject is **not a note** goes through the same declared path as one whose subject is, yields its count and its rows from one walk, and is covered by the completeness test — no bolt-ons, asserted with at least two such sources present
+- [ ] No obligation is admitted whose count can be *unknown* ([[ADR-0027]] test 4) — absence on a badge means nothing is owed, and the surface can prove it means that
 
 ## What this phase must not do
 
@@ -82,3 +86,16 @@ It belongs here rather than in a phase of its own because **"confirm this is sti
 [[ADR-0020]] accepts one cost honestly: discharging judgments becomes up to four visits instead of one. It names the mitigation — [[DES-0008]]'s landing digest, *"since Thu · 14 transitions · 2 need you"*.
 
 **That digest is [[FEAT-0071]], in [[PHASE-026]], and nothing scheduled it.** Retiring the desk before it lands ships the cost without the mitigation, which is how an accepted trade-off becomes an unaccepted regression. [[TASK-0378]] carries the dependency so ordering cannot skip it by accident.
+
+## Widened 2026-08-13 — publication is an obligation
+
+[[FEAT-0100]] joined after Edwin found the tool silent about this repo's own unpushed work, and then chose where the answer should live: *"add the git status to the needs you section… have the actual push solution in the overview history… an indication of having to push using a number on the overview icon."*
+
+It belongs here for the same reason [[FEAT-0091]] did, and by the same argument. This phase's subject is *what needs a person, visible without going to look for it*, and [[ADR-0022]] made the human the publisher of last resort — so *"three commits are unpushed"* is exactly that, and it was outside the registry only because the registry's stated scope was **judgments about the record**. [[ADR-0027]] widens the scope to **what needs a person**, with four admission tests so the badge does not become a notification centre.
+
+Two things fall out of the widening, and both are this phase's:
+
+- **The note-less obligation path stops being a bolt-on.** [[FEAT-0091]]'s standing document was the first obligation whose subject is not a note, carried by two special cases whose seam already produced *"Intent's group came out 3 against a badge of 5"*. [[TASK-0416]] generalises it and ports standing to it — a repair to what this phase already built, before anything new is added on top.
+- **Absent-at-zero makes unknown a defect.** [[ISS-0156]] joins the phase because the badge cannot show what the shell does not know, and a missing count is indistinguishable from nothing owed. It is the first task, not a caveat.
+
+**This does not build a third surface.** The row appears in `Needs you` and in history, which is [[ADR-0025]]'s already-decided shortcut-plus-structural-place, not [[ISS-0068]]'s duplicate list.

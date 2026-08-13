@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 26
+  ADR: 27
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -52,17 +52,17 @@ counters:
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
-  DES: 10
+  DES: 11
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 99
+  FEAT: 100
   ISS: 156
   PHASE: 33
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 414
+  TASK: 418
   TST: 24
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -75,6 +75,15 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0100:
+      file: "docs/features/unpushed-work/FEAT-0100-Unpushed-Work-Needs-A-Person.md"
+      title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      tasks: [TASK-0415, TASK-0416, TASK-0417, TASK-0418]
+      design: DES-0011
+      note: "Edwin chose the shape 2026-08-13: git status into Needs you, the push into the overview history, the count as a number on the Overview button. Both surfaces ALREADY EXIST — registering the obligation is what makes them appear, with no new UI. Two things gate it: ISS-0156 first (absent-at-zero means an unknown count renders as nothing-owed, and the open workspace has no count today), then TASK-0416 (the note-less obligation path, which is two bolt-ons whose seam already produced a badge disagreeing with its own group). ADR-0027 is the widening that admits it."
     FEAT-0099:
       file: "docs/features/remote-ssh-workspaces/FEAT-0099-Remote-SSH-Workspaces.md"
       title: "Remote SSH workspaces — repos, project-os context and agent terminals on another machine"
@@ -588,6 +597,47 @@ items:
       effort: M
       depends: [TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0411, TASK-0412, TASK-0413]
       note: "The walk must be run from a SECOND unprivileged account on the remote host. A pass without that account is not a pass — it is the only step that tests the boundary the 2026-08-13 decisions moved."
+    TASK-0415:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0415-Git-State-For-Every-Workspace.md"
+      title: "Git state for every workspace, including the one you have open"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: S
+      blocks: [TASK-0417]
+      note: "Closes ISS-0156. FIRST, and not a footnote: absent-at-zero means an unknown count renders exactly like nothing-owed, so everything built on top would be silent in the case it exists for and look correct."
+    TASK-0416:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0416-Generalise-The-Note-Less-Obligation.md"
+      title: "Generalise the note-less obligation — one walk that yields a count and its rows, with standing documents as its first caller"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: M
+      blocks: [TASK-0417]
+      note: "A refactor of what PHASE-030 already built, before anything new sits on it: if porting the standing document to the new path does not SIMPLIFY it, the shape is wrong."
+    TASK-0417:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0417-Publication-Enters-The-Registry.md"
+      title: "Publication enters the registry — the overview button carries the number and Needs you carries the row"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: M
+      depends: [TASK-0415, TASK-0416]
+      blocks: [TASK-0418]
+      note: "No new UI: refreshObligationBadges() already paints the view buttons and _needs_you_group() already builds the leading group for overview. Registering the obligation is the whole change. Must answer the deploy-remote question in one direction with its reasoning recorded."
+    TASK-0418:
+      file: "docs/features/unpushed-work/plan/tasks/TASK-0418-The-Push-Lives-With-The-Commits.md"
+      title: "The push lives with the commits — history marks what is unpublished and carries the action"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0100
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      effort: M
+      depends: [TASK-0417]
+      note: "Carries DES-0011's artifact, without which the design cannot leave draft. Must NOT re-implement the deploy-remote refusal, and must decide the fate of FEAT-0098's overview band rather than leaving two surfaces saying one sentence."
     TASK-0414:
       file: "docs/features/harness-survey/plan/tasks/TASK-0414-The-Remote-Transport-Round.md"
       title: "The remote-transport round — VS Code Remote-SSH, the VS Code Agent Host, and t3.code, surveyed against the one question PHASE-033 has to answer"
@@ -693,24 +743,6 @@ items:
     TASK-0347:
       file: "docs/features/session-economics/plan/tasks/TASK-0347-Cold-Sessions-Leave-The-Needs-You-List.md"
       title: "A cold session leaves the NEEDS YOU list, so the list means blocked on you and still cheap to pick up"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0343:
-      file: "docs/features/session-economics/plan/tasks/TASK-0343-The-Cache-Reader.md"
-      title: "The cache reader — prefix weight and cache state from the transcript, tail for live, full scan for the record"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0344:
-      file: "docs/features/session-economics/plan/tasks/TASK-0344-Warm-Cooling-Cold-In-The-Strip.md"
-      title: "The strip says what the session weighs and whether its cache is warm, cooling or cold"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0345:
-      file: "docs/features/session-economics/plan/tasks/TASK-0345-Model-Switch-Named-Where-It-Happens.md"
-      title: "A model switch that discards a warm prefix is named, with the tokens it cost"
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: FEAT-0081
@@ -1887,9 +1919,9 @@ items:
       title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
       status: active
       order: 30
-      features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090"]
-      issues: ["ISS-0121"]
-      note: "From ADR-0020, accepted 2026-08-10. Order is load-bearing: FEAT-0089 (registry) first because everything reads it, the three view features in any order, FEAT-0090 (retire) last because the registry is what PROVES nothing is homeless. Must not build a third surface (ISS-0068) and must not widen the write surface (REQ-0027)."
+      features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090", "FEAT-0091", "FEAT-0100"]
+      issues: ["ISS-0121", "ISS-0156"]
+      note: "From ADR-0020, accepted 2026-08-10. Order is load-bearing: FEAT-0089 (registry) first because everything reads it, the three view features in any order, FEAT-0090 (retire) last because the registry is what PROVES nothing is homeless. Must not build a third surface (ISS-0068) and must not widen the write surface (REQ-0027). WIDENED 2026-08-13 by ADR-0027: the registry counts what needs a PERSON, not only what the record owes, and FEAT-0100 is the widening's first subject — publication. Its two gates are ISS-0156 (no count for the open workspace, and absent-at-zero hides that) and TASK-0416 (the note-less obligation path, a repair to what this phase already built)."
     PHASE-029:
       file: "docs/phases/PHASE-029-One-Tool-Two-Front-Doors.md"
       title: "One tool, two front doors — the browser cockpit and the desktop shell answer the same questions, and differ only where a difference was decided"
@@ -2557,6 +2589,13 @@ items:
   releases: {}
 
   designs:
+    DES-0011:
+      file: "docs/designs/DES-0011-Publication-Is-An-Obligation.md"
+      title: "Publication is an obligation — unpushed work joins Needs you, the push lives with the commits, and the overview button carries the number"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      note: "DRAFT with an empty asset:, which DESIGN-ASSET permits only for a draft — the five regions are named so the artifact can anchor annotations, and TASK-0418 builds it. Records two rejected placements (rail square, header button beside the project name) because both are the obvious idea and will be re-proposed. Four states that must not collapse into two; unknown is not one of them, by ADR-0027."
     DES-0004:
       file: "docs/designs/DES-0004-Attention-In-The-Squares.md"
       title: "Attention in the squares — retire Waiting-on-you by giving the phase strip the states it is missing"
@@ -2579,6 +2618,15 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0027:
+      file: "docs/decisions/ADR-0027-The-Registry-Counts-What-Needs-A-Person.md"
+      title: "The obligation registry counts what needs a person — not only what the record owes, and not only things that are notes"
+      status: accepted
+      owner: user:edwin
+      phase: "[[PHASE-030-Obligations-Go-Home]]"
+      decision: "The registry's scope is what needs a person; an obligation's subject need not be a note; admission is gated on four tests, and an obligation whose count can be unknown is not admissible."
+      related: [FEAT-0100, DES-0011, ISS-0156, ADR-0020, ADR-0022, ADR-0025]
+      note: "Edwin's call 2026-08-13, choosing widening over a parallel channel. The purity being protected was thinner than it looked — the registry already carried one obligation whose subject is not a note (the standing document), by two special cases whose seam produced 'Intent's group came out 3 against a badge of 5'. Test 4 (never unknown) is the one doing the work: it is what keeps a widened badge from becoming a notification centre, and what makes ISS-0156 a gate rather than a nicety."
     ADR-0026:
       file: "docs/decisions/ADR-0026-Remote-Workspace-Transport.md"
       title: "Remote workspace transport — SSH is the boundary; the channel within it is now constrained by write parity and shared hosts"
@@ -2629,9 +2677,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 99
+    features_total: 100
     features_done: 89
-    tasks_total: 414
+    tasks_total: 418
     tasks_done: 379
     tests_total: 24
     tests_passing: 23
@@ -2642,4 +2690,4 @@ metrics:
     issues_triage: 8
     risks_open: 6
     releases_total: 1
-    decisions_total: 17
+    decisions_total: 18
