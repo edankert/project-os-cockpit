@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 25
+  ADR: 26
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -56,14 +56,14 @@ counters:
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 98
-  ISS: 153
-  PHASE: 32
-  REQ: 34
-  RISK: 6
+  FEAT: 99
+  ISS: 155
+  PHASE: 33
+  REQ: 36
+  RISK: 7
   REL: 1
-  TASK: 404
-  TST: 23
+  TASK: 413
+  TST: 24
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
@@ -75,6 +75,17 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0099:
+      file: "docs/features/remote-ssh-workspaces/FEAT-0099-Remote-SSH-Workspaces.md"
+      title: "Remote SSH workspaces — repos, project-os context and agent terminals on another machine"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      requirements: [REQ-0035, REQ-0036]
+      tasks: [TASK-0405, TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0410, TASK-0411, TASK-0412, TASK-0413]
+      tests: [TST-0024]
+      risks: [RISK-0007]
+      note: "A staged VS Code Remote SSH-like desktop workflow: verified SSH profiles, a remote docs sidecar constrained to SSH, a bounded repository browser, and interactive remote agent terminals. REVISED 2026-08-13 on Edwin's three decisions — full write parity, shared/multi-user hosts in scope, full fleet membership — which together make the authorisation question live NOW: attaching the sidecar attaches twenty mutating routes guarded only by _require_loopback(), and on a shared host every co-tenant passes that gate. ADR-0026's spike is still first, but it now chooses between stdio and an AUTHENTICATED listener; the unauthenticated variant is eliminated. TASK-0411/0412/0413 are the added legs. Owns PHASE-033."
     FEAT-0091:
       file: "docs/features/standing-documents/FEAT-0091-The-Standing-Documents.md"
       title: "The standing documents get a manifest, a freshness signal and a home — the eight one-per-project notes stop being invisible and stop pretending to have a lifecycle"
@@ -517,6 +528,98 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0405:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0405-Define-Remote-Session-Architecture.md"
+      title: "Define the remote-session transport and trust boundary"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: M
+      blocks: [TASK-0406, TASK-0407, TASK-0408, TASK-0411, TASK-0413]
+      note: "FIRST, and it is a decision rather than a build. Narrowed 2026-08-13: compares stdio against an AUTHENTICATED remote listener; the unauthenticated variant is eliminated by write parity + shared hosts. The PTY leg may be answered separately — no PTY candidate involves a listener — which unblocks TASK-0408 independently."
+    TASK-0406:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0406-Manage-SSH-Connection-Profiles.md"
+      title: "Manage verified SSH connection profiles"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: M
+      depends: [TASK-0405]
+      note: "Carries the offline trap found 2026-08-13: loadStored() drops any workspace whose root does not stat, and workspace id is a sha1 of a LOCAL absolute path, so a naively modelled remote workspace deletes itself on the first launch with the host down."
+    TASK-0407:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0407-Bridge-Remote-Workspace-And-Docs.md"
+      title: "Bridge a remote project-os workspace and docs sidecar"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: L
+      depends: [TASK-0405, TASK-0406, TASK-0411, TASK-0413]
+      blocks: [TASK-0409, TASK-0412]
+      note: "Attaching the sidecar attaches its write routes — it is not a read surface. Depends on TASK-0413 for that reason."
+    TASK-0408:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0408-Provide-Remote-Terminals-And-Agent-Launchers.md"
+      title: "Provide remote terminals and framework launchers"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: L
+      depends: [TASK-0405, TASK-0406]
+      note: "One session per remote workspace in v1 — the shell keys one PTY per workspace and shares one xterm (the ISS-0154 surface). Cheapest candidate: plain `ssh` inside the existing node-pty with tmux on the remote."
+    TASK-0409:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0409-Deliver-Remote-Repository-Browser.md"
+      title: "Deliver the remote repository browser"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: M
+      depends: [TASK-0407]
+    TASK-0410:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0410-Verify-Remote-Connection-Safety-And-Recovery.md"
+      title: "Verify remote connection safety and recovery"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: M
+      depends: [TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0411, TASK-0412, TASK-0413]
+      note: "The walk must be run from a SECOND unprivileged account on the remote host. A pass without that account is not a pass — it is the only step that tests the boundary the 2026-08-13 decisions moved."
+    TASK-0411:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0411-Deliver-And-Version-The-Remote-Sidecar.md"
+      title: "Deliver the remote sidecar and keep it version-matched"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: M
+      depends: [TASK-0405]
+      blocks: [TASK-0407, TASK-0412]
+      note: "Nothing said how the sidecar reaches the remote host. The desktop bundles a Python runtime so no user needs a system Python; the remote reintroduces that, and full fleet membership makes it mandatory because fleet_validate must run THERE."
+    TASK-0412:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0412-Fleet-Surfaces-For-A-Remote-Workspace.md"
+      title: "Carry the fleet surfaces to a remote workspace, or make them say they cannot"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: L
+      depends: [TASK-0407, TASK-0411]
+      note: "Five surfaces read the workspace root locally (agent-state-poller, fleet-health url + fleet_validate spawn, git -C, agent-instrument). Each fails QUIETLY and in the reassuring direction against a remote workspace: clean git status, zero validator errors, idle agent state."
+    TASK-0413:
+      file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0413-Authorize-Remote-Writes-Without-Loopback.md"
+      title: "Authorise remote writes without the remote host's loopback interface"
+      status: backlog
+      owner: unassigned
+      parent: FEAT-0099
+      phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
+      effort: L
+      depends: [TASK-0405]
+      blocks: [TASK-0407, TASK-0412]
+      note: "The gate: twenty mutating routes guarded only by _require_loopback(), dispatch included, on a host with other accounts. REQ-0034 does not reach it — that requirement authenticates a NON-loopback write and a co-tenant writes over loopback. If the spike picks stdio this is a proof, not a build."
     TASK-0356:
       file: "docs/features/session-economics/plan/tasks/TASK-0356-The-Snapshot-Membership-Gate.md"
       title: "The snapshot's copy of a feature's task list is checked against the note's"
@@ -601,24 +704,6 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: FEAT-0081
-    TASK-0335:
-      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0335-Capture-Per-Turn.md"
-      title: "Capture the workspace at each turn boundary to a hidden ref — pruned by age and count, never pushed, never in history"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0078
-    TASK-0336:
-      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0336-The-Turn-Timeline.md"
-      title: "The turn timeline — each turn with the shape of what it changed, so the wrong turn is findable"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0078
-    TASK-0337:
-      file: "docs/features/turn-checkpoints/plan/tasks/TASK-0337-Restore-As-A-Recorded-Action.md"
-      title: "Restore to a turn — a principal-owned action, recorded, with the conversation caveat stated where it is offered"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0078
     TASK-0338:
       file: "docs/features/phone-supervision/plan/tasks/TASK-0338-The-Authenticated-Path.md"
       title: "The authenticated path — bearer-paired, off by default, per-repo, and re-scanned against the write-surface risk"
@@ -667,24 +752,6 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
       parent: "FEAT-0003"
-    TASK-0332:
-      file: "docs/features/intent-charter/plan/tasks/TASK-0332-DES-0003-Revised.md"
-      title: "DES-0003 revised — the intent page's role widens from display to oracle, and the design goes to the desk"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0077
-    TASK-0333:
-      file: "docs/features/intent-charter/plan/tasks/TASK-0333-The-Charter-Note.md"
-      title: "The charter note — goals, non-goals and taste constraints, drafted from the record, approved by the principal"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0077
-    TASK-0334:
-      file: "docs/features/intent-charter/plan/tasks/TASK-0334-Delegated-Acceptance.md"
-      title: "Delegated acceptance — the runner with agent:principal as witness, charter in context, worker kept at arm's length"
-      status: done
-      phase: "[[PHASE-027-The-Standing-Worker]]"
-      parent: FEAT-0077
     TASK-0315:
       file: "docs/features/release-surface/plan/tasks/TASK-0315-The-Unreleased-Card.md"
       title: "UNRELEASED · N — done features since the last release"
@@ -1106,6 +1173,24 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0155:
+      file: "docs/issues/ISS-0155-A-Never-Run-Manual-Test-Must-Assert-A-Verification-Date.md"
+      title: "A manual test that has never been run cannot satisfy the schema without asserting a verification date"
+      status: triage
+      owner: user:edwin
+      severity: medium
+      component: docs-validator
+      related: [TST-0024]
+      note: "TEST-FIELDS requires last_verified on every manual test regardless of status, but the template says `ready` means defined-but-not-executed — so a manual test cannot exist in the state it is created in without naming a run that never happened. Hit while authoring TST-0024, whose date is an authoring date wearing a verification field. The validator is template-owned: the fix is upstream."
+    ISS-0154:
+      file: "docs/issues/ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch.md"
+      title: "Existing terminal sessions stop receiving keyboard input after a workspace switch"
+      status: open
+      owner: user:edwin
+      severity: high
+      component: desktop-terminal
+      related: [FEAT-0003, ISS-0016, TASK-0186]
+      note: "Observed 2026-08-12: a newly opened CLI takes keys, but a previously running CLI becomes unresponsive after A → B → A. The primary code-level suspect is the visible-pane workspace switch attaching xterm without the focus restoration used by show/restart; the asynchronous attach race must be exercised before a fix is chosen."
     ISS-0135:
       file: "docs/issues/ISS-0135-Every-Standing-Document-Is-A-Dead-Click.md"
       title: "Every one of the eight standing documents is a dead click — the group emits `/README.md` where the convention is `/docs/README.md`, and `extractRel` drops exactly that shape on purpose"
@@ -1595,6 +1680,24 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0035:
+      file: "docs/requirements/REQ-0035-Secure-Remote-Workspace-Connection.md"
+      title: "A remote workspace connection uses verified SSH identity, and no remote write is authorised by the remote host's loopback interface"
+      status: draft
+      owner: user:edwin
+      priority: high
+      scope: "Every connection from the desktop cockpit to a remote project-os workspace, its docs sidecar, filesystem API, and PTY sessions"
+      features: [FEAT-0099]
+      tests: [TST-0024]
+    REQ-0036:
+      file: "docs/requirements/REQ-0036-Remote-Development-Workflow.md"
+      title: "A remote project workspace is a full workspace — docs, repository context, agent sessions and fleet surfaces, or an honest statement that a surface cannot reach it"
+      status: draft
+      owner: user:edwin
+      priority: high
+      scope: "The desktop cockpit workflow for a selected remote repository"
+      features: [FEAT-0099]
+      tests: [TST-0024]
     REQ-0033:
       file: "docs/requirements/REQ-0033-Every-Project-Can-Say-What-It-Is.md"
       title: "Every project can say what it is — the standing documents are declared as data, singular by construction, extensible without code, and their freshness is reported"
@@ -1751,6 +1854,15 @@ items:
       issues: ["ISS-0094", "ISS-0095"]
       risks: ["RISK-0006"]
       note: "REL-0001 leg 2, LAST and it earns it — 28 of 28 children unresolved. Opens with APPROVAL work, not build work: REQ-0029/0030/0031 are all `draft` and DES-0009 is `draft`. RISK-0006 (compounding wrong judgment at machine speed) must be mitigated before an unattended loop runs at all. HARD ORDERING: after PHASE-024 — the worker delegates acceptance, so acceptance must exist and be recorded before anything is delegated to a machine. FEAT-0078 was missing from REL-0001's deferred table; it is the fifth feature here."
+    PHASE-033:
+      file: "docs/phases/PHASE-033-The-Workspace-Is-Not-Always-Local.md"
+      title: "The workspace is not always local — a repo on another machine gets the whole cockpit, and the boundary that made loopback sufficient does not travel with it"
+      status: planned
+      order: 33
+      features: ["FEAT-0099"]
+      requirements: ["REQ-0035", "REQ-0036"]
+      risks: ["RISK-0007"]
+      note: "Opened 2026-08-13 from Edwin's three decisions on the FEAT-0099 review: full write parity, shared/multi-user hosts in scope, full fleet membership. Opens with a DECISION not a build — ADR-0026 is proposed and both requirements are draft. The phase's real content is that REQ-0027/REQ-0034's unstated premise (loopback means the user) is false for the first time: twenty mutating routes including dispatch are guarded only by _require_loopback(), and on a shared host every co-tenant passes it. Do NOT let a spike drift into the cheap unauthenticated-forward shape; ADR-0026 eliminated it on purpose."
     PHASE-030:
       file: "docs/phases/PHASE-030-Obligations-Go-Home.md"
       title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
@@ -1848,6 +1960,14 @@ items:
       # Sentinel parking-lot — does NOT advance the PHASE counter above.
 
   risks:
+    RISK-0007:
+      file: "docs/risks/RISK-0007-Remote-Workspace-Trust-Boundary.md"
+      title: "Remote workspace trust boundary — on a host you do not own alone, loopback authorises strangers, and the cockpit's write surface includes agent dispatch"
+      status: open
+      owner: user:edwin
+      likelihood: medium
+      impact: high
+      related: [FEAT-0099, REQ-0035, TASK-0405, TASK-0410]
     RISK-0001:
       title: "Terminal endpoint accidentally bound to non-loopback interface"
       status: open
@@ -1866,6 +1986,17 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0024:
+      file: "docs/tests/TST-0024-Remote-SSH-Workspace-Walk.md"
+      title: "Remote SSH workspace walk — verified host, docs, repository and agent terminal"
+      status: ready
+      owner: unassigned
+      scope: system
+      kind: manual
+      level: system
+      requirements: [REQ-0035, REQ-0036]
+      features: [FEAT-0099]
+      tasks: [TASK-0405, TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0410]
     TST-0022:
       file: "docs/features/library-reduction/plan/tests/TST-0022-Surface-Ownership.md"
       title: "Surface ownership — every moved type is reachable, and Library is reduced"
@@ -2429,6 +2560,13 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0026:
+      file: "docs/decisions/ADR-0026-Remote-Workspace-Transport.md"
+      title: "Remote workspace transport — SSH is the boundary; the channel within it is now constrained by write parity and shared hosts"
+      status: proposed
+      owner: user:edwin
+      decision: "SSH is mandatory; the specific constrained channel is decided by TASK-0405's real-host spike."
+      related: [FEAT-0099, REQ-0035, RISK-0007]
     ADR-0020:
       title: "Obligations live with their subject — the review desk dissolves into the views, the count moves to the buttons, and Tests becomes a view"
       status: accepted
@@ -2472,17 +2610,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 98
+    features_total: 99
     features_done: 89
-    tasks_total: 404
+    tasks_total: 413
     tasks_done: 379
-    tests_total: 23
+    tests_total: 24
     tests_passing: 23
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 4
-    issues_triage: 9
-    risks_open: 5
+    issues_open: 7
+    issues_triage: 8
+    risks_open: 6
     releases_total: 1
-    decisions_total: 16
+    decisions_total: 17
