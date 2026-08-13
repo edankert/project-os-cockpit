@@ -4,10 +4,11 @@ id: TST-0016
 aliases: ["TST-0016"]
 title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
 status: passing
+command: ".venv/bin/pytest tests/test_validation.py -q"
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-17
-updated: 2026-07-18
+updated: 2026-08-13
 scope: feature
 kind: automated
 level: integration
@@ -19,6 +20,8 @@ reviewed_by: "model:claude-opus"
 review_date: 2026-07-18
 review_verdict: approved
 last_verified: 2026-07-18
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
 
 ---
 

@@ -231,14 +231,38 @@ def _is_stale_verification(fm: dict[str, Any], days: int) -> bool:
 
 
 def _test_last_verified(fm: dict[str, Any]) -> str:
-    """When a test was last seen to pass: ``last_verified``, else ``last_run``.
+    """When a test was last seen to pass — from the field its kind makes authoritative.
 
-    The corpus writes both. 22 of 23 tests here carry ``last_verified`` (the
-    validator's field, the one ``TEST-FIELDS`` requires); TST-0022 carries only
-    ``last_run``. Reading one field would silently treat that note as never
-    verified, which is a claim about the record rather than about the test.
+    Both fields exist and they answer different questions. ``last_run`` is written
+    by ``tools/scripts/run-tests.py`` from an exit code; ``last_verified`` is a date
+    a person types after walking a procedure. So the order depends on which kind of
+    test is asking:
+
+    - **executable** (carries a ``command:``) — ``last_run`` first. The runner is
+      the only hand permitted to write its status (ADR-0010), so the runner's date
+      is the only one describing the status on the note.
+    - **manual** — ``last_verified`` first. Nothing runs it; the typed date is the
+      whole record, and ``TEST-FIELDS`` errors when it is absent.
+
+    Either way the other field is the fallback, so a note carrying only one is
+    never reported as unverified — a claim about the record rather than the test.
+
+    **The order used to be unconditional**, ``last_verified`` then ``last_run``, and
+    it was right when it was written: 22 of 23 notes were manual-shaped and only
+    TST-0022 carried a run. ISS-0130 inverted that population in one afternoon —
+    22 notes became executable and every one of them kept a ``last_verified`` from
+    weeks earlier, so all 22 displayed a hand-typed date while a green run from
+    minutes ago sat in the field beside it. None had crossed the 90-day threshold
+    yet; the oldest was 39 days and climbing, on a test running green daily. A
+    surface that calls a passing test stale is the parallel-vocabulary failure
+    ISS-0024 and ISS-0069 are both about, arriving by data rather than by code.
     """
-    for key in ("last_verified", "last_run"):
+    keys = (
+        ("last_run", "last_verified")
+        if str(fm.get("command") or "").strip()
+        else ("last_verified", "last_run")
+    )
+    for key in keys:
         value = str(fm.get(key) or "").strip()
         if value:
             return value

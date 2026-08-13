@@ -3,21 +3,24 @@ type: "[[test]]"
 id: TST-0020
 aliases: ["TST-0020"]
 title: "Overview payloads — focus block, issue severity, commits join, and sidecar-owned status buckets"
-status: "passing"
+status: passing
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26
-updated: "2026-08-10"
+updated: 2026-08-13
 source: ["[[TASK-0199-Sidecar-Payload-Additions]]"]
 verifies: ["[[TASK-0199-Sidecar-Payload-Additions]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[FEAT-0040-Overview-Rework]]", "[[REQ-0022-Overview-State-Above-History]]"]
 features: ["[[FEAT-0040-Overview-Rework]]"]
 path: "tests/test_overview_payloads.py"
+command: ".venv/bin/pytest tests/test_overview_payloads.py tests/test_status_vocabulary.py -q"
 automation: automated
 last_verified: "2026-08-10"
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26
 review_verdict: approved
-last_run: "2026-08-10"
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
+
 ---
 
 # TST-0020 — Overview payloads

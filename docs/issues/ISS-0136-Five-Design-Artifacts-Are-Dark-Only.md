@@ -8,7 +8,7 @@ severity: low
 owner: user:edwin
 created: 2026-08-11
 updated: "2026-08-13"
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-025-Design-Before-Code]]"
 features: ["[[FEAT-0043-Design-Top-Level-Surface]]"]
 tasks: []
 related: ["[[DES-0009-The-Standing-Worker]]", "[[DES-0010-Desk-Shows-What-It-Owes]]", "[[REL-0001-The-Human-Has-Levers]]", "[[DES-0002]]", "[[PHASE-025-Design-Before-Code]]"]
@@ -68,3 +68,5 @@ So eight of ten declare no palette at all, `DES-0004` declares one and adapts, a
 The newest artifact, [[DES-0011]]'s, declares no palette by construction: it links the implementation's own `renderer.css` through `/_shell/`, so there is nothing to drift. That is the pattern this issue was arguing for, now demonstrated rather than proposed.
 
 Closed on the measurement. If a superseded artifact rendering dark in light mode is still worth an hour, it wants a fresh note against `DES-0010` rather than this one, which was filed about a fleet-wide habit that no longer exists.
+
+**Re-homed out of [[PHASE-999]] on closing — and nothing "delivered" this one.** It dissolved: the habit it described stopped happening, and the newest artifact demonstrates the alternative by construction. [[PHASE-025]] is where design artifacts became governed records, so it is where the record of a design-artifact convention belongs — not because that phase fixed this, but because a fixed issue in the parking lot renders as unplanned shipped work on the phase strip, and this is the phase whose subject it shares.

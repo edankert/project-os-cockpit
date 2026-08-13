@@ -4,10 +4,11 @@ id: TST-0014
 aliases: ["TST-0014"]
 title: "Dispatch ledger, queue-requests, status-aware verbs, CLI"
 status: passing
+command: ".venv/bin/pytest tests/test_dispatch_ledger.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-08-13
 scope: feature
 kind: automated
 level: integration
@@ -15,6 +16,8 @@ entrypoint: ".venv/bin/python -m pytest tests/test_dispatch_ledger.py"
 features: ["[[FEAT-0025-Dispatch-Runtime]]", "[[FEAT-0026-Verb-Polish]]"]
 tasks: ["[[TASK-0135]]", "[[TASK-0136]]", "[[TASK-0137]]"]
 last_verified: 2026-07-06
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
 
 ---
 

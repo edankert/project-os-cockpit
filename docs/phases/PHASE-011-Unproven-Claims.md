@@ -7,7 +7,7 @@ status: done
 order: 11
 owner: user:edwin
 created: 2026-07-30
-updated: 2026-07-30
+updated: 2026-08-13
 goal: "Stop the cockpit presenting a claim and its evidence as the same thing. A waiver, a two-month-old manual verification, a hand-written register of what a test asserts and a status band that drifted out of its guard all read today exactly like earned completion — and every one of them is a claim nothing checked."
 features:
   - "[[FEAT-0018-Verification-Health-Surface]]"
@@ -16,8 +16,9 @@ issues:
   - "[[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]]"
   - "[[ISS-0057-Staleness-Follows-The-Artifact-Only]]"
   - "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"
+  - "[[ISS-0130-Nine-Automated-Tests-Cannot-Be-Re-Run-By-The-Machine]]"
 depends: []
-related: ["[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
+related: ["[[ISS-0163-The-Entrypoint-Rule-Is-One-Repos-Test-Not-The-Templates]]", "[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
 tags: [verification, quality]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-30
@@ -91,3 +92,15 @@ Still asserting the retracted figure:
 The implementation half of the correction *is* complete and correct: `cockpit.DEFAULT_STALENESS_DAYS = 90` matches the validator, `_is_stale_verification` mirrors `is_stale`'s semantics (`> days`, absent/unparseable dates not stale, `command:` excluded at the caller), and `test_the_staleness_threshold_is_the_validators` reads the validator's literal rather than restating it. One latent divergence: `_staleness_days` hand-rolls `^verification:\s*$` plus an indented `staleness_days:` scan, so a snapshot writing `verification: {staleness_days: 30}` inline, or `verification:  # comment`, silently yields 90 while the validator's parser yields 30 — a parallel rule of the kind this phase's goal names, reachable by ordinary YAML.
 
 Exit criteria 1–5 all appear satisfied by `74a2187..HEAD` yet none is ticked and the phase still reads `status: planned`, so from the notes alone this phase reads as unstarted while its work has shipped.
+
+## Reopened — 2026-08-13, for [[ISS-0130]]
+
+This phase closed on 2026-07-30 and is reopened rather than replaced, because [[ISS-0130]] says in its own text that it is [[ISS-0066]]'s complaint one level down — and ISS-0066 is this phase's issue. A phase whose subject is *a claim nothing checked* is where an automated test that cannot be re-run belongs.
+
+It is the [[ISS-0077]] rule applied: reopening is cheap and honest, and the alternative — a new phase for one issue — is the failure that rule exists to prevent.
+
+The claim this time is narrower and sharper than the 2026-07-30 population. Those 22 waived items **said** verification was skipped; a waiver is an honest label. These say `passing`, which is the strongest claim the vocabulary has, and cannot be re-derived by machine because nothing records how. That is worse than a waiver: it is an unproven claim wearing proof's badge.
+
+**Reopened, worked and re-closed the same day.** The exit criteria below are unchanged; this leg adds no new ones.
+
+**Result**: notes carrying an executable entrypoint went **1 → 22 of 24**, and every one of those 22 statuses is now the runner's output rather than an author's. The two that remain are procedures a person walks and say so. [[ISS-0163]] carries the half this repo cannot do — the same check in the template, where the other eleven repos would get it.

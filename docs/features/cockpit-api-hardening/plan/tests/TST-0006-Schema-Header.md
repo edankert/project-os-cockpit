@@ -3,16 +3,19 @@ type: "[[test]]"
 id: TST-0006
 aliases: ["TST-0006"]
 title: "Every JSON endpoint emits X-Cockpit-Schema matching cockpit.SCHEMA_VERSION"
-status: "passing"
+status: passing
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
-updated: "2026-08-10"
+updated: 2026-08-13
 source: ["[[TASK-0068]]"]
 verifies: ["[[TASK-0068]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_schema_header.py"
+command: ".venv/bin/pytest tests/test_schema_header.py -q"
 last_verified: "2026-08-10"
-last_run: "2026-08-10"
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
+
 ---
 
 # TST-0006 — `X-Cockpit-Schema` header coverage

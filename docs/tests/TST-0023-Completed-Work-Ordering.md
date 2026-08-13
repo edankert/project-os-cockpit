@@ -4,10 +4,11 @@ id: TST-0023
 aliases: ["TST-0023"]
 title: "Completed work orders rather than disappears — both surfaces, checked by mutation"
 status: passing
+command: ".venv/bin/pytest tests/test_completed_work_ordering.py -q"
 phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
 owner: user:edwin
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-13
 source: ["[[FEAT-0056-Completed-Work-Ordering]]"]
 scope: "system"
 kind: "automated"
@@ -16,9 +17,11 @@ entrypoint: "tests/test_completed_work_ordering.py"
 verifies: ["[[FEAT-0056-Completed-Work-Ordering]]", "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"]
 artifacts: []
 evidence: ["30 passed in 0.75s (2026-08-02); desktop node suite 65 passed"]
-last_run: "2026-08-02"
+last_run: "2026-08-13T18:28Z"
 related: ["[[TASK-0267-One-Comparator-Open-Before-Done]]", "[[TASK-0268-Groups-With-Open-Work-Sort-First]]", "[[TASK-0269-The-Context-Pane-Stops-Filtering]]", "[[TASK-0270-Folding-Keyed-On-Length]]"]
 last_verified: 2026-08-02
+exit_code: 0
+
 ---
 
 # Completed work ordering

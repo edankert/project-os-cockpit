@@ -4,13 +4,16 @@ id: TST-0017
 aliases: ["TST-0017"]
 title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
 status: passing
+command: ".venv/bin/pytest tests/test_identity_guard.py -q"
 kind: automated
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-08-13
 validates: ["[[TASK-0146]]", "[[ISS-0007]]"]
 related: ["[[TST-0015]]"]
 last_verified: 2026-07-19
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
 
 ---
 

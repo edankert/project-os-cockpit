@@ -8,7 +8,7 @@ severity: medium
 owner: user:edwin
 created: 2026-08-12
 updated: "2026-08-13"
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-030-Obligations-Go-Home]]"
 features: []
 tasks: []
 related: ["[[ISS-0123]]", "[[ADR-0023]]", "[[ADR-0019]]", "[[FEAT-0016]]"]
@@ -73,3 +73,5 @@ Eight notes in this corpus already carry the form, including citations of `proje
 **Why the slash lost.** This note recommended `[[project-os-dev/ADR-0011]]` on the strength of one column: it resolves natively if an Obsidian vault is ever opened at `~/Dev/repos`. ADR-0024 chose `#` anyway, and the reason holds up — a slash reads as a path into *this* vault, so a wrong link fails silently as a missing file, where `#` is unambiguous about crossing a boundary and can be told apart from a typo. The recommendation here was made on a hypothetical vault layout nobody uses.
 
 **What is still open, and it is this note's third suggestion.** The syntax back-fills nothing: `CONTEXT.md` still does not name where the upstream ADR namespace lives, and the bare `[[ADR-0011]]` citations across this repo remain unresolvable. That was called *"cheaper than both"* and is the only part left undone — filed separately rather than keeping this note open, because the thing it asked for exists and works.
+
+**Re-homed out of [[PHASE-999]] on closing.** [[FEAT-0093]] delivered this and lives in [[PHASE-030]], so that is the phase that answered it. Leaving a fixed issue in the parking lot renders shipped work as unplanned on the phase strip — `test_no_terminal_note_sits_in_the_parking_lot` catches exactly that, and caught this.

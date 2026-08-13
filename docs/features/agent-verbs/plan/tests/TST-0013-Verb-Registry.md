@@ -4,10 +4,11 @@ id: TST-0013
 aliases: ["TST-0013"]
 title: "Agent verb registry — defaults, YAML override, endpoint"
 status: passing
+command: ".venv/bin/pytest tests/test_agent_actions.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-08-13
 scope: feature
 kind: automated
 level: integration
@@ -15,6 +16,8 @@ entrypoint: ".venv/bin/python -m pytest tests/test_agent_actions.py"
 features: ["[[FEAT-0024-Agent-Verbs]]"]
 tasks: ["[[TASK-0131]]"]
 last_verified: 2026-07-06
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
 
 ---
 

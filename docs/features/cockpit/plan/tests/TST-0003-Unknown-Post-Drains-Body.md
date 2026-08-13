@@ -3,16 +3,19 @@ type: "[[test]]"
 id: TST-0003
 aliases: ["TST-0003"]
 title: "Unknown POST drains body — keep-alive stays synced"
-status: "passing"
+status: passing
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
 created: 2026-05-23
-updated: "2026-08-10"
+updated: 2026-08-13
 source: ["[[TASK-0057]]"]
 verifies: ["[[TASK-0057]]", "[[FEAT-0006]]"]
 path: "tests/test_cockpit_state.py::test_unknown_post_drains_body_to_keep_connection_synced"
+command: ".venv/bin/pytest tests/test_cockpit_state.py -q"
 last_verified: "2026-08-10"
-last_run: "2026-08-10"
+last_run: "2026-08-13T18:28Z"
+exit_code: 0
+
 ---
 
 # TST-0003 — Unknown POST drains body
