@@ -1221,7 +1221,7 @@ def _make_handler(
             self._respond_json(payload)
 
         def _serve_cockpit_history(self, query_string: str = "") -> None:
-            """``GET /api/cockpit/history[?limit=N]`` — documentation
+            """``GET /api/cockpit/history[?limit=N][&fresh=1]`` — documentation
             history: status transitions grouped by commit, plus the
             uncommitted band (FEAT-0052 / TASK-0255).
 
@@ -1232,6 +1232,20 @@ def _make_handler(
             whose whole value is being current. The git calls are
             measured at ~0.08 s for 40 commits, so there is nothing here
             a cache would rescue.
+
+            ``fresh=1`` declines the *publication* cache specifically
+            (ISS-0168). ``git_state.read()`` holds a reading for
+            ``CACHE_SECONDS`` because the registry is walked on every nav
+            change, and that is right — but **the push runs in the Electron
+            main process**, so the server cannot know its answer just became
+            false. Without this the surface that offered the push re-fetched
+            and got the pre-push numbers back for up to ten seconds: correct
+            on a slow click, wrong on a fast one.
+
+            A GET declining a cache is an ordinary GET. Nothing is written and
+            no write path widens — ``read_fresh`` re-stamps the same in-process
+            cache, which is also why the badge refresh that follows a push is
+            correct without a second probe.
             """
             params = urllib.parse.parse_qs(query_string)
             raw_limit = (params.get("limit") or [""])[0]
@@ -1241,9 +1255,10 @@ def _make_handler(
                 limit = cockpit.COMMITS_DEFAULT_LIMIT
             raw_until = (params.get("until") or [""])[0]
             until = raw_until if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_until) else None
+            fresh = (params.get("fresh") or [""])[0] == "1"
             self._respond_json(
                 cockpit.history_payload(
-                    project_root, index, limit=limit, until=until)
+                    project_root, index, limit=limit, until=until, fresh=fresh)
             )
 
         def _serve_cockpit_activity(self) -> None:

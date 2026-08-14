@@ -12293,11 +12293,61 @@ async function runPush(
     // The count is now wrong everywhere until the next probe. Ask for a fresh
     // one rather than waiting up to a minute with a stale number on screen.
     void cockpitApi.fleetHealth.recheck();
+    void refreshPublicationSurfaces(workspaceId);
   } else {
     showStatus(`Push failed: ${res.error ?? 'unknown error'}`, 'error');
     btn.disabled = false;
     btn.textContent = original ?? `Push ${ahead}`;
   }
+}
+
+/** Re-read this workspace's publication state after a push (ISS-0168).
+ *
+ *  `fleetHealth.recheck()` above covers the FLEET surfaces — the squares and
+ *  the attention cards. It does not touch the overview's History block, which
+ *  is built by `fillHistory` from the sidecar's own payload, and that is the
+ *  block the push button lives inside. Edwin, having pushed: *"it does not
+ *  removed the # commit not pushed section from the page and the push button
+ *  says pushed"* — the label was the only thing that moved, so the button and
+ *  the header containing it disagreed about one fact on one screen.
+ *
+ *  **`fresh=1` is not optional.** `git_state.read()` caches for ten seconds
+ *  and the push ran in the Electron main process, so the sidecar cannot know
+ *  its answer just became false. Re-fetching without it returns the pre-push
+ *  numbers — right on a slow click, wrong on a fast one.
+ *
+ *  The `fresh=1` call comes FIRST and its payload is discarded on purpose.
+ *  `read_fresh` re-stamps the same in-process cache the other readers share,
+ *  so this one request makes History *and* the badges correct — rather than
+ *  threading a `fresh` flag down four call sites, or giving each surface its
+ *  own git walk, which is the duplication ISS-0165 spent a day removing.
+ *  `limit=1` because nothing here reads the commits; the point is the walk.
+ *
+ *  Guarded on `activeId`, and that guard is the point rather than a detail:
+ *  the fleet screen pushes OTHER repos, and repainting this workspace's
+ *  History because a different one was published is the same bug pointing the
+ *  other way.
+ */
+async function refreshPublicationSurfaces(workspaceId: string): Promise<void> {
+  if (!activeId || workspaceId !== activeId || !sidecarBaseUrl) return;
+  try {
+    await fetch(`${sidecarBaseUrl}/api/cockpit/history?limit=1&fresh=1`);
+  } catch {
+    // The repaint below still runs. A surface a few seconds stale is the old
+    // behaviour; a surface that never repaints because the invalidation threw
+    // would be this bug with an extra step.
+  }
+  // Both surfaces that render the block, because both offer the button.
+  // `refreshOverviewInPlace` no-ops off the overview, so this is not an
+  // either/or — it is "repaint whichever one is on screen".
+  await refreshOverviewInPlace();
+  if (currentRel && currentRel.startsWith('~history')) {
+    const scroll = docView.scrollTop;
+    const at = currentRel === '~history'
+      ? null : currentRel.slice('~history/'.length);
+    if (await renderHistoryPage(at)) docView.scrollTop = scroll;
+  }
+  await refreshObligationBadges();
 }
 
 // ----- Account budget block (FEAT-0035 / TASK-0160) --------------------

@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 167
+  ISS: 168
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -1222,6 +1222,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0168:
+      file: "docs/issues/ISS-0168-A-Successful-Push-Leaves-Every-Surface-Saying-It-Is-Unpublished.md"
+      title: "A successful push leaves History still saying N commits not pushed, under a button that now says Pushed — the one surface that offered the action is the one nothing refreshes"
+      status: fixed
+      owner: user:edwin
+      severity: medium
+      component: desktop-renderer
+      related: [FEAT-0100, TASK-0418, ADR-0027, ISS-0156]
+      note: "Edwin, using the app. The push itself worked (0 ahead, 0 behind); the screen did not move. TWO causes, and either alone leaves it broken: runPush's success path only calls fleetHealth.recheck(), which repaints the FLEET surfaces and not the History block the button lives in — refreshOverviewInPlace() exists and was never called — and the sidecar caches git_state.read() for 10s while the push runs in the Electron main process, so it cannot know its answer just became false. A renderer-only fix would look right on a slow click and wrong on a fast one. read_fresh() already existed for exactly this and had no event-driven caller. Guarded on activeId: the fleet screen pushes OTHER repos, and refreshing this workspace because a different one was published is the same bug pointing the other way."
     ISS-0167:
       file: "docs/issues/ISS-0167-The-Intent-Landing-Does-Not-Lead-With-What-Its-Badge-Counts.md"
       title: "The Intent landing does not lead with what its badge counts, and its rows speak a second vocabulary — the one view FEAT-0092 recorded as already landed"

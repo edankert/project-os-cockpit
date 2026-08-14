@@ -536,3 +536,69 @@ def test_an_unknown_publication_count_is_not_reported_as_zero(tmp_path: Path) ->
     known = history_payload(repo, Index.build(repo / "docs"))
     assert known["publication_known"] is True
     assert known["unpublished_count"] == 0
+
+
+def test_history_can_decline_the_publication_cache(tmp_path: Path) -> None:
+    """ISS-0168 — `fresh=1` exists because the push is invisible to the server.
+
+    `git_state.read()` caches for `CACHE_SECONDS`, which is right: the registry
+    is walked on every nav change. But `git push` runs in the **Electron main
+    process**, so the sidecar has no event telling it the cached answer just
+    became false — and the surface that offered the push re-fetched into its
+    own stale reading.
+
+    Simulated exactly that way: read once (warming the cache), change the
+    world behind the server's back, then read again both ways.
+    """
+    from project_os_cockpit import git_state
+
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+
+    def run(*args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], check=False,
+                       capture_output=True)
+
+    run("init", "-q", "--initial-branch=main", ".")
+    run("config", "user.email", "t@example.com")
+    run("config", "user.name", "T")
+    (repo / "docs" / "a.md").write_text("---\nid: TASK-0001\nstatus: done\n---\n")
+    run("add", "-A")
+    run("commit", "-qm", "one")
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=main", "."], check=False)
+    run("remote", "add", "origin", str(bare))
+    run("push", "-q", "-u", "origin", "main")
+
+    index = Index.build(repo / "docs")
+    git_state.clear_cache()
+
+    # A commit that has not been pushed: one owed.
+    (repo / "docs" / "b.md").write_text("---\nid: TASK-0002\nstatus: done\n---\n")
+    run("add", "-A")
+    run("commit", "-qm", "two")
+    warm = history_payload(repo, index)
+    assert warm["unpublished_count"] == 1
+
+    # …now published, by something the server cannot observe.
+    run("push", "-q")
+
+    # The cached reading still says one. This is the bug, reproduced: the
+    # surface asks again and is told the same wrong number.
+    stale = history_payload(repo, index)
+    assert stale["unpublished_count"] == 1, (
+        "CACHE_SECONDS is what makes fresh=1 necessary; if this no longer "
+        "holds, re-derive whether the flag is still needed"
+    )
+
+    # `fresh=1` is the caller saying it has reason to believe otherwise.
+    fresh = history_payload(repo, index, fresh=True)
+    assert fresh["unpublished_count"] == 0
+
+    # And it re-stamps the SHARED cache, which is why one call makes the
+    # badges correct too rather than each surface needing its own git walk.
+    after = history_payload(repo, index)
+    assert after["unpublished_count"] == 0

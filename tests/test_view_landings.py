@@ -681,6 +681,86 @@ def test_the_overview_band_is_retired_and_history_says_it_instead() -> None:
     )
 
 
+def test_a_push_refreshes_the_surface_that_offered_it() -> None:
+    """ISS-0168. The success path repainted the FLEET surfaces — squares and
+    attention cards — and left the History block the button sits inside
+    showing its pre-push count, under a button now reading `Pushed`.
+
+    Edwin, having pushed: *"it does not removed the # commit not pushed
+    section from the page and the push button says pushed"*. The label was the
+    only thing that moved, so two elements on one screen disagreed about one
+    fact.
+    """
+    code = _code(_renderer())
+    push = re.search(
+        r"async function runPush\((.*?)\n\}", code, re.S,
+    )
+    assert push, "runPush moved; re-anchor this guard"
+    body = push.group(1)
+    assert "cockpitApi.fleetHealth.recheck()" in body, (
+        "the fleet surfaces stopped being refreshed"
+    )
+    assert "refreshPublicationSurfaces(workspaceId)" in body, (
+        "a successful push no longer refreshes the surface it was clicked on"
+    )
+    fn = re.search(
+        r"async function refreshPublicationSurfaces\(workspaceId: string\)"
+        r": Promise<void> \{(.*?)\n\}", code, re.S,
+    )
+    assert fn, "refreshPublicationSurfaces is gone"
+    refresh = fn.group(1)
+    # Both surfaces that render the block, and the count on the button.
+    assert "refreshOverviewInPlace()" in refresh
+    assert "renderHistoryPage(at)" in refresh
+    assert "refreshObligationBadges()" in refresh
+
+
+def test_a_push_declines_the_publication_cache_before_repainting() -> None:
+    """The half a renderer-only fix would miss (ISS-0168).
+
+    `git_state.read()` holds a reading for `CACHE_SECONDS`, and the push runs
+    in the Electron MAIN process — so the sidecar cannot observe it, and a
+    re-fetch inside that window hands the surface its own pre-push numbers
+    back. Correct on a slow click, wrong on a fast one, which is the worst
+    kind of green.
+    """
+    code = _code(_renderer())
+    fn = re.search(
+        r"async function refreshPublicationSurfaces\(workspaceId: string\)"
+        r": Promise<void> \{(.*?)\n\}", code, re.S,
+    )
+    assert fn
+    refresh = fn.group(1)
+    assert "fresh=1" in refresh, (
+        "the repaint no longer declines the publication cache; it will show "
+        "pre-push numbers for up to CACHE_SECONDS"
+    )
+    # Invalidate BEFORE repainting, or the repaint reads the stale value and
+    # the fresh walk lands after the surface it was for.
+    assert refresh.index("fresh=1") < refresh.index("refreshOverviewInPlace()")
+    # The server half must be there to answer it.
+    server = (REPO_ROOT / "src" / "project_os_cockpit" / "server.py").read_text(
+        encoding="utf-8")
+    assert 'params.get("fresh")' in server
+    assert "fresh=fresh" in server
+
+
+def test_a_push_of_another_workspace_leaves_this_ones_history_alone() -> None:
+    """The fleet screen pushes OTHER repos. Repainting the open workspace's
+    History because a different one was published is the same defect pointing
+    the other way — and it would look like a fix in every manual test done on
+    the workspace you happen to have open."""
+    code = _code(_renderer())
+    fn = re.search(
+        r"async function refreshPublicationSurfaces\(workspaceId: string\)"
+        r": Promise<void> \{(.*?)\n\}", code, re.S,
+    )
+    assert fn
+    assert "workspaceId !== activeId" in fn.group(1), (
+        "the after-push refresh is not scoped to the pushed workspace"
+    )
+
+
 def test_the_push_has_exactly_one_implementation() -> None:
     """The deploy-remote refusal is the one rule in this app that stops a click
     from publishing a live website.

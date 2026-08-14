@@ -5442,6 +5442,7 @@ def history_payload(
     index: Index,
     limit: int = COMMITS_DEFAULT_LIMIT,
     until: str | None = None,
+    fresh: bool = False,
 ) -> dict[str, Any]:
     """Documentation history: status transitions, grouped by commit.
 
@@ -5551,8 +5552,15 @@ def history_payload(
     # The ladder this completes: the uncommitted band says NOT SAVED, these say
     # SAVED BUT NOT PUBLISHED, and the rest are published — top to bottom, in
     # the order those things happen.
+    #
+    # `fresh` is the caller saying "I have a reason to believe the cached
+    # reading is false" — in practice, a push that has just returned (ISS-0168).
+    # The push runs in the Electron main process, so nothing here can observe
+    # it, and `CACHE_SECONDS` would otherwise hand the surface that offered the
+    # push its own pre-push numbers back.
     try:
-        state = _git_state.read(project_root)
+        read = _git_state.read_fresh if fresh else _git_state.read
+        state = read(project_root)
     except OSError:                      # pragma: no cover — unreadable repo
         state = _git_state.GitState(remote=None, kind="none", ahead=None, commits=())
     unpublished = {c.sha for c in state.commits}
