@@ -28,6 +28,7 @@ lives in the repo being described.
 from __future__ import annotations
 
 import datetime as _dt
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -126,16 +127,64 @@ def _extensions_from_snapshot(project_root: Path) -> list[StandingDocument]:
     return out
 
 
+#: Parsed manifests, keyed by project root and stamped with a digest of the
+#: snapshot's bytes — see :func:`manifest`.
+_manifest_cache: dict[str, tuple[str | None, tuple[StandingDocument, ...]]] = {}
+
+
+def _snapshot_stamp(project_root: Path) -> str | None:
+    """A digest of this project's snapshot, or None if it is absent.
+
+    **Content, not `(mtime_ns, size)`**, which was the first version: two
+    writes inside one filesystem timestamp tick, to the same length, would
+    have served the older parse — rare, silent, and impossible to reason about
+    from a wrong answer. Measured on this repo's 204 KB snapshot, the read and
+    digest cost **0.114 ms against a 117 ms parse**, so the exact answer is a
+    tenth of a percent of what caching it saves.
+    """
+    try:
+        return hashlib.sha1(
+            (project_root / "SNAPSHOT.yaml").read_bytes(),
+            usedforsecurity=False,
+        ).hexdigest()
+    except OSError:
+        return None
+
+
 def manifest(project_root: Path) -> tuple[StandingDocument, ...]:
     """The base set plus this project's extensions, deduplicated by name.
 
     One function, so no consumer can read half the manifest — which is how a
     check ends up disagreeing with the surface it is meant to guard.
+
+    **Memoised on the snapshot's own `(mtime_ns, size)`** ([[ISS-0166]]). This
+    parsed a 204 KB `SNAPSHOT.yaml` on **every call**, for one field holding
+    two entries — and since [[ADR-0025]] put *what needs a person* on every
+    view, "every call" means up to seven times per view selection: 0.9s of
+    Intent's 1.25s, against 0.03s for the one mode that never resolves the
+    manifest.
+
+    A stat rather than a TTL, so there is no staleness question to answer: the
+    snapshot changing is exactly the event that invalidates this, and it is
+    the only one — the base set is a module constant.
     """
+    key = str(project_root)
+    stamp = _snapshot_stamp(project_root)
+    hit = _manifest_cache.get(key)
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
+
     seen = {d.name.upper(): d for d in BASE_STANDING}
     for extra in _extensions_from_snapshot(project_root):
         seen.setdefault(extra.name.upper(), extra)
-    return tuple(seen.values())
+    built = tuple(seen.values())
+    _manifest_cache[key] = (stamp, built)
+    return built
+
+
+def clear_manifest_cache() -> None:
+    """Drop every memoised manifest — for tests, and for a moved workspace."""
+    _manifest_cache.clear()
 
 
 #: Names that also occur as container-directory signposts. `docs/issues/README.md`
@@ -165,8 +214,34 @@ def resolve(docs_root: Path, project_root: Path | None = None) -> list[Resolutio
     ambiguous exactly as a deep copy would be.
     """
     root = project_root or docs_root.parent
+    docs = manifest(root)
+
+    # ONE walk for the whole manifest (ISS-0166). This was `docs_root.glob(
+    # f"**/{doc.filename}")` inside the loop below — ten recursive walks of
+    # ~900 notes per resolve, and Intent resolves seven times per view
+    # selection. The rivals are the same question asked of one tree, so they
+    # are answered by reading it once and bucketing by filename.
+    # Keyed on the exact filename, not a lowercased one: `glob` is
+    # case-sensitive where the filesystem is, and matching loosely here would
+    # find rivals on Linux that macOS never reported — turning `present` into
+    # `ambiguous` on one platform only.
+    wanted = {
+        doc.filename for doc in docs
+        if doc.name.upper() not in _ROOT_ONLY
+    }
+    rivals: dict[str, list[Path]] = {name: [] for name in wanted}
+    if wanted:
+        for path in docs_root.rglob("*"):
+            name = path.name
+            if name not in rivals:
+                continue
+            if "__templates__" in path.parts or "__bases__" in path.parts:
+                continue
+            if path.is_file():
+                rivals[name].append(path)
+
     out: list[Resolution] = []
-    for doc in manifest(root):
+    for doc in docs:
         canonical = docs_root / doc.filename
         matches: list[Path] = [canonical] if canonical.is_file() else []
         # The repo root is a **fallback**, never an additional match: this
@@ -180,10 +255,8 @@ def resolve(docs_root: Path, project_root: Path | None = None) -> list[Resolutio
                 matches.append(at_root)
         if doc.name.upper() not in _ROOT_ONLY:
             matches.extend(sorted(
-                p for p in docs_root.glob(f"**/{doc.filename}")
+                p for p in rivals.get(doc.filename, ())
                 if p != canonical
-                and "__templates__" not in p.parts
-                and "__bases__" not in p.parts
             ))
         out.append(Resolution(doc, tuple(matches)))
     return out

@@ -261,3 +261,105 @@ def test_a_root_level_document_is_not_labelled_under_docs() -> None:
     assert "rel.startsWith('~root/')" in body, (
         "a repo-root document is still labelled as living under docs/"
     )
+
+
+# ---- ISS-0166: the manifest is read once, and the tree walked once ---------
+
+
+def test_the_snapshot_is_parsed_once_per_view_not_once_per_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A view selection must not re-read an unchanged 204 KB file seven times.
+
+    Measured when this was filed: Intent cost **1.25s** against Issues' 0.03s,
+    and the only difference between them is that Issues never resolves the
+    standing manifest. `manifest()` parsed `SNAPSHOT.yaml` on every call, for
+    one field holding two entries, and [[ADR-0025]] had just put *what needs a
+    person* on every view — so a per-call cost became a per-view one.
+
+    Asserted as a count rather than a duration: a timing test on a shared
+    machine is a flake, and what actually regressed is the number of parses.
+    """
+    import yaml
+
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    calls = {"n": 0}
+    real = yaml.safe_load
+
+    def counted(stream, *a, **k):  # type: ignore[no-untyped-def]
+        calls["n"] += 1
+        return real(stream, *a, **k)
+
+    monkeypatch.setattr(yaml, "safe_load", counted)
+    standing.clear_manifest_cache()
+
+    index = Index.build(REPO / "docs")
+    cockpit.nav_payload(index, mode="intent")   # warm: one parse is allowed
+    calls["n"] = 0
+    cockpit.nav_payload(index, mode="intent")
+
+    assert calls["n"] == 0, (
+        "the standing manifest is parsing SNAPSHOT.yaml again on an unchanged "
+        f"file ({calls['n']} times for one Intent payload) — ISS-0166"
+    )
+
+
+def test_a_changed_snapshot_is_re_read(tmp_path: Path) -> None:
+    """The cache is keyed on the snapshot's CONTENT, so an edit is seen.
+
+    Same length and (potentially) the same filesystem timestamp tick as the
+    version before it — which is exactly the case a `(mtime_ns, size)` stamp
+    would have served stale, and the reason this is a digest.
+    """
+    snapshot = tmp_path / "SNAPSHOT.yaml"
+    snapshot.write_text(
+        "docs_system:\n  standing:\n    - AAAAAAAA\n", encoding="utf-8")
+    assert "AAAAAAAA" in {d.name for d in standing.manifest(tmp_path)}
+
+    snapshot.write_text(
+        "docs_system:\n  standing:\n    - BBBBBBBB\n", encoding="utf-8")
+    names = {d.name for d in standing.manifest(tmp_path)}
+
+    assert "BBBBBBBB" in names, "an edited snapshot must be re-read"
+    assert "AAAAAAAA" not in names, "the previous manifest is still being served"
+
+
+def test_resolving_the_manifest_walks_the_tree_once(tmp_path: Path) -> None:
+    """Ten entries were ten recursive walks — `glob("**/<file>")` per entry.
+
+    Over ~900 notes, seven times per Intent selection. The rivals are one
+    question asked of one tree, so they are answered by reading it once.
+    """
+    docs = tmp_path / "docs"
+    (docs / "deep" / "deeper").mkdir(parents=True)
+    (tmp_path / "SNAPSHOT.yaml").write_text("docs_system: {}\n", encoding="utf-8")
+    for name in ("ARCHITECTURE.md", "GLOSSARY.md"):
+        (docs / name).write_text("# x\n", encoding="utf-8")
+    # A rival copy, which is the thing the walk exists to find.
+    (docs / "deep" / "deeper" / "GLOSSARY.md").write_text("# rival\n", encoding="utf-8")
+
+    # `Path.rglob(p)` delegates to `Path.glob("**/" + p)`, so counting the
+    # recursive GLOB catches both spellings and counts one walk once.
+    recursive = {"n": 0}
+    real_glob = Path.glob
+
+    def counted(self, pattern, *a, **k):  # type: ignore[no-untyped-def]
+        if "**" in str(pattern):
+            recursive["n"] += 1
+        return real_glob(self, pattern, *a, **k)
+
+    Path.glob = counted  # type: ignore[method-assign]
+    try:
+        resolutions = standing.resolve(docs, tmp_path)
+    finally:
+        Path.glob = real_glob  # type: ignore[method-assign]
+
+    assert recursive["n"] <= 1, (
+        "resolve() walks the docs tree once per manifest entry again "
+        f"({recursive['n']} recursive walks for one resolve) — ISS-0166"
+    )
+    # And the rival is still found, which is what the walk is for.
+    glossary = next(r for r in resolutions if r.document.name == "GLOSSARY")
+    assert glossary.state == "ambiguous", glossary.paths

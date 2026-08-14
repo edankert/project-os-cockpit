@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 165
+  ISS: 166
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -67,10 +67,10 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0422"
+  task: ""
   feature: "FEAT-0100"
   phase: "PHASE-030"
-  issue: "ISS-0165"
+  issue: "ISS-0166"
   note: "2026-08-14: WORKING THE OPEN BACKLOG Edwin asked to be reviewed — three open issues, two fixed here. ISS-0165: publication state is walked THREE times (git_state.py; probeGitState in git.ts; fleet_validate.git_standing, which nobody reads), and the unknown case ALREADY diverges, because the 2026-08-14 admission-test repair was Python-only. TASK-0421 fixes the live divergence, TASK-0422 collapses the three walks to one via a fleet_git module the shell calls for every workspace — keeping ISS-0156's one-clock property, which the issue's own resolution (read the sidecar) would have broken. ISS-0143: Tier 3's retirement trigger fired when REL-0001 shipped on 2026-08-11, so the two checks retire here; the computable check the issue proposes is left unbuilt WITH the flaw in its comparator recorded (a release date against the suite's `updated:` would not fire — both read 2026-08-11). ISS-0164 STAYS OPEN AND IS EDWIN'S: its stated cause is wrong. Phases ARE carried by the `features` nav mode as group headers and ISS-0132 already made those headers navigate; the palette misses them because `flattenNavItems` harvests items and subgroups and never the header. No taxonomy decision is needed. --- 2026-08-12: REL-0001 IS SHIPPED (released, 1.0.0, tag v1.0.0, local and never pushed) and the work since is Edwin USING it. Six observations from use, all addressed (CHG-20260811-Six-From-Use): the status toast now dismisses itself (78 of 110 call sites never did), Caught up clears its band, ADR-0023 retired the change-note review obligation (badge 87 -> 0), FEAT-0092 gave Features/Issues/Tests landing pages that lead with what their badge counts, Intent stopped listing all eight standing documents twice, and the template workflow stubs left docs/. THE UPSTREAM PASS LANDED 2026-08-12 and found ADR-0011 EXISTS: all 18 upstream ADRs live in project-os-dev, which no citation names — see ISS-0123. ADR-0019 there, QUALITY.md + REVIEW_SETTLED_STATUSES in project-os, taken down here. FEAT-0093 + ADR-0024 then built the notation: `[[project-os-dev#ADR-0011]]` renders as a link and the cockpit switches workspace and opens it. `#` not `/` because what follows is an id, not a path. project.id in SNAPSHOT.yaml defaults to the DIRECTORY NAME — project.name is a display string (spaces, and REPLACE ME in the template) and the workspace id is a sha1 of a path. OPEN AND EDWIN'S: ISS-0148 (sweep the 47 existing citations? one CONTEXT.md line covers them without rewriting any), and the upstream twin of ADR-0024 in project-os-dev + OBSIDIAN.md/TRACEABILITY.md. ALSO OPEN: RISK-0006 supervised week (PHASE-031), ADR-0022 proposed, PHASE-028/029 deferred, PHASE-030 active with its work done. Workflows: the three template stubs are gone from THIS repo only; 8 real project workflows in 3 repos stay and still render under Intent (verified 2026-08-12). Every write path stays behind REQ-0026/REQ-0027."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -1222,6 +1222,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0166:
+      file: "docs/issues/ISS-0166-Every-View-Selection-Reparses-The-Snapshot.md"
+      title: "Every view selection re-parses the 204 KB snapshot up to seven times, and re-walks the docs tree ten times per parse — Intent costs 1.25s where Issues costs 0.03s"
+      status: fixed
+      owner: user:edwin
+      severity: medium
+      component: render-server
+      related: [FEAT-0091, TASK-0380, ADR-0025, FEAT-0094]
+      note: "Edwin: 'the view selection is very slow now'. Intent 1.26s against Issues' 0.03s, and Issues is the only mode that never resolves the standing manifest. Three costs, none doing work: a 204 KB YAML parse per manifest() call (7 per Intent view), one recursive tree walk per manifest ENTRY (10 per resolve), and Path.resolve() on every Index.get (33,000 lstats per features payload). Cause is two changes four days apart compounding — TASK-0380 added the per-call parse, ADR-0025 put the standing group on every view. NOT the publication work of the same day."
     ISS-0164:
       file: "docs/issues/ISS-0164-Phases-Are-The-Second-Type-The-Palette-Cannot-Find.md"
       title: "Phases are the second note type the quick palette cannot find — 34 notes, the same defect [[ISS-0142]] described for releases and claimed was the only one"

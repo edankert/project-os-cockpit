@@ -319,6 +319,16 @@ class Index:
         return None
 
     def get(self, path: Path) -> NoteRecord | None:
+        # The keys ARE resolved paths, and nearly every caller passes one it
+        # got from this index — so try the dict before the filesystem
+        # (ISS-0166). `Path.resolve()` is a realpath syscall chain: measured
+        # at ~12 `lstat`s a call, 2816 calls per `features` payload, 33,000
+        # `lstat`s to answer questions the dict had already answered. The
+        # fallback keeps the old behaviour for a caller that passes a relative
+        # path, a symlink, or `docs/../docs/x.md`.
+        hit = self._records.get(path)
+        if hit is not None:
+            return hit
         return self._records.get(path.resolve())
 
     def url_for(self, path: Path) -> str:
