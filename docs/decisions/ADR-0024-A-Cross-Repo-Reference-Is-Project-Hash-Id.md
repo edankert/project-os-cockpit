@@ -9,7 +9,7 @@ created: 2026-08-12
 updated: 2026-08-12
 source: ["Edwin 2026-08-12: 'do we need a way to reference notes in other projects by maybe prefixing the ID?'", "Edwin 2026-08-12: 'instead of the / can we use the # notation'"]
 decision: "Cross-repo references take the form `[[<project-id>#<NOTE-ID>]]`, where project-id is `project.id` from that repo's SNAPSHOT.yaml, defaulting to its directory name. A bare `[[NOTE-ID]]` keeps its current meaning: this repo, or broken."
-related: ["[[ISS-0148]]", "[[ISS-0123]]", "[[FEAT-0093]]", "[[ADR-0019]]"]
+related: ["[[ISS-0148]]", "[[ISS-0123]]", "[[FEAT-0093]]", "[[project-os-dev#ADR-0019]]"]
 tags: [adr, traceability, fleet]
 ---
 

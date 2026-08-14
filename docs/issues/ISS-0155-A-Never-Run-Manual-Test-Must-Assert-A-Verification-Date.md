@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0155
 aliases: ["ISS-0155"]
 title: "A manual test that has never been run cannot satisfy the schema without asserting a verification date"
-status: "triage"
+status: "fixed"
 owner: user:edwin
 created: 2026-08-13
-updated: 2026-08-13
+updated: "2026-08-14"
 source: ["Hit while authoring [[TST-0024-Remote-SSH-Workspace-Walk]], 2026-08-13"]
 severity: medium
 component: docs-validator
@@ -48,3 +48,17 @@ Any manual test must name a date, so "never run" and "run once long ago" are ind
 ## Notes
 
 `tools/scripts/validate-docs.py` is **template-owned** — the fix belongs upstream in `~/Dev/repos/project-os/`, and editing it here would be reported as divergence at the next sync. Filed here per `CLAUDE.md` ("file what the validator reports and you cannot fix"); dedup key `(TEST-FIELDS, TST-0024)`.
+
+## Fixed upstream — 2026-08-14
+
+`TEST-FIELDS` now exempts a `ready` manual test, and **this is a restoration, not a new rule.**
+
+The exemption was added upstream on **2026-08-01** (`5a487ad`, *"a `ready` test is not missing a verification date"*) and removed by **`59bd47c`** three weeks later — not by decision, but by a whole-file overwrite from a downstream copy that predated it. `5a487ad`'s own commit message had predicted exactly this:
+
+> *"Two fixes that had been made downstream and never pushed up, so every sync reported them as local divergence and they were one `--force` away from being lost."*
+
+They were then lost, and this issue is the bill: [[TST-0024]] was authored on 2026-08-12 with a verification date for a walk nobody had performed, plus a paragraph explaining that the field did not mean what the field means.
+
+Restored in `project-os` `0a44cdd`, with that history in the code comment so the next overwrite has to read it. Demonstrated both ways: a `ready` manual test with no `last_verified` no longer errors; flipped to `passing` it errors exactly as before.
+
+**Not fixable here** — `tools/scripts/validate-docs.py` is template-owned and `test_bundled_validator_matches_the_canonical_one` asserts the bundled copy is verbatim, so a downstream edit fails this repo's own suite. Synced down as a patch rather than a file copy; see [[CHG-20260814-The-Upstream-Batch]].

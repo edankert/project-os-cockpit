@@ -87,7 +87,7 @@ The template shipping three drafts nobody fills in is a real problem and **not t
 
 Sequencing: the four moves ([[FEAT-0046]]..[[FEAT-0049]]) each land a destination, and [[FEAT-0050]] removes the Library groups last. That order is deliberate — removing a group before its replacement exists strands the notes, which is the exact failure [[REQ-0025]] gates against and the one the design bench hit twice in PHASE-009.
 
-**Outstanding: the independent review pass.** QUALITY.md requires one for [[CHG-20260729-Surface-Ownership]] and for features reaching `done`; it has not run, and the validator's REVIEW warning on that CHG note is accurate rather than noise. The work was authored in one session, so a reviewer starting from the notes and the diff alone is what the gate asks for ([[ADR-0013]]).
+**Outstanding: the independent review pass.** QUALITY.md requires one for [[CHG-20260729-Surface-Ownership]] and for features reaching `done`; it has not run, and the validator's REVIEW warning on that CHG note is accurate rather than noise. The work was authored in one session, so a reviewer starting from the notes and the diff alone is what the gate asks for ([[project-os-dev#ADR-0013]]).
 
 ## Independent review — 2026-07-30, changes-requested
 

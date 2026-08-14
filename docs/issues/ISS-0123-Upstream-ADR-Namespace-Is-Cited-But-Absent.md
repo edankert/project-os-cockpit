@@ -103,7 +103,7 @@ The other half still stands: a line in `CONTEXT.md` naming where the upstream na
 
 ### And ADR-0011 had already asked the question this repo answered
 
-Its consequences include: *"REVIEW is the hardest case … it is either wired into close-out so it does run, or its scope narrows."* [[ADR-0023]] answered that here on 2026-08-11 without knowing the question had been asked upstream a year earlier; [[ADR-0019]] in `project-os-dev` now answers it there, and the template's `QUALITY.md` and `REVIEW_SETTLED_STATUSES` carry it. **The downstream decision was right and was made blind** — which is exactly what an unreachable citation costs.
+Its consequences include: *"REVIEW is the hardest case … it is either wired into close-out so it does run, or its scope narrows."* [[ADR-0023]] answered that here on 2026-08-11 without knowing the question had been asked upstream a year earlier; [[project-os-dev#ADR-0019]] in `project-os-dev` now answers it there, and the template's `QUALITY.md` and `REVIEW_SETTLED_STATUSES` carry it. **The downstream decision was right and was made blind** — which is exactly what an unreachable citation costs.
 
 ## Closed — 2026-08-13: the premise is no longer true, and the remainder has a home
 

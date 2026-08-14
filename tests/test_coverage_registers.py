@@ -493,3 +493,80 @@ def test_the_phase_rule_is_written_down() -> None:
     assert "When to open a phase" in text, "the phase-granularity rule is gone"
     for needed in ("without listing its parts", "standing phase", "superseded"):
         assert needed in text, f"the rule lost {needed!r}"
+
+
+# ---- upstream citations resolve (ISS-0162) ----------------------------
+
+
+def test_no_bare_citation_names_an_upstream_decision() -> None:
+    """A bare `[[ADR-0011]]` means *this* repo, so an upstream id written that way
+    resolves to nothing — in the cockpit and in Obsidian alike.
+
+    ADR-0024 gave the fleet `[[project#ID]]` and FEAT-0093 made it clickable;
+    neither back-filled what was already written. Measured 2026-08-14: **77
+    citations of six upstream ADR ids, 61 of them bare** across 38 files. This
+    repo once came within an afternoon of writing a replacement for a decision
+    that already existed upstream (ISS-0123), which is the cost of a citation
+    that silently goes nowhere.
+
+    The rule is self-maintaining rather than a list of known-bad ids: **any ADR
+    id with no note in `docs/decisions/` must carry a project prefix.** Adding a
+    local ADR satisfies it automatically; citing a new upstream one bare fails.
+
+    Inline code is exempt, and that exemption is load-bearing rather than
+    convenience: ADR-0024, ISS-0148, FEAT-0093 and CHG-20260812 all quote the
+    bare form to explain what it means or why it lost, and a sweep that rewrote
+    those quotations would destroy the argument recorded in them.
+    """
+    root = Path(__file__).resolve().parents[1]
+    local = {p.name[:8] for p in (root / "docs" / "decisions").glob("ADR-*.md")}
+    # `[[ADR-9999]]` is a deliberate broken link — TASK-0225 and FEAT-0093 both
+    # use it to assert that an unresolvable link is *reported*, not dropped.
+    exempt_ids = {"ADR-9999"}
+    inline_code = re.compile(r"`[^`]*`")
+    offenders: list[str] = []
+
+    files = list((root / "docs").rglob("*.md")) + list(root.glob("*.md"))
+    for path in files:
+        if "__templates__" in path.as_posix():
+            continue
+        fenced = False
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+                continue
+            if fenced:
+                continue
+            spans = [(m.start(), m.end()) for m in inline_code.finditer(line)]
+            for match in re.finditer(r"\[\[(ADR-\d{4})\]\]", line):
+                note_id = match.group(1)
+                if note_id in local or note_id in exempt_ids:
+                    continue
+                if any(a <= match.start() < b for a, b in spans):
+                    continue
+                offenders.append(
+                    "%s:%d cites %s with no project prefix"
+                    % (path.relative_to(root), lineno, note_id)
+                )
+
+    assert not offenders, (
+        "these citations name a decision that does not exist in this repo, so "
+        "they resolve to nothing; write them as [[project-os-dev#ADR-0011]] "
+        "(ADR-0024): %s" % "; ".join(offenders[:8])
+    )
+
+
+def test_a_standing_document_names_the_upstream_namespace() -> None:
+    """The half of ISS-0162 that was called *"cheaper than both"* and skipped twice.
+
+    The sweep fixes the links; it does not tell a reader that a second upstream
+    repo exists. `CONTEXT.md` is the contract a session is told to read, and it
+    mentioned `project-os-dev` zero times while 77 citations pointed at it.
+    """
+    context = (Path(__file__).resolve().parents[1] / "CONTEXT.md").read_text(encoding="utf-8")
+    assert "project-os-dev" in context, (
+        "CONTEXT.md does not say where the upstream ADR namespace lives"
+    )
+    assert "project-os-dev#ADR-" in context, (
+        "CONTEXT.md names the repo but not the citation form a reader must write"
+    )

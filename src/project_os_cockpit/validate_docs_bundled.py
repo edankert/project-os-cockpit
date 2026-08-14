@@ -115,7 +115,32 @@ ALLOWED_STATUS = {
     # STATUSES.md lacks a `[[plan]]` section gets an empty allowed set and
     # PLAN-STATE flags every plan it finds (STATUSES.md `[[plan]]`).
     "plan": {"draft", "active", "done", "superseded"},
+    # Standing material -- a directory signpost, an API description, the
+    # glossary. Neither has a lifecycle: it is current, or it is deleted. These
+    # tables state what the corpus already writes rather than inventing a
+    # vocabulary (ISS-0124). Measured across all twelve fleet repos, 2026-08-14:
+    #
+    #   reference  206 `active`, 14 with no status
+    #   glossary    10 `active`, 0 with anything else
+    #
+    # One value each, and that single value carries information: it is the
+    # difference between "somebody maintains this" and a field left behind.
+    "reference": {"active"},
+    "glossary": {"active"},
 }
+
+#: Types whose notes legitimately carry NO `status:` at all (ISS-0124).
+#:
+#: One member, because one is what the fleet has. `glossary` was in this set for
+#: about ten minutes on the strength of a guess, and the check's first run
+#: reported project-os's own GLOSSARY.md carrying `status: active` -- so it moved
+#: to ALLOWED_STATUS above. `dashboard` was in it too and came out: it exists
+#: only as a template, which this walk excludes, so listing it would be a rule
+#: about a note that does not exist.
+#:
+#: A type here MAY be absent from ALLOWED_STATUS. What it may not be is
+#: *unknown*, which is the condition STATUS-TYPE reports.
+STATUS_FREE_TYPES = frozenset({"architecture"})
 
 #: Statuses that resolve a child's place in its phase's scope (PHASE-CHILDREN).
 #:
@@ -307,6 +332,11 @@ _NON_STATUS_COLLECTIONS = frozenset({
     # exactly the mechanism that made an unregistered table invisible.
     "_CHECKED_TABLE_NAMES",
     "_NON_STATUS_COLLECTIONS",
+    # ISS-0124 / ISS-0163: note TYPES and frontmatter KEYS, not statuses.
+    # Both were caught by this very guard on the day they were added, which is
+    # the behaviour ISS-0012 and ISS-0013 paid for.
+    "STATUS_FREE_TYPES",
+    "MANUAL_DECLARATION_KEYS",
 })
 
 
@@ -640,6 +670,29 @@ def is_stale(fm, staleness_days):
     if d is None:
         return False
     return (_today() - d).days > staleness_days
+
+
+#: Frontmatter keys a corpus uses to say who runs a test. `kind:` is the one
+#: the template ships; the others are what real notes were found using.
+MANUAL_DECLARATION_KEYS = ("automation", "kind", "mode", "method")
+
+
+def _declares_manual(fm):
+    """True when a test note SAYS a person performs it (TEST-ENTRYPOINT).
+
+    Deliberately narrow: only an explicit declaration exempts a note. Silence
+    does not, because silence is what the gate exists to find -- a note that
+    declares nothing reads as automated everywhere else in the system and then
+    turns out to have no way to run.
+
+    The accepted spellings match what the corpus actually writes rather than one
+    canonical key, the same lesson ADR-0006 recorded: a check follows what is
+    written, not what it wishes were written.
+    """
+    for key in MANUAL_DECLARATION_KEYS:
+        if "manual" in str((fm or {}).get(key, "") or "").lower():
+            return True
+    return False
 
 
 def load_grandfathered(root):
@@ -1560,6 +1613,66 @@ def validate(root, report):
                     if has_value(entry.get("parent")) or has_value(fm.get("parent")):
                         report.error("DEFER-PARENT", "%s is deferred but still has a parent; descoping clears parent (origin + phase replace it while parked)" % item_id)
 
+    # -- every type the CORPUS uses is known to the status tables (ISS-0124)
+    #
+    # `validate_status_tables` already guards table against table: it errors when
+    # an internal table names a type ALLOWED_STATUS lacks. That is one direction.
+    # This is the other, and it is the one a real note travels -- nothing asked
+    # whether every type appearing in notes has an entry, so a type nobody
+    # tabulated had its `status:` read, rendered, coloured and sorted while being
+    # validated against nothing.
+    #
+    # Found downstream: project-os-cockpit's ARCHITECTURE.md read `status: draft`
+    # for three months and no gate ever mentioned it, because `architecture` had
+    # no table. A typo, a retired value, or a status meaningless for that type
+    # would all have passed the same way.
+    #
+    # A warning, not an error (ADR-0011's shape): a repo that has invented a note
+    # type has done nothing wrong, and failing its build on the day this ships
+    # would be the ISS-0057 mistake. What it must not do is stay silent.
+    # Walks docs/ directly rather than note_index, and that is the whole
+    # difficulty. `note_index` is keyed by IDs matching ID_PREFIXES -- ADR, DES,
+    # FEAT, ISS, PHASE, REL, REQ, RISK, TASK, TST, WF -- and the notes this check
+    # exists for carry none of them: ARCHITECTURE.md is `ARCH`, the glossary is
+    # `GLOSSARY`, a directory signpost is `DOCS-README`. An index-based version
+    # of this check was written first and reported nothing, because it could not
+    # see a single one of its own subjects. The types with no status table are
+    # exactly the types with no ID prefix, and for the same reason: nobody
+    # tabulated them.
+    seen_types = {}
+    docs_dir = root / "docs"
+    if docs_dir.is_dir():
+        for path in sorted(docs_dir.rglob("*.md")):
+            if "__templates__" in path.parts or "__bases__" in path.parts:
+                continue
+            fm = parse_frontmatter(path)
+            if not isinstance(fm, dict):
+                continue
+            ntype = note_type(fm)
+            rel = path.relative_to(root).as_posix()
+            if not ntype:
+                continue
+            if ntype in STATUS_FREE_TYPES:
+                # The exemption must not become a hiding place: a status-free
+                # type that quietly acquires a status is back to a value nothing
+                # validates, which is the condition this whole check is about.
+                if has_value(fm.get("status")):
+                    report.warn(
+                        "STATUS-TYPE",
+                        "%s is a '%s' note, a type recorded as carrying no lifecycle status, but "
+                        "declares status: '%s'; give the type a table or drop the field"
+                        % (rel, ntype, str(fm.get("status")).strip('"')))
+                continue
+            if ntype in ALLOWED_STATUS:
+                continue
+            seen_types.setdefault(ntype, rel)
+    for ntype, rel in sorted(seen_types.items()):
+        report.warn(
+            "STATUS-TYPE",
+            "note type '%s' appears in docs/ but has no entry in ALLOWED_STATUS and is not in "
+            "STATUS_FREE_TYPES, so any status: it carries is validated against nothing (e.g. %s)"
+            % (ntype, rel))
+
     # -- test verification fields (ADR-0010; REQ-0022 / REQ-0023)
     for the_id, (path, fm) in sorted(note_index.items()):
         if note_type(fm) != "test":
@@ -1577,7 +1690,45 @@ def validate(root, report):
                     "%s declares a command: and is '%s' but has no last_run:; an executable test's status is "
                     "written by tools/scripts/run-tests.py, never by hand (ADR-0010) (%s)" % (the_id, status, rel))
         else:
+            # A test the corpus treats as automated but that declares no way to run
+            # is a status no machine can refresh. Release verification re-runs a
+            # note's `command:` to move a STALE verdict back to CURRENT; with no
+            # entrypoint that trip is impossible, so `passing` becomes a claim
+            # nobody can check without first reverse-engineering which module
+            # verifies it.
+            #
+            # A warning with a promotion date, per ADR-0011: measured across the
+            # twelve repos the cockpit renders, 91 of 92 test notes are automated
+            # and only one declares a command, so erroring on day one would fail
+            # every repo for a rule none of them knew existed.
+            if status in TEST_RUNNER_STATUSES and not _declares_manual(fm):
+                report.warn(
+                    "TEST-ENTRYPOINT",
+                    "%s is '%s' and is not declared manual, but has no command:; nothing can re-run it, so its "
+                    "status cannot be refreshed by machine -- add a command:, or say kind: manual (%s)"
+                    % (the_id, status, rel))
             if not has_value((fm or {}).get("last_verified")):
+                if status == "ready":
+                    # `ready` means defined but not yet executed -- STATUSES.md calls
+                    # it "the only honest state for a check that has never run".
+                    # Demanding a last_verified: date here would force the author to
+                    # assert a run that did not happen, which is the assertion problem
+                    # ADR-0010 removed. A `ready` test satisfies no verification gate
+                    # anyway, so nothing is weakened by letting it say so.
+                    #
+                    # RESTORED 2026-08-14, and how it was lost is the reason this
+                    # comment is long. Added 2026-08-01 by 5a487ad; removed by
+                    # 59bd47c three weeks later -- not by decision, but by a
+                    # whole-file overwrite from a downstream copy that predated it.
+                    # 5a487ad's own message predicted exactly that: the fixes "had
+                    # been made downstream and never pushed up, so every sync
+                    # reported them as local divergence and they were one --force
+                    # away from being lost." They were then lost, and the cost was
+                    # paid downstream, where authoring a genuinely never-run manual
+                    # test required typing a verification date for a walk nobody had
+                    # performed, plus a paragraph of prose explaining that the field
+                    # did not mean what the field means.
+                    continue
                 emit_for("TEST-FIELDS", the_id)(
                     "TEST-FIELDS",
                     "%s is a manual test with no last_verified:; record when the procedure was last performed, "

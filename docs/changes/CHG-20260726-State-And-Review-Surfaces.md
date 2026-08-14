@@ -90,7 +90,7 @@ The fix is three new validator rules — `PLAN-ID` (error), `PLAN-STATE` (dated 
 
 ### Hyphen-free status vocabulary, migrated fleet-wide (2026-07-26)
 
-Upstream [[ADR-0012]] (project-os-dev) removes the four hyphenated status values; [[ADR-0008-Legacy-Status-Tolerance]] here decides how the cockpit renders a corpus that has not migrated yet. `in-progress` and `rolled-back` merged into the `doing` and `reverted` that already meant the same thing; `in-review` and `wont-fix` became `review` and `declined`. The vocabulary went from 43 values to 41 and contains no hyphens.
+Upstream [[project-os-dev#ADR-0012]] (project-os-dev) removes the four hyphenated status values; [[ADR-0008-Legacy-Status-Tolerance]] here decides how the cockpit renders a corpus that has not migrated yet. `in-progress` and `rolled-back` merged into the `doing` and `reverted` that already meant the same thing; `in-review` and `wont-fix` became `review` and `declined`. The vocabulary went from 43 values to 41 and contains no hyphens.
 
 Every palette surface moved together — `statuses.py`, both validators and the bundle, `base.css`, `cockpit.css`, `cockpit.js`, the Electron renderer, the verb registry, and STATUSES.md — and TST-0019's parity suite named all seven disagreeing surfaces the moment `statuses.py` changed, which is the whole reason it exists.
 

@@ -11,7 +11,7 @@ updated: 2026-07-30
 source: ["FEAT-0018's mode-1 visual pass, 2026-07-30 — a verdict-chip rendered grey"]
 severity: medium
 component: docs-system
-related: ["[[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[ADR-0011]]", "[[ADR-0007]]", "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"]
+related: ["[[ISS-0024-Status-Surfaces-Outside-The-Parity-Guard]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[project-os-dev#ADR-0011]]", "[[ADR-0007]]", "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"]
 tests: []
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-30
@@ -44,7 +44,7 @@ CHG-20260723-Session-Status-Changes        CHG-20260723-Focus-Driven-Inflight
 
 A three-day window, so almost certainly one session's convention that nothing rejected.
 
-**Nothing validates the field's value.** The validator checks *presence* — [[ADR-0011]]'s REVIEW rule warns when a terminal note has no `review_verdict` — and the `REVIEW` error checks for the specific string `changes-requested`. An arbitrary value passes both: it is not absent, and it is not `changes-requested`, so it reads as a satisfied review.
+**Nothing validates the field's value.** The validator checks *presence* — [[project-os-dev#ADR-0011]]'s REVIEW rule warns when a terminal note has no `review_verdict` — and the `REVIEW` error checks for the specific string `changes-requested`. An arbitrary value passes both: it is not absent, and it is not `changes-requested`, so it reads as a satisfied review.
 
 ## Why it matters more than a typo
 
@@ -85,7 +85,7 @@ All 10 carry `reviewed_by: "opus-independent-review"` and a `review_date` in 202
 
 So only the uninterpretable value was cleared. `reviewed_by` and `review_date` are **kept**: they are real information, and removing them would destroy evidence rather than correct a claim. Each of the 10 notes gained a short section recording that `CLOSE` was the original value and why it went.
 
-The consequence is intended: those notes are now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies with the same 2026-10-23 deadline. They join an honest backlog instead of reading as satisfied gates.
+The consequence is intended: those notes are now `merged` without a verdict, so [[project-os-dev#ADR-0011]]'s REVIEW warning applies with the same 2026-10-23 deadline. They join an honest backlog instead of reading as satisfied gates.
 
 ### Guarded
 

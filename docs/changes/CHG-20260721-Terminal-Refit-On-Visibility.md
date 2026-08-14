@@ -37,4 +37,4 @@ Two user-reported symptoms (ISS-0016), one root cause: xterm was re-fit only on 
 
 **What is deliberately kept:** `reviewed_by: "opus-independent-review"` and `review_date`. A review demonstrably happened, by a named reviewer, on that date — that is real information and clearing it would destroy evidence rather than correct a claim. Only the uninterpretable value is gone.
 
-The consequence is intended: this note is now `merged` without a verdict, so [[ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.
+The consequence is intended: this note is now `merged` without a verdict, so [[project-os-dev#ADR-0011]]'s REVIEW warning applies to it like anything else unreviewed, with the same 2026-10-23 deadline. It joins an honest backlog instead of reading as a satisfied gate.

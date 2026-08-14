@@ -28,7 +28,7 @@ tests: []
 
 `design:` on the feature template and in `TAXONOMY.md`; `DESIGN-GATE` in the validator.
 
-**A warning, per [[ADR-0011]]'s path**, and for the same reason `ACCEPT-STALE` is: the judgment being gated — *is this design right?* — cannot be automated, and a blocking gate on it gets cleared to unblock the build rather than because somebody looked. Escalation is deferred until the convention has been lived with.
+**A warning, per [[project-os-dev#ADR-0011]]'s path**, and for the same reason `ACCEPT-STALE` is: the judgment being gated — *is this design right?* — cannot be automated, and a blocking gate on it gets cleared to unblock the build rather than because somebody looked. Escalation is deferred until the convention has been lived with.
 
 **It only applies past the pending band.** Naming a design you have not accepted yet is the normal state of planning; warning about it would fire on every feature the moment it was written.
 

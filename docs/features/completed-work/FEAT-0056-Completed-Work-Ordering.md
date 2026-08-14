@@ -182,4 +182,4 @@ The context pane mounts in `#right-pane-content`, not `.ws-nav-content`, and `re
 
 ### Independence
 
-Fresh context, separate session, no memory of authoring this. **Same model family as the author** (`model:claude-opus-5`), recorded in `reviewed_by` — per [[ADR-0013]] that is provenance, not the gate; what makes this pass independent is that it started from the notes and the diff. Round 1 was also `model:claude-opus-5` from a third session, so a reader should treat the model as held constant across all three and the context as the only variable.
+Fresh context, separate session, no memory of authoring this. **Same model family as the author** (`model:claude-opus-5`), recorded in `reviewed_by` — per [[project-os-dev#ADR-0013]] that is provenance, not the gate; what makes this pass independent is that it started from the notes and the diff. Round 1 was also `model:claude-opus-5` from a third session, so a reader should treat the model as held constant across all three and the context as the only variable.

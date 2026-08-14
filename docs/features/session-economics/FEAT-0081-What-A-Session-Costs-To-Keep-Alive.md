@@ -111,7 +111,7 @@ Nothing found argues against the feature's shape. Measuring before building, and
 
 ## Independent review — 2026-08-06, round 4 (approved)
 
-Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, which was round one's and was answered by ISS-0106 … ISS-0112; rounds two and three were answered by ISS-0113 … ISS-0119. What was independent here: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance. No `status:` field was changed by this pass.
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[project-os-dev#ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, which was round one's and was answered by ISS-0106 … ISS-0112; rounds two and three were answered by ISS-0113 … ISS-0119. What was independent here: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance. No `status:` field was changed by this pass.
 
 Suites re-run: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**. The full reasoning, the mutation results, and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]] under "Independent review — round 4"; the short form:
 

@@ -49,7 +49,7 @@ Three ways to say the same thing — `command:`, `path:`, and prose in `## Runni
 
 - [ ] Add `command:` to the nine automated notes that have none, resolving each to the module that actually verifies it
 - [ ] Converge the three declaration styles on `command:`, leaving `path:` as documentation rather than an entrypoint
-- [ ] Consider a validator check: an `automated` test at `passing` with no `command` cannot be re-verified, which is a warning of the [[ADR-0011]] shape rather than an error
+- [ ] Consider a validator check: an `automated` test at `passing` with no `command` cannot be re-verified, which is a warning of the [[project-os-dev#ADR-0011]] shape rather than an error
 - [ ] Re-run the nine and stamp them, closing the gap the verification opened
 
 ## Re-homed — 2026-08-13, out of [[PHASE-030]]

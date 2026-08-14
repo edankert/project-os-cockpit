@@ -8,7 +8,7 @@ status: draft
 owner: user:edwin
 created: 2026-07-29
 updated: 2026-07-29
-source: ["design conversation 2026-07-29", "[[ADR-0014]] (project-os-dev)"]
+source: ["design conversation 2026-07-29", "[[project-os-dev#ADR-0014]]"]
 asset: ""
 implements: []
 supersedes: ""
@@ -57,7 +57,7 @@ TEST       TASK-0233  "a dropped file lands"      test:@2011420     · current
 MUTATION   TASK-0233  "loopback-only"             mutation:@2011420 · current
 ```
 
-This is the surface the cockpit does not have and cannot fake: it requires [[ADR-0014]] upstream, because without typed tokens every row would read the same. With them it is close to free — the tokens are already in the notes, and the cockpit already parses notes.
+This is the surface the cockpit does not have and cannot fake: it requires [[project-os-dev#ADR-0014]] upstream, because without typed tokens every row would read the same. With them it is close to free — the tokens are already in the notes, and the cockpit already parses notes.
 
 ## Why the cockpit, and not a hosted service
 

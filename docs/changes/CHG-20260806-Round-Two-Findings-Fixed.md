@@ -68,7 +68,7 @@ The structural corrective is `PARENT-BACKLINK`, which proved itself during this 
 
 ## Independent review — 2026-08-06, round 3 (changes-requested)
 
-Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff, had never seen the authoring session's reasoning, and performed neither earlier round; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). Suites re-run: `pytest` **789 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**.
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff, had never seen the authoring session's reasoning, and performed neither earlier round; authored by `model:claude-opus-5` (same model family, different context — [[project-os-dev#ADR-0013]]). Suites re-run: `pytest` **789 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**.
 
 **The code is right and this verdict is not about it.** Everything checkable by execution was checked by execution, and it held.
 
@@ -99,7 +99,7 @@ Reviewed by `model:claude-opus-5` from a fresh session that started from these n
 
 ## Independent review — 2026-08-06, round 4 (approved)
 
-Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the same supersession is recorded on [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]], [[CHG-20260806-Session-Cache-Economics]], [[CHG-20260806-Cold-Sessions-Read-Grey]] and [[CHG-20260806-Review-Findings-Fixed]]. What was independent: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance rather than a compliance token. No `status:` field was changed by this pass — close-out is the author's step.
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[project-os-dev#ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the same supersession is recorded on [[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]], [[CHG-20260806-Session-Cache-Economics]], [[CHG-20260806-Cold-Sessions-Read-Grey]] and [[CHG-20260806-Review-Findings-Fixed]]. What was independent: the context and the session. What was not: the model family, recorded in `reviewed_by` as provenance rather than a compliance token. No `status:` field was changed by this pass — close-out is the author's step.
 
 Suites re-run by this pass: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**.
 

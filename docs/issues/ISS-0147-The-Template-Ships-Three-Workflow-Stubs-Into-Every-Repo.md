@@ -3,12 +3,12 @@ type: "[[issue]]"
 id: ISS-0147
 aliases: ["ISS-0147"]
 title: "The template ships three workflow notes into docs/ that only restate what lives in tools/ — 24 stubs across 8 repos, draft and untouched since 2026-01-29"
-status: open
+status: "fixed"
 severity: low
 owner: user:edwin
 created: 2026-08-11
-updated: 2026-08-11
-phase: "[[PHASE-999-Future]]"
+updated: "2026-08-14"
+phase: ""
 features: []
 tasks: []
 related: ["[[ISS-0123]]", "[[FEAT-0091-The-Standing-Documents]]"]
@@ -60,3 +60,15 @@ Step 2 of the resolution — *"remove this repo's three copies"* — landed in `
 Steps 1 and 3 are untouched and are **not this repo's to do**: `~/Dev/repos/project-os/docs/workflows/` still ships `WF-0001`, `WF-0002` and `WF-0003`, and seven other repos still carry their copies. Fixing a template defect one downstream copy at a time is the thing `CLAUDE.md` forbids for `tools/`, and the same reasoning holds here.
 
 This issue therefore stays **open as the tracker for the upstream proposal**, not because anything here is unfinished. Checked while fixing a batch of bugs on 2026-08-13; the check itself is the reason this note exists rather than someone re-deriving the fleet measurement.
+
+## Fixed upstream — 2026-08-14: step 1 is done, and step 3 resolves itself
+
+`project-os` `0a44cdd` removes `WF-0001`, `WF-0002` and `WF-0003` from `docs/workflows/`. **The template no longer ships them**, which was the whole of step 1 and the reason this note stayed open after its downstream half landed in `f67e04e`.
+
+Step 3 — *"the other seven repos keep theirs until the template stops shipping them"* — is now each repo's own decision rather than a blocked one. Nothing here forces it, and nothing there will re-create them.
+
+`docs/workflows/README.md` upstream now carries the reasoning and a table pointing at the three real homes (`tools/skills/project-derive/SKILL.md`, `tools/scripts/sync-project-os.sh`, `tools/instructions/HANDOFF.md`), plus the distinction this issue's measurement established: **the eight project-authored workflow notes across three repos are untouched**, because `tools/` is template-owned and a sync would overwrite them.
+
+The counter stays at `WF: 3` — counters are a high-water mark and never fall, so the next project-authored workflow anywhere is `WF-0004`.
+
+**Out of [[PHASE-999]] on closing, and to no phase at all.** The sentinel answers *"which phase will deliver this"*, and the answer turned out to be **none of this repo's** — `project-os` delivered it. Blank states that; naming a local phase would claim credit for a commit in another repo. Its three batch-mates ([[ISS-0124]], [[ISS-0155]], and originally [[ISS-0163]]) are in the same position for the same reason.

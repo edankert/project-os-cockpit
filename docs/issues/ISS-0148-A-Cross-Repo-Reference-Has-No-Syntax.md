@@ -11,7 +11,7 @@ updated: "2026-08-13"
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 features: []
 tasks: []
-related: ["[[ISS-0123]]", "[[ADR-0023]]", "[[ADR-0019]]", "[[FEAT-0016]]"]
+related: ["[[ISS-0123]]", "[[ADR-0023]]", "[[project-os-dev#ADR-0019]]", "[[FEAT-0016]]"]
 tags: [issue, traceability, fleet]
 ---
 

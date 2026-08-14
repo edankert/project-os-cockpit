@@ -17,7 +17,7 @@ superseded_by: ""
 reviewed_by: "user:edwin"
 review_date: "2026-07-30"
 review_verdict: "accepted"
-related: ["[[ISS-0068-Waiting-On-You-Is-A-Workaround]]", "[[DES-0001-Overview-Redesign]]", "[[DES-0002-Cockpit-Design-System]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[TASK-0210-Overview-Announce-Rows]]", "[[REQ-0022-Overview-State-Above-History]]", "[[ADR-0010]]", "[[ADR-0011]]"]
+related: ["[[ISS-0068-Waiting-On-You-Is-A-Workaround]]", "[[DES-0001-Overview-Redesign]]", "[[DES-0002-Cockpit-Design-System]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[TASK-0210-Overview-Announce-Rows]]", "[[REQ-0022-Overview-State-Above-History]]", "[[ADR-0010]]", "[[project-os-dev#ADR-0011]]"]
 tags: [design, overview]
 design_revision: "55a743d"
 ---
@@ -65,7 +65,7 @@ The arrangement was reversed during review, and the discarded version is worth r
 
 **Inverted fill for the two "qualified" states**, distinguished by motion. The form reads as *the fill is present but the claim is not clean*: pulsing means in motion, static means settled-but-unverified. `doing` was already invisible despite being computed; `unproven` was never encoded at all.
 
-**Static inverted fill has a real population, and it is the one this project cares most about.** Measured: **22 items are terminal under a recorded `verification_waiver`** and render as clean solid squares today. That is the whole population — see the correction immediately below for the stale-test figure this sentence used to add, and why it was withdrawn. A waiver is the stronger case anyway: it is a standing statement that the gate was skipped, where staleness is a clock that has not run out. Either way the strip was laundering exactly what [[ADR-0010]] and [[ADR-0011]] exist to prevent.
+**Static inverted fill has a real population, and it is the one this project cares most about.** Measured: **22 items are terminal under a recorded `verification_waiver`** and render as clean solid squares today. That is the whole population — see the correction immediately below for the stale-test figure this sentence used to add, and why it was withdrawn. A waiver is the stronger case anyway: it is a standing statement that the gate was skipped, where staleness is a clock that has not run out. Either way the strip was laundering exactly what [[ADR-0010]] and [[project-os-dev#ADR-0011]] exist to prevent.
 
 ### Correction, 2026-07-30 — the stale-test figure was wrong
 

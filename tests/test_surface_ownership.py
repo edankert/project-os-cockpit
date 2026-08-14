@@ -1199,3 +1199,87 @@ def test_the_module_twins_agree_with_the_payload(repo_index: Index) -> None:
             f"{item['id']} ({item['type']} at {item['status']!r}): payload says "
             f"{actual!r}, the twin says {expected!r}"
         )
+
+
+def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
+    """ISS-0142's real product: measure all types at once, not one by one.
+
+    That issue was found by hand — someone typed `REL-0001`, got **No matches**,
+    and filed it. Its title then claimed releases were *"the one note type the
+    quick-switch corpus has never carried"*. Measuring every type the same way
+    while fixing it found a second at zero (phases, 34 notes, ISS-0164) and
+    would have found the first four days earlier, when FEAT-0072 added releases.
+
+    A type reaches the palette one of three ways, and each is asserted rather
+    than assumed:
+
+    - through a nav mode in ``QUICK_CORPUS_MODES`` — the normal route;
+    - through an explicit fetch in ``buildQuickCorpus`` — changes and tests,
+      which have no nav mode and are covered by the test above;
+    - not at all, which must be **named here with a reason**.
+
+    The third list is the point. An unnamed zero is what ISS-0142 was.
+    """
+    from project_os_cockpit import cockpit as _c
+    from project_os_cockpit.index import Index as _I
+
+    #: type -> why the palette does not carry it by id.
+    KNOWN_ABSENT = {
+        # Reached by explicit fetch, asserted in the test above.
+        "change": "fetched from /api/cockpit/changes",
+        "test": "fetched from /api/cockpit/review-queue",
+        # No `id:` field exists on a PLAN.md, so there is nothing to type.
+        # Reached by path through its feature.
+        "plan": "carries no id by construction",
+        # Standing documents are findable under the id the manifest
+        # synthesises from their role (ARCHITECTURE), not the one the note
+        # carries (ARCH) — a naming difference, not an absence.
+        "architecture": "standing document, findable under its manifest id",
+        # ISS-0164: genuinely absent, filed, and named here so a third
+        # instance cannot arrive quietly.
+        "phase": "ISS-0164 — no nav mode carries phases",
+    }
+
+    idx = _I.build(Path(__file__).resolve().parents[1] / "docs")
+    reachable: set[str] = set()
+
+    def _walk(items: list) -> None:
+        for item in items:
+            if item.get("id"):
+                reachable.add(item["id"])
+            _walk(item.get("children") or [])
+
+    code = _renderer_code()
+    block = code.split("const QUICK_CORPUS_MODES = [")[1].split("]")[0]
+    for mode in re.findall(r"'([a-z-]+)'", block):
+        for group in _c.nav_payload(idx, mode=mode)["groups"]:
+            _walk(group.get("items") or [])
+
+    by_type: dict[str, list[int]] = {}
+    for path in idx.paths():
+        record = idx.get(path)
+        if record is None or record.rel_path.startswith("__templates__/"):
+            continue
+        if not record.note_id or not record.note_type:
+            continue
+        counts = by_type.setdefault(record.note_type, [0, 0])
+        counts[0] += 1
+        if record.note_id in reachable:
+            counts[1] += 1
+
+    unfindable = {
+        note_type: total
+        for note_type, (total, found) in by_type.items()
+        if found == 0 and note_type not in KNOWN_ABSENT
+    }
+    assert not unfindable, (
+        "these note types carry ids and no palette route reaches any of them, "
+        "so typing their id returns No matches — give them a nav home or add "
+        "them to KNOWN_ABSENT with the reason: %s" % unfindable
+    )
+
+    # The release fix itself, pinned: ISS-0142 was closed on this claim.
+    releases = by_type.get("release")
+    assert releases and releases[1] == releases[0], (
+        "releases are unfindable again; ISS-0142 regressed"
+    )

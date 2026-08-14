@@ -5,7 +5,7 @@ title: "`[[project#ID]]` reaches a note in another project, and the cockpit foll
 status: merged
 date: 2026-08-12
 owner: user:edwin
-related: ["[[ADR-0024]]", "[[FEAT-0093]]", "[[ISS-0148]]", "[[ISS-0123]]", "[[ADR-0019]]"]
+related: ["[[ADR-0024]]", "[[FEAT-0093]]", "[[ISS-0148]]", "[[ISS-0123]]", "[[project-os-dev#ADR-0019]]"]
 tags: [change]
 ---
 
@@ -53,5 +53,5 @@ Walking it in the running shell after a restart, both found by clicking rather t
 
 ## Follow-ups
 
-- [ ] Upstream: the notation is a fleet convention, so `OBSIDIAN.md` and `TRACEABILITY.md` should carry it and the decision belongs in `project-os-dev` beside [[ADR-0019]].
+- [ ] Upstream: the notation is a fleet convention, so `OBSIDIAN.md` and `TRACEABILITY.md` should carry it and the decision belongs in `project-os-dev` beside [[project-os-dev#ADR-0019]].
 - [ ] [[ISS-0148]] still holds the sweep question for the 47 existing citations, and the one-sentence `CONTEXT.md` note that covers them without rewriting any.

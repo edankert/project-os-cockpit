@@ -28,7 +28,7 @@ tests: []
 
 `ACCEPT-STALE` in `validate-docs.py`: a `done` feature carrying `acceptance: requested` for longer than the staleness window (90 days here, `verification.staleness_days`) gets a **warning**.
 
-**A warning, never an error, and that is the phase's whole argument.** Acceptance is the one judgment that cannot be automated, and a gate that *blocks* on it becomes a rubber stamp — somebody clears it to get the build green rather than because they looked. So it nags, visibly and indefinitely, and never stops the work. Same shape independent review took: warning first, [[ADR-0011]]'s deadline mechanism only if it earns one.
+**A warning, never an error, and that is the phase's whole argument.** Acceptance is the one judgment that cannot be automated, and a gate that *blocks* on it becomes a rubber stamp — somebody clears it to get the build green rather than because they looked. So it nags, visibly and indefinitely, and never stops the work. Same shape independent review took: warning first, [[project-os-dev#ADR-0011]]'s deadline mechanism only if it earns one.
 
 Proven both ways rather than asserted: it fires on a crafted `done` + `requested` + `updated: 2025-01-01` feature (*"has asked for acceptance for 587 days (threshold 90)"*), and is **silent** when the same feature's request is fresh.
 

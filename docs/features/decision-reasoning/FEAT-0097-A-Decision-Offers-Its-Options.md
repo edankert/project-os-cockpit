@@ -42,7 +42,7 @@ Measured 2026-08-12: three ADRs carry an `## Options` section and they use **two
 - [x] The actuator row offers them as a choice, defaulting to the one the note proposes when it names one.
 - [x] Accepting with an option chosen records it **in the note**: named in the decision-record callout and in a `decided_option` field.
 - [x] Accepting without choosing is still allowed and records nothing extra.
-- [x] **The validator reports an `## Options` section it cannot read** — an error rather than a warning, because the convention is new and there is no debt to grandfather ([[ADR-0011]] upstream).
+- [x] **The validator reports an `## Options` section it cannot read** — an error rather than a warning, because the convention is new and there is no debt to grandfather ([[project-os-dev#ADR-0011]] upstream).
 - [x] The reasoning field is large enough to write a sentence in without scrolling it.
 
 

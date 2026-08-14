@@ -26,7 +26,7 @@ T3 Code has one `ProviderDriver` interface behind five drivers (`ClaudeDriver`, 
 
 ## Why it matters more after ADR-0009
 
-[[ADR-0009]] established that **the principal is a role, not a person**. The same argument applies one step down: the *worker* is a role too. A standing worker ([[FEAT-0074]]) that can only ever be Claude Code is a loop with a single point of vendor failure, and it forecloses the cheapest quality mechanism available — running a second opinion from a different model on the same item, which [[ADR-0013]] already blesses for review.
+[[ADR-0009]] established that **the principal is a role, not a person**. The same argument applies one step down: the *worker* is a role too. A standing worker ([[FEAT-0074]]) that can only ever be Claude Code is a loop with a single point of vendor failure, and it forecloses the cheapest quality mechanism available — running a second opinion from a different model on the same item, which [[project-os-dev#ADR-0013]] already blesses for review.
 
 ## Fix
 
@@ -48,4 +48,4 @@ Three judgments in the merge, each a way this could be worse than the literal:
 
 `role` is free text shown in the menu and **nothing keys behaviour off it** — the moment it gated something it would be a second vocabulary.
 
-Why this matters more after [[ADR-0009]], restated because it is the reason this is not cosmetic: the principal is a role, and so is the worker. A standing worker that can only ever be one vendor is a single point of vendor failure, and it forecloses the cheapest quality mechanism available — a second opinion from a different model on the same item, which [[ADR-0013]] already blesses for review.
+Why this matters more after [[ADR-0009]], restated because it is the reason this is not cosmetic: the principal is a role, and so is the worker. A standing worker that can only ever be one vendor is a single point of vendor failure, and it forecloses the cheapest quality mechanism available — a second opinion from a different model on the same item, which [[project-os-dev#ADR-0013]] already blesses for review.

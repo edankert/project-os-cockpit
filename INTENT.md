@@ -5,7 +5,7 @@ status: draft
 owner: user:edwin
 created: 2026-08-11
 updated: 2026-08-11
-source: ["[[REL-0001-The-Human-Has-Levers]]", "[[ADR-0009-The-Principal-Is-A-Role]]", "[[ADR-0013]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[DES-0002]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[PHASE-022]]"]
+source: ["[[REL-0001-The-Human-Has-Levers]]", "[[ADR-0009-The-Principal-Is-A-Role]]", "[[project-os-dev#ADR-0013]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[DES-0002]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[PHASE-022]]"]
 ---
 
 # Intent

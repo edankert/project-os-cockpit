@@ -17,6 +17,8 @@ Keep the content split explicit:
 - `tools/agents/`: agent-facing operating playbooks
 - `tools/`: project-os machinery plus project-specific automation, scripts, adapters, and instructions
 
+**Upstream is two repos, and a bare id never reaches either.** `project-os` is the template `tools/` syncs from; **`project-os-dev` holds every upstream ADR** — the decisions this project inherits rather than makes. Cite one as `[[project-os-dev#ADR-0011]]`: project id, `#`, note id ([[ADR-0024]]). A bare `[[ADR-0011]]` always means *this* repo, so an upstream decision written that way resolves to nothing — which is how a session once came within an afternoon of writing a replacement for a decision that already existed ([[ISS-0123]], [[ISS-0162]]).
+
 ## What to read first (LLM + humans)
 - `AGENTS.md` (agent startup contract + docs-first gate)
 - `LLM_BRIEF.md` (machine-oriented project brief)

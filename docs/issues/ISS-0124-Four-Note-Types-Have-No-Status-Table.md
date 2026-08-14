@@ -2,77 +2,91 @@
 type: "[[issue]]"
 id: ISS-0124
 aliases: ["ISS-0124"]
-title: "Four note types have no status table, so 21 notes carry a `status:` nothing validates — ARCHITECTURE.md has read `draft` for three months unchallenged"
-status: triage
+title: "One note type carries a `status:` nothing validates — 14 `reference` notes read `active` against no table, and nothing asks whether a type the corpus uses has an entry"
+status: "fixed"
 phase: ""
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: "2026-08-14"
 source: ["Session 2026-08-10: deciding whether `architecture` should be a first-class note type for the Intent view surfaced that its status was never checked"]
 severity: low
 component: "validator"
 parent: ""
-related: ["[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[ISS-0023-Status-Vocabulary-Drift]]", "[[REQ-0025-No-Type-Loses-Its-Surface]]"]
+related: ["[[ISS-0155]]", "[[ISS-0163]]", "[[ISS-0147]]", "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[ISS-0023-Status-Vocabulary-Drift]]", "[[REQ-0025-No-Type-Loses-Its-Surface]]"]
 tests: []
 ---
 
-# Four note types have no status table
+
+# One type carries an unvalidated status
+
+*Re-measured and rewritten 2026-08-14. Filed on 2026-08-10 as "four note types, 21 notes"; two of the four have since resolved themselves and the headline exhibit is fixed. What is left is smaller, still real, and unchanged in kind.*
 
 ## Problem
 
-`ALLOWED_STATUS` in the validator covers 14 types: `adr`, `change`, `decision`, `design`, `feature`, `issue`, `phase`, `plan`, `release`, `requirement`, `risk`, `task`, `test`, `workflow`.
-
-The corpus contains four more. Their `status:` values are read, rendered, coloured and sorted — and **never validated**:
-
-| type | notes | statuses present |
-|---|---|---|
-| `reference` | 18 | `active` |
-| `architecture` | 1 | `draft` |
-| `glossary` | 1 | `active` |
-| `dashboard` | 1 | *(none)* |
-
-21 notes in total. A typo, a retired value, or a status that means nothing for that type would all pass silently.
-
-## The shape of the gap
-
-The validator *does* guard this vocabulary — but only against itself. `_check_values` errors when an internal table names a type `ALLOWED_STATUS` does not have:
+`ALLOWED_STATUS` covers 14 types. Nothing checks the other direction — **whether every type the corpus actually uses has an entry.** `_check_values` guards table against table, and errors when an internal table names a type `ALLOWED_STATUS` lacks:
 
 > `%s is compared against note type '%s', which has no entry in ALLOWED_STATUS; one table knows a type the other does not`
 
-So table-versus-table is checked. **Corpus-versus-table is not.** Nothing asks whether every type the notes actually use has an entry, which is the direction a real note travels.
+That is table-versus-table. **Corpus-versus-table is the direction a real note travels, and it is unchecked.**
 
-## Evidence
+## Measured 2026-08-14 (templates excluded)
 
-`docs/ARCHITECTURE.md` has read `status: draft` since **2026-05-07** — three months — and nothing has ever reported it. Its `updated:` still says 2026-05-07 while line 80 describes the desktop shell and sidecar, neither of which existed then, so the note was edited without its date being touched. Both facts are exactly what a status contract is supposed to make loud.
+| type | notes | carrying a `status:` |
+|---|---|---|
+| `reference` | 21 | **14**, all `active` |
+| `architecture` | 1 | 0 |
 
-```
-python3 -c "
-import sys; sys.path.insert(0,'src')
-from project_os_cockpit import validate_docs_bundled as v
-for t in ('architecture','reference','glossary','dashboard'):
-    print(t, 'covered' if t in v.ALLOWED_STATUS else 'NO TABLE')
-"
-```
+Fourteen notes, one type. A typo, a retired value, or a status meaningless for that type passes silently on every one.
 
-## Expected
+The fourteen are the directory signposts — `docs/issues/README.md`, `docs/phases/README.md` and eleven siblings — plus `ACCEPTANCE_TESTS.md`, `COCKPIT-API.md` and one migration note.
 
-Every note type present in the corpus either has a status table, or is explicitly recorded as status-free.
+## What changed since filing, and why the note shrank
 
-## Actual
+- **`architecture` no longer carries a status.** `docs/ARCHITECTURE.md` read `status: draft` from 2026-05-07, which was this issue's headline evidence. [[FEAT-0091]]'s standing-document work removed it and brought `updated:` current. The type still has no table; there is now nothing for one to check.
+- **`glossary` is gone from the corpus entirely.**
+- **`dashboard` survives only as a template**, which the walk excludes.
 
-Four types are neither. The absence is silent, and it is silent in the direction that matters.
+Two of the four resolved without anyone acting on this issue. That is worth stating plainly: had it been fixed on filing, half the work would have been aimed at notes that were about to change anyway.
 
-## Update 2026-08-10 — one of the four is being resolved
+## Why it still matters
 
-Edwin chose to make `architecture` a **design** rather than a first-class type ([[TASK-0379]]). Designs already have a status table, so when that lands this issue covers three types, not four: `reference` (18), `glossary` (1), `dashboard` (1). The missing corpus-versus-table check is unaffected — it is the guard that would have reported `architecture` in the first place, and it would still not report the other three.
+The shrinking is the argument, not a reason to close. This issue's own exhibit was fixed by an unrelated change and **nothing reported either state** — not the three months of `draft`, and not the day it stopped. A status contract that cannot see a type is silent in both directions, and silence on the way in is what let `draft` sit unchallenged for a quarter.
 
-## Not the same as the type question
+## The rule to decide first
 
-Whether `architecture` should become a **first-class type** — template, taxonomy entry, upstream proposal — is deliberately *not* this issue. That is a measurement to take after [[FEAT-0087]]'s Intent view exists and we can see whether architecture documents get written; one note in three months is the same evidence pattern that retired the `delivered` band ([[ADR-0006]]). This issue is only that whatever types exist should have their statuses checked.
+`architecture` and `dashboard` carry **no** status, and `reference` carries exactly one value on every note that has one. That is evidence for **two** answers, not one:
+
+1. a status table per type; or
+2. an explicit *"these types carry no lifecycle status"* set, with `reference` given a one-value table (`active`).
+
+The second looks right. `dashboard` already behaves that way, and inventing a lifecycle for a directory signpost would be vocabulary nobody asked for — the [[ISS-0023]] failure in a new place.
+
+## Where the fix has to live
+
+`tools/scripts/validate-docs.py` is **template-owned**, and `tests/test_status_vocabulary.py` asserts `validate_docs_bundled.py` is a verbatim copy of it — so a downstream fix fails this repo's own suite. This is upstream work, batched with [[ISS-0155]], [[ISS-0163]] and [[ISS-0147]].
 
 ## Next Actions
 
-- [ ] Decide the rule: a table per type, or an explicit "these types carry no lifecycle status" set — `dashboard` already carries none, which suggests the second is real and not a workaround
-- [ ] Add the corpus-versus-table check so a type appearing in notes without an entry is reported, in the direction `_check_values` does not currently cover
-- [ ] Fix `docs/ARCHITECTURE.md`: `type: architecture` → the `[[architecture]]` form every other note uses, a correct `updated:`, and either resolve `draft` or say why it stands
-- [ ] Consider proposing the check upstream — the gap is in template-owned validator logic, so every project-os repo has it
+- [ ] Decide the rule: a table per type, or an explicit status-free set (recommended)
+- [ ] Add the corpus-versus-table check upstream, in the direction `_check_values` does not cover
+- [ ] Give `reference` its one-value table, or place it in the status-free set
+
+## Not this issue
+
+Whether `architecture` should be a **first-class type** is a separate measurement, and [[TASK-0379]] already chose to make it a design instead. This issue is only that whatever types exist should have their statuses checked.
+
+## Fixed upstream — 2026-08-14
+
+`STATUS-TYPE` is in the template validator (`project-os` `0a44cdd`), reporting a note type that appears in `docs/` with no entry in any status table — the corpus-versus-table direction `_check_values` never covered.
+
+**Its first version reported nothing, and why is the interesting part.** Written over `note_index`, which is keyed by IDs matching `ID_PREFIXES` — `ADR`, `DES`, `FEAT`, `ISS`, `PHASE`, `REL`, `REQ`, `RISK`, `TASK`, `TST`, `WF`. The notes this check exists for carry none of them: `ARCHITECTURE.md` is `ARCH`, the glossary is `GLOSSARY`, a signpost is `DOCS-README`. **The types with no status table are exactly the types with no ID prefix, and for the same reason: nobody tabulated them.** It walks `docs/` directly now.
+
+The rule chosen was this note's option 2, and measurement settled it:
+
+- `reference` → `{"active"}` — 206 `active` fleet-wide, 14 with no status
+- `glossary` → `{"active"}` — 10 `active`, nothing else
+- `STATUS_FREE_TYPES = {"architecture"}` — one member, because one is what the fleet has
+
+`glossary` sat in the status-free set for about ten minutes on the strength of a guess, until the check's first run reported project-os's own `GLOSSARY.md` carrying a status. `dashboard` came out: it exists only as a template, which the walk excludes, so listing it would be a rule about a note that does not exist.
+
+A status-free type that *acquires* a status is also reported, so the exemption cannot become the hiding place this check exists to close.

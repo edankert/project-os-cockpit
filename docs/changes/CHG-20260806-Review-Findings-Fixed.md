@@ -71,7 +71,7 @@ The independent review of the two 2026-08-06 commits returned `changes-requested
 
 ## Independent re-review — 2026-08-06, round 2 (changes-requested)
 
-Reviewed by `model:claude-opus-5` from a fresh session that had never seen the authoring session's reasoning, and did not perform round 1; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). Suites re-run: `pytest` 784 passed / 1 skipped, `validate-docs.sh` OK, desktop node suite 93 passed (19 in `cache-temperature.test.mjs`).
+Reviewed by `model:claude-opus-5` from a fresh session that had never seen the authoring session's reasoning, and did not perform round 1; authored by `model:claude-opus-5` (same model family, different context — [[project-os-dev#ADR-0013]]). Suites re-run: `pytest` 784 passed / 1 skipped, `validate-docs.sh` OK, desktop node suite 93 passed (19 in `cache-temperature.test.mjs`).
 
 **The code is fixed. The notes claim more than it does, in the same shape as the round they were fixing.**
 
@@ -88,7 +88,7 @@ Four findings, filed as issues:
 
 ## Independent review — 2026-08-06, round 4 (approved)
 
-Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the sentence above stating that it does not supersede [[FEAT-0081]], [[CHG-20260806-Session-Cache-Economics]] or [[CHG-20260806-Cold-Sessions-Read-Grey]] is now spent: round 4 supersedes those too, on their own notes.
+Reviewed by `model:claude-opus-5` from a fresh session that started from these notes and the diff `4281c53..HEAD`, never saw any authoring session's reasoning, and performed none of rounds 1–3; authored by `model:claude-opus-5` (same model family, different context — [[project-os-dev#ADR-0013]]). **This verdict supersedes the `changes-requested` recorded above**, and the sentence above stating that it does not supersede [[FEAT-0081]], [[CHG-20260806-Session-Cache-Economics]] or [[CHG-20260806-Cold-Sessions-Read-Grey]] is now spent: round 4 supersedes those too, on their own notes.
 
 It supersedes it because all four findings are answered and were verified against the files rather than the claims. [[ISS-0113]] — `SNAPSHOT.yaml` carries the corrected figures in both prose notes and the retracted ones survive only inside sentences that retract them. [[ISS-0114]] — `_effective_usage` reads the totals wherever they live; round three's five mutations reproduce at exactly its recorded kill counts, and a sixth this pass added survives only in a case the corpus does not contain. [[ISS-0115]] — the false "turns the suite red" sentence in this note is corrected to what the suite actually does, and `tickTemperatures` now calls `railKey` instead of restating it. [[ISS-0116]] — the five ticked boxes were re-opened one by one; four hold, and the fifth is recorded as a caveat rather than waived. Suites: `pytest` **793 passed / 1 skipped**, `validate-docs.sh` **OK**, desktop node suite **93 passed**. Full reasoning and six recorded caveats are in [[CHG-20260806-Round-Two-Findings-Fixed]]. No `status:` field was changed by this pass.
 

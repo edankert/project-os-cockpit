@@ -28,7 +28,7 @@ related: [ADR-0006, ISS-0023, TST-0019]
 
 ## Context
 
-Upstream [[ADR-0012]] (project-os-dev) removes the four hyphenated status values. Adopting the new vocabulary here is not the interesting part — it is a find-and-replace across nine surfaces that TST-0019 verifies.
+Upstream [[project-os-dev#ADR-0012]] (project-os-dev) removes the four hyphenated status values. Adopting the new vocabulary here is not the interesting part — it is a find-and-replace across nine surfaces that TST-0019 verifies.
 
 The interesting part is that **this repo's code renders ten corpora**, and they migrate on their own schedule. `sync-project-os.sh` pulls the template when someone runs it; `migrate-status-vocabulary.py` rewrites notes when someone runs it. Between an upstream decision and a downstream migration there is a window where a live corpus holds values the canonical vocabulary has retired. During that window the cockpit must render those notes, and it must not lie about them.
 

@@ -2909,6 +2909,21 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     for key, label, types in (
         ("decisions", "Decisions", ("adr", "decision")),
         ("risks", "Risks", ("risk",)),
+        # ISS-0142: releases were the one note type no nav mode carried, so
+        # `REL-0001` into a bar reading "Search files, IDs, or commands…"
+        # returned **No matches** while every other id answered. They were
+        # reachable — the overview's record column links them — but not
+        # findable, and FEAT-0072 added them four days after the comment
+        # below was written about exactly this class of gap.
+        #
+        # A group here rather than a third special-case fetch beside the two
+        # in `buildQuickCorpus`: the quick corpus is built *from* nav modes,
+        # so one entry in this loop makes releases navigable and findable at
+        # once, and inherits the template, standing-manifest and platform
+        # filters the patches each have to restate. Releases sit on `intent`
+        # because they are few, permanent and project-level — the same reason
+        # decisions and risks are here.
+        ("releases", "Releases", ("release",)),
         ("workflows", "Workflows", ("workflow",)),
         ("reference", "Reference", ("reference", "architecture", "glossary")),
     ):

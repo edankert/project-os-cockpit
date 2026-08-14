@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 163
+  ISS: 164
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -1279,7 +1279,7 @@ items:
     ISS-0155:
       file: "docs/issues/ISS-0155-A-Never-Run-Manual-Test-Must-Assert-A-Verification-Date.md"
       title: "A manual test that has never been run cannot satisfy the schema without asserting a verification date"
-      status: triage
+      status: fixed
       owner: user:edwin
       severity: medium
       component: docs-validator
@@ -1341,7 +1341,7 @@ items:
     ISS-0127:
       file: "docs/issues/ISS-0127-The-Charter-Is-Scheduled-By-Its-Consumer-Not-Its-Value.md"
       title: "The goal was derivable from the record and the argument for writing it down did not hold — only the non-goals are worth a note, because only they leave no trace"
-      status: triage
+      status: declined
       severity: low
       phase: ""
       note: "REWRITTEN 2026-08-10 — the original argument did not hold. It claimed a charter would have caught DES-0010; checking shows what killed that design were three MEASUREMENTS (0 questions ever, count-not-page, the desk's contents), none of them intentions, and the principle that replaced it WAS ADR-0020 rather than predating it. So the lesson is measure-before-designing, already practised. The goals are derivable from ADR-0009/ADR-0020/DES-0003/PHASE-028 in one pass, so a charter is a summary of existing notes (ISS-0023 / ISS-0068 shape) and a ninth member of the class ISS-0125 measured 94% stale. FEAT-0077 STAYS in PHASE-027 — its consumer is delegated acceptance. What survives: NON-GOALS leave no trace in a record, and neither do the principal's standing constraints ('I work one project at a time' killed the fleet board and survives only inside a superseded design note)."
@@ -1361,8 +1361,8 @@ items:
       note: "Edwin's observation, measured: README/INDEX/OWNERSHIP/GLOSSARY/ARCHITECTURE/DESIGN/STYLEGUIDE/PHASES are one-per-project, stateless, human-facing — carried under THREE different type values, with DESIGN and STYLEGUIDE untouched since 2026-01-26. `active` is the work-in-flight band, so 18 references + the glossary are 19 of the 44 rows ISS-0122 measured as `Doing` — same defect, this is the cause. `reference` is doing three jobs (5 singletons, 9 container READMEs, 4 templates, 1 real reference). Changes ISS-0124's answer from 'more status tables' to 'a status-free category', and BLOCKS TASK-0379 — architecture cannot be both a stateless singleton and a design with a lifecycle."
     ISS-0124:
       file: "docs/issues/ISS-0124-Four-Note-Types-Have-No-Status-Table.md"
-      title: "Four note types have no status table, so 21 notes carry a `status:` nothing validates — ARCHITECTURE.md has read `draft` for three months unchallenged"
-      status: triage
+      title: "One note type carries a `status:` nothing validates — 14 `reference` notes read `active` against no table, and nothing asks whether a type the corpus uses has an entry"
+      status: fixed
       severity: low
       phase: ""
       note: "`reference` (18), `architecture`, `glossary`, `dashboard` are absent from ALLOWED_STATUS. The validator guards table-against-table (_check_values errors when an internal table names a type the status table lacks) but never corpus-against-table, which is the direction a real note travels. ARCHITECTURE.md has read `draft` since 2026-05-07 unchallenged, with an `updated:` that predates content describing the desktop shell. Deliberately NOT the question of whether `architecture` becomes first-class — that is measured after FEAT-0087's Intent view exists."
@@ -2738,8 +2738,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 5
-    issues_triage: 3
+    issues_open: 2
+    issues_triage: 0
     risks_open: 6
     releases_total: 1
     decisions_total: 18

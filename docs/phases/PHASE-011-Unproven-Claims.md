@@ -17,8 +17,9 @@ issues:
   - "[[ISS-0057-Staleness-Follows-The-Artifact-Only]]"
   - "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"
   - "[[ISS-0130-Nine-Automated-Tests-Cannot-Be-Re-Run-By-The-Machine]]"
+  - "[[ISS-0163-The-Entrypoint-Rule-Is-One-Repos-Test-Not-The-Templates]]"
 depends: []
-related: ["[[ISS-0163-The-Entrypoint-Rule-Is-One-Repos-Test-Not-The-Templates]]", "[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
+related: ["[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[project-os-dev#ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
 tags: [verification, quality]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-30
@@ -29,7 +30,7 @@ review_verdict: "changes-requested"
 
 ## Goal
 
-This repo has decided twice already that a status must not assert what nothing performed — [[ADR-0010]] took `passing`/`failing` away from authors and gave it to the runner; [[ADR-0011]] put a deadline on unreviewed terminal notes. The surfaces did not follow. Measured on 2026-07-30:
+This repo has decided twice already that a status must not assert what nothing performed — [[ADR-0010]] took `passing`/`failing` away from authors and gave it to the runner; [[project-os-dev#ADR-0011]] put a deadline on unreviewed terminal notes. The surfaces did not follow. Measured on 2026-07-30:
 
 - **22 items are terminal under a recorded `verification_waiver`** and render on the phase strip as clean solid squares, identical to items verified by proof.
 - **21 of 22 tests are manual and all read `passing`.** Nothing in the UI distinguished a current verification from an old one. *(An earlier version of this line claimed 9 were stale; that used a 30-day threshold, not the project's 90. See the correction below — at 90 none are, and the waived items carry this phase on their own.)*
@@ -103,4 +104,4 @@ The claim this time is narrower and sharper than the 2026-07-30 population. Thos
 
 **Reopened, worked and re-closed the same day.** The exit criteria below are unchanged; this leg adds no new ones.
 
-**Result**: notes carrying an executable entrypoint went **1 → 22 of 24**, and every one of those 22 statuses is now the runner's output rather than an author's. The two that remain are procedures a person walks and say so. [[ISS-0163]] carries the half this repo cannot do — the same check in the template, where the other eleven repos would get it.
+**Result**: notes carrying an executable entrypoint went **1 → 22 of 24**, and every one of those 22 statuses is now the runner's output rather than an author's. The two that remain are procedures a person walks and say so. [[ISS-0163]] carried the half this repo cannot do, and it landed the next morning: `TEST-ENTRYPOINT` is in the template validator, reporting **43 findings across five fleet repos** and 0 here.

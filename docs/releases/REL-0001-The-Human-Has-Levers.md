@@ -305,7 +305,7 @@ One finding came out of the pass rather than the code: five of nine committed de
 
 ### Still reserved for Edwin
 
-Three of the four are unchanged and none blocked leg 1: [[ADR-0010]] (still `proposed` — it gates PHASE-029, which is now explicitly deferred, so it no longer sits on the critical path), [[ISS-0127]], and the cutoff for the 81 unreviewed `CHG-*` notes ahead of [[ADR-0011]]'s 2026-10-23 deadline.
+Three of the four are unchanged and none blocked leg 1: [[ADR-0010]] (still `proposed` — it gates PHASE-029, which is now explicitly deferred, so it no longer sits on the critical path), [[ISS-0127]], and the cutoff for the 81 unreviewed `CHG-*` notes ahead of [[project-os-dev#ADR-0011]]'s 2026-10-23 deadline.
 
 **[[ISS-0126]] has been promoted out of this list.** It is step 0 of leg 2 and the only reserved decision that now blocks work — it decides whether [[FEAT-0062]] is in the release at all, and PHASE-023 cannot close either way until it is answered.
 

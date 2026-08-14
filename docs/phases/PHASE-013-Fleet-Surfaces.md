@@ -121,7 +121,7 @@ And a sharper version of it, from ISS-0072: **[[FEAT-0018]]'s acceptance was ver
 
 Scope reviewed: `718a3ac`, `3f03403`, `f6e8781`, and the notes for [[FEAT-0028]], [[TASK-0248]]–[[TASK-0251]], [[TASK-0231]] / [[FEAT-0044]], [[ISS-0055]], [[ISS-0072]], [[ISS-0073]] and this phase.
 
-**What was independent, and what was not.** Fresh context, separate session, starting from the notes and the diff — never the author's reasoning trace. Same model family as the author (`model:claude-opus-5`), which per [[ADR-0013]] is not the gate and is recorded here as provenance. The session shares a scratchpad directory with the authoring session; I deliberately did not read the working files in it. Every claim below was re-derived by running or mutating the artifact rather than by reading the prose about it.
+**What was independent, and what was not.** Fresh context, separate session, starting from the notes and the diff — never the author's reasoning trace. Same model family as the author (`model:claude-opus-5`), which per [[project-os-dev#ADR-0013]] is not the gate and is recorded here as provenance. The session shares a scratchpad directory with the authoring session; I deliberately did not read the working files in it. Every claim below was re-derived by running or mutating the artifact rather than by reading the prose about it.
 
 The verdict is `changes-requested` on two guarding failures. The implementation is sound; what does not hold is the claim that two of it is guarded.
 

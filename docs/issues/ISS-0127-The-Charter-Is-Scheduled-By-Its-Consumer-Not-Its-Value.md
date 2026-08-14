@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0127
 aliases: ["ISS-0127"]
 title: "The goal was derivable from the record and the argument for writing it down did not hold — only the non-goals are worth a note, because only they leave no trace"
-status: triage
+status: declined
 phase: ""
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-10
+updated: "2026-08-14"
 source: ["Session 2026-08-10: filed arguing the intent charter should be pulled forward; Edwin — 'Do we actually need a goal note, now the LLMs define the goal options?' — and the original argument did not survive checking"]
 severity: low
 component: "planning"
@@ -58,6 +58,10 @@ One thing, and it is the reason this issue stays open rather than being closed o
 
 ## Next Actions
 
-- [ ] Decide whether the non-goals note is worth five lines, or whether the answer is simply "no note"
-- [ ] If written, place it with the standing documents ([[FEAT-0091]]) so it inherits the freshness signal — a stale non-goals note should be as loud as a stale glossary
-- [ ] Close this issue either way; the charter question is settled and the remaining decision is small
+- [x] Decide whether the non-goals note is worth five lines — no note
+- [x] ~~If written, place it with the standing documents~~ — not written
+- [x] Close this issue either way — closed 2026-08-14
+
+## Declined — 2026-08-14
+
+No non-goals note. The charter question was already settled; this closes the small remainder.
