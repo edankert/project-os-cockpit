@@ -3308,6 +3308,10 @@ interface NavGroupData {
   label?: string;
   url?: string;
   status?: string;
+  /** The note type a head names, when it names one (ISS-0164). Sent so the
+   *  quick corpus can carry the head under its own type rather than guessing
+   *  one from the shape of its key. */
+  type?: string;
   items?: NavItem[];
   item_layout?: string;          // 'stacked' | 'compact' | default
   subgroups?: NavGroupData[];
@@ -10285,6 +10289,31 @@ function parseQuickVerb(query: string): { verb: typeof quickVerb; rest: string }
 function flattenNavItems(groups: NavGroupData[] | undefined, out: QuickItem[]): void {
   if (!groups) return;
   for (const group of groups) {
+    // THE HEAD IS A NOTE TOO, when it carries a url (ISS-0164). Every phase
+    // group in the `features` payload names one — `key` is `PHASE-011`, `url`
+    // is the note — and ISS-0132 made the head navigate for exactly that
+    // reason. This loop read `items` and `subgroups` and never the head, so 34
+    // phases sat in a payload the palette already fetched, in the one field it
+    // did not read. Typing `PHASE-030` answered *No matches*; typing
+    // `PHASE-011` answered `ISS-0071`, a note about the phase matched on its
+    // filename, which is worse than nothing because it looks like an answer.
+    //
+    // Conditioned on the url rather than on the key's shape: a group that
+    // names a note is exactly the group worth finding, whatever type it turns
+    // out to hold, so a mode added later inherits this instead of becoming the
+    // next ISS-0142.
+    const groupRel = extractRel(group.url);
+    if (groupRel && group.key) {
+      out.push({
+        id: group.key,
+        // The head's label is `PHASE-011 · Obligations go home`; the id is
+        // already the row's own column, so the title is the part after it.
+        title: (group.label || '').split(' · ').slice(1).join(' · ')
+          || group.label || group.key,
+        rel: groupRel,
+        type: group.type || '',
+      });
+    }
     for (const item of group.items || []) {
       const rel = extractRel(item.url) || '';
       if (rel) {
@@ -10343,6 +10372,32 @@ async function buildQuickCorpus(): Promise<void> {
   for (const data of results) {
     if (data) flattenNavItems(data.groups, out);
   }
+  // The SIX phases the head harvest cannot reach (ISS-0164). `_features_groups`
+  // emits a group only for a phase that has work grouped under it, so 28 of 34
+  // arrive as heads above and PHASE-012/015/017/018/019/031 — two done, three
+  // superseded, one planned — arrive not at all. Those are precisely the ones
+  // typing an id is the only route to: a phase with no group on the Features
+  // tree is a phase nobody can browse to either.
+  //
+  // The overview's own payload already knows every phase, with its rel, and
+  // costs 1.8 ms. Fetched beside the nav modes rather than instead of them:
+  // the heads are the type's home and this is the tail that home cannot hold.
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/stats`);
+    if (resp.ok) {
+      const stats = (await resp.json()) as {
+        phases?: Array<{ key?: string; title?: string; rel?: string | null }>;
+      };
+      for (const ph of stats.phases ?? []) {
+        // `unphased` is a bucket, not a note: it has no rel and nothing to open.
+        if (!ph.rel || !ph.key) continue;
+        out.push({
+          id: ph.key, title: ph.title || ph.key,
+          rel: `/docs/${ph.rel}`, type: 'phase',
+        });
+      }
+    }
+  } catch { /* best-effort */ }
   // Changes and tests have no nav mode — they live on the overview and
   // the review desk. Both are still worth finding by name.
   try {

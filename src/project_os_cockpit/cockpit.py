@@ -3184,6 +3184,12 @@ def _features_groups(
                 "label": label,
                 "url": index.url_for(phase_record.path) if phase_record else None,
                 "status": phase_record.status if phase_record else None,
+                # The type this head NAMES (ISS-0164). The quick corpus carries
+                # a navigable head as a row of its own now, and a row needs its
+                # type for the verb filters — inferring one from the key's
+                # shape would be a second place that decides what a `PHASE-`
+                # prefix means.
+                "type": (phase_record.note_type or "phase") if phase_record else None,
                 "items": items,
             }
         )

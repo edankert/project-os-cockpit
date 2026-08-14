@@ -535,6 +535,25 @@ def test_the_quick_palette_covers_every_type_bearing_mode() -> None:
     corpus_fn = code.split("async function buildQuickCorpus(")[1].split("\n}\n")[0]
     assert "review-queue" in corpus_fn, "tests are not in the palette"
     assert "cockpit/changes" in corpus_fn, "changes are not in the palette"
+    # Phases DO have a nav home — they are the `features` mode's group heads —
+    # but a phase with no work grouped under it has no head, and six of this
+    # repo's 34 are in that state (ISS-0164). They are also the six nobody can
+    # browse to, so the overview payload covers the tail.
+    assert "cockpit/stats" in corpus_fn, (
+        "the six phases with no group head are not in the palette (ISS-0164)"
+    )
+    # And the head harvest itself, read from the source rather than assumed.
+    #
+    # `test_every_id_bearing_type_is_findable_in_the_palette` MODELS the
+    # harvest in Python to measure coverage — which means that test alone would
+    # stay green if the harvest were deleted from the renderer, measuring a
+    # hopeful corpus instead of the real one. This is the half that fails when
+    # the code goes.
+    flatten_fn = code.split("function flattenNavItems(")[1].split("\n}\n")[0]
+    assert "group.url" in flatten_fn and "group.key" in flatten_fn, (
+        "flattenNavItems no longer harvests a group head that names a note, "
+        "so every phase drops out of the palette again (ISS-0164)"
+    )
 
 
 # ---- the dead stat tiles (ISS-0063) -----------------------------------
@@ -1213,12 +1232,23 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
     A type reaches the palette one of three ways, and each is asserted rather
     than assumed:
 
-    - through a nav mode in ``QUICK_CORPUS_MODES`` — the normal route;
-    - through an explicit fetch in ``buildQuickCorpus`` — changes and tests,
-      which have no nav mode and are covered by the test above;
+    - through a nav mode in ``QUICK_CORPUS_MODES`` — as an item, or as a
+      **group head** that names a note, which is how phases arrive (ISS-0164);
+    - through an explicit fetch in ``buildQuickCorpus`` — changes, tests, and
+      the phases no head reaches, all covered by the test above;
     - not at all, which must be **named here with a reason**.
 
     The third list is the point. An unnamed zero is what ISS-0142 was.
+
+    **Phases are asserted COMPLETE rather than non-zero**, and that is the
+    lesson of ISS-0164 rather than a flourish: harvesting group heads makes 28
+    of 34 findable, and `found > 0` would have called that fixed. The six it
+    misses have no group on the Features tree — which is exactly why typing
+    their id is the only way to reach them.
+
+    Every exemption is also checked to still BE one. An entry that stops being
+    true is a comment claiming a defect that no longer exists, which is how
+    ISS-0164's own reason line came to describe the wrong cause for a day.
     """
     from project_os_cockpit import cockpit as _c
     from project_os_cockpit.index import Index as _I
@@ -1235,15 +1265,9 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
         # synthesises from their role (ARCHITECTURE), not the one the note
         # carries (ARCH) — a naming difference, not an absence.
         "architecture": "standing document, findable under its manifest id",
-        # ISS-0164: absent from the CORPUS, and the reason recorded here at
-        # first — "no nav mode carries phases" — was wrong. The `features`
-        # mode carries all 34 as group heads, with the phase's id in `key`
-        # and its note in `url`, and ISS-0132 made that head navigate. What
-        # misses them is `flattenNavItems`, which walks `group.items` and
-        # `group.subgroups` and never the head. Corrected 2026-08-14 when
-        # Edwin asked whether phases were selectable on the Features page.
-        "phase": "ISS-0164 — in the `features` payload as a group head, "
-                 "which `flattenNavItems` does not harvest",
+        # `phase` was here until 2026-08-14 and is not any more: ISS-0164
+        # harvested the group heads it was already arriving in, and added the
+        # overview pass for the six that have no head.
     }
 
     idx = _I.build(Path(__file__).resolve().parents[1] / "docs")
@@ -1255,11 +1279,32 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
                 reachable.add(item["id"])
             _walk(item.get("children") or [])
 
+    def _walk_groups(groups: list) -> None:
+        for group in groups or []:
+            # `flattenNavItems` harvests a head that names a note — the same
+            # condition, a resolvable url, so this measures the corpus the
+            # renderer actually builds rather than a hopeful version of it.
+            if group.get("url") and group.get("key"):
+                reachable.add(group["key"])
+            _walk(group.get("items") or [])
+            _walk_groups(group.get("subgroups") or [])
+
     code = _renderer_code()
     block = code.split("const QUICK_CORPUS_MODES = [")[1].split("]")[0]
     for mode in re.findall(r"'([a-z-]+)'", block):
-        for group in _c.nav_payload(idx, mode=mode)["groups"]:
-            _walk(group.get("items") or [])
+        _walk_groups(_c.nav_payload(idx, mode=mode)["groups"])
+
+    # Reachable through a nav mode ALONE — the set the exemptions below are
+    # judged against, since a type reached by an explicit fetch is absent from
+    # this one by construction.
+    nav_only = set(reachable)
+
+    # The explicit fetch for phases, modelled from the same payload the
+    # renderer reads (ISS-0164). Not a hand-written list: if the overview stops
+    # carrying a phase, this test stops claiming the palette can find it.
+    for phase in _c.stats_payload(idx).get("phases") or []:
+        if phase.get("rel") and phase.get("key"):
+            reachable.add(phase["key"])
 
     by_type: dict[str, list[int]] = {}
     for path in idx.paths():
@@ -1282,6 +1327,34 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
         "these note types carry ids and no palette route reaches any of them, "
         "so typing their id returns No matches — give them a nav home or add "
         "them to KNOWN_ABSENT with the reason: %s" % unfindable
+    )
+
+    # ISS-0164, pinned as COMPLETENESS. Harvesting group heads reaches 28 of
+    # this repo's 34 phases, and `found == 0` above would have called that
+    # done — the partial the issue warned about, arriving through its own fix.
+    phases = by_type.get("phase")
+    assert phases and phases[1] == phases[0], (
+        "phases are unfindable by id again: %s of %s reach the palette. The "
+        "head harvest in flattenNavItems covers those with a group on the "
+        "Features tree; the overview pass covers the rest (ISS-0164)"
+        % (phases[1] if phases else 0, phases[0] if phases else 0)
+    )
+
+    # An exemption must still BE one. Without this, a type that gains a route
+    # keeps a line here claiming a defect it no longer has — and this file
+    # carried exactly that for a day, naming the wrong cause for phases.
+    stale = {
+        note_type: reason for note_type, reason in KNOWN_ABSENT.items()
+        if by_type.get(note_type) and any(
+            r.note_id in nav_only for path in idx.paths()
+            if (r := idx.get(path)) is not None and r.note_type == note_type
+            and r.note_id
+        )
+    }
+    assert not stale, (
+        "these types are named as unreachable and a nav mode now reaches "
+        "them — delete the entry rather than leaving a reason that is no "
+        "longer true: %s" % stale
     )
 
     # The release fix itself, pinned: ISS-0142 was closed on this claim.

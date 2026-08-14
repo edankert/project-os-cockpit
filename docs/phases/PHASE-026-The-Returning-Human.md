@@ -7,14 +7,16 @@ status: done
 order: 26
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-14
 goal: "Give the docs-first human a daily entry point: a since-you-looked digest with a watermark, a release surface that distinguishes done from shipped, and one voice across the panes' remaining inconsistencies."
 features:
   - "[[FEAT-0071-Since-You-Looked]]"
   - "[[FEAT-0072-The-Release-Surface]]"
   - "[[FEAT-0073-One-Voice]]"
 requirements: []
-issues: []
+issues:
+  - "[[ISS-0142-The-Release-Note-Cannot-Be-Found-By-Name]]"
+  - "[[ISS-0164-Phases-Are-The-Second-Type-The-Palette-Cannot-Find]]"
 depends: []
 related: ["[[DES-0008-The-Returning-Human]]"]
 tags: [continuity, overview, release]
