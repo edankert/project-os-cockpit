@@ -7,7 +7,7 @@ status: done
 order: 11
 owner: user:edwin
 created: 2026-07-30
-updated: 2026-08-13
+updated: 2026-08-14
 goal: "Stop the cockpit presenting a claim and its evidence as the same thing. A waiver, a two-month-old manual verification, a hand-written register of what a test asserts and a status band that drifted out of its guard all read today exactly like earned completion — and every one of them is a claim nothing checked."
 features:
   - "[[FEAT-0018-Verification-Health-Surface]]"
@@ -18,6 +18,7 @@ issues:
   - "[[ISS-0066-Test-Coverage-Registers-Drift-By-Hand]]"
   - "[[ISS-0130-Nine-Automated-Tests-Cannot-Be-Re-Run-By-The-Machine]]"
   - "[[ISS-0163-The-Entrypoint-Rule-Is-One-Repos-Test-Not-The-Templates]]"
+  - "[[ISS-0143-The-Tier-3-Block-Is-Owed-A-Retirement]]"
 depends: []
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[project-os-dev#ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
 tags: [verification, quality]
@@ -105,3 +106,13 @@ The claim this time is narrower and sharper than the 2026-07-30 population. Thos
 **Reopened, worked and re-closed the same day.** The exit criteria below are unchanged; this leg adds no new ones.
 
 **Result**: notes carrying an executable entrypoint went **1 → 22 of 24**, and every one of those 22 statuses is now the runner's output rather than an author's. The two that remain are procedures a person walks and say so. [[ISS-0163]] carried the half this repo cannot do, and it landed the next morning: `TEST-ENTRYPOINT` is in the template validator, reporting **43 findings across five fleet repos** and 0 here.
+
+## Reopened again — 2026-08-14, for [[ISS-0143]], and re-closed the same day
+
+[[ISS-0143]] was parked in `PHASE-999-Future` and is re-homed here on being fixed, because a terminal note in the parking lot renders shipped work as unplanned — `test_no_terminal_note_sits_in_the_parking_lot` caught it, which is this phase's own subject working.
+
+It belongs here on the merits, not only by elimination. The acceptance suite's Tier 3 block carried an obligation — *promote or remove after a verified release* — that **nothing computed**: a rule in a Markdown comment, with a deferral recorded only in prose. That is a claim nothing checked, one level up from [[ISS-0066]] and [[ISS-0130]]: not a status asserting what nothing performed, but a *retirement* asserting it would happen.
+
+The debt is paid (both items retired, evidence preserved, suite at 34 gating items) and the check is deliberately **not** built — the obvious comparison, *a `released` release newer than the suite's `updated:`*, would not have fired on this very instance, since both dates read 2026-08-11. The reasoning is recorded in the suite rather than in a comment, which is the least this phase should leave behind.
+
+Exit criteria unchanged; this leg adds none.

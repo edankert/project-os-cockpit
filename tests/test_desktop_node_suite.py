@@ -19,8 +19,10 @@ lines of TypeScript would cost more than it returns.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -48,12 +50,21 @@ def test_desktop_node_suite_passes() -> None:
     files = sorted(str(p) for p in NODE_TESTS.glob("*.test.mjs"))
     assert files, "desktop/tests/ has no *.test.mjs — the suite was removed or renamed"
 
+    # The shell's git pass spawns `python -m project_os_cockpit.fleet_git`
+    # (TASK-0422), and `pythonExecutable()` resolves a bundled runtime through
+    # Electron's `app`, which does not exist under plain `node --test`. Handing
+    # it THIS interpreter is both the reliable answer and the honest one: it is
+    # the one running the suite, so it certainly has the package the subprocess
+    # must import.
+    env = {**os.environ, "COCKPIT_DESKTOP_PYTHON": sys.executable}
+
     proc = subprocess.run(
         [node, "--test-timeout", "20000", "--test", *files],
         capture_output=True,
         text=True,
         timeout=180,
         cwd=str(DESKTOP),
+        env=env,
     )
     assert proc.returncode == 0, (
         "desktop node suite failed:\n"

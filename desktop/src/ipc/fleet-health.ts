@@ -32,7 +32,6 @@ import * as path from 'node:path';
 
 import { getAllWorkspaces } from './workspaces';
 import { sidecarUrlFor, pythonExecutable } from './sidecar';
-import { probeGitState } from './git';
 import type { Workspace } from '../types';
 
 type WorkspacesGetter = () => Workspace[];
@@ -464,24 +463,84 @@ export function markStale(rows: HealthRow[], now: number): HealthRow[] {
   });
 }
 
-/** Probe git for **every** workspace, live or cold (TASK-0415).
+/** One batch for the whole fleet, so the budget is the fleet's rather than
+ *  one repo's. Comfortably inside `GIT_INTERVAL_MS` below: a pass that
+ *  overran its own clock would queue behind itself. */
+const GIT_TIMEOUT_MS = 45_000;
+
+/** The exact argv for the git pass. Exported so a guard can assert what
+ *  this spawns in other people's repositories, the same way `coldArgv`
+ *  is — `fleet_git` runs only read-only git subcommands. */
+export function gitArgv(roots: string[]): string[] {
+  return ['-m', 'project_os_cockpit.fleet_git', ...roots];
+}
+
+interface GitLine {
+  root: string;
+  ahead?: number | null;
+  remote?: string | null;
+  remote_kind?: string | null;
+  dirty?: number | null;
+}
+
+function runFleetGit(roots: string[]): Promise<GitLine[]> {
+  return new Promise((resolve) => {
+    execFile(
+      pythonExecutable(),
+      gitArgv(roots),
+      // 5s per repo was the old per-invocation timeout; this is one process
+      // for the whole fleet, so the budget is the fleet's.
+      { timeout: GIT_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 },
+      (_err, stdout) => {
+        const out: GitLine[] = [];
+        for (const line of (stdout || '').split('\n')) {
+          if (!line.trim()) continue;
+          try { out.push(JSON.parse(line) as GitLine); } catch { /* skip */ }
+        }
+        resolve(out);
+      },
+    );
+  });
+}
+
+/** Publication state for **every** workspace, live or cold (TASK-0415,
+ *  one implementation since TASK-0422).
  *
  *  One clock for the whole fleet. The live/cold split belongs to the
  *  validator — a repo with its own sidecar genuinely has a better
  *  answer about its notes — and does not belong to git, where the
  *  sidecar knows nothing the shell cannot ask `git` directly. Applying
  *  it to both is what ISS-0156 was.
+ *
+ *  **The walk itself is Python's** (`project_os_cockpit.fleet_git`), because
+ *  the badge and History already read `git_state.py` and a second
+ *  implementation here made *one walk, so two surfaces cannot disagree* a
+ *  claim rather than a property (ISS-0165). Reading each workspace's own
+ *  sidecar — the issue's proposed fix — would answer for the one repo
+ *  somebody opened and leave the rest blank, which is ISS-0156 inverted; the
+ *  batch keeps the clock and gains the single implementation.
  */
 export async function refreshGitState(): Promise<void> {
   const all = getWorkspaces();
-  await Promise.all(all.map(async (ws) => {
-    try {
-      gitState.set(ws.id, await probeGitState(ws.root));
-    } catch {
-      // An unreadable repo keeps its last answer rather than claiming a
-      // clean one. Absence here renders as "no claim", never as "pushed".
-    }
-  }));
+  const byRoot = new Map(all.map((ws) => [ws.root, ws]));
+  const lines = await runFleetGit(all.map((ws) => ws.root));
+  for (const line of lines) {
+    const ws = byRoot.get(line.root);
+    if (!ws) continue;
+    const kind = line.remote_kind === 'backup' || line.remote_kind === 'deploy'
+      ? line.remote_kind : 'none';
+    gitState.set(ws.id, {
+      // `null` when the count could not be taken, and it stays null all the
+      // way to the renderer: "I cannot tell" and "nothing to publish" are
+      // different answers and only one of them is reassuring.
+      ahead: typeof line.ahead === 'number' ? line.ahead : null,
+      remote: line.remote ?? null,
+      remoteKind: kind,
+      dirty: typeof line.dirty === 'number' ? line.dirty : 0,
+    });
+  }
+  // A repo missing from the output keeps its last answer rather than
+  // claiming a clean one. Absence renders as "no claim", never as "pushed".
   const live = new Set(all.map((ws) => ws.id));
   for (const id of Array.from(gitState.keys())) {
     if (!live.has(id)) gitState.delete(id);
@@ -538,7 +597,7 @@ export function __resetFleetHealth(): void {
 }
 
 const RECONCILE_MS = 30_000;
-/** Git is cheap — two `git` invocations per repo — but it runs for the
+/** Git is cheap — a few `git` invocations per repo — but it runs for the
  *  whole fleet, so it gets its own slower clock rather than riding the
  *  30s subscription reconcile. */
 export const GIT_INTERVAL_MS = 60_000;

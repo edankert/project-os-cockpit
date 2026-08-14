@@ -32,6 +32,19 @@ let git;
 before(async () => {
   await fs.access(builtFleet);
   await fs.access(builtGit);
+  // The git pass is a Python subprocess since TASK-0422 — one implementation
+  // for the badge, History and this shell — so the suite needs an interpreter
+  // that can import the package. `pythonExecutable()` normally resolves a
+  // bundled runtime through Electron's `app`, which is absent here; the
+  // pytest bridge hands us its own interpreter, and this fallback keeps
+  // `node --test` runnable on its own.
+  if (!process.env.COCKPIT_DESKTOP_PYTHON) {
+    const venv = path.join(here, '..', '..', '.venv', 'bin', 'python');
+    try {
+      await fs.access(venv);
+      process.env.COCKPIT_DESKTOP_PYTHON = venv;
+    } catch { process.env.COCKPIT_DESKTOP_PYTHON = 'python3'; }
+  }
   fleet = await import(`file://${builtFleet}`);
   git = await import(`file://${builtGit}`);
 });
@@ -231,7 +244,91 @@ test('a deploy remote is counted, and classified as deploy', async () => {
   assert.equal(row.ahead, 4, 'a deploy remote still has unpublished commits');
 });
 
-test('probeGitState classifies remotes the way the push does', async () => {
+test('a remote with no upstream is UNKNOWN, and unknown is not zero (TASK-0421)', async () => {
+  // The case ADR-0027's fourth admission test exists for, on the surfaces
+  // that had never honoured it. A real github-shaped remote and a branch
+  // tracking nothing: `rev-list @{u}..HEAD` cannot run, so no count exists.
+  const root = await mkTmp('no-upstream');
+  await run(root, ['init', '--initial-branch=main', '.']);
+  await run(root, ['config', 'user.email', 'test@example.invalid']);
+  await run(root, ['config', 'user.name', 'Test']);
+  await run(root, ['config', 'commit.gpgsign', 'false']);
+  await fs.writeFile(path.join(root, 'SNAPSHOT.yaml'), 'project:\n  name: t\n', 'utf-8');
+  await run(root, ['add', '-A']);
+  await run(root, ['commit', '-m', 'base']);
+  await run(root, ['remote', 'add', 'origin', 'https://github.com/example/z.git']);
+
+  fleet.__configureFleetHealth(() => [ws(root, 'unknown-1')]);
+  await fleet.refreshGitState();
+
+  const row = rowFor('unknown-1');
+  assert.equal(row.remoteKind, 'backup', 'the remote is real and classifiable');
+  assert.equal(row.ahead, null,
+    'no upstream means no count — 0 would say "nothing to publish", which is '
+    + 'the one thing nobody knows');
+});
+
+test('the count and the dirty count come from the sidecar\'s own module (TASK-0422)', async () => {
+  // Not "the two numbers happen to match" — the shell's row is compared
+  // against what `python -m project_os_cockpit.fleet_git` says for the same
+  // repo, which is the module the badge and History read. If the shell ever
+  // grows its own walk again, these diverge the moment either changes.
+  const root = await makeRepo('one-walk', { ahead: 2,
+    remoteUrl: 'https://github.com/example/w.git' });
+  await fs.mkdir(path.join(root, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(root, 'docs', 'note.md'), '# uncommitted\n', 'utf-8');
+
+  fleet.__configureFleetHealth(() => [ws(root, 'one-walk-1')]);
+  await fleet.refreshGitState();
+  const row = rowFor('one-walk-1');
+
+  const direct = await new Promise((resolve, reject) => {
+    execFile(
+      process.env.COCKPIT_DESKTOP_PYTHON,
+      ['-m', 'project_os_cockpit.fleet_git', root],
+      { timeout: 20_000, cwd: path.join(here, '..', '..') },
+      (err, stdout) => (err ? reject(err) : resolve(JSON.parse(stdout.trim()))),
+    );
+  });
+
+  assert.equal(row.ahead, direct.ahead);
+  assert.equal(row.dirty, direct.dirty);
+  assert.equal(row.remoteKind, direct.remote_kind);
+  assert.equal(row.ahead, 2);
+  assert.equal(row.dirty, 1, 'the uncommitted note is in scope: docs/');
+});
+
+test('git.ts no longer walks git for a count (TASK-0422)', async () => {
+  // The guard ISS-0165 asked for: the check that publication is walked once
+  // could only see the two surfaces written in Python, so it was structurally
+  // blind to the one that disagreed. Source text, deliberately — the point is
+  // that no second implementation EXISTS, which no behavioural test can say.
+  const raw = await fs.readFile(
+    path.join(here, '..', 'src', 'ipc', 'git.ts'), 'utf-8');
+  // COMMENTS STRIPPED FIRST, and this is not a detail: the first version of
+  // this guard failed against the very change it was written for, because the
+  // paragraph explaining that the counting had been removed NAMED the two
+  // commands it removed. A guard a comment can satisfy — or break — is
+  // measuring prose, and this repo has been bitten by both directions of that
+  // in one week.
+  const src = raw
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.ok(!src.includes('rev-list'),
+    'git.ts counts commits again — the badge and this shell are two '
+    + 'implementations of one number, which is ISS-0165');
+  assert.ok(!src.includes('--porcelain'),
+    'git.ts counts uncommitted files again — same defect, one number left');
+  assert.ok(!src.includes('probeGitState'),
+    'probeGitState is back; the fleet git pass is fleet_git.py');
+  // And what it MUST keep: the classification that decides whether a push
+  // may run at all is re-derived here on purpose.
+  assert.ok(src.includes('export function remoteKind'),
+    'git.ts must keep its own remote classification — a UI state is not a '
+    + 'guard, and this is the process that runs the push');
+});
+
+test('remoteKind classifies remotes the way the push does', async () => {
   // The classification exists twice on purpose — git.ts will not trust one
   // that arrived over IPC — so the probe and the guard must agree, and
   // unknown shapes must land on `deploy`.

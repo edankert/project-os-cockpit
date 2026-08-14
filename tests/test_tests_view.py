@@ -546,9 +546,20 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     owed both.
     """
     groups = {g["key"]: g for g in nav_payload(repo_index, mode="tests")["groups"]}
-    for tier in (1, 2, 3):
-        assert f"tier{tier}" in groups, sorted(groups)
     suite = acceptance.load(REPO_DOCS)
+    # A tier is on the view when it HOLDS something — `_acceptance_tier_groups`
+    # skips an empty one, because `Tier 3 · 0` would say "nothing to verify"
+    # about a project that verified nothing.
+    #
+    # Written as the rule rather than as today's answer, for the third time in
+    # this file: the first version asserted all three tiers unconditionally,
+    # which encoded "this repo always has Tier 3 items" — the opposite of what
+    # Tier 3 is. It failed on 2026-08-14 when ISS-0143 retired the last two
+    # after REL-0001, exactly as the contract requires, so honouring the rule
+    # broke the test that was supposed to guard it.
+    for tier in (1, 2, 3):
+        present = f"tier{tier}" in groups
+        assert present is bool(suite.tier(tier)), (tier, sorted(groups))
     assert len(groups["tier1"]["items"]) == len(suite.tier(1))
     # The gating tiers ask something of a person while anything is unsettled;
     # Tier 3 never does — TESTING.md is explicit that it does not gate. Stated
@@ -559,7 +570,8 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     for tier in (1, 2):
         owed = any(not i.settled for i in suite.tier(tier))
         assert groups[f"tier{tier}"].get("needs_human", False) is owed
-    assert "needs_human" not in groups["tier3"]
+    if "tier3" in groups:
+        assert "needs_human" not in groups["tier3"]
     # And no note id appears in a tier group: one item, one home (ISS-0068).
     note_ids = {r.note_id for r in repo_index.notes_by_type("test")}
     tier_ids = {i["id"] for k, g in groups.items() if k.startswith("tier")
@@ -625,7 +637,15 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
     groups = {g["key"]: g for g in nav_payload(repo_index, mode="tests")["groups"]}
     suite = acceptance.load(REPO_DOCS)
     for tier in (1, 2, 3):
-        items, group = suite.tier(tier), groups[f"tier{tier}"]
+        items = suite.tier(tier)
+        # An empty tier has no group at all — see the reasoning in
+        # `test_the_tiers_render_in_the_tests_view`. Tier 3 became empty when
+        # ISS-0143 retired its two items after REL-0001, which is the state
+        # the tier contract expects between releases.
+        if not items:
+            assert f"tier{tier}" not in groups
+            continue
+        group = groups[f"tier{tier}"]
         walked = sum(1 for i in items if i.checked)
         reconciled = sum(1 for i in items if i.reconciled)
         assert f"· {walked}/{len(items)}" in group["label"], group["label"]

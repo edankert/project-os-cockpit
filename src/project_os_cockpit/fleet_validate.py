@@ -128,32 +128,26 @@ def main(argv: list[str] | None = None) -> int:
 
 
 # ---- git standing (FEAT-0055 / TASK-0265) ----------------------------
+#
+# This section used to be the THIRD implementation of "what is unpublished"
+# (TASK-0422 / ISS-0165): its own remote table, its own `rev-list`, its own
+# handling of the missing upstream — beside `git_state.py` and beside
+# `probeGitState` in the shell. Nobody read it: the shell computes these fields
+# and deliberately discards them, because ISS-0156 moved the git question onto
+# one fleet-wide clock. A rule that exists three times and is consumed twice
+# has already stopped being a rule, so both names below now forward to the
+# module that owns it.
+#
+# They keep their names and their shape. `python -m project_os_cockpit.
+# fleet_validate` is a documented wire format, and other people's scripts do
+# not care which module inside this package answered.
 
-#: Hosts whose remotes are a backup/forge rather than a deployment.
-_FORGE_HOSTS = ("github.com", "gitlab.com", "bitbucket.org", "codeberg.org")
+from . import git_state as _git_state
 
-
-def remote_kind(url: str) -> str:
-    """`backup` | `deploy` | `none`, from the URL rather than a setting.
-
-    This decides whether anything may push automatically, so it is
-    derived and not configured: a setting can be wrong, and being wrong
-    here means deploying a website. `your-applications.com`'s only remote
-    is ``root@76.13.51.7:/home/edankert/repos/your-applications.com.git``
-    — a server path, and on 2026-07-30 one ambiguous instruction away
-    from being pushed to.
-
-    Unknown shapes are **deploy**, not backup: the safe default for "I do
-    not recognise this" is "do not publish to it".
-    """
-    u = (url or "").strip()
-    if not u:
-        return "none"
-    lowered = u.lower()
-    for host in _FORGE_HOSTS:
-        if f"//{host}/" in lowered or f"@{host}:" in lowered:
-            return "backup"
-    return "deploy"
+#: `backup` | `deploy` | `none`, from the URL rather than a setting — see
+#: :func:`project_os_cockpit.git_state.remote_kind`, which owns the table and
+#: the reasoning about why an unknown shape is *deploy*.
+remote_kind = _git_state.remote_kind
 
 
 def git_standing(project_root: Path) -> dict[str, object]:
@@ -162,34 +156,12 @@ def git_standing(project_root: Path) -> dict[str, object]:
     ``ahead`` is None when there is no upstream to be ahead *of* — which
     is not the same as being up to date, and must not render as such.
     """
-    import subprocess
-
-    def _git(*args: str) -> str | None:
-        try:
-            proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
-                ["git", "-C", str(project_root), *args],
-                capture_output=True, text=True, timeout=5.0, check=False,
-            )
-        except (OSError, subprocess.SubprocessError):
-            return None
-        return proc.stdout.strip() if proc.returncode == 0 else None
-
-    if not (project_root / ".git").exists():
-        return {"ahead": None, "remote": None, "remote_kind": "none"}
-
-    url = _git("remote", "get-url", "origin")
-    if url is None:
-        # No `origin` — but there may be another remote, and if it is a
-        # deploy target that is exactly what the caller needs to know.
-        first = (_git("remote") or "").splitlines()
-        url = _git("remote", "get-url", first[0]) if first else None
-    kind = remote_kind(url or "")
-    ahead_raw = _git("rev-list", "--count", "@{u}..HEAD")
-    try:
-        ahead = int(ahead_raw) if ahead_raw is not None else None
-    except ValueError:
-        ahead = None
-    return {"ahead": ahead, "remote": url, "remote_kind": kind}
+    state = _git_state.read_fresh(project_root)
+    return {
+        "ahead": state.ahead,
+        "remote": state.remote,
+        "remote_kind": state.kind,
+    }
 
 
 if __name__ == "__main__":

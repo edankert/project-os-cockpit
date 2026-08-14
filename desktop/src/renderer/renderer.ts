@@ -11421,8 +11421,14 @@ interface AttentionEntry {
   kind: 'needs-input' | 'waiting' | 'record' | 'publish';
   message: string;
   ts: string;
-  /** The project's git state: work in flight, and work not published. */
-  publish?: { ahead: number; remoteKind: 'backup' | 'deploy' | 'none'; dirty: number };
+  /** The project's git state: work in flight, and work not published.
+   *
+   *  `ahead` is **`number | null`**, and the null is the point (TASK-0421):
+   *  a branch with no upstream has no count to take, which is a different and
+   *  worse fact than nothing being owed. It arrived here as a `0` until
+   *  2026-08-14 — the ADR-0027 admission-test-4 failure that History and the
+   *  badge were repaired for the same day, on a path neither repair reached. */
+  publish?: { ahead: number | null; remoteKind: 'backup' | 'deploy' | 'none'; dirty: number };
   /** A fingerprint of everything this card shows (TASK-0420).
    *
    *  What the ✕ is keyed on, so the card returns when **anything** about the
@@ -11517,9 +11523,16 @@ function sinceLine(d: DigestSummary | undefined): string {
  *  on one card. The remote kind decides the verb and nothing else may.
  */
 function publicationText(
-  ahead: number, remoteKind: 'backup' | 'deploy' | 'none',
+  ahead: number | null, remoteKind: 'backup' | 'deploy' | 'none',
 ): string {
-  if (ahead <= 0 || remoteKind === 'none') return '';
+  if (remoteKind === 'none') return '';
+  // An unknown count keeps its own sentence, in History's words, because it is
+  // the same fact on a second surface (TASK-0421). Before this it was coerced
+  // to `0` by the caller and the whole card was dropped — the count nobody
+  // could take rendering exactly like nothing owed, which is the one reading
+  // ADR-0027's fourth admission test forbids.
+  if (ahead === null) return 'No upstream set — nothing can say what is unpublished';
+  if (ahead <= 0) return '';
   const plural = ahead === 1 ? '' : 's';
   return remoteKind === 'deploy'
     ? `${ahead} commit${plural} not deployed`
@@ -11640,7 +11653,10 @@ function attentionFingerprint(e: AttentionEntry, d: DigestSummary | undefined): 
     live?.ts ?? '',
     d ? d.needsYou : '',
     d ? d.transitions : '',
-    e.publish ? e.publish.ahead : '',
+    // `unknown` rather than the empty string a null would join to: a card
+    // that cannot say what is unpublished must not carry the same
+    // fingerprint as a card with no publication line at all (TASK-0421).
+    e.publish ? (e.publish.ahead === null ? 'unknown' : e.publish.ahead) : '',
     e.publish ? e.publish.remoteKind : '',
     e.publish ? e.publish.dirty : '',
   ].join('|');
@@ -11810,14 +11826,25 @@ function attentionEntries(): AttentionEntry[] {
   // when nothing else has.
   const cardFor = new Map(out.map((e) => [e.workspaceId, e]));
   for (const [wsId, row] of fleetHealth) {
-    const ahead = typeof row.ahead === 'number' ? row.ahead : 0;
+    const kind = row.remoteKind === 'deploy' ? 'deploy'
+      : row.remoteKind === 'none' ? 'none' : 'backup';
+    // `null` survives here rather than becoming a zero (TASK-0421). A repo
+    // with a remote and no upstream has an UNKNOWN count, and the line below
+    // used to read `typeof row.ahead === 'number' ? row.ahead : 0`, so the
+    // unknown fell straight through the `<= 0` test and the card was dropped
+    // — while the badge, reading the same repo through `git_state.py`,
+    // counted one obligation for it. Two surfaces, one repo, opposite
+    // answers, which is exactly the disagreement this feature claims cannot
+    // happen. A repo with no remote at all keeps `null` too and says nothing
+    // here: there is nowhere to publish, which History states instead.
+    const ahead = typeof row.ahead === 'number' ? row.ahead
+      : (kind === 'none' ? 0 : null);
     const dirty = typeof row.dirty === 'number' ? row.dirty : 0;
     // Either rung of the ladder is worth saying: work not saved, and work
     // saved but not published (Edwin, 2026-08-13 — *"the git line should also
-    // include uncommitted items"*).
-    if (ahead <= 0 && dirty <= 0) continue;
-    const kind = row.remoteKind === 'deploy' ? 'deploy'
-      : row.remoteKind === 'none' ? 'none' : 'backup';
+    // include uncommitted items"*). An unknown is a third thing worth saying,
+    // and it is worth saying LOUDEST: nothing else on any surface will.
+    if (ahead !== null && ahead <= 0 && dirty <= 0) continue;
     // A repo with no remote can still have work in flight; it just has nowhere
     // to publish it, which History says rather than this card.
     if (kind === 'none' && dirty <= 0) continue;
@@ -13139,6 +13166,13 @@ function buildFleetHealthSection(): HTMLElement {
   const behind = rows.filter((r) => typeof r.ahead === 'number' && r.ahead > 0)
     .sort((a, b) => (b.ahead ?? 0) - (a.ahead ?? 0));
   const noRemote = rows.filter((r) => r.remoteKind === 'none');
+  // A remote, and no count (TASK-0421). This fell between the two lists above
+  // — `behind` requires a number and `noRemote` requires no remote — so a repo
+  // with a github origin and an untracked branch appeared in NEITHER, on the
+  // one card whose job is to say which repos are unpublished. Absent, not even
+  // wrong: the roll-up's version of the coercion the attention card had.
+  const unknownAhead = rows.filter(
+    (r) => r.remoteKind && r.remoteKind !== 'none' && typeof r.ahead !== 'number');
   if (behind.length) {
     const head2 = document.createElement('p');
     head2.className = 'agents-health-subhead';
@@ -13154,6 +13188,14 @@ function buildFleetHealthSection(): HTMLElement {
     // Not "up to date". Nothing is backed up at all.
     p.textContent = `${noRemote.length} with no remote: `
       + noRemote.map((r) => r.name).join(', ');
+    wrap.appendChild(p);
+  }
+  if (unknownAhead.length) {
+    const p = document.createElement('p');
+    p.className = 'agents-health-unknown';
+    // History's sentence, on a third surface: no upstream, so no count.
+    p.textContent = `${unknownAhead.length} with no upstream set — nothing can `
+      + `say what is unpublished: ` + unknownAhead.map((r) => r.name).join(', ');
     wrap.appendChild(p);
   }
 

@@ -1235,9 +1235,15 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
         # synthesises from their role (ARCHITECTURE), not the one the note
         # carries (ARCH) — a naming difference, not an absence.
         "architecture": "standing document, findable under its manifest id",
-        # ISS-0164: genuinely absent, filed, and named here so a third
-        # instance cannot arrive quietly.
-        "phase": "ISS-0164 — no nav mode carries phases",
+        # ISS-0164: absent from the CORPUS, and the reason recorded here at
+        # first — "no nav mode carries phases" — was wrong. The `features`
+        # mode carries all 34 as group heads, with the phase's id in `key`
+        # and its note in `url`, and ISS-0132 made that head navigate. What
+        # misses them is `flattenNavItems`, which walks `group.items` and
+        # `group.subgroups` and never the head. Corrected 2026-08-14 when
+        # Edwin asked whether phases were selectable on the Features page.
+        "phase": "ISS-0164 — in the `features` payload as a group head, "
+                 "which `flattenNavItems` does not harvest",
     }
 
     idx = _I.build(Path(__file__).resolve().parents[1] / "docs")

@@ -175,6 +175,8 @@ Only two phases defer, and both were named by Edwin on 2026-08-11.
 - **Tier 2 (Regression Tests):** 7 items, 5 walked
 - **Tier 3 (Verification Tests):** 2 items, 1 walked
 
+*Those two Tier 3 items retired on 2026-08-14, per the tier contract's own rule that a verification check is promoted or removed after a verified release — this release being the trigger ([[ISS-0143]]). **The figures above are unchanged and stay as written**: they record what the suite held when the gate fired. Both items' evidence is preserved verbatim under the suite's Tier 3 heading, which is why removing them does not remove anything this release cites.*
+
 **The widened scope widens this too, and the suite does not yet know it.** Those 36 items were written against leg 1. Sixteen more features, each with acceptance criteria, will add Tier 1 items — so the gate's denominator grows as leg 2 lands, and a green gate today would not be a green gate for the release. **Each leg-2 feature adds its Tier 1 items at close-out**, rather than a sweep at the end; that is the rule this release should establish, since a suite written after the fact is written by someone reading the diff rather than the intent.
 
 The original entry read: *"None exist yet, and that is a scope item rather than an omission… 85 features, 23 test notes, zero tier classification, and a release gate that has never been able to fire."* Kept because the gate firing at all is the thing leg 1 bought.

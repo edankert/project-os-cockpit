@@ -42,65 +42,23 @@ function run(cwd: string, args: string[], timeout = 60_000): Promise<{
   });
 }
 
-/** What a repo has that its remote does not, and what kind of remote
- *  that is (TASK-0415 / ISS-0156).
- *
- *  `ahead` is null when there is no upstream to be ahead **of**, which
- *  is not the same as being up to date and must never render as such.
- *
- *  Lives here, beside the push, on purpose: this module already owns
- *  the backup/deploy classification because it is the process that runs
- *  `git push` and will not trust a classification that arrived over
- *  IPC. The count and the classification are the same question asked of
- *  the same repo, so they are answered in one place.
- */
-export async function probeGitState(root: string): Promise<{
-  ahead: number | null;
-  remote: string | null;
-  remoteKind: 'backup' | 'deploy' | 'none';
-  dirty: number;
-}> {
-  // 5s, not the push's 60s: this runs for every workspace on a timer,
-  // and a hung git on one repo must not stall the fleet.
-  const remote = await run(root, ['remote', 'get-url', 'origin'], 5_000);
-  let url = remote.ok ? remote.out.trim() : '';
-  if (!url) {
-    // No `origin`, but there may be another remote — and if it is a
-    // deploy target, that is precisely what the caller needs to know.
-    const all = await run(root, ['remote'], 5_000);
-    const first = (all.ok ? all.out : '').split('\n').map((s) => s.trim()).filter(Boolean)[0];
-    if (first) {
-      const other = await run(root, ['remote', 'get-url', first], 5_000);
-      url = other.ok ? other.out.trim() : '';
-    }
-  }
-  // Work in flight — the rung below "saved but not published" (FEAT-0100).
-  //
-  // **Scoped to the record**, `docs/` and `SNAPSHOT.yaml`, because that is what
-  // the only other surface reporting uncommitted work counts: History's band
-  // uses exactly this scope. Counting the whole repo here would put two
-  // different numbers behind one word on two surfaces describing one project,
-  // which is the defect this feature has hit repeatedly.
-  const status = await run(root, ['status', '--porcelain', '--', 'docs/', 'SNAPSHOT.yaml'], 5_000);
-  const dirty = status.ok
-    ? status.out.split('\n').filter((l) => l.trim().length > 0).length
-    : 0;
-
-  const kind = remoteKind(url);
-  if (kind === 'none') return { ahead: null, remote: null, remoteKind: 'none', dirty };
-
-  const counted = await run(root, ['rev-list', '--count', '@{u}..HEAD'], 5_000);
-  const parsed = counted.ok ? Number.parseInt(counted.out.trim(), 10) : Number.NaN;
-  return {
-    // A branch with no upstream fails the count. Null, not zero: "I
-    // cannot tell" and "nothing to publish" are different answers and
-    // only one of them is reassuring.
-    ahead: Number.isFinite(parsed) ? parsed : null,
-    remote: url || null,
-    remoteKind: kind,
-    dirty,
-  };
-}
+// `probeGitState` lived here from TASK-0415 until TASK-0422, and counted
+// `rev-list @{u}..HEAD` plus a scoped `status --porcelain` for every workspace
+// on the fleet clock. It was a second implementation of a question
+// `git_state.py` already answered for the badge and for History — so
+// FEAT-0100's claim, *one walk, so two surfaces cannot disagree*, was true of
+// the notes and false of the code (ISS-0165).
+//
+// They agreed right up until one of them changed, and then one did: the
+// unknown-count repair of 2026-08-14 was made in Python, and this side went on
+// turning "there is no upstream, so no count exists" into a zero.
+//
+// The counting now comes from `project_os_cockpit.fleet_git`, which
+// `fleet-health.ts` spawns on the same 60-second clock for every workspace —
+// so ISS-0156's one-clock property survives and there is one implementation.
+// What stays here is the classification below, which decides whether `git
+// push` may run at all: this is the process that runs it, and it does not take
+// that answer over IPC.
 
 export function registerGitIpc(): void {
   ipcMain.handle('git:push', async (_evt, workspaceId: unknown) => {

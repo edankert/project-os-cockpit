@@ -5671,30 +5671,16 @@ def _uncommitted_notes(
     The half of "what happened" that git history cannot answer: work in
     flight. Failure is silent — an absent or slow git means the band is
     empty, never that the page breaks.
+
+    **The walk is** :func:`git_state.dirty_paths` **and this decorates it**
+    (TASK-0422). It ran its own `git status` until 2026-08-14, with its own
+    copy of the rename handling, while the fleet card counted the same files
+    through a third implementation in TypeScript — the `dirty` half of
+    [[ISS-0165]]. What is left here is the part that is genuinely this
+    surface's: turning a path into the note it belongs to.
     """
-    import subprocess
-
-    try:
-        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
-            ["git", "-C", str(project_root), "status", "--porcelain",
-             "--", *scope],
-            capture_output=True, text=True,
-            timeout=_GIT_TIMEOUT_SECONDS, check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return []
-    if proc.returncode != 0:
-        return []
-
     out: list[dict[str, Any]] = []
-    for line in proc.stdout.splitlines():
-        if len(line) < 4:
-            continue
-        code, git_path = line[:2].strip(), line[3:].strip()
-        # Renames read `old -> new`; the new path is the one that exists.
-        if " -> " in git_path:
-            git_path = git_path.split(" -> ", 1)[1]
-        git_path = git_path.strip('"')
+    for code, git_path in _git_state.dirty_paths(project_root, tuple(scope)):
         record = resolve(git_path)
         out.append({
             "id": getattr(record, "note_id", None),
