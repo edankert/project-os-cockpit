@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-030
 aliases: ["PHASE-030"]
 title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
-status: done
+status: active
 order: 30
 owner: user:edwin
 created: 2026-08-10
-updated: 2026-08-13
+updated: "2026-08-14"
 goal: "Move every owed human judgment out of a single queue and into the view that owns its subject, with a count on each view button that together covers every kind — so what needs a person is visible without going to look for it, and the surface that once collected them can be removed without anything becoming unreachable."
 features:
   - "[[FEAT-0086-Tests-Becomes-A-View]]"
@@ -117,3 +117,9 @@ Every member resolved: seven features `done`, [[REQ-0033]] `implemented`, and al
 - The digest's `needs_you_count` walks the corpus itself with `_owed_flag` instead of reading the registry — a **third** enumeration of what is owed, which is the class this phase exists to end. Found while building [[TASK-0418]]; not filed as an issue yet.
 - [[DES-0011]] is `accepted` on an artifact captured from the built surface, and is the first design in this corpus to declare no palette of its own — [[ISS-0136]] measures five of nine hard-coding a dark one.
 - [[FEAT-0100]] reached `done` without an independent review pass. `QUALITY.md` asks for one on a feature transition; the validator does not gate it, so it is owed and stated here rather than assumed away.
+
+## Reopened — 2026-08-14
+
+[[FEAT-0100]] came out of `done` on an independent review that returned changes-requested, and a `done` phase may not hold an unresolved child (`PHASE-CHILDREN`). Reopening is the honest move rather than re-homing the feature: this phase is where publication became an obligation, and the findings are about that work.
+
+It closes again when FEAT-0100 does. The [[ISS-0077]] rule applies — reopening is cheap, and a phase whose status means what it says at every moment is the point.

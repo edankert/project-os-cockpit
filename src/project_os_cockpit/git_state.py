@@ -76,7 +76,7 @@ class GitState:
     remote: str | None
     kind: str                       # backup | deploy | none
     ahead: int | None
-    commits: tuple[Commit, ...]     # newest first, capped at MAX_COMMITS
+    commits: tuple[Commit, ...]     # newest first, uncapped (see read())
 
 
 _EMPTY = GitState(remote=None, kind="none", ahead=None, commits=())

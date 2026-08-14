@@ -2,7 +2,7 @@
 type: "[[change]]"
 id: CHG-20260812-Plan-Remote-SSH-Workspaces
 title: "Plan Remote SSH Workspaces"
-status: draft
+status: merged
 owner: user:edwin
 created: 2026-08-12
 updated: 2026-08-13

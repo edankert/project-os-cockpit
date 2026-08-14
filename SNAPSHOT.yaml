@@ -57,7 +57,7 @@ counters:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 100
-  ISS: 164
+  ISS: 165
   PHASE: 33
   REQ: 36
   RISK: 7
@@ -78,7 +78,7 @@ items:
     FEAT-0100:
       file: "docs/features/unpushed-work/FEAT-0100-Unpushed-Work-Needs-A-Person.md"
       title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
-      status: done
+      status: review
       owner: user:edwin
       phase: "[[PHASE-030-Obligations-Go-Home]]"
       tasks: [TASK-0415, TASK-0416, TASK-0417, TASK-0418, TASK-0419, TASK-0420]
@@ -1969,7 +1969,7 @@ items:
     PHASE-030:
       file: "docs/phases/PHASE-030-Obligations-Go-Home.md"
       title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
-      status: done
+      status: active
       order: 30
       features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090", "FEAT-0091", "FEAT-0100"]
       issues: ["ISS-0121", "ISS-0156"]
@@ -2730,7 +2730,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 100
-    features_done: 90
+    features_done: 89
     tasks_total: 420
     tasks_done: 385
     tests_total: 24
@@ -2738,7 +2738,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 2
+    issues_open: 3
     issues_triage: 0
     risks_open: 6
     releases_total: 1

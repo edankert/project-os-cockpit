@@ -624,6 +624,22 @@ PROMOTIONS = {
     # in project-os-cockpit carry no status. Clause 3 forbids promoting
     # over debt, so this warns while the fleet is groomed.
     "PLAN-STATE": "2026-10-24",
+    # Added 2026-08-14 with TEST-ENTRYPOINT and STATUS-TYPE themselves --
+    # which shipped that morning as UNDATED warnings, under a comment
+    # claiming "a warning with a promotion date, per ADR-0011". The
+    # justification was written and the date was not, which is precisely the
+    # permanent-warning tier ADR-0011 exists to forbid: "a check with no
+    # cutover is promoted or deleted". Found by independent review the same
+    # day, in the change that cited the rule.
+    #
+    # 43 findings across five repos at introduction, none in the repo that
+    # had just fixed its own. 90 days is the ceiling clause 3 allows and the
+    # debt is real but bounded -- a `command:` or a `kind: manual` per note.
+    "TEST-ENTRYPOINT": "2026-11-12",
+    # 4 findings across three repos, and every one is a note type somebody
+    # invented without a status table. Cheaper to clear than TEST-ENTRYPOINT
+    # and dated the same day for one cutover rather than two.
+    "STATUS-TYPE": "2026-11-12",
 }
 
 
@@ -1657,7 +1673,7 @@ def validate(root, report):
                 # type that quietly acquires a status is back to a value nothing
                 # validates, which is the condition this whole check is about.
                 if has_value(fm.get("status")):
-                    report.warn(
+                    promotion_emit(report, "STATUS-TYPE", grandfathered, rel)(
                         "STATUS-TYPE",
                         "%s is a '%s' note, a type recorded as carrying no lifecycle status, but "
                         "declares status: '%s'; give the type a table or drop the field"
@@ -1667,7 +1683,7 @@ def validate(root, report):
                 continue
             seen_types.setdefault(ntype, rel)
     for ntype, rel in sorted(seen_types.items()):
-        report.warn(
+        promotion_emit(report, "STATUS-TYPE", grandfathered, rel)(
             "STATUS-TYPE",
             "note type '%s' appears in docs/ but has no entry in ALLOWED_STATUS and is not in "
             "STATUS_FREE_TYPES, so any status: it carries is validated against nothing (e.g. %s)"
@@ -1697,12 +1713,13 @@ def validate(root, report):
             # nobody can check without first reverse-engineering which module
             # verifies it.
             #
-            # A warning with a promotion date, per ADR-0011: measured across the
+            # A warning with a promotion date (PROMOTIONS, 2026-11-12), per
+            # ADR-0011: measured across the
             # twelve repos the cockpit renders, 91 of 92 test notes are automated
             # and only one declares a command, so erroring on day one would fail
             # every repo for a rule none of them knew existed.
             if status in TEST_RUNNER_STATUSES and not _declares_manual(fm):
-                report.warn(
+                promotion_emit(report, "TEST-ENTRYPOINT", grandfathered, the_id)(
                     "TEST-ENTRYPOINT",
                     "%s is '%s' and is not declared manual, but has no command:; nothing can re-run it, so its "
                     "status cannot be refreshed by machine -- add a command:, or say kind: manual (%s)"

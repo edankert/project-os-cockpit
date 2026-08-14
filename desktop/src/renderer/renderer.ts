@@ -470,17 +470,6 @@ function renderWorkspaceRail(): void {
   }
 }
 
-function colorFromName(name: string): string {
-  // Deterministic hue (0-360) from the workspace name. Saturation +
-  // lightness picked so all variants read on both light and dark bg.
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue} 55% 45%)`;
-}
-
 // ---- fleet validator health (FEAT-0028 / TASK-0250) ----------------
 
 // `healthMarks` comes from `health-marks.ts`, loaded as a separate <script>
@@ -2538,12 +2527,6 @@ function currentTerminalTheme(): Record<string, string> {
   return document.documentElement.dataset.theme === 'dark'
     ? TERMINAL_THEME_DARK
     : TERMINAL_THEME_LIGHT;
-}
-
-function activeWorkspaceCwd(): string | undefined {
-  if (!activeId) return undefined;
-  const ws = workspaces.find((w) => w.id === activeId);
-  return ws?.root;
 }
 
 // Wire IPC listeners once. data/exit events come in tagged with
@@ -7306,41 +7289,6 @@ function buildStatTiles(data: StatsPayload): HTMLElement {
   return wrap;
 }
 
-function buildHero(hero: StatsHero): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-hero';
-  const fmt = (n: number, total: number): string => total ? `${n} / ${total}` : '—';
-  const cell = (label: string, value: string, sub?: string): HTMLElement => {
-    const el = document.createElement('div');
-    el.className = 'ov-hero-cell';
-    el.innerHTML = `<div class="ov-hero-value">${value}</div>`
-      + `<div class="ov-hero-label">${label}</div>`
-      + (sub ? `<div class="ov-hero-sub">${sub}</div>` : '');
-    return el;
-  };
-  wrap.append(
-    cell('Features', fmt(hero.features.done, hero.features.total)),
-    cell('Tasks',    fmt(hero.tasks.done,    hero.tasks.total)),
-    cell('Issues',   String(hero.issues.open), `${hero.issues.total} total`),
-    cell('Tests',    `${hero.tests.passing} / ${hero.tests.total}`),
-    cell('Risks',    String(hero.risks.open), `${hero.risks.total} total`),
-  );
-  if (hero.last_change) {
-    const last = document.createElement('div');
-    last.className = 'ov-hero-cell ov-hero-last';
-    last.innerHTML = `<div class="ov-hero-value ov-hero-last-title">${escapeHtml(hero.last_change.title)}</div>`
-      + `<div class="ov-hero-label">Last change</div>`
-      + `<div class="ov-hero-sub">${escapeHtml(hero.last_change.date)}</div>`;
-    last.style.cursor = 'pointer';
-    last.title = hero.last_change.rel;
-    last.addEventListener('click', () => {
-      if (hero.last_change?.rel) void navigateTo(hero.last_change.rel);
-    });
-    wrap.appendChild(last);
-  }
-  return wrap;
-}
-
 // ----- Phase section (TASK-0201) ----------------------------------------
 // Live phases lead and carry their metadata on the row; finished phases
 // group under a "Completed" band. Every row is an accordion — expanded
@@ -7730,23 +7678,6 @@ const STATUS_COLOR_BY_KEY: Record<string, string> = {
   triage: 'var(--severity-medium)', open: 'var(--severity-medium)',
 };
 
-function donutGradient(mix: Record<string, number>): string {
-  const total = Object.values(mix).reduce((a, b) => a + b, 0);
-  if (total === 0) return `var(--text-faint)`;
-  // Sort entries so the donut has a stable arc order.
-  const entries = Object.entries(mix).sort((a, b) => b[1] - a[1]);
-  const parts: string[] = [];
-  let acc = 0;
-  for (const [status, count] of entries) {
-    const start = (acc / total) * 100;
-    acc += count;
-    const end = (acc / total) * 100;
-    const color = STATUS_COLOR_BY_KEY[status] || 'var(--text-muted)';
-    parts.push(`${color} ${start}% ${end}%`);
-  }
-  return `conic-gradient(${parts.join(', ')})`;
-}
-
 // ----- Waiting on you (TASK-0200) ---------------------------------------
 // Only states the corpus actually holds and holds *durably*. The states
 // audit behind FEAT-0040 found `doing`/`triage` empty between sessions
@@ -7852,7 +7783,8 @@ interface HistoryPayload {
    *  `deploy` names it and refuses, `none` has nowhere to send them. */
   remote_kind?: 'backup' | 'deploy' | 'none';
   /** How many are unpublished in TOTAL — not how many this window shows. */
-  unpublished_count?: number;
+  unpublished_count?: number | null;
+  publication_known?: boolean;
   uncommitted: Array<{
     id: string | null; type: string | null; title: string | null;
     rel: string | null; path: string; status: string | null; code: string;
@@ -8136,6 +8068,10 @@ async function fillHistory(
   // this surface has to say about publication.
   if (remoteKind === 'none') {
     parts.push(buildPublicationBlock({ kind: 'none' }));
+  } else if (data.publication_known === false) {
+    // Explicitly `=== false`: an older sidecar omits the field, and `undefined`
+    // must keep the previous behaviour rather than declaring every repo unknown.
+    parts.push(buildPublicationBlock({ kind: 'unknown' }));
   }
 
   // The unpublished run, bounded (Edwin: *"keep the … boundary around it"*).
@@ -8236,7 +8172,7 @@ function buildUncommittedBand(
  *  published — top to bottom, in the order those things happen.
  */
 function buildPublicationBlock(opts: {
-  kind: 'backup' | 'deploy' | 'none';
+  kind: 'backup' | 'deploy' | 'none' | 'unknown';
   total?: number;
   shown?: number;
 }): HTMLElement {
@@ -8253,6 +8189,13 @@ function buildPublicationBlock(opts: {
     // No number says this, and zero says the opposite: not "nothing to push"
     // but "nowhere to push to".
     ? 'No remote — nothing here is backed up'
+    // A remote exists but the branch tracks nothing, so `@{u}` resolves to
+    // nothing and the count cannot be taken. Rendering that as `0 commits not
+    // pushed` is the ADR-0027 admission-test-4 failure this block shipped with
+    // until 2026-08-14: an unknown wearing a number, on the one surface whose
+    // job is to say what still needs doing.
+    : opts.kind === 'unknown'
+      ? 'No upstream set — nothing can say what is unpublished'
     : opts.kind === 'deploy'
       // A different sentence for a different fact: these are not waiting for a
       // click, they are waiting for a deliberate deploy elsewhere.
@@ -8269,7 +8212,9 @@ function buildPublicationBlock(opts: {
     head.appendChild(more);
   }
 
-  if (activeId && opts.kind !== 'none') {
+  // Neither `none` nor `unknown` gets a button: one has nowhere to push, the
+  // other cannot say what pushing would send.
+  if (activeId && opts.kind !== 'none' && opts.kind !== 'unknown') {
     const ws = workspaces.find((w) => w.id === activeId);
     const act = buildPushControl({
       workspaceId: activeId,
@@ -8358,206 +8303,6 @@ function buildTransitionRow(tr: HistoryTransition): HTMLElement {
     el.disabled = true;   // the note has since been deleted or renamed
   }
   return el;
-}
-
-function buildChangeRow(item: NavItem): HTMLElement {
-  const rel = extractRel(item.url);
-  const row = document.createElement('div');
-  row.className = 'ov-change-row';
-  const id = document.createElement('span');
-  id.className = 'mono ov-typed';
-  id.dataset.type = 'change';
-  id.textContent = String(item.id || '');
-  const title = document.createElement('span');
-  title.className = 'ov-change-title';
-  title.textContent = item.title || '';
-  title.title = item.title || '';
-  row.append(id, title);
-  if (rel) {
-    row.style.cursor = 'pointer';
-    row.addEventListener('click', () => void navigateTo(rel));
-  }
-  return row;
-}
-
-// A bucket and its optional week sub-buckets, as nested disclosures —
-// the same `ov-chev` affordance the record column's "N older" uses.
-function buildChangeBucket(group: NavGroupData): HTMLElement {
-  const wrap = document.createElement('div');
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'ctx-disclosure';
-  const chev = document.createElement('span');
-  chev.className = 'ov-chev';
-  const label = document.createElement('span');
-  const subs = group.subgroups ?? [];
-  const count = (group.items ?? []).length
-    + subs.reduce((n, s) => n + (s.items ?? []).length, 0);
-  label.textContent = `${group.label} · ${count}`;
-  btn.append(chev, label);
-  const inner = document.createElement('div');
-  inner.hidden = true;
-  for (const item of group.items ?? []) inner.appendChild(buildChangeRow(item));
-  for (const sub of subs) inner.appendChild(buildChangeBucket(sub));
-  btn.addEventListener('click', () => {
-    inner.hidden = !inner.hidden;
-    btn.classList.toggle('is-open', !inner.hidden);
-  });
-  wrap.append(btn, inner);
-  return wrap;
-}
-
-function buildCommitRow(commit: CommitRow): HTMLLIElement {
-  const li = document.createElement('li');
-  if (commit.undocumented) li.classList.add('is-undocumented');
-
-  const sha = document.createElement('span');
-  sha.className = 'ov-commit-sha mono';
-  sha.textContent = commit.sha;
-  sha.title = commit.full_sha;
-  const date = document.createElement('span');
-  date.className = 'ov-commit-date mono';
-  date.textContent = commit.date.slice(5);      // MM-DD
-  date.title = `${commit.date} · ${commit.author}`;
-  const subject = document.createElement('span');
-  subject.className = 'ov-commit-subject';
-  subject.textContent = commit.subject;
-  subject.title = commit.subject;
-  li.append(sha, date, subject);
-
-  const chips = document.createElement('span');
-  chips.className = 'ov-commit-items';
-  if (commit.undocumented) {
-    // FEAT-0022's traceability guardrail, per commit: code moved and no
-    // note recorded it.
-    const flag = document.createElement('span');
-    flag.className = 'ov-commit-flag';
-    flag.textContent = 'no doc items';
-    flag.title = 'This commit touched no project-os notes';
-    chips.appendChild(flag);
-  }
-  for (const item of commit.items.slice(0, 4)) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'ov-commit-chip';
-    const id = document.createElement('span');
-    id.className = 'mono ov-typed';
-    id.dataset.type = item.type;
-    // Display handle only (ISS-0084). The review desk was the one
-    // surface the shortening had not reached — the third time in this
-    // phase a change landed in some renderers and not all of them.
-    id.textContent = shortNoteId(item.id);
-    id.title = item.id;
-    chip.appendChild(id);
-    if (item.done) {
-      const tick = document.createElement('span');
-      tick.className = 'ov-commit-tick';
-      tick.textContent = '✓';
-      chip.appendChild(tick);
-    }
-    chip.title = `${item.id} ${item.title} (${item.status || '—'})`;
-    chip.addEventListener('click', (e) => {
-      e.stopPropagation();
-      void navigateTo(item.rel);
-    });
-    chips.appendChild(chip);
-  }
-  if (commit.items.length > 4) {
-    const more = document.createElement('span');
-    more.className = 'ov-commit-more mono';
-    more.textContent = `+${commit.items.length - 4}`;
-    more.title = commit.items.slice(4).map((i) => `${i.id} ${i.title}`).join('\n');
-    chips.appendChild(more);
-  }
-  li.appendChild(chips);
-  return li;
-}
-
-function buildBottomGrid(data: StatsPayload): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-bottom';
-
-  // Activity histogram on the left.
-  const activity = document.createElement('div');
-  activity.className = 'ov-tile ov-activity';
-  const maxCount = Math.max(1, ...data.activity.weekly.map((w) => w.count));
-  const bars = data.activity.weekly.map((w) => {
-    const pct = (w.count / maxCount) * 100;
-    return `<span class="ov-act-bar" title="${w.week_iso} · ${w.count} change${w.count === 1 ? '' : 's'}" style="height:${pct}%"></span>`;
-  }).join('');
-  activity.innerHTML = `
-    <h3>Activity (last 13 weeks)</h3>
-    <div class="ov-act-chart">${bars}</div>
-    <div class="ov-act-axis"><span>13w</span><span>now</span></div>`;
-  wrap.appendChild(activity);
-
-  // Donuts on the right.
-  const donuts = document.createElement('div');
-  donuts.className = 'ov-tile ov-donuts';
-  donuts.innerHTML = '<h3>Status mix</h3>';
-  const grid = document.createElement('div');
-  grid.className = 'ov-donut-grid';
-  for (const key of ['features', 'tasks', 'issues', 'requirements']) {
-    const mix = data.status_mix[key] || {};
-    const total = Object.values(mix).reduce((a, b) => a + b, 0);
-    const d = document.createElement('div');
-    d.className = 'ov-donut-cell';
-    d.innerHTML = `
-      <div class="ov-donut" style="background: ${donutGradient(mix)}">
-        <div class="ov-donut-hole">${total}</div>
-      </div>
-      <div class="ov-donut-label">${key}</div>`;
-    grid.appendChild(d);
-  }
-  donuts.appendChild(grid);
-  wrap.appendChild(donuts);
-  return wrap;
-}
-
-function buildRecentFeed(recent: StatsRecent[]): HTMLElement {
-  const wrap = document.createElement('section');
-  wrap.className = 'ov-section ov-feed';
-  wrap.innerHTML = '<h3>Recent activity</h3>';
-  if (recent.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'meta';
-    empty.textContent = 'No changes recorded yet.';
-    wrap.appendChild(empty);
-    return wrap;
-  }
-  const ul = document.createElement('ul');
-  ul.className = 'ov-feed-list';
-  for (const r of recent) {
-    const li = document.createElement('li');
-    const typeTag = r.type
-      ? `<span class="ov-feed-type ov-feed-type-${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>`
-      : '';
-    // Display handle only (ISS-0084, reaching this surface at ISS-0099 —
-    // the fourth straggler). `title` keeps the full value.
-    const idTag = r.id
-      ? `<span class="ov-feed-id" title="${escapeHtml(r.id)}">${escapeHtml(shortNoteId(r.id))}</span>`
-      : '';
-    const featTag = r.features && r.features.length
-      ? `<span class="ov-feed-tag">${escapeHtml(r.features.join(', '))}</span>`
-      : '';
-    li.innerHTML = `
-      <span class="ov-feed-date">${escapeHtml(r.date)}</span>
-      ${typeTag}
-      ${idTag}
-      <span class="ov-feed-title">${escapeHtml(r.title)}</span>
-      ${featTag}`;
-    li.style.cursor = 'pointer';
-    li.title = r.rel;
-    li.addEventListener('click', () => {
-      if (r.rel) {
-        setNavMode('features');
-        void navigateTo(r.rel);
-      }
-    });
-    ul.appendChild(li);
-  }
-  wrap.appendChild(ul);
-  return wrap;
 }
 
 // Wire the top-bar + rail-tools controls (FEAT-0015 iteration 2):
@@ -9055,18 +8800,6 @@ const RECENT_BUCKET_ICONS: Record<string, string> = {
   earlier:   GROUP_ICONS.history,
 };
 
-function groupIcon(mode: NavMode, group: NavGroupData): SVGElement | null {
-  const key = String(group.key || '');
-  if (key === 'pinned')    return makeSvg(GROUP_ICONS.star, 13, { class: 'group-icon' });
-  if (key === 'docs-tree') return makeSvg(GROUP_ICONS.folder_tree, 13, { class: 'group-icon' });
-  if (key.indexOf('rare:') === 0) return typeIcon(key.slice(5), 13);
-  if (mode === 'features') return makeSvg(GROUP_ICONS.layers, 13, { class: 'group-icon' });
-  if (mode === 'tasks')    return makeSvg(GROUP_ICONS.list_checks, 13, { class: 'group-icon', 'data-status': key });
-  if (mode === 'issues')   return makeSvg(GROUP_ICONS.alert_octagon, 13, { class: 'group-icon', 'data-severity': key });
-  if (mode === 'recent')   return makeSvg(RECENT_BUCKET_ICONS[key] || GROUP_ICONS.history, 13, { class: 'group-icon' });
-  return null;
-}
-
 function statusChip(status: string | undefined): HTMLSpanElement | null {
   if (!status) return null;
   const span = document.createElement('span');
@@ -9306,41 +9039,6 @@ function navItemCompact(item: NavItem): HTMLLIElement {
 // ISS-0085 — 103 rows of it in the pilot workspace.
 function navItemNested(item: NavItem): HTMLLIElement {
   return buildNavRow(item, 'nav-item-nested');
-}
-
-function renderItemChildren(item: NavItem): HTMLDetailsElement | null {
-  // Children order open-first like every other list (TASK-0267). Mode 1
-  // did this from the start and mode 3 did not — the review caught the
-  // two surfaces disagreeing, which is the failure mode a hand-written
-  // twin has by construction.
-  const kids = openFirst(item.children || []);
-  if (!kids.length) return null;
-  const details = document.createElement('details');
-  details.className = 'nav-item-children';
-  const summary = document.createElement('summary');
-  summary.className = 'nav-item-children-toggle';
-  const chevron = document.createElement('span');
-  chevron.className = 'nav-children-chevron';
-  chevron.setAttribute('aria-hidden', 'true');
-  summary.appendChild(chevron);
-  const label = document.createElement('span');
-  // Requirements were the only child type until FEAT-0046 nested the
-  // delivery plan here too, so a hardcoded "N requirements" would have
-  // counted the plan as one — the kind of quietly wrong label nobody
-  // reads twice.
-  const plans = kids.filter((k) => k.type === 'plan').length;
-  const rest = kids.length - plans;
-  const parts: string[] = [];
-  if (rest) parts.push(`${rest} requirement${rest === 1 ? '' : 's'}`);
-  if (plans) parts.push(plans === 1 ? 'plan' : `${plans} plans`);
-  label.textContent = parts.join(' · ');
-  summary.appendChild(label);
-  details.appendChild(summary);
-  const list = document.createElement('ul');
-  list.className = 'nav-item-children-list';
-  for (const child of kids) list.appendChild(navItemNested(child));
-  details.appendChild(list);
-  return details;
 }
 
 // ----- Group + left-pane assembly
@@ -11964,8 +11662,27 @@ function clearDismissalsFor(wsId: string): void {
 }
 
 /** Drop keys nothing can bring back: vanished workspaces, and fingerprints a
- *  newer one has replaced. Keeps the store bounded without a clock. */
+ *  newer one has replaced. Keeps the store bounded without a clock.
+ *
+ *  **Does nothing before the fleet is known**, and that guard is the whole
+ *  feature. `refreshAttention()` is called at module load to paint the
+ *  last-known state immediately (TASK-0170), at which point `workspaces` is
+ *  still `[]` — it is only assigned inside async discovery. Every restored key
+ *  therefore failed `workspaces.some(...)`, so the renderer read the store back
+ *  and wiped it on the same tick, persisting `{}`.
+ *
+ *  The effect was that dismissals never survived a restart, which is the one
+ *  thing the feature was asked for: *"this should be preserved across
+ *  application start-ups"* (Edwin, 2026-08-13). Found by independent review
+ *  2026-08-14; TASK-0420's DoD had asked for exactly this to be asserted rather
+ *  than assumed, and the box was never ticked.
+ *
+ *  An empty fleet is indistinguishable from an undiscovered one here, and the
+ *  costs are not symmetric: pruning too early destroys a user's decisions,
+ *  while pruning too late leaves a few bytes in localStorage until the next
+ *  refresh. So it waits. */
 function pruneDismissedAlerts(liveKeys: Set<string>): void {
+  if (!workspaces.length) return;
   let changed = false;
   for (const k of Object.keys(dismissedAlerts)) {
     const wsId = k.slice(0, k.indexOf('::'));
@@ -12717,11 +12434,6 @@ function resolveDispatchAgent(v: unknown): DispatchAgent | null {
 /** Display label for any agent, dispatchable or merely recorded. An agent the
  *  cockpit cannot launch still appears in records; showing it under another
  *  agent's name would misattribute the work. */
-function agentLabel(id: string | null | undefined): string {
-  if (!id) return 'unknown';
-  return agentRegistry.find((a) => a.id === id)?.label ?? id;
-}
-
 interface AgentAction { key: string; label: string; prompt: string; default?: boolean; when?: string[] }
 let agentActions: Record<string, AgentAction[]> = {};
 
@@ -13005,13 +12717,6 @@ async function fetchSessions(): Promise<AgentSessionSlim[]> {
 
 // ----- Recent activity feed (TASK-0127; sessions moved to ~agents in
 // TASK-0178 — the overview is project-focused). --------------------------
-
-function buildFeedsGrid(data: StatsPayload): HTMLElement {
-  const grid = document.createElement('section');
-  grid.className = 'ov-feeds ov-feeds-single';
-  grid.append(buildRecentFeed(data.activity.recent));
-  return grid;
-}
 
 // Per-project session history on the ~agents screen (TASK-0180 / ISS-0013):
 // driven by the selected fleet row, sourced from that workspace's sidecar

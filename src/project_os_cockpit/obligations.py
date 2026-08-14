@@ -347,7 +347,34 @@ def _publication_rows(index: Any, kind: str, verb: str,
         state = git_state.read(project_root)
     except OSError:                      # pragma: no cover — unreadable repo
         return []
-    if state.kind != remote_kind or not state.commits:
+    if state.kind != remote_kind:
+        return []
+
+    # An UNKNOWN count is not a zero, and rendering it as one is the failure
+    # ADR-0027's fourth admission test exists to refuse -- the same test
+    # TASK-0415's opening paragraph names as this obligation's gate, and which
+    # the shipped code did not honour. `ahead` is None when the count could not
+    # be taken at all: a branch with no upstream is the ordinary case, and
+    # `git rev-list @{u}..HEAD` simply fails. Independent review demonstrated
+    # it on 2026-08-14 -- a real repo, a real github remote, no upstream, and
+    # all three surfaces silently reported nothing owed.
+    #
+    # It is emitted as ONE row rather than a count of commits, because the
+    # number of commits is precisely what is not known. What is known is that
+    # a person has to do something -- set the upstream -- before publication
+    # can be reported at all, which is exactly what this registry counts.
+    if state.ahead is None:
+        return [{
+            "id": "publication-state-unknown",
+            "title": "No upstream is set, so nothing can say what is unpublished",
+            "url": "~history",
+            "rel": "",
+            "type": kind,
+            "status": state.kind,
+            "detail": "unknown",
+            "verb": verb,
+        }]
+    if not state.commits:
         return []
     return [{
         "id": commit.sha,

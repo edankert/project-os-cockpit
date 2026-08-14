@@ -1283,3 +1283,74 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
     assert releases and releases[1] == releases[0], (
         "releases are unfindable again; ISS-0142 regressed"
     )
+
+
+def test_the_renderer_has_no_unreachable_top_level_function() -> None:
+    """Dead code that references other dead code is invisible to the compiler.
+
+    `noUnusedLocals` flags a function nobody mentions. It cannot flag a *cluster*:
+    ISS-0139 removed the Changes tile and left `buildChangeRow` and
+    `buildChangeBucket` behind, each called only by the other, so TypeScript saw
+    two used functions. Independent review found them on 2026-08-14, and this
+    check — written to guard that one removal — found nine more in the same
+    condition, a chain rooted in `buildHero`/`buildBottomGrid`/`buildFeedsGrid`
+    from the pre-PHASE-008 overview. 328 lines the compiler could not see.
+
+    So the assertion is *reachability*, not mention-counting. Roots are the
+    functions referenced from outside any function body — module-level calls and
+    event wiring. Everything reachable from a root is live; the remainder is
+    dead however busily it calls itself.
+    """
+    code = re.sub(r"//[^\n]*", "", _renderer_code())
+    code = re.sub(r"/\*.*?\*/", "", code, flags=re.S)
+
+    spans: dict[str, tuple[int, int]] = {}
+    for m in re.finditer(r"^(?:async )?function ([A-Za-z_$][\w$]*)\s*\(", code, re.M):
+        name = m.group(1)
+        i = code.index("{", m.end() - 1)
+        depth, j = 0, i
+        while j < len(code):
+            if code[j] == "{":
+                depth += 1
+            elif code[j] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        spans[name] = (m.start(), j + 1)
+
+    assert len(spans) > 100, "the function scan found almost nothing; the parse is wrong"
+    ordered = sorted(spans.values())
+
+    def enclosing(pos: int) -> str | None:
+        for name, (a, b) in spans.items():
+            if a <= pos < b:
+                return name
+        return None
+
+    roots: set[str] = set()
+    callers: dict[str, set[str]] = {n: set() for n in spans}
+    for name, (a, b) in spans.items():
+        for m in re.finditer(r"\b%s\b" % re.escape(name), code):
+            if a <= m.start() < b:
+                continue  # its own declaration, or recursion
+            holder = enclosing(m.start())
+            if holder is None:
+                roots.add(name)
+            else:
+                callers[name].add(holder)
+
+    reachable, frontier = set(roots), list(roots)
+    while frontier:
+        cur = frontier.pop()
+        for name, holders in callers.items():
+            if name not in reachable and cur in holders:
+                reachable.add(name)
+                frontier.append(name)
+
+    dead = sorted(set(spans) - reachable)
+    assert not dead, (
+        "these top-level functions are unreachable from any module-level call — "
+        "dead code the compiler cannot see because the cluster references "
+        f"itself: {dead}"
+    )

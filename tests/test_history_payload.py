@@ -460,3 +460,79 @@ def test_the_unpublished_total_is_not_the_windows_marks(tmp_path: Path) -> None:
     assert window["unpublished_count"] == 5, (
         "the total is the run's, not the window's"
     )
+
+
+def test_an_unknown_publication_count_is_not_reported_as_zero(tmp_path: Path) -> None:
+    """ADR-0027's fourth admission test, on the obligation that shipped without it.
+
+    A branch with no upstream makes `git rev-list @{u}..HEAD` fail, so `ahead`
+    is None — the count could not be taken. Every surface turned that into 0:
+    the registry emitted no rows, `history_payload` returned `unpublished_count:
+    0`, and the attention card coerced `null ?? 0` and skipped. Three silent
+    zeros on a repo whose commits had nowhere to go.
+
+    TASK-0415's opening paragraph names this very test as the obligation's gate,
+    and independent review demonstrated the failure on 2026-08-14 against a real
+    repo with a real remote and no upstream.
+
+    Unknown is not zero, and the difference is the whole point of the registry:
+    zero means nothing needs you, unknown means nobody can tell.
+    """
+    from project_os_cockpit import git_state, obligations
+
+    repo = tmp_path / "r"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("counters: {}\n", encoding="utf-8")
+    run = lambda *a: subprocess.run(  # noqa: E731
+        ["git", "-C", str(repo), *a], capture_output=True, check=False)
+    run("init", "-q", "--initial-branch=feature-x")
+    run("config", "user.email", "t@e.st")
+    run("config", "user.name", "T")
+    run("config", "commit.gpgsign", "false")
+    # A real remote, so `kind` resolves — but the branch tracks nothing.
+    run("remote", "add", "origin", "git@github.com:someone/thing.git")
+    (repo / "docs" / "a.md").write_text("---\nstatus: doing\n---\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "one")
+
+    git_state.clear_cache()
+    state = git_state.read(repo)
+    assert state.kind == "backup", "the remote should still be classified"
+    assert state.ahead is None, (
+        "this fixture is meant to produce an UNKNOWN count; if git now answers "
+        "for a branch with no upstream, the test no longer probes what it says"
+    )
+
+    index = Index.build(repo / "docs")
+
+    # 1. The registry counts it as something a person must resolve.
+    assert obligations.counts(index).get("overview", 0) >= 1, (
+        "an unknown publication state produced no obligation, so the badge "
+        "reads the same as a repo with nothing to push"
+    )
+    rows = [r for rows in obligations.owed_items(index).values() for r in rows
+            if "commit" in str(r.get("type", ""))]
+    assert rows and rows[0]["detail"] == "unknown", (
+        "the row must say the count is unknown rather than assert a number"
+    )
+
+    # 2. History reports the absence of a count, not a count of zero.
+    payload = history_payload(repo, index)
+    assert payload["unpublished_count"] is None
+    assert payload["publication_known"] is False
+
+    # 3. A KNOWN zero still reports zero — the guard must not make every repo
+    #    unknown, which would be the same failure wearing the other hat.
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=feature-x", "."], check=False)
+    run("remote", "set-url", "origin", str(bare))
+    run("push", "-q", "-u", "origin", "feature-x")
+    # The reading is cached for CACHE_SECONDS, so without this the second half
+    # of the test would re-read the first half's answer and pass for the wrong
+    # reason — asserting the cache rather than the code.
+    git_state.clear_cache()
+    known = history_payload(repo, Index.build(repo / "docs"))
+    assert known["publication_known"] is True
+    assert known["unpublished_count"] == 0

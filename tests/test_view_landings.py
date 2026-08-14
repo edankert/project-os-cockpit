@@ -567,9 +567,15 @@ def test_every_terminal_attach_restores_the_keyboard() -> None:
     """
     src = RENDERER.read_text(encoding="utf-8")
     assert "async function attachAndFocusTerminal(" in src
-    # The bare attach is called only by the helper and by nothing else.
-    bare = re.findall(r"(?<!async function )attachTerminalTo\(", src)
-    assert len(bare) == 2, (
+    # Comments are stripped before counting, and that is not tidiness.
+    # Independent review (2026-08-14) found this assertion satisfied by prose:
+    # one of the two matches was `// This line used to be `void
+    # attachTerminalTo(id)``, so deleting that comment while reintroducing a
+    # real bare call kept the count at 2 and the suite green. A guard a comment
+    # can satisfy is measuring the file, not the behaviour.
+    code = re.sub(r"//[^\n]*", "", src)
+    bare = re.findall(r"(?<!async function )attachTerminalTo\(", code)
+    assert len(bare) == 1, (
         "attachTerminalTo is called outside attachAndFocusTerminal; that call "
         "site will attach the console without giving it back the keyboard"
     )
@@ -592,10 +598,39 @@ def test_the_terminal_attach_cannot_replay_a_stale_backlog() -> None:
     src = RENDERER.read_text(encoding="utf-8")
     fn = re.search(r"async function attachTerminalTo\(.*?\n\}\n", src, re.S).group(0)
     assert "terminalAttachGeneration" in fn
-    assert fn.count("generation !== terminalAttachGeneration") >= 2, (
-        "every await in the attach must re-check that it has not been "
-        "overtaken; one unguarded await is the whole defect"
-    )
+
+    # Each awaited step is named and checked individually, rather than counted.
+    #
+    # This assertion used to read `count(...) >= 2`, which was true when written
+    # and stopped guarding when ISS-0161 added a third occurrence: deleting the
+    # check after `terminal.attach` — the exact mutation this test's evidence
+    # row claims to catch — left two behind and the suite green. Independent
+    # review found it on 2026-08-14. A threshold cannot notice that the thing
+    # protecting one await now protects a different one.
+    #
+    # The two `await new Promise(...)` steps of the backlog replay deliberately
+    # share the single check that follows them: nothing between the two touches
+    # state, so re-checking twice would assert a property the code does not owe.
+    # The window matters: the check must appear before the NEXT await, not
+    # merely somewhere later in the function. The first repair of this test
+    # searched the whole remainder and still passed its own mutation, because
+    # deleting the check after `terminal.attach` left the *backlog replay's*
+    # check downstream to satisfy the search. A guard that accepts another
+    # step's protection as its own is the same error one layer up.
+    check = r"if \(generation !== terminalAttachGeneration\) return;"
+    for label, awaited in (
+        ("spawn", r"await cockpitApi\.terminal\.spawn\("),
+        ("attach", r"await cockpitApi\.terminal\.attach\("),
+        ("backlog replay", r"requestAnimationFrame\("),
+    ):
+        parts = re.split(awaited, fn)
+        assert len(parts) > 1, f"the {label} step has gone; this guard now checks nothing"
+        window = re.split(r"\bawait ", parts[-1])[0]
+        assert re.search(check, window), (
+            f"the {label} await is not followed by a generation re-check before "
+            "the next await; an unguarded await is the whole defect — B's "
+            "backlog lands in the terminal now showing A"
+        )
 
 
 def test_the_digest_never_under_reports_what_the_badges_show(owed_corpus: Index) -> None:

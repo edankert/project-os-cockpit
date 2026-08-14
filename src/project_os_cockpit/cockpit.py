@@ -5569,7 +5569,16 @@ def history_payload(
         # inside it undercounted the run — measured live at 6 against 7, on a
         # button that would have pushed all seven while offering to push six.
         # A push publishes everything; the label has to mean that.
-        "unpublished_count": len(state.commits),
+        #
+        # `None` when the count could not be taken at all — a branch with no
+        # upstream, where `git rev-list @{u}..HEAD` fails. That is **not** a
+        # zero, and the two must stay distinguishable all the way to the
+        # surface: ADR-0027's fourth admission test refuses an unknown
+        # presented as a count, and this returned 0 until 2026-08-14, so the
+        # History band silently showed nothing to publish on a repo whose
+        # commits had nowhere to go.
+        "unpublished_count": (None if state.ahead is None else len(state.commits)),
+        "publication_known": state.ahead is not None,
         # Work in flight belongs to now. Showing it above a window that
         # ends three months ago would place today's edits inside May.
         "uncommitted": ([] if anchored

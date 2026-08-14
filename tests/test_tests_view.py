@@ -1376,11 +1376,43 @@ def test_every_row_of_the_rehoming_table_is_reachable(owed_corpus: Index) -> Non
     # 5. The tests register → the Tests view.
     assert any(g["key"] == "verified" or g["key"] == "stale"
                for g in nav_payload(owed_corpus, mode="tests")["groups"])
-    # 6. `changes-requested` re-review → the view owning each note's type;
-    #    the predicate is `_verdict_is_owed`, and all ten rows here are
-    #    terminal, which is ISS-0121's finding.
+    # 6. `changes-requested` re-review → the view owning each note's type.
+    #
+    # This step asserted `not [r for r in reviewed if r["owed"]]` — that the
+    # corpus contains **zero** outstanding verdicts. That was a true statement
+    # about the data on the day it was written (all ten rows terminal, which is
+    # ISS-0121's finding) written in the position of a rule, so the first honest
+    # `changes-requested` recorded against this repo broke it. Three arrived on
+    # 2026-08-14 from a real review pass, and a suite that fails when review
+    # finds something is a suite that discourages review.
+    #
+    # ISS-0120's class exactly, and this file is where that lesson was learned.
+    # The rule underneath is the same one steps 1–5 assert: an owed row is
+    # *reachable* from the view that owns its type. Whether any exist is data.
     reviewed = cockpit._reviewed_register(owed_corpus)
-    assert reviewed and not [r for r in reviewed if r["owed"]]
+    assert reviewed, "the reviewed register is empty; nothing below tests anything"
+    for row in reviewed:
+        if not row.get("owed"):
+            continue
+        note = owed_corpus.by_id(str(row["id"]))
+        assert note is not None, f"{row['id']} is owed but resolves to no note"
+        record = owed_corpus.get(note)
+        view = obligations.for_type(record.note_type)
+        assert view, (
+            f"{row['id']} carries an owed verdict but its type "
+            f"{record.note_type!r} belongs to no view, so nothing surfaces it"
+        )
+    # ISS-0121's finding, stated as the property rather than as a count: a
+    # sticky verdict on a note that has since reached a terminal status is not
+    # owed. That is what keeps the register from nagging about settled work.
+    for row in reviewed:
+        if row.get("owed"):
+            note = owed_corpus.by_id(str(row["id"]))
+            record = owed_corpus.get(note) if note else None
+            assert record is not None and not cockpit.is_done_status(
+                record.note_type, str(record.status or "")), (
+                f"{row['id']} is terminal but still counted as owing a re-review"
+            )
     # 7. "am I done" → the badges.
     assert obligations.badges_payload(owed_corpus)["total"] > 0
     # 8. Reviewed register → the record surfaces.
