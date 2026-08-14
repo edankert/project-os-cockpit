@@ -4564,16 +4564,11 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .design-empty { color: var(--text-muted); font-size: 13px; }
 .design-missing { color: var(--status-blocked); }
-.design-register h1 { margin: 0 0 12px; font-size: 18px; }
-.design-row {
-  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
-  padding: 8px 10px; border-bottom: 1px solid var(--border);
-  text-decoration: none; color: inherit;
-}
-.design-row:hover { background: var(--surface); }
-.design-row:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: -2px; }
-.design-row-title { font-size: 14px; }
-.design-row-meta { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+/* The register's own rules ended here (ISS-0167). `.design-register h1`,
+   `.design-row`, `-title` and `-meta` are gone with the second row grammar
+   they styled: the register is a `.view-landing-group` of `.view-landing-row`s
+   now, so it inherits the type scale, the hover, the focus ring and — the
+   part that was actually costing something — `statusChip()`'s colours. */
 /* revisions + compare (TASK-0216) */
 .design-body { display: flex; justify-content: center; gap: 12px; }
 /* An UNFRAMED stage must fill the row (ISS-0038). As a plain flex item its
@@ -5431,11 +5426,49 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   color: var(--text); font: inherit; text-align: left; cursor: pointer;
 }
 .view-landing-row:hover { background: var(--bg-elevated); }
+.view-landing-row:focus-visible {
+  outline: 2px solid var(--accent-focus); outline-offset: -2px;
+}
 .view-landing-id { flex: none; color: var(--accent-link); font-size: 12px; }
 .view-landing-title {
   flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; font-size: 13px;
 }
+/* What a row's subject IS, after its status (ISS-0167). Quiet and last: it
+   is the only part of the row that is not the note's own identity. */
+.view-landing-note {
+  flex: none; font-size: 11px; color: var(--text-faint); white-space: nowrap;
+}
+/* Settled work, folded (ISS-0167) — PHASE-022's rule, applied to the one list
+   that had not received it. Shut by default and carrying its own count,
+   exactly `renderNavGroup`'s treatment since TASK-0275: nothing is hidden
+   that the head did not already say. Three of this repo's eleven designs sink
+   today; `accepted` is deliberately NOT among them, being in the `active`
+   band. */
+.view-landing-fold { margin-top: 4px; }
+.view-landing-fold > summary {
+  list-style: none; cursor: pointer; padding: 6px 8px; border-radius: 5px;
+  font-size: 12px; color: var(--text-muted); user-select: none;
+}
+.view-landing-fold > summary::-webkit-details-marker { display: none; }
+.view-landing-fold > summary::before {
+  content: '▸'; display: inline-block; width: 12px; color: var(--text-faint);
+}
+.view-landing-fold[open] > summary::before { content: '▾'; }
+.view-landing-fold > summary:hover { background: var(--bg-elevated); }
+.view-landing-fold > summary:focus-visible {
+  outline: 2px solid var(--accent-focus); outline-offset: -2px;
+}
+/* The identity band sits INSIDE the landing column now, beneath what needs a
+   person, so it takes the page's spacing rather than a page's worth of its
+   own. Its `h1` is no longer the page's title — the view label is — so it
+   drops to the weight of a section head. */
+.view-landing .design-identity { margin: 4px 0 22px; }
+.view-landing .design-identity h1 { font-size: 15px; margin: 0 0 6px; }
+/* The Intent landing renders inside `.design-page`, which already supplies
+   the page padding and is the scroller. The column drops its own padding
+   rather than doubling it to 36px, and keeps the measure. */
+.design-page > .view-landing { padding: 0; }
 
 /* ---- Needs you, at the top of the navigator (FEAT-0094) -----------------
    Above the Open/Completed split, not inside it: what needs a person is not

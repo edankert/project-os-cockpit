@@ -4940,41 +4940,98 @@ function buildDesignRationale(d: DesignRecord): HTMLElement | null {
   return sec;
 }
 
-function buildDesignRegisterList(designs: DesignRecord[]): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'design-register';
-  const h = document.createElement('h1');
-  h.textContent = 'Designs';
-  wrap.append(h);
+/** What a design IS, in three words — the one thing the old register row
+ *  carried that the shared landing row does not.
+ *
+ *  `role` is deliberately NOT in here. `ISS-0089` removed the
+ *  `system`/`proposal` split from this view — one note in a section of its
+ *  own, three designs across two headings, for a frontmatter field the reader
+ *  never asked about — and putting the same field back as a word on every row
+ *  would reintroduce it one element lower down. */
+function designShape(d: DesignRecord): string {
+  if (!d.has_asset) return 'no artifact';
+  return d.viewport ? `${d.viewport}px surface` : 'document';
+}
+
+/** The design register, in the landing's own row grammar (ISS-0167).
+ *
+ *  Split **live / settled**, which is the navigator's axis and the one
+ *  `ISS-0089` named as the one that matters here — not `role`. Settled opens
+ *  shut, exactly `renderNavGroup`'s rule since `TASK-0275`: a shut disclosure
+ *  still carries its count, so nothing is hidden that the head did not say.
+ *
+ *  Measured 2026-08-14: three of this repo's eleven designs are terminal —
+ *  two `implemented`, one `superseded` — and eight are live. **`accepted` is
+ *  in the `active` band, not `done`** (`statuses.py`), which is right and is
+ *  why the split is by band rather than by eye: a design that has been
+ *  decided and not yet built is work, and the seven accepted ones here are
+ *  the most live thing on the page. The fold's job is that `superseded` stops
+ *  sitting between two of them at equal weight.
+ *
+ *  `owedIds` comes from the landing payload — the registry's own answer for
+ *  which designs are owed — rather than from a `status === 'proposed'` test
+ *  here. `TASK-0357`'s rule: the obligation vocabulary ships in the payload,
+ *  not in TypeScript. It decides the destination: an owed design goes to its
+ *  NOTE, where `Accept` lives, so the verb named at the top of the page is
+ *  the verb available on arrival (`FEAT-0092`'s criterion, applied to the
+ *  view it was not applied to). Every other row goes to the bench, which is
+ *  what the bench is for.
+ */
+function buildDesignRegisterList(
+  designs: DesignRecord[], owedIds?: ReadonlySet<string>,
+): HTMLElement {
+  const owed = owedIds ?? new Set<string>();
+  const wrap = document.createElement('section');
+  wrap.className = 'view-landing-group design-register';
+  const head = document.createElement('div');
+  head.className = 'view-landing-group-head';
+  head.textContent = designs.length
+    ? `Designs · ${designs.length}` : 'Designs';
+  wrap.append(head);
   if (!designs.length) {
     const p = document.createElement('p');
-    p.className = 'design-empty';
+    p.className = 'meta design-empty';
     p.textContent = 'No design notes yet. A design is a note with type: [[design]].';
     wrap.append(p);
     return wrap;
   }
-  for (const d of designs) {
-    const row = document.createElement('a');
-    row.className = 'design-row';
-    row.href = '#';
-    row.addEventListener('click', (e) => {
-      e.preventDefault();
-      void navigateTo(`~design/${d.id}`);
-    });
-    const t = document.createElement('span');
-    t.className = 'design-row-title';
-    t.textContent = `${d.id} — ${d.title}`;
-    const s2 = document.createElement('span');
-    s2.className = 'design-row-meta';
-    s2.textContent = [
-      d.role === 'system' ? 'system' : 'proposal',
-      d.status,
-      d.has_asset ? (d.viewport ? `${d.viewport}px` : 'document') : 'no artifact',
-    ].filter(Boolean).join(' · ');
-    row.append(t, s2);
-    wrap.append(row);
+
+  const row = (d: DesignRecord): HTMLLIElement => buildLandingRow({
+    id: d.id,
+    title: d.title,
+    status: d.status,
+    note: designShape(d),
+    open: () => void navigateTo(owed.has(d.id) ? d.rel : `~design/${d.id}`),
+  });
+
+  const live = designs.filter((d) => !designIsSettled(d));
+  const settled = designs.filter((d) => designIsSettled(d));
+
+  if (live.length) {
+    const list = buildLandingList();
+    for (const d of live) list.append(row(d));
+    wrap.append(list);
+  }
+  if (settled.length) {
+    const fold = document.createElement('details');
+    fold.className = 'view-landing-fold';
+    const summary = document.createElement('summary');
+    summary.textContent = `${settled.length} settled`;
+    fold.append(summary);
+    const list = buildLandingList();
+    for (const d of settled) list.append(row(d));
+    fold.append(list);
+    wrap.append(fold);
   }
   return wrap;
+}
+
+/** Terminal by `completed-work.ts`'s vocabulary, which is `statuses.py`'s and
+ *  is checked against it by `tests/test_status_vocabulary.py`. Routed through
+ *  `completionRank` rather than a second status list for the reason ISS-0023
+ *  records: this vocabulary lived in eight places once and drifted in three. */
+function designIsSettled(d: DesignRecord): boolean {
+  return groupIsSettled([{ status: d.status }]);
 }
 
 interface DesignRevision {
@@ -5245,61 +5302,108 @@ const LANDING_QUIET: Record<string, { head: string; note: string }> = {
     head: 'Nothing owed on tests.',
     note: 'Manual tests waiting for a run appear here. The register and the acceptance tiers are on the left.',
   },
+  // Intent's `note` is empty, and alone in being so (ISS-0167). The other
+  // three say what the pane is FOR because when they are quiet there is
+  // nothing else on the page. Intent's page continues — the identity band and
+  // the design register are directly beneath — and those ARE what the view is
+  // for. A sentence describing them, three lines above them, is the second
+  // vocabulary this issue exists to remove.
+  intent: {
+    head: 'No decision or design is waiting on you.',
+    note: '',
+  },
 };
 
-async function renderViewLanding(view: string): Promise<boolean> {
-  if (!sidecarBaseUrl) return false;
-  let data: LandingPayload | null = null;
-  try {
-    const resp = await fetch(
-      `${sidecarBaseUrl}/api/cockpit/landing?view=${encodeURIComponent(view)}`,
-    );
-    if (!resp.ok) return false;
-    data = (await resp.json()) as LandingPayload;
-  } catch { return false; }
-  if (!data || !data.known) return false;
+// ---- One row grammar for every landing (ISS-0167) -----------------------
+//
+// The three view landings and the Intent register rendered the same object —
+// an id, a title, a status — in two different sets of elements, and the
+// register's lost the shared vocabulary: `accepted` and `superseded` came out
+// as 11px grey text beside a `·`, outside `statusChip()`'s colours entirely,
+// and the row was an `<a href="#">` with a `preventDefault` where its sibling
+// was a button. ISS-0023 is the standing lesson about a vocabulary living in
+// more than one place. This is that, at row scale.
 
-  // `hidden = false` + `placeholder.hidden = true`, exactly as every other
-  // virtual page does. Without the pair the section renders into a doc view
-  // the stage is still hiding: the DOM is right, `.view-landing` is present
-  // and correct, and the pane is **blank**. Found by taking a screenshot after
-  // a run of DOM assertions had all passed — which is the argument for looking
-  // at a surface rather than querying it.
-  docView.replaceChildren();
-  docView.hidden = false;
-  placeholder.hidden = true;
-  const page = document.createElement('section');
-  page.className = 'view-landing';
-  page.dataset.view = view;
+interface LandingRowSpec {
+  id: string;
+  title: string;
+  status?: string;
+  //: Quiet trailing text, after the status chip. The register uses it for
+  //: what a design IS — `320px surface`, `document`, `no artifact` — which is
+  //: the one thing its old meta line carried that the shared row did not, and
+  //: dropping it would have made converging a net loss.
+  note?: string;
+  open: () => void;
+}
 
+function buildLandingRow(spec: LandingRowSpec): HTMLLIElement {
+  const li = document.createElement('li');
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'view-landing-row';
+  const id = document.createElement('span');
+  id.className = 'view-landing-id mono';
+  id.textContent = shortNoteId(spec.id);
+  id.title = spec.id;
+  row.appendChild(id);
+  const title = document.createElement('span');
+  title.className = 'view-landing-title';
+  title.textContent = spec.title;
+  title.title = spec.title;
+  row.appendChild(title);
+  appendIf(row, statusChip(spec.status));
+  if (spec.note) {
+    const note = document.createElement('span');
+    note.className = 'view-landing-note';
+    note.textContent = spec.note;
+    row.appendChild(note);
+  }
+  row.addEventListener('click', spec.open);
+  li.appendChild(row);
+  return li;
+}
+
+function buildLandingList(): HTMLUListElement {
+  const list = document.createElement('ul');
+  list.className = 'view-landing-list';
+  return list;
+}
+
+/** The page's own name, from the top bar's `title` (never restated here). */
+function buildLandingHead(view: string): HTMLHeadingElement {
   const head = document.createElement('h1');
   head.className = 'view-landing-head';
   head.textContent = VIEW_LABELS[view] ?? view;
-  page.appendChild(head);
+  return head;
+}
 
-  if (data.total === 0) {
-    const quiet = LANDING_QUIET[view] ?? {
-      head: 'Nothing owed here.', note: '',
-    };
-    const line = document.createElement('p');
-    line.className = 'view-landing-quiet';
-    line.textContent = quiet.head;
-    page.appendChild(line);
-    if (quiet.note) {
-      const note = document.createElement('p');
-      note.className = 'meta';
-      note.textContent = quiet.note;
-      page.appendChild(note);
-    }
-    docView.appendChild(page);
-    return true;
+/** The lead line, or the quiet sentence when the view owes nothing. */
+function buildLandingLead(view: string, total: number): HTMLElement[] {
+  if (total > 0) {
+    const lead = document.createElement('p');
+    lead.className = 'view-landing-lead';
+    lead.textContent = `${total} need${total === 1 ? 's' : ''} you here.`;
+    return [lead];
   }
+  const quiet = LANDING_QUIET[view] ?? { head: 'Nothing owed here.', note: '' };
+  const line = document.createElement('p');
+  line.className = 'view-landing-quiet';
+  line.textContent = quiet.head;
+  if (!quiet.note) return [line];
+  const note = document.createElement('p');
+  note.className = 'meta';
+  note.textContent = quiet.note;
+  return [line, note];
+}
 
-  const lead = document.createElement('p');
-  lead.className = 'view-landing-lead';
-  lead.textContent = `${data.total} need${data.total === 1 ? 's' : ''} you here.`;
-  page.appendChild(lead);
-
+/** What this view owes, grouped by kind and named with the registry's verb.
+ *
+ *  Shared by all four landings, so the page and the badge stay one
+ *  computation by construction rather than by agreement — which is the whole
+ *  reason `landing_payload` exists (`FEAT-0089`).
+ */
+function buildLandingObligations(data: LandingPayload): HTMLElement[] {
+  const out: HTMLElement[] = [];
   for (const group of data.groups) {
     if (!group.count) continue;
     const section = document.createElement('div');
@@ -5319,37 +5423,59 @@ async function renderViewLanding(view: string): Promise<boolean> {
       where.className = 'meta';
       where.textContent = 'Listed under “What this project is” on the left.';
       section.appendChild(where);
-      page.appendChild(section);
+      out.push(section);
       continue;
     }
 
-    const list = document.createElement('ul');
-    list.className = 'view-landing-list';
+    const list = buildLandingList();
     for (const item of group.items) {
-      const li = document.createElement('li');
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'view-landing-row';
-      const id = document.createElement('span');
-      id.className = 'view-landing-id mono';
-      id.textContent = shortNoteId(item.id);
-      id.title = item.id;
-      row.appendChild(id);
-      const title = document.createElement('span');
-      title.className = 'view-landing-title';
-      title.textContent = item.title;
-      title.title = item.title;
-      row.appendChild(title);
-      appendIf(row, statusChip(item.status));
       // Straight to the note that carries the actuator, so the verb named
       // above is the verb available when you arrive.
-      row.addEventListener('click', () => void navigateTo(item.rel));
-      li.appendChild(row);
-      list.appendChild(li);
+      list.appendChild(buildLandingRow({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        open: () => void navigateTo(item.rel),
+      }));
     }
     section.appendChild(list);
-    page.appendChild(section);
+    out.push(section);
   }
+  return out;
+}
+
+async function fetchLandingPayload(view: string): Promise<LandingPayload | null> {
+  if (!sidecarBaseUrl) return null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/landing?view=${encodeURIComponent(view)}`,
+    );
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as LandingPayload;
+    return data && data.known ? data : null;
+  } catch { return null; }
+}
+
+async function renderViewLanding(view: string): Promise<boolean> {
+  const data = await fetchLandingPayload(view);
+  if (!data) return false;
+
+  // `hidden = false` + `placeholder.hidden = true`, exactly as every other
+  // virtual page does. Without the pair the section renders into a doc view
+  // the stage is still hiding: the DOM is right, `.view-landing` is present
+  // and correct, and the pane is **blank**. Found by taking a screenshot after
+  // a run of DOM assertions had all passed — which is the argument for looking
+  // at a surface rather than querying it.
+  docView.replaceChildren();
+  docView.hidden = false;
+  placeholder.hidden = true;
+  const page = document.createElement('section');
+  page.className = 'view-landing';
+  page.dataset.view = view;
+
+  page.appendChild(buildLandingHead(view));
+  for (const el of buildLandingLead(view, data.total)) page.appendChild(el);
+  for (const el of buildLandingObligations(data)) page.appendChild(el);
 
   docView.appendChild(page);
   return true;
@@ -5369,13 +5495,52 @@ async function renderDesignPage(target: string): Promise<boolean> {
   // note; the design page simply never asked.
 
   if (!target) {
-    // Identity first: what this is, before what it should look like.
-    const brief = await fetchBrief();
-    const parts: HTMLElement[] = [];
+    // ---- The Intent landing (ISS-0167) ---------------------------------
+    //
+    // **Obligations, then identity, then the register.** This used to lead
+    // with the identity band under the comment "Identity first: what this
+    // is, before what it should look like" — a true ordering of the band
+    // against the register, written before there was a third thing to order.
+    // Measured 2026-08-14: Intent's badge read `1` (ADR-0022, `Decide`) and
+    // this page showed eleven designs and never named it, which is the defect
+    // FEAT-0092 was built to end, surviving on the one view its criteria
+    // excused with "Overview and Intent keep theirs".
+    //
+    // DES-0008 settles the order: the digest lifts what needs you above what
+    // happened, because "a reader who stops halfway should have seen the
+    // obligations, not the news". Identity is news in that sense — it is true
+    // every day and urgent on none of them.
+    //
+    // Rendered by the same three builders the other landings use, from the
+    // same payload, so the page and the badge remain ONE computation rather
+    // than two that agree today.
+    const [brief, data] = await Promise.all([
+      fetchBrief(), fetchLandingPayload('intent'),
+    ]);
+    const page = document.createElement('section');
+    page.className = 'view-landing';
+    page.dataset.view = 'intent';
+    page.appendChild(buildLandingHead('intent'));
+    // A landing payload that failed to arrive is not "nothing is owed": the
+    // page falls back to its register without claiming a count it does not
+    // have. Never a `0` it cannot stand behind (ADR-0027's fourth admission
+    // test, and ISS-0165's live divergence, are both this mistake).
+    if (data) {
+      for (const el of buildLandingLead('intent', data.total)) page.appendChild(el);
+      for (const el of buildLandingObligations(data)) page.appendChild(el);
+    }
     const band = buildIdentityBand(brief);
-    if (band) parts.push(band);
-    parts.push(buildDesignRegisterList(designs));
-    docView.replaceChildren(...parts);
+    if (band) page.appendChild(band);
+    // The registry's own answer for which designs are owed, so the register
+    // can send those rows to their note without restating the predicate.
+    const owedIds = new Set<string>(
+      (data?.groups ?? [])
+        .flatMap((g) => g.items)
+        .filter((it) => it.type === 'design')
+        .map((it) => it.id),
+    );
+    page.appendChild(buildDesignRegisterList(designs, owedIds));
+    docView.replaceChildren(page);
     docView.hidden = false;
     placeholder.hidden = true;
     return true;
@@ -5383,7 +5548,14 @@ async function renderDesignPage(target: string): Promise<boolean> {
   const d = designs.find((x) => x.id === target);
   if (!d) {
     docView.classList.remove('is-design-shell');
-    docView.replaceChildren(buildDesignRegisterList(designs));
+    // The register alone — no obligation block. A dead `~design/<id>` is an
+    // error being recovered from, not a landing, and putting what needs a
+    // person under a red toast would make the two read as one event.
+    const page = document.createElement('section');
+    page.className = 'view-landing';
+    page.dataset.view = 'intent';
+    page.appendChild(buildDesignRegisterList(designs));
+    docView.replaceChildren(page);
     showStatus(`No design ${target}`, 'error');
     docView.hidden = false;
     placeholder.hidden = true;

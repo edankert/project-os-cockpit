@@ -188,20 +188,204 @@ def test_the_three_views_gained_a_landing_and_library_did_not() -> None:
 
 def test_a_view_that_owes_nothing_says_so_in_its_own_words() -> None:
     """FEAT-0073's rule, applied to a surface built after it: never a `0`,
-    never an empty panel, and never the same sentence under every view."""
+    never an empty panel, and never the same sentence under every view.
+
+    Four since ISS-0167, not three: Intent joined the landings, so it owes its
+    own sentence like the rest. Its `note` is deliberately empty — the other
+    three say what the pane is FOR because when they are quiet the page is
+    otherwise blank, and Intent's is not — so only `head` is required to be
+    distinct.
+    """
     src = _renderer()
     quiet = re.search(r"const LANDING_QUIET[^=]*= \{(.*?)\n\};", src, re.S)
     assert quiet
     heads = re.findall(r"head: '([^']+)'", quiet.group(1))
-    assert len(heads) == 3 and len(set(heads)) == 3, heads
+    assert len(heads) == 4 and len(set(heads)) == 4, heads
 
 
 def test_the_landing_reads_the_top_bars_own_labels() -> None:
     """One name per view. A page that restated the button's label would be the
-    second vocabulary this codebase keeps being bitten by."""
+    second vocabulary this codebase keeps being bitten by.
+
+    Intent is the reason this is now asserted at the USE site too (ISS-0167).
+    `VIEW_LABELS` existed and was read by three landings; the fourth hardcoded
+    `h.textContent = 'Designs'`, so the page and the button disagreed — the
+    button says *Intent* — which is exactly what this test's own docstring
+    said could not happen.
+    """
     src = _renderer()
     assert "const VIEW_LABELS" in src
     assert "top-bar-btn[data-mode]" in src.split("const VIEW_LABELS")[1][:400]
+    # One builder puts the head on a landing, and it reads VIEW_LABELS.
+    head_fn = re.search(
+        r"function buildLandingHead\(view: string\): HTMLHeadingElement \{(.*?)\n\}",
+        src, re.S,
+    )
+    assert head_fn, "buildLandingHead is gone; the head has grown a second source"
+    assert "VIEW_LABELS[view]" in head_fn.group(1)
+    # One definition and two call sites: `renderViewLanding` serves all three
+    # of features/issues/tests, and the Intent landing is the second caller.
+    assert src.count("buildLandingHead(") == 3, (
+        "a landing is building its own heading again instead of calling "
+        "buildLandingHead"
+    )
+    # The page head has exactly one author. `'Designs'` still appears in the
+    # source and legitimately so — it is the register's SECTION head, a
+    # category inside Intent — so the string is not the thing to forbid; a
+    # second thing calling itself the page's title is.
+    assert _code(src).count("'view-landing-head'") == 1, (
+        "something other than buildLandingHead is titling a landing; the "
+        "Intent page called itself 'Designs' while its button said 'Intent'"
+    )
+
+
+def _code(src: str) -> str:
+    """`src` with comments removed.
+
+    Written because the first draft of `test_one_row_grammar_across_every_landing`
+    passed against its own explanatory comment: the prose above the function
+    contained `document.createElement('a')` while describing the thing it was
+    forbidding. A guard a comment can satisfy is a guard that survives the
+    mutation it exists to catch.
+    """
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    return re.sub(r"^\s*//.*$", "", src, flags=re.M)
+
+
+def test_one_row_grammar_across_every_landing() -> None:
+    """ISS-0167. The three view landings and the Intent register rendered the
+    same object — an id, a title, a status — in two different sets of elements,
+    and the register's lost `statusChip()` entirely: `accepted` and
+    `superseded` came out as grey text beside a `·`.
+
+    ISS-0023 is the standing lesson about a vocabulary living in more than one
+    place. This asserts there is one row builder and that every landing list
+    goes through it.
+    """
+    code = _code(_renderer())
+    assert code.count("function buildLandingRow(") == 1
+    # The old grammar, by its own class names and its own element choice.
+    for gone in (
+        "'design-row'", "'design-row-title'", "'design-row-meta'",
+    ):
+        assert gone not in code, f"the second row grammar is back: {gone}"
+    # Rows are buttons. An `<a href="#">` that preventDefaults is a button
+    # wearing an anchor, and it was the register's.
+    body = re.search(
+        r"function buildLandingRow\(spec: LandingRowSpec\): HTMLLIElement \{(.*?)\n\}",
+        code, re.S,
+    )
+    assert body
+    assert "createElement('button')" in body.group(1)
+    assert "statusChip(spec.status)" in body.group(1)
+    # Every list on a landing is built by the shared builder, so a new one
+    # cannot quietly arrive with its own `<ul>` and its own row markup.
+    assert code.count("'view-landing-list'") == 1, (
+        "a landing is building its own list element instead of buildLandingList()"
+    )
+
+
+def test_the_register_is_not_split_by_role() -> None:
+    """ISS-0089 removed the `system`/`proposal` split from this view in
+    TASK-0275 — one note in a section of its own, three designs across two
+    headings, for a frontmatter field the reader never asked about — and named
+    the replacement: *"the live and completed split the navigator already
+    applies is the one that matters here."*
+
+    ISS-0167's first proposed shape was `Design system · Live · Settled`,
+    which would have put it straight back. This fails if it returns, in a
+    heading or as a word on every row.
+    """
+    code = _code(_renderer())
+    register = re.search(
+        r"function buildDesignRegisterList\((.*?)function designIsSettled\(",
+        code, re.S,
+    )
+    assert register, "buildDesignRegisterList moved; re-anchor this guard"
+    body = register.group(1)
+    assert "d.role" not in body and "role ===" not in body, (
+        "the register is reading `role:` again — ISS-0089 removed that split"
+    )
+    for gone in ("'Design system'", "'design system'", "'proposal'", "'system'"):
+        assert gone not in body, f"the role split is back as a label: {gone}"
+    # The split that IS wanted, through the shared vocabulary rather than a
+    # second status list (ISS-0023 again).
+    assert "designIsSettled(d)" in body
+    settled = re.search(
+        r"function designIsSettled\(d: DesignRecord\): boolean \{(.*?)\n\}",
+        code, re.S,
+    )
+    assert settled and "groupIsSettled(" in settled.group(1), (
+        "designIsSettled has grown its own status list; it must route through "
+        "completed-work.ts, which test_status_vocabulary.py checks against "
+        "statuses.py"
+    )
+
+
+def test_the_intent_landing_leads_with_what_its_badge_counts() -> None:
+    """ISS-0167's measurable half. Intent owed 1 and its page showed eleven
+    designs and never named it.
+
+    The property asserted is structural, not cosmetic: the Intent landing must
+    render the SAME obligation block, from the SAME payload, as the other
+    three — so the page and the badge cannot come to disagree, which is the
+    failure FEAT-0089 exists to prevent and the one this landing was outside
+    of.
+    """
+    code = _code(_renderer())
+    # Anchored inside `renderDesignPage` — `if (!target) {` alone matches an
+    # earlier, unrelated branch, and a guard that reads the wrong function is
+    # a guard that passes for the wrong reason.
+    page = re.search(
+        r"async function renderDesignPage\(target: string\): Promise<boolean> \{"
+        r"(.*?)\n  const d = designs\.find\(",
+        code, re.S,
+    )
+    assert page, "renderDesignPage moved; re-anchor this guard"
+    landing = re.search(r"if \(!target\) \{(.*)", page.group(1), re.S)
+    assert landing, "the Intent landing branch is gone"
+    body = landing.group(1)
+    assert "fetchLandingPayload('intent')" in body, (
+        "the Intent landing is not reading the obligation payload"
+    )
+    for shared in ("buildLandingHead('intent')", "buildLandingLead('intent'",
+                   "buildLandingObligations(data)"):
+        assert shared in body, f"the Intent landing stopped using {shared}"
+    # Obligations ABOVE identity (DES-0008: a reader who stops halfway should
+    # have seen the obligations, not the news).
+    assert body.index("buildLandingObligations(data)") < body.index(
+        "buildIdentityBand(brief)"
+    ), "the identity band is back above what needs a person"
+    # One payload feeds both the block and the register's destinations, so the
+    # owed predicate is never restated in TypeScript (TASK-0357's rule).
+    assert "'proposed'" not in body, (
+        "the Intent landing is deciding what is owed for itself instead of "
+        "reading the registry's answer"
+    )
+    assert "buildDesignRegisterList(designs, owedIds)" in body
+
+
+def test_an_owed_design_opens_its_note_and_the_rest_open_the_bench() -> None:
+    """FEAT-0092's criterion — *"every owed row navigates to the note that
+    carries its actuator, so the verb named on the page is the verb available
+    when you arrive"* — applied to the view it was not applied to.
+
+    `Accept` lives on the note's actuator row (`mountActuatorRow`, reached only
+    from `loadDoc`); the bench offers `Ask for review` and no status
+    transition. So an owed design that opened the bench would name a verb the
+    destination does not have. Asserted rather than walked because no design in
+    this corpus is `proposed` today — which is exactly when a path rots.
+    """
+    code = _code(_renderer())
+    register = re.search(
+        r"const row = \(d: DesignRecord\): HTMLLIElement => buildLandingRow\(\{(.*?)\}\);",
+        code, re.S,
+    )
+    assert register, "the register's row builder moved; re-anchor this guard"
+    assert "owed.has(d.id) ? d.rel : `~design/${d.id}`" in register.group(1), (
+        "an owed design no longer opens its note, or a settled one no longer "
+        "opens the bench"
+    )
 
 
 def test_the_landing_unhides_the_stage_it_renders_into() -> None:
