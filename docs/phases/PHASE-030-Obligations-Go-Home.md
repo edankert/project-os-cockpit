@@ -7,7 +7,10 @@ status: done
 order: 30
 owner: user:edwin
 created: 2026-08-10
-updated: "2026-08-14"
+updated: "2026-08-15"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-15
+review_verdict: changes-requested
 goal: "Move every owed human judgment out of a single queue and into the view that owns its subject, with a count on each view button that together covers every kind — so what needs a person is visible without going to look for it, and the surface that once collected them can be removed without anything becoming unreachable."
 features:
   - "[[FEAT-0086-Tests-Becomes-A-View]]"
@@ -126,11 +129,11 @@ It closes again when FEAT-0100 does. The [[ISS-0077]] rule applies — reopening
 
 ## Closed again — 2026-08-14
 
-Edwin: *"Close off the phase 030."* [[FEAT-0100]] was the only unresolved child of 69, so the debt it carried had to clear rather than be carried past a closing phase. **69 children, all resolved**: 12 features `done`, [[REQ-0033]] `implemented`, 21 issues `fixed`, 33 tasks `done` and 2 `cancelled`, [[ADR-0027]] `accepted`, [[DES-0011]] `accepted`.
+Edwin: *"Close off the phase 030."* [[FEAT-0100]] was the only unresolved child of 69, so the debt it carried had to clear rather than be carried past a closing phase. **69 children, all resolved**: 11 features `done`, [[REQ-0033]] `implemented`, 20 issues `fixed`, 33 tasks `done` and 2 `cancelled`, [[ADR-0027]] `accepted`, [[DES-0011]] `accepted`. *(Corrected 2026-08-15 by the independent review: this read 12 features and 21 issues, a breakdown summing to **71** under a total of 69. The total was right and counted; the breakdown was written out by hand beside it and never added up. Re-measured from `phase:` frontmatter.)*
 
 **The reopen paid for itself twice.** The first review found the dismissal defect; this close-out re-tested its own finding 3 rather than trusting the earlier repair, and found it still substantially open — mutating `_publication_rows` to `return []` left **1281 tests passing**, with one failure that was about the *unknown* case and said nothing about the counted one. The registry's central kind was still unasserted seventeen days after the registry shipped. It is asserted now.
 
-**27 Definition-of-Done boxes were resolved across [[TASK-0417]], [[TASK-0419]] and [[TASK-0420]]** — three tasks that reached `done` with every box unticked. Twenty-six ticked with evidence, one marked `[~]`: TASK-0417's *"the overview's `Needs you` group carries a row"*, which is not deliverable because `overview` is not a nav mode. [[TASK-0419]] had no test of any kind; the two its own DoD asked for were written here, and the first draft of one was too weak to catch the mutation it existed for.
+**27 Definition-of-Done boxes were resolved across [[TASK-0417]], [[TASK-0419]] and [[TASK-0420]]** — three tasks that reached `done` with every box unticked. Twenty-six ticked and one marked `[~]` — **19 of the 26 carry an evidence pointer**, the other seven being implementation steps whose evidence is the DoD box directly above them (corrected 2026-08-15; this said "26 ticked with evidence"). The `[~]` is TASK-0417's *"the overview's `Needs you` group carries a row"*, which is not deliverable because `overview` is not a nav mode. [[TASK-0419]] had no test of any kind; the two its own DoD asked for were written here, and the first draft of one was too weak to catch the mutation it existed for.
 
 **The `[~]` exit criterion above stands, and was re-checked rather than assumed.** `~review` is still served: the ledger holds **2 open entries** today (one on [[DES-0009]]), so deleting the display would still strand them. [[ISS-0126]] is `fixed`, which resolves the flows but not the entries.
 
@@ -140,4 +143,40 @@ Edwin: *"Close off the phase 030."* [[FEAT-0100]] was the only unresolved child 
 
 - The digest's third enumeration of what is owed — **closed**, by [[ISS-0159]]. `digest_payload` reads `obligations.owed_items` now; the phase's own note predicted this class and the fix landed after it was written.
 - [[DES-0011]]'s palette — stands, with [[ISS-0136]].
-- **The independent review gate — stands, and is this phase's one unpaid obligation at close.** It is the same debt the pre-reopen close recorded, and the reason that close was wrong. Recorded again in the same words rather than assumed away: `QUALITY.md` asks for a clean-context pass on a feature reaching `done`, the validator does not gate it, and FEAT-0100 returns to `done` here without one. Its `review_verdict` is still the 2026-08-14 `changes-requested`; [[ISS-0121]]'s discriminator makes that stamp settled rather than owed, because the subject's current status decides — but a settled stamp is not a fresh judgment, and this note should not pretend otherwise.
+- **The independent review gate — stands, and is this phase's one unpaid obligation at close.** *(Paid 2026-08-15; see the section below. It returned `changes-requested`, which is what the entry below predicted.)* It is the same debt the pre-reopen close recorded, and the reason that close was wrong. Recorded again in the same words rather than assumed away: `QUALITY.md` asks for a clean-context pass on a feature reaching `done`, the validator does not gate it, and FEAT-0100 returns to `done` here without one. Its `review_verdict` is still the 2026-08-14 `changes-requested`; [[ISS-0121]]'s discriminator makes that stamp settled rather than owed, because the subject's current status decides — but a settled stamp is not a fresh judgment, and this note should not pretend otherwise.
+
+## The unpaid gate, paid — 2026-08-15, `changes-requested`
+
+Run from clean context on Edwin's instruction, immediately after `d3ca1a8`. The reviewer started from this note, [[FEAT-0100]], its three re-ticked tasks and the diffs `d754702..d3ca1a8`; it never saw the authoring session's reasoning and is not that session. `model:claude-opus-5` — the same family as the author, which [[project-os-dev#ADR-0013]] does not gate on, and which is recorded as provenance rather than as a compliance token.
+
+**The close-out's central claim reproduces.** Mutating `_publication_rows` to `return []` fails `test_the_publication_obligation_is_exercised_non_vacuously`, exactly as this section says: 2 failed, 1284 passed. The `[~]` exit criterion's re-check also reproduces — `.cockpit/review-requests.json` holds **2 open entries, one on DES-0009**, so `~review` is still served and *gone* is still not true of it. `docs/PHASES.md` now reads `done` for this phase, agreeing with the note and the snapshot.
+
+**Membership was recounted independently and the headline is right**: 69 notes name this phase in `phase:`, and every one is resolved by the validator's own `PHASE_RESOLVED` table.
+
+**What blocks:**
+
+1. **[[FEAT-0100]] returns `changes-requested`** on the same pass — [[ISS-0169]], [[ISS-0170]] and the accuracy of *"26 ticked with evidence"*. A `done` phase may not hold an unresolved child (`PHASE-CHILDREN`), which is precisely why this phase reopened on 2026-08-14. The three new issues are deliberately filed with `phase: ""` rather than homed here, because homing them would make the validator red on a phase status only the author should change.
+2. **The close-out's own arithmetic does not add up.** *"69 children… 12 features `done`, [[REQ-0033]] `implemented`, 21 issues `fixed`, 33 tasks `done` and 2 `cancelled`, [[ADR-0027]] `accepted`, [[DES-0011]] `accepted`"* sums to **71**. The measured breakdown is 11 features and 20 issues, which sums to the 69 the same sentence states. Two counts are each one high in a sentence whose total is correct — the kind of error that survives because the headline reads right.
+3. **The close-out is dated 2026-08-14 and landed on 2026-08-15** (`d3ca1a8`, Sat Aug 15 09:54). Minor, and the same drift is on FEAT-0100's returned-to-`done` section and on both notes' `updated:`.
+
+**This reopening is the gate working, and the note said so before the pass ran.** The entry above — *"Edwin has asked for the pass to run next, and it may reopen the phase again"* — is the most useful sentence in this close-out, because it made the outcome checkable in advance rather than a surprise.
+
+## The review that was owed — 2026-08-15
+
+Edwin chose to run the independent review rather than close on the recorded debt. It returned **changes-requested** on this phase, on [[FEAT-0100]] and on [[ISS-0167]]; **approved** on [[ISS-0168]]. Five blocking findings, three of them errors made *in the close-out itself*, which is the argument for the gate in one line: the debt was recorded honestly and recording it was not the same as paying it.
+
+**What it confirmed.** Finding 3 is genuinely closed — the reviewer re-ran the mutation and got 2 failed / 1284 passed. The `[~]` criterion re-check reproduces (2 open ledger entries, one on [[DES-0009]]). 69 children by the validator's own `PHASE_RESOLVED` table, all resolved. The `[~]` itself was judged honest rather than evasive.
+
+**What it found, all now fixed:**
+
+- **[[ISS-0169]]** — finding 3 had a **sibling kind** and I closed only one of them. `undeployed commit` is a separate source with its own `rows` lambda; replacing it with `lambda index: []` left the whole suite green at 1286. That kind carries every unpublished commit on a deploy-only repo — the previous review's own live figure was `your-applications.com` at 34. Now guarded, and the mutation fails.
+- **[[ISS-0171]]** — **two of the five guards written for [[ISS-0167]] stayed green under the exact regression they name**, and I had mutation-tested them. The mutations I chose were the ones I had in mind while writing; the reviewer chose different ones and both walked through. A guard is only as good as the most inventive bypass someone tries, not the one its author imagined.
+- **[[ISS-0170]]** — a ticked box's evidence said the cold digest "spawns nothing"; it spawns git, and the module's own docstring says so ten lines above the call.
+- **A quotation attributed to [[ISS-0089]] is a code comment** at `cockpit.py:2872`. The withdrawal it justified stands on that issue's real line; the authority I cited for it was invented.
+- **This close-out's own arithmetic** — "12 features, 21 issues" in a breakdown summing to 71 under a stated total of 69. The total was counted; the breakdown was written beside it and never added up.
+
+Also corrected: the renderer comment naming `ADR-0022` where the owed decision is `ADR-0026` (same class as the previous review's `MAX_COMMITS` finding, one review later); "26 ticked with evidence" where 19 carry a pointer; and `refreshPublicationSurfaces`, where a throw from the overview repaint could skip the badge refresh.
+
+**What stands, unfixed and named:** [[FEAT-0100]] still carries `tests: []`. The reviewer's judgment is that findings 1 and 3 are exactly the class a `TST-*` gate would have caught, and that the earlier close-out's own sentence — *"it is why finding 3 went unnoticed"* — is now true twice. That is not a rule violation and it is not fixed here.
+
+**One property worth knowing**, from the reviewer: `_verdict_is_owed("changes-requested", "done")` is `False` under [[ISS-0121]]'s discriminator, so a changes-requested verdict on a `done` item **surfaces on no badge and in no `Needs you` group**. It is text until a status moves. The findings above were therefore acted on because someone read them, not because the tool asked.

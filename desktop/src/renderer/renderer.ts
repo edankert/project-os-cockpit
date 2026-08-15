@@ -5501,7 +5501,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
     // with the identity band under the comment "Identity first: what this
     // is, before what it should look like" — a true ordering of the band
     // against the register, written before there was a third thing to order.
-    // Measured 2026-08-14: Intent's badge read `1` (ADR-0022, `Decide`) and
+    // Measured 2026-08-14: Intent's badge read `1` (ADR-0026, `Decide`) and
     // this page showed eleven designs and never named it, which is the defect
     // FEAT-0092 was built to end, surviving on the one view its criteria
     // excused with "Overview and Intent keep theirs".
@@ -12340,13 +12340,23 @@ async function refreshPublicationSurfaces(workspaceId: string): Promise<void> {
   // Both surfaces that render the block, because both offer the button.
   // `refreshOverviewInPlace` no-ops off the overview, so this is not an
   // either/or — it is "repaint whichever one is on screen".
-  await refreshOverviewInPlace();
-  if (currentRel && currentRel.startsWith('~history')) {
-    const scroll = docView.scrollTop;
-    const at = currentRel === '~history'
-      ? null : currentRel.slice('~history/'.length);
-    if (await renderHistoryPage(at)) docView.scrollTop = scroll;
-  }
+  //
+  // Each step is isolated (independent review, 2026-08-15). The first version
+  // awaited them in sequence with only the fetch wrapped, so a throw from the
+  // overview repaint skipped the badge refresh entirely — leaving the count on
+  // the button stale, which is a smaller version of the bug this whole
+  // function exists to fix.
+  try {
+    await refreshOverviewInPlace();
+  } catch { /* the badges below still refresh */ }
+  try {
+    if (currentRel && currentRel.startsWith('~history')) {
+      const scroll = docView.scrollTop;
+      const at = currentRel === '~history'
+        ? null : currentRel.slice('~history/'.length);
+      if (await renderHistoryPage(at)) docView.scrollTop = scroll;
+    }
+  } catch { /* likewise */ }
   await refreshObligationBadges();
 }
 

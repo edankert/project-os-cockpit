@@ -5,7 +5,10 @@ title: "A push repaints the surface it was clicked on, and declines the ten-seco
 status: merged
 owner: user:edwin
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-15
+review_verdict: approved
 source: ["Edwin 2026-08-14, using the app: 'I used the push button and this kinda worked but it does not removed the # commit not pushed section from the page and the push button says pushed. It is currently visible on the screen'"]
 commit: ""
 pr: ""
@@ -50,3 +53,11 @@ Kept. It is true and local to the control, and the refresh replaces it along wit
 Walked against a real sidecar on a throwaway repo with a local bare remote, driving the real `runPush` path on the built bundle: `1 commit not pushed` → click → the block, the unpublished marks and the badge all clear, with no reload. Deliberately **not** walked by pushing this repository: publishing is the user's act, and the mechanism does not need a real publication to be proven.
 
 Four guards, each mutation-tested — removing the refresh, dropping `fresh=1`, moving the invalidation after the repaint, and dropping the `activeId` scope all fail. The server half is proven end to end in `test_history_can_decline_the_publication_cache`, which pushes to a real bare repo behind the server's back and asserts the cached reading is still wrong before `fresh=True` corrects it. That test also fails if `CACHE_SECONDS` ever stops mattering, which is the condition under which this flag should be reconsidered rather than kept out of habit.
+
+## Independent review — 2026-08-15, `approved`
+
+Clean context, `model:claude-opus-5`, never the authoring session ([[project-os-dev#ADR-0013]]). Verified at `85ae8c5`: `.venv/bin/pytest` 1287 passed / 1 skipped, `tools/scripts/validate-docs.sh` OK, `npm run typecheck` clean, `node --test desktop/tests/*.mjs` 105 passed.
+
+All four claimed mutations were re-run and each fails the guard it names — dropping the refresh call, dropping `fresh=1`, moving the invalidation after the repaint, and widening the `activeId` scope. The impacts list matches the diff line for line: one keyword on `history_payload`, one query parameter on the GET, no route added, no write path widened. `read_fresh` re-stamps the shared cache as claimed (`git_state.py:179`), and `test_history_can_decline_the_publication_cache` proves it by asserting the stale reading first — it is the strongest test in either of the day's two changes, because it fails in both directions and carries its own reconsideration condition.
+
+Not blocking: the `try/catch` covers only the invalidation fetch, so a throw from `refreshOverviewInPlace()` or `renderHistoryPage()` skips `refreshObligationBadges()` and leaves the badge on its pre-push number under a freshly repainted block.

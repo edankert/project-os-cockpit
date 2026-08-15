@@ -7,7 +7,10 @@ status: "fixed"
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-14
-updated: "2026-08-14"
+updated: "2026-08-15"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-15
+review_verdict: changes-requested
 source: ["Edwin 2026-08-14: 'One more thing on the designs landing page, the list of design items looks totally different to for instance the list of to be approved features and it does not seem to have the same philosophy as the other landing pages, although not sure if that is a bad thing. Review this and suggest approach.'"]
 severity: medium
 component: desktop-renderer
@@ -79,7 +82,9 @@ The page becomes: **head (from `VIEW_LABELS`) → what needs you → what this p
 
 Recorded because both were proposed to Edwin in the review that preceded this note, and both were answered by decisions already on the record.
 
-**The register is not grouped `Design system · Live · Settled`.** [[ISS-0089]] removed exactly that split, in `TASK-0275`: *"The design view drops the `system`/`proposal` split"* — one note in a section of its own, three designs across two headings, for a `role:` field the reader never asked about. The same issue names the replacement: *"the live and completed split the navigator already applies is the one that matters here."* So: live and settled, which is also the navigator's own axis and `completed-work.ts`'s existing predicate.
+**The register is not grouped `Design system · Live · Settled`.** [[ISS-0089]] removed exactly that split, in `TASK-0275`: *"The design view drops the `system`/`proposal` split"* — one note in a section of its own, three designs across two headings, for a `role:` field the reader never asked about. So: live and settled, which is also the navigator's own axis and `completed-work.ts`'s existing predicate.
+
+*(Corrected 2026-08-15 by the independent review. This paragraph originally continued "The same issue names the replacement: **the live and completed split the navigator already applies is the one that matters here**" — and [[ISS-0089]] does not say that. **It is a code comment**, in `_design_groups` at `src/project_os_cockpit/cockpit.py:2872`, quoted here as if it were the issue's own reasoning. The first quotation is verbatim from ISS-0089 and its `TASK-0275` attribution holds; the withdrawal itself stands, and Edwin's words in that note's `source:` — "why do we need this design system section, why not just have these designs under completed?" — are the authority I should have cited. A citation that cannot be followed to what it claims is worse than none, because it looks checkable.)*
 
 **Intent's other five nav groups do not get a counted roll-up on the page.** The proposal was to answer *"the page is called Designs but the view holds six groups"* by listing `Decisions 18 · Risks 7 · Releases 1 · Reference 3 · What this project is 10`. Those are the navigator's own groups, with the navigator's own counts, rendered three inches to the right of the navigator. That is [[ISS-0068]] — the overview's *Waiting on you*, removed for re-listing items that already had a home — and [[PHASE-030]] names it under *"what this phase must not do"*: *"a second list of the same items anywhere is the failure this phase inherits the lesson about."*
 
@@ -94,3 +99,19 @@ Measured cost, had it been built the other way: reusing `_design_groups` to get 
 - `test_the_landing_reads_the_top_bars_own_labels` now covers Intent: the page says *Intent — what this project is, and what it should look like*, not *Designs*.
 - `test_one_row_grammar_across_every_landing` is new, and fails if a second row builder reappears.
 - `test_the_register_is_not_split_by_role` is new, and fails if the `system`/`proposal` split ISS-0089 removed is reintroduced here.
+
+## Independent review — 2026-08-15, `changes-requested`
+
+Clean context: the reviewer started from this note, [[CHG-20260814-The-Intent-Landing-Joins-The-Other-Three]] and the diff at `da6a834`, never saw the authoring session's reasoning, and is not that session. `model:claude-opus-5`, same family as the author, which [[project-os-dev#ADR-0013]] does not gate on.
+
+**The behaviour holds and I could not break it.** Four mutations against the four guards that carry the fix all fail correctly: putting the identity band back above the obligations fails `test_the_intent_landing_leads_with_what_its_badge_counts`; dropping the owed-row ternary fails `test_an_owed_design_opens_its_note_and_the_rest_open_the_bench`; replacing `statusChip` with grey prose fails `test_one_row_grammar_across_every_landing`; reading `d.role` again fails `test_the_register_is_not_split_by_role`. The correction about `accepted` being in the **active** band was checked against `statuses.py` and is right, and it is load-bearing exactly as this note says.
+
+**Three things in the record do not hold**, all filed as [[ISS-0171]]:
+
+1. *"`test_one_row_grammar_across_every_landing` is new, and fails if a second row builder reappears"* — it does not. A second builder emitting `<a href="#">` with a `preventDefault` and fresh class names, used for the settled fold, leaves all 43 tests green. The guard forbids the three **old** class-name literals, not a second grammar.
+2. *"`test_the_landing_reads_the_top_bars_own_labels` now covers Intent: the page says Intent…, not Designs"* — it does not assert the page's heading text. `buildLandingHead('intent')` followed by `head.textContent = 'Designs'` is green. It does catch the likelier drift (a landing building its own `<h1>`), so the guard is useful and the sentence is wider than it.
+3. The quotation attributed to [[ISS-0089]] — *"the live and completed split the navigator already applies is the one that matters here"* — **is not in ISS-0089**, or anywhere in `docs/` outside this note. The first quotation in that paragraph is verbatim and the `TASK-0275` attribution is supported by ISS-0089's own `fixed_by:`; the substance is supported by Edwin's words in that note's `source:` (*"why not just have these designs under completed?"*). So the withdrawal is right and its stated authority is not what it is stated to be.
+
+The second withdrawal's citations were checked and hold: [[PHASE-030]] line 72 carries the quoted sentence verbatim, and [[ISS-0068]] is accurately characterised.
+
+Also: `desktop/src/renderer/renderer.ts:5504` says *"Intent's badge read `1` (ADR-0022, `Decide`)"*. It was [[ADR-0026]]; ADR-0022 is `accepted` and owes nothing.

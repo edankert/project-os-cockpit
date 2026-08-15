@@ -7,7 +7,10 @@ status: "fixed"
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 owner: user:edwin
 created: 2026-08-14
-updated: "2026-08-14"
+updated: "2026-08-15"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-15
+review_verdict: approved
 source: ["Edwin 2026-08-14, using the app: 'I used the push button and this kinda worked but it does not removed the # commit not pushed section from the page and the push button says pushed. It is currently visible on the screen'"]
 severity: medium
 component: desktop-renderer
@@ -55,3 +58,22 @@ Kept. It is true, it is local to the control, and after the refresh it is replac
 - `test_history_can_decline_the_publication_cache` — `fresh=1` calls `read_fresh`; without it, a push made behind the server's back stays invisible for ten seconds.
 - `test_a_push_refreshes_the_surface_that_offered_it` — the success path repaints History and the badges, not only fleet health.
 - `test_a_push_of_another_workspace_leaves_this_ones_history_alone` — the `activeId` guard, which is the half a naive fix would miss.
+
+## Independent review — 2026-08-15, `approved`
+
+Clean context: the reviewer started from this note, [[CHG-20260814-A-Push-Refreshes-What-It-Published]] and the diff at `85ae8c5`, never saw the authoring session's reasoning, and is not that session. `model:claude-opus-5`, same family as the author, which [[project-os-dev#ADR-0013]] does not gate on.
+
+**Every guard fails under the mutation it names**, run individually against `tests/test_view_landings.py`:
+
+| mutation | fails |
+|---|---|
+| drop `void refreshPublicationSurfaces(workspaceId)` from `runPush` | `test_a_push_refreshes_the_surface_that_offered_it` |
+| drop `fresh=1` from the invalidation fetch | `test_a_push_declines_the_publication_cache_before_repainting` |
+| relax `workspaceId !== activeId` to `!activeId` | `test_a_push_of_another_workspace_leaves_this_ones_history_alone` |
+| move the `fresh=1` fetch after `refreshOverviewInPlace()` | `test_a_push_declines_the_publication_cache_before_repainting` |
+
+The server half is genuinely end-to-end rather than source-parsed: `test_history_can_decline_the_publication_cache` pushes to a real bare repo behind the server's back, asserts the cached reading is **still wrong**, and only then corrects it with `fresh=True` — so it fails in both directions and carries its own expiry condition if `CACHE_SECONDS` ever stops mattering. `read_fresh` does re-stamp the shared `_cache` (`git_state.py:179`), and the test's final assertion proves the badges get it for free.
+
+The two mechanisms in the note check out in the code: `refreshOverviewInPlace` returns immediately off `~overview` (`renderer.ts:15290`), so calling both surfaces unconditionally is repaint-whichever-is-on-screen rather than an either/or; `history_payload` gained only a keyword and `/api/cockpit/history` only a query parameter, so REQ-0027's loopback set is untouched and `test_every_note_mutating_endpoint_requires_loopback` still passes.
+
+**Two remarks, neither blocking.** The `try/catch` wraps only the invalidation fetch — if `refreshOverviewInPlace()` or `renderHistoryPage()` throws, `refreshObligationBadges()` never runs and the badge keeps the pre-push number under a repainted block. And the renderer guards are source-parsing, so they pin the calls rather than the repaint; the live walk recorded above is what covers that, and this note says so plainly rather than claiming the tests do it.

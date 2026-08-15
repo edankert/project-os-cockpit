@@ -5,7 +5,10 @@ title: "The Intent landing leads with what its badge counts, and the design regi
 status: merged
 owner: user:edwin
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-15
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-15
+review_verdict: changes-requested
 source: ["Edwin 2026-08-14: 'One more thing on the designs landing page, the list of design items looks totally different to for instance the list of to be approved features and it does not seem to have the same philosophy as the other landing pages, although not sure if that is a bad thing. Review this and suggest approach.' → then 'Implement the recommended solution.'"]
 commit: ""
 pr: ""
@@ -48,7 +51,7 @@ The second half was two row grammars for one object. The register's rows were `<
 
 Both because a decision already on the record answered them, and both are recorded in [[ISS-0167]] at length.
 
-1. **No `Design system · Live · Settled` grouping.** [[ISS-0089]] removed exactly that split in `TASK-0275` and named live/completed as the axis that matters here.
+1. **No `Design system · Live · Settled` grouping.** [[ISS-0089]] removed exactly that split in `TASK-0275`. *(Corrected 2026-08-15: this said ISS-0089 "named live/completed as the axis that matters here". It does not — that sentence is a code comment at `cockpit.py:2872`. The withdrawal stands on ISS-0089's actual line, "the design view drops the `system`/`proposal` split", and on Edwin's own words in its `source:`.)*
 2. **No counted roll-up of Intent's other five nav groups.** It would restate the navigator group for group, which is [[ISS-0068]] and is named in [[PHASE-030]]'s *"what this phase must not do"*. Measured: it would also have cost ~70ms per landing fetch against a 59ms payload, doubling a call [[ISS-0166]] had just made fast.
 
 ## One correction found by walking it
@@ -60,3 +63,16 @@ The fold moves **three** designs, not nine. An earlier draft of the issue called
 Walked in `desktop/harness/live-harness.html` against a real sidecar on this repo's corpus, on the built bundle: the head, the lead, `DECIDE 1 ADR`, the fold opening to `DES-0001`, a register row opening `~design/DES-0004`, and the dead-id fallback rendering the register with no obligation block. Features, Issues and Tests re-checked after the refactor — leads and badges still agree (`4`/`4`, quiet, `1`/`1`).
 
 Five guards in `tests/test_view_landings.py`, each mutation-tested: the page head has one author, one row grammar exists, the register does not read `role:`, Intent reads the obligation payload and puts it above identity, and an owed design opens its note. Two existing guards were widened rather than left passing — the quiet-sentence count went 3 → 4, and the top-bar-label test now asserts the *use* site, which is where it was being violated.
+
+## Independent review — 2026-08-15, `changes-requested`
+
+Clean context, `model:claude-opus-5`, never the authoring session ([[project-os-dev#ADR-0013]]: context is the gate, not family). Verified at `da6a834` with `.venv/bin/pytest` (1287 passed / 1 skipped), `tools/scripts/validate-docs.sh` (OK) and `npm run typecheck` (clean).
+
+The change is real and the impacts list matches the diff. Four mutations against the guards that carry the fix all fail correctly.
+
+Two of this section's own claims do not — filed as [[ISS-0171]], with reproductions:
+
+- *"one row grammar exists"* is not what the guard checks. A second row builder with fresh class names, rendering the `<a href="#">` + `preventDefault` grammar this change removed, is green.
+- *"the top-bar-label test now asserts the *use* site"* — it asserts that `buildLandingHead` reads `VIEW_LABELS` and is the only head author. Overwriting the Intent head's text back to `Designs` after calling it is green.
+
+Separately, the first withdrawal's authority — *"[[ISS-0089]] … named live/completed as the axis that matters here"* — rests on a sentence that is not in ISS-0089. Edwin's own words in that note's `source:` say the same thing and are on the record; the citation should point at those.

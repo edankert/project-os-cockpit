@@ -6,9 +6,9 @@ title: "Unpushed work needs a person — publication joins the obligation regist
 status: done
 owner: user:edwin
 created: 2026-08-13
-updated: "2026-08-14"
+updated: "2026-08-15"
 reviewed_by: "model:claude-opus-5"
-review_date: 2026-08-14
+review_date: 2026-08-15
 review_verdict: changes-requested
 phase: "[[PHASE-030-Obligations-Go-Home]]"
 source: ["Edwin 2026-08-13: 'let's add the git status to the needs you section instead and have the actual push solution in the overview history. Can we then have an indication of having to push using a number on the overview icon?'", "Edwin 2026-08-13: 'widen the registry's definition'"]
@@ -130,3 +130,34 @@ Edwin: *"Close off the phase 030."* This was the phase's only unresolved child, 
 **Finding 10** (the criterion's literal `3 · commits to push`, a string that never existed) is recorded as an amendment on [[TASK-0417]]'s box rather than silently reworded.
 
 **Findings 4 and 9 are the ones this close-out does not claim.** Finding 4 — the attention card reading a second git walk — was filed as [[ISS-0165]] and is `fixed`: `fleet_git.py` is now the one walk. Finding 9 stands: `tests: []`, and this feature still links no `TST-*`. The guards are in the pytest suite rather than in a test note, which is this repo's habit for renderer work and is not what `QUALITY.md`'s gate reads. Left open and named rather than papered over — it is why finding 3 went unnoticed for a day.
+
+## Second independent review — 2026-08-15, `changes-requested`
+
+The pass [[PHASE-030]] recorded as unpaid at `d3ca1a8`. Clean context: this reviewer started from this note, its three re-ticked tasks, the phase note and the diffs `d754702..d3ca1a8`, never saw the authoring session's reasoning, and is not that session. Same model family as the author (`model:claude-opus-5`), which [[project-os-dev#ADR-0013]] does not gate on — context is the mechanism, and it is the part that is genuinely fresh here.
+
+**Finding 3 is closed, and it reproduces.** Mutating `_publication_rows` (`obligations.py:336`) to `return []` fails `test_the_publication_obligation_is_exercised_non_vacuously` — 2 failed, 1284 passed, where the close-out reported 1281 green before the test existed. The claim was re-tested rather than trusted, and the re-test holds.
+
+**What blocks:**
+
+1. **The same vacuity survives on the sibling kind** — [[ISS-0169]]. `DEPLOY_OBLIGATION_KIND` (`undeployed commit`, verb `Deploy`) can be made to yield no rows with the **whole suite green** (1286 passed). It carries every unpublished commit on a deploy-only repo — `your-applications.com` at 34, which this review's own predecessor measured — so it is that project's entire publication badge. [[TASK-0417]]'s box for it is also the only one of that task's six with no evidence appended.
+2. **A ticked box states evidence the code contradicts** — [[ISS-0170]]. [[TASK-0419]]'s *"No new subprocess per repo… calls `digest_payload` directly and **spawns nothing**"*. `_digest_counts` → `digest_payload` → `history_payload` → `subprocess.run(["git", …])` (`cockpit.py:5531`), and `fleet_validate.py:80` says so in its own docstring: *"one index build and one `git log` per repo per cold pass"*.
+3. **"26 ticked with evidence" is not accurate.** Seven of the 26 carry no evidence text — TASK-0417's deploy box, and three steps each on TASK-0419 and TASK-0420. The DoD boxes proper are well evidenced; the sentence overstates the set.
+
+**The `[~]` is honest, not evasive.** [[TASK-0417]]'s *"the overview's `Needs you` group carries a row"* states plainly that it was not delivered and cannot be, gives the mechanism, names where the row actually went, and cross-links this note's amended criterion 1. Verified independently: `NAV_MODES` (`cockpit.py:381`) does not contain `overview`, so `nav_payload` falls back to `features`. That is `QUALITY.md`'s amend-with-rationale, done in the open.
+
+**Re-verified by running it**, at `d3ca1a8`: `.venv/bin/pytest` 1287 passed / 1 skipped; `bash tools/scripts/validate-docs.sh` OK; `cd desktop && npm run typecheck` clean; `node --test desktop/tests/*.mjs` 105 passed. TASK-0420's six DoD boxes were each checked against shipped code — `clearDismissalsFor` is called from `openWorkspace` (`renderer.ts:901`), the key is `${wsId}::${fingerprint}` through one `attentionFingerprint` (`renderer.ts:11875`), no age check survives in the path, and `attention-dismissal.test.mjs` executes the real compiled `pruneDismissedAlerts`. TASK-0417's amended badge string is right: `refreshObligationBadges` composes `${count} ${noun} to ${verb}` joined by `, ` (`renderer.ts:3693`).
+
+**`tests: []` is not what blocks, and is harder to defend at a third close.** The prior review called it a gap rather than a rule violation and that reading still stands — but two of the three findings above are exactly the class a `TST-*` gate would have caught, and both were found by mutation rather than by reading. Finding 9's own sentence — *"it is why finding 3 went unnoticed"* — is now true twice.
+
+**One structural note about this stamp.** `review_verdict: changes-requested` on a note at `status: done` is **invisible to the registry**: `_verdict_is_owed("changes-requested", "done")` is `False` by [[ISS-0121]]'s discriminator, and the validator's `REVIEW_SETTLED_STATUSES` covers `tests` only. So this verdict appears on no badge and in no `Needs you` group. Status is the author's to change and was deliberately not changed here — but a feature cannot honestly stay `done` on a verdict asking for work, and [[PHASE-030]] cannot stay `done` holding it (`PHASE-CHILDREN`).
+
+## Second independent review — 2026-08-15, `changes-requested`
+
+Run at Edwin's instruction rather than skipped, on the debt the close-out above recorded. It confirmed the close-out's central claim — finding 3 is closed, reproduced by mutation — and found that I had closed **one of two** kinds.
+
+- **[[ISS-0169]]**, blocking: `undeployed commit` is a separate `NOTE_LESS` source with its own `rows` lambda, and nothing asserted it. Replacing that lambda with `lambda index: []` left the suite green at 1286 passed. Fixed by `test_the_deploy_publication_obligation_is_exercised_non_vacuously`, verified against that exact mutation.
+- **[[ISS-0170]]**, documentation: [[TASK-0419]]'s "no new subprocess per repo" box carried evidence claiming the cold digest "spawns nothing". It spawns `git log`. The box's claim holds; my sentence under it did not.
+
+Both fixed 2026-08-15. The `review_verdict` stamp is left at `changes-requested` deliberately: it records what the review found, and flipping it would be the author judging his own work, which is the thing the gate exists to prevent. A fresh pass would be needed to move it.
+
+**Still not addressed, and named rather than absorbed:** `tests: []`. The reviewer's point stands — findings 1 and 3 are both the class a linked `TST-*` would have caught, and both were found by mutation rather than by reading.

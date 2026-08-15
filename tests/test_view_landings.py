@@ -234,9 +234,27 @@ def test_the_landing_reads_the_top_bars_own_labels() -> None:
     # source and legitimately so — it is the register's SECTION head, a
     # category inside Intent — so the string is not the thing to forbid; a
     # second thing calling itself the page's title is.
-    assert _code(src).count("'view-landing-head'") == 1, (
+    code = _code(src)
+    assert code.count("'view-landing-head'") == 1, (
         "something other than buildLandingHead is titling a landing; the "
         "Intent page called itself 'Designs' while its button said 'Intent'"
+    )
+    # **One author is not the same as one value** (ISS-0171). A review wrote
+    # `const h = buildLandingHead('intent'); h.textContent = 'Designs';` and
+    # this test stayed green: it proved where the head is BUILT and said
+    # nothing about what it ends up saying. So the head must be appended
+    # straight from the call, never bound to a name that could be rewritten
+    # between the two.
+    for view in ("view", "'intent'"):
+        assert f"page.appendChild(buildLandingHead({view}))" in code, (
+            f"the {view} landing no longer appends its head directly from "
+            "buildLandingHead; a head held in a variable can be relabelled "
+            "after it is built, which is the regression this guards"
+        )
+    assert not re.search(r"=\s*buildLandingHead\(", code), (
+        "a landing head is being bound to a variable instead of appended "
+        "directly — that is the shape that let 'Designs' be written back over "
+        "the label VIEW_LABELS supplied"
     )
 
 
@@ -284,6 +302,42 @@ def test_one_row_grammar_across_every_landing() -> None:
     assert code.count("'view-landing-list'") == 1, (
         "a landing is building its own list element instead of buildLandingList()"
     )
+    # **The class-name list above is not enough** (ISS-0171). It forbids the
+    # three OLD literals, so a second builder with fresh names — the exact
+    # regression this test's name claims to catch — walked straight through it:
+    # an independent review added one emitting `<a href="#">` + preventDefault
+    # for the settled fold and the suite stayed green.
+    #
+    # So the property is asserted structurally instead of by blocklist: within
+    # the landing region, the only element that becomes a row is the one
+    # `buildLandingRow` makes. An anchor pretending to be a button is what the
+    # register had, and `href = '#'` is its signature.
+    #
+    # The first version of this assertion scanned "everything after
+    # `interface LandingRowSpec`", which is 3,000 lines of unrelated renderer
+    # and failed on an anchor in the inbox. Asserted per function instead, so
+    # it means what it says.
+    assert code.count("'view-landing-row'") == 1, (
+        "something other than buildLandingRow is emitting a landing row; the "
+        "class literal is the row's identity and only its builder may set it"
+    )
+    # The register goes THROUGH the shared builder rather than past it — the
+    # regression that walked through the blocklist above was a second builder
+    # inside this very function, emitting `<a href=\"#\">` with fresh class
+    # names for the settled fold.
+    register = re.search(
+        r"function buildDesignRegisterList\((.*?)function designIsSettled\(",
+        code, re.S,
+    )
+    assert register, "buildDesignRegisterList moved; re-anchor this guard"
+    assert "buildLandingRow({" in register.group(1)
+    assert "createElement('a')" not in register.group(1), (
+        "the register is building anchor rows again"
+    )
+    for fn_name in ("buildLandingObligations", "buildLandingList"):
+        fn = re.search(
+            rf"function {fn_name}\(.*?\n\}}", code, re.S)
+        assert fn and "createElement('a')" not in fn.group(0), fn_name
 
 
 def test_the_register_is_not_split_by_role() -> None:
@@ -1085,6 +1139,86 @@ def test_the_publication_obligation_is_exercised_non_vacuously(tmp_path: Path) -
     run("push", "-q")
     git_state.clear_cache()
     assert "unpushed commit" not in obligations.counts_by_kind(index).get("overview", {})
+
+
+def test_the_deploy_publication_obligation_is_exercised_non_vacuously(
+    tmp_path: Path,
+) -> None:
+    """ISS-0169 — finding 3's sibling kind, and the one that was still open
+    after finding 3 was closed.
+
+    `undeployed commit` is a **separate** `NOTE_LESS` source with its own
+    `rows` lambda, so a test that only builds a `backup` remote leaves it
+    entirely unasserted: replacing the deploy source's rows with `lambda
+    index: []` left the whole suite green at 1286 passed. A whole obligation
+    kind could stop counting — on the badge, in `Needs you` and on the landing
+    page — with nothing to notice.
+
+    It is not a hypothetical kind. The previous review's own live figure was
+    `your-applications.com` at **34** unpublished commits, and that repo's only
+    remote is a deploy target, so every one of them is counted here or nowhere.
+
+    Counted and deliberately NOT offered (ADR-0027 admission test 3's *offer
+    **or** name* clause), which is why the verb is asserted separately from
+    any control.
+    """
+    from project_os_cockpit import git_state, obligations
+
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+
+    def run(*args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], check=False,
+                       capture_output=True)
+
+    run("init", "-q", "--initial-branch=main", ".")
+    run("config", "user.email", "t@example.com")
+    run("config", "user.name", "T")
+    (repo / "docs" / "a.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0001\nstatus: done\n---\n\n# A\n')
+    run("add", "-A")
+    run("commit", "-qm", "base")
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=main", "."], check=False)
+    # A bare filesystem path IS a deploy remote by `remote_kind`'s rule —
+    # anything unrecognised is `deploy`, because the safe default for "I do not
+    # know what this is" is "do not publish to it". So this needs no rewriting
+    # trick; the plain path is the case under test.
+    run("remote", "add", "origin", str(bare))
+    run("push", "-q", "-u", "origin", "main")
+
+    for n in (2, 3, 4):
+        (repo / "docs" / f"{n}.md").write_text(
+            f'---\ntype: "[[task]]"\nid: TASK-000{n}\nstatus: done\n---\n\n# {n}\n')
+        run("add", "-A")
+        run("commit", "-qm", f"undeployed {n}")
+
+    index = Index.build(repo / "docs")
+    git_state.clear_cache()
+
+    assert git_state.read(repo).kind == "deploy", (
+        "fixture drift: this repo must classify as a deploy remote or the "
+        "test asserts the wrong kind"
+    )
+
+    counts = obligations.counts_by_kind(index).get("overview", {})
+    rows = [r for r in obligations.owed_items(index).get("overview", [])
+            if r["type"] == "undeployed commit"]
+
+    assert counts.get("undeployed commit") == 3, counts
+    assert len(rows) == 3
+    assert all(r["verb"] == "Deploy" for r in rows), [r["verb"] for r in rows]
+    # …and it must NOT be counted as the push kind, or the two collapse and
+    # the deploy refusal loses the distinction it exists to make.
+    assert "unpushed commit" not in counts, counts
+
+    landing = cockpit.landing_payload(index, "overview")
+    grp = [g for g in landing["groups"] if g["kind"] == "undeployed commit"]
+    assert grp and grp[0]["count"] == 3 and len(grp[0]["items"]) == 3
 
 
 def test_a_live_digest_beats_the_cold_one_and_absence_beats_neither() -> None:
