@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0100
 aliases: ["FEAT-0100"]
 title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-13
 updated: "2026-08-14"
@@ -39,6 +39,10 @@ The tool already answers that question, continuously, through the registry and i
 - **The note-less obligation path, generalised** ([[TASK-0416]]) — standing documents and unpushed work through one walk that yields a count and its rows together, replacing two bolt-on special cases whose seam has already produced a badge that disagreed with its own group.
 - **Publication registered as an obligation** ([[TASK-0417]]) — owned by the overview, with a noun and a verb, so the badge, the `Needs you` group and the landing page all read from one place.
 - **The push, with the commits** ([[TASK-0418]]) — the overview history tile and `~history` mark which commits are unpublished and carry the action, plus the design artifact [[DES-0011]] needs before it can leave draft.
+- **The card is whole whether or not you have opened the project** ([[TASK-0419]]) — the cold pass carries each repo's digest numbers, so an unopened project stops getting a headline with no second line.
+- **A dismissal means *until something changes*** ([[TASK-0420]]) — the ✕ keys on a fingerprint of everything the card shows, and survives a restart.
+
+*(Both added to Scope on 2026-08-14. They arrived mid-feature and were listed in `tasks:` without ever entering Scope or Acceptance — the independent review's finding 7 — which is how the only false claim in the set reached `done` unexamined. Recording them late is worse than having recorded them early and better than closing a second time without them.)*
 
 ## Out of scope
 
@@ -55,6 +59,8 @@ The tool already answers that question, continuously, through the registry and i
 - With a deploy remote, the state is visible and the push is refused as a decision, not as a broken control.
 - With nothing to publish, **every one of these surfaces is silent** — no zero badge, no empty group.
 - The count is correct for a workspace with a live sidecar, which is the case that is wrong today.
+- **Every attention card carries the same lines**, opened project or not — the cold pass supplies the digest where no sidecar is running, and a live sidecar still wins. *(Added 2026-08-14 with [[TASK-0419]]; see the note in Scope.)*
+- **A dismissal lasts until something on that card changes, or you open the project — including across a restart.** *(Added 2026-08-14 with [[TASK-0420]]. This is the criterion whose absence let a false `done` through: nothing here judged the task, and the behaviour was the opposite of its promise.)*
 
 ## Independent review — 2026-08-14, `changes-requested`
 
@@ -110,3 +116,17 @@ Independent review returned **changes-requested** with five blocking findings, s
 **Filed rather than fixed:** [[ISS-0165]] — the attention card reads `probeGitState`, a second git walk, so *"one walk, agree by construction"* is untrue of the three surfaces that shipped. It needs the card to read the sidecar's payload rather than shelling out again, which is a change to how `fleetHealth` composes rather than a repair.
 
 **Still owed before this returns to `done`:** the 27 unticked DoD boxes on [[TASK-0417]], [[TASK-0419]] and [[TASK-0420]] — three tasks are `done` with every box unticked, which is how the dismissal defect reached a terminal status unexamined. TASK-0419 and TASK-0420 are also in `tasks:` but in neither Scope nor Acceptance, so no criterion judged them at all.
+
+## Returned to `done` — 2026-08-14, at PHASE-030's close-out
+
+Edwin: *"Close off the phase 030."* This was the phase's only unresolved child, so the debt above had to clear first rather than be carried past a closing phase.
+
+**The 27 boxes are resolved: 26 ticked with evidence, one marked `[~]`.** The `[~]` is [[TASK-0417]]'s *"the overview's `Needs you` group carries a row"* — not delivered, and not deliverable: `overview` is not a nav mode, so that payload falls back to `features` and nothing fetches it. [[TASK-0418]] re-homed the row to the rail's attention panel, which is where Edwin asked for it. Marked rather than ticked, and rather than quietly deleted.
+
+**Finding 3 was still open and is now closed.** The review said no test exercised the publication source non-vacuously. Re-tested at close-out rather than assumed from the earlier repair: mutating `_publication_rows` to `return []` still left **1281 passing**, with exactly one failure — `test_an_unknown_publication_count_is_not_reported_as_zero`, which [[TASK-0421]] added for the *unknown* case and which says nothing about the counted one. `test_the_publication_obligation_is_exercised_non_vacuously` now builds a real repo with a forge-shaped remote and real unpushed commits and asserts count == len(rows) == landing count; the same mutation fails it.
+
+**Two assertions [[TASK-0419]]'s DoD asked for did not exist at all** — the task had no test of any kind. Both were written here, and the first draft of the degradation test was too weak: narrowing `except Exception` to `except ValueError` left it green, because `Watermark._load` already swallows `OSError` and the missing-`docs/` case returns before anything can raise. A second test makes `digest_payload` actually raise.
+
+**Finding 10** (the criterion's literal `3 · commits to push`, a string that never existed) is recorded as an amendment on [[TASK-0417]]'s box rather than silently reworded.
+
+**Findings 4 and 9 are the ones this close-out does not claim.** Finding 4 — the attention card reading a second git walk — was filed as [[ISS-0165]] and is `fixed`: `fleet_git.py` is now the one walk. Finding 9 stands: `tests: []`, and this feature still links no `TST-*`. The guards are in the pytest suite rather than in a test note, which is this repo's habit for renderer work and is not what `QUALITY.md`'s gate reads. Left open and named rather than papered over — it is why finding 3 went unnoticed for a day.

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -1000,3 +1001,119 @@ def test_an_accepted_decision_is_not_upcoming_work(repo_index: Index) -> None:
         assert not [i for i in nxt["items"] if i.get("status") == "accepted"], (
             "settled decisions are listed as upcoming work"
         )
+
+
+def test_the_publication_obligation_is_exercised_non_vacuously(tmp_path: Path) -> None:
+    """The gap the independent review of [[FEAT-0100]] found (finding 3), and
+    the one [[TASK-0417]]'s last DoD box asks for.
+
+    `owed_corpus` is a `tmp_path` copy with **no `.git`**, so its publication
+    rows are always empty and every agreement assertion over it is carried
+    entirely by the standing-document kind. `repo_index` reaches publication
+    only because this repo happens to have unpushed commits on the day you run
+    it — the live-corpus vacuity trap `conftest.py`'s own docstring warns
+    about, and a test that expires the moment somebody pushes.
+
+    Measured 2026-08-14: mutating `_publication_rows` to `return []`
+    unconditionally left the whole suite green.
+
+    So this builds the case instead of hoping for it: a real repo, a real
+    forge-shaped remote, real unpushed commits — and asserts the invariant the
+    registry exists to hold, that **a count IS the length of its rows**.
+    """
+    from project_os_cockpit import git_state, obligations
+
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n", encoding="utf-8")
+
+    def run(*args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], check=False,
+                       capture_output=True)
+
+    run("init", "-q", "--initial-branch=main", ".")
+    run("config", "user.email", "t@example.com")
+    run("config", "user.name", "T")
+    (repo / "docs" / "a.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0001\nstatus: done\n---\n\n# A\n')
+    run("add", "-A")
+    run("commit", "-qm", "base")
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    subprocess.run(["git", "-C", str(bare), "init", "-q", "--bare",
+                    "--initial-branch=main", "."], check=False)
+    # A forge-shaped URL so `remote_kind` classifies it `backup` — a bare path
+    # is a DEPLOY remote, which is counted under its own kind and never offers
+    # a push. `pushInsteadOf` keeps `get-url` showing the forge URL while the
+    # push goes to the local bare repo, so nothing is published.
+    run("remote", "add", "origin", "https://github.com/fake/probe.git")
+    run("config", f"url.{bare}.pushInsteadOf", "https://github.com/fake/probe.git")
+    run("push", "-q", "-u", "origin", "main")
+
+    for n in (2, 3):
+        (repo / "docs" / f"{n}.md").write_text(
+            f'---\ntype: "[[task]]"\nid: TASK-000{n}\nstatus: done\n---\n\n# {n}\n')
+        run("add", "-A")
+        run("commit", "-qm", f"unpushed {n}")
+
+    index = Index.build(repo / "docs")
+    git_state.clear_cache()
+
+    counts = obligations.counts_by_kind(index).get("overview", {})
+    rows = [r for r in obligations.owed_items(index).get("overview", [])
+            if r["type"] == "unpushed commit"]
+
+    assert counts.get("unpushed commit") == 2, (
+        "the publication obligation is not being counted; this is the "
+        "assertion that was vacuous — it passed with the source returning []"
+    )
+    # The registry's invariant, on the kind that motivated it: a count that
+    # outruns its own rows is exactly the disagreement TASK-0416 removed.
+    assert len(rows) == 2
+    assert all(r["verb"] == "Push" for r in rows), [r["verb"] for r in rows]
+
+    # …and the landing page, which is the third surface. One walk, so this is
+    # the same numbers or the registry is broken.
+    landing = cockpit.landing_payload(index, "overview")
+    pub = [g for g in landing["groups"] if g["kind"] == "unpushed commit"]
+    assert pub and pub[0]["count"] == 2
+    assert len(pub[0]["items"]) == 2
+
+    # Absent at zero, on the same repo: publish, and the kind disappears
+    # rather than reporting `0`.
+    run("push", "-q")
+    git_state.clear_cache()
+    assert "unpushed commit" not in obligations.counts_by_kind(index).get("overview", {})
+
+
+def test_a_live_digest_beats_the_cold_one_and_absence_beats_neither() -> None:
+    """TASK-0419's renderer half — the other assertion its DoD asks for and
+    that was never written (*"Assert the fallback, and assert that a live
+    sidecar still overrides"*).
+
+    The preference matters in one direction only: a live sidecar is the fresher
+    answer and updates between cold passes, so it must win. Inverting it would
+    be invisible on any project you have open — which is every project you
+    would think to check it on.
+    """
+    code = _code(_renderer())
+    fn = re.search(
+        r"function digestFor\(wsId: string\): DigestSummary \| undefined \{(.*?)\n\}",
+        code, re.S,
+    )
+    assert fn, "digestFor moved; re-anchor this guard"
+    body = fn.group(1)
+    live = body.index("digests.get(wsId)")
+    cold = body.index("fleetHealth.get(wsId)?.digest")
+    assert live < cold, (
+        "the cold pass is being consulted before the live sidecar; the fresher "
+        "answer must win"
+    )
+    # The live one returns immediately — not merged with, not overridden by,
+    # the cold row underneath it.
+    assert re.search(r"if \(live\) return live;", body), body
+    # And no digest at all stays absent rather than becoming zeroes: a card
+    # claiming `0 transitions` for a repo nobody measured is the absent-never-
+    # zero rule this project has been bitten by twice.
+    assert re.search(r"if \(!cold\) return undefined;", body), body

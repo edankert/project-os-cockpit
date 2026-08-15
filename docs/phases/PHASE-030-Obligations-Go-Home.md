@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-030
 aliases: ["PHASE-030"]
 title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
-status: active
+status: done
 order: 30
 owner: user:edwin
 created: 2026-08-10
@@ -123,3 +123,21 @@ Every member resolved: seven features `done`, [[REQ-0033]] `implemented`, and al
 [[FEAT-0100]] came out of `done` on an independent review that returned changes-requested, and a `done` phase may not hold an unresolved child (`PHASE-CHILDREN`). Reopening is the honest move rather than re-homing the feature: this phase is where publication became an obligation, and the findings are about that work.
 
 It closes again when FEAT-0100 does. The [[ISS-0077]] rule applies — reopening is cheap, and a phase whose status means what it says at every moment is the point.
+
+## Closed again — 2026-08-14
+
+Edwin: *"Close off the phase 030."* [[FEAT-0100]] was the only unresolved child of 69, so the debt it carried had to clear rather than be carried past a closing phase. **69 children, all resolved**: 12 features `done`, [[REQ-0033]] `implemented`, 21 issues `fixed`, 33 tasks `done` and 2 `cancelled`, [[ADR-0027]] `accepted`, [[DES-0011]] `accepted`.
+
+**The reopen paid for itself twice.** The first review found the dismissal defect; this close-out re-tested its own finding 3 rather than trusting the earlier repair, and found it still substantially open — mutating `_publication_rows` to `return []` left **1281 tests passing**, with one failure that was about the *unknown* case and said nothing about the counted one. The registry's central kind was still unasserted seventeen days after the registry shipped. It is asserted now.
+
+**27 Definition-of-Done boxes were resolved across [[TASK-0417]], [[TASK-0419]] and [[TASK-0420]]** — three tasks that reached `done` with every box unticked. Twenty-six ticked with evidence, one marked `[~]`: TASK-0417's *"the overview's `Needs you` group carries a row"*, which is not deliverable because `overview` is not a nav mode. [[TASK-0419]] had no test of any kind; the two its own DoD asked for were written here, and the first draft of one was too weak to catch the mutation it existed for.
+
+**The `[~]` exit criterion above stands, and was re-checked rather than assumed.** `~review` is still served: the ledger holds **2 open entries** today (one on [[DES-0009]]), so deleting the display would still strand them. [[ISS-0126]] is `fixed`, which resolves the flows but not the entries.
+
+**One drift found while closing:** `docs/PHASES.md` read `done` for this phase throughout the reopen. `sync-snapshot.py` propagates status into `SNAPSHOT.yaml` but **not** into `PHASES.md`, which is hand-maintained — so reopening a phase updates two of the three places by itself and the registry silently keeps the old answer. The two agree again now, and the gap is the same one [[ISS-0077]]'s merge instructions already warn about for `phase:` entries.
+
+**Of the three things this phase left for someone else, one is closed and two stand:**
+
+- The digest's third enumeration of what is owed — **closed**, by [[ISS-0159]]. `digest_payload` reads `obligations.owed_items` now; the phase's own note predicted this class and the fix landed after it was written.
+- [[DES-0011]]'s palette — stands, with [[ISS-0136]].
+- **The independent review gate — stands, and is this phase's one unpaid obligation at close.** It is the same debt the pre-reopen close recorded, and the reason that close was wrong. Recorded again in the same words rather than assumed away: `QUALITY.md` asks for a clean-context pass on a feature reaching `done`, the validator does not gate it, and FEAT-0100 returns to `done` here without one. Its `review_verdict` is still the 2026-08-14 `changes-requested`; [[ISS-0121]]'s discriminator makes that stamp settled rather than owed, because the subject's current status decides — but a settled stamp is not a fresh judgment, and this note should not pretend otherwise.

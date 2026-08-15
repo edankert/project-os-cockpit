@@ -345,3 +345,84 @@ def test_the_entrypoint_block_stays_at_the_end_of_the_module() -> None:
         "code follows the entrypoint block and will never be reached by "
         f"`python -m`: {leftover}"
     )
+
+
+def test_the_cold_pass_carries_a_digest_and_degrades_to_none(tmp_path: Path) -> None:
+    """TASK-0419's payload half, asserted rather than eyeballed.
+
+    Written at close-out: the task reached `done` with every Definition-of-Done
+    box unticked and no test, and two of those boxes ask for exactly this —
+    *"Asserted on the payload rather than eyeballed"* and *"a repo with no
+    `docs/`, no git, or an unreadable watermark degrades to no digest rather
+    than to a wrong one, and does not take the batch down with it."*
+
+    The second clause is the one worth having. `_digest_counts` swallows every
+    exception on purpose, so a regression there is silent by construction —
+    it does not crash, it just quietly stops answering, and every card loses
+    its since-line for a reason nobody can see.
+    """
+    from project_os_cockpit.fleet_validate import _digest_counts
+
+    # No `docs/` at all — the cheapest degradation, and the one the batch hits
+    # for any directory that is not a project.
+    bare = tmp_path / "not-a-project"
+    bare.mkdir()
+    assert _digest_counts(bare) is None
+
+    # `docs/` but no git: an index builds, the history does not.
+    nogit = tmp_path / "nogit"
+    (nogit / "docs").mkdir(parents=True)
+    (nogit / "docs" / "a.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0001\nstatus: done\n---\n\n# A\n')
+    assert _digest_counts(nogit) is None
+
+    # A real repo answers, with every field the card reads.
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "SNAPSHOT.yaml").write_text("project:\n  name: probe\n")
+    (repo / "docs" / "a.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0001\nstatus: done\n---\n\n# A\n')
+    for args in (
+        ("init", "-q", "--initial-branch=main", "."),
+        ("config", "user.email", "t@example.com"),
+        ("config", "user.name", "T"),
+        ("add", "-A"),
+        ("commit", "-qm", "TASK-0001: base"),
+    ):
+        subprocess.run(["git", "-C", str(repo), *args], check=False,
+                       capture_output=True)
+
+    digest = _digest_counts(repo)
+    assert digest is not None, "a real repo with docs/ and git must answer"
+    assert set(digest) == {"seen_at", "transitions", "needs_you", "computed_at"}, digest
+    assert isinstance(digest["transitions"], int)
+    assert isinstance(digest["needs_you"], int)
+
+
+def test_one_bad_repo_does_not_take_the_cold_batch_down(
+    tmp_path: Path, monkeypatch: "pytest.MonkeyPatch",
+) -> None:
+    """The other half of TASK-0419's degradation box, pinned separately.
+
+    Split out because the first test does not reach it: `Watermark._load`
+    already swallows `OSError`, and a missing `docs/` returns before anything
+    can raise — so narrowing `_digest_counts`'s `except Exception` to
+    `except ValueError` left that test green. The clause being protected is
+    *"does not take the batch down with it"*, and the only honest way to
+    assert it is to make the call actually raise.
+    """
+    from project_os_cockpit import cockpit as _cockpit
+    from project_os_cockpit.fleet_validate import _digest_counts
+
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "docs" / "a.md").write_text(
+        '---\ntype: "[[task]]"\nid: TASK-0001\nstatus: done\n---\n\n# A\n')
+
+    def boom(*a: object, **k: object) -> dict[str, object]:
+        raise RuntimeError("this repo is having a bad day")
+
+    monkeypatch.setattr(_cockpit, "digest_payload", boom)
+    # No exception escapes, and the answer is *nothing* rather than a wrong
+    # number — the whole reason this returns `None` instead of zeroes.
+    assert _digest_counts(repo) is None

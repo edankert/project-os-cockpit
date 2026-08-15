@@ -34,15 +34,15 @@ The obvious alternative — card only the projects you have opened — was rejec
 
 ## Definition of Done
 
-- [ ] The cold pass (`fleet_validate.summarise`) carries each repo's digest numbers — watermark, transitions since it, owed count — beside the validator state and git standing it already reports.
-- [ ] The shell feeds `digests` from that for any workspace without a live sidecar, and a live sidecar still wins where there is one: it is the fresher answer, and it is the one that updates between cold passes.
-- [ ] **Every card carries the same lines**, whether or not its project has been opened. Asserted on the payload rather than eyeballed.
-- [ ] No new subprocess per repo: this rides the batch that already runs, and its added cost is bounded by the same timeout.
-- [ ] A repo with no `docs/`, no git, or an unreadable watermark degrades to *no digest* rather than to a wrong one, and does not take the batch down with it.
+- [x] The cold pass (`fleet_validate.summarise`) carries each repo's digest numbers — watermark, transitions since it, owed count — beside the validator state and git standing it already reports. — evidence: `summarise()` emits `digest` from `_digest_counts`; `test_the_cold_pass_carries_a_digest_and_degrades_to_none` asserts the four fields the card reads (2026-08-14)
+- [x] The shell feeds `digests` from that for any workspace without a live sidecar, and a live sidecar still wins where there is one: it is the fresher answer, and it is the one that updates between cold passes. — evidence: `digestFor()` returns the live digest before consulting `fleetHealth`; `test_a_live_digest_beats_the_cold_one_and_absence_beats_neither` fails when the order is inverted (2026-08-14)
+- [x] **Every card carries the same lines**, whether or not its project has been opened. Asserted on the payload rather than eyeballed. — **ticked at close-out, not when this task was marked `done`.** It reached `done` with all ten boxes unticked and no test at all, which the independent review of [[FEAT-0100]] recorded as finding 6. The payload assertion now exists (`test_the_cold_pass_carries_a_digest_and_degrades_to_none`), and the shell-side preference is pinned separately.
+- [x] No new subprocess per repo: this rides the batch that already runs, and its added cost is bounded by the same timeout. — evidence: `_digest_counts` is called inside `summarise()`, in-process; it builds an index and calls `digest_payload` directly and spawns nothing
+- [x] A repo with no `docs/`, no git, or an unreadable watermark degrades to *no digest* rather than to a wrong one, and does not take the batch down with it. — evidence: two tests, because one was not enough. `test_the_cold_pass_carries_a_digest_and_degrades_to_none` covers the no-`docs/` and no-git cases; it did **not** pin the batch-safety clause — narrowing `except Exception` to `except ValueError` left it green, because `Watermark._load` already swallows `OSError` and the missing-`docs/` case returns before anything can raise. `test_one_bad_repo_does_not_take_the_cold_batch_down` makes `digest_payload` actually raise, and fails under that mutation.
 
 ## Steps
 
-- [ ] `summarise()` builds the index and calls `digest_payload` with the repo's own `Watermark`, guarded per repo.
-- [ ] `fleet-health.ts` parses the block and exposes it on the row.
-- [ ] The renderer prefers a live digest and falls back to the cold one.
-- [ ] Assert the fallback, and assert that a live sidecar still overrides.
+- [x] `summarise()` builds the index and calls `digest_payload` with the repo's own `Watermark`, guarded per repo.
+- [x] `fleet-health.ts` parses the block and exposes it on the row.
+- [x] The renderer prefers a live digest and falls back to the cold one.
+- [x] Assert the fallback, and assert that a live sidecar still overrides. — `test_a_live_digest_beats_the_cold_one_and_absence_beats_neither`, mutation-tested in both directions (order inverted, and absence coerced to zeroes).

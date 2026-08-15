@@ -36,16 +36,16 @@ It also expires on a clock: `loadDismissedAlerts` drops anything older than 24 h
 
 ## Definition of Done
 
-- [ ] Dismissal is keyed on a fingerprint of the card's whole content, built in one place so a new line on the card cannot forget to join it.
-- [ ] Any change to that fingerprint brings the card back; nothing else does.
-- [ ] Opening a workspace clears its dismissals.
-- [ ] The 24-hour expiry is gone, and the store is bounded some other way — dead keys are those whose workspace is no longer discovered, and those a newer fingerprint has replaced.
-- [ ] A dismissal survives quitting and relaunching the app, asserted rather than assumed.
-- [ ] The dismissed state is per workspace, and dismissing one card never hides another's.
+- [x] Dismissal is keyed on a fingerprint of the card's whole content, built in one place so a new line on the card cannot forget to join it. — evidence: `attentionFingerprint()` is the single builder, sited beside the entry it fingerprints; [[TASK-0421]] added the publication `unknown` case to it by editing that one function
+- [x] Any change to that fingerprint brings the card back; nothing else does. — evidence: the store key IS `${wsId}::${fingerprint}`, so a changed fingerprint cannot match a stored key; and there is no clock anywhere in the path
+- [x] Opening a workspace clears its dismissals. — evidence: `clearDismissalsFor(id)` is called from `openWorkspace`
+- [x] The 24-hour expiry is gone, and the store is bounded some other way — dead keys are those whose workspace is no longer discovered, and those a newer fingerprint has replaced. — evidence: `a vanished workspace is still pruned once the fleet IS known` and `a superseded fingerprint is pruned while its workspace lives`, in `desktop/tests/attention-dismissal.test.mjs`
+- [x] A dismissal survives quitting and relaunching the app, asserted rather than assumed. — **this box is why [[FEAT-0100]] came out of `done`.** It was unticked, no test existed, and the shipped behaviour was the opposite: `pruneDismissedAlerts` ran from a module-level `refreshAttention()` before discovery, so `workspaces` was `[]`, every restored key failed the liveness test, and the store was read back and wiped on the same tick. Evidence now: `a dismissal is not wiped before the fleet is discovered`, executing the real compiled function out of `desktop/dist/renderer/renderer.js`
+- [x] The dismissed state is per workspace, and dismissing one card never hides another's. — evidence: the key is namespaced `${wsId}::…` and `clearDismissalsFor` matches on that prefix; `a live dismissal on a live workspace is kept` exercises a two-workspace store
 
 ## Steps
 
-- [ ] Build the fingerprint where the entry is built, so it cannot drift from what is rendered.
-- [ ] Replace the ts/count keys with it; keep the store's shape so existing entries expire harmlessly.
-- [ ] Clear on `openWorkspace`.
-- [ ] Replace the age prune with a liveness prune.
+- [x] Build the fingerprint where the entry is built, so it cannot drift from what is rendered.
+- [x] Replace the ts/count keys with it; keep the store's shape so existing entries expire harmlessly.
+- [x] Clear on `openWorkspace`.
+- [x] Replace the age prune with a liveness prune. — and the liveness prune's own defect (running before discovery) is the one this task shipped with; see the DoD box above.
