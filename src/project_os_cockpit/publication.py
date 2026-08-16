@@ -130,6 +130,12 @@ def _releases(index: "Index") -> list[dict[str, Any]]:
             "title": record.title or "",
             "status": (record.status or "").strip().lower(),
             "version": str(record.frontmatter.get("version") or "").strip(),
+            # When it shipped. Empty on a draft, which is the point — `date:`
+            # records when it went live and a drafted note has not.
+            "date": str(record.frontmatter.get("date") or "").strip(),
+            "tests_verified": [
+                str(v) for v in (record.frontmatter.get("tests_verified") or [])
+            ],
             # `preparing:` is FRONTMATTER, not a status (FEAT-0105 /
             # TASK-0438). STATUSES.md allows a release only draft / released /
             # reverted and is template-owned, so adding vocabulary there would

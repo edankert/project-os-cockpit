@@ -4139,6 +4139,8 @@ def _publication_groups(
         else f"Next release · {held['version']}" if held
         else "Next release"
     )
+    if since_id:
+        label = f"{label} · since {since_id}"
     out.append({
         "key": "release-next",
         "label": label,
@@ -4146,50 +4148,45 @@ def _publication_groups(
         "status": "draft" if held else None,
         "type": "release",
         "item_layout": "stacked",
-        "items": [
-            {
-                "id": str(row.get("id") or ""),
-                "title": str(row.get("title") or ""),
-                "subtitle": "",
-                "status": str(row.get("status") or ""),
-                "type": "feature",
-                "url": f"/docs/{row['rel']}" if row.get("rel") else None,
-            }
-            for row in (unshipped.get("items") or [])
-        ] or [{
-            "id": "", "title": "nothing unshipped", "subtitle": "",
-            "status": "", "type": "release",
-            "url": f"~release/{held['id']}" if held else "~release/next",
-        }],
+        # **Status `ready`, never the feature's own** (ISS-0179). These rows
+        # carried each feature's status, and a next release is full of `done`
+        # features — so `groupIsSettled` read the whole group as finished and
+        # filed it in the COMPLETED band at the bottom, while shipped
+        # releases, whose rows carried no status at all, sorted to the top as
+        # open work. Edwin: *"the current / next release is hidden at the end
+        # below all existing releases and in the completed releases section
+        # and completed releases are in the open release section at the
+        # top???"*. Exactly inverted, and this is why.
+        #
+        # The status a row carries here is its state IN THIS RELEASE — these
+        # are done-but-unshipped, so from the release's point of view they are
+        # pending, not finished.
+        "items": _release_content_rows(
+            index,
+            [str(row.get("id") or "") for row in (unshipped.get("items") or [])],
+            held, row_status="ready", shipped=False,
+        ),
     })
 
     # ---- what has shipped, newest first ----------------------------------
     for release in _pub._releases(index):
         if release["status"] != "released":
             continue
+        when = release.get("date") or ""
+        label = f"{release['id']} · {release['version'] or release['title'][:30]}"
+        if when:
+            label = f"{label} · {when[:10]}"
         out.append({
             "key": f"release-{release['id']}",
-            "label": f"{release['id']} · {release['version'] or release['title'][:40]}",
+            "label": label,
             "url": f"~release/{release['id']}",
             "status": "released",
             "type": "release",
             "item_layout": "stacked",
-            # Its contents, frozen at ship. `features:` is the record; the
-            # derived set has moved on and recomputing it would make a shipped
-            # release's contents drift as the project does.
-            "items": [
-                {
-                    "id": _first_id(f), "title": _first_id(f), "subtitle": "",
-                    "status": "", "type": "feature",
-                    "url": _rel_for_id(index, _first_id(f)),
-                }
-                for f in release["features"]
-            ] or [{
-                "id": "", "title": "no features recorded", "subtitle": "",
-                "status": "", "type": "release",
-                "url": f"~release/{release['id']}",
-            }],
-            # Shipped work opens shut — the record is behind you.
+            "items": _release_content_rows(
+                index, [_first_id(f) for f in release["features"]],
+                release, row_status="released", shipped=True,
+            ),
             "default_open": False,
         })
 
@@ -4209,6 +4206,80 @@ def _publication_groups(
             }],
         })
     return out
+
+
+def _release_content_rows(
+    index: Index, feature_ids: list[str], release: dict[str, Any] | None,
+    *, row_status: str, shipped: bool,
+) -> list[dict[str, Any]]:
+    """A release's own content: its features, its acceptance tests, its files.
+
+    Edwin: *"the acceptance tests are not available in the left hand"* and
+    *"the other release files are also not available there"*. A release's
+    content is not only its features — it is what verified it and what it
+    published, and both were already in the record and reachable only from the
+    page.
+    """
+    from . import publication as _pub
+
+    rows: list[dict[str, Any]] = []
+    for fid in feature_ids:
+        if not fid:
+            continue
+        rows.append({
+            "id": fid, "title": _title_for_id(index, fid) or fid,
+            "subtitle": "", "status": row_status, "type": "feature",
+            "url": _rel_for_id(index, fid),
+        })
+    # The acceptance tests this release names — the suite snapshot it shipped
+    # against, and any TST notes. Live suite for one that has not shipped.
+    for raw in (release or {}).get("tests_verified") or []:
+        tid = _wikilink_target(str(raw))
+        rows.append({
+            "id": tid, "title": _title_for_id(index, tid) or tid,
+            "subtitle": "verified", "status": row_status, "type": "test",
+            "url": _rel_for_id(index, tid),
+        })
+    if not shipped:
+        rows.append({
+            "id": "", "title": "ACCEPTANCE_TESTS.md",
+            "subtitle": "the living suite", "status": "ready", "type": "test",
+            "url": "/docs/tests/ACCEPTANCE_TESTS.md",
+        })
+    # And what it published, by the convention ADR-0028 blesses.
+    if release and release.get("id"):
+        for art in _pub.artifacts_for(index.docs_root, str(release["id"])):
+            rows.append({
+                "id": "", "title": art["name"], "subtitle": art["kind"],
+                "status": row_status, "type": "change",
+                "url": f"/docs/{art['rel']}",
+            })
+    if rows:
+        return rows
+    # A release that recorded nothing still opens its own note — a row that
+    # does not respond to a click reads as broken rather than as empty
+    # (ISS-0174, and the same mistake would have shipped again here).
+    rel = (release or {}).get("rel") or ""
+    return [{
+        "id": (release or {}).get("id", ""), "title": "nothing recorded",
+        "subtitle": "no features, tests or artifacts named",
+        "status": row_status, "type": "release",
+        "url": f"/docs/{rel}" if rel else None,
+    }]
+
+
+def _wikilink_target(raw: str) -> str:
+    """`"[[X|label]]"` -> `X`. Named for what it does rather than `_first_link`,
+    which already exists 1200 lines below and silently shadowed this one — the
+    second name collision in this phase, after `create_release`."""
+    found = re.search(r"\[\[([^\]|]+)", raw)
+    return found.group(1) if found else raw.strip()
+
+
+def _title_for_id(index: Index, note_id: str) -> str:
+    path = index.by_id(note_id)
+    record = index.get(path) if path is not None else None
+    return (record.title or "") if record else ""
 
 
 def _first_id(link: str) -> str:

@@ -1114,12 +1114,14 @@ def test_the_publication_obligation_is_exercised_non_vacuously(tmp_path: Path) -
     index = Index.build(repo / "docs")
     git_state.clear_cache()
 
-    # `publication`, not `overview` (ADR-0028): publication is a phase, it now
-    # has a view, and an obligation belongs to the view that owns its subject.
-    # It sat on `overview` only because there was nowhere else — and `overview`
-    # is not a nav mode, so these rows reached no navigator at all.
-    counts = obligations.counts_by_kind(index).get("publication", {})
-    rows = [r for r in obligations.owed_items(index).get("publication", [])
+    # **Back on `overview`** (ISS-0179). ADR-0028 moved these to `publication`
+    # when that view was a LADDER whose rungs were their home. FEAT-0107 made
+    # it a list of releases, and a commit is not a release — so the rungs went
+    # back to `~history` and the overview, where the Push control has always
+    # lived, and the badge had to follow. Edwin: *"if you remove it then it
+    # should no longer be included in the badge in the view icon."*
+    counts = obligations.counts_by_kind(index).get("overview", {})
+    rows = [r for r in obligations.owed_items(index).get("overview", [])
             if r["type"] == "unpushed commit"]
 
     assert counts.get("unpushed commit") == 2, (
@@ -1133,7 +1135,7 @@ def test_the_publication_obligation_is_exercised_non_vacuously(tmp_path: Path) -
 
     # …and the landing page, which is the third surface. One walk, so this is
     # the same numbers or the registry is broken.
-    landing = cockpit.landing_payload(index, "publication")
+    landing = cockpit.landing_payload(index, "overview")
     pub = [g for g in landing["groups"] if g["kind"] == "unpushed commit"]
     assert pub and pub[0]["count"] == 2
     assert len(pub[0]["items"]) == 2
@@ -1209,8 +1211,8 @@ def test_the_deploy_publication_obligation_is_exercised_non_vacuously(
         "test asserts the wrong kind"
     )
 
-    counts = obligations.counts_by_kind(index).get("publication", {})
-    rows = [r for r in obligations.owed_items(index).get("publication", [])
+    counts = obligations.counts_by_kind(index).get("overview", {})
+    rows = [r for r in obligations.owed_items(index).get("overview", [])
             if r["type"] == "undeployed commit"]
 
     assert counts.get("undeployed commit") == 3, counts
@@ -1220,7 +1222,7 @@ def test_the_deploy_publication_obligation_is_exercised_non_vacuously(
     # the deploy refusal loses the distinction it exists to make.
     assert "unpushed commit" not in counts, counts
 
-    landing = cockpit.landing_payload(index, "publication")
+    landing = cockpit.landing_payload(index, "overview")
     grp = [g for g in landing["groups"] if g["kind"] == "undeployed commit"]
     assert grp and grp[0]["count"] == 3 and len(grp[0]["items"]) == 3
 

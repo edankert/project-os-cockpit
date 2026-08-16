@@ -22,6 +22,7 @@ features:
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
+  - "[[ISS-0179-Six-From-Reading-The-Release-View]]"
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
@@ -190,6 +191,14 @@ One page per release, reached from a navigator that lists releases. `~release/ne
 
 **Not built at all, and named in his model:** *"what documentation needs to be updated"*. Nothing in `publication.py`, `acceptance.py` or `release_payload` reads documentation state for a release.
 
+
+## Reopened once more, and re-closed the same day
+
+Edwin read the rebuilt view and found six things, all real and all fixed in [[ISS-0179]] — the sharpest being that **the ordering was exactly inverted**: the next release filed under Completed while shipped ones sorted as open work, because a row carried its feature's own status and a next release is by definition full of `done` features.
+
+Two of the six were not about this phase at all. **Every table in the desktop app has been unstyled since the native panes landed** — `base.css` styles `.content table` and `#doc-view` never carries that class. And a feature link rendered broken because the note was renamed and the citation was not; a wikilink whose **id** resolves now resolves, tried last so an exact match always wins.
+
+And Edwin caught the one I would not have: *"if you remove it then it should no longer be included in the badge."* The publication obligations were still routed to a view that no longer shows them. A count on a button that opens a view not containing what it counts is worse than no count.
 
 ## Closed 2026-08-16 — the third close, and what the first two got wrong
 

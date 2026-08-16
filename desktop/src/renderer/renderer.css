@@ -5636,3 +5636,34 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .release-section h3 { margin: 0 0 4px; font-size: 14px; }
 .release-section .review-btn { margin: 8px 0; }
 .release-known { white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
+
+/* Tables in the centre pane (ISS-0179). `base.css` styles `.content table`,
+   which is the BROWSER cockpit's wrapper class; `#doc-view` carries
+   `.doc-view` and never `.content`, so every table rendered in the desktop
+   shell has been unstyled since the native panes landed — borderless,
+   uncollapsed, and running past the pane on a wide row. Edwin, reading a
+   release note: *"The releases .md file does not render correctly … and the
+   table"*.
+
+   Scrolls inside its own box rather than widening the pane: a release note's
+   known-issues table carries a full sentence per cell. */
+.doc-view table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  width: 100%;
+  font-size: 0.95em;
+  display: block;
+  overflow-x: auto;
+}
+.doc-view th, .doc-view td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.doc-view th {
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+.doc-view tbody tr:hover { background: var(--surface-2); }

@@ -236,3 +236,126 @@ def test_a_well_formed_document_still_gets_its_labels() -> None:
         asset_resolver=lambda t, s=None: None, source_path=Path("x.md"),
     )
     assert html.count("data-raw=") == 2
+
+
+# ---- ISS-0179: six from reading the view ---------------------------------
+
+
+def test_the_next_release_does_not_read_as_settled(tmp_path: Path) -> None:
+    """The inversion Edwin found. A next release is by definition full of
+    `done` features, so carrying each feature's own status made the whole
+    group read as finished — it went to the Completed band while shipped
+    releases, whose rows had no status at all, sorted to the top as open."""
+    docs = _docs(tmp_path)
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "features" / "f" / "FEAT-0001-F.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "F"\n'
+        "status: done\n---\n", encoding="utf-8",
+    )
+    groups = cockpit.nav_payload(
+        Index.build(docs), "publication", project_root=docs.parent,
+    )["groups"]
+    nxt = groups[0]
+    assert nxt["key"] == "release-next", "the next release comes first"
+    assert all(i["status"] == "ready" for i in nxt["items"]), \
+        "a row's status is its state IN THIS RELEASE, not the note's own"
+
+
+def test_a_shipped_release_reads_as_settled(tmp_path: Path) -> None:
+    docs = _docs(tmp_path)
+    _rel(docs, "REL-0001", "released", "1.0.0")
+    groups = {
+        g["key"]: g for g in cockpit.nav_payload(
+            Index.build(docs), "publication", project_root=docs.parent,
+        )["groups"]
+    }
+    shipped = groups["release-REL-0001"]
+    assert all(i["status"] == "released" for i in shipped["items"])
+    assert shipped["default_open"] is False
+
+
+def test_a_release_carries_its_date(tmp_path: Path) -> None:
+    docs = _docs(tmp_path)
+    (docs / "releases" / "REL-0001-R.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0001\ntitle: "R"\nstatus: released\n'
+        'version: "1.0.0"\ndate: "2026-07-05"\nfeatures: []\n---\n',
+        encoding="utf-8",
+    )
+    groups = cockpit.nav_payload(
+        Index.build(docs), "publication", project_root=docs.parent,
+    )["groups"]
+    label = next(g["label"] for g in groups if g["key"] == "release-REL-0001")
+    assert "2026-07-05" in label, label
+
+
+def test_a_release_carries_its_tests_and_artifacts_in_the_navigator(
+    tmp_path: Path,
+) -> None:
+    """*"The acceptance tests are not available in the left hand"* and *"the
+    other release files are also not available there"*. A release's content is
+    not only its features."""
+    docs = _docs(tmp_path)
+    _rel(docs, "REL-0001", "released", "1.0.0",
+         verified='["[[ACCEPTANCE_TESTS_v1.0.0]]"]')
+    (docs / "releases" / "REL-0001-v1.0.0-play-store-listing.xml").write_text("<x/>")
+    groups = {
+        g["key"]: g for g in cockpit.nav_payload(
+            Index.build(docs), "publication", project_root=docs.parent,
+        )["groups"]
+    }
+    rows = groups["release-REL-0001"]["items"]
+    assert any(r["type"] == "test" and "ACCEPTANCE" in r["title"] for r in rows)
+    assert any(r["title"].endswith(".xml") for r in rows)
+
+
+def test_the_next_release_carries_the_living_suite(tmp_path: Path) -> None:
+    docs = _docs(tmp_path)
+    groups = cockpit.nav_payload(
+        Index.build(docs), "publication", project_root=docs.parent,
+    )["groups"]
+    rows = groups[0]["items"]
+    assert any(r["url"] == "/docs/tests/ACCEPTANCE_TESTS.md" for r in rows)
+
+
+def test_a_wikilink_whose_slug_drifted_still_resolves(tmp_path: Path) -> None:
+    """`REL-0012` cites `[[FEAT-0085-BleHardening]]`; the note is
+    `FEAT-0085-BleReliabilityLayer`. The id is the identity and the slug is
+    decoration."""
+    docs = tmp_path / "docs"
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "features" / "f" / "FEAT-0085-BleReliabilityLayer.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0085\ntitle: "BLE"\n'
+        "status: done\n---\n", encoding="utf-8",
+    )
+    index = Index.build(docs)
+    assert index.resolve("FEAT-0085-BleHardening") is not None
+    assert index.resolve("FEAT-0085") is not None
+
+
+def test_an_exact_filename_still_beats_the_id_fallback(tmp_path: Path) -> None:
+    """The fallback is tried LAST. A note whose filename is the cited string
+    must win, or the fallback would silently redirect real links."""
+    docs = tmp_path / "docs"
+    (docs / "features" / "f").mkdir(parents=True)
+    for slug, nid in (("FEAT-0085-BleHardening", "FEAT-0090"),
+                      ("FEAT-0085-Other", "FEAT-0085")):
+        (docs / "features" / "f" / f"{slug}.md").write_text(
+            f'---\ntype: "[[feature]]"\nid: {nid}\ntitle: "{slug}"\n'
+            "status: done\n---\n", encoding="utf-8",
+        )
+    index = Index.build(docs)
+    resolved = index.resolve("FEAT-0085-BleHardening")
+    assert resolved is not None and "BleHardening" in resolved
+
+
+def test_the_publication_badge_counts_only_what_the_view_shows(
+    tmp_path: Path,
+) -> None:
+    """Edwin: *"if you remove it then it should no longer be included in the
+    badge in the view icon."* A count on a button that opens a view not
+    containing what it counts sends the reader somewhere the work is not."""
+    from project_os_cockpit import obligations
+
+    assert obligations.NOTE_LESS["unpushed commit"].view == "overview"
+    assert obligations.NOTE_LESS["undeployed commit"].view == "overview"
+    assert obligations.NOTE_LESS["release gate"].view == "publication"

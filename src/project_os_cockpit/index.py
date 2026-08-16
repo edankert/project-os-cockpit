@@ -39,6 +39,10 @@ log = logging.getLogger("project_os_cockpit.index")
 EXCLUDED_DIR_NAMES: frozenset[str] = frozenset(
     {"__bases__", ".obsidian", ".trash", ".git"}
 )
+#: A project-os id at the head of a wikilink target, so `FEAT-0085-Anything`
+#: can fall back to `FEAT-0085` when the slug has drifted (ISS-0179).
+_ID_PREFIX_RE = re.compile(r"^([A-Z]{2,6}-\d{3,4})(?:-|$)")
+
 IMAGE_EXTENSIONS: frozenset[str] = frozenset(
     {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif"}
 )
@@ -316,6 +320,22 @@ class Index:
             path = table.get(target)
             if path is not None:
                 return path
+        # **Last: the project-os id inside a drifted slug** (ISS-0179).
+        #
+        # `[[FEAT-0085-BleHardening]]` resolved to nothing because the feature
+        # is now `FEAT-0085-BleReliabilityLayer` — the note was renamed and
+        # the release note citing it was not. The ID is the identity here and
+        # the slug is decoration, so a citation whose id resolves is a
+        # citation, not a broken link.
+        #
+        # Deliberately last, after every exact table: a note whose FILENAME is
+        # `FEAT-0085-BleHardening` must still win, and this must never
+        # override an exact match. Ambiguity is impossible rather than
+        # tolerated — the validator enforces one note per id, so the id table
+        # has at most one answer.
+        found = _ID_PREFIX_RE.match(target)
+        if found:
+            return self._by_id.get(found.group(1))
         return None
 
     def get(self, path: Path) -> NoteRecord | None:

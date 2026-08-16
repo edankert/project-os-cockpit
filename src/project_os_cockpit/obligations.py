@@ -436,9 +436,19 @@ def _publication_rows(index: Any, kind: str, verb: str,
 
 NOTE_LESS[PUSH_OBLIGATION_KIND] = NoteLessObligation(
     kind=PUSH_OBLIGATION_KIND,
-    # Re-homed from `overview` by ADR-0028: publication is a phase, it now has
-    # a view, and an obligation belongs to the view that owns its subject.
-    view=VIEW_PUBLICATION,
+    # **Back on `overview`** (ISS-0179). ADR-0028 moved these to `publication`
+    # when that view was a LADDER — commit, push, deploy, release — and the
+    # rung was their subject's home. FEAT-0107 made the view a list of
+    # releases, and a commit is not a release: the rungs went back to
+    # `~history` and the overview, where the Push control has always actually
+    # lived.
+    #
+    # The badge had to follow. Edwin: *"you have removed the commits and
+    # pushes from this page … if you remove it then it should no longer be
+    # included in the badge in the view icon."* A count on a button that opens
+    # a view not containing what it counts is worse than no count — it sends
+    # the reader somewhere the work is not.
+    view=VIEW_OVERVIEW,
     verb="Push",
     rows=lambda index: _publication_rows(
         index, PUSH_OBLIGATION_KIND, "Push", "backup"),
@@ -448,7 +458,7 @@ NOTE_LESS[PUSH_OBLIGATION_KIND] = NoteLessObligation(
 
 NOTE_LESS[DEPLOY_OBLIGATION_KIND] = NoteLessObligation(
     kind=DEPLOY_OBLIGATION_KIND,
-    view=VIEW_PUBLICATION,
+    view=VIEW_OVERVIEW,
     verb="Deploy",
     rows=lambda index: _publication_rows(
         index, DEPLOY_OBLIGATION_KIND, "Deploy", "deploy"),
