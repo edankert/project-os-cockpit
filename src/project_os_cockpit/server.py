@@ -744,6 +744,10 @@ def _make_handler(
                 self._serve_test_run()
                 return
 
+            if path == "/api/notes/release-verified":
+                self._serve_release_verified()
+                return
+
             if path == "/api/notes/release-prepare":
                 self._serve_release_prepare()
                 return
@@ -2270,6 +2274,40 @@ def _make_handler(
                                    status=HTTPStatus.BAD_REQUEST)
                 return
             self._respond_json({"ok": True, "result": result})
+
+        def _serve_release_verified(self) -> None:
+            """``POST /api/notes/release-verified`` — record what a release was
+            measured against (FEAT-0107 / TASK-0445).
+
+            Writes only the answer it is given. It does not snapshot the
+            suite: this project does not write files unasked, and ten of
+            `your-trainer`'s twelve releases shipped with the field empty
+            precisely because nobody was ever asked.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            raw = body.get("verified")
+            try:
+                result = note_writes.record_verification(
+                    index,
+                    str(body.get("id") or ""),
+                    verified=[str(v) for v in raw] if isinstance(raw, list) else [],
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
 
         def _serve_release_prepare(self) -> None:
             """``POST /api/notes/release-prepare`` — declare the release being

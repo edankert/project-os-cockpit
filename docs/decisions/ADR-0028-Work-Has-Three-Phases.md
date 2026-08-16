@@ -134,3 +134,19 @@ Edwin's instruction to build the phase is the acceptance: *"Implement and test P
 2. **A `draft` release that a shipped version has overtaken is not "in preparation".** `your-trainer` carries one at 2.0.2 with 2.1.6 shipped, and gating on it would have produced exactly the permanently re-arming badge this decision's consequences forbid. Named as a stale draft, and it does not gate.
 
 Neither changes the decision; both are the decision surviving contact with twelve real repositories.
+
+## Amendment, 2026-08-16 — the release artifact convention
+
+`FEAT-0107` needed to answer *"what did this release publish?"* and found the answer already on disk. `your-trainer` names every platform text for the release it belongs to:
+
+```
+REL-0007-v2.0.0-play-store-descriptions.xml
+REL-0007-v2.0.0-play-store-listing.xml
+REL-0012-v2.1.6-play-store-listing.xml     … 7 in all
+```
+
+**Decided: a file in `docs/releases/` whose name begins with a release id is that release's artifact.** The `.md` note is the record, not an artifact of itself, and is excluded.
+
+Blessed here rather than inferred by a regex somebody wrote, because the convention held for seven files and existed nowhere but in Edwin's habit — and reading a convention is agreeing to it. A project that wants artifacts elsewhere can say so later; this decides the default, not the only way.
+
+**Not decided: documentation state.** Edwin named it — *"what documentation needs to be updated"* — and it maps to `changes:` on the release template, which is empty in every repo in the fleet. Deriving it from `CHG-*` notes since the last release is a real design question rather than a lookup, and guessing at it here would be the fourth mechanism this phase invented for something the record might already answer.

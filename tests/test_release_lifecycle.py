@@ -113,13 +113,12 @@ def test_the_next_release_is_shown_without_a_note(tmp_path: Path) -> None:
             Index.build(docs), "publication", project_root=docs.parent,
         )["groups"]
     }
-    nxt = groups["rung-next"]
-    assert "accumulating" in nxt["label"]
-    assert nxt["items"][0]["owed_verb"] == "Prepare"
-    # FEAT-0106: the row NAVIGATES to the page rather than popping a dialog.
-    # It carried `~prepare-release` for exactly as long as it took Edwin to
-    # press it — `window.prompt` is not implemented in Electron (ISS-0176).
-    assert nxt["items"][0]["action"] == "~release/next"
+    nxt = groups["release-next"]
+    assert nxt["label"].startswith("Next release")
+    # FEAT-0107: the GROUP navigates to the page. The row-level Prepare verb
+    # is gone with the rungs — a release is opened from its own page, which is
+    # where every other view in this app puts the acting.
+    assert nxt["url"] == "~release/next"
     assert not list((docs / "releases").glob("*.md")) if (
         docs / "releases").is_dir() else True
 

@@ -3617,7 +3617,12 @@ const MODES_WITH_VIRTUAL_LANDING: ReadonlySet<string> = new Set([
   // nothing a view gathered. The Library keeps no landing deliberately — it
   // owes nothing and is a file browser, and a summary in front of a tree is
   // the thing people open the tree to avoid.
-  'overview', 'intent', 'features', 'issues', 'tests',
+  //
+  // `publication` joined in FEAT-0107. It was added as the ninth mode AFTER
+  // FEAT-0092 fixed this and did not join the fix, so it was the only
+  // badge-bearing view whose button left the centre pane on whatever you were
+  // last reading — and opening a workspace in it landed on README.md.
+  'overview', 'intent', 'features', 'issues', 'tests', 'publication',
 ]);
 
 const RETIRED_NAV_MODES: readonly string[] = ['active', 'recent', 'inbox', 'tasks', 'review', 'design'];
@@ -6849,12 +6854,21 @@ interface IssueDraft { title: string; body: string; test_id: string }
 interface ReleaseContents {
   kind: string; count: number; since: string;
   rows?: Array<{ id?: string; title?: string; rel?: string }>;
+  ids?: string[];
 }
 interface ReleasePayload {
   id: string; version: string; status: string; preparing: boolean;
   exists: boolean; title: string; rel: string;
   contents: ReleaseContents;
   gate: GatePayload;
+  /** What this release verified — the suite snapshot it shipped against and
+   *  any TST notes. From `tests_verified:`, which twelve releases have been
+   *  filling in by hand and nothing has ever read (FEAT-0107). */
+  tests_verified?: Array<{ id: string; rel: string }>;
+  /** The note's own known-issues section — what it shipped with unfixed. */
+  known_issues?: string;
+  /** Platform texts beside the note, found by the naming convention. */
+  artifacts?: Array<{ name: string; kind: string; rel: string }>;
   stale_drafts?: Array<{ id: string; version: string; rel: string }>;
 }
 
@@ -6965,7 +6979,13 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
   }
   const list = document.createElement('ul');
   list.className = 'scoped-rowlist';
-  for (const row of (c.rows || []).slice(0, 40)) {
+  // A shipped release names what it carried in `features:`; the derived set
+  // has moved on. This read `c.rows` only, so every shipped release rendered
+  // "What shipped — 27 feature(s)" over an EMPTY list (review finding P3).
+  const contentRows = (c.rows && c.rows.length)
+    ? c.rows
+    : (c.ids || []).map((id) => ({ id, title: id, rel: '' }));
+  for (const row of contentRows.slice(0, 40)) {
     const li = document.createElement('li');
     const id = document.createElement('span');
     id.className = 'scoped-row-id mono ov-typed';
@@ -6981,16 +7001,123 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     }
     list.appendChild(li);
   }
-  if ((c.rows || []).length > 40) {
+  if (contentRows.length > 40) {
     const more = document.createElement('li');
     more.className = 'meta';
-    more.textContent = `…${(c.rows || []).length - 40} more`;
+    more.textContent = `…${contentRows.length - 40} more`;
     list.appendChild(more);
   }
   section.appendChild(list);
   wrap.appendChild(section);
 
-  // ---- the gate --------------------------------------------------------
+  // ---- what it verified, what it shipped with, what it published ------
+  //
+  // All three come from the record `your-trainer` has kept by hand for twelve
+  // releases and that nothing has ever read: `tests_verified:`, the note's
+  // own known-issues section, and the platform texts named for the release.
+  if (d.tests_verified?.length) {
+    const t = document.createElement('section');
+    t.className = 'release-section';
+    const th = document.createElement('h3');
+    th.textContent = d.status === 'released'
+      ? 'Acceptance tests as executed' : 'Acceptance tests recorded';
+    t.appendChild(th);
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const v of d.tests_verified) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono ov-typed';
+      id.dataset.type = 'test';
+      id.textContent = shortNoteId(v.id);
+      id.title = v.id;
+      const t2 = document.createElement('span');
+      t2.className = 'scoped-row-title';
+      t2.textContent = v.rel ? v.id : `${v.id} — not in this corpus`;
+      li.append(id, t2);
+      if (v.rel) {
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => void navigateTo(`/docs/${v.rel}`));
+      }
+      ul.appendChild(li);
+    }
+    t.appendChild(ul);
+    wrap.appendChild(t);
+  } else if (d.status === 'released') {
+    const t = document.createElement('section');
+    t.className = 'release-section';
+    const th = document.createElement('h3');
+    th.textContent = 'Acceptance tests as executed';
+    t.appendChild(th);
+    const none = document.createElement('p');
+    none.className = 'meta';
+    // Five of twelve are empty. Saying so is the honest answer; showing
+    // today's suite would claim this release was measured against it.
+    none.textContent = 'Not recorded — this release names no tests_verified.';
+    const rec = document.createElement('button');
+    rec.type = 'button';
+    rec.className = 'review-btn';
+    rec.textContent = 'Record what it verified';
+    rec.addEventListener('click', () => void (async () => {
+      const answer = await askForText({
+        title: 'What was this release verified against?',
+        detail: 'The acceptance snapshot it shipped against, and any TST notes '
+          + '— comma separated.\n\ne.g. ACCEPTANCE_TESTS_v2.1.0, TST-0011\n\n'
+          + 'This records your answer and writes nothing else — no snapshot is '
+          + 'taken and no file is copied.',
+        placeholder: 'ACCEPTANCE_TESTS_v2.1.0, TST-0011',
+        confirm: 'Record',
+      });
+      if (answer === null) return;
+      const verified = answer.split(',').map((v) => v.trim()).filter(Boolean);
+      const res = await postJson('/api/notes/release-verified',
+        { id: d.id, verified, actor: 'user:edwin' }) as { ok?: boolean; error?: string };
+      if (res?.ok) { void renderReleasePage(releaseId); }
+      else { showStatus(String(res?.error || 'refused'), 'error'); }
+    })());
+    t.append(none, rec);
+    wrap.appendChild(t);
+  }
+
+  if (d.known_issues) {
+    const k = document.createElement('section');
+    k.className = 'release-section';
+    const kh = document.createElement('h3');
+    kh.textContent = 'Shipped with';
+    k.appendChild(kh);
+    const pre = document.createElement('div');
+    pre.className = 'release-known meta';
+    pre.textContent = d.known_issues;
+    k.appendChild(pre);
+    wrap.appendChild(k);
+  }
+
+  if (d.artifacts?.length) {
+    const a = document.createElement('section');
+    a.className = 'release-section';
+    const ah = document.createElement('h3');
+    ah.textContent = 'Published artifacts';
+    a.appendChild(ah);
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const art of d.artifacts) {
+      const li = document.createElement('li');
+      const kind = document.createElement('span');
+      kind.className = 'scoped-row-id mono';
+      kind.textContent = art.kind;
+      const nm = document.createElement('span');
+      nm.className = 'scoped-row-title';
+      nm.textContent = art.name;
+      li.append(kind, nm);
+      li.style.cursor = 'pointer';
+      li.addEventListener('click', () => void navigateTo(`/docs/${art.rel}`));
+      ul.appendChild(li);
+    }
+    a.appendChild(ul);
+    wrap.appendChild(a);
+  }
+
+  // ---- the gate, for a release that has not shipped --------------------
   if (d.gate?.exists) {
     const g = document.createElement('section');
     g.className = 'release-section';
@@ -9106,6 +9233,14 @@ async function loadWsNav(): Promise<void> {
     // a surface before calling it done.
     if (currentRel !== target && !skipLanding) {
       void navigateTo(target, { replace: false });
+    }
+  }
+  if (currentNavMode === 'publication') {
+    // Intent's shape exactly: BOTH a nav list and a page. The left pane lists
+    // releases, the centre pane frames whichever is open, and reselecting the
+    // mode while a release is open must not lose your place (FEAT-0107).
+    if ((!currentRel || !currentRel.startsWith('~release')) && !skipLanding) {
+      void navigateTo('~release/next', { replace: false });
     }
   }
   if (currentNavMode === 'intent') {

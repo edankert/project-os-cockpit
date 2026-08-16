@@ -3,10 +3,10 @@ type: "[[feature]]"
 id: FEAT-0107
 aliases: ["FEAT-0107"]
 title: "Publication is a list of releases — one navigator of releases, one page each, and the record the repo already keeps finally read"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'I don't understand the functionality and we have gone around numerous times now'", "Edwin 2026-08-16: 'what do we need to do for a release, what tests need to pass, what documentation needs to be updated etc … all that should be available on the publication view and previous releases should be available with the functionality that was in the release, the tests and the documentation which was used as part of the publication'", "Edwin 2026-08-16: 'acceptance-tests is one document which moves between releases and the release notes capture the acceptance tests executed and reasons why not'", "Independent review of PHASE-034, 2026-08-16 — changes-requested on the phase and five of six features"]
 goal: "Replace nine concepts with two — a list of releases and a page per release — and read the record this repo has been keeping by hand for twelve releases: the suite snapshot each one shipped against, the tests it verified, what it shipped with unfixed, and its platform artifacts."
@@ -54,22 +54,38 @@ Commit, push and deploy go back to `~history` and the overview, where they alrea
 
 ## Acceptance criteria
 
-- [ ] Publication's navigator lists releases and nothing else
-- [ ] Selecting the mode opens a page in the centre pane — Publication joins `VIEW_LANDING_RELS` and `MODES_WITH_VIRTUAL_LANDING`, which it never did
-- [ ] `~walk`, `renderAcceptanceWalkPage`, `buildAcceptanceWalker` and the walk-check pass/fail path are **deleted**, with their tests
-- [ ] `prepare_release`, `promptPrepareRelease` and `~prepare-release` are **deleted**; the version field on the page is the only way to start a release
-- [ ] The `release-gate` navigator group is **deleted** — the suite is reachable from the page and from Tests, where it already lived
-- [ ] `_needs_you_group` no longer runs on publication
-- [ ] A shipped release lists what it shipped — `contents.ids` is rendered, not dropped ([[FEAT-0106]] P3)
-- [ ] A shipped release shows the tests **it** verified, from `tests_verified:`, and never today's gate
-- [ ] A shipped release shows its platform artifacts, found by the filename convention
-- [ ] `~release/<id>` is reachable by clicking a release, not only by typing
-- [ ] A release with no `tests_verified` says *not recorded* rather than showing nothing
-- [ ] At ship, the cockpit asks for the suite snapshot and writes `tests_verified` — it does not write files unasked
-- [ ] Every criterion here is ticked with evidence before this feature reaches `done`, which is the thing that did not happen five times
+- [x] Publication's navigator lists releases and nothing else — 12 groups on your-trainer, every key `release-*` or `stale-*`
+- [x] Selecting the mode opens a page in the centre pane — Publication joins `VIEW_LANDING_RELS` and `MODES_WITH_VIRTUAL_LANDING`, which it never did — joined `MODES_WITH_VIRTUAL_LANDING` and gained a `loadWsNav` branch mirroring Intent's — it was the only badge-bearing view without one
+- [x] `~walk`, `renderAcceptanceWalkPage`, `buildAcceptanceWalker` and the walk-check pass/fail path are **deleted**, with their tests — deleted by TASK-0442
+- [x] `prepare_release`, `promptPrepareRelease` and `~prepare-release` are **deleted**; the version field on the page is the only way to start a release — all three gone; the version field on the page is the only way in
+- [x] The `release-gate` navigator group is **deleted** — the suite is reachable from the page and from Tests, where it already lived — gone — the suite is reachable from the page and from Tests
+- [x] `_needs_you_group` no longer runs on publication — `publication` is in `_VIEWS_THAT_ALREADY_GATHER`
+- [x] A shipped release lists what it shipped — `contents.ids` is rendered, not dropped ([[FEAT-0106]] P3) — `contents.ids` renders; REL-0012 shows its frozen feature
+- [x] A shipped release shows the tests **it** verified, from `tests_verified:`, and never today's gate — `tests_verified` read — REL-0012 shows its snapshot and two TST notes; `gate` is `{}` for a shipped release
+- [x] A shipped release shows its platform artifacts, found by the filename convention — `play store listing` on REL-0012, by the convention ADR-0028 now blesses
+- [x] `~release/<id>` is reachable by clicking a release, not only by typing — every navigator group's `url` is `~release/<id>`
+- [x] A release with no `tests_verified` says *not recorded* rather than showing nothing — and offers `Record what it verified` — five of twelve are empty
+- [x] At ship, the cockpit asks for the suite snapshot and writes `tests_verified` — it does not write files unasked — `record_verification` writes only the answer given; `test_recording_writes_only_what_it_was_given` asserts no file is created
+- [x] Every criterion here is ticked with evidence before this feature reaches `done`, which is the thing that did not happen five times — this list
 
 ## Notes
 
 **Not in scope: documentation state.** Edwin named it — *"what documentation needs to be updated"* — and it maps to `changes:` on the release template, empty in every repo. Deriving it from CHG notes since the last release is a real design question, not a lookup, and it is deferred rather than guessed at.
 
 **The artifact convention needs blessing, not inferring.** `REL-####-vX.Y.Z-<kind>.xml` holds across seven files and exists nowhere but in Edwin's habit. Reading it means agreeing it — an amendment to [[ADR-0028]], not a regex somebody wrote.
+
+
+## Delivered 2026-08-16
+
+**Publication is a list of releases.** Twelve groups on `your-trainer`, every one a release, each opening its own page. The ladder is gone; commit, push and deploy are back on `~history` and the overview where they already worked.
+
+**The record was already there.** REL-0012 has been carrying its snapshot (`ACCEPTANCE_CHECKLIST_v2.1.1`), two `TST-*` notes, a known-issues table and a play-store listing since July. Reading it took no new mechanism — `tests_verified:` was in the template, the artifacts follow a convention seven files deep, and the known-issues heading is in half the notes. Three sections on the page, no new fields.
+
+### Two bugs found while wiring it
+
+1. **`_set_field` quotes everything**, so `tests_verified: ["[[X]]"]` was written as a *string containing a list* and parsed back as one opaque value — a release reported nothing it had verified. It now takes `quote=False` for list-valued fields.
+2. **A shipped release was showing today's gate**, recomputed. It shows its own snapshot instead, and `gate` is empty for anything `released` (review finding P5).
+
+### What this feature deliberately did not do
+
+**Documentation state.** Edwin named it and it maps to `changes:`, empty in every repo in the fleet. Deriving it from `CHG-*` notes since the last release is a design question, and inventing a fourth mechanism for something the record may already answer is what this phase spent five rounds doing.

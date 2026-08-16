@@ -2251,7 +2251,13 @@ def test_the_boot_path_does_not_race_a_virtual_landing_mode() -> None:
     # three must be here or the boot path sends them to README.md and the
     # landing loses the race it was written to win. The Library is still
     # absent, deliberately — it owes nothing and is a file browser.
-    assert modes == {"overview", "intent", "features", "issues", "tests"}, modes
+    # `publication` joined in FEAT-0107 — it was the only badge-bearing view
+    # whose button left the centre pane on whatever you were last reading, and
+    # opening a workspace in it landed on README.md. It was added as the ninth
+    # mode AFTER FEAT-0092 fixed exactly this, and did not join the fix.
+    assert modes == {
+        "overview", "intent", "features", "issues", "tests", "publication",
+    }, modes
 
     # And the README fallback must actually consult it.
     ready = src.split("case 'ready': {", 1)[1].split("break;", 1)[0]

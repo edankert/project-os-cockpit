@@ -244,29 +244,24 @@ def test_the_publication_view_renders_in_every_repo() -> None:
         assert all(g["items"] for g in groups), root.name
 
 
-def test_no_route_from_this_view_can_push_a_deploy_remote(
-    tmp_path: Path,
-) -> None:
-    """Enumerated, the way the loopback guard enumerates."""
+def test_the_navigator_lists_releases_and_no_rungs(tmp_path: Path) -> None:
+    """FEAT-0107. Commit, push and deploy are not releases; they had working
+    homes on `~history` and the overview, and turning them into navigator
+    groups is what made a list of releases into seven. An independent review
+    counted nine concepts here and could justify two."""
     root = _repo(tmp_path, remote="root@10.0.0.1:/srv/site.git")
+    _release(root, "REL-0001", "released", "1.0.0")
     groups = cockpit.nav_payload(
         Index.build(root / "docs"), "publication", project_root=root,
     )["groups"]
-    deploy = [g for g in groups if g["key"] == "rung-deploy"]
-    assert deploy, "the rung must be present"
-    assert not deploy[0].get("needs_human"), "a refused rung must not ask"
-    assert deploy[0].get("refused")
-    assert "owed_verb" not in deploy[0]
-
-
-# ---- 12-13: reported from use, 2026-08-16 -------------------------------
-#
-# `test_publication_does_not_also_receive_a_needs_you_group` stood here and
-# has been REMOVED, not weakened. It asserted the opposite of what Edwin
-# wanted, from a misreading of *"why in the needs you section"* as an
-# objection to the group rather than to the controls in it. Its replacement is
-# `test_publication_keeps_its_needs_you_group` below. Two guards asserting
-# opposite things is worse than either.
+    keys = [g["key"] for g in groups]
+    assert all(not k.startswith("rung-") for k in keys), keys
+    assert keys[0] == "release-next", keys
+    assert "release-REL-0001" in keys, keys
+    # And nothing here offers to publish anything — the deploy rung that had
+    # to be named-and-refused is simply not a navigator concern any more.
+    assert all(not g.get("refused") and not g.get("needs_human")
+               for g in groups), keys
 
 
 def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
@@ -314,35 +309,6 @@ def test_publication_gathers_its_own_and_takes_no_needs_you(tmp_path: Path) -> N
     # in one pane. ADR-0025's shortcut was written for a row buried in a tree.
     assert "publication" in cockpit._VIEWS_THAT_ALREADY_GATHER
     assert [g for g in groups if g["key"] == "needs-you"] == []
-
-
-def test_the_record_rungs_open_shut(tmp_path: Path) -> None:
-    """Edwin: *"the other views hide completed items, so you can only see the
-    next/current items to work on."* A ladder is mostly behind you."""
-    root = _repo(tmp_path, remote="https://github.com/e/x.git")
-    _release(root, "REL-0001", "released", "1.0.0")
-    groups = {
-        g["key"]: g for g in cockpit.nav_payload(
-            Index.build(root / "docs"), "publication", project_root=root,
-        )["groups"]
-    }
-    assert groups["rung-release"]["default_open"] is False
-    assert groups["rung-commit"]["default_open"] is False
-    # …and what is still to do stays open.
-    assert groups["rung-push"].get("default_open") is not False
-
-
-def test_the_commit_rung_does_not_say_the_opposite_of_its_count(
-    tmp_path: Path,
-) -> None:
-    """It read `Committed · 42` about 42 notes that were NOT committed."""
-    root = _repo(tmp_path)
-    (root / "docs" / "extra.md").write_text("dirty\n", encoding="utf-8")
-    groups = cockpit.nav_payload(
-        Index.build(root / "docs"), "publication", project_root=root,
-    )["groups"]
-    commit = next(g for g in groups if g["key"] == "rung-commit")
-    assert commit["label"].startswith("To commit"), commit["label"]
 
 
 def test_every_view_that_owes_something_has_a_button_to_badge() -> None:

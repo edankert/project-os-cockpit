@@ -713,8 +713,15 @@ def _get_field(lines: list[str], key: str) -> str:
     return ""
 
 
-def _set_field(lines: list[str], key: str, value: str) -> list[str]:
+def _set_field(
+    lines: list[str], key: str, value: str, *, quote: bool = True,
+) -> list[str]:
     """Replace ``key``'s line in place, or append it.
+
+    ``quote=False`` writes the value verbatim, for a field whose value is a
+    YAML **list** rather than a scalar — `tests_verified: ["[[X]]"]` quoted
+    becomes a string containing a list, which parses back as one string and
+    made a release report nothing it had verified (FEAT-0107 / TASK-0445).
 
     Only the one top-level key is touched: the `^` anchor means nested
     keys and keys quoted inside list values are left byte-identical. A
@@ -723,7 +730,7 @@ def _set_field(lines: list[str], key: str, value: str) -> list[str]:
     not on the line being replaced.
     """
     pattern = re.compile(rf"^{re.escape(key)}\s*:", re.IGNORECASE)
-    rendered = f'{key}: "{value}"'
+    rendered = f'{key}: "{value}"' if quote else f"{key}: {value}"
     for i, line in enumerate(lines):
         if not pattern.match(line):
             continue
@@ -1743,3 +1750,47 @@ def stamp_chosen_variant(
         # Said explicitly so a caller cannot read silence as acceptance.
         "accepted": False,
     }
+
+
+# ----- capture at ship (FEAT-0107 / TASK-0445) ------------------------------
+
+
+def record_verification(
+    index: Index,
+    release_id: str,
+    *,
+    verified: list[str],
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Write ``tests_verified:`` on a release — what it was measured against.
+
+    The practice already exists and is entirely manual, which is why it
+    happened for **2 of `your-trainer`'s 12 releases**: REL-0011 names
+    `ACCEPTANCE_TESTS_v2.1.0`, REL-0012 names `ACCEPTANCE_CHECKLIST_v2.1.1`
+    plus two `TST-*`. The other ten shipped with the field empty and there is
+    now no way to know what they were verified against.
+
+    **Nothing is written unasked.** This does not snapshot the suite, copy a
+    file, or guess: it records the answer a person gave. Declining leaves the
+    field empty and the release page says *not recorded*, which is honest and
+    is the state ten releases are already in.
+    """
+    path = resolve_note(index, release_id)
+    _check_mtime(path, mtime)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:                       # pragma: no cover
+        raise WriteError(f"cannot read note: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(text)
+
+    clean = [v.strip() for v in verified if str(v).strip()]
+    rendered = ", ".join(
+        f'"[[{v}]]"' if not v.startswith("[[") else f'"{v}"' for v in clean
+    )
+    fm_lines = _set_field(
+        fm_lines, "tests_verified", f"[{rendered}]", quote=False,
+    )
+    fm_lines = _set_field(fm_lines, "updated", _today())
+    _write(path, fm_lines, body)
+    return {"id": release_id, "tests_verified": clean}

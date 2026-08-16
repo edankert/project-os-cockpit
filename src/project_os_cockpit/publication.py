@@ -345,6 +345,38 @@ def payload(project_root: Path, index: "Index") -> dict[str, Any]:
     }
 
 
+#: A release's artifacts sit beside its note and are named for it — measured
+#: across `your-trainer`'s seven: `REL-0007-v2.0.0-play-store-listing.xml`,
+#: `REL-0012-v2.1.6-play-store-listing.xml`, and so on. The convention has
+#: held for every platform text the project has ever shipped and lives nowhere
+#: but in Edwin's habit, so ADR-0028 blesses it rather than this regex
+#: inferring it (FEAT-0107 / TASK-0444).
+#:
+#: The release NOTE itself is excluded — it is the record, not an artifact of
+#: it.
+def artifacts_for(docs_root: Path, release_id: str) -> list[dict[str, str]]:
+    """Files in `docs/releases/` named for this release, other than its note."""
+    folder = docs_root / "releases"
+    if not folder.is_dir() or not release_id:
+        return []
+    out: list[dict[str, str]] = []
+    for path in sorted(folder.iterdir()):
+        if not path.is_file() or not path.name.startswith(f"{release_id}-"):
+            continue
+        if path.suffix.lower() == ".md":
+            continue                       # the note itself
+        out.append({
+            "name": path.name,
+            # The kind, from the convention's trailing segment:
+            # `REL-0012-v2.1.6-play-store-listing.xml` -> `play store listing`
+            "kind": re.sub(
+                r"^REL-\d+-v[\d.]+-", "", path.stem,
+            ).replace("-", " ") or path.suffix.lstrip("."),
+            "rel": f"releases/{path.name}",
+        })
+    return out
+
+
 def release_payload(
     project_root: Path, index: "Index", release_id: str = "next",
 ) -> dict[str, Any]:
@@ -395,7 +427,28 @@ def release_payload(
             "rows": rows,
         }
 
-    gate = acceptance.gate_payload(index.docs_root)
+    # A SHIPPED release shows the record as it stood, not today's gate. It
+    # verified a snapshot — `ACCEPTANCE_CHECKLIST_v2.1.1` for REL-0012 — and
+    # recomputing the live suite for it would answer a question nobody asked
+    # about a release that shipped in July.
+    gate = {} if shipped else acceptance.gate_payload(index.docs_root)
+    verified: list[dict[str, str]] = []
+    known_issues = ""
+    if held is not None:
+        path = index.by_id(held["id"])
+        record = index.get(path) if path is not None else None
+        if record is not None:
+            for raw in record.frontmatter.get("tests_verified") or []:
+                note_id = str(raw)
+                found = re.search(r"\[\[([^\]|]+)", note_id)
+                target = found.group(1) if found else note_id
+                hit = index.by_id(target)
+                verified.append({
+                    "id": target,
+                    "rel": (index.get(hit).rel_path if hit and index.get(hit)
+                            else ""),
+                })
+            known_issues = _known_issues(record.body)
     return {
         "id": held["id"] if held else "",
         "version": held["version"] if held else "",
@@ -406,5 +459,30 @@ def release_payload(
         "rel": held["rel"] if held else "",
         "contents": contents,
         "gate": gate,
+        # What this release verified, and what it shipped with unfixed — the
+        # two halves Edwin described, both already in the record and read by
+        # nothing until now.
+        "tests_verified": verified,
+        "known_issues": known_issues,
+        "artifacts": artifacts_for(index.docs_root, held["id"] if held else ""),
         "stale_drafts": stale_drafts(index),
     }
+
+
+#: The section a release note uses for what it shipped with unfixed. Six of
+#: `your-trainer`'s twelve carry one, under this heading or a near variant, so
+#: the match is on the WORDS rather than on an exact string.
+_KNOWN_ISSUES_RE = re.compile(
+    r"^##\s+.*\b(known issues|shipping with|shipped with)\b.*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _known_issues(body: str) -> str:
+    """The release note's own known-issues section, verbatim, or ``""``."""
+    match = _KNOWN_ISSUES_RE.search(body or "")
+    if match is None:
+        return ""
+    rest = body[match.end():]
+    end = re.search(r"^##\s", rest, re.MULTILINE)
+    return (rest[: end.start()] if end else rest).strip()

@@ -4097,137 +4097,108 @@ _RUNG_LABELS: dict[str, str] = {
 def _publication_groups(
     index: Index, project_root: Path | None = None,
 ) -> list[dict[str, Any]]:
-    """Publication mode (FEAT-0102) — how far this project's work has travelled.
+    """Publication mode (FEAT-0107) — **a list of releases**, and nothing else.
 
-    **One group per rung the repo reaches**, in ladder order: commit, push,
-    deploy, release. A rung it cannot reach is absent rather than rendered at
-    zero, so a repo with no remote reads as complete instead of broken — and
-    every one of the twelve repos reaches at least the first, which is why this
-    view is never empty and a `Releases` view would have been blank in nine.
+    Edwin, after five rounds of something else: *"what do we need to do for a
+    release, what tests need to pass, what documentation needs to be updated
+    … all that should be available on the publication view and previous
+    releases should be available with the functionality that was in the
+    release, the tests and the documentation which was used as part of the
+    publication."*
 
-    The **gate** hangs on the release rung, states its number, and is one
-    obligation rather than sixty (TASK-0429).
+    So the navigator lists releases and each one's content nests beneath it —
+    the shape `_features_groups` already uses, where a feature carries its
+    requirements, plan and tasks as `children`. What each release *is* lives
+    on its page (`~release/<id>`), which is where every other view in this app
+    puts the acting.
+
+    **The ladder is gone.** Commit, push and deploy are not releases; they had
+    working homes on `~history` and the overview, and turning them into
+    navigator groups is what made a list of releases into seven. An
+    independent review counted nine concepts on this surface and could
+    justify two.
     """
-    from . import acceptance as _acc
     from . import publication as _pub
 
     root = project_root or Path(str(index.docs_root)).parent
-    data = _pub.payload(root, index)
     out: list[dict[str, Any]] = []
 
-    for rung in data["rungs"]:
-        name = str(rung["rung"])
-        label = _RUNG_LABELS.get(name, name.title())
-        if rung["unknown"]:
-            label = f"{label} · unknown"
-        elif rung["count"]:
-            label = f"{label} · {rung['count']}"
-        items = [
-            {
-                "id": str(row.get("id") or "")[:12],
-                "title": str(row.get("title") or ""),
-                "subtitle": str(row.get("detail") or ""),
-                "status": str(row.get("status") or ""),
-                "type": "release" if name == "release" else "change",
-                "url": (
-                    f"/docs/{row['rel']}" if row.get("rel") else "~history"
-                ),
-            }
-            for row in rung["rows"]
-        ]
-        if not items:
-            # A reachable rung with nothing at it still renders — that IS the
-            # answer ("nothing to push"), and it is what makes the ladder
-            # legible as a ladder rather than as a list of problems.
-            # A reachable rung with nothing at it still renders — that IS
-            # the answer ("nothing to push") — but the row must go
-            # somewhere. A row that does not respond to a click reads as a
-            # broken row, not as an empty one (Edwin, 2026-08-16).
-            items = [{
-                "id": "", "title": rung["detail"] or "nothing here",
-                "subtitle": "", "status": "", "type": "change",
-                "url": "~history",
-            }]
-        group: dict[str, Any] = {
-            "key": f"rung-{name}",
-            "label": label,
-            "url": None,
-            "status": None,
-            "item_layout": "stacked",
-            "items": items,
-        }
-        # **The record opens shut** (Edwin, 2026-08-16). A ladder shows how far
-        # work has travelled, so most of it is by definition behind you: the
-        # releases already out, and the commits the agent makes at close-out.
-        # Those are the answer to *"what happened"*, not to *"what is next"*,
-        # and this view opens on the second question like every other view
-        # does. Both stay one click away through their header and count.
-        if name in ("release", "commit"):
-            group["default_open"] = False
-        if rung["refused"]:
-            # Named, never offered. One fleet repo's only remote is a server
-            # path and pushing it publishes a live website (Edwin, 2026-08-16).
-            group["refused"] = rung["refused"]
-        out.append(group)
-
-    # ---- the next release, always present, derived (TASK-0439) -----------
-    #
-    # Edwin: *"there is always a release and any features/phases/issues etc …
-    # committed/pushed after the previous release are naturally part of the
-    # new release."*
-    #
-    # **No note until somebody declares one.** `unreleased_payload`
-    # (FEAT-0072) already answers *done but not shipped* — a feature is
-    # shipped when a `released` note names it — so the open release needs no
-    # list of its own and no auto-written placeholder. It also needs no dates,
-    # which matters: Edwin described membership by commit date and FEAT-0072
-    # deliberately rejected dates, because features carry no completion
-    # timestamp and `updated:` moves for a typo.
     unshipped = unreleased_payload(index)
-    open_rel = _pub.open_releases(index)
-    if unshipped.get("count") or open_rel:
-        held = open_rel[0] if open_rel else None
-        if held and held["preparing"]:
-            label = f"Preparing · {held['version']}"
-        elif held:
-            label = f"Next release · {held['version']} · accumulating"
-        else:
-            label = "Next release · accumulating"
-        rows = [{
-            "id": held["id"] if held else "",
-            "title": (
-                f"{unshipped.get('count') or 0} feature(s) unshipped"
-                + (f" since {unshipped['latest']['id']}"
-                   if unshipped.get("latest") else "")
-            ),
-            "subtitle": "derived — no note is written until you declare one",
-            "status": "draft" if held else "",
-            "type": "release",
-            # The row navigates to the PAGE (FEAT-0106). It used to carry
-            # an action that popped a dialog, which was both the wrong shape
-            # — the navigator navigates, the centre pane acts — and dead,
-            # because Electron does not implement `window.prompt`.
-            "url": f"~release/{held['id']}" if held else "~release/next",
-        }]
-        group = {
-            "key": "rung-next",
-            "label": label,
-            "url": None, "status": None, "item_layout": "stacked",
-            "items": rows,
-        }
-        # It asks NOTHING while accumulating. Only `preparing` is a debt.
-        if not (held and held["preparing"]):
-            rows[0]["owed"] = True
-            rows[0]["owed_verb"] = "Prepare"
-            rows[0]["action"] = f"~release/{held['id']}" if held else "~release/next"
-        out.append(group)
+    live = _pub.open_releases(index)
+    held = live[0] if live else None
 
-    for stale in data["stale_drafts"]:
+    # ---- the next release, always first ----------------------------------
+    #
+    # Present even with no note behind it, which is the ordinary case: the
+    # open release is derived from `unreleased_payload` and nothing is written
+    # until a person declares one (FEAT-0105).
+    since = unshipped.get("since") or {}
+    since_id = since.get("id", "") if isinstance(since, dict) else str(since)
+    label = (
+        f"Preparing · {held['version']}" if held and held["preparing"]
+        else f"Next release · {held['version']}" if held
+        else "Next release"
+    )
+    out.append({
+        "key": "release-next",
+        "label": label,
+        "url": f"~release/{held['id']}" if held else "~release/next",
+        "status": "draft" if held else None,
+        "type": "release",
+        "item_layout": "stacked",
+        "items": [
+            {
+                "id": str(row.get("id") or ""),
+                "title": str(row.get("title") or ""),
+                "subtitle": "",
+                "status": str(row.get("status") or ""),
+                "type": "feature",
+                "url": f"/docs/{row['rel']}" if row.get("rel") else None,
+            }
+            for row in (unshipped.get("items") or [])
+        ] or [{
+            "id": "", "title": "nothing unshipped", "subtitle": "",
+            "status": "", "type": "release",
+            "url": f"~release/{held['id']}" if held else "~release/next",
+        }],
+    })
+
+    # ---- what has shipped, newest first ----------------------------------
+    for release in _pub._releases(index):
+        if release["status"] != "released":
+            continue
+        out.append({
+            "key": f"release-{release['id']}",
+            "label": f"{release['id']} · {release['version'] or release['title'][:40]}",
+            "url": f"~release/{release['id']}",
+            "status": "released",
+            "type": "release",
+            "item_layout": "stacked",
+            # Its contents, frozen at ship. `features:` is the record; the
+            # derived set has moved on and recomputing it would make a shipped
+            # release's contents drift as the project does.
+            "items": [
+                {
+                    "id": _first_id(f), "title": _first_id(f), "subtitle": "",
+                    "status": "", "type": "feature",
+                    "url": _rel_for_id(index, _first_id(f)),
+                }
+                for f in release["features"]
+            ] or [{
+                "id": "", "title": "no features recorded", "subtitle": "",
+                "status": "", "type": "release",
+                "url": f"~release/{release['id']}",
+            }],
+            # Shipped work opens shut — the record is behind you.
+            "default_open": False,
+        })
+
+    for stale in _pub.stale_drafts(index):
         out.append({
             "key": f"stale-draft-{stale['id']}",
             "label": f"Draft overtaken · {stale['id']} {stale['version']}",
-            "url": None, "status": None, "item_layout": "stacked",
-            # A mark, not work — it asks for nothing and does not gate.
+            "url": f"/docs/{stale['rel']}",
+            "status": "draft", "type": "release", "item_layout": "stacked",
             "default_open": False,
             "items": [{
                 "id": stale["id"], "title": stale["title"],
@@ -4238,6 +4209,17 @@ def _publication_groups(
             }],
         })
     return out
+
+
+def _first_id(link: str) -> str:
+    """`"[[FEAT-0104-Slug]]"` -> `FEAT-0104`, or the raw string."""
+    found = re.search(r"([A-Z]{2,6}-\d{3,4})", str(link))
+    return found.group(1) if found else str(link)
+
+
+def _rel_for_id(index: Index, note_id: str) -> str | None:
+    path = index.by_id(note_id)
+    return f"/docs/{index.get(path).rel_path}" if path and index.get(path) else None
 
 
 def _active_groups(

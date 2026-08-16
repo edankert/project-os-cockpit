@@ -115,9 +115,9 @@ def test_the_row_navigates_to_the_page(tmp_path: Path) -> None:
             Index.build(docs), "publication", project_root=docs.parent,
         )["groups"]
     }
-    row = groups["rung-next"]["items"][0]
-    assert row["url"] == "~release/next"
-    assert row["action"] == "~release/next"
+    nxt = groups["release-next"]
+    assert nxt["url"] == "~release/next"
+    assert nxt["type"] == "release"
 
 
 # ---- ISS-0176 ------------------------------------------------------------

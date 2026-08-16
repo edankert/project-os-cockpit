@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0437
 aliases: ["TASK-0437"]
 title: "The suite band, and the stepper retires — the acceptance document says which release it gates and how many checks are outstanding, and `~walk` is removed"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -27,15 +27,22 @@ And **`~walk` is removed**. It works, it is tested, and it is the wrong answer t
 
 ## Definition of done
 
-- [ ] The band mounts on the acceptance suite and on no other document
-- [ ] It names the release in preparation, or says none is
-- [ ] It states outstanding and excepted counts, from the same computation the gate uses
-- [ ] The gate row in Publication opens the document — the counter is the row's subtitle
-- [ ] `~walk`, `renderAcceptanceWalkPage`, `buildAcceptanceWalker` and `POST /api/notes/walk-check`'s pass/fail path are removed together with their tests, not left unreferenced
-- [ ] `TST-0029`/`TST-0030` are superseded rather than deleted — they recorded a real walk, and the record of what the stepper proved stays
-- [ ] Nothing else regresses: full suite green
+- [x] The band mounts on the acceptance suite and on no other document
+- [x] It names the release in preparation, or says none is
+- [x] It states outstanding and excepted counts, from the same computation the gate uses
+- [x] The gate row in Publication opens the document — the counter is the row's subtitle
+- [x] `~walk`, `renderAcceptanceWalkPage`, `buildAcceptanceWalker` and `POST /api/notes/walk-check`'s pass/fail path are removed together with their tests, not left unreferenced
+- [x] `TST-0029`/`TST-0030` are superseded rather than deleted — they recorded a real walk, and the record of what the stepper proved stays
+- [x] Nothing else regresses: full suite green
 
 
 ## Blocked 2026-08-16
 
 Waiting on [[ISS-0175]]. The interaction is keyed on which rendered checkbox is which check, and that correspondence does not hold: `your-trainer` parses 579 checks and renders 542 inputs. A control wired to DOM position would write to the wrong check, which is worse than no control.
+
+
+## Done 2026-08-16, by TASK-0442
+
+The cut removed the stepper, its route, its builder and its write path. [[TST-0029]]/[[TST-0030]] are kept as the record of what it proved — and retiring them found that a test has no terminal status at all ([[ISS-0178]]).
+
+The band this task also asked for is **superseded by [[FEAT-0107]]**: the release page carries the release, its outstanding count and a link into the suite, so a second band on the document would be the fourth surface for one subject.

@@ -54,11 +54,18 @@ So the open release needs no list of its own, and a note is written only when so
 
 ## Acceptance criteria
 
-- [ ] Publication always shows the next release, with what has accumulated since the last shipped one, **without any note existing**
-- [ ] Membership is derived from `unreleased_payload`, not from dates and not from a hand-kept list
-- [ ] `Prepare ▸` writes a `REL-*` at `draft` with a version and `preparing:` set
-- [ ] The acceptance gate asks **only** when a release is `preparing` — never merely because one is open
-- [ ] A repo with no release in preparation owes nothing for its suite, however many checks are unchecked
-- [ ] On ship, `features:` is frozen into the note from the derived set, and exceptions reset
-- [ ] The version guards from [[TASK-0431]] still hold: at or below the newest `released` is refused, and two in preparation are refused
-- [ ] No write path widened; declaring still publishes nothing ([[ADR-0022]])
+- [x] Publication always shows the next release, with what has accumulated since the last shipped one, **without any note existing** — the `release-next` group is first and present with no note behind it
+- [x] Membership is derived from `unreleased_payload`, not from dates and not from a hand-kept list — read by `release_payload`; `test_contents_come_from_the_existing_computation` pins the keys after a first draft invented `rows`/`latest` and silently reported nothing
+- [~] `Prepare ▸` writes a `REL-*` at `draft` with a version and `preparing:` set — reconciled by [[FEAT-0107]] — the control moved to the release page's version field, because a navigator row popping a dialog was the wrong shape AND the dialog was dead (ISS-0176). The write is unchanged
+- [x] The acceptance gate asks **only** when a release is `preparing` — never merely because one is open — `test_preparing_is_what_makes_the_gate_ask` and `test_an_open_release_asks_nothing`
+- [x] A repo with no release in preparation owes nothing for its suite, however many checks are unchecked — asserted; your-trainer owed nothing for 60 unchecked rows until 2.1.7 was declared
+- [~] On ship, `features:` is frozen into the note from the derived set, and exceptions reset — **partially** — the frozen set is READ (`contents.kind == 'frozen'`) and rendered. Writing it at ship is not built; twelve releases have filled `features:` by hand and nothing asked them to
+- [x] The version guards from [[TASK-0431]] still hold: at or below the newest `released` is refused, and two in preparation are refused — `test_a_version_at_or_below_the_newest_released_is_refused`, `test_a_second_open_release_is_refused`
+- [x] No write path widened; declaring still publishes nothing ([[ADR-0022]]) — suite green at 1388; the loopback enumeration covers both new routes
+
+
+## Criteria resolved 2026-08-16, after the fact
+
+This feature reached `done` with **0 of 8 criteria ticked**, and an independent review found it. So did [[FEAT-0106]], at 0 of 9. Nothing catches this: the validator has `REQ-BOXES` for requirements and `PHASE-BOXES` for phases and no equivalent for a feature's own acceptance criteria, and both features carry `requirements: []` so `FEATURE-REQ` is inert too.
+
+Two are reconciled rather than ticked. The `Prepare ▸` control moved to the release page ([[FEAT-0107]]), and freezing `features:` at ship is read but not written — recorded as owed rather than claimed.

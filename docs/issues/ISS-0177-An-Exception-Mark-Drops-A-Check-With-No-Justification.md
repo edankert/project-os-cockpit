@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0177
 aliases: ["ISS-0177"]
 title: "`- [!]` removes a check from the release gate with no justification, nothing owed and no record — the escape hatch shipped without the accountability half TESTING.md requires"
-status: "open"
-phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+status: "deferred"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-08-16"
 source: ["Independent review of PHASE-034, 2026-08-16, finding P6 — verified by execution", "Edwin 2026-08-16, on what to do about it: 'Keep it, file the gap'"]
 severity: high
 component: cockpit-server
@@ -40,3 +40,13 @@ Either:
 2. [[TASK-0436]]'s `Justify` obligation lands, so an unjustified exception is counted and named.
 
 Until one of them, a check can leave the release gate with no reason recorded, which is the single thing the gate exists to prevent.
+
+
+## Deferred 2026-08-16
+
+Edwin's explicit call on 2026-08-16 was *'Keep it, file the gap'* — the escape hatch is useful now and the accountability half waits on work this phase is not doing. Deferred rather than carried open into a closing phase, so the record says parked rather than forgotten.
+
+
+## Re-homed to [[PHASE-999]] on 2026-08-16
+
+[[PHASE-034]] closed and this is parked, not resolved — `deferred` is not a resolved status, so carrying it inside a closing phase would fire `PHASE-CHILDREN` and, worse, would let a closed phase claim work it did not do. The sentinel is where work without a concrete delivery phase lives. Its origin and its reasoning stay above.

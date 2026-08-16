@@ -83,3 +83,45 @@ Ticking a check goes through `note_writes` with an `mtime` guard and a name comp
 **A test's slice was over-broad.** `test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it` walks from `loadWsNav` to the next top-level `async function`, taking in the plain functions after it. The gate's controls are the first click handlers to land there, and a click cannot lose a load-time race; the test now excludes them with the reason recorded.
 
 Suite **1373 passed, 2 skipped**. Ten further mutations, all defeated.
+
+---
+
+## Third pass: Publication becomes a list of releases (FEAT-0107)
+
+Edwin, after the second: *"I don't understand the functionality and we have gone around numerous times now… why is there still this prepare button and what is this release gate doing in the left pane still."*
+
+An independent review returned **`changes-requested`** on the phase and five of six features, and found the reason: *every one of Edwin's three complaints is already written down in this repo as an unticked acceptance criterion on a feature that was closed anyway.* FEAT-0105 reached `done` at 0 of 8 criteria; FEAT-0106 at 0 of 9.
+
+### What changed
+
+**The navigator is a list of releases.** Next release first, then shipped ones newest first, each opening its own page. The commit/push/deploy rungs are gone — they had working homes on `~history` and the overview, and turning them into navigator groups is what made a list of releases into seven.
+
+**Publication opens a page.** It was the only badge-bearing view with no landing: added as the ninth mode after FEAT-0092 fixed exactly that, and never joined the fix.
+
+**A shipped release shows the record it kept**, not today's state:
+
+| section | source | previously |
+| --- | --- | --- |
+| What shipped | frozen `features:` | computed and dropped on the floor |
+| Acceptance tests as executed | `tests_verified:` | never read |
+| Shipped with | the note's known-issues section | never read |
+| Published artifacts | `REL-####-…` files beside the note | never read |
+| Release gate | — | today's gate, for a release shipped in July |
+
+**Deleted:** the acceptance walker and its route, both Prepare controls, the release-gate navigator group, the Needs-you duplication, `~walk`, `~prepare-release`, `POST /api/notes/walk-check`.
+
+### Paths and contracts
+
+- **New:** `GET /api/cockpit/release`, `POST /api/notes/release-verified`, `~release/next`, `~release/<id>`, `publication.artifacts_for()`, `note_writes.record_verification()`, `_set_field(..., quote=False)`.
+- **Gone:** `~walk`, `~prepare-release`, `POST /api/notes/walk-check`, `note_writes.walk_check`, `prepare_release` on any group.
+- **ADR-0028 amended** with the release-artifact convention.
+
+### Two bugs fixed on the way
+
+**`_set_field` quoted everything**, so `tests_verified: ["[[X]]"]` was written as a string containing a list and parsed back as one opaque value — a release reported nothing it had verified.
+
+**ISS-0175's cause found: Markdown lazy continuation.** A task list opening immediately after a paragraph with no blank line is absorbed into it and renders **zero** checkboxes, while the line-based reader counts every one. That is the whole 579-against-542 gap, and it left **285 of 542 rows carrying another row's text**. Annotation now refuses on a count mismatch rather than mislabelling.
+
+### Verification
+
+Suite **1391 passed, 2 skipped**. Validator OK. Walked against a live sidecar on `your-trainer`: 12 release groups, REL-0012 showing its snapshot, two TST notes, its known-issues table, its play-store listing, and no live gate.

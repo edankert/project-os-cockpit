@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0178
 aliases: ["ISS-0178"]
 title: "A test has no terminal status, so a test whose subject was deleted must either keep claiming to verify it or be deleted — and this project's own rule forbids deleting completed notes"
-status: "open"
-phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+status: "deferred"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-08-16"
 source: ["Found 2026-08-16 retiring TST-0029/TST-0030 when FEAT-0107 deleted the acceptance stepper they guarded"]
 severity: medium
 component: docs-template
@@ -39,3 +39,13 @@ Hit while retiring [[TST-0029]] and [[TST-0030]], whose stepper [[FEAT-0107]] de
 A terminal status for a test — `superseded` would match every other type — proposed **upstream**, since `STATUSES.md` is template-owned and a local addition would report as divergence on the next sync.
 
 Until then the workaround is `ready` plus a section saying what happened, which is what [[TST-0029]] and [[TST-0030]] now carry.
+
+
+## Deferred 2026-08-16
+
+An upstream proposal: `STATUSES.md` is template-owned, so a terminal test status has to be added there and synced. Nothing in this repo can fix it, and the workaround (`ready` plus a section saying what happened) is in place on [[TST-0029]] and [[TST-0030]].
+
+
+## Re-homed to [[PHASE-999]] on 2026-08-16
+
+[[PHASE-034]] closed and this is parked, not resolved — `deferred` is not a resolved status, so carrying it inside a closing phase would fire `PHASE-CHILDREN` and, worse, would let a closed phase claim work it did not do. The sentinel is where work without a concrete delivery phase lives. Its origin and its reasoning stay above.

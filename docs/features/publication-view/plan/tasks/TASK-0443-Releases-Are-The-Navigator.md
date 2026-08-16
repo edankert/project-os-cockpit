@@ -3,10 +3,10 @@ type: "[[task]]"
 id: TASK-0443
 aliases: ["TASK-0443"]
 title: "The navigator lists releases and the mode opens a page — the two things every other view already does"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0107]]", "Independent review of PHASE-034, 2026-08-16"]
 parent: "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"
@@ -25,9 +25,9 @@ Publication is the only badge-bearing view with no landing: absent from `VIEW_LA
 
 ## Definition of done
 
-- [ ] The navigator lists releases, newest first, each with its content nested
-- [ ] Selecting Publication opens `~release/next`
-- [ ] A release row opens `~release/<id>`, which today is reachable only by typing
-- [ ] The next release shows its accumulated contents and the LIVING suite's outstanding count
-- [ ] Opening the suite from the page lands in `ACCEPTANCE_TESTS.md`, where ticking already works
-- [ ] Commit/push/deploy are not groups here
+- [x] The navigator lists releases, newest first, each with its content nested
+- [x] Selecting Publication opens `~release/next`
+- [x] A release row opens `~release/<id>`, which today is reachable only by typing
+- [x] The next release shows its accumulated contents and the LIVING suite's outstanding count
+- [x] Opening the suite from the page lands in `ACCEPTANCE_TESTS.md`, where ticking already works
+- [x] Commit/push/deploy are not groups here

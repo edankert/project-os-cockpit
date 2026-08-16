@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0175
 aliases: ["ISS-0175"]
 title: "The Nth rendered checkbox is not the Nth task line, so 285 of 542 rows in your-trainer's suite carry another row's `data-raw` — and any control keyed on checkbox position writes to the wrong check"
-status: "open"
+status: "fixed"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 owner: user:edwin
 created: 2026-08-16
@@ -41,13 +41,35 @@ Two consequences, one live and one blocked:
 - **Live:** any long document where the counts diverge mislabels its boxes. The tick prompt would resolve against another criterion's text — refused if lucky, wrong if not.
 - **Blocked:** [[FEAT-0104]]'s check map cannot be keyed on checkbox position, which is the whole mechanism the agreed design needs. `check_map` therefore ships **addresses only**, with no DOM index, and the interaction is unbuilt.
 
-## Not yet established
+## Cause, established 2026-08-16
 
-**Which 37 lines, and why.** They are not indented (0 of 579 carry leading whitespace), so the obvious cause — nested task lists — is refuted. Fenced blocks are skipped by both readers. The cause is unknown and must be found before a fix, because a repair aimed at the wrong cause would restore the assumption without restoring the correspondence.
+**Markdown lazy continuation — not a parser bug at all.**
 
-## Expected
+A task list that opens immediately after a paragraph line, with no blank line between, is absorbed into the paragraph and renders **zero** checkboxes. `_criterion_text` is line-based and counts every one. Demonstrated:
 
-1. The cause of the 37 is identified, not guessed.
-2. A box carries its **own** source line, or carries none. A wrong `data-raw` is worse than an absent one — absence degrades to the pre-ISS-0137 behaviour, which merely failed to resolve.
-3. Whatever mechanism results is keyed on something the renderer emits **during** rendering, not reconstructed afterwards by counting.
-4. A guard asserts the counts agree on this repo's own suite, and fails loudly when they do not.
+```
+## H                              ## H
+
+See the note.                     See the note.
+                                  - [x] **A:** one.     <- swallowed
+- [x] **A:** one.
+        1 checkbox                        0 checkboxes
+```
+
+Found by binary-searching rendered-vs-source counts over growing prefixes of the suite: the first divergence is at **line 413**, immediately after `line 412`, a prose line following the `## 1.17` heading with no blank line before the list. The pattern accounts for the whole gap.
+
+The lines were not indented, which is why the nested-list hypothesis was refuted — the mechanism has nothing to do with indentation.
+
+## Fixed 2026-08-16
+
+**The counts must agree, or nothing is labelled.** `_annotate_checkbox_source` compares rendered boxes against source task lines and, on a mismatch, attaches no `data-raw` at all and logs why.
+
+That is the principle the function already stated for its over-count branch — *"leaving the attribute off degrades to the old behaviour rather than mislabelling a box with somebody else's text"* — applied to the whole document, because a count mismatch means the alignment is **unknowable**, not merely short.
+
+Measured after: `your-trainer`'s suite goes from **285 of 542 rows carrying another row's text** to **0 rows carrying any**. The tick prompt now fails to resolve rather than resolving to the wrong criterion, which is the direction `resolve_criterion` was designed to fail in.
+
+Three guards in `tests/test_release_record.py`: the cause itself, the refusal, and — deliberately — that a well-formed document still gets its labels, so the refusal is narrow.
+
+## What this does NOT unblock
+
+[[FEAT-0104]]'s cycling mark still cannot be keyed on checkbox position **in a document that has the mismatch**, because those checks genuinely have no checkbox to click. The remedy there is a blank line in the source, which belongs to the repo that owns the suite — `your-trainer`, not this one. The dangerous half (writing to the wrong check) is closed; the blocked half is a source-formatting question.

@@ -18,6 +18,7 @@ from markdown.treeprocessors import Treeprocessor
 
 import html as _html
 import itertools as _it
+import logging
 import re as _re
 
 from . import templates
@@ -182,6 +183,8 @@ def _markdown_to_html(
 #: A rendered task-list checkbox, as pymdownx.tasklist emits it. Matched on
 #: the input element rather than the `<li>`, because that is the node the
 #: renderer already holds when a criterion is clicked.
+log = logging.getLogger("project_os_cockpit.renderer")
+
 _RENDERED_BOX_RE = _re.compile(r"<input(?=[^>]*\btype=\"checkbox\")")
 
 
@@ -215,6 +218,36 @@ def _annotate_checkbox_source(html: str, source_md: str) -> str:
         if _criterion_text(line) is not None
     ]
     if not raws:
+        return html
+
+    # **The counts must agree, or nothing is labelled** (ISS-0175).
+    #
+    # The ordinal correspondence this function relies on is FALSE whenever
+    # Markdown declines to make a list. A task list that opens immediately
+    # after a paragraph line — no blank line between — is lazy continuation:
+    # it is absorbed into the paragraph and renders **no checkboxes at all**,
+    # while `_criterion_text` is line-based and counts every one.
+    #
+    # Measured on `your-trainer`'s acceptance suite: 579 source task lines,
+    # 542 rendered inputs, and from the first divergence at box #257 every
+    # subsequent box carried a DIFFERENT row's text — 285 of 542 mislabelled.
+    #
+    # `resolve_criterion` matches the source exactly and deliberately, because
+    # ambiguity there is meant to be a refusal rather than a guess. Feeding it
+    # a confidently wrong value defeats that. The over-count branch below
+    # already states the principle — *"leaving the attribute off degrades to
+    # the old behaviour rather than mislabelling a box with somebody else's
+    # text"* — and this applies it to the whole document rather than to one
+    # box, because a count mismatch means the alignment is unknowable, not
+    # merely short.
+    rendered_boxes = len(_RENDERED_BOX_RE.findall(html))
+    if rendered_boxes != len(raws):
+        log.warning(
+            "checkbox annotation skipped: %d rendered boxes against %d source "
+            "task lines. A task list that opens immediately after a paragraph "
+            "renders no checkboxes; add a blank line before it.",
+            rendered_boxes, len(raws),
+        )
         return html
 
     counter = _it.count()

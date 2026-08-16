@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-034
 aliases: ["PHASE-034"]
 title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-status: active
+status: done
 order: 34
 owner: user:edwin
 created: 2026-08-16
@@ -16,7 +16,6 @@ features:
   - "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"
   - "[[FEAT-0102-Publication-Becomes-A-View]]"
   - "[[FEAT-0103-The-Gate-Is-Walkable]]"
-  - "[[FEAT-0104-The-Suite-Is-The-Surface]]"
   - "[[FEAT-0105-There-Is-Always-A-Release]]"
   - "[[FEAT-0106-The-Release-Page]]"
   - "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"
@@ -26,7 +25,6 @@ issues:
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
-  - "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"
 requirements: []
 tasks: []
 depends: []
@@ -191,3 +189,34 @@ The acceptance suite now has **four** surfaces: the Tests navigator's tier group
 One page per release, reached from a navigator that lists releases. `~release/next` and `~release/<id>` already exist and already carry contents + gate; make the release rung link to them, render `ids` as well as `rows`, snapshot the gate for shipped releases, and let the suite document itself be where checks are ticked. Then delete: `~walk`, `buildAcceptanceWalker`, `/api/notes/walk-check`, the `release-gate` navigator group, `prepare_release` + `promptPrepareRelease` + `~prepare-release`, and the `Needs you` group on this one view. That is the surface Edwin described — *what do we need to do for a release, what tests need to pass, what documentation needs to be updated* — and it is strictly less code than what is here.
 
 **Not built at all, and named in his model:** *"what documentation needs to be updated"*. Nothing in `publication.py`, `acceptance.py` or `release_payload` reads documentation state for a release.
+
+
+## Closed 2026-08-16 — the third close, and what the first two got wrong
+
+Nine features, seven issues, one ADR, twenty-four tasks, ten test notes, and **Edwin asked the same question at the beginning and at the end**: *see and go through the acceptance tests for a release.*
+
+Two closes were declared before this one. Both met their exit criteria. Both left the reported problem standing. The independent review found why, and it is the most useful sentence this phase produced:
+
+> **Every one of Edwin's three complaints is already written down in this repo as an unticked acceptance criterion on a feature that was closed anyway.**
+
+[[FEAT-0105]] reached `done` at **0 of 8** criteria. [[FEAT-0106]] at **0 of 9**. The criteria said *"the stepper is removed"* and *"nothing pops a dialog"*; the stepper shipped and the dialog was dead. Nothing catches this: the validator has `REQ-BOXES` for requirements and `PHASE-BOXES` for phases and **no equivalent for a feature's own acceptance criteria** — the single systemic finding of the whole phase, and it is unfixed. Filed nowhere yet because it belongs upstream.
+
+### The shape of the mistake, three times over
+
+A replacement was added and the thing it replaced was left running: the walker beside the document, the gate group beside the release page, the header button beside the row action. That is why the surface grew every round while the answer never arrived — and why the fix, when it came, **deleted more than it added**.
+
+### What finally worked
+
+Reading. `your-trainer` has kept Edwin's whole model by hand for twelve releases — `tests_verified:` naming the suite snapshot each shipped against, `## Known issues (shipping with)` in half the notes, seven platform artifacts named for their release — and **nothing read any of it**. [[FEAT-0107]] is mostly three sections on a page.
+
+### Re-homed to [[PHASE-999]], not finished
+
+Five items are parked in the sentinel with their reasoning intact. `deferred` is not a resolved status, and carrying them inside a closed phase would let it claim work it did not do.
+
+### Standing, and named rather than assumed away
+
+- **[[FEAT-0104]] deferred** at 6 unbuilt criteria. [[ISS-0175]]'s cause is now known — Markdown lazy continuation, not a parser bug — and its dangerous half is closed, but where a task list opens with no blank line those checks have no checkbox at all. That is a source-formatting question in the repo that owns the suite.
+- **[[ISS-0177]] deferred, deliberately.** The `[!]` escape hatch is live without its accountability half; Edwin's call was to keep it and record the gap.
+- **[[ISS-0178]] deferred, upstream.** A test has no terminal status, so a test whose subject is deleted cannot be retired at all.
+- **Documentation state** — Edwin named it as part of his model and it is not built. It maps to `changes:`, empty in every repo in the fleet, and deriving it is a design question rather than a lookup.
+- **The independent review's verdicts stand at `changes-requested`** on the phase and five features. They are not flipped: the author does not judge his own work, and what those verdicts describe is true of what was shipped at the time they were written.

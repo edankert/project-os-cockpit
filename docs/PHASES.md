@@ -60,7 +60,7 @@ This document is the **semantic source of truth** for development phases. It map
 
 ## Active phase
 
-None — **[[PHASE-034]]** opened and closed on 2026-08-16. [[ADR-0028]] was accepted on Edwin's instruction to build it; every exit criterion is ticked with evidence and the independent review is recorded as unpaid.
+None — **[[PHASE-034]]** opened and closed on 2026-08-16, after three closes and an independent review that returned `changes-requested` on the phase and five of six features. Those verdicts stand.
 
 *(This section read "None" all through PHASE-030's life and reopen, because `sync-snapshot.py` propagates status to `SNAPSHOT.yaml` and not to this hand-maintained registry. Kept current by hand until something reads it.)*
 

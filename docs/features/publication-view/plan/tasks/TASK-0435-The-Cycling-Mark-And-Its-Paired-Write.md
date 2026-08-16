@@ -3,13 +3,14 @@ type: "[[task]]"
 id: TASK-0435
 aliases: ["TASK-0435"]
 title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
-status: backlog
+status: deferred
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
-phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+phase: "[[PHASE-999-Future]]"
 source: ["Edwin 2026-08-16: 'I actually like the cycling checkbox idea better'", "Edwin 2026-08-16: 'it would be great if I could provide this information directly while selecting the ! for the check'"]
-parent: "[[FEAT-0104-The-Suite-Is-The-Surface]]"
+parent: ""
+origin: "[[FEAT-0104-The-Suite-Is-The-Surface]]"
 effort: L
 depends: ["[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[TASK-0434-The-Check-Map-And-The-Exception-Mark]]"]
 blocks: ["[[TASK-0436-An-Undocumented-Exception-Is-Owed]]"]
@@ -46,3 +47,13 @@ Gating the gesture would have made the ordinary case worse. Instead the incomple
 ## Blocked 2026-08-16
 
 Waiting on [[ISS-0175]]. The interaction is keyed on which rendered checkbox is which check, and that correspondence does not hold: `your-trainer` parses 579 checks and renders 542 inputs. A control wired to DOM position would write to the wrong check, which is worse than no control.
+
+
+## Deferred 2026-08-16, with [[FEAT-0104]]
+
+[[ISS-0175]] is fixed and its cause is known, but the half that blocks this is not a cockpit bug: where a task list opens with no blank line those checks have **no checkbox to click**, so no interaction can be keyed on them. The remedy is a blank line in the suite, which belongs to the repo that owns it.
+
+
+## Re-homed to [[PHASE-999]] on 2026-08-16
+
+[[PHASE-034]] closed and this is parked, not resolved — `deferred` is not a resolved status, so carrying it inside a closing phase would fire `PHASE-CHILDREN` and, worse, would let a closed phase claim work it did not do. The sentinel is where work without a concrete delivery phase lives. Its origin and its reasoning stay above.
