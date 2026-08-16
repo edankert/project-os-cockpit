@@ -116,7 +116,10 @@ def test_the_next_release_is_shown_without_a_note(tmp_path: Path) -> None:
     nxt = groups["rung-next"]
     assert "accumulating" in nxt["label"]
     assert nxt["items"][0]["owed_verb"] == "Prepare"
-    assert nxt["items"][0]["action"] == "~prepare-release"
+    # FEAT-0106: the row NAVIGATES to the page rather than popping a dialog.
+    # It carried `~prepare-release` for exactly as long as it took Edwin to
+    # press it — `window.prompt` is not implemented in Electron (ISS-0176).
+    assert nxt["items"][0]["action"] == "~release/next"
     assert not list((docs / "releases").glob("*.md")) if (
         docs / "releases").is_dir() else True
 

@@ -4208,7 +4208,11 @@ def _publication_groups(
             "subtitle": "derived — no note is written until you declare one",
             "status": "draft" if held else "",
             "type": "release",
-            "url": f"/docs/{held['rel']}" if held else "~publication",
+            # The row navigates to the PAGE (FEAT-0106). It used to carry
+            # an action that popped a dialog, which was both the wrong shape
+            # — the navigator navigates, the centre pane acts — and dead,
+            # because Electron does not implement `window.prompt`.
+            "url": f"~release/{held['id']}" if held else "~release/next",
         }]
         group = {
             "key": "rung-next",
@@ -4220,7 +4224,7 @@ def _publication_groups(
         if not (held and held["preparing"]):
             rows[0]["owed"] = True
             rows[0]["owed_verb"] = "Prepare"
-            rows[0]["action"] = "~prepare-release"
+            rows[0]["action"] = f"~release/{held['id']}" if held else "~release/next"
         out.append(group)
 
     # ---- the gate, on the release rung -----------------------------------

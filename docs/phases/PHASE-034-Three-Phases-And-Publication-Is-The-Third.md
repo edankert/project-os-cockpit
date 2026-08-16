@@ -15,11 +15,13 @@ features:
   - "[[FEAT-0103-The-Gate-Is-Walkable]]"
   - "[[FEAT-0104-The-Suite-Is-The-Surface]]"
   - "[[FEAT-0105-There-Is-Always-A-Release]]"
+  - "[[FEAT-0106-The-Release-Page]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
+  - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
 requirements: []
 tasks: []
 depends: []

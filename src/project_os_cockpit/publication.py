@@ -137,6 +137,9 @@ def _releases(index: "Index") -> list[dict[str, Any]]:
             # exact pattern and obligations.py already documents it for
             # features: *"`acceptance: requested` in frontmatter, not a
             # status."* One precedent, applied again.
+            "features": [
+                str(f) for f in (record.frontmatter.get("features") or [])
+            ],
             "preparing": bool(str(
                 record.frontmatter.get("preparing") or "",
             ).strip()),
@@ -338,5 +341,70 @@ def payload(project_root: Path, index: "Index") -> dict[str, Any]:
         "unreachable": [r.name for r in rungs if not r.reachable],
         "preparing": draft,
         # Visible, and not gating.
+        "stale_drafts": stale_drafts(index),
+    }
+
+
+def release_payload(
+    project_root: Path, index: "Index", release_id: str = "next",
+) -> dict[str, Any]:
+    """One answer for the release page (FEAT-0106 / TASK-0440).
+
+    What is in this release, what state it is in, and what stands between it
+    and shipping — assembled from the computations that already exist rather
+    than from new ones. `unreleased_payload` for what has not shipped,
+    `acceptance.gate_payload` for the gate.
+
+    ``next`` answers **even when no release note exists**, which is the
+    ordinary case: the open release is derived and nothing is written until a
+    person declares one.
+    """
+    from . import acceptance
+    from .cockpit import unreleased_payload
+
+    wanted = (release_id or "next").strip()
+    releases = _releases(index)
+    held: dict[str, Any] | None = None
+    if wanted.lower() == "next":
+        live = open_releases(index)
+        held = live[0] if live else None
+    else:
+        held = next((r for r in releases if r["id"] == wanted), None)
+
+    shipped = held is not None and held["status"] == "released"
+    if shipped:
+        # A shipped release names what it carried; the derived set has moved
+        # on. The frozen list is the record and must not be recomputed.
+        contents = {
+            "kind": "frozen",
+            "ids": list(held.get("features") or []),
+            "count": len(held.get("features") or []),
+            "since": "",
+        }
+    else:
+        # `unreleased_payload`'s own keys: `items` and `since` (FEAT-0072).
+        # Read them rather than inventing near-misses — a second vocabulary
+        # for one computation is how two surfaces come to disagree.
+        unshipped = unreleased_payload(index)
+        rows = unshipped.get("items") or []
+        since = unshipped.get("since") or {}
+        contents = {
+            "kind": "derived",
+            "count": int(unshipped.get("count") or 0),
+            "since": since.get("id", "") if isinstance(since, dict) else str(since),
+            "rows": rows,
+        }
+
+    gate = acceptance.gate_payload(index.docs_root)
+    return {
+        "id": held["id"] if held else "",
+        "version": held["version"] if held else "",
+        "status": held["status"] if held else "",
+        "preparing": bool(held and held["preparing"]),
+        "exists": held is not None,
+        "title": held["title"] if held else "Next release",
+        "rel": held["rel"] if held else "",
+        "contents": contents,
+        "gate": gate,
         "stale_drafts": stale_drafts(index),
     }

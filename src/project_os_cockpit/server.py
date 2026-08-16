@@ -962,6 +962,18 @@ def _make_handler(
                 })
                 return
 
+            if path == "/api/cockpit/release":
+                params = urllib.parse.parse_qs(parsed.query)
+                from . import publication as _pub
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    **_pub.release_payload(
+                        docs_root.parent, index,
+                        (params.get("id") or ["next"])[0],
+                    ),
+                })
+                return
+
             if path == "/api/cockpit/acceptance":
                 # The tier suite and the release gate (TASK-0373). Read-only,
                 # and served from the docs root rather than the index: the

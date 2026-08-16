@@ -1238,6 +1238,12 @@ async function navigateToInner(
   }
   // ~history — the full timeline (FEAT-0052 / TASK-0257). The overview
   // tile is the short version; this is the same grammar, further back.
+  // ~release/next and ~release/<id> — the release page (FEAT-0106).
+  if (normalised === '~release' || normalised.startsWith('~release/')) {
+    const rid = normalised === '~release'
+      ? 'next' : normalised.slice('~release/'.length);
+    if (await renderReleasePage(rid)) return;
+  }
   // ~prepare-release — declare the version being prepared (FEAT-0105).
   if (normalised === '~prepare-release') {
     await promptPrepareRelease();
@@ -5675,7 +5681,7 @@ async function renderDesignPage(target: string): Promise<boolean> {
     annotate.className = 'review-btn';
     annotate.textContent = 'Annotate selection';
     annotate.title = 'Comment on the selected text, anchored to the quote';
-    annotate.addEventListener('click', () => annotationFromSelection(d.id));
+    annotate.addEventListener('click', () => void annotationFromSelection(d.id));
     body.appendChild(annotate);
 
     const side = document.createElement('aside');
@@ -6859,12 +6865,326 @@ interface GateCheck {
   name: string; text?: string; anchor?: string;
 }
 
+
+
+// ----- The release page (FEAT-0106) ------------------------------------
+//
+// `~release/next` and `~release/<id>`. Edwin: *"I would have expected that if
+// I selected the Next Release item that this would bring up a virtual page
+// which showed what would be in this release and for me then to be able to
+// start the release in the main section of the tool?"*
+//
+// The navigator navigates; the centre pane is where you act — which is how
+// `~overview`, `~history` and `~design/<id>` already behave. A page also
+// removes the need for a dialog, which matters more than it sounds: the
+// version field replaced a `window.prompt` that Electron does not implement
+// and that had been dead in five places (ISS-0176).
+
+interface ReleaseContents {
+  kind: string; count: number; since: string;
+  rows?: Array<{ id?: string; title?: string; rel?: string }>;
+}
+interface ReleasePayload {
+  id: string; version: string; status: string; preparing: boolean;
+  exists: boolean; title: string; rel: string;
+  contents: ReleaseContents;
+  gate: GatePayload;
+  stale_drafts?: Array<{ id: string; version: string; rel: string }>;
+}
+
+async function renderReleasePage(releaseId: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  let data: ReleasePayload | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/release?id=${encodeURIComponent(releaseId || 'next')}`,
+    );
+    if (!resp.ok) return false;
+    data = (await resp.json()) as ReleasePayload;
+  } catch { return false; }
+  if (!data) return false;
+
+  if (currentNavMode !== 'publication') setNavMode('publication');
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildReleasePage(data, releaseId));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body release-page';
+
+  // ---- header: identity, and the control that starts it ----------------
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = d.exists
+    ? `${d.id}${d.version ? ` · ${d.version}` : ''}`
+    : 'Next release';
+  head.appendChild(h);
+
+  const state = document.createElement('span');
+  state.className = 'release-state';
+  state.textContent = d.status === 'released' ? 'released'
+    : d.preparing ? 'preparing' : d.exists ? 'open' : 'accumulating';
+  head.appendChild(state);
+  wrap.appendChild(head);
+
+  if (!d.preparing && d.status !== 'released') {
+    const start = document.createElement('div');
+    start.className = 'release-start';
+    const field = document.createElement('input');
+    field.type = 'text';
+    field.className = 'ask-field release-version';
+    field.placeholder = 'version — e.g. 2.1.7';
+    field.value = d.version || '';
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'review-btn is-primary';
+    go.textContent = 'Start ▸';
+    // The refusal is shown HERE, beside the field that caused it, rather than
+    // in a toast that disappears before it has been read.
+    const err = document.createElement('p');
+    err.className = 'ask-error';
+    err.hidden = true;
+    const submit = async (): Promise<void> => {
+      const version = field.value.trim();
+      if (!version) { err.hidden = false; err.textContent = 'A release needs a version.'; return; }
+      go.disabled = true;
+      err.hidden = true;
+      try {
+        const res = await postJson('/api/notes/release-prepare',
+          { version, actor: 'user:edwin' }) as { ok?: boolean; error?: string };
+        if (res && res.ok) {
+          showStatus(`Preparing ${version}`, 'info');
+          void loadWsNav();
+          void renderReleasePage(releaseId);
+          return;
+        }
+        err.hidden = false;
+        err.textContent = String(res?.error || 'refused');
+      } catch (e) {
+        err.hidden = false;
+        err.textContent = String(e);
+      }
+      go.disabled = false;
+    };
+    go.addEventListener('click', () => void submit());
+    field.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); void submit(); }
+    });
+    start.append(field, go);
+    wrap.append(start, err);
+  }
+
+  // ---- what is in it ---------------------------------------------------
+  const c = d.contents;
+  const section = document.createElement('section');
+  section.className = 'release-section';
+  const sh = document.createElement('h3');
+  sh.textContent = c.kind === 'frozen'
+    ? `What shipped — ${c.count} feature(s)`
+    : `What's in it — ${c.count} feature(s) unshipped`
+      + (c.since ? ` since ${c.since}` : '');
+  section.appendChild(sh);
+  if (c.kind === 'derived') {
+    const note = document.createElement('p');
+    note.className = 'meta';
+    note.textContent = 'Derived — no note is written until you start the release.';
+    section.appendChild(note);
+  }
+  const list = document.createElement('ul');
+  list.className = 'scoped-rowlist';
+  for (const row of (c.rows || []).slice(0, 40)) {
+    const li = document.createElement('li');
+    const id = document.createElement('span');
+    id.className = 'scoped-row-id mono ov-typed';
+    id.dataset.type = 'feature';
+    id.textContent = shortNoteId(String(row.id || ''));
+    const t = document.createElement('span');
+    t.className = 'scoped-row-title';
+    t.textContent = String(row.title || '');
+    li.append(id, t);
+    if (row.rel) {
+      li.style.cursor = 'pointer';
+      li.addEventListener('click', () => void navigateTo(String(row.rel)));
+    }
+    list.appendChild(li);
+  }
+  if ((c.rows || []).length > 40) {
+    const more = document.createElement('li');
+    more.className = 'meta';
+    more.textContent = `…${(c.rows || []).length - 40} more`;
+    list.appendChild(more);
+  }
+  section.appendChild(list);
+  wrap.appendChild(section);
+
+  // ---- the gate --------------------------------------------------------
+  if (d.gate?.exists) {
+    const g = document.createElement('section');
+    g.className = 'release-section';
+    const unchecked = Object.values(d.gate.counts || {})
+      .reduce((n, c2) => n + (c2.unchecked || 0), 0);
+    const gh = document.createElement('h3');
+    gh.textContent = `Release gate · ${unchecked} unchecked`;
+    g.appendChild(gh);
+    const rule = document.createElement('p');
+    rule.className = 'meta';
+    rule.textContent = d.gate.rule;
+    g.appendChild(rule);
+
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'review-btn is-primary';
+    open.textContent = 'Open the suite';
+    open.addEventListener('click', () => {
+      void navigateTo(`/docs/${d.gate.rel}`);
+    });
+    g.appendChild(open);
+
+    const rows = document.createElement('ul');
+    rows.className = 'scoped-rowlist';
+    for (const item of (d.gate.blocking || []).slice(0, 40)) {
+      const li = document.createElement('li');
+      const n = document.createElement('span');
+      n.className = 'scoped-row-id mono';
+      n.textContent = item.number;
+      const t = document.createElement('span');
+      t.className = 'scoped-row-title';
+      t.textContent = item.name;
+      const a = document.createElement('span');
+      a.className = 'verification-meta';
+      a.textContent = item.area;
+      li.append(n, t, a);
+      li.style.cursor = 'pointer';
+      const anchor = (item as { anchor?: string }).anchor;
+      li.addEventListener('click', () => void navigateTo(
+        `/docs/${d.gate.rel}${anchor ? `#${anchor}` : ''}`,
+      ));
+      rows.appendChild(li);
+    }
+    if ((d.gate.blocking || []).length > 40) {
+      const more = document.createElement('li');
+      more.className = 'meta';
+      more.textContent = `…${(d.gate.blocking || []).length - 40} more`;
+      rows.appendChild(more);
+    }
+    g.appendChild(rows);
+    wrap.appendChild(g);
+  }
+  return wrap;
+}
+
+
+// ----- An input that works in Electron (ISS-0176) -----------------------
+//
+// `window.prompt` was removed in Electron 3 and this app is on 32. The
+// renderer called it FIVE times and the running app said so on every click:
+// *"prompt() is and will not be supported."* Drafting a release, reconciling
+// an acceptance criterion, filing an issue from a failed one and annotating a
+// design were all dead in the shell Edwin actually uses.
+//
+// Every one of those features had tests on its payload, its write path and
+// its endpoint. None pressed the button. So this exists once, and the guard
+// `test_the_renderer_never_calls_window_prompt` makes the broken way
+// unavailable rather than merely discouraged.
+
+interface AskOptions {
+  title: string;
+  detail?: string;
+  placeholder?: string;
+  value?: string;
+  confirm?: string;
+  multiline?: boolean;
+}
+
+/** Ask for a line of text in-page. Resolves `null` when cancelled — the same
+ *  contract `window.prompt` had, so a call site converts without rethinking
+ *  its control flow. */
+function askForText(opts: AskOptions): Promise<string | null> {
+  return new Promise((resolve) => {
+    const back = document.createElement('div');
+    back.className = 'ask-backdrop';
+    const card = document.createElement('div');
+    card.className = 'ask-card';
+
+    const h = document.createElement('div');
+    h.className = 'ask-title';
+    h.textContent = opts.title;
+    card.appendChild(h);
+
+    if (opts.detail) {
+      const d = document.createElement('p');
+      d.className = 'ask-detail';
+      d.textContent = opts.detail;
+      card.appendChild(d);
+    }
+
+    const field: HTMLInputElement | HTMLTextAreaElement = opts.multiline
+      ? document.createElement('textarea')
+      : document.createElement('input');
+    if (field instanceof HTMLInputElement) field.type = 'text';
+    field.className = 'ask-field';
+    field.placeholder = opts.placeholder || '';
+    field.value = opts.value || '';
+    card.appendChild(field);
+
+    const err = document.createElement('p');
+    err.className = 'ask-error';
+    err.hidden = true;
+    card.appendChild(err);
+
+    const row = document.createElement('div');
+    row.className = 'ask-actions';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'review-btn';
+    cancel.textContent = 'Cancel';
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'review-btn is-primary';
+    ok.textContent = opts.confirm || 'OK';
+    row.append(cancel, ok);
+    card.appendChild(row);
+
+    let done = false;
+    const close = (value: string | null): void => {
+      if (done) return;
+      done = true;
+      back.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(value);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.preventDefault(); close(null); }
+      if (e.key === 'Enter' && !opts.multiline) { e.preventDefault(); close(field.value); }
+    };
+    cancel.addEventListener('click', () => close(null));
+    ok.addEventListener('click', () => close(field.value));
+    back.addEventListener('click', (e) => { if (e.target === back) close(null); });
+    document.addEventListener('keydown', onKey, true);
+
+    back.appendChild(card);
+    document.body.appendChild(back);
+    field.focus();
+    field.select();
+  });
+}
+
+
 async function promptPrepareRelease(): Promise<void> {
-  const version = window.prompt(
-    'Which version are you preparing?  (e.g. 2.1.7)\n\n'
-    + 'This writes a REL-* note at `draft` — it declares intent, and '
-    + 'publishes nothing.',
-  );
+  const version = await askForText({
+    title: 'Which version are you preparing?',
+    detail: 'This writes a REL-* note at draft — it declares intent, and '
+      + 'publishes nothing.',
+    placeholder: '2.1.7',
+    confirm: 'Start',
+  });
   if (!version) return;
   try {
     const res = await postJson('/api/notes/release-prepare', { version, actor: 'user:edwin' });
@@ -15337,11 +15657,13 @@ async function fillUnreleasedCard(): Promise<void> {
   draft.className = 'review-btn';
   draft.textContent = 'Draft release note';
   draft.title = `Scaffold a REL note listing these ${count} features, as a draft`;
-  draft.addEventListener('click', () => {
-    const title = window.prompt(
-      `Title for the release note?\n\n${count} unshipped feature(s) will be listed. `
-      + 'This writes one file as a draft — it ships nothing.',
-    );
+  draft.addEventListener('click', async () => {
+    const title = await askForText({
+      title: 'Title for the release note?',
+      detail: `${count} unshipped feature(s) will be listed. `
+        + 'This writes one file as a draft — it ships nothing.',
+      confirm: 'Draft it',
+    });
     if (title === null) return;                     // cancelled, not confirmed
     if (!title.trim()) { showStatus('A release needs a title', 'error'); return; }
     draft.disabled = true;
@@ -16104,9 +16426,12 @@ async function verdict(kind: 'pass' | 'fail' | 'skip'): Promise<void> {
       });
       run.passed += 1;
     } else if (kind === 'skip') {
-      const reason = window.prompt(
-        `Why is this criterion reconciled rather than met?\n\n${criterion}`,
-      );
+      const reason = await askForText({
+        title: 'Why is this criterion reconciled rather than met?',
+        detail: criterion,
+        multiline: true,
+        confirm: 'Reconcile',
+      });
       if (reason === null) return;                    // cancelled, not skipped
       if (!reason.trim()) { showStatus('A reconcile needs a reason', 'error'); return; }
       await postJson('/api/notes/tick', {
@@ -16114,9 +16439,12 @@ async function verdict(kind: 'pass' | 'fail' | 'skip'): Promise<void> {
       });
       run.skipped += 1;
     } else {
-      const what = window.prompt(
-        `What failed?\n\n${criterion}\n\n(files an issue, pre-linked; the run continues)`,
-      );
+      const what = await askForText({
+        title: 'What failed?',
+        detail: `${criterion}\n\n(files an issue, pre-linked; the run continues)`,
+        multiline: true,
+        confirm: 'File it',
+      });
       if (what === null) return;
       const created = await postJson('/api/notes/create', {
         type: 'issue',
@@ -16315,14 +16643,19 @@ function renderMeasurePanel(): void {
 // prompt leaves the record untouched.
 
 /** Offer `Annotate` when text is selected inside a design note. */
-function annotationFromSelection(designId: string): void {
+async function annotationFromSelection(designId: string): Promise<void> {
   const sel = window.getSelection();
   const quote = (sel?.toString() ?? '').trim();
   if (!quote) {
     showStatus('Select the text the comment is about first.', 'error');
     return;
   }
-  const text = window.prompt(`Comment on:\n\n“${quote.slice(0, 160)}”`);
+  const text = await askForText({
+    title: 'Comment on this selection',
+    detail: `“${quote.slice(0, 160)}”`,
+    multiline: true,
+    confirm: 'Annotate',
+  });
   if (text === null) return;                       // esc costs nothing
   if (!text.trim()) { showStatus('An annotation needs a comment', 'error'); return; }
 
