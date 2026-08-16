@@ -24,9 +24,12 @@ something instead of being a formality.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
+
+from . import statuses as _statuses
 
 if TYPE_CHECKING:  # pragma: no cover
     from .index import Index
@@ -38,9 +41,16 @@ VIEW_INTENT = "intent"
 VIEW_FEATURES = "features"
 VIEW_ISSUES = "issues"
 VIEW_TESTS = "tests"
+#: The third phase's view (ADR-0028 / FEAT-0102). Publication's obligations
+#: used to sit on `overview` — a view named for *everything* — because
+#: publication had no home. `overview` is also not a nav mode, so those rows
+#: reached no navigator at all and had to be hand-carried to the attention
+#: panel (TASK-0418). This is the home, and it is a real mode.
+VIEW_PUBLICATION = "publication"
 
 VIEWS: frozenset[str] = frozenset({
     VIEW_OVERVIEW, VIEW_INTENT, VIEW_FEATURES, VIEW_ISSUES, VIEW_TESTS,
+    VIEW_PUBLICATION,
 })
 
 
@@ -60,10 +70,39 @@ class Obligation:
     #: Set when the obligation is not a plain status match, so a reader knows
     #: the predicate lives elsewhere rather than assuming this is the whole rule.
     predicate: str = ""
+    #: Resolves the view **per item** when the phase that owns a note's subject
+    #: is not decided by its type (ADR-0028). ``None`` keeps `view` above,
+    #: which is what every single-phase corpus uses.
+    #:
+    #: **A view is a corpus; a phase is not.** `issues` spans all three phases
+    #: and `tests` spans two — only `intent` and `publication` sit wholly in
+    #: one. The registry has only ever had the corpus axis, so an obligation's
+    #: phase was implicit in its TYPE: right for the corpora that do not span,
+    #: silently wrong for the ones that do. That is one gap, and it surfaced
+    #: twice — as `tests` straddling, and as publication having nowhere to
+    #: live but `overview`.
+    #:
+    #: So per-item routing is not an exception mechanism. It is the only
+    #: correct one; fixed-per-type merely happened to give the right answer
+    #: often enough never to fail loudly.
+    route: "Callable[[Any], str] | None" = None
 
 
 def NONE(reason: str, view: str = "") -> Obligation:  # noqa: N802 — reads as a literal
     return Obligation(owed=False, reason=reason, view=view)
+
+
+def view_for(record: Any, ob: Obligation) -> str:
+    """Which view owns this item's obligation (ADR-0028 decision 2).
+
+    The declared `view` unless the type carries a `route`. Callers use this
+    instead of reading `ob.view`, so a spanning corpus cannot be routed by one
+    walk and mis-routed by another — the property `obligations.py` exists to
+    guarantee, restated for the axis this decision adds.
+    """
+    if ob.route is None:
+        return ob.view
+    return ob.route(record) or ob.view
 
 
 #: Every note type in the corpus. A type here with no entry fails a test.
@@ -246,6 +285,11 @@ KIND_NOUNS: dict[str, tuple[str, str]] = {
     # asks for, from the registry rather than from a string in the renderer.
     PUSH_OBLIGATION_KIND: ("commit", "commits"),
     DEPLOY_OBLIGATION_KIND: ("commit", "commits"),
+    # Singular by construction — a repo prepares one release at a time — but
+    # the plural is declared rather than omitted, because a kind with no noun
+    # fails the completeness test and silence here would be an omission
+    # wearing the shape of a decision.
+    "release gate": ("release gate", "release gates"),
 }
 
 #: Finding kinds from `standing.check` that the badge counts.
@@ -392,7 +436,9 @@ def _publication_rows(index: Any, kind: str, verb: str,
 
 NOTE_LESS[PUSH_OBLIGATION_KIND] = NoteLessObligation(
     kind=PUSH_OBLIGATION_KIND,
-    view=VIEW_OVERVIEW,
+    # Re-homed from `overview` by ADR-0028: publication is a phase, it now has
+    # a view, and an obligation belongs to the view that owns its subject.
+    view=VIEW_PUBLICATION,
     verb="Push",
     rows=lambda index: _publication_rows(
         index, PUSH_OBLIGATION_KIND, "Push", "backup"),
@@ -402,7 +448,7 @@ NOTE_LESS[PUSH_OBLIGATION_KIND] = NoteLessObligation(
 
 NOTE_LESS[DEPLOY_OBLIGATION_KIND] = NoteLessObligation(
     kind=DEPLOY_OBLIGATION_KIND,
-    view=VIEW_OVERVIEW,
+    view=VIEW_PUBLICATION,
     verb="Deploy",
     rows=lambda index: _publication_rows(
         index, DEPLOY_OBLIGATION_KIND, "Deploy", "deploy"),
@@ -420,6 +466,67 @@ NOTE_LESS[STANDING_OBLIGATION_KIND] = NoteLessObligation(
     verb=STANDING_OBLIGATION.verb,
     rows=_standing_rows,
     predicate=STANDING_OBLIGATION.predicate,
+)
+
+
+# ----- the release gate (FEAT-0102 / TASK-0429) -----------------------------
+#
+# **One obligation, never sixty.** The first proposal admitted every unchecked
+# Tier 1/2 row to this registry, and Edwin refused it: *"I am also afraid that
+# this could overwhelm my attention."* The registry's own charter agrees —
+# ADR-0027 excludes staleness because *"counting it is a badge that re-arms
+# itself forever"*, and acceptance rows re-arm IN BULK, by the suite's own rule
+# 3 (*"code changes must uncheck all tests whose scope overlaps"*). They are the
+# most self-re-arming population in the corpus.
+#
+# So the CAMPAIGN is the obligation. 60 is a number it states; no badge ever
+# sums it. `your-trainer`'s 60 blocking rows cluster into 17 sections and two
+# of those carry 33 — roughly two sittings, most of it with a trainer plugged
+# in. That is not sixty things to do.
+#
+# And it asks only while a release is `draft`. With none in preparation, an
+# unchecked suite is the resting state of a checklist that unchecks itself
+# whenever code changes (ADR-0028 decision 3) — not a debt.
+
+GATE_OBLIGATION_KIND = "release gate"
+
+
+def _gate_rows(index: Any) -> list[dict[str, Any]]:
+    """One row while a release is being prepared and the gate is blocked."""
+    from . import acceptance, publication
+
+    try:
+        draft = publication.preparing(index)
+    except OSError:                      # pragma: no cover — unreadable tree
+        return []
+    if draft is None:
+        return []
+    gate = acceptance.gate_payload(index.docs_root)
+    if not gate.get("exists") or not gate.get("blocked"):
+        return []
+    unchecked = sum(
+        int(c.get("unchecked") or 0) for c in (gate.get("counts") or {}).values()
+    )
+    return [{
+        "id": str(draft["id"]),
+        "title": f"{unchecked} Tier 1/2 checks stand between "
+                 f"{draft.get('version') or draft['id']} and shipping",
+        "url": "~publication",
+        "rel": str(draft.get("rel") or ""),
+        "type": GATE_OBLIGATION_KIND,
+        "status": "draft",
+        "detail": f"{unchecked} unchecked",
+        "verb": "Walk",
+    }]
+
+
+NOTE_LESS[GATE_OBLIGATION_KIND] = NoteLessObligation(
+    kind=GATE_OBLIGATION_KIND,
+    view=VIEW_PUBLICATION,
+    verb="Walk",
+    rows=_gate_rows,
+    predicate="a release at `draft` whose acceptance suite still has unchecked "
+              "Tier 1/2 items — ONE row for the campaign, never one per check",
 )
 
 
@@ -494,10 +601,103 @@ def payload() -> dict[str, Any]:
     }
 
 
+# ----- the in-flight rule (ADR-0028 decision 3 / TASK-0424) -----------------
+#
+# An obligation asks while a subject it names is being worked, and rests
+# otherwise. This is the rule the registry ALREADY applies to risks — *"`open`
+# is a risk's resting state … carrying one is not a debt"* — and to staleness,
+# applied to the two populations that have the problem.
+#
+# Measured in `your-trainer` on 2026-08-16, which is where Edwin reported it:
+# 23 of 26 owed requirements attach to features still in `backlog` and 21 of
+# the 26 belong to a phase literally named `PHASE-999-Future`; 10 of 15 owed
+# manual tests verify only `done` or system-wide work and had sat at `ready`
+# for four to seven months. 64 owed items become 31.
+
+#: A subject that is **not** being worked: terminal, or not started.
+#:
+#: **Derived from `statuses`, never hand-listed**, and the first draft was
+#: hand-listed and wrong within the hour. It named the terminal statuses of
+#: *features* — `done`, `cancelled`, `superseded` — and a test's subject can
+#: equally be a requirement or an issue, whose terminal values are
+#: `implemented`, `retired` and `fixed`. Those fell through to the
+#: unrecognised-status branch and asked forever: measured on `your-trainer`,
+#: 8 owed tests where the rule should have left 5, and all three of the extras
+#: were that one gap. Deriving means a status added upstream is resting on
+#: arrival rather than becoming a permanent question.
+#:
+#: `backlog` and `deferred` are added because neither is *terminal* — the first
+#: is work not started, the second is work parked — and both are exactly the
+#: resting state this rule exists to stop counting. `planned` is deliberately
+#: NOT here: `backlog` -> `planned` -> `doing` is the sequence STATUSES.md
+#: documents, so `planned` means scheduled, and approving the requirements of
+#: the thing you are about to build is live work.
+RESTING_STATES: frozenset[str] = (
+    _statuses.COMPLETED_STATUSES | frozenset({"backlog", "deferred"})
+)
+#: Types the rule applies to, with the frontmatter naming their subject.
+#: **Exactly two** (ADR-0028's table). `issue` is deliberately absent: triage
+#: is owed because nobody has READ it yet, so its subject is the issue itself
+#: and it is owed in every phase.
+SUBJECT_FIELDS: dict[str, tuple[str, ...]] = {
+    "requirement": ("implements",),
+    "test": ("verifies", "features", "requirements"),
+}
+
+_SUBJECT_ID_RE = re.compile(r"([A-Z]{2,6}-\d{3,4})")
+
+
+def subject_ids(record: Any) -> tuple[str, ...]:
+    """The ids this obligation's subject-bearing fields name."""
+    fields = SUBJECT_FIELDS.get(record.note_type or "", ())
+    out: list[str] = []
+    for field_name in fields:
+        raw = record.frontmatter.get(field_name)
+        if raw is None:
+            continue
+        values = raw if isinstance(raw, (list, tuple)) else [raw]
+        for value in values:
+            for found in _SUBJECT_ID_RE.findall(str(value)):
+                if found not in out:
+                    out.append(found)
+    return tuple(out)
+
+
+def subject_is_in_flight(record: Any, index: "Index") -> bool:
+    """Whether any subject this note names is being worked.
+
+    **A note naming no subject asks.** `your-trainer`'s TST-0001 and TST-0002
+    are `scope: system` with no features — under a naive reading they become
+    never-owed, which LOSES two tests rather than quieting them. Nothing can
+    prove a subject-less obligation is resting, so it is treated as live. That
+    is the direction that fails safely, and it is the clause most likely to be
+    got wrong.
+
+    **An unrecognised status also asks.** A status in neither set is not
+    evidence of rest, and silently quieting on one would make every future
+    status value a way to disappear from the badge.
+    """
+    ids = subject_ids(record)
+    if not ids:
+        return True
+    for note_id in ids:
+        path = index.by_id(note_id)
+        subject = index.get(path) if path is not None else None
+        if subject is None:
+            # A subject the corpus does not carry cannot be shown to be
+            # resting either — same reasoning as the subject-less case.
+            return True
+        status = (subject.status or "").strip().lower()
+        if status in RESTING_STATES:
+            continue
+        return True          # in flight, or a status nobody declared
+    return False
+
+
 # ----- counting what is actually owed ---------------------------------------
 
 
-def _is_owed(record: Any, ob: Obligation) -> bool:
+def _is_owed(record: Any, ob: Obligation, index: "Index | None" = None) -> bool:
     """Whether this note is currently owed under its type's declaration."""
     if not ob.owed:
         return False
@@ -514,9 +714,20 @@ def _is_owed(record: Any, ob: Obligation) -> bool:
         blob = " ".join(
             str(record.frontmatter.get(k) or "") for k in ("kind", "level", "runner")
         ).lower()
-        return "manual" in blob
+        if "manual" not in blob:
+            return False
+    elif status not in ob.states:
+        return False
 
-    return status in ob.states
+    # The in-flight rule, last: a note must first be owed at all under its own
+    # declaration, and only then is it asked whether its subject is live.
+    # `deferred` never reaches here — it is not in any owed `states` — which is
+    # what makes it the OVERRIDE rather than a second copy of this rule
+    # (ADR-0028 decision 6): a deferred requirement stays quiet even when its
+    # feature moves to `doing`.
+    if index is not None and record.note_type in SUBJECT_FIELDS:
+        return subject_is_in_flight(record, index)
+    return True
 
 
 def counts_by_kind(index: "Index") -> dict[str, dict[str, int]]:
@@ -527,25 +738,15 @@ def counts_by_kind(index: "Index") -> dict[str, dict[str, int]]:
     under every view, naming nothing. The kinds have been data since this
     module replaced a hand-written list of seven, so the breakdown costs one
     dict instead of one int and the surface stops having to say "items".
+
+    **Derived from `owed_items`, not walked separately** (TASK-0423). It used
+    to be its own pass, asserted equal by a test — a property that has to be
+    *maintained*. Note-less obligations were already counted this way for the
+    same reason; now every kind is, and the disagreement is unrepresentable
+    rather than merely absent.
     """
     out: dict[str, dict[str, int]] = {v: {} for v in VIEWS}
-    for path in index.paths():
-        record = index.get(path)
-        if record is None or not record.note_type:
-            continue
-        if record.rel_path.startswith("__templates__/"):
-            continue
-        ob = for_type(record.note_type)
-        if ob is None or not ob.owed or not ob.view:
-            continue
-        if _is_owed(record, ob):
-            bucket = out[ob.view]
-            bucket[record.note_type] = bucket.get(record.note_type, 0) + 1
-    # Obligations whose subject is not a note (TASK-0416), counted from the
-    # rows rather than by a second pass — `len()` of the very list `owed_items`
-    # returns, so the badge cannot disagree with the group beneath it. This was
-    # one bolt-on for one kind; it is now the declared path for all of them.
-    for view, rows in note_less_rows(index).items():
+    for view, rows in owed_items(index).items():
         for row in rows:
             kind = str(row["type"])
             out[view][kind] = out[view].get(kind, 0) + 1
@@ -572,7 +773,35 @@ def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
     is the property that makes the disagreement unrepresentable rather than
     merely absent.
     """
-    out: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
+    return _walk(index)[0]
+
+
+def suppressed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
+    """Rows the in-flight rule quieted, per view (ADR-0028 decision 5).
+
+    **Not owed, and not gone.** These are obligations that would ask if their
+    subject were being worked. They are counted nowhere — not the badge, not
+    the digest, not the fleet card — and rendered as one collapsed line so a
+    reader can see what the rule decided and disagree with it in one click.
+
+    Silence that cannot be opened is the complaint this whole phase answers,
+    inverted. Each row carries the subject and the subject's status, which is
+    the *reason*, so the line explains rather than merely counting.
+    """
+    return _walk(index)[1]
+
+
+def _walk(index: "Index") -> tuple[
+    dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]
+]:
+    """One pass over the corpus yielding **owed** and **suppressed** rows.
+
+    One walk, deliberately, and now over one predicate for both answers:
+    `counts_by_kind` used to walk separately and be asserted equal, which is a
+    property that has to be maintained. Derived, it cannot drift.
+    """
+    owed: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
+    quiet: dict[str, list[dict[str, Any]]] = {v: [] for v in VIEWS}
     for path in index.paths():
         record = index.get(path)
         if record is None or not record.note_type:
@@ -580,11 +809,16 @@ def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
         if record.rel_path.startswith("__templates__/"):
             continue
         ob = for_type(record.note_type)
-        if ob is None or not ob.owed or not ob.view:
+        if ob is None or not ob.owed:
             continue
+        view = view_for(record, ob)
+        if not view:
+            continue
+        # Owed under the type's own declaration, before the subject is asked
+        # about — so `deferred` and a non-owed status never reach the rule.
         if not _is_owed(record, ob):
             continue
-        out[ob.view].append({
+        row = {
             "id": record.note_id or "",
             "title": record.title or "",
             "rel": record.rel_path,
@@ -594,12 +828,42 @@ def owed_items(index: "Index") -> dict[str, list[dict[str, Any]]]:
             # rule, and the reason `Approve` and `Triage` do not become
             # "resolve" in one pane and "handle" in another.
             "verb": ob.verb,
-        })
+        }
+        if record.note_type in SUBJECT_FIELDS and not subject_is_in_flight(
+            record, index,
+        ):
+            quiet[view].append({**row, **_subject_detail(record, index)})
+            continue
+        owed[view].append(row)
     for view, rows in note_less_rows(index).items():
-        out[view].extend(rows)
-    for rows in out.values():
-        rows.sort(key=lambda r: (str(r["type"]), str(r["id"])))
-    return out
+        owed[view].extend(rows)
+    for bucket in (owed, quiet):
+        for rows in bucket.values():
+            rows.sort(key=lambda r: (str(r["type"]), str(r["id"])))
+    return owed, quiet
+
+
+def _subject_detail(record: Any, index: "Index") -> dict[str, Any]:
+    """Why a row is quiet: the subject it names, that subject's status, and
+    the phase it sits in — the phase for GROUPING only, never for the rule
+    (ADR-0028 decision 4)."""
+    subjects: list[dict[str, str]] = []
+    phases: list[str] = []
+    for note_id in subject_ids(record):
+        path = index.by_id(note_id)
+        subject = index.get(path) if path is not None else None
+        if subject is None:
+            continue
+        subjects.append({"id": note_id, "status": subject.status or ""})
+        raw = str(subject.frontmatter.get("phase") or "")
+        for found in _SUBJECT_ID_RE.findall(raw):
+            if found not in phases:
+                phases.append(found)
+    return {
+        "subjects": subjects,
+        "phases": phases,
+        "reason": "no feature in flight",
+    }
 
 
 def counts(index: "Index") -> dict[str, int]:

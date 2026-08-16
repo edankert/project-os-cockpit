@@ -4320,6 +4320,15 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   color: var(--accent-link); border-radius: 5px; padding: 0 8px;
   font: inherit; font-size: 11px; cursor: pointer;
 }
+/* ISS-0172: a manual test the runner cannot walk says so, in the slot the
+   button would have occupied. Absence read as "needs nobody"; this reads as
+   what it is. Muted rather than a warning colour — it is a limitation of the
+   note's shape, not a fault in the work. */
+.verification-norun {
+  flex: none; padding: 0 8px; font-size: 11px;
+  color: var(--text-muted); font-style: italic;
+}
+.note-run-empty { font-style: italic; }
 .verification-list li .status-chip { margin-left: 0; }
 /* The reviewed note, rendered inside the review page (ISS-0031 follow-up).
    A decision surface has to show what is being decided. */
@@ -5552,3 +5561,18 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 .ws-attention-row.agent-busy .ws-attention-dot { background: var(--accent-link); }
 .ws-attention-row.agent-done .ws-attention-dot { background: var(--status-done); }
 .ws-attention-row.agent-error .ws-attention-dot { background: var(--severity-critical); }
+
+/* ---- The quiet group, and the refused rung (ADR-0028 / FEAT-0102) --------
+   Two groups whose claim is that they are NOT asking. Both read muted and
+   open shut, because giving them a live group's weight would put the number
+   back on the surface it was deliberately taken off — and this project has
+   been bitten twice by a count that never clears. */
+.nav-group.is-suppressed > .nav-group-header,
+.nav-group.is-refused > .nav-group-header { opacity: 0.72; }
+.nav-group.is-suppressed > .nav-group-header:hover,
+.nav-group.is-refused > .nav-group-header:hover { opacity: 1; }
+.nav-group-why {
+  margin-left: auto; padding-left: 8px; flex: none;
+  font-size: 10px; letter-spacing: 0.02em; text-transform: lowercase;
+  color: var(--text-muted); font-style: italic;
+}

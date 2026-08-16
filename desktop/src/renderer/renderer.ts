@@ -1712,21 +1712,35 @@ async function mountTestRunButton(
     detail = (await resp.json()) as ReviewDetail;
   } catch { return; }
   const steps = detail?.steps?.length ?? 0;
-  if (steps === 0) return;
 
   const row = document.createElement('div');
   row.className = 'note-actions note-run';
   const label = document.createElement('span');
   label.className = 'note-actions-label';
   label.textContent = 'Verify';
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'note-action-btn is-good';
-  btn.textContent = `Run ▸ ${steps} steps`;
-  btn.title = detail?.last_run
-    ? `last run ${detail.last_run}` : 'never run from here';
-  btn.addEventListener('click', () => void navigateTo(`~tests/${noteId}/run`));
-  row.append(label, btn);
+  // ISS-0172: a zero-step test used to `return` here, so the row was ABSENT
+  // and nothing said why. Edwin, on your-trainer: *"it is not really clear how
+  // I should execute"* — 8 of the 15 manual tests that repo was asking a
+  // person to walk had no button and no explanation. The parser is fixed, but
+  // some note will always fail to parse, and the surface must degrade to an
+  // explanation rather than to absence.
+  if (steps === 0) {
+    const why = document.createElement('span');
+    why.className = 'meta note-run-empty';
+    why.textContent = 'No runnable steps found — open the note to walk it by hand.';
+    why.title = 'A procedure is a `## Steps` / `## Procedure` / `## Cases` '
+      + 'section, or a body of `- [ ]` checkboxes.';
+    row.append(label, why);
+  } else {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'note-action-btn is-good';
+    btn.textContent = `Run ▸ ${steps} steps`;
+    btn.title = detail?.last_run
+      ? `last run ${detail.last_run}` : 'never run from here';
+    btn.addEventListener('click', () => void navigateTo(`~tests/${noteId}/run`));
+    row.append(label, btn);
+  }
 
 
   const strip = docView.querySelector('details.metadata-strip');
@@ -3316,6 +3330,19 @@ interface NavGroupData {
   item_layout?: string;          // 'stacked' | 'compact' | default
   subgroups?: NavGroupData[];
   default_open?: boolean;
+  /** This group is what the in-flight rule QUIETED (ADR-0028 / TASK-0425).
+   *  Not owed, and not gone: counted on no badge, rendered as one closed
+   *  line carrying its reason, and one click from the rows it holds.
+   *  Derived silence that cannot be opened is the invisibility complaint
+   *  this phase answers, with the sign reversed. */
+  suppressed?: boolean;
+  /** Why this rung offers nothing (FEAT-0102). A deploy remote is NAMED and
+   *  never pushed from here — one fleet repo's only remote is a server path
+   *  and publishing it puts a live website up. */
+  refused?: string;
+  /** The registry's verb for a group that asks. */
+  owed_verb?: string;
+  needs_human?: boolean;
 }
 
 interface NavPayload {
@@ -3335,7 +3362,10 @@ interface NavPayload {
 // TASK-0371 inserts `tests` after `issues`: it is the third structural view —
 // what we build, what is wrong with it, what proves it — and it must sit
 // before `review`, because the desk is what it is taking the register from.
-const NAV_MODES = ['overview', 'intent', 'features', 'tasks', 'issues', 'tests', 'review', 'active', 'library', 'recent'] as const;
+// `publication` added by FEAT-0102 — the third phase (ADR-0028). It sits
+// after `tests` because that is the order work travels: what we build, what
+// is wrong with it, what proves it, and how far it has gone.
+const NAV_MODES = ['overview', 'intent', 'features', 'tasks', 'issues', 'tests', 'publication', 'review', 'active', 'library', 'recent'] as const;
 type NavMode = typeof NAV_MODES[number];
 
 // Statuses that count as "completed" for the hide-completed filter.
@@ -4221,6 +4251,16 @@ async function fillVerificationPanel(
         void navigateTo(`~tests/${test.id}/run`);
       });
       li.appendChild(run);
+    } else if (test.manual) {
+      // ISS-0172: the button used to be simply absent here, which reads as
+      // "this test needs nobody" rather than "this test cannot be walked from
+      // the tool". Say which.
+      const none = document.createElement('span');
+      none.className = 'verification-norun';
+      none.textContent = 'no steps';
+      none.title = 'No procedure the runner can read — open the note to walk '
+        + 'it by hand.';
+      li.appendChild(none);
     }
     appendIf(li, statusChip(test.status));
     li.style.cursor = 'pointer';
@@ -8516,6 +8556,11 @@ function initNavToolbar(): void {
     inbox:    '<path d="M22 12h-6l-2 3h-4l-2-3H2"/>'
       + '<path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89'
       + 'A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    // Publication: an upward arrow leaving a tray — work going out. Not a
+    // rocket and not a tag: the rung that matters most is `push`, which eight
+    // of twelve repos reach and three ever tag.
+    publication: '<path d="M12 3v12"/><path d="m7 8 5-5 5 5"/>'
+      + '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
     library:  TYPE_ICONS.reference,
     recent:   GROUP_ICONS.history,
   };
@@ -9277,6 +9322,10 @@ const ROLLUP_NOUNS: Record<string, { group: [string, string]; item: [string, str
   // coincidence of two functions agreeing rather than a stated fact.
   tests:    { group: ['group', 'groups'], item: ['test', 'tests'] },
   intent:   { group: ['group', 'groups'], item: ['design', 'designs'] },
+  // A rung, not a group: the ladder's units are what publication is about,
+  // and calling them "groups" would make the one view whose shape carries
+  // meaning describe itself in the vocabulary of every other view.
+  publication: { group: ['rung', 'rungs'], item: ['item', 'items'] },
   library:  { group: ['group', 'groups'], item: ['note', 'notes'] },
   review:   { group: ['verdict', 'verdicts'], item: ['note', 'notes'] },
   active:   { group: ['group', 'groups'], item: ['item', 'items'] },
@@ -9412,10 +9461,15 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // close, never a reason to open.
   const settledGroup = groupIsSettled(group.items || []);
   (details as HTMLDetailsElement).open =
-    group.default_open !== false && !settledGroup;
+    group.default_open !== false && !settledGroup && !group.suppressed;
 
   const summary = document.createElement('summary');
   summary.className = 'nav-group-header';
+  // The quiet group opens SHUT and reads muted — it is the one group whose
+  // claim is that it is NOT asking, so giving it a live group's weight would
+  // put the number back on the surface it was taken off (TASK-0425).
+  if (group.suppressed) details.classList.add('is-suppressed');
+  if (group.refused) details.classList.add('is-refused');
   const chevron = document.createElement('span');
   chevron.className = 'group-chevron';
   chevron.setAttribute('aria-hidden', 'true');
@@ -9527,6 +9581,20 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // third time.
   if (group.status && !groupNamesStateThemselves(mode) && groupLabelIsCategory(mode)) {
     appendIf(summary, statusChip(group.status));
+  }
+  // The reason, on the head, for the two groups whose whole point is that
+  // they are not asking. A group that says only a number leaves the reader to
+  // infer why — which for the quiet group is exactly the thing it exists to
+  // prevent, and for a refused rung is the difference between "nothing to
+  // deploy" and "deploying is not something this tool will do".
+  if (group.suppressed || group.refused) {
+    const why = document.createElement('span');
+    why.className = 'nav-group-why';
+    why.textContent = group.refused ? 'named, not offered' : 'not asking';
+    why.title = group.refused
+      || 'No feature in flight. These will ask again when their subject is '
+         + 'being worked — open to see what each is waiting on.';
+    summary.appendChild(why);
   }
   details.appendChild(summary);
 

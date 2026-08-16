@@ -379,8 +379,8 @@ _RECENT_BUCKETS = (
 )
 
 NAV_MODES: tuple[str, ...] = (
-    "intent", "features", "tasks", "issues", "tests", "active", "recent",
-    "library",
+    "intent", "features", "tasks", "issues", "tests", "publication",
+    "active", "recent", "library",
 )
 
 #: Old mode ids that must keep answering (TASK-0385). `design` became
@@ -2633,57 +2633,126 @@ def _is_manual_test(record: NoteRecord) -> bool:
 # the corpus's vocabulary rather than one canonical spelling is the same
 # lesson ADR-0006 recorded: a surface follows what is written, not what a
 # convention wishes were written.
+#
+# `cases` added by ISS-0172 — `your-trainer`'s TST-0018, written for the
+# feature that repo was actively building, heads its procedure `## Cases` and
+# parsed to nothing.
 _STEP_HEADING_RE = re.compile(
-    r"^#{2,6}\s*(steps|checklist|procedure|scenario|script)\b", re.IGNORECASE,
+    r"^(#{2,6})\s*(steps|checklist|procedure|scenario|script|cases)\b",
+    re.IGNORECASE,
 )
-_ANY_HEADING_RE = re.compile(r"^#{1,6}\s")
-_STEP_ITEM_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s*(?:\[[ xX]\]\s*)?(.+)$")
-_EXPECTED_RE = re.compile(r"^\s*(?:expect(?:ed|s)?|then)\s*[:：]\s*(.*)$", re.IGNORECASE)
-# An inline "… Expect: <what should happen>" clause inside a step line.
-_INLINE_EXPECT_RE = re.compile(r"\bexpect(?:ed|s)?\s*[:：]\s*(.+)$", re.IGNORECASE)
+#: Captures the level so a procedure can contain SUBSECTIONS (ISS-0172). The
+#: predecessor matched any heading and the loop broke on it, so `## Steps`
+#: followed by `### Export` ended the procedure at its own first subheading and
+#: yielded zero steps — 8 of the 15 manual tests `your-trainer` was asking a
+#: person to walk, including two written the day before it was reported. None
+#: of those notes was malformed; two levels is the natural shape for a
+#: procedure with parts.
+_HEADING_LEVEL_RE = re.compile(r"^(#{1,6})\s")
+#: A list marker must be followed by WHITESPACE, which Markdown requires and
+#: the predecessor did not check: `[-*]` with `\s*` after it made `**Offline
+#: entitlement** — on a device…` a step, because a bold run opens with the same
+#: character as a bullet. Found while reading the parser's own output on
+#: `your-trainer`'s TST-0018 (ISS-0172) — a paragraph lead-in rendered as step
+#: 1 of 11, with its closing `**` still attached.
+_STEP_ITEM_RE = re.compile(r"^\s*(?:\d+[.)]\s+|[-*+]\s+)(?:\[[ xX]\]\s*)?(.+)$")
+#: A checkbox item, specifically — the fallback's unit (ISS-0172). Four of the
+#: eight had no procedure heading at ALL: their whole body is sections of
+#: checkboxes (`## A — Input screens`, sixteen `## N. Area` sections). A
+#: checkbox is an explicit *this is a thing to do* mark, which a bullet inside
+#: a Purpose paragraph is not — so the fallback reads those and not prose.
+#: Narrow by measurement: 6 of the 65 TST notes fleet-wide contain one.
+_CHECKBOX_ITEM_RE = re.compile(r"^\s*[-*+]\s+\[[^\]]*\]\s*(.+?)\s*$")
 # Markdown emphasis is noise in a stepper's one-line label.
 _MD_EMPHASIS_RE = re.compile(r"(\*\*|__|\*|_)(.+?)\1")
+#: Matched against the line with emphasis already stripped, and allowing a list
+#: marker, because the corpus writes the expectation as `- **Expected**: …`
+#: under its step. The predecessor anchored on a bare `Expected:` at line
+#: start, so every one of those lines missed this and was picked up by
+#: `_STEP_ITEM_RE` as a step of its own — a procedure of eleven steps rendered
+#: as twenty-two, alternating action and expectation.
+_EXPECTED_RE = re.compile(
+    r"^\s*(?:[-*+]\s+)?(?:expect(?:ed|s)?|then)\s*[:：]\s*(.*)$", re.IGNORECASE,
+)
+# An inline "… Expect: <what should happen>" clause inside a step line.
+_INLINE_EXPECT_RE = re.compile(r"\bexpect(?:ed|s)?\s*[:：]\s*(.+)$", re.IGNORECASE)
+
+
+def _build_step(n: int, text: str) -> dict[str, Any] | None:
+    """One step from its raw list-item text, or None when it is empty."""
+    step: dict[str, Any] = {"n": n, "text": text}
+    # "Do the thing. Expect: it works" on one line — the shape this repo's
+    # own manual tests actually use.
+    inline = _INLINE_EXPECT_RE.search(text)
+    if inline:
+        step["text"] = text[:inline.start()].rstrip(" .—-–")
+        step["expected"] = inline.group(1).strip()
+    step["text"] = _MD_EMPHASIS_RE.sub(r"\2", str(step["text"])).strip()
+    if "expected" in step:
+        step["expected"] = _MD_EMPHASIS_RE.sub(r"\2", step["expected"]).strip()
+    return step if step["text"] else None
 
 
 def manual_test_steps(body: str) -> list[dict[str, Any]]:
-    """Parse a manual test's procedure section into ordered steps.
+    """Parse a manual test's procedure into ordered steps (ISS-0172).
 
-    Same shape as ``_exit_criteria_from_body`` — tolerant of heading level
-    and list marker. An indented ``Expected:`` line, or an inline
-    ``… Expect: …`` clause, attaches to its step as the expectation the
-    runner shows beside Pass/Fail.
+    Two rules, in order:
+
+    1. **A procedure heading**, which runs until a heading **at or above its
+       own level** — so its subsections are part of it rather than the thing
+       that ends it.
+    2. **Failing that, every checkbox in the body.** A note whose whole body is
+       sections of checkboxes has no procedure heading to find, and its
+       checkboxes are its procedure.
+
+    An ``Expected:`` line, with or without a list marker, or an inline
+    ``… Expect: …`` clause, attaches to its step as the expectation the runner
+    shows beside Pass/Fail.
+
+    Returning ``[]`` is a real answer and callers must render it as one: an
+    affordance that silently disappears is what ISS-0172 was filed about.
     """
+    lines = (body or "").splitlines()
     steps: list[dict[str, Any]] = []
-    in_section = False
-    for line in (body or "").splitlines():
-        if in_section and _ANY_HEADING_RE.match(line):
+    level = 0
+
+    for line in lines:
+        heading = _HEADING_LEVEL_RE.match(line)
+        # Ends only at a heading that is not INSIDE the procedure.
+        if level and heading and len(heading.group(1)) <= level:
             break
-        if _STEP_HEADING_RE.match(line):
-            in_section = True
+        start = _STEP_HEADING_RE.match(line)
+        if start and not level:
+            level = len(start.group(1))
             continue
-        if not in_section:
+        if not level or heading:
             continue
-        expected = _EXPECTED_RE.match(line)
+        plain = _MD_EMPHASIS_RE.sub(r"\2", line)
+        expected = _EXPECTED_RE.match(plain)
         if expected and steps:
             steps[-1]["expected"] = expected.group(1).strip()
             continue
         item = _STEP_ITEM_RE.match(line)
         if not item:
             continue
-        text = item.group(1).strip()
-        if not text:
+        step = _build_step(len(steps) + 1, item.group(1).strip())
+        if step:
+            steps.append(step)
+
+    if steps or level:
+        return steps
+
+    # No procedure heading anywhere: the checkboxes are the procedure.
+    for line in lines:
+        item = _CHECKBOX_ITEM_RE.match(line)
+        if not item:
+            plain = _MD_EMPHASIS_RE.sub(r"\2", line)
+            expected = _EXPECTED_RE.match(plain)
+            if expected and steps:
+                steps[-1]["expected"] = expected.group(1).strip()
             continue
-        step: dict[str, Any] = {"n": len(steps) + 1, "text": text}
-        # "Do the thing. Expect: it works" on one line — the shape this
-        # repo's own manual tests actually use.
-        inline = _INLINE_EXPECT_RE.search(text)
-        if inline:
-            step["text"] = text[:inline.start()].rstrip(" .—-–")
-            step["expected"] = inline.group(1).strip()
-        step["text"] = _MD_EMPHASIS_RE.sub(r"\2", str(step["text"])).strip()
-        if "expected" in step:
-            step["expected"] = _MD_EMPHASIS_RE.sub(r"\2", step["expected"]).strip()
-        if step["text"]:
+        step = _build_step(len(steps) + 1, item.group(1).strip())
+        if step:
             steps.append(step)
     return steps
 
@@ -2859,6 +2928,63 @@ def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
     }]
 
 
+def suppressed_group(index: Index, view: str) -> list[dict[str, Any]]:
+    """What the in-flight rule quieted, as one collapsed group (TASK-0425).
+
+    **Not owed, and not gone.** [[ADR-0028]] stops an obligation asking while
+    its subject rests; this is where the reader sees that it decided, and
+    disagrees in one click. Derived silence that cannot be opened is Edwin's
+    original complaint — *"the items which need my attention are still a little
+    bit invisible"* — with the sign reversed, and this project has been bitten
+    by the neighbouring failure twice: a count that never clears is a count a
+    reader learns to stop seeing.
+
+    **Phase is the label, never the rule.** The grouping reads the subject's
+    phase because *"21 · PHASE-999 Future"* is the sentence that explains the
+    quiet; the rule itself reads the subject's status, because a phase's status
+    is authored independently of its children's and three of the twelve repos
+    have no phase notes at all.
+
+    Absent at zero, like every other group here.
+    """
+    rows = _obligations.suppressed_items(index).get(view, [])
+    if not rows:
+        return []
+    phases: list[str] = []
+    for row in rows:
+        for phase in row.get("phases") or []:
+            if phase not in phases:
+                phases.append(phase)
+    detail = ", ".join(sorted(phases)) if phases else "no phase"
+    return [{
+        "key": "suppressed",
+        "label": f"Quiet · {len(rows)} · {detail}",
+        "url": None,
+        "status": None,
+        "item_layout": "stacked",
+        # Explicitly NOT `needs_human`: this group is the opposite claim, and
+        # marking it would put the number back on the surface it was taken off.
+        "suppressed": True,
+        "reason": "no feature in flight",
+        "items": [
+            {
+                "id": row["id"],
+                "title": row["title"],
+                "url": row.get("url") or f"/docs/{row['rel']}",
+                "status": row["status"],
+                "type": row["type"],
+                # The subject and ITS status — the reason, on the row, so the
+                # group explains rather than merely counting.
+                "subtitle": " · ".join(
+                    f"{s['id']} {s['status']}" for s in row.get("subjects") or []
+                ) or "names no subject",
+                "owed_verb": row["verb"],
+            }
+            for row in rows
+        ],
+    }]
+
+
 def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     """Nav groups for the design mode (TASK-0224).
 
@@ -2874,7 +3000,7 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
     # matters here, and a design system note is simply a design that is
     # `implemented`.
     designs = [
-        {**_rare_item(index, r), **_owed_flag(r), "url": f"~design/{r.note_id}"}
+        {**_rare_item(index, r), **_owed_flag(r, index), "url": f"~design/{r.note_id}"}
         for r in sorted(index.notes_by_type("design"),
                         key=lambda r: (r.note_id or "", r.rel_path))
         if _platform_match(r, platform)
@@ -2954,7 +3080,7 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
             # mark and the badge counting it are the same predicate — read,
             # never re-derived, so the two cannot disagree on one screen.
             "items": [
-                {**_rare_item(index, r), **_owed_flag(r)}
+                {**_rare_item(index, r), **_owed_flag(r, index)}
                 for r in _open_first(records)
             ],
         })
@@ -2996,6 +3122,8 @@ def nav_payload(
         groups = _issues_groups(index, plat)
     elif m == "tests":
         groups = _tests_groups(index, plat)
+    elif m == "publication":
+        groups = _publication_groups(index, project_root)
     elif m == "active":
         groups = _active_groups(index, plat)
     elif m == "recent":
@@ -3010,6 +3138,13 @@ def nav_payload(
     # builder so the four views cannot drift into four answers, which is the
     # state this replaces.
     groups = _needs_you_group(index, m) + groups
+    # …and what the in-flight rule quieted, LAST (TASK-0425). Appended rather
+    # than prepended: it is the one group that is explicitly not asking, and
+    # putting it at the top would give the quiet the position the obligations
+    # hold. `tests` builds its own — see `_tests_groups` — because that view
+    # gathers instead of receiving a `Needs you`.
+    if m not in _VIEWS_THAT_ALREADY_GATHER:
+        groups = groups + suppressed_group(index, m)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -3351,7 +3486,7 @@ def _requirement_child_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "subtitle": "",
         "type": record.note_type or "requirement",
         **_verification_flags(record),
-        **_owed_flag(record),
+        **_owed_flag(record, index),
     }
 
 
@@ -3717,7 +3852,7 @@ def _test_item(
         "last_verified": verified,
         "stale": _test_is_stale(fm, days),
         "steps": len(manual_test_steps(record.body)),
-        **_owed_flag(record),
+        **_owed_flag(record, index),
         **_verification_flags(record),
     }
 
@@ -3769,15 +3904,23 @@ def _tests_groups(
         return (features[0] if features else "~", str(record.note_id or ""))
 
     buckets: dict[str, list[NoteRecord]] = {
-        "needs-run": [], "failing": [], "stale": [], "never": [], "verified": [],
+        "needs-run": [], "resting": [], "failing": [], "stale": [],
+        "never": [], "verified": [],
     }
     for record in tests:
         status = (record.status or "").strip().lower()
         # The registry decides what is owed, not this function: the badge on
         # the Tests button counts the same predicate, and a group that decided
         # for itself would be the same number disagreeing with itself.
-        if _owed_flag(record).get("owed"):
+        flag = _owed_flag(record, index)
+        if flag.get("owed"):
             buckets["needs-run"].append(record)
+        elif flag.get("suppressed"):
+            # Owed by its type, resting by its subject (ADR-0028). It must not
+            # fall through to `Never verified` — that group is a statement
+            # about evidence, and this test's evidence is not the reason it is
+            # quiet. Its own group says which.
+            buckets["resting"].append(record)
         elif status in ("failing", "broken", "blocked"):
             buckets["failing"].append(record)
         elif _test_is_stale(record.frontmatter, days):
@@ -3789,6 +3932,10 @@ def _tests_groups(
 
     labels = (
         ("needs-run", "Needs a run"),
+        # Quiet, and visible. `Resting` rather than a bare count because the
+        # reader has to be able to tell "nobody owes this yet" from "nobody
+        # got round to it" (TASK-0425).
+        ("resting", "Resting · no feature in flight"),
         ("failing", "Failing"),
         ("stale", f"Stale · over {days} days"),
         ("never", "Never verified"),
@@ -3856,7 +4003,11 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     if not data.get("exists"):
         return []
     rel = str(data.get("rel") or "")
-    url = f"/{rel}" if rel else None
+    # `/docs/<rel>`, not `/<rel>` — the renderer's `extractRel` accepts only
+    # `/docs/…` or `~…`, so the bare form was a dead click. Pre-existing and
+    # invisible because an empty tier is skipped before its url is ever used;
+    # TASK-0429's gate group renders at zero and exposed it.
+    url = f"/docs/{rel}" if rel else None
 
     out: list[dict[str, Any]] = []
     for tier in data.get("tiers") or []:
@@ -3905,6 +4056,142 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         if tier.get("gating") and unchecked:
             group["needs_human"] = True
         out.append(group)
+    return out
+
+
+#: How a publication rung reads as a group heading.
+_RUNG_LABELS: dict[str, str] = {
+    "commit": "Committed",
+    "push": "To push",
+    "deploy": "To deploy",
+    "release": "Released",
+}
+
+
+def _publication_groups(
+    index: Index, project_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Publication mode (FEAT-0102) — how far this project's work has travelled.
+
+    **One group per rung the repo reaches**, in ladder order: commit, push,
+    deploy, release. A rung it cannot reach is absent rather than rendered at
+    zero, so a repo with no remote reads as complete instead of broken — and
+    every one of the twelve repos reaches at least the first, which is why this
+    view is never empty and a `Releases` view would have been blank in nine.
+
+    The **gate** hangs on the release rung, states its number, and is one
+    obligation rather than sixty (TASK-0429).
+    """
+    from . import acceptance as _acc
+    from . import publication as _pub
+
+    root = project_root or Path(str(index.docs_root)).parent
+    data = _pub.payload(root, index)
+    out: list[dict[str, Any]] = []
+
+    for rung in data["rungs"]:
+        name = str(rung["rung"])
+        label = _RUNG_LABELS.get(name, name.title())
+        if rung["unknown"]:
+            label = f"{label} · unknown"
+        elif rung["count"]:
+            label = f"{label} · {rung['count']}"
+        items = [
+            {
+                "id": str(row.get("id") or "")[:12],
+                "title": str(row.get("title") or ""),
+                "subtitle": str(row.get("detail") or ""),
+                "status": str(row.get("status") or ""),
+                "type": "release" if name == "release" else "change",
+                "url": (
+                    f"/docs/{row['rel']}" if row.get("rel") else "~history"
+                ),
+            }
+            for row in rung["rows"]
+        ]
+        if not items:
+            # A reachable rung with nothing at it still renders — that IS the
+            # answer ("nothing to push"), and it is what makes the ladder
+            # legible as a ladder rather than as a list of problems.
+            items = [{
+                "id": "", "title": rung["detail"] or "nothing here",
+                "subtitle": "", "status": "", "type": "change", "url": None,
+            }]
+        group: dict[str, Any] = {
+            "key": f"rung-{name}",
+            "label": label,
+            "url": None,
+            "status": None,
+            "item_layout": "stacked",
+            "items": items,
+        }
+        if rung["verb"]:
+            group["needs_human"] = True
+            group["owed_verb"] = rung["verb"]
+        if rung["refused"]:
+            # Named, never offered. One fleet repo's only remote is a server
+            # path and pushing it publishes a live website (Edwin, 2026-08-16).
+            group["refused"] = rung["refused"]
+        out.append(group)
+
+    # ---- the gate, on the release rung -----------------------------------
+    gate = _acc.gate_payload(index.docs_root)
+    draft = data["preparing"]
+    if gate.get("exists"):
+        unchecked = sum(
+            int(c.get("unchecked") or 0)
+            for c in (gate.get("counts") or {}).values()
+        )
+        # The number is STATED. `306/347` made the reader subtract, which is
+        # how 60 blocking checks stayed invisible on a page that showed them.
+        label = f"Release gate · {unchecked} unchecked"
+        if not draft:
+            label = f"{label} · no release in preparation"
+        rows_by_area: dict[str, int] = {}
+        for row in gate.get("blocking") or []:
+            key = f"{row['area']}"
+            rows_by_area[key] = rows_by_area.get(key, 0) + 1
+        group = {
+            "key": "release-gate",
+            "label": label,
+            "url": f"/docs/{gate['rel']}" if gate.get("rel") else None,
+            "status": None,
+            "item_layout": "stacked",
+            # The unit is the SITTING, not the checkbox: your-trainer's 60
+            # cluster into 17 sections, two of which carry 33 between them.
+            "items": [
+                {
+                    "id": "", "title": area, "subtitle": f"{n} unchecked",
+                    "status": "ready", "type": "test",
+                    "url": f"/docs/{gate['rel']}" if gate.get("rel") else None,
+                }
+                for area, n in sorted(
+                    rows_by_area.items(), key=lambda kv: -kv[1],
+                )
+            ] or [{
+                "id": "", "title": "nothing blocking", "subtitle": "",
+                "status": "passing", "type": "test", "url": None,
+            }],
+        }
+        # Asks only while a release is in preparation (ADR-0028 decision 3).
+        if draft and gate.get("blocked"):
+            group["needs_human"] = True
+            group["owed_verb"] = "Walk"
+        out.append(group)
+
+    for stale in data["stale_drafts"]:
+        out.append({
+            "key": f"stale-draft-{stale['id']}",
+            "label": f"Draft overtaken · {stale['id']} {stale['version']}",
+            "url": None, "status": None, "item_layout": "stacked",
+            "items": [{
+                "id": stale["id"], "title": stale["title"],
+                "subtitle": "a later version has shipped — this draft is "
+                            "record-keeping, and it does not gate",
+                "status": "draft", "type": "release",
+                "url": f"/docs/{stale['rel']}",
+            }],
+        })
     return out
 
 
@@ -4891,17 +5178,29 @@ def _first_body_paragraph(body: str, *, max_chars: int = 220) -> str:
     return text
 
 
-def _owed_flag(record: NoteRecord) -> dict[str, Any]:
+def _owed_flag(
+    record: NoteRecord, index: "Index | None" = None,
+) -> dict[str, Any]:
     """Mark a row the registry says is owed (TASK-0376).
 
     Read from `obligations`, never re-derived: the verb and the states live in
     one module, and a row that decided for itself would drift from the badge
     counting it — which is the same number disagreeing with itself on one
     screen.
+
+    **The index is what lets the in-flight rule apply** (ADR-0028). Without it
+    this answers the type's declaration alone and marks rows the badge does not
+    count — precisely the drift above, reintroduced by an omitted argument.
+    Passing it is therefore not optional for any caller building a row a badge
+    also counts; `suppressed` says which side of the rule the row fell on, so a
+    surface can render the quiet rather than dropping it.
     """
     ob = _obligations.for_type(record.note_type)
     if ob is None or not _obligations._is_owed(record, ob):
         return {}
+    if index is not None and record.note_type in _obligations.SUBJECT_FIELDS:
+        if not _obligations.subject_is_in_flight(record, index):
+            return {"suppressed": True, "owed_verb": ob.verb}
     return {"owed": True, "owed_verb": ob.verb}
 
 
@@ -4914,7 +5213,7 @@ def _feature_item(index: Index, record: NoteRecord) -> dict[str, Any]:
         "subtitle": record.frontmatter.get("goal") or "",
         "type": record.note_type or "feature",
         **_verification_flags(record),
-        **_owed_flag(record),
+        **_owed_flag(record, index),
     }
 
 

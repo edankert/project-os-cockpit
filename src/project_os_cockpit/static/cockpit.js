@@ -1570,6 +1570,10 @@
   // "16 finished groups · 54 items" does not, and saying what is behind
   // the line is the whole value of collapsing to one.
   var ROLLUP_NOUNS = {
+    // A rung, not a group (FEAT-0102): the ladder's units are what
+    // publication is about. Mirrored from renderer.ts, which
+    // `test_the_two_surfaces_agree_on_the_rollup_nouns` pins.
+    publication: { group: ["rung", "rungs"], item: ["item", "items"] },
     features: { group: ["phase", "phases"], item: ["feature", "features"] },
     tasks:    { group: ["bucket", "buckets"], item: ["task", "tasks"] },
     issues:   { group: ["bucket", "buckets"], item: ["issue", "issues"] },

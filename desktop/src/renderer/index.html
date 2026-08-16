@@ -34,6 +34,14 @@
                migrates to Features. -->
           <button type="button" class="top-bar-btn" data-mode="issues"   title="Issues"              role="tab" aria-label="Issues"></button>
           <button type="button" class="top-bar-btn" data-mode="tests"    title="Tests — what we verify, and what is owed a run" role="tab" aria-label="Tests"></button>
+          <!-- Publication (FEAT-0102 / ADR-0028): the third phase, and the one
+               the tool never had a surface for. NOT called "Releases" — that
+               view would be empty in 9 of the 12 repos the cockpit renders,
+               while the LADDER is universal: every repo commits, ten have a
+               remote, three cut versioned releases. Its obligations used to
+               sit on `overview`, which is not a nav mode, so they reached no
+               navigator at all. -->
+          <button type="button" class="top-bar-btn" data-mode="publication" title="Publication — how far this work has travelled: committed, pushed, deployed, released" role="tab" aria-label="Publication"></button>
           <!-- Inbox retired from the top bar in TASK-0234: every other mode
                here is a view over the committed record in docs/, and the
                inbox is deliberately none of that. It lives in the left pane

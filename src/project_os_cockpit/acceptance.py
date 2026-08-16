@@ -79,6 +79,36 @@ _CHECKED_MARKS = frozenset({"x", "X"})
 _RECONCILED_MARKS = frozenset({"~"})
 _NAME_RE = re.compile(r"^\*\*(.+?):?\*\*:?\s*(.*)$")
 _ID_RE = re.compile(r"\[\[([A-Z]+-[0-9A-Za-z-]+?)(?:\|[^\]]*)?\]\]")
+#: Bare `FEAT-0104`, which is how every suite in the fleet actually writes it
+#: (ISS-0173). Wikilink form was the only form read, and **not one heading in
+#: `your-trainer`'s 1082-line suite uses it** — 72 of its 82 section headings
+#: name a feature or issue and the parser found zero. Two things went wrong at
+#: once: `missing_issue_refs` reported **158 of 158** Tier 2 items as
+#: violating TESTING.md's rule (a check nothing consumed, which is why it went
+#: unnoticed), and the row -> subject link a scoped gate needs did not exist as
+#: far as any code could tell. The same shape as ISS-0162's 48 bare ADR
+#: citations: the record said the right thing in a form the reader refused.
+_BARE_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
+#: **Only** the trailing parenthetical, so a heading mentioning an id in prose
+#: — *"Handles TASK-0132-style imports"* — does not acquire a false subject.
+#: Not a guess about where authors put them: measured across every suite in the
+#: fleet on 2026-08-16, **114 of 114** id-bearing headings put all of theirs
+#: here, and `area` below already strips exactly this span for the same reason.
+_TRAILING_PAREN_RE = re.compile(r"\(([^()]*)\)\s*$")
+
+
+def heading_refs(heading: str) -> tuple[str, ...]:
+    """Project-os ids a section heading names, in document order.
+
+    Wikilinked ids anywhere; bare ids in the trailing parenthetical only.
+    """
+    refs: list[str] = list(_ID_RE.findall(heading))
+    tail = _TRAILING_PAREN_RE.search(heading)
+    if tail:
+        for note_id in _BARE_ID_RE.findall(tail.group(1)):
+            if note_id not in refs:
+                refs.append(note_id)
+    return tuple(refs)
 
 
 @dataclass(frozen=True)
@@ -190,7 +220,7 @@ def parse(text: str) -> list[Item]:
             section = sect.group(1)
             ordinal = 0
             heading = sect.group(2)
-            refs = tuple(_ID_RE.findall(heading))
+            refs = heading_refs(heading)
             # The heading minus its id list — "The navigator ([[FEAT-0010]], …)"
             area = re.sub(r"\s*\((?:[^()]*)\)\s*$", "", heading).strip()
             continue

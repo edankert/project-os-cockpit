@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 27
+  ADR: 28
   # Jumped 10 -> 20 deliberately (ISS-0123): ADR-0011..0018 are cited in 26 and
   # 22 files respectively as UPSTREAM decisions with no note anywhere, so a
   # local ADR-0011 would have made those citations ambiguous. 0011-0019 are
@@ -56,25 +56,47 @@ counters:
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 100
-  ISS: 171
-  PHASE: 33
+  FEAT: 102
+  ISS: 173
+  PHASE: 34
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 422
-  TST: 24
+  TASK: 429
+  TST: 28
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0100"
-  phase: "PHASE-030"
-  issue: "ISS-0167"
-  note: "2026-08-15 (the review that was owed): EDWIN CHOSE TO RUN IT rather than close on the recorded debt, and it returned changes-requested on PHASE-030, FEAT-0100 and ISS-0167 (ISS-0168 approved). FIVE BLOCKING FINDINGS, THREE OF THEM ERRORS MADE IN THE CLOSE-OUT ITSELF — which is the argument for the gate in one line: recording the debt honestly was not the same as paying it. (1) ISS-0169: finding 3 had a SIBLING KIND and I closed one of two. `undeployed commit` is a separate source with its own rows lambda; replacing it with `lambda index: []` left the suite green at 1286. That kind carries every unpublished commit on a deploy-only repo — your-applications.com at 34. (2) ISS-0171: TWO OF THE FIVE GUARDS I WROTE FOR ISS-0167 STAYED GREEN UNDER THE EXACT REGRESSION THEY NAME, and I had mutation-tested them — the mutations I chose were the ones I had in mind while writing, and the reviewer chose different ones that walked straight through. My first repair of one was also wrong (it scanned three thousand lines of unrelated renderer and failed on an anchor in the inbox). (3) ISS-0170: a ticked box\'s evidence said the cold digest spawns nothing; it spawns git and the module docstring says so ten lines above. (4) A quotation attributed to ISS-0089 is a CODE COMMENT at cockpit.py:2872 — the withdrawal stands on that issue\'s real line, the authority I cited was invented. (5) This close-out\'s own arithmetic: 12 features / 21 issues in a breakdown summing to 71 under a stated total of 69. All fixed 2026-08-15; the three filed issues are `fixed`. VERDICT STAMPS LEFT AT changes-requested deliberately — flipping them would be the author judging his own work. WHAT STANDS: FEAT-0100 carries tests: [] and both blocking findings are the class a TST-* gate would have caught. WORTH KNOWING: _verdict_is_owed(changes-requested, done) is False under ISS-0121\'s discriminator, so a changes-requested verdict on a done item surfaces on NO badge and in NO Needs you group — it is text until a status moves. --- 2026-08-14 (close-out): PHASE-030 IS CLOSED, on Edwin's instruction. 69 children, all resolved. FEAT-0100 was the only unresolved one and returns to `done` — the debt its reopen recorded had to clear rather than be carried past a closing phase. Finding 3 of its independent review was RE-TESTED rather than assumed from the earlier repair, and was still substantially open: mutating `_publication_rows` to `return []` left 1281 tests passing, the one failure being about the UNKNOWN case and silent on the counted one. The registry's central kind was unasserted seventeen days after the registry shipped; it is asserted now. 27 DoD boxes resolved across TASK-0417/0419/0420 — 26 ticked with evidence, one `[~]` because it is not deliverable (`overview` is not a nav mode, so its Needs-you payload falls back to `features` and nothing fetches it; TASK-0418 re-homed the row to the attention panel). TASK-0419 had no test of ANY kind and its DoD asked for two; both written here, and the first draft of the degradation one was too weak — narrowing `except Exception` to `except ValueError` left it green, because Watermark._load already swallows OSError. THE ONE UNPAID GATE AT CLOSE is the independent review: QUALITY.md asks for a clean-context pass on a feature reaching `done`, the validator does not gate it, and FEAT-0100 returns to `done` without one. That is the SAME debt the pre-reopen close recorded and the reason that close was wrong — recorded again rather than assumed away, and it is Edwin's call whether to run it. Also found: docs/PHASES.md read `done` all through the reopen, because sync-snapshot.py propagates status to SNAPSHOT.yaml but not to the hand-maintained registry. --- 2026-08-14 (later still): ISS-0167 — THE INTENT LANDING JOINS THE OTHER THREE. Edwin, from use: the designs list 'looks totally different to for instance the list of to be approved features and it does not seem to have the same philosophy as the other landing pages, although not sure if that is a bad thing'. Reviewed before implementing, and the answer is: about two-thirds drift, one-third defensible. The measurable half — Intent's badge read 1 (ADR-0026, `Decide`) and its page showed eleven designs and never mentioned it. That is FEAT-0092's own defect surviving on the view its acceptance criteria excused ('Overview and Intent keep theirs'), inside PHASE-030, whose goal line is that the count is always on screen. The defensible half: a register IS the right shape for Intent where a queue is right for Issues, so the register stays and the identity band stays. TWO PARTS OF MY OWN PROPOSAL WERE WITHDRAWN AT PREFLIGHT, each because a decision already on the record answered it. (1) I proposed grouping the register `Design system · Live · Settled`; ISS-0089 removed precisely that split in TASK-0275 — 'the design view drops the system/proposal split' — for a `role:` field the reader never asked about, and named the live/completed split as the one that matters. So it is live/settled, which is also the navigator's own axis. (2) I proposed a counted roll-up of Intent's other five nav groups to answer 'the page is called Designs but the view is Intent'; that restates the navigator group for group, three inches to the right of it, which is ISS-0068's failure and is named in PHASE-030's 'what this phase must not do'. Dropped; the mismatch is fixed by naming the page from VIEW_LABELS instead. --- 2026-08-14 (later): FIXING ISS-0164, the last open issue, on Edwin's instruction. Reproduced against the live sidecar before touching anything: `PHASE-030` typed into the palette returns No matches, and `PHASE-011` returns ISS-0071 — a note ABOUT the phase, matched on its filename, which is worse than empty because it looks like an answer. The head harvest the issue names fixes 28 of 34: `_features_groups` emits a group only for a phase that has work in it, so six — PHASE-012/015/017/018/019/031 — have no group at all, and those are exactly the phases you cannot browse to either. So the fix is BOTH: harvest navigable group heads (the class fix, which makes any future id-bearing head findable) and one `/api/cockpit/stats` pass for completeness (1.8ms, carries all 34 with rel). The guard becomes COMPLETENESS for phases rather than non-zero, because 28/34 would have left it green. --- 2026-08-14: WORKING THE OPEN BACKLOG Edwin asked to be reviewed — three open issues, two fixed here. ISS-0165: publication state is walked THREE times (git_state.py; probeGitState in git.ts; fleet_validate.git_standing, which nobody reads), and the unknown case ALREADY diverges, because the 2026-08-14 admission-test repair was Python-only. TASK-0421 fixes the live divergence, TASK-0422 collapses the three walks to one via a fleet_git module the shell calls for every workspace — keeping ISS-0156's one-clock property, which the issue's own resolution (read the sidecar) would have broken. ISS-0143: Tier 3's retirement trigger fired when REL-0001 shipped on 2026-08-11, so the two checks retire here; the computable check the issue proposes is left unbuilt WITH the flaw in its comparator recorded (a release date against the suite's `updated:` would not fire — both read 2026-08-11). ISS-0164 STAYS OPEN AND IS EDWIN'S: its stated cause is wrong. Phases ARE carried by the `features` nav mode as group headers and ISS-0132 already made those headers navigate; the palette misses them because `flattenNavItems` harvests items and subgroups and never the header. No taxonomy decision is needed. --- 2026-08-12: REL-0001 IS SHIPPED (released, 1.0.0, tag v1.0.0, local and never pushed) and the work since is Edwin USING it. Six observations from use, all addressed (CHG-20260811-Six-From-Use): the status toast now dismisses itself (78 of 110 call sites never did), Caught up clears its band, ADR-0023 retired the change-note review obligation (badge 87 -> 0), FEAT-0092 gave Features/Issues/Tests landing pages that lead with what their badge counts, Intent stopped listing all eight standing documents twice, and the template workflow stubs left docs/. THE UPSTREAM PASS LANDED 2026-08-12 and found ADR-0011 EXISTS: all 18 upstream ADRs live in project-os-dev, which no citation names — see ISS-0123. ADR-0019 there, QUALITY.md + REVIEW_SETTLED_STATUSES in project-os, taken down here. FEAT-0093 + ADR-0024 then built the notation: `[[project-os-dev#ADR-0011]]` renders as a link and the cockpit switches workspace and opens it. `#` not `/` because what follows is an id, not a path. project.id in SNAPSHOT.yaml defaults to the DIRECTORY NAME — project.name is a display string (spaces, and REPLACE ME in the template) and the workspace id is a sha1 of a path. OPEN AND EDWIN'S: ISS-0148 (sweep the 47 existing citations? one CONTEXT.md line covers them without rewriting any), and the upstream twin of ADR-0024 in project-os-dev + OBSIDIAN.md/TRACEABILITY.md. ALSO OPEN: RISK-0006 supervised week (PHASE-031), ADR-0022 proposed, PHASE-028/029 deferred, PHASE-030 active with its work done. Workflows: the three template stubs are gone from THIS repo only; 8 real project workflows in 3 repos stay and still render under Intent (verified 2026-08-12). Every write path stays behind REQ-0026/REQ-0027."
+  feature: "FEAT-0101"
+  phase: "PHASE-034"
+  issue: "ISS-0172"
+  note: "2026-08-16 (PHASE-034 IMPLEMENTED AND CLOSED — Edwin: 'Implement and test Phase 34 fully'). DELIVERED: your-trainer 64 -> 31 owed (requirement 26->3, test 15->5, issue 22 unchanged, unpushed commit 1); 31 owed + 33 suppressed = 64, and the 33 are ON SCREEN as `Quiet · 23 · PHASE-015, PHASE-018, PHASE-999` under Features and `Resting · no feature in flight` (10) under Tests. EVERY MANUAL TEST IN THE FLEET NOW PARSES (was 8 of 15 unrunnable in one repo; now 0 of 65). Publication is a nav mode, NON-EMPTY IN ALL 12 REPOS. missing_issue_refs 158/158 -> 73/158, and all 60 blocking rows name a subject where 0 did. Suite 1351 passed, 2 skipped; validator OK. SIX THINGS THE WORK FOUND THAT THE PLAN DID NOT: (1) four of the eight unrunnable tests had NO procedure heading at all — their whole body is sections of checkboxes — so a third rule was needed (the checkboxes ARE the procedure), narrow by measurement at 6 of 65 notes fleet-wide; (2) two pre-existing parser defects invisible until the sections started parsing — a `**bold**` lead-in matched the `*` bullet pattern, and every `- **Expected:**` line was harvested as its own step, rendering eleven steps as twenty-two; (3) THE FIRST RESTING_STATES WAS HAND-LISTED AND WRONG WITHIN THE HOUR — it named feature terminals and missed `implemented`/`retired`/`fixed`, giving 8 owed tests where the rule should leave 5, so it is derived from statuses.COMPLETED_STATUSES now; (4) your-trainer carries REL-0008 at `draft` version 2.0.2 with 2.1.6 SHIPPED, and gating on it would have produced exactly the permanently re-arming badge ADR-0027 forbids — named as a stale draft, does not gate; (5) a DEAD CLICK since TASK-0373: the acceptance suite group url was `/tests/…` which extractRel drops, invisible because an empty tier is skipped before its url is used; (6) two surfaces were computing owed-ness with their own predicate (`_owed_flag` took no index; the Tests `Needs a run` group read it and disagreed with its own badge 2 against 1) and the suite caught both the moment the rule changed — the registry working rather than failing. ALSO: counts_by_kind is now DERIVED from owed_items rather than a second walk asserted equal, so the disagreement is unrepresentable rather than absent. TWENTY MUTATIONS run, each chosen to DEFEAT a guard; ONE WAS A SILENT NO-OP from bad shell escaping and was re-run with an apply-check before being believed (a mutation that did not apply is not evidence — ISS-0171), and ONE SURVIVOR was characterised as an EQUIVALENT MUTANT rather than counted as a pass. ONE CRITERION RECONCILED NOT TICKED: FEAT-0102 asked for gate rows grouped by the suite's Manual Test Environment Breakdown; they group by SECTION instead, which achieves the purpose (the unit is the sitting) but not the named mechanism — that table exists in one repo's suite with no template counterpart, and a parser for a one-project convention is the wrong thing to build. THE INDEPENDENT REVIEW IS UNPAID AT THIS COMMIT and is recorded as such: QUALITY.md asks for a clean-context pass on any change creating a TST-* or CHG-*, and this creates four and one. Edwin's call. The last one returned changes-requested with three of five blocking findings being errors made in the close-out itself. ADR-0028 ACCEPTED on Edwin's instruction to build. --- PLANNING (same day): Edwin, using ../your-trainer — 'The your-trainer application has created some acceptance-tests I need to execute but these are currently not very clearly visible … it seems like the items which need my attention are still a little bit invisible in the tool, hidden by all the other stuff which is mainly handled by the LLM.' MEASURED THERE: 64 items on the badges, and SEPARATELY 60 unchecked Tier 1/2 acceptance rows that appear in no count, on no badge, in no digest, on no fleet card — obligations.py:139 says the release gate 'surfaces in Tests' and it does not; the Tests badge reads 15, from TST notes only, and the gate band mounts only on a release note, of which your-trainer's newest is already `released`. So no page in the app states the number 60. Also: 8 of the 15 owed manual tests have NO Run button and no explanation, because manual_test_steps breaks at the first heading after the procedure heading INCLUDING A SUBHEADING OF THE SECTION IT IS READING (ISS-0172) — TST-0018, written 2026-08-15 for the focus feature, is one of them. And 72 of 82 suite section headings name their features in bare form while the parser reads only wikilinks, so all 60 blocking rows resolve to zero refs and missing_issue_refs() reports 158 of 158 (ISS-0173). MY FIRST PROPOSAL WAS TO ADMIT THE 60 TO THE REGISTRY AND EDWIN REFUSED IT — 'I am not sure that … acceptance tests and releases are then very much first class citicens of the tool yet. And I am also afraid that this could overwhelm my attention.' He was right twice: ADR-0027 excludes staleness because 'counting it is a badge that re-arms itself forever', and acceptance rows re-arm IN BULK by the suite's own rule 3 — so the proposal admitted the worst possible citizen to a registry whose charter excludes it, and answered a complaint about noise by taking the card from 64 to 124. WITHDRAWN. Edwin then named the structure: '3 clear phases, the design phase (intent), the actual implementation phase (features, issues, TSTs?) and the publication phase' — question mark included, and it is the load-bearing part. A VIEW IS A CORPUS AND A PHASE IS NOT — two axes that do not partition each other. My first draft mapped the five views onto three phases one-for-one and filed issues and tests under implementation; Edwin refused it: 'I thought we agreed that TSTs, and issues were across design work and publication?' He is right, and the correction is the most useful thing in the decision. `issues` spans ALL THREE by demonstration in this repo's own record (ISS-0168 is a publication bug, ISS-0172 a test-surface bug, ISS-0152 was about how a decision is reasoned); `tests` spans two; only `intent` and `publication` sit wholly in one phase. The registry has only ever had the corpus axis, so an obligation's phase is implicit in its TYPE — which works for the corpora that do not span and silently fails for the ones that do. That is why publication's obligations sit on `overview` and why `test` straddles: not two exceptions, one structural gap seen twice. AND IT STRENGTHENS DECISION 2 — per-item routing is not an exception mechanism but the only correct one; fixed-per-type merely happened to give the right answer for the three corpora that do not span, which is why it survived this long without failing loudly. ADR-0028 records it: three phases; an obligation routes to the phase that owns its SUBJECT, decided per item (deliberately breaking obligations.py:34's one-type-one-view); it asks only while that subject is in flight; `deferred` stays as the explicit override. THE NUMBER GOES DOWN, NOT UP: your-trainer 64 -> 31, requirements 26 -> 3 (21 of the 26 belong to a phase literally named PHASE-999-Future), tests 15 -> 5, issues 22 unchanged. FOUR DESIGN DECISIONS ARE EDWIN'S AND ARE ON THE RECORD: (1) silence-until-scoped-in rather than mark-only; (2) the mode is called PUBLICATION, not Releases — a Releases mode would be empty in 9 of 12 repos, while the LADDER is universal (commit 12/12, push 8, deploy 2, versioned release 3) and history_payload already carries three of its four rungs; (3) undeployed commits stay NAMED AND REFUSED — your-applications.com is 34 commits from a live website; (4) key the in-flight rule on FEATURE status, not phase — PHASE-019 is `active` holding two `done` features, PHASE-017/018 read `planned` holding `done` features, 19 features carry no phase, and 3 of 12 repos have no PHASE notes at all. ONE THING I PROPOSED AND WITHDREW AT PREFLIGHT beyond the registry admission: nothing further — but TWO are recorded as NOT being done, deliberately: renaming the nav modes to match the phases (MODE_ALIASES records that a stale client asking for `tests` got the features tree and the view looked broken for 33 hours), and fixing your-trainer's own record (PHASE-017/018 statuses, and 8 REQ notes there that fail frontmatter parse and are invisible to the index — all `implemented`, so nothing owed is lost). ADR-0028 IS `proposed` AND ACCEPTANCE IS EDWIN'S — this phase is active with its central decision undecided, recorded rather than assumed. ISS-0172 and ISS-0173 need nothing from it and can land first. EVERY FEATURE HERE CARRIES LINKED TST NOTES: FEAT-0100 closed with tests: [] and both of its blocking review findings were the class a linked test would have caught, which is now a PHASE-034 exit criterion. A CORPUS SPANNING PHASES IS THE NORMAL CASE, NOT A SOFT SPOT — an earlier draft called it one and it was wrong. TRIAGE IS OWED IN EVERY PHASE and the reason follows from the model rather than being carved out of it: an issue at `triage` is owed because NOBODY HAS READ IT YET, so its subject is the issue itself and not the thing the issue is about. That is why it is the one obligation the in-flight rule does not shrink. ALSO CORRECTED: the view set is UNCHANGED PLUS ONE — 8 nav modes become 9, nothing renamed, merged or removed, and no note changes address. What routes between phases is the obligation ROW, never the note (ADR-0025's 'a shortcut list, not a second home'), so a TST-* stays in the Tests view whichever phase currently owes it. --- 2026-08-15 (the review that was owed): EDWIN CHOSE TO RUN IT rather than close on the recorded debt, and it returned changes-requested on PHASE-030, FEAT-0100 and ISS-0167 (ISS-0168 approved). FIVE BLOCKING FINDINGS, THREE OF THEM ERRORS MADE IN THE CLOSE-OUT ITSELF — which is the argument for the gate in one line: recording the debt honestly was not the same as paying it. (1) ISS-0169: finding 3 had a SIBLING KIND and I closed one of two. `undeployed commit` is a separate source with its own rows lambda; replacing it with `lambda index: []` left the suite green at 1286. That kind carries every unpublished commit on a deploy-only repo — your-applications.com at 34. (2) ISS-0171: TWO OF THE FIVE GUARDS I WROTE FOR ISS-0167 STAYED GREEN UNDER THE EXACT REGRESSION THEY NAME, and I had mutation-tested them — the mutations I chose were the ones I had in mind while writing, and the reviewer chose different ones that walked straight through. My first repair of one was also wrong (it scanned three thousand lines of unrelated renderer and failed on an anchor in the inbox). (3) ISS-0170: a ticked box\'s evidence said the cold digest spawns nothing; it spawns git and the module docstring says so ten lines above. (4) A quotation attributed to ISS-0089 is a CODE COMMENT at cockpit.py:2872 — the withdrawal stands on that issue\'s real line, the authority I cited was invented. (5) This close-out\'s own arithmetic: 12 features / 21 issues in a breakdown summing to 71 under a stated total of 69. All fixed 2026-08-15; the three filed issues are `fixed`. VERDICT STAMPS LEFT AT changes-requested deliberately — flipping them would be the author judging his own work. WHAT STANDS: FEAT-0100 carries tests: [] and both blocking findings are the class a TST-* gate would have caught. WORTH KNOWING: _verdict_is_owed(changes-requested, done) is False under ISS-0121\'s discriminator, so a changes-requested verdict on a done item surfaces on NO badge and in NO Needs you group — it is text until a status moves. --- 2026-08-14 (close-out): PHASE-030 IS CLOSED, on Edwin's instruction. 69 children, all resolved. FEAT-0100 was the only unresolved one and returns to `done` — the debt its reopen recorded had to clear rather than be carried past a closing phase. Finding 3 of its independent review was RE-TESTED rather than assumed from the earlier repair, and was still substantially open: mutating `_publication_rows` to `return []` left 1281 tests passing, the one failure being about the UNKNOWN case and silent on the counted one. The registry's central kind was unasserted seventeen days after the registry shipped; it is asserted now. 27 DoD boxes resolved across TASK-0417/0419/0420 — 26 ticked with evidence, one `[~]` because it is not deliverable (`overview` is not a nav mode, so its Needs-you payload falls back to `features` and nothing fetches it; TASK-0418 re-homed the row to the attention panel). TASK-0419 had no test of ANY kind and its DoD asked for two; both written here, and the first draft of the degradation one was too weak — narrowing `except Exception` to `except ValueError` left it green, because Watermark._load already swallows OSError. THE ONE UNPAID GATE AT CLOSE is the independent review: QUALITY.md asks for a clean-context pass on a feature reaching `done`, the validator does not gate it, and FEAT-0100 returns to `done` without one. That is the SAME debt the pre-reopen close recorded and the reason that close was wrong — recorded again rather than assumed away, and it is Edwin's call whether to run it. Also found: docs/PHASES.md read `done` all through the reopen, because sync-snapshot.py propagates status to SNAPSHOT.yaml but not to the hand-maintained registry. --- 2026-08-14 (later still): ISS-0167 — THE INTENT LANDING JOINS THE OTHER THREE. Edwin, from use: the designs list 'looks totally different to for instance the list of to be approved features and it does not seem to have the same philosophy as the other landing pages, although not sure if that is a bad thing'. Reviewed before implementing, and the answer is: about two-thirds drift, one-third defensible. The measurable half — Intent's badge read 1 (ADR-0026, `Decide`) and its page showed eleven designs and never mentioned it. That is FEAT-0092's own defect surviving on the view its acceptance criteria excused ('Overview and Intent keep theirs'), inside PHASE-030, whose goal line is that the count is always on screen. The defensible half: a register IS the right shape for Intent where a queue is right for Issues, so the register stays and the identity band stays. TWO PARTS OF MY OWN PROPOSAL WERE WITHDRAWN AT PREFLIGHT, each because a decision already on the record answered it. (1) I proposed grouping the register `Design system · Live · Settled`; ISS-0089 removed precisely that split in TASK-0275 — 'the design view drops the system/proposal split' — for a `role:` field the reader never asked about, and named the live/completed split as the one that matters. So it is live/settled, which is also the navigator's own axis. (2) I proposed a counted roll-up of Intent's other five nav groups to answer 'the page is called Designs but the view is Intent'; that restates the navigator group for group, three inches to the right of it, which is ISS-0068's failure and is named in PHASE-030's 'what this phase must not do'. Dropped; the mismatch is fixed by naming the page from VIEW_LABELS instead. --- 2026-08-14 (later): FIXING ISS-0164, the last open issue, on Edwin's instruction. Reproduced against the live sidecar before touching anything: `PHASE-030` typed into the palette returns No matches, and `PHASE-011` returns ISS-0071 — a note ABOUT the phase, matched on its filename, which is worse than empty because it looks like an answer. The head harvest the issue names fixes 28 of 34: `_features_groups` emits a group only for a phase that has work in it, so six — PHASE-012/015/017/018/019/031 — have no group at all, and those are exactly the phases you cannot browse to either. So the fix is BOTH: harvest navigable group heads (the class fix, which makes any future id-bearing head findable) and one `/api/cockpit/stats` pass for completeness (1.8ms, carries all 34 with rel). The guard becomes COMPLETENESS for phases rather than non-zero, because 28/34 would have left it green. --- 2026-08-14: WORKING THE OPEN BACKLOG Edwin asked to be reviewed — three open issues, two fixed here. ISS-0165: publication state is walked THREE times (git_state.py; probeGitState in git.ts; fleet_validate.git_standing, which nobody reads), and the unknown case ALREADY diverges, because the 2026-08-14 admission-test repair was Python-only. TASK-0421 fixes the live divergence, TASK-0422 collapses the three walks to one via a fleet_git module the shell calls for every workspace — keeping ISS-0156's one-clock property, which the issue's own resolution (read the sidecar) would have broken. ISS-0143: Tier 3's retirement trigger fired when REL-0001 shipped on 2026-08-11, so the two checks retire here; the computable check the issue proposes is left unbuilt WITH the flaw in its comparator recorded (a release date against the suite's `updated:` would not fire — both read 2026-08-11). ISS-0164 STAYS OPEN AND IS EDWIN'S: its stated cause is wrong. Phases ARE carried by the `features` nav mode as group headers and ISS-0132 already made those headers navigate; the palette misses them because `flattenNavItems` harvests items and subgroups and never the header. No taxonomy decision is needed. --- 2026-08-12: REL-0001 IS SHIPPED (released, 1.0.0, tag v1.0.0, local and never pushed) and the work since is Edwin USING it. Six observations from use, all addressed (CHG-20260811-Six-From-Use): the status toast now dismisses itself (78 of 110 call sites never did), Caught up clears its band, ADR-0023 retired the change-note review obligation (badge 87 -> 0), FEAT-0092 gave Features/Issues/Tests landing pages that lead with what their badge counts, Intent stopped listing all eight standing documents twice, and the template workflow stubs left docs/. THE UPSTREAM PASS LANDED 2026-08-12 and found ADR-0011 EXISTS: all 18 upstream ADRs live in project-os-dev, which no citation names — see ISS-0123. ADR-0019 there, QUALITY.md + REVIEW_SETTLED_STATUSES in project-os, taken down here. FEAT-0093 + ADR-0024 then built the notation: `[[project-os-dev#ADR-0011]]` renders as a link and the cockpit switches workspace and opens it. `#` not `/` because what follows is an id, not a path. project.id in SNAPSHOT.yaml defaults to the DIRECTORY NAME — project.name is a display string (spaces, and REPLACE ME in the template) and the workspace id is a sha1 of a path. OPEN AND EDWIN'S: ISS-0148 (sweep the 47 existing citations? one CONTEXT.md line covers them without rewriting any), and the upstream twin of ADR-0024 in project-os-dev + OBSIDIAN.md/TRACEABILITY.md. ALSO OPEN: RISK-0006 supervised week (PHASE-031), ADR-0022 proposed, PHASE-028/029 deferred, PHASE-030 active with its work done. Workflows: the three template stubs are gone from THIS repo only; 8 real project workflows in 3 repos stay and still render under Intent (verified 2026-08-12). Every write path stays behind REQ-0026/REQ-0027."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0102:
+      file: "docs/features/publication-view/FEAT-0102-Publication-Becomes-A-View.md"
+      title: "Publication becomes a view — the whole ladder from commit to versioned release in one place, with the acceptance gate attached to the rung that has one"
+      status: done
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      tasks: [TASK-0426, TASK-0427, TASK-0428, TASK-0429]
+      tests: [TST-0027, TST-0028]
+      depends: [ADR-0028]
+      goal: "Give publication the surface it has never had: one view holding every rung a repo can reach — the commits, what is unpushed, what is undeployed and named-not-offered, the versioned releases and their tags — and the acceptance gate attached to the release rung, so a person can see how far their work has travelled and what stands between it and shipping."
+      note: "Edwin asked for a release nav mode and attached the right question — 'there are probably multiple types of releases, from committing, pushing, deploying and actual versioned releases'. The fleet answers it: a Releases mode would be EMPTY IN 9 OF 12 REPOS, while the ladder is universal (commit 12/12, push 8, deploy 2, versioned release 3). And three of the four rungs already exist — history_payload returns remote_kind, unpublished_count, publication_known and a per-commit unpublished flag; git_state.py mentions 'tag' once, in a comment. So this is not a new surface bolted on: it is the third phase, built by finishing the one that already holds most of it. THE GATE IS ONE OBLIGATION, NEVER SIXTY (ADR-0027's re-arming rule) — 60 is a number the campaign STATES and no badge ever sums. The unit is the sitting: your-trainer's 60 cluster into 17 sections, two of which carry 33, and the suite's own Manual Test Environment Breakdown already says what each needs at hand and nothing reads it. Reads better after ISS-0173; buildable without it, but then designed against a corpus where no row can name its subject."
+    FEAT-0101:
+      file: "docs/features/obligation-routing/FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject.md"
+      title: "Obligations route by the state of their subject — a judgment asks while the thing it attaches to is in flight, and the quiet it leaves behind is inspectable"
+      status: done
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      tasks: [TASK-0423, TASK-0424, TASK-0425]
+      tests: [TST-0025, TST-0026]
+      depends: [ADR-0028]
+      goal: "Take what needs a person from one undifferentiated number down to the items whose subject is actually being worked — measured 64 to 31 in your-trainer — by routing each obligation to the phase that owns its subject and letting it ask only while that subject is in flight, with everything it quiets still on screen as a collapsed line carrying its reason."
+      note: "FIRST in PHASE-034 after the two issues; FEAT-0102 meets it at TASK-0429, which is why TASK-0424's predicate takes a SUBJECT rather than a feature — a test's subject gains a second kind (a release) once the release rung lands. The measured case: 23 of your-trainer's 26 owed requirements attach to features still in `backlog` and 21 belong to PHASE-999-Future; 10 of its 15 owed tests verify only `done` or system-wide work and have sat at `ready` for four to seven months with last_run empty on all 15. THE CRITERION MOST LIKELY TO BE GOT WRONG is the subject-less one: TST-0001/0002 name no feature at all, and a naive reading makes them never-owed, which LOSES two tests rather than quieting them. Nothing can prove a subject-less obligation is resting, so it asks. TASK-0425 is not optional and must land in the same session as TASK-0424 — between them the tool has silently dropped 33 rows, which is the failure this feature exists to prevent."
     FEAT-0100:
       file: "docs/features/unpushed-work/FEAT-0100-Unpushed-Work-Needs-A-Person.md"
       title: "Unpushed work needs a person — publication joins the obligation registry, and the push moves next to the commits it publishes"
@@ -537,6 +559,80 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0423:
+      file: "docs/features/obligation-routing/plan/tasks/TASK-0423-An-Obligations-View-Is-Decided-Per-Item.md"
+      title: "An obligation's view is decided per item rather than fixed per note type, and a kind with no routing rule fails a test"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0101
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [ADR-0028]
+      blocks: [TASK-0424]
+      note: "NO BEHAVIOUR CHANGES HERE — every item routes exactly where it routes today, so the existing suite green at its current count is the proof. Kept apart from TASK-0424 so the behavioural diff is small enough to read."
+    TASK-0424:
+      file: "docs/features/obligation-routing/plan/tasks/TASK-0424-The-In-Flight-Predicate.md"
+      title: "The in-flight predicate — a requirement or test asks only while a subject it names is being worked, `deferred` overrides, and a subject-less obligation keeps asking"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0101
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [TASK-0423]
+      blocks: [TASK-0425]
+      note: "Where the number moves, on one commit that can be measured before and after. Applies to requirement and test ONLY. Three things decide whether it is right: the discriminator is feature status never phase; `deferred` beats the rule even when the feature is `doing`; and a subject-less obligation KEEPS ASKING, which is the direction that fails safely."
+    TASK-0425:
+      file: "docs/features/obligation-routing/plan/tasks/TASK-0425-The-Quiet-Is-On-Screen.md"
+      title: "The quiet is on screen — what the in-flight rule silenced collapses into a line that says how many and why, and opens in one click"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0101
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: S
+      depends: [TASK-0424]
+      note: "Not optional, and must land in the same session as TASK-0424. Derived silence that cannot be opened is Edwin's original complaint with the opposite sign. Phase is the GROUPING LABEL only — the rule reads feature status, and a repo with no phases must not render an empty or invented label."
+    TASK-0426:
+      file: "docs/features/publication-view/plan/tasks/TASK-0426-The-Ladder-As-Data.md"
+      title: "The ladder as data — one payload saying how far this repo's work has travelled, for every rung it can reach and none it cannot"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0102
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [ADR-0028]
+      blocks: [TASK-0427, TASK-0428]
+      note: "FIRST in FEAT-0102: the view's central claim is that it is never empty in any of the twelve repos, and that is a property of the payload across a real fleet rather than of a renderer. Four shapes to get right — reachable-but-empty, unreachable (ABSENT, not zero), reachable-with-unknown-count (edankert.com: deploy remote, no upstream, ahead is None), and refused. Composed from the existing git_state/history reads: ISS-0165 removed a duplicate git walk and this must not add a fourth."
+    TASK-0427:
+      file: "docs/features/publication-view/plan/tasks/TASK-0427-The-Publication-View.md"
+      title: "The Publication view — a nav mode over the ladder, with `~history` re-homed inside it rather than replaced"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0102
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [TASK-0426]
+      note: "`~history` is a ROUTE today, which is why it reads as a side-trip rather than a place. It keeps working and becomes an address inside the mode — MODE_ALIASES records the cost of getting this wrong (a stale client asked for `tests`, got the features tree, and the view looked broken for 33 hours). The Push button moves with the commits it publishes, INCLUDING ISS-0168's refresh, which is the part that was missing the first time."
+    TASK-0428:
+      file: "docs/features/publication-view/plan/tasks/TASK-0428-The-Release-Rung.md"
+      title: "The release rung — `REL-*` notes and git tags, which nothing currently reads, and `draft` as the signal that a release is in preparation"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0102
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [TASK-0426]
+      blocks: [TASK-0429]
+      note: "STATUSES.md documents a release's `draft` as 'prepared and verified, not yet live' — a release in preparation, representable today, read by nothing. It is what the gate keys on. Worth stating because it is currently invisible in the one repo that would use it: your-trainer's newest is REL-0012, already `released`, so nothing is in preparation and the correct behaviour today is that the gate asks for nothing."
+    TASK-0429:
+      file: "docs/features/publication-view/plan/tasks/TASK-0429-The-Gate-Is-A-Campaign.md"
+      title: "The gate is a campaign — the acceptance suite attached to the release rung, grouped by what you need at hand, counted as one obligation and never as sixty"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0102
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      effort: M
+      depends: [TASK-0428, ISS-0173]
+      note: "gate_payload already computes the gate correctly and completely; NOTHING CONSUMES IT except a band that mounts only on a release note. One obligation while a release is `draft`, zero otherwise — 60 is stated, never summed, and TST-0028 asserts it as a BOUND rather than a spot value so a future kind cannot slip 60 in behind it."
     TASK-0405:
       file: "docs/features/remote-ssh-workspaces/plan/tasks/TASK-0405-Define-Remote-Session-Architecture.md"
       title: "Define the remote-session transport and trust boundary"
@@ -717,48 +813,6 @@ items:
       depends: [TASK-0405]
       blocks: [TASK-0407, TASK-0412]
       note: "The gate: twenty mutating routes guarded only by _require_loopback(), dispatch included, on a host with other accounts. REQ-0034 does not reach it — that requirement authenticates a NON-loopback write and a co-tenant writes over loopback. If the spike picks stdio this is a proof, not a build."
-    TASK-0356:
-      file: "docs/features/session-economics/plan/tasks/TASK-0356-The-Snapshot-Membership-Gate.md"
-      title: "The snapshot's copy of a feature's task list is checked against the note's"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0354:
-      file: "docs/features/session-economics/plan/tasks/TASK-0354-Usage-Is-Read-Where-It-Lives.md"
-      title: "A turn's usage is read where it actually lives, and one decision keeps one implementation"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0355:
-      file: "docs/features/session-economics/plan/tasks/TASK-0355-The-Record-Stops-Overclaiming.md"
-      title: "The snapshot carries the corrected figures, and no box is ticked for work that was not done"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0350:
-      file: "docs/features/session-economics/plan/tasks/TASK-0350-Guards-For-The-Bounded-Read.md"
-      title: "The bounded tail read gets a guard that fails when the bound is lost, and the surviving mutants get killed"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0351:
-      file: "docs/features/session-economics/plan/tasks/TASK-0351-Pure-Decisions-For-The-Rail-And-The-Badge.md"
-      title: "The rail key, the panel's id list and the badge's label become pure functions, so the behaviour is guarded and not just the decision behind it"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0352:
-      file: "docs/features/session-economics/plan/tasks/TASK-0352-The-Scan-Committed-And-The-Figures-Corrected.md"
-      title: "The measurement becomes a command anyone can run, and every quoted figure is re-derived from it"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
-    TASK-0353:
-      file: "docs/features/session-economics/plan/tasks/TASK-0353-The-Feature-Note-Catches-Up-And-Links-Are-Checked-Both-Ways.md"
-      title: "FEAT-0081 gains the surface it was closed on, and the validator learns to check a relationship from both ends"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      parent: FEAT-0081
     TASK-0338:
       file: "docs/features/phone-supervision/plan/tasks/TASK-0338-The-Authenticated-Path.md"
       title: "The authenticated path — bearer-paired, off by default, per-repo, and re-scanned against the write-surface risk"
@@ -1222,6 +1276,26 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0173:
+      file: "docs/issues/ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads.md"
+      title: "The acceptance suite names its features and issues in bare form and the parser reads only wikilinks, so 72 of 82 sections resolve to nothing and every Tier 2 item reports as violating a rule it satisfies"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      severity: medium
+      component: cockpit-server
+      related: [FEAT-0102, ADR-0028, ISS-0141, ISS-0162]
+      note: "acceptance.py:81 matches `[[FEAT-0104]]` only. your-trainer writes `## 1.6 Monetization & Licensing (FEAT-0011, FEAT-0104)` — 72 of 82 headings name an id, the parser finds 0, and NOT ONE heading in the file uses wikilink form. Two consequences: missing_issue_refs() reports 158 of 158 Tier 2 items as violating TESTING.md's rule, a check that is 100% false-positive and which nothing consumes (which is why nobody noticed); and the row -> feature link ADR-0028's gate needs does not exist as far as any code can tell. Same shape as ISS-0162's 48 bare ADR citations: the record said the right thing in a form the reader did not accept. TWO THINGS TO GET RIGHT: bare matching must not harvest prose (a heading naming TASK-0132 in a sentence is not a ref), and missing_issue_refs will start reporting a REAL number that may not be zero — that is the check working, and whatever it reports first is recorded rather than treated as a regression introduced here. The upstream question — whether TESTING.md should require wikilinks and every suite be rewritten — is deliberately not asked: twelve repos write it bare, so the reader is what changes."
+    ISS-0172:
+      file: "docs/issues/ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps.md"
+      title: "A manual test whose procedure has subsections parses to zero steps, so the Run button silently does not exist — 8 of the 15 tests your-trainer is asking a person to walk"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      severity: high
+      component: cockpit-server
+      related: [PHASE-034, ADR-0028, FEAT-0086, ISS-0155]
+      note: "Edwin: 'it is not really clear how I should execute [them]'. manual_test_steps (cockpit.py:2648) breaks at the first heading of ANY level after the procedure heading — including a SUBHEADING OF THE SECTION IT IS READING. `## Steps` followed by `### Export` yields 0; the same list flat yields 2. Eight of your-trainer's fifteen owed manual tests parse to zero: TST-0007/0008 (### Export), 0009 (### Tier 1), 0011/0012 (### Tier B), 0013 (sixteen ## N. sections), 0014 (## A —), 0018 (## Cases, a vocabulary miss rather than the subheading bug). NONE OF THESE NOTES IS MALFORMED. The consequence is silent in all three places the affordance lives: renderer.ts:4213 hides the row button, renderer.ts:1715 returns before building the Verify row, and the runner page explains only if reached by URL. TST-0018 was written 2026-08-15 for FEAT-0104, the focus feature, and shows a manual test with no way to run it and nothing saying why. THE PART THAT OUTLIVES THE PARSER is expectation 3: a test that genuinely parses to zero must SAY SO on its row rather than omitting the button — however good the vocabulary gets, some note will always fail, and the surface should degrade to an explanation rather than to absence."
     ISS-0171:
       file: "docs/issues/ISS-0171-Two-Of-ISS-0167s-Guards-Do-Not-Fail-Under-The-Regression-They-Name.md"
       title: "Two of ISS-0167's five new guards stay green under the exact regression they name, and one withdrawal quotes ISS-0089 saying something ISS-0089 does not say"
@@ -1998,6 +2072,16 @@ items:
     # They were referenced by 13 feature `phase:` values and had no entry of
     # their own -- membership is curation the sync script deliberately leaves
     # alone, so nothing would ever have added them.
+    PHASE-034:
+      file: "docs/phases/PHASE-034-Three-Phases-And-Publication-Is-The-Third.md"
+      title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
+      status: done
+      owner: user:edwin
+      goal: "Give the tool the phase it is missing. Publication becomes a first-class view over the whole ladder — commit, push, deploy, versioned release — and every obligation is routed to the phase that owns its subject and asks only while that subject is in flight, so what needs a person is smaller, sorted, and inspectable rather than one undifferentiated number."
+      features: [FEAT-0101, FEAT-0102]
+      issues: [ISS-0172, ISS-0173]
+      related: [ADR-0028, ADR-0027, ADR-0020, PHASE-030, FEAT-0100, FEAT-0089]
+      note: "Opened 2026-08-16 on Edwin's instruction ('plan this fully, I would suggest a new phase to capture it all'). Passes both of CLAUDE.md's tests for opening one: the goal states an outcome without listing its parts, and the exit criteria are measurements rather than a restatement of the task list. WHAT THIS PHASE MUST NOT DO, stated in the note: it must not make the number bigger — every change is measured against your-trainer's badge total and one that raises it has failed regardless of what else it achieves; and it must not make things vanish instead, because derived silence that cannot be opened is the same invisibility problem inverted. ORDER: ISS-0172 and ISS-0173 need nothing and land first; FEAT-0101 needs ADR-0028 accepted; FEAT-0102 needs the ADR and reads better after ISS-0173. OUT OF SCOPE and recorded as such: renaming the nav modes to match the phases, any widening of write paths, fixing your-trainer's own record, and a Releases view."
     PHASE-026:
       file: "docs/phases/PHASE-026-The-Returning-Human.md"
       title: "The returning human — the cockpit addresses the person who was away: what happened, what needs you, what shipped, in one voice"
@@ -2170,6 +2254,50 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0028:
+      file: "docs/tests/TST-0028-The-Release-Gate-Names-Its-Number.md"
+      title: "The release gate names its number and stays one obligation — 60 is stated, never summed, and it asks only while a release is `draft`"
+      status: passing
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      scope: system
+      kind: automated
+      level: integration
+      features: [FEAT-0102]
+      note: "Step 4 is the guard against this feature's own worst outcome, and is asserted as a BOUND (the badge rises by at most 1) rather than a spot value, so a future kind cannot slip 60 in behind it. Step 9 restores a distinction gate_payload reports and a surface can easily lose: a repo with no suite says NEVER INSTANTIATED, not NOTHING BLOCKING — every repo had no suite until 2026-08-10 and that conflation is what made the gate look like it worked for the years it could not fire."
+    TST-0027:
+      file: "docs/tests/TST-0027-The-Ladder-Is-Non-Empty-In-Every-Repo.md"
+      title: "The ladder is non-empty in every repo — every rung a repo reaches is present, every rung it cannot is absent, and an unknown count is never a zero"
+      status: passing
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      scope: system
+      kind: hybrid
+      level: integration
+      features: [FEAT-0102]
+      note: "Hybrid deliberately: the four shapes are pinned on fixtures because they must hold whatever the fleet looks like next month, and the non-emptiness sweep runs across the discovered fleet because THAT is the claim. Step 3 is the one with history — `ahead is None` was coerced to zero on two renderer surfaces after the first repair fixed only Python, and all three surfaces silently reported nothing owed. Step 9 must FAIL on a repo yielding an empty ladder, never skip it: a sweep that quietly skips what it cannot read is how 'non-empty in every repo' becomes true only of the repos it looked at."
+    TST-0026:
+      file: "docs/tests/TST-0026-The-In-Flight-Rule-Against-The-Live-Fleet.md"
+      title: "The in-flight rule against the live fleet — the 64 to 31 claim is measured on the real corpus, and a repo with no phases routes correctly"
+      status: passing
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      scope: system
+      kind: manual
+      level: system
+      features: [FEAT-0101]
+      note: "Manual because the subject is twelve repositories whose contents change daily; its value is the COMPARISON, and a claim that has drifted is re-measured rather than re-asserted. Step 7 is the phase's stated bar — no repo's total may rise. Step 8 exists because this feature touches the one property the registry was built to guarantee: four surfaces read one walk, and per-item routing is exactly the change that could give one of them a different answer without anything failing."
+    TST-0025:
+      file: "docs/tests/TST-0025-Obligation-Routing-Is-Per-Item-And-Complete.md"
+      title: "Obligation routing is per-item and complete — an unrouted kind fails, the in-flight rule behaves on constructed subjects, and `deferred` beats the rule in both directions"
+      status: passing
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      scope: system
+      kind: automated
+      level: unit
+      features: [FEAT-0101]
+      note: "Steps 10 and 11 are the ones worth mutation-testing hardest — a subject-less obligation, and a subject at an unrecognised status. Both are cases where a plausible implementation silently quiets something, and neither shows up as a failure, only as a smaller number, which is what this feature is trying to produce. Mutations chosen by trying to DEFEAT each guard rather than by picking the one in mind while writing it: ISS-0171 is what the other habit costs."
     TST-0024:
       file: "docs/tests/TST-0024-Remote-SSH-Workspace-Walk.md"
       title: "Remote SSH workspace walk — verified host, docs, repository and agent terminal"
@@ -2757,6 +2885,15 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0028:
+      file: "docs/decisions/ADR-0028-Work-Has-Three-Phases.md"
+      title: "Work has three phases, an obligation belongs to the phase that owns its subject, and it asks only while that subject is in flight"
+      status: accepted
+      owner: user:edwin
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      decision: "Work has three phases — design, implementation, publication. Publication is first-class and its subject is the ladder (commit, push, deploy, versioned release). An obligation routes to the phase that owns its SUBJECT, decided per item rather than fixed per type, and asks only while that subject is in flight; `deferred` remains the explicit override."
+      related: [PHASE-034, FEAT-0101, FEAT-0102, ISS-0172, ISS-0173, ADR-0020, ADR-0027, ADR-0022]
+      note: "PROPOSED — acceptance is Edwin's, and PHASE-034 is active with this undecided, recorded rather than assumed. Edwin named the model; the evidence for it is that mapping the registry's five views onto three leaves exactly two things unplaced and both are defects found independently. The registry's OWN charter killed the first proposal: ADR-0027 excludes staleness because 'counting it is a badge that re-arms itself forever', and acceptance rows re-arm in bulk by the suite's rule 3. Decision 2 deliberately breaks obligations.py:34's one-type-one-view invariant; the property that replaces it is the one that already holds — one item, one row, with counts_by_kind still asserted against owed_items. Decision 4's evidence: PHASE-019 `active` holding two `done` features; PHASE-017/018 `planned` holding `done` features; 19 unphased features; 3 of 12 repos with no PHASE notes. Decision 6 keeps `deferred` because the derived rule is a DEFAULT and the status is a DECISION — the case that separates them is a deferred requirement whose feature moves to `doing`, which must stay quiet. Fleet usage of `deferred` is 6 of 523 requirements, which is the argument for deriving rather than declaring."
     ADR-0027:
       file: "docs/decisions/ADR-0027-The-Registry-Counts-What-Needs-A-Person.md"
       title: "The obligation registry counts what needs a person — not only what the record owes, and not only things that are notes"
@@ -2816,12 +2953,12 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 100
-    features_done: 90
-    tasks_total: 422
-    tasks_done: 387
-    tests_total: 24
-    tests_passing: 23
+    features_total: 102
+    features_done: 92
+    tasks_total: 429
+    tasks_done: 394
+    tests_total: 28
+    tests_passing: 27
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
@@ -2829,4 +2966,4 @@ metrics:
     issues_triage: 0
     risks_open: 6
     releases_total: 1
-    decisions_total: 18
+    decisions_total: 19

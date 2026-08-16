@@ -149,7 +149,14 @@ def test_an_empty_group_is_absent_rather_than_zero(repo_index: Index) -> None:
     # Vacuity guard: this corpus must be missing at least one of the five, or
     # the assertion above never exercises absence.
     note_keys = {g["key"] for g in groups if not g["key"].startswith("tier")}
-    assert note_keys < {"needs-run", "failing", "stale", "never", "verified"}
+    assert note_keys < {
+        "needs-run",
+        # ADR-0028: owed by its type, resting by its subject. It gets a group
+        # rather than falling through to `Never verified` — that group is a
+        # statement about evidence, and evidence is not why this one is quiet.
+        "resting",
+        "failing", "stale", "never", "verified",
+    }
 
 
 # ---- one staleness rule --------------------------------------------------
@@ -522,6 +529,61 @@ def test_every_tier_two_item_names_the_issue_that_created_it() -> None:
     filed in the wrong place."""
     suite = acceptance.load(REPO_DOCS)
     assert suite.missing_issue_refs() == []
+
+
+# ---- ISS-0173: the suite writes its ids bare -----------------------------
+
+
+def test_a_bare_id_in_a_headings_parenthetical_is_a_ref() -> None:
+    """How every suite in the fleet actually writes it.
+
+    `_ID_RE` matched wikilink form only, and not one heading in
+    `your-trainer`'s 1082-line suite uses it — 72 of 82 named a subject and
+    the parser found none.
+    """
+    assert acceptance.heading_refs(
+        "1.6 Monetization & Licensing (FEAT-0011, FEAT-0104)",
+    ) == ("FEAT-0011", "FEAT-0104")
+
+
+def test_wikilinked_ids_still_resolve_and_do_not_duplicate() -> None:
+    """The old form keeps working, and an id written both ways is one ref."""
+    assert acceptance.heading_refs("1.1 Profile ([[FEAT-0002]])") == ("FEAT-0002",)
+    assert acceptance.heading_refs("2.1 Thing ([[ISS-0001]], ISS-0002)") == (
+        "ISS-0001", "ISS-0002",
+    )
+
+
+def test_an_id_in_prose_is_not_a_ref() -> None:
+    """The guard the bare form needs. A heading that *mentions* an id is not a
+    heading that *names its subject*, and harvesting prose would give the
+    scoped gate false subjects — which is worse than none, because it looks
+    like an answer."""
+    assert acceptance.heading_refs("1.9 Handles TASK-0132-style imports") == ()
+    # …and a trailing parenthetical that is prose stays prose.
+    assert acceptance.heading_refs("1.9 Imports (see the TASK-0132 note)") == (
+        "TASK-0132",
+    ), "an id inside the parenthetical is a ref even beside words — the anchor \
+is the parenthetical, not the absence of prose in it"
+
+
+def test_only_the_trailing_parenthetical_is_read() -> None:
+    """Measured 2026-08-16: 114 of 114 id-bearing headings across every suite
+    in the fleet put all of theirs there, and `area` already strips exactly
+    that span."""
+    assert acceptance.heading_refs("1.2 (FEAT-0001) Hardware Connectivity") == ()
+
+
+def test_the_suites_sections_resolve_to_subjects() -> None:
+    """The property the scoped gate depends on: a blocking row can say what it
+    verifies. Asserted on this repo's own suite, where every Tier 1 section
+    names its features."""
+    suite = acceptance.load(REPO_DOCS)
+    tier1 = suite.tier(1)
+    assert tier1, "no Tier 1 items"
+    assert all(item.refs for item in tier1), [
+        i.key for i in tier1 if not i.refs
+    ]
 
 
 def test_every_id_the_suite_names_exists() -> None:

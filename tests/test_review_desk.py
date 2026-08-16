@@ -101,6 +101,140 @@ def test_steps_absent_yields_no_steps() -> None:
     assert cockpit.manual_test_steps("# Title\n\nNo steps here.\n") == []
 
 
+# ---- ISS-0172: a procedure may have subsections --------------------------
+
+
+def test_a_subsection_does_not_end_the_procedure() -> None:
+    """The bug that made 8 of 15 tests unrunnable.
+
+    The parser broke at the first heading of ANY level after the procedure
+    heading — including a subheading *of the section it was reading* — so a
+    two-level procedure yielded nothing and the Run button silently did not
+    exist. Two levels is the natural shape for a procedure with parts.
+    """
+    body = (
+        "## Steps\n\n"
+        "### Export\n"
+        "1. Open Settings.\n"
+        "2. Tap Export Backup.\n\n"
+        "### Wipe\n"
+        "11. Uninstall the app.\n\n"
+        "## Expected Result\n"
+        "- not a step\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert [s["text"] for s in steps] == [
+        "Open Settings.", "Tap Export Backup.", "Uninstall the app.",
+    ]
+    # It still ends at a heading at its OWN level — the fix widens the
+    # section, it does not remove its boundary.
+    assert all("not a step" not in s["text"] for s in steps)
+
+
+def test_a_deeper_procedure_heading_ends_at_its_own_level() -> None:
+    """`### Steps` under `## Part` is bounded by the next `###`, not by `##`."""
+    body = (
+        "## Part one\n\n"
+        "### Steps\n"
+        "1. Do the thing.\n\n"
+        "### Evidence\n"
+        "- not a step\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert [s["text"] for s in steps] == ["Do the thing."]
+
+
+def test_cases_heads_a_procedure() -> None:
+    """`## Cases` is what your-trainer's TST-0018 uses — written for the
+    feature that repo was actively building, and parsing to nothing."""
+    steps = cockpit.manual_test_steps("## Cases\n\n1. Aeroplane mode, cold start.\n")
+    assert [s["text"] for s in steps] == ["Aeroplane mode, cold start."]
+
+
+def test_a_bold_lead_in_is_not_a_bullet() -> None:
+    """`**Offline entitlement** — on a device…` opens with the same character
+    as a `*` bullet. Markdown requires whitespace after a list marker; the
+    parser did not, so a paragraph lead-in became step 1."""
+    body = (
+        "## Cases\n\n"
+        "**Offline entitlement (ISS-0374)** — on a device holding PRO:\n\n"
+        "1. Aeroplane mode, cold start.\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert [s["text"] for s in steps] == ["Aeroplane mode, cold start."]
+
+
+def test_an_expectation_under_its_step_is_not_a_step() -> None:
+    """The corpus writes `- **Expected:** …` beneath the step it belongs to.
+    Anchored on a bare `Expected:`, the old matcher missed every one and the
+    step matcher took them — eleven steps rendering as twenty-two."""
+    body = (
+        "## Steps\n\n"
+        "- [ ] Tap Max HR.\n"
+        "- **Expected:** the header stays visible.\n"
+        "- [ ] Open the profile.\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert len(steps) == 2
+    assert steps[0]["expected"] == "the header stays visible."
+    assert steps[1]["text"] == "Open the profile."
+
+
+def test_checkboxes_are_the_procedure_when_no_heading_names_one() -> None:
+    """Four of the eight had no procedure heading at all: their whole body is
+    sections of checkboxes. A checkbox is an explicit *thing to do*; a bullet
+    inside a Purpose paragraph is prose, and the fallback reads only the
+    former."""
+    body = (
+        "## Purpose\n\n"
+        "- prose about why this exists\n\n"
+        "## A — Input screens\n\n"
+        "### A.1 — New-rider dialog\n"
+        "- [ ] Add Rider, tap Max HR.\n"
+        "- **Expected:** the header stays visible.\n\n"
+        "### A.2 — Rider profile\n"
+        "- [ ] Open the profile.\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert [s["text"] for s in steps] == [
+        "Add Rider, tap Max HR.", "Open the profile.",
+    ]
+    assert steps[0]["expected"] == "the header stays visible."
+    assert all("prose about why" not in s["text"] for s in steps)
+
+
+def test_the_fallback_yields_only_to_a_named_procedure() -> None:
+    """A note with BOTH a procedure heading and checkboxes elsewhere reads the
+    named procedure. The fallback is for notes that have no heading to find,
+    not a second harvest layered on top of one that worked."""
+    body = (
+        "## Steps\n\n"
+        "1. The real step.\n\n"
+        "## Evidence (fill after running)\n"
+        "- [ ] not a step\n"
+    )
+    steps = cockpit.manual_test_steps(body)
+    assert [s["text"] for s in steps] == ["The real step."]
+
+
+def test_every_manual_test_in_this_repo_is_runnable() -> None:
+    """Completeness, not non-zero (the ISS-0164 lesson).
+
+    A manual test the cockpit offers a person is a test the cockpit can walk.
+    The measured failure was 8 of 15 in one repo, and a guard asserting
+    "some test parses" would have called that fixed.
+    """
+    index = Index.build(Path(__file__).resolve().parents[1] / "docs")
+    unrunnable = [
+        record.note_id
+        for record in index.notes_by_type("test")
+        if not record.rel_path.startswith("__templates__/")
+        and cockpit._is_manual_test(record)
+        and not cockpit.manual_test_steps(record.body)
+    ]
+    assert unrunnable == []
+
+
 def test_checklist_heading_and_inline_expect_are_understood() -> None:
     """The corpus's own shape, not just the template's.
 

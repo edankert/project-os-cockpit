@@ -506,7 +506,7 @@ def test_an_unknown_publication_count_is_not_reported_as_zero(tmp_path: Path) ->
     index = Index.build(repo / "docs")
 
     # 1. The registry counts it as something a person must resolve.
-    assert obligations.counts(index).get("overview", 0) >= 1, (
+    assert obligations.counts(index).get("publication", 0) >= 1, (
         "an unknown publication state produced no obligation, so the badge "
         "reads the same as a repo with nothing to push"
     )
