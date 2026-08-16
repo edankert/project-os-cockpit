@@ -2878,16 +2878,21 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
 #: shared group there would duplicate in the one place it buys nothing, which
 #: ADR-0025 permits and does not require.
 #: Views that gather what they owe into their own groups, so prepending a
-#: `Needs you` list would put one item on screen twice — ISS-0068's failure,
-#: which ADR-0025 permits only as a shortcut from a view that does NOT
-#: otherwise show the row.
+#: `Needs you` list would put one item on screen twice.
 #:
-#: `publication` joined them after Edwin opened it and asked *"why in the
-#: needs you section"*: the view leads with the ladder, and the one unpushed
-#: commit was appearing both under `Needs you` and under `To push · 1`.
-_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset(
-    {"issues", "tests", "publication"},
-)
+#: **`publication` is NOT one of them**, and briefly was. Reading Edwin's
+#: *"why in the needs you section"* as an objection to the group was wrong —
+#: he was asking why the CONTROLS were there, and then said plainly: *"I don't
+#: mind the needs you section, it makes sense to have all the publication
+#: completion tasks to be in the needs you section instead of below."*
+#:
+#: Which is ADR-0025 exactly. Its shortcut rule is *"a shortcut list, not a
+#: second home — the rows also stay in their structural place, marked"*, and
+#: publication's rungs are a **ladder**: a record of how far work has
+#: travelled, not a gathering of obligations. The ladder is the structural
+#: place; `Needs you` is the shortcut. Removing it made the reader hunt the
+#: ladder for the two rows that could be acted on.
+_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset({"issues", "tests"})
 
 
 def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
@@ -2926,6 +2931,11 @@ def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
             # The registry's verb, never the surface's (TASK-0357's rule).
             "owed": True,
             "owed_verb": row["verb"],
+            # …and, where the registry can name one, the route that verb
+            # performs. Absent for the kinds whose verb is discharged
+            # elsewhere (Approve, Triage, Push) — a row with no action simply
+            # opens its subject, which is what every row did before.
+            **({"action": row["action"]} if row.get("action") else {}),
         })
     return [{
         "key": "needs-you",
@@ -4071,7 +4081,11 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
 
 #: How a publication rung reads as a group heading.
 _RUNG_LABELS: dict[str, str] = {
-    "commit": "Committed",
+    # `Committed` with `count = state.dirty` read *"Committed · 42"* about 42
+    # notes that were NOT committed — the label said the opposite of the
+    # number beside it. The rung is the bottom of the ladder and what stands
+    # at it is work that has not climbed yet.
+    "commit": "To commit",
     "push": "To push",
     "deploy": "To deploy",
     "release": "Released",
@@ -4140,9 +4154,21 @@ def _publication_groups(
             "item_layout": "stacked",
             "items": items,
         }
+        # **The record opens shut** (Edwin, 2026-08-16). A ladder shows how far
+        # work has travelled, so most of it is by definition behind you: the
+        # releases already out, and the commits the agent makes at close-out.
+        # Those are the answer to *"what happened"*, not to *"what is next"*,
+        # and this view opens on the second question like every other view
+        # does. Both stay one click away through their header and count.
+        if name in ("release", "commit"):
+            group["default_open"] = False
         if rung["verb"]:
             group["needs_human"] = True
             group["owed_verb"] = rung["verb"]
+        # Declaring the next release belongs to the rung that holds the
+        # releases, not to the gate's header — the gate is about checks.
+        if name == "release" and not data["preparing"]:
+            group["prepare_release"] = True
         if rung["refused"]:
             # Named, never offered. One fleet repo's only remote is a server
             # path and pushing it publishes a live website (Edwin, 2026-08-16).
@@ -4200,14 +4226,11 @@ def _publication_groups(
         if draft and gate.get("blocked"):
             group["needs_human"] = True
             group["owed_verb"] = "Walk"
-        # The controls that make it walkable (FEAT-0103). `walk` is offered
-        # whenever anything is blocking — a person may walk checks before
-        # declaring the release, and refusing to let them would be the tool
-        # deciding the order of someone else's afternoon.
-        if gate.get("blocked"):
-            group["walk"] = True
-        if not draft:
-            group["prepare_release"] = True
+        # The controls do NOT live on this header (Edwin: *"that walk button
+        # looks totally out of place there"*). Walking is the action on the
+        # gate's OBLIGATION, so it rides that row in `Needs you` — where every
+        # other owed thing carries its verb. Preparing a release belongs to
+        # the release rung, whose subject is the release list.
         out.append(group)
 
     for stale in data["stale_drafts"]:
@@ -4215,6 +4238,8 @@ def _publication_groups(
             "key": f"stale-draft-{stale['id']}",
             "label": f"Draft overtaken · {stale['id']} {stale['version']}",
             "url": None, "status": None, "item_layout": "stacked",
+            # A mark, not work — it asks for nothing and does not gate.
+            "default_open": False,
             "items": [{
                 "id": stale["id"], "title": stale["title"],
                 "subtitle": "a later version has shipped — this draft is "

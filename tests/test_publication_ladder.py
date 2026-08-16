@@ -257,6 +257,13 @@ def test_no_route_from_this_view_can_push_a_deploy_remote(
 
 
 # ---- 12-13: reported from use, 2026-08-16 -------------------------------
+#
+# `test_publication_does_not_also_receive_a_needs_you_group` stood here and
+# has been REMOVED, not weakened. It asserted the opposite of what Edwin
+# wanted, from a misreading of *"why in the needs you section"* as an
+# objection to the group rather than to the controls in it. Its replacement is
+# `test_publication_keeps_its_needs_you_group` below. Two guards asserting
+# opposite things is worse than either.
 
 
 def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
@@ -279,20 +286,75 @@ def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
     assert dead == [], dead
 
 
-def test_publication_does_not_also_receive_a_needs_you_group(
-    tmp_path: Path,
-) -> None:
-    """Edwin: *"why in the needs you section"*.
+# ---- 14-16: reported from use, second round ------------------------------
 
-    The view leads with the ladder and gathers what it owes into rungs, so a
-    prepended `Needs you` put the one unpushed commit on screen twice — under
-    `Needs you` and under `To push · 1`. That is ISS-0068's failure, which
-    ADR-0025 permits only as a shortcut from a view that does not otherwise
-    show the row.
+
+def test_publication_keeps_its_needs_you_group(tmp_path: Path) -> None:
+    """Reverses an earlier over-correction.
+
+    Edwin's *"why in the needs you section"* was about the CONTROLS, not the
+    group — *"I don't mind the needs you section, it makes sense to have all
+    the publication completion tasks to be in the needs you section instead of
+    below."* And that is ADR-0025 exactly: the shortcut list, with the row also
+    in its structural place. Publication's rungs are a **ladder** — a record of
+    travel — so the ladder is the structural place and `Needs you` is the
+    shortcut. Removing it made the reader hunt the ladder for the rows that
+    could be acted on.
     """
     root = _repo(tmp_path, remote="https://github.com/e/x.git")
+    (root / "docs" / "extra.md").write_text("dirty\n", encoding="utf-8")
     groups = cockpit.nav_payload(
         Index.build(root / "docs"), "publication", project_root=root,
     )["groups"]
-    assert [g for g in groups if g["key"] == "needs-you"] == []
-    assert "publication" in cockpit._VIEWS_THAT_ALREADY_GATHER
+    assert "publication" not in cockpit._VIEWS_THAT_ALREADY_GATHER
+
+
+def test_the_walk_action_rides_the_row_not_the_group_header(
+    tmp_path: Path,
+) -> None:
+    """Edwin: *"that walk button looks totally out of place there."* A header
+    is the name of a set, not a place to act on one of its members."""
+    root = _repo(tmp_path)
+    (root / "docs" / "tests").mkdir(parents=True, exist_ok=True)
+    (root / "docs" / "tests" / "ACCEPTANCE_TESTS.md").write_text(
+        "# Tier 1 — Feature Tests\n\n## 1.1 Area (FEAT-0001)\n"
+        "- [ ] **A:** do it.\n", encoding="utf-8",
+    )
+    _release(root, "REL-0001", "draft", "1.0.0")
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    gate = next(g for g in groups if g["key"] == "release-gate")
+    assert "walk" not in gate, "the control must not be on the header"
+    needs = next(g for g in groups if g["key"] == "needs-you")
+    row = next(i for i in needs["items"] if i.get("owed_verb") == "Walk")
+    assert row["action"] == "~walk", "the verb carries the route it performs"
+
+
+def test_the_record_rungs_open_shut(tmp_path: Path) -> None:
+    """Edwin: *"the other views hide completed items, so you can only see the
+    next/current items to work on."* A ladder is mostly behind you."""
+    root = _repo(tmp_path, remote="https://github.com/e/x.git")
+    _release(root, "REL-0001", "released", "1.0.0")
+    groups = {
+        g["key"]: g for g in cockpit.nav_payload(
+            Index.build(root / "docs"), "publication", project_root=root,
+        )["groups"]
+    }
+    assert groups["rung-release"]["default_open"] is False
+    assert groups["rung-commit"]["default_open"] is False
+    # …and what is still to do stays open.
+    assert groups["rung-push"].get("default_open") is not False
+
+
+def test_the_commit_rung_does_not_say_the_opposite_of_its_count(
+    tmp_path: Path,
+) -> None:
+    """It read `Committed · 42` about 42 notes that were NOT committed."""
+    root = _repo(tmp_path)
+    (root / "docs" / "extra.md").write_text("dirty\n", encoding="utf-8")
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    commit = next(g for g in groups if g["key"] == "rung-commit")
+    assert commit["label"].startswith("To commit"), commit["label"]

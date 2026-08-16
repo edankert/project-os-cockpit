@@ -283,7 +283,13 @@ def ladder(project_root: Path, index: "Index") -> list[Rung]:
                 continue
             rows.append({
                 "id": tag["name"], "title": "tag with no release note",
-                "status": "", "detail": tag["when"], "rel": "", "tagged": True,
+                # `released` rather than blank: a tag IS a thing that shipped,
+                # and an empty status made the whole rung read as open work,
+                # so the record never folded away (Edwin: *"the other views
+                # hide completed items, so you can only see the next/current
+                # items to work on"*).
+                "status": "released", "detail": tag["when"], "rel": "",
+                "tagged": True,
             })
         draft = preparing(index)
         rungs.append(Rung(

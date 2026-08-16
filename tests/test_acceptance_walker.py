@@ -269,15 +269,32 @@ def test_the_gate_still_contributes_one_obligation_never_sixty(
     assert len(gate) == 1
 
 
-def test_the_controls_appear_when_they_apply(tmp_path: Path) -> None:
+def test_the_controls_live_where_their_subject_is(tmp_path: Path) -> None:
+    """**Rewritten.** Both controls used to sit on the gate's header, and
+    Edwin said the walk button *"looks totally out of place there"*.
+
+    A header is the name of a set, not a place to act on one of its members.
+    `Walk` is the action on the gate's OBLIGATION and rides that row in
+    `Needs you`; `Prepare release…` belongs to the rung that holds the
+    releases, because its subject is the release list.
+    """
     docs = _docs(tmp_path)
-    group = _gate_group(docs)
-    assert group["walk"] is True, "unchecked rows can be walked"
-    assert group["prepare_release"] is True, "nothing is in preparation"
-    _release(docs, "REL-0001", "draft", "1.0.0")
-    group = _gate_group(docs)
-    assert group["walk"] is True
-    assert "prepare_release" not in group, "one is already in preparation"
+    groups = {
+        g["key"]: g for g in cockpit.nav_payload(
+            Index.build(docs), "publication", project_root=docs.parent,
+        )["groups"]
+    }
+    assert "walk" not in groups["release-gate"]
+    assert "prepare_release" not in groups["release-gate"]
+    # Nothing in preparation, and no release rung at all in this fixture —
+    # so the control has nowhere to live yet, which is correct.
+    _release(docs, "REL-0001", "released", "1.0.0")
+    groups = {
+        g["key"]: g for g in cockpit.nav_payload(
+            Index.build(docs), "publication", project_root=docs.parent,
+        )["groups"]
+    }
+    assert groups["rung-release"]["prepare_release"] is True
 
 
 def test_the_walk_routes_are_loopback_guarded() -> None:

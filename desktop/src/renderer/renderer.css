@@ -5580,3 +5580,18 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
 /* The gate's controls sit on its summary row (FEAT-0103) — reachable without
    expanding sixty rows, which is what "I can't see or execute the set" meant. */
 .nav-group-action { flex: none; margin-left: 8px; font-size: 11px; padding: 0 8px; }
+
+/* The registry's verb, on the owed row (FEAT-0103). Every owed row has named
+   a verb since the registry shipped and no surface drew one — so the action
+   had to be hunted for, and `Walk` ended up on a group header where Edwin
+   rightly said it looked out of place. */
+.nav-row-action {
+  flex: none; margin-left: 6px; padding: 0 7px; border-radius: 5px;
+  border: 1px solid var(--accent-link); background: transparent;
+  color: var(--accent-link); font: inherit; font-size: 10px; cursor: pointer;
+}
+.nav-row-action:hover { background: var(--accent-link); color: var(--surface-2); }
+.nav-row-verb {
+  flex: none; margin-left: 6px; font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}

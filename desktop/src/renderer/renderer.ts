@@ -3326,6 +3326,16 @@ interface NavItem {
    *  say it once instead of every row repeating it (TASK-0272). Client
    *  state, never sent by the server. */
   chipSuppressed?: boolean;
+  /** This row is an obligation, and the registry's verb for it. The verb is
+   *  the SERVER's (TASK-0357) — the renderer picks a string, it does not own
+   *  a vocabulary. */
+  owed?: boolean;
+  owed_verb?: string;
+  /** The route the verb performs, when the registry can name one. A row
+   *  without it simply opens its subject, which is what every owed row did
+   *  before FEAT-0103 — the verb was displayed nowhere and the action had to
+   *  be found. */
+  action?: string;
 }
 
 interface NavGroupData {
@@ -3354,8 +3364,6 @@ interface NavGroupData {
   /** The registry's verb for a group that asks. */
   owed_verb?: string;
   needs_human?: boolean;
-  /** The release gate has unchecked rows, so it can be walked (FEAT-0103). */
-  walk?: boolean;
   /** No release is in preparation, so one can be declared. */
   prepare_release?: boolean;
 }
@@ -9390,6 +9398,33 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
   // Suppressed when the whole group shares one status — the head says it
   // once instead (TASK-0272).
   if (!item.chipSuppressed) appendIf(line, statusChip(item.status));
+
+  // The registry's verb, ON THE ROW (FEAT-0103). Every owed row has named a
+  // verb since the registry shipped and no surface has ever drawn one, so the
+  // action always had to be found somewhere else — which is how `Walk` ended
+  // up stranded on a group header. Only rows the registry can route get a
+  // button; the rest keep their verb as a label, which is still more than the
+  // nothing they showed before.
+  if (item.owed && item.owed_verb) {
+    if (item.action) {
+      const act = document.createElement('button');
+      act.type = 'button';
+      act.className = 'nav-row-action';
+      act.textContent = `${item.owed_verb} ▸`;
+      act.title = `${item.owed_verb} — ${item.title || ''}`;
+      const route = item.action;
+      act.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        void navigateTo(route);
+      });
+      line.appendChild(act);
+    } else {
+      const verb = document.createElement('span');
+      verb.className = 'nav-row-verb';
+      verb.textContent = item.owed_verb;
+      line.appendChild(verb);
+    }
+  }
   card.appendChild(line);
 
   if (rel) {
@@ -9847,21 +9882,10 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // infer why — which for the quiet group is exactly the thing it exists to
   // prevent, and for a refused rung is the difference between "nothing to
   // deploy" and "deploying is not something this tool will do".
-  // The gate's own controls (FEAT-0103). On the SUMMARY, so they are reachable
-  // without expanding sixty rows — Edwin's report was that he could not see or
-  // execute the set, and a control buried under the list answers neither.
-  if (group.walk) {
-    const walk = document.createElement('button');
-    walk.type = 'button';
-    walk.className = 'review-btn is-primary nav-group-action';
-    walk.textContent = 'Walk ▸';
-    walk.title = 'Step through the unchecked checks one at a time';
-    walk.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      void navigateTo('~walk');
-    });
-    summary.appendChild(walk);
-  }
+  // The gate's `Walk` control is NOT here. It is the action on the gate's
+  // obligation, so it rides that row in `Needs you` — Edwin: *"that walk
+  // button looks totally out of place there"*, and he is right: a header is
+  // the name of a set, not a place to act on one of its members.
   if (group.prepare_release) {
     const prep = document.createElement('button');
     prep.type = 'button';
