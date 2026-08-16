@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-034
 aliases: ["PHASE-034"]
 title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-status: done
+status: active
 order: 34
 owner: user:edwin
 created: 2026-08-16
@@ -19,6 +19,10 @@ features:
   - "[[FEAT-0105-There-Is-Always-A-Release]]"
   - "[[FEAT-0106-The-Release-Page]]"
   - "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"
+  - "[[FEAT-0108-The-Gate-Is-A-Delta-Not-A-Census]]"
+  - "[[FEAT-0109-A-Shipped-Release-Reports-What-It-Kept]]"
+  - "[[FEAT-0110-Still-Owed-By-A-Shipped-Release]]"
+  - "[[FEAT-0111-The-Marks-The-Record-Already-Uses]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
@@ -27,6 +31,8 @@ issues:
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
+  - "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]"
+  - "[[ISS-0183-The-Canonical-Machine-Readable-File-Did-Not-Parse]]"
 requirements: []
 tasks: []
 depends: []
@@ -230,3 +236,54 @@ Five items are parked in the sentinel with their reasoning intact. `deferred` is
 - **[[ISS-0178]] deferred, upstream.** A test has no terminal status, so a test whose subject is deleted cannot be retired at all.
 - **Documentation state** — Edwin named it as part of his model and it is not built. It maps to `changes:`, empty in every repo in the fleet, and deriving it is a design question rather than a lookup.
 - **The independent review's verdicts stand at `changes-requested`** on the phase and five features. They are not flipped: the author does not judge his own work, and what those verdicts describe is true of what was shipped at the time they were written.
+
+## Reopened 2026-08-16 — the functionality review, and four features it produced
+
+Edwin, after the third close: *"I asked for a functionality review, not for a code review, document these reported issues and then start an independent functionality review with a goal to come up with some new/novel ways to support this new release functionality."*
+
+The review was run with an explicit brief **off** correctness and onto design — what a person does on release day and where the tool is absent, what the record already knows and could infer, what is risky and could be made visible. It read `../your-trainer`'s twelve real releases end to end, ran **this repo's own parser against all twelve git tags**, and returned ten proposals. Four features are opened from them. Everything below was re-measured here before being written down, and the review's own two errors are recorded rather than inherited.
+
+### The finding that reframes the gate
+
+`acceptance.parse` against `git show <tag>:docs/tests/ACCEPTANCE_TESTS.md`, twelve tags:
+
+```
+v1.1.0  1 blocking · v1.1.20 15 · v1.1.53 85 · v1.1.55 130
+v2.0.0 22 · v2.0.5 47 · v2.1.0 47 · v2.1.6 47 · HEAD 60
+```
+
+**Twelve releases, twelve blocked ships.** *"Release blocked — 60 unchecked"* is not news; it is the steady state, and today's 60 is not even elevated. A sentence that has been correct and ignored twelve times is one the reader has learned to skip. That is [[FEAT-0108]], and its answer is the delta — 13 new, 47 chronic, 0 regressed — plus the 20 rows whose subject is `backlog` and which [[ADR-0028]] decision 3 already said should be quiet.
+
+### What the surface asserts that is not true
+
+[[FEAT-0109]]. `REL-0012` names `TST-0011` under the heading *"Acceptance tests as executed"*. TST-0011 has **18 checkboxes, all unticked, and 18 blank evidence slots**. And `last_verified` equals `created` in **15 of the 16** TST notes carrying it — the field has never recorded a verification anywhere, which retires this project's earlier and weaker statement that *11 of 21 were verified before their features last moved*.
+
+### The one with a consequence outside the documentation system
+
+[[FEAT-0110]]. Eight release notes carry `## Post-Release Actions` with **37 unticked boxes**, and the release page — which already reads `## Known issues` from the same note — walks past the only section containing outstanding work. Four boxes are provably done, three provably open, one unknowable.
+
+### What was already in the record and got invented again
+
+[[FEAT-0111]]. [[ISS-0181]] items 1 and 2 asked for a mark meaning *intentionally left open* and a way to attach text. Both exist in `../your-trainer` — `[~]` and `[F]`, with `**<Verdict> <date>** — <reason> [[ISS-…]]`, and `✅ (<witness>)` used 22 times. This repo invented `[!]` for the same purpose in a form no suite writes. **Items 3 and 4 of [[ISS-0181]] are not addressed** and the issue stays open, re-homed here from [[PHASE-999]].
+
+## Found in the fleet — needs filing elsewhere, not fixed here
+
+Four defects in **other repos**, found by this review. They are recorded here because this work found them and because two of them are the evidence [[FEAT-0109]] and [[FEAT-0110]] stand on. **None is filed yet** — they belong in the repos that own them, and that is Edwin's call.
+
+1. **Two of seven store artifacts do not parse.** `REL-0007-v2.0.0-play-store-descriptions.xml` and `REL-0009-v2.0.4-play-store-listing.xml`, both ending with leaked tool-call closing tags (`</release-notes></content></invoke>`) after the root element. The declared source of truth for store copy in ten locales, one of them the file the public 2.0 announcement was cut from.
+2. **A warning is live 85 days after its fix shipped.** `../your-applications.com/public/your-trainer/compatibility.json` still reads `investigation_status: "investigating"` for two trainers. `REL-0010` (v2.0.5, 2026-05-23) says to retire it, in an unticked checkbox.
+3. **The public release-notes page stops at v2.0.2**, *"Last updated: 2026-05-21"*. Three shipped releases absent — and that repo is the deploy-only one, so fixing it still does not publish it.
+4. **`published` is instructed as a release status in four release notes** and is not one — `STATUSES.md` allows `draft`, `released`, `reverted`. A **template** defect, upstream.
+
+## Standing questions this reopen does not answer
+
+- **The gate under-reports by 53.** 54 checks carry a `RE-RUN (TASK-####: reason)` annotation and 53 are still ticked, so the honest blocking number is 113. [[TASK-0448]] puts it on the page with its number; whether stale evidence should *block* is a change to what shipping means and is deliberately left to Edwin.
+- **`TESTING.md` rule 5 has never been executed** in twelve releases — 68 Tier 3 rows and 54 annotations survive a rule that says a verified release clears them.
+- **A feature's acceptance criteria are still unguarded.** The validator has `REQ-BOXES` and `PHASE-BOXES` and no equivalent for a feature. This is the systemic finding of the first three closes, it is why [[FEAT-0105]] and [[FEAT-0106]] closed at zero ticked criteria, and it is still unfixed. The four features opened here carry criteria that nothing will check.
+- **The review's ranking placed a run-plan generator and a fleet blast-radius panel above these four.** Both are real and neither is opened: the first needs ordering heuristics that would harden guesses into false precision, the second needs cross-repo write reasoning this phase has no decision for.
+
+## Two corrections the review made to itself, recorded so they are not re-made
+
+**`ACCEPTANCE_TESTS_v2.1.0.md` is not a snapshot.** It was first proposed for retirement as a hand-copy that git already holds. It shares **zero of its 300 check titles** with the living suite and says in its own header that it is a *delta* — an independent per-release suite with its own gate rules and a `# Pending — required before tag` section. Retiring it would have deleted a load-bearing artifact. The corrected reading is stronger: it is the shape [[FEAT-0108]] should eventually generate.
+
+**`[~]` and `[F]` had been reported as never used.** True of `ACCEPTANCE_TESTS.md` at all twelve tags, which is what was measured; false of the corpus, where seven rows use them with a consistent grammar. [[FEAT-0111]] exists because the second measurement was taken.

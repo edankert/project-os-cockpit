@@ -39,3 +39,51 @@ Taken 2026-08-16 across all twelve discovered repos. They are claims about the w
 ## How this is verified
 
 [[TST-0027]] walks the ladder across every discovered repo and asserts non-emptiness and correct degradation — the claim that cannot be made from fixtures. [[TST-0028]] asserts the gate names its number, contributes one obligation while a release is `draft` and none otherwise, and that no path from this view can push a deploy remote.
+
+---
+
+## Round four, 2026-08-16 — what the functionality review opened
+
+Four features, ten tasks, and they split cleanly by **which page they change**. That split is the plan: Edwin's own words on the third round were that he could not relate the proposals to the current functionality, and the answer was to stop describing capabilities and start describing the two pages he opens.
+
+### Page 1 — "Next release"
+
+[[FEAT-0108]]. The gate stops being a census.
+
+1. **[[TASK-0446]] — the suite at the last tag.** First, because everything else on this page is a diff against it, and because the degradation paths are most of the work: eleven of twelve repos have no tags at all.
+2. **[[TASK-0447]] — the in-flight rule reaches acceptance rows.** Independent of 1 and can land alone; it is finishing [[ADR-0028]] decision 3, not a new rule. Smallest change with the largest effect on the number: 60 → 40.
+3. **[[TASK-0448]] — a ticked row annotated `RE-RUN` is not evidence.** Independent. Puts the missing 53 on the page without deciding whether they block.
+4. **[[TASK-0449]] — order the walk by setup cost.** Last, needs 1, and the least certain: its schema exists in exactly one note.
+
+### Page 2 — a shipped release
+
+[[FEAT-0109]] and [[FEAT-0110]]. Both are reads of notes the page already opens.
+
+5. **[[TASK-0450]] — grade the evidence behind `tests_verified`.** Twenty lines. Stops a heading asserting something false.
+6. **[[TASK-0451]] — a published artifact is checkable.** Four lines of stdlib XML. Catches two corrupt files today.
+7. **[[TASK-0452]] → [[TASK-0453]] — the post-release checklist, read then verified.** The only work here with a consequence outside the documentation system.
+
+### The marks
+
+[[FEAT-0111]]. **[[TASK-0454]] → [[TASK-0455]]**, in that order — read and write the marks, then attach the verdict and the witness. Closes [[ISS-0181]] items 1 and 2 only.
+
+### Order
+
+2, 3, 5, 6 are independent and small; any can land first. 1 gates 4; 7 is a pair; the marks are a pair. **Nothing here depends on anything in rounds one to three** beyond what already shipped.
+
+### The measurements this round stands on
+
+Taken 2026-08-16 against `../your-trainer` and its twelve tags. Claims about the world — if they have drifted when this is built, the design is re-checked rather than the numbers restated:
+
+- twelve tags, twelve blocked ships; 1 → 130 → 60, median 26
+- today's 60 = 13 new · 47 chronic · 0 regressed; 20 of them quiet under [[ADR-0028]] decision 3
+- 54 `RE-RUN` annotations, 53 still ticked — honest blocking number 113
+- `last_verified == created` in 15 of 16 TST notes; REL-0012 → TST-0011 at 0/18 walked, 0 evidence
+- 2 of 7 store artifacts do not parse; 8 release notes, 37 unticked post-release boxes
+- 6 `[~]` and 1 `[F]` already in use, 22 witnesses in the v2.1.1 checklist
+
+### How this round is verified
+
+Against `../your-trainer`'s **real tags and real notes**, not only fixtures. The central claims are about twelve actual releases and a fixture cannot carry them; fixtures cover the degradation paths the live repo does not exhibit — no tags, no previous release, a section inserted above a check, a malformed artifact, a lazy-continuation task list.
+
+Mutations are named in each task **now**, before the guards are written, because this phase has already had guards mutation-tested with mutations their author had in mind while writing them.

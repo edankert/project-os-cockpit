@@ -4,7 +4,7 @@ id: ISS-0181
 aliases: ["ISS-0181"]
 title: "Four things the release surface cannot do — mark a check intentionally left open, attach text to one, edit without the page reloading under you, or complete a release"
 status: "open"
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 owner: user:edwin
 created: 2026-08-16
 updated: 2026-08-16
@@ -12,7 +12,7 @@ source: ["Edwin 2026-08-16, using the rebuilt Publication view: 'The acceptance 
 severity: high
 component: desktop-renderer
 parent: ""
-related: ["[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]", "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"]
+related: ["[[FEAT-0111-The-Marks-The-Record-Already-Uses]]", "[[FEAT-0110-Still-Owed-By-A-Shipped-Release]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]", "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"]
 tests: []
 ---
 
@@ -39,3 +39,15 @@ Ticking a checkbox writes the file, the watcher fires, and the page re-renders. 
 The lifecycle is `open → preparing → released` and **nothing performs the last transition**. `TESTING.md` rule 5 says what shipping actually entails — Tier 3 tests removed, `RE-RUN` annotations cleared — and `features:` freezing and the acceptance-test snapshot being recorded are two more. All manual, which is why 5 of `your-trainer`'s 12 releases have `tests_verified:` empty and 53 stale `RE-RUN` annotations have accumulated.
 
 Edwin's suggestion: do it from the release note.
+
+## Routed 2026-08-16 — two of four have a home, two do not
+
+Re-homed from [[PHASE-999]] to [[PHASE-034]], which reopened for the functionality review this issue helped trigger. **The issue stays `open`**: only half of it is planned.
+
+**Items 1 and 2 → [[FEAT-0111]], and they are smaller than they looked.** Both the mark and the text slot already exist in `../your-trainer`'s own suites — `[~]` and `[F]`, with `**<Verdict> <date>** — <reason> [[ISS-…]]`, and `✅ (<witness>)` used 22 times in `ACCEPTANCE_CHECKLIST_v2.1.1.md`. This repo invented `[!]` for the same purpose in a form no suite writes. There is nothing to design; the buttons write the grammar Edwin already writes by hand.
+
+**Item 3, the save/reload interruption, has no home yet.** It is an editing-interaction problem — tick, write, watcher, re-render — and belongs to the file-watch path rather than to the vocabulary. Not planned here, and not quietly attached to [[FEAT-0111]] to make this issue look resolved.
+
+**Item 4, completing a release, is half-covered.** [[FEAT-0110]] supplies the *after* — the post-release checklist read and verified — but the ship transition itself needs [[FEAT-0108]] and [[FEAT-0109]] underneath it and is deliberately not planned.
+
+Said explicitly because this phase has already closed two features at zero ticked criteria: an issue that is half-fixed is open.

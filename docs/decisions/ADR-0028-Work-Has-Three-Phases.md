@@ -150,3 +150,18 @@ REL-0012-v2.1.6-play-store-listing.xml     … 7 in all
 Blessed here rather than inferred by a regex somebody wrote, because the convention held for seven files and existed nowhere but in Edwin's habit — and reading a convention is agreeing to it. A project that wants artifacts elsewhere can say so later; this decides the default, not the only way.
 
 **Not decided: documentation state.** Edwin named it — *"what documentation needs to be updated"* — and it maps to `changes:` on the release template, which is empty in every repo in the fleet. Deriving it from `CHG-*` notes since the last release is a real design question rather than a lookup, and guessing at it here would be the fourth mechanism this phase invented for something the record might already answer.
+
+## Amendment, 2026-08-16 — decision 3 reaches acceptance rows
+
+Decision 3 says an obligation asks only while its subject is in flight. It was implemented for requirements and manual tests and **not for acceptance rows**, which are the population this ADR was written about.
+
+The cost was measured on 2026-08-16: **20 of `../your-trainer`'s 60 blocking acceptance rows are §1.25 Trainer Compatibility, whose feature FEAT-0074 is `backlog`.** Those checks describe a screen that does not exist, and asking a person to walk them is exactly the self-re-arming badge [[ADR-0027]] refuses.
+
+The rule now applies to a blocking acceptance row, resolved through the `refs` its section heading names ([[ISS-0173]] made those readable — 60 of 60 resolve):
+
+- **In flight if any subject is in flight.** A row naming several subjects is walkable while one of them is live.
+- **No subject, or a subject that does not resolve, is blocking.** Absence of a link is not evidence of rest, and this is the direction that fails safe.
+- **A `done` subject rests.** 13 of the 60 name a `done` feature; those go quiet too. A shipped feature's unchecked rows are chronic debt rather than release-day work, and that is what the delta in [[FEAT-0108]] calls them.
+- **Derived silence stays inspectable** (decision 5): the quiet group expands and every row names its subject and that subject's status.
+
+This is not a new decision. It is finishing the application of one already accepted, and it is recorded because the gap between the decision and its implementation survived a phase close, an independent review and two reopens.
