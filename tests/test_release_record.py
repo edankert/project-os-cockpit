@@ -86,15 +86,15 @@ def test_the_known_issues_section_is_surfaced(tmp_path: Path) -> None:
     _rel(docs, "REL-0001", "released", "1.0.0",
          body="\n## Known issues (shipping with)\n\nISS-0347 unfixed.\n\n## Next\n\nnot this.")
     d = publication.release_payload(docs.parent, Index.build(docs), "REL-0001")
-    assert "ISS-0347 unfixed." in d["known_issues"]
-    assert "not this" not in d["known_issues"]
+    assert "ISS-0347 unfixed." in d["known_issues_html"]
+    assert "not this" not in d["known_issues_html"]
 
 
 def test_a_release_with_no_such_section_reports_nothing(tmp_path: Path) -> None:
     docs = _docs(tmp_path)
     _rel(docs, "REL-0001", "released", "1.0.0", body="\n## Scope\n\nstuff.")
     d = publication.release_payload(docs.parent, Index.build(docs), "REL-0001")
-    assert d["known_issues"] == ""
+    assert d["known_issues_html"] == ""
 
 
 # ---- what it published ---------------------------------------------------
@@ -171,7 +171,8 @@ def test_the_record_your_trainer_already_kept_is_readable() -> None:
         "TST-0014-EdgeToEdgeInsetAcceptance",
     ]
     assert [a["kind"] for a in d["artifacts"]] == ["play store listing"]
-    assert "ISS-0347" in d["known_issues"]
+    assert "ISS-0347" in d["known_issues_html"]
+    assert "<table" in d["known_issues_html"], "the table is RENDERED, not printed"
     assert d["gate"] == {}, "a release shipped in July shows no live gate"
 
 
@@ -257,7 +258,8 @@ def test_the_next_release_does_not_read_as_settled(tmp_path: Path) -> None:
     )["groups"]
     nxt = groups[0]
     assert nxt["key"] == "release-next", "the next release comes first"
-    assert all(i["status"] == "ready" for i in nxt["items"]), \
+    rows = [i for sg in nxt["subgroups"] for i in sg["items"]]
+    assert all(i["status"] == "ready" for i in rows), \
         "a row's status is its state IN THIS RELEASE, not the note's own"
 
 
@@ -270,7 +272,8 @@ def test_a_shipped_release_reads_as_settled(tmp_path: Path) -> None:
         )["groups"]
     }
     shipped = groups["release-REL-0001"]
-    assert all(i["status"] == "released" for i in shipped["items"])
+    rows = [i for sg in shipped["subgroups"] for i in sg["items"]]
+    assert all(i["status"] == "released" for i in rows)
     assert shipped["default_open"] is False
 
 
@@ -303,17 +306,22 @@ def test_a_release_carries_its_tests_and_artifacts_in_the_navigator(
             Index.build(docs), "publication", project_root=docs.parent,
         )["groups"]
     }
-    rows = groups["release-REL-0001"]["items"]
-    assert any(r["type"] == "test" and "ACCEPTANCE" in r["title"] for r in rows)
-    assert any(r["title"].endswith(".xml") for r in rows)
+    # Grouped by type now (ISS-0180): Features / Issues / Acceptance tests /
+    # Documents, rather than one flat list where a play-store XML sat between
+    # a feature and a test.
+    subs = {sg["label"].split(" ·")[0]: sg
+            for sg in groups["release-REL-0001"]["subgroups"]}
+    assert "Acceptance tests" in subs and "Documents" in subs, sorted(subs)
+    assert any("ACCEPTANCE" in i["title"] for i in subs["Acceptance tests"]["items"])
+    assert any(i["title"].endswith(".xml") for i in subs["Documents"]["items"])
 
 
-def test_the_next_release_carries_the_living_suite(tmp_path: Path) -> None:
+def test_the_next_release_carries_all_the_acceptance_tests(tmp_path: Path) -> None:
     docs = _docs(tmp_path)
     groups = cockpit.nav_payload(
         Index.build(docs), "publication", project_root=docs.parent,
     )["groups"]
-    rows = groups[0]["items"]
+    rows = [i for sg in groups[0]["subgroups"] for i in sg["items"]]
     assert any(r["url"] == "/docs/tests/ACCEPTANCE_TESTS.md" for r in rows)
 
 

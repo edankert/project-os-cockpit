@@ -1622,7 +1622,7 @@ async function mountReleaseGate(): Promise<void> {
   if (!gate.exists) {
     band.classList.add('is-unknown');
     band.append(
-      gateLine('No acceptance suite in this repo — the gate cannot be evaluated.'),
+      gateLine('No acceptance tests in this repo — the gate cannot be evaluated.'),
       gateNote(`Scaffold ${'docs/tests/ACCEPTANCE_TESTS.md'} from `
         + 'docs/__templates__/acceptance-tests.md to turn it on.'),
     );
@@ -6865,8 +6865,10 @@ interface ReleasePayload {
    *  any TST notes. From `tests_verified:`, which twelve releases have been
    *  filling in by hand and nothing has ever read (FEAT-0107). */
   tests_verified?: Array<{ id: string; rel: string }>;
-  /** The note's own known-issues section — what it shipped with unfixed. */
-  known_issues?: string;
+  /** The note's own known-issues section as HTML — what it shipped with
+   *  unfixed. Rendered server-side through the one markdown pipeline, because
+   *  as raw text a table displayed as a column of pipe characters. */
+  known_issues_html?: string;
   /** Platform texts beside the note, found by the naming convention. */
   artifacts?: Array<{ name: string; kind: string; rel: string }>;
   stale_drafts?: Array<{ id: string; version: string; rel: string }>;
@@ -7079,16 +7081,18 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     wrap.appendChild(t);
   }
 
-  if (d.known_issues) {
+  if (d.known_issues_html) {
     const k = document.createElement('section');
     k.className = 'release-section';
     const kh = document.createElement('h3');
     kh.textContent = 'Shipped with';
     k.appendChild(kh);
-    const pre = document.createElement('div');
-    pre.className = 'release-known meta';
-    pre.textContent = d.known_issues;
-    k.appendChild(pre);
+    const box = document.createElement('div');
+    // `doc-view` so the pane's own table and link styling applies — the same
+    // rules the note itself renders under, rather than a second set.
+    box.className = 'release-known doc-view';
+    box.innerHTML = d.known_issues_html;
+    k.appendChild(box);
     wrap.appendChild(k);
   }
 
@@ -7134,7 +7138,7 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     const open = document.createElement('button');
     open.type = 'button';
     open.className = 'review-btn is-primary';
-    open.textContent = 'Open the suite';
+    open.textContent = 'Open the acceptance tests';
     open.addEventListener('click', () => {
       void navigateTo(`/docs/${d.gate.rel}`);
     });

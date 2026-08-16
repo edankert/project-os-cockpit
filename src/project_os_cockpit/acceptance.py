@@ -470,11 +470,11 @@ def rewrite_check(
     """
     found = locate(text, number)
     if found is None:
-        raise LookupError(f"{number} does not resolve to a check in this suite")
+        raise LookupError(f"{number} does not resolve to a check in the acceptance tests")
     line_no, item = found
     if item.name != name:
         raise LookupError(
-            f"{number} is now {item.name!r}, not {name!r} — the suite moved "
+            f"{number} is now {item.name!r}, not {name!r} — the acceptance tests moved "
             "underneath this walk",
         )
     if item.reconciled:

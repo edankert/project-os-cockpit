@@ -540,7 +540,7 @@ NOTE_LESS[GATE_OBLIGATION_KIND] = NoteLessObligation(
     view=VIEW_PUBLICATION,
     verb="Walk",
     rows=_gate_rows,
-    predicate="a release at `draft` whose acceptance suite still has unchecked "
+    predicate="a release at `draft` whose acceptance tests still have unchecked "
               "Tier 1/2 items — ONE row for the campaign, never one per check",
 )
 

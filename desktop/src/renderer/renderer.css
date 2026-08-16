@@ -5635,7 +5635,7 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .release-section { margin-top: 26px; }
 .release-section h3 { margin: 0 0 4px; font-size: 14px; }
 .release-section .review-btn { margin: 8px 0; }
-.release-known { white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
+.release-known { font-size: 12px; line-height: 1.5; }
 
 /* Tables in the centre pane (ISS-0179). `base.css` styles `.content table`,
    which is the BROWSER cockpit's wrapper class; `#doc-view` carries

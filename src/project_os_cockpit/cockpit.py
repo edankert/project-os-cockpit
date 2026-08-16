@@ -4141,6 +4141,11 @@ def _publication_groups(
     )
     if since_id:
         label = f"{label} · since {since_id}"
+    _next_content = _release_content_rows(
+        index,
+        [str(row.get("id") or "") for row in (unshipped.get("items") or [])],
+        held, row_status="ready", shipped=False,
+    )
     out.append({
         "key": "release-next",
         "label": label,
@@ -4161,11 +4166,16 @@ def _publication_groups(
         # The status a row carries here is its state IN THIS RELEASE — these
         # are done-but-unshipped, so from the release's point of view they are
         # pending, not finished.
-        "items": _release_content_rows(
-            index,
-            [str(row.get("id") or "") for row in (unshipped.get("items") or [])],
-            held, row_status="ready", shipped=False,
-        ),
+        # A repo with nothing unshipped and no release note has no subgroups
+        # at all, and a group with neither items nor subgroups renders
+        # NOTHING — so the whole view would be blank in a project that has
+        # simply not released anything yet. It says so instead.
+        "items": ([] if _next_content else [{
+            "id": "", "title": "Nothing unshipped",
+            "subtitle": "no features are waiting on a release",
+            "status": "", "type": "release", "url": "~release/next",
+        }]),
+        "subgroups": _next_content,
     })
 
     # ---- what has shipped, newest first ----------------------------------
@@ -4183,7 +4193,8 @@ def _publication_groups(
             "status": "released",
             "type": "release",
             "item_layout": "stacked",
-            "items": _release_content_rows(
+            "items": [],
+            "subgroups": _release_content_rows(
                 index, [_first_id(f) for f in release["features"]],
                 release, row_status="released", shipped=True,
             ),
@@ -4212,60 +4223,94 @@ def _release_content_rows(
     index: Index, feature_ids: list[str], release: dict[str, Any] | None,
     *, row_status: str, shipped: bool,
 ) -> list[dict[str, Any]]:
-    """A release's own content: its features, its acceptance tests, its files.
+    """A release's own content, **grouped by what each thing is** (ISS-0180).
 
-    Edwin: *"the acceptance tests are not available in the left hand"* and
-    *"the other release files are also not available there"*. A release's
-    content is not only its features — it is what verified it and what it
-    published, and both were already in the record and reachable only from the
-    page.
+    Edwin: *"I would like the acceptance tests (and other documents, tests,
+    issues etc …) to be accessible from the left pane. You can group the
+    features and other such ticket types together?"*
+
+    So a release's group carries subgroups — Features, Issues, Acceptance
+    tests, Documents — rather than one flat list where a play-store XML sat
+    between a feature and a test. The nav already renders `subgroups`; this is
+    the shape `_features_groups` uses for a phase.
+
+    Everything here is in the record already and was reachable only from the
+    page: `features:`, `issues:` and the `ISS-*` a release's `related:` names,
+    `tests_verified:`, and the files beside the note.
     """
     from . import publication as _pub
 
-    rows: list[dict[str, Any]] = []
-    for fid in feature_ids:
-        if not fid:
-            continue
-        rows.append({
-            "id": fid, "title": _title_for_id(index, fid) or fid,
-            "subtitle": "", "status": row_status, "type": "feature",
-            "url": _rel_for_id(index, fid),
-        })
-    # The acceptance tests this release names — the suite snapshot it shipped
-    # against, and any TST notes. Live suite for one that has not shipped.
-    for raw in (release or {}).get("tests_verified") or []:
-        tid = _wikilink_target(str(raw))
-        rows.append({
-            "id": tid, "title": _title_for_id(index, tid) or tid,
-            "subtitle": "verified", "status": row_status, "type": "test",
-            "url": _rel_for_id(index, tid),
-        })
-    if not shipped:
-        rows.append({
-            "id": "", "title": "ACCEPTANCE_TESTS.md",
-            "subtitle": "the living suite", "status": "ready", "type": "test",
-            "url": "/docs/tests/ACCEPTANCE_TESTS.md",
-        })
-    # And what it published, by the convention ADR-0028 blesses.
+    def row(nid: str, kind: str, subtitle: str = "") -> dict[str, Any]:
+        return {
+            "id": nid, "title": _title_for_id(index, nid) or nid,
+            "subtitle": subtitle, "status": row_status, "type": kind,
+            "url": _rel_for_id(index, nid),
+        }
+
+    record = None
     if release and release.get("id"):
-        for art in _pub.artifacts_for(index.docs_root, str(release["id"])):
-            rows.append({
-                "id": "", "title": art["name"], "subtitle": art["kind"],
-                "status": row_status, "type": "change",
-                "url": f"/docs/{art['rel']}",
-            })
-    if rows:
-        return rows
-    # A release that recorded nothing still opens its own note — a row that
-    # does not respond to a click reads as broken rather than as empty
-    # (ISS-0174, and the same mistake would have shipped again here).
-    rel = (release or {}).get("rel") or ""
-    return [{
-        "id": (release or {}).get("id", ""), "title": "nothing recorded",
-        "subtitle": "no features, tests or artifacts named",
-        "status": row_status, "type": "release",
-        "url": f"/docs/{rel}" if rel else None,
-    }]
+        path = index.by_id(str(release["id"]))
+        record = index.get(path) if path is not None else None
+
+    groups: list[dict[str, Any]] = []
+
+    features = [row(f, "feature") for f in feature_ids if f]
+    if features:
+        groups.append({"key": "rel-features", "label": f"Features · {len(features)}",
+                       "url": None, "status": None, "item_layout": "stacked",
+                       "items": features})
+
+    # Issues: the `issues:` field, plus any `ISS-*` the note relates to. A
+    # release note names the issues it closed and the ones it shipped around,
+    # and both are the reader's question.
+    seen: set[str] = set()
+    issues: list[dict[str, Any]] = []
+    if record is not None:
+        for field in ("issues", "related"):
+            for raw in record.frontmatter.get(field) or []:
+                for found in re.findall(r"(ISS-\d{3,4})", str(raw)):
+                    if found not in seen:
+                        seen.add(found)
+                        issues.append(row(found, "issue"))
+    if issues:
+        groups.append({"key": "rel-issues", "label": f"Issues · {len(issues)}",
+                       "url": None, "status": None, "item_layout": "stacked",
+                       "items": issues})
+
+    tests = [
+        row(_wikilink_target(str(raw)), "test", "verified")
+        for raw in (release or {}).get("tests_verified") or []
+    ]
+    if not shipped:
+        tests.append({
+            "id": "", "title": "ACCEPTANCE_TESTS.md",
+            "subtitle": "all acceptance tests", "status": "ready",
+            "type": "test", "url": "/docs/tests/ACCEPTANCE_TESTS.md",
+        })
+    if tests:
+        groups.append({"key": "rel-tests",
+                       "label": f"Acceptance tests · {len(tests)}",
+                       "url": None, "status": None, "item_layout": "stacked",
+                       "items": tests})
+
+    docs: list[dict[str, Any]] = []
+    if release and release.get("rel"):
+        docs.append({
+            "id": str(release.get("id") or ""), "title": "Release note",
+            "subtitle": "", "status": row_status, "type": "release",
+            "url": f"/docs/{release['rel']}",
+        })
+    for art in _pub.artifacts_for(index.docs_root, str((release or {}).get("id") or "")):
+        docs.append({
+            "id": "", "title": art["name"], "subtitle": art["kind"],
+            "status": row_status, "type": "change",
+            "url": f"/docs/{art['rel']}",
+        })
+    if docs:
+        groups.append({"key": "rel-docs", "label": f"Documents · {len(docs)}",
+                       "url": None, "status": None, "item_layout": "stacked",
+                       "items": docs})
+    return groups
 
 
 def _wikilink_target(raw: str) -> str:

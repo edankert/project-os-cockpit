@@ -241,7 +241,10 @@ def test_the_publication_view_renders_in_every_repo() -> None:
             index, "publication", project_root=root,
         )["groups"]
         assert groups, root.name
-        assert all(g["items"] for g in groups), root.name
+        # Content moved into subgroups (ISS-0180), so a group is non-empty
+        # when it has either. A group with neither renders NOTHING, which is
+        # how a repo that has released nothing would show a blank view.
+        assert all(g["items"] or g.get("subgroups") for g in groups), root.name
 
 
 def test_the_navigator_lists_releases_and_no_rungs(tmp_path: Path) -> None:

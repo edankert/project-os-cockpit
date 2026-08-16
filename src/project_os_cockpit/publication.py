@@ -413,10 +413,28 @@ def release_payload(
     if shipped:
         # A shipped release names what it carried; the derived set has moved
         # on. The frozen list is the record and must not be recomputed.
+        # **Resolved, not raw** (ISS-0180). This emitted the frontmatter
+        # strings verbatim — `[[FEAT-0085-BleHardening]]` — so a shipped
+        # release's page listed bracket-wrapped slugs with no titles and no
+        # links, while the NEXT release's rows were fully resolved. Edwin:
+        # *"you didn't fix any of the actual page issues like the table and
+        # the feature links, for the completed features."*
+        rows = []
+        for raw in held.get("features") or []:
+            found = re.search(r"\[\[([^\]|]+)", str(raw))
+            target = found.group(1) if found else str(raw).strip()
+            path = index.by_id(target)
+            record = index.get(path) if path is not None else None
+            rows.append({
+                "id": (record.note_id if record else target),
+                "title": (record.title if record else target),
+                "rel": (record.rel_path if record else ""),
+            })
         contents = {
             "kind": "frozen",
-            "ids": list(held.get("features") or []),
-            "count": len(held.get("features") or []),
+            "ids": [r["id"] for r in rows],
+            "rows": rows,
+            "count": len(rows),
             "since": "",
         }
     else:
@@ -454,7 +472,22 @@ def release_payload(
                     "rel": (index.get(hit).rel_path if hit and index.get(hit)
                             else ""),
                 })
-            known_issues = _known_issues(record.body)
+            raw_issues = _known_issues(record.body)
+            if raw_issues:
+                from . import renderer as _renderer
+
+                # Rendered, not printed. This came back as raw markdown and
+                # the page showed it with `white-space: pre-wrap`, so a
+                # known-issues TABLE displayed as a column of pipe characters
+                # (ISS-0180). Rendering it here rather than in the client
+                # keeps one markdown pipeline — wikilinks in those cells
+                # resolve through the same index as everywhere else.
+                known_issues = _renderer.render_markdown_text(
+                    raw_issues,
+                    source_path=index.docs_root / (record.rel_path or "x.md"),
+                    resolver=index.resolve,
+                    asset_resolver=index.resolve_asset,
+                )
     return {
         "id": held["id"] if held else "",
         "version": held["version"] if held else "",
@@ -469,7 +502,8 @@ def release_payload(
         # two halves Edwin described, both already in the record and read by
         # nothing until now.
         "tests_verified": verified,
-        "known_issues": known_issues,
+        # HTML, rendered through the one markdown pipeline.
+        "known_issues_html": known_issues,
         "artifacts": artifacts_for(index.docs_root, held["id"] if held else ""),
         "stale_drafts": stale_drafts(index),
     }
