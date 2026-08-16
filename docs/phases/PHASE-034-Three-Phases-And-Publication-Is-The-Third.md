@@ -8,6 +8,9 @@ order: 34
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 goal: "Give the tool the phase it is missing. Publication becomes a first-class view over the whole ladder — commit, push, deploy, versioned release — and every obligation is routed to the phase that owns its subject and asks only while that subject is in flight, so what needs a person is smaller, sorted, and inspectable rather than one undifferentiated number."
 features:
   - "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"
@@ -16,12 +19,14 @@ features:
   - "[[FEAT-0104-The-Suite-Is-The-Surface]]"
   - "[[FEAT-0105-There-Is-Always-A-Release]]"
   - "[[FEAT-0106-The-Release-Page]]"
+  - "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
+  - "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"
 requirements: []
 tasks: []
 depends: []
@@ -135,3 +140,54 @@ Edwin, reading the walker: *"why do we need the walk button there, why not show 
 He is right, and it means [[FEAT-0103]]'s stepper is the wrong answer to the question it was built for. The suite already renders 542 live checkboxes that already write; what it lacked was a band, an exception mark, and a release to gate. [[FEAT-0104]] and [[FEAT-0105]] replace the stepper with the document, and retire it rather than keeping two ways in.
 
 **Three reopens in one day is itself a datum**, and the pattern in all three is the same: each close met its criteria and left the reported problem standing. The criteria were written from the implementation's side — *"reachable from a surface that names the number"*, *"a section can be walked"* — and both are satisfiable without the reporter being helped. What Edwin asked for each time was the same sentence: *see and close the acceptance tests for the next release.*
+
+
+## Independent review, 2026-08-16 — `changes-requested`
+
+Clean-context pass: the notes and the code, no access to the authoring session's reasoning. `reviewed_by: model:claude-opus-5` — same model family as the author, different session and different context (ADR-0013).
+
+Edwin's verdict on the shipped surface: *"I don't understand the functionality … I thought I made it clear that on the publication pages that I want to see the acceptance-tests and be able to independently go through these, I don't need this walk functionality. also, why is there still this prepare button and what is this release gate doing in the left pane still."*
+
+**All three of those are literally true of the code at this commit, and each was already written down as an unmet acceptance criterion on a feature marked `done` or left at `backlog`.** The phase did not miss them; it recorded them and shipped anyway.
+
+### Blocking
+
+1. **The walker was never retired, and it is still the only Walk affordance.** [[FEAT-0104]] criterion *"The stepper (`~walk`) is **removed**, not left beside this"* is unticked and `TASK-0437` is `backlog`. `~walk` is still routed (`renderer.ts:1252`), still built (`buildAcceptanceWalker`, `renderer.ts:7228`), and is still the `action` the registry hands the gate obligation (`obligations.py:524`). The replacement — the cycling mark in the document — is unbuilt (`TASK-0435` `backlog`), blocked by [[ISS-0175]]. So the retirement shipped as a note and the stepper shipped as code.
+
+2. **Two ways to prepare a release, one of them the modal [[FEAT-0106]] exists to remove.** `_publication_groups` still sets `prepare_release` on the release rung (`cockpit.py:4171`), which the renderer draws as a `Prepare release…` button calling `promptPrepareRelease()` (`renderer.ts:10215-10225`, `renderer.ts:7180`) — an `askForText` dialog raised from the left pane. [[FEAT-0106]]'s first criterion is *"Selecting the next-release row opens a page in the centre pane; **nothing pops a dialog**"*, unticked, on a feature at `done`. Worse, `tests/test_acceptance_walker.py:299` **asserts the button exists**, so the guard now pins the defect. [[ISS-0139]] is the standing name for this.
+
+3. **A shipped release's page lists nothing.** `publication.release_payload` emits `contents["ids"]` for the frozen branch (`publication.py:378-383`) and `contents["rows"]` for the derived one (`publication.py:390-396`); `buildReleasePage` reads only `c.rows` (`renderer.ts:7002`). So `~release/REL-0001` renders *"What shipped — 27 feature(s)"* above an empty list. `test_a_shipped_release_reports_what_it_named` asserts `kind` and `count` only, so it passes with the bug present. This is exactly the half of Edwin's model that says *"previous releases should be available with the functionality that was in the release."*
+
+4. **`~release/<id>` is unreachable from the UI.** The only emitters are `cockpit.py:4215` and `:4227`, both on the *next* release row. Released rows on the release rung carry `url: /docs/<rel>` (`cockpit.py:4128-4131`), i.e. the note. So the page built for named releases can only be reached by typing a URL.
+
+5. **A shipped release's page shows today's gate.** `release_payload` computes `acceptance.gate_payload` unconditionally (`publication.py:398`) and the renderer draws the section whenever `gate.exists` (`renderer.ts:7027`), so `REL-0001` — `released` — displays *"Release gate · N unchecked"* about checks that did not exist when it shipped.
+
+6. **The `[!]` escape hatch shipped without its accountability half.** `acceptance.py:92` admits `!` as a mark and `Item.settled` (`acceptance.py:179`) counts it as settled, so `blocking()` drops it. But `TASK-0436` (*an undocumented exception is owed*) is `backlog` and `obligations.NOTE_LESS` holds only `unpushed commit`, `undeployed commit`, `standing document`, `release gate`. Verified: a hand-written `- [!]` removes a check from the gate with no justification, no release-note entry, and nothing owed — the inverse of `TESTING.md` line 113. [[FEAT-0104]] reads `backlog`, which hides that the permissive half of it is live.
+
+7. **[[TST-0031]] is `passing` and its title names behaviour that does not exist.** *"…an unjustified exception is owed"*. `tests/test_acceptance_exceptions.py` has five tests; none asserts an obligation, because there is none. The note says *"the assertions are its acceptance criteria"* — 3 of [[FEAT-0104]]'s 11 have an assertion.
+
+8. **[[FEAT-0105]] and [[FEAT-0106]] are `done` with 0 of 8 and 0 of 9 acceptance criteria resolved.** Nothing catches this: the validator has `REQ-BOXES` for requirements and `PHASE-BOXES` for phases, and no equivalent for a feature's own criteria — and both features carry `requirements: []`, so `FEATURE-REQ` is inert too. Findings 1, 2 and part of 3 were all *already written* as unticked boxes. The close-out gate that would have caught the reopen does not exist.
+
+### Coherence, which is the reporter's actual complaint
+
+The Publication surface asks a reader to hold **nine** distinct concepts: rungs, the release gate, `Needs you`, `Quiet`/suppressed, obligations-with-verbs, the four suite marks, the `preparing` flag, the walker, and the release page. Two of the nine are the same fact under different names (`Quiet · N · PHASE-…` on Features against `Resting · no feature in flight` on Tests). Measured on this repo, `nav_payload(mode="publication")` returns six groups of which three say nothing is happening (`To commit` → *"nothing uncommitted"*, `Release gate · 0 unchecked · no release in preparation` → *"nothing blocking"*, `Next release · accumulating`), and **the same six commits appear twice** — six rows in `Needs you` and the same six in `To push · 6`, adjacent in one pane. [[ADR-0025]]'s *"shortcut list, not a second home"* was written for a row buried in a tree; here the structural home is the next group down. On `your-trainer` that is 84 rows for 42 commits.
+
+**Publication is also the only badge-bearing view with no centre-pane landing.** It is absent from `VIEW_LANDING_RELS` (`renderer.ts:5341`) and from `MODES_WITH_VIRTUAL_LANDING` (`renderer.ts:3626`), so selecting it leaves the centre pane on whatever was last open, and opening a workspace in it lands on `README.md` (`renderer.ts:994`). That is precisely the defect [[FEAT-0092]] was built to fix for `features`/`issues`/`tests`; the ninth mode was added after it and did not join.
+
+The acceptance suite now has **four** surfaces: the Tests navigator's tier groups (`cockpit.py:4004`), the Publication navigator's gate group (`cockpit.py:4225`), the release page's gate section (`renderer.ts:7027`), and the walker. `REL-*` notes have **two** navigators — Intent's `releases` group (ISS-0142) and Publication's release rung.
+
+### Smaller, verified
+
+- `acceptance.py` defines `Item.anchor` **twice** (lines 160 and 190); the first is dead.
+- `acceptance.gate_payload` writes the key `"excepted"` twice in one dict literal (`acceptance.py:401-402`).
+- `_publication_groups` carries the same comment twice (`cockpit.py:4141-4148`).
+- Group-level `needs_human` / `owed_verb` are set by `_publication_groups` (`cockpit.py:4163-4165`) and **never read** by the renderer — the only reader is `buildNavRow`, on items (`renderer.ts:9734`).
+- `stale_drafts` is returned by `release_payload` (`publication.py:409`) and declared in `ReleasePayload` (`renderer.ts:6892`); nothing renders it.
+- `~prepare-release` is still routed (`renderer.ts:1248`) and nothing emits it.
+- `Needs you` push rows carry `verb: "Push"` with no `action` (`obligations.py:424-432`), so they draw a label, not a button. The button is on `~history`, one further click.
+
+### What the reviewer would build instead
+
+One page per release, reached from a navigator that lists releases. `~release/next` and `~release/<id>` already exist and already carry contents + gate; make the release rung link to them, render `ids` as well as `rows`, snapshot the gate for shipped releases, and let the suite document itself be where checks are ticked. Then delete: `~walk`, `buildAcceptanceWalker`, `/api/notes/walk-check`, the `release-gate` navigator group, `prepare_release` + `promptPrepareRelease` + `~prepare-release`, and the `Needs you` group on this one view. That is the surface Edwin described — *what do we need to do for a release, what tests need to pass, what documentation needs to be updated* — and it is strictly less code than what is here.
+
+**Not built at all, and named in his model:** *"what documentation needs to be updated"*. Nothing in `publication.py`, `acceptance.py` or `release_payload` reads documentation state for a release.

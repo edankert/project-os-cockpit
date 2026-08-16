@@ -186,19 +186,6 @@ class Item:
     def key(self) -> str:
         return f"{self.number} {self.name}"
 
-    @property
-    def anchor(self) -> str:
-        """The rendered heading's id, so a row can link to its own section.
-
-        Slugified with **markdown's own** function rather than a lookalike:
-        the anchors have existed since the suite was first rendered and
-        nothing used them, and a link that is one character off lands at the
-        top of a 1082-line file — which is the behaviour this replaces.
-        """
-        from markdown.extensions.toc import slugify
-
-        return slugify(self.heading, "-") if self.heading else ""
-
 
 @dataclass
 class Suite:
@@ -398,7 +385,6 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
                 "total": len(suite.tier(n)),
                 "unchecked": sum(1 for i in suite.tier(n) if not i.settled),
                 "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
-                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
                 "excepted": sum(1 for i in suite.tier(n) if i.excepted),
             }
             for n in GATING_TIERS

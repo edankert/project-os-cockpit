@@ -3,18 +3,18 @@ type: "[[test]]"
 id: TST-0029
 aliases: ["TST-0029"]
 title: "The walker ticks what it walked and nothing else — pass writes a witness, fail stays unticked, skip writes nothing, and a stale or reconciled row is refused"
-status: passing
+status: ready
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0103]] acceptance criteria"]
 scope: system
-kind: automated
+kind: manual
 level: integration
 entrypoint: ""
-command: ".venv/bin/pytest tests/test_acceptance_walker.py -q"
-last_verified: ""
+command: ""
+last_verified: "2026-08-16"
 requirements: []
 features: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 issues: []
@@ -56,3 +56,10 @@ A walker that writes the wrong row is worse than one that writes nothing, and a 
 ## Notes
 
 Step 4 is the one worth mutation-testing hardest: a global-index implementation passes every other step here and fails only this one, silently and against a real corpus.
+
+
+## Retired 2026-08-16 — and the vocabulary has no word for it
+
+The stepper it guarded is deleted by [[FEAT-0107]]. Its assertions were sound and several were the sharpest in the phase — the one asserting that editing a row ABOVE the target does not move which row is written is the one a global-index walker fails and nothing else catches. They are kept here as the record of what the walker proved, and the addressing they exercised (`acceptance.locate` / `rewrite_check`) survives for the exception path.
+
+**`status: ready` is the closest honest value the vocabulary allows.** `STATUSES.md` gives a test `ready`, `passing`, `failing` and no terminal state — every other note type has one. `passing` would claim this verifies something that exists; `ready` says defined and not executed, which is true of a test whose subject was deleted. The supersession is carried by this section and by the links, which is what the vocabulary leaves available. Filed as [[ISS-0178]].

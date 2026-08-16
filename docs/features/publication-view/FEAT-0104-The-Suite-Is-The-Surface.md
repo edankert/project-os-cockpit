@@ -7,6 +7,9 @@ status: backlog
 owner: user:edwin
 created: 2026-08-16
 updated: 2026-08-16
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'why do we need the walk button there, why not show the acceptance tests document and maybe a counter on how many checks are outstanding, selecting this brings up the acceptance tests and allows to tick the boxes and at the top allows to select whether it is completed or not and a comment'", "Edwin 2026-08-16: 'it should allow to have un-checked items for a release'", "Edwin 2026-08-16, on the interaction: 'I actually like the cycling checkbox idea better'"]
 goal: "Stop building a second place to walk checks. The acceptance document already renders 542 live checkboxes that already write; give it the band it lacks — which release these gate and how many are outstanding — let the mark cycle to a release exception carrying its justification, and make an exception nobody has justified a thing the registry asks for."

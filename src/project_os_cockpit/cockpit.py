@@ -2892,7 +2892,9 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
 #: travelled, not a gathering of obligations. The ladder is the structural
 #: place; `Needs you` is the shortcut. Removing it made the reader hunt the
 #: ladder for the two rows that could be acted on.
-_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset({"issues", "tests"})
+_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset(
+    {"issues", "tests", "publication"},
+)
 
 
 def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
@@ -4162,13 +4164,6 @@ def _publication_groups(
         # does. Both stay one click away through their header and count.
         if name in ("release", "commit"):
             group["default_open"] = False
-        if rung["verb"]:
-            group["needs_human"] = True
-            group["owed_verb"] = rung["verb"]
-        # Declaring the next release belongs to the rung that holds the
-        # releases, not to the gate's header — the gate is about checks.
-        if name == "release" and not data["preparing"]:
-            group["prepare_release"] = True
         if rung["refused"]:
             # Named, never offered. One fleet repo's only remote is a server
             # path and pushing it publishes a live website (Edwin, 2026-08-16).
@@ -4225,64 +4220,6 @@ def _publication_groups(
             rows[0]["owed"] = True
             rows[0]["owed_verb"] = "Prepare"
             rows[0]["action"] = f"~release/{held['id']}" if held else "~release/next"
-        out.append(group)
-
-    # ---- the gate, on the release rung -----------------------------------
-    gate = _acc.gate_payload(index.docs_root)
-    draft = data["preparing"]
-    if gate.get("exists"):
-        unchecked = sum(
-            int(c.get("unchecked") or 0)
-            for c in (gate.get("counts") or {}).values()
-        )
-        # The number is STATED. `306/347` made the reader subtract, which is
-        # how 60 blocking checks stayed invisible on a page that showed them.
-        label = f"Release gate · {unchecked} unchecked"
-        if not draft:
-            label = f"{label} · no release in preparation"
-        suite_url = f"/docs/{gate['rel']}" if gate.get("rel") else None
-        group = {
-            "key": "release-gate",
-            "label": label,
-            "url": suite_url,
-            "status": None,
-            "item_layout": "stacked",
-            # **The checks themselves** (TASK-0432), not a count of areas.
-            # The count-only version shipped and Edwin said: *"I still don't
-            # seem to be able to see and execute the current set."* A row now
-            # names its check, carries its address, and links to ITS OWN
-            # SECTION — the anchors have existed since the suite was first
-            # rendered and nothing used one, so every row opened a 1082-line
-            # file at the top.
-            "items": [
-                {
-                    "id": row["number"],
-                    "title": row["name"],
-                    "subtitle": " · ".join(
-                        p for p in (row["area"], f"Tier {row['tier']}") if p
-                    ),
-                    "status": "ready",
-                    "type": "test",
-                    "url": (
-                        f"{suite_url}#{row['anchor']}"
-                        if suite_url and row.get("anchor") else suite_url
-                    ),
-                }
-                for row in (gate.get("blocking") or [])
-            ] or [{
-                "id": "", "title": "nothing blocking", "subtitle": "",
-                "status": "passing", "type": "test", "url": suite_url,
-            }],
-        }
-        # Asks only while a release is in preparation (ADR-0028 decision 3).
-        if draft and gate.get("blocked"):
-            group["needs_human"] = True
-            group["owed_verb"] = "Walk"
-        # The controls do NOT live on this header (Edwin: *"that walk button
-        # looks totally out of place there"*). Walking is the action on the
-        # gate's OBLIGATION, so it rides that row in `Needs you` — where every
-        # other owed thing carries its verb. Preparing a release belongs to
-        # the release rung, whose subject is the release list.
         out.append(group)
 
     for stale in data["stale_drafts"]:

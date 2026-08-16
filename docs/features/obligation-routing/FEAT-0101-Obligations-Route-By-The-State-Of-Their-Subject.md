@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: approved
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'the items which need my attention are still a little bit invisible in the tool, hidden by all the other stuff which is mainly handled by the LLM'", "Edwin 2026-08-16, on deferring requirements: 'it sounds like the suggested option is a lot better in that only requirements for the phase will ask for attention, can we do this to other items as well (probably not issues)?'"]
 goal: "Take what needs a person from one undifferentiated number down to the items whose subject is actually being worked — measured 64 to 31 in your-trainer — by routing each obligation to the phase that owns its subject and letting it ask only while that subject is in flight, with everything it quiets still on screen as a collapsed line carrying its reason."

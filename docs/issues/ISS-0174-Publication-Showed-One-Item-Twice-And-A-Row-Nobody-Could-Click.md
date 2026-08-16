@@ -8,6 +8,9 @@ phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 source: ["Edwin 2026-08-16, opening the view: 'That is a strange place for it, why in the needs you section, also not all the left-pane items are selectable, please review?'"]
 severity: medium
 component: cockpit-server

@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'maybe it would be good to always have a release prepared when starting new developments after a previous release, i.e. there is always a release and any features/phases/issues etc … committed/pushed after the previous release are naturally part of the new release'"]
 goal: "Make the next release a place work arrives in rather than a note somebody remembers to write: everything unshipped belongs to it from the moment the last one shipped, it stays silent while it accumulates, and the acceptance gate starts asking only when a person says they intend to ship."

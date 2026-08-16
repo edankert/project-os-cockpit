@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16, after PHASE-034 shipped: 'Don't understand I still don't seem to be able to see and execute the current set of acceptance tests for the next release?'", "Edwin's original report, 2026-08-16: 'it is not really clear how I should execute'"]
 goal: "Close the half of the original report that [[FEAT-0102]] left open: a person can say which release they are preparing, see the individual checks that gate it rather than a count, reach any of them in one click, and walk a section one check at a time with pass/fail and evidence recorded against a witness."

@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0030
 aliases: ["TST-0030"]
 title: "Walking a release gate end to end — declare a release, see its checks, walk a section, and watch the count fall"
-status: passing
+status: ready
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -50,3 +50,10 @@ The reported failure was about what a person can see and do, and neither is prov
 8. Skip one. Expect: nothing written.
 9. Abort mid-walk. Expect: what was already recorded stays; nothing else is written.
 10. Re-open Publication. Expect: the count reflects exactly what was walked.
+
+
+## Retired 2026-08-16 — and the vocabulary has no word for it
+
+Superseded with [[TST-0029]]: the end-to-end walk it describes is of a surface that no longer exists. The walk was performed and did pass — that is why this is superseded rather than deleted.
+
+**`status: ready` is the closest honest value the vocabulary allows.** `STATUSES.md` gives a test `ready`, `passing`, `failing` and no terminal state — every other note type has one. `passing` would claim this verifies something that exists; `ready` says defined and not executed, which is true of a test whose subject was deleted. The supersession is carried by this section and by the links, which is what the vocabulary leaves available. Filed as [[ISS-0178]].

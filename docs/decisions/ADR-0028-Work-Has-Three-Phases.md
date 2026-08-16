@@ -7,6 +7,9 @@ status: "accepted"
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: approved
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16, instructing the build: 'Okay, plan this fully, I would suggest a new phase to capture it all' then 'Implement and test Phase 34 fully' — the acceptance", "Edwin 2026-08-16, from use of ../your-trainer: 'the your-trainer application has created some acceptance-tests I need to execute but these are currently not very clearly visible'", "Edwin 2026-08-16: 'it seems like the items which need my attention are still a little bit invisible in the tool, hidden by all the other stuff which is mainly handled by the LLM'", "Edwin 2026-08-16, rejecting the first proposal: 'I am not sure that if we implement that that acceptance tests and releases are then very much first class citicens of the tool yet. And I am also afraid that this could overwhelm my attention'", "Edwin 2026-08-16, naming the model: 'at the moment I see 3 clear phases, the design phase (intent) the actual implementation phase (features, issues, TSTs?) and the publication phase (TSTs/Acceptance tests, releases, etc ..)'"]
 decision: "Work has three phases — design, implementation, publication. Publication is a first-class phase with its own view, and its subject is the publication ladder: commit, push, deploy, versioned release. An obligation is routed to the phase that owns its SUBJECT, decided per item rather than fixed per note type. An obligation asks only while its subject is in flight; otherwise it is a resting state that marks and does not count. `deferred` remains as the explicit override."

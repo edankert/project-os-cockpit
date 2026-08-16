@@ -33,12 +33,26 @@ from project_os_cockpit.index import Index
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+#: A test whose subject no longer exists is not going to be re-run, and the
+#: entrypoint rule is about re-runnability. `superseded` is terminal-without-
+#: the-thing-having-been-done, and FEAT-0107 produced the first two: the
+#: acceptance stepper they guarded was deleted, and the notes are kept as the
+#: record of what it proved rather than removed (this project does not delete
+#: completed notes).
+#:
+#: Narrow deliberately — only `superseded`. A `passing` test with no
+#: entrypoint is exactly the ISS-0130 defect this file exists to catch, and
+#: widening this set is how that guard would be satisfied by relabelling.
+_NOT_RERUNNABLE = frozenset({"superseded"})
+
+
 def _test_notes():
     index = Index.build(REPO_ROOT / "docs")
     notes = [
         record
         for path in index.paths()
         if (record := index.get(path)) is not None and record.note_type == "test"
+        and str(record.status or "").strip().lower() not in _NOT_RERUNNABLE
     ]
     assert notes, "the corpus has no test notes; the walk is wrong, not the corpus"
     return sorted(notes, key=lambda r: str(r.frontmatter.get("id") or ""))

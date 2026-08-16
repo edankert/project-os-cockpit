@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'I think a full release nav mode however this depends a little on what we call a release, there are probably multiple types of releases, from committing, pushing, deploying and actual versioned releases … should they all be shown in this release view together with a history?'", "Edwin 2026-08-16, choosing the name: 'Publication'", "Edwin 2026-08-16, on the deploy rung: 'named and refused, as today'"]
 goal: "Give publication the surface it has never had: one view holding every rung a repo can reach — the commits, what is unpushed, what is undeployed and named-not-offered, the versioned releases and their tags — and the acceptance gate attached to the release rung, so a person can see how far their work has travelled and what stands between it and shipping."

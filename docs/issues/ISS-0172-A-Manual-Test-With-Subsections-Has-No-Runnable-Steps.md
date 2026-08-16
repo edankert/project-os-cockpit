@@ -8,6 +8,9 @@ phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: approved
 source: ["Edwin 2026-08-16: 'it is not really clear how I should execute [them]'", "Measured against ../your-trainer/docs on 2026-08-16"]
 severity: high
 component: cockpit-server

@@ -148,4 +148,6 @@ def test_the_replacement_exists_and_is_shared() -> None:
     way by copying a neighbour, because no neighbour does it that way."""
     src = RENDERER.read_text(encoding="utf-8")
     assert "function askForText(" in src
-    assert src.count("await askForText(") >= 5, src.count("await askForText(")
+    # Four, not five: `promptPrepareRelease` was deleted by FEAT-0107 — the
+    # version field on the release page is the only way to start one now.
+    assert src.count("await askForText(") >= 4, src.count("await askForText(")

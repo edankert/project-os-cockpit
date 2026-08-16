@@ -1,4 +1,12 @@
-"""The release gate names its number and stays one obligation (TST-0028).
+"""The release gate stays ONE obligation, never sixty (TST-0028).
+
+**Trimmed by FEAT-0107.** Four tests here asserted the `release-gate`
+NAVIGATOR GROUP — its label, its rows, its section anchors. That group is
+deleted: the suite already lived in the Tests view and now also has the
+release page, and a third home was the ISS-0068 duplication this codebase
+cites throughout. What survives is the part that was never about the
+navigator — the gate is one obligation while a release is preparing, and
+zero otherwise.
 
 The gate is the reason PHASE-034 exists, and it is the thing most likely to be
 rebuilt into the wall it replaced. Both halves are pinned here: it must
@@ -63,16 +71,6 @@ def _docs(tmp_path: Path, *, suite: str | None = SUITE,
     return d
 
 
-def _gate_group(docs: Path) -> dict | None:
-    groups = cockpit.nav_payload(
-        Index.build(docs), "publication", project_root=docs.parent,
-    )["groups"]
-    for group in groups:
-        if group["key"] == "release-gate":
-            return group
-    return None
-
-
 # ---- 1-4: one obligation, never sixty ------------------------------------
 
 
@@ -95,17 +93,6 @@ def test_a_released_release_owes_nothing(tmp_path: Path) -> None:
     assert [r for r in rows if r["type"] == obligations.GATE_OBLIGATION_KIND] == []
 
 
-def test_no_release_note_at_all_owes_nothing_and_still_shows_the_rows(
-    tmp_path: Path,
-) -> None:
-    docs = _docs(tmp_path)
-    rows = obligations.owed_items(Index.build(docs))["publication"]
-    assert [r for r in rows if r["type"] == obligations.GATE_OBLIGATION_KIND] == []
-    group = _gate_group(docs)
-    assert group is not None, "the gate is still VISIBLE, it just does not ask"
-    assert not group.get("needs_human")
-
-
 def test_the_badge_rises_by_at_most_one(tmp_path: Path) -> None:
     """The guard against this feature's own worst outcome.
 
@@ -122,26 +109,6 @@ def test_the_badge_rises_by_at_most_one(tmp_path: Path) -> None:
 
 
 # ---- 5-8: what the surface says ------------------------------------------
-
-
-def test_the_gate_states_its_number(tmp_path: Path) -> None:
-    """`306/347` made the reader subtract, which is how 60 blocking checks
-    stayed invisible on a page that was showing them."""
-    group = _gate_group(_docs(tmp_path, release=("REL-0001", "draft", "1.0.0")))
-    assert "3 unchecked" in group["label"], group["label"]
-
-
-def test_rows_name_their_check_and_carry_their_area(tmp_path: Path) -> None:
-    """**Rewritten by FEAT-0103.** This asserted rows were AREA counts —
-    `Trainer Compatibility · 2 unchecked` — which is what shipped, and what
-    Edwin reported as unusable: *"I still don't seem to be able to see and
-    execute the current set."* A row now names its own check and carries its
-    area beside it, so the area is still the grouping the eye reads while the
-    row is the thing you can act on."""
-    group = _gate_group(_docs(tmp_path, release=("REL-0001", "draft", "1.0.0")))
-    assert [i["id"] for i in group["items"]] == ["1.1.1", "1.1.2", "1.2.1"]
-    assert [i["title"] for i in group["items"]] == ["A", "B", "D"]
-    assert group["items"][0]["subtitle"] == "Trainer Compatibility · Tier 1"
 
 
 def test_tier_three_is_shown_and_does_not_gate(tmp_path: Path) -> None:
@@ -175,20 +142,8 @@ def test_no_suite_says_never_instantiated_not_nothing_blocking(
     gate = acceptance.gate_payload(docs)
     assert gate["exists"] is False
     assert gate["blocked"] is False
-    assert _gate_group(docs) is None, \
-        "a repo that never instantiated the suite shows no gate at all"
     rows = obligations.owed_items(Index.build(docs))["publication"]
     assert [r for r in rows if r["type"] == obligations.GATE_OBLIGATION_KIND] == []
-
-
-def test_a_row_reaches_its_own_section(tmp_path: Path) -> None:
-    """FEAT-0103: the group still opens the suite, but a ROW lands on its own
-    section. Section 1.25 of `your-trainer`'s suite starts at line 522 of
-    1082, after 327 other checkboxes, so "opens the file" was not reaching."""
-    group = _gate_group(_docs(tmp_path, release=("REL-0001", "draft", "1.0.0")))
-    assert group["url"].endswith("tests/ACCEPTANCE_TESTS.md")
-    assert all("#" in i["url"] for i in group["items"])
-    assert group["items"][0]["url"].endswith("#11-trainer-compatibility-feat-0001")
 
 
 def test_the_rule_sentence_is_the_contracts_words(tmp_path: Path) -> None:

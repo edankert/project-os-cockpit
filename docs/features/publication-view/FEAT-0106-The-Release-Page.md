@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-16
+review_verdict: changes-requested
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'I would have expected that if I selected the Next Release item that this would bring up a virtual page which showed what would be in this release and for me then to be able to start the release in the main section of the tool?'", "Edwin 2026-08-16: 'Also, where is my acceptance-tests?'"]
 goal: "Give the release a page instead of a row and a modal: what has accumulated, a version field and a Start button in the centre pane, and the gate with its checks — so the acceptance tests have an obvious home rather than being the sixth group down a navigator."

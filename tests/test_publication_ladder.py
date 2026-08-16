@@ -292,8 +292,8 @@ def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
 # ---- 14-16: reported from use, second round ------------------------------
 
 
-def test_publication_keeps_its_needs_you_group(tmp_path: Path) -> None:
-    """Reverses an earlier over-correction.
+def test_publication_gathers_its_own_and_takes_no_needs_you(tmp_path: Path) -> None:
+    """**Reversed twice, and this is the settled answer.**
 
     Edwin's *"why in the needs you section"* was about the CONTROLS, not the
     group — *"I don't mind the needs you section, it makes sense to have all
@@ -309,29 +309,11 @@ def test_publication_keeps_its_needs_you_group(tmp_path: Path) -> None:
     groups = cockpit.nav_payload(
         Index.build(root / "docs"), "publication", project_root=root,
     )["groups"]
-    assert "publication" not in cockpit._VIEWS_THAT_ALREADY_GATHER
-
-
-def test_the_walk_action_rides_the_row_not_the_group_header(
-    tmp_path: Path,
-) -> None:
-    """Edwin: *"that walk button looks totally out of place there."* A header
-    is the name of a set, not a place to act on one of its members."""
-    root = _repo(tmp_path)
-    (root / "docs" / "tests").mkdir(parents=True, exist_ok=True)
-    (root / "docs" / "tests" / "ACCEPTANCE_TESTS.md").write_text(
-        "# Tier 1 — Feature Tests\n\n## 1.1 Area (FEAT-0001)\n"
-        "- [ ] **A:** do it.\n", encoding="utf-8",
-    )
-    _release(root, "REL-0001", "draft", "1.0.0")
-    groups = cockpit.nav_payload(
-        Index.build(root / "docs"), "publication", project_root=root,
-    )["groups"]
-    gate = next(g for g in groups if g["key"] == "release-gate")
-    assert "walk" not in gate, "the control must not be on the header"
-    needs = next(g for g in groups if g["key"] == "needs-you")
-    row = next(i for i in needs["items"] if i.get("owed_verb") == "Walk")
-    assert row["action"] == "~walk", "the verb carries the route it performs"
+    # FEAT-0107 put it back: publication's rungs ARE its gathering, and the
+    # same six commits appeared in `Needs you` and in `To push · 6`, adjacent
+    # in one pane. ADR-0025's shortcut was written for a row buried in a tree.
+    assert "publication" in cockpit._VIEWS_THAT_ALREADY_GATHER
+    assert [g for g in groups if g["key"] == "needs-you"] == []
 
 
 def test_the_record_rungs_open_shut(tmp_path: Path) -> None:
