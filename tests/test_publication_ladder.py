@@ -254,3 +254,45 @@ def test_no_route_from_this_view_can_push_a_deploy_remote(
     assert not deploy[0].get("needs_human"), "a refused rung must not ask"
     assert deploy[0].get("refused")
     assert "owed_verb" not in deploy[0]
+
+
+# ---- 12-13: reported from use, 2026-08-16 -------------------------------
+
+
+def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
+    """Edwin, opening the view: *"not all the left-pane items are
+    selectable."*
+
+    A reachable rung with nothing at it still renders — that IS the answer
+    ("nothing to push") — but its row carried `url: None`, and a row that does
+    not respond to a click reads as a broken row rather than an empty one.
+    """
+    root = _repo(tmp_path, remote="https://github.com/e/x.git")
+    _release(root, "REL-0001", "released", "1.0.0")
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    dead = [
+        (g["label"], i.get("title"))
+        for g in groups for i in g["items"] if not i.get("url")
+    ]
+    assert dead == [], dead
+
+
+def test_publication_does_not_also_receive_a_needs_you_group(
+    tmp_path: Path,
+) -> None:
+    """Edwin: *"why in the needs you section"*.
+
+    The view leads with the ladder and gathers what it owes into rungs, so a
+    prepended `Needs you` put the one unpushed commit on screen twice — under
+    `Needs you` and under `To push · 1`. That is ISS-0068's failure, which
+    ADR-0025 permits only as a shortcut from a view that does not otherwise
+    show the row.
+    """
+    root = _repo(tmp_path, remote="https://github.com/e/x.git")
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    assert [g for g in groups if g["key"] == "needs-you"] == []
+    assert "publication" in cockpit._VIEWS_THAT_ALREADY_GATHER

@@ -16,6 +16,7 @@ features:
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
+  - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
 requirements: []
 tasks: []
 depends: []

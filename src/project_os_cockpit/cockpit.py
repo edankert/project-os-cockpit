@@ -2877,7 +2877,17 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
 #: says more than "needs you" — `Needs triage` and `Needs a run`. Adding the
 #: shared group there would duplicate in the one place it buys nothing, which
 #: ADR-0025 permits and does not require.
-_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset({"issues", "tests"})
+#: Views that gather what they owe into their own groups, so prepending a
+#: `Needs you` list would put one item on screen twice — ISS-0068's failure,
+#: which ADR-0025 permits only as a shortcut from a view that does NOT
+#: otherwise show the row.
+#:
+#: `publication` joined them after Edwin opened it and asked *"why in the
+#: needs you section"*: the view leads with the ladder, and the one unpushed
+#: commit was appearing both under `Needs you` and under `To push · 1`.
+_VIEWS_THAT_ALREADY_GATHER: frozenset[str] = frozenset(
+    {"issues", "tests", "publication"},
+)
 
 
 def _needs_you_group(index: Index, view: str) -> list[dict[str, Any]]:
@@ -4113,9 +4123,14 @@ def _publication_groups(
             # A reachable rung with nothing at it still renders — that IS the
             # answer ("nothing to push"), and it is what makes the ladder
             # legible as a ladder rather than as a list of problems.
+            # A reachable rung with nothing at it still renders — that IS
+            # the answer ("nothing to push") — but the row must go
+            # somewhere. A row that does not respond to a click reads as a
+            # broken row, not as an empty one (Edwin, 2026-08-16).
             items = [{
                 "id": "", "title": rung["detail"] or "nothing here",
-                "subtitle": "", "status": "", "type": "change", "url": None,
+                "subtitle": "", "status": "", "type": "change",
+                "url": "~history",
             }]
         group: dict[str, Any] = {
             "key": f"rung-{name}",
@@ -4178,7 +4193,7 @@ def _publication_groups(
                 for row in (gate.get("blocking") or [])
             ] or [{
                 "id": "", "title": "nothing blocking", "subtitle": "",
-                "status": "passing", "type": "test", "url": None,
+                "status": "passing", "type": "test", "url": suite_url,
             }],
         }
         # Asks only while a release is in preparation (ADR-0028 decision 3).
