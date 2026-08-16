@@ -48,6 +48,14 @@ All of it was already in the record. The issues in particular were reachable fro
 
 Edwin: *"can you please stop calling the acceptance tests suite. Just describe them as acceptance tests."* Every user-facing string now says so — the button, the empty states, the write refusals, the registry's own predicate.
 
+## Two more from the same reading
+
+**`Preparing` was in the Completed section again**, and for a new reason. `groupIsSettled([])` is **true** by design — an empty list has no unsettled member, and its docstring says so deliberately. Harmless while every group carried its rows directly; wrong the moment a release's content moved into subgroups, because `items` went empty and the whole group read as finished.
+
+Edwin asked *"why is preparing in the completed section?"* twice. First because a row carried its feature's own status; then because there were **no rows to read at all**. One mistake underneath: asking the question of the wrong list. `allGroupItems` now flattens subgroups, and a guard forbids either caller going back to reading `items` alone.
+
+**And there were two ways to the same release** — the group header opening the release page, and a `Release note` row underneath opening the raw note. Edwin: *"Keep only the top one, do not have a separate link underneath."* The row is gone; the header is the way in.
+
 ## Found while fixing
 
 **A repo with nothing to release would have rendered a blank view.** Moving content into subgroups meant a group could have neither items nor subgroups, and `renderNavGroup` returns nothing for one of those. `articles` — no releases, nothing unshipped — would have shown an empty pane. It says *"Nothing unshipped"* instead.

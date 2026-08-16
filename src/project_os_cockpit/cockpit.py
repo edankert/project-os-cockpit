@@ -4293,13 +4293,13 @@ def _release_content_rows(
                        "url": None, "status": None, "item_layout": "stacked",
                        "items": tests})
 
+    # **No `Release note` row.** The group's own header opens the release, so
+    # a row underneath was a second way to the same subject — and a
+    # confusing one, because the header opens the release PAGE and the row
+    # opened the raw note. Edwin: *"why to have 2 ways to get to the actual
+    # release? Keep only the top one, do not have a separate link
+    # underneath."*
     docs: list[dict[str, Any]] = []
-    if release and release.get("rel"):
-        docs.append({
-            "id": str(release.get("id") or ""), "title": "Release note",
-            "subtitle": "", "status": row_status, "type": "release",
-            "url": f"/docs/{release['rel']}",
-        })
     for art in _pub.artifacts_for(index.docs_root, str((release or {}).get("id") or "")):
         docs.append({
             "id": "", "title": art["name"], "subtitle": art["kind"],

@@ -314,6 +314,13 @@ def test_a_release_carries_its_tests_and_artifacts_in_the_navigator(
     assert "Acceptance tests" in subs and "Documents" in subs, sorted(subs)
     assert any("ACCEPTANCE" in i["title"] for i in subs["Acceptance tests"]["items"])
     assert any(i["title"].endswith(".xml") for i in subs["Documents"]["items"])
+    # And exactly ONE way to the release itself: its own group header. A
+    # `Release note` row underneath was a second route to the same subject,
+    # and a confusing one — the header opens the PAGE, the row opened the raw
+    # note.
+    rows = [i for sg in groups["release-REL-0001"]["subgroups"] for i in sg["items"]]
+    assert all(i["title"] != "Release note" for i in rows)
+    assert groups["release-REL-0001"]["url"] == "~release/REL-0001"
 
 
 def test_the_next_release_carries_all_the_acceptance_tests(tmp_path: Path) -> None:
@@ -367,3 +374,26 @@ def test_the_publication_badge_counts_only_what_the_view_shows(
     assert obligations.NOTE_LESS["unpushed commit"].view == "overview"
     assert obligations.NOTE_LESS["undeployed commit"].view == "overview"
     assert obligations.NOTE_LESS["release gate"].view == "publication"
+
+
+def test_a_group_whose_content_is_nested_is_judged_on_that_content() -> None:
+    """`groupIsSettled([])` is TRUE by design — an empty list has no unsettled
+    member. Harmless while every group carried its rows directly; wrong the
+    moment a release's content moved into subgroups, because `items` went
+    empty and `Preparing · 2.1.7` filed itself under Completed.
+
+    Edwin asked *"why is preparing in the completed section?"* twice: first
+    because a row carried its feature's own status, then because there were no
+    rows to read at all. Both are one mistake — asking the question of the
+    wrong list.
+    """
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    assert "function allGroupItems(" in src
+    # Neither caller may go back to reading `items` alone.
+    assert "groupIsSettled(group.items" not in src, (
+        "a settled check that reads only `items` is blind to nested content"
+    )
+    assert src.count("groupIsSettled(allGroupItems(group))") == 2

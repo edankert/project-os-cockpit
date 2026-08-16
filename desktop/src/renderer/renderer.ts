@@ -9320,7 +9320,7 @@ function renderWsNav(data: NavPayload): void {
   const live: NavGroupData[] = [];
   const settled: NavGroupData[] = [];
   for (const group of rest) {
-    (groupIsSettled(group.items || []) ? settled : live).push(group);
+    (groupIsSettled(allGroupItems(group)) ? settled : live).push(group);
   }
 
   let any = false;
@@ -9910,6 +9910,24 @@ function renderSettledRollup(
   return details;
 }
 
+/** Every item a group holds, including those nested in its subgroups.
+ *
+ *  `groupIsSettled([])` is TRUE — an empty list has no unsettled member, and
+ *  its own docstring says so deliberately. That was harmless while every
+ *  group carried its rows directly, and became wrong the moment a release's
+ *  content moved into subgroups (ISS-0180): `items` went empty, the group
+ *  read as settled, and `Preparing · 2.1.7` filed itself under Completed.
+ *
+ *  Edwin, twice now: *"why is preparing in the completed section?"* — the
+ *  first time because a row carried its feature's status, this time because
+ *  there were no rows to read at all. Both are the same mistake underneath:
+ *  asking a question of the wrong list. */
+function allGroupItems(group: NavGroupData): NavItem[] {
+  const own = group.items || [];
+  const nested = (group.subgroups || []).flatMap(allGroupItems);
+  return [...own, ...nested];
+}
+
 function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null {
   // TASK-0270: the switch COLLAPSES rather than hides.
   //
@@ -9961,7 +9979,7 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   //
   // The server's `default_open: false` still wins: this adds a reason to
   // close, never a reason to open.
-  const settledGroup = groupIsSettled(group.items || []);
+  const settledGroup = groupIsSettled(allGroupItems(group));
   (details as HTMLDetailsElement).open =
     group.default_open !== false && !settledGroup && !group.suppressed;
 
