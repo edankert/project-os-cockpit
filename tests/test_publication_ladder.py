@@ -9,6 +9,7 @@ they must hold whatever the fleet looks like next month.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -49,9 +50,11 @@ def _rung(payload: dict, name: str) -> dict | None:
 def _release(root: Path, rid: str, status: str, version: str) -> None:
     d = root / "docs" / "releases"
     d.mkdir(parents=True, exist_ok=True)
+    prep = 'preparing: "2026-08-16"\n' if status == "draft" else ""
     (d / f"{rid}-R.md").write_text(
         f'---\ntype: "[[release]]"\nid: {rid}\ntitle: "R"\n'
-        f'status: {status}\nversion: "{version}"\n---\n', encoding="utf-8",
+        f'status: {status}\nversion: "{version}"\n{prep}---\n',
+        encoding="utf-8",
     )
 
 
@@ -358,3 +361,31 @@ def test_the_commit_rung_does_not_say_the_opposite_of_its_count(
     )["groups"]
     commit = next(g for g in groups if g["key"] == "rung-commit")
     assert commit["label"].startswith("To commit"), commit["label"]
+
+
+def test_every_view_that_owes_something_has_a_button_to_badge() -> None:
+    """Edwin: *"the icon at the top should show the needs you items."* It did
+    not — `MODE_FOR_VIEW` is a hand-written view→button map in the renderer,
+    and `publication` was missing, so the server reported `publication: 1` and
+    the button never asked for it.
+
+    Hand-written maps beside a registry are what this module exists to stop.
+    A view that owes something and has no button to carry the count fails
+    here rather than shipping silent.
+    """
+    from project_os_cockpit import obligations
+
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    block = src.split("const MODE_FOR_VIEW", 1)[1].split("};", 1)[0]
+    mapped = set(re.findall(r"^\s*(\w+):\s*'", block, re.M))
+    owed_views = {
+        ob.view for ob in obligations.OBLIGATIONS.values() if ob.owed and ob.view
+    } | {src_.view for src_ in obligations.note_less_sources().values()}
+    # `overview` is not a nav mode and carries no button — TASK-0418 re-homed
+    # its rows to the attention panel, which is why it is named rather than
+    # silently tolerated.
+    missing = owed_views - mapped - {"overview"}
+    assert missing == set(), missing

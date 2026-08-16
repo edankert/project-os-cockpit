@@ -77,6 +77,19 @@ _CHECKED_MARKS = frozenset({"x", "X"})
 #: It does not block; it is counted and named, which is the difference between
 #: reconciling something and losing it.
 _RECONCILED_MARKS = frozenset({"~"})
+#: **Shipping anyway** (FEAT-0104). A check that is not done, on a release
+#: somebody has decided to ship regardless. `TESTING.md` line 113 has always
+#: allowed this — *"A test may be marked as a release exception if it cannot
+#: be completed … Exceptions must be documented in the release note with
+#: justification"* — and nothing has ever implemented it.
+#:
+#: Reported SEPARATELY from `~`, never folded into it. Both are non-blocking,
+#: and there the resemblance stops: `~` is permanent and says the check no
+#: longer applies; `!` is **per-release** and says the check still applies and
+#: was not done. Conflating them would lose exactly the difference ISS-0141
+#: exists to protect, and would make an exception look settled forever when it
+#: expires with its release.
+_EXCEPTED_MARKS = frozenset({"!"})
 _NAME_RE = re.compile(r"^\*\*(.+?):?\*\*:?\s*(.*)$")
 _ID_RE = re.compile(r"\[\[([A-Z]+-[0-9A-Za-z-]+?)(?:\|[^\]]*)?\]\]")
 #: Bare `FEAT-0104`, which is how every suite in the fleet actually writes it
@@ -126,6 +139,8 @@ class Item:
     #: thing — and anything the parser cannot classify is neither, so it is
     #: owed and blocks. That is the direction that fails safely.
     reconciled: bool = False
+    #: A release exception: not done, and shipping anyway (FEAT-0104).
+    excepted: bool = False
     #: 1-based position within its section, so every item has a unique number
     #: (`1.3.2`). Two items in one section otherwise share the section's id,
     #: and a navigator that keys rows on it would address the wrong one.
@@ -156,9 +171,12 @@ class Item:
 
     @property
     def settled(self) -> bool:
-        """Walked or reconciled — what the gate reads. Not "done": a
-        reconciled item was never performed, and the tier count says so."""
-        return self.checked or self.reconciled
+        """What the gate reads — walked, reconciled, or excepted.
+
+        Not "done": a reconciled item was never performed and an excepted one
+        is being shipped undone, and the tier counts say so separately.
+        """
+        return self.checked or self.reconciled or self.excepted
 
     @property
     def number(self) -> str:
@@ -277,6 +295,7 @@ def parse(text: str) -> list[Item]:
             name=name.strip(), text=detail.strip(),
             checked=mark in _CHECKED_MARKS,
             reconciled=mark in _RECONCILED_MARKS,
+            excepted=mark in _EXCEPTED_MARKS,
             refs=refs, ordinal=ordinal, heading=full_heading,
         ))
     return items
@@ -315,6 +334,7 @@ def payload(docs_root: Path) -> dict[str, Any]:
                 # walked and 1 reconciled would be the drop this replaced,
                 # rounded up instead of down (ISS-0141).
                 "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
+                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
                 "gating": n in GATING_TIERS,
                 "items": [
                     {
@@ -322,6 +342,7 @@ def payload(docs_root: Path) -> dict[str, Any]:
                         "section": i.section, "area": i.area,
                         "name": i.name, "text": i.text, "checked": i.checked,
                         "reconciled": i.reconciled,
+                        "excepted": i.excepted,
                         "refs": list(i.refs),
                     }
                     for i in suite.tier(n)
@@ -377,6 +398,8 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
                 "total": len(suite.tier(n)),
                 "unchecked": sum(1 for i in suite.tier(n) if not i.settled),
                 "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
+                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
+                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
             }
             for n in GATING_TIERS
         },
@@ -487,3 +510,40 @@ def rewrite_check(
         rest = f"{rest.rstrip()} {note}"
     lines[line_no] = f"{head}[{mark}]{rest}{ending}"
     return "".join(lines)
+
+
+def check_map(text: str) -> list[dict[str, Any]]:
+    """Every checkbox in DOM order, with the suite address it corresponds to.
+
+    The rendered document addresses a checkbox by its position among all
+    ``input[type=checkbox]`` on the page; the suite addresses a check by
+    section-and-ordinal (:func:`locate`). This is the mapping, computed here
+    so the **client owns no rule** about the suite's shape — TASK-0357's rule,
+    and the reason the obligation vocabulary ships from the server.
+
+    **It deliberately carries no DOM index.** The obvious mapping — the Nth
+    rendered checkbox is the Nth parsed check — is FALSE on a real suite, and
+    measurably so: `your-trainer` parses 579 checks and renders 542 inputs, so
+    the correspondence drifts by 37 and everything after the first divergence
+    is attributed to the wrong row. `_annotate_checkbox_source` already makes
+    exactly that assumption for `data-raw`, and 285 of the 542 rendered rows
+    carry text that is not their own (ISS-0175).
+
+    So this returns addresses only. Wiring it to the DOM waits on that bug,
+    because a control that writes to the wrong check is worse than no control.
+    """
+    return [
+        {
+            "number": item.number,
+            "name": item.name,
+            "mark": (
+                "x" if item.checked
+                else "~" if item.reconciled
+                else "!" if item.excepted
+                else " "
+            ),
+            "tier": item.tier,
+            "gating": item.tier in GATING_TIERS,
+        }
+        for item in parse(text)
+    ]

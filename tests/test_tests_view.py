@@ -816,10 +816,16 @@ def test_a_reconciled_item_is_settled_and_still_counted(tmp_path: Path) -> None:
     gate = acceptance.gate_payload(docs)
     assert gate["blocked"] is False
     assert gate["counts"]["tier1"] == {
-        "total": 1, "unchecked": 0, "reconciled": 1,
+        # `excepted` joins the breakdown (FEAT-0104) and is reported BESIDE
+        # `reconciled`, never folded into it: both are non-blocking, and there
+        # the resemblance stops. `~` is permanent and says the check no longer
+        # applies; `!` is per-release and says it still applies and was not
+        # done. Conflating them is the loss ISS-0141 exists to prevent.
+        "total": 1, "unchecked": 0, "reconciled": 1, "excepted": 0,
     }
     tier1 = acceptance.payload(docs)["tiers"][0]
     assert (tier1["total"], tier1["checked"], tier1["reconciled"]) == (1, 0, 1)
+    assert tier1["excepted"] == 0
 
 
 @pytest.mark.parametrize("line", [

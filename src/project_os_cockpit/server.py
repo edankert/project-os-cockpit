@@ -3075,6 +3075,19 @@ def _make_handler(
             # a change note the tracker knows about, say which agent
             # session produced it — enrichment only, the file is never
             # touched.
+            # The acceptance suite, and only it, carries the map from a
+            # rendered checkbox to the check it is (FEAT-0104 / TASK-0434).
+            # Deliberately not a general markdown feature: this is one
+            # document with an address scheme, and computing it for every note
+            # would make the renderer know about the suite.
+            if rel_path == acceptance.SUITE_REL:
+                try:
+                    payload["checks"] = acceptance.check_map(
+                        target.read_text(encoding="utf-8"),
+                    )
+                except OSError:  # pragma: no cover — read succeeded above
+                    pass
+                payload["gate"] = acceptance.gate_payload(docs_root)
             if target.stem.upper().startswith("CHG-"):
                 prov = tracker.chg_provenance(target.stem)
                 if prov is not None:

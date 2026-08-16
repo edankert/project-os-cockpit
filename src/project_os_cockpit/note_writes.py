@@ -1381,10 +1381,10 @@ def create_release(
 
         if not re.match(r"^\d+(\.\d+)*$", clean_version):
             raise WriteError(f"{version!r} is not a version", status=400)
-        if publication.preparing(index) is not None:
+        if publication.open_releases(index):
             raise WriteError(
-                "a release is already in preparation — one at a time, or "
-                "'the next release' means nothing",
+                "a release is already open — one at a time, or 'the next "
+                "release' means nothing",
                 status=409,
             )
         shipped = max(
@@ -1425,6 +1425,10 @@ def create_release(
         f'title: "{clean_title.replace(chr(34), chr(39))}"',
         "status: draft",
         f'version: "{clean_version}"',
+        # Declaring a version IS declaring intent to ship (FEAT-0105). A
+        # release that is merely open carries no flag and asks nothing; this
+        # path is only reached when somebody named a number.
+        f'preparing: "{today}"' if clean_version else 'preparing: ""',
         'tag: ""',
         # Empty on purpose: `date` is when it shipped, and this has not.
         'date: ""',

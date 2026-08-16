@@ -130,6 +130,16 @@ def _releases(index: "Index") -> list[dict[str, Any]]:
             "title": record.title or "",
             "status": (record.status or "").strip().lower(),
             "version": str(record.frontmatter.get("version") or "").strip(),
+            # `preparing:` is FRONTMATTER, not a status (FEAT-0105 /
+            # TASK-0438). STATUSES.md allows a release only draft / released /
+            # reverted and is template-owned, so adding vocabulary there would
+            # report as divergence on the next sync. DES-0006 established this
+            # exact pattern and obligations.py already documents it for
+            # features: *"`acceptance: requested` in frontmatter, not a
+            # status."* One precedent, applied again.
+            "preparing": bool(str(
+                record.frontmatter.get("preparing") or "",
+            ).strip()),
             "rel": record.rel_path,
         })
     out.sort(key=lambda r: str(r["id"]), reverse=True)
@@ -145,7 +155,14 @@ def _version_key(version: str) -> tuple[int, ...]:
 
 
 def preparing(index: "Index") -> dict[str, Any] | None:
-    """The release in preparation, or None.
+    """The release a person has declared they intend to ship, or None.
+
+    **Not merely a `draft`.** If a release is always open — which is what
+    FEAT-0105 gives you — and the gate asked whenever one existed, the gate
+    would ask **forever**: the self-re-arming badge ADR-0027 excludes
+    staleness for, and the failure PHASE-034 was opened to avoid producing.
+    Being *open* and being *prepared for ship* are different facts and only
+    the second is a debt.
 
     `STATUSES.md` documents a release's ``draft`` as *"prepared and verified,
     not yet live"*. That is a release in preparation, it has been representable
@@ -165,18 +182,25 @@ def preparing(index: "Index") -> dict[str, Any] | None:
     Such a draft is stale record-keeping in the repo that owns it. It is
     reported by :func:`stale_drafts` so it stays visible, and it does not gate.
     """
+    for release in open_releases(index):
+        if release["preparing"]:
+            return release
+    return None
+
+
+def open_releases(index: "Index") -> list[dict[str, Any]]:
+    """Drafts a shipped version has not overtaken — open or preparing."""
     releases = _releases(index)
     shipped = max(
         (_version_key(r["version"]) for r in releases if r["status"] == "released"),
         default=(),
     )
-    drafts = [
+    live = [
         r for r in releases
         if r["status"] == "draft" and _version_key(r["version"]) > shipped
     ]
-    if not drafts:
-        return None
-    return max(drafts, key=lambda r: _version_key(r["version"]))
+    live.sort(key=lambda r: _version_key(r["version"]), reverse=True)
+    return live
 
 
 def stale_drafts(index: "Index") -> list[dict[str, Any]]:

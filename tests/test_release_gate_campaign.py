@@ -52,9 +52,13 @@ def _docs(tmp_path: Path, *, suite: str | None = SUITE,
     if release:
         rid, status, version = release
         (d / "releases").mkdir(parents=True, exist_ok=True)
+        # `preparing:` on a draft — FEAT-0105 split "open" from "prepared
+        # for ship", and only the second gates. A draft alone accumulates.
+        prep = 'preparing: "2026-08-16"\n' if status == "draft" else ""
         (d / "releases" / f"{rid}-R.md").write_text(
             f'---\ntype: "[[release]]"\nid: {rid}\ntitle: "R"\n'
-            f'status: {status}\nversion: "{version}"\n---\n', encoding="utf-8",
+            f'status: {status}\nversion: "{version}"\n{prep}---\n',
+            encoding="utf-8",
         )
     return d
 

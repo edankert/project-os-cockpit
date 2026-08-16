@@ -56,14 +56,14 @@ counters:
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 103
-  ISS: 174
+  FEAT: 105
+  ISS: 175
   PHASE: 34
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 433
-  TST: 30
+  TASK: 439
+  TST: 32
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
@@ -2075,7 +2075,7 @@ items:
     PHASE-034:
       file: "docs/phases/PHASE-034-Three-Phases-And-Publication-Is-The-Third.md"
       title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-      status: done
+      status: active
       owner: user:edwin
       goal: "Give the tool the phase it is missing. Publication becomes a first-class view over the whole ladder — commit, push, deploy, versioned release — and every obligation is routed to the phase that owns its subject and asks only while that subject is in flight, so what needs a person is smaller, sorted, and inspectable rather than one undifferentiated number."
       features: [FEAT-0101, FEAT-0102]
@@ -2953,16 +2953,16 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 103
-    features_done: 93
-    tasks_total: 433
-    tasks_done: 398
-    tests_total: 30
-    tests_passing: 29
+    features_total: 105
+    features_done: 94
+    tasks_total: 439
+    tasks_done: 401
+    tests_total: 32
+    tests_passing: 31
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 0
+    issues_open: 1
     issues_triage: 0
     risks_open: 6
     releases_total: 1

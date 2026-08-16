@@ -1238,6 +1238,11 @@ async function navigateToInner(
   }
   // ~history — the full timeline (FEAT-0052 / TASK-0257). The overview
   // tile is the short version; this is the same grammar, further back.
+  // ~prepare-release — declare the version being prepared (FEAT-0105).
+  if (normalised === '~prepare-release') {
+    await promptPrepareRelease();
+    return;
+  }
   // ~walk and ~walk/<section> — the acceptance walker (FEAT-0103).
   if (normalised === '~walk' || normalised.startsWith('~walk/')) {
     const section = normalised === '~walk'
@@ -3709,6 +3714,7 @@ async function refreshObligationBadges(): Promise<void> {
     features: 'features',
     issues: 'issues',
     tests: 'tests',
+    publication: 'publication',
   };
 
   document.querySelectorAll<HTMLElement>('.top-bar-btn[data-mode]').forEach((btn) => {

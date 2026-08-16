@@ -174,9 +174,11 @@ def test_walking_a_check_moves_the_count_by_exactly_one(tmp_path: Path) -> None:
 def _release(docs: Path, rid: str, status: str, version: str) -> None:
     d = docs / "releases"
     d.mkdir(parents=True, exist_ok=True)
+    prep = 'preparing: "2026-08-16"\n' if status == "draft" else ""
     (d / f"{rid}-R.md").write_text(
         f'---\ntype: "[[release]]"\nid: {rid}\ntitle: "R"\n'
-        f'status: {status}\nversion: "{version}"\n---\n', encoding="utf-8",
+        f'status: {status}\nversion: "{version}"\n{prep}---\n',
+        encoding="utf-8",
     )
 
 
@@ -210,7 +212,7 @@ def test_a_second_release_in_preparation_is_refused(tmp_path: Path) -> None:
     index = Index.build(docs)
     with pytest.raises(note_writes.WriteError) as err:
         note_writes.create_release(index, docs, title="v1.2.0", version="1.2.0")
-    assert "already in preparation" in str(err.value)
+    assert "already open" in str(err.value)
 
 
 def test_a_bad_version_is_refused(tmp_path: Path) -> None:

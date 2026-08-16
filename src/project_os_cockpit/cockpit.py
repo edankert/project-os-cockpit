@@ -4175,6 +4175,54 @@ def _publication_groups(
             group["refused"] = rung["refused"]
         out.append(group)
 
+    # ---- the next release, always present, derived (TASK-0439) -----------
+    #
+    # Edwin: *"there is always a release and any features/phases/issues etc …
+    # committed/pushed after the previous release are naturally part of the
+    # new release."*
+    #
+    # **No note until somebody declares one.** `unreleased_payload`
+    # (FEAT-0072) already answers *done but not shipped* — a feature is
+    # shipped when a `released` note names it — so the open release needs no
+    # list of its own and no auto-written placeholder. It also needs no dates,
+    # which matters: Edwin described membership by commit date and FEAT-0072
+    # deliberately rejected dates, because features carry no completion
+    # timestamp and `updated:` moves for a typo.
+    unshipped = unreleased_payload(index)
+    open_rel = _pub.open_releases(index)
+    if unshipped.get("count") or open_rel:
+        held = open_rel[0] if open_rel else None
+        if held and held["preparing"]:
+            label = f"Preparing · {held['version']}"
+        elif held:
+            label = f"Next release · {held['version']} · accumulating"
+        else:
+            label = "Next release · accumulating"
+        rows = [{
+            "id": held["id"] if held else "",
+            "title": (
+                f"{unshipped.get('count') or 0} feature(s) unshipped"
+                + (f" since {unshipped['latest']['id']}"
+                   if unshipped.get("latest") else "")
+            ),
+            "subtitle": "derived — no note is written until you declare one",
+            "status": "draft" if held else "",
+            "type": "release",
+            "url": f"/docs/{held['rel']}" if held else "~publication",
+        }]
+        group = {
+            "key": "rung-next",
+            "label": label,
+            "url": None, "status": None, "item_layout": "stacked",
+            "items": rows,
+        }
+        # It asks NOTHING while accumulating. Only `preparing` is a debt.
+        if not (held and held["preparing"]):
+            rows[0]["owed"] = True
+            rows[0]["owed_verb"] = "Prepare"
+            rows[0]["action"] = "~prepare-release"
+        out.append(group)
+
     # ---- the gate, on the release rung -----------------------------------
     gate = _acc.gate_payload(index.docs_root)
     draft = data["preparing"]

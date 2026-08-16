@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-034
 aliases: ["PHASE-034"]
 title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-status: done
+status: active
 order: 34
 owner: user:edwin
 created: 2026-08-16
@@ -13,10 +13,13 @@ features:
   - "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"
   - "[[FEAT-0102-Publication-Becomes-A-View]]"
   - "[[FEAT-0103-The-Gate-Is-Walkable]]"
+  - "[[FEAT-0104-The-Suite-Is-The-Surface]]"
+  - "[[FEAT-0105-There-Is-Always-A-Release]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
+  - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
 requirements: []
 tasks: []
 depends: []
@@ -121,3 +124,12 @@ The phase closed with every exit criterion ticked and **the reported problem sti
 [[FEAT-0103]] closes it — declare the release, list the checks, reach each one's section, walk them with a witness. Reopened rather than given its own phase: same goal line, and it is the half this phase left undone.
 
 **Standing, unchanged:** the independent review is still unpaid, and now covers five `TST-*` notes and one `CHG-*`.
+
+
+## Reopened again, 2026-08-16
+
+Edwin, reading the walker: *"why do we need the walk button there, why not show the acceptance tests document and maybe a counter on how many checks are outstanding."*
+
+He is right, and it means [[FEAT-0103]]'s stepper is the wrong answer to the question it was built for. The suite already renders 542 live checkboxes that already write; what it lacked was a band, an exception mark, and a release to gate. [[FEAT-0104]] and [[FEAT-0105]] replace the stepper with the document, and retire it rather than keeping two ways in.
+
+**Three reopens in one day is itself a datum**, and the pattern in all three is the same: each close met its criteria and left the reported problem standing. The criteria were written from the implementation's side — *"reachable from a surface that names the number"*, *"a section can be walked"* — and both are satisfiable without the reporter being helped. What Edwin asked for each time was the same sentence: *see and close the acceptance tests for the next release.*
