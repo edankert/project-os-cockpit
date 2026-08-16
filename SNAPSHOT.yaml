@@ -63,7 +63,7 @@ counters:
   RISK: 7
   REL: 1
   TASK: 455
-  TST: 34
+  TST: 37
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
@@ -78,7 +78,7 @@ items:
     FEAT-0108:
       file: "docs/features/publication-view/FEAT-0108-The-Gate-Is-A-Delta-Not-A-Census.md"
       title: "The release gate is a delta, not a census — what is new, what is chronic, what regressed, and what cannot be walked at all"
-      status: planned
+      status: done
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0446, TASK-0447, TASK-0448, TASK-0449]
@@ -87,7 +87,7 @@ items:
     FEAT-0109:
       file: "docs/features/publication-view/FEAT-0109-A-Shipped-Release-Reports-What-It-Kept.md"
       title: "A shipped release reports what it kept, not what it claims — the evidence behind tests_verified is graded and the published artifacts are checked"
-      status: planned
+      status: done
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0450, TASK-0451]
@@ -96,7 +96,7 @@ items:
     FEAT-0110:
       file: "docs/features/publication-view/FEAT-0110-Still-Owed-By-A-Shipped-Release.md"
       title: "Still owed by a shipped release — the post-release checklist every release note already carries is read, verified against the record, and offered back"
-      status: planned
+      status: done
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0452, TASK-0453]
@@ -105,7 +105,7 @@ items:
     FEAT-0111:
       file: "docs/features/publication-view/FEAT-0111-The-Marks-The-Record-Already-Uses.md"
       title: "The marks and verdicts the record already uses become writable — a check can be left open with a reason and a passed check can carry its witness"
-      status: planned
+      status: done
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0454, TASK-0455]
@@ -2152,7 +2152,7 @@ items:
     PHASE-034:
       file: "docs/phases/PHASE-034-Three-Phases-And-Publication-Is-The-Third.md"
       title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-      status: active
+      status: done
       owner: user:edwin
       goal: "Give the tool the phase it is missing. Publication becomes a first-class view over the whole ladder — commit, push, deploy, versioned release — and every obligation is routed to the phase that owns its subject and asks only while that subject is in flight, so what needs a person is smaller, sorted, and inspectable rather than one undifferentiated number."
       features: [FEAT-0101, FEAT-0102, FEAT-0108, FEAT-0109, FEAT-0110, FEAT-0111]
@@ -3031,11 +3031,11 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 111
-    features_done: 96
+    features_done: 100
     tasks_total: 455
-    tasks_done: 408
-    tests_total: 34
-    tests_passing: 31
+    tasks_done: 417
+    tests_total: 37
+    tests_passing: 34
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0

@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0447
 aliases: ["TASK-0447"]
 title: "An acceptance row whose subject is not in flight is quiet, not blocking — finishing the application of a decision already accepted"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -40,9 +40,9 @@ Resolve each blocking row's `Item.refs` through the index, read the subject's st
 
 ## Done when
 
-- [ ] a blocking row whose every subject rests is quiet and not counted
-- [ ] the quiet group expands, and every row names its subject, that subject's status, and links to it ([[ADR-0028]] decision 5)
-- [ ] no subject, or an unresolvable subject, is **blocking** — with a test for each
-- [ ] a multi-subject row is in flight if any one subject is
-- [ ] the badge count drops by exactly the quiet count, asserted rather than assumed
-- [ ] measured against `../your-trainer`: 60 → 40 blocking, 20 quiet, and the figure recorded
+- [x] a blocking row whose every subject rests is quiet and not counted
+- [x] the quiet group expands, and every row names its subject, that subject's status, and links to it ([[ADR-0028]] decision 5)
+- [x] no subject, or an unresolvable subject, is **blocking** — with a test for each
+- [x] a multi-subject row is in flight if any one subject is
+- [~] the badge count drops by exactly the quiet count — **wrong as written**: the gate contributes ONE obligation to the badge, never sixty (ADR-0027's re-arming rule, and FEAT-0102 built it that way deliberately). Quieting twenty rows cannot move a count that was always 1. What is asserted instead is the thing the criterion was reaching for: `new + chronic + regressed + quiet == blocking == 60`, so the split accounts for every row and loses none
+- [x] measured against `../your-trainer`: 60 → 40 blocking, 20 quiet, and the figure recorded

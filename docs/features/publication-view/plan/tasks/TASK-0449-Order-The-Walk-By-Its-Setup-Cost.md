@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0449
 aliases: ["TASK-0449"]
 title: "Order the walk by its setup cost, using the burden tags the suite already carries on 107 rows"
-status: backlog
+status: cancelled
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -47,9 +47,22 @@ The suite's `## Manual Test Environment Breakdown` is a hand-maintained aggregat
 
 ## Done when
 
-- [ ] burden tags parsed where present, and the count per tag computed rather than read from any prose
-- [ ] blocking rows can be ordered least-costly-first, and document order remains available
-- [ ] a suite with no burden tags renders in document order with no burden column and no placeholder
-- [ ] a row with several tags takes the **most** expensive, not the first
-- [ ] no time estimate appears anywhere in the output
-- [ ] the computed row count for `../your-trainer` is asserted, and the drift from the two hand-written aggregates recorded
+- [~] burden tags parsed where present, and the count per tag computed rather than read from any prose
+- [~] blocking rows can be ordered least-costly-first, and document order remains available
+- [~] a suite with no burden tags renders in document order with no burden column and no placeholder
+- [~] a row with several tags takes the **most** expensive, not the first
+- [~] no time estimate appears anywhere in the output
+- [~] the computed row count for `../your-trainer` is asserted, and the drift from the two hand-written aggregates recorded
+
+## Cancelled 2026-08-16 — the mechanism is not in the corpus and the purpose is already served
+
+Two measurements, both taken **before** anything shipped, and either alone is fatal:
+
+1. **`ACCEPTANCE_TESTS.md` carries no burden tags.** The document the gate reads has zero, in every repo in the fleet. A scanner written for it found six and **all six were false positives** — `[Debug]` lifted out of a quoted workout name, *"verify no workouts with `[Debug]` prefix appear"*. A 6-of-6 false-positive rate on the only corpus it would ever run against is not a heuristic that needs tuning.
+2. **`TST-0013` is not a suite.** It has no `# Tier N` heading, so `acceptance.parse` yields **0 items** for it. The one document carrying real tags is a `TST-*` read by `manual_test_steps`, which the gate never sees. The two halves of this task's premise live in different documents read by different parsers.
+
+This task's own scope note said a heuristic inferring burden from prose was out of scope because *"it would be wrong quietly"*. It would have been, and the scanner was written and deleted rather than argued about.
+
+**The purpose is not lost.** *Do not make someone stand a trainer up twice* is already served: [[FEAT-0102]] groups the gate by section, and the section **is** the sitting. What this task would have added on top is a second ordering over a field that does not exist.
+
+`cancelled`, not `deferred`: deferring says *later*, and nothing here gets truer with time. If a suite ever adopts the tag convention, that is a new task against a corpus that has one.

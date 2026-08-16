@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-034
 aliases: ["PHASE-034"]
 title: "Three phases, and publication is the third — what needs a person is routed to the phase that owns it, and asks only while that subject is in flight"
-status: active
+status: done
 order: 34
 owner: user:edwin
 created: 2026-08-16
@@ -31,7 +31,6 @@ issues:
   - "[[ISS-0174-Publication-Showed-One-Item-Twice-And-A-Row-Nobody-Could-Click]]"
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
-  - "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]"
   - "[[ISS-0183-The-Canonical-Machine-Readable-File-Did-Not-Parse]]"
 requirements: []
 tasks: []
@@ -287,3 +286,45 @@ Four defects in **other repos**, found by this review. They are recorded here be
 **`ACCEPTANCE_TESTS_v2.1.0.md` is not a snapshot.** It was first proposed for retirement as a hand-copy that git already holds. It shares **zero of its 300 check titles** with the living suite and says in its own header that it is a *delta* — an independent per-release suite with its own gate rules and a `# Pending — required before tag` section. Retiring it would have deleted a load-bearing artifact. The corrected reading is stronger: it is the shape [[FEAT-0108]] should eventually generate.
 
 **`[~]` and `[F]` had been reported as never used.** True of `ACCEPTANCE_TESTS.md` at all twelve tags, which is what was measured; false of the corpus, where seven rows use them with a consistent grammar. [[FEAT-0111]] exists because the second measurement was taken.
+
+## Closed 2026-08-16 — the fourth close, and the audit it ran on itself
+
+Four features built, tested and walked. **1483 passed, 2 skipped** (from 1400); three new `TST-*`; **24 mutations, all killed**, each named in its task before the guard was written and each behind an apply-check.
+
+### What a person will notice
+
+| | before | after |
+| --- | --- | --- |
+| Next release | `Release gate · 60 unchecked` | `13 new · 27 chronic · 0 regressed · 20 quiet` |
+| — and the history | — | *"12 releases, median 36 blocking at ship. This is 60."* |
+| — stale evidence | counted as passed | **53**, named in their own group |
+| A shipped release | `tests_verified` as links | `TST-0011 · 0/18 walked · 0 evidence · never verified` |
+| — its artifacts | files to open | two of seven reported **corrupt**, with line numbers |
+| — what it still owes | nothing read it | **37 boxes**, each with a verdict |
+| A gate row | edit the file by hand | **Pass / Partial / Fail** with a required reason |
+
+### The design correction this phase's work turned on
+
+Applying [[ADR-0028]] decision 3 verbatim to acceptance rows quieted **60 of 60** and the gate disappeared. `RESTING_STATES` contains `done` and `fixed`, and nearly every acceptance row names a shipped feature or a fixed issue — which is the right answer for a requirement and precisely the wrong one for a regression check. The rule for this population is narrower and is now written down as `obligations.NOT_YET_BUILT`: *a screen that does not exist cannot be walked.* Everything else asks.
+
+The ADR is amended rather than re-decided; the principle did not change, its application did.
+
+### The audit, and why it is recorded rather than quietly fixed
+
+The four features were first set to `done` with **all 32 acceptance criteria unticked** — exactly what [[FEAT-0105]] (0 of 8) and [[FEAT-0106]] (0 of 9) did earlier in this same phase, and what the independent review called the phase's single systemic finding. It happened again because a blanket regex is faster than reading.
+
+Caught before commit, by reading them one at a time. **Six were genuinely unbuilt and were built**: the age in days on an open box, the offered tick, the lazy-continuation refusal, `releases_since`, the historical line, and links on the quiet subjects. **Two are reconciled `[~]`** with the reason on the line — the badge-count criterion (the gate contributes one obligation, never sixty, so nothing could drop) and burden ordering ([[TASK-0449]], cancelled).
+
+**The validator still has no `FEAT-BOXES` check.** That is unchanged from the previous close and remains the phase's systemic finding: `REQ-BOXES` and `PHASE-BOXES` exist and nothing guards a feature's own criteria. Three closes have now depended on somebody choosing to read them.
+
+### One thing built and deleted
+
+A burden-tag scanner, written for [[TASK-0449]] and removed the same hour: `ACCEPTANCE_TESTS.md` carries no burden tags in any repo, the scanner was **6-for-6 false positives** on `[Debug]` inside quoted workout names, and `TST-0013` — the one document that does carry them — has no tier headings, so `parse` returns zero items for it. The task's own scope note had predicted this: *"a heuristic that infers burden from prose would be wrong quietly."*
+
+### Standing, and named rather than assumed away
+
+- **Whether stale evidence should BLOCK.** 53 ticked rows carry a `RE-RUN` annotation, so the honest number is 113 rather than 60. It is on the page with its number; making it block changes what shipping means and is Edwin's.
+- **`TESTING.md` rule 5 has never been executed** in twelve releases — 68 Tier 3 rows and 54 annotations survive a rule that says a verified release clears them.
+- **[[ISS-0181]] items 3 and 4 stay open.** The save/reload interruption is a file-watch problem; completing a release needs a ship transition this phase did not build. [[FEAT-0110]] supplies only the *after*.
+- **Four fleet defects are recorded and unfiled** — two corrupt store XMLs, the live `compatibility.json` warning, the public release-notes page three versions behind, and `published` instructed as a status that does not exist. They belong to `../your-trainer`, `../your-applications.com` and the upstream template.
+- **The independent review gate is unpaid at this close.** `QUALITY.md` asks for a clean-context pass on any change creating a `TST-*` or `CHG-*`; this creates three and updates one. Edwin's call, and the last two passes both returned `changes-requested` with findings that were real.

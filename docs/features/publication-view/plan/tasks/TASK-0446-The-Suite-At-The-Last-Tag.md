@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0446
 aliases: ["TASK-0446"]
 title: "Parse the suite as it stood at the last released tag and diff it — new, chronic, regressed"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -46,9 +46,9 @@ Eleven of the twelve discovered repos have **no release tags at all**. This must
 
 ## Done when
 
-- [ ] `new` / `chronic` / `regressed` counts computed against the newest `released` tag
-- [ ] chronic rows carry the tag they were last ticked at and the number of releases shipped since
-- [ ] matched on name within tier, and a test inserts a section above a check to prove the number is not used
-- [ ] all four degradation paths render the census with a stated reason
-- [ ] no measurable regression in page render time; the tag reads are cached
-- [ ] verified against `../your-trainer`'s real twelve tags, and the numbers recorded in the note
+- [x] `new` / `chronic` / `regressed` counts computed against the newest `released` tag
+- [x] chronic rows carry the tag they were last ticked at and the number of releases shipped since
+- [x] matched on name within tier, and a test inserts a section above a check to prove the number is not used
+- [x] all four degradation paths render the census with a stated reason
+- [x] no measurable regression in page render time; the tag reads are cached
+- [x] verified against `../your-trainer`'s real twelve tags, and the numbers recorded in the note

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0110
 aliases: ["FEAT-0110"]
 title: "Still owed by a shipped release — the post-release checklist every release note already carries is read, verified against the record, and offered back"
-status: planned
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0022]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: []
+tests: ["[[TST-0036-FEAT0109]]"]
 ---
 
 # Still owed by a shipped release
@@ -67,14 +67,14 @@ This is the same read `_known_issues` already performs for `## Known issues`, ag
 
 ## Acceptance criteria
 
-- [ ] A shipped release page reads its `## Post-Release Actions` section and lists the **unticked** boxes.
-- [ ] Each box carries one of exactly **three verdicts** — verifiable-done, open, unknowable — and the evidence for it.
-- [ ] An **open** box carries an age in days, measured from the release date.
-- [ ] A **verifiable-done** box offers a tick and the tick is **never** applied without a click.
-- [ ] A release note with **no such section** — four of the twelve — renders nothing rather than an empty heading.
-- [ ] The section heading is matched with the same tolerance as `## Known issues`: `Post-Release Actions`, `Post release actions`, `Follow-up`.
-- [ ] A box naming a **cross-repo** target resolves through the workspace index where it can, and reports *unknowable* where it cannot — it does not guess.
-- [ ] Nothing here pushes, deploys, or edits a file in another workspace. Per [[ADR-0022]], the cockpit names publication and does not perform it.
+- [x] A shipped release page reads its `## Post-Release Actions` section and lists the **unticked** boxes.
+- [x] Each box carries one of exactly **three verdicts** — verifiable-done, open, unknowable — and the evidence for it.
+- [x] An **open** box carries an age in days, measured from the release date.
+- [x] A **verifiable-done** box offers a tick and the tick is **never** applied without a click.
+- [x] A release note with **no such section** — four of the twelve — renders nothing rather than an empty heading.
+- [x] The section heading is matched with the same tolerance as `## Known issues`: `Post-Release Actions`, `Post release actions`, `Follow-up`.
+- [x] A box naming a **cross-repo** target resolves through the workspace index where it can, and reports *unknowable* where it cannot — it does not guess.
+- [x] Nothing here pushes, deploys, or edits a file in another workspace. Per [[ADR-0022]], the cockpit names publication and does not perform it.
 
 ## The rule that governs the tick
 

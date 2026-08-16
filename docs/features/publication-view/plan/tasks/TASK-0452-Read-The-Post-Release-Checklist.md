@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0452
 aliases: ["TASK-0452"]
 title: "Read the post-release checklist every release note already carries — 37 unticked boxes across eight releases"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -40,8 +40,8 @@ The same heading-and-checkbox read `_known_issues` performs, against a different
 
 ## Done when
 
-- [ ] unticked boxes returned with text and position, from all four heading spellings
-- [ ] a subsection inside the checklist is part of it, not a terminator
-- [ ] a note with no section renders nothing — no empty heading
-- [ ] a lazy-continuation list is either read correctly or refused, never silently mis-addressed
-- [ ] measured against `../your-trainer`: 8 notes, 37 unticked, and both asserted
+- [x] unticked boxes returned with text and position, from all four heading spellings
+- [x] a subsection inside the checklist is part of it, not a terminator
+- [x] a note with no section renders nothing — no empty heading
+- [x] a lazy-continuation list is either read correctly or refused, never silently mis-addressed
+- [x] measured against `../your-trainer`: 8 notes, 37 unticked, and both asserted

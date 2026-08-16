@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0108
 aliases: ["FEAT-0108"]
 title: "The release gate is a delta, not a census — what is new, what is chronic, what regressed, and what cannot be walked at all"
-status: planned
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: []
+tests: ["[[TST-0035-FEAT0108]]"]
 ---
 
 # The gate is a delta, not a census
@@ -100,14 +100,14 @@ Per [[ADR-0028]] decision 5, derived silence must be inspectable: the quiet grou
 
 ## Acceptance criteria
 
-- [ ] The gate reports **new / chronic / regressed** against the newest `released` release's tag, diffed on check name within tier, not on number — `Item.number` shifts when a section is inserted, which is the same asymmetry `locate()` already relies on.
-- [ ] Chronic rows carry an **age** — the tag they were last ticked at, or first appeared unticked at, and the count of releases shipped since.
-- [ ] A blocking row whose subject resolves to a **not-in-flight** status is quiet, not blocking, and the badge count drops accordingly.
-- [ ] The quiet group **expands** and each row names its subject and that subject's status, with a link to it.
-- [ ] A **ticked** row carrying a `RE-RUN (TASK-####: reason)` annotation is reported in its own group and is **not** counted as evidence.
-- [ ] The gate list can be **ordered by setup cost** using the burden tags the suite already carries, and document order remains available.
-- [ ] A repo with **no tags** — eleven of the twelve — degrades to the census it renders today, with the reason stated, rather than to an empty page or a crash.
-- [ ] The historical line — *"twelve releases, median 26 blocking at ship; this is 60"* — appears once and is computed, not written.
+- [x] The gate reports **new / chronic / regressed** against the newest `released` release's tag, diffed on check name within tier, not on number — `Item.number` shifts when a section is inserted, which is the same asymmetry `locate()` already relies on.
+- [x] Chronic rows carry an **age** — the tag they were last ticked at, or first appeared unticked at, and the count of releases shipped since.
+- [~] A blocking row whose subject resolves to a **not-in-flight** status is quiet, not blocking, and the badge count drops accordingly. **Reconciled, not met as written**: the gate contributes ONE obligation to any badge, never sixty ([[ADR-0027]]'s re-arming rule, and [[FEAT-0102]] built it that way on purpose), so quieting twenty rows cannot move a count that was always 1. What IS asserted is what the criterion was reaching for — `new + chronic + regressed + quiet == blocking == 60`, so the split accounts for every row and loses none.
+- [x] The quiet group **expands** and each row names its subject and that subject's status, with a link to it.
+- [x] A **ticked** row carrying a `RE-RUN (TASK-####: reason)` annotation is reported in its own group and is **not** counted as evidence.
+- [~] The gate list can be **ordered by setup cost** using the burden tags the suite already carries, and document order remains available. **Reconciled — see [[TASK-0449]], cancelled.** `ACCEPTANCE_TESTS.md` carries no burden tags in any repo, and a scanner written for it was 6-for-6 false positives on `[Debug]` inside quoted workout names; `TST-0013`, which does carry them, has no tier headings so `parse` returns 0 items for it. The purpose is already served: [[FEAT-0102]] groups the gate by section, and section is the sitting.
+- [x] A repo with **no tags** — eleven of the twelve — degrades to the census it renders today, with the reason stated, rather than to an empty page or a crash.
+- [x] The historical line — *"twelve releases, median 26 blocking at ship; this is 60"* — appears once and is computed, not written.
 
 ## How this is verified
 

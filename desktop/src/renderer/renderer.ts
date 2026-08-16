@@ -1593,12 +1593,35 @@ interface NoteAction {
 
 interface GateItem {
   tier: number; number: string; section: string; area: string; name: string;
+  anchor?: string; text?: string; refs?: string[];
+  /** Walked and failed, with the failure tracked on the line. Still blocking. */
+  failed?: boolean;
+  /** `RE-RUN (TASK-####: reason)` — the tick is stale. */
+  rerun?: string;
+  /** Chronic rows only: the tag this has been unsettled since, and how many
+   *  releases were cut over it. "Open since v1.1.0" is a fact; "open since
+   *  v1.1.0, 11 releases ago" is a decision. */
+  since?: string;
+  releases_since?: number;
+  /** Quiet rows only: why, per ADR-0028 decision 5. */
+  subjects?: { id: string; status: string; title?: string; rel?: string }[];
+}
+interface GateDelta {
+  comparable: boolean; baseline: string;
+  new: GateItem[]; chronic: GateItem[]; regressed: GateItem[];
+  /** "12 releases, median 36 blocking at ship. This is 60." — the only thing
+   *  on the page that lets a reader judge whether today is unusual. */
+  summary?: string;
 }
 interface GatePayload {
   exists: boolean; blocked: boolean; rule: string; rel: string;
   blocking: GateItem[];
   counts: Record<string, { total: number; unchecked: number; reconciled?: number }>;
   local_rule?: string;
+  /** Additive to `blocking` — absent for callers that never asked. */
+  delta?: GateDelta;
+  quiet?: GateItem[];
+  stale?: GateItem[];
 }
 
 async function mountReleaseGate(): Promise<void> {
@@ -6864,13 +6887,35 @@ interface ReleasePayload {
   /** What this release verified — the suite snapshot it shipped against and
    *  any TST notes. From `tests_verified:`, which twelve releases have been
    *  filling in by hand and nothing has ever read (FEAT-0107). */
-  tests_verified?: Array<{ id: string; rel: string }>;
+  tests_verified?: Array<{
+    id: string; rel: string; resolved?: boolean; title?: string;
+    /** How much was ACTUALLY walked. The heading says "as executed" and
+     *  REL-0012's own entry is 0 of 18 with no evidence (FEAT-0109). */
+    grade?: {
+      total: number; walked: number; evidence: number;
+      last_verified: string; never_verified: boolean;
+    };
+  }>;
   /** The note's own known-issues section as HTML — what it shipped with
    *  unfixed. Rendered server-side through the one markdown pipeline, because
    *  as raw text a table displayed as a column of pipe characters. */
   known_issues_html?: string;
   /** Platform texts beside the note, found by the naming convention. */
-  artifacts?: Array<{ name: string; kind: string; rel: string }>;
+  artifacts?: Array<{
+    name: string; kind: string; rel: string;
+    /** False for a kind the checker does not understand — listed without a
+     *  verdict rather than flagged. */
+    checked?: boolean; ok?: boolean; problem?: string;
+    locales?: number; longest?: number;
+  }>;
+  /** Unticked post-release boxes, each with a verdict and its evidence
+   *  (FEAT-0110). Eight of your-trainer's notes carry 37 between them. */
+  still_owed?: Array<{
+    text: string; line: number; verdict: string; evidence: string;
+    /** Days outstanding, on `open` boxes only. An age on a done box is
+     *  noise; an age on an unknowable one implies the tool knows. */
+    age_days?: number;
+  }>;
   stale_drafts?: Array<{ id: string; version: string; rel: string }>;
 }
 
@@ -7035,8 +7080,26 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
       id.title = v.id;
       const t2 = document.createElement('span');
       t2.className = 'scoped-row-title';
-      t2.textContent = v.rel ? v.id : `${v.id} — not in this corpus`;
+      t2.textContent = v.rel ? (v.title || v.id) : `${v.id} — not in this corpus`;
       li.append(id, t2);
+      // The grade, not just the link (FEAT-0109 / TASK-0450). This heading
+      // says "as executed" and REL-0012's own entry resolves to a note with
+      // 18 unticked boxes and 18 blank evidence slots. A link implies
+      // evidence; a row reports it.
+      const g = v.grade;
+      if (g) {
+        const meta = document.createElement('span');
+        meta.className = 'verification-meta';
+        const bits = [`${g.walked}/${g.total} walked`];
+        if (g.total) bits.push(`${g.evidence} evidence`);
+        // `last_verified === created` in 15 of 16 notes in the corpus: the
+        // field is stamped at authoring time and has never once recorded a
+        // verification. "never verified" is the honest word, not "stale".
+        if (g.never_verified) bits.push('never verified');
+        meta.textContent = bits.join(' · ');
+        if (g.total && !g.walked) meta.classList.add('is-warn');
+        li.appendChild(meta);
+      }
       if (v.rel) {
         li.style.cursor = 'pointer';
         li.addEventListener('click', () => void navigateTo(`/docs/${v.rel}`));
@@ -7113,12 +7176,109 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
       nm.className = 'scoped-row-title';
       nm.textContent = art.name;
       li.append(kind, nm);
+      // A verdict, not just a file to open (FEAT-0109 / TASK-0451). Two of
+      // your-trainer's seven store XMLs do not parse — leaked tool-call
+      // closing tags after the root element — in the declared source of truth
+      // for store copy in ten locales.
+      if (art.checked) {
+        const verdict = document.createElement('span');
+        verdict.className = 'verification-meta';
+        if (!art.ok) {
+          verdict.classList.add('is-warn');
+          verdict.textContent = art.problem || 'does not parse';
+        } else if (art.locales) {
+          verdict.textContent = `${art.locales} locales · max ${art.longest} chars`;
+        } else {
+          verdict.textContent = 'parses';
+        }
+        li.appendChild(verdict);
+      }
       li.style.cursor = 'pointer';
       li.addEventListener('click', () => void navigateTo(`/docs/${art.rel}`));
       ul.appendChild(li);
     }
     a.appendChild(ul);
     wrap.appendChild(a);
+  }
+
+  // ---- Still owed by this release (FEAT-0110) --------------------------
+  //
+  // Eight release notes carry a post-release checklist and 37 boxes are
+  // unticked. The page already reads `## Known issues` out of the same note
+  // and walks past the only section holding outstanding work — including
+  // REL-0010's instruction to retire a warning that riders have now seen for
+  // 85 days after the fix shipped.
+  if (d.still_owed?.length) {
+    const s = document.createElement('section');
+    s.className = 'release-section';
+    const sh = document.createElement('h3');
+    sh.textContent = `Still owed by this release · ${d.still_owed.length}`;
+    s.appendChild(sh);
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const box of d.still_owed) {
+      const li = document.createElement('li');
+      const mark = document.createElement('span');
+      mark.className = 'scoped-row-id mono';
+      // Three verdicts and only three. An unknowable box is honest; a
+      // silently-carried one is not.
+      mark.textContent = box.verdict === 'done' ? '✓'
+        : box.verdict === 'open' ? '!' : '?';
+      mark.title = box.verdict;
+      const t2 = document.createElement('span');
+      t2.className = 'scoped-row-title';
+      t2.textContent = box.text;
+      li.append(mark, t2);
+      if (box.evidence || box.age_days) {
+        const ev = document.createElement('span');
+        ev.className = 'verification-meta';
+        if (box.verdict === 'open') ev.classList.add('is-warn');
+        // The age is what makes anybody act: "outstanding" and "outstanding
+        // for 85 days, four releases ago" are different sentences.
+        ev.textContent = [
+          box.evidence,
+          box.age_days ? `${box.age_days} days` : '',
+        ].filter(Boolean).join(' · ');
+        li.appendChild(ev);
+      }
+      // The tick, offered ONLY where the record proves the box is done, and
+      // never applied without this click.
+      if (box.verdict === 'done') {
+        const tick = document.createElement('button');
+        tick.type = 'button';
+        tick.className = 'review-btn is-small';
+        tick.textContent = 'Tick';
+        // Written long-hand on purpose. `() => void (async () => {…})()` is
+        // correct but reads like an IIFE that fires at bind time, and if it
+        // ever became one every provable box on the page would tick itself
+        // on render — the one failure mode this whole surface is shaped to
+        // prevent. Legibility is worth four lines here.
+        tick.addEventListener('click', () => {
+          void (async (): Promise<void> => {
+            const res = await postJson('/api/notes/tick-owed', {
+              id: d.id, line: box.line, text: box.text,
+            });
+            if (res?.ok) void renderReleasePage(releaseId);
+          })();
+        });
+        li.appendChild(tick);
+      }
+      ul.appendChild(li);
+    }
+    s.appendChild(ul);
+    // No tick offered here, deliberately. The verdict is computed; the write
+    // is a person's. Issues appearing without anyone asking is this
+    // project's recorded failure mode, and a box DISAPPEARING without anyone
+    // asking is the same failure with a worse blast radius — an automatic
+    // tick on a wrong inference destroys the only record the obligation
+    // existed. Ticking one means opening the note, which is one click away.
+    const how = document.createElement('p');
+    how.className = 'meta';
+    how.textContent = 'Verdicts are computed from the record; ticking is '
+      + 'yours. A tick is offered only where the record proves the box is '
+      + 'done, and nothing is ever ticked without your click.';
+    s.appendChild(how);
+    wrap.appendChild(s);
   }
 
   // ---- the gate, for a release that has not shipped --------------------
@@ -7134,6 +7294,12 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     rule.className = 'meta';
     rule.textContent = d.gate.rule;
     g.appendChild(rule);
+    if (d.gate.delta?.summary) {
+      const hist = document.createElement('p');
+      hist.className = 'meta';
+      hist.textContent = d.gate.delta.summary;
+      g.appendChild(hist);
+    }
 
     const open = document.createElement('button');
     open.type = 'button';
@@ -7144,37 +7310,220 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     });
     g.appendChild(open);
 
-    const rows = document.createElement('ul');
-    rows.className = 'scoped-rowlist';
-    for (const item of (d.gate.blocking || []).slice(0, 40)) {
-      const li = document.createElement('li');
-      const n = document.createElement('span');
-      n.className = 'scoped-row-id mono';
-      n.textContent = item.number;
-      const t = document.createElement('span');
-      t.className = 'scoped-row-title';
-      t.textContent = item.name;
-      const a = document.createElement('span');
-      a.className = 'verification-meta';
-      a.textContent = item.area;
-      li.append(n, t, a);
-      li.style.cursor = 'pointer';
-      const anchor = (item as { anchor?: string }).anchor;
-      li.addEventListener('click', () => void navigateTo(
-        `/docs/${d.gate.rel}${anchor ? `#${anchor}` : ''}`,
+    // The delta, not the census (FEAT-0108). `60 unchecked` has been true at
+    // all twelve of your-trainer's tags and is a sentence the reader has
+    // learned to skip; `13 new, 0 regressed` has never been said and is the
+    // half somebody can act on today.
+    const delta = d.gate.delta;
+    if (delta?.comparable) {
+      for (const [key, label, hint] of [
+        ['new', 'New', `added since ${delta.baseline}, never walked`],
+        ['chronic', 'Chronic', `unticked at ${delta.baseline} and shipped anyway`],
+        ['regressed', 'Regressed', `was ticked at ${delta.baseline}, unticked now`],
+      ] as const) {
+        const items = delta[key] || [];
+        g.appendChild(gateGroup(
+          `${label} · ${items.length}`, hint, items, d.gate.rel, releaseId,
+          // Chronic rows carry the tag they have been open since. Nothing
+          // else on this page can say "you have shipped four releases over
+          // this one", which is the difference between a backlog and a
+          // five-month-old backlog.
+          key === 'chronic',
+        ));
+      }
+    } else {
+      // Eleven of twelve repos have no release tag, so this is the ordinary
+      // path and not an error state. Say why rather than showing an empty
+      // delta or calling every row new.
+      const why = document.createElement('p');
+      why.className = 'meta';
+      why.textContent = 'No release tag to compare against — showing every '
+        + 'blocking check.';
+      g.appendChild(why);
+      g.appendChild(gateGroup(
+        `Blocking · ${(d.gate.blocking || []).length}`, '',
+        d.gate.blocking || [], d.gate.rel, releaseId, false,
       ));
-      rows.appendChild(li);
     }
-    if ((d.gate.blocking || []).length > 40) {
-      const more = document.createElement('li');
-      more.className = 'meta';
-      more.textContent = `…${(d.gate.blocking || []).length - 40} more`;
-      rows.appendChild(more);
+
+    // Quiet: the subject has not been built yet. Collapsed, and every row
+    // names its subject and that subject's status (ADR-0028 decision 5) —
+    // derived silence that cannot be inspected is indistinguishable from a
+    // surface that lost the row.
+    if (d.gate.quiet?.length) {
+      const det = document.createElement('details');
+      det.className = 'release-quiet';
+      const sum = document.createElement('summary');
+      sum.textContent = `Quiet · ${d.gate.quiet.length} — subject not built yet`;
+      det.appendChild(sum);
+      det.appendChild(gateGroup(
+        '', '', d.gate.quiet, d.gate.rel, releaseId, false, true,
+      ));
+      g.appendChild(det);
     }
-    g.appendChild(rows);
+
+    // Ticked, but the row's own annotation says the evidence is stale. Neither
+    // blocking nor satisfied, and stated rather than folded into either — 53
+    // of your-trainer's ticked rows are here, which is why its honest
+    // blocking number is 113 and its reported one is 60.
+    if (d.gate.stale?.length) {
+      const det = document.createElement('details');
+      det.className = 'release-quiet';
+      const sum = document.createElement('summary');
+      sum.textContent = `Stale evidence · ${d.gate.stale.length} — ticked, `
+        + 'annotated RE-RUN, never re-walked';
+      det.appendChild(sum);
+      det.appendChild(gateGroup(
+        '', '', d.gate.stale, d.gate.rel, releaseId, false, false, true,
+      ));
+      g.appendChild(det);
+    }
     wrap.appendChild(g);
   }
   return wrap;
+}
+
+/** Pass / partial / fail on one check, writing the grammar the record already
+ *  uses (FEAT-0111 / TASK-0455).
+ *
+ *  `[!]` is deliberately absent. It stays readable so a suite already using it
+ *  keeps working, and is never offered — offering it would re-open ISS-0177's
+ *  gap, where a check leaves the gate with no justification and nothing owed.
+ *  The three here all record WHY, which is the point. */
+function verdictControls(item: GateItem, releaseId: string): HTMLElement {
+  const box = document.createElement('span');
+  box.className = 'check-verdict';
+  for (const [verdict, label, prompt] of [
+    ['pass', 'Pass', 'What did you observe? (optional)'],
+    ['partial', 'Partial', 'What worked and what did not? (required)'],
+    ['fail', 'Fail', 'What failed, and where is it tracked? (required)'],
+  ] as const) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'review-btn is-small';
+    btn.textContent = label;
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      void (async () => {
+        const reason = await askForText({
+          title: `${label}: ${item.number} ${item.name}`,
+          detail: `${prompt}\n\nNaming an ISS-#### links it. A partial or a `
+            + 'fail is refused without a reason — the mark and its '
+            + 'justification are written together.',
+          placeholder: verdict === 'pass'
+            ? 'Claude, tablet: HR tile showed 69 bpm'
+            : 'still fails under de-DE, tracked as ISS-0277',
+          confirm: label,
+        });
+        if (reason === null) return;
+        const res = await postJson('/api/notes/mark-check', {
+          number: item.number, name: item.name, verdict, reason,
+        });
+        if (res?.ok) {
+          // Repaint from the server rather than mutating the row: the gate's
+          // groups are a diff against a tag, and a locally-patched row would
+          // stay in whichever group it was in before the mark.
+          void renderReleasePage(releaseId);
+        }
+      })();
+    });
+    box.appendChild(btn);
+  }
+  return box;
+}
+
+/** One group of gate rows. Every group renders through here so four lists
+ *  cannot drift into four layouts. */
+function gateGroup(
+  heading: string, hint: string, items: GateItem[], rel: string,
+  releaseId: string, withAge: boolean,
+  withSubjects = false, withRerun = false,
+): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'release-gate-group';
+  if (heading) {
+    const h = document.createElement('h4');
+    h.textContent = heading;
+    box.appendChild(h);
+  }
+  if (hint) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = hint;
+    box.appendChild(p);
+  }
+  if (!items.length) {
+    const none = document.createElement('p');
+    none.className = 'meta';
+    none.textContent = 'None.';
+    box.appendChild(none);
+    return box;
+  }
+  const rows = document.createElement('ul');
+  rows.className = 'scoped-rowlist';
+  for (const item of items.slice(0, 40)) {
+    const li = document.createElement('li');
+    const n = document.createElement('span');
+    n.className = 'scoped-row-id mono';
+    n.textContent = item.number;
+    const t = document.createElement('span');
+    t.className = 'scoped-row-title';
+    t.textContent = item.name;
+    const a = document.createElement('span');
+    a.className = 'verification-meta';
+    const bits: string[] = [item.area];
+    if (withAge && item.since) {
+      bits.push(item.releases_since
+        ? `open since ${item.since}, ${item.releases_since} releases ago`
+        : `open since ${item.since}`);
+    }
+    // Linked, not just named. ADR-0028 decision 5 asks for silence that can
+    // be INSPECTED, and a reader who cannot reach FEAT-0074 cannot check
+    // whether quieting twenty rows was right. Collected here and appended
+    // AFTER the number and title, so the row reads in its usual order.
+    const subjectLinks: HTMLElement[] = [];
+    if (withSubjects && item.subjects?.length) {
+      for (const s of item.subjects) {
+        const link = document.createElement(s.rel ? 'a' : 'span');
+        link.className = 'verification-meta';
+        link.textContent = `${s.id} is ${s.status}`;
+        if (s.rel) {
+          (link as HTMLAnchorElement).href = '#';
+          link.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            void navigateTo(`/docs/${s.rel}`);
+          });
+        }
+        subjectLinks.push(link);
+      }
+    }
+    if (withRerun && item.rerun) bits.push(item.rerun);
+    if (item.failed) bits.push('failed');
+    a.textContent = bits.filter(Boolean).join(' · ');
+    li.append(n, t, a, ...subjectLinks);
+    // The marks the record already uses (FEAT-0111). Offered only on rows
+    // that are actually owed — a quiet or stale row is not a thing to walk,
+    // and putting a verdict button on one would invite marking a check whose
+    // screen does not exist.
+    if (!withSubjects && !withRerun) {
+      li.appendChild(verdictControls(item, releaseId));
+    }
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', (ev) => {
+      if ((ev.target as HTMLElement).closest('.check-verdict')) return;
+      void navigateTo(`/docs/${rel}${item.anchor ? `#${item.anchor}` : ''}`);
+    });
+    rows.appendChild(li);
+  }
+  if (items.length > 40) {
+    const more = document.createElement('li');
+    more.className = 'meta';
+    more.textContent = `…${items.length - 40} more`;
+    rows.appendChild(more);
+  }
+  box.appendChild(rows);
+  return box;
 }
 
 

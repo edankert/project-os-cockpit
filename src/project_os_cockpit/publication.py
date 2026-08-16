@@ -119,6 +119,37 @@ def _tags(project_root: Path) -> list[dict[str, str]]:
     return tags
 
 
+def baseline_ref(project_root: Path, index: "Index") -> str:
+    """The tag the gate's delta is measured against — the last shipped release.
+
+    Preference order, and each fallback is a real corpus state rather than
+    defensive padding:
+
+    1. The newest `released` note's **version**, matched to a tag by name. This
+       is the honest baseline: *"since the thing I last shipped."*
+    2. The newest tag by creation date, when no release note is `released` but
+       tags exist — three of the twelve repos are in exactly this state, with a
+       tag history and no `REL-*` notes at all.
+    3. `""` — no tags. **Eleven of twelve repos.** The caller renders the
+       census, not a delta.
+    """
+    tags = _tags(project_root)
+    if not tags:
+        return ""
+    names = {t["name"] for t in tags}
+    shipped = [
+        r for r in _releases(index)
+        if r["status"] == "released" and r["version"]
+    ]
+    shipped.sort(key=lambda r: _version_key(str(r["version"])), reverse=True)
+    for release in shipped:
+        version = str(release["version"]).lstrip("vV")
+        for candidate in (f"v{version}", version):
+            if candidate in names:
+                return candidate
+    return str(tags[0]["name"])
+
+
 def _releases(index: "Index") -> list[dict[str, Any]]:
     """`REL-*` notes, newest id first."""
     out: list[dict[str, Any]] = []
@@ -371,7 +402,7 @@ def artifacts_for(docs_root: Path, release_id: str) -> list[dict[str, str]]:
             continue
         if path.suffix.lower() == ".md":
             continue                       # the note itself
-        out.append({
+        entry: dict[str, Any] = {
             "name": path.name,
             # The kind, from the convention's trailing segment:
             # `REL-0012-v2.1.6-play-store-listing.xml` -> `play store listing`
@@ -379,8 +410,120 @@ def artifacts_for(docs_root: Path, release_id: str) -> list[dict[str, str]]:
                 r"^REL-\d+-v[\d.]+-", "", path.stem,
             ).replace("-", " ") or path.suffix.lstrip("."),
             "rel": f"releases/{path.name}",
-        })
+        }
+        entry.update(_check_artifact(path))
+        out.append(entry)
     return out
+
+
+#: The ceiling the store copy declares in its own header comment — *"500-char
+#: ceiling per locale"*, *"Char counts asserted < 500"* — and which nothing has
+#: ever checked.
+_STORE_CEILING = 500
+#: `en-GB`, `zh-TW`, `pt-BR`, and bare `de`. Anchored so a `<release-notes>`
+#: or `<content>` wrapper is never mistaken for a locale.
+_LOCALE_TAG_RE = re.compile(r"^[a-z]{2,3}(?:-[A-Za-z0-9]{2,4})?$")
+
+
+def _check_artifact(path: Path) -> dict[str, Any]:
+    """A verdict on a published artifact, or nothing for a kind we do not know.
+
+    **Two of `your-trainer`'s seven store XMLs do not parse.** Both end with
+    leaked tool-call closing tags after the root element —
+    `</release-notes></content></invoke>` — a class of corruption from the
+    authoring path sitting in the declared source of truth for store copy in
+    ten locales, one of them the file the public 2.0 announcement was cut from.
+    Four lines of stdlib parsing turns a file-open into a verdict.
+
+    An unknown kind is returned **without** a verdict rather than flagged: this
+    knows about XML, and implying judgement over a file it does not understand
+    would be the same overreach as a gate that counts what it cannot read.
+    """
+    if path.suffix.lower() != ".xml":
+        return {"checked": False}
+    import xml.etree.ElementTree as ET
+
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError as exc:
+        line = getattr(exc, "position", (0, 0))[0]
+        return {
+            "checked": True, "ok": False,
+            "problem": f"does not parse (line {line})" if line
+                       else "does not parse",
+        }
+    except OSError:
+        return {"checked": False}
+    # Locale-bearing store copy. The corpus names locales as ELEMENTS —
+    # `<en-GB>`, `<zh-TW>`, `<ja-JP>` under `<release-notes version="2.1.6">`
+    # — not as `lang=` attributes, which is what a first pass assumed and what
+    # made this return no locale count at all against real files.
+    entries = [el for el in root if _LOCALE_TAG_RE.match(el.tag or "")]
+    longest = max(
+        (len("".join(el.itertext()).strip()) for el in entries), default=0,
+    )
+    out: dict[str, Any] = {"checked": True, "ok": True, "problem": ""}
+    if entries:
+        out["locales"] = len(entries)
+        out["longest"] = longest
+        if longest > _STORE_CEILING:
+            out["ok"] = False
+            out["problem"] = f"{longest} chars exceeds the {_STORE_CEILING} ceiling"
+    return out
+
+
+# ----- what a release actually verified (FEAT-0109 / TASK-0450) -------------
+#
+# The shipped-release page renders `tests_verified:` as links under the heading
+# **Acceptance tests as executed**. Follow REL-0012's: it names TST-0011, which
+# has 18 checkboxes — all unticked — and 18 `- Evidence: ___` slots, all blank,
+# at `status: ready`.
+#
+# And the field is inert rather than merely stale: `last_verified` equals
+# `created` in **15 of the 16** `TST-*` notes in `your-trainer` that carry it.
+# It is written by the template at authoring time and has never once recorded a
+# verification. The heading is a claim; this makes the row report instead.
+
+_BOX_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s", re.MULTILINE)
+#: Evidence that a check was actually observed, in the three forms the corpus
+#: uses — measured rather than guessed:
+#:
+#: * `- Evidence: <something>` — the template's slot, filled. **A blank
+#:   `Evidence: ___` must not count**, which is the mutation this exists to
+#:   fail; `TST-0011` has 18 of them and would otherwise grade 18/18.
+#: * `✅ (Claude, tablet: address rotated …)` — the witness, 22 times in
+#:   `ACCEPTANCE_CHECKLIST_v2.1.1.md`.
+#: * `**Verified 2026-06-07**` / `**Partial pass …**` / `**FAILS …**` — the
+#:   dated verdict, in `ACCEPTANCE_TESTS_v2.1.0.md`. Its trailing `.` and its
+#:   `:` variant both appear, so the date is what anchors it, not the closing
+#:   punctuation.
+_EVIDENCE_RE = re.compile(
+    r"Evidence:\s*(?!_+\s*$)\S"
+    r"|✅\s*\("
+    r"|\*\*(?:Verified|Partial pass|Open|Not reproduced|FAILS|Blocked)\s+"
+    r"\d{4}-\d{2}-\d{2}",
+    re.MULTILINE,
+)
+
+
+def _grade(record: Any) -> dict[str, Any]:
+    """How much of a test note was actually walked, and with what evidence."""
+    body = record.body or ""
+    marks = _BOX_RE.findall(body)
+    walked = sum(1 for m in marks if m.strip().lower() == "x")
+    front = record.frontmatter or {}
+    created = str(front.get("created") or "").strip()
+    verified = str(front.get("last_verified") or "").strip()
+    return {
+        "total": len(marks),
+        "walked": walked,
+        "evidence": len(_EVIDENCE_RE.findall(body)),
+        "last_verified": verified,
+        # The whole point. `last_verified == created` means the field was
+        # stamped by the template and never touched, which is true of 15 of 16
+        # notes in the corpus — so the honest word is "never", not "stale".
+        "never_verified": bool(verified) and verified == created,
+    }
 
 
 def release_payload(
@@ -455,9 +598,22 @@ def release_payload(
     # verified a snapshot — `ACCEPTANCE_CHECKLIST_v2.1.1` for REL-0012 — and
     # recomputing the live suite for it would answer a question nobody asked
     # about a release that shipped in July.
-    gate = {} if shipped else acceptance.gate_payload(index.docs_root)
-    verified: list[dict[str, str]] = []
+    if shipped:
+        gate: dict[str, Any] = {}
+    else:
+        # Oldest-first for `ages`, which wants the FIRST tag a row was already
+        # unsettled at; `_tags` returns newest-first for the ladder.
+        ordered = [t["name"] for t in reversed(_tags(project_root))]
+        gate = acceptance.gate_payload(
+            index.docs_root,
+            index=index,
+            project_root=project_root,
+            baseline_ref=baseline_ref(project_root, index),
+            tags=ordered,
+        )
+    verified: list[dict[str, Any]] = []
     known_issues = ""
+    owed: list[dict[str, Any]] = []
     if held is not None:
         path = index.by_id(held["id"])
         record = index.get(path) if path is not None else None
@@ -467,11 +623,20 @@ def release_payload(
                 found = re.search(r"\[\[([^\]|]+)", note_id)
                 target = found.group(1) if found else note_id
                 hit = index.by_id(target)
-                verified.append({
+                named = index.get(hit) if hit else None
+                row: dict[str, Any] = {
                     "id": target,
-                    "rel": (index.get(hit).rel_path if hit and index.get(hit)
-                            else ""),
-                })
+                    "rel": named.rel_path if named else "",
+                    # An entry naming a note the corpus does not carry is said
+                    # so, rather than rendered as a link that goes nowhere.
+                    "resolved": named is not None,
+                    "title": named.title if named else "",
+                }
+                if named is not None:
+                    row["grade"] = _grade(named)
+                verified.append(row)
+            owed = still_owed(record, index, project_root,
+                              shipped_on=str(held.get('date') or ''))
             raw_issues = _known_issues(record.body)
             if raw_issues:
                 from . import renderer as _renderer
@@ -505,8 +670,253 @@ def release_payload(
         # HTML, rendered through the one markdown pipeline.
         "known_issues_html": known_issues,
         "artifacts": artifacts_for(index.docs_root, held["id"] if held else ""),
+        # What the release asked for after shipping and nobody came back to.
+        # Reads the same note the known-issues section comes from.
+        "still_owed": owed,
         "stale_drafts": stale_drafts(index),
     }
+
+
+# ----- still owed by a shipped release (FEAT-0110) --------------------------
+#
+# Eight of `your-trainer`'s twelve release notes carry a post-release checklist
+# and **37 boxes are unticked**. The release page already reads `## Known
+# issues` out of the same note and walks straight past the only section that
+# contains outstanding work.
+#
+# The sharpest one, checked 2026-08-16: REL-0010 (v2.0.5, shipped 2026-05-23)
+# says to flip `investigation_status` in `compatibility.json` on
+# `your-applications.com`. It still reads `investigating`. Riders have seen a
+# warning for 85 days after the fix shipped, and the only thing that remembers
+# is an unticked checkbox in a Markdown file nothing reads.
+
+#: Matched at `##`, `###` or `####` — **five of the eight use `###`**, and a
+#: reader anchored on `##` finds 12 boxes where the corpus holds 37. Measured,
+#: not assumed.
+#:
+#: `## Post-Release Review — PHASE-010 findings` is deliberately NOT matched:
+#: it is a retrospective, not a list of actions, and sweeping it in would put
+#: prose bullets under a heading that offers to tick them.
+_POST_RELEASE_RE = re.compile(
+    r"^(#{2,4})\s+.*\b(?:post[-\s]?release\s+actions?|follow[-\s]?up)\b.*$",
+    re.IGNORECASE,
+)
+_CHECK_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*)$")
+
+
+def post_release_actions(body: str) -> list[dict[str, Any]]:
+    """Unticked boxes under the note's post-release heading, with their lines.
+
+    The section ends at a heading **at or above** its own level, so a `####`
+    subsection inside a `###` checklist stays part of it — the ISS-0172 rule,
+    which this project has already had to learn once on a different parser.
+    """
+    out: list[dict[str, Any]] = []
+    inside = False
+    level = 0
+    previous = ""
+    for number, line in enumerate(body.splitlines()):
+        heading = re.match(r"^(#{1,6})\s", line)
+        if heading and inside and len(heading.group(1)) <= level:
+            inside = False
+        found = _POST_RELEASE_RE.match(line)
+        if found:
+            inside, level = True, len(found.group(1))
+            previous = ""
+            continue
+        if not inside:
+            previous = line
+            continue
+        box = _CHECK_RE.match(line)
+        if box and not box.group(1).strip():
+            if not _renders_as_a_box(previous, line):
+                previous = line
+                continue
+            out.append({"text": box.group(2).strip(), "line": number})
+        previous = line
+    return out
+
+
+def _renders_as_a_box(previous: str, line: str) -> bool:
+    """Whether this source line actually becomes a checkbox on screen.
+
+    ISS-0175's trap, which this project has already paid for once. A task list
+    opening immediately after a **paragraph** line, with no blank line between
+    them, is absorbed into that paragraph by Markdown's lazy continuation: it
+    renders **zero** checkboxes while a line-based reader counts every one.
+    That mismatch left 285 of 542 rows carrying another row's text.
+
+    **Asked of the renderer rather than guessed**, which is the whole lesson.
+    A first attempt used the obvious heuristic — *"refuse when the previous
+    line is not itself a checkbox"* — and it was wrong on the corpus: after a
+    numbered list item, `- [ ] x` becomes a **sibling list item** and renders
+    fine. Markdown's rules here are not reconstructible by eye, so the two
+    lines are handed to the same markdown pipeline the page uses and the
+    answer is read off the output.
+
+    Refusing is the safe direction: an unread box is one somebody still has to
+    find, while a mis-addressed tick is a record nobody can recover.
+    """
+    if not previous.strip():
+        return True                      # a blank line always opens a list
+    import markdown
+
+    from .renderer import MARKDOWN_EXTENSIONS_BASE
+
+    html = markdown.markdown(
+        f"{previous}\n{line}\n", extensions=list(MARKDOWN_EXTENSIONS_BASE),
+    )
+    return 'type="checkbox"' in html
+
+
+_TAG_RE = re.compile(r"git\s+tag\s+`?([A-Za-z0-9._-]+)`?")
+#: Two shapes, both in the corpus and neither reducible to the other:
+#:
+#:   Set `status: fixed` on ISS-0268 + ISS-0269 …
+#:   Update REL-0010 status to `published`
+#:
+#: The first names the status then the notes; the second names the note then
+#: the status. A pattern for one silently returns "unknowable, no evidence" for
+#: the other, which is how four boxes instructing an impossible status went
+#: unexplained on the first pass.
+_STATUS_RE = re.compile(
+    r"`?status:\s*`?\s*`?(?P<want>[a-z]+)`?(?P<tail>[^.]*)", re.IGNORECASE,
+)
+_STATUS_TO_RE = re.compile(
+    r"(?P<tail>.*?)\bstatus\s+to\s+`?(?P<want>[a-z]+)`?", re.IGNORECASE,
+)
+_ID_IN_TEXT_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
+
+#: Verdicts. Exactly three, and the third is load-bearing: an unknowable box is
+#: honest, a silently-carried one is not.
+DONE, OPEN, UNKNOWABLE = "done", "open", "unknowable"
+
+#: Per-type status vocabularies, for judging whether a box asks for something
+#: achievable. Imported from the validator's table rather than restated — that
+#: table is the one the pre-commit gate enforces, and a second copy here would
+#: let this page bless a status the validator rejects.
+try:                                              # pragma: no cover
+    from .validate_docs_bundled import ALLOWED_STATUS as _ALLOWED_STATUS
+except Exception:                                 # pragma: no cover
+    _ALLOWED_STATUS: dict[str, set[str]] = {}
+
+
+def verdict_for(
+    text: str, index: "Index", tags: "set[str] | None" = None,
+) -> dict[str, str]:
+    """What the record says about one unticked post-release box.
+
+    Only lookups that already exist: does a tag exist, and does a note carry a
+    named status. **Everything else is `unknowable`**, including every box that
+    names a file in another workspace — inferring from prose that a sibling
+    repo's JSON field has the right value would be a guess, and a wrong
+    `done` here is the one outcome that destroys a record rather than
+    preserving it.
+    """
+    tag = _TAG_RE.search(text)
+    if tag:
+        # `git push origin v2.0.5` is NOT this: a local tag existing says
+        # nothing about whether it was pushed, and the box asks about pushing.
+        if "push" in text.lower().split("git tag")[0]:
+            return {"verdict": UNKNOWABLE, "evidence": "asks about pushing"}
+        name = tag.group(1)
+        if tags is None:
+            return {"verdict": UNKNOWABLE, "evidence": "tags unavailable"}
+        if name in tags:
+            return {"verdict": DONE, "evidence": f"tag {name} exists"}
+        return {"verdict": OPEN, "evidence": f"tag {name} does not exist"}
+
+    status = _STATUS_RE.search(text) or _STATUS_TO_RE.search(text)
+    if status:
+        wanted = status.group("want").strip().lower()
+        ids = _ID_IN_TEXT_RE.findall(status.group("tail"))
+        if not ids:
+            return {"verdict": UNKNOWABLE, "evidence": "names no note"}
+        seen: list[str] = []
+        for note_id in ids:
+            path = index.by_id(note_id)
+            record = index.get(path) if path is not None else None
+            if record is None:
+                return {"verdict": UNKNOWABLE,
+                        "evidence": f"{note_id} is not in the record"}
+            # `published` is instructed by FOUR release notes and is not a
+            # release status — STATUSES.md allows draft / released / reverted.
+            # Checked against the note's OWN type rather than the global
+            # vocabulary, because `published` is a perfectly good status for
+            # other types and the global check therefore never fires.
+            #
+            # `unknowable`, not `open`: the box asks for something that cannot
+            # be done, and reporting it as open would invite someone to write
+            # an invalid status to satisfy it. A template defect, owed
+            # upstream, not fixable from this page.
+            got = (record.status or "").strip().lower()
+            allowed = _ALLOWED_STATUS.get(record.note_type or "")
+            if allowed and wanted not in allowed:
+                from . import statuses as _statuses
+
+                note = (f"`{wanted}` is not a valid "
+                        f"{record.note_type} status")
+                # Two very different situations wear the same wording, and
+                # collapsing them hides the one that matters:
+                #
+                #   `published` on REL-0010, which IS `released` — stale
+                #   phrasing for something already terminal.
+                #   `passing` on REQ-0183, which is still `draft` — nothing
+                #   has moved in 85 days and the 30-day window closed in June.
+                #
+                # Calling both unknowable would bury a live obligation behind
+                # a wording complaint. The instruction is still reported as
+                # unachievable either way; what changes is whether the row
+                # says anyone needs to look.
+                if got in _statuses.COMPLETED_STATUSES:
+                    return {"verdict": UNKNOWABLE,
+                            "evidence": f"{note}; {note_id} is {got}"}
+                return {"verdict": OPEN,
+                        "evidence": f"{note}; {note_id} is {got or 'unset'}"}
+            seen.append(f"{note_id} is {got or 'unset'}")
+            if got != wanted:
+                return {"verdict": OPEN, "evidence": ", ".join(seen)}
+        return {"verdict": DONE, "evidence": ", ".join(seen)}
+
+    return {"verdict": UNKNOWABLE, "evidence": ""}
+
+
+def _age_days(since: str) -> int:
+    """Days from an ISO date to today, or ``0`` when it cannot be read.
+
+    ``0`` rather than a guess: a release note with no `date:` is a draft, and
+    inventing an age for one would put a number on the page that nothing in
+    the record supports.
+    """
+    from datetime import date
+
+    try:
+        year, month, day = (int(part) for part in since.split("-")[:3])
+        return max(0, (date.today() - date(year, month, day)).days)
+    except (TypeError, ValueError):
+        return 0
+
+
+def still_owed(
+    record: Any, index: "Index", project_root: Path, shipped_on: str = "",
+) -> list[dict[str, Any]]:
+    """Every unticked post-release box on a release note, with its verdict.
+
+    An **open** box carries an age in days from the release date. That is the
+    difference between *"this is outstanding"* and *"this has been outstanding
+    for 85 days and four releases have shipped over it"*, and the second is
+    the one that makes anybody act.
+    """
+    tags = {t["name"] for t in _tags(project_root)}
+    age = _age_days(shipped_on)
+    out: list[dict[str, Any]] = []
+    for box in post_release_actions(record.body or ""):
+        row = {**box, **verdict_for(box["text"], index, tags)}
+        # Only on `open`. An age on a done box is noise, and an age on an
+        # unknowable one implies the tool knows it is outstanding.
+        row["age_days"] = age if row["verdict"] == OPEN else 0
+        out.append(row)
+    return out
 
 
 #: The section a release note uses for what it shipped with unfixed. Six of

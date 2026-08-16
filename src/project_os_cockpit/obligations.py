@@ -692,7 +692,67 @@ def subject_is_in_flight(record: Any, index: "Index") -> bool:
     evidence of rest, and silently quieting on one would make every future
     status value a way to disappear from the badge.
     """
-    ids = subject_ids(record)
+    return ids_in_flight(subject_ids(record), index)
+
+
+#: **Not built yet** — the only reason an acceptance row goes quiet.
+#:
+#: This is deliberately NOT :data:`RESTING_STATES`, and the difference is the
+#: whole of TASK-0447. Applying the requirement/test rule verbatim to
+#: acceptance rows quieted **60 of `your-trainer`'s 60** and the gate vanished,
+#: because `RESTING_STATES` contains `done` and `fixed` and almost every
+#: acceptance row names a shipped feature or a fixed issue.
+#:
+#: That is the correct answer for a *requirement* — approving one attached to a
+#: finished feature is busywork — and exactly the wrong answer for an
+#: *acceptance row*, which verifies user-visible behaviour and is therefore
+#: **most** worth walking once the behaviour ships. A regression suite whose
+#: rows go quiet the moment their feature is done is a regression suite that
+#: only ever tests unfinished work.
+#:
+#: So the rule for this population is the narrow one it was always described
+#: as: *"a screen that does not exist cannot be walked."* Everything else asks,
+#: including every issue-workflow state (`open`, `triage`, `ready`) — those are
+#: states where the safe direction is to ask, not to hide.
+NOT_YET_BUILT: frozenset[str] = frozenset({
+    "backlog", "planned", "proposed", "draft", "deferred",
+})
+
+
+def ids_are_unbuilt(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
+    """Whether **every** subject named is a thing that does not exist yet.
+
+    ``False`` for no ids, an unresolvable id, or any subject in any other
+    state — absence of evidence is not evidence of rest, and this is the
+    direction that fails safe. ``any`` built subject makes the row walkable,
+    which mirrors :func:`ids_in_flight`'s any-in-flight clause.
+    """
+    if not ids:
+        return False
+    for note_id in ids:
+        path = index.by_id(note_id)
+        subject = index.get(path) if path is not None else None
+        if subject is None:
+            return False
+        if (subject.status or "").strip().lower() not in NOT_YET_BUILT:
+            return False
+    return True
+
+
+def ids_in_flight(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
+    """The in-flight rule over bare ids — ADR-0028 decision 3, one copy.
+
+    Split out of :func:`subject_is_in_flight` so an **acceptance row** can use
+    it (FEAT-0108 / TASK-0447). A row's subject is not a note, it is the ids
+    its section heading names, so there is no `record` to pass — and writing a
+    second copy of the predicate for that caller is how the two would come to
+    disagree about `deferred` or about a status nobody declared.
+
+    **In flight if ANY subject is.** A section naming several features —
+    `## 1.2 Hardware Connectivity (FEAT-0001, FEAT-0007)` — is walkable while
+    one of them is live; requiring all of them to be live would quiet a row
+    somebody could act on today.
+    """
     if not ids:
         return True
     for note_id in ids:
@@ -707,6 +767,28 @@ def subject_is_in_flight(record: Any, index: "Index") -> bool:
             continue
         return True          # in flight, or a status nobody declared
     return False
+
+
+def resting_reason(
+    ids: "tuple[str, ...] | list[str]", index: "Index",
+) -> list[dict[str, str]]:
+    """Why a quiet row is quiet — every subject and its status.
+
+    ADR-0028 decision 5: derived silence must be inspectable. A collapsed group
+    that cannot say *which* subject is at rest is indistinguishable from a
+    surface that lost the row.
+    """
+    out: list[dict[str, str]] = []
+    for note_id in ids:
+        path = index.by_id(note_id)
+        subject = index.get(path) if path is not None else None
+        out.append({
+            "id": note_id,
+            "status": (subject.status or "") if subject else "",
+            "title": (subject.title or "") if subject else "",
+            "rel": (subject.rel_path or "") if subject else "",
+        })
+    return out
 
 
 # ----- counting what is actually owed ---------------------------------------

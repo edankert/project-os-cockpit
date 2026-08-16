@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0453
 aliases: ["TASK-0453"]
 title: "Three verdicts and an offered tick — verifiable-done, open with an age, unknowable; and nothing ticks itself"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -58,10 +58,10 @@ Four release notes carry `Update REL-#### status to published`, and **`published
 
 ## Done when
 
-- [ ] every unticked box carries exactly one verdict and the evidence for it
-- [ ] an open box carries an age in days from the release date
-- [ ] a tick is offered only for verifiable-done, and requires a click — the mutation that must fail is the automatic write
-- [ ] a failed evidence lookup yields **unknowable**, never verifiable-done — tested directly
-- [ ] a cross-repo target that cannot be reached yields unknowable rather than a guess
-- [ ] no path from this surface writes into another workspace
-- [ ] asserted live: the four stale-done boxes found, and the `compatibility.json` box reported open
+- [x] every unticked box carries exactly one verdict and the evidence for it
+- [x] an open box carries an age in days from the release date
+- [x] a tick is offered only for verifiable-done, and requires a click — the mutation that must fail is the automatic write
+- [x] a failed evidence lookup yields **unknowable**, never verifiable-done — tested directly
+- [x] a cross-repo target that cannot be reached yields unknowable rather than a guess
+- [x] no path from this surface writes into another workspace
+- [x] asserted live: the four stale-done boxes found, and the `compatibility.json` box reported open

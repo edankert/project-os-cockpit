@@ -4,7 +4,7 @@ id: ISS-0181
 aliases: ["ISS-0181"]
 title: "Four things the release surface cannot do — mark a check intentionally left open, attach text to one, edit without the page reloading under you, or complete a release"
 status: "open"
-phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-16
 updated: 2026-08-16
@@ -51,3 +51,14 @@ Re-homed from [[PHASE-999]] to [[PHASE-034]], which reopened for the functionali
 **Item 4, completing a release, is half-covered.** [[FEAT-0110]] supplies the *after* — the post-release checklist read and verified — but the ship transition itself needs [[FEAT-0108]] and [[FEAT-0109]] underneath it and is deliberately not planned.
 
 Said explicitly because this phase has already closed two features at zero ticked criteria: an issue that is half-fixed is open.
+
+## Half closed 2026-08-16, and re-homed to [[PHASE-999]] for the rest
+
+[[FEAT-0111]] shipped and **items 1 and 2 are done**. A check can now be marked `[~]` partial or `[F]` failed from the gate, each write refuses without a reason, and the text lands in the grammar `../your-trainer` already uses — `**Partial pass 2026-08-16** — only in en-GB, see [[ISS-0277]]` and `✅ (Claude: scrolled to row 40, went back, still at 40)`. Walked end-to-end against a throwaway repo, including both refusals.
+
+**Items 3 and 4 are untouched and this issue stays `open`.**
+
+- **Item 3, the save/reload interruption.** Tick → write → watcher → re-render, on a page with 542 checkboxes. It belongs to the file-watch path, not to the vocabulary, and nothing in [[PHASE-034]] went near it.
+- **Item 4, completing a release.** [[FEAT-0110]] supplies the *after* — the post-release checklist read, verified and tickable — but the `preparing → released` transition itself was not built. It now has [[FEAT-0108]] and [[FEAT-0109]] underneath it, which is what it was waiting for.
+
+Re-homed rather than closed, because [[PHASE-034]] closed and `PHASE-CHILDREN` correctly refused to let a finished phase carry an unresolved child. Two of four is not four.

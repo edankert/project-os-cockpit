@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0451
 aliases: ["TASK-0451"]
 title: "A published artifact is checkable — two of your-trainer's seven store XMLs do not parse"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -63,8 +63,8 @@ REL-0009-v2.0.4-play-store-listing.xml   does not parse (line 115)        ✗
 
 ## Done when
 
-- [ ] parse verdict per artifact, with line number on failure
-- [ ] locale count and longest entry for store listings, and the 500 ceiling reported when exceeded
-- [ ] unknown kinds listed with no verdict
-- [ ] one malformed artifact does not prevent the others rendering — the mutation that must fail
-- [ ] asserted live: both corrupt files reported, the five good ones not
+- [x] parse verdict per artifact, with line number on failure
+- [x] locale count and longest entry for store listings, and the 500 ceiling reported when exceeded
+- [x] unknown kinds listed with no verdict
+- [x] one malformed artifact does not prevent the others rendering — the mutation that must fail
+- [x] asserted live: both corrupt files reported, the five good ones not

@@ -1794,3 +1794,129 @@ def record_verification(
     fm_lines = _set_field(fm_lines, "updated", _today())
     _write(path, fm_lines, body)
     return {"id": release_id, "tests_verified": clean}
+
+
+def mark_check(
+    index: Index,
+    *,
+    number: str,
+    name: str,
+    verdict: str,
+    reason: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Mark one acceptance check with a verdict and its justification.
+
+    Closes [[ISS-0181]] items 1 and 2 with the vocabulary already in the
+    record (FEAT-0111 / TASK-0455): `[~]` and `[F]` with a dated verdict, and
+    `✅ (witness)` on a pass.
+
+    **The mark and the text are one write.** A `partial` or a `fail` without a
+    reason is refused, which is the entire difference between these marks and
+    the `[!]` this repo minted — that one ships its permissive half with no way
+    to ask why, and [[ISS-0177]] records the gap it leaves.
+    """
+    from . import acceptance
+
+    verdict = (verdict or "").strip().lower()
+    mark = acceptance.VERDICTS.get(verdict)
+    if mark is None:
+        raise WriteError(
+            f"{verdict!r} is not a verdict; expected one of "
+            f"{', '.join(sorted(acceptance.VERDICTS))}",
+            status=400,
+        )
+    reason = (reason or "").strip()
+    if verdict in acceptance.VERDICTS_NEEDING_REASON and not reason:
+        raise WriteError(
+            f"a {verdict} verdict needs a reason — the mark and its "
+            "justification are one action, so a check cannot leave the gate "
+            "without saying why",
+            status=400,
+        )
+    # An id that resolves to nothing is refused BEFORE the write rather than
+    # written dead. A justification pointing at a non-existent issue is worse
+    # than none: it reads as tracked and is not.
+    unresolved = [
+        note_id for note_id in acceptance.issue_refs_in(reason)
+        if index.by_id(note_id) is None
+    ]
+    if unresolved:
+        raise WriteError(
+            f"{', '.join(unresolved)} is not in the record — a reason must "
+            "not cite a note that does not exist",
+            status=400,
+        )
+
+    path = index.docs_root / acceptance.SUITE_REL
+    _check_mtime(path, mtime)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise WriteError(f"cannot read the acceptance tests: {exc}",
+                         status=500) from None
+    try:
+        updated = acceptance.rewrite_check(
+            text, number, name=name, mark=mark,
+            note=acceptance.verdict_note(verdict, date=_today(), reason=reason),
+        )
+    except LookupError as exc:
+        raise WriteError(str(exc), status=409) from None
+    try:
+        path.write_text(updated, encoding="utf-8")
+    except OSError as exc:                        # pragma: no cover
+        raise WriteError(f"cannot write the acceptance tests: {exc}",
+                         status=500) from None
+    return {"number": number, "verdict": verdict, "mark": mark}
+
+
+def tick_post_release_box(
+    index: Index,
+    note_id: str,
+    *,
+    line: int,
+    text: str,
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Tick one post-release box on a release note (FEAT-0110 / TASK-0453).
+
+    **Never called without a click.** The verdict beside the box is computed;
+    this write is a person's. Issues appearing without anyone asking is this
+    project's recorded failure mode, and a box *disappearing* without anyone
+    asking is the same failure with a worse blast radius — an automatic tick
+    on a wrong inference destroys the only record the obligation existed.
+
+    ``text`` is compared against the line found, exactly as `rewrite_check`
+    compares a check's name: the caller is acting on what it last read, and a
+    note edited underneath it must be refused rather than written.
+    """
+    path = resolve_note(index, note_id)
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise WriteError(f"cannot read note: {exc}", status=500) from None
+    # `line` is BODY-relative, because `post_release_actions` reads
+    # `record.body` with the frontmatter already stripped. Indexing the raw
+    # file here would land N lines early, where N is however long this note's
+    # frontmatter happens to be — a silent off-by-frontmatter that writes to
+    # whatever is at that offset. One coordinate system, converted once.
+    fm_lines, body = _split_frontmatter(raw)
+    lines = body.splitlines(keepends=True)
+    if not 0 <= line < len(lines):
+        raise WriteError(
+            f"line {line} is outside {note_id}", status=409)
+    current = lines[line]
+    box = re.match(r"^(\s*[-*+]\s+\[)(\s*)(\]\s+)(.*?)(\r?\n?)$", current)
+    if box is None:
+        raise WriteError(
+            f"line {line} of {note_id} is not an unticked box", status=409)
+    if box.group(4).strip() != text.strip():
+        raise WriteError(
+            f"line {line} of {note_id} now reads {box.group(4).strip()!r}, "
+            f"not {text.strip()!r} — the note moved underneath this",
+            status=409,
+        )
+    lines[line] = f"{box.group(1)}x{box.group(3)}{box.group(4)}{box.group(5)}"
+    _write(path, fm_lines, "".join(lines))
+    return {"id": note_id, "line": line, "ticked": True}

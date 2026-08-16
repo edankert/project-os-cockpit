@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0454
 aliases: ["TASK-0454"]
 title: "Read and write the marks already in use — [~] and [F], not the [!] this repo invented"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -45,9 +45,9 @@ The permissive half shipped without the half that asks for a reason. Adopting th
 
 ## Done when
 
-- [ ] `[~]` and `[F]` read and written, each with its own gate treatment
-- [ ] `[!]` reads as today and appears in no control
-- [ ] round-trip: parse → write → parse yields the same mark, for every mark in the table
-- [ ] a row written **by hand** in the existing grammar parses identically to one written by the tool
-- [ ] `../your-trainer`'s 6 `[~]` and 1 `[F]` unchanged — the corpus assertion
-- [ ] a write against a moved suite is still refused
+- [x] `[~]` and `[F]` read and written, each with its own gate treatment
+- [x] `[!]` reads as today and appears in no control
+- [x] round-trip: parse → write → parse yields the same mark, for every mark in the table
+- [x] a row written **by hand** in the existing grammar parses identically to one written by the tool
+- [x] `../your-trainer`'s 6 `[~]` and 1 `[F]` unchanged — the corpus assertion
+- [x] a write against a moved suite is still refused

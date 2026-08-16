@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0448
 aliases: ["TASK-0448"]
 title: "A ticked row annotated RE-RUN is not evidence — 53 of them are counted as passed today"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -43,8 +43,8 @@ Whether stale rows should **block**. Making 53 rows blocking overnight takes the
 
 ## Done when
 
-- [ ] the annotation is parsed, including its task id and reason
-- [ ] ticked + annotated is its own group with its own count, neither blocking nor satisfied
-- [ ] an **unticked** row carrying an annotation is blocking, exactly as today, and is not double-counted
-- [ ] the annotation is matched on shape, not on the word `RE-RUN` alone — a row whose prose contains "re-run" is not swept in
-- [ ] measured against `../your-trainer`: 54 annotated, 53 ticked, and both figures asserted
+- [x] the annotation is parsed, including its task id and reason
+- [x] ticked + annotated is its own group with its own count, neither blocking nor satisfied
+- [x] an **unticked** row carrying an annotation is blocking, exactly as today, and is not double-counted
+- [x] the annotation is matched on shape, not on the word `RE-RUN` alone — a row whose prose contains "re-run" is not swept in
+- [x] measured against `../your-trainer`: 54 annotated, 53 ticked, and both figures asserted

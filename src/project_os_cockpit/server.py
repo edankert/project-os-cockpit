@@ -744,6 +744,14 @@ def _make_handler(
                 self._serve_test_run()
                 return
 
+            if path == "/api/notes/tick-owed":
+                self._serve_tick_owed()
+                return
+
+            if path == "/api/notes/mark-check":
+                self._serve_mark_check()
+                return
+
             if path == "/api/notes/release-verified":
                 self._serve_release_verified()
                 return
@@ -2274,6 +2282,71 @@ def _make_handler(
                                    status=HTTPStatus.BAD_REQUEST)
                 return
             self._respond_json({"ok": True, "result": result})
+
+        def _serve_tick_owed(self) -> None:
+            """``POST /api/notes/tick-owed`` — tick one post-release box
+            (FEAT-0110 / TASK-0453).
+
+            Reached only from a click. The verdict beside the box is computed
+            and the write is a person's: a box disappearing without anyone
+            asking destroys the only record the obligation existed.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.tick_post_release_box(
+                    index,
+                    str(body.get("id") or ""),
+                    line=int(body.get("line") or -1),
+                    text=str(body.get("text") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_mark_check(self) -> None:
+            """``POST /api/notes/mark-check`` — one acceptance check, one
+            verdict, one justification (FEAT-0111 / TASK-0455).
+
+            The mark and the reason arrive together and are written together:
+            a `partial` or a `fail` with no reason is a 400, which is the
+            whole difference between this and the `[!]` mark ISS-0177 records.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.mark_check(
+                    index,
+                    number=str(body.get("number") or ""),
+                    name=str(body.get("name") or ""),
+                    verdict=str(body.get("verdict") or ""),
+                    reason=str(body.get("reason") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
 
         def _serve_release_verified(self) -> None:
             """``POST /api/notes/release-verified`` — record what a release was

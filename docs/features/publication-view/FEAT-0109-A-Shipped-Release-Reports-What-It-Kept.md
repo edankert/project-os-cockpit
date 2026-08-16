@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0109
 aliases: ["FEAT-0109"]
 title: "A shipped release reports what it kept, not what it claims — the evidence behind tests_verified is graded and the published artifacts are checked"
-status: planned
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[FEAT-0106-The-Release-Page]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: []
+tests: ["[[TST-0036-FEAT0109]]"]
 ---
 
 # A shipped release reports what it kept
@@ -83,14 +83,14 @@ It turns a file-open into a verdict, and it is the only **external** artifact th
 
 ## Acceptance criteria
 
-- [ ] Each `tests_verified` entry renders **walked / total** and an **evidence count**, not just a link.
-- [ ] A note whose `last_verified` equals its `created` is reported as **never verified**, in those words.
-- [ ] A `tests_verified` entry that resolves to **no note** says so rather than rendering a dead link.
-- [ ] An empty `tests_verified` — **5 of 12** of `../your-trainer`'s release notes — renders as a stated absence, not an empty section.
-- [ ] Each artifact reports **parses / does not parse**, and for a store listing, the **locale count** and the **longest entry**.
-- [ ] A malformed artifact names its **line number** and does not prevent the rest of the page rendering.
-- [ ] An artifact kind the checker does not know is listed **without a verdict**, rather than being flagged.
-- [ ] Nothing here writes. A failing artifact produces no obligation and no badge — it is a fact on the page of the release that shipped it.
+- [x] Each `tests_verified` entry renders **walked / total** and an **evidence count**, not just a link.
+- [x] A note whose `last_verified` equals its `created` is reported as **never verified**, in those words.
+- [x] A `tests_verified` entry that resolves to **no note** says so rather than rendering a dead link.
+- [x] An empty `tests_verified` — **5 of 12** of `../your-trainer`'s release notes — renders as a stated absence, not an empty section.
+- [x] Each artifact reports **parses / does not parse**, and for a store listing, the **locale count** and the **longest entry**.
+- [x] A malformed artifact names its **line number** and does not prevent the rest of the page rendering.
+- [x] An artifact kind the checker does not know is listed **without a verdict**, rather than being flagged.
+- [x] Nothing here writes. A failing artifact produces no obligation and no badge — it is a fact on the page of the release that shipped it.
 
 ## How this is verified
 

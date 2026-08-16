@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0455
 aliases: ["TASK-0455"]
 title: "A check carries its verdict and its witness — the mark and the reason are one action, in the grammar the record already uses"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -62,10 +62,10 @@ and the witness, 22 times in `ACCEPTANCE_CHECKLIST_v2.1.1.md`:
 
 ## Done when
 
-- [ ] each of the three actions writes the documented grammar, verbatim in shape
-- [ ] partial and fail **refuse** an empty reason — the mutation that must fail is writing the mark alone
-- [ ] a pass without a witness is valid and writes no empty parenthetical
-- [ ] an unresolvable `ISS-*` is refused at write time
-- [ ] a reason containing markdown metacharacters or a newline round-trips without corrupting the row
-- [ ] round-trip: written rows parse back to the mark **and** the text they were given
-- [ ] the seven rows already carrying this grammar in `../your-trainer` parse identically before and after
+- [x] each of the three actions writes the documented grammar, verbatim in shape
+- [x] partial and fail **refuse** an empty reason — the mutation that must fail is writing the mark alone
+- [x] a pass without a witness is valid and writes no empty parenthetical
+- [x] an unresolvable `ISS-*` is refused at write time
+- [x] a reason containing markdown metacharacters or a newline round-trips without corrupting the row
+- [x] round-trip: written rows parse back to the mark **and** the text they were given
+- [x] the seven rows already carrying this grammar in `../your-trainer` parse identically before and after

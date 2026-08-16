@@ -1,14 +1,14 @@
 ---
 type: "[[change]]"
 id: CHG-20260816
-title: "Publication becomes the third phase and gets a view, and an obligation asks only while its subject is in flight — your-trainer's owed count goes 64 to 31"
+title: "Publication becomes the third phase and gets a view; the release gate becomes a delta rather than a census, and a shipped release reports the evidence it actually kept"
 status: merged
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16, from use of ../your-trainer"]
-related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]", "[[FEAT-0102-Publication-Becomes-A-View]]", "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
+related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]", "[[FEAT-0102-Publication-Becomes-A-View]]", "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]", "[[FEAT-0108-The-Gate-Is-A-Delta-Not-A-Census]]", "[[FEAT-0109-A-Shipped-Release-Reports-What-It-Kept]]", "[[FEAT-0110-Still-Owed-By-A-Shipped-Release]]", "[[FEAT-0111-The-Marks-The-Record-Already-Uses]]"]
 tags: [obligations, publication, surfaces]
 ---
 
@@ -125,3 +125,55 @@ An independent review returned **`changes-requested`** on the phase and five of 
 ### Verification
 
 Suite **1391 passed, 2 skipped**. Validator OK. Walked against a live sidecar on `your-trainer`: 12 release groups, REL-0012 showing its snapshot, two TST notes, its known-issues table, its play-store listing, and no live gate.
+
+---
+
+## Fourth pass: the gate becomes a delta, and a shipped release reports what it kept (FEAT-0108…0111)
+
+Edwin asked for a **functionality** review — *"come up with some new/novel ways to support this new release functionality"* — and then, on the first write-up: *"Simplify the suggested options, I cannot relate them to the current functionality we have."* That correction decided the shape: the work is organised by **which page changes**, not by capability.
+
+### The measurement that reframed page 1
+
+This repo's own `acceptance.parse`, run against `git show <tag>:docs/tests/ACCEPTANCE_TESTS.md` for all twelve of `../your-trainer`'s tags:
+
+```
+v1.1.0 1 · v1.1.20 15 · v1.1.53 85 · v1.1.55 130 · v2.0.0 22
+v2.0.5 47 · v2.1.0 47 · v2.1.6 47 · HEAD 60
+```
+
+**Twelve releases, twelve blocked ships.** *"60 unchecked"* is the steady state, not news, and today's 60 is not even elevated. A sentence correct and ignored twelve times is one the reader has learned to skip.
+
+### What changed
+
+| page | before | after |
+| --- | --- | --- |
+| Next release | `Release gate · 60 unchecked`, one flat list in document order | `13 new · 27 chronic · 0 regressed · 20 quiet`, plus `53 stale evidence`, and the line *"12 releases, median 36 blocking at ship. This is 60."* |
+| A shipped release | `tests_verified` as bare links | `TST-0011 · 0/18 walked · 0 evidence · never verified` |
+| A shipped release | artifacts as files to open | `10 locales · max 414 chars ✓` / `does not parse (line 115) ✗` |
+| A shipped release | — | **Still owed by this release** — the post-release checklist, verified |
+| A gate row | open the note and edit by hand | **Pass / Partial / Fail**, writing the grammar the record already uses |
+
+### The correction that mattered most
+
+Applying [[ADR-0028]] decision 3 verbatim quieted **60 of 60** and the gate vanished — `RESTING_STATES` contains `done` and `fixed`, and nearly every acceptance row names a shipped feature or a fixed issue. That is right for a *requirement* and exactly wrong for an *acceptance row*, which is a regression check and is **most** worth walking once the behaviour ships. The rule for this population is the narrow one it was always described as — *a screen that does not exist cannot be walked* — so `obligations.NOT_YET_BUILT` is `{backlog, planned, proposed, draft, deferred}` and everything else asks. 20 quiet, all of them `FEAT-0074=backlog`.
+
+### Paths and contracts
+
+- **New:** `acceptance.suite_at/delta/ages/verdict_note/issue_refs_in`, `acceptance.VERDICTS`; `obligations.ids_are_unbuilt/ids_in_flight/resting_reason/NOT_YET_BUILT`; `publication.baseline_ref/post_release_actions/verdict_for/still_owed/_grade/_check_artifact`; `POST /api/notes/mark-check`, `POST /api/notes/tick-owed`.
+- **Additive, not breaking:** `gate_payload(docs_root)` still returns exactly what it returned. Every new argument is optional, and `blocking` keeps its old membership — the Tests view and `mountReleaseGate` are untouched.
+- **No new dependency.** The artifact check is `xml.etree.ElementTree`.
+- **Nothing pushes, deploys, or writes into another workspace.** A `compatibility.json` box in a sibling repo reports `unknowable`; it is never edited.
+
+### Two things deliberately not built
+
+**Burden ordering ([[TASK-0449]], cancelled).** `ACCEPTANCE_TESTS.md` carries no burden tags in any repo; a scanner written for it was **6-for-6 false positives** on `[Debug]` inside quoted workout names, and `TST-0013` — which does carry them — has no tier headings, so `parse` returns 0 items for it. The purpose is already served by section grouping.
+
+**Whether stale evidence should BLOCK.** 53 ticked rows carry a `RE-RUN` annotation, so the honest blocking number is 113. That is put on the page with its number; making it block is a change to what shipping means and is Edwin's call.
+
+### Verification
+
+Suite **1483 passed, 2 skipped** (was 1400). Three new `TST-*` at `passing`, 78 new assertions. **24 mutations, all killed**, each named in its task *before* the guard was written and each run behind an apply-check — a mutation that did not land is not evidence ([[ISS-0171]]). Walked against a live sidecar on `../your-trainer`, and the write path walked end-to-end against a **throwaway repo**; nothing was written to any fleet repo.
+
+### The audit this close-out ran on itself
+
+The four features were first marked `done` with **all 32 acceptance criteria unticked** — the precise failure [[FEAT-0105]] and [[FEAT-0106]] committed earlier in this phase. Caught before commit by reading them one at a time. Six criteria were genuinely unbuilt and were **built** (the age in days, the offered tick, the lazy-continuation refusal, `releases_since`, the historical line, the linked quiet subjects); two are reconciled `[~]` with reasons on the line. That is 30 met, 2 reconciled, 0 quietly ticked.

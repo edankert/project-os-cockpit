@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0111
 aliases: ["FEAT-0111"]
 title: "The marks and verdicts the record already uses become writable — a check can be left open with a reason and a passed check can carry its witness"
-status: planned
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]", "[[ISS-0141]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: []
+tests: ["[[TST-0037-FEAT0111]]"]
 ---
 
 # The marks the record already uses
@@ -58,14 +58,14 @@ Plus `{ED: unable to test since there is no online library route extension}` for
 
 ## Acceptance criteria
 
-- [ ] `[~]` and `[F]` are read, written, and rendered with distinct meanings, and `[!]` remains readable without being offered.
-- [ ] A partial or a failure **requires** a reason before it can be written — the mark and the text are one action, not two.
-- [ ] A pass may carry a witness and does not require one.
-- [ ] The text is appended in the **grammar already in the record**, verbatim in shape: `**<Verdict> <date>** — <reason>` for partial/fail, `✅ (<witness>)` for a pass.
-- [ ] An `ISS-*` referenced in a reason is written as a **wikilink** and resolves.
-- [ ] Round-trip: a row written by the tool parses back to the mark and the text it was given, and a row written **by hand** in the existing grammar parses identically.
-- [ ] The `mtime` guard and name comparison from [[FEAT-0103]] still refuse a write to a suite that moved underneath the edit.
-- [ ] `../your-trainer`'s existing 6 `[~]` and 1 `[F]` parse to the same verdicts after this lands as before it — no existing row changes meaning.
+- [x] `[~]` and `[F]` are read, written, and rendered with distinct meanings, and `[!]` remains readable without being offered.
+- [x] A partial or a failure **requires** a reason before it can be written — the mark and the text are one action, not two.
+- [x] A pass may carry a witness and does not require one.
+- [x] The text is appended in the **grammar already in the record**, verbatim in shape: `**<Verdict> <date>** — <reason>` for partial/fail, `✅ (<witness>)` for a pass.
+- [x] An `ISS-*` referenced in a reason is written as a **wikilink** and resolves.
+- [x] Round-trip: a row written by the tool parses back to the mark and the text it was given, and a row written **by hand** in the existing grammar parses identically.
+- [x] The `mtime` guard and name comparison from [[FEAT-0103]] still refuse a write to a suite that moved underneath the edit.
+- [x] `../your-trainer`'s existing 6 `[~]` and 1 `[F]` parse to the same verdicts after this lands as before it — no existing row changes meaning.
 
 ## How this is verified
 

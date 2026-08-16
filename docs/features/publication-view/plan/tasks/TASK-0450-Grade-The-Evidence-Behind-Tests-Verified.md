@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0450
 aliases: ["TASK-0450"]
 title: "Grade the evidence behind tests_verified — walked, witnessed, and whether the note was ever verified at all"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -45,8 +45,8 @@ Three reads of the linked note: ticked over total, rows carrying a filled eviden
 
 ## Done when
 
-- [ ] walked / total and evidence count rendered per entry
-- [ ] `last_verified == created` reports **never verified**, in those words
-- [ ] unresolvable entry, no-checkbox note, and empty `tests_verified` each have their own rendering and their own test
-- [ ] the evidence-slot detector does not count a blank `Evidence: ___` as filled — the mutation that must fail
-- [ ] asserted live against `../your-trainer`'s REL-0012 → TST-0011 as 0/18
+- [x] walked / total and evidence count rendered per entry
+- [x] `last_verified == created` reports **never verified**, in those words
+- [x] unresolvable entry, no-checkbox note, and empty `tests_verified` each have their own rendering and their own test
+- [x] the evidence-slot detector does not count a blank `Evidence: ___` as filled — the mutation that must fail
+- [x] asserted live against `../your-trainer`'s REL-0012 → TST-0011 as 0/18
