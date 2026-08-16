@@ -127,14 +127,17 @@ def test_the_gate_states_its_number(tmp_path: Path) -> None:
     assert "3 unchecked" in group["label"], group["label"]
 
 
-def test_rows_group_by_area_so_the_unit_is_the_sitting(tmp_path: Path) -> None:
-    """`your-trainer`'s 60 cluster into 17 sections and two carry 33 between
-    them — about two sittings, most of it with a trainer plugged in. That is
-    not sixty things to do."""
+def test_rows_name_their_check_and_carry_their_area(tmp_path: Path) -> None:
+    """**Rewritten by FEAT-0103.** This asserted rows were AREA counts —
+    `Trainer Compatibility · 2 unchecked` — which is what shipped, and what
+    Edwin reported as unusable: *"I still don't seem to be able to see and
+    execute the current set."* A row now names its own check and carries its
+    area beside it, so the area is still the grouping the eye reads while the
+    row is the thing you can act on."""
     group = _gate_group(_docs(tmp_path, release=("REL-0001", "draft", "1.0.0")))
-    titles = [i["title"] for i in group["items"]]
-    assert titles == ["Trainer Compatibility", "Monetization"], titles
-    assert group["items"][0]["subtitle"] == "2 unchecked"
+    assert [i["id"] for i in group["items"]] == ["1.1.1", "1.1.2", "1.2.1"]
+    assert [i["title"] for i in group["items"]] == ["A", "B", "D"]
+    assert group["items"][0]["subtitle"] == "Trainer Compatibility · Tier 1"
 
 
 def test_tier_three_is_shown_and_does_not_gate(tmp_path: Path) -> None:
@@ -174,10 +177,14 @@ def test_no_suite_says_never_instantiated_not_nothing_blocking(
     assert [r for r in rows if r["type"] == obligations.GATE_OBLIGATION_KIND] == []
 
 
-def test_a_row_reaches_the_suite(tmp_path: Path) -> None:
+def test_a_row_reaches_its_own_section(tmp_path: Path) -> None:
+    """FEAT-0103: the group still opens the suite, but a ROW lands on its own
+    section. Section 1.25 of `your-trainer`'s suite starts at line 522 of
+    1082, after 327 other checkboxes, so "opens the file" was not reaching."""
     group = _gate_group(_docs(tmp_path, release=("REL-0001", "draft", "1.0.0")))
     assert group["url"].endswith("tests/ACCEPTANCE_TESTS.md")
-    assert all(i["url"] == group["url"] for i in group["items"])
+    assert all("#" in i["url"] for i in group["items"])
+    assert group["items"][0]["url"].endswith("#11-trainer-compatibility-feat-0001")
 
 
 def test_the_rule_sentence_is_the_contracts_words(tmp_path: Path) -> None:

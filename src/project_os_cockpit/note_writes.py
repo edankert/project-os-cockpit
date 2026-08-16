@@ -1342,6 +1342,7 @@ def create_release(
     title: str,
     features: list[str] | None = None,
     previous_release: str = "",
+    version: str = "",
     actor: str = "",
 ) -> dict[str, Any]:
     """Scaffold a release note from the template, as a **draft** (TASK-0316).
@@ -1363,6 +1364,41 @@ def create_release(
     clean_title = (title or "").strip()
     if not clean_title:
         raise WriteError("a release needs a title")
+
+    # ---- FEAT-0103: declaring WHICH release is being prepared -------------
+    #
+    # `version` was `""` in every note this ever wrote, because the caller
+    # (the unreleased card) drafts from the done-but-unshipped set and does
+    # not know the number. FEAT-0103's caller does, and the version is what
+    # makes 60 unchecked rows *the current set for the NEXT release* rather
+    # than a standing property of a checklist — which is exactly what Edwin
+    # reported after the count shipped without it.
+    #
+    # Optional, so the existing caller is unchanged.
+    clean_version = (version or "").strip().lstrip("vV")
+    if clean_version:
+        from . import publication
+
+        if not re.match(r"^\d+(\.\d+)*$", clean_version):
+            raise WriteError(f"{version!r} is not a version", status=400)
+        if publication.preparing(index) is not None:
+            raise WriteError(
+                "a release is already in preparation — one at a time, or "
+                "'the next release' means nothing",
+                status=409,
+            )
+        shipped = max(
+            (publication._version_key(r["version"])
+             for r in publication._releases(index) if r["status"] == "released"),
+            default=(),
+        )
+        if shipped and publication._version_key(clean_version) <= shipped:
+            raise WriteError(
+                f"{clean_version} is at or below the newest released version "
+                "— that is the overtaken-draft state FEAT-0102 has to work "
+                "around, and creating one by hand manufactures it",
+                status=400,
+            )
 
     release_id = next_release_id(index)
     target = docs_root / "releases" / f"{release_id}-{_title_slug(clean_title)}.md"
@@ -1388,7 +1424,7 @@ def create_release(
         f'aliases: ["{release_id}"]',
         f'title: "{clean_title.replace(chr(34), chr(39))}"',
         "status: draft",
-        'version: ""',
+        f'version: "{clean_version}"',
         'tag: ""',
         # Empty on purpose: `date` is when it shipped, and this has not.
         'date: ""',
@@ -1703,3 +1739,74 @@ def stamp_chosen_variant(
         # Said explicitly so a caller cannot read silence as acceptance.
         "accepted": False,
     }
+
+
+# ----- walking an acceptance check (FEAT-0103 / TASK-0433) -------------------
+
+
+def walk_check(
+    docs_root: Path,
+    number: str,
+    *,
+    name: str,
+    outcome: str,
+    evidence: str = "",
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Record one walked acceptance check.
+
+    Three outcomes, and what each writes is the point:
+
+    * ``pass`` -> ``- [x]`` plus a dated witness. REQ-0028's rule is that
+      acceptance names who stood behind it — *"`- [x]` says something was
+      ticked; `accepted in cockpit run, user:edwin` says who stood behind
+      it"* — and PHASE-022's twelve rounds are why it is a rule.
+    * ``fail`` -> stays ``- [ ]``, annotated with what went wrong. A failed
+      walk is evidence of a **defect**, not of progress, and ticking on
+      failure would manufacture the claim the suite exists to make.
+    * ``skip`` -> **nothing at all**. A check nobody performed leaves no
+      trace, because a trace would itself be a claim.
+    """
+    from . import acceptance
+
+    normalised = (outcome or "").strip().lower()
+    if normalised not in {"pass", "fail", "skip"}:
+        raise WriteError(f"{outcome!r} is not a walk outcome", status=400)
+
+    path = docs_root / acceptance.SUITE_REL
+    if not path.is_file():
+        raise WriteError("this project has no acceptance suite", status=404)
+    _check_mtime(path, mtime)
+
+    if normalised == "skip":
+        return {"number": number, "outcome": "skip", "written": False}
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:                       # pragma: no cover
+        raise WriteError(f"cannot read the suite: {exc}", status=500) from None
+
+    today = _today()
+    who = (actor or "user:edwin").strip()
+    detail = (evidence or "").strip()
+    if normalised == "pass":
+        note = f"_(walked {today} · {who})_"
+        mark = "x"
+    else:
+        note = f"_(FAILED {today} · {who}{' — ' + detail if detail else ''})_"
+        mark = " "
+    if normalised == "pass" and detail:
+        note = f"_(walked {today} · {who} — {detail})_"
+
+    try:
+        updated = acceptance.rewrite_check(
+            text, number, name=name, mark=mark, note=note,
+        )
+    except LookupError as exc:
+        raise WriteError(str(exc), status=409) from None
+
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(updated, encoding="utf-8")
+    tmp.replace(path)
+    return {"number": number, "outcome": normalised, "written": True}

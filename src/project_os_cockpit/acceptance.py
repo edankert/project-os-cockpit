@@ -134,6 +134,25 @@ class Item:
     #: features; Tier 2 sections name the `ISS-*` that created the test, which
     #: TESTING.md requires and `missing_issue_refs` enforces.
     refs: tuple[str, ...] = ()
+    #: The section heading VERBATIM, so a link can slugify exactly what the
+    #: renderer slugified (FEAT-0103). Reconstructing it from `section` and
+    #: `area` does not work — `area` has the id parenthetical stripped and the
+    #: rendered anchor keeps it, so the two differ by precisely the part that
+    #: makes the link land.
+    heading: str = ""
+
+    @property
+    def anchor(self) -> str:
+        """The rendered heading's id, so a row can reach its own section.
+
+        Slugified with **markdown's own** function rather than a lookalike.
+        These anchors have existed since the suite was first rendered and
+        nothing has ever used one; a link that is a single character off lands
+        at the top of a 1082-line file, which is the behaviour it replaces.
+        """
+        from markdown.extensions.toc import slugify
+
+        return slugify(self.heading, "-") if self.heading else ""
 
     @property
     def settled(self) -> bool:
@@ -148,6 +167,19 @@ class Item:
     @property
     def key(self) -> str:
         return f"{self.number} {self.name}"
+
+    @property
+    def anchor(self) -> str:
+        """The rendered heading's id, so a row can link to its own section.
+
+        Slugified with **markdown's own** function rather than a lookalike:
+        the anchors have existed since the suite was first rendered and
+        nothing used them, and a link that is one character off lands at the
+        top of a 1082-line file — which is the behaviour this replaces.
+        """
+        from markdown.extensions.toc import slugify
+
+        return slugify(self.heading, "-") if self.heading else ""
 
 
 @dataclass
@@ -200,6 +232,7 @@ def parse(text: str) -> list[Item]:
     tier = 0
     section = ""
     area = ""
+    full_heading = ""
     refs: tuple[str, ...] = ()
     ordinal = 0
 
@@ -223,6 +256,7 @@ def parse(text: str) -> list[Item]:
             refs = heading_refs(heading)
             # The heading minus its id list — "The navigator ([[FEAT-0010]], …)"
             area = re.sub(r"\s*\((?:[^()]*)\)\s*$", "", heading).strip()
+            full_heading = f"{section} {heading}".strip()
             continue
         if tier == 0:
             continue
@@ -243,7 +277,7 @@ def parse(text: str) -> list[Item]:
             name=name.strip(), text=detail.strip(),
             checked=mark in _CHECKED_MARKS,
             reconciled=mark in _RECONCILED_MARKS,
-            refs=refs, ordinal=ordinal,
+            refs=refs, ordinal=ordinal, heading=full_heading,
         ))
     return items
 
@@ -330,7 +364,12 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
                       "separately; they are not release exceptions.",
         "blocking": [
             {"tier": i.tier, "number": i.number, "section": i.section,
-             "area": i.area, "name": i.name, "refs": list(i.refs)}
+             "area": i.area, "name": i.name, "refs": list(i.refs),
+             # The check's own words and its own address (FEAT-0103). Without
+             # these the gate could only ever say how MANY, which is what
+             # Edwin reported after the count shipped: *"I still don't seem to
+             # be able to see and execute the current set."*
+             "text": i.text, "anchor": i.anchor}
             for i in blocking
         ],
         "counts": {
@@ -342,3 +381,109 @@ def gate_payload(docs_root: Path) -> dict[str, Any]:
             for n in GATING_TIERS
         },
     }
+
+
+# ----- addressing a check (FEAT-0103 / TASK-0430) ---------------------------
+#
+# The walker needs to WRITE a check, and the existing `check-toggle` endpoint
+# addresses a checkbox by its **zero-based ordinal within the whole rendered
+# file**. The suite has 542 of them. Any edit above a row shifts every index
+# below it, so a walker built on that would write whatever is now at that
+# position — silently, and to a check nobody was looking at. A walker that
+# writes the wrong row is worse than one that writes nothing.
+#
+# `Item.number` (`1.25.3`) survives an edit elsewhere in the file, and when its
+# own section changes it fails to RESOLVE rather than resolving to something
+# else. That asymmetry is the whole reason it is the address.
+
+
+def locate(text: str, number: str) -> tuple[int, Item] | None:
+    """The 0-based source line of the check at ``number``, and the item.
+
+    ``None`` when the address does not resolve — never a nearest match. The
+    caller is about to write to this line.
+    """
+    body_offset = 0
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) == 3:
+            body_offset = text[: len(text) - len(parts[2])].count("\n")
+
+    items = parse(text)
+    wanted = next((i for i in items if i.number == number), None)
+    if wanted is None:
+        return None
+
+    # Walk the body the same way `parse` does and count to the same item, so
+    # the line found is the line that produced it rather than the first line
+    # that looks similar.
+    lines = text.splitlines()
+    tier = 0
+    section = ""
+    ordinal = 0
+    in_fence = False
+    for index in range(body_offset, len(lines)):
+        line = lines[index]
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if _TIER_HEADING_RE.match(line):
+            tier = int(_TIER_HEADING_RE.match(line).group(1))
+            section, ordinal = "", 0
+            continue
+        sect = _SECTION_RE.match(line)
+        if sect:
+            section = sect.group(1)
+            ordinal = 0
+            continue
+        if tier == 0 or not _ITEM_RE.match(line):
+            continue
+        ordinal += 1
+        if f"{section}.{ordinal}" == number:
+            return index, wanted
+    return None                          # pragma: no cover — parse/walk agree
+
+
+def rewrite_check(
+    text: str, number: str, *, name: str, mark: str, note: str = "",
+) -> str:
+    """Return ``text`` with the check at ``number`` re-marked.
+
+    ``name`` is compared against the item found: an address that resolves to a
+    DIFFERENT check is refused rather than written, because the caller is
+    acting on what it last read and the file may have moved underneath it.
+
+    A ``- [~]`` row is refused outright. Reconciled means *settled by a
+    decision recorded on its own line* (ISS-0141), and converting one into a
+    walked check would erase the distinction the mark exists to make.
+    """
+    found = locate(text, number)
+    if found is None:
+        raise LookupError(f"{number} does not resolve to a check in this suite")
+    line_no, item = found
+    if item.name != name:
+        raise LookupError(
+            f"{number} is now {item.name!r}, not {name!r} — the suite moved "
+            "underneath this walk",
+        )
+    if item.reconciled:
+        raise LookupError(
+            f"{number} is reconciled — settled by a decision rather than by "
+            "being walked, and a walk must not overwrite that",
+        )
+
+    lines = text.splitlines(keepends=True)
+    raw = lines[line_no]
+    ending = "\n" if raw.endswith("\n") else ""
+    stripped = raw[: len(raw) - len(ending)]
+    match = _ITEM_RE.match(stripped)
+    if match is None:                    # pragma: no cover — locate() found it
+        raise LookupError(f"{number} is not a checkbox line")
+    head = stripped[: stripped.index("[")]
+    rest = stripped[stripped.index("]") + 1:]
+    if note:
+        rest = f"{rest.rstrip()} {note}"
+    lines[line_no] = f"{head}[{mark}]{rest}{ending}"
+    return "".join(lines)

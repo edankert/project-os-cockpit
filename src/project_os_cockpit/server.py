@@ -743,6 +743,14 @@ def _make_handler(
             if path == "/api/notes/test-run":
                 self._serve_test_run()
                 return
+
+            if path == "/api/notes/walk-check":
+                self._serve_walk_check()
+                return
+
+            if path == "/api/notes/release-prepare":
+                self._serve_release_prepare()
+                return
             # Unknown POST. Drain the request body before responding so
             # HTTP/1.1 keep-alive framing stays intact: an undrained body
             # bleeds into the next request line on the same TCP socket,
@@ -2254,6 +2262,73 @@ def _make_handler(
                                    status=HTTPStatus.BAD_REQUEST)
                 return
             self._respond_json({"ok": True, "result": result})
+
+        def _serve_walk_check(self) -> None:
+            """``POST /api/notes/walk-check`` — record one walked acceptance
+            check (FEAT-0103 / TASK-0433).
+
+            Addressed by **section and ordinal**, never by a global checkbox
+            index: the suite has 542 boxes and an index shifts whenever
+            anything above it is edited, so an index-addressed walker writes
+            to whichever row now occupies that position. The name is carried
+            and compared so a suite that moved underneath the walk is refused
+            rather than written.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.walk_check(
+                    docs_root,
+                    str(body.get("number") or ""),
+                    name=str(body.get("name") or ""),
+                    outcome=str(body.get("outcome") or ""),
+                    evidence=str(body.get("evidence") or ""),
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_prepare(self) -> None:
+            """``POST /api/notes/release-prepare`` — declare the release being
+            prepared, as a ``REL-*`` at ``draft`` (FEAT-0103 / TASK-0431).
+
+            Declaring is not shipping (ADR-0022): this writes one note and
+            publishes nothing.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                version = str(body.get("version") or "").strip()
+                result = note_writes.create_release(
+                    index, docs_root,
+                    version=version,
+                    title=str(body.get("title") or "").strip() or f"v{version.lstrip('vV')}",
+                    actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
 
         def _serve_test_run(self) -> None:
             """``POST /api/notes/test-run`` — record a manual test run."""

@@ -52,3 +52,34 @@ No write path widened. `REQ-0026`/`REQ-0027` still gate every mutating route, pu
 Full suite **1351 passed, 2 skipped**. Four new `TST-*` notes at `passing`, 47 new assertions across three files plus nine in `test_review_desk.py`. Twenty mutations run against the new guards, each chosen to defeat rather than confirm; one no-op from bad shell escaping was caught by an apply-check and re-run before being believed, and one survivor was characterised as an equivalent mutant rather than counted as a pass.
 
 Walked against a live sidecar on `your-trainer`, and the ladder walked across all twelve discovered repos.
+
+---
+
+## Second pass, same day: the gate became walkable (FEAT-0103)
+
+The above shipped and Edwin said: *"Don't understand I still don't seem to be able to see and execute the current set of acceptance tests for the next release?"*
+
+He was right. His original report had two halves — *not clearly visible* and *not clear how I should execute* — and this change had fixed **execute** only for `TST-*` notes. For the acceptance suite it built the counter and stopped. The exit criterion it met, *"reachable from a surface that names the number"*, was too weak, and meeting it exactly is how the phase closed with the reported problem still standing.
+
+### What changed
+
+- **`Prepare release…`** on the gate — writes a `REL-*` at `draft` with a version. That is what makes 60 unchecked rows *the current set for the next release*. Refuses a version at or below the newest `released`, and refuses a second while one is in preparation.
+- **The gate lists its checks** — the 60 by name and number, not 17 area counts. Each links to **its own section**; the anchors had existed since the suite was first rendered and nothing used one, so every row opened a 1082-line file at the top.
+- **`Walk ▸`** — the `TST-*` stepper's shape over the unchecked rows. Pass ticks the row with a dated witness; fail leaves it unticked and records what went wrong; skip writes nothing.
+
+### Paths and contracts
+
+- **New:** `POST /api/notes/walk-check`, `POST /api/notes/release-prepare`, routes `~walk` / `~walk/<section>` / `~publication`, `acceptance.locate()`, `acceptance.rewrite_check()`, `Item.anchor`, `note_writes.walk_check()`.
+- **Extended:** `note_writes.create_release()` gains an optional `version` and two guards. Existing callers unchanged.
+- **Changed shape:** gate group rows are now individual checks; `blocking` rows carry `text` and `anchor`.
+- **Not extended:** `check-toggle` stays as it is. A walker addressed by global checkbox index would write to whichever row had moved into that position.
+
+Ticking a check goes through `note_writes` with an `mtime` guard and a name comparison, so a suite that moved underneath a walk is refused rather than written. Both new routes are loopback-only and covered by the existing enumeration.
+
+### Corrections this pass made to itself
+
+**`create_release` already existed** (TASK-0316) and I wrote a second one with the same name, shadowing it and breaking four tests. The suite caught it; I did not. The duplicate is gone and the original is extended.
+
+**A test's slice was over-broad.** `test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it` walks from `loadWsNav` to the next top-level `async function`, taking in the plain functions after it. The gate's controls are the first click handlers to land there, and a click cannot lose a load-time race; the test now excludes them with the reason recorded.
+
+Suite **1373 passed, 2 skipped**. Ten further mutations, all defeated.

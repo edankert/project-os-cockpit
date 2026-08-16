@@ -4147,27 +4147,35 @@ def _publication_groups(
         label = f"Release gate · {unchecked} unchecked"
         if not draft:
             label = f"{label} · no release in preparation"
-        rows_by_area: dict[str, int] = {}
-        for row in gate.get("blocking") or []:
-            key = f"{row['area']}"
-            rows_by_area[key] = rows_by_area.get(key, 0) + 1
+        suite_url = f"/docs/{gate['rel']}" if gate.get("rel") else None
         group = {
             "key": "release-gate",
             "label": label,
-            "url": f"/docs/{gate['rel']}" if gate.get("rel") else None,
+            "url": suite_url,
             "status": None,
             "item_layout": "stacked",
-            # The unit is the SITTING, not the checkbox: your-trainer's 60
-            # cluster into 17 sections, two of which carry 33 between them.
+            # **The checks themselves** (TASK-0432), not a count of areas.
+            # The count-only version shipped and Edwin said: *"I still don't
+            # seem to be able to see and execute the current set."* A row now
+            # names its check, carries its address, and links to ITS OWN
+            # SECTION — the anchors have existed since the suite was first
+            # rendered and nothing used one, so every row opened a 1082-line
+            # file at the top.
             "items": [
                 {
-                    "id": "", "title": area, "subtitle": f"{n} unchecked",
-                    "status": "ready", "type": "test",
-                    "url": f"/docs/{gate['rel']}" if gate.get("rel") else None,
+                    "id": row["number"],
+                    "title": row["name"],
+                    "subtitle": " · ".join(
+                        p for p in (row["area"], f"Tier {row['tier']}") if p
+                    ),
+                    "status": "ready",
+                    "type": "test",
+                    "url": (
+                        f"{suite_url}#{row['anchor']}"
+                        if suite_url and row.get("anchor") else suite_url
+                    ),
                 }
-                for area, n in sorted(
-                    rows_by_area.items(), key=lambda kv: -kv[1],
-                )
+                for row in (gate.get("blocking") or [])
             ] or [{
                 "id": "", "title": "nothing blocking", "subtitle": "",
                 "status": "passing", "type": "test", "url": None,
@@ -4177,6 +4185,14 @@ def _publication_groups(
         if draft and gate.get("blocked"):
             group["needs_human"] = True
             group["owed_verb"] = "Walk"
+        # The controls that make it walkable (FEAT-0103). `walk` is offered
+        # whenever anything is blocking — a person may walk checks before
+        # declaring the release, and refusing to let them would be the tool
+        # deciding the order of someone else's afternoon.
+        if gate.get("blocked"):
+            group["walk"] = True
+        if not draft:
+            group["prepare_release"] = True
         out.append(group)
 
     for stale in data["stale_drafts"]:

@@ -12,6 +12,7 @@ goal: "Give the tool the phase it is missing. Publication becomes a first-class 
 features:
   - "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"
   - "[[FEAT-0102-Publication-Becomes-A-View]]"
+  - "[[FEAT-0103-The-Gate-Is-Walkable]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
@@ -108,3 +109,14 @@ Every exit criterion ticked with evidence, both features `done`, both issues `fi
 **Also standing:** the reconciled criterion on [[FEAT-0102]] — gate rows group by suite section, not by the *Manual Test Environment Breakdown* the criterion names, because that table exists in one repo's suite and has no counterpart in the template. If it earns a place it should be a template feature first.
 
 **Not this repo's to fix, and still true:** `your-trainer` carries `PHASE-017`/`PHASE-018` at `planned` with only `done` features, eight `REQ-*` notes that fail frontmatter parse, and REL-0008's overtaken draft.
+
+
+## Re-closed 2026-08-16, after a reopen the same day
+
+Edwin, on the shipped result: *"Don't understand I still don't seem to be able to see and execute the current set of acceptance tests for the next release?"*
+
+The phase closed with every exit criterion ticked and **the reported problem still standing**. That is the finding, and it is about the criteria rather than the work: *"reachable from a surface that names the number"* is satisfied by a count, and what was asked for was a way to see and walk the set. A criterion that can be met without the reporter being helped is a criterion written from the implementation's side.
+
+[[FEAT-0103]] closes it — declare the release, list the checks, reach each one's section, walk them with a witness. Reopened rather than given its own phase: same goal line, and it is the half this phase left undone.
+
+**Standing, unchanged:** the independent review is still unpaid, and now covers five `TST-*` notes and one `CHG-*`.

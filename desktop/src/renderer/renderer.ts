@@ -1238,6 +1238,17 @@ async function navigateToInner(
   }
   // ~history — the full timeline (FEAT-0052 / TASK-0257). The overview
   // tile is the short version; this is the same grammar, further back.
+  // ~walk and ~walk/<section> — the acceptance walker (FEAT-0103).
+  if (normalised === '~walk' || normalised.startsWith('~walk/')) {
+    const section = normalised === '~walk'
+      ? '' : normalised.slice('~walk/'.length);
+    if (await renderAcceptanceWalkPage(section)) return;
+  }
+  // ~publication — the third phase's view (FEAT-0102).
+  if (normalised === '~publication') {
+    setNavMode('publication');
+    return;
+  }
   if (normalised === '~history' || normalised.startsWith('~history/')) {
     const at = normalised === '~history'
       ? null : normalised.slice('~history/'.length);
@@ -3343,6 +3354,10 @@ interface NavGroupData {
   /** The registry's verb for a group that asks. */
   owed_verb?: string;
   needs_human?: boolean;
+  /** The release gate has unchecked rows, so it can be walked (FEAT-0103). */
+  walk?: boolean;
+  /** No release is in preparation, so one can be declared. */
+  prepare_release?: boolean;
 }
 
 interface NavPayload {
@@ -6810,6 +6825,251 @@ async function fillReviewNoteBody(target: HTMLElement, rel: string): Promise<voi
  *  `draft_issue_body`, finally wired up by TASK-0372). */
 interface IssueDraft { title: string; body: string; test_id: string }
 
+
+// ----- The acceptance walker (FEAT-0103 / TASK-0433) --------------------
+//
+// `~walk` and `~walk/<section>`. The stepper the TST runner already has,
+// pointed at the suite's unchecked gating rows.
+//
+// Edwin, after FEAT-0102 shipped the COUNT: *"Don't understand I still don't
+// seem to be able to see and execute the current set of acceptance tests for
+// the next release?"* The gate could say sixty and could not walk one.
+//
+// Three outcomes, and what each WRITES is the point (REQ-0028):
+//   pass -> `- [x]` plus a dated witness — acceptance names who stood behind it
+//   fail -> stays `- [ ]`, annotated — a failed walk is evidence of a defect
+//   skip -> nothing at all — a check nobody performed leaves no claim
+
+interface GateCheck {
+  tier: number; number: string; section: string; area: string;
+  name: string; text?: string; anchor?: string;
+}
+
+async function promptPrepareRelease(): Promise<void> {
+  const version = window.prompt(
+    'Which version are you preparing?  (e.g. 2.1.7)\n\n'
+    + 'This writes a REL-* note at `draft` — it declares intent, and '
+    + 'publishes nothing.',
+  );
+  if (!version) return;
+  try {
+    const res = await postJson('/api/notes/release-prepare', { version, actor: 'user:edwin' });
+    if (res && (res as { ok?: boolean }).ok) {
+      showStatus(`Preparing ${(res as { version?: string }).version}`, 'info');
+      void loadWsNav();
+    } else {
+      showStatus(String((res as { error?: string })?.error || 'refused'), 'error');
+    }
+  } catch (e) { showStatus(String(e), 'error'); }
+}
+
+async function renderAcceptanceWalkPage(section: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  let gate: GatePayload | null = null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
+    if (!resp.ok) return false;
+    gate = ((await resp.json()) as { gate?: GatePayload }).gate ?? null;
+  } catch { return false; }
+  if (!gate || !gate.exists) {
+    showStatus('This project has no acceptance suite', 'error');
+    return false;
+  }
+  const all = (gate.blocking ?? []) as GateCheck[];
+  const checks = section ? all.filter((c) => c.section === section) : all;
+  if (checks.length === 0) {
+    showStatus(section ? `Nothing unchecked in ${section}` : 'Nothing blocking', 'info');
+    return false;
+  }
+  if (currentNavMode !== 'publication') setNavMode('publication');
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildAcceptanceWalker(checks, section));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildAcceptanceWalker(checks: GateCheck[], section: string): HTMLElement {
+  const results = checks.map((c) => ({
+    check: c, result: '' as '' | 'pass' | 'fail' | 'skip', evidence: '',
+    written: false, error: '',
+  }));
+  let current = 0;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body run-view';
+  const stage = document.createElement('div');
+
+  const post = async (index: number): Promise<void> => {
+    const row = results[index];
+    if (row.result === 'skip' || row.result === '') return;
+    try {
+      const res = await postJson('/api/notes/walk-check', {
+        number: row.check.number,
+        name: row.check.name,
+        outcome: row.result,
+        evidence: row.evidence,
+        actor: 'user:edwin',
+      });
+      if (res && (res as { ok?: boolean }).ok) { row.written = true; }
+      else { row.error = String((res as { error?: string })?.error || 'write refused'); }
+    } catch (e) {
+      row.error = String(e);
+    }
+    // The suite moved underneath the walk, or the row is reconciled. Say so
+    // rather than letting the stepper imply a tick that did not happen.
+    if (row.error) showStatus(`${row.check.number}: ${row.error}`, 'error');
+  };
+
+  const rerender = (): void => {
+    stage.replaceChildren();
+    const actions = document.createElement('div');
+    actions.className = 'review-actions';
+    const counter = document.createElement('span');
+    counter.className = 'run-counter';
+    counter.textContent = current < results.length
+      ? `check ${current + 1} of ${results.length}` : 'walk complete';
+    const stop = document.createElement('button');
+    stop.type = 'button';
+    stop.className = 'review-btn';
+    stop.textContent = 'Stop walking';
+    stop.addEventListener('click', () => { void navigateTo('~publication'); });
+    actions.append(counter, stop);
+
+    stage.appendChild(buildReviewHeader(
+      'run',
+      section ? `Acceptance · section ${section}` : 'Acceptance · release gate',
+      '', actions,
+      `${results.filter((r) => r.written).length} written · `
+      + `${results.filter((r) => r.result === 'skip').length} skipped`,
+    ));
+
+    const bar = document.createElement('div');
+    bar.className = 'run-progress';
+    const fill = document.createElement('i');
+    fill.style.width = `${results.length ? (current / results.length) * 100 : 0}%`;
+    bar.appendChild(fill);
+    stage.appendChild(bar);
+
+    results.forEach((row, i) => {
+      if (i < current) {
+        const done = document.createElement('div');
+        done.className = `run-step is-done is-${row.result || 'skip'}`;
+        const mark = document.createElement('span');
+        mark.className = 'run-step-n';
+        mark.textContent = row.error ? '!'
+          : row.result === 'pass' ? '✓' : row.result === 'fail' ? '✕' : '–';
+        const label = document.createElement('span');
+        label.textContent = `${row.check.number} ${row.check.name}`;
+        const ev = document.createElement('span');
+        ev.className = 'run-step-ev';
+        ev.textContent = row.error || row.evidence;
+        done.append(mark, label, ev);
+        stage.appendChild(done);
+        return;
+      }
+      if (i === current) { stage.appendChild(buildCheckCard(row, i)); return; }
+      const pending = document.createElement('div');
+      pending.className = 'run-step';
+      const n = document.createElement('span');
+      n.className = 'run-step-n';
+      n.textContent = row.check.number;
+      const label = document.createElement('span');
+      label.textContent = row.check.name;
+      pending.append(n, label);
+      stage.appendChild(pending);
+    });
+
+    if (current >= results.length) {
+      const summary = document.createElement('div');
+      summary.className = 'run-summary';
+      const written = results.filter((r) => r.written).length;
+      const failed = results.filter((r) => r.result === 'fail').length;
+      const p = document.createElement('p');
+      p.textContent = `${written} recorded in ACCEPTANCE_TESTS.md`
+        + (failed ? `, ${failed} failed and left unticked` : '')
+        + '. Nothing was ticked for a skipped check.';
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'review-btn is-primary';
+      back.textContent = 'Back to Publication';
+      back.addEventListener('click', () => { void navigateTo('~publication'); });
+      summary.append(p, back);
+      stage.appendChild(summary);
+    }
+  };
+
+  const buildCheckCard = (
+    row: typeof results[number], index: number,
+  ): HTMLElement => {
+    const card = document.createElement('div');
+    card.className = 'run-step-current';
+    const title = document.createElement('div');
+    title.className = 'run-step-title';
+    const n = document.createElement('span');
+    n.className = 'run-step-n is-current';
+    n.textContent = row.check.number;
+    const text = document.createElement('span');
+    text.textContent = row.check.name;
+    title.append(n, text);
+    card.appendChild(title);
+
+    const area = document.createElement('p');
+    area.className = 'meta';
+    area.textContent = `${row.check.area} · Tier ${row.check.tier}`;
+    card.appendChild(area);
+
+    // The check's own words — a walker that showed only the name would make
+    // the reader open the document anyway, which is the thing this replaces.
+    if (row.check.text) {
+      const proc = document.createElement('p');
+      proc.className = 'run-expected';
+      proc.textContent = row.check.text;
+      card.appendChild(proc);
+    }
+
+    const controls = document.createElement('div');
+    controls.className = 'run-controls';
+    const evidence = document.createElement('input');
+    evidence.type = 'text';
+    evidence.className = 'run-evidence';
+    evidence.placeholder = 'evidence — what you observed…';
+
+    const advance = (result: 'pass' | 'fail' | 'skip'): void => {
+      results[index].result = result;
+      results[index].evidence = evidence.value.trim();
+      void post(index).then(() => {
+        current = index + 1;
+        rerender();
+        // The gate's count is now stale on every surface that reads it. The
+        // ISS-0168 lesson: the surface that offered the action is the one
+        // nothing refreshes.
+        if (result !== 'skip') void loadWsNav();
+      });
+    };
+    for (const [label, kind] of [
+      ['Pass', 'pass'], ['Fail', 'fail'], ['Skip', 'skip'],
+    ] as const) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `review-btn is-${kind === 'pass' ? 'good' : kind === 'fail' ? 'bad' : ''}`;
+      btn.textContent = label;
+      btn.addEventListener('click', () => advance(kind));
+      controls.appendChild(btn);
+    }
+    controls.appendChild(evidence);
+    card.appendChild(controls);
+    return card;
+  };
+
+  rerender();
+  wrap.appendChild(stage);
+  return wrap;
+}
+
+
 // ----- Manual test runner (TASK-0209; moved to Tests by TASK-0372) ------
 //
 // `~tests/<TST>/run`. The stepper below is unchanged — it is the desk's one
@@ -9587,6 +9847,33 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   // infer why — which for the quiet group is exactly the thing it exists to
   // prevent, and for a refused rung is the difference between "nothing to
   // deploy" and "deploying is not something this tool will do".
+  // The gate's own controls (FEAT-0103). On the SUMMARY, so they are reachable
+  // without expanding sixty rows — Edwin's report was that he could not see or
+  // execute the set, and a control buried under the list answers neither.
+  if (group.walk) {
+    const walk = document.createElement('button');
+    walk.type = 'button';
+    walk.className = 'review-btn is-primary nav-group-action';
+    walk.textContent = 'Walk ▸';
+    walk.title = 'Step through the unchecked checks one at a time';
+    walk.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      void navigateTo('~walk');
+    });
+    summary.appendChild(walk);
+  }
+  if (group.prepare_release) {
+    const prep = document.createElement('button');
+    prep.type = 'button';
+    prep.className = 'review-btn nav-group-action';
+    prep.textContent = 'Prepare release…';
+    prep.title = 'Declare the version being prepared, so these checks gate it';
+    prep.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      void promptPrepareRelease();
+    });
+    summary.appendChild(prep);
+  }
   if (group.suppressed || group.refused) {
     const why = document.createElement('span');
     why.className = 'nav-group-why';

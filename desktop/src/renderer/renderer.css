@@ -5576,3 +5576,7 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   font-size: 10px; letter-spacing: 0.02em; text-transform: lowercase;
   color: var(--text-muted); font-style: italic;
 }
+
+/* The gate's controls sit on its summary row (FEAT-0103) — reachable without
+   expanding sixty rows, which is what "I can't see or execute the set" meant. */
+.nav-group-action { flex: none; margin-left: 8px; font-size: 11px; padding: 0 8px; }

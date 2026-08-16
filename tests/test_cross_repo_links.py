@@ -148,9 +148,23 @@ def test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it() -> Non
     nav = src.split("async function loadWsNav(", 1)[1].split("\nasync function", 1)[0]
     assert "const skipLanding = consumeLandingSuppression();" in nav
     # Every landing navigation inside loadWsNav is guarded.
+    #
+    # **A click handler is not one.** The race this guards is between an
+    # arriving workspace's landing and a note already being fetched, both at
+    # PANE-LOAD time. A navigation the reader asked for by pressing a button
+    # cannot lose that race — it happens long after both have settled — and
+    # suppressing the landing on it would break the button instead.
+    #
+    # The distinction is needed because this slice runs to the next top-level
+    # `async function` and so takes in the plain `function`s defined after
+    # `loadWsNav`, including `renderNavGroup`. FEAT-0103's gate controls are
+    # the first click handlers to land inside that window.
     for line in nav.splitlines():
         if "void navigateTo(" in line and "~" in line:
-            assert "skipLanding" in line or "skipLanding" in nav[:nav.index(line)][-400:], line
+            before = nav[:nav.index(line)][-400:]
+            if "addEventListener('click'" in before:
+                continue
+            assert "skipLanding" in line or "skipLanding" in before, line
     # …and the README fallback, for a jump arriving into a mode with no
     # landing at all.
     ready = src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0]
