@@ -314,3 +314,40 @@ def test_every_owed_kind_can_name_itself_and_its_verb() -> None:
         "the standing obligation is the one whose subject is not a note, so it "
         "is the one most likely to be left out of a per-kind vocabulary"
     )
+
+
+def test_the_note_less_memo_cannot_outlive_its_corpus(tmp_path) -> None:
+    """The memo lives on the index, never in a module dict keyed by `id()`.
+
+    It was keyed `(id(index), generation)`. CPython reuses an address once the
+    object at it is collected, and a freshly built index is always at
+    generation 0 — so a freed index and a new one in its place would share a
+    key, and one corpus would be served another's owed rows. Hung off the
+    object, that is unrepresentable rather than unlikely.
+
+    Driven over two corpora that disagree, with the first dropped in between,
+    so a module-level cache surviving the object would show up as the wrong
+    answer rather than as a slow one.
+    """
+    import gc
+
+    from project_os_cockpit.index import Index
+
+    def corpus(name: str, status: str) -> Index:
+        docs = tmp_path / name / "docs" / "features" / "f"
+        docs.mkdir(parents=True)
+        (docs / "FEAT-9001-F.md").write_text(
+            f'---\ntype: "[[feature]]"\nid: FEAT-9001\ntitle: "F"\n'
+            f"status: {status}\nowner: user:edwin\ncreated: 2026-08-01\n"
+            "updated: 2026-08-01\n---\n\n# F\n", encoding="utf-8")
+        return Index.build(tmp_path / name / "docs")
+
+    owing = corpus("a", "doing")           # in flight, no acceptance_impact
+    assert obligations.note_less_row_for(owing, "FEAT-9001") is not None
+    del owing
+    gc.collect()
+
+    settled = corpus("b", "backlog")       # nothing changed yet, owes nothing
+    assert obligations.note_less_row_for(settled, "FEAT-9001") is None, (
+        "a second corpus was served the first one's owed rows"
+    )

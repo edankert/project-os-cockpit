@@ -43,3 +43,9 @@ The migration's only real risk is a silent one. [[ISS-0175]] is this project's r
 ## Adequacy
 
 Seven mutations run against this module; all killed. The two that survived first — the tier fallback and the parity-before-delete ordering — are named above.
+
+## Amended 2026-08-17 — the guard that was missing
+
+`test_a_ref_read_survives_non_ascii_prose` was added after the note-shape ref read shipped a defect this module did not catch: `git cat-file --batch` sizes are **bytes** and the walk sliced characters, so `../your-trainer` read back **314 of 579** checks with no error and the gate would have under-reported at every post-migration ref.
+
+Adequacy: the guard fails against the shipped implementation and **the other sixteen tests here pass against it**, which is the measurement that matters — the module was comprehensively blind to the one thing that could quietly shrink a release gate.

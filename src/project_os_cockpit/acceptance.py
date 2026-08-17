@@ -862,8 +862,8 @@ def _notes_at(project_root: Path, ref: str) -> list[Item] | None:
     try:
         done = subprocess.run(
             ["git", "cat-file", "--batch"],
-            cwd=str(project_root), input="\n".join(shas) + "\n",
-            capture_output=True, text=True, timeout=30, check=False,
+            cwd=str(project_root), input=("\n".join(shas) + "\n").encode(),
+            capture_output=True, timeout=30, check=False,
         )
     except (OSError, subprocess.SubprocessError):     # pragma: no cover
         return None
@@ -877,19 +877,31 @@ def _notes_at(project_root: Path, ref: str) -> list[Item] | None:
     return sort_items(items) if items else None
 
 
-def _split_batch(stream: str) -> list[str]:
+def _split_batch(stream: bytes) -> list[str]:
     """`git cat-file --batch` output as a list of blob bodies.
 
     The format is `<sha> <type> <size>\\n<contents>\\n` per object, and the
     **size is authoritative** — a note whose body happens to contain a line
     looking like a header would otherwise split an object in two, and half a
-    frontmatter block parses as a check with no tier, which is silently
-    dropped. Counted, not guessed.
+    frontmatter block parses as a check with no tier.
+
+    **`size` is in BYTES, so this walks bytes.** The first version took the
+    same slices out of a *decoded string*, which is the same thing only for
+    pure ASCII. Measured on `../your-trainer` the hour it migrated: 503,860
+    bytes of notes decoding to 501,153 characters, so the walk drifted by one
+    position per non-ASCII byte — em-dashes, `✅`, the arrows in the prose —
+    reached a header it could not parse, and stopped. It returned **314 of
+    579 checks, with no error**, and the gate at every post-migration ref
+    would have read 20 blocking where the truth is 60: the direction that
+    lets a release through.
+
+    The docstring above was already right and the code did not follow it.
+    Found by measuring the delta at real tags, not by reading it.
     """
     out: list[str] = []
     pos = 0
     while pos < len(stream):
-        newline = stream.find("\n", pos)
+        newline = stream.find(b"\n", pos)
         if newline == -1:
             break
         header = stream[pos:newline].split()
@@ -897,7 +909,7 @@ def _split_batch(stream: str) -> list[str]:
             break                                    # pragma: no cover
         size = int(header[2])
         start = newline + 1
-        out.append(stream[start:start + size])
+        out.append(stream[start:start + size].decode("utf-8", "replace"))
         pos = start + size + 1                       # the trailing newline
     return out
 

@@ -670,14 +670,17 @@ NOTE_LESS[SWEEP_OBLIGATION_KIND] = NoteLessObligation(
 )
 
 
-#: One walk of the note-less sources per index generation. `_owed_flag` asks
-#: about one record at a time — once per row in a tree of hundreds — and the
-#: sweep source walks the whole corpus to answer, so without this the features
-#: tree would be quadratic in the number of notes.
+#: Where the per-index memo lives. **On the index itself**, not in a module
+#: dict keyed by `id(index)` — which is what this was, and which is unsound:
+#: CPython reuses an address once the object at it is collected, so a freed
+#: index and a fresh one allocated in its place would share a key. Both are
+#: routinely at `generation` 0 (a newly built index always is), so the second
+#: half of the key would not save it, and the wrong corpus's owed rows would be
+#: served for a corpus that owes nothing.
 #:
-#: Keyed on `index.generation`, which the watcher bumps on every change, so a
-#: stale answer is impossible rather than merely unlikely.
-_note_less_by_note: dict[tuple[int, int], dict[str, dict[str, Any]]] = {}
+#: Hung off the object instead, so the memo cannot outlive what it describes.
+#: Identity reuse becomes unrepresentable rather than unlikely.
+_MEMO_ATTR = "_note_less_owed_memo"
 
 
 def note_less_row_for(index: "Index", note_id: str) -> dict[str, Any] | None:
@@ -693,17 +696,20 @@ def note_less_row_for(index: "Index", note_id: str) -> dict[str, Any] | None:
     """
     if not note_id:
         return None
-    key = (id(index), int(getattr(index, "generation", 0)))
-    cached = _note_less_by_note.get(key)
-    if cached is None:
-        cached = {}
+    generation = int(getattr(index, "generation", 0))
+    memo = getattr(index, _MEMO_ATTR, None)
+    if memo is None or memo[0] != generation:
+        rows_by_id: dict[str, dict[str, Any]] = {}
         for rows in note_less_rows(index).values():
             for row in rows:
                 if row.get("id") and row.get("rel"):
-                    cached.setdefault(str(row["id"]), row)
-        _note_less_by_note.clear()      # one generation at a time; not a store
-        _note_less_by_note[key] = cached
-    return cached.get(note_id)
+                    rows_by_id.setdefault(str(row["id"]), row)
+        memo = (generation, rows_by_id)
+        try:
+            setattr(index, _MEMO_ATTR, memo)
+        except AttributeError:          # pragma: no cover — a slotted stub
+            pass
+    return memo[1].get(note_id)
 
 
 def note_less_sources() -> dict[str, "NoteLessObligation"]:

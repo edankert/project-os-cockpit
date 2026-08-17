@@ -413,3 +413,51 @@ def test_a_note_with_no_id_is_not_a_check(tmp_path: Path) -> None:
         '---\ntype: "[[reference]]"\ntitle: "Not a check"\n---\n\n# Prose\n',
         encoding="utf-8")
     assert acceptance.load_notes(checks) == []
+
+
+def test_a_ref_read_survives_non_ascii_prose(tmp_path: Path) -> None:
+    """`git cat-file --batch` sizes are BYTES; the walk must not count characters.
+
+    This is the defect that shipped and was caught by measurement rather than
+    by reading: on `../your-trainer` the note-shape read returned **314 of 579**
+    checks with no error, because 503,860 bytes of notes decode to 501,153
+    characters and the walk drifted one position per non-ASCII byte until it
+    hit a header it could not parse. The gate at every post-migration ref would
+    have read 20 blocking where the truth is 60 — the direction that lets a
+    release through.
+
+    The fixture puts the multi-byte characters in the FIRST note deliberately.
+    Drift only affects what comes after it, so a corpus whose non-ASCII sits in
+    the last note round-trips perfectly and proves nothing.
+    """
+    root = tmp_path / "repo"
+    checks = root / "docs" / acceptance.CHECKS_REL
+    checks.mkdir(parents=True)
+    for n in range(1, 7):
+        # Em-dash, tick and arrow — all three appear in the real corpus, and
+        # all three are multi-byte in UTF-8.
+        prose = ("walked — expect ✅ and the row → moves" if n == 1
+                 else "plain ascii prose")
+        (checks / f"CHK-{n:04d}-Row.md").write_text(
+            "---\n"
+            f'type: "[[check]]"\nid: CHK-{n:04d}\ntitle: "Row {n}"\n'
+            'status: active\ntier: 1\narea: "A"\nsection: "1.1"\n'
+            f"ordinal: {n * 10}\n"
+            'mark: " "\ninvalidated_by: {}\ncovers: []\n---\n\n'
+            f"# Row {n}\n\n{prose}\n", encoding="utf-8")
+    for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"],
+                ["config", "user.name", "T"], ["add", "-A"],
+                ["commit", "-qm", "notes"], ["tag", "v1"]):
+        subprocess.run(["git", *cmd], cwd=root, check=True, capture_output=True)
+
+    acceptance._at_ref.clear()
+    suite = acceptance.suite_at(root, "v1")
+    assert suite is not None
+    assert [i.note_id for i in suite.items] == [f"CHK-{n:04d}" for n in range(1, 7)], (
+        "the ref read lost notes after the one carrying multi-byte characters"
+    )
+    # The prose survives intact, not merely the count — a slice that is short
+    # by two bytes still yields a parseable note with a truncated body.
+    assert suite.items[0].text == "walked — expect ✅ and the row → moves"
+    # …and every one of them still blocks, which is what the gate reads.
+    assert len(suite.blocking()) == 6

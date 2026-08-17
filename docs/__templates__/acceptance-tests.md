@@ -1,6 +1,10 @@
 ---
 type: "[[reference]]"
-id: ACCEPTANCE-TESTS
+# A placeholder, like every other template's id. It carried the REAL id
+# `ACCEPTANCE-TESTS` until 2026-08-17, which made it squat on the record's
+# own id: `[[ACCEPTANCE-TESTS]]` resolved to this template rather than to
+# the suite, in every repo, for as long as both existed.
+id: ACCEPTANCE-TESTS-TEMPLATE
 title: "Acceptance test suite"
 status: active
 owner: unassigned
