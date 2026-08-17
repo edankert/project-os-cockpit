@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0114
 aliases: ["FEAT-0114"]
 title: "The suite is a view — the same list, the same marks, generated from notes, and one walk layer for checks and manual tests"
-status: doing
+status: review
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

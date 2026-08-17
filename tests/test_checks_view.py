@@ -155,9 +155,11 @@ def test_one_walk_layer_serves_both_surfaces() -> None:
         # …and nothing else. A caller that still posts for itself is a second
         # copy wearing a call to the first.
         assert "postJson" not in block, caller
-    assert src.count("'/api/notes/mark-check'") == 2, (
-        "one write path per storage shape — the note/gate surfaces share "
-        "`walkOneCheck`, and the rendered-document path is the only other one"
+    assert src.count("'/api/notes/mark-check'") == 1, (
+        "**one write path, full stop** (ISS-0192). It was two while a repo "
+        "could still store its suite as a document; that surface is gone, and "
+        "a second call site now would be a second copy of the refusal "
+        "handling — which is how the first two came to disagree."
     )
 
 

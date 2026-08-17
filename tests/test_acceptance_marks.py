@@ -1,13 +1,19 @@
-"""Every acceptance row carries its mark and its address (TST-0038 / FEAT-0104).
+"""The mark dialog, and the guarantee that no document carries a check any more.
 
-**An HTML checkbox holds two states and the record's vocabulary has four.**
-`pymdownx.tasklist` understands `[ ]` and `[x]`; a `[~]` or `[F]` row renders
-with **no input element at all** and its mark left as literal text. That — not
-lazy continuation — is why [[FEAT-0104]] stalled, and it cannot be fixed by
-counting more carefully.
+**This module used to guard a treeprocessor.** An HTML checkbox holds two
+states and the record's vocabulary has six, so every row of a rendered
+`ACCEPTANCE_TESTS.md` was stamped with its mark and its address and the client
+drew a control from them. That surface is gone (ISS-0192): every suite in the
+fleet is `CHK-*` notes, and the walk is `~checks`.
 
-So the *list item* is stamped, whatever its mark, and the client draws one
-control for all four.
+Sixteen guards went with it — the six-mark addressing, the tasklist
+interaction, the unreachable-row notice, the mount, the in-place row patch and
+the watcher suppression. Each was correct about a mechanism that no longer
+exists, and a guard for one of those reads as coverage.
+
+What remains is what survived the move: **the dialog**, which was always
+storage-independent, and one new guard for the property the deletion buys —
+that no rendered document stamps a check address at all.
 """
 
 from __future__ import annotations
@@ -79,29 +85,6 @@ def _rows(html: str) -> dict[str, str]:
     return out
 
 
-def test_all_six_marks_are_addressed_not_just_the_two_tasklist_knows() -> None:
-    got = _rows(_render(FOUR))
-    assert got == {"1.1.1": " ", "1.1.2": "x", "1.1.3": "/",
-                   "1.1.4": "-", "1.1.5": "!", "1.1.6": "?"}
-
-
-def test_the_two_marks_tasklist_understands_still_get_their_input() -> None:
-    """The address is stamped ABOVE `task-list` in priority order, so the
-    literal `[ ]`/`[x]` must be left in place for it to consume. Removing them
-    here would leave the extension nothing to find — which a first pass at
-    priority 4 did, addressing only `~` and `F`, the exact inverse."""
-    html = _render(FOUR)
-    assert html.count('type="checkbox"') == 2
-
-
-def test_the_literal_mark_is_stripped_only_where_tasklist_leaves_one() -> None:
-    html = _render(FOUR)
-    for literal in ("[/]", "[-]", "[!]", "[?]"):
-        assert literal not in html, literal
-    # …and the row's own prose survives.
-    assert "no hardware" in html and "crashes" in html
-
-
 def test_a_document_that_is_not_a_suite_is_untouched() -> None:
     plain = "# Notes\n\n- [ ] a plain checklist item\n- [x] another\n"
     html = _render(plain)
@@ -109,95 +92,7 @@ def test_a_document_that_is_not_a_suite_is_untouched() -> None:
     assert html.count('type="checkbox"') == 2
 
 
-def test_a_name_containing_a_colon_still_matches() -> None:
-    """The matcher uses `parse`'s own regex rather than splitting on the first
-    colon. A hand-rolled split truncated names like *"translated (Layer 1:
-    shared assignment)"* and left 70 of your-trainer's 579 rows unaddressed."""
-    text = (
-        "# Tier 2 — Regression\n\n## 2.1 An area (ISS-0001)\n\n"
-        "- [ ] **Imported intervals get translated (Layer 1: shared):** do it.\n"
-    )
-    assert _rows(_render(text)) == {"2.1.1": " "}
-
-
-def test_a_gating_row_says_so() -> None:
-    text = (
-        "# Tier 1 — Feature Tests\n\n## 1.1 A (FEAT-0001)\n\n- [ ] **G:** a.\n\n"
-        "# Tier 3 — Aids\n\n## 3.1 B (FEAT-0002)\n\n- [ ] **N:** b.\n"
-    )
-    html = _render(text)
-    gating = dict(re.findall(r'data-check="([^"]+)"[^>]*data-gating="(\d)"', html))
-    assert gating == {"1.1.1": "1", "3.1.1": "0"}
-
-
-@needs_file_shaped_suite
-def test_almost_every_row_of_the_real_suite_is_addressable() -> None:
-    """Almost all of them. The handful that are not are rows Markdown never
-    made into list items — a blank line missing in the document that owns them,
-    which [[TASK-0457]] names rather than papering over.
-
-    **A ratio, not a count.** This suite is a live document that Edwin edits
-    and now marks from the app, so `== 579` is a test that fails when the
-    feature works. What must hold is that essentially every row is reachable.
-    """
-    text = (TRAINER / "docs" / acceptance.SUITE_REL).read_text(encoding="utf-8")
-    items = acceptance.parse(text)
-    addressed = _rows(_render(text, acceptance.SUITE_REL))
-    assert len(items) > 100, "this is the big suite, not a stub"
-    assert len(addressed) >= len(items) * 0.98, (
-        f"only {len(addressed)} of {len(items)} rows addressable"
-    )
-    # No address is ever emitted twice — that would mean two rows sharing one
-    # write target, which is the mis-addressing this exists to prevent.
-    numbers = re.findall(r'data-check="([^"]+)"', _render(text, acceptance.SUITE_REL))
-    assert len(numbers) == len(set(numbers))
-
-
-@needs_trainer
-def test_the_seven_hand_written_marks_are_reachable_now() -> None:
-    """`../your-trainer`'s v2.1.0 delta suite carries 6 `[~]` and 1 `[F]`, and
-    before this **none of the seven had a control at all** — tasklist leaves
-    them as literal text.
-
-    Six of the seven are reachable now. The seventh, §1.6.1 *"AI warnings
-    banner dismissable on the editor"*, is not: its list opens directly under
-    `Beyond §1.3.6 / §1.1, the editor gained:` with no blank line, so Markdown
-    absorbs it and never makes a list item to stamp. That is the document's
-    formatting, not this code's reach, and [[TASK-0457]] names it rather than
-    inventing a phantom control for a row with nothing on screen.
-
-    Asserted at the measured number rather than the hoped-for one: `>= 6`
-    would have called five of six a success.
-    """
-    p = TRAINER / "docs" / "tests" / "ACCEPTANCE_TESTS_v2.1.0.md"
-    if not p.exists():
-        pytest.skip("the v2.1.0 delta suite is not present")
-    rows = _rows(_render(p.read_text(encoding="utf-8"), str(p)))
-    # At least one of each, reachable. The exact split is whatever the file
-    # says today — and these are precisely the rows Edwin can now re-mark from
-    # the app, so pinning the number would break on use.
-    marks = list(rows.values())
-    assert marks.count("~") >= 1, "the reconciled rows are reachable"
-    assert marks.count("F") >= 1, "the failed row is reachable"
-    assert len(rows) >= 200, f"{len(rows)} rows addressable in a 300-row file"
-
-
 # ----- rows with nothing to click (TASK-0457) -------------------------------
-
-
-def test_a_row_markdown_never_made_into_a_list_item_is_named() -> None:
-    """ISS-0172's rule in a second surface: an affordance that cannot work
-    should explain itself rather than vanish."""
-    text = (
-        "# Tier 1 — Feature Tests\n\n## 1.1 An area (FEAT-0001)\n\n"
-        "- [ ] **Reachable:** a.\n\n"
-        "Some prose with no blank line after it:\n"
-        "- [ ] **Absorbed:** b.\n"
-    )
-    html = _render(text)
-    assert "1 of 2 checks cannot be marked here" in html
-    assert "Add a blank line above each list" in html
-    assert list(_rows(html)) == ["1.1.1"]
 
 
 def test_a_suite_where_every_row_is_clickable_says_nothing() -> None:
@@ -217,21 +112,6 @@ def test_the_notice_is_never_auto_fixed() -> None:
     assert source == before
 
 
-@needs_file_shaped_suite
-def test_the_real_suites_report_their_own_shortfall() -> None:
-    text = (TRAINER / "docs" / acceptance.SUITE_REL).read_text(encoding="utf-8")
-    html = _render(text, acceptance.SUITE_REL)
-    # Shape and internal consistency, not the figures of the day.
-    found = re.search(r"(\d+) of (\d+) checks cannot be marked here", html)
-    assert found, "the shortfall is stated"
-    unreachable, total = int(found.group(1)), int(found.group(2))
-    assert total == len(acceptance.parse(text))
-    assert 0 < unreachable < total
-    assert len(_rows(html)) == total - unreachable, (
-        "the notice's number is the rows it could not stamp, exactly"
-    )
-
-
 # ----- the affordance, reported from use (ISS-0185) -------------------------
 
 
@@ -247,29 +127,6 @@ def _renderer_css() -> str:
         Path(__file__).resolve().parents[1]
         / "desktop" / "src" / "renderer" / "renderer.css"
     ).read_text(encoding="utf-8")
-
-
-def test_tasklists_whole_control_is_removed_not_just_its_input() -> None:
-    """`pymdownx.tasklist` renders
-    `<label class="task-list-control"><input><span class="task-list-indicator">`.
-    Removing only the input leaves a styled span behind, which is the box
-    inside a box Edwin reported."""
-    src = _renderer_src()
-    block = src[src.index("function mountAcceptanceMarks"):]
-    block = block[:block.index("\nasync function")]
-    assert "label.task-list-control" in block, (
-        "the label must be removed, not just the input"
-    )
-
-
-def test_the_control_is_mounted_inline_not_before_the_paragraph() -> None:
-    """`li.firstChild` is the `<p>` — a block element — so inserting before it
-    put the control on its own line above the check it marks."""
-    src = _renderer_src()
-    block = src[src.index("function mountAcceptanceMarks"):]
-    block = block[:block.index("\nasync function")]
-    assert "li.insertBefore(btn, li.firstChild)" not in block
-    assert "querySelector('p')" in block
 
 
 def test_the_mark_has_no_border_around_a_glyph_that_is_already_one() -> None:
@@ -299,29 +156,6 @@ def test_one_dialog_offers_every_option() -> None:
     assert block.count("needsReason: false") == 3
     assert block.count("needsChange: true") == 1
     assert "verdict: 'needs-re-run'" in block
-
-
-def test_reaching_a_state_costs_one_write_not_three() -> None:
-    """The cycle is gone. `[ ]` → `[F]` used to be three clicks, three writes
-    and two prompts, because `[x]` and `[~]` each asked for a reason on the way
-    past — writes asserting something specific and false."""
-    src = _renderer_src()
-    block = src[src.index("async function cycleAcceptanceMark"):]
-    block = block[:block.index("\ndocView.addEventListener")]
-    assert "MARK_CYCLE" not in block, "no cycling; the dialog names the target"
-    assert block.count("mark-check") == 1, "one write per interaction"
-    assert "askForMark" in block
-
-
-def test_cancelling_writes_nothing_and_does_not_even_repaint() -> None:
-    src = _renderer_src()
-    block = src[src.index("async function cycleAcceptanceMark"):]
-    block = block[:block.index("\ndocView.addEventListener")]
-    cancel = block[block.index("if (chosen === null)"):]
-    cancel = cancel[:cancel.index("\n")]
-    assert "return" in cancel
-    # the write must come after the null check, never before it
-    assert block.index("if (chosen === null)") < block.index("postJson")
 
 
 def test_the_dialog_refuses_a_reasonless_verdict_before_the_round_trip() -> None:
@@ -478,26 +312,6 @@ def test_no_caller_assigns_scrolltop_straight_after_a_navigation() -> None:
         )
 
 
-def test_a_refusal_is_caught_and_shown() -> None:
-    """`postJson` THROWS on refusal and does not return `{ok: false}`, so the
-    old `if (!res?.ok)` branch was unreachable and a real refusal — a reason
-    citing an unresolvable ISS, an mtime conflict — was an unhandled rejection
-    with no toast."""
-    src = _renderer_src()
-    block = src[src.index("async function cycleAcceptanceMark"):]
-    block = block[:block.index("\ndocView.addEventListener")]
-    # Comments are stripped: this file's own prose explains the old branch, and
-    # a guard that greps for a string it also documents will always pass or
-    # always fail for the wrong reason.
-    code = "\n".join(
-        line for line in block.splitlines()
-        if not line.lstrip().startswith("//")
-    )
-    assert "try {" in code and "catch" in code
-    assert "if (!res?.ok)" not in code, "that branch could never fire"
-    assert "showStatus" in code
-
-
 def test_the_dialog_selects_then_saves() -> None:
     """Edwin went looking for a Done button. Clicking an option used to commit,
     and a reason-less one showed an error and returned, so the same button had
@@ -554,39 +368,6 @@ def test_save_is_inert_until_the_verdict_is_complete() -> None:
 # ----- the watcher, the path two rounds of guards missed (ISS-0189) ---------
 
 
-def test_marking_a_check_patches_the_row_instead_of_re_navigating() -> None:
-    """Edwin: *"can we not somehow update the file in memory and then do a save
-    in the background without re-loading?"* The reload existed only because an
-    HTML checkbox cannot show six states; this control draws its own mark."""
-    src = _renderer_src()
-    block = src[src.index("async function cycleAcceptanceMark"):]
-    block = block[:block.index("\ndocView.addEventListener")]
-    code = "\n".join(
-        line for line in block.splitlines()
-        if not line.lstrip().startswith("//")
-    )
-    assert "repaintDoc()" not in code, "a mark must not re-navigate"
-    assert "row_html" in code, "the row comes from the server's one pipeline"
-    assert "mountAcceptanceMarks()" in code
-    # …and it is APPLIED. Naming the value proves nothing: a mutation that
-    # fetched `row_html` and then did `void rowHtml` survived this test twice
-    # over. Third time this session guards have covered two ends and not the
-    # wire between them.
-    assert "innerHTML = rowHtml" in code, code
-
-
-def test_our_own_write_does_not_trigger_the_watchers_reload() -> None:
-    """Patching the row and then letting `file-changed` re-navigate would undo
-    the patch — which is precisely what defeated ISS-0187 and ISS-0188."""
-    src = _renderer_src()
-    block = src[src.index("async function cycleAcceptanceMark"):]
-    block = block[:block.index("\ndocView.addEventListener")]
-    assert "suppressNextSoftReload()" in block
-    guard = src[src.index("function scheduleSoftReload"):]
-    guard = guard[:guard.index("\n}")]
-    assert "softReloadSuppressedUntil" in guard
-
-
 def test_a_held_position_wins_inside_the_animation_frame() -> None:
     """`applyScrollTarget` defers to `requestAnimationFrame`, so a held
     position has to be honoured INSIDE that frame and ahead of both existing
@@ -614,3 +395,48 @@ def test_the_watchers_own_reload_holds_the_readers_place() -> None:
     nav = block[block.index("void navigateTo("):]
     nav = nav[:nav.index(");") + 2]
     assert "keepScroll" in nav, nav.strip()
+
+
+# ----- the guarantee the deletion buys (ISS-0192) ---------------------------
+
+
+def test_no_rendered_document_carries_a_check_address() -> None:
+    """A frozen release record must not wear a live control.
+
+    `ACCEPTANCE_TESTS_v2.1.0.md` in `../your-trainer` is what v2.1.0 was
+    measured against, and it still parses as 300 checks — so while the
+    treeprocessor existed it stamped 300 addresses onto it and the client
+    mounted 300 mark controls, writing to a file that no longer exists. Before
+    the migration those clicks **succeeded, against the living suite**: a mark
+    on a frozen record written into a different document.
+
+    Asserted on a document that WOULD have been stamped, so the guard has a
+    real subject rather than a trivially-passing one.
+    """
+    html = _render(FOUR, "docs/tests/ACCEPTANCE_TESTS.md")
+    assert "data-check" not in html
+    assert "data-mark" not in html
+    assert "data-gating" not in html
+    # …and the six marks are still just text, which is what a frozen record
+    # should be: readable, and inert.
+    assert "Partial" in html and "Canceled" in html
+
+
+def test_the_client_mounts_no_control_on_a_document() -> None:
+    """The other half: nothing looks for `li[data-check]` any more.
+
+    **Code lines only.** The comments that record the deletion name the things
+    deleted — they have to, or the next reader finds a hole with no account of
+    it — and a guard that a neighbouring sentence can BREAK is the same defect
+    as one a neighbouring sentence can satisfy, which this project has now
+    written down twice.
+    """
+    live = [
+        line for line in _renderer_src().splitlines()
+        if not line.lstrip().startswith(("//", "*", "/*", "/**"))
+    ]
+    code = "\n".join(live)
+    for gone in ("mountAcceptanceMarks", "cycleAcceptanceMark",
+                 "li[data-check]", "dataset.checkName",
+                 "suppressNextSoftReload"):
+        assert gone not in code, f"{gone} is still called somewhere"

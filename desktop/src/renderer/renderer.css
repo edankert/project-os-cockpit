@@ -5781,11 +5781,14 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .acc-mark-unknown    { color: var(--danger, #f85149); opacity: 0.6; }
 
 /* Minimal strikes canceled text through, and it is the clearest signal on a
- * long list: this row is not being waited for. */
-li[data-mark="-"] > p:first-of-type { text-decoration: line-through; }
-li[data-mark="-"] { opacity: 0.72; }
-
-ul.task-list li[data-check] { list-style: none; }
+ * long list: this row is not being waited for.
+ *
+ * On `.checks-row` now. This keyed on `li[data-mark="-"]` and
+ * `ul.task-list li[data-check]` — attributes a treeprocessor stamped onto a
+ * rendered acceptance document — and both went with that surface (ISS-0192).
+ * The signal is worth keeping; the selector had nothing left to select. */
+.checks-row.is-canceled .checks-row-name { text-decoration: line-through; }
+.checks-row.is-canceled { opacity: 0.72; }
 
 /* ----- the mark dialog (ISS-0185, ISS-0186) ----------------------------
  *

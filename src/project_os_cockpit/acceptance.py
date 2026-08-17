@@ -1367,125 +1367,18 @@ def gate_payload(
     }
 
 
-# ----- addressing a check (FEAT-0103 / TASK-0430) ---------------------------
+# ----- addressing a check ---------------------------------------------------
 #
-# The walker needs to WRITE a check, and the existing `check-toggle` endpoint
-# addresses a checkbox by its **zero-based ordinal within the whole rendered
-# file**. The suite has 542 of them. Any edit above a row shifts every index
-# below it, so a walker built on that would write whatever is now at that
-# position — silently, and to a check nobody was looking at. A walker that
-# writes the wrong row is worse than one that writes nothing.
+# **A check is addressed by its id.** `locate()` and `rewrite_check()` lived
+# here and wrote row grammar into `ACCEPTANCE_TESTS.md` by section-and-ordinal,
+# because that was the only address a line in a document had. Deleted with the
+# document surface (ISS-0192): every write now targets a `CHK-*` note's
+# frontmatter, and `CHK-0412` survives an edit anywhere else in the corpus,
+# which is what the whole migration bought.
 #
-# `Item.number` (`1.25.3`) survives an edit elsewhere in the file, and when its
-# own section changes it fails to RESOLVE rather than resolving to something
-# else. That asymmetry is the whole reason it is the address.
-
-
-def locate(text: str, number: str) -> tuple[int, Item] | None:
-    """The 0-based source line of the check at ``number``, and the item.
-
-    ``None`` when the address does not resolve — never a nearest match. The
-    caller is about to write to this line.
-    """
-    body_offset = 0
-    if text.startswith("---"):
-        parts = text.split("---", 2)
-        if len(parts) == 3:
-            body_offset = text[: len(text) - len(parts[2])].count("\n")
-
-    items = parse(text)
-    wanted = next((i for i in items if i.number == number), None)
-    if wanted is None:
-        return None
-
-    # Walk the body the same way `parse` does and count to the same item, so
-    # the line found is the line that produced it rather than the first line
-    # that looks similar.
-    lines = text.splitlines()
-    tier = 0
-    section = ""
-    ordinal = 0
-    in_fence = False
-    for index in range(body_offset, len(lines)):
-        line = lines[index]
-        if _FENCE_RE.match(line):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        if _TIER_HEADING_RE.match(line):
-            tier = int(_TIER_HEADING_RE.match(line).group(1))
-            section, ordinal = "", 0
-            continue
-        sect = _SECTION_RE.match(line)
-        if sect:
-            section = sect.group(1)
-            ordinal = 0
-            continue
-        if tier == 0 or not _ITEM_RE.match(line):
-            continue
-        ordinal += 1
-        if f"{section}.{ordinal}" == number:
-            return index, wanted
-    return None                          # pragma: no cover — parse/walk agree
-
-
-def rewrite_check(
-    text: str, number: str, *, name: str, mark: str, note: str = "",
-    resettle: bool = False,
-) -> str:
-    """Return ``text`` with the check at ``number`` re-marked.
-
-    ``name`` is compared against the item found: an address that resolves to a
-    DIFFERENT check is refused rather than written, because the caller is
-    acting on what it last read and the file may have moved underneath it.
-
-    A ``- [~]`` row is refused outright. Reconciled means *settled by a
-    decision recorded on its own line* (ISS-0141), and converting one into a
-    walked check would erase the distinction the mark exists to make.
-    """
-    found = locate(text, number)
-    if found is None:
-        raise LookupError(f"{number} does not resolve to a check in the acceptance tests")
-    line_no, item = found
-    if item.name != name:
-        raise LookupError(
-            f"{number} is now {item.name!r}, not {name!r} — the acceptance tests moved "
-            "underneath this walk",
-        )
-    # A DECISION, of either kind. The guard was written when `~` was the only
-    # mark carrying one; ADR-0029 added `[-]` (canceled — could not be run,
-    # not holding the release), which is just as much somebody's judgement and
-    # was left unprotected by the rename. Found by a test that expected the
-    # refusal and stopped getting it.
-    if (item.reconciled or item.excepted) and not resettle:
-        kind = "reconciled" if item.reconciled else "canceled"
-        raise LookupError(
-            f"{number} is {kind} — settled by a decision rather than by "
-            "being walked, and a walk must not overwrite that",
-        )
-
-    lines = text.splitlines(keepends=True)
-    raw = lines[line_no]
-    ending = "\n" if raw.endswith("\n") else ""
-    stripped = raw[: len(raw) - len(ending)]
-    match = _ITEM_RE.match(stripped)
-    if match is None:                    # pragma: no cover — locate() found it
-        raise LookupError(f"{number} is not a checkbox line")
-    head = stripped[: stripped.index("[")]
-    rest = stripped[stripped.index("]") + 1:]
-    if resettle:
-        # Replace the verdict, never stack it. Cycling `~` -> `F` on a row
-        # already reading `**Blocked 2026-08-17** — no hardware` must not
-        # produce a line carrying two dated verdicts that contradict each
-        # other, and clearing back to `[ ]` must take the justification with
-        # it — a row cannot claim both that nobody walked it and that
-        # somebody decided why it could not be walked.
-        rest = strip_verdict(rest)
-    if note:
-        rest = f"{rest.rstrip()} {note}"
-    lines[line_no] = f"{head}[{mark}]{rest}{ending}"
-    return "".join(lines)
+# `parse()` above is NOT part of that and stays forever: `suite_at` reads the
+# file shape at every pre-migration ref, which is all twelve of
+# `../your-trainer`'s tags, and the release-gate delta depends on it.
 
 
 # ----- the marks the record already uses (FEAT-0111 / TASK-0455) ------------
@@ -1549,87 +1442,16 @@ VERDICTS_NEEDING_REASON: frozenset[str] = frozenset({
 })
 #: Ids named in a reason, linkified on write and checked by the caller.
 _REASON_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
-#: How each reads in the record. **`Blocked` is not invented here** — it is one
-#: of the six verdict words already in `../your-trainer`'s v2.1.0 suite, and it
-#: is the one that means *could not be executed*, which is exactly what Edwin
-#: asked `[~]` to say. `Partial pass`, `Verified`, `Open` and `Not reproduced`
-#: stay READABLE for the rows that already carry them; only these two are
-#: written.
-#: Where the corpus already has a word for the outcome, that word is used.
-#: `Partial pass`, `FAILS` and `Blocked` are three of the six verdicts already
-#: written in `../your-trainer`'s v2.1.0 suite; `Open` is the fourth and is the
-#: honest word for a check nobody can interpret.
-_VERDICT_WORD: dict[str, str] = {
-    "partial": "Partial pass",
-    "excused": "Blocked",
-    "failed": "FAILS",
-    "question": "Open",
-}
-#: Everything the reader accepts, so a hand-written row keeps its meaning.
-_VERDICT_WORDS_READ: tuple[str, ...] = (
-    "Verified", "Partial pass", "Open", "Not reproduced", "FAILS", "Blocked",
-)
-#: A dated verdict already on a line, so `clear` can take it off again rather
-#: than leaving an orphan reason under a box that now reads unwalked.
-_VERDICT_SUFFIX_RE = re.compile(
-    r"\s*(?:\*\*(?:" + "|".join(_VERDICT_WORDS_READ) + r")\s+\d{4}-\d{2}-\d{2}"
-    r"\*\*.*|✅(?:\s*\(.*\))?)\s*$",
-)
-
-
-def strip_verdict(text: str) -> str:
-    """A check's prose with any dated verdict or witness taken off the end.
-
-    Clearing a mark back to `[ ]` must clear what justified it too. A row
-    reading `- [ ] **X:** do the thing. **Blocked 2026-08-17** — no hardware`
-    claims simultaneously that nobody has walked it and that somebody decided
-    why it could not be walked, and the gate would count it as owed while the
-    document explains that it is not.
-    """
-    previous = None
-    out = text or ""
-    while out != previous:                # a row may carry more than one pass
-        previous = out
-        out = _VERDICT_SUFFIX_RE.sub("", out)
-    return out.rstrip()
-
-
-def verdict_note(verdict: str, *, date: str, reason: str = "") -> str:
-    """The text appended to a check's line, in the corpus's own grammar.
-
-    Escaped so a reason can never corrupt the row it lands on. A newline would
-    end the list item and orphan everything after it; an unbalanced ``**``
-    would swallow the rest of the line into bold; a ``|`` would open a new
-    cell if the check ever sits in a table.
-    """
-    clean = _escape_reason(reason)
-    if verdict == "clear":
-        return ""
-    if verdict == "pass":
-        return f"✅ ({clean})" if clean else "✅"
-    word = _VERDICT_WORD.get(verdict, verdict.upper())
-    return f"**{word} {date}** — {clean}" if clean else f"**{word} {date}**"
-
-
-def _escape_reason(reason: str) -> str:
-    """One line, no metacharacter that can escape the row — then linkified.
-
-    The order matters and is the whole subtlety. Brackets are stripped first,
-    because a reason containing a stray `]` would otherwise close a wikilink
-    it never opened; ids are linkified **after**, so the `[[ISS-0285]]` form
-    the corpus uses is produced by this function rather than trusted from the
-    caller. A reason that already said `[[ISS-0285]]` and one that said
-    `ISS-0285` therefore write the identical line.
-    """
-    flat = " ".join((reason or "").split())
-    flat = (
-        flat.replace("\\", "")
-            .replace("**", "")
-            .replace("`", "")
-            .replace("|", "/")
-            .replace("[", "").replace("]", "")
-    ).strip()
-    return _REASON_ID_RE.sub(lambda m: f"[[{m.group(1)}]]", flat)
+# `_escape_reason` lived here and went with the row grammar (ISS-0192). It
+# flattened a reason to one line, stripped every metacharacter that could
+# escape a list item, and linkified any id it found — all of which mattered
+# because the reason was appended to a Markdown row. A `verdict_reason:` field
+# is a YAML scalar, so `note_writes._yaml_safe` does the flattening and the
+# quote-escaping that matter there, and nothing linkifies: the field is text.
+#
+# `_REASON_ID_RE` stays for `issue_refs_in` below, which is the half that was
+# never about rendering — it tells the caller which ids a reason names so the
+# write can be REFUSED when one of them resolves to nothing.
 
 
 def issue_refs_in(reason: str) -> tuple[str, ...]:
@@ -1639,40 +1461,3 @@ def issue_refs_in(reason: str) -> tuple[str, ...]:
     for the index, which this module deliberately does not import.
     """
     return tuple(dict.fromkeys(_REASON_ID_RE.findall(reason or "")))
-
-
-def check_map(text: str) -> list[dict[str, Any]]:
-    """Every checkbox in DOM order, with the suite address it corresponds to.
-
-    The rendered document addresses a checkbox by its position among all
-    ``input[type=checkbox]`` on the page; the suite addresses a check by
-    section-and-ordinal (:func:`locate`). This is the mapping, computed here
-    so the **client owns no rule** about the suite's shape — TASK-0357's rule,
-    and the reason the obligation vocabulary ships from the server.
-
-    **It deliberately carries no DOM index.** The obvious mapping — the Nth
-    rendered checkbox is the Nth parsed check — is FALSE on a real suite, and
-    measurably so: `your-trainer` parses 579 checks and renders 542 inputs, so
-    the correspondence drifts by 37 and everything after the first divergence
-    is attributed to the wrong row. `_annotate_checkbox_source` already makes
-    exactly that assumption for `data-raw`, and 285 of the 542 rendered rows
-    carry text that is not their own (ISS-0175).
-
-    So this returns addresses only. Wiring it to the DOM waits on that bug,
-    because a control that writes to the wrong check is worse than no control.
-    """
-    return [
-        {
-            "number": item.number,
-            "name": item.name,
-            "mark": (
-                "x" if item.checked
-                else "~" if item.reconciled
-                else "!" if item.excepted
-                else " "
-            ),
-            "tier": item.tier,
-            "gating": item.tier in GATING_TIERS,
-        }
-        for item in parse(text)
-    ]

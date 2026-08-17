@@ -2045,25 +2045,21 @@ def record_verification(
 def mark_check(
     index: Index,
     *,
-    number: str = "",
-    name: str = "",
+    check_id: str,
     verdict: str,
     reason: str = "",
-    check_id: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Mark one acceptance check with a verdict and its justification.
 
-    **Two storages, one set of refusals** ([[ADR-0030]]). `check_id` addresses a
-    `CHK-*` note and writes frontmatter; `number`+`name` address a row in
-    `ACCEPTANCE_TESTS.md` and write row grammar. Every refusal below is checked
-    before either branch, so a repo that has migrated and one that has not
-    cannot end up with different rules about what a verdict must carry — which
-    is the one way a two-shape period does real damage.
+    **One storage, one address** ([[ADR-0030]]). A check is a `CHK-*` note and
+    the verdict goes in its frontmatter. The `number`+`name` branch that wrote
+    row grammar into `ACCEPTANCE_TESTS.md` is gone with the document surface
+    (ISS-0192): `1.25.3` was a position that shifted when anything above it was
+    edited, and an id does not.
 
     Closes [[ISS-0181]] items 1 and 2 with the vocabulary already in the
-    record (FEAT-0111 / TASK-0455): `[~]` and `[F]` with a dated verdict, and
-    `✅ (witness)` on a pass.
+    record (FEAT-0111 / TASK-0455): a dated verdict with its reason.
 
     **The mark and the text are one write.** A `partial` or a `fail` without a
     reason is refused, which is the entire difference between these marks and
@@ -2102,45 +2098,16 @@ def mark_check(
             status=400,
         )
 
-    if check_id:
-        return _mark_check_note(
-            index, check_id, verdict=verdict, mark=mark, reason=reason,
-            mtime=mtime,
+    if not check_id:
+        raise WriteError(
+            "a verdict needs the check's id — `CHK-####`. The document "
+            "address (`1.25.3`) was retired with the document (ADR-0030): it "
+            "was a position, and a position moves.",
+            status=400,
         )
-
-    path = index.docs_root / acceptance.SUITE_REL
-    _check_mtime(path, mtime)
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise WriteError(f"cannot read the acceptance tests: {exc}",
-                         status=500) from None
-    try:
-        updated = acceptance.rewrite_check(
-            text, number, name=name, mark=mark,
-            note=acceptance.verdict_note(verdict, date=_today(), reason=reason),
-            # An explicit verdict click may move a check OFF `~`, and must
-            # replace whatever justification was there rather than stacking a
-            # second one under it. The walker's refusal to overwrite a
-            # reconciled row stands for the walker; this is a person choosing.
-            resettle=True,
-        )
-    except LookupError as exc:
-        raise WriteError(str(exc), status=409) from None
-    try:
-        path.write_text(updated, encoding="utf-8")
-    except OSError as exc:                        # pragma: no cover
-        raise WriteError(f"cannot write the acceptance tests: {exc}",
-                         status=500) from None
-    # The row as it now renders, so the client can patch it in place instead
-    # of re-navigating (ISS-0189). Rendered HERE, through the one markdown
-    # pipeline, because the alternative is the client re-deriving the verdict
-    # grammar — a second writer of one convention, which is the drift this
-    # project keeps paying for.
-    return {
-        "number": number, "verdict": verdict, "mark": mark,
-        "row_html": _rendered_row(index, updated, number),
-    }
+    return _mark_check_note(
+        index, check_id, verdict=verdict, mark=mark, reason=reason, mtime=mtime,
+    )
 
 
 def _require_check(index: Index, check_id: str) -> "tuple[Path, Any]":
@@ -2317,41 +2284,6 @@ def _render_block(key: str, mapping: dict[str, str]) -> list[str]:
 log = __import__('logging').getLogger('project_os_cockpit.note_writes')
 
 
-def _rendered_row(index: Index, text: str, number: str) -> str:
-    """The inner HTML of one acceptance row, or `""` if it cannot be found."""
-    import re as _re
-
-    from . import renderer as _renderer
-
-    try:
-        html = _renderer.render_markdown_text(
-            text,
-            source_path=index.docs_root / _acceptance_rel(),
-            resolver=index.resolve,
-            asset_resolver=index.resolve_asset,
-        )
-    except (OSError, ValueError, AttributeError) as exc:
-        # Narrow deliberately. A blanket `except Exception` here returned `""`
-        # for a stub index missing `resolve`, and the client silently fell back
-        # to leaving the prose alone — a rendering failure indistinguishable
-        # from a row that could not be found. Logged, and still non-fatal:
-        # the write has already happened and must not be reported as failed.
-        log.warning("mark-check could not render row %s: %s", number, exc)
-        return ""
-    # The `<li>` carrying this address, and only its contents.
-    found = _re.search(
-        rf'<li[^>]*data-check="{_re.escape(number)}"[^>]*>(.*?)</li>',
-        html, _re.S,
-    )
-    return found.group(1) if found else ""
-
-
-def _acceptance_rel() -> str:
-    from . import acceptance
-
-    return acceptance.SUITE_REL
-
-
 def tick_post_release_box(
     index: Index,
     note_id: str,
@@ -2368,9 +2300,10 @@ def tick_post_release_box(
     asking is the same failure with a worse blast radius — an automatic tick
     on a wrong inference destroys the only record the obligation existed.
 
-    ``text`` is compared against the line found, exactly as `rewrite_check`
-    compares a check's name: the caller is acting on what it last read, and a
-    note edited underneath it must be refused rather than written.
+    ``text`` is compared against the line found: the caller is acting on what
+    it last read, and a note edited underneath it must be refused rather than
+    written. (The acceptance walker's `rewrite_check` used the same guard and
+    was deleted with the document surface — ISS-0192.)
     """
     path = resolve_note(index, note_id)
     _check_mtime(path, mtime)

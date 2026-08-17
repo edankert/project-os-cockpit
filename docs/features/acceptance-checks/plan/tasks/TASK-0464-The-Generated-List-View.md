@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0464
 aliases: ["TASK-0464"]
 title: "The generated list view — the same suite a reader knows, from notes, and the document plumbing retired"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -40,3 +40,9 @@ The view is built at `~checks` — tier, area, rows in `ordinal` order, the rule
 `your-trainer` migrated, so **no repo in the fleet stores an acceptance suite as a document** and the plumbing has lost its subject. The reason recorded above — *"deleting the document's mark control would leave a live fleet surface with no way to mark anything"* — no longer holds.
 
 It is now more than tidy-up: [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]] is a live control on a frozen historical record, and deleting this plumbing fixes it **by construction**. Scoped there rather than done here, because it is ~5 source files and ~80 tests across four modules, several of them the guards [[ISS-0185]]..[[ISS-0189]] built.
+
+## Done, 2026-08-17 — the plumbing is deleted
+
+`mountAcceptanceMarks`, `cycleAcceptanceMark`, the `AcceptanceMarkTreeprocessor` and its extension, and the row-grammar writers are gone: **258 lines of source across five files**, plus 22 guards whose subject went with them and three new ones in their place. [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]] carries the accounting.
+
+The unreachable-function guard found `suppressNextSoftReload` on the first run afterwards — dead the moment its only caller went — which is the guard doing precisely the job it was written for, and the reason the criterion named it.

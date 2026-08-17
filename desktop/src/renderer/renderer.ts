@@ -1559,7 +1559,11 @@ async function navigateToInner(
   }
   wireInteractiveCheckboxes();
   wireMetadataStripPersistence();
-  mountAcceptanceMarks();
+  // **No acceptance-mark mount** (ISS-0192). It drew a control on every
+  // `li[data-check]` a rendered suite carried, and no repo renders one any
+  // more — the suites are `CHK-*` notes and the walk is `~checks`. What it had
+  // become was a live control on `ACCEPTANCE_TESTS_v2.1.0.md`, a frozen record
+  // of what v2.1.0 shipped against.
   applyScrollTarget(pathOnly, frag, opts.fromHistory ?? false,
                     opts.keepScroll);
   pushHistory(normalised, opts.replace ?? false);
@@ -2492,89 +2496,6 @@ const MARK_CLASS: Record<string, string> = {
   ' ': 'todo', x: 'done', X: 'done', '/': 'incomplete', '~': 'incomplete',
   '-': 'canceled', '!': 'important', F: 'important', '?': 'question',
 };
-
-/** Draw a four-state control on every addressed acceptance row.
- *
- *  Called after each render. The native checkbox that `tasklist` emitted for
- *  `[ ]`/`[x]` rows is removed, so one control speaks for all four marks and
- *  a row cannot show one state while the file holds another. */
-function mountAcceptanceMarks(): void {
-  const rows = docView.querySelectorAll<HTMLElement>('li[data-check]');
-  for (const li of Array.from(rows)) {
-    if (li.querySelector('.acc-mark')) continue;
-    // The WHOLE control, not just the input. `pymdownx.tasklist` renders
-    // `<label class="task-list-control"><input><span class="task-list-
-    // indicator"></span></label>`, and removing only the input leaves a
-    // styled indicator span behind — which is the "box inside another box"
-    // Edwin reported (ISS-0185).
-    const legacy = li.querySelector('label.task-list-control');
-    if (legacy) legacy.remove();
-    else li.querySelector('input[type=checkbox]')?.remove();
-    const mark = li.dataset.mark ?? ' ';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `acc-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
-    btn.textContent = MARK_GLYPH[mark] ?? `[${mark}]`;
-    btn.title = MARK_TITLE[mark] ?? '';
-    btn.setAttribute('aria-label', MARK_TITLE[mark] ?? 'acceptance check');
-    btn.addEventListener('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      void cycleAcceptanceMark(li);
-    });
-    // Inline with the check it marks. `li.firstChild` is the `<p>` — a block
-    // element — so inserting before it put the control on its own line.
-    const host = li.querySelector('p') ?? li;
-    host.insertBefore(btn, host.firstChild);
-  }
-}
-
-async function cycleAcceptanceMark(li: HTMLElement): Promise<void> {
-  const number = li.dataset.check;
-  const name = li.dataset.checkName;
-  if (!number || !name) return;
-
-  const chosen = await askForMark({
-    number, name, current: li.dataset.mark ?? ' ',
-  });
-  if (chosen === null) return;          // nothing written, nothing repainted
-
-  // `postJson` THROWS on a refusal — it does not return `{ok: false}` — so an
-  // earlier `if (!res?.ok)` could never fire and a server refusal became an
-  // unhandled rejection: no toast, no write, no explanation (ISS-0187).
-  let written: Record<string, unknown> | null = null;
-  try {
-    written = await postJson('/api/notes/mark-check', {
-      number, name, verdict: chosen.verdict, reason: chosen.reason,
-    });
-  } catch (err: unknown) {
-    showStatus(`Could not mark ${number}: ${
-      err instanceof Error ? err.message : String(err)}`, 'error');
-    scheduleHide(6000);
-    return;
-  }
-
-  // PATCH THE ROW, do not re-navigate (ISS-0189). Edwin: *"can we not somehow
-  // update the file in memory and then do a save in the background without
-  // re-loading?"* — and he is right, because every re-render loses the reader's
-  // place and the only reason one was needed is that an HTML checkbox cannot
-  // show four states. This control draws its own mark, so it can simply be
-  // redrawn.
-  //
-  // The row's HTML comes FROM THE SERVER, rendered through the one markdown
-  // pipeline. Building it here would make the client a second writer of the
-  // verdict grammar.
-  const mark = String(written?.mark ?? ' ');
-  const rowHtml = String(written?.row_html ?? '');
-  if (rowHtml) {
-    const host = li.querySelector('p') ?? li;
-    host.innerHTML = rowHtml;
-  }
-  li.dataset.mark = mark;
-  li.querySelector('.acc-mark')?.remove();
-  mountAcceptanceMarks();
-  suppressNextSoftReload();
-}
 
 docView.addEventListener('change', async (e) => {
   const tgt = e.target;
@@ -8500,6 +8421,10 @@ function buildCheckRow(item: GateItem): HTMLElement {
   const row = document.createElement('div');
   row.className = 'checks-row';
   if (item.stale) row.classList.add('is-stale');
+  // Minimal strikes canceled text through — the clearest signal on a long
+  // list that a row is not being waited for. It used to key on the rendered
+  // `li[data-mark="-"]`; the class carries it now (ISS-0192).
+  if ((item.mark || ' ') === '-') row.classList.add('is-canceled');
   row.appendChild(checkMark(item));
 
   const body = document.createElement('div');
@@ -13338,19 +13263,19 @@ function attachSidecarEventStream(baseUrl: string): void {
   void primeValidation(baseUrl);
 }
 
-/** Our own write is about to come back as a `file-changed` event. Patching a
- *  row in place and then letting the watcher re-navigate would undo the point
- *  of patching it — which is exactly what happened to two earlier attempts at
- *  holding the scroll (ISS-0189): both fixed a path, and 150ms later the
- *  watcher re-rendered without one. */
-let softReloadSuppressedUntil = 0;
-
-function suppressNextSoftReload(): void {
-  softReloadSuppressedUntil = Date.now() + 1200;
-}
-
+/** **The soft-reload suppression is gone** (ISS-0192).
+ *
+ *  `suppressNextSoftReload` existed for one caller — the document-row patch in
+ *  `cycleAcceptanceMark` — because patching a row in place and then letting
+ *  the watcher re-navigate 150ms later undid the point of patching it
+ *  (ISS-0189). That caller went with the rendered-suite surface, and the
+ *  unreachable-function guard said so on the first run after the deletion,
+ *  which is the guard doing exactly its job.
+ *
+ *  Nothing needs it now: every surface that writes a verdict (`~checks`,
+ *  `~sweep/…`, a release page) is a tilde route, and the reload below already
+ *  leaves those alone — it re-navigates only a real document path. */
 function scheduleSoftReload(): void {
-  if (Date.now() < softReloadSuppressedUntil) return;
   if (softReloadTimer != null) window.clearTimeout(softReloadTimer);
   softReloadTimer = window.setTimeout(() => {
     softReloadTimer = null;

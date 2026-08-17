@@ -82,6 +82,8 @@ Run after the fleet migrated, against real corpora rather than fixtures. Every n
 
 ## What is left, precisely
 
+*Both build legs are closed. What remains is a judgement, not a task.*
+
 1. ~~**`your-trainer`'s migration**~~ — **done 2026-08-17** (`1acc3850`): 579 rows, badges 37 → 37, zero checks owed.
-2. **`mountAcceptanceMarks` and the `li[data-check]` plumbing** — now unblocked, and now a defect rather than a tidy-up. With every suite migrated the plumbing has no subject, and it leaves a **live mark control on a frozen historical record**: `ACCEPTANCE_TESTS_v2.1.0.md` still renders 300 clickable checks that write to a deleted file — [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]]. Deleting it fixes that by construction. ~5 source files and ~80 tests, several of them [[ISS-0185]]..[[ISS-0189]]'s guards, so it wants its own pass. **`acceptance.parse` survives the cull** — `suite_at` reads file shape at every pre-migration ref, which is all twelve of `your-trainer`'s tags.
+2. ~~**`mountAcceptanceMarks` and the `li[data-check]` plumbing**~~ — **deleted 2026-08-17.** 258 lines of source across five files, 22 guards whose subject went with them, three new ones in their place. `ACCEPTANCE_TESTS_v2.1.0.md` parses as 300 checks and renders **0 addresses, 0 marks** — the frozen record is inert. The delta at all twelve historical `your-trainer` tags is unchanged, which is the one thing the cull could have broken. The unreachable-function guard caught `suppressNextSoftReload` on the first run afterwards. [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]] is `fixed`.
 3. **The independent review** — owed on five `TST-*` notes and one `CHG-*`, and on any feature moving from `review` to `done`.

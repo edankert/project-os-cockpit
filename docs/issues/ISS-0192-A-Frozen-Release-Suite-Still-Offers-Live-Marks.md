@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0192
 aliases: ["ISS-0192"]
 title: "A frozen per-release suite still renders 300 live mark controls, and they write to a file that no longer exists"
-status: triage
+status: fixed
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -39,7 +39,17 @@ That is ~5 source files and ~80 tests across four modules — including the guar
 
 ## Done when
 
-- [ ] No rendered Markdown document anywhere carries a `data-check` attribute or a mark control.
-- [ ] The row-grammar write path is gone; `mark_check` addresses a `CHK-*` and nothing else.
-- [ ] `acceptance.parse` still reads the file shape, and the gate delta still computes at every historical `your-trainer` tag.
-- [ ] The unreachable-function guard is green — nothing left reading as coverage for a mechanism that no longer exists.
+- [x] No rendered Markdown document anywhere carries a `data-check` attribute or a mark control. — `ACCEPTANCE_TESTS_v2.1.0.md` **parses as 300 checks and renders 0 addresses and 0 marks.** The treeprocessor, its extension and its three helpers are deleted (175 lines), and the client's `mountAcceptanceMarks`/`cycleAcceptanceMark` with them (83 lines). Guarded on a document that WOULD have been stamped, so the assertion has a real subject.
+- [x] The row-grammar write path is gone; `mark_check` addresses a `CHK-*` and nothing else. — `locate`, `rewrite_check`, `check_map`, `verdict_note`, `strip_verdict` and `_escape_reason` are gone from `acceptance.py`; `_rendered_row` and `_acceptance_rel` from `note_writes.py`. `mark_check` takes `check_id` and **refuses without one, naming the replacement** rather than failing silently.
+- [x] `acceptance.parse` still reads the file shape, and the gate delta still computes at every historical `your-trainer` tag. — Verified against the real repo: **1, 10, 10, 15, 26, 85, 130, 22, 47, 47, 47, 47** across its twelve tags, unchanged, with `HEAD` reading note shape at 579 items / 60 blocking. This is the one thing the cull could have broken and it is measured rather than reasoned about.
+- [x] The unreachable-function guard is green — nothing left reading as coverage for a mechanism that no longer exists. — **And it earned its keep**: it caught `suppressNextSoftReload`, whose only caller was the deleted row patch, on the first run after the deletion. Deleted with its state variable and its check in `scheduleSoftReload`.
+
+## What the tests cost, and what replaced them
+
+Forty-six tests failed on the deletion. **Sixteen guards in `test_acceptance_marks.py` and six in `test_check_verdicts.py` are gone**, each named in a list left in the file it was removed from — a guard for a mechanism that no longer exists reads as coverage, and a silent removal leaves the next reader a hole with no account of it.
+
+Four of the six verdict properties **survived, re-pointed at the note**: a verdict replaces rather than stacks, clearing takes the reason with it, the wrong subject is refused, and a write that cannot find its target refuses rather than crashing. Two did not, and are named rather than dropped quietly — linkification of ids inside a reason (a `verdict_reason:` field is text, though the id is still *validated*), and the server-rendered row the client used to patch (`~checks` repaints itself and holds the reader's place).
+
+**Three new guards** replace them: no rendered document carries a check address; the client calls none of the deleted functions — asserted on **code lines only**, because the comments recording the deletion necessarily name what was deleted, and a guard a neighbouring sentence can *break* is the same defect as one it can *satisfy*; and an excepted check is still addressable, by id.
+
+1,622 tests pass, 2 skipped — and the two ISS-0192 skips are gone, because the tests that carried them went with their subject.

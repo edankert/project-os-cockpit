@@ -66,21 +66,19 @@ def test_excepted_is_never_folded_into_reconciled(tmp_path: Path) -> None:
     assert tier1["total"] == 4
 
 
-def test_the_check_map_carries_addresses_and_no_dom_index() -> None:
-    """ISS-0175: `your-trainer` parses 579 checks and renders 542 inputs, so
-    the Nth-box-is-the-Nth-line assumption is false by 37 and everything after
-    the first divergence is attributed to the wrong row. The map therefore
-    carries addresses only, until that is fixed."""
-    rows = acceptance.check_map(SUITE)
-    assert [r["number"] for r in rows] == ["1.1.1", "1.1.2", "1.1.3", "1.1.4"]
-    assert [r["mark"] for r in rows] == [" ", "x", "~", "!"]
-    assert all("index" not in r for r in rows), \
-        "a DOM index here would be a correspondence that does not hold"
+def test_a_canceled_check_is_still_reached_by_id_after_the_document_went() -> None:
+    """`check_map` and `rewrite_check` guarded the DOCUMENT path and went with
+    it (ISS-0192): the first mapped a check to its position among rendered
+    checkboxes, the second rewrote a row in place by that position.
 
-
-def test_rewriting_to_an_exception_keeps_the_name_check(tmp_path: Path) -> None:
-    out = acceptance.rewrite_check(
-        SUITE, "1.1.1", name="A", mark="-", note="_(exception)_",
-    )
-    assert "- [-] **A:**" in out
-    assert acceptance.parse(out)[0].excepted is True
+    The property they were protecting survives and is asserted here instead —
+    an excepted check is addressable and stays excepted — but by **id**, which
+    is what the migration bought. A position among 542 rendered inputs was
+    never a safe address for 579 parsed rows; ISS-0175 is the 37-row record of
+    that, and it is now unrepresentable rather than merely worked around.
+    """
+    items = acceptance.parse(SUITE)
+    assert [i.number for i in items] == ["1.1.1", "1.1.2", "1.1.3", "1.1.4"]
+    assert [i.mark for i in items] == [" ", "x", "~", "-"]
+    excepted = [i for i in items if i.excepted]
+    assert len(excepted) == 1 and excepted[0].settled

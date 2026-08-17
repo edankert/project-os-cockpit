@@ -2367,10 +2367,11 @@ def _make_handler(
             a `partial` or a `fail` with no reason is a 400, which is the
             whole difference between this and the `[!]` mark ISS-0177 records.
 
-            **One endpoint, two storages** (ADR-0030). `id` addresses a `CHK-*`
-            note; `number`+`name` address a row in a repo that has not
-            migrated. `verdict: "needs-re-run"` is the seventh action and is
-            the only one that must name a `change`.
+            **`id` addresses a `CHK-*` note** and nothing else (ADR-0030).
+            The `number`+`name` form addressed a row in a document by its
+            position and went with that document (ISS-0192).
+            `verdict: "needs-re-run"` is the seventh action and is the only one
+            that must name a `change`.
             """
             if not self._require_loopback():
                 return
@@ -2396,8 +2397,6 @@ def _make_handler(
                 else:
                     result = note_writes.mark_check(
                         index,
-                        number=str(body.get("number") or ""),
-                        name=str(body.get("name") or ""),
                         check_id=check_id,
                         verdict=verdict,
                         reason=str(body.get("reason") or ""),
