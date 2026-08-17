@@ -36,7 +36,14 @@ SUITE = (
 
 
 class _Idx:
-    """Enough index for `mark_check`: id resolution and a docs root."""
+    """Enough index for `mark_check`: id resolution, a docs root, and the two
+    resolvers the markdown pipeline needs.
+
+    The resolvers were missing at first and `_rendered_row` swallowed the
+    resulting `AttributeError` into an empty string — a rendering failure that
+    looked exactly like a row that could not be found. That is why the
+    exception there is narrow and logged now.
+    """
 
     def __init__(self, docs_root: Path, known: set[str]) -> None:
         self.docs_root = docs_root
@@ -44,6 +51,16 @@ class _Idx:
 
     def by_id(self, note_id: str):          # noqa: ANN201
         return note_id if note_id in self._known else None
+
+    def resolve(self, target: str, *a: object, **k: object):   # noqa: ANN201
+        # Resolve what the corpus would resolve, so the test exercises the
+        # real path. Returning None for everything renders an UNRESOLVED
+        # wikilink, which keeps its literal `[[…]]` text by design — correct
+        # behaviour that made a first version of the assertion below wrong.
+        return f"issues/{target}.md" if target in self._known else None
+
+    def resolve_asset(self, target: str, *a: object, **k: object):  # noqa: ANN201
+        return None
 
 
 def _suite_at(tmp_path: Path) -> _Idx:
@@ -415,3 +432,38 @@ def test_a_decided_row_is_protected_from_the_walker(
     note_writes.mark_check(index, number="1.1.1", name="Walk me",
                            verdict="pass", reason="")
     assert "- [x]" in (index.docs_root / acceptance.SUITE_REL).read_text()
+
+
+# ----- the row the client patches with (ISS-0189) ---------------------------
+
+
+def test_the_write_returns_the_row_it_just_rendered(tmp_path: Path) -> None:
+    """The client patches the row in place instead of re-navigating, and the
+    HTML comes from HERE — one markdown pipeline. A client that built it would
+    be a second writer of the verdict grammar.
+
+    Asserted on CONTENT, not on the key being present: a mutation returning
+    `""` for it survived a guard that only checked the client mentioned it.
+    """
+    index = _suite_at(tmp_path)
+    got = note_writes.mark_check(
+        index, number="1.1.1", name="Walk me",
+        verdict="excused", reason="no trainer, see ISS-0277")
+    row = str(got["row_html"])
+    assert row, "the rendered row must not be empty"
+    assert "Blocked" in row and "no trainer" in row
+    # Rendered, not raw: the bold became `<strong>` and the wikilink became an
+    # anchor rather than four brackets of literal text.
+    assert "<strong>" in row
+    assert "<a" in row and "ISS-0277" in row
+    assert "[[ISS-0277]]" not in row
+
+
+def test_a_row_that_cannot_be_re_found_yields_an_empty_string_not_a_crash(
+    tmp_path: Path,
+) -> None:
+    """Degradation: the client falls back to leaving the prose alone rather
+    than the write failing after it has already happened."""
+    index = _suite_at(tmp_path)
+    text = (index.docs_root / acceptance.SUITE_REL).read_text()
+    assert note_writes._rendered_row(index, text, "9.9.9") == ""

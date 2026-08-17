@@ -39,6 +39,7 @@ issues:
   - "[[ISS-0186-The-Mark-Glyphs-Are-Decorative-And-The-Dialog-Is-Too-Narrow-For-Six-Options]]"
   - "[[ISS-0187-The-Repaint-Loses-Your-Place-A-Refusal-Is-Silent-And-The-Dialog-Has-No-Save]]"
   - "[[ISS-0188-The-Scroll-Fix-Looked-Right-Passed-A-Guard-And-Did-Nothing]]"
+  - "[[ISS-0189-The-Watcher-Threw-The-Scroll-Away-After-Both-Fixes-Held-It]]"
 requirements: []
 tasks: []
 depends: []
@@ -435,3 +436,13 @@ Two things worth carrying out of it. **The reported "comment did not reach the f
 Four guards this session could pass for a reason unrelated to what they name: two CSS rules compared including their selectors, a grep for a string the surrounding prose contained, a node checked as created rather than appended, and this. The last two are the same shape — **two ends and no middle**.
 
 **And the underlying gap is named, not closed:** there is no way to behaviourally test the renderer in this repo. Every renderer test is a Python scan of `renderer.ts`; there is no DOM, no `requestAnimationFrame`, no JS test runner in `desktop/package.json`. All four rounds of feedback on this control were found by Edwin using it. A green suite should not be read as saying otherwise.
+
+## Re-closed 2026-08-17 — nothing re-renders now
+
+[[ISS-0189]]. The third round on one symptom, and the first to touch what was causing it: the `file-changed` watcher re-navigated 150ms after every write, discarding the scroll both earlier fixes had correctly held.
+
+Edwin's own suggestion was the right fix and retires the reload entirely — *"can we not somehow update the file in memory and then do a save in the background without re-loading?"* The reload existed only because an HTML checkbox cannot show six states; this control draws its own mark, so the row is patched from server-rendered HTML and nothing re-navigates.
+
+**Three rounds, and the first two were diagnosed from the path I had just written** rather than from everything that runs when a file changes. Edwin reported an unchanged symptom twice, and both times I read it as *the fix did not land* rather than *the diagnosis is wrong*.
+
+**And a third instance of one guard defect**: `row_html` was asserted as named in the client and keyed in the response, and mutations that discarded it and that returned empty both passed. After a node created-but-not-appended and a scroll passed-but-not-wired, the rule is worth stating plainly — *a guard on a value must assert the value is used, not that its name appears.*

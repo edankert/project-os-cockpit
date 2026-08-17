@@ -1872,7 +1872,53 @@ def mark_check(
     except OSError as exc:                        # pragma: no cover
         raise WriteError(f"cannot write the acceptance tests: {exc}",
                          status=500) from None
-    return {"number": number, "verdict": verdict, "mark": mark}
+    # The row as it now renders, so the client can patch it in place instead
+    # of re-navigating (ISS-0189). Rendered HERE, through the one markdown
+    # pipeline, because the alternative is the client re-deriving the verdict
+    # grammar — a second writer of one convention, which is the drift this
+    # project keeps paying for.
+    return {
+        "number": number, "verdict": verdict, "mark": mark,
+        "row_html": _rendered_row(index, updated, number),
+    }
+
+
+log = __import__('logging').getLogger('project_os_cockpit.note_writes')
+
+
+def _rendered_row(index: Index, text: str, number: str) -> str:
+    """The inner HTML of one acceptance row, or `""` if it cannot be found."""
+    import re as _re
+
+    from . import renderer as _renderer
+
+    try:
+        html = _renderer.render_markdown_text(
+            text,
+            source_path=index.docs_root / _acceptance_rel(),
+            resolver=index.resolve,
+            asset_resolver=index.resolve_asset,
+        )
+    except (OSError, ValueError, AttributeError) as exc:
+        # Narrow deliberately. A blanket `except Exception` here returned `""`
+        # for a stub index missing `resolve`, and the client silently fell back
+        # to leaving the prose alone — a rendering failure indistinguishable
+        # from a row that could not be found. Logged, and still non-fatal:
+        # the write has already happened and must not be reported as failed.
+        log.warning("mark-check could not render row %s: %s", number, exc)
+        return ""
+    # The `<li>` carrying this address, and only its contents.
+    found = _re.search(
+        rf'<li[^>]*data-check="{_re.escape(number)}"[^>]*>(.*?)</li>',
+        html, _re.S,
+    )
+    return found.group(1) if found else ""
+
+
+def _acceptance_rel() -> str:
+    from . import acceptance
+
+    return acceptance.SUITE_REL
 
 
 def tick_post_release_box(

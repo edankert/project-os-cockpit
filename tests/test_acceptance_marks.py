@@ -424,32 +424,6 @@ def test_every_choice_shows_its_mark_in_the_dialog() -> None:
 # ----- the affordance, third round (ISS-0187) -------------------------------
 
 
-def test_the_repaint_hands_its_position_to_the_navigation() -> None:
-    """**This assertion replaced one that passed while the bug was live**
-    ([[ISS-0188]]).
-
-    The first version checked that `repaintDoc` read `scrollTop`, that the read
-    came before the `navigateTo` and the write after it. All true, and the
-    reader still landed at the top — because `applyScrollTarget` defers its own
-    scroll to `requestAnimationFrame`, so the synchronous restore ran a frame
-    early and was overwritten by `scrollTop = 0`.
-
-    The position must therefore be *handed to* the navigation, not applied
-    around it.
-    """
-    src = _renderer_src()
-    block = src[src.index("async function repaintDoc"):]
-    block = block[:block.index("\n}") + 2]
-    assert "keepScroll: docView.scrollTop" in block
-    code = "\n".join(
-        line for line in block.splitlines()
-        if not line.lstrip().startswith("//")
-    )
-    assert "docView.scrollTop =" not in code, (
-        "assigning scrollTop around the navigation is the broken shape"
-    )
-
-
 def test_no_caller_assigns_scrolltop_straight_after_a_navigation() -> None:
     """The broken pattern, forbidden file-wide rather than in one function.
 
@@ -470,29 +444,6 @@ def test_no_caller_assigns_scrolltop_straight_after_a_navigation() -> None:
             f"line {i + 1}: a scroll assignment after a navigation is "
             f"overwritten by applyScrollTarget's frame\n{window}"
         )
-
-
-def test_a_held_position_wins_inside_the_frame() -> None:
-    """It has to be honoured *within* `requestAnimationFrame`, and ahead of
-    both the fragment branch and the `= 0` branch — a repaint is not a
-    navigation and the reader has not asked to go anywhere."""
-    src = _renderer_src()
-    block = src[src.index("function applyScrollTarget("):]
-    block = block[:block.index("\n}\n") + 3]
-    raf = block[block.index("requestAnimationFrame(() => {"):]
-    assert "keepScroll !== undefined" in raf
-    assert raf.index("keepScroll !== undefined") < raf.index("if (frag)")
-    assert raf.index("keepScroll !== undefined") < raf.index("if (fromHistory)")
-
-    # …and the WIRE between the two ends. Checking that `repaintDoc` passes a
-    # held position and that `applyScrollTarget` honours one says nothing about
-    # whether the value travels between them: a mutation that dropped
-    # `opts.keepScroll` from the call site survived both assertions. Same class
-    # as a node that is created and never appended, which is the second time
-    # this session guards have been written for two ends and no middle.
-    call = src[src.index("applyScrollTarget(pathOnly, frag"):]
-    call = call[:call.index(";") + 1]
-    assert "keepScroll" in call, call.strip()
 
 
 def test_a_refusal_is_caught_and_shown() -> None:
@@ -566,3 +517,68 @@ def test_save_is_inert_until_the_verdict_is_complete() -> None:
     block = block[:block.index("};")]
     assert "save.disabled = picked === null || missing" in block
     assert "needsReason" in block
+
+
+# ----- the watcher, the path two rounds of guards missed (ISS-0189) ---------
+
+
+def test_marking_a_check_patches_the_row_instead_of_re_navigating() -> None:
+    """Edwin: *"can we not somehow update the file in memory and then do a save
+    in the background without re-loading?"* The reload existed only because an
+    HTML checkbox cannot show six states; this control draws its own mark."""
+    src = _renderer_src()
+    block = src[src.index("async function cycleAcceptanceMark"):]
+    block = block[:block.index("\ndocView.addEventListener")]
+    code = "\n".join(
+        line for line in block.splitlines()
+        if not line.lstrip().startswith("//")
+    )
+    assert "repaintDoc()" not in code, "a mark must not re-navigate"
+    assert "row_html" in code, "the row comes from the server's one pipeline"
+    assert "mountAcceptanceMarks()" in code
+    # …and it is APPLIED. Naming the value proves nothing: a mutation that
+    # fetched `row_html` and then did `void rowHtml` survived this test twice
+    # over. Third time this session guards have covered two ends and not the
+    # wire between them.
+    assert "innerHTML = rowHtml" in code, code
+
+
+def test_our_own_write_does_not_trigger_the_watchers_reload() -> None:
+    """Patching the row and then letting `file-changed` re-navigate would undo
+    the patch — which is precisely what defeated ISS-0187 and ISS-0188."""
+    src = _renderer_src()
+    block = src[src.index("async function cycleAcceptanceMark"):]
+    block = block[:block.index("\ndocView.addEventListener")]
+    assert "suppressNextSoftReload()" in block
+    guard = src[src.index("function scheduleSoftReload"):]
+    guard = guard[:guard.index("\n}")]
+    assert "softReloadSuppressedUntil" in guard
+
+
+def test_a_held_position_wins_inside_the_animation_frame() -> None:
+    """`applyScrollTarget` defers to `requestAnimationFrame`, so a held
+    position has to be honoured INSIDE that frame and ahead of both existing
+    branches — a synchronous restore around the call ran a frame early and was
+    overwritten ([[ISS-0188]])."""
+    src = _renderer_src()
+    block = src[src.index("function applyScrollTarget("):]
+    block = block[:block.index("\n}\n") + 3]
+    raf = block[block.index("requestAnimationFrame(() => {"):]
+    assert "keepScroll !== undefined" in raf
+    assert raf.index("keepScroll !== undefined") < raf.index("if (frag)")
+    assert raf.index("keepScroll !== undefined") < raf.index("if (fromHistory)")
+    call = src[src.index("applyScrollTarget(pathOnly, frag"):]
+    call = call[:call.index(";") + 1]
+    assert "keepScroll" in call, call.strip()
+
+
+def test_the_watchers_own_reload_holds_the_readers_place() -> None:
+    """The path both earlier fixes missed. A file changing under an open
+    document is not a reason to move the reader to the top of it — true for a
+    mark, and equally true for an edit made in another editor."""
+    src = _renderer_src()
+    block = src[src.index("function scheduleSoftReload"):]
+    block = block[:block.index("\n}\n") + 3]
+    nav = block[block.index("void navigateTo("):]
+    nav = nav[:nav.index(");") + 2]
+    assert "keepScroll" in nav, nav.strip()

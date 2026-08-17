@@ -2362,26 +2362,6 @@ function askForMark(
   });
 }
 
-/** Re-read the open document from disk. Cancelling a mark must put the
- *  checkbox back the way it was: the browser has already flipped it
- *  optimistically, and the file is the only thing that knows the truth. */
-async function repaintDoc(): Promise<void> {
-  if (!currentRel) return;
-  // Hold the scroll across the re-render (ISS-0187). `navigateTo` replaces
-  // innerHTML and `applyScrollTarget` restores a saved position only when the
-  // navigation came from history, so a repaint landed the reader back at the
-  // top of a 579-row document — away from the row they had just marked, which
-  // is the one thing they wanted to see change. Same capture-and-restore the
-  // history page already does around its own repaint.
-  // Handed to `navigateTo`, not applied after it. `applyScrollTarget` defers
-  // its own scroll to `requestAnimationFrame`, so a synchronous restore here
-  // ran a frame too early and was overwritten by its `scrollTop = 0` branch —
-  // the first fix for this looked right, passed a guard, and did nothing
-  // (ISS-0188).
-  await navigateTo(currentRel, {
-    replace: true, keepScroll: docView.scrollTop,
-  });
-}
 
 /** How each mark reads on screen. Four states, because the record has four
  *  and an HTML checkbox has two — which is why these rows draw their own
@@ -2465,23 +2445,41 @@ async function cycleAcceptanceMark(li: HTMLElement): Promise<void> {
   });
   if (chosen === null) return;          // nothing written, nothing repainted
 
-  // `postJson` THROWS on a refusal — it does not return `{ok: false}` — so the
-  // previous `if (!res?.ok)` could never fire and a server refusal became an
-  // unhandled rejection: no toast, no write, no explanation (ISS-0187). A
-  // reason citing an ISS that does not exist is a real, reachable refusal, and
-  // it was silent.
+  // `postJson` THROWS on a refusal — it does not return `{ok: false}` — so an
+  // earlier `if (!res?.ok)` could never fire and a server refusal became an
+  // unhandled rejection: no toast, no write, no explanation (ISS-0187).
+  let written: Record<string, unknown> | null = null;
   try {
-    await postJson('/api/notes/mark-check', {
+    written = await postJson('/api/notes/mark-check', {
       number, name, verdict: chosen.verdict, reason: chosen.reason,
     });
   } catch (err: unknown) {
     showStatus(`Could not mark ${number}: ${
       err instanceof Error ? err.message : String(err)}`, 'error');
     scheduleHide(6000);
+    return;
   }
-  // Repaint from the file either way: the mark is one of four and the control
-  // draws from `data-mark`, so only a re-read can be trusted.
-  await repaintDoc();
+
+  // PATCH THE ROW, do not re-navigate (ISS-0189). Edwin: *"can we not somehow
+  // update the file in memory and then do a save in the background without
+  // re-loading?"* — and he is right, because every re-render loses the reader's
+  // place and the only reason one was needed is that an HTML checkbox cannot
+  // show four states. This control draws its own mark, so it can simply be
+  // redrawn.
+  //
+  // The row's HTML comes FROM THE SERVER, rendered through the one markdown
+  // pipeline. Building it here would make the client a second writer of the
+  // verdict grammar.
+  const mark = String(written?.mark ?? ' ');
+  const rowHtml = String(written?.row_html ?? '');
+  if (rowHtml) {
+    const host = li.querySelector('p') ?? li;
+    host.innerHTML = rowHtml;
+  }
+  li.dataset.mark = mark;
+  li.querySelector('.acc-mark')?.remove();
+  mountAcceptanceMarks();
+  suppressNextSoftReload();
 }
 
 docView.addEventListener('change', async (e) => {
@@ -12217,7 +12215,19 @@ function attachSidecarEventStream(baseUrl: string): void {
   void primeValidation(baseUrl);
 }
 
+/** Our own write is about to come back as a `file-changed` event. Patching a
+ *  row in place and then letting the watcher re-navigate would undo the point
+ *  of patching it — which is exactly what happened to two earlier attempts at
+ *  holding the scroll (ISS-0189): both fixed a path, and 150ms later the
+ *  watcher re-rendered without one. */
+let softReloadSuppressedUntil = 0;
+
+function suppressNextSoftReload(): void {
+  softReloadSuppressedUntil = Date.now() + 1200;
+}
+
 function scheduleSoftReload(): void {
+  if (Date.now() < softReloadSuppressedUntil) return;
   if (softReloadTimer != null) window.clearTimeout(softReloadTimer);
   softReloadTimer = window.setTimeout(() => {
     softReloadTimer = null;
@@ -12235,7 +12245,12 @@ function scheduleSoftReload(): void {
       void loadWsNav();
       if (currentRel && !currentRel.startsWith('~')) {
         void loadRightPane(currentRel);
-        void navigateTo(currentRel, { replace: true });
+        // Hold the reader's place. A file changing under an open document is
+        // not a reason to move them to the top of it — true for a mark, and
+        // equally true for an edit made in another editor.
+        void navigateTo(currentRel, {
+          replace: true, keepScroll: docView.scrollTop,
+        });
       }
     }
   }, 150);
