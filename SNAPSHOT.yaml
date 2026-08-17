@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 117
-  ISS: 191
+  ISS: 192
   PHASE: 35
   REQ: 36
   RISK: 7
@@ -82,7 +82,7 @@ items:
     FEAT-0113:
       file: "docs/features/acceptance-checks/FEAT-0113-The-Check-Type-And-The-Migration.md"
       title: "The check type and the migration — one note per acceptance check, upstream first, pilot here, fleet last"
-      status: doing
+      status: review
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0459, TASK-0460, TASK-0461, TASK-0462, TASK-0463]
@@ -3119,14 +3119,14 @@ metrics:
     features_total: 117
     features_done: 101
     tasks_total: 472
-    tasks_done: 433
+    tasks_done: 434
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 3
-    issues_triage: 0
+    issues_triage: 1
     risks_open: 6
     releases_total: 1
     decisions_total: 21

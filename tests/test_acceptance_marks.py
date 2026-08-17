@@ -20,9 +20,34 @@ import pytest
 from project_os_cockpit import acceptance, renderer
 
 TRAINER = Path.home() / "Dev" / "repos" / "your-trainer"
+#: **Keyed on the SUITE, in either shape** (ADR-0030). This read
+#: `(TRAINER / "docs" / acceptance.SUITE_REL).exists()` and reported
+#: *"../your-trainer is not present"* — and the moment that repo migrated, the
+#: repo was present, its suite was 579 notes, and eleven tests went quiet
+#: saying the corpus was missing. Six of them were the release-gate delta,
+#: which is exactly what the migration had to be checked against.
+#:
+#: A skip condition that names one storage shape is a guard that expires when
+#: the storage changes, and it expires **silently and with a false reason** —
+#: which is worse than failing, because a red test gets read.
 needs_trainer = pytest.mark.skipif(
+    not acceptance.load(TRAINER / "docs").exists,
+    reason="../your-trainer has no acceptance suite in either shape",
+)
+
+#: The two tests below read a **rendered file-shaped suite** in `../your-trainer`
+#: and assert the treeprocessor addresses its rows. That subject is gone: the
+#: repo migrated its 579 rows to `CHK-*` notes on 2026-08-17, and no repo in the
+#: fleet renders an acceptance document any more.
+#:
+#: Kept, with a condition that is TRUE, rather than deleted or left pointing at
+#: `needs_trainer` — which would have skipped them for the wrong reason, the
+#: exact defect the comment above records. They go when the document plumbing
+#: goes ([[ISS-0192]]), which is the same commit that removes what they guard.
+needs_file_shaped_suite = pytest.mark.skipif(
     not (TRAINER / "docs" / acceptance.SUITE_REL).exists(),
-    reason="../your-trainer is not present",
+    reason="no repo stores its acceptance suite as a document any more "
+           "(ADR-0030); these guard the plumbing ISS-0192 removes",
 )
 
 FOUR = (
@@ -105,7 +130,7 @@ def test_a_gating_row_says_so() -> None:
     assert gating == {"1.1.1": "1", "3.1.1": "0"}
 
 
-@needs_trainer
+@needs_file_shaped_suite
 def test_almost_every_row_of_the_real_suite_is_addressable() -> None:
     """Almost all of them. The handful that are not are rows Markdown never
     made into list items — a blank line missing in the document that owns them,
@@ -192,7 +217,7 @@ def test_the_notice_is_never_auto_fixed() -> None:
     assert source == before
 
 
-@needs_trainer
+@needs_file_shaped_suite
 def test_the_real_suites_report_their_own_shortfall() -> None:
     text = (TRAINER / "docs" / acceptance.SUITE_REL).read_text(encoding="utf-8")
     html = _render(text, acceptance.SUITE_REL)

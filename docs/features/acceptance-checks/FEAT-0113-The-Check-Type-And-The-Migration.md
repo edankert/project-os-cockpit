@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0113
 aliases: ["FEAT-0113"]
 title: "The check type and the migration — one note per acceptance check, upstream first, pilot here, fleet last"
-status: doing
+status: review
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

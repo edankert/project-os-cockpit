@@ -22,9 +22,19 @@ import pytest
 from project_os_cockpit import acceptance, note_writes
 
 TRAINER = Path.home() / "Dev" / "repos" / "your-trainer"
+#: **Keyed on the SUITE, in either shape** (ADR-0030). This read
+#: `(TRAINER / "docs" / acceptance.SUITE_REL).exists()` and reported
+#: *"../your-trainer is not present"* — and the moment that repo migrated, the
+#: repo was present, its suite was 579 notes, and eleven tests went quiet
+#: saying the corpus was missing. Six of them were the release-gate delta,
+#: which is exactly what the migration had to be checked against.
+#:
+#: A skip condition that names one storage shape is a guard that expires when
+#: the storage changes, and it expires **silently and with a false reason** —
+#: which is worse than failing, because a red test gets read.
 needs_trainer = pytest.mark.skipif(
-    not (TRAINER / "docs" / acceptance.SUITE_REL).exists(),
-    reason="../your-trainer is not present",
+    not acceptance.load(TRAINER / "docs").exists,
+    reason="../your-trainer has no acceptance suite in either shape",
 )
 
 SUITE = (

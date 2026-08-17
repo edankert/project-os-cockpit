@@ -102,7 +102,8 @@ def strip_annotation(text: str) -> str:
             out = left + " " + right
 
 
-def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int) -> str:
+def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int,
+              uncommitted: bool = False) -> str:
     """One `CHK-*` note, in the template's shape."""
     fm: list[str] = [
         "---",
@@ -149,7 +150,14 @@ def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int) -> str:
         f"covers: [{', '.join(f'\"[[{r}]]\"' for r in item.refs)}]",
         "burden: []",
         "evidence: []",
-        f"migrated_from: {_yaml(f'{A.SUITE_REL}#{item.number} @ {sha}')}",
+        # **The sha must contain the row it stamps.** A suite with uncommitted
+        # rows migrates them like any other, and stamping them with HEAD would
+        # point at a commit that does not hold them — wrong in precisely the
+        # field that exists because blame cannot cross the migration commit.
+        # Measured on `../your-trainer`: 560 rows at HEAD, 579 in the working
+        # tree. Nineteen notes would have carried a false provenance, and the
+        # nineteen NEWEST ones at that.
+        f"migrated_from: {_yaml(f'{A.SUITE_REL}#{item.number} @ {sha}' + (' (uncommitted at migration)' if uncommitted else ''))}",
         "related: []",
         "---",
         "",
@@ -323,6 +331,19 @@ def main() -> int:
         print("migrate: the suite parses to zero checks — refusing")
         return 2
     sha = _git(root, "rev-parse", "--short", "HEAD")
+    # Rows the committed file does not have. Keyed on tier+name, the same key
+    # the release-gate delta diffs on and for the same reason: a row's NUMBER
+    # shifts when anything above it is inserted, so numbering would report
+    # every row below an insert as new.
+    at_head = _git(root, "show", f"HEAD:docs/{A.SUITE_REL}")
+    committed = {(i.tier, i.name.strip().casefold()) for i in A.parse(at_head)} \
+        if at_head else set()
+    fresh = {(i.tier, i.name.strip().casefold()) for i in before} - committed \
+        if committed else set()
+    if fresh:
+        print(f"migrate: {len(fresh)} row(s) are NOT in the committed file — "
+              f"their notes record the sha with `(uncommitted at migration)`, "
+              f"because {sha} does not contain them")
 
     start = args.start_id or _counter(root) + 1
     plan: list[tuple[str, Path, str]] = []
@@ -334,7 +355,10 @@ def main() -> int:
         path = out_dir / f"{check_id}-{slug(item.name)}.md"
         plan.append((check_id, path,
                      note_text(item, check_id=check_id, sha=sha,
-                               ordinal=per_section[key])))
+                               ordinal=per_section[key],
+                               uncommitted=(item.tier,
+                                            item.name.strip().casefold())
+                                           in fresh)))
 
     print(f"migrate: {len(plan)} checks from docs/{A.SUITE_REL} "
           f"-> docs/{A.CHECKS_REL}/  (ids {plan[0][0]}..{plan[-1][0]}, sha {sha})")
