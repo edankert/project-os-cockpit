@@ -18,7 +18,7 @@ tags: [skills, release]
 - Target version number (e.g., "1.1.0")
 - Platform (e.g., "android", "ios", "web")
 - `../../../SNAPSHOT.yaml`
-- `../../../docs/tests/ACCEPTANCE_TESTS.md`
+- the acceptance suite — `docs/tests/acceptance/CHK-*.md`, or `docs/tests/ACCEPTANCE_TESTS.md` in a repo that has not migrated (`../../instructions/TESTING.md`)
 
 ## Outputs
 - `../../../docs/releases/REL-####-v<version>.md` (release note from template)
@@ -34,7 +34,7 @@ tags: [skills, release]
 - Present the list to the user for decision.
 
 ### 2. Check acceptance tests
-- Read `../../../docs/tests/ACCEPTANCE_TESTS.md`.
+- Read the acceptance suite — `docs/tests/acceptance/CHK-*.md`, or `docs/tests/ACCEPTANCE_TESTS.md` in a repo that has not migrated (`../../instructions/TESTING.md`).
 - Count unchecked tests in Tier 1 and Tier 2.
 - If any are unchecked: list them and flag as **release blockers**.
 - If any cannot be completed: ask user to mark as **release exception** with justification.

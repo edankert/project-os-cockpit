@@ -10,6 +10,8 @@ scope: tests
 related: []
 ---
 
+> **This is the older single-document form of the acceptance suite.** The current form is **one note per check** — `check.md`, `type: [[check]]`, id `CHK-*`, at `docs/tests/acceptance/`. Both are read; a repo stores its suite one way or the other and never both. See `../../tools/instructions/TESTING.md`, "Where the acceptance suite lives".
+
 # Acceptance Test Suite: <Project> v<version>
 
 ## Test Tiers

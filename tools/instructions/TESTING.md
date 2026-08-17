@@ -43,6 +43,8 @@ This document defines the acceptance test tier system, lifecycle rules, and rele
 ### When to uncheck (mark for re-run)
 - Any code change must uncheck all Tier 1 and Tier 2 tests whose scope overlaps with the changed code.
 - Use judgment: a change to `WorkoutViewModel` unchecks workout tests, not Bluetooth tests.
+- **Say which change did it, in the same action.** This half of the rule is the one that does not get done: measured across the fleet, 54 rows carried a hand-written `RE-RUN (…)` annotation and **all 54 were still ticked**, because unticking destroyed the only record that the check had ever passed and there was nowhere to say why. In note form that record is `invalidated_by:` — the change id, the reason and the date — written in the same act that clears the mark, and refused without a change id. In document form it stays a `RE-RUN (TASK-####: reason)` annotation on the line.
+- Best done **at the close-out of the work that caused it**, not saved up for release time: a sweep over the areas a feature touched, adding the checks it needs and invalidating the ones it overtook, in one commit.
 
 ### When to remove
 - **Tier 3 tests** are removed after a verified release if:
@@ -56,9 +58,15 @@ This document defines the acceptance test tier system, lifecycle rules, and rele
 - Add a note to the Tier 3 section: "Covered by `<TestClassName>` (<N> tests). Remove after next release."
 - After the next verified release, remove the Tier 3 test.
 
-## Acceptance test document structure
+## Where the acceptance suite lives
 
-The acceptance test document (`docs/tests/ACCEPTANCE_TESTS.md`) is scaffolded from `../../docs/__templates__/acceptance-tests.md` and should follow this structure:
+**Two shapes, split by time.** A repo stores its acceptance suite one way or the other, never both.
+
+**Notes (current).** One check per note, `type: [[check]]`, id `CHK-*`, at `docs/tests/acceptance/CHK-####-Slug.md`, scaffolded from `../../docs/__templates__/check.md`. `status:` is the lifecycle (`draft`/`active`/`retired`) and **`mark:` is the verdict** — ticking never touches status, which is what keeps a check outside the runner-only rule and the independent-review gate. Tier, area and ordinal are fields; the suite is read as a generated list rather than as a document. See `SCHEMAS.md` `check.md` and `STATUSES.md` `[[check]]`.
+
+**One document (older).** `docs/tests/ACCEPTANCE_TESTS.md`, scaffolded from `../../docs/__templates__/acceptance-tests.md`, with the structure below. A repo that has not migrated keeps using it and everything in this file still applies; a repo that migrates **deletes** it in the migration commit rather than keeping a copy, because two records of one thing is a source of drift and git holds the file at every earlier ref.
+
+The document form:
 
 ```markdown
 # Acceptance Test Suite: <Project> v<version>
@@ -115,5 +123,6 @@ A guarding test that cannot fail does not guard: LLM-authored test suites cluste
 ## Relationship to TST-* notes
 
 - `TST-*` notes in `docs/tests/` or `docs/features/<slug>/plan/tests/` are individual test specifications with frontmatter, preconditions, procedures, and evidence.
-- `ACCEPTANCE_TESTS.md` is a consolidated checklist for manual acceptance testing — it references features and issues but is not a `TST-*` note itself.
-- Both systems coexist: `TST-*` notes for formal test tracking, `ACCEPTANCE_TESTS.md` for the release checklist.
+- An acceptance check is a **`[[check]]` note (`CHK-*`)**, or — in a repo that has not migrated — a line in `ACCEPTANCE_TESTS.md`. Either way it is a manual acceptance check: it references features and issues and is **not** a `TST-*` note.
+- Both systems coexist: `TST-*` notes for formal test tracking, checks for the release checklist. `level: acceptance` on a `TST-*` is a third, different thing — an automated test at acceptance level — and is not a check.
+- The type boundary is load-bearing, not tidiness. A check never reaches `passing`, so the runner-only rule (`STATUSES.md` `[[test]]`) and the independent-review gate (`QUALITY.md`) — both keyed on that status — never apply to one. **The review of a check is the walk.** Checks are also declared owed-nothing in the obligation registry: a suite is hundreds of rows that re-arm on every overlapping change, and counting them individually is a badge that never empties.

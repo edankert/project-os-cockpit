@@ -64,7 +64,7 @@ Present the results as a table:
 
 ### 5. Check acceptance test tiers
 If the project uses the acceptance test tier system (see `../../instructions/TESTING.md`):
-- Read `../../../docs/tests/ACCEPTANCE_TESTS.md`.
+- Read the acceptance suite — `docs/tests/acceptance/CHK-*.md`, or `docs/tests/ACCEPTANCE_TESTS.md` in a repo that has not migrated (`../../instructions/TESTING.md`).
 - **Tier 1 + Tier 2** tests must ALL be checked (passing). Any unchecked test is a release blocker.
 - **Tier 3** tests do not gate the release — they are informational.
 - A test may be marked as a **release exception** if it cannot be completed. Exceptions must be documented in the release note with justification.
