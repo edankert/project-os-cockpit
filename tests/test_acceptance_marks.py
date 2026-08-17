@@ -294,11 +294,17 @@ def test_cancelling_writes_nothing_and_does_not_even_repaint() -> None:
 
 def test_the_dialog_refuses_a_reasonless_verdict_before_the_round_trip() -> None:
     """Refused in the client as well as the server, so the reader is told
-    before the round trip rather than after it."""
+    before the round trip rather than after it.
+
+    The check moved into `refresh` when the dialog became select-then-save
+    (ISS-0187): it now gates the Save button continuously rather than firing
+    once on a click.
+    """
     src = _renderer_src()
-    block = src[src.index("function askForMark"):]
-    block = block[:block.index("\n/** How each mark")] if "\n/** How each mark" in block else block[:6000]
-    assert "choice.needsReason && !reason" in block
+    block = src[src.index("const refresh = ()"):]
+    block = block[:block.index("};")]
+    assert "needs && !field.value.trim()" in block
+    assert "save.disabled" in block
 
 
 # ----- ADR-0029's table, exactly ---------------------------------------------
@@ -413,3 +419,91 @@ def test_every_choice_shows_its_mark_in_the_dialog() -> None:
     # Creating a node is not showing it.
     append = next(l for l in block.splitlines() if "btn.append(" in l)
     assert "token" in append, append.strip()
+
+
+# ----- the affordance, third round (ISS-0187) -------------------------------
+
+
+def test_the_repaint_holds_the_scroll_position() -> None:
+    """A repaint used to land the reader at the top of a 579-row document,
+    away from the row they had just marked — the one row they wanted to watch
+    change. `applyScrollTarget` restores only on history navigation."""
+    src = _renderer_src()
+    block = src[src.index("async function repaintDoc"):]
+    block = block[:block.index("\n}") + 2]
+    assert "docView.scrollTop" in block
+    assert block.index("const held") < block.index("await navigateTo")
+    assert block.rindex("docView.scrollTop = held") > block.index("await navigateTo")
+
+
+def test_a_refusal_is_caught_and_shown() -> None:
+    """`postJson` THROWS on refusal and does not return `{ok: false}`, so the
+    old `if (!res?.ok)` branch was unreachable and a real refusal — a reason
+    citing an unresolvable ISS, an mtime conflict — was an unhandled rejection
+    with no toast."""
+    src = _renderer_src()
+    block = src[src.index("async function cycleAcceptanceMark"):]
+    block = block[:block.index("\ndocView.addEventListener")]
+    # Comments are stripped: this file's own prose explains the old branch, and
+    # a guard that greps for a string it also documents will always pass or
+    # always fail for the wrong reason.
+    code = "\n".join(
+        line for line in block.splitlines()
+        if not line.lstrip().startswith("//")
+    )
+    assert "try {" in code and "catch" in code
+    assert "if (!res?.ok)" not in code, "that branch could never fire"
+    assert "showStatus" in code
+
+
+def test_the_dialog_selects_then_saves() -> None:
+    """Edwin went looking for a Done button. Clicking an option used to commit,
+    and a reason-less one showed an error and returned, so the same button had
+    to be clicked twice with nothing saying so."""
+    src = _renderer_src()
+    block = src[src.index("function askForMark("):]
+    block = block[:block.index("\n}\n") + 3]
+    # a commit path distinct from the option click
+    assert "const commit = ()" in block
+    assert "save.addEventListener('click', commit)" in block
+    assert "save.disabled" in block
+    # the option click SELECTS; it must not close the dialog
+    click = block[block.index("btn.addEventListener('click', () => {"):]
+    click = click[:click.index("});")]
+    assert "picked = choice" in click
+    assert "close(" not in click, "an option click must not commit"
+
+
+def test_the_files_state_and_the_dialogs_choice_look_different() -> None:
+    """`is-current` is the mark the file holds; `is-picked` is what Save will
+    write. Conflating them is what made a second click invisible."""
+    src = _renderer_src()
+    block = src[src.index("function askForMark("):]
+    block = block[:block.index("\n}\n") + 3]
+    assert "is-current" in block and "is-picked" in block
+    css = _renderer_css()
+    for cls in (".mark-choice.is-current", ".mark-choice.is-picked"):
+        assert cls in css, cls
+    def declarations(selector: str) -> set[str]:
+        """The rule's declarations, WITHOUT its selector.
+
+        Comparing the whole block was useless: two rules always differ by the
+        selector line, so the comparison passed even when the declarations were
+        made identical. A mutation that made `is-picked` look exactly like
+        `is-current` survived on that.
+        """
+        block = css[css.index(selector) + len(selector):]
+        block = block[block.index("{") + 1:block.index("}")]
+        return {d.strip() for d in block.split(";") if d.strip()}
+
+    assert declarations(".mark-choice.is-current") != declarations(
+        ".mark-choice.is-picked"), "the two states must not look the same"
+
+
+def test_save_is_inert_until_the_verdict_is_complete() -> None:
+    """So the dialog cannot be dismissed into a half-stated verdict."""
+    src = _renderer_src()
+    block = src[src.index("const refresh = ()"):]
+    block = block[:block.index("};")]
+    assert "save.disabled = picked === null || missing" in block
+    assert "needsReason" in block

@@ -2246,39 +2246,49 @@ function askForMark(
 
     const d = document.createElement('p');
     d.className = 'ask-detail';
-    d.textContent = 'Naming an ISS-#### in the reason links it.';
+    d.textContent = 'Choose a mark, then Save. Naming an ISS-#### in the '
+      + 'reason links it.';
     card.appendChild(d);
 
+    // SELECT, then SAVE (ISS-0187). The options used to commit on click, and a
+    // reason-less `[-]` merely showed an error and returned — so the SAME
+    // button had to be clicked a second time to commit, with nothing saying
+    // so, while it still wore the `is-current` outline. Edwin went looking for
+    // a Done button, which was the correct instinct and is now the answer.
+    let picked: (typeof MARK_CHOICES)[number] | null = null;
+    const choices = document.createElement('div');
+    choices.className = 'ask-actions ask-actions-mark';
+    const buttons: HTMLButtonElement[] = [];
+
     const field = document.createElement('textarea');
-    field.className = 'ask-field';
-    field.rows = 3;
-    field.placeholder = 'what you observed, or why it could not be run';
-    card.appendChild(field);
-
     const err = document.createElement('p');
-    err.className = 'ask-error';
-    err.hidden = true;
-    card.appendChild(err);
+    const save = document.createElement('button');
 
-    const row = document.createElement('div');
-    row.className = 'ask-actions ask-actions-mark';
-
-    let done = false;
-    const close = (value: { verdict: string; reason: string } | null): void => {
-      if (done) return;
-      done = true;
-      back.remove();
-      document.removeEventListener('keydown', onKey, true);
-      resolve(value);
-    };
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') { e.preventDefault(); close(null); }
+    const refresh = (): void => {
+      buttons.forEach((btn, i) => {
+        btn.classList.toggle('is-picked', MARK_CHOICES[i] === picked);
+      });
+      const needs = picked?.needsReason ?? false;
+      field.disabled = picked === null;
+      field.placeholder = needs
+        ? 'required — why?'
+        : 'optional — what you observed';
+      const missing = needs && !field.value.trim();
+      save.disabled = picked === null || missing;
+      err.hidden = !missing;
+      if (missing && picked) {
+        err.textContent = `"${picked.label}" needs a reason — that is the `
+          + 'difference between it and an undocumented exception.';
+      }
     };
 
     for (const choice of MARK_CHOICES) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `review-btn mark-choice mark-choice-${choice.verdict}`;
+      // The mark the row carries NOW, so a reader sees where they are before
+      // choosing where to go. Deliberately distinct from `is-picked`: one is
+      // the file's state, the other is this dialog's.
       if (choice.mark === opts.current) btn.classList.add('is-current');
       const token = document.createElement('span');
       token.className = 'mark-choice-mark mono';
@@ -2290,34 +2300,64 @@ function askForMark(
       small.textContent = choice.hint;
       btn.append(token, strong, small);
       btn.addEventListener('click', () => {
-        const reason = field.value.trim();
-        if (choice.needsReason && !reason) {
-          // Refused here as well as at the server, so the reader is told
-          // before the round trip rather than after it.
-          err.hidden = false;
-          err.textContent = `"${choice.label}" needs a reason — that is the `
-            + 'whole difference between it and an undocumented exception.';
-          field.focus();
-          return;
-        }
-        close({ verdict: choice.verdict, reason });
+        picked = choice;
+        refresh();
+        if (choice.needsReason) field.focus();
       });
-      row.appendChild(btn);
+      buttons.push(btn);
+      choices.appendChild(btn);
     }
+    card.appendChild(choices);
 
+    field.className = 'ask-field';
+    field.rows = 3;
+    field.addEventListener('input', refresh);
+    card.appendChild(field);
+
+    err.className = 'ask-error';
+    err.hidden = true;
+    card.appendChild(err);
+
+    const actions = document.createElement('div');
+    actions.className = 'ask-actions ask-actions-commit';
     const cancel = document.createElement('button');
     cancel.type = 'button';
-    cancel.className = 'review-btn mark-choice-cancel';
+    cancel.className = 'review-btn';
     cancel.textContent = 'Cancel';
-    cancel.addEventListener('click', () => close(null));
-    row.appendChild(cancel);
+    save.type = 'button';
+    save.className = 'review-btn is-primary';
+    save.textContent = 'Save';
+    actions.append(cancel, save);
+    card.appendChild(actions);
 
-    card.appendChild(row);
+    let done = false;
+    const close = (value: { verdict: string; reason: string } | null): void => {
+      if (done) return;
+      done = true;
+      back.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(value);
+    };
+    const commit = (): void => {
+      if (!picked || save.disabled) return;
+      close({ verdict: picked.verdict, reason: field.value.trim() });
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.preventDefault(); close(null); }
+      // Cmd/Ctrl+Enter saves; a plain Enter keeps its newline in the reason.
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        commit();
+      }
+    };
+    cancel.addEventListener('click', () => close(null));
+    save.addEventListener('click', commit);
     back.addEventListener('click', (e) => { if (e.target === back) close(null); });
     document.addEventListener('keydown', onKey, true);
+
+    refresh();
     back.appendChild(card);
     document.body.appendChild(back);
-    field.focus();
   });
 }
 
@@ -2325,7 +2365,16 @@ function askForMark(
  *  checkbox back the way it was: the browser has already flipped it
  *  optimistically, and the file is the only thing that knows the truth. */
 async function repaintDoc(): Promise<void> {
-  if (currentRel) await navigateTo(currentRel, { replace: true });
+  if (!currentRel) return;
+  // Hold the scroll across the re-render (ISS-0187). `navigateTo` replaces
+  // innerHTML and `applyScrollTarget` restores a saved position only when the
+  // navigation came from history, so a repaint landed the reader back at the
+  // top of a 579-row document — away from the row they had just marked, which
+  // is the one thing they wanted to see change. Same capture-and-restore the
+  // history page already does around its own repaint.
+  const held = docView.scrollTop;
+  await navigateTo(currentRel, { replace: true });
+  docView.scrollTop = held;
 }
 
 /** How each mark reads on screen. Four states, because the record has four
@@ -2410,13 +2459,19 @@ async function cycleAcceptanceMark(li: HTMLElement): Promise<void> {
   });
   if (chosen === null) return;          // nothing written, nothing repainted
 
-  const res = await postJson('/api/notes/mark-check', {
-    number, name, verdict: chosen.verdict, reason: chosen.reason,
-  });
-  if (!res?.ok) {
-    showStatus(`Could not mark ${number}: ${String(res?.error ?? 'refused')}`,
-               'error');
-    scheduleHide(4000);
+  // `postJson` THROWS on a refusal — it does not return `{ok: false}` — so the
+  // previous `if (!res?.ok)` could never fire and a server refusal became an
+  // unhandled rejection: no toast, no write, no explanation (ISS-0187). A
+  // reason citing an ISS that does not exist is a real, reachable refusal, and
+  // it was silent.
+  try {
+    await postJson('/api/notes/mark-check', {
+      number, name, verdict: chosen.verdict, reason: chosen.reason,
+    });
+  } catch (err: unknown) {
+    showStatus(`Could not mark ${number}: ${
+      err instanceof Error ? err.message : String(err)}`, 'error');
+    scheduleHide(6000);
   }
   // Repaint from the file either way: the mark is one of four and the control
   // draws from `data-mark`, so only a re-read can be trusted.

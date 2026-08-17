@@ -5749,13 +5749,37 @@ ul.task-list li[data-check] { list-style: none; }
   opacity: 0.72;
   font-weight: 400;
 }
-/* The state the check is already in, so a reader can see where they are before
- * choosing where to go. */
-.mark-choice.is-current { outline: 1px solid var(--accent, #58a6ff); outline-offset: -1px; }
+/* Two different things, and conflating them is what sent Edwin looking for a
+ * Done button (ISS-0187):
+ *   is-current — the mark the FILE holds right now, for orientation
+ *   is-picked  — the mark THIS DIALOG will write when you press Save
+ * The first is a thin outline; the second is filled and unmistakable. */
+.mark-choice.is-current {
+  outline: 1px dashed var(--border, #4446);
+  outline-offset: -1px;
+}
+.mark-choice.is-picked {
+  outline: 2px solid var(--accent, #58a6ff);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent, #58a6ff) 12%, transparent);
+}
+/* Save is inert until a mark is chosen and any required reason is given, so
+ * the dialog cannot be dismissed into a half-stated verdict. */
+.ask-actions-commit {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.ask-actions-commit .review-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ask-card-mark .ask-field[disabled] { opacity: 0.5; }
 .mark-choice-pass     strong, .mark-choice-pass     .mark-choice-mark { color: var(--ok, #3fb950); }
 .mark-choice-partial  strong, .mark-choice-partial  .mark-choice-mark { color: var(--accent, #58a6ff); }
 .mark-choice-excused  strong, .mark-choice-excused  .mark-choice-mark { color: var(--fg-muted, #8b949e); }
 .mark-choice-failed   strong, .mark-choice-failed   .mark-choice-mark { color: var(--danger, #f85149); }
 .mark-choice-question strong, .mark-choice-question .mark-choice-mark { color: var(--warn, #d29922); }
 .mark-choice-clear    strong, .mark-choice-clear    .mark-choice-mark { color: var(--fg-muted, #8b949e); }
-.mark-choice-cancel { align-self: flex-end; margin-top: 0.35rem; }
+
