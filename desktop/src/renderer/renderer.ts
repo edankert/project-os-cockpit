@@ -2280,12 +2280,15 @@ function askForMark(
       btn.type = 'button';
       btn.className = `review-btn mark-choice mark-choice-${choice.verdict}`;
       if (choice.mark === opts.current) btn.classList.add('is-current');
+      const token = document.createElement('span');
+      token.className = 'mark-choice-mark mono';
+      token.textContent = choice.mark === ' ' ? '[\u00a0]' : `[${choice.mark}]`;
       const strong = document.createElement('strong');
       strong.textContent = choice.label;
       const small = document.createElement('span');
       small.className = 'mark-choice-hint';
       small.textContent = choice.hint;
-      btn.append(strong, small);
+      btn.append(token, strong, small);
       btn.addEventListener('click', () => {
         const reason = field.value.trim();
         if (choice.needsReason && !reason) {
@@ -2329,9 +2332,20 @@ async function repaintDoc(): Promise<void> {
  *  and an HTML checkbox has two — which is why these rows draw their own
  *  control instead of relying on `pymdownx.tasklist`, an extension that only
  *  understands `[ ]` and `[x]` and leaves `[~]`/`[F]` as literal text. */
+/** The mark, as it stands in the file (ISS-0186).
+ *
+ * Three of the previous six were geometric symbol characters — `○ ✓ ◐` — which
+ * fall back to whatever font the system happens to carry them in and read as
+ * decoration rather than as the mark they represent. Edwin: *"I don't like the
+ * design of the tick, keep the font simpler."*
+ *
+ * Showing the literal in the monospace face the app already uses for ids and
+ * paths is simpler, renders identically everywhere, and **teaches the syntax**
+ * — a reader who edits the Markdown by hand has already seen what to type.
+ * A legacy alias shows its own character, because that is what is in the file. */
 const MARK_GLYPH: Record<string, string> = {
-  ' ': '○', x: '✓', '/': '◐', '~': '◐', '-': '–', '!': '!', F: '!', '?': '?',
-  X: '✓',
+  ' ': '[\u00a0]', x: '[x]', X: '[X]', '/': '[/]', '~': '[~]',
+  '-': '[-]', '!': '[!]', F: '[F]', '?': '[?]',
 };
 const MARK_TITLE: Record<string, string> = {
   ' ': 'To-do — nobody has walked this. Blocks the release.',
@@ -2371,7 +2385,7 @@ function mountAcceptanceMarks(): void {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `acc-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
-    btn.textContent = MARK_GLYPH[mark] ?? '○';
+    btn.textContent = MARK_GLYPH[mark] ?? `[${mark}]`;
     btn.title = MARK_TITLE[mark] ?? '';
     btn.setAttribute('aria-label', MARK_TITLE[mark] ?? 'acceptance check');
     btn.addEventListener('click', (ev) => {

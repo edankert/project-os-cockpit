@@ -36,6 +36,7 @@ issues:
   - "[[ISS-0184-Clicking-A-Checkbox-In-The-Acceptance-Suite-Writes-To-A-Different-Row]]"
   - "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"
   - "[[ISS-0185-The-Mark-Control-Sits-Inside-Tasklists-Leftover-Box-And-The-Cycle-Makes-You-Walk-Past-States]]"
+  - "[[ISS-0186-The-Mark-Glyphs-Are-Decorative-And-The-Dialog-Is-Too-Narrow-For-Six-Options]]"
 requirements: []
 tasks: []
 depends: []
@@ -410,3 +411,9 @@ Third mark vocabulary in two days, and the last one, because it is not this proj
 One correction to my own proposal, made by reading rather than reasoning: I had `~` aliasing `[-]`. All seven live `~` rows say *"Partial pass"*, so it aliases `[/]`.
 
 **Three blocking marks that mean three different things** — nobody looked, somebody looked and it broke, somebody looked and could not tell. That distinction is the reason for the vocabulary, and collapsing any pair would lose it.
+
+## Re-closed 2026-08-17 — the control shows the mark
+
+Second round of visual feedback ([[ISS-0186]]) and the simplest answer available: stop drawing glyphs and show the literal. `[ ]` `[x]` `[/]` `[-]` `[!]` `[?]` in the monospace face, and the dialog as one column at 44rem instead of six two-line buttons crammed into two.
+
+Worth recording because it is the pattern of this whole phase in miniature — three of the six previous glyphs were symbol characters chosen for meaning and sized up for legibility, when the thing they represented was already a legible character. The record's own notation was the right notation.

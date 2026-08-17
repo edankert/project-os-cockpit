@@ -5668,45 +5668,37 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 }
 .doc-view tbody tr:hover { background: var(--surface-2); }
 
-/* ----- the acceptance mark (FEAT-0104, ISS-0185) ------------------------
+/* ----- the acceptance mark (FEAT-0104, ISS-0185, ISS-0186) --------------
  *
- * Four states, because the record's vocabulary has four and an HTML checkbox
- * has two. `pymdownx.tasklist` understands `[ ]` and `[x]` only and renders
- * `[~]`/`[F]` as literal text with no control, so the row draws its own and
- * tasklist's `label.task-list-control` is removed entirely.
- *
- * NO BORDER. The glyphs are already outlines, and a 1px box around `☐` is a
- * box inside a box — which is exactly what Edwin reported. Weight and colour
- * carry the state instead.
+ * Six states, because the record's vocabulary has six (ADR-0029) and an HTML
+ * checkbox has two. The control shows the LITERAL mark in the app's monospace
+ * face: no decorative glyph, no border, nothing that needs a symbol font. What
+ * is on screen is what is in the file.
  */
 .acc-mark {
   appearance: none;
   border: 0;
   background: transparent;
   cursor: pointer;
-  /* Bigger than the surrounding prose: this is the row's control, and at
-   * inherited size it read as punctuation. */
-  font-size: 1.35em;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.95em;
   line-height: 1;
   margin: 0 0.4em 0 0;
   padding: 0;
-  vertical-align: -0.08em;
-  transition: transform 90ms ease-out;
+  white-space: pre;
+  vertical-align: baseline;
 }
-.acc-mark:hover { transform: scale(1.15); }
+.acc-mark:hover { text-decoration: underline; }
 .acc-mark:focus-visible {
   outline: 2px solid var(--accent, #58a6ff);
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: 2px;
 }
-/* Minimal's six values (ADR-0029). Colour and weight carry the state; there
- * is no border, because the glyphs are outlines already.
- *
- * Blocking marks are warm and weighted — `[ ]` to-do, `[!]` important, `[?]`
- * question. The three that clear the gate are cool or muted. That is the
- * distinction a reader scanning 579 rows actually needs: not which of six, but
- * whether this one still stands between them and shipping.
- */
+
+/* Colour and weight carry the state. Blocking marks are warm and weighted —
+ * `[ ]` to-do, `[!]` important, `[?]` question; the three that clear the gate
+ * are cool or muted. Scanning 579 rows, the question is not which of six but
+ * whether this one still stands between you and shipping. */
 .acc-mark-todo       { color: var(--fg-muted, #8b949e); }
 .acc-mark-done       { color: var(--ok, #3fb950); }
 .acc-mark-incomplete { color: var(--accent, #58a6ff); }
@@ -5714,8 +5706,7 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .acc-mark-important  { color: var(--danger, #f85149); font-weight: 700; }
 .acc-mark-question   { color: var(--warn, #d29922); font-weight: 700; }
 /* One of Minimal's other sixteen, or a typo. Unrecognised marks block, and
- * looking wrong is the correct appearance for something that will hold a
- * release until somebody notices it. */
+ * looking wrong is correct for something that holds a release until noticed. */
 .acc-mark-unknown    { color: var(--danger, #f85149); opacity: 0.6; }
 
 /* Minimal strikes canceled text through, and it is the clearest signal on a
@@ -5723,44 +5714,48 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 li[data-mark="-"] > p:first-of-type { text-decoration: line-through; }
 li[data-mark="-"] { opacity: 0.72; }
 
-/* A task list whose rows carry their own control does not want tasklist's
- * hanging indent, which was reserving space for the box we removed. */
 ul.task-list li[data-check] { list-style: none; }
 
-/* ----- the mark dialog (ISS-0185) --------------------------------------
+/* ----- the mark dialog (ISS-0185, ISS-0186) ----------------------------
  *
- * One dialog, all four options, one shared reason field. It replaced a cycle
- * in which reaching `[F]` from `[ ]` cost three writes and two prompts.
+ * One dialog, all six options, one shared reason field. It replaced a cycle in
+ * which reaching `[!]` from `[ ]` cost three writes and two prompts.
+ *
+ * ONE COLUMN. Six two-line buttons in a two-column grid wrapped their hints and
+ * fought for width. A list of consequences is what this is, so it is a list.
  */
-.ask-card-mark { max-width: 34rem; }
+.ask-card-mark { max-width: 44rem; width: min(44rem, calc(100vw - 3rem)); }
 .ask-actions-mark {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-}
-.mark-choice {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
+  gap: 0.35rem;
+}
+.mark-choice {
+  display: grid;
+  grid-template-columns: 3.1em minmax(7.5em, auto) 1fr;
+  align-items: baseline;
+  gap: 0 0.75rem;
   text-align: left;
-  padding: 0.5rem 0.7rem;
+  padding: 0.45rem 0.7rem;
+  width: 100%;
+}
+.mark-choice-mark {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: pre;
+  opacity: 0.85;
 }
 .mark-choice-hint {
-  font-size: 0.82em;
-  opacity: 0.7;
+  font-size: 0.86em;
+  opacity: 0.72;
   font-weight: 400;
 }
-/* The state the check is already in, so a reader can see where they are
- * before choosing where to go. */
-.mark-choice.is-current {
-  outline: 1px solid var(--accent, #58a6ff);
-  outline-offset: -1px;
-}
-.mark-choice-pass     strong { color: var(--ok, #3fb950); }
-.mark-choice-partial  strong { color: var(--accent, #58a6ff); }
-.mark-choice-excused  strong { color: var(--fg-muted, #8b949e); }
-.mark-choice-failed   strong { color: var(--danger, #f85149); }
-.mark-choice-question strong { color: var(--warn, #d29922); }
-.mark-choice-clear    strong { color: var(--fg-muted, #8b949e); }
-.mark-choice-cancel { grid-column: 1 / -1; }
+/* The state the check is already in, so a reader can see where they are before
+ * choosing where to go. */
+.mark-choice.is-current { outline: 1px solid var(--accent, #58a6ff); outline-offset: -1px; }
+.mark-choice-pass     strong, .mark-choice-pass     .mark-choice-mark { color: var(--ok, #3fb950); }
+.mark-choice-partial  strong, .mark-choice-partial  .mark-choice-mark { color: var(--accent, #58a6ff); }
+.mark-choice-excused  strong, .mark-choice-excused  .mark-choice-mark { color: var(--fg-muted, #8b949e); }
+.mark-choice-failed   strong, .mark-choice-failed   .mark-choice-mark { color: var(--danger, #f85149); }
+.mark-choice-question strong, .mark-choice-question .mark-choice-mark { color: var(--warn, #d29922); }
+.mark-choice-clear    strong, .mark-choice-clear    .mark-choice-mark { color: var(--fg-muted, #8b949e); }
+.mark-choice-cancel { align-self: flex-end; margin-top: 0.35rem; }

@@ -358,3 +358,58 @@ def test_the_marks_the_tool_writes_are_all_minimals() -> None:
         assert legacy not in acceptance.VERDICTS.values(), (
             f"{legacy!r} is a legacy alias and must never be written"
         )
+
+
+# ----- the affordance, second round (ISS-0186) ------------------------------
+
+
+def test_the_control_shows_the_literal_mark_not_a_symbol_glyph() -> None:
+    """Edwin: *"I don't like the design of the tick, keep the font simpler."*
+
+    Three of the six were geometric symbol characters that fall back to
+    whatever font the system carries them in. The literal renders identically
+    everywhere and teaches the syntax a hand-editor needs.
+    """
+    src = _renderer_src()
+    block = src[src.index("const MARK_GLYPH"):]
+    block = block[:block.index("};") + 2]
+    for decorative in ("○", "✓", "◐", "–", "●", "✕", "☐", "☑"):
+        assert decorative not in block, f"{decorative} is a symbol glyph"
+    for mark in ("x", "/", "-", "!", "?"):
+        assert f"'[{mark}]'" in block or f'"[{mark}]"' in block, mark
+
+
+def test_the_control_uses_the_monospace_face() -> None:
+    css = _renderer_css()
+    block = css[css.index(".acc-mark {"):]
+    block = block[:block.index("}")]
+    assert "--font-mono" in block
+    assert "border: 0" in block
+
+
+def test_the_dialog_is_one_column_and_wide_enough() -> None:
+    """Six two-line buttons in a two-column grid wrapped their hints and fought
+    for width. A list of consequences is what this is."""
+    css = _renderer_css()
+    actions = css[css.index(".ask-actions-mark {"):]
+    actions = actions[:actions.index("}")]
+    assert "flex-direction: column" in actions
+    assert "grid-template-columns" not in actions
+    card = css[css.index(".ask-card-mark {"):]
+    card = card[:card.index("}")]
+    assert "44rem" in card, "wider than the 34rem that was cramped"
+
+
+def test_every_choice_shows_its_mark_in_the_dialog() -> None:
+    """So the dialog and the row speak the same language: a reader picks
+    `[!] Important` and the row then reads `[!]`."""
+    src = _renderer_src()
+    block = src[src.index("for (const choice of MARK_CHOICES)"):]
+    block = block[:block.index("row.appendChild(btn)")]
+    assert "mark-choice-mark" in block, "the token is built"
+    assert "choice.mark" in block
+    # …and ATTACHED. A first version of this guard checked only that the token
+    # was created, and survived a mutation that built it and never appended it.
+    # Creating a node is not showing it.
+    append = next(l for l in block.splitlines() if "btn.append(" in l)
+    assert "token" in append, append.strip()
