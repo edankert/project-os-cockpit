@@ -1197,7 +1197,7 @@ function buildDocHeader(data: RenderResponse, rel: string): HTMLElement {
 
 async function navigateTo(
   rel: string,
-  opts: { replace?: boolean; fromHistory?: boolean } = {},
+  opts: { replace?: boolean; fromHistory?: boolean; keepScroll?: number } = {},
 ): Promise<void> {
   await navigateToInner(rel, opts);
   renderCenterTabs();
@@ -1205,7 +1205,7 @@ async function navigateTo(
 
 async function navigateToInner(
   rel: string,
-  opts: { replace?: boolean; fromHistory?: boolean } = {},
+  opts: { replace?: boolean; fromHistory?: boolean; keepScroll?: number } = {},
 ): Promise<void> {
   if (!sidecarBaseUrl) return;
   // Capture the current scroll position before we replace innerHTML;
@@ -1517,7 +1517,8 @@ async function navigateToInner(
   wireInteractiveCheckboxes();
   wireMetadataStripPersistence();
   mountAcceptanceMarks();
-  applyScrollTarget(pathOnly, frag, opts.fromHistory ?? false);
+  applyScrollTarget(pathOnly, frag, opts.fromHistory ?? false,
+                    opts.keepScroll);
   pushHistory(normalised, opts.replace ?? false);
   // Highlight the nav row matching the new doc (TASK-0083).
   refreshActiveNavRow();
@@ -2372,9 +2373,14 @@ async function repaintDoc(): Promise<void> {
   // top of a 579-row document — away from the row they had just marked, which
   // is the one thing they wanted to see change. Same capture-and-restore the
   // history page already does around its own repaint.
-  const held = docView.scrollTop;
-  await navigateTo(currentRel, { replace: true });
-  docView.scrollTop = held;
+  // Handed to `navigateTo`, not applied after it. `applyScrollTarget` defers
+  // its own scroll to `requestAnimationFrame`, so a synchronous restore here
+  // ran a frame too early and was overwritten by its `scrollTop = 0` branch —
+  // the first fix for this looked right, passed a guard, and did nothing
+  // (ISS-0188).
+  await navigateTo(currentRel, {
+    replace: true, keepScroll: docView.scrollTop,
+  });
 }
 
 /** How each mark reads on screen. Four states, because the record has four
@@ -2513,12 +2519,26 @@ function applyScrollTarget(
   pathOnly: string,
   frag: string | null,
   fromHistory: boolean,
+  /** An exact position to hold, for a re-render that is not a navigation.
+   *
+   *  This has to be honoured **inside** the frame below, not before the call.
+   *  A caller that set `docView.scrollTop` synchronously after `navigateTo`
+   *  had it overwritten one frame later by the `= 0` branch — which is
+   *  precisely what happened when marking a check first tried to hold its
+   *  place (ISS-0188), and what a source-shape guard could not see. */
+  keepScroll?: number,
 ): void {
   // The browser would scroll to the anchor synchronously after parsing,
   // but we just injected innerHTML — layout hasn't happened yet. Defer
   // to next frame so getBoundingClientRect / scrollIntoView see the
   // laid-out DOM.
   requestAnimationFrame(() => {
+    // Wins over both branches below, and over a fragment: a repaint is not a
+    // navigation, and the reader has not asked to go anywhere.
+    if (keepScroll !== undefined) {
+      docView.scrollTop = keepScroll;
+      return;
+    }
     if (frag) {
       try {
         const el = docView.querySelector(`#${CSS.escape(frag)}`);

@@ -424,16 +424,75 @@ def test_every_choice_shows_its_mark_in_the_dialog() -> None:
 # ----- the affordance, third round (ISS-0187) -------------------------------
 
 
-def test_the_repaint_holds_the_scroll_position() -> None:
-    """A repaint used to land the reader at the top of a 579-row document,
-    away from the row they had just marked — the one row they wanted to watch
-    change. `applyScrollTarget` restores only on history navigation."""
+def test_the_repaint_hands_its_position_to_the_navigation() -> None:
+    """**This assertion replaced one that passed while the bug was live**
+    ([[ISS-0188]]).
+
+    The first version checked that `repaintDoc` read `scrollTop`, that the read
+    came before the `navigateTo` and the write after it. All true, and the
+    reader still landed at the top — because `applyScrollTarget` defers its own
+    scroll to `requestAnimationFrame`, so the synchronous restore ran a frame
+    early and was overwritten by `scrollTop = 0`.
+
+    The position must therefore be *handed to* the navigation, not applied
+    around it.
+    """
     src = _renderer_src()
     block = src[src.index("async function repaintDoc"):]
     block = block[:block.index("\n}") + 2]
-    assert "docView.scrollTop" in block
-    assert block.index("const held") < block.index("await navigateTo")
-    assert block.rindex("docView.scrollTop = held") > block.index("await navigateTo")
+    assert "keepScroll: docView.scrollTop" in block
+    code = "\n".join(
+        line for line in block.splitlines()
+        if not line.lstrip().startswith("//")
+    )
+    assert "docView.scrollTop =" not in code, (
+        "assigning scrollTop around the navigation is the broken shape"
+    )
+
+
+def test_no_caller_assigns_scrolltop_straight_after_a_navigation() -> None:
+    """The broken pattern, forbidden file-wide rather than in one function.
+
+    `await navigateTo(...)` followed by `docView.scrollTop = ...` is always
+    wrong for the same reason, and the next person to want it will reach for
+    exactly that shape.
+    """
+    src = _renderer_src()
+    lines = [
+        line for line in src.splitlines()
+        if not line.lstrip().startswith("//")
+    ]
+    for i, line in enumerate(lines[:-3]):
+        if "await navigateTo(" not in line:
+            continue
+        window = "\n".join(lines[i:i + 4])
+        assert "docView.scrollTop =" not in window, (
+            f"line {i + 1}: a scroll assignment after a navigation is "
+            f"overwritten by applyScrollTarget's frame\n{window}"
+        )
+
+
+def test_a_held_position_wins_inside_the_frame() -> None:
+    """It has to be honoured *within* `requestAnimationFrame`, and ahead of
+    both the fragment branch and the `= 0` branch — a repaint is not a
+    navigation and the reader has not asked to go anywhere."""
+    src = _renderer_src()
+    block = src[src.index("function applyScrollTarget("):]
+    block = block[:block.index("\n}\n") + 3]
+    raf = block[block.index("requestAnimationFrame(() => {"):]
+    assert "keepScroll !== undefined" in raf
+    assert raf.index("keepScroll !== undefined") < raf.index("if (frag)")
+    assert raf.index("keepScroll !== undefined") < raf.index("if (fromHistory)")
+
+    # …and the WIRE between the two ends. Checking that `repaintDoc` passes a
+    # held position and that `applyScrollTarget` honours one says nothing about
+    # whether the value travels between them: a mutation that dropped
+    # `opts.keepScroll` from the call site survived both assertions. Same class
+    # as a node that is created and never appended, which is the second time
+    # this session guards have been written for two ends and no middle.
+    call = src[src.index("applyScrollTarget(pathOnly, frag"):]
+    call = call[:call.index(";") + 1]
+    assert "keepScroll" in call, call.strip()
 
 
 def test_a_refusal_is_caught_and_shown() -> None:

@@ -38,6 +38,7 @@ issues:
   - "[[ISS-0185-The-Mark-Control-Sits-Inside-Tasklists-Leftover-Box-And-The-Cycle-Makes-You-Walk-Past-States]]"
   - "[[ISS-0186-The-Mark-Glyphs-Are-Decorative-And-The-Dialog-Is-Too-Narrow-For-Six-Options]]"
   - "[[ISS-0187-The-Repaint-Loses-Your-Place-A-Refusal-Is-Silent-And-The-Dialog-Has-No-Save]]"
+  - "[[ISS-0188-The-Scroll-Fix-Looked-Right-Passed-A-Guard-And-Did-Nothing]]"
 requirements: []
 tasks: []
 depends: []
@@ -424,3 +425,13 @@ Worth recording because it is the pattern of this whole phase in miniature — t
 Third round on the same control ([[ISS-0187]]), and the one that made it usable: the repaint holds its scroll, a server refusal is shown instead of swallowed, and the dialog selects rather than commits so there is a `Save` to press.
 
 Two things worth carrying out of it. **The reported "comment did not reach the file" was a symptom of the missing Save**, not a write bug — the write path was proved correct twice — but reproducing it anyway turned up a genuine silent-refusal defect that had never fired. And **two of six mutations survived first time, both because my guards were wrong rather than the code**: one compared two CSS rules including their selectors so they could never be equal, the other grepped for a string the surrounding prose also contained. A guard that can pass for a reason unrelated to the thing it names is not a guard, and that is now the third distinct way this session has produced one.
+
+## Re-closed 2026-08-17 — the scroll fix that did nothing
+
+[[ISS-0188]]. The previous close fixed this and it did not work: `applyScrollTarget` defers its scroll to `requestAnimationFrame`, so a synchronous restore around `navigateTo` ran a frame early and was overwritten by `scrollTop = 0`. The position is a parameter now, honoured inside the frame ahead of every other branch.
+
+**The guard passed while the bug was live**, and that is the finding worth carrying out of this phase. It asserted that `repaintDoc` read `scrollTop`, that the read preceded the navigation and the write followed it — all true, all irrelevant, because the defect was about *when a callback runs* and the assertion was about the shape of the source.
+
+Four guards this session could pass for a reason unrelated to what they name: two CSS rules compared including their selectors, a grep for a string the surrounding prose contained, a node checked as created rather than appended, and this. The last two are the same shape — **two ends and no middle**.
+
+**And the underlying gap is named, not closed:** there is no way to behaviourally test the renderer in this repo. Every renderer test is a Python scan of `renderer.ts`; there is no DOM, no `requestAnimationFrame`, no JS test runner in `desktop/package.json`. All four rounds of feedback on this control were found by Edwin using it. A green suite should not be read as saying otherwise.
