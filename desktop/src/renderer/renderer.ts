@@ -1607,6 +1607,11 @@ interface GateItem {
   releases_since?: number;
   /** Quiet rows only: why, per ADR-0028 decision 5. */
   subjects?: { id: string; status: string; title?: string; rel?: string }[];
+  /** The mark character the file holds, so the row can draw the same control
+   *  the document draws (ISS-0190). Optional because a caller reading an
+   *  older payload gets `[ ]`, which is what an unsettled row almost always
+   *  is — wrong quietly rather than crashing loudly. */
+  mark?: string;
 }
 interface GateDelta {
   comparable: boolean; baseline: string;
@@ -7325,6 +7330,13 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     wrap.append(start, err);
   }
 
+  // ---- what still has to be DONE, before what is merely IN it ----------
+  //
+  // First on the page (ISS-0190). See `buildGateSection` for why the order is
+  // an argument rather than a preference.
+  const gateSection = buildGateSection(d, releaseId);
+  if (gateSection) wrap.appendChild(gateSection);
+
   // ---- what is in it ---------------------------------------------------
   const c = d.contents;
   const section = document.createElement('section');
@@ -7598,188 +7610,326 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     wrap.appendChild(s);
   }
 
-  // ---- the gate, for a release that has not shipped --------------------
-  if (d.gate?.exists) {
-    const g = document.createElement('section');
-    g.className = 'release-section';
-    const unchecked = Object.values(d.gate.counts || {})
-      .reduce((n, c2) => n + (c2.unchecked || 0), 0);
-    const gh = document.createElement('h3');
-    gh.textContent = `Release gate · ${unchecked} unchecked`;
-    g.appendChild(gh);
-    const rule = document.createElement('p');
-    rule.className = 'meta';
-    rule.textContent = d.gate.rule;
-    g.appendChild(rule);
-    if (d.gate.delta?.summary) {
-      const hist = document.createElement('p');
-      hist.className = 'meta';
-      hist.textContent = d.gate.delta.summary;
-      g.appendChild(hist);
-    }
-
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'review-btn is-primary';
-    open.textContent = 'Open the acceptance tests';
-    open.addEventListener('click', () => {
-      void navigateTo(`/docs/${d.gate.rel}`);
-    });
-    g.appendChild(open);
-
-    // The delta, not the census (FEAT-0108). `60 unchecked` has been true at
-    // all twelve of your-trainer's tags and is a sentence the reader has
-    // learned to skip; `13 new, 0 regressed` has never been said and is the
-    // half somebody can act on today.
-    const delta = d.gate.delta;
-    if (delta?.comparable) {
-      for (const [key, label, hint] of [
-        ['new', 'New', `added since ${delta.baseline}, never walked`],
-        ['chronic', 'Chronic', `unticked at ${delta.baseline} and shipped anyway`],
-        ['regressed', 'Regressed', `was ticked at ${delta.baseline}, unticked now`],
-      ] as const) {
-        const items = delta[key] || [];
-        g.appendChild(gateGroup(
-          `${label} · ${items.length}`, hint, items, d.gate.rel, releaseId,
-          // Chronic rows carry the tag they have been open since. Nothing
-          // else on this page can say "you have shipped four releases over
-          // this one", which is the difference between a backlog and a
-          // five-month-old backlog.
-          key === 'chronic',
-        ));
-      }
-    } else {
-      // Eleven of twelve repos have no release tag, so this is the ordinary
-      // path and not an error state. Say why rather than showing an empty
-      // delta or calling every row new.
-      const why = document.createElement('p');
-      why.className = 'meta';
-      why.textContent = 'No release tag to compare against — showing every '
-        + 'blocking check.';
-      g.appendChild(why);
-      g.appendChild(gateGroup(
-        `Blocking · ${(d.gate.blocking || []).length}`, '',
-        d.gate.blocking || [], d.gate.rel, releaseId, false,
-      ));
-    }
-
-    // Quiet: the subject has not been built yet. Collapsed, and every row
-    // names its subject and that subject's status (ADR-0028 decision 5) —
-    // derived silence that cannot be inspected is indistinguishable from a
-    // surface that lost the row.
-    if (d.gate.quiet?.length) {
-      const det = document.createElement('details');
-      det.className = 'release-quiet';
-      const sum = document.createElement('summary');
-      sum.textContent = `Quiet · ${d.gate.quiet.length} — subject not built yet`;
-      det.appendChild(sum);
-      det.appendChild(gateGroup(
-        '', '', d.gate.quiet, d.gate.rel, releaseId, false, true,
-      ));
-      g.appendChild(det);
-    }
-
-    // Ticked, but the row's own annotation says the evidence is stale. Neither
-    // blocking nor satisfied, and stated rather than folded into either — 53
-    // of your-trainer's ticked rows are here, which is why its honest
-    // blocking number is 113 and its reported one is 60.
-    if (d.gate.stale?.length) {
-      const det = document.createElement('details');
-      det.className = 'release-quiet';
-      const sum = document.createElement('summary');
-      sum.textContent = `Stale evidence · ${d.gate.stale.length} — ticked, `
-        + 'annotated RE-RUN, never re-walked';
-      det.appendChild(sum);
-      det.appendChild(gateGroup(
-        '', '', d.gate.stale, d.gate.rel, releaseId, false, false, true,
-      ));
-      g.appendChild(det);
-    }
-    wrap.appendChild(g);
-  }
   return wrap;
 }
 
-/** Pass / partial / fail on one check, writing the grammar the record already
- *  uses (FEAT-0111 / TASK-0455).
+/** The gate — what still has to be *done* before this release ships.
  *
- *  `[!]` is deliberately absent. It stays readable so a suite already using it
- *  keeps working, and is never offered — offering it would re-open ISS-0177's
- *  gap, where a check leaves the gate with no justification and nothing owed.
- *  The three here all record WHY, which is the point. */
-function verdictControls(item: GateItem, releaseId: string): HTMLElement {
-  const box = document.createElement('span');
-  box.className = 'check-verdict';
-  for (const [verdict, label, prompt] of [
-    ['pass', 'Pass', 'What did you observe? (optional)'],
-    ['partial', 'Partial', 'What worked and what did not? (required)'],
-    ['fail', 'Fail', 'What failed, and where is it tracked? (required)'],
-  ] as const) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'review-btn is-small';
-    btn.textContent = label;
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      void (async () => {
-        const reason = await askForText({
-          title: `${label}: ${item.number} ${item.name}`,
-          detail: `${prompt}\n\nNaming an ISS-#### links it. A partial or a `
-            + 'fail is refused without a reason — the mark and its '
-            + 'justification are written together.',
-          placeholder: verdict === 'pass'
-            ? 'Claude, tablet: HR tile showed 69 bpm'
-            : 'still fails under de-DE, tracked as ISS-0277',
-          confirm: label,
-        });
-        if (reason === null) return;
-        const res = await postJson('/api/notes/mark-check', {
-          number: item.number, name: item.name, verdict, reason,
-        });
-        if (res?.ok) {
-          // Repaint from the server rather than mutating the row: the gate's
-          // groups are a diff against a tag, and a locally-patched row would
-          // stay in whichever group it was in before the mark.
-          void renderReleasePage(releaseId);
-        }
-      })();
-    });
-    box.appendChild(btn);
+ *  Returns `null` for a repo that has never instantiated the suite, which is
+ *  the only reason this is a function that can decline rather than a section
+ *  that is always built. **Absent is not passing** (`acceptance.load`), so a
+ *  repo with no suite gets no gate rather than a clear one.
+ *
+ *  **It is the first section on the page** (ISS-0190). It used to be the
+ *  last, under five sections of inventory, and Edwin's argument for moving it
+ *  is the one worth keeping: *"this needs to be completed (the
+ *  features/issues are things that simply ship with this release)"*. A
+ *  feature on a release is a fact about what is in it. An unchecked Tier 1
+ *  check is an errand. [[FEAT-0108]] turned the gate from a census into a
+ *  delta precisely so somebody could act on it; leaving that delta at the
+ *  bottom of the page gave back half of what the change bought.
+ */
+function buildGateSection(
+  d: ReleasePayload, releaseId: string,
+): HTMLElement | null {
+  if (!d.gate?.exists) return null;
+  const gate = d.gate;
+  const g = document.createElement('section');
+  g.className = 'release-section release-gate-section';
+  const unchecked = Object.values(gate.counts || {})
+    .reduce((n, c2) => n + (c2.unchecked || 0), 0);
+  const gh = document.createElement('h3');
+  gh.textContent = `Release gate · ${unchecked} unchecked`;
+  g.appendChild(gh);
+  const rule = document.createElement('p');
+  rule.className = 'meta';
+  rule.textContent = gate.rule;
+  g.appendChild(rule);
+  if (gate.delta?.summary) {
+    const hist = document.createElement('p');
+    hist.className = 'meta';
+    hist.textContent = gate.delta.summary;
+    g.appendChild(hist);
   }
-  return box;
+
+  // The suite is a FILE, and this page already has one way of showing a file
+  // you can open: a row you click, the same shape a feature, a published
+  // artifact and a verified test all use. `Open the acceptance tests` was a
+  // primary button doing that job in a second idiom (ISS-0190). Edwin: *"just
+  // show this as a file link instead, similar to how the requirements are
+  // shown on that page."*
+  const files = document.createElement('ul');
+  files.className = 'scoped-rowlist';
+  const fileRow = document.createElement('li');
+  const kind = document.createElement('span');
+  kind.className = 'scoped-row-id mono';
+  kind.textContent = 'suite';
+  const name = document.createElement('span');
+  name.className = 'scoped-row-title';
+  // The PATH, once. A filename beside its own full path is the same string
+  // twice on one row, and the path is the more useful half — it is what you
+  // type to find the file outside the app.
+  name.textContent = `docs/${gate.rel}`;
+  fileRow.append(kind, name);
+  fileRow.style.cursor = 'pointer';
+  fileRow.addEventListener('click', () => void navigateTo(`/docs/${gate.rel}`));
+  files.appendChild(fileRow);
+  g.appendChild(files);
+
+  // The delta, not the census (FEAT-0108). `60 unchecked` has been true at
+  // all twelve of your-trainer's tags and is a sentence the reader has
+  // learned to skip; `13 new, 0 regressed` has never been said and is the
+  // half somebody can act on today.
+  const delta = gate.delta;
+  if (delta?.comparable) {
+    for (const [key, label, hint, empty] of [
+      ['new', 'New', `added since ${delta.baseline}, never walked`,
+        `No checks have been added since ${delta.baseline} — everything `
+        + 'blocking today was already blocking then.'],
+      ['chronic', 'Chronic', `unticked at ${delta.baseline} and shipped anyway`,
+        `Nothing has been carried over from ${delta.baseline} — every `
+        + 'blocking check here is new since it.'],
+      ['regressed', 'Regressed', `was ticked at ${delta.baseline}, unticked now`,
+        `No check ticked at ${delta.baseline} has come unticked. Zero here `
+        + 'also means nobody touched the suite, which is not the same as '
+        + 'nothing breaking.'],
+    ] as const) {
+      const items = delta[key] || [];
+      g.appendChild(gateGroup({
+        heading: label, count: String(items.length), hint, empty,
+        items, rel: gate.rel, releaseId,
+        // Chronic rows carry the tag they have been open since. Nothing
+        // else on this page can say "you have shipped four releases over
+        // this one", which is the difference between a backlog and a
+        // five-month-old backlog.
+        withAge: key === 'chronic',
+      }));
+    }
+  } else {
+    // Eleven of twelve repos have no release tag, so this is the ordinary
+    // path and not an error state. Say why rather than showing an empty
+    // delta or calling every row new.
+    const why = document.createElement('p');
+    why.className = 'meta';
+    why.textContent = 'No release tag to compare against — showing every '
+      + 'blocking check.';
+    g.appendChild(why);
+    g.appendChild(gateGroup({
+      heading: 'Blocking', count: String((gate.blocking || []).length),
+      empty: 'Every Tier 1 and Tier 2 check is settled — this release is '
+        + 'not held by its acceptance tests.',
+      items: gate.blocking || [], rel: gate.rel, releaseId,
+    }));
+  }
+
+  // Quiet: the subject has not been built yet. Collapsed, and every row
+  // names its subject and that subject's status (ADR-0028 decision 5) —
+  // derived silence that cannot be inspected is indistinguishable from a
+  // surface that lost the row.
+  if (gate.quiet?.length) {
+    const det = document.createElement('details');
+    det.className = 'release-quiet';
+    const sum = document.createElement('summary');
+    sum.textContent = `Quiet · ${gate.quiet.length} — subject not built yet`;
+    det.appendChild(sum);
+    det.appendChild(gateGroup({
+      items: gate.quiet, rel: gate.rel, releaseId, withSubjects: true,
+    }));
+    g.appendChild(det);
+  }
+
+  // Ticked, but the row's own annotation says the evidence is stale. Neither
+  // blocking nor satisfied, and stated rather than folded into either — 53
+  // of your-trainer's ticked rows are here, which is why its honest
+  // blocking number is 113 and its reported one is 60.
+  if (gate.stale?.length) {
+    const det = document.createElement('details');
+    det.className = 'release-quiet';
+    const sum = document.createElement('summary');
+    sum.textContent = `Stale evidence · ${gate.stale.length} — ticked, `
+      + 'annotated RE-RUN, never re-walked';
+    det.appendChild(sum);
+    det.appendChild(gateGroup({
+      items: gate.stale, rel: gate.rel, releaseId, withRerun: true,
+    }));
+    g.appendChild(det);
+  }
+  return g;
+}
+
+/** The mark, on the left, exactly as the document draws it (ISS-0190).
+ *
+ *  This replaced `Pass · Partial · Fail` — three buttons, on the right of a
+ *  row whose left column is a check number. Those buttons were a **second
+ *  vocabulary for one act**: the same checks in the document already had this
+ *  control, built over four rounds of Edwin's feedback (FEAT-0111,
+ *  ISS-0185..ISS-0189), and it offers six marks where the buttons offered
+ *  three verbs. Edwin: *"you can have the checkbox on the left as long as the
+ *  check box functionality is the same as in the .md file."* It is the same
+ *  dialog, the same six marks and the same endpoint.
+ *
+ *  `actionable` is false for the quiet and stale groups, which get the token
+ *  as a plain `<span>`. Those rows never carried a verdict button either, and
+ *  the reason stands: a quiet row describes a screen that has not been built,
+ *  and a live-looking control on it invites marking a check nobody can walk.
+ */
+function gateMark(
+  item: GateItem, releaseId: string, actionable: boolean,
+): HTMLElement {
+  const mark = item.mark || ' ';
+  // `gate-mark` carries only this row's geometry; every colour, weight and
+  // glyph rule comes from `acc-mark`, so the two surfaces cannot drift into
+  // two vocabularies of colour for one vocabulary of marks.
+  const cls = `acc-mark gate-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
+  const glyph = MARK_GLYPH[mark] ?? `[${mark}]`;
+  const title = MARK_TITLE[mark] ?? '';
+  if (!actionable) {
+    const span = document.createElement('span');
+    span.className = `${cls} is-static`;
+    span.textContent = glyph;
+    span.title = title;
+    return span;
+  }
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = cls;
+  btn.textContent = glyph;
+  btn.title = title;
+  btn.setAttribute('aria-label', `${item.number} ${item.name} — ${title}`);
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    void markGateRow(item, releaseId);
+  });
+  return btn;
+}
+
+/** Mark one gate row, then repaint the page around the reader.
+ *
+ *  **Repaint, where the document patches** (ISS-0189 does the opposite there,
+ *  deliberately). These groups are a *diff against a tag*: a marked row leaves
+ *  `New` or `Chronic` altogether and the count in the heading above it
+ *  changes, so a locally-patched row would sit under a heading that had just
+ *  stopped describing it.
+ *
+ *  What the repaint must not do is move the reader, which is the half
+ *  ISS-0187 was right about and which this path never did. The position is
+ *  held twice — once synchronously and once inside the frame — because
+ *  `renderReleasePage` replaces the pane's children and layout lands a frame
+ *  later, which is exactly how ISS-0188's fix came to do nothing.
+ */
+async function markGateRow(item: GateItem, releaseId: string): Promise<void> {
+  const chosen = await askForMark({
+    number: item.number, name: item.name, current: item.mark || ' ',
+  });
+  if (chosen === null) return;              // nothing written, nothing repainted
+  try {
+    // `postJson` THROWS on refusal — it does not return `{ok: false}`. An
+    // `if (!res?.ok)` here would be unreachable and a server refusal would
+    // become an unhandled rejection with no toast (ISS-0187, in the other
+    // caller of this same endpoint).
+    await postJson('/api/notes/mark-check', {
+      number: item.number, name: item.name,
+      verdict: chosen.verdict, reason: chosen.reason,
+    });
+  } catch (err: unknown) {
+    showStatus(`Could not mark ${item.number}: ${
+      err instanceof Error ? err.message : String(err)}`, 'error');
+    scheduleHide(6000);
+    return;
+  }
+  const held = docView.scrollTop;
+  await renderReleasePage(releaseId);
+  docView.scrollTop = held;
+  requestAnimationFrame(() => { docView.scrollTop = held; });
+}
+
+interface GateGroupOptions {
+  items: GateItem[];
+  /** The suite's docs-relative path — every row navigates into it. */
+  rel: string;
+  releaseId: string;
+  heading?: string;
+  /** Rendered as a chip beside the heading rather than glued to it with a
+   *  middot: `New · 13` was a heading that had to be parsed to be read. */
+  count?: string;
+  hint?: string;
+  /** What this group means when it holds nothing. Required in practice —
+   *  `None.` names nothing, which is what TASK-0318 swept out of every other
+   *  pane in the app. */
+  empty?: string;
+  /** Chronic rows only: the tag they have been open since. */
+  withAge?: boolean;
+  /** Quiet rows only: the subject that is not built yet, and its status. */
+  withSubjects?: boolean;
+  /** Stale rows only: the `RE-RUN` annotation, verbatim. */
+  withRerun?: boolean;
 }
 
 /** One group of gate rows. Every group renders through here so four lists
- *  cannot drift into four layouts. */
-function gateGroup(
-  heading: string, hint: string, items: GateItem[], rel: string,
-  releaseId: string, withAge: boolean,
-  withSubjects = false, withRerun = false,
-): HTMLElement {
+ *  cannot drift into four layouts.
+ *
+ *  **Named arguments** (ISS-0190). The quiet group's call site read
+ *  `gateGroup('', '', gate.quiet, gate.rel, releaseId, false, true)` before
+ *  this — seven positional values, two of them empty strings and two of them
+ *  trailing booleans nobody could name from the call. */
+function gateGroup(opts: GateGroupOptions): HTMLElement {
+  const {
+    items, rel, releaseId,
+    heading = '', count = '', hint = '', empty = '',
+    withAge = false, withSubjects = false, withRerun = false,
+  } = opts;
   const box = document.createElement('div');
   box.className = 'release-gate-group';
-  if (heading) {
-    const h = document.createElement('h4');
-    h.textContent = heading;
-    box.appendChild(h);
-  }
-  if (hint) {
-    const p = document.createElement('p');
-    p.className = 'meta';
-    p.textContent = hint;
-    box.appendChild(p);
+  // Heading, count and hint on ONE line. Three stacked blocks for what is
+  // really one label pushed the first row of every group a third of the way
+  // down the section, and a page with four groups spent more height saying
+  // what the lists were than showing them.
+  if (heading || hint) {
+    const head = document.createElement('div');
+    head.className = 'gate-group-head';
+    if (heading) {
+      const h = document.createElement('h4');
+      h.textContent = heading;
+      head.appendChild(h);
+      if (count) {
+        const chip = document.createElement('span');
+        chip.className = 'gate-group-count mono';
+        // Zero reads differently from any other number here: it is the only
+        // one that is good news, and a red-adjacent chip on it would say the
+        // opposite of what it means.
+        if (count === '0') chip.classList.add('is-zero');
+        chip.textContent = count;
+        head.appendChild(chip);
+      }
+    }
+    if (hint) {
+      const p = document.createElement('p');
+      p.className = 'gate-group-hint';
+      p.textContent = hint;
+      head.appendChild(p);
+    }
+    box.appendChild(head);
   }
   if (!items.length) {
     const none = document.createElement('p');
-    none.className = 'meta';
-    none.textContent = 'None.';
+    none.className = 'gate-group-empty';
+    // `None.` names nothing, and a reader cannot tell an empty group from a
+    // broken one — the sweep TASK-0318 ran over every other pane in the app.
+    // An empty gate group is usually the good news on the page, so it should
+    // be able to say what it means.
+    none.textContent = empty || 'Nothing here — this group is empty.';
     box.appendChild(none);
     return box;
   }
   const rows = document.createElement('ul');
-  rows.className = 'scoped-rowlist';
+  rows.className = 'scoped-rowlist gate-rowlist';
   for (const item of items.slice(0, 40)) {
     const li = document.createElement('li');
+    // The mark FIRST — the control, not a decoration, and the row's own
+    // left-hand column (ISS-0190). A row that is not a thing to walk gets the
+    // same token without the click, so the four lists still line up.
+    li.appendChild(gateMark(item, releaseId, !withSubjects && !withRerun));
     const n = document.createElement('span');
     n.className = 'scoped-row-id mono';
     n.textContent = item.number;
@@ -7816,19 +7966,13 @@ function gateGroup(
       }
     }
     if (withRerun && item.rerun) bits.push(item.rerun);
-    if (item.failed) bits.push('failed');
+    // `failed` is no longer worth a word in the meta: the row's own mark says
+    // it, in the file's own notation, at the left edge where the eye starts.
     a.textContent = bits.filter(Boolean).join(' · ');
     li.append(n, t, a, ...subjectLinks);
-    // The marks the record already uses (FEAT-0111). Offered only on rows
-    // that are actually owed — a quiet or stale row is not a thing to walk,
-    // and putting a verdict button on one would invite marking a check whose
-    // screen does not exist.
-    if (!withSubjects && !withRerun) {
-      li.appendChild(verdictControls(item, releaseId));
-    }
     li.style.cursor = 'pointer';
     li.addEventListener('click', (ev) => {
-      if ((ev.target as HTMLElement).closest('.check-verdict')) return;
+      if ((ev.target as HTMLElement).closest('.acc-mark')) return;
       void navigateTo(`/docs/${rel}${item.anchor ? `#${item.anchor}` : ''}`);
     });
     rows.appendChild(li);

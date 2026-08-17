@@ -4229,10 +4229,15 @@ def _release_content_rows(
     issues etc …) to be accessible from the left pane. You can group the
     features and other such ticket types together?"*
 
-    So a release's group carries subgroups — Features, Issues, Acceptance
-    tests, Documents — rather than one flat list where a play-store XML sat
+    So a release's group carries subgroups — Acceptance tests, Features,
+    Issues, Documents — rather than one flat list where a play-store XML sat
     between a feature and a test. The nav already renders `subgroups`; this is
     the shape `_features_groups` uses for a phase.
+
+    **The tests come first** (ISS-0190), and the order is Edwin's argument
+    rather than a preference: everything else in this group is inventory —
+    what the release contains — and the suite is the only part of it that
+    somebody still has to *do*.
 
     Everything here is in the record already and was reachable only from the
     page: `features:`, `issues:` and the `ISS-*` a release's `related:` names,
@@ -4253,6 +4258,27 @@ def _release_content_rows(
         record = index.get(path) if path is not None else None
 
     groups: list[dict[str, Any]] = []
+
+    # **Acceptance tests FIRST** (ISS-0190). Edwin: *"since this needs to be
+    # completed (the features/issues are things that simply ship with this
+    # release)"* — which is the distinction the old order missed. A feature on
+    # a release is a FACT ABOUT WHAT IS IN IT; an unchecked Tier 1 check is AN
+    # ERRAND. Ordering by the record's structure put the errand third.
+    tests = [
+        row(_wikilink_target(str(raw)), "test", "verified")
+        for raw in (release or {}).get("tests_verified") or []
+    ]
+    if not shipped:
+        tests.append({
+            "id": "", "title": "ACCEPTANCE_TESTS.md",
+            "subtitle": "all acceptance tests", "status": "ready",
+            "type": "test", "url": "/docs/tests/ACCEPTANCE_TESTS.md",
+        })
+    if tests:
+        groups.append({"key": "rel-tests",
+                       "label": f"Acceptance tests · {len(tests)}",
+                       "url": None, "status": None, "item_layout": "stacked",
+                       "items": tests})
 
     features = [row(f, "feature") for f in feature_ids if f]
     if features:
@@ -4276,22 +4302,6 @@ def _release_content_rows(
         groups.append({"key": "rel-issues", "label": f"Issues · {len(issues)}",
                        "url": None, "status": None, "item_layout": "stacked",
                        "items": issues})
-
-    tests = [
-        row(_wikilink_target(str(raw)), "test", "verified")
-        for raw in (release or {}).get("tests_verified") or []
-    ]
-    if not shipped:
-        tests.append({
-            "id": "", "title": "ACCEPTANCE_TESTS.md",
-            "subtitle": "all acceptance tests", "status": "ready",
-            "type": "test", "url": "/docs/tests/ACCEPTANCE_TESTS.md",
-        })
-    if tests:
-        groups.append({"key": "rel-tests",
-                       "label": f"Acceptance tests · {len(tests)}",
-                       "url": None, "status": None, "item_layout": "stacked",
-                       "items": tests})
 
     # **No `Release note` row.** The group's own header opens the release, so
     # a row underneath was a second way to the same subject — and a

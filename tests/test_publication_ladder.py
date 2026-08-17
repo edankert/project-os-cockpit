@@ -287,6 +287,42 @@ def test_every_publication_row_is_clickable(tmp_path: Path) -> None:
     assert dead == [], dead
 
 
+def test_the_acceptance_tests_are_the_first_thing_a_release_offers(
+    tmp_path: Path,
+) -> None:
+    """ISS-0190, and Edwin's reason is the assertion.
+
+    *"since this needs to be completed (the features/issues are things that
+    simply ship with this release)"* — everything else in a release's group is
+    inventory, and the suite is the only part of it somebody still has to do.
+
+    Pinned as **first**, not merely present: it was third before, and third is
+    what a reader stops reading at when the two groups above it are long.
+    """
+    root = _repo(tmp_path)
+    (root / "docs" / "tests").mkdir(parents=True, exist_ok=True)
+    (root / "docs" / "tests" / "ACCEPTANCE_TESTS.md").write_text(
+        "# Tier 1 — Feature Tests\n\n## 1.1 An area (FEAT-0001)\n\n"
+        "- [ ] **A:** walk me.\n", encoding="utf-8",
+    )
+    feat = root / "docs" / "features" / "f"
+    feat.mkdir(parents=True)
+    (feat / "FEAT-0001-F.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "A feature"\n'
+        "status: done\n---\n", encoding="utf-8",
+    )
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    nxt = next(g for g in groups if g["key"] == "release-next")
+    keys = [s["key"] for s in nxt["subgroups"]]
+    assert keys, "the next release has no content at all"
+    assert keys[0] == "rel-tests", keys
+    # …and the feature it ships is still there, below. Reordering must not
+    # have become removing.
+    assert "rel-features" in keys, keys
+
+
 # ---- 14-16: reported from use, second round ------------------------------
 
 

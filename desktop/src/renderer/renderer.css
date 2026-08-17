@@ -5637,6 +5637,72 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .release-section .review-btn { margin: 8px 0; }
 .release-known { font-size: 12px; line-height: 1.5; }
 
+/* ----- the gate section, now the first thing on the page (ISS-0190) -----
+ *
+ * It is the only section on this page that is an ERRAND — everything below it
+ * is inventory. Being first says most of that; the left rule says the rest,
+ * quietly, without a colour that would read as an alarm on a suite whose
+ * steady state has been "blocked" at all twelve of your-trainer's tags.
+ */
+.release-gate-section {
+  margin-top: 18px;
+  border-left: 2px solid var(--border);
+  padding-left: 14px;
+}
+.release-gate-section > h3 { margin-bottom: 6px; }
+/* The suite's own row sits between the rule and the groups; without this it
+   touches both. */
+.release-gate-section > .scoped-rowlist { margin: 10px 0 4px; }
+
+.release-gate-group { margin-top: 14px; }
+/* Heading, count and hint on ONE line. They were three stacked blocks, which
+   spent more of the section's height announcing the lists than showing
+   them. */
+.gate-group-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.gate-group-head h4 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.gate-group-count {
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 7px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+/* Zero is the only number in this section that is good news. */
+.gate-group-count.is-zero { color: var(--text-faint); }
+.gate-group-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.gate-group-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* The mark is the row's left-hand column and never shrinks — the same rule
+   the id column follows, for the same reason: it is short, fixed, and the
+   title is the part that should shorten. Geometry only: colour, weight and
+   glyph stay with `.acc-mark`, which both surfaces share. */
+.gate-mark {
+  flex: none;
+  margin: 0;
+  font-size: 12px;
+}
+
 /* Tables in the centre pane (ISS-0179). `base.css` styles `.content table`,
    which is the BROWSER cockpit's wrapper class; `#doc-view` carries
    `.doc-view` and never `.content`, so every table rendered in the desktop
@@ -5689,6 +5755,11 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   vertical-align: baseline;
 }
 .acc-mark:hover { text-decoration: underline; }
+/* A row that is not a thing to walk shows its mark and does not offer it
+   (ISS-0190): the gate's quiet and stale groups, where a live-looking control
+   would invite marking a check whose screen has not been built. */
+.acc-mark.is-static { cursor: default; }
+.acc-mark.is-static:hover { text-decoration: none; }
 .acc-mark:focus-visible {
   outline: 2px solid var(--accent, #58a6ff);
   outline-offset: 2px;
@@ -5763,13 +5834,21 @@ ul.task-list li[data-check] { list-style: none; }
   outline-offset: -1px;
   background: color-mix(in srgb, var(--accent, #58a6ff) 12%, transparent);
 }
+/* The reason field is the seam between choosing and committing, and it had no
+ * room on either side: `.ask-field` carries no margin of its own, so the
+ * textarea touched the last choice button, and this row's 0.6rem pulled Save
+ * up under it. The dialog asks for three things in order — choose a mark,
+ * explain it, commit — and the spacing is what makes them read as three
+ * bands rather than one stack. Scoped to `.ask-card-mark` so the single-field
+ * prompts, which have no bands to separate, keep their tighter layout. */
+.ask-card-mark .ask-field { margin-top: 1rem; }
 /* Save is inert until a mark is chosen and any required reason is given, so
  * the dialog cannot be dismissed into a half-stated verdict. */
 .ask-actions-commit {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 0.6rem;
+  margin-top: 1rem;
 }
 .ask-actions-commit .review-btn[disabled] {
   opacity: 0.45;

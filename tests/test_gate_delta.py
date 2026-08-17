@@ -287,6 +287,41 @@ def test_a_failed_check_is_named_and_still_blocks() -> None:
     assert len(suite.blocking()) == 1
 
 
+# ----- the mark the row draws (ISS-0190) ------------------------------------
+
+
+def test_a_gate_row_carries_the_mark_the_file_holds(tmp_path: Path) -> None:
+    """The row wears the document's control now, and a control DRAWS a mark.
+
+    Five booleans cannot be drawn. `parse` read the character, derived
+    `checked`/`reconciled`/`excepted`/`failed`/`question` from it and dropped
+    it, so the client's only route to `[?]` was to infer it — a second reader
+    of one convention, which is the drift the row HTML is rendered server-side
+    to avoid (ISS-0189).
+    """
+    docs = tmp_path / "docs"
+    (docs / "tests").mkdir(parents=True)
+    (docs / acceptance.SUITE_REL).write_text(_suite(
+        "- [ ] **A:** unwalked.",
+        "- [?] **B:** **Question 2026-08-17** — not understood.",
+        "- [F] **C:** **FAILS 2026-08-17** — broke.",
+    ), encoding="utf-8")
+    rows = acceptance.gate_payload(docs)["blocking"]
+    assert {r["name"]: r["mark"] for r in rows} == {"A": " ", "B": "?", "C": "F"}
+
+
+def test_the_mark_is_the_character_and_not_a_classification() -> None:
+    """`x` and `X` are one thing to the gate and two things on screen; so are
+    `/` and `~`. A mark reconstructed from the booleans would collapse both
+    pairs, and a row would show a character its file does not contain."""
+    items = acceptance.parse(_suite(
+        "- [x] **A:** done.", "- [X] **B:** done.",
+        "- [/] **C:** partial.", "- [~] **D:** reconciled.",
+    ))
+    assert [i.mark for i in items] == ["x", "X", "/", "~"]
+    assert [i.checked for i in items] == [True, True, False, False]
+
+
 # ----- against the real twelve releases -------------------------------------
 
 

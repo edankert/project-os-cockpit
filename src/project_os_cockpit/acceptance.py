@@ -226,6 +226,15 @@ class Item:
     #: Meaningful on a **ticked** row, where it means the tick is stale
     #: (TASK-0448).
     rerun: str = ""
+    #: The mark character exactly as the file writes it — `" "`, `"x"`, `"/"`,
+    #: `"~"`, `"-"`, `"!"`, `"F"`, `"?"`, or whatever nobody recognises.
+    #:
+    #: The five booleans above are *classifications* of this, and they are
+    #: lossy on purpose: `x` and `X` are one thing to the gate, and so are `/`
+    #: and `~`. A surface that DRAWS the mark needs the character back, and
+    #: until [[ISS-0190]] it could not have it — `parse` read the mark,
+    #: derived five flags from it and dropped it on the floor.
+    mark: str = " "
     #: 1-based position within its section, so every item has a unique number
     #: (`1.3.2`). Two items in one section otherwise share the section's id,
     #: and a navigator that keys rows on it would address the wrong one.
@@ -383,6 +392,7 @@ def parse(text: str) -> list[Item]:
             failed=mark in _FAILED_MARKS,
             question=mark in _QUESTION_MARKS,
             rerun=rerun.group(1).strip() if rerun else "",
+            mark=mark,
             refs=refs, ordinal=ordinal, heading=full_heading,
         ))
     return items
@@ -602,6 +612,11 @@ def _row(item: "Item", **extra: Any) -> dict[str, Any]:
         # execute the current set."*
         "text": item.text, "anchor": item.anchor,
         "failed": item.failed, "rerun": item.rerun,
+        # The mark the file holds, so the row can DRAW it (ISS-0190). The gate
+        # row and the document row are the same check and now wear the same
+        # control; one of them reading its state from `data-mark` and the other
+        # inferring it from booleans is how the two would come to disagree.
+        "mark": item.mark,
     }
     out.update(extra)
     return out
