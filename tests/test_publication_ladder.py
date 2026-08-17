@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from project_os_cockpit import cockpit, publication
+from project_os_cockpit import cockpit, statuses, publication
 from project_os_cockpit.index import Index
 
 FLEET = Path.home() / "Dev" / "repos"
@@ -376,3 +376,115 @@ def test_every_view_that_owes_something_has_a_button_to_badge() -> None:
     # silently tolerated.
     missing = owed_views - mapped - {"overview"}
     assert missing == set(), missing
+
+
+def _with_suite(root: Path, rows: str) -> None:
+    (root / "docs" / "tests").mkdir(parents=True, exist_ok=True)
+    (root / "docs" / "tests" / "ACCEPTANCE_TESTS.md").write_text(
+        "# Tier 1 — Feature Tests\n\n## 1.1 An area (FEAT-0001)\n\n" + rows,
+        encoding="utf-8",
+    )
+
+
+def _tests_group(root: Path) -> dict:
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    nxt = next(g for g in groups if g["key"] == "release-next")
+    return next(
+        (s for s in nxt["subgroups"] if s["key"] == "rel-tests"), {},
+    )
+
+
+def test_the_acceptance_row_reads_the_gate_rather_than_asserting_ready(
+    tmp_path: Path,
+) -> None:
+    """ISS-0191. Edwin: *"it says ready at the moment which is very
+    unlikely?"*
+
+    `ready` means *defined and never executed* — `statuses.py` says so on the
+    line that carries it — so a hard-coded `ready` claimed that nothing in a
+    542-row suite had ever been walked. The point is not that `blocked` is a
+    better word: it is that the value MOVES. Both states are asserted here,
+    from the same file, so a literal cannot pass.
+    """
+    root = _repo(tmp_path)
+    _with_suite(root, "- [ ] **A:** walk me.\n- [x] **B:** walked.\n")
+    blocked = _tests_group(root)
+    suite_row = next(r for r in blocked["items"] if "ACCEPTANCE" in r["title"])
+    assert suite_row["status"] == "blocked", suite_row
+    assert "1 of 2" in suite_row["subtitle"], suite_row
+    assert blocked["label"] == "Acceptance tests · 1 unchecked", blocked["label"]
+
+    # …and marking the last one settles the row, which the literal never did.
+    _with_suite(root, "- [x] **A:** walked.\n- [x] **B:** walked.\n")
+    clear = _tests_group(root)
+    settled = next(r for r in clear["items"] if "ACCEPTANCE" in r["title"])
+    assert settled["status"] == "passing", settled
+    assert clear["label"] == "Acceptance tests · all settled", clear["label"]
+
+
+def test_a_settled_gate_does_not_file_the_next_release_under_completed(
+    tmp_path: Path,
+) -> None:
+    """The trap ISS-0179 fell into, re-checked because this row now carries a
+    terminal status where it used to carry `ready`.
+
+    `groupIsSettled` reads EVERY item a group holds, nested subgroups
+    included, so a `passing` acceptance row is safe only for as long as
+    something else in the release is not terminal. The unshipped features are
+    that something, and they are `ready` for exactly this reason.
+    """
+    root = _repo(tmp_path)
+    _with_suite(root, "- [x] **A:** walked.\n")
+    feat = root / "docs" / "features" / "f"
+    feat.mkdir(parents=True)
+    (feat / "FEAT-0001-F.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "A feature"\n'
+        "status: done\n---\n", encoding="utf-8",
+    )
+    groups = cockpit.nav_payload(
+        Index.build(root / "docs"), "publication", project_root=root,
+    )["groups"]
+    nxt = next(g for g in groups if g["key"] == "release-next")
+    rows = [i for s in nxt["subgroups"] for i in s["items"]]
+    assert rows, "the next release has no rows to judge"
+    open_rows = [
+        r for r in rows
+        if str(r.get("status") or "").lower() not in statuses.COMPLETED_STATUSES
+    ]
+    assert open_rows, (
+        "every row in the next release is terminal, so the navigator will "
+        "file it under COMPLETED — the ISS-0179 defect, re-opened"
+    )
+
+
+def test_a_repo_with_no_acceptance_tests_gets_no_dead_row(
+    tmp_path: Path,
+) -> None:
+    """The row was appended unconditionally with a hard-coded path, so every
+    repo that has not instantiated the contract had a navigator row leading to
+    a 404. The release page states the absence instead — see
+    `buildGateSection`, which must not simply render nothing."""
+    root = _repo(tmp_path)
+    assert not (root / "docs" / "tests" / "ACCEPTANCE_TESTS.md").exists()
+    assert _tests_group(root) == {}, "a row for a file that is not there"
+
+
+def test_no_surface_calls_the_acceptance_tests_a_suite() -> None:
+    """Edwin: *"Don't call the acceptance tests suite."*
+
+    Code lines only, and only the renderer: `SUITE_REL` and `class Suite` name
+    a Python object and stay. What must not happen is that noun reaching a
+    label, a heading or a sentence a reader sees.
+    """
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+    leaked = [
+        line.strip() for line in src.splitlines()
+        if re.search(r"""['"`][^'"`]*\bsuites?\b""", line, re.IGNORECASE)
+        and not line.lstrip().startswith(("//", "*", "/*"))
+    ]
+    assert leaked == [], leaked

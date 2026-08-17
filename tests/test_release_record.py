@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from project_os_cockpit import cockpit, note_writes, publication
+from project_os_cockpit import cockpit, note_writes, publication, statuses
 from project_os_cockpit.index import Index
 
 YT = Path.home() / "Dev" / "repos" / "your-trainer" / "docs"
@@ -246,7 +246,19 @@ def test_the_next_release_does_not_read_as_settled(tmp_path: Path) -> None:
     """The inversion Edwin found. A next release is by definition full of
     `done` features, so carrying each feature's own status made the whole
     group read as finished — it went to the Completed band while shipped
-    releases, whose rows had no status at all, sorted to the top as open."""
+    releases, whose rows had no status at all, sorted to the top as open.
+
+    **Asserted as the property, not as a proxy for it** (ISS-0191). This read
+    `all(status == "ready")`, which is one way to keep the group unsettled and
+    was mistaken for the rule itself — so when the acceptance row started
+    reporting the gate (`blocked`/`passing`, which IS its state in this
+    release) the guard went red over a change it had no opinion about, while
+    still not covering the state that would actually break it: nothing
+    unshipped and a settled gate, where the only row left is terminal.
+
+    Both halves are pinned now. Rows that stand for a NOTE still carry
+    `ready`; the group as a whole must always hold something unfinished.
+    """
     docs = _docs(tmp_path)
     (docs / "features" / "f").mkdir(parents=True)
     (docs / "features" / "f" / "FEAT-0001-F.md").write_text(
@@ -258,9 +270,54 @@ def test_the_next_release_does_not_read_as_settled(tmp_path: Path) -> None:
     )["groups"]
     nxt = groups[0]
     assert nxt["key"] == "release-next", "the next release comes first"
-    rows = [i for sg in nxt["subgroups"] for i in sg["items"]]
-    assert all(i["status"] == "ready" for i in rows), \
+    rows = [i for sg in nxt["subgroups"] for i in sg["items"]] + nxt["items"]
+    named = [i for i in rows if i["id"]]
+    assert named, "no row names a note, so the rule below asserts nothing"
+    assert all(i["status"] == "ready" for i in named), \
         "a row's status is its state IN THIS RELEASE, not the note's own"
+    _assert_not_all_terminal(rows)
+
+
+def _assert_not_all_terminal(rows: list) -> None:
+    """The property `groupIsSettled` reads: a group every one of whose rows is
+    terminal sinks into the Completed band."""
+    open_rows = [
+        r for r in rows
+        if str(r.get("status") or "").lower() not in statuses.COMPLETED_STATUSES
+    ]
+    assert open_rows, (
+        "every row in the next release is terminal, so the navigator files "
+        "it under COMPLETED — the ISS-0179 inversion, reached again"
+    )
+
+
+def test_a_settled_gate_and_nothing_unshipped_still_reads_as_open(
+    tmp_path: Path,
+) -> None:
+    """The state the old proxy could not see (ISS-0191).
+
+    Nothing waiting on a release, every Tier 1/2 check settled: the features
+    subgroup is absent, so the only row left is the acceptance one — and it is
+    `passing`, which is terminal. `Next release` would file itself under
+    Completed, which is what Edwin has now reported twice.
+    """
+    docs = _docs(tmp_path)          # `_docs` writes a suite with one unticked row
+    (docs / "tests" / "ACCEPTANCE_TESTS.md").write_text(
+        "# Tier 1 — Feature Tests\n\n## 1.1 Area (FEAT-0001)\n"
+        "- [x] **A:** walked.\n", encoding="utf-8",
+    )
+    groups = cockpit.nav_payload(
+        Index.build(docs), "publication", project_root=docs.parent,
+    )["groups"]
+    nxt = groups[0]
+    assert nxt["key"] == "release-next"
+    rows = [i for sg in nxt["subgroups"] for i in sg["items"]] + nxt["items"]
+    assert any("Nothing unshipped" in str(r["title"]) for r in rows), (
+        "the placeholder that says the release is empty is unreachable — it "
+        "was keyed on the subgroups being empty, and the acceptance subgroup "
+        "is almost always there"
+    )
+    _assert_not_all_terminal(rows)
 
 
 def test_a_shipped_release_reads_as_settled(tmp_path: Path) -> None:

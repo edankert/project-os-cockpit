@@ -4141,10 +4141,9 @@ def _publication_groups(
     )
     if since_id:
         label = f"{label} · since {since_id}"
+    _next_ids = [str(row.get("id") or "") for row in (unshipped.get("items") or [])]
     _next_content = _release_content_rows(
-        index,
-        [str(row.get("id") or "") for row in (unshipped.get("items") or [])],
-        held, row_status="ready", shipped=False,
+        index, _next_ids, held, row_status="ready", shipped=False,
     )
     out.append({
         "key": "release-next",
@@ -4165,12 +4164,26 @@ def _publication_groups(
         #
         # The status a row carries here is its state IN THIS RELEASE — these
         # are done-but-unshipped, so from the release's point of view they are
-        # pending, not finished.
+        # pending, not finished. The acceptance row is the one exception and
+        # is not an exception to the rule, only to the value: `blocked` IS its
+        # state in this release (ISS-0191).
+        #
         # A repo with nothing unshipped and no release note has no subgroups
         # at all, and a group with neither items nor subgroups renders
         # NOTHING — so the whole view would be blank in a project that has
         # simply not released anything yet. It says so instead.
-        "items": ([] if _next_content else [{
+        #
+        # **Keyed on what is unshipped, not on whether the subgroups came back
+        # empty** (ISS-0191). The old condition had quietly become
+        # unreachable: the acceptance row was appended unconditionally, so
+        # `_next_content` was never empty and this placeholder could not
+        # render in the state it exists for. It also matters for a second
+        # reason — with the acceptance row now able to read `passing`, a repo
+        # with nothing unshipped and a settled gate would offer the group only
+        # terminal rows, and `groupIsSettled` would file `Next release` under
+        # COMPLETED. That is ISS-0179 exactly, reached by a different road.
+        # This row is the group's guarantee of something unfinished to say.
+        "items": ([] if _next_ids else [{
             "id": "", "title": "Nothing unshipped",
             "subtitle": "no features are waiting on a release",
             "status": "", "type": "release", "url": "~release/next",
@@ -4268,15 +4281,53 @@ def _release_content_rows(
         row(_wikilink_target(str(raw)), "test", "verified")
         for raw in (release or {}).get("tests_verified") or []
     ]
+    label = f"Acceptance tests · {len(tests)}"
     if not shipped:
-        tests.append({
-            "id": "", "title": "ACCEPTANCE_TESTS.md",
-            "subtitle": "all acceptance tests", "status": "ready",
-            "type": "test", "url": "/docs/tests/ACCEPTANCE_TESTS.md",
-        })
+        # **The state, read — not a literal** (ISS-0191). This row carried
+        # `status: "ready"`, hard-coded, and `ready` means *a test that is
+        # defined and has not been executed* (ADR-0008/ADR-0010; statuses.py
+        # says so on the line that carries it). Of your-trainer's 542 checks
+        # several hundred are ticked, so the row asserted something false
+        # about every repo that has ever walked one — and, being a literal,
+        # it would have gone on asserting it however many were marked.
+        #
+        # Read from `gate_payload`, which is what the release page's
+        # `Release gate · N unchecked` heading counts. Two surfaces, one
+        # computation, so they cannot disagree. No index and no project_root:
+        # this needs the counts, not the delta, and the delta costs git.
+        gate = _acceptance.gate_payload(index.docs_root)
+        # A row pointing at a file that need not exist was a dead click in
+        # every repo that has not instantiated the contract. The release page
+        # states the absence instead — silence about a missing suite reads as
+        # a clear gate, which is the one thing `acceptance.load` refuses to
+        # let a surface imply.
+        if gate.get("exists"):
+            counts = (gate.get("counts") or {}).values()
+            unchecked = sum(int(c.get("unchecked") or 0) for c in counts)
+            total = sum(int(c.get("total") or 0) for c in counts)
+            tests.append({
+                "id": "",
+                "title": "ACCEPTANCE_TESTS.md",
+                "subtitle": (
+                    f"{unchecked} of {total} Tier 1/2 checks unwalked — a "
+                    "release is blocked while any is"
+                    if unchecked else
+                    f"all {total} Tier 1/2 checks settled"
+                ),
+                # Both are canonical values, and neither refiles the group the
+                # way ISS-0179's did: `blocked` is its own band, and `passing`
+                # is terminal but sits beside unshipped features that are not.
+                "status": "blocked" if unchecked else "passing",
+                "type": "test",
+                "url": f"/docs/{gate['rel']}",
+            })
+            # The number a person is deciding on, in the heading. `· 1` counted
+            # FILES under a label that reads as a count of TESTS.
+            label = (f"Acceptance tests · {unchecked} unchecked" if unchecked
+                     else "Acceptance tests · all settled")
     if tests:
         groups.append({"key": "rel-tests",
-                       "label": f"Acceptance tests · {len(tests)}",
+                       "label": label,
                        "url": None, "status": None, "item_layout": "stacked",
                        "items": tests})
 

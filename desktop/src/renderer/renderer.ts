@@ -7632,10 +7632,26 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
 function buildGateSection(
   d: ReleasePayload, releaseId: string,
 ): HTMLElement | null {
-  if (!d.gate?.exists) return null;
+  if (!d.gate) return null;
   const gate = d.gate;
   const g = document.createElement('section');
   g.className = 'release-section release-gate-section';
+  // **Absent is not passing** (ISS-0191, and `acceptance.load`'s own rule).
+  // This returned `null` for a repo that has never instantiated the contract,
+  // so the page said nothing — and nothing, on a section headed by what
+  // blocks a release, reads as "nothing blocks it". That is the state every
+  // repo was in before the gate existed. Same words `mountReleaseGate` uses.
+  if (!gate.exists) {
+    const h = document.createElement('h3');
+    h.textContent = 'Release gate · cannot be evaluated';
+    const why = document.createElement('p');
+    why.className = 'meta';
+    why.textContent = 'No acceptance tests in this repo — an empty gate is '
+      + 'not a clear one. Scaffold docs/tests/ACCEPTANCE_TESTS.md from '
+      + 'docs/__templates__/acceptance-tests.md to turn it on.';
+    g.append(h, why);
+    return g;
+  }
   const unchecked = Object.values(gate.counts || {})
     .reduce((n, c2) => n + (c2.unchecked || 0), 0);
   const gh = document.createElement('h3');
@@ -7652,18 +7668,22 @@ function buildGateSection(
     g.appendChild(hist);
   }
 
-  // The suite is a FILE, and this page already has one way of showing a file
-  // you can open: a row you click, the same shape a feature, a published
-  // artifact and a verified test all use. `Open the acceptance tests` was a
-  // primary button doing that job in a second idiom (ISS-0190). Edwin: *"just
-  // show this as a file link instead, similar to how the requirements are
-  // shown on that page."*
+  // The acceptance tests are a FILE, and this page already has one way of
+  // showing a file you can open: a row you click, the same shape a feature, a
+  // published artifact and a verified test all use. `Open the acceptance
+  // tests` was a primary button doing that job in a second idiom (ISS-0190).
+  // Edwin: *"just show this as a file link instead, similar to how the
+  // requirements are shown on that page."*
+  //
+  // The label is not `suite` (ISS-0191). That is this module's internal noun
+  // — `SUITE_REL`, `class Suite` — and it had leaked onto a surface where the
+  // thing already has a name a reader uses.
   const files = document.createElement('ul');
   files.className = 'scoped-rowlist';
   const fileRow = document.createElement('li');
   const kind = document.createElement('span');
   kind.className = 'scoped-row-id mono';
-  kind.textContent = 'suite';
+  kind.textContent = 'tests';
   const name = document.createElement('span');
   name.className = 'scoped-row-title';
   // The PATH, once. A filename beside its own full path is the same string
@@ -7691,8 +7711,8 @@ function buildGateSection(
         + 'blocking check here is new since it.'],
       ['regressed', 'Regressed', `was ticked at ${delta.baseline}, unticked now`,
         `No check ticked at ${delta.baseline} has come unticked. Zero here `
-        + 'also means nobody touched the suite, which is not the same as '
-        + 'nothing breaking.'],
+        + 'also means nobody touched the acceptance tests, which is not the '
+        + 'same as nothing breaking.'],
     ] as const) {
       const items = delta[key] || [];
       g.appendChild(gateGroup({
