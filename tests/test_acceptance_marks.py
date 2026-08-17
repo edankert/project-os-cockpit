@@ -29,8 +29,10 @@ FOUR = (
     "# Tier 1 — Feature Tests\n\n## 1.1 An area (FEAT-0001)\n\n"
     "- [ ] **Unwalked:** a.\n\n"
     "- [x] **Passed:** b.\n\n"
-    "- [~] **Excused:** c. **Blocked 2026-08-17** — no hardware\n\n"
-    "- [F] **Failed:** d. **FAILS 2026-08-17** — crashes\n"
+    "- [/] **Partial:** c. **Partial pass 2026-08-17** — de-DE only\n\n"
+    "- [-] **Canceled:** d. **Blocked 2026-08-17** — no hardware\n\n"
+    "- [!] **Failed:** e. **FAILS 2026-08-17** — crashes\n\n"
+    "- [?] **Unclear:** f. **Open 2026-08-17** — what is a slot?\n"
 )
 
 
@@ -52,9 +54,10 @@ def _rows(html: str) -> dict[str, str]:
     return out
 
 
-def test_all_four_marks_are_addressed_not_just_the_two_tasklist_knows() -> None:
+def test_all_six_marks_are_addressed_not_just_the_two_tasklist_knows() -> None:
     got = _rows(_render(FOUR))
-    assert got == {"1.1.1": " ", "1.1.2": "x", "1.1.3": "~", "1.1.4": "F"}
+    assert got == {"1.1.1": " ", "1.1.2": "x", "1.1.3": "/",
+                   "1.1.4": "-", "1.1.5": "!", "1.1.6": "?"}
 
 
 def test_the_two_marks_tasklist_understands_still_get_their_input() -> None:
@@ -68,7 +71,8 @@ def test_the_two_marks_tasklist_understands_still_get_their_input() -> None:
 
 def test_the_literal_mark_is_stripped_only_where_tasklist_leaves_one() -> None:
     html = _render(FOUR)
-    assert "[~]" not in html and "[F]" not in html
+    for literal in ("[/]", "[-]", "[!]", "[?]"):
+        assert literal not in html, literal
     # …and the row's own prose survives.
     assert "no hardware" in html and "crashes" in html
 
@@ -103,14 +107,19 @@ def test_a_gating_row_says_so() -> None:
 
 @needs_trainer
 def test_almost_every_row_of_the_real_suite_is_addressable() -> None:
-    """573 of 579. The six that are not are rows Markdown never made into list
-    items — a blank line missing in the document that owns them, which
-    [[TASK-0457]] names rather than papering over."""
+    """Almost all of them. The handful that are not are rows Markdown never
+    made into list items — a blank line missing in the document that owns them,
+    which [[TASK-0457]] names rather than papering over.
+
+    **A ratio, not a count.** This suite is a live document that Edwin edits
+    and now marks from the app, so `== 579` is a test that fails when the
+    feature works. What must hold is that essentially every row is reachable.
+    """
     text = (TRAINER / "docs" / acceptance.SUITE_REL).read_text(encoding="utf-8")
     items = acceptance.parse(text)
     addressed = _rows(_render(text, acceptance.SUITE_REL))
-    assert len(items) == 579
-    assert len(addressed) >= 570, (
+    assert len(items) > 100, "this is the big suite, not a stub"
+    assert len(addressed) >= len(items) * 0.98, (
         f"only {len(addressed)} of {len(items)} rows addressable"
     )
     # No address is ever emitted twice — that would mean two rows sharing one
@@ -139,10 +148,13 @@ def test_the_seven_hand_written_marks_are_reachable_now() -> None:
     if not p.exists():
         pytest.skip("the v2.1.0 delta suite is not present")
     rows = _rows(_render(p.read_text(encoding="utf-8"), str(p)))
-    assert sum(1 for m in rows.values() if m == "~") == 5
-    assert sum(1 for m in rows.values() if m == "F") == 1
-    # …and the whole file, so the six-of-579 shortfall cannot grow unnoticed.
-    assert len(rows) == 264, f"{len(rows)} of 300 rows addressable"
+    # At least one of each, reachable. The exact split is whatever the file
+    # says today — and these are precisely the rows Edwin can now re-mark from
+    # the app, so pinning the number would break on use.
+    marks = list(rows.values())
+    assert marks.count("~") >= 1, "the reconciled rows are reachable"
+    assert marks.count("F") >= 1, "the failed row is reachable"
+    assert len(rows) >= 200, f"{len(rows)} rows addressable in a 300-row file"
 
 
 # ----- rows with nothing to click (TASK-0457) -------------------------------
@@ -184,4 +196,165 @@ def test_the_notice_is_never_auto_fixed() -> None:
 def test_the_real_suites_report_their_own_shortfall() -> None:
     text = (TRAINER / "docs" / acceptance.SUITE_REL).read_text(encoding="utf-8")
     html = _render(text, acceptance.SUITE_REL)
-    assert "6 of 579 checks cannot be marked here" in html
+    # Shape and internal consistency, not the figures of the day.
+    found = re.search(r"(\d+) of (\d+) checks cannot be marked here", html)
+    assert found, "the shortfall is stated"
+    unreachable, total = int(found.group(1)), int(found.group(2))
+    assert total == len(acceptance.parse(text))
+    assert 0 < unreachable < total
+    assert len(_rows(html)) == total - unreachable, (
+        "the notice's number is the rows it could not stamp, exactly"
+    )
+
+
+# ----- the affordance, reported from use (ISS-0185) -------------------------
+
+
+def _renderer_src() -> str:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.ts"
+    ).read_text(encoding="utf-8")
+
+
+def _renderer_css() -> str:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "desktop" / "src" / "renderer" / "renderer.css"
+    ).read_text(encoding="utf-8")
+
+
+def test_tasklists_whole_control_is_removed_not_just_its_input() -> None:
+    """`pymdownx.tasklist` renders
+    `<label class="task-list-control"><input><span class="task-list-indicator">`.
+    Removing only the input leaves a styled span behind, which is the box
+    inside a box Edwin reported."""
+    src = _renderer_src()
+    block = src[src.index("function mountAcceptanceMarks"):]
+    block = block[:block.index("\nasync function")]
+    assert "label.task-list-control" in block, (
+        "the label must be removed, not just the input"
+    )
+
+
+def test_the_control_is_mounted_inline_not_before_the_paragraph() -> None:
+    """`li.firstChild` is the `<p>` — a block element — so inserting before it
+    put the control on its own line above the check it marks."""
+    src = _renderer_src()
+    block = src[src.index("function mountAcceptanceMarks"):]
+    block = block[:block.index("\nasync function")]
+    assert "li.insertBefore(btn, li.firstChild)" not in block
+    assert "querySelector('p')" in block
+
+
+def test_the_mark_has_no_border_around_a_glyph_that_is_already_one() -> None:
+    css = _renderer_css()
+    block = css[css.index(".acc-mark {"):]
+    block = block[:block.index("}")]
+    assert "border: 0" in block, "a 1px box around a ring glyph is a box in a box"
+
+
+def test_one_dialog_offers_every_option() -> None:
+    """Edwin: *"maybe if we bring up a dialog, can we then have one dialog with
+    all options?"* Six choices now (ADR-0029), and the four that move the gate
+    on somebody's judgement cannot be taken without a reason."""
+    src = _renderer_src()
+    block = src[src.index("const MARK_CHOICES"):]
+    block = block[:block.index("function askForMark")]
+    for verdict in ("pass", "partial", "excused", "failed", "question", "clear"):
+        assert f"verdict: '{verdict}'" in block, verdict
+    # Every mark that clears or holds the gate on someone's judgement needs a
+    # reason; only a plain pass and a plain clear do not.
+    assert block.count("needsReason: true") == 4
+    assert block.count("needsReason: false") == 2
+
+
+def test_reaching_a_state_costs_one_write_not_three() -> None:
+    """The cycle is gone. `[ ]` → `[F]` used to be three clicks, three writes
+    and two prompts, because `[x]` and `[~]` each asked for a reason on the way
+    past — writes asserting something specific and false."""
+    src = _renderer_src()
+    block = src[src.index("async function cycleAcceptanceMark"):]
+    block = block[:block.index("\ndocView.addEventListener")]
+    assert "MARK_CYCLE" not in block, "no cycling; the dialog names the target"
+    assert block.count("mark-check") == 1, "one write per interaction"
+    assert "askForMark" in block
+
+
+def test_cancelling_writes_nothing_and_does_not_even_repaint() -> None:
+    src = _renderer_src()
+    block = src[src.index("async function cycleAcceptanceMark"):]
+    block = block[:block.index("\ndocView.addEventListener")]
+    cancel = block[block.index("if (chosen === null)"):]
+    cancel = cancel[:cancel.index("\n")]
+    assert "return" in cancel
+    # the write must come after the null check, never before it
+    assert block.index("if (chosen === null)") < block.index("postJson")
+
+
+def test_the_dialog_refuses_a_reasonless_verdict_before_the_round_trip() -> None:
+    """Refused in the client as well as the server, so the reader is told
+    before the round trip rather than after it."""
+    src = _renderer_src()
+    block = src[src.index("function askForMark"):]
+    block = block[:block.index("\n/** How each mark")] if "\n/** How each mark" in block else block[:6000]
+    assert "choice.needsReason && !reason" in block
+
+
+# ----- ADR-0029's table, exactly ---------------------------------------------
+
+
+@pytest.mark.parametrize(("mark", "field", "blocks"), [
+    (" ", None,           True),    # to-do
+    ("x", "checked",      False),   # done
+    ("X", "checked",      False),   # done, legal Markdown variant
+    ("/", "reconciled",   False),   # incomplete
+    ("~", "reconciled",   False),   # incomplete — legacy alias
+    ("-", "excepted",     False),   # canceled
+    ("!", "failed",       True),    # important
+    ("F", "failed",       True),    # important — legacy alias
+    ("?", "question",     True),    # question
+    ("S", None,           True),    # one of Minimal's other sixteen
+    ("@", None,           True),    # a typo
+])
+def test_the_mark_table_is_adr_0029s(
+    mark: str, field: str | None, blocks: bool,
+) -> None:
+    """The whole decision, asserted as a table so a change to any row of it is
+    a change to a test rather than a surprise in a release gate."""
+    suite = acceptance.Suite(items=acceptance.parse(
+        f"# Tier 1 — T\n\n## 1.1 A (FEAT-0001)\n\n- [{mark}] **X:** y.\n",
+    ))
+    item = suite.items[0]
+    for candidate in ("checked", "reconciled", "excepted", "failed", "question"):
+        assert getattr(item, candidate) is (candidate == field), (
+            f"[{mark}] {candidate}"
+        )
+    assert bool(suite.blocking()) is blocks, f"[{mark}] blocking"
+
+
+def test_the_legacy_aliases_behave_exactly_as_their_targets() -> None:
+    """`~` and `F` are read forever and never written. If they ever diverge
+    from `/` and `!`, seven rows in `../your-trainer` quietly change meaning."""
+    def one(mark: str) -> tuple:
+        item = acceptance.parse(
+            f"# Tier 1 — T\n\n## 1.1 A (FEAT-0001)\n\n- [{mark}] **X:** y.\n",
+        )[0]
+        return (item.checked, item.reconciled, item.excepted,
+                item.failed, item.question, item.settled)
+
+    assert one("~") == one("/")
+    assert one("F") == one("!")
+    assert one("X") == one("x")
+
+
+def test_the_marks_the_tool_writes_are_all_minimals() -> None:
+    """No invented character. The point of ADR-0029 is that the third
+    vocabulary is somebody else's."""
+    MINIMAL = set(' /x->< ?!*"lbiSIpcfkwud')
+    for verdict, mark in acceptance.VERDICTS.items():
+        assert mark in MINIMAL, f"{verdict} writes {mark!r}, not a Minimal value"
+    for legacy in acceptance.LEGACY_MARKS:
+        assert legacy not in acceptance.VERDICTS.values(), (
+            f"{legacy!r} is a legacy alias and must never be written"
+        )

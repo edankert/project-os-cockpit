@@ -14,12 +14,12 @@ phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'why do we need the walk button there, why not show the acceptance tests document and maybe a counter on how many checks are outstanding, selecting this brings up the acceptance tests and allows to tick the boxes and at the top allows to select whether it is completed or not and a comment'", "Edwin 2026-08-16: 'it should allow to have un-checked items for a release'", "Edwin 2026-08-16, on the interaction: 'I actually like the cycling checkbox idea better'"]
 goal: "Stop building a second place to walk checks. The acceptance document already renders 542 live checkboxes that already write; give it the band it lacks — which release these gate and how many are outstanding — let the mark cycle to a release exception carrying its justification, and make an exception nobody has justified a thing the registry asks for."
 requirements: []
-tasks: ["[[TASK-0434-The-Check-Map-And-The-Exception-Mark]]", "[[TASK-0437-The-Suite-Band-And-The-Stepper-Retires]]", "[[TASK-0435-The-Cycling-Mark-And-Its-Paired-Write]]", "[[TASK-0436-An-Undocumented-Exception-Is-Owed]]", "[[TASK-0456-A-Checkbox-Carries-Its-Address]]", "[[TASK-0457-A-Row-That-Cannot-Be-Clicked-Says-So]]"]
+tasks: ["[[TASK-0434-The-Check-Map-And-The-Exception-Mark]]", "[[TASK-0437-The-Suite-Band-And-The-Stepper-Retires]]", "[[TASK-0435-The-Cycling-Mark-And-Its-Paired-Write]]", "[[TASK-0436-An-Undocumented-Exception-Is-Owed]]", "[[TASK-0456-A-Checkbox-Carries-Its-Address]]", "[[TASK-0457-A-Row-That-Cannot-Be-Clicked-Says-So]]", "[[TASK-0458-The-Marks-Are-Minimals]]"]
 deferred: []
 design: ""
 release: ""
 depends: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
-related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[ISS-0141]]", "[[ISS-0139]]", "[[FEAT-0105-There-Is-Always-A-Release]]"]
+related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[ISS-0141]]", "[[ISS-0139]]", "[[FEAT-0105-There-Is-Always-A-Release]]"]
 tests: ["[[TST-0031-The-Exception-Mark-And-Its-Justification]]", "[[TST-0038-FEAT0104]]"]
 ---
 
@@ -101,3 +101,11 @@ Edwin: *"I thought we would have the checkboxes in the acceptance-tests.md to ha
 The real blocker was underneath it and unrecorded: **the existing write path mis-addresses**. `check-toggle` takes a DOM ordinal and the server counts source tokens, so from index 257 onward it writes to the wrong row — reproduced, `ok`, wrong line ([[ISS-0184]]). A cycling mark built on that would corrupt in four directions instead of one. So [[TASK-0456]] comes first and the cycle sits on an address that fails to resolve rather than resolving to something else.
 
 **And the 37 get named** ([[TASK-0457]]) rather than rendering a box that silently does nothing — the ISS-0172 rule, that an affordance which cannot work should explain itself rather than vanish or lie.
+
+## Third pass, 2026-08-17 — the vocabulary is Minimal's
+
+Edwin: *"can we use the commonly used checkbox values like they are defined here https://minimal.guide/checklists"*, then *"I confirm [!] and [-] for could not run and I would like the other 2 as well please."*
+
+Six states now, all of them Minimal's ([[ADR-0029]]): `[ ]` to-do, `[x]` done, `[/]` incomplete, `[-]` canceled, `[!]` important, `[?]` question. `~` and `F` are read forever as aliases so the seven rows using them keep working, and nothing in any repo needed editing.
+
+**The point is that the third vocabulary is somebody else's.** The first two were invented here, and the first shipped a permissive mark with no way to demand a justification. `test_the_marks_the_tool_writes_are_all_minimals` refuses any character outside Minimal's 22.

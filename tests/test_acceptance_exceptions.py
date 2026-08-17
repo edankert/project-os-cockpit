@@ -1,4 +1,10 @@
-"""The exception mark, so far as it is built (TST-0031 / FEAT-0104).
+"""**The exception mark moved from `[!]` to `[-]`** (ADR-0029): Minimal calls
+`[-]` *canceled*, and `[!]` *important*, which is now `failed` and blocks. The
+CONCEPT here is unchanged — a check that will not be done and is not holding
+the release keeps its field and its separate count — so this file reads the
+same assertions against a different character.
+
+The exception mark, so far as it is built (TST-0031 / FEAT-0104).
 
 **The interaction is not built yet**, and deliberately: ISS-0175 found that
 the rendered document's checkbox order does not match the suite's, so a
@@ -19,7 +25,7 @@ SUITE = """\
 - [ ] **A:** outstanding.
 - [x] **B:** walked.
 - [~] **C:** retired by decision.
-- [!] **D:** not done, shipping anyway.
+- [-] **D:** not done, shipping anyway.
 """
 
 
@@ -74,7 +80,7 @@ def test_the_check_map_carries_addresses_and_no_dom_index() -> None:
 
 def test_rewriting_to_an_exception_keeps_the_name_check(tmp_path: Path) -> None:
     out = acceptance.rewrite_check(
-        SUITE, "1.1.1", name="A", mark="!", note="_(exception)_",
+        SUITE, "1.1.1", name="A", mark="-", note="_(exception)_",
     )
-    assert "- [!] **A:**" in out
+    assert "- [-] **A:**" in out
     assert acceptance.parse(out)[0].excepted is True

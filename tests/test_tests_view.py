@@ -830,7 +830,10 @@ def test_a_reconciled_item_is_settled_and_still_counted(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("line", [
     "- [v] **A:** a typo, not a tick.",
-    "- [-] **A:** another one.",
+    # `[-]` used to be here as "another typo". ADR-0029 gave it a meaning —
+    # Minimal's *canceled*, a check that could not be run and is not holding
+    # the release — so it is recognised now and `[v]`/`[@]` carry this case.
+    "- [@] **A:** another one.",
     "- [ x] **A:** a space before the x.",
     "  - [ ] **A:** indented under something.",
     "* [ ] **A:** a star bullet.",

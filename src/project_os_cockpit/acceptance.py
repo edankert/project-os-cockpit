@@ -76,7 +76,11 @@ _CHECKED_MARKS = frozenset({"x", "X"})
 #: surface that was retired, or asks for a precondition that cannot be made.
 #: It does not block; it is counted and named, which is the difference between
 #: reconciling something and losing it.
-_RECONCILED_MARKS = frozenset({"~"})
+#: `[/]` is Minimal's *incomplete*; `[~]` is the legacy alias, read forever and
+#: never written. Every one of `../your-trainer`'s seven `~` rows says
+#: *"Partial pass"*, which is why `~` aliases `/` and not `-` — an earlier
+#: draft had it the other way and the rows corrected it (ADR-0029).
+_RECONCILED_MARKS = frozenset({"/", "~"})
 #: **Shipping anyway** (FEAT-0104). A check that is not done, on a release
 #: somebody has decided to ship regardless. `TESTING.md` line 113 has always
 #: allowed this — *"A test may be marked as a release exception if it cannot
@@ -89,7 +93,12 @@ _RECONCILED_MARKS = frozenset({"~"})
 #: was not done. Conflating them would lose exactly the difference ISS-0141
 #: exists to protect, and would make an exception look settled forever when it
 #: expires with its release.
-_EXCEPTED_MARKS = frozenset({"!"})
+#: `[-]` is Minimal's *canceled*, and is where the release exception moved
+#: (ADR-0029). The concept is unchanged — a check that will not be done and is
+#: not holding the release — and it keeps its field and its separate count.
+#: Only the character changed, from the `[!]` this project minted and which was
+#: written in zero suites fleet-wide.
+_EXCEPTED_MARKS = frozenset({"-"})
 #: **Failed, and tracked** (TASK-0454). `../your-trainer`'s own suites use this
 #: with a dated verdict and a linked issue — *"`[F]` … **FAILS 2026-06-07** —
 #: collapse state is stored globally … Tracked as [[ISS-0285]]"*.
@@ -102,7 +111,20 @@ _EXCEPTED_MARKS = frozenset({"!"})
 #:
 #: Recorded so nobody later reads `[F]`-is-blocking as a parser gap and
 #: "fixes" it into a pass. A check that failed is not a check that passed.
-_FAILED_MARKS = frozenset({"F"})
+#: `[!]` is Minimal's *important*; `[F]` is the legacy alias.
+#:
+#: **`[!]` REVERSES MEANING HERE** (ADR-0029). It was a release exception and
+#: did not block; it is *failed* and does. Safe only because the mark is
+#: written in zero suites across twelve repos, verified before the decision
+#: rather than after — any `[!]` authored in the one day it meant the opposite
+#: would silently begin blocking a release.
+_FAILED_MARKS = frozenset({"!", "F"})
+#: `[?]` is Minimal's *question* — the walker read the check and cannot tell
+#: what it is asking. **Blocks**, and it is a third blocking mark that means a
+#: third thing: `[ ]` nobody looked, `[!]` somebody looked and it broke, `[?]`
+#: somebody looked and could not tell. Collapsing any pair loses the
+#: distinction the vocabulary exists for.
+_QUESTION_MARKS = frozenset({"?"})
 #: A check that is ticked but whose evidence was invalidated by a later change.
 #: `TESTING.md` rule 2 says a code change unchecks the tests it overlaps; the
 #: practice in `../your-trainer` is softer — the tick stays and the row gains
@@ -192,6 +214,9 @@ class Item:
     reconciled: bool = False
     #: A release exception: not done, and shipping anyway (FEAT-0104).
     excepted: bool = False
+    #: The check was read and is not understood (`[?]`). Blocking, and
+    #: distinct from unwalked: somebody looked.
+    question: bool = False
     #: Walked and failed, with the failure tracked on the line (TASK-0454).
     #: Blocking — `settled` deliberately does not consult this — and named so a
     #: surface can distinguish *"nobody has walked this"* from *"somebody
@@ -356,6 +381,7 @@ def parse(text: str) -> list[Item]:
             reconciled=mark in _RECONCILED_MARKS,
             excepted=mark in _EXCEPTED_MARKS,
             failed=mark in _FAILED_MARKS,
+            question=mark in _QUESTION_MARKS,
             rerun=rerun.group(1).strip() if rerun else "",
             refs=refs, ordinal=ordinal, heading=full_heading,
         ))
@@ -804,9 +830,15 @@ def rewrite_check(
             f"{number} is now {item.name!r}, not {name!r} — the acceptance tests moved "
             "underneath this walk",
         )
-    if item.reconciled and not resettle:
+    # A DECISION, of either kind. The guard was written when `~` was the only
+    # mark carrying one; ADR-0029 added `[-]` (canceled — could not be run,
+    # not holding the release), which is just as much somebody's judgement and
+    # was left unprotected by the rename. Found by a test that expected the
+    # refusal and stopped getting it.
+    if (item.reconciled or item.excepted) and not resettle:
+        kind = "reconciled" if item.reconciled else "canceled"
         raise LookupError(
-            f"{number} is reconciled — settled by a decision rather than by "
+            f"{number} is {kind} — settled by a decision rather than by "
             "being walked, and a walk must not overwrite that",
         )
 
@@ -877,15 +909,21 @@ def rewrite_check(
 #: whether anything was verified — which is why `[~]` cannot be written
 #: without a reason.
 VERDICTS: dict[str, str] = {
-    "pass": "x",
-    "excused": "~",
-    "failed": "F",
-    "clear": " ",
+    "pass": "x",         # Minimal: done
+    "partial": "/",      # Minimal: incomplete
+    "excused": "-",      # Minimal: canceled
+    "failed": "!",       # Minimal: important
+    "question": "?",     # Minimal: question
+    "clear": " ",        # Minimal: to-do
 }
+#: The legacy marks, read forever and never written (ADR-0029).
+LEGACY_MARKS: dict[str, str] = {"~": "/", "F": "!", "X": "x"}
 #: Refused without a reason. The mark and its justification are one action, so
 #: a check cannot leave the gate silently — the whole gap [[ISS-0177]] records
 #: for `[!]`, which shipped its permissive half with no way to ask why.
-VERDICTS_NEEDING_REASON: frozenset[str] = frozenset({"excused", "failed"})
+VERDICTS_NEEDING_REASON: frozenset[str] = frozenset({
+    "partial", "excused", "failed", "question",
+})
 #: Ids named in a reason, linkified on write and checked by the caller.
 _REASON_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
 #: How each reads in the record. **`Blocked` is not invented here** — it is one
@@ -894,7 +932,16 @@ _REASON_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
 #: asked `[~]` to say. `Partial pass`, `Verified`, `Open` and `Not reproduced`
 #: stay READABLE for the rows that already carry them; only these two are
 #: written.
-_VERDICT_WORD: dict[str, str] = {"excused": "Blocked", "failed": "FAILS"}
+#: Where the corpus already has a word for the outcome, that word is used.
+#: `Partial pass`, `FAILS` and `Blocked` are three of the six verdicts already
+#: written in `../your-trainer`'s v2.1.0 suite; `Open` is the fourth and is the
+#: honest word for a check nobody can interpret.
+_VERDICT_WORD: dict[str, str] = {
+    "partial": "Partial pass",
+    "excused": "Blocked",
+    "failed": "FAILS",
+    "question": "Open",
+}
 #: Everything the reader accepts, so a hand-written row keeps its meaning.
 _VERDICT_WORDS_READ: tuple[str, ...] = (
     "Verified", "Partial pass", "Open", "Not reproduced", "FAILS", "Blocked",

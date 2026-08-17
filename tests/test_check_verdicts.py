@@ -144,7 +144,7 @@ def test_a_reason_citing_a_note_that_does_not_exist_is_refused(
 
 
 @pytest.mark.parametrize(("verdict", "mark"), [
-    ("pass", "x"), ("excused", "~"), ("failed", "F"),
+    ("pass", "x"), ("excused", "-"), ("failed", "!"), ("partial", "/"), ("question", "?"),
 ])
 def test_a_written_row_parses_back_to_the_mark_and_the_text(
     tmp_path: Path, verdict: str, mark: str,
@@ -154,8 +154,9 @@ def test_a_written_row_parses_back_to_the_mark_and_the_text(
                            verdict=verdict, reason="because ISS-0277")
     text = (index.docs_root / acceptance.SUITE_REL).read_text()
     item = next(i for i in acceptance.parse(text) if i.name == "Walk me")
-    assert {"x": item.checked, "~": item.reconciled,
-            "F": item.failed}[mark] is True
+    assert {"x": item.checked, "/": item.reconciled,
+            "-": item.excepted, "!": item.failed,
+            "?": item.question}[mark] is True
     assert "[[ISS-0277]]" in item.text
     # The row below is untouched — the address is the section ordinal, not a
     # global checkbox index.
@@ -172,15 +173,23 @@ def test_an_unknown_verdict_is_refused(tmp_path: Path) -> None:
 
 
 def test_the_exception_mark_is_never_offered() -> None:
-    """`[!]` stays READABLE so a suite already using it keeps working, and is
-    never written — offering it would re-open [[ISS-0177]]'s gap, where a check
-    leaves the gate with no justification and nothing owed."""
-    assert "!" not in acceptance.VERDICTS.values()
-    assert set(acceptance.VERDICTS) == {"pass", "excused", "failed", "clear"}
+    """Renamed in spirit by ADR-0029: what is protected is not one character
+    but the rule that no mark clearing or holding the gate can be written
+    without a reason — [[ISS-0177]]'s gap, closed at the source."""
+    # `[!]` IS offered now, and it means the opposite of what it used to
+    # (ADR-0029): it was a non-blocking release exception and it is `failed`,
+    # which blocks. Safe only because it was written in zero suites fleet-wide.
+    # What must stay true is that no verdict writes a mark without a reason
+    # unless it is a plain pass or a clear.
+    assert acceptance.VERDICTS["failed"] == "!"
+    assert set(acceptance.VERDICTS) == {
+        "pass", "partial", "excused", "failed", "question", "clear",
+    }
     # Still parsed, though.
     item = acceptance.parse(
         "# Tier 1 — T\n\n## 1.1 A (FEAT-0001)\n\n- [!] **X:** y.\n")[0]
-    assert item.excepted is True
+    assert item.failed is True and item.excepted is False
+    assert item.settled is False, "[!] blocks now"
 
 
 def test_a_suite_that_moved_underneath_the_walk_is_refused(
@@ -210,10 +219,17 @@ def test_your_trainers_seven_marked_rows_still_parse_the_same() -> None:
 
 
 @needs_trainer
-def test_the_living_suite_is_unchanged_by_the_new_marks() -> None:
+def test_the_living_suite_still_parses_and_still_gates() -> None:
+    """The last hard-coded live number in this file, and the same lesson:
+    Edwin marks checks from the app now, so `blocking() == 60` fails when the
+    feature works. What must hold is that the suite parses, has real content,
+    and that the gate is a subset of it."""
     suite = acceptance.load(TRAINER / "docs")
-    assert len(suite.items) == 579
-    assert len(suite.blocking()) == 60
+    assert len(suite.items) > 100
+    blocking = suite.blocking()
+    assert 0 <= len(blocking) <= len(suite.items)
+    assert all(not i.settled for i in blocking)
+    assert all(i.tier in acceptance.GATING_TIERS for i in blocking)
 
 
 # ----- ticking a post-release box (FEAT-0110 / TASK-0453) -------------------
@@ -373,15 +389,29 @@ def test_a_row_with_no_verdict_is_left_exactly_alone() -> None:
     assert acceptance.strip_verdict(plain) == plain
 
 
-def test_a_reconciled_row_is_still_protected_from_the_walker(
-    tmp_path: Path,
+@pytest.mark.parametrize(("verdict", "word"), [
+    ("partial", "reconciled"),
+    ("excused", "canceled"),
+])
+def test_a_decided_row_is_protected_from_the_walker(
+    tmp_path: Path, verdict: str, word: str,
 ) -> None:
-    """`resettle` is opt-in. The walker's refusal to overwrite a decision
-    stands for the walker; only an explicit verdict click may move a `~`."""
+    """`resettle` is opt-in, and it protects **both** decision marks.
+
+    The guard originally named only `reconciled`, because `~` was the one mark
+    carrying a decision. ADR-0029 added `[-]` — *could not be run, not holding
+    the release* — which is equally somebody's judgement and was left
+    unprotected by the rename. This test is why that was noticed: it expected
+    the refusal and stopped getting it.
+    """
     index = _suite_at(tmp_path)
     note_writes.mark_check(index, number="1.1.1", name="Walk me",
-                           verdict="excused", reason="no hardware")
+                           verdict=verdict, reason="a recorded decision")
     text = (index.docs_root / acceptance.SUITE_REL).read_text()
     with pytest.raises(LookupError) as caught:
         acceptance.rewrite_check(text, "1.1.1", name="Walk me", mark="x")
-    assert "reconciled" in str(caught.value)
+    assert word in str(caught.value)
+    # …and an explicit verdict click still may.
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="pass", reason="")
+    assert "- [x]" in (index.docs_root / acceptance.SUITE_REL).read_text()

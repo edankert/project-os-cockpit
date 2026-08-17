@@ -13,6 +13,7 @@ on fixtures, because they must hold whatever the fleet looks like next month.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -291,23 +292,43 @@ def test_a_failed_check_is_named_and_still_blocks() -> None:
 
 @needs_trainer
 def test_the_delta_against_your_trainers_real_tags() -> None:
-    """The claim this feature stands on, measured rather than fixtured."""
+    """The claim this feature stands on, measured rather than fixtured.
+
+    **Asserted as invariants, not as absolute counts**, and that is a lesson
+    paid for three times in one session. `../your-trainer`'s suite is a live
+    document: Edwin edits it, and now — because this phase shipped — he also
+    *marks checks in it from the app*. A test pinning "60 blocking" fails the
+    moment the tool it is testing is used successfully, which is the worst
+    possible failure signal.
+
+    So what is pinned is what cannot drift without the code being wrong: the
+    split accounts for every blocking row and loses none, the baseline is the
+    tag of the newest shipped release, and nothing is negative. The absolute
+    figures of the day are recorded in [[FEAT-0108]] and the phase note, which
+    are the right place for a measurement — they are dated.
+    """
     index = Index.build(TRAINER / "docs")
     payload = publication.release_payload(TRAINER, index, "next")
     gate = payload["gate"]
     delta = gate["delta"]
 
     assert delta["comparable"] is True
-    assert delta["baseline"] == "v2.1.6"
-    assert len(delta["new"]) == 13
-    assert len(delta["chronic"]) == 27
-    assert len(delta["regressed"]) == 0
-    assert len(gate["quiet"]) == 20
-    assert len(gate["stale"]) == 53
-    # The three live groups plus the quiet ones account for every blocking row
-    # — nothing is dropped on the way through the split.
-    assert (len(delta["new"]) + len(delta["chronic"]) + len(delta["regressed"])
-            + len(gate["quiet"])) == len(gate["blocking"]) == 60
+    assert delta["baseline"] == "v2.1.6", "the newest released tag"
+
+    groups = ("new", "chronic", "regressed")
+    total = sum(len(delta[g]) for g in groups) + len(gate["quiet"])
+    assert total == len(gate["blocking"]), (
+        "every blocking row lands in exactly one group"
+    )
+    # Real work exists, or the corpus stopped being the corpus this describes.
+    assert len(gate["blocking"]) > 0
+    assert len(delta["new"]) + len(delta["chronic"]) > 0
+    # A row cannot be in two groups at once.
+    keys = [r["number"] for g in groups for r in delta[g]]
+    keys += [r["number"] for r in gate["quiet"]]
+    assert len(keys) == len(set(keys))
+    # Stale rows are TICKED, so they are disjoint from everything above.
+    assert not ({r["number"] for r in gate["stale"]} & set(keys))
 
 
 @needs_trainer
@@ -325,9 +346,15 @@ def test_chronic_rows_carry_the_tag_they_have_been_open_since() -> None:
     index = Index.build(TRAINER / "docs")
     gate = publication.release_payload(TRAINER, index, "next")["gate"]
     since = [r["since"] for r in gate["delta"]["chronic"]]
+    assert since, "the corpus has chronic rows"
     assert all(since), "every chronic row was present at some tag"
-    # The oldest is v1.1.0 — 153 days and eleven releases ago.
-    assert "v1.1.0" in since
+    # Every tag named must be a real one, and the release count must agree
+    # with where that tag sits in history — the relationship, not the date.
+    tags = _git(TRAINER, "tag", "--sort=v:refname").split()
+    for row in gate["delta"]["chronic"]:
+        assert row["since"] in tags, row["since"]
+        expected = len(tags) - tags.index(row["since"]) - 1
+        assert row["releases_since"] == expected, row
 
 
 @needs_trainer
@@ -446,8 +473,13 @@ def test_the_historical_line_is_computed_from_the_real_tags() -> None:
     be ignored twelve times."""
     index = Index.build(TRAINER / "docs")
     delta = publication.release_payload(TRAINER, index, "next")["gate"]["delta"]
-    assert delta["summary"].startswith("12 releases, median ")
-    assert delta["summary"].endswith("This is 60.")
+    # The tag count is stable — tags do not move — but the live figure is
+    # whatever the suite says today, including after somebody marks a check
+    # from the app. Shape, not value.
+    assert re.fullmatch(
+        r"12 releases, median \d+ blocking at ship\. This is \d+\.",
+        delta["summary"],
+    ), delta["summary"]
 
 
 @needs_trainer
@@ -456,5 +488,7 @@ def test_the_oldest_chronic_row_carries_its_release_count() -> None:
     chronic = publication.release_payload(
         TRAINER, index, "next")["gate"]["delta"]["chronic"]
     oldest = max(chronic, key=lambda r: r["releases_since"])
-    assert oldest["since"] == "v1.1.0"
-    assert oldest["releases_since"] == 11
+    # Some row is the oldest and it is dated against a real tag. Which row that
+    # is changes the moment anybody marks a check, so it is not pinned.
+    assert oldest["releases_since"] >= 1
+    assert oldest["since"] in _git(TRAINER, "tag", "--sort=v:refname").split()

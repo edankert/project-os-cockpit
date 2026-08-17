@@ -35,10 +35,11 @@ issues:
   - "[[ISS-0183-The-Canonical-Machine-Readable-File-Did-Not-Parse]]"
   - "[[ISS-0184-Clicking-A-Checkbox-In-The-Acceptance-Suite-Writes-To-A-Different-Row]]"
   - "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"
+  - "[[ISS-0185-The-Mark-Control-Sits-Inside-Tasklists-Leftover-Box-And-The-Cycle-Makes-You-Walk-Past-States]]"
 requirements: []
 tasks: []
 depends: []
-related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0022]]", "[[PHASE-030-Obligations-Go-Home]]", "[[FEAT-0100-Unpushed-Work-Needs-A-Person]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]"]
+related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0022]]", "[[PHASE-030-Obligations-Go-Home]]", "[[FEAT-0100-Unpushed-Work-Needs-A-Person]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]"]
 tags: [surfaces, obligations, publication]
 ---
 
@@ -382,3 +383,30 @@ The row's **list item** is stamped instead, at priority 26 — above `task-list`
 - **[[ISS-0177]]'s residue**, narrower and named: a `[~]` **hand-written** with no reason still carries none and nothing asks. A source-level refusal cannot reach a text editor.
 - **6 rows in `your-trainer`'s suite and 36 in its v2.1.0 delta** need a blank line in those files. The cockpit states the count and the remedy and changes nothing — reformatting the file the gate reads is not its call.
 - **The independent review gate is unpaid at this close**, for the second phase close running.
+
+## Re-closed 2026-08-17 — the affordance, from use
+
+Edwin, the day the control shipped: *"The new checkbox is a little small and they seem to be inside another box? Also, maybe if we bring up a dialog, can we then have one dialog with all options?"*
+
+Both right, and [[ISS-0185]] records that the box-in-a-box was **three** distinct mistakes stacked — tasklist's `label` left behind, the control mounted before a block element, and a border drawn around a glyph that is already an outline.
+
+The second half retires a design Edwin himself preferred earlier (*"I actually like the cycling checkbox idea better"*), and the reason it inverted is worth keeping: a cycle is right for two or three states, and at four with two requiring justification the intermediate stops stop being steps toward anywhere. `[ ]` → `[F]` cost three writes and two prompts. It is one dialog and one write now.
+
+## Re-closed 2026-08-17 — the vocabulary stopped being ours
+
+Third mark vocabulary in two days, and the last one, because it is not this project's: [[ADR-0029]] adopts Minimal's alternate checkboxes. Six of its 22 values mean something to a release gate; the other sixteen parse as unrecognised and block, which fails safe.
+
+| | blocks | needs a reason |
+| --- | --- | --- |
+| `[ ]` to-do | yes | — |
+| `[x]` done | no | optional witness |
+| `[/]` incomplete | no | **yes** |
+| `[-]` canceled | no | **yes** |
+| `[!]` important | **yes** | **yes** |
+| `[?]` question | **yes** | **yes** |
+
+`[!]` **reversed meaning** — a non-blocking release exception yesterday, a blocking failure today — and that was only safe because it was written in zero suites across twelve repos, verified before the decision rather than after. The exception *concept* moved to `[-]` and kept its field and its separate count.
+
+One correction to my own proposal, made by reading rather than reasoning: I had `~` aliasing `[-]`. All seven live `~` rows say *"Partial pass"*, so it aliases `[/]`.
+
+**Three blocking marks that mean three different things** — nobody looked, somebody looked and it broke, somebody looked and could not tell. That distinction is the reason for the vocabulary, and collapsing any pair would lose it.

@@ -192,6 +192,10 @@ def _markdown_to_html(
 log = logging.getLogger("project_os_cockpit.renderer")
 
 _RENDERED_BOX_RE = _re.compile(r"<input(?=[^>]*\btype=\"checkbox\")")
+#: A task row's mark as it stands in the tree, BEFORE `task-list` runs. One
+#: character between brackets, whatever it is — the classification belongs to
+#: `acceptance.parse`, not here.
+_TREE_MARK_RE = _re.compile(r"^\[(.)\]\s*")
 
 
 def _annotate_checkbox_source(html: str, source_md: str) -> str:
@@ -376,17 +380,17 @@ class AcceptanceMarkTreeprocessor(Treeprocessor):
             # nothing. Measured, not assumed: a first pass looked for the
             # input and addressed only the `~`/`F` rows, which is the exact
             # inverse of what the extension supports.
-            mark = ""
-            for candidate, glyph in (
-                ("[ ]", " "), ("[x]", "x"), ("[X]", "x"),
-                ("[~]", "~"), ("[F]", "F"),
-            ):
-                if text.startswith(candidate):
-                    mark = glyph
-                    text = text[len(candidate):].lstrip()
-                    break
-            if not mark:
+            # ANY single-character mark, decided by `acceptance.parse` rather
+            # than by a list here. Minimal defines 22 values (ADR-0029) and
+            # this must not carry a second, narrower opinion about which are
+            # real — six mean something to a gate, sixteen parse as
+            # unrecognised and block, and both cases still need addressing so
+            # the reader can change them.
+            found = _TREE_MARK_RE.match(text)
+            if not found:
                 continue                       # not a task row at all
+            mark = found.group(1)
+            text = text[found.end():].lstrip()
 
             name = _leading_name(text)
             queue = by_name.get(name)
@@ -401,8 +405,11 @@ class AcceptanceMarkTreeprocessor(Treeprocessor):
             # Strip the literal mark ONLY for the two tasklist does not
             # understand. Its own postprocessor consumes `[ ]` and `[x]`
             # itself, and removing them here would leave it nothing to find.
-            if mark in {"~", "F"}:
-                _strip_literal_mark(li)
+            # Only the marks `tasklist` does not consume itself. It handles
+            # `[ ]` and `[x]`/`[X]`; every other value it leaves as literal
+            # prose, and that literal is what has to come off.
+            if mark not in {" ", "x", "X"}:
+                _strip_literal_mark(li, mark)
 
         # Rows Markdown never made into a list item at all (TASK-0457).
         #
@@ -464,12 +471,13 @@ def _leading_name(text: str) -> str:
     return text.strip().strip("*").strip()
 
 
-def _strip_literal_mark(li) -> None:  # noqa: ANN001
-    """Remove a leading `[~] ` / `[F] ` that tasklist left as prose."""
+def _strip_literal_mark(li, mark: str) -> None:  # noqa: ANN001
+    """Remove the leading `[<mark>] ` that tasklist left as prose."""
+    literal = f"[{mark}]"
     for node in li.iter():
-        if node.text and node.text.lstrip().startswith(("[~]", "[F]")):
+        if node.text and node.text.lstrip().startswith(literal):
             stripped = node.text.lstrip()
-            node.text = stripped[3:].lstrip()
+            node.text = stripped[len(literal):].lstrip()
             return
 
 

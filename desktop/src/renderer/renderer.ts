@@ -2191,23 +2191,132 @@ async function submitTick(
 // So the mark cycles, and the two states that are not a pass cannot be written
 // without saying why. `[!]` is never offered — measured across the fleet it is
 // written in exactly zero suites, while `~` and `F` are the record's own.
-const MARK_CYCLE = [' ', 'x', '~', 'F'] as const;
+// Minimal's alternate checkboxes (ADR-0029). Six of its 22 values carry a
+// meaning a release gate has; the other sixteen parse as unrecognised, which
+// blocks — the direction that fails safe.
 const VERDICT_FOR: Record<string, string> = {
-  ' ': 'clear', x: 'pass', '~': 'excused', F: 'failed',
+  ' ': 'clear', x: 'pass', X: 'pass', '/': 'partial', '~': 'partial',
+  '-': 'excused', '!': 'failed', F: 'failed', '?': 'question',
 };
-const VERDICT_PROMPT: Record<string, { title: string; detail: string }> = {
-  excused: {
-    title: 'Could not be run — and not holding the release',
-    detail: 'Why could this not be executed? This is required: a check that '
-      + 'leaves the gate without a reason is exactly the gap [!] left open.\n\n'
-      + 'Naming an ISS-#### links it.',
-  },
-  failed: {
-    title: 'Walked, and it failed',
-    detail: 'What failed, and where is it tracked? This is required, and this '
-      + 'check keeps blocking the release.\n\nNaming an ISS-#### links it.',
-  },
-};
+/** The four choices, in the order a walker meets them. `label` is what the
+ *  button says; `hint` is what it does to the release. */
+const MARK_CHOICES: Array<{
+  verdict: string; mark: string; label: string; hint: string; needsReason: boolean;
+}> = [
+  { verdict: 'pass', mark: 'x', label: 'Done',
+    hint: 'walked and passed — clears the gate', needsReason: false },
+  { verdict: 'partial', mark: '/', label: 'Incomplete',
+    hint: 'partial pass — clears the gate, needs a reason', needsReason: true },
+  { verdict: 'excused', mark: '-', label: 'Canceled',
+    hint: 'could not be run, not holding the release', needsReason: true },
+  { verdict: 'failed', mark: '!', label: 'Important',
+    hint: 'walked and failed — keeps blocking', needsReason: true },
+  { verdict: 'question', mark: '?', label: 'Question',
+    hint: 'not understood — keeps blocking', needsReason: true },
+  { verdict: 'clear', mark: ' ', label: 'To-do',
+    hint: 'nobody has walked it — keeps blocking, clears any reason',
+    needsReason: false },
+];
+
+/** One dialog, all six options (ISS-0185, ADR-0029).
+ *
+ *  It replaced a cycle. `[ ]` → `[x]` → `[~]` → `[F]` meant that marking an
+ *  unwalked check as failed took three clicks, **three writes to the file**,
+ *  and two justification prompts to fill in and dismiss on the way past. At
+ *  four states with two of them requiring a reason, the intermediate stops are
+ *  not steps toward anywhere — they are writes that assert something specific
+ *  and false.
+ *
+ *  One reason field, shared. The reason belongs to the verdict being recorded,
+ *  and a field per option would let two of them hold text that is never
+ *  written. */
+function askForMark(
+  opts: { number: string; name: string; current: string },
+): Promise<{ verdict: string; reason: string } | null> {
+  return new Promise((resolve) => {
+    const back = document.createElement('div');
+    back.className = 'ask-backdrop';
+    const card = document.createElement('div');
+    card.className = 'ask-card ask-card-mark';
+
+    const h = document.createElement('div');
+    h.className = 'ask-title';
+    h.textContent = `${opts.number} ${opts.name}`;
+    card.appendChild(h);
+
+    const d = document.createElement('p');
+    d.className = 'ask-detail';
+    d.textContent = 'Naming an ISS-#### in the reason links it.';
+    card.appendChild(d);
+
+    const field = document.createElement('textarea');
+    field.className = 'ask-field';
+    field.rows = 3;
+    field.placeholder = 'what you observed, or why it could not be run';
+    card.appendChild(field);
+
+    const err = document.createElement('p');
+    err.className = 'ask-error';
+    err.hidden = true;
+    card.appendChild(err);
+
+    const row = document.createElement('div');
+    row.className = 'ask-actions ask-actions-mark';
+
+    let done = false;
+    const close = (value: { verdict: string; reason: string } | null): void => {
+      if (done) return;
+      done = true;
+      back.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(value);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.preventDefault(); close(null); }
+    };
+
+    for (const choice of MARK_CHOICES) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `review-btn mark-choice mark-choice-${choice.verdict}`;
+      if (choice.mark === opts.current) btn.classList.add('is-current');
+      const strong = document.createElement('strong');
+      strong.textContent = choice.label;
+      const small = document.createElement('span');
+      small.className = 'mark-choice-hint';
+      small.textContent = choice.hint;
+      btn.append(strong, small);
+      btn.addEventListener('click', () => {
+        const reason = field.value.trim();
+        if (choice.needsReason && !reason) {
+          // Refused here as well as at the server, so the reader is told
+          // before the round trip rather than after it.
+          err.hidden = false;
+          err.textContent = `"${choice.label}" needs a reason — that is the `
+            + 'whole difference between it and an undocumented exception.';
+          field.focus();
+          return;
+        }
+        close({ verdict: choice.verdict, reason });
+      });
+      row.appendChild(btn);
+    }
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'review-btn mark-choice-cancel';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => close(null));
+    row.appendChild(cancel);
+
+    card.appendChild(row);
+    back.addEventListener('click', (e) => { if (e.target === back) close(null); });
+    document.addEventListener('keydown', onKey, true);
+    back.appendChild(card);
+    document.body.appendChild(back);
+    field.focus();
+  });
+}
 
 /** Re-read the open document from disk. Cancelling a mark must put the
  *  checkbox back the way it was: the browser has already flipped it
@@ -2221,13 +2330,24 @@ async function repaintDoc(): Promise<void> {
  *  control instead of relying on `pymdownx.tasklist`, an extension that only
  *  understands `[ ]` and `[x]` and leaves `[~]`/`[F]` as literal text. */
 const MARK_GLYPH: Record<string, string> = {
-  ' ': '☐', x: '☑', '~': '⊘', F: '✗',
+  ' ': '○', x: '✓', '/': '◐', '~': '◐', '-': '–', '!': '!', F: '!', '?': '?',
+  X: '✓',
 };
 const MARK_TITLE: Record<string, string> = {
-  ' ': 'Not walked — blocks the release. Click to mark passed.',
-  x: 'Passed. Click to mark it could not be run.',
-  '~': 'Could not be run, and not holding the release. Click to mark failed.',
-  F: 'Walked and failed — blocks the release. Click to clear.',
+  ' ': 'To-do — nobody has walked this. Blocks the release.',
+  x: 'Done — walked and passed.',
+  X: 'Done — walked and passed.',
+  '/': 'Incomplete — partial pass. Clears the gate.',
+  '~': 'Incomplete — partial pass. Clears the gate. (legacy mark)',
+  '-': 'Canceled — could not be run, and not holding the release.',
+  '!': 'Important — walked and failed. Blocks the release.',
+  F: 'Important — walked and failed. Blocks the release. (legacy mark)',
+  '?': 'Question — the check is not understood. Blocks the release.',
+};
+/** The CSS suffix per mark, so a legacy alias styles as its target. */
+const MARK_CLASS: Record<string, string> = {
+  ' ': 'todo', x: 'done', X: 'done', '/': 'incomplete', '~': 'incomplete',
+  '-': 'canceled', '!': 'important', F: 'important', '?': 'question',
 };
 
 /** Draw a four-state control on every addressed acceptance row.
@@ -2239,13 +2359,19 @@ function mountAcceptanceMarks(): void {
   const rows = docView.querySelectorAll<HTMLElement>('li[data-check]');
   for (const li of Array.from(rows)) {
     if (li.querySelector('.acc-mark')) continue;
-    li.querySelector('input[type=checkbox]')?.remove();
+    // The WHOLE control, not just the input. `pymdownx.tasklist` renders
+    // `<label class="task-list-control"><input><span class="task-list-
+    // indicator"></span></label>`, and removing only the input leaves a
+    // styled indicator span behind — which is the "box inside another box"
+    // Edwin reported (ISS-0185).
+    const legacy = li.querySelector('label.task-list-control');
+    if (legacy) legacy.remove();
+    else li.querySelector('input[type=checkbox]')?.remove();
     const mark = li.dataset.mark ?? ' ';
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `acc-mark acc-mark-${
-      { ' ': 'open', x: 'pass', '~': 'excused', F: 'failed' }[mark] ?? 'open'}`;
-    btn.textContent = MARK_GLYPH[mark] ?? '☐';
+    btn.className = `acc-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
+    btn.textContent = MARK_GLYPH[mark] ?? '○';
     btn.title = MARK_TITLE[mark] ?? '';
     btn.setAttribute('aria-label', MARK_TITLE[mark] ?? 'acceptance check');
     btn.addEventListener('click', (ev) => {
@@ -2253,7 +2379,10 @@ function mountAcceptanceMarks(): void {
       ev.stopPropagation();
       void cycleAcceptanceMark(li);
     });
-    li.insertBefore(btn, li.firstChild);
+    // Inline with the check it marks. `li.firstChild` is the `<p>` — a block
+    // element — so inserting before it put the control on its own line.
+    const host = li.querySelector('p') ?? li;
+    host.insertBefore(btn, host.firstChild);
   }
 }
 
@@ -2261,48 +2390,23 @@ async function cycleAcceptanceMark(li: HTMLElement): Promise<void> {
   const number = li.dataset.check;
   const name = li.dataset.checkName;
   if (!number || !name) return;
-  const current = li.dataset.mark ?? ' ';
-  const next = MARK_CYCLE[(MARK_CYCLE.indexOf(current as never) + 1)
-    % MARK_CYCLE.length] ?? 'x';
-  const verdict = VERDICT_FOR[next];
 
-  let reason = '';
-  if (verdict === 'excused' || verdict === 'failed') {
-    const prompt = VERDICT_PROMPT[verdict];
-    const answer = await askForText({
-      title: `${prompt.title} — ${number} ${name}`,
-      detail: prompt.detail,
-      placeholder: verdict === 'excused'
-        ? 'no trainer available this week, see ISS-0277'
-        : 'crashes on open, tracked as ISS-0285',
-      confirm: verdict === 'excused' ? 'Mark excused' : 'Mark failed',
-    });
-    // Cancel restores what was there and writes nothing.
-    if (answer === null || !answer.trim()) { await repaintDoc(); return; }
-    reason = answer.trim();
-  } else if (verdict === 'pass') {
-    const answer = await askForText({
-      title: `Passed — ${number} ${name}`,
-      detail: 'What did you observe? Optional — leave it blank to just tick it.',
-      placeholder: 'Claude, tablet: HR tile showed 69 bpm',
-      confirm: 'Mark passed',
-    });
-    if (answer === null) { await repaintDoc(); return; }
-    reason = answer.trim();
-  }
+  const chosen = await askForMark({
+    number, name, current: li.dataset.mark ?? ' ',
+  });
+  if (chosen === null) return;          // nothing written, nothing repainted
 
   const res = await postJson('/api/notes/mark-check', {
-    number, name, verdict, reason,
+    number, name, verdict: chosen.verdict, reason: chosen.reason,
   });
   if (!res?.ok) {
     showStatus(`Could not mark ${number}: ${String(res?.error ?? 'refused')}`,
                'error');
     scheduleHide(4000);
   }
-  // Repaint from the file either way: the mark is one of four and a checkbox
-  // can only show two, so the DOM cannot be patched to the truth. `replace`
-  // keeps this out of the back stack — marking a check is not navigation.
-  if (currentRel) await navigateTo(currentRel, { replace: true });
+  // Repaint from the file either way: the mark is one of four and the control
+  // draws from `data-mark`, so only a re-read can be trusted.
+  await repaintDoc();
 }
 
 docView.addEventListener('change', async (e) => {
