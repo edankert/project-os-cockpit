@@ -56,7 +56,7 @@ counters:
   CHG:
     last_date: 20260810
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 111
+  FEAT: 112
   ISS: 189
   PHASE: 34
   REQ: 36
@@ -3030,7 +3030,7 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 111
+    features_total: 112
     features_done: 101
     tasks_total: 458
     tasks_done: 421
