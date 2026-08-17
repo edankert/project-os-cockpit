@@ -62,8 +62,8 @@ counters:
   REQ: 36
   RISK: 7
   REL: 1
-  TASK: 455
-  TST: 37
+  TASK: 457
+  TST: 38
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
@@ -113,12 +113,12 @@ items:
       note: "I INVENTED A MARK THAT ALREADY EXISTED. ISS-0181 items 1 and 2 read as a design problem — no way to mark a check intentionally left open, no way to attach text. Both exist in your-trainer's own suites: ACCEPTANCE_TESTS_v2.1.0.md carries 6 `[~]` and 1 `[F]` in a stable grammar, `**<Verdict> <date>** — <reason> [[ISS-link]]`, with verdicts Verified / Partial pass / Open / Not reproduced / FAILS / Blocked; and ACCEPTANCE_CHECKLIST_v2.1.1.md adds the WITNESS 22 times, `✅ (Claude, tablet: address rotated …)`, plus `{ED: unable to test since …}` for the human's own escapes. This repo invented `[!]` for the same purpose in a form no suite writes and left it parse-only — ISS-0177 records that a hand-written one drops a check today with no justification and nothing owed. THE PERMISSIVE HALF SHIPPED WITHOUT THE HALF THAT ASKS FOR A REASON, and adopting the existing vocabulary closes that without inventing anything. rewrite_check() already takes a `note` parameter and appends it: the write path exists, only the vocabulary was invented in the wrong place. `[F]` READS AS BLOCKING because the parser treats an unrecognised mark as blocking, which for a failed-and-tracked check is exactly right — recorded so nobody later reads it as a parser gap and fixes it into a pass. CLOSES ONLY ITEMS 1 AND 2: item 3 (the save/reload interruption) is a file-watch problem with no home yet, and item 4 (completing a release) needs FEAT-0108 and FEAT-0109 underneath it. ISS-0181 STAYS OPEN, said explicitly because this phase has already closed two features at zero ticked criteria."
     FEAT-0104:
       file: "docs/features/publication-view/FEAT-0104-The-Suite-Is-The-Surface.md"
-      title: "The suite is the surface — the acceptance document is where checks are closed, the mark cycles to a release exception, and an exception with no justification is owed"
-      status: deferred
+      title: "The suite is the surface — the acceptance document is where checks are closed, the mark cycles through the vocabulary the record already uses, and no mark but a pass can be written without its reason"
+      status: done
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
-      tasks: [TASK-0434, TASK-0437]
-      deferred: [TASK-0435, TASK-0436]
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
+      tasks: [TASK-0434, TASK-0437, TASK-0435, TASK-0436, TASK-0456, TASK-0457]
+      deferred: []
       note: "PARKED, not abandoned. Four criteria met, two reconciled by FEAT-0107 (the release page took the job the suite band was for), SIX unbuilt. ISS-0175 is fixed and its cause turned out to be Markdown lazy continuation rather than a parser bug — but the half blocking THIS feature is not a cockpit bug at all: where a task list opens with no blank line those checks have NO CHECKBOX to click, so no interaction can be keyed on them. The remedy is a blank line in your-trainer's document, which belongs to that repo. ALSO LIVE AND RECORDED: the `[!]` mark's permissive half ships while this reads deferred — hand-write one and a check leaves the release gate with no justification and nothing owed (ISS-0177, kept on Edwin's instruction)."
     FEAT-0102:
       file: "docs/features/publication-view/FEAT-0102-Publication-Becomes-A-View.md"
@@ -607,18 +607,18 @@ items:
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
-      status: deferred
+      status: done
       owner: user:edwin
       origin: FEAT-0104
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       note: "Descoped with FEAT-0104. The interaction is keyed on which rendered checkbox is which check, and where a task list opens with no blank line those checks have NO checkbox at all — a source-formatting question in the repo that owns the suite, not a cockpit bug."
     TASK-0436:
       file: "docs/features/publication-view/plan/tasks/TASK-0436-An-Undocumented-Exception-Is-Owed.md"
       title: "An undocumented exception is owed — `[!]` with no justification is counted and named until somebody writes the reason"
-      status: deferred
+      status: cancelled
       owner: user:edwin
       origin: FEAT-0104
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       note: "The accountability half of the `[!]` mark, whose permissive half IS live (ISS-0177). Descoped with FEAT-0104 and blocked behind the same source-formatting question."
     TASK-0423:
       file: "docs/features/obligation-routing/plan/tasks/TASK-0423-An-Obligations-View-Is-Decided-Per-Item.md"
@@ -1348,9 +1348,9 @@ items:
     ISS-0177:
       file: "docs/issues/ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification.md"
       title: "`- [!]` removes a check from the release gate with no justification, nothing owed and no record — the escape hatch shipped without the accountability half TESTING.md requires"
-      status: deferred
+      status: fixed
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       severity: high
       note: "Edwin's call, verbatim: 'Keep it, file the gap'. Verified by execution — hand-write `- [!]` on any Tier 1/2 check and the gate's count falls by one with no justification, no release-note entry and nothing owed. TESTING.md line 113 requires the justification. FEAT-0104 designed both halves; only the permissive one shipped."
     ISS-0173:
@@ -3031,11 +3031,11 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 111
-    features_done: 100
-    tasks_total: 455
-    tasks_done: 417
-    tests_total: 37
-    tests_passing: 34
+    features_done: 101
+    tasks_total: 457
+    tasks_done: 420
+    tests_total: 38
+    tests_passing: 35
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0

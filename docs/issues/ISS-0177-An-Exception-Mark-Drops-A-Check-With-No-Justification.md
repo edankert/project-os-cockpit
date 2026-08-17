@@ -3,8 +3,8 @@ type: "[[issue]]"
 id: ISS-0177
 aliases: ["ISS-0177"]
 title: "`- [!]` removes a check from the release gate with no justification, nothing owed and no record — the escape hatch shipped without the accountability half TESTING.md requires"
-status: "deferred"
-phase: "[[PHASE-999-Future]]"
+status: "fixed"
+phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -50,3 +50,13 @@ Edwin's explicit call on 2026-08-16 was *'Keep it, file the gap'* — the escape
 ## Re-homed to [[PHASE-999]] on 2026-08-16
 
 [[PHASE-034]] closed and this is parked, not resolved — `deferred` is not a resolved status, so carrying it inside a closing phase would fire `PHASE-CHILDREN` and, worse, would let a closed phase claim work it did not do. The sentinel is where work without a concrete delivery phase lives. Its origin and its reasoning stay above.
+
+## Fixed 2026-08-17 — at the source, and the residue is named
+
+The gap was that `[!]` shipped its permissive half: hand-write one and a check left the release gate with no justification and nothing owed.
+
+`[!]` is now **never offered** — measured across every acceptance suite in the fleet it is written in zero of them, while `~` and `F` are the record's own, and Edwin's call was *"I have no problem using ~ instead."* It stays readable so nothing already using it breaks.
+
+What replaces it closes the gap at the source rather than accounting for it afterwards: `[~]` and `[F]` are **refused without a reason**, as one write. There is no sequence of clicks that produces an undocumented exception.
+
+**The residue, stated rather than assumed away:** a `[~]` typed into a suite by hand still carries no justification and nothing asks for one. A source-level refusal cannot reach a text editor. That is narrower than what this issue opened on — it now requires deliberately editing the file — and [[TASK-0436]] records why the registry-counting approach was cancelled in favour of prevention.

@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0436
 aliases: ["TASK-0436"]
 title: "An undocumented exception is owed — `[!]` with no justification is counted and named until somebody writes the reason"
-status: deferred
+status: cancelled
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["The safeguard that lets the mark cycle freely — TESTING.md line 113 requires the justification, so its absence is a real debt rather than a UI problem"]
 parent: ""
 origin: "[[FEAT-0104-The-Suite-Is-The-Surface]]"
@@ -35,13 +35,13 @@ This is what makes the cycling mark safe. The gesture is not gated, so a person 
 
 ## Definition of done
 
-- [ ] Declared in the registry as a note-less obligation with a noun and the verb `Justify`
-- [ ] Counted as the number of `[!]` checks with no entry in the preparing release note — one walk, count from the rows
-- [ ] Zero when every exception is justified, and **absent at zero**
-- [ ] Zero when no release is `preparing`, because `[!]` cannot be set then
-- [ ] The row reaches the check it is about
-- [ ] It does **not** make the gate blocking — an exception is a decision to ship; an unjustified one is an incomplete record, and those are different failures
-- [ ] Covered by the registry's completeness test like every other kind
+- [~] Declared in the registry as a note-less obligation with a noun and the verb `Justify`
+- [~] Counted as the number of `[!]` checks with no entry in the preparing release note — one walk, count from the rows
+- [~] Zero when every exception is justified, and **absent at zero**
+- [~] Zero when no release is `preparing`, because `[!]` cannot be set then
+- [~] The row reaches the check it is about
+- [~] It does **not** make the gate blocking — an exception is a decision to ship; an unjustified one is an incomplete record, and those are different failures
+- [~] Covered by the registry's completeness test like every other kind
 
 
 ## Blocked 2026-08-16
@@ -57,3 +57,13 @@ Waiting on [[ISS-0175]]. The interaction is keyed on which rendered checkbox is 
 ## Re-homed to [[PHASE-999]] on 2026-08-16
 
 [[PHASE-034]] closed and this is parked, not resolved — `deferred` is not a resolved status, so carrying it inside a closing phase would fire `PHASE-CHILDREN` and, worse, would let a closed phase claim work it did not do. The sentinel is where work without a concrete delivery phase lives. Its origin and its reasoning stay above.
+
+## Cancelled 2026-08-17 — the outcome is reached at the source instead
+
+This task would have had the registry **count and name** an exception carrying no justification, so that an undocumented one showed up as owed until somebody wrote a reason.
+
+It is cancelled because the write path now makes that state **unrepresentable rather than detectable**: `[~]` and `[F]` are refused without a reason, as one act, so no undocumented exception can be created through any surface. A check cannot leave the gate silently, which is what [[ISS-0177]] asked for.
+
+`cancelled`, not `done`: the mechanism this task specified — a registry obligation — was not built, and saying `done` would claim a badge that does not exist. What was achieved is the goal, by prevention instead of accounting.
+
+**The residue is honest and named:** a `[~]` **hand-written** into a suite with no reason still carries no justification and nothing asks. That is [[ISS-0177]]'s remaining half, it is narrower than it was, and it is the one thing a source-level refusal cannot reach.

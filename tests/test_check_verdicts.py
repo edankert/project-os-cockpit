@@ -61,10 +61,10 @@ def test_each_verdict_writes_the_form_the_record_uses() -> None:
         "pass", date="2026-08-16", reason="saw 69 bpm",
     ) == "✅ (saw 69 bpm)"
     assert acceptance.verdict_note(
-        "partial", date="2026-08-16", reason="German locale only",
-    ) == "**Partial pass 2026-08-16** — German locale only"
+        "excused", date="2026-08-16", reason="German locale only",
+    ) == "**Blocked 2026-08-16** — German locale only"
     assert acceptance.verdict_note(
-        "fail", date="2026-08-16", reason="crashes on open",
+        "failed", date="2026-08-16", reason="crashes on open",
     ) == "**FAILS 2026-08-16** — crashes on open"
 
 
@@ -77,9 +77,9 @@ def test_an_id_in_the_reason_is_linkified_however_it_was_typed() -> None:
     must write the identical line — brackets are stripped first, ids are
     linkified after."""
     bare = acceptance.verdict_note(
-        "fail", date="2026-08-16", reason="tracked as ISS-0285")
+        "failed", date="2026-08-16", reason="tracked as ISS-0285")
     linked = acceptance.verdict_note(
-        "fail", date="2026-08-16", reason="tracked as [[ISS-0285]]")
+        "failed", date="2026-08-16", reason="tracked as [[ISS-0285]]")
     assert bare == linked == "**FAILS 2026-08-16** — tracked as [[ISS-0285]]"
 
 
@@ -93,7 +93,7 @@ def test_an_id_in_the_reason_is_linkified_however_it_was_typed() -> None:
 def test_a_reason_cannot_escape_the_row_it_lands_on(reason: str) -> None:
     """A newline would end the list item and orphan the rest; an unbalanced
     `**` would swallow the line into bold; a `|` would open a cell."""
-    note = acceptance.verdict_note("fail", date="2026-08-16", reason=reason)
+    note = acceptance.verdict_note("failed", date="2026-08-16", reason=reason)
     body = note.split("** — ", 1)[1]
     assert "\n" not in note
     assert "**" not in body and "`" not in body and "|" not in body
@@ -112,7 +112,7 @@ def test_a_partial_or_a_fail_is_refused_without_a_reason(
     gate without saying why — which is the gap [[ISS-0177]] records for `[!]`.
     """
     index = _suite_at(tmp_path)
-    for verdict in ("partial", "fail"):
+    for verdict in ("excused", "failed"):
         with pytest.raises(note_writes.WriteError) as caught:
             note_writes.mark_check(
                 index, number="1.1.1", name="Walk me", verdict=verdict)
@@ -137,14 +137,14 @@ def test_a_reason_citing_a_note_that_does_not_exist_is_refused(
     index = _suite_at(tmp_path)
     with pytest.raises(note_writes.WriteError) as caught:
         note_writes.mark_check(
-            index, number="1.1.1", name="Walk me", verdict="fail",
+            index, number="1.1.1", name="Walk me", verdict="failed",
             reason="tracked as ISS-9999")
     assert "ISS-9999" in caught.value.message
     assert (index.docs_root / acceptance.SUITE_REL).read_text() == SUITE
 
 
 @pytest.mark.parametrize(("verdict", "mark"), [
-    ("pass", "x"), ("partial", "~"), ("fail", "F"),
+    ("pass", "x"), ("excused", "~"), ("failed", "F"),
 ])
 def test_a_written_row_parses_back_to_the_mark_and_the_text(
     tmp_path: Path, verdict: str, mark: str,
@@ -176,7 +176,7 @@ def test_the_exception_mark_is_never_offered() -> None:
     never written — offering it would re-open [[ISS-0177]]'s gap, where a check
     leaves the gate with no justification and nothing owed."""
     assert "!" not in acceptance.VERDICTS.values()
-    assert set(acceptance.VERDICTS) == {"pass", "partial", "fail"}
+    assert set(acceptance.VERDICTS) == {"pass", "excused", "failed", "clear"}
     # Still parsed, though.
     item = acceptance.parse(
         "# Tier 1 — T\n\n## 1.1 A (FEAT-0001)\n\n- [!] **X:** y.\n")[0]
@@ -319,3 +319,69 @@ def test_nothing_on_the_release_page_ticks_itself() -> None:
         "immediately-invoked expression"
     )
     assert "tick-owed" in block
+
+
+# ----- the cycle, and what clearing a mark takes with it --------------------
+
+
+def test_the_cycle_replaces_a_verdict_rather_than_stacking_it(
+    tmp_path: Path,
+) -> None:
+    """A row cycled `~` → `F` must not end up carrying two dated verdicts that
+    contradict each other."""
+    index = _suite_at(tmp_path)
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="excused", reason="no hardware")
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="failed", reason="crashes on open")
+    line = next(l for l in (index.docs_root / acceptance.SUITE_REL)
+                .read_text().splitlines() if "Walk me" in l)
+    assert line.count("**") == 4, line          # one bold name, one verdict
+    assert "Blocked" not in line
+    assert "FAILS" in line and "crashes on open" in line
+
+
+def test_clearing_a_mark_clears_the_reason_it_was_carrying(
+    tmp_path: Path,
+) -> None:
+    """A row reading `- [ ] … **Blocked 2026-08-17** — no hardware` claims both
+    that nobody walked it and that somebody decided why it could not be
+    walked, and the gate would count it owed while the document explains it is
+    not."""
+    index = _suite_at(tmp_path)
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="excused", reason="no hardware")
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="clear")
+    line = next(l for l in (index.docs_root / acceptance.SUITE_REL)
+                .read_text().splitlines() if "Walk me" in l)
+    assert line.strip() == "- [ ] **Walk me:** open the thing and look."
+
+
+@pytest.mark.parametrize("row", [
+    "**X:** do it. **Blocked 2026-08-17** — no hardware",
+    "**X:** do it. ✅ (Claude saw it)",
+    "**X:** do it. **Partial pass 2026-06-06**: German only",
+    "**X:** do it. **FAILS 2026-06-07** — broke",
+])
+def test_every_verdict_form_in_the_corpus_can_be_stripped(row: str) -> None:
+    assert acceptance.strip_verdict(row) == "**X:** do it."
+
+
+def test_a_row_with_no_verdict_is_left_exactly_alone() -> None:
+    plain = "**X:** do it, and mind the 2026-08-17 deadline."
+    assert acceptance.strip_verdict(plain) == plain
+
+
+def test_a_reconciled_row_is_still_protected_from_the_walker(
+    tmp_path: Path,
+) -> None:
+    """`resettle` is opt-in. The walker's refusal to overwrite a decision
+    stands for the walker; only an explicit verdict click may move a `~`."""
+    index = _suite_at(tmp_path)
+    note_writes.mark_check(index, number="1.1.1", name="Walk me",
+                           verdict="excused", reason="no hardware")
+    text = (index.docs_root / acceptance.SUITE_REL).read_text()
+    with pytest.raises(LookupError) as caught:
+        acceptance.rewrite_check(text, "1.1.1", name="Walk me", mark="x")
+    assert "reconciled" in str(caught.value)

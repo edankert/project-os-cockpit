@@ -1516,6 +1516,7 @@ async function navigateToInner(
   }
   wireInteractiveCheckboxes();
   wireMetadataStripPersistence();
+  mountAcceptanceMarks();
   applyScrollTarget(pathOnly, frag, opts.fromHistory ?? false);
   pushHistory(normalised, opts.replace ?? false);
   // Highlight the nav row matching the new doc (TASK-0083).
@@ -2177,6 +2178,131 @@ async function submitTick(
     showStatus(`Tick failed: ${String(err)}`, 'error');
     wrap.remove();
   }
+}
+
+// ----- the acceptance mark cycles in the document (FEAT-0104) ------------
+//
+// Edwin, twice: *"I thought we would have the checkboxes in the
+// acceptance-tests.md to have 3 states and we would allow to add text there"*,
+// and *"we also needed a way to say that the test could not be executed but it
+// should not holdup the release. With text box, also for F we also need a text
+// box."*
+//
+// So the mark cycles, and the two states that are not a pass cannot be written
+// without saying why. `[!]` is never offered — measured across the fleet it is
+// written in exactly zero suites, while `~` and `F` are the record's own.
+const MARK_CYCLE = [' ', 'x', '~', 'F'] as const;
+const VERDICT_FOR: Record<string, string> = {
+  ' ': 'clear', x: 'pass', '~': 'excused', F: 'failed',
+};
+const VERDICT_PROMPT: Record<string, { title: string; detail: string }> = {
+  excused: {
+    title: 'Could not be run — and not holding the release',
+    detail: 'Why could this not be executed? This is required: a check that '
+      + 'leaves the gate without a reason is exactly the gap [!] left open.\n\n'
+      + 'Naming an ISS-#### links it.',
+  },
+  failed: {
+    title: 'Walked, and it failed',
+    detail: 'What failed, and where is it tracked? This is required, and this '
+      + 'check keeps blocking the release.\n\nNaming an ISS-#### links it.',
+  },
+};
+
+/** Re-read the open document from disk. Cancelling a mark must put the
+ *  checkbox back the way it was: the browser has already flipped it
+ *  optimistically, and the file is the only thing that knows the truth. */
+async function repaintDoc(): Promise<void> {
+  if (currentRel) await navigateTo(currentRel, { replace: true });
+}
+
+/** How each mark reads on screen. Four states, because the record has four
+ *  and an HTML checkbox has two — which is why these rows draw their own
+ *  control instead of relying on `pymdownx.tasklist`, an extension that only
+ *  understands `[ ]` and `[x]` and leaves `[~]`/`[F]` as literal text. */
+const MARK_GLYPH: Record<string, string> = {
+  ' ': '☐', x: '☑', '~': '⊘', F: '✗',
+};
+const MARK_TITLE: Record<string, string> = {
+  ' ': 'Not walked — blocks the release. Click to mark passed.',
+  x: 'Passed. Click to mark it could not be run.',
+  '~': 'Could not be run, and not holding the release. Click to mark failed.',
+  F: 'Walked and failed — blocks the release. Click to clear.',
+};
+
+/** Draw a four-state control on every addressed acceptance row.
+ *
+ *  Called after each render. The native checkbox that `tasklist` emitted for
+ *  `[ ]`/`[x]` rows is removed, so one control speaks for all four marks and
+ *  a row cannot show one state while the file holds another. */
+function mountAcceptanceMarks(): void {
+  const rows = docView.querySelectorAll<HTMLElement>('li[data-check]');
+  for (const li of Array.from(rows)) {
+    if (li.querySelector('.acc-mark')) continue;
+    li.querySelector('input[type=checkbox]')?.remove();
+    const mark = li.dataset.mark ?? ' ';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `acc-mark acc-mark-${
+      { ' ': 'open', x: 'pass', '~': 'excused', F: 'failed' }[mark] ?? 'open'}`;
+    btn.textContent = MARK_GLYPH[mark] ?? '☐';
+    btn.title = MARK_TITLE[mark] ?? '';
+    btn.setAttribute('aria-label', MARK_TITLE[mark] ?? 'acceptance check');
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      void cycleAcceptanceMark(li);
+    });
+    li.insertBefore(btn, li.firstChild);
+  }
+}
+
+async function cycleAcceptanceMark(li: HTMLElement): Promise<void> {
+  const number = li.dataset.check;
+  const name = li.dataset.checkName;
+  if (!number || !name) return;
+  const current = li.dataset.mark ?? ' ';
+  const next = MARK_CYCLE[(MARK_CYCLE.indexOf(current as never) + 1)
+    % MARK_CYCLE.length] ?? 'x';
+  const verdict = VERDICT_FOR[next];
+
+  let reason = '';
+  if (verdict === 'excused' || verdict === 'failed') {
+    const prompt = VERDICT_PROMPT[verdict];
+    const answer = await askForText({
+      title: `${prompt.title} — ${number} ${name}`,
+      detail: prompt.detail,
+      placeholder: verdict === 'excused'
+        ? 'no trainer available this week, see ISS-0277'
+        : 'crashes on open, tracked as ISS-0285',
+      confirm: verdict === 'excused' ? 'Mark excused' : 'Mark failed',
+    });
+    // Cancel restores what was there and writes nothing.
+    if (answer === null || !answer.trim()) { await repaintDoc(); return; }
+    reason = answer.trim();
+  } else if (verdict === 'pass') {
+    const answer = await askForText({
+      title: `Passed — ${number} ${name}`,
+      detail: 'What did you observe? Optional — leave it blank to just tick it.',
+      placeholder: 'Claude, tablet: HR tile showed 69 bpm',
+      confirm: 'Mark passed',
+    });
+    if (answer === null) { await repaintDoc(); return; }
+    reason = answer.trim();
+  }
+
+  const res = await postJson('/api/notes/mark-check', {
+    number, name, verdict, reason,
+  });
+  if (!res?.ok) {
+    showStatus(`Could not mark ${number}: ${String(res?.error ?? 'refused')}`,
+               'error');
+    scheduleHide(4000);
+  }
+  // Repaint from the file either way: the mark is one of four and a checkbox
+  // can only show two, so the DOM cannot be patched to the truth. `replace`
+  // keeps this out of the back stack — marking a check is not navigation.
+  if (currentRel) await navigateTo(currentRel, { replace: true });
 }
 
 docView.addEventListener('change', async (e) => {

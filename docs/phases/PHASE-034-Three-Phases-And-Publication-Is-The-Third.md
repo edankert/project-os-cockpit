@@ -23,6 +23,7 @@ features:
   - "[[FEAT-0109-A-Shipped-Release-Reports-What-It-Kept]]"
   - "[[FEAT-0110-Still-Owed-By-A-Shipped-Release]]"
   - "[[FEAT-0111-The-Marks-The-Record-Already-Uses]]"
+  - "[[FEAT-0104-The-Suite-Is-The-Surface]]"
 issues:
   - "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]"
   - "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"
@@ -32,6 +33,8 @@ issues:
   - "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]"
   - "[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"
   - "[[ISS-0183-The-Canonical-Machine-Readable-File-Did-Not-Parse]]"
+  - "[[ISS-0184-Clicking-A-Checkbox-In-The-Acceptance-Suite-Writes-To-A-Different-Row]]"
+  - "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"
 requirements: []
 tasks: []
 depends: []
@@ -328,3 +331,54 @@ A burden-tag scanner, written for [[TASK-0449]] and removed the same hour: `ACCE
 - **[[ISS-0181]] items 3 and 4 stay open.** The save/reload interruption is a file-watch problem; completing a release needs a ship transition this phase did not build. [[FEAT-0110]] supplies only the *after*.
 - **Four fleet defects are recorded and unfiled** — two corrupt store XMLs, the live `compatibility.json` warning, the public release-notes page three versions behind, and `published` instructed as a status that does not exist. They belong to `../your-trainer`, `../your-applications.com` and the upstream template.
 - **The independent review gate is unpaid at this close.** `QUALITY.md` asks for a clean-context pass on any change creating a `TST-*` or `CHG-*`; this creates three and updates one. Edwin's call, and the last two passes both returned `changes-requested` with findings that were real.
+
+## Reopened 2026-08-17 — the document is the surface, and its checkboxes are unsafe
+
+Edwin, reading the shipped work: *"I thought we would have the checkboxes in the acceptance-tests.md to have 3 states and we would allow to add text there to make sure the ! state was documented?"*
+
+He is right and [[FEAT-0111]] is not it. It put Pass/Partial/Fail on the **Publication page's gate rows**; the agreed design was the mark cycling **in the acceptance document itself**, which is [[FEAT-0104]] — deferred at six unbuilt criteria. A replacement was built beside the thing it was meant to replace, for the third time in this phase.
+
+Reviewing it turned up [[ISS-0184]], which is worse than the missing feature and was **reproduced rather than reasoned**: clicking the checkbox at DOM index 257 in `../your-trainer`'s suite returns `ok` and writes to line 413 — a different check in a different section. 579 source boxes, 542 rendered ones, 37 task lists absorbed by lazy continuation. [[ISS-0175]] gave the *labelling* path a count-mismatch guard and the *write* path never got one; [[FEAT-0103]] refused to build the new walker on this endpoint for precisely this reason and wrote down why, and nobody applied that back.
+
+**The vocabulary is settled by measurement.** Across every acceptance suite in the fleet: `x` 851, blank 152, `~` 7, `F` 1, and **`!` zero**. `[!]` exists only in this repo's parser and in this feature's own plan. Edwin: *"I have no problem using ~ instead."* So `!` stays readable and is never offered again, and the four marks mean:
+
+| mark | walked? | result | blocks |
+| --- | --- | --- | --- |
+| `[ ]` | no | — | yes |
+| `[x]` | yes | passed | no |
+| `[~]` | yes | partial, shipping with it | no |
+| `[F]` | yes | failed, tracked | yes |
+
+`[ ]` and `[F]` both block and mean opposite things about whether anyone did the work — which is the whole reason `F` earns a place rather than collapsing into blank.
+
+## Closed 2026-08-17 — the fifth close, and the blocker that was never the recorded one
+
+Four things Edwin asked for, all built:
+
+1. **The mark cycles in the document** — `[ ]` → `[x]` → `[~]` → `[F]` → `[ ]`, each click writing immediately.
+2. **Both non-pass states carry text, and are refused without it** — *"we also needed a way to say that the test could not be executed but it should not holdup the release. With text box, also for F we also need a text box."*
+3. **The address, not the position** — every row stamped with its check number; the write resolves it or refuses.
+4. **`!` retired** — never offered again, still readable.
+
+### The finding that mattered
+
+[[FEAT-0104]] was deferred citing [[ISS-0175]], and that was the wrong blocker. The real one: **`pymdownx.tasklist` understands two marks.** A `[~]` or `[F]` row renders with *no input element at all* and its mark left as literal text, so an HTML checkbox can never hold four states and the whole document's alignment guard trips. `../your-trainer`'s seven hand-written marks have been unclickable since they were written.
+
+The row's **list item** is stamped instead, at priority 26 — above `task-list` at 25, which is the entire trick, because below it the literals are already gone.
+
+### Three numbers that came down, and only one was the document
+
+| reading | cause | mine? |
+| --- | --- | --- |
+| 542 of 579 rendered | a mid-edit read of a file Edwin was writing at 08:58 | **yes** |
+| 509 of 579 addressed | the address emitted from two places at once | **yes** |
+| 70 of 579 unaddressed | a hand-rolled name split truncating any name with a colon | **yes** |
+| 6 of 579 unaddressed | lists opening under a paragraph — the document's formatting | no |
+
+[[ISS-0184]] was filed on the first of those and **withdrawn the same day**. The reproduction appeared to confirm it because it checked its answer against the same stale index table that produced the claim; a reproduction that only consults its own premise is not one. What survives is the latent fragility — the write path has no count guard where the labelling path does — and the fix was worth making anyway.
+
+### Standing
+
+- **[[ISS-0177]]'s residue**, narrower and named: a `[~]` **hand-written** with no reason still carries none and nothing asks. A source-level refusal cannot reach a text editor.
+- **6 rows in `your-trainer`'s suite and 36 in its v2.1.0 delta** need a blank line in those files. The cockpit states the count and the remedy and changes nothing — reformatting the file the gate reads is not its call.
+- **The independent review gate is unpaid at this close**, for the second phase close running.

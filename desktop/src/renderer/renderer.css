@@ -5667,3 +5667,30 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   white-space: nowrap;
 }
 .doc-view tbody tr:hover { background: var(--surface-2); }
+
+/* ----- the acceptance mark (FEAT-0104) ---------------------------------
+ *
+ * Four states, because the record's vocabulary has four and an HTML
+ * checkbox has two. `pymdownx.tasklist` understands `[ ]` and `[x]` only,
+ * and renders `[~]`/`[F]` as literal text with no control at all — so the
+ * row draws its own and the native box is removed.
+ */
+.acc-mark {
+  appearance: none;
+  border: 1px solid var(--border, #4446);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  margin-right: 0.45em;
+  padding: 0.05em 0.3em;
+  vertical-align: baseline;
+}
+.acc-mark:hover { border-color: currentColor; }
+.acc-mark:focus-visible { outline: 2px solid var(--accent, #58a6ff); }
+/* Blocking states carry weight; the two that pass the gate do not. */
+.acc-mark-open    { color: var(--fg-muted, #8b949e); }
+.acc-mark-pass    { color: var(--ok, #3fb950); }
+.acc-mark-excused { color: var(--warn, #d29922); }
+.acc-mark-failed  { color: var(--danger, #f85149); font-weight: 700; }

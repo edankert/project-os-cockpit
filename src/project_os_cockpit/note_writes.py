@@ -1859,6 +1859,11 @@ def mark_check(
         updated = acceptance.rewrite_check(
             text, number, name=name, mark=mark,
             note=acceptance.verdict_note(verdict, date=_today(), reason=reason),
+            # An explicit verdict click may move a check OFF `~`, and must
+            # replace whatever justification was there rather than stacking a
+            # second one under it. The walker's refusal to overwrite a
+            # reconciled row stands for the walker; this is a person choosing.
+            resettle=True,
         )
     except LookupError as exc:
         raise WriteError(str(exc), status=409) from None

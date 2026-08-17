@@ -783,6 +783,7 @@ def locate(text: str, number: str) -> tuple[int, Item] | None:
 
 def rewrite_check(
     text: str, number: str, *, name: str, mark: str, note: str = "",
+    resettle: bool = False,
 ) -> str:
     """Return ``text`` with the check at ``number`` re-marked.
 
@@ -803,7 +804,7 @@ def rewrite_check(
             f"{number} is now {item.name!r}, not {name!r} — the acceptance tests moved "
             "underneath this walk",
         )
-    if item.reconciled:
+    if item.reconciled and not resettle:
         raise LookupError(
             f"{number} is reconciled — settled by a decision rather than by "
             "being walked, and a walk must not overwrite that",
@@ -818,6 +819,14 @@ def rewrite_check(
         raise LookupError(f"{number} is not a checkbox line")
     head = stripped[: stripped.index("[")]
     rest = stripped[stripped.index("]") + 1:]
+    if resettle:
+        # Replace the verdict, never stack it. Cycling `~` -> `F` on a row
+        # already reading `**Blocked 2026-08-17** — no hardware` must not
+        # produce a line carrying two dated verdicts that contradict each
+        # other, and clearing back to `[ ]` must take the justification with
+        # it — a row cannot claim both that nobody walked it and that
+        # somebody decided why it could not be walked.
+        rest = strip_verdict(rest)
     if note:
         rest = f"{rest.rstrip()} {note}"
     lines[line_no] = f"{head}[{mark}]{rest}{ending}"
@@ -846,20 +855,73 @@ def rewrite_check(
 #: absent: it stays READABLE (`_EXCEPTED_MARKS`) so a suite already using it
 #: keeps working, and is never OFFERED, because offering it would re-open
 #: ISS-0177's gap — an exception that drops a check with no justification.
+#: Four marks, and the vocabulary is settled by measurement rather than taste.
+#: Across every acceptance suite in the fleet on 2026-08-17: `x` 851, blank
+#: 152, `~` 7, `F` 1, and **`!` zero**. `[!]` was minted in this repo and
+#: written nowhere, so it stays READABLE and is never offered — Edwin, asked
+#: directly: *"I have no problem using ~ instead."*
+#:
+#: ===========  ========  ==========================================  ========
+#: mark         walked?   means                                       blocks
+#: ===========  ========  ==========================================  ========
+#: ``[ ]``      no        nobody has done it                          yes
+#: ``[x]``      yes       passed                                      no
+#: ``[~]``      no        could not be run, and is not holding the    no
+#:                        release — Edwin 2026-08-17
+#: ``[F]``      yes       walked and failed, tracked                  yes
+#: ===========  ========  ==========================================  ========
+#:
+#: `[ ]` and `[F]` both block and mean **opposite** things about whether the
+#: work was done, which is why `F` earns a mark rather than collapsing into
+#: blank. `[~]` and `[x]` both pass the gate and mean opposite things about
+#: whether anything was verified — which is why `[~]` cannot be written
+#: without a reason.
 VERDICTS: dict[str, str] = {
     "pass": "x",
-    "partial": "~",
-    "fail": "F",
+    "excused": "~",
+    "failed": "F",
+    "clear": " ",
 }
-#: Verdicts whose write is refused without a reason. This is the whole
-#: difference between these marks and `[!]`: the mark and its justification are
-#: one action, so a check cannot leave the gate silently.
-VERDICTS_NEEDING_REASON: frozenset[str] = frozenset({"partial", "fail"})
+#: Refused without a reason. The mark and its justification are one action, so
+#: a check cannot leave the gate silently — the whole gap [[ISS-0177]] records
+#: for `[!]`, which shipped its permissive half with no way to ask why.
+VERDICTS_NEEDING_REASON: frozenset[str] = frozenset({"excused", "failed"})
 #: Ids named in a reason, linkified on write and checked by the caller.
 _REASON_ID_RE = re.compile(r"\b([A-Z]{2,6}-\d{3,4})\b")
-#: How each reads in the record. `pass` uses the witness form; the other two
-#: use the dated-verdict form.
-_VERDICT_WORD: dict[str, str] = {"partial": "Partial pass", "fail": "FAILS"}
+#: How each reads in the record. **`Blocked` is not invented here** — it is one
+#: of the six verdict words already in `../your-trainer`'s v2.1.0 suite, and it
+#: is the one that means *could not be executed*, which is exactly what Edwin
+#: asked `[~]` to say. `Partial pass`, `Verified`, `Open` and `Not reproduced`
+#: stay READABLE for the rows that already carry them; only these two are
+#: written.
+_VERDICT_WORD: dict[str, str] = {"excused": "Blocked", "failed": "FAILS"}
+#: Everything the reader accepts, so a hand-written row keeps its meaning.
+_VERDICT_WORDS_READ: tuple[str, ...] = (
+    "Verified", "Partial pass", "Open", "Not reproduced", "FAILS", "Blocked",
+)
+#: A dated verdict already on a line, so `clear` can take it off again rather
+#: than leaving an orphan reason under a box that now reads unwalked.
+_VERDICT_SUFFIX_RE = re.compile(
+    r"\s*(?:\*\*(?:" + "|".join(_VERDICT_WORDS_READ) + r")\s+\d{4}-\d{2}-\d{2}"
+    r"\*\*.*|✅(?:\s*\(.*\))?)\s*$",
+)
+
+
+def strip_verdict(text: str) -> str:
+    """A check's prose with any dated verdict or witness taken off the end.
+
+    Clearing a mark back to `[ ]` must clear what justified it too. A row
+    reading `- [ ] **X:** do the thing. **Blocked 2026-08-17** — no hardware`
+    claims simultaneously that nobody has walked it and that somebody decided
+    why it could not be walked, and the gate would count it as owed while the
+    document explains that it is not.
+    """
+    previous = None
+    out = text or ""
+    while out != previous:                # a row may carry more than one pass
+        previous = out
+        out = _VERDICT_SUFFIX_RE.sub("", out)
+    return out.rstrip()
 
 
 def verdict_note(verdict: str, *, date: str, reason: str = "") -> str:
@@ -871,6 +933,8 @@ def verdict_note(verdict: str, *, date: str, reason: str = "") -> str:
     cell if the check ever sits in a table.
     """
     clean = _escape_reason(reason)
+    if verdict == "clear":
+        return ""
     if verdict == "pass":
         return f"✅ ({clean})" if clean else "✅"
     word = _VERDICT_WORD.get(verdict, verdict.upper())

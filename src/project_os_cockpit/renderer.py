@@ -161,7 +161,13 @@ def _markdown_to_html(
     # are independent — but registered ALWAYS, including for notes rendered
     # without a resolver, because a decision record is prose in a file and
     # is read from more places than the note page (FEAT-0095).
-    extensions: list[Any] = [*MARKDOWN_EXTENSIONS_BASE, CalloutExtension()]
+    extensions: list[Any] = [
+        *MARKDOWN_EXTENSIONS_BASE, CalloutExtension(),
+        # Stamps every acceptance row with its mark and its address, because
+        # an HTML checkbox holds two states and the record's vocabulary has
+        # four. Inert for every document that is not an acceptance suite.
+        AcceptanceMarkExtension(text),
+    ]
     if resolver is not None:
         image_resolver = (
             (lambda target: asset_resolver(target, source_path))
@@ -250,6 +256,11 @@ def _annotate_checkbox_source(html: str, source_md: str) -> str:
         )
         return html
 
+    # The check's ADDRESS is NOT emitted here. It lives on the `<li>`, put
+    # there by `AcceptanceMarkTreeprocessor`, because two of the four marks
+    # never become an `<input>` at all and an address that only reaches half
+    # the vocabulary is worse than none. Emitting it in both places produced
+    # 1088 addresses for 579 rows, which is how this was caught.
     counter = _it.count()
 
     def _sub(match: "_re.Match[str]") -> str:
@@ -262,6 +273,37 @@ def _annotate_checkbox_source(html: str, source_md: str) -> str:
         return f'{match.group(0)} data-raw="{_html.escape(raws[idx], quote=True)}"'
 
     return _RENDERED_BOX_RE.sub(_sub, html)
+
+
+def _check_numbers(source_md: str) -> tuple[list[str], list[str]]:
+    """Each task line's acceptance address, or ``""`` where it has none.
+
+    Positional with `raws` above, and guarded by the same count agreement:
+    this is only ever consulted when rendered boxes and source task lines
+    already match, so the Nth entry belongs to the Nth box.
+
+    A document that is not an acceptance suite yields all-empty and the
+    attribute is simply not emitted.
+    """
+    from . import acceptance
+
+    try:
+        items = acceptance.parse(source_md)
+    except Exception:                      # pragma: no cover — parse is total
+        return [], []
+    if not items:
+        return [], []
+    # `parse` walks task lines in document order and skips fences, exactly as
+    # `_criterion_text` does, so the two lists correspond one-for-one. Asserted
+    # by length rather than assumed: a mismatch means some other rule differs
+    # between them, and the safe answer is to emit no addresses at all.
+    numbers = [i.number for i in items]
+    names = [i.name for i in items]
+    raw_count = sum(
+        1 for line in source_md.splitlines()
+        if _criterion_text(line) is not None
+    )
+    return (numbers, names) if len(numbers) == raw_count else ([], [])
 
 
 class ImageSourceTreeprocessor(Treeprocessor):
@@ -281,6 +323,177 @@ class ImageSourceTreeprocessor(Treeprocessor):
             if resolved:
                 el.set("src", resolved)
         return root
+
+
+class AcceptanceMarkTreeprocessor(Treeprocessor):
+    """Make every acceptance row carry its mark and its address (TASK-0456).
+
+    **An HTML checkbox cannot hold four states, and `pymdownx.tasklist` only
+    knows two.** Measured: a `- [~]` or `- [F]` row renders with *no input
+    element at all* and its mark left as literal `[~]` text in the prose. So
+    the seven marked rows in `../your-trainer`'s v2.1.0 suite are unclickable,
+    and the whole document's annotation is skipped because 258 rendered boxes
+    cannot be aligned to 300 source rows.
+
+    That — not lazy continuation — is the real reason [[FEAT-0104]] stalled.
+    The note recorded ISS-0175 as the blocker; ISS-0175 accounts for 35 of the
+    42 missing boxes in that file and the marks account for the other 7, and
+    neither can be fixed by counting more carefully.
+
+    So the *list item* is stamped rather than the input: every gating row gets
+    ``data-check``, ``data-check-name`` and ``data-mark`` whatever its mark,
+    and the client draws a four-state control from them. Rows Markdown never
+    made into list items at all are still beyond reach — [[TASK-0457]] names
+    those rather than pretending.
+    """
+
+    def __init__(self, md, source_md: str) -> None:
+        super().__init__(md)
+        self._source = source_md
+
+    def run(self, root):  # type: ignore[override]
+        from . import acceptance
+
+        items = acceptance.parse(self._source)
+        if not items:
+            return root
+        # Only the rows Markdown actually made into list items can be
+        # addressed. Matching is by NAME, in document order, so a row that
+        # never became an `<li>` is skipped rather than shifting every
+        # address after it — the failure this whole task exists to remove.
+        by_name: dict[str, list] = {}
+        for item in items:
+            by_name.setdefault(item.name.strip(), []).append(item)
+
+        for li in root.iter("li"):
+            text = "".join(li.itertext()).strip()
+            if not text:
+                continue
+            # `pymdownx.tasklist` swaps the literal for an `<input>` in a
+            # POSTprocessor, after every treeprocessor has run. So at this
+            # point all four marks are still prose — including the two the
+            # extension understands — and reading the tree for an input finds
+            # nothing. Measured, not assumed: a first pass looked for the
+            # input and addressed only the `~`/`F` rows, which is the exact
+            # inverse of what the extension supports.
+            mark = ""
+            for candidate, glyph in (
+                ("[ ]", " "), ("[x]", "x"), ("[X]", "x"),
+                ("[~]", "~"), ("[F]", "F"),
+            ):
+                if text.startswith(candidate):
+                    mark = glyph
+                    text = text[len(candidate):].lstrip()
+                    break
+            if not mark:
+                continue                       # not a task row at all
+
+            name = _leading_name(text)
+            queue = by_name.get(name)
+            if not queue:
+                continue
+            item = queue.pop(0)
+            li.set("data-check", item.number)
+            li.set("data-check-name", item.name)
+            li.set("data-mark", mark)
+            li.set("data-gating", "1" if item.tier in acceptance.GATING_TIERS
+                   else "0")
+            # Strip the literal mark ONLY for the two tasklist does not
+            # understand. Its own postprocessor consumes `[ ]` and `[x]`
+            # itself, and removing them here would leave it nothing to find.
+            if mark in {"~", "F"}:
+                _strip_literal_mark(li)
+
+        # Rows Markdown never made into a list item at all (TASK-0457).
+        #
+        # Their list opens directly under a paragraph line, so lazy
+        # continuation absorbs it and there is no `<li>` to stamp and nothing
+        # on screen to click. They are still in the gate's count and they are
+        # still real work.
+        #
+        # Named rather than left absent: ISS-0172's rule is that an affordance
+        # which cannot work should explain itself rather than vanish. And NOT
+        # auto-fixed — reformatting somebody's document because it would be
+        # more convenient to click is a different act, and it would rewrite the
+        # file the gate reads.
+        unreachable = len(items) - sum(
+            1 for li in root.iter("li") if li.get("data-check")
+        )
+        if unreachable > 0:
+            _prepend_unreachable_notice(root, unreachable, len(items))
+        return root
+
+
+def _prepend_unreachable_notice(root, count: int, total: int) -> None:  # noqa: ANN001
+    """State how many checks have no clickable control, and the one-line fix."""
+    import xml.etree.ElementTree as ET
+
+    box = ET.Element("div", {"class": "callout callout-warning acc-unreachable"})
+    title = ET.SubElement(box, "p", {"class": "callout-title"})
+    title.text = (
+        f"{count} of {total} checks cannot be marked here"
+    )
+    body = ET.SubElement(box, "p")
+    body.text = (
+        "Their list opens directly under a paragraph, so Markdown renders no "
+        "checkbox for them. Add a blank line above each list to make them "
+        "clickable. Until then they still count towards the release gate and "
+        "must be marked by editing this file."
+    )
+    root.insert(0, box)
+
+
+def _leading_name(text: str) -> str:
+    """A row's name, read with **`parse`'s own regex** rather than a lookalike.
+
+    This runs before the inline processor, so the `**` are still literal and
+    the same pattern applies to the tree text as to the source line.
+
+    Splitting on the first colon looked equivalent and is not: a name may
+    contain one — *"Imported intervals get translated (Layer 1: shared
+    assignment)"* — and a hand-rolled split truncates it, so the row fails to
+    match and goes unaddressed. That accounted for most of the 70 rows this
+    could not reach on `your-trainer`'s suite. Two parsers for one convention
+    is the drift this project keeps paying for; there is now one.
+    """
+    from .acceptance import _NAME_RE
+
+    named = _NAME_RE.match(text.strip())
+    if named:
+        return named.group(1).strip()
+    return text.strip().strip("*").strip()
+
+
+def _strip_literal_mark(li) -> None:  # noqa: ANN001
+    """Remove a leading `[~] ` / `[F] ` that tasklist left as prose."""
+    for node in li.iter():
+        if node.text and node.text.lstrip().startswith(("[~]", "[F]")):
+            stripped = node.text.lstrip()
+            node.text = stripped[3:].lstrip()
+            return
+
+
+class AcceptanceMarkExtension(Extension):
+    def __init__(self, source_md: str) -> None:
+        super().__init__()
+        self._source_md = source_md
+
+    def extendMarkdown(self, md) -> None:  # type: ignore[override]
+        md.treeprocessors.register(
+            AcceptanceMarkTreeprocessor(md, self._source_md),
+            "project_os_acceptance_marks",
+            # ABOVE `task-list` (25), which is the whole trick. Below it, the
+            # extension has already swapped `[ ]`/`[x]` for a stashed raw-HTML
+            # input, so neither the literal nor an `<input>` element is in the
+            # tree and only the two marks it does NOT understand survive to be
+            # read — the exact inverse of what is wanted, and what a first
+            # pass at priority 4 actually produced.
+            #
+            # Above it, all four marks are still prose. `[ ]` and `[x]` are
+            # left in place for tasklist to consume; only `[~]` and `[F]`,
+            # which it would leave as literal text forever, are removed here.
+            26,
+        )
 
 
 class ImageSourceExtension(Extension):
