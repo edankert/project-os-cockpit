@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0460
 aliases: ["TASK-0460"]
 title: "The migration script — parse, emit one CHK note per row, delete the source, assert parity rather than assuming it"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

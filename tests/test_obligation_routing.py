@@ -46,6 +46,14 @@ def docs(tmp_path: Path) -> Path:
         _note(d / "features" / fid.lower() / f"{fid}-F.md", {
             "type": "[[feature]]", "id": fid, "title": f"Feature {fid}",
             "status": status,
+            # Every fixture feature declares its acceptance impact discharged.
+            # These tests are about the IN-FLIGHT rule — which subject's status
+            # makes a requirement or a test owed — and a feature at `doing`
+            # legitimately owes an acceptance sweep of its own since TASK-0468.
+            # Leaving the field absent would make every count in this module
+            # about two rules at once, and the first of them to change would
+            # break tests that have no opinion about it.
+            "acceptance_impact": "none — fixture, nothing to sweep",
         })
     return d
 

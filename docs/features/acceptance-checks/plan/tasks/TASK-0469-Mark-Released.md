@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0469
 aliases: ["TASK-0469"]
 title: "Mark released — the missing end of the process, behind two refusals, printing the git commands it will not run"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

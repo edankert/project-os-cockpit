@@ -1240,13 +1240,56 @@ async function navigateToInner(
   // tile is the short version; this is the same grammar, further back.
   // ~release/next and ~release/<id> — the release page (FEAT-0106).
   if (normalised === '~release' || normalised.startsWith('~release/')) {
-    const rid = normalised === '~release'
+    const tail = normalised === '~release'
       ? 'next' : normalised.slice('~release/'.length);
-    if (await renderReleasePage(rid)) return;
+    // `~release/<id>/<ITEM-ID>` — one view per item (TASK-0472). Checked
+    // before the release page, because `~release/REL-0001/FEAT-0086` would
+    // otherwise be read as a release id nothing resolves.
+    const slash = tail.indexOf('/');
+    if (slash > 0) {
+      const ok = await renderReleaseItemPage(
+        tail.slice(0, slash), tail.slice(slash + 1).toUpperCase());
+      if (ok) {
+        currentRel = normalised;
+        currentDispatchHistory = null;
+        currentNoteStatus = null;
+        pushHistory(normalised, opts.replace ?? false);
+        refreshFooterPath();
+        return;
+      }
+    }
+    if (await renderReleasePage(tail)) return;
   }
   // ~publication — the third phase's view (FEAT-0102).
   if (normalised === '~publication') {
     setNavMode('publication');
+    return;
+  }
+  // ~checks — the acceptance suite as a list (FEAT-0114 / TASK-0464). It is a
+  // page rather than a nav mode: the suite lives inside Tests, and giving it a
+  // ninth mode would put one corpus in two places, which is ISS-0068's defect.
+  // ~sweep/<FEAT-ID> — the close-out sweep (TASK-0467).
+  if (normalised.startsWith('~sweep/')) {
+    const ok = await renderSweepPage(
+      normalised.slice('~sweep/'.length).toUpperCase());
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
+    return;
+  }
+  if (normalised === '~checks') {
+    const ok = await renderChecksPage();
+    if (ok) {
+      currentRel = normalised;
+      currentDispatchHistory = null;
+      currentNoteStatus = null;
+      pushHistory(normalised, opts.replace ?? false);
+      refreshFooterPath();
+    }
     return;
   }
   if (normalised === '~history' || normalised.startsWith('~history/')) {
@@ -1612,6 +1655,17 @@ interface GateItem {
    *  older payload gets `[ ]`, which is what an unsettled row almost always
    *  is — wrong quietly rather than crashing loudly. */
   mark?: string;
+  /** The check's own id and path, once the repo stores checks as notes
+   *  (ADR-0030). A write prefers `id`: `number` is a position in a document
+   *  and shifts when anything above it is edited, which is the address the
+   *  migration exists to retire. Absent on a repo that has not migrated. */
+  id?: string;
+  rel?: string;
+  verdict_date?: string;
+  verdict_reason?: string;
+  automation?: string;
+  stale?: boolean;
+  invalidated_by?: { change?: string; reason?: string; date?: string };
 }
 interface GateDelta {
   comparable: boolean; baseline: string;
@@ -2207,7 +2261,8 @@ const VERDICT_FOR: Record<string, string> = {
 /** The four choices, in the order a walker meets them. `label` is what the
  *  button says; `hint` is what it does to the release. */
 const MARK_CHOICES: Array<{
-  verdict: string; mark: string; label: string; hint: string; needsReason: boolean;
+  verdict: string; mark: string; label: string; hint: string;
+  needsReason: boolean; needsChange?: boolean;
 }> = [
   { verdict: 'pass', mark: 'x', label: 'Done',
     hint: 'walked and passed — clears the gate', needsReason: false },
@@ -2222,6 +2277,16 @@ const MARK_CHOICES: Array<{
   { verdict: 'clear', mark: ' ', label: 'To-do',
     hint: 'nobody has walked it — keeps blocking, clears any reason',
     needsReason: false },
+  // **The seventh action** (TASK-0466). Not a seventh MARK — it writes `[ ]`
+  // like To-do above — but a different act, and the corpus proves the two need
+  // telling apart: 54 rows in `../your-trainer` carry a hand-written
+  // `RE-RUN (…)` annotation and **all 54 are still ticked**, because unticking
+  // destroyed the record that the check had ever passed and there was nowhere
+  // to say why. This clears the mark AND records which change invalidated it,
+  // in one write, and is the only option that requires naming a change.
+  { verdict: 'needs-re-run', mark: ' ', label: 'Needs re-run',
+    hint: 'a change overtook the evidence — names the change',
+    needsReason: false, needsChange: true },
 ];
 
 /** One dialog, all six options (ISS-0185, ADR-0029).
@@ -2238,7 +2303,7 @@ const MARK_CHOICES: Array<{
  *  written. */
 function askForMark(
   opts: { number: string; name: string; current: string },
-): Promise<{ verdict: string; reason: string } | null> {
+): Promise<{ verdict: string; reason: string; change?: string } | null> {
   return new Promise((resolve) => {
     const back = document.createElement('div');
     back.className = 'ask-backdrop';
@@ -2269,22 +2334,38 @@ function askForMark(
     const field = document.createElement('textarea');
     const err = document.createElement('p');
     const save = document.createElement('button');
+    // Shown only for Needs re-run. A permanently visible field for an option
+    // six of the seven never use would read as something everybody owes.
+    const change = document.createElement('input');
+    change.type = 'text';
+    change.className = 'ask-field ask-field-change';
+    change.placeholder = 'the change that invalidated it — TASK-####, ISS-####';
+    change.hidden = true;
 
     const refresh = (): void => {
       buttons.forEach((btn, i) => {
         btn.classList.toggle('is-picked', MARK_CHOICES[i] === picked);
       });
       const needs = picked?.needsReason ?? false;
+      const wantsChange = picked?.needsChange ?? false;
       field.disabled = picked === null;
       field.placeholder = needs
         ? 'required — why?'
-        : 'optional — what you observed';
+        : wantsChange
+          ? 'optional — what the change did to this check'
+          : 'optional — what you observed';
+      change.hidden = !wantsChange;
       const missing = needs && !field.value.trim();
-      save.disabled = picked === null || missing;
-      err.hidden = !missing;
+      const missingChange = wantsChange && !change.value.trim();
+      save.disabled = picked === null || missing || missingChange;
+      err.hidden = !(missing || missingChange);
       if (missing && picked) {
         err.textContent = `"${picked.label}" needs a reason — that is the `
           + 'difference between it and an undocumented exception.';
+      } else if (missingChange) {
+        err.textContent = 'Needs re-run must name the change that overtook '
+          + 'this check — an invalidation nobody can trace is an unticked box '
+          + 'with a shrug attached.';
       }
     };
 
@@ -2315,6 +2396,9 @@ function askForMark(
     }
     card.appendChild(choices);
 
+    change.addEventListener('input', refresh);
+    card.appendChild(change);
+
     field.className = 'ask-field';
     field.rows = 3;
     field.addEventListener('input', refresh);
@@ -2337,7 +2421,9 @@ function askForMark(
     card.appendChild(actions);
 
     let done = false;
-    const close = (value: { verdict: string; reason: string } | null): void => {
+    const close = (
+      value: { verdict: string; reason: string; change?: string } | null,
+    ): void => {
       if (done) return;
       done = true;
       back.remove();
@@ -2346,7 +2432,10 @@ function askForMark(
     };
     const commit = (): void => {
       if (!picked || save.disabled) return;
-      close({ verdict: picked.verdict, reason: field.value.trim() });
+      close({
+        verdict: picked.verdict, reason: field.value.trim(),
+        change: change.value.trim(),
+      });
     };
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') { e.preventDefault(); close(null); }
@@ -7209,8 +7298,23 @@ interface ReleasePayload {
   /** What this release verified — the suite snapshot it shipped against and
    *  any TST notes. From `tests_verified:`, which twelve releases have been
    *  filling in by hand and nothing has ever read (FEAT-0107). */
+  /** Split three ways, open first: REL-0010's heading said 11 and the truth
+   *  was 1 open + 2 done + 8 unknowable. One number over three populations is
+   *  a number nobody can act on. */
+  still_owed_split?: { open: number; done: number; unknowable: number };
+  /** Of the checks touching what shipped: how many are covered mechanically.
+   *  Edwin asked *"is this a feature stat"* — it is not; it is a CHECK
+   *  property (`automation:`) rolled up, so nothing is authored twice. */
+  confidence?: {
+    total: number; full: number; partial: number; manual: number;
+    scoped: boolean;
+  };
   tests_verified?: Array<{
     id: string; rel: string; resolved?: boolean; title?: string;
+    /** The entry never was an id — it is a sentence somebody recorded, and 11
+     *  of the corpus's 15 are. Rendering those as broken links reported the
+     *  record as damaged when it was doing its job. */
+    claim?: boolean;
     /** How much was ACTUALLY walked. The heading says "as executed" and
      *  REL-0012's own entry is 0 of 18 with no evidence (FEAT-0109). */
     grade?: {
@@ -7263,6 +7367,178 @@ async function renderReleasePage(releaseId: string): Promise<boolean> {
   return true;
 }
 
+
+// ---------------------------------------------------------------------------
+// `~release/<id>/<ITEM-ID>` — one view per item (FEAT-0117 / TASK-0472).
+//
+// Edwin: *"having features defined as they are now, makes them selectable in
+// this view but instead you would like to have one view per item."* Selecting a
+// feature inside a release used to open the plain note, with no release context
+// at all — the thing selected and the thing received were mismatched.
+//
+// Deliberately last in the phase. The item list was wrong until the rest of it
+// landed (features only, never frozen), and a per-item view over a wrong list
+// multiplies the error.
+// ---------------------------------------------------------------------------
+
+interface ReleaseItemPayload {
+  exists: boolean;
+  id: string; title?: string; type?: string; status?: string; rel?: string;
+  release?: string; release_version?: string; release_status?: string;
+  acceptance_impact?: string; impact_state?: string;
+  originated?: GateItem[]; invalidated?: GateItem[]; in_areas?: GateItem[];
+  closed_issues?: { id: string; title: string; status: string; rel: string }[];
+}
+
+async function renderReleaseItemPage(
+  releaseId: string, itemId: string,
+): Promise<boolean> {
+  if (!sidecarBaseUrl || !itemId) return false;
+  let data: ReleaseItemPayload | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/release-item`
+      + `?release=${encodeURIComponent(releaseId)}`
+      + `&item=${encodeURIComponent(itemId)}`);
+    if (!resp.ok) return false;
+    data = (await resp.json()) as ReleaseItemPayload;
+  } catch { return false; }
+  if (!data?.exists) return false;
+  if (currentNavMode !== 'publication') setNavMode('publication');
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildReleaseItemPage(data, releaseId));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildReleaseItemPage(
+  d: ReleaseItemPayload, releaseId: string,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body release-item-page';
+
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = `${d.id} · ${d.title ?? ''}`;
+  head.appendChild(h);
+  const state = document.createElement('span');
+  state.className = 'release-state';
+  state.textContent = d.status ?? '';
+  head.appendChild(state);
+  wrap.appendChild(head);
+
+  const context = document.createElement('p');
+  context.className = 'meta';
+  context.textContent = d.release
+    ? `In ${d.release}${d.release_version ? ` · ${d.release_version}` : ''}`
+      + ` (${d.release_status ?? ''})`
+    : 'In the next release — derived, not yet frozen.';
+  wrap.appendChild(context);
+
+  // ---- the authored line, always ---------------------------------------
+  //
+  // The empty state is the POINT. *"Acceptance impact considered — none"* and
+  // *"not yet swept"* are opposite sentences about a feature with no checks,
+  // and until `acceptance_impact:` existed the surface could only render both
+  // as an empty list.
+  const impact = document.createElement('p');
+  impact.className = 'release-impact';
+  if (d.type !== 'feature') {
+    impact.textContent = 'An issue carries no acceptance sweep — the sweep is '
+      + 'scoped to the feature that changed the surface.';
+  } else if (d.impact_state === 'owed') {
+    impact.textContent = 'Acceptance impact not yet swept.';
+    impact.classList.add('is-owed');
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'review-btn';
+    go.textContent = 'Sweep ▸';
+    go.addEventListener('click', () => { void navigateTo(`~sweep/${d.id}`); });
+    impact.appendChild(go);
+  } else {
+    impact.textContent = `Acceptance impact — ${d.acceptance_impact}`;
+  }
+  wrap.appendChild(impact);
+
+  for (const [label, items, empty] of [
+    ['Checks it originated', d.originated ?? [],
+      'None name this item in `covers:`.'],
+    ['Checks it invalidated', d.invalidated ?? [],
+      'None — no sweep has recorded this item as overtaking a check.'],
+    ['Checks in its areas', d.in_areas ?? [],
+      'None — nothing else sits in the areas this item covers.'],
+  ] as [string, GateItem[], string][]) {
+    const s = document.createElement('section');
+    s.className = 'release-section';
+    const sh = document.createElement('h3');
+    sh.textContent = `${label} · ${items.length}`;
+    s.appendChild(sh);
+    if (!items.length) {
+      const none = document.createElement('p');
+      none.className = 'empty-note';
+      none.textContent = empty;
+      s.appendChild(none);
+    }
+    for (const item of items) {
+      // The mark control INLINE — the same one the view and the gate wear, so
+      // a reader can walk a check from the page that told them it mattered.
+      s.appendChild(buildCheckRow(item));
+    }
+    wrap.appendChild(s);
+  }
+
+  if (d.closed_issues?.length) {
+    const s = document.createElement('section');
+    s.className = 'release-section';
+    const sh = document.createElement('h3');
+    sh.textContent = `Issues it closed · ${d.closed_issues.length}`;
+    s.appendChild(sh);
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const issue of d.closed_issues) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono';
+      // Through `shortNoteId`, like every other id-rendering site: a raw id
+      // wraps to four lines the day a long CHG slug lands here.
+      id.textContent = shortNoteId(issue.id);
+      id.title = issue.id;
+      const title = document.createElement('span');
+      title.className = 'scoped-row-title';
+      title.textContent = issue.title;
+      li.append(id, title);
+      li.style.cursor = 'pointer';
+      li.addEventListener('click', () => void navigateTo(`/docs/${issue.rel}`));
+      ul.appendChild(li);
+    }
+    s.appendChild(ul);
+    wrap.appendChild(s);
+  }
+
+  // The bare note is ONE ROW AWAY, never the destination. That is the whole
+  // correction: the reader asked about this item in this release and gets the
+  // release answer, with the note still reachable.
+  if (d.rel) {
+    const note = document.createElement('button');
+    note.type = 'button';
+    note.className = 'file-row';
+    note.textContent = `note · docs/${d.rel}`;
+    note.addEventListener('click', () => { void navigateTo(`/docs/${d.rel}`); });
+    wrap.appendChild(note);
+  }
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'file-row';
+  back.textContent = `◂ back to ${releaseId === 'next' ? 'the next release' : releaseId}`;
+  back.addEventListener('click', () => { void navigateTo(`~release/${releaseId}`); });
+  wrap.appendChild(back);
+  return wrap;
+}
+
 function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'review-body release-page';
@@ -7294,7 +7570,13 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     const go = document.createElement('button');
     go.type = 'button';
     go.className = 'review-btn is-primary';
-    go.textContent = 'Start ▸';
+    // **Name the version** (TASK-0470). `Start ▸` implied the release process
+    // begins here; under the continuous model it has been running all along —
+    // the sweep happens at every close-out — and this button does exactly one
+    // thing: it names the number. `preparing:` is what stops the gate
+    // obligation asking outside a release window, so the control survives; the
+    // claim it made does not.
+    go.textContent = 'Name the version';
     // The refusal is shown HERE, beside the field that caused it, rather than
     // in a toast that disappears before it has been read.
     const err = document.createElement('p');
@@ -7336,6 +7618,98 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
   // an argument rather than a preference.
   const gateSection = buildGateSection(d, releaseId);
   if (gateSection) wrap.appendChild(gateSection);
+
+  // ---- after the gate, deliberately ------------------------------------
+  //
+  // Edwin's argument for putting the gate first — *"this needs to be
+  // completed (the features/issues are things that simply ship with this
+  // release)"* — is about ERRANDS before INVENTORY. `Mark released` is neither:
+  // it is the act the gate stands in front of, so it reads directly under
+  // what is blocking it and directly above what it would freeze.
+  //
+  // ---- the note itself, as a row (TASK-0471) ---------------------------
+  //
+  // The authored record was unreachable from the only view about it. Every
+  // other file on this page is a row you click; this is one too.
+  if (d.exists && d.rel) {
+    const noteRow = document.createElement('button');
+    noteRow.type = 'button';
+    noteRow.className = 'file-row';
+    noteRow.textContent = `note · docs/${d.rel}`;
+    noteRow.addEventListener('click', () => { void navigateTo(`/docs/${d.rel}`); });
+    wrap.appendChild(noteRow);
+  }
+
+  // ---- Mark released (TASK-0469) ---------------------------------------
+  //
+  // `HUMAN_TRANSITIONS` had no `release` key, which is why nothing anywhere
+  // could take a release from draft to released (ISS-0181 item 4). Two
+  // refusals stand behind this and both name their subjects; it prints the
+  // git commands and runs neither, because a commit is local and reversible
+  // while a pushed tag is published.
+  if (d.exists && d.status === 'draft' && d.version) {
+    const ship = document.createElement('div');
+    ship.className = 'release-start';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'review-btn is-primary';
+    btn.textContent = `Mark released · v${d.version}`;
+    const shipErr = document.createElement('p');
+    shipErr.className = 'ask-error';
+    shipErr.hidden = true;
+    btn.addEventListener('click', () => {
+      void (async () => {
+        btn.disabled = true;
+        shipErr.hidden = true;
+        try {
+          const res = await postJson('/api/notes/release-mark-released',
+            { id: d.id, actor: 'user:edwin' }) as { commands?: string[] };
+          // The commands are SHOWN, not run. Displayed in the pane rather
+          // than a toast because a person has to copy them.
+          const box = document.createElement('pre');
+          box.className = 'release-commands';
+          box.textContent = (res.commands ?? []).join('\n');
+          ship.appendChild(box);
+          showStatus(`${d.id} released — run the tag commands to publish`,
+            'info');
+          scheduleHide(8000);
+          void loadWsNav();
+        } catch (e: unknown) {
+          // Beside the control that caused it. These refusals NAME their
+          // subjects — which features have not been swept, which checks are
+          // unwalked — and a toast would take that list away before it could
+          // be read.
+          shipErr.textContent = e instanceof Error ? e.message : String(e);
+          shipErr.hidden = false;
+          btn.disabled = false;
+        }
+      })();
+    });
+    ship.appendChild(btn);
+    wrap.append(ship, shipErr);
+  }
+
+
+  // ---- confidence, rolled up (TASK-0471) -------------------------------
+  //
+  // Edwin: *"it would however be really good if the releases would capture the
+  // test levels/confidence (is this a feature stat)"*. It is not a feature
+  // stat — it is `automation:` on the checks that touch what shipped, summed.
+  // Reported rather than authored, so nobody writes the same fact twice.
+  if (d.confidence?.scoped) {
+    const conf = document.createElement('p');
+    conf.className = 'meta release-confidence';
+    conf.textContent = d.confidence.total
+      ? `Confidence — of the ${d.confidence.total} check(s) touching what `
+        + `shipped: ${d.confidence.full} automated, ${d.confidence.partial} `
+        + `partial, ${d.confidence.manual} manual.`
+      // Zero is a fact, not a gap: Edwin's own correction is that not all
+      // features need acceptance tests, so a release whose features
+      // originated none is a normal release and says so.
+      : 'Confidence — no acceptance check names anything in this release. '
+        + 'That is a fact about coverage, not a failure.';
+    wrap.appendChild(conf);
+  }
 
   // ---- what is in it ---------------------------------------------------
   const c = d.contents;
@@ -7409,7 +7783,14 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
       id.title = v.id;
       const t2 = document.createElement('span');
       t2.className = 'scoped-row-title';
-      t2.textContent = v.rel ? (v.title || v.id) : `${v.id} — not in this corpus`;
+      // **A recorded claim is not a broken link** (TASK-0471). 11 of the
+      // corpus's 15 entries are sentences — *"Unit tests: 614 tests, all
+      // passing"* — and every one rendered as *"not in this corpus"*, which
+      // reads as a defect in the record rather than as the record.
+      t2.textContent = v.rel ? (v.title || v.id)
+        : v.claim ? v.id
+          : `${v.id} — not in this corpus`;
+      if (v.claim) t2.classList.add('is-claim');
       li.append(id, t2);
       // The grade, not just the link (FEAT-0109 / TASK-0450). This heading
       // says "as executed" and REL-0012's own entry resolves to a note with
@@ -7541,7 +7922,12 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     const s = document.createElement('section');
     s.className = 'release-section';
     const sh = document.createElement('h3');
-    sh.textContent = `Still owed by this release · ${d.still_owed.length}`;
+    // The split, in the heading, open first. `· 11` was true and useless.
+    const split = d.still_owed_split;
+    sh.textContent = split
+      ? `Still owed by this release · ${split.open} open · ${split.done} done`
+        + ` · ${split.unknowable} unknowable`
+      : `Still owed by this release · ${d.still_owed.length}`;
     s.appendChild(sh);
     const ul = document.createElement('ul');
     ul.className = 'scoped-rowlist';
@@ -7839,29 +8225,602 @@ function gateMark(
  *  later, which is exactly how ISS-0188's fix came to do nothing.
  */
 async function markGateRow(item: GateItem, releaseId: string): Promise<void> {
+  await walkOneCheck(item, () => renderReleasePage(releaseId));
+}
+
+/** **The walk layer** (TASK-0465): ask, write, repaint without moving the reader.
+ *
+ *  Three surfaces mark a check — the release gate's rows, the acceptance view's
+ *  rows, and (until a repo migrates) the rendered document — and every one of
+ *  them needs the identical four things: the dialog, a post that can be
+ *  refused, a toast that says why, and a repaint that holds the reader's
+ *  position. Each had its own copy, and the copies drifted: ISS-0187's
+ *  unhandled rejection existed in one and not the other, and ISS-0188's
+ *  scroll fix had to be applied twice, one frame too early the first time.
+ *
+ *  `repaint` is the only difference between callers, so it is the only
+ *  parameter. **The next surface that walks something plugs in here**, which
+ *  is the convergence this task exists for.
+ *
+ *  What deliberately did NOT converge is the manual-test runner
+ *  (`buildTestRunner`). It looked like the same shape — a walkable list of
+ *  steps — and is not: its per-step results are TRANSIENT and recorded in one
+ *  batch at the end, where a check's verdict is persistent and written per
+ *  row; it advances one step at a time where this is a filtered list. Three
+ *  axes of difference against one of similarity is a parameterised component
+ *  nobody can read, so the shared thing is the verdict layer rather than the
+ *  page. Recorded here rather than left as an open question. */
+async function walkOneCheck(
+  item: GateItem, repaint: () => Promise<unknown>,
+): Promise<void> {
   const chosen = await askForMark({
-    number: item.number, name: item.name, current: item.mark || ' ',
+    number: item.id || item.number, name: item.name, current: item.mark || ' ',
   });
   if (chosen === null) return;              // nothing written, nothing repainted
   try {
     // `postJson` THROWS on refusal — it does not return `{ok: false}`. An
     // `if (!res?.ok)` here would be unreachable and a server refusal would
-    // become an unhandled rejection with no toast (ISS-0187, in the other
-    // caller of this same endpoint).
+    // become an unhandled rejection with no toast (ISS-0187).
     await postJson('/api/notes/mark-check', {
-      number: item.number, name: item.name,
+      // `id` when the check is a note, `number`+`name` when it is a row. Both
+      // are sent; the server prefers the id and the two can never disagree
+      // about which check is meant, because they come from the same payload.
+      id: item.id ?? '', number: item.number, name: item.name,
       verdict: chosen.verdict, reason: chosen.reason,
+      change: chosen.change ?? '',
     });
   } catch (err: unknown) {
-    showStatus(`Could not mark ${item.number}: ${
+    showStatus(`Could not mark ${item.id || item.number}: ${
       err instanceof Error ? err.message : String(err)}`, 'error');
     scheduleHide(6000);
     return;
   }
+  // The position is held twice — once synchronously and once inside the frame
+  // — because layout lands a frame after the children are replaced, which is
+  // exactly how ISS-0188's fix came to do nothing.
   const held = docView.scrollTop;
-  await renderReleasePage(releaseId);
+  await repaint();
   docView.scrollTop = held;
   requestAnimationFrame(() => { docView.scrollTop = held; });
+}
+
+// ---------------------------------------------------------------------------
+// The acceptance view — the suite as a list, generated from notes (FEAT-0114 /
+// TASK-0464).
+//
+// Edwin's contract, verbatim: *"We can then present them still as the same list
+// with the same tick options for me to go through before a release."* So this
+// is the shape a reader already knows — tier, then area, then rows in order,
+// with the same six-mark dialog — and what changed is only where it comes from.
+//
+// The document used to BE the display, which is why ISS-0185..0189 spent four
+// rounds teaching rendered Markdown to behave like a control surface. Nothing
+// here is a rendered document, so none of that plumbing is needed: a row draws
+// its own mark because a row is data.
+// ---------------------------------------------------------------------------
+
+interface CheckArea {
+  section: string; area: string; refs: string[]; items: GateItem[];
+}
+interface CheckTier {
+  tier: number; label: string; gating: boolean;
+  total: number; checked: number; reconciled: number; excepted: number;
+  unsettled: number; stale: number; areas: CheckArea[];
+}
+interface ChecksView {
+  exists: boolean; shape: string; rel: string; readme: string;
+  tiers: CheckTier[];
+  facets: Record<string, { value: string; label: string; count: number }[]>;
+  blocking: number; total: number; settled: number;
+}
+
+/** Which facet values are selected, per axis. Empty means *no filter on this
+ *  axis* rather than *nothing matches* — the difference a naive `has()` gets
+ *  wrong and then shows an empty page for. */
+const checkFilters: Record<string, Set<string>> = {
+  marks: new Set(), tiers: new Set(), areas: new Set(),
+  covers: new Set(), automation: new Set(),
+};
+let checksData: ChecksView | null = null;
+
+/** The axis a row is judged on, per facet. One place, so a filter chip and the
+ *  predicate that honours it cannot describe different fields. */
+function checkMatches(item: GateItem, tier: number): boolean {
+  const f = checkFilters;
+  if (f.marks.size && !f.marks.has(item.mark || ' ')) return false;
+  if (f.tiers.size && !f.tiers.has(String(tier))) return false;
+  if (f.areas.size && !f.areas.has(item.area || '')) return false;
+  if (f.automation.size && !f.automation.has(item.automation || '')) return false;
+  if (f.covers.size && !(item.refs || []).some((r) => f.covers.has(r))) return false;
+  return true;
+}
+
+async function renderChecksPage(): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
+    if (!resp.ok) return false;
+    const data = (await resp.json()) as { view?: ChecksView };
+    if (!data.view) return false;
+    checksData = data.view;
+  } catch { return false; }
+  if (currentNavMode !== 'tests') setNavMode('tests');
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildChecksPage(checksData));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildChecksPage(v: ChecksView): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body checks-page';
+
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = 'Acceptance checks';
+  head.appendChild(h);
+  const state = document.createElement('span');
+  state.className = 'release-state';
+  // The gate's own sentence, not a second statement of it: blocked while any
+  // Tier 1/2 check is unwalked.
+  state.textContent = v.blocking
+    ? `${v.blocking} unwalked — a release is blocked`
+    : `all ${v.settled} settled`;
+  head.appendChild(state);
+  wrap.appendChild(head);
+
+  if (!v.exists) {
+    const none = document.createElement('p');
+    none.className = 'empty-note';
+    // Absent is not passing. A repo that never instantiated the contract has
+    // nothing blocking BECAUSE it has nothing, which is the state that made
+    // the gate look like it worked for months.
+    none.textContent = 'This repo has no acceptance checks. That is not a '
+      + 'clear gate — it means nothing has been written down to walk.';
+    wrap.appendChild(none);
+    return wrap;
+  }
+
+  // The rules preamble stays one click away rather than being re-rendered
+  // here: the README holds the document's own words, and a view that
+  // republished them would be a second copy of a record.
+  const readme = document.createElement('button');
+  readme.type = 'button';
+  readme.className = 'file-row';
+  readme.textContent = `rules and history · docs/${v.readme}`;
+  readme.addEventListener('click', () => { void navigateTo(`/docs/${v.readme}`); });
+  wrap.appendChild(readme);
+
+  wrap.appendChild(buildCheckFilters(v));
+
+  const list = document.createElement('div');
+  list.className = 'checks-list';
+  list.id = 'checks-list';
+  wrap.appendChild(list);
+  paintCheckList(list, v);
+  return wrap;
+}
+
+function buildCheckFilters(v: ChecksView): HTMLElement {
+  const bar = document.createElement('div');
+  bar.className = 'checks-filters';
+  const axes: [string, string][] = [
+    ['marks', 'mark'], ['tiers', 'tier'], ['areas', 'area'],
+    ['covers', 'covers'], ['automation', 'automation'],
+  ];
+  for (const [axis, label] of axes) {
+    const values = v.facets[axis] || [];
+    // A single value on an axis is not a filter, it is a fact — offering it
+    // costs a click and can only ever return everything.
+    if (values.length < 2) continue;
+    const row = document.createElement('div');
+    row.className = 'checks-filter-row';
+    const name = document.createElement('span');
+    name.className = 'checks-filter-label';
+    name.textContent = label;
+    row.appendChild(name);
+    for (const facet of values) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'checks-chip';
+      if (checkFilters[axis].has(facet.value)) chip.classList.add('is-on');
+      chip.textContent = `${facet.label} · ${facet.count}`;
+      chip.addEventListener('click', () => {
+        const set = checkFilters[axis];
+        if (set.has(facet.value)) set.delete(facet.value);
+        else set.add(facet.value);
+        chip.classList.toggle('is-on');
+        const list = document.getElementById('checks-list');
+        if (list && checksData) paintCheckList(list as HTMLElement, checksData);
+      });
+      row.appendChild(chip);
+    }
+    bar.appendChild(row);
+  }
+  return bar;
+}
+
+/** The list itself. Separated from the page so a filter click repaints only
+ *  this, which is also what keeps the reader's position: the header, the
+ *  filter bar and the scroll container all survive the repaint. */
+function paintCheckList(host: HTMLElement, v: ChecksView): void {
+  host.replaceChildren();
+  let shown = 0;
+  for (const tier of v.tiers) {
+    const areas = tier.areas
+      .map((a) => ({ ...a, items: a.items.filter((i) => checkMatches(i, tier.tier)) }))
+      .filter((a) => a.items.length);
+    if (!areas.length) continue;
+    const section = document.createElement('section');
+    section.className = 'checks-tier';
+    const th = document.createElement('h3');
+    // `26/27 · 1 reconciled`, never `26/26` (ISS-0141): the denominator is
+    // what the suite holds, and a check settled by decision is named rather
+    // than quietly removed from both halves of the fraction.
+    let label = `${tier.label} · ${tier.checked}/${tier.total}`;
+    if (tier.reconciled) label += ` · ${tier.reconciled} reconciled`;
+    if (tier.stale) label += ` · ${tier.stale} stale`;
+    th.textContent = label;
+    section.appendChild(th);
+    for (const area of areas) {
+      const block = document.createElement('div');
+      block.className = 'checks-area';
+      const ah = document.createElement('h4');
+      ah.textContent = area.section ? `${area.section} ${area.area}` : area.area;
+      block.appendChild(ah);
+      if (area.refs.length) {
+        const refs = document.createElement('span');
+        refs.className = 'checks-area-refs';
+        refs.textContent = area.refs.join(', ');
+        ah.appendChild(refs);
+      }
+      for (const item of area.items) {
+        block.appendChild(buildCheckRow(item));
+        shown += 1;
+      }
+      section.appendChild(block);
+    }
+    host.appendChild(section);
+  }
+  if (!shown) {
+    const none = document.createElement('p');
+    none.className = 'empty-note';
+    // Names what is hiding them. "No results" on a filtered list is the one
+    // empty state a reader cannot act on.
+    none.textContent = 'No check matches these filters. Clear one to see more.';
+    host.appendChild(none);
+  }
+}
+
+function buildCheckRow(item: GateItem): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'checks-row';
+  if (item.stale) row.classList.add('is-stale');
+  row.appendChild(checkMark(item));
+
+  const body = document.createElement('div');
+  body.className = 'checks-row-body';
+  const name = document.createElement('div');
+  name.className = 'checks-row-name';
+  name.textContent = item.name;
+  body.appendChild(name);
+  if (item.text) {
+    const text = document.createElement('div');
+    text.className = 'checks-row-text';
+    text.textContent = item.text;
+    body.appendChild(text);
+  }
+  const meta: string[] = [];
+  if (item.verdict_date) meta.push(`verdict ${item.verdict_date}`);
+  if (item.verdict_reason) meta.push(item.verdict_reason);
+  if (item.invalidated_by?.change) {
+    // The invalidation, said as a sentence rather than shown as a field name.
+    // This is the half of TESTING.md rule 3 nobody performs, so the row has to
+    // make it legible enough to act on.
+    meta.push(`needs re-run — ${item.invalidated_by.change}${
+      item.invalidated_by.reason ? `: ${item.invalidated_by.reason}` : ''}`);
+  }
+  if (meta.length) {
+    const line = document.createElement('div');
+    line.className = 'checks-row-meta';
+    line.textContent = meta.join(' · ');
+    body.appendChild(line);
+  }
+  row.appendChild(body);
+
+  if (item.rel) {
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'checks-row-open';
+    open.textContent = item.id || 'open';
+    open.title = 'Open this check';
+    open.addEventListener('click', () => { void navigateTo(`/docs/${item.rel}`); });
+    row.appendChild(open);
+  }
+  return row;
+}
+
+/** The same control the gate row and the document row wear, on the view.
+ *  `acc-mark` carries every colour and glyph rule, so three surfaces cannot
+ *  drift into three vocabularies for one vocabulary of marks. */
+function checkMark(item: GateItem): HTMLElement {
+  const mark = item.mark || ' ';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `acc-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
+  btn.textContent = MARK_GLYPH[mark] ?? `[${mark}]`;
+  btn.title = MARK_TITLE[mark] ?? '';
+  btn.setAttribute('aria-label', `${item.name} — ${MARK_TITLE[mark] ?? ''}`);
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    void markCheckRow(item);
+  });
+  return btn;
+}
+
+/** Mark one check from the view, then repaint the list around the reader.
+ *
+ *  The position is held twice — once synchronously and once inside the frame —
+ *  because layout lands a frame after the children are replaced, which is
+ *  exactly how ISS-0188's fix came to do nothing. Three rounds were spent on
+ *  this defect on the document surface; the new one holds the property from
+ *  its first commit rather than earning it back. */
+async function markCheckRow(item: GateItem): Promise<void> {
+  await walkOneCheck(item, renderChecksPage);
+}
+
+// ---------------------------------------------------------------------------
+// The close-out sweep (FEAT-0115 / TASK-0467) — `~sweep/<FEAT-ID>`.
+//
+// The benchmark is the corpus's own hand commit, `a4577c01`: six checks added,
+// three invalidated, ONE commit. This page reproduces that shape — the checks
+// in the feature's areas with Needs-re-run in place, new checks as repeating
+// rows, and one Save that writes everything and commits it together.
+//
+// **Cancelling is closing the page.** Nothing is written until Save, which is
+// why there is no draft state to clean up.
+// ---------------------------------------------------------------------------
+
+interface SweepPayload {
+  feature: {
+    id: string; title: string; status: string; rel: string;
+    acceptance_impact: string; impact_state: string;
+  };
+  subjects: string[];
+  exists: boolean;
+  originated: GateItem[];
+  invalidated: GateItem[];
+  in_areas: GateItem[];
+  areas: { tier: number; section: string; area: string }[];
+}
+
+async function renderSweepPage(featureId: string): Promise<boolean> {
+  if (!sidecarBaseUrl || !featureId) return false;
+  let data: SweepPayload | null = null;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/cockpit/sweep?id=${encodeURIComponent(featureId)}`,
+    );
+    if (!resp.ok) return false;
+    data = (await resp.json()) as SweepPayload;
+  } catch { return false; }
+  if (!data?.feature) return false;
+  if (currentNavMode !== 'features') setNavMode('features');
+  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
+    'is-design-shell', 'review-page');
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildSweepPage(data));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  return true;
+}
+
+function buildSweepPage(d: SweepPayload): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body sweep-page';
+
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = `Acceptance sweep · ${d.feature.id}`;
+  head.appendChild(h);
+  const state = document.createElement('span');
+  state.className = 'release-state';
+  state.textContent = d.feature.impact_state === 'owed'
+    ? 'not yet swept' : d.feature.acceptance_impact;
+  head.appendChild(state);
+  wrap.appendChild(head);
+
+  const lead = document.createElement('p');
+  lead.className = 'meta';
+  // The rule, in the contract's own words rather than a paraphrase.
+  lead.textContent = `${d.feature.title} — TESTING.md rule 3: a change adds `
+    + 'the checks it needs and invalidates the checks it overtook. '
+    + `Invalidations name ${d.subjects.join(' or ')}.`;
+  wrap.appendChild(lead);
+
+  // ---- what to invalidate --------------------------------------------
+  const chosen = new Map<string, string>();      // check id -> reason
+  const groups: [string, GateItem[], string][] = [
+    ['Checks this feature originated', d.originated,
+      'These name it in `covers:`. If the work changed what they describe, '
+      + 'they are the first place it shows.'],
+    ['Checks in the same areas', d.in_areas,
+      'Offered, never inferred: scope overlap is a judgement, so nothing here '
+      + 'is invalidated unless you tick it.'],
+    ['Already invalidated by this work', d.invalidated,
+      'Recorded by an earlier sweep. Shown so a second one does not re-do it.'],
+  ];
+  for (const [label, items, hint] of groups) {
+    const box = document.createElement('section');
+    box.className = 'sweep-group';
+    const gh = document.createElement('h3');
+    gh.textContent = `${label} · ${items.length}`;
+    box.appendChild(gh);
+    const note = document.createElement('p');
+    note.className = 'meta';
+    note.textContent = hint;
+    box.appendChild(note);
+    if (!items.length) {
+      const none = document.createElement('p');
+      none.className = 'empty-note';
+      none.textContent = 'None — which is a normal answer, not a missing one.';
+      box.appendChild(none);
+    }
+    for (const item of items) {
+      const row = document.createElement('label');
+      row.className = 'sweep-row';
+      const box2 = document.createElement('input');
+      box2.type = 'checkbox';
+      box2.disabled = label.startsWith('Already');
+      const reason = document.createElement('input');
+      reason.type = 'text';
+      reason.className = 'ask-field sweep-reason';
+      reason.placeholder = 'why this check no longer holds (optional)';
+      reason.hidden = true;
+      box2.addEventListener('change', () => {
+        if (box2.checked) chosen.set(item.id || '', reason.value);
+        else chosen.delete(item.id || '');
+        reason.hidden = !box2.checked;
+      });
+      reason.addEventListener('input', () => {
+        if (box2.checked) chosen.set(item.id || '', reason.value);
+      });
+      const text = document.createElement('span');
+      text.className = 'sweep-row-name';
+      text.textContent = `${item.id ? `${item.id} · ` : ''}${item.name}`;
+      row.append(box2, text);
+      box.appendChild(row);
+      box.appendChild(reason);
+    }
+    wrap.appendChild(box);
+  }
+
+  // ---- new checks, as repeating rows ----------------------------------
+  //
+  // The marginal cost of one more check has to stay a line in a form. Adding a
+  // check used to be a line in a file, and a five-field ceremony per check
+  // would make people stop adding them — which is the regression the review
+  // said tooling had to prevent.
+  const authored: { name: string; tier: number; area: string; text: string }[] = [];
+  const newBox = document.createElement('section');
+  newBox.className = 'sweep-group';
+  const nh = document.createElement('h3');
+  nh.textContent = 'New checks';
+  newBox.appendChild(nh);
+  const rows = document.createElement('div');
+  newBox.appendChild(rows);
+
+  const addRow = (): void => {
+    const entry = { name: '', tier: 1, area: d.areas[0]?.area ?? '', text: '' };
+    authored.push(entry);
+    const row = document.createElement('div');
+    row.className = 'sweep-new';
+    const name = document.createElement('input');
+    name.type = 'text';
+    name.className = 'ask-field';
+    name.placeholder = 'what a person does, and what they should see';
+    name.addEventListener('input', () => { entry.name = name.value; });
+    const tier = document.createElement('select');
+    for (const n of [1, 2, 3]) {
+      const opt = document.createElement('option');
+      opt.value = String(n);
+      opt.textContent = `Tier ${n}`;
+      tier.appendChild(opt);
+    }
+    tier.addEventListener('change', () => { entry.tier = Number(tier.value); });
+    const area = document.createElement('select');
+    for (const a of d.areas) {
+      const opt = document.createElement('option');
+      opt.value = a.area;
+      opt.textContent = `${a.section} ${a.area}`;
+      area.appendChild(opt);
+    }
+    area.addEventListener('change', () => { entry.area = area.value; });
+    const text = document.createElement('input');
+    text.type = 'text';
+    text.className = 'ask-field';
+    text.placeholder = 'the procedure and the expected result';
+    text.addEventListener('input', () => { entry.text = text.value; });
+    row.append(name, tier, area, text);
+    rows.appendChild(row);
+  };
+  addRow();
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'review-btn';
+  more.textContent = '+ another';
+  more.addEventListener('click', addRow);
+  newBox.appendChild(more);
+  wrap.appendChild(newBox);
+
+  // ---- the one line the feature authors --------------------------------
+  const impactBox = document.createElement('section');
+  impactBox.className = 'sweep-group';
+  const ih = document.createElement('h3');
+  ih.textContent = 'What this feature records';
+  impactBox.appendChild(ih);
+  const ihint = document.createElement('p');
+  ihint.className = 'meta';
+  // Three states because two would lie — the middle one is the whole reason
+  // this does not nag forever.
+  ihint.textContent = 'Saving with anything ticked or authored writes today’s '
+    + 'date. A sweep that changes nothing must say why instead — '
+    + '`none — <reason>` discharges permanently.';
+  impactBox.appendChild(ihint);
+  const impact = document.createElement('input');
+  impact.type = 'text';
+  impact.className = 'ask-field';
+  impact.placeholder = 'none — this feature touches no user-visible surface';
+  impactBox.appendChild(impact);
+  wrap.appendChild(impactBox);
+
+  const err = document.createElement('p');
+  err.className = 'ask-error';
+  err.hidden = true;
+  wrap.appendChild(err);
+
+  const actions = document.createElement('div');
+  actions.className = 'ask-actions ask-actions-commit';
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'review-btn is-primary';
+  save.textContent = 'Save sweep';
+  save.addEventListener('click', () => {
+    void (async () => {
+      save.disabled = true;
+      err.hidden = true;
+      try {
+        const written = await postJson('/api/notes/acceptance-sweep', {
+          feature: d.feature.id,
+          invalidate: Array.from(chosen, ([id, reason]) => ({ id, reason })),
+          create: authored.filter((a) => a.name.trim()),
+          impact: impact.value.trim(),
+        }) as { created?: string[]; invalidated?: string[]; sha?: string };
+        showStatus(
+          `${(written.created ?? []).length} added, `
+          + `${(written.invalidated ?? []).length} invalidated`
+          + (written.sha ? ` · ${written.sha}` : ' · not committed'),
+          'info');
+        scheduleHide(6000);
+        await navigateTo(`/docs/${d.feature.rel}`);
+      } catch (e: unknown) {
+        // Shown HERE, beside the form that caused it, rather than in a toast
+        // that disappears before it has been read (ISS-0187's lesson).
+        err.textContent = e instanceof Error ? e.message : String(e);
+        err.hidden = false;
+        save.disabled = false;
+      }
+    })();
+  });
+  actions.appendChild(save);
+  wrap.appendChild(actions);
+  return wrap;
 }
 
 interface GateGroupOptions {

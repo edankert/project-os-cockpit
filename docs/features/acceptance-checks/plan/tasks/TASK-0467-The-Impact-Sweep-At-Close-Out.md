@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0467
 aliases: ["TASK-0467"]
 title: "The impact sweep at close-out — a4577c01's shape, reproduced by tooling: N additions, M invalidations, one Save, one commit"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

@@ -1268,6 +1268,22 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
         # `phase` was here until 2026-08-14 and is not any more: ISS-0164
         # harvested the group heads it was already arriving in, and added the
         # overview pass for the six that have no head.
+        #
+        # ADR-0030, and the one entry here that is a DECISION rather than a
+        # fact about the corpus. An acceptance check carries an id and could be
+        # listed — and listing it would put **579** entries from
+        # `../your-trainer` into a quick-switch corpus of about a thousand,
+        # every one of them matching words like *verify*, *settings* and *the*.
+        # That is the flooding hazard the ADR forbids for badges, arriving at a
+        # different surface.
+        #
+        # The compensating route is real and is not *"open the file"*: the
+        # acceptance view (FEAT-0114) filters by mark, tier, area, covering
+        # feature and automation, which is a better search over 579 checks than
+        # a substring match ever was. Revisit if somebody types a `CHK-` id and
+        # finds nothing — that complaint would be evidence, and this is not.
+        "check": "reached through the acceptance view's filters; 579 would "
+                 "flood a quick-switch corpus of ~1000",
     }
 
     idx = _I.build(Path(__file__).resolve().parents[1] / "docs")

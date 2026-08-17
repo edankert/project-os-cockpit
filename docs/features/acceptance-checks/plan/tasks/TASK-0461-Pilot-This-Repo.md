@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0461
 aliases: ["TASK-0461"]
 title: "Pilot on this repo — 34 rows, the everything-green corpus, where a wrong mark is visible immediately"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

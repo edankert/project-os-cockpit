@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0470
 aliases: ["TASK-0470"]
 title: "Name the version — Start shrinks to one job and scaffolds from the repo's own template"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

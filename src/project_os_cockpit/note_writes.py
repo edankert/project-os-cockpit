@@ -1408,7 +1408,12 @@ def create_release(
             )
 
     release_id = next_release_id(index)
-    target = docs_root / "releases" / f"{release_id}-{_title_slug(clean_title)}.md"
+    # `REL-0012-v2.1.6.md`, which is what eleven of `../your-trainer`'s twelve
+    # release notes are called. The title slug is the fallback for a release
+    # with no version — and it produced `REL-0013-V2-1-7.md`, a filename that
+    # sorts differently and reads as a different kind of thing.
+    stem = f"v{clean_version}" if clean_version else _title_slug(clean_title)
+    target = docs_root / "releases" / f"{release_id}-{stem}.md"
     resolved = target.resolve()
     if not str(resolved).startswith(str(docs_root.resolve())):
         raise WriteError("refusing to write outside the docs root")
@@ -1424,6 +1429,26 @@ def create_release(
 
     today = _today()
     feature_links = ", ".join(f'"[[{f}]]"' for f in (features or []))
+    # **The repo's own template, when it has one** (TASK-0470). The inline
+    # literal below produced a note with no Known-issues section and no
+    # Post-Release-Actions section — and FEAT-0110 reads the second of those,
+    # so the tool was writing notes its own reader could not find anything in.
+    # `docs/__templates__/release.md` has carried both all along.
+    scaffolded = _release_from_template(
+        docs_root, release_id=release_id, title=clean_title,
+        version=clean_version, previous_release=previous_release,
+        feature_links=feature_links, features=features or [],
+        actor=actor, today=today,
+    )
+    if scaffolded is not None:
+        resolved.parent.mkdir(parents=True, exist_ok=True)
+        resolved.write_text(scaffolded, encoding="utf-8")
+        return {
+            "id": release_id,
+            "rel": str(resolved.relative_to(docs_root.resolve())),
+            "status": "draft",
+            "features": list(features or []),
+        }
     lines = [
         "---",
         'type: "[[release]]"',
@@ -1478,6 +1503,227 @@ def create_release(
         "status": "draft",
         "features": list(features or []),
     }
+
+
+def mark_released(
+    index: Index,
+    release_id: str,
+    *,
+    tag: str = "",
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """The missing end of the release process (FEAT-0116 / TASK-0469).
+
+    `HUMAN_TRANSITIONS` has no `release` key — measured, and the reason nothing
+    anywhere could take a release from `draft` to `released` ([[ISS-0181]] item
+    4). This writes `status`, `date` and `tag`, and **freezes the derived
+    feature list into `features:`**, without which `../your-trainer`'s REL-0013
+    ships reading *"What shipped — 0 feature(s)"*: the list was always derived
+    and never written down, so the moment the status flips there is nothing
+    left to derive it from.
+
+    **Two refusals, both naming their subjects.**
+
+    1. The gate is blocked and the note records no exceptions. TESTING.md has
+       always allowed shipping over an unwalked check — *"exceptions must be
+       documented in the release note with justification"* — and nothing has
+       ever implemented either half. The refusal is the first half; the
+       documented exception is the escape it points at.
+    2. A feature being frozen has no `acceptance_impact:`. This is where
+       Edwin's *"whether all acceptance tests have been considered"* is
+       enforced, and it is enforced HERE rather than at Start because this is
+       the one moment that is both cheap and final.
+
+    **It runs no git.** The `git tag` and `git push` commands are returned as
+    text for a person to run. A commit is local and reversible; a tag pushed to
+    a forge is published, and this project's rule is that publishing is a
+    person clicking something, not a side effect of a status write.
+    """
+    from . import acceptance, publication, sweep
+
+    path = resolve_note(index, release_id)
+    record = index.get(path)
+    if record is None or (record.note_type or "") != "release":
+        raise WriteError(
+            f"{release_id} is a {(record.note_type if record else None) or 'note'}, "
+            "not a release",
+            status=409,
+        )
+    status = (record.status or "").strip().lower()
+    if status == "released":
+        raise WriteError(f"{release_id} is already released", status=409)
+    if status != "draft":
+        raise WriteError(
+            f"{release_id} is {status!r}; only a draft release can be marked "
+            "released (STATUSES.md `[[release]]`)",
+            status=409,
+        )
+    _check_mtime(path, mtime)
+
+    version = str(record.frontmatter.get("version") or "").strip().lstrip("vV")
+    if not version:
+        raise WriteError(
+            f"{release_id} has no version — name the version before marking it "
+            "released, or the tag it prints names nothing",
+            status=409,
+        )
+
+    # ---- refusal 1: the gate -------------------------------------------
+    gate = acceptance.gate_payload(index.docs_root, index=index)
+    exceptions = _documented_exceptions(record)
+    if gate.get("blocked") and not exceptions:
+        blocking = gate.get("blocking") or []
+        names = ", ".join(str(r.get("name") or r.get("id") or "?")
+                          for r in blocking[:5])
+        more = f" (and {len(blocking) - 5} more)" if len(blocking) > 5 else ""
+        raise WriteError(
+            f"{len(blocking)} Tier 1/2 check(s) are unwalked and the note "
+            f"records no exceptions: {names}{more}. Walk them, or document the "
+            "exceptions with justification in the release note — TESTING.md "
+            "allows the second and this refusal is what makes it a decision "
+            "rather than an omission.",
+            status=409,
+        )
+
+    # ---- the frozen list ------------------------------------------------
+    frozen = [str(f) for f in (
+        record.frontmatter.get("features") or [])]
+    frozen_ids = [i for f in frozen
+                  for i in re.findall(r"\b([A-Z]{2,6}-\d{3,4})\b", str(f))]
+    if not frozen_ids:
+        frozen_ids = [
+            str(f["id"]) for f in publication.shipping_in(index, release_id)
+        ]
+
+    # ---- refusal 2: considered-ness -------------------------------------
+    unconsidered = []
+    for feature_id in frozen_ids:
+        feature_path = index.by_id(feature_id)
+        feature = index.get(feature_path) if feature_path is not None else None
+        if feature is None or (feature.note_type or "") != "feature":
+            continue
+        if sweep.impact_state(str(
+                feature.frontmatter.get("acceptance_impact") or "")) == "owed":
+            unconsidered.append(feature_id)
+    if unconsidered:
+        raise WriteError(
+            f"{', '.join(unconsidered)} "
+            f"{'has' if len(unconsidered) == 1 else 'have'} no "
+            "`acceptance_impact:` — nobody has said whether shipping "
+            f"{'it' if len(unconsidered) == 1 else 'them'} needed the "
+            "acceptance suite touched. Run the sweep on each, or record "
+            "`none — <reason>`.",
+            status=409,
+        )
+
+    # ---- the write ------------------------------------------------------
+    today = _today()
+    clean_tag = (tag or f"v{version}").strip()
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {release_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    fm_lines = _set_field(fm_lines, "status", "released")
+    fm_lines = _set_field(fm_lines, "date", today)
+    fm_lines = _set_field(fm_lines, "tag", clean_tag)
+    fm_lines = _set_field(
+        fm_lines, "features",
+        "[" + ", ".join(f'"[[{f}]]"' for f in frozen_ids) + "]", quote=False)
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": release_id,
+        "status": "released",
+        "date": today,
+        "tag": clean_tag,
+        "features": frozen_ids,
+        # Printed, never run. Publishing is a person's act — and once a forge
+        # has a tag, deleting it does not unpublish it.
+        "commands": [
+            f"git tag -a {clean_tag} -m \"{release_id}: "
+            f"{(record.title or version).replace(chr(34), chr(39))}\"",
+            f"git push origin {clean_tag}",
+        ],
+        "actor": actor,
+    }
+
+
+#: A release note documenting why it ships over an unwalked check. Matched on
+#: the words TESTING.md itself uses, so the rule and the escape are spelled the
+#: same way; a note that merely mentions the word "exception" in prose does not
+#: qualify, which is why the pattern wants the heading or the list marker.
+_EXCEPTION_RE = re.compile(
+    r"(?im)^\s*(?:#{2,4}\s*.*exception|[-*+]\s+\*{0,2}(?:release\s+)?exception)",
+)
+
+
+def _documented_exceptions(record: Any) -> bool:
+    """Whether the note records exceptions with justification.
+
+    Deliberately a low bar — a heading or a bullet — because the JUDGEMENT is
+    the person's and this is only asking whether they wrote it down. A stricter
+    parser would refuse a legitimate exception written slightly differently,
+    and a refusal nobody can satisfy gets worked around by editing the status
+    by hand, which is worse than the state it was protecting.
+    """
+    return bool(_EXCEPTION_RE.search(str(getattr(record, "body", "") or "")))
+
+
+def _release_from_template(
+    docs_root: Path, *, release_id: str, title: str, version: str,
+    previous_release: str, feature_links: str, features: list[str],
+    actor: str, today: str,
+) -> str | None:
+    """The repo's own `docs/__templates__/release.md`, filled in (TASK-0470).
+
+    Returns `None` when the template is missing or unreadable, so a repo
+    without one keeps the inline scaffold rather than failing to draft at all.
+
+    **The body is the template's, verbatim.** Only frontmatter is substituted,
+    and the placeholder rows stay: a Known-issues table with an example row is
+    a person's prompt to fill it in, and a tool that stripped the examples
+    would produce a note structurally identical to the one it replaced.
+    """
+    path = docs_root / "__templates__" / "release.md"
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if not raw.startswith("---"):                     # pragma: no cover
+        return None
+    try:
+        fm_lines, body = _split_frontmatter(raw)
+    except WriteError:                                # pragma: no cover
+        return None
+    for key, value in (
+        ("id", release_id),
+        ("aliases", f'["{release_id}"]'),
+        ("title", title.replace('"', "'")),
+        ("status", "draft"),
+        ("version", version),
+        # Declaring a version IS declaring intent to ship (FEAT-0105).
+        ("preparing", today if version else ""),
+        ("tag", ""),
+        ("date", ""),
+        ("owner", actor.strip() or "unassigned"),
+        ("created", today),
+        ("updated", today),
+        ("features", f"[{feature_links}]"),
+        ("previous_release", previous_release),
+        ("tags", "[release]"),
+    ):
+        quote = key not in ("aliases", "features", "tags")
+        fm_lines = _set_field(fm_lines, key, value, quote=quote)
+    body = body.replace("{{title}}", title)
+    scope = (
+        f"\nScaffolded in the cockpit on {today} from the done-but-unshipped "
+        f"set — {len(features)} feature(s). Drafting allocated an id and wrote "
+        "this file; it published nothing.\n"
+    )
+    body = body.replace("\n## Scope\n", f"\n## Scope\n{scope}", 1)
+    return "---\n" + "\n".join(fm_lines) + "\n---\n" + body
 
 
 _ACCEPTANCE_RUNS_RE = re.compile(r"^##\s+Acceptance runs\s*$", re.IGNORECASE | re.MULTILINE)
@@ -1799,13 +2045,21 @@ def record_verification(
 def mark_check(
     index: Index,
     *,
-    number: str,
-    name: str,
+    number: str = "",
+    name: str = "",
     verdict: str,
     reason: str = "",
+    check_id: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Mark one acceptance check with a verdict and its justification.
+
+    **Two storages, one set of refusals** ([[ADR-0030]]). `check_id` addresses a
+    `CHK-*` note and writes frontmatter; `number`+`name` address a row in
+    `ACCEPTANCE_TESTS.md` and write row grammar. Every refusal below is checked
+    before either branch, so a repo that has migrated and one that has not
+    cannot end up with different rules about what a verdict must carry — which
+    is the one way a two-shape period does real damage.
 
     Closes [[ISS-0181]] items 1 and 2 with the vocabulary already in the
     record (FEAT-0111 / TASK-0455): `[~]` and `[F]` with a dated verdict, and
@@ -1848,6 +2102,12 @@ def mark_check(
             status=400,
         )
 
+    if check_id:
+        return _mark_check_note(
+            index, check_id, verdict=verdict, mark=mark, reason=reason,
+            mtime=mtime,
+        )
+
     path = index.docs_root / acceptance.SUITE_REL
     _check_mtime(path, mtime)
     try:
@@ -1881,6 +2141,177 @@ def mark_check(
         "number": number, "verdict": verdict, "mark": mark,
         "row_html": _rendered_row(index, updated, number),
     }
+
+
+def _require_check(index: Index, check_id: str) -> "tuple[Path, Any]":
+    """The note behind a `CHK-*` id, refusing anything that is not one.
+
+    A verdict written onto a `FEAT-*` because a caller passed the wrong id
+    would be a status write with no vocabulary behind it — the type is checked
+    here rather than trusted from the route.
+    """
+    path = resolve_note(index, check_id)
+    record = index.get(path)
+    if record is None or (record.note_type or "") != "check":
+        raise WriteError(
+            f"{check_id} is a {(record.note_type if record else None) or 'note'}, "
+            "not an acceptance check — verdicts are written only on `check` notes",
+            status=409,
+        )
+    return path, record
+
+
+def _mark_check_note(
+    index: Index, check_id: str, *, verdict: str, mark: str, reason: str,
+    mtime: float | None,
+) -> dict[str, Any]:
+    """The verdict, in frontmatter. One write, three fields, no row grammar.
+
+    **A real verdict discharges an invalidation.** `invalidated_by:` means *the
+    evidence behind this tick was overtaken and nobody has re-walked it*; the
+    moment somebody does, that sentence stops being true. Leaving it would make
+    every migrated check permanently stale, because not one of the fleet's 54
+    annotations carries a date for the arithmetic in `Item.stale` to use.
+
+    **Clearing a mark keeps it**, and that asymmetry is the whole point of the
+    field: an unticked check whose record says *why* is the thing the corpus
+    could not express, which is why 54 of 57 annotated rows stayed ticked.
+    """
+    path, record = _require_check(index, check_id)
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    today = _today()
+    fm_lines = _set_field(fm_lines, "mark", mark)
+    if verdict == "clear":
+        # A row cannot claim both that nobody walked it and that somebody
+        # decided why — `strip_verdict` enforces exactly this in row grammar,
+        # and the note shape must not be looser than the shape it replaced.
+        fm_lines = _set_field(fm_lines, "verdict_date", "")
+        fm_lines = _set_field(fm_lines, "verdict_reason", "")
+    else:
+        fm_lines = _set_field(fm_lines, "verdict_date", today)
+        fm_lines = _set_field(fm_lines, "verdict_reason", _yaml_safe(reason))
+        fm_lines = _set_block(fm_lines, "invalidated_by", {})
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": check_id, "verdict": verdict, "mark": mark,
+        "verdict_date": "" if verdict == "clear" else today,
+        "verdict_reason": "" if verdict == "clear" else reason,
+        "rel": record.rel_path,
+    }
+
+
+def invalidate_check(
+    index: Index,
+    *,
+    check_id: str,
+    change: str,
+    reason: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """**Needs re-run** — the seventh action, and the half of the rule nobody performs.
+
+    TESTING.md rule 3 has two halves: a change adds checks, and a change
+    invalidates the checks it overlaps. The first half is done routinely. The
+    second is *annotated* — 54 rows in `../your-trainer` carry a hand-written
+    `RE-RUN (…)` — and **not performed**: all 54 are still ticked, because
+    unticking destroyed the only record that the check had ever passed and
+    there was nowhere to say why. So the gate counts 54 rows as passed on
+    evidence their own line says is stale.
+
+    This is one write that does both: the mark is cleared and `invalidated_by:`
+    records which change did it. **Refused without the change id** — the same
+    discipline `[-]` already has, and for the same reason: an invalidation
+    nobody can trace is an unticked box with a shrug attached.
+    """
+    change = (change or "").strip()
+    if not change:
+        raise WriteError(
+            "needs-re-run must name the change that invalidated this check — "
+            "an invalidation nobody can trace is an unticked box with no "
+            "reason, which is the state this action exists to replace",
+            status=400,
+        )
+    if index.by_id(change) is None:
+        raise WriteError(
+            f"{change} is not in the record — an invalidation must name a "
+            "change somebody can open",
+            status=400,
+        )
+    reason = (reason or "").strip()
+    path, _ = _require_check(index, check_id)
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    today = _today()
+    fm_lines = _set_field(fm_lines, "mark", " ")
+    # The verdict fields are NOT cleared. `verdict_date` is what makes
+    # staleness arithmetic — a later pass answers this invalidation and an
+    # earlier one does not — so erasing it here would throw away the number
+    # the whole field exists to compare against.
+    fm_lines = _set_block(fm_lines, "invalidated_by", {
+        "change": change, "reason": reason, "date": today,
+        "raw": f"{change}: {reason}" if reason else change,
+    })
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": check_id, "mark": " ", "verdict": "needs-re-run",
+        "invalidated_by": {"change": change, "reason": reason, "date": today},
+    }
+
+
+def _yaml_safe(value: str) -> str:
+    """One line, and nothing that can end the scalar it is written into."""
+    return " ".join(str(value or "").split()).replace('"', "'")
+
+
+def _set_block(
+    lines: list[str], key: str, mapping: dict[str, str],
+) -> list[str]:
+    """Replace a nested mapping in frontmatter, or write `key: {}`.
+
+    `_set_field` deliberately refuses a key that opens a block, because its
+    continuation lines are not on the line being replaced. This is the writer
+    for the one field that legitimately is one — and it removes the old
+    continuation lines rather than writing beside them, which is the failure
+    that would leave a check carrying two invalidations that disagree.
+    """
+    out: list[str] = []
+    i = 0
+    replaced = False
+    pattern = re.compile(rf"^{re.escape(key)}\s*:", re.IGNORECASE)
+    rendered = _render_block(key, mapping)
+    while i < len(lines):
+        if pattern.match(lines[i]):
+            out.extend(rendered)
+            i += 1
+            while i < len(lines) and lines[i][:1].isspace() and lines[i].strip():
+                i += 1
+            replaced = True
+            continue
+        out.append(lines[i])
+        i += 1
+    if not replaced:
+        out.extend(rendered)
+    return out
+
+
+def _render_block(key: str, mapping: dict[str, str]) -> list[str]:
+    live = {k: v for k, v in (mapping or {}).items() if str(v or "").strip()}
+    if not live:
+        return [f"{key}: {{}}"]
+    return [f"{key}:"] + [
+        f'  {k}: "{_yaml_safe(str(v))}"' for k, v in live.items()
+    ]
 
 
 log = __import__('logging').getLogger('project_os_cockpit.note_writes')

@@ -233,10 +233,21 @@ def test_a_gate_row_wears_the_documents_control_and_no_buttons() -> None:
 def test_the_gate_mark_writes_through_the_documents_own_path() -> None:
     """*"the same as in the .md file"* means the same dialog and the same
     endpoint, not a lookalike. Both are asserted as USED — the value reaching
-    the call — rather than as names appearing somewhere in the function."""
-    body = _body_of(
-        RENDERER.read_text(encoding="utf-8"), "async function markGateRow(",
-    )
+    the call — rather than as names appearing somewhere in the function.
+
+    **The subject moved and this guard followed it** (TASK-0465). The gate row
+    and the acceptance view now write through one `walkOneCheck`, because the
+    two copies had already drifted twice: ISS-0187's unhandled rejection
+    existed in one and not the other. So the properties are asserted where the
+    work happens, and the delegation is asserted here — a guard that stayed
+    pointed at the old function would have gone green over an empty shell.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    caller = _body_of(src, "async function markGateRow(")
+    assert "walkOneCheck" in caller, caller
+    assert "postJson" not in caller, "a second copy of the write crept back"
+
+    body = _body_of(src, "async function walkOneCheck(")
     assert "await askForMark({" in body, body
     assert "'/api/notes/mark-check'" in body, body
     # The reason and the verdict the dialog returned are what is sent. A
@@ -256,9 +267,13 @@ def test_marking_a_gate_row_holds_the_readers_place() -> None:
     inside an animation frame as well, because ISS-0188's fix did exactly this
     one frame too early and a source-shape guard could not see it.
     """
-    body = _body_of(
-        RENDERER.read_text(encoding="utf-8"), "async function markGateRow(",
-    )
+    src = RENDERER.read_text(encoding="utf-8")
+    # The repaint is the ONLY thing the two callers differ by, so it is the
+    # only parameter — and this asserts the gate's caller still supplies its
+    # own page rather than repainting somebody else's.
+    assert "renderReleasePage(releaseId)" in _body_of(
+        src, "async function markGateRow(")
+    body = _body_of(src, "async function walkOneCheck(")
 
     def at(needle: str) -> int:
         # `str.index` raises ValueError when the thing is simply GONE, which
@@ -268,7 +283,7 @@ def test_marking_a_gate_row_holds_the_readers_place() -> None:
         return body.index(needle)
 
     read = at("const held = docView.scrollTop;")
-    repaint = at("await renderReleasePage(")
+    repaint = at("await repaint()")
     restore = at("docView.scrollTop = held;")
     frame = at("requestAnimationFrame(")
     assert read < repaint < restore, body[read:]

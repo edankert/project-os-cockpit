@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0462
 aliases: ["TASK-0462"]
 title: "The delta reads two shapes — file-shape at old refs, ls-tree + cat-file at new ones, parity at every real tag"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -25,3 +25,11 @@ tests: []
 
 - [ ] `gate_payload` at every real `your-trainer` tag returns the same blocking numbers after the cut as before it — asserted against the recorded series, not eyeballed.
 - [ ] The cold-delta cost is measured and recorded in this note; the cache holds it inside the current budget.
+
+## Outcome, 2026-08-17
+
+Built and asserted end to end on a purpose-built repo: a tag from before the cut yields file shape, one from after yields note shape, both with the same item and blocking counts, and the delta between them is empty — a migration that showed up as five regressions would be telling the reader that a storage change broke their release.
+
+**The cost is asserted structurally, not timed.** `suite_at` makes three subprocesses per ref whatever the suite's size — `git show` (which misses), `git ls-tree`, `git cat-file --batch` — and a guard counts them at the one place a process is actually spawned. The first version of that guard counted at `_git_raw` as well and reported five, which is a guard reporting a cost nobody pays.
+
+**What is NOT measured is the thing this note asked for**: the cold-delta cost across `../your-trainer`'s twelve real tags. That repo has not migrated, so it holds no note-shape tag to read. The number stays owed and belongs with [[TASK-0463-The-Fleet-Migrates-Trainer-Last]].

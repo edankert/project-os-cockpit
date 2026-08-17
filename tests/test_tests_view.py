@@ -715,9 +715,14 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
             assert f"· {reconciled} reconciled" in group["label"], group["label"]
         else:
             assert "reconciled" not in group["label"], group["label"]
-        by_number = {i.number: i for i in items}
+        # Keyed on whichever address the row carries. Once a repo has migrated
+        # (ADR-0030) that is the check's own `CHK-*` id; before, it is the
+        # document position. Both are in the map rather than one being picked,
+        # so this test asserts the same property in either storage.
+        by_address = {i.number: i for i in items}
+        by_address.update({i.note_id: i for i in items if i.note_id})
         for row in group["items"]:
-            item = by_number[row["id"]]
+            item = by_address[row["id"]]
             expected = ("passing" if item.checked
                         else "reconciled" if item.reconciled else "ready")
             assert row["status"] == expected, (row["id"], row["status"])
@@ -899,25 +904,47 @@ def test_the_live_suite_loses_no_line_to_the_parser() -> None:
     parser, and require the parsed count to equal it. A dropped line fails
     here and only here.
     """
-    text = REPO_DOCS.joinpath(acceptance.SUITE_REL).read_text(encoding="utf-8")
-    # Only what sits under a tier heading — the preamble's own checkbox is
-    # deliberately not a test (`test_nothing_above_the_first_tier_heading…`).
-    body = re.split(r"(?m)^#\s+Tier\s+1\b", text, maxsplit=1)[1]
-    # Fences are skipped on both sides: a `- [ ]` in a code block is an example
-    # of a checkbox, not one. That is the single structural rule this counter
-    # shares with the parser — it deliberately shares no *item* regex, which is
-    # the independence that makes the comparison worth anything.
-    raw, in_fence = 0, False
-    for line in body.splitlines():
-        if re.match(r"^\s*(```|~~~)", line):
-            in_fence = not in_fence
-            continue
-        if not in_fence and re.match(r"^\s*[-*+]\s+\[", line):
-            raw += 1
+    suite_file = REPO_DOCS / acceptance.SUITE_REL
+    if suite_file.exists():
+        text = suite_file.read_text(encoding="utf-8")
+        # Only what sits under a tier heading — the preamble's own checkbox is
+        # deliberately not a test (`test_nothing_above_the_first_tier_heading…`).
+        body = re.split(r"(?m)^#\s+Tier\s+1\b", text, maxsplit=1)[1]
+        # Fences are skipped on both sides: a `- [ ]` in a code block is an
+        # example of a checkbox, not one. That is the single structural rule
+        # this counter shares with the parser — it deliberately shares no
+        # *item* regex, which is the independence that makes the comparison
+        # worth anything.
+        raw, in_fence = 0, False
+        for line in body.splitlines():
+            if re.match(r"^\s*(```|~~~)", line):
+                in_fence = not in_fence
+                continue
+            if not in_fence and re.match(r"^\s*[-*+]\s+\[", line):
+                raw += 1
+        subject = "checkbox line(s) in the suite"
+    else:
+        # **The same claim about the shape this repo now stores** (ADR-0030).
+        # The suite is `CHK-*` notes, so the independent counter is a walk of
+        # the directory looking for the one field that makes a note a check —
+        # `tier:` — with a regex that shares no code with `item_from_note`.
+        #
+        # Rewritten rather than deleted, and that distinction is the whole
+        # point: this guard exists because independent review made one Tier 1
+        # item vanish and the file stayed green at 52 passed. A guard whose
+        # subject changes storage and is deleted takes its property with it,
+        # which is how a corpus loses the only check that was ever independent
+        # of the reader under test.
+        # Every `CHK-*.md`, without asking whether its tier reads — because a
+        # check whose tier cannot be read still blocks (it lands in Tier 1),
+        # and a counter that skipped it would agree with a reader that had
+        # lost it.
+        raw = len(list((REPO_DOCS / acceptance.CHECKS_REL).glob("CHK-*.md")))
+        subject = "CHK-* note(s) on disk"
     parsed = len(acceptance.load(REPO_DOCS).items)
     assert parsed == raw, (
-        f"{raw - parsed} checkbox line(s) in the suite are invisible to the "
-        "parser — the gate is counting a smaller document than the one on disk"
+        f"{raw - parsed} {subject} are invisible to the reader — the gate is "
+        "counting a smaller suite than the one on disk"
     )
 
 

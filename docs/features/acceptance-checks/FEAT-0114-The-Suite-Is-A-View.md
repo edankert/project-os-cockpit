@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0114
 aliases: ["FEAT-0114"]
 title: "The suite is a view — the same list, the same marks, generated from notes, and one walk layer for checks and manual tests"
-status: planned
+status: doing
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[ISS-0185-The-Mark-Control-Sits-Inside-Tasklists-Leftover-Box-And-The-Cycle-Makes-You-Walk-Past-States]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: []
+tests: ["[[TST-0041]]"]
 ---
 
 # The suite is a view

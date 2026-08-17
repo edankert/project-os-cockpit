@@ -21,6 +21,7 @@ That last rule is not tidiness. Requirement advancement was previously stated in
 | `requirement` | `implemented` | every acceptance criterion ticked-with-evidence or reconciled — **never gated on tests** (ADR-0007) | agent, at feature close-out |
 | `phase` | `done` | **every exit criterion ticked-with-evidence or reconciled** (PHASE-BOXES); **every note naming it in `phase:` scope-resolved** (PHASE-CHILDREN) | agent |
 | `test` | `passing` / `failing` | — | **the test runner**, from the exit code, when `command:` is set (ADR-0010). Author-written only for manual tests, which must carry `last_verified:` and go stale | 
+| `check` | `retired` | — | agent or human; the **verdict** is `mark:`, never the status (see `[[check]]`) |
 | `risk` | `closed` | — | agent |
 | `release` | `released` | release verification | agent |
 | `change` | `merged` | — | agent |
@@ -135,6 +136,18 @@ Terminal-status semantics: `done`/`closed`/`cancelled`/`declined` **resolve** an
   - `failing` → `passing` (after a fix)
 - `ready` means **defined but not yet executed**. It is the state a test note is created in, and the only honest state for a check that has never run.
 - **`passing`/`failing` are written by the test runner, not by an author** — see `../skills/test-authoring/SKILL.md` and the `command:` field in `SCHEMAS.md`. A test with no `command:` is manual and must carry `last_verified:`; it goes stale, and a stale test does not satisfy the verification gate.
+
+## `[[check]]`
+- Allowed: `draft`, `active`, `retired`
+- Typical transitions:
+  - `draft` → `active` (the check is real and part of the walk)
+  - `active` → `retired` (the surface it describes is gone, or the check was folded into another)
+- **`retired` is terminal, and it is the only removal.** `TESTING.md`: acceptance checks are *"never removed, only deprecated"*. Deleting a check destroys the record that it was ever walked; retiring it keeps the verdict and takes it out of the gate.
+- **The verdict is `mark:`, not status** (`TAXONOMY.md`). This is the load-bearing sentence of the type. Walking a check writes `mark:`, `verdict_date:` and `verdict_reason:` and never touches `status:`, which has three consequences, all deliberate:
+  - The runner-only rule does not engage. It governs `[[test]]` statuses (`passing`/`failing`) written from an exit code; a check's verdict is a person's judgement by design, and it lives in a field that rule says nothing about.
+  - The independent-review gate does not engage. `QUALITY.md` gates a `TST-*` reaching `passing`; a check never reaches `passing`. The review of a check *is* the walk.
+  - No status value has to mean "failed". `!` does, in `mark:`, without adding a seventh word to a vocabulary ADR-0008 spent a measurement collapsing.
+- A check carries no completeness gate of its own: nothing is blocked by a check being `draft`, and a `retired` check with an old verdict is a record, not an omission.
 
 ## Deferral and re-adoption
 

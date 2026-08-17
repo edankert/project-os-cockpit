@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0115
 aliases: ["FEAT-0115"]
 title: "The sweep is continuous — invalidation happens where work lands, in one action, and a feature says its acceptance impact was considered"
-status: planned
+status: review
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: []
+tests: ["[[TST-0042]]"]
 ---
 
 # The sweep is continuous

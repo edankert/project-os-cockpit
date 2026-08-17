@@ -3,11 +3,11 @@ type: "[[decision]]"
 id: ADR-0030
 aliases: ["ADR-0030"]
 title: "Acceptance checks are notes — type `check`, id `CHK-*` — and the check type sits deliberately outside the test gates"
-status: proposed
+status: accepted
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
-decision_date:
+decision_date: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 related: ["[[project-os-dev#ADR-0009]]", "[[project-os-dev#ADR-0010]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]"]
 supersedes: []
@@ -18,7 +18,7 @@ tags: [acceptance, conventions, schema]
 
 ## Status
 
-**Proposed.** Acceptance is Edwin's. Nothing in [[PHASE-035-Acceptance-Checks-Are-Notes]] migrates, scaffolds or writes a `CHK-*` note until this is `accepted` — the phase is documented in full so the decision is being made about something concrete.
+**Accepted 2026-08-17.** The gate held for exactly as long as it was meant to: the phase was documented in full while this read `proposed`, and nothing migrated. Edwin's instruction to build it is the acceptance — *"implement, test and review phase 035 fully until all significant issues fixed"* — given against a phase note whose first exit criterion is this ADR being accepted, and against the honest tally below, the ~9.5 days and the two benefits that did not need the migration at all included.
 
 ## Context
 
@@ -53,3 +53,8 @@ One note per acceptance check.
 - **Single file plus richer row grammar** — the review's own prior recommendation, with the finding that `git log -L` already delivers per-check history, so [[FEAT-0112]]'s named reversal condition (per-check history) was satisfied all along without migrating. Rejected here because the granularity buys what grammar cannot: evidence attachments, coverage resolvable through the index, burden as a field. The finding stands on the record; it is why the *unlock* tally above is honest about which benefits did not require this decision.
 - **JSON** — [[FEAT-0112]], analysed 2026-08-17 and parked. Rejected for inverting the notes-are-the-source rule: a tool-owned file makes the tool mandatory to edit a check. The note form keeps the corpus authored and human-editable, which is precisely why it survives the objection JSON did not.
 - **Reusing the TST type directly** — Edwin's first framing, rejected by measurement: five independent collisions (review gate on `passing`, runner-only statuses, three-valued status vocabulary against six marks, the Run obligation admitting the self-re-arming population, and upstream blast radius without a new type to carry the differences). The sibling type is the version of this idea that survives its own consequences.
+
+## Decision record
+
+> [!note] Accept — 2026-08-17 (user:edwin)
+> *"implement, test and review phase 035 fully until all significant issues fixed!"* — given after the phase, this ADR and its measured price were all on the record, which is precisely what the `proposed` day bought. What is accepted is the whole of it, exemptions included: the runner-only rule never engaging, `check` declared owed-nothing in the obligation registry, and the independent-review gate not applying — the three places this type sits deliberately outside machinery every other type is inside.

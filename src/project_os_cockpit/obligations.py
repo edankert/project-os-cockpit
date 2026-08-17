@@ -204,6 +204,31 @@ OBLIGATIONS: dict[str, Obligation] = {
         "`.base` embeds were all dead. Declared so the type does not reappear "
         "undeclared if a repo still carries one.",
     ),
+    # ADR-0030's second exemption, and the one that ADR names as its own
+    # biggest risk. Granularity makes 669 acceptance rows individually
+    # ADDRESSABLE; it must not make them individually OWED. ADR-0027 called
+    # this population *"the most self-re-arming population in the corpus"* — a
+    # check clears, a change lands, it is owed again, forever, on a badge — and
+    # nothing about that reasoning changed when the rows became notes. It
+    # acquired 669 new subjects.
+    #
+    # The release gate stays ONE campaign row whose subject is *the suite has
+    # unwalked Tier 1/2 checks*, never a particular check. `your-trainer`'s
+    # badge total is measured across each migration leg for exactly this
+    # reason: this is the one place in the phase where it could move.
+    #
+    # Declared rather than omitted, and the declaration is the mechanism: the
+    # completeness test asserts every type in the corpus has an entry here, so
+    # a `check` note appearing with no declaration is a test failure rather
+    # than a silent default. The exemption is a sentence somebody had to write.
+    "check": NONE(
+        "ADR-0030: an acceptance check is walked, not owed. ADR-0027 measured "
+        "acceptance rows as the most self-re-arming population in the corpus — "
+        "each re-arms on every change that touches it — so per-check "
+        "obligations are the one use of this granularity that is forbidden "
+        "outright. The release gate stays a single campaign row in Tests.",
+        VIEW_TESTS,
+    ),
 }
 
 
@@ -290,6 +315,10 @@ KIND_NOUNS: dict[str, tuple[str, str]] = {
     # fails the completeness test and silence here would be an omission
     # wearing the shape of a decision.
     "release gate": ("release gate", "release gates"),
+    # "3 features to sweep". The subject is the FEATURE, not the checks — a
+    # noun naming checks here would be the first step toward counting them,
+    # which ADR-0030 forbids outright.
+    "acceptance sweep": ("feature", "features"),
 }
 
 #: Finding kinds from `standing.check` that the badge counts.
@@ -543,6 +572,138 @@ NOTE_LESS[GATE_OBLIGATION_KIND] = NoteLessObligation(
     predicate="a release at `draft` whose acceptance tests still have unchecked "
               "Tier 1/2 items — ONE row for the campaign, never one per check",
 )
+
+
+# ----- the acceptance sweep (FEAT-0115 / TASK-0468) -------------------------
+#
+# TESTING.md rule 3 has two halves and only one of them is performed. A change
+# adds checks — routinely. A change INVALIDATES the checks it overlaps —
+# annotated, not performed: 54 rows in `../your-trainer` carry a hand-written
+# `RE-RUN (…)` and **all 54 are still ticked**, because unticking destroyed the
+# only record the check had ever passed and there was nowhere to say why.
+#
+# **The feature owes the sweep; the checks owe nothing.** That split is the
+# whole design. `acceptance_impact:` records THAT the sweep happened, one line;
+# `invalidated_by:` on each check records WHAT it did. Neither restates the
+# other's fact, and no per-check row ever reaches a badge (ADR-0030).
+#
+# Three states, because two would lie:
+#
+#   a date            swept then
+#   `none — reason`   considered, nothing to do — discharged PERMANENTLY
+#   absent            not yet swept — owed while the feature is in flight
+#
+# A boolean collapses *nothing to do* into *not done* and nags forever, which
+# is the ADR-0027 failure by construction. The middle state exists precisely so
+# a feature that legitimately touches no check can say so once and be quiet.
+
+SWEEP_OBLIGATION_KIND = "acceptance sweep"
+
+#: Feature statuses that owe the sweep. `backlog`/`planned` owe nothing —
+#: nothing has changed yet, so there is no check to invalidate — and a terminal
+#: feature is settled either way: the field then RECORDS whether the sweep
+#: happened at close-out rather than asking for it after the fact.
+#:
+#: Derived from ADR-0028's in-flight rule rather than hand-listed, which is the
+#: lesson of the first `RESTING_STATES`: that one was written by hand, missed
+#: three values, and gave 8 owed tests where the rule should leave 5.
+SWEEP_OWED_STATUSES: frozenset[str] = frozenset({"doing", "review"})
+
+
+def acceptance_impact(record: Any) -> str:
+    """The authored line, or `""` when the feature has not been swept."""
+    return str((record.frontmatter or {}).get("acceptance_impact") or "").strip()
+
+
+def _sweep_rows(index: Any) -> list[dict[str, Any]]:
+    """One row per in-flight feature that has not said what it did to the suite.
+
+    A note-typed subject on the note-less side, which looks like a
+    contradiction and is not: this obligation is keyed on the ABSENCE of a
+    field, and the per-type registry answers *"which status makes this note
+    owed"*. A feature already owes `Accept` under its own entry, and one type
+    carries one entry — so a second, differently-shaped ask about the same note
+    belongs here, beside the standing documents and the release gate, which are
+    the other two obligations the type table could not express.
+    """
+    out: list[dict[str, Any]] = []
+    for path in index.paths():
+        record = index.get(path)
+        if record is None or record.note_type != "feature":
+            continue
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        if (record.status or "").strip().lower() not in SWEEP_OWED_STATUSES:
+            continue
+        if acceptance_impact(record):
+            continue
+        out.append({
+            "id": record.note_id or "",
+            "title": f"{record.title or record.note_id} — has its acceptance "
+                     "impact been considered?",
+            "rel": record.rel_path,
+            # The feature itself, so a reader can read what changed before
+            # deciding what it touched.
+            "url": f"/docs/{record.rel_path}",
+            "type": SWEEP_OBLIGATION_KIND,
+            "status": record.status or "",
+            "detail": "no acceptance_impact",
+            "verb": "Sweep",
+            # …and the route the verb PERFORMS, the way the release gate's row
+            # carries `~walk`. A row that names a verb with nowhere to put it
+            # is a label; this one is a control.
+            "action": f"~sweep/{record.note_id or ''}",
+        })
+    out.sort(key=lambda r: str(r["id"]))
+    return out
+
+
+NOTE_LESS[SWEEP_OBLIGATION_KIND] = NoteLessObligation(
+    kind=SWEEP_OBLIGATION_KIND,
+    view=VIEW_FEATURES,
+    verb="Sweep",
+    rows=_sweep_rows,
+    predicate="a feature at `doing`/`review` with no `acceptance_impact:` — "
+              "and it discharges PERMANENTLY on either authored state, a date "
+              "or `none — <reason>`, because a boolean would collapse "
+              "nothing-to-do into not-done and nag forever",
+)
+
+
+#: One walk of the note-less sources per index generation. `_owed_flag` asks
+#: about one record at a time — once per row in a tree of hundreds — and the
+#: sweep source walks the whole corpus to answer, so without this the features
+#: tree would be quadratic in the number of notes.
+#:
+#: Keyed on `index.generation`, which the watcher bumps on every change, so a
+#: stale answer is impossible rather than merely unlikely.
+_note_less_by_note: dict[tuple[int, int], dict[str, dict[str, Any]]] = {}
+
+
+def note_less_row_for(index: "Index", note_id: str) -> dict[str, Any] | None:
+    """A note-less obligation's row naming this note, if one does.
+
+    **Note-less does not mean note-free.** The acceptance sweep's subject IS a
+    note — a feature — and it lives on that side of the registry because it is
+    keyed on a MISSING field, which the per-type table cannot express (a
+    feature already has an entry, and one type carries one). So a feature can
+    appear in Needs-you through this source while its row in the tree is marked
+    through the other, and the tree has to consult both or the same item shows
+    up twice with only one of the two saying why.
+    """
+    if not note_id:
+        return None
+    key = (id(index), int(getattr(index, "generation", 0)))
+    cached = _note_less_by_note.get(key)
+    if cached is None:
+        cached = {}
+        for rows in note_less_rows(index).values():
+            for row in rows:
+                if row.get("id") and row.get("rel"):
+                    cached.setdefault(str(row["id"]), row)
+        _note_less_by_note.clear()      # one generation at a time; not a store
+        _note_less_by_note[key] = cached
+    return cached.get(note_id)
 
 
 def note_less_sources() -> dict[str, "NoteLessObligation"]:

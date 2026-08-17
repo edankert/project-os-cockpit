@@ -57,8 +57,8 @@ import re
 import sys
 from pathlib import Path
 
-ID_PREFIXES = ("ADR", "DES", "FEAT", "ISS", "PHASE", "REQ", "RISK", "REL",
-               "TASK", "TST", "WF")
+ID_PREFIXES = ("ADR", "CHK", "DES", "FEAT", "ISS", "PHASE", "REQ", "RISK",
+               "REL", "TASK", "TST", "WF")
 ID_RE = re.compile(r"\b(%s)-(\d{2,})\b" % "|".join(ID_PREFIXES))
 
 COLLECTION_TYPE = {
@@ -69,6 +69,13 @@ COLLECTION_TYPE = {
     "phases": {"phase"},
     "risks": {"risk"},
     "tests": {"test"},
+    # Declared, and deliberately never populated: acceptance checks are
+    # notes but not snapshot items -- a repo can hold hundreds and the
+    # snapshot is active-and-recent context (SCHEMAS.md `check.md`). The
+    # row exists so the type is KNOWN to every table check below rather
+    # than being absent, which is how a type ends up validated against
+    # nothing.
+    "checks": {"check"},
     "workflows": {"workflow"},
     "changes": {"change"},
     "decisions": {"adr", "decision"},
@@ -109,6 +116,20 @@ ALLOWED_STATUS = {
     # ISS-0015 replaced that pick with a union check.
     "decision": {"proposed", "accepted", "superseded"},
     "test": {"ready", "passing", "failing"},
+    # An acceptance check: `status` is the LIFECYCLE, and the verdict is
+    # `mark:` (TAXONOMY.md / STATUSES.md `[[check]]`). Three values, all
+    # of them already in the vocabulary -- `draft` from requirement and
+    # workflow, `active` from workflow and reference, `retired` from
+    # requirement -- so this type adds no status value, the same bar
+    # `design` was held to.
+    #
+    # The absence that matters is `passing`. A check never reaches it, so
+    # the runner-only rule (TEST_RUNNER_STATUSES) and the review gate
+    # (REVIEW_SETTLED_STATUSES) -- both keyed on a status this type cannot
+    # hold -- never engage. That is by construction, not by exemption
+    # logic, which is the whole reason `check` is a sibling of `test`
+    # rather than a `TST-*` wearing extra fields.
+    "check": {"draft", "active", "retired"},
     "release": {"draft", "released", "reverted"},
     # `plan` is consumed by validate_plan_notes through load_allowed_status(). It
     # belongs in the defaults like every other type: without it, a repo whose
@@ -246,6 +267,10 @@ METRIC_PREFIX_TYPE = {
     # `decisions_total` is a total (`allowed is None`) and the check `continue`d
     # before reaching the prefix. Every total metric was unguarded the same way.
     "ADR": "adr",
+    # No `checks_*` metric exists and none should: a count of acceptance
+    # rows on the overview is a number nobody acts on. The row is here so
+    # that a metric added later cannot silently count zero (ISS-0016).
+    "CHK": "check",
 }
 
 #: metric name -> (ID prefix, statuses counted). `None` means "count them all".
@@ -282,12 +307,19 @@ METRIC_STATUS_FILTERS = {
 #: to the note type its value must be legal for.
 TERMINAL = {
     "tasks": "done",
+    # `retired` is terminal for a check (STATUSES.md: never removed, only
+    # deprecated). Inert in practice -- there is no `items.checks` -- and
+    # the verification invariant below disclaims it explicitly rather than
+    # relying on that emptiness, because a gate that is safe only while a
+    # collection stays empty is a trap for whoever fills it.
+    "checks": "retired",
     "issues": "fixed",   # ADR-0008: `closed` merged into `fixed`; 3% follow-through fleet-wide
     "requirements": "implemented",
     "features": "done",
 }
 TERMINAL_TYPES = {
     "tasks": "task",
+    "checks": "check",
     "issues": "issue",
     "requirements": "requirement",
     "features": "feature",
@@ -1563,6 +1595,12 @@ def validate(root, report):
             # informational for requirements; VERIFY still gates tasks, issues
             # and features, where linked tests are the agreed instrument.
             if coll_name == "requirements":
+                terminal = None
+            # A check is verified BY BEING WALKED, and its verdict lives in
+            # `mark:`. Demanding linked passing tests before it may be
+            # retired would gate a human judgement on an automated one --
+            # the collision ADR-0030 gives the type its own name to avoid.
+            if coll_name == "checks":
                 terminal = None
             if terminal and status == terminal:
                 waiver = str(fm.get("verification_waiver", "") or entry.get("verification_waiver", "")).strip()

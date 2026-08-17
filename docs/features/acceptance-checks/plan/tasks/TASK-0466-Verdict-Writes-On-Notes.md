@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0466
 aliases: ["TASK-0466"]
 title: "Verdict writes on notes — six marks, a dated pass, and Needs re-run naming the change, each one write"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

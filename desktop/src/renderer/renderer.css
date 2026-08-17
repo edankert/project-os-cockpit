@@ -5862,3 +5862,144 @@ ul.task-list li[data-check] { list-style: none; }
 .mark-choice-question strong, .mark-choice-question .mark-choice-mark { color: var(--warn, #d29922); }
 .mark-choice-clear    strong, .mark-choice-clear    .mark-choice-mark { color: var(--fg-muted, #8b949e); }
 
+
+/* ----- the acceptance view (FEAT-0114 / TASK-0464) ----------------------
+ *
+ * The suite as a list, generated from `CHK-*` notes. It deliberately reuses
+ * `.acc-mark` for the control and the release page's `.release-head` for the
+ * header: three surfaces now draw the same six marks, and a fourth palette
+ * would be a fourth vocabulary for one record.
+ */
+.checks-page { padding-bottom: 3rem; }
+.checks-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0 16px;
+}
+.checks-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.checks-filter-label {
+  flex: none;
+  min-width: 5.5rem;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+.checks-chip {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, var(--text-faint));
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 9px;
+}
+.checks-chip:hover { border-color: var(--accent, #58a6ff); }
+.checks-chip.is-on {
+  border-color: var(--accent, #58a6ff);
+  color: var(--accent, #58a6ff);
+  font-weight: 600;
+}
+.checks-tier { margin: 0 0 22px; }
+.checks-tier > h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.checks-area { margin: 0 0 14px; }
+.checks-area > h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, var(--text-faint));
+}
+.checks-area-refs {
+  margin-left: 8px;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.checks-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.checks-row-body { flex: 1 1 auto; min-width: 0; }
+.checks-row-name { font-size: 13px; }
+.checks-row-text {
+  font-size: 12px;
+  color: var(--text-muted, var(--text-faint));
+  /* The prose is often a paragraph of evidence. Clamped rather than hidden:
+     the row is a list entry, and the note is one click away for the rest. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.checks-row-meta {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+/* Ticked, and the record says the evidence was overtaken. Neither blocking nor
+   satisfied — a third thing, and the whole reason `invalidated_by:` exists. */
+.checks-row.is-stale .checks-row-name { color: var(--warn, #d29922); }
+.checks-row-open {
+  flex: none;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  padding: 0 2px;
+}
+.checks-row-open:hover { color: var(--accent, #58a6ff); text-decoration: underline; }
+/* Needs re-run's change field. Hidden for the other six options, so a control
+   only one of them uses does not read as something everybody owes. */
+.ask-field-change { margin-bottom: 6px; }
+
+/* ----- the close-out sweep (FEAT-0115 / TASK-0467) ---------------------- */
+.sweep-page { padding-bottom: 3rem; }
+.sweep-group { margin: 0 0 20px; }
+.sweep-group > h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.sweep-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.sweep-row-name { font-size: 12px; }
+.sweep-reason { margin: 0 0 6px 24px; width: calc(100% - 24px); }
+.sweep-new {
+  display: grid;
+  grid-template-columns: 2fr auto auto 3fr;
+  gap: 6px;
+  margin: 0 0 6px;
+}
+/* The git commands `Mark released` prints and does not run. Shown in the pane
+   rather than a toast because a person has to copy them. */
+.release-commands {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.release-confidence { margin: 6px 0 14px; }
+/* A recorded claim is not a broken link — it renders as the sentence it is. */
+.scoped-row-title.is-claim { font-style: italic; }

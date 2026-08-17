@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0472
 aliases: ["TASK-0472"]
 title: "The per-item release view — ~release/<id>/<ITEM-ID> answers what this item is, in this release"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

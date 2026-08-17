@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0459
 aliases: ["TASK-0459"]
 title: "The check type lands upstream — five template-owned surfaces change in ~/Dev/repos/project-os and sync down before any CHK-* note exists"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

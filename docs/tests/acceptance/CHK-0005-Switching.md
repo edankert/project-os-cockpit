@@ -1,0 +1,29 @@
+---
+type: "[[check]]"
+id: CHK-0005
+aliases: ["CHK-0005"]
+title: "Switching"
+status: active
+owner: user:edwin
+created: 2026-08-17
+updated: 2026-08-17
+tier: 1
+area: "Desktop shell and workspaces"
+section: "1.2"
+ordinal: 20
+mark: "x"
+verdict_date: ""
+verdict_reason: ""
+invalidated_by: {}
+automation: manual
+covered_by: []
+covers: ["[[FEAT-0007]]", "[[FEAT-0009]]", "[[FEAT-0016]]"]
+burden: []
+evidence: []
+migrated_from: "tests/ACCEPTANCE_TESTS.md#1.2.2 @ 7de1a86"
+related: []
+---
+
+# Switching
+
+click between two workspaces. Expect: nav, centre and right pane all follow; per-workspace state (nav mode, pins, follow mode) is remembered separately. — 2026-08-11, **against the running shell over CDP**, `project-os-cockpit` ⇄ `articles`. All three panes followed: nav `Open · 3 · PHASE-028…` → `PHASE-0001 Build audience · FEAT-0002…` (a different corpus entirely), centre → `articles`, context → `Decisions 10/13 accepted · ADR-0022…` → `No links from or to this note.` Switching back restored **project-os-cockpit's own** nav content and its `Features (by phase)` mode — remembered per workspace, not global. *Precisely: nav mode and nav state were exercised; **pins and follow mode were not** — the clause names three and two were driven. Recorded rather than rounded up.* (user:edwin, 2026-08-11)

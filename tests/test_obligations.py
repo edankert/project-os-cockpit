@@ -206,8 +206,34 @@ def test_the_features_tree_marks_owed_rows_from_the_registry() -> None:
     assert owed, "nothing in the features tree is marked owed"
     for row in owed:
         assert row.get("owed_verb"), f"{row['id']} is owed with no verb"
+        # **Either registry.** The features view carries a note-less obligation
+        # too since TASK-0468 put the acceptance sweep there — a subject that
+        # IS a note, but whose obligation is keyed on a MISSING field, which
+        # the per-type table cannot express because a feature already has an
+        # entry and one type carries one. Reading only `for_type` was not a
+        # narrower assertion, it was an assumption about which view holds
+        # which registry, and it expired the first time that changed.
         ob = obligations.for_type(row["type"])
-        assert ob is not None and ob.verb == row["owed_verb"]
+        source = obligations.note_less_sources().get(row["type"])
+        assert ob is not None or source is not None, (
+            f"{row['id']} is owed as a {row['type']!r} — a kind declared in "
+            "neither registry, so nothing validates its verb"
+        )
+        # **A verb the registry declares** — not necessarily the one keyed by
+        # this row's TYPE. A feature can be owed two different things: `Accept`
+        # under its own entry, and `Sweep` from the note-less source that asks
+        # whether its acceptance impact was considered. The row shows one, and
+        # which one is decided by `_owed_flag` (the type's first) — so the
+        # property this can honestly assert is that the word came from the
+        # registry rather than from the surface, which is TASK-0357's rule and
+        # the whole reason the verb is not a string in the renderer.
+        declared = {s.verb for s in obligations.note_less_sources().values()}
+        declared |= {o.verb for o in obligations.OBLIGATIONS.values() if o.verb}
+        # …plus the per-row verbs a note-less source may substitute (the
+        # standing documents do: you cannot *confirm* a document nobody has
+        # written — ISS-0153).
+        declared |= set(obligations.STANDING_VERBS.values())
+        assert row["owed_verb"] in declared, (row["id"], row["owed_verb"])
 
 
 def test_the_badge_counts_notes_while_the_tree_counts_rows() -> None:

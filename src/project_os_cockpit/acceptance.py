@@ -35,6 +35,14 @@ from typing import Any
 #: find is a gate that silently passes.
 SUITE_REL = "tests/ACCEPTANCE_TESTS.md"
 
+#: Where checks live once they are notes ([[ADR-0030]]). The sibling of
+#: `SUITE_REL`, and **never both**: a repo that migrates deletes the file in
+#: the migration commit, because a left-behind copy is the dual-source trap
+#: this project has paid for twice. `load()` below reads whichever exists and
+#: says which shape it found, so the two can coexist across the fleet — which
+#: they must, since the repos migrate one at a time.
+CHECKS_REL = "tests/acceptance"
+
 #: Tiers that block a release. Tier 3 is a verification aid, not a requirement
 #: — TESTING.md's release-gating section says so in as many words.
 GATING_TIERS: tuple[int, ...] = (1, 2)
@@ -198,8 +206,48 @@ def heading_refs(heading: str) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True)
+class Invalidation:
+    """`RE-RUN (TASK-####: reason)`, structured — TESTING.md rule 3 as a field.
+
+    The annotation is the corpus's own invention, hand-written 54 times in
+    `../your-trainer` and read by nothing until [[TASK-0448]]. Structuring it is
+    half of what [[ADR-0030]] buys: `change` is resolvable through the index,
+    `date` makes staleness arithmetic, and `raw` keeps the annotation's exact
+    inner text so a migration can be proved lossless rather than assumed to be.
+
+    **`raw` is not redundant with the other three.** 26 of the 54 annotations
+    put the id somewhere the `ID: reason` shape does not describe, and a
+    structured triple that silently dropped their wording would lose the only
+    account of why a tick stopped being trustworthy.
+    """
+
+    change: str = ""
+    reason: str = ""
+    date: str = ""
+    #: The annotation's inner text verbatim, exactly as `rerun` has always
+    #: reported it. Every existing consumer reads this and is unaffected.
+    raw: str = ""
+
+    def __bool__(self) -> bool:
+        return bool(self.raw or self.change or self.reason)
+
+
+#: The empty invalidation, so `Item`'s default is one shared frozen instance
+#: rather than a factory nobody would notice was being called 579 times.
+_NOT_INVALIDATED = Invalidation()
+
+
+@dataclass(frozen=True)
 class Item:
-    """One checkbox — the unit the gate reads."""
+    """One checkbox — the unit the gate reads.
+
+    **Two storage shapes, one class** ([[ADR-0030]]): a row parsed out of
+    `ACCEPTANCE_TESTS.md`, or a `CHK-*` note. Every consumer — the gate, the
+    delta, the Tests view, the release page — reads this and cannot tell,
+    which is what let the migration land without a second renderer. The
+    note-shape fields below default to empty, so a file-shape item is exactly
+    what it always was.
+    """
 
     tier: int
     section: str          # "1.3"
@@ -222,10 +270,10 @@ class Item:
     #: surface can distinguish *"nobody has walked this"* from *"somebody
     #: walked it and it failed"*, which are the same colour today.
     failed: bool = False
-    #: `RE-RUN (TASK-####: reason)` — the reason verbatim, or `""`.
-    #: Meaningful on a **ticked** row, where it means the tick is stale
-    #: (TASK-0448).
-    rerun: str = ""
+    #: The invalidation, structured. `rerun` below is the string every existing
+    #: caller already reads, kept as a property so the two cannot disagree —
+    #: which they would within a week if both were fields set side by side.
+    invalidated: Invalidation = _NOT_INVALIDATED
     #: The mark character exactly as the file writes it — `" "`, `"x"`, `"/"`,
     #: `"~"`, `"-"`, `"!"`, `"F"`, `"?"`, or whatever nobody recognises.
     #:
@@ -249,6 +297,45 @@ class Item:
     #: rendered anchor keeps it, so the two differ by precisely the part that
     #: makes the link land.
     heading: str = ""
+
+    # ----- note shape only (ADR-0030). Empty on a row parsed from a file. ---
+    #: `CHK-0001`, so a surface can address the check itself rather than a
+    #: position in a document. The whole point of the migration: `number` is an
+    #: address that MOVES, and this one does not.
+    note_id: str = ""
+    #: The note's docs-relative path, so a row can open it.
+    rel: str = ""
+    #: `draft` / `active` / `retired` — the LIFECYCLE. Never the verdict.
+    status: str = ""
+    #: When the current `mark` was recorded, and why. `verdict_reason` is
+    #: required for `/`, `-`, `!` and `?`; the write path refuses without one.
+    verdict_date: str = ""
+    verdict_reason: str = ""
+    #: `full` / `partial` / `manual`, and what supplies the coverage. Rolled up
+    #: as a release's *confidence*, which is why it is a check property and not
+    #: — as first proposed — a feature stat.
+    automation: str = ""
+    covered_by: tuple[str, ...] = ()
+    #: What the walker must have to hand. TASK-0449 was cancelled for the
+    #: absence of exactly this field, on the finding that inferring it from
+    #: prose was 6-of-6 false positives.
+    burden: tuple[str, ...] = ()
+    #: Paths, screenshots and log excerpts behind the current verdict.
+    evidence: tuple[str, ...] = ()
+    #: The pre-migration address (`#section.ordinal`) and the sha the file held
+    #: at the cut. Blame does not cross the migration commit (~2% similarity),
+    #: so traceability is preserved BY THE RECORD rather than by git plumbing.
+    migrated_from: str = ""
+
+    @property
+    def rerun(self) -> str:
+        """The invalidation annotation's inner text — what `rerun` always was.
+
+        A property rather than a second field: the structured triple and the
+        string are one fact, and two fields holding one fact is the shape this
+        project keeps paying for.
+        """
+        return self.invalidated.raw
 
     @property
     def anchor(self) -> str:
@@ -274,13 +361,28 @@ class Item:
 
     @property
     def stale(self) -> bool:
-        """Ticked, but the line says the evidence no longer holds.
+        """Ticked, but the record says the evidence no longer holds.
 
         Neither blocking nor satisfied — a third thing, and saying so is the
         point. An **unticked** annotated row is already blocking and must not
         be counted here as well, which is what the `checked` conjunct buys.
+
+        **Dates refine this; they do not replace it** (TASK-0466). Once both
+        `verdict_date` and `invalidated.date` are known, staleness is
+        arithmetic: a pass recorded AFTER the invalidating change answers it,
+        and the row stops being stale without anybody clearing an annotation by
+        hand — which is TESTING.md rule 3's second half finally being
+        performable. Where either date is missing the older rule stands, and
+        that is not a fallback for tidiness: **not one** of the 54 annotations
+        in the fleet carries a date, so keying staleness on dates alone would
+        have reported zero stale rows the day the migration landed and called
+        it an improvement.
         """
-        return self.checked and bool(self.rerun)
+        if not (self.checked and self.invalidated):
+            return False
+        if self.verdict_date and self.invalidated.date:
+            return self.verdict_date < self.invalidated.date
+        return True
 
     @property
     def number(self) -> str:
@@ -291,10 +393,23 @@ class Item:
         return f"{self.number} {self.name}"
 
 
+#: How a suite is stored. Three values because a surface has three different
+#: things to say: `notes` is post-migration, `file` is pre-migration, and
+#: `absent` is the state nine of the twelve fleet repos are in and must never
+#: be reported as *"nothing blocking"*.
+SHAPE_NOTES = "notes"
+SHAPE_FILE = "file"
+SHAPE_ABSENT = "absent"
+
+
 @dataclass
 class Suite:
     path: Path | None = None
     items: list[Item] = field(default_factory=list)
+    #: Which storage answered. Carried rather than inferred from `path`: a
+    #: caller that has to look at a filename to know whether it may write row
+    #: grammar is a caller that will one day get it wrong.
+    shape: str = SHAPE_ABSENT
 
     @property
     def exists(self) -> bool:
@@ -391,15 +506,221 @@ def parse(text: str) -> list[Item]:
             excepted=mark in _EXCEPTED_MARKS,
             failed=mark in _FAILED_MARKS,
             question=mark in _QUESTION_MARKS,
-            rerun=rerun.group(1).strip() if rerun else "",
+            invalidated=split_rerun(rerun.group(1)) if rerun else _NOT_INVALIDATED,
             mark=mark,
             refs=refs, ordinal=ordinal, heading=full_heading,
         ))
     return items
 
 
+#: `TASK-0385: AddUserScreen replaced by inline dialog` — the shape 28 of the
+#: fleet's 54 annotations use. The other 26 do not, and this deliberately does
+#: not try harder: `raw` keeps every one of them verbatim, so the id is
+#: extracted where it is unambiguous and nothing is invented where it is not.
+_RERUN_SPLIT_RE = re.compile(r"^\s*([A-Z]{2,6}-\d{3,4})\s*[:—-]\s*(.*)$", re.S)
 
-def load(docs_root: Path) -> Suite:
+
+def split_rerun(raw: str) -> Invalidation:
+    """One `RE-RUN (…)` annotation, structured as far as it honestly goes."""
+    text = (raw or "").strip()
+    found = _RERUN_SPLIT_RE.match(text)
+    if found:
+        return Invalidation(
+            change=found.group(1), reason=found.group(2).strip(), raw=text)
+    # No id, or one written in a shape this does not describe. The annotation
+    # survives whole; what is not claimed is the structure.
+    bare = _BARE_ID_RE.search(text)
+    return Invalidation(change=bare.group(1) if bare else "", reason=text, raw=text)
+
+
+# ----- the note shape (ADR-0030 / FEAT-0113) --------------------------------
+#
+# The inversion, in ADR-0009's own language: notes are the authored source of
+# state and the tool derives. Until this, the acceptance suite was the one
+# surface in the system where the stored artifact WAS the display — which is
+# why four rounds of marks-control work (ISS-0185..0189) were spent teaching a
+# rendered document to behave like a control surface.
+#
+# Everything below produces the same `Item` the row parser produces. That is
+# the whole migration strategy: one model, two readers, and no consumer that
+# has to know which one answered.
+
+
+def _as_tuple(raw: Any) -> tuple[str, ...]:
+    """A frontmatter list as strings, tolerating the scalar form authors write."""
+    if raw is None or raw == "":
+        return ()
+    if isinstance(raw, (list, tuple)):
+        return tuple(str(x).strip() for x in raw if str(x).strip())
+    return (str(raw).strip(),)
+
+
+def _wikilink_ids(values: tuple[str, ...]) -> tuple[str, ...]:
+    """Ids out of `covers:`, in either the `[[FEAT-0001]]` or bare form.
+
+    Both, because the corpus writes both — ISS-0173 is the whole record of what
+    reading only one of them costs: 72 of 82 headings named a feature and the
+    parser found zero.
+    """
+    out: list[str] = []
+    for value in values:
+        for note_id in _ID_RE.findall(value) or _BARE_ID_RE.findall(value):
+            if note_id not in out:
+                out.append(note_id)
+    return tuple(out)
+
+
+def check_prose(body: str) -> str:
+    """A check note's own words — its body with the `# Title` heading removed.
+
+    The prose lives in the BODY, not in frontmatter, and that is the whole
+    reason this type is worth having: a person opens `CHK-0412-First-Run.md` in
+    Obsidian and reads a sentence, then a procedure. A 2,000-character `text:`
+    field would have been the JSON objection ([[FEAT-0112]]) arriving through
+    the back door — machine-shaped storage a human cannot comfortably edit.
+    """
+    lines = (body or "").strip().splitlines()
+    if lines and lines[0].lstrip().startswith("# "):
+        lines = lines[1:]
+    return "\n".join(lines).strip()
+
+
+def item_from_note(
+    frontmatter: dict[str, Any], *, rel: str = "", body: str = "",
+) -> Item | None:
+    """One `CHK-*` note as an `Item`, or `None` if it is not one.
+
+    Returns `None` only for a note that is not a check at all. A malformed
+    check is **not** dropped: it lands in Tier 1 and blocks.
+
+    That is the same direction the row parser fails in — *"anything the parser
+    cannot classify is neither, so it is owed and blocks"* — and getting it
+    wrong here is worse than there, because a whole note is at stake rather
+    than one character. The first cut returned `None` on an unreadable tier
+    under a comment claiming that dropping it kept the gate honest. It does
+    not: a dropped check and a Tier 3 check both fail to block, so both let a
+    release through on a check nobody can read. **A mutation setting the
+    fallback to Tier 3 survived the suite**, which is how the reasoning came to
+    be checked rather than admired.
+    """
+    fm = frontmatter or {}
+    if not str(fm.get("id", "") or "").strip():
+        return None
+    try:
+        tier = int(str(fm.get("tier", "")).strip() or 0)
+    except (TypeError, ValueError):
+        tier = 0
+    if tier not in (1, 2, 3):
+        tier = 1
+    mark = str(fm.get("mark", " ") or " ")
+    # A YAML scalar cannot hold a bare space, so `mark: " "` round-trips as the
+    # empty string through some writers. Both mean unwalked; nothing else is
+    # normalised, because `[ x]` staying unrecognised is the point of the
+    # row parser's own refusal to strip (ISS-0141).
+    if mark == "":
+        mark = " "
+    raw_invalid = fm.get("invalidated_by") or {}
+    if isinstance(raw_invalid, dict):
+        invalid = Invalidation(
+            change=str(raw_invalid.get("change", "") or "").strip(),
+            reason=str(raw_invalid.get("reason", "") or "").strip(),
+            date=str(raw_invalid.get("date", "") or "").strip(),
+            raw=str(raw_invalid.get("raw", "") or "").strip(),
+        )
+        if invalid.change and not invalid.raw:
+            invalid = Invalidation(
+                invalid.change, invalid.reason, invalid.date,
+                f"{invalid.change}: {invalid.reason}" if invalid.reason
+                else invalid.change,
+            )
+        elif invalid.reason and not invalid.raw:
+            invalid = Invalidation(
+                invalid.change, invalid.reason, invalid.date, invalid.reason)
+    else:
+        invalid = split_rerun(str(raw_invalid))
+    section = str(fm.get("section", "") or "").strip()
+    try:
+        ordinal = int(str(fm.get("ordinal", "") or 0))
+    except (TypeError, ValueError):
+        ordinal = 0
+    return Item(
+        tier=tier,
+        section=section,
+        area=str(fm.get("area", "") or "").strip(),
+        name=str(fm.get("title", "") or "").strip(),
+        text=check_prose(body) or str(fm.get("text", "") or "").strip(),
+        checked=mark in _CHECKED_MARKS,
+        reconciled=mark in _RECONCILED_MARKS,
+        excepted=mark in _EXCEPTED_MARKS,
+        failed=mark in _FAILED_MARKS,
+        question=mark in _QUESTION_MARKS,
+        invalidated=invalid,
+        mark=mark,
+        ordinal=ordinal,
+        refs=_wikilink_ids(_as_tuple(fm.get("covers"))),
+        heading=f"{section} {fm.get('area', '')}".strip(),
+        note_id=str(fm.get("id", "") or "").strip(),
+        rel=rel,
+        status=str(fm.get("status", "") or "").strip(),
+        verdict_date=str(fm.get("verdict_date", "") or "").strip(),
+        verdict_reason=str(fm.get("verdict_reason", "") or "").strip(),
+        automation=str(fm.get("automation", "") or "").strip(),
+        covered_by=_as_tuple(fm.get("covered_by")),
+        burden=_as_tuple(fm.get("burden")),
+        evidence=_as_tuple(fm.get("evidence")),
+        migrated_from=str(fm.get("migrated_from", "") or "").strip(),
+    )
+
+
+def _section_key(section: str) -> tuple[int, ...]:
+    """`"1.12"` sorts after `"1.2"`. String order does not, and the suite has
+    fourteen sections in tier 1 alone."""
+    out: list[int] = []
+    for part in (section or "").split("."):
+        try:
+            out.append(int(part))
+        except ValueError:
+            out.append(0)
+    return tuple(out)
+
+
+def sort_items(items: list[Item]) -> list[Item]:
+    """Suite order: tier, then section, then `ordinal`, then id.
+
+    `ordinal` is sparse and display-only, which is what retires the shifting
+    section-ordinal address for good — an insert between two checks takes a
+    number between theirs and moves nothing. `note_id` breaks the tie so the
+    order is total, because a view that reorders itself between renders is a
+    view a reader cannot walk.
+    """
+    return sorted(items, key=lambda i: (
+        i.tier, _section_key(i.section), i.ordinal, i.note_id))
+
+
+def load_notes(checks_dir: Path) -> list[Item]:
+    """Every `CHK-*` note under ``checks_dir``, in suite order.
+
+    Reads the directory directly rather than through the index, so the
+    migration script and the tests can use it without building one. Live
+    surfaces pass an `Index` to :func:`load` instead — 579 YAML parses per page
+    render is not a thing to do twice.
+    """
+    import frontmatter as _fm
+
+    items: list[Item] = []
+    for path in sorted(checks_dir.glob("CHK-*.md")):
+        try:
+            post = _fm.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue
+        item = item_from_note(dict(post.metadata), body=post.content,
+                              rel=f"{CHECKS_REL}/{path.name}")
+        if item is not None:
+            items.append(item)
+    return sort_items(items)
+
+
+def load(docs_root: Path, index: "Any | None" = None) -> Suite:
     """The suite, or an empty one when the repo has never instantiated it.
 
     **Absent is not passing.** A repo with no suite has no Tier 1/2 items, so
@@ -407,13 +728,34 @@ def load(docs_root: Path) -> Suite:
     the state every repo was in before this existed, and exactly the state that
     made the gate look like it worked. `gate_payload` reports `exists` so a
     surface can say "never instantiated" instead of "nothing blocking".
+
+    **Notes win where both exist.** They should never both exist — the
+    migration deletes the file in its own commit — but if a stray copy is ever
+    restored, reading the notes is the answer that matches every write path.
+    The alternative would be a surface that displays one store and writes the
+    other.
     """
+    checks_dir = docs_root / CHECKS_REL
+    if index is not None:
+        items = [
+            item for record in index.notes_by_type("check")
+            if (item := item_from_note(record.frontmatter, body=record.body,
+                                       rel=record.rel_path))
+            is not None
+        ]
+        if items:
+            return Suite(path=checks_dir, items=sort_items(items),
+                         shape=SHAPE_NOTES)
+    elif checks_dir.is_dir():
+        items = load_notes(checks_dir)
+        if items:
+            return Suite(path=checks_dir, items=items, shape=SHAPE_NOTES)
     path = docs_root / SUITE_REL
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
         return Suite()
-    return Suite(path=path, items=parse(text))
+    return Suite(path=path, items=parse(text), shape=SHAPE_FILE)
 
 
 # ----- the gate as a delta (FEAT-0108 / TASK-0446) --------------------------
@@ -454,16 +796,120 @@ def suite_at(project_root: Path, ref: str, rel: str = SUITE_REL) -> Suite | None
     before the file existed, a ref that does not resolve, and a file that is
     present but empty are three different situations, and only the last one
     means *"the suite had no items then"*.
-    """
-    from .git_state import _git_raw
 
+    **Two shapes, split by TIME rather than maintained in parallel**
+    (TASK-0462). Every ref before a repo's migration commit holds the file —
+    that is all twelve of `../your-trainer`'s current tags, so the delta at
+    every historical tag is computed by exactly the code that always computed
+    it. Refs after the cut hold notes, and are read with **two** subprocesses
+    rather than N: `git ls-tree` for the paths, `git cat-file --batch` for
+    their contents in one stream. The branch is permanent and that is not a
+    defect — a tag is immutable, so the shape a tag holds is a fact about the
+    past that will never stop being true.
+    """
     cache_key = (str(project_root), f"{ref}:{rel}")
     if cache_key in _at_ref:
         return _at_ref[cache_key]
-    text = _git_raw(project_root, "show", f"{ref}:docs/{rel}")
-    out = None if text is None else Suite(path=None, items=parse(text))
+    out = _suite_at_uncached(project_root, ref, rel)
     _at_ref[cache_key] = out
     return out
+
+
+def _suite_at_uncached(project_root: Path, ref: str, rel: str) -> Suite | None:
+    from .git_state import _git_raw
+
+    text = _git_raw(project_root, "show", f"{ref}:docs/{rel}")
+    if text is not None:
+        return Suite(path=None, items=parse(text), shape=SHAPE_FILE)
+    if rel != SUITE_REL:
+        # An explicit non-default path was asked for and is not there. Answering
+        # with the note shape would be answering a different question.
+        return None
+    items = _notes_at(project_root, ref)
+    if items is None:
+        return None
+    return Suite(path=None, items=items, shape=SHAPE_NOTES)
+
+
+def _notes_at(project_root: Path, ref: str) -> list[Item] | None:
+    """Every `CHK-*` note at ``ref``, or ``None`` when the directory is absent.
+
+    Two subprocesses regardless of how many checks there are. `ls-tree` names
+    the blobs; `cat-file --batch` streams all of them through one pipe, which
+    is the difference between 2 processes and 579 at every tag on a cold delta.
+    """
+    import subprocess
+
+    from .git_state import _git_raw
+
+    listing = _git_raw(project_root, "ls-tree", "-r", "-z", ref, f"docs/{CHECKS_REL}/")
+    if not listing:
+        return None
+    shas: list[str] = []
+    for entry in listing.split("\0"):
+        if not entry.strip():
+            continue
+        # `<mode> <type> <sha>\t<path>`
+        meta, _, path = entry.partition("\t")
+        parts = meta.split()
+        if len(parts) < 3 or parts[1] != "blob":
+            continue
+        if not path.rsplit("/", 1)[-1].startswith("CHK-") or not path.endswith(".md"):
+            continue
+        shas.append(parts[2])
+    if not shas:
+        return None
+    try:
+        done = subprocess.run(
+            ["git", "cat-file", "--batch"],
+            cwd=str(project_root), input="\n".join(shas) + "\n",
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):     # pragma: no cover
+        return None
+    if done.returncode != 0:
+        return None                                  # pragma: no cover
+    items: list[Item] = []
+    for blob in _split_batch(done.stdout):
+        item = _item_from_note_text(blob)
+        if item is not None:
+            items.append(item)
+    return sort_items(items) if items else None
+
+
+def _split_batch(stream: str) -> list[str]:
+    """`git cat-file --batch` output as a list of blob bodies.
+
+    The format is `<sha> <type> <size>\\n<contents>\\n` per object, and the
+    **size is authoritative** — a note whose body happens to contain a line
+    looking like a header would otherwise split an object in two, and half a
+    frontmatter block parses as a check with no tier, which is silently
+    dropped. Counted, not guessed.
+    """
+    out: list[str] = []
+    pos = 0
+    while pos < len(stream):
+        newline = stream.find("\n", pos)
+        if newline == -1:
+            break
+        header = stream[pos:newline].split()
+        if len(header) != 3 or not header[2].isdigit():
+            break                                    # pragma: no cover
+        size = int(header[2])
+        start = newline + 1
+        out.append(stream[start:start + size])
+        pos = start + size + 1                       # the trailing newline
+    return out
+
+
+def _item_from_note_text(text: str) -> Item | None:
+    import frontmatter as _fm
+
+    try:
+        post = _fm.loads(text)
+    except (ValueError, UnicodeDecodeError):         # pragma: no cover
+        return None
+    return item_from_note(dict(post.metadata), body=post.content)
 
 
 def ages(
@@ -536,12 +982,140 @@ def delta(current: Suite, baseline: Suite | None) -> dict[str, Any]:
     }
 
 
-def payload(docs_root: Path) -> dict[str, Any]:
-    """The suite as data, for the Tests view's tier groups."""
-    suite = load(docs_root)
+def suite_rel(suite: Suite) -> str:
+    """What a surface should open to SEE this suite.
+
+    The file, when the file is the suite. The generated view, when the notes
+    are — because in note shape there is no document to open, and a link to a
+    directory is a 404 dressed as a row.
+    """
+    if not suite.exists:
+        return ""
+    return CHECKS_REL if suite.shape == SHAPE_NOTES else SUITE_REL
+
+
+#: How each tier reads on the view. The template's own words; TESTING.md is the
+#: contract and this must not paraphrase it into a second one.
+TIER_LABELS: dict[int, str] = {
+    1: "Tier 1 — feature tests",
+    2: "Tier 2 — regression tests",
+    3: "Tier 3 — verification tests",
+}
+
+
+def view_payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
+    """The suite as a **list somebody walks** (FEAT-0114 / TASK-0464).
+
+    Edwin's contract, verbatim: *"We can then present them still as the same
+    list with the same tick options for me to go through before a release."* So
+    the shape is the shape a reader already knows — tier, then area, then rows
+    in order — and the marks are the same six.
+
+    What changes is where it comes from. The document was the display, which is
+    why four rounds of work (ISS-0185..0189) went into teaching a rendered
+    Markdown file to behave like a control surface. This is a projection over
+    frontmatter, like every other view in the cockpit.
+
+    **The facets are derived, never authored.** Every filter here is a field —
+    mark, tier, area, `covers:`, `automation:` — which is the concrete thing
+    the migration bought: the old suite could only be filtered by whatever a
+    section heading happened to say, and `missing_issue_refs` reported 158 of
+    158 because it could not read the form the headings were written in.
+    """
+    suite = load(docs_root, index)
+    tiers: list[dict[str, Any]] = []
+    for n in (1, 2, 3):
+        items = suite.tier(n)
+        if not items:
+            continue
+        areas: list[dict[str, Any]] = []
+        for item in items:
+            key = (item.section, item.area)
+            if not areas or (areas[-1]["section"], areas[-1]["area"]) != key:
+                areas.append({
+                    "section": item.section, "area": item.area,
+                    "refs": list(item.refs), "items": [],
+                })
+            areas[-1]["items"].append(_row(item))
+        tiers.append({
+            "tier": n,
+            "label": TIER_LABELS.get(n, f"Tier {n}"),
+            "gating": n in GATING_TIERS,
+            "total": len(items),
+            "checked": sum(1 for i in items if i.checked),
+            "reconciled": sum(1 for i in items if i.reconciled),
+            "excepted": sum(1 for i in items if i.excepted),
+            "unsettled": sum(1 for i in items if not i.settled),
+            "stale": sum(1 for i in items if i.stale),
+            "areas": areas,
+        })
     return {
         "exists": suite.exists,
-        "rel": SUITE_REL if suite.exists else "",
+        "shape": suite.shape,
+        "rel": suite_rel(suite),
+        # The rules preamble, as a row rather than as re-rendered prose: the
+        # README holds it verbatim and is one click away. Re-rendering it into
+        # the header would make this view a second publisher of the document's
+        # own words, which is the drift the migration exists to remove.
+        "readme": (f"{CHECKS_REL}/README.md"
+                   if suite.shape == SHAPE_NOTES else suite_rel(suite)),
+        "tiers": tiers,
+        "facets": _facets(suite),
+        "blocking": len(suite.blocking()),
+        "total": len(suite.items),
+        "settled": sum(1 for i in suite.items if i.settled),
+    }
+
+
+def _facets(suite: Suite) -> dict[str, list[dict[str, Any]]]:
+    """Every filter the view offers, with its count, derived from the fields.
+
+    A facet with a zero count is omitted rather than shown greyed: a filter
+    that can only ever return nothing is a control that wastes a click, and on
+    a 579-row suite there would be a dozen of them.
+    """
+    def tally(values: "list[tuple[str, str]]") -> list[dict[str, Any]]:
+        counts: dict[tuple[str, str], int] = {}
+        for value in values:
+            counts[value] = counts.get(value, 0) + 1
+        return [
+            {"value": value, "label": label, "count": count}
+            for (value, label), count in sorted(
+                counts.items(), key=lambda kv: (-kv[1], kv[0][1]))
+        ]
+
+    marks: list[tuple[str, str]] = []
+    for item in suite.items:
+        marks.append((item.mark, MARK_MEANING.get(item.mark, "unrecognised")))
+    return {
+        "marks": tally(marks),
+        "tiers": tally([(str(i.tier), TIER_LABELS.get(i.tier, f"Tier {i.tier}"))
+                        for i in suite.items]),
+        "areas": tally([(i.area, i.area) for i in suite.items if i.area]),
+        "covers": tally([(ref, ref) for i in suite.items for ref in i.refs]),
+        "automation": tally([(i.automation, i.automation)
+                             for i in suite.items if i.automation]),
+    }
+
+
+#: What each mark MEANS, in one word a filter chip can carry. The table in the
+#: module docstring above is the long form; this is the label, and the two are
+#: kept beside each other deliberately — a vocabulary explained in one place
+#: and displayed from another is how `[!]` came to mean two things.
+MARK_MEANING: dict[str, str] = {
+    " ": "unwalked", "x": "passed", "X": "passed",
+    "/": "partial", "~": "partial", "-": "canceled",
+    "!": "failed", "F": "failed", "?": "unclear",
+}
+
+
+def payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
+    """The suite as data, for the Tests view's tier groups."""
+    suite = load(docs_root, index)
+    return {
+        "exists": suite.exists,
+        "shape": suite.shape,
+        "rel": suite_rel(suite),
         "tiers": [
             {
                 "tier": n,
@@ -562,6 +1136,13 @@ def payload(docs_root: Path) -> dict[str, Any]:
                         "reconciled": i.reconciled,
                         "excepted": i.excepted,
                         "refs": list(i.refs),
+                        # The note's own id and path, so a row can BE the
+                        # check rather than a position in a document. Empty in
+                        # file shape, which is how a caller tells which
+                        # address it may trust.
+                        "id": i.note_id, "rel": i.rel,
+                        "mark": i.mark, "automation": i.automation,
+                        "stale": i.stale,
                     }
                     for i in suite.tier(n)
                 ],
@@ -612,6 +1193,20 @@ def _row(item: "Item", **extra: Any) -> dict[str, Any]:
         # execute the current set."*
         "text": item.text, "anchor": item.anchor,
         "failed": item.failed, "rerun": item.rerun,
+        # The note shape's address (ADR-0030). `number` still ships beside it
+        # and still shifts; `id` does not, which is what every write path
+        # prefers once a repo has migrated. Empty on a file-shape row, so a
+        # client can tell which address it may trust without being told.
+        "id": item.note_id, "rel": item.rel,
+        "verdict_date": item.verdict_date,
+        "verdict_reason": item.verdict_reason,
+        "automation": item.automation,
+        "invalidated_by": {
+            "change": item.invalidated.change,
+            "reason": item.invalidated.reason,
+            "date": item.invalidated.date,
+        } if item.invalidated else {},
+        "stale": item.stale,
         # The mark the file holds, so the row can DRAW it (ISS-0190). The gate
         # row and the document row are the same check and now wear the same
         # control; one of them reading its state from `data-mark` and the other
@@ -641,7 +1236,7 @@ def gate_payload(
     it always returned, which is what keeps the Tests view and every existing
     caller working while the Publication page asks for more.
     """
-    suite = load(docs_root)
+    suite = load(docs_root, index)
     blocking = suite.blocking()
 
     # --- quiet: the subject is not in flight (TASK-0447) ------------------
@@ -697,7 +1292,8 @@ def gate_payload(
 
     return {
         "exists": suite.exists,
-        "rel": SUITE_REL if suite.exists else "",
+        "shape": suite.shape,
+        "rel": suite_rel(suite),
         "blocked": bool(blocking),
         "rule": "A release is blocked while any Tier 1/Tier 2 test is "
                 "unchecked (exceptions must be documented in the release "

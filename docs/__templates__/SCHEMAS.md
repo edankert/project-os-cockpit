@@ -207,6 +207,34 @@ Fields:
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.
 
+## `check.md` (`type: [[check]]`)
+
+Purpose: one acceptance check — a single line of a manual walk, with a persistent human verdict. Stored at `docs/tests/acceptance/CHK-####-Slug.md`. See ADR "Acceptance checks are notes" (project-os-cockpit ADR-0030) for why this is a sibling of `[[test]]` rather than a `TST-*` with extra fields.
+
+Fields:
+- (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
+- (required) `mark` (string): the verdict — one of `" "`, `x`, `/`, `-`, `!`, `?` (`TAXONOMY.md`, "`mark` (checks)"). **Never `status`.**
+- (required) `status` (string): the lifecycle — `draft|active|retired`. Ticking never touches it.
+- (optional) `verdict_date` (date): when the current `mark` was recorded.
+- (optional) `verdict_reason` (string): why. **Required** for `/`, `-`, `!` and `?`.
+- (optional) `invalidated_by` (map): `{change, reason, date}` — the change that made an existing pass untrustworthy. This is `TESTING.md` rule 3 as a field rather than an annotation: `change` names a `TASK-*`/`ISS-*`/`FEAT-*`, and a check whose `verdict_date` predates `invalidated_by.date` is computably stale.
+- (optional) `automation` (string): `full|partial|manual`, with `covered_by` naming what covers it.
+- (optional) `covered_by` (list of links): the `TST-*` notes or test modules providing that coverage.
+- (optional) `covers` (list of links): what this check verifies — `[[FEAT-...]]`, `[[ISS-...]]`. Resolvable through the index, which is the point: the pre-migration form was an id in a section heading that nothing could resolve.
+- (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
+- (optional) `section` (string): the legacy `1.3`-style section number, kept for addressing continuity.
+- (optional) `ordinal` (int): display order within the area. Sparse, so an insert shifts nothing.
+- (optional) `burden` (list): what the walker must have to hand (`TAXONOMY.md`).
+- (optional) `evidence` (list): paths, screenshots or log excerpts supporting the current verdict.
+- (optional) `migrated_from` (string): the pre-migration address (`#section.ordinal`) plus the sha the file held at the cut, for repos that migrated from a single `ACCEPTANCE_TESTS.md`.
+
+Where used:
+- Read as a set by the release gate and the acceptance view. **Deliberately not tracked in `SNAPSHOT.yaml` `items.*`** — a repo can hold hundreds, and the snapshot is active-and-recent context. `counters.CHK` is maintained like every other counter.
+
+Where NOT used:
+- The obligation registry: `check` is declared owed-nothing. Acceptance rows are the most self-re-arming population in a corpus, and per-check obligations are the one use of this granularity that is forbidden outright.
+- The independent-review gate (`QUALITY.md`): the review of a check is the walk.
+
 ## `workflow.md` (`type: [[workflow]]`)
 
 Purpose: canonical “front door” for a repo activity (what to run, inputs/outputs).

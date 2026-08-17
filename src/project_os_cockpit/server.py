@@ -752,6 +752,14 @@ def _make_handler(
                 self._serve_mark_check()
                 return
 
+            if path == "/api/notes/acceptance-sweep":
+                self._serve_acceptance_sweep()
+                return
+
+            if path == "/api/notes/release-mark-released":
+                self._serve_mark_released()
+                return
+
             if path == "/api/notes/release-verified":
                 self._serve_release_verified()
                 return
@@ -983,14 +991,50 @@ def _make_handler(
                 return
 
             if path == "/api/cockpit/acceptance":
-                # The tier suite and the release gate (TASK-0373). Read-only,
-                # and served from the docs root rather than the index: the
-                # suite is a checklist, not a note the graph resolves.
+                # The suite and the release gate (TASK-0373), plus the walkable
+                # view (TASK-0464). The index is passed now because a migrated
+                # suite IS notes — the comment that used to sit here said the
+                # suite was "a checklist, not a note the graph resolves", which
+                # was true of the file shape and is the exact thing ADR-0030
+                # changed.
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
-                    **acceptance.payload(docs_root),
-                    "gate": acceptance.gate_payload(docs_root),
+                    **acceptance.payload(docs_root, index),
+                    "gate": acceptance.gate_payload(docs_root, index=index),
+                    "view": acceptance.view_payload(docs_root, index),
                 })
+                return
+
+            if path == "/api/cockpit/release-item":
+                # `~release/<id>/<ITEM-ID>` — what this item is, in this
+                # release (TASK-0472). Read-only.
+                params = urllib.parse.parse_qs(parsed.query)
+                from . import publication as _pub2
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    **_pub2.release_item_payload(
+                        index,
+                        (params.get("release") or ["next"])[0],
+                        (params.get("item") or [""])[0],
+                    ),
+                })
+                return
+
+            if path == "/api/cockpit/sweep":
+                # What a feature's close-out sweep would offer (TASK-0467).
+                # Read-only: nothing is invalidated and nothing authored until
+                # a person presses Save, which is a POST.
+                params = urllib.parse.parse_qs(parsed.query)
+                from . import sweep as _sweep
+                try:
+                    self._respond_json({
+                        "schema_version": cockpit.SCHEMA_VERSION,
+                        **_sweep.candidates(
+                            index, (params.get("id") or [""])[0]),
+                    })
+                except note_writes.WriteError as exc:
+                    self._respond_json({"ok": False, "error": exc.message},
+                                       status=HTTPStatus(exc.status))
                 return
 
             if path == "/api/cockpit/scope-tests":
@@ -2322,6 +2366,11 @@ def _make_handler(
             The mark and the reason arrive together and are written together:
             a `partial` or a `fail` with no reason is a 400, which is the
             whole difference between this and the `[!]` mark ISS-0177 records.
+
+            **One endpoint, two storages** (ADR-0030). `id` addresses a `CHK-*`
+            note; `number`+`name` address a row in a repo that has not
+            migrated. `verdict: "needs-re-run"` is the seventh action and is
+            the only one that must name a `change`.
             """
             if not self._require_loopback():
                 return
@@ -2329,14 +2378,99 @@ def _make_handler(
             if body is None:
                 return
             try:
-                result = note_writes.mark_check(
+                mtime = (float(body["mtime"])
+                         if body.get("mtime") is not None else None)
+                verdict = str(body.get("verdict") or "")
+                check_id = str(body.get("id") or "")
+                if verdict == "needs-re-run":
+                    # The seventh action (TASK-0466). Routed here rather than
+                    # to its own endpoint because it IS a verdict write from
+                    # the caller's side — one control, one refusal surface —
+                    # and it is the only one that requires naming a change.
+                    result = note_writes.invalidate_check(
+                        index, check_id=check_id,
+                        change=str(body.get("change") or ""),
+                        reason=str(body.get("reason") or ""),
+                        mtime=mtime,
+                    )
+                else:
+                    result = note_writes.mark_check(
+                        index,
+                        number=str(body.get("number") or ""),
+                        name=str(body.get("name") or ""),
+                        check_id=check_id,
+                        verdict=verdict,
+                        reason=str(body.get("reason") or ""),
+                        mtime=mtime,
+                    )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_mark_released(self) -> None:
+            """``POST /api/notes/release-mark-released`` — the missing end
+            (FEAT-0116 / TASK-0469).
+
+            Writes status, date, tag and the frozen feature list, behind two
+            refusals that name their subjects. **Runs no git**: the tag and
+            push commands come back as text for a person to run, because a
+            commit is local and reversible while a pushed tag is published.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.mark_released(
                     index,
-                    number=str(body.get("number") or ""),
-                    name=str(body.get("name") or ""),
-                    verdict=str(body.get("verdict") or ""),
-                    reason=str(body.get("reason") or ""),
+                    str(body.get("id") or ""),
+                    tag=str(body.get("tag") or ""),
+                    actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"])
                            if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_acceptance_sweep(self) -> None:
+            """``POST /api/notes/acceptance-sweep`` — one Save (TASK-0467).
+
+            N new checks, M invalidations and one line on the feature, written
+            together and committed together. The benchmark is `a4577c01`, the
+            corpus's own hand commit: six added, three invalidated, one commit.
+
+            **Cancelling is not calling this.** Nothing is written until the
+            person presses Save, which is why there is no draft state to clean
+            up and no half-swept corpus to recover from.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            from . import sweep as _sweep
+            try:
+                result = _sweep.apply(
+                    index,
+                    str(body.get("feature") or ""),
+                    invalidate=list(body.get("invalidate") or []),
+                    create=list(body.get("create") or []),
+                    impact=str(body.get("impact") or ""),
+                    commit=bool(body.get("commit", True)),
                 )
             except note_writes.WriteError as exc:
                 self._respond_json({"ok": False, "error": exc.message},

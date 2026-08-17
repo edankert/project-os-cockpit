@@ -526,6 +526,113 @@ def _grade(record: Any) -> dict[str, Any]:
     }
 
 
+def release_item_payload(
+    index: "Index", release_id: str, item_id: str,
+) -> dict[str, Any]:
+    """*What about this item, in this release* (FEAT-0117 / TASK-0472).
+
+    Edwin: *"having features defined as they are now, makes them selectable in
+    this view but instead you would like to have one view per item."* Selecting
+    a feature inside a release used to `navigateTo('/docs/features/…')` — the
+    plain note, with no release context at all. The thing selected and the
+    thing received were mismatched.
+
+    **The three lists are the coupling Edwin corrected the design to.** Not
+    *"the checks this feature names"* — that would be the naming model he
+    rejected — but originated, invalidated, and in-its-areas, which only exist
+    as questions once `covers:` and `invalidated_by:` are fields.
+
+    **The empty state is the point, not a failure.** A feature with all three
+    empty shows its authored `acceptance_impact` line: *"considered, none"* and
+    *"not yet swept"* are opposite sentences, and until this phase the surface
+    could not tell them apart.
+    """
+    from . import sweep
+
+    releases = _releases(index)
+    held = next((r for r in releases if r["id"] == release_id), None)
+    if held is None and (release_id or "next").lower() == "next":
+        live = open_releases(index)
+        held = live[0] if live else None
+
+    path = index.by_id(item_id)
+    record = index.get(path) if path is not None else None
+    if record is None:
+        return {"exists": False, "id": item_id,
+                "release": held["id"] if held else ""}
+
+    out: dict[str, Any] = {
+        "exists": True,
+        "id": record.note_id or item_id,
+        "title": record.title or "",
+        "type": record.note_type or "",
+        "status": record.status or "",
+        "rel": record.rel_path,
+        "release": held["id"] if held else "",
+        "release_version": held["version"] if held else "",
+        "release_status": held["status"] if held else "",
+    }
+    if (record.note_type or "") != "feature":
+        # An issue selected inside a release is a real row and has no sweep.
+        # Answering with the three lists anyway would invent a relationship
+        # the record does not carry.
+        out["acceptance_impact"] = ""
+        out["impact_state"] = ""
+        out["originated"] = []
+        out["invalidated"] = []
+        out["in_areas"] = []
+        return out
+
+    data = sweep.candidates(index, record.note_id or item_id)
+    out.update({
+        "acceptance_impact": data["feature"]["acceptance_impact"],
+        "impact_state": data["feature"]["impact_state"],
+        "originated": data["originated"],
+        "invalidated": data["invalidated"],
+        "in_areas": data["in_areas"],
+        "subjects": data["subjects"],
+    })
+    # The issues this feature closed — from the record, never inferred. A
+    # feature's `fixes:`/`issues:` is what it says it closed; a heuristic over
+    # dates would be a guess presented as a fact.
+    closed: list[dict[str, str]] = []
+    for field in ("fixes", "issues"):
+        raw = record.frontmatter.get(field) or []
+        values = raw if isinstance(raw, (list, tuple)) else [raw]
+        for value in values:
+            for found in re.findall(r"\b(ISS-\d{3,4})\b", str(value)):
+                hit = index.by_id(found)
+                issue = index.get(hit) if hit is not None else None
+                if issue is None or any(c["id"] == found for c in closed):
+                    continue
+                closed.append({
+                    "id": found, "title": issue.title or "",
+                    "status": issue.status or "", "rel": issue.rel_path,
+                })
+    out["closed_issues"] = closed
+    return out
+
+
+def shipping_in(index: "Index", release_id: str = "") -> list[dict[str, Any]]:
+    """The features a release would freeze — the derived done-but-unshipped set.
+
+    Exposed for `mark_released` (TASK-0469), which has to write this list down
+    at the moment of shipping. `../your-trainer`'s REL-0013 is the reason: it
+    was prepared by the cockpit with `features: []`, so the moment its status
+    flips its page reads *"What shipped — 0 feature(s)"* — the list was always
+    derived and never frozen, and shipping is exactly when there stops being
+    anything to derive it from.
+
+    ``release_id`` is accepted and unused for now: the derived set is the same
+    for whichever release is open, because only one is ever open at a time
+    (`create_release` refuses a second). Named rather than omitted so the
+    caller reads as asking about a particular release, which is what it means.
+    """
+    from .cockpit import unreleased_payload
+
+    return list(unreleased_payload(index).get("items") or [])
+
+
 def release_payload(
     project_root: Path, index: "Index", release_id: str = "next",
 ) -> dict[str, Any]:
@@ -634,6 +741,15 @@ def release_payload(
                 }
                 if named is not None:
                     row["grade"] = _grade(named)
+                else:
+                    # **A claim is not a broken link** (TASK-0471). 11 of the
+                    # corpus's 15 `tests_verified` entries are recorded
+                    # sentences — *"Unit tests: 614 tests, all passing"* — and
+                    # every one rendered as *"not in this corpus"*, which reads
+                    # as a defect in the record rather than as the record.
+                    # An entry that does not look like an id never was one.
+                    row["claim"] = not bool(
+                        re.fullmatch(r"[A-Z]{2,6}-\d{2,}", target.strip()))
                 verified.append(row)
             owed = still_owed(record, index, project_root,
                               shipped_on=str(held.get('date') or ''))
@@ -673,8 +789,60 @@ def release_payload(
         # What the release asked for after shipping and nobody came back to.
         # Reads the same note the known-issues section comes from.
         "still_owed": owed,
+        # **Counted honestly** (TASK-0471). REL-0010's heading says 11; the
+        # truth is 1 open + 2 done + 8 unknowable. One number over three
+        # populations is a number nobody can act on, and the eight unknowable
+        # ones are why: nothing outside the repo can tell whether a store
+        # listing was updated.
+        "still_owed_split": _owed_split(owed),
+        # **Confidence, rolled up** (TASK-0471). Edwin asked *"is this a
+        # feature stat"* — it is not. It is a CHECK property (`automation:`)
+        # summed over the checks touching what shipped, so the page reports it
+        # without anybody authoring the same fact twice.
+        "confidence": _confidence(index, contents.get("rows") or []),
         "stale_drafts": stale_drafts(index),
     }
+
+
+def _owed_split(owed: list[dict[str, Any]]) -> dict[str, int]:
+    """`N open · M done · K unknowable`, open first."""
+    out = {"open": 0, "done": 0, "unknowable": 0}
+    for row in owed:
+        verdict = str(row.get("verdict") or "")
+        if verdict in out:
+            out[verdict] += 1
+        elif row.get("done") or verdict == "settled":
+            out["done"] += 1
+        else:
+            out["open"] += 1
+    return out
+
+
+def _confidence(index: "Index", rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """How much of what shipped is covered mechanically, from `automation:`.
+
+    Scoped to the checks that name a shipped item in `covers:` — a roll-up over
+    the whole suite would answer a question about the project rather than about
+    this release. A release whose features originated no checks reports zero of
+    each and says so, which is a true sentence and not an empty one.
+    """
+    from . import acceptance
+
+    ids = {str(row.get("id") or "") for row in rows
+           if isinstance(row, dict) and row.get("id")}
+    if not ids:
+        return {"total": 0, "full": 0, "partial": 0, "manual": 0, "scoped": False}
+    suite = acceptance.load(index.docs_root, index)
+    touching = [i for i in suite.items if ids & set(i.refs)]
+    out = {"total": len(touching), "full": 0, "partial": 0, "manual": 0,
+           "scoped": True}
+    for item in touching:
+        key = (item.automation or "manual").strip().lower()
+        if key in out:
+            out[key] += 1
+        else:
+            out["manual"] += 1
+    return out
 
 
 # ----- still owed by a shipped release (FEAT-0110) --------------------------

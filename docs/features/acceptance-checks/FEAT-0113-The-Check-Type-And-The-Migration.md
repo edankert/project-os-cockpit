@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0113
 aliases: ["FEAT-0113"]
 title: "The check type and the migration — one note per acceptance check, upstream first, pilot here, fleet last"
-status: planned
+status: doing
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: []
+tests: ["[[TST-0039]]", "[[TST-0040]]"]
 ---
 
 # The check type and the migration

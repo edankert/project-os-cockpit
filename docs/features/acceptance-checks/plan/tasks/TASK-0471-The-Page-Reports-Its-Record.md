@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0471
 aliases: ["TASK-0471"]
 title: "The release page reports its record — the note reachable, still-owed counted honestly, prose rendered as prose, confidence rolled up"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

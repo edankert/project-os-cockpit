@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0117
 aliases: ["FEAT-0117"]
 title: "One view per item — a release's row opens the item as it stands in this release, not the bare note"
-status: planned
+status: review
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0115-The-Sweep-Is-Continuous]]"]
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: []
+tests: ["[[TST-0043]]"]
 ---
 
 # One view per item

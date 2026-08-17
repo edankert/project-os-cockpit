@@ -517,10 +517,16 @@ DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference", "workflow")
 # corpus having zero REL notes — a release surface is not part of
 # PHASE-010, and letting it fall through would hand a future release
 # corpus a Library group by accident.
+# `check` joined on 2026-08-17 with the first migration (ADR-0030), and the
+# guard here fired the same hour: 34 acceptance checks appeared as a Library
+# group the moment they became notes, and `../your-trainer` would have
+# contributed 579. Its surface is the acceptance view (FEAT-0114) — exactly the
+# condition this set exists to record, arriving for the first time on a type
+# that was not hypothetical.
 _BY_TYPE_SKIP_IN_LIBRARY: frozenset[str] = frozenset({
     "feature", "issue", "requirement", "phase", "task",
     "change", "adr", "decision", "release", "risk", "test", "workflow",
-    "plan", "design",
+    "plan", "design", "check",
 }) | frozenset(LIBRARY_RARE_TYPES) | frozenset(DOC_TREE_INLINE_TYPES)
 
 # Minimum count for a discovered type to merit its own Library "By type"
@@ -4003,6 +4009,12 @@ _TIER_LABELS: dict[int, str] = {
 }
 
 
+#: Where the acceptance suite is walked once it is notes. A page, not a nav
+#: mode: the suite lives inside Tests, and a ninth mode would put one corpus in
+#: two places — ISS-0068's defect, which this project has already paid for.
+CHECKS_VIEW_ROUTE = "~checks"
+
+
 def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     """The acceptance suite's tiers, beneath the test notes (TASK-0373).
 
@@ -4021,7 +4033,7 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     instantiated the contract would say "nothing to verify" about a project
     that has verified nothing.
     """
-    data = _acceptance.payload(index.docs_root)
+    data = _acceptance.payload(index.docs_root, index)
     if not data.get("exists"):
         return []
     rel = str(data.get("rel") or "")
@@ -4029,7 +4041,13 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     # `/docs/…` or `~…`, so the bare form was a dead click. Pre-existing and
     # invisible because an empty tier is skipped before its url is ever used;
     # TASK-0429's gate group renders at zero and exposed it.
-    url = f"/docs/{rel}" if rel else None
+    #
+    # Once the suite is notes there is no document to open, and `/docs/` on a
+    # DIRECTORY is a 404 wearing a path. The head opens the generated view
+    # instead (FEAT-0114) — which is also the better destination, because that
+    # is where the marks can be written.
+    url = (CHECKS_VIEW_ROUTE if data.get("shape") == _acceptance.SHAPE_NOTES
+           else (f"/docs/{rel}" if rel else None))
 
     out: list[dict[str, Any]] = []
     for tier in data.get("tiers") or []:
@@ -4054,7 +4072,13 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             "item_layout": "stacked",
             "items": [
                 {
-                    "id": i["number"],
+                    # The CHECK's id once it has one (ADR-0030), falling back
+                    # to the document address for a repo that has not
+                    # migrated. Typing `CHK-0001` into the palette must land
+                    # on the check — `1.1.1` is not an id anybody would type,
+                    # and a note carrying an id that no route reaches is
+                    # ISS-0142's defect with a new subject.
+                    "id": i.get("id") or i["number"],
                     "title": i["name"],
                     # The area and the ids its heading names — a Tier 2 item's
                     # `ISS-*` is the contract's own requirement, so it belongs
@@ -4067,7 +4091,10 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
                         else "reconciled" if i.get("reconciled")
                         else "ready"
                     ),
-                    "url": url,
+                    # The check's own note, where one exists. The group head
+                    # still opens the suite; the ROW opens the check, which is
+                    # the whole difference the migration buys a reader.
+                    "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
                     "type": "test",
                 }
                 for i in items
@@ -4258,11 +4285,25 @@ def _release_content_rows(
     """
     from . import publication as _pub
 
+    release_id = str((release or {}).get("id") or "") or "next"
+
     def row(nid: str, kind: str, subtitle: str = "") -> dict[str, Any]:
         return {
             "id": nid, "title": _title_for_id(index, nid) or nid,
             "subtitle": subtitle, "status": row_status, "type": kind,
-            "url": _rel_for_id(index, nid),
+            # **The item AS IT STANDS IN THIS RELEASE** (FEAT-0117 /
+            # TASK-0472), never the bare note. Edwin: *"having features defined
+            # as they are now, makes them selectable in this view but instead
+            # you would like to have one view per item."* The thing selected
+            # and the thing received were mismatched — a row inside a release
+            # opened a note with no release context at all.
+            #
+            # Features and issues only. A test note or a play-store XML has no
+            # per-item release answer to give, so those keep opening the file,
+            # which is the honest destination for them.
+            "url": (f"~release/{release_id}/{nid}"
+                    if kind in ("feature", "issue") and nid
+                    else _rel_for_id(index, nid)),
         }
 
     record = None
@@ -4295,7 +4336,7 @@ def _release_content_rows(
         # `Release gate · N unchecked` heading counts. Two surfaces, one
         # computation, so they cannot disagree. No index and no project_root:
         # this needs the counts, not the delta, and the delta costs git.
-        gate = _acceptance.gate_payload(index.docs_root)
+        gate = _acceptance.gate_payload(index.docs_root, index=index)
         # A row pointing at a file that need not exist was a dead click in
         # every repo that has not instantiated the contract. The release page
         # states the absence instead — silence about a missing suite reads as
@@ -4307,7 +4348,13 @@ def _release_content_rows(
             total = sum(int(c.get("total") or 0) for c in counts)
             tests.append({
                 "id": "",
-                "title": "ACCEPTANCE_TESTS.md",
+                # Named for what it opens, which the migration changed under
+                # it: a repo storing checks as notes has no such file, and a
+                # row titled after a deleted document is a 404 wearing a
+                # filename (ADR-0030).
+                "title": ("Acceptance checks"
+                          if gate.get("shape") == _acceptance.SHAPE_NOTES
+                          else "ACCEPTANCE_TESTS.md"),
                 "subtitle": (
                     f"{unchecked} of {total} Tier 1/2 checks unwalked — a "
                     "release is blocked while any is"
@@ -4319,7 +4366,9 @@ def _release_content_rows(
                 # is terminal but sits beside unshipped features that are not.
                 "status": "blocked" if unchecked else "passing",
                 "type": "test",
-                "url": f"/docs/{gate['rel']}",
+                "url": (CHECKS_VIEW_ROUTE
+                        if gate.get("shape") == _acceptance.SHAPE_NOTES
+                        else f"/docs/{gate['rel']}"),
             })
             # The number a person is deciding on, in the heading. `· 1` counted
             # FILES under a label that reads as a count of TESTS.
@@ -5401,7 +5450,21 @@ def _owed_flag(
     """
     ob = _obligations.for_type(record.note_type)
     if ob is None or not _obligations._is_owed(record, ob):
+        # **Both registries** (TASK-0468). A feature can be owed through a
+        # note-less source — the acceptance sweep, whose subject is a note but
+        # whose trigger is a MISSING field — and reading only the per-type
+        # table left that row in `Needs you` while its structural copy in the
+        # tree was unmarked. Two appearances, one of them unexplained, is
+        # exactly what the structural-copy rule forbids.
+        extra = (_obligations.note_less_row_for(index, record.note_id or "")
+                 if index is not None else None)
+        if extra is not None:
+            return {"owed": True, "owed_verb": str(extra.get("verb") or "")}
         return {}
+    # A note owed under BOTH registries shows the type's verb, because that is
+    # the one its own status is asking for. The other is still counted and
+    # still listed in `Needs you` under its own kind — so nothing is lost, and
+    # the row is not made to say two things at once.
     if index is not None and record.note_type in _obligations.SUBJECT_FIELDS:
         if not _obligations.subject_is_in_flight(record, index):
             return {"suppressed": True, "owed_verb": ob.verb}

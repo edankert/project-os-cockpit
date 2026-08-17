@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0468
 aliases: ["TASK-0468"]
 title: "The considered obligation — absent on an in-flight feature is owed, none-with-reason discharges forever, and no check ever reaches a badge"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"

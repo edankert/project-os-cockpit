@@ -266,7 +266,14 @@ def test_one_dialog_offers_every_option() -> None:
     # Every mark that clears or holds the gate on someone's judgement needs a
     # reason; only a plain pass and a plain clear do not.
     assert block.count("needsReason: true") == 4
-    assert block.count("needsReason: false") == 2
+    # Three now: pass, clear, and **needs-re-run** (TASK-0466), which is not a
+    # seventh mark — it writes `[ ]` like clear — but a seventh ACT, and the
+    # only one that requires naming a change rather than a reason. Both
+    # requirements are asserted, because an option that asks for nothing is
+    # exactly the `[!]` gap ISS-0177 records.
+    assert block.count("needsReason: false") == 3
+    assert block.count("needsChange: true") == 1
+    assert "verdict: 'needs-re-run'" in block
 
 
 def test_reaching_a_state_costs_one_write_not_three() -> None:
