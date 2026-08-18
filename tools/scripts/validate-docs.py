@@ -269,6 +269,30 @@ REVIEW_SETTLED_STATUSES = {
 ACCEPTANCE_FORBIDDEN_STATUSES = ("ready", "passing", "failing")
 
 
+#: A walked test's marks that count as settled -- the same three
+#: `acceptance.Item.settled` reads, named here because the validator does not
+#: import the cockpit package.
+_SETTLED_MARKS = ("done", "incomplete", "canceled", "x", "X", "/", "~", "-")
+
+
+def _acceptance_is_settled(note_id, note_index):
+    """Whether a walked test's verdict settles it (ADR-0034).
+
+    The walked half of one rule: an executable test is settled when the runner
+    says `passing`; a walked one is settled when its `mark:` says so. Both
+    characters and words are read, because a repo that has not migrated its
+    vocabulary must keep gating correctly.
+    """
+    entry = note_index.get(note_id)
+    if not entry:
+        return False
+    fm = entry[1] or {}
+    if str(fm.get("command", "") or "").strip():
+        return str(fm.get("status", "") or "").strip() == "passing"
+    mark = str(fm.get("mark", "") or "").strip().strip('"')
+    return mark in _SETTLED_MARKS
+
+
 def _is_acceptance_test(note_id, note_index):
     """True when `note_id` names a test at `level: acceptance`."""
     entry = note_index.get(note_id)
@@ -393,6 +417,13 @@ _NON_STATUS_COLLECTIONS = frozenset({
     # Both were caught by this very guard on the day they were added, which is
     # the behaviour ISS-0012 and ISS-0013 paid for.
     "STATUS_FREE_TYPES",
+    # ADR-0034: acceptance VERDICTS, not statuses. A walked test's verdict lives
+    # in `mark:` precisely so it is not a status -- which is the construction
+    # that keeps a suite of several hundred out of the review gate and off a
+    # badge -- so registering these as statuses would assert the opposite of the
+    # thing they exist to preserve. Caught by this guard on the day it was
+    # added, which is the third time it has earned its keep.
+    "_SETTLED_MARKS",
     "MANUAL_DECLARATION_KEYS",
 })
 
@@ -675,6 +706,14 @@ GRANDFATHER_FILE = "tools/GRANDFATHERED.yaml"
 #: 90-day ceiling means a stalled migration fails the build instead of dissolving
 #: back into permanent warning noise.
 PROMOTIONS = {
+    # ADR-0034's uniform gate: an acceptance test gates what it COVERS, like
+    # any other test. Measured on the day it shipped: 0 findings in three of
+    # the four suite repos and **6 in `your-sudoku`**, where FEAT-0025 is `done`
+    # and six checks covering it have never been walked. Those are true, and
+    # erroring on day one would take a green repo red for a rule it had no
+    # chance to satisfy -- ADR-0011 clause 3, and the reason TEST-ENTRYPOINT
+    # shipped the same way.
+    "VERIFY-ACCEPTANCE": "2026-11-20",
     "REVIEW": "2026-10-23",
     # Plans went unvalidated entirely until PLAN-STATE existed, so the
     # debt is pre-existing rather than newly introduced: 19 of 33 plans
@@ -1713,7 +1752,27 @@ def validate(root, report):
                         # normalised too. It is deliberately keyed on the
                         # LEVEL and not on the id prefix -- after the merge a
                         # walk and a pytest module share the `TST-` space.
+                        # ADR-0034: an acceptance test gates what it COVERS,
+                        # like any other test. What differs is only what
+                        # `settled` means -- a runner's exit code for an
+                        # executable test, a settled `mark:` for a walked one --
+                        # so the gate asks that question instead of demanding a
+                        # status the walked population never holds.
+                        #
+                        # This `continue` was ADR-0031's stopgap: acceptance
+                        # tests rest at `active`, and a gate demanding `passing`
+                        # would have fired on every note in a suite. Skipping
+                        # them was right for a day and is exactly the
+                        # special-case ADR-0034 removes.
                         if _is_acceptance_test(tst, note_index):
+                            if not _acceptance_is_settled(tst, note_index):
+                                promotion_emit(
+                                    report, "VERIFY-ACCEPTANCE",
+                                    grandfathered, item_id)(
+                                    "VERIFY-ACCEPTANCE",
+                                    "%s is %s but the acceptance test %s covering it is not "
+                                    "settled -- its mark is not done/incomplete/canceled"
+                                    % (item_id, terminal, tst))
                             continue
                         tst_status = ""
                         tests_coll = items.get("tests") or {}

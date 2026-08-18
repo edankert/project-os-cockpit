@@ -91,7 +91,7 @@ items:
     FEAT-0124:
       file: "docs/features/one-human-walk/FEAT-0124-Gating-Is-Derived-From-Covers.md"
       title: "Gating is derived from `covers:` — one rule at every granularity, and the tier gate retires only once the derived one is proven identical"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       requirements: [REQ-0043]
@@ -2282,7 +2282,7 @@ items:
     REQ-0043:
       file: "docs/requirements/REQ-0043-Gating-Is-A-Property-Of-The-Link.md"
       title: "Gating is a property of the link, not of the test — no rule may ask what level a test is or who runs it"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       implements: "FEAT-0124"
@@ -3398,9 +3398,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 124
-    features_done: 111
+    features_done: 112
     tasks_total: 500
-    tasks_done: 456
+    tasks_done: 459
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182

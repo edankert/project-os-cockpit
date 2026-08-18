@@ -492,7 +492,38 @@ class Suite:
         note carries, and blocking on it would make the mark meaningless. An
         item with a mark nobody recognises is neither, so it lands here.
         """
-        return [i for i in self.items if i.tier in GATING_TIERS and not i.settled]
+        # The `subjects=None` case of :meth:`blocking_for`, so the release gate
+        # and the per-item gate are one predicate rather than two that agree
+        # today. Two encodings of one rule is the shape ADR-0032 is about.
+        return self.blocking_for(None)
+
+    def blocking_for(self, subjects: "set[str] | None" = None) -> list[Item]:
+        """What stops **one item** reaching a terminal status (ADR-0034).
+
+        The general form of :meth:`blocking`, and the whole of Edwin's point
+        that gating should work at any granularity: pass the ids an item is
+        made of — a feature, or a release and everything in it — and get back
+        the unsettled tests covering them.
+
+        **A test covering NOTHING blocks regardless**, and that is the
+        fail-closed clause rather than an oversight. A check nobody can
+        attribute cannot be discharged by finishing any particular item, so it
+        gates the last item there is: the release. Measured on `your-trainer`
+        when this was written, **83 of 579 covered nothing** — 74 of them
+        Tier 3, which does not gate, and **9 Tier 1/2 which do.** Treating an
+        unattributable check as passing would have made those 9 silently
+        unable to block anything the day somebody unticked one.
+
+        `subjects=None` means *every* item, which is the release gate and is
+        why :meth:`blocking` is now this function with the tiers filtered.
+        """
+        out: list[Item] = []
+        for item in self.items:
+            if item.tier not in GATING_TIERS or item.settled:
+                continue
+            if subjects is None or not item.refs or (subjects & set(item.refs)):
+                out.append(item)
+        return out
 
     def missing_issue_refs(self) -> list[Item]:
         """Tier 2 items whose section names no ``ISS-*``.

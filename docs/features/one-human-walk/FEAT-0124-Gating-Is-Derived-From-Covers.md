@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0124
 aliases: ["FEAT-0124"]
 title: "Gating is derived from `covers:` — one rule at every granularity, and the tier gate retires only once the derived one is proven identical"
-status: backlog
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -25,7 +25,7 @@ One rule replaces three: **an item may not reach a terminal status while a test 
 
 ## The precondition, and it is the whole risk
 
-**83 of 669 acceptance tests carry an empty `covers:` — 12%.** Under a derived gate those 83 gate nothing and leave the release **silently**. The tier rule (`tier` in 1/2 and unsettled) has no such hole.
+**83 of 669 acceptance tests carry an empty `covers:` — 12%.** *(Measured further during the work: **74 are Tier 3**, which does not gate, and only **9 are Tier 1/2**. The precondition was a twelfth of its stated size, and the nine were closed in the gate rather than by inventing data — see [[TASK-0499-Backfill-The-Eighty-Three]].)* Under a derived gate those 83 gate nothing and leave the release **silently**. The tier rule (`tier` in 1/2 and unsettled) has no such hole.
 
 So the order is forced, and [[TASK-0501-Prove-The-Derived-Gate-Then-Retire-The-Tier-Rule]] exists to enforce it: backfill, then prove the derived gate reproduces the tier gate **per repo** — 0 / 56 / 60 blocking — and only then retire the tier rule. **A gate that goes quiet during a migration is the failure this project has already paid for once**, in a repo where nobody was looking.
 

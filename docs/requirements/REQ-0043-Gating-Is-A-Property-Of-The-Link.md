@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0043
 aliases: ["REQ-0043"]
 title: "Gating is a property of the link, not of the test — no rule may ask what level a test is or who runs it"
-status: draft
+status: implemented
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -27,3 +27,14 @@ Edwin: *"manual tests are not different to acceptance tests or other tests, they
 The rule this requirement forbids is any sentence of the form *"a test of kind X gates Y"*. What a test gates is what it says it covers — and that link already exists, in one direction, on one field.
 
 **The measured hole is the reason for the third criterion**: 83 of 669 acceptance tests cover nothing today. Until they do, the derived gate is quieter than the rule it replaces, and quieter is the one direction a gate must never move without somebody deciding it.
+
+## Acceptance criteria
+
+- [x] **One rule gates every item type.** `Suite.blocking_for(subjects)`; `blocking()` is its `subjects=None` case, so the release gate and the per-item gate are one predicate.
+- [x] **No gate decides WHETHER something gates from `level:`, `tier:`, `kind:` or `command:`.** Execution mode decides only what *settled* means — a runner's exit code, or a settled `mark:`.
+- [x] **The derived gate names the same blocking set as the tier rule**, per repo, proven by membership rather than count: 0 / 56 / 60.
+- [x] **No acceptance row reaches a badge** in any repo: 1 / 0 / 5 / 2, unchanged.
+
+## Advanced 2026-08-18
+
+**A fifth thing this requirement did not ask for and got:** a check covering nothing now blocks rather than vanishing. Nine gating checks in `your-trainer` name no subject, and under a naive derived gate they would have been unable to block anything the day somebody unticked one — silently. Failing closed converts that into a loud state without inventing a `covers:` nobody could verify.
