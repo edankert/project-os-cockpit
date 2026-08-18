@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0203
 aliases: ["ISS-0203"]
 title: "Selecting Tier 1 and selecting Tier 2 open the same page — every tier head points at `~checks` with no tier in the address"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 severity: medium
 component: ui
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-036-One-Human-Walk]]"
 related: ["[[FEAT-0114-The-Suite-Is-A-View]]", "[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[TESTING-MODEL]]"]
 ---
 
@@ -50,3 +50,6 @@ This is the same class of defect as [[ISS-0193-The-Tests-Landing-Overwrites-The-
 **One thing to widen before implementing.** The missing address is not tier-specific: `checkFilters` is a module-level set of `Set`s mutated by chip clicks and read by `paintCheckList`. **No filter on that page is in the address** — mark, area, `covers` and automation are all click-only — so the second "Done when" bullet ("back/forward move between tiers") cannot be satisfied by a tier-only route without leaving four axes behind, and a `~checks/tier/2` path form will need extending the first time somebody wants a link to *unwalked in Monetization*. A query the route parses covers both; the path form solves one axis.
 
 **Verdict: approved as diagnosed. Widen the fix to "filters live in the address", of which tier is the first case.**
+## Fixed 2026-08-18
+
+Each tier head addresses its own tier (`~checks/tier/N`) and the route parses it, preselecting the filter — so the page a row opens is the one its label promised. Guarded on both halves separately, because a payload emitting an address nothing routes and a route parsing an address nothing emits fail the same way and neither guard catches the other.

@@ -66,18 +66,30 @@ def _command(record) -> str:
     return str(record.frontmatter.get("command") or "").strip()
 
 
-def test_every_automated_test_declares_an_entrypoint():
-    """The ISS-0130 defect itself: automated by the product's own rule, unrunnable."""
-    orphans = [
-        _note_id(r) for r in _test_notes()
-        if not _is_manual_test(r) and not _command(r)
-    ]
-    assert not orphans, (
-        "these tests are automated by cockpit._is_manual_test but declare no "
-        "command:, so release verification cannot re-run them and their status "
-        "cannot be refreshed by machine: %s" % ", ".join(orphans)
-    )
+def test_no_test_can_be_automated_without_a_way_to_run_it():
+    """The state this guard was written for is now unreachable (ADR-0034).
 
+    It caught *"the corpus treats this as automated and it declares no way to
+    run"* — a real hole while `kind: automated` could say so with no `command:`.
+    `_is_manual_test` is now `not command`, so a note without one is a person's
+    job by construction and the hole closes rather than being policed.
+
+    Kept, inverted, because the property still matters and the guard going green
+    forever is the wrong way for it to end: this asserts the classifier cannot
+    produce the state, so re-adding any second declaration fails here.
+
+    Measured when it flipped: `your-sudoku`'s TST-0013 was in exactly the old
+    hole — `kind: automated`, no `command:` — and is now correctly owed to a
+    person until somebody gives it one.
+    """
+    for record in _test_notes():
+        if _command(record):
+            continue
+        assert _is_manual_test(record), (
+            "%s has no command: and is not classified as human-walked; some "
+            "field other than `command:` is deciding who runs a test again"
+            % _note_id(record)
+        )
 
 def test_every_declared_entrypoint_names_files_that_exist():
     """A command: that resolves to nothing is worse than none — it looks runnable."""
@@ -107,6 +119,10 @@ def test_nothing_declares_who_runs_a_test_except_the_command():
     Two fields answering one question is how the reader and the registry came
     to disagree about 8 of 788 tests, and re-adding one would be silent.
     """
+    # `automation:` is NOT banned as a field — it answers "does a machine cover
+    # this check", which is a real and different question. What is banned is any
+    # field OTHER than `command:` being read as who-runs-this, which is asserted
+    # separately below.
     banned = ("kind", "mode", "method")
     offenders = [
         "%s carries %s:" % (_note_id(record), key)
@@ -168,3 +184,28 @@ def test_a_manual_test_still_reports_its_typed_date():
     assert _test_last_verified(fm) == "2026-07-27"
     fm_exec = dict(fm, command=".venv/bin/pytest tests/test_index.py -q")
     assert _test_last_verified(fm_exec).startswith("2026-08-13")
+
+
+def test_only_the_command_answers_who_runs_a_test():
+    """`_is_manual_test` must read `command:` and nothing that means something else.
+
+    Deleting `kind:` while `_is_manual_test` still read `automation:` would have
+    MOVED the ambiguity rather than removed it: `automation:` is set on 671 of
+    788 fleet notes and reads `manual` on 466, so it was silently the second
+    who-runs-this field the moment the first one went. Found by independent
+    review.
+
+    `automation:` answers *does a machine cover this check* — `full`/`partial`/
+    `manual`, beside `covered_by:` — which is a claim about coverage, not about
+    who performs the walk.
+    """
+    import inspect
+
+    source = inspect.getsource(_is_manual_test)
+    body = source[source.index('"""', source.index('"""') + 3):]
+    assert '"automation"' not in body, (
+        "_is_manual_test reads `automation:` again; it is a coverage claim, not "
+        "a declaration of who runs the test, and it is set on most of the fleet"
+    )
+    assert '"kind"' not in body, "`kind:` is deleted (ADR-0034 decision 4)"
+    assert '"command"' in body, "the one field that does answer this must be read"

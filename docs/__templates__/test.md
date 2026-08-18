@@ -28,7 +28,7 @@ related: []
 # --- level: acceptance only (ADR-0031) ---------------------------------
 # Delete these on an executable test; they are meaningless there.
 tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
-mark: " "            # THE VERDICT: " " | x | / | - | ! | ?   — never `status`
+mark: todo           # THE VERDICT: todo | done | incomplete | canceled | important | question | rerun
 verdict_date: ""
 verdict_reason: ""   # required for / - ! ?
 invalidated_by: {}   # {change: TASK-0000, reason: "", date: ""} — TESTING.md rule 3, as a field

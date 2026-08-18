@@ -15,6 +15,9 @@ release: ""
 acceptance: ""
 design: ""
 related: ["[[ISS-0201-Walk-And-Run-Vocabulary]]", "[[ISS-0203-Tier-Selection-Does-Not-Change-The-Page]]", "[[ISS-0204-The-Acceptance-Filter-Bar-Is-Congested]]", "[[FEAT-0114-The-Suite-Is-A-View]]"]
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-18
+review_verdict: changes-requested
 ---
 
 # The walk surfaces say one thing

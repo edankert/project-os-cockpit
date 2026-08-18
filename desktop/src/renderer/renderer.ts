@@ -2206,7 +2206,14 @@ async function submitTick(
 // Minimal's alternate checkboxes (ADR-0029). Six of its 22 values carry a
 // meaning a release gate has; the other sixteen parse as unrecognised, which
 // blocks — the direction that fails safe.
+// Keyed on the WORD since ADR-0034 / ISS-0200; the characters stay as aliases
+// for a repo that has not migrated its vocabulary. Keyed on characters alone,
+// every one of these tables missed on every note in a migrated repo -- the
+// chips read `unrecognised`, the rows lost their colour, and the tooltips and
+// aria-labels went empty.
 const VERDICT_FOR: Record<string, string> = {
+  todo: 'clear', done: 'pass', incomplete: 'partial', canceled: 'excused',
+  important: 'failed', question: 'question', rerun: 'rerun',
   ' ': 'clear', x: 'pass', X: 'pass', '/': 'partial', '~': 'partial',
   '-': 'excused', '!': 'failed', F: 'failed', '?': 'question',
 };
@@ -2216,17 +2223,17 @@ const MARK_CHOICES: Array<{
   verdict: string; mark: string; label: string; hint: string;
   needsReason: boolean; needsChange?: boolean;
 }> = [
-  { verdict: 'pass', mark: 'x', label: 'Done',
+  { verdict: 'pass', mark: 'done', label: 'Done',
     hint: 'walked and passed — clears the gate', needsReason: false },
-  { verdict: 'partial', mark: '/', label: 'Incomplete',
+  { verdict: 'partial', mark: 'incomplete', label: 'Incomplete',
     hint: 'partial pass — clears the gate, needs a reason', needsReason: true },
-  { verdict: 'excused', mark: '-', label: 'Canceled',
+  { verdict: 'excused', mark: 'canceled', label: 'Canceled',
     hint: 'could not be run, not holding the release', needsReason: true },
-  { verdict: 'failed', mark: '!', label: 'Important',
+  { verdict: 'failed', mark: 'important', label: 'Important',
     hint: 'walked and failed — keeps blocking', needsReason: true },
-  { verdict: 'question', mark: '?', label: 'Question',
+  { verdict: 'question', mark: 'question', label: 'Question',
     hint: 'not understood — keeps blocking', needsReason: true },
-  { verdict: 'clear', mark: ' ', label: 'To-do',
+  { verdict: 'clear', mark: 'todo', label: 'To-do',
     hint: 'nobody has walked it — keeps blocking, clears any reason',
     needsReason: false },
   // **The seventh action** (TASK-0466). Not a seventh MARK — it writes `[ ]`
@@ -2236,7 +2243,7 @@ const MARK_CHOICES: Array<{
   // destroyed the record that the check had ever passed and there was nowhere
   // to say why. This clears the mark AND records which change invalidated it,
   // in one write, and is the only option that requires naming a change.
-  { verdict: 'needs-re-run', mark: ' ', label: 'Needs re-run',
+  { verdict: 'needs-re-run', mark: 'rerun', label: 'Needs re-run',
     hint: 'a change overtook the evidence — names the change',
     needsReason: false, needsChange: true },
 ];
@@ -2425,10 +2432,19 @@ function askForMark(
  * — a reader who edits the Markdown by hand has already seen what to type.
  * A legacy alias shows its own character, because that is what is in the file. */
 const MARK_GLYPH: Record<string, string> = {
+  todo: '[\u00a0]', done: '[x]', incomplete: '[/]', canceled: '[-]',
+  important: '[!]', question: '[?]', rerun: '[\u21bb]',
   ' ': '[\u00a0]', x: '[x]', X: '[X]', '/': '[/]', '~': '[~]',
   '-': '[-]', '!': '[!]', F: '[F]', '?': '[?]',
 };
 const MARK_TITLE: Record<string, string> = {
+  todo: 'To-do — nobody has walked this. Blocks the release.',
+  done: 'Done — walked and passed.',
+  incomplete: 'Incomplete — partial pass. Clears the gate.',
+  canceled: 'Canceled — could not be run, and not holding the release.',
+  important: 'Important — walked and failed. Blocks the release.',
+  question: 'Question — the check is not understood. Blocks the release.',
+  rerun: 'Needs re-run — it was walked, and a change since invalidated it. Blocks the release.',
   ' ': 'To-do — nobody has walked this. Blocks the release.',
   x: 'Done — walked and passed.',
   X: 'Done — walked and passed.',
@@ -2441,6 +2457,8 @@ const MARK_TITLE: Record<string, string> = {
 };
 /** The CSS suffix per mark, so a legacy alias styles as its target. */
 const MARK_CLASS: Record<string, string> = {
+  todo: 'todo', done: 'done', incomplete: 'incomplete', canceled: 'canceled',
+  important: 'important', question: 'question', rerun: 'rerun',
   ' ': 'todo', x: 'done', X: 'done', '/': 'incomplete', '~': 'incomplete',
   '-': 'canceled', '!': 'important', F: 'important', '?': 'question',
 };

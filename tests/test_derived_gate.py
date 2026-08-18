@@ -89,3 +89,102 @@ def test_gating_one_feature_is_narrower_than_gating_the_release() -> None:
     for feature in sorted(covered)[:20]:
         scoped = suite.blocking_for({feature})
         assert len(scoped) <= len(everything), feature
+
+
+# ---- the guards that guard (independent review, 2026-08-18) ---------------
+#
+# Mutation-tested: each of the four behaviours below survived deletion with the
+# whole suite green. A test that cannot fail is not coverage, and the reason
+# each survived is written on it rather than left for the next reader.
+
+
+def test_blocking_for_actually_narrows_to_its_subjects() -> None:
+    """`blocking_for` ignoring `subjects` entirely survived deletion.
+
+    Because the equivalence test passes `subjects=None`, where the filter
+    short-circuits by design — so it asserted a tautology. This asserts the
+    scoped case is genuinely narrower, on a corpus where it must be.
+    """
+    suite = _suite("your-trainer")
+    everything = suite.blocking_for(None)
+    assert everything, "your-trainer has nothing blocking; pick another corpus"
+    covered = sorted({ref for i in everything for ref in i.refs if ref.startswith("FEAT-")})
+    assert covered, "no blocking check names a feature — the scoped case is untestable"
+    scoped = suite.blocking_for({covered[0]})
+    assert len(scoped) < len(everything), (
+        "scoping to one feature returned everything; `subjects` is being ignored"
+    )
+
+
+def test_an_unattributable_check_blocks_even_when_scoped_away(tmp_path: Path) -> None:
+    """The fail-closed clause, on a corpus built to need it.
+
+    The corpus guard skips: all 9 of `your-trainer`'s orphan gating checks are
+    settled, so deleting the clause changed nothing there. This builds an
+    UNSETTLED one, which is the state the clause exists for.
+    """
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "tests" / "acceptance" / "TST-0001-Orphan.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "covers nothing"\n'
+        'status: active\nlevel: acceptance\ntier: 1\nmark: todo\narea: "A"\n'
+        'section: "1.1"\nordinal: 10\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking_for({"FEAT-9999"})) == 1, (
+        "a check covering nothing vanished from a scoped gate — it can be "
+        "discharged by finishing nothing, so it must gate the release"
+    )
+
+
+def test_a_walked_test_goes_stale_when_a_change_invalidates_it(tmp_path: Path) -> None:
+    """`_test_is_stale`'s walked branch always returning False survived deletion.
+
+    `your-trainer` carries zero invalidations right now — they were cleared
+    deliberately — so the branch has no live subject anywhere in the fleet and
+    nothing exercised it.
+    """
+    from project_os_cockpit import cockpit
+
+    walked = {"mark": "done", "verdict_date": "2026-08-01",
+              "invalidated_by": {"change": "TASK-0001", "date": "2026-08-10"}}
+    assert cockpit._test_is_stale(walked, 90) is True, "an invalidation after the walk must read stale"
+
+    answered = dict(walked, verdict_date="2026-08-12")
+    assert cockpit._test_is_stale(answered, 90) is False, "a walk after the change answers it"
+
+    clean = {"mark": "done", "verdict_date": "2026-08-01", "invalidated_by": {}}
+    assert cockpit._test_is_stale(clean, 90) is False
+
+
+def test_the_sweep_writes_a_note_the_reader_can_see(tmp_path: Path) -> None:
+    """ISS-0205's third done-when, which was never asserted.
+
+    Reverting `_write_new_check` to `type: "[[check]]"` left all 22 sweep tests
+    green, because they check the note's fields rather than whether the suite
+    can load it. This reads the sweep's own output back through
+    `acceptance.load` on a MIGRATED corpus, which is the only thing that fails.
+    """
+    from project_os_cockpit import sweep
+    from project_os_cockpit.index import Index as Idx
+
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "features").mkdir()
+    (docs / "features" / "FEAT-0001-Thing.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "t"\nstatus: doing\n'
+        'owner: user:edwin\n---\n\nbody\n', encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0001-Existing.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "existing"\nstatus: active\n'
+        'level: acceptance\ntier: 1\nmark: done\narea: "A"\nsection: "1.1"\n'
+        'ordinal: 10\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
+
+    before = len(acceptance.load(docs, Idx.build(docs)).items)
+    sweep.apply(Idx.build(docs), "FEAT-0001",
+                create=[{"name": "A new check", "tier": 1, "area": "A",
+                         "text": "do the thing"}],
+                impact="2026-08-18")
+    after = acceptance.load(docs, Index.build(docs)).items
+    assert len(after) == before + 1, (
+        "the sweep wrote a note the suite cannot load — which is exactly what "
+        "ISS-0205 was, and what a field-shaped assertion cannot see"
+    )

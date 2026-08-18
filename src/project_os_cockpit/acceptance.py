@@ -1274,7 +1274,17 @@ def _facets(suite: Suite) -> dict[str, list[dict[str, Any]]]:
 #: module docstring above is the long form; this is the label, and the two are
 #: kept beside each other deliberately — a vocabulary explained in one place
 #: and displayed from another is how `[!]` came to mean two things.
+#: **Keyed on the WORD**, because `normalise_mark` translates on read and every
+#: item reaching a surface already carries one (ADR-0034 / ISS-0200). This was
+#: keyed on the characters after the vocabulary migrated, so the live filter bar
+#: read *"unrecognised · 33"* in all three suites — the model migrated and the
+#: surfaces did not. The characters stay as aliases for a payload built without
+#: normalisation.
 MARK_MEANING: dict[str, str] = {
+    "todo": "unwalked", "done": "passed", "incomplete": "partial",
+    "canceled": "canceled", "important": "failed", "question": "unclear",
+    "rerun": "needs re-run",
+    # legacy characters, for any path that reaches here un-normalised
     " ": "unwalked", "x": "passed", "X": "passed",
     "/": "partial", "~": "partial", "-": "canceled",
     "!": "failed", "F": "failed", "?": "unclear",
@@ -1618,13 +1628,26 @@ def normalise_mark(raw: str) -> str:
     vocabulary whether the note was authored today or two migrations ago, and
     `suite_at` can read twelve historical tags that contain only characters.
     """
-    mark = str(raw or "").strip()
-    if not mark:
+    mark = str(raw or "")
+    # **Never `.strip()` the character form.** `" x"` and `"x "` are exactly the
+    # typos `_ITEM_RE` refuses to normalise -- its own comment says *"`\" x\".strip()`
+    # is `\"x\"`, so a parser written from that comment would read a typo as a
+    # walked check"* -- and stripping here moved them from *unrecognised and
+    # therefore blocking* to `done` and settled. Found by independent review; it
+    # is the one change in this migration that could let a release through on a
+    # check nobody walked.
+    #
+    # A WORD is stripped and lowercased, because YAML scalars legitimately carry
+    # surrounding space and `Done` is not a typo. A character is matched exactly.
+    if mark in LEGACY_MARKS:
+        return LEGACY_MARKS[mark]
+    word = mark.strip().lower()
+    if word in _ALL_WORDS:
+        return word
+    if not mark.strip():
         return "todo"
-    lowered = mark.lower()
-    if lowered in _ALL_WORDS:
-        return lowered
-    return LEGACY_MARKS.get(mark, mark)
+    # Unrecognised, verbatim -- which every gate reads as blocking.
+    return mark
 
 
 #: Every legal word. Anything else stays verbatim and is therefore unrecognised,

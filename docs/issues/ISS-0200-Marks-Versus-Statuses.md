@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0200
 aliases: ["ISS-0200"]
 title: "Why are acceptance verdicts six terse characters rather than more status values? The reasoning is recorded but it was never tested against the alternative it dismisses"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -60,3 +60,12 @@ Seven values replace six characters, recorded in [[ADR-0034-Three-Axes-Not-One-W
 **The seventh is the one that pays for the migration.** `rerun` is a state the corpus has always had and never been able to say: an invalidated check is written today as `mark: " "` — *"nobody has walked it"* — plus an `invalidated_by:` block, so a check somebody walked and a check nobody has touched are the same value in the one field every surface reads. `your-trainer` carries 54 of them. Making it a value means the distinction stops needing a date comparison to recover.
 
 This closes with [[FEAT-0122]]'s migration rather than separately: the corpus is rewritten once.
+## Fixed 2026-08-18 — and the surfaces were the half that was missed
+
+Seven words across 669 notes, gates unmoved, characters read forever.
+
+**And the model migrated while the surfaces did not.** `MARK_MEANING`, `MARK_GLYPH`, `MARK_TITLE`, `MARK_CLASS`, `VERDICT_FOR` and the mark dialog's own choices were still keyed on the characters, so in all three migrated suites the filter chips read *`unrecognised · 33`*, rows lost their colour through `MARK_CLASS[mark] ?? 'unknown'`, and `MARK_TITLE[mark] ?? ''` emptied the tooltip **and the aria-label**. The three existing renderer guards stayed green because each asserts a table's *contents* and none asserted that its *keys* match the corpus.
+
+Caught by independent review, live on the running sidecar. `test_every_mark_in_the_corpus_has_a_label_a_glyph_and_a_colour` now walks the real marks in all three suites and demands every table answer.
+
+**A second, worse one in the same pass**: `normalise_mark` stripped before matching, so `" x"` and `"x "` — the exact typos `_ITEM_RE` refuses to normalise — moved from *unrecognised and therefore blocking* to `done` and settled. It is the one change in this migration that could have let a release through on a check nobody walked.

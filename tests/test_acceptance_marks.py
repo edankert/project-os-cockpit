@@ -456,3 +456,43 @@ def test_the_client_mounts_no_control_on_a_document() -> None:
                  "li[data-check]", "dataset.checkName",
                  "suppressNextSoftReload"):
         assert gone not in code, f"{gone} is still called somewhere"
+
+
+def test_every_mark_in_the_corpus_has_a_label_a_glyph_and_a_colour() -> None:
+    """The tables must be keyed on what the notes actually carry (ISS-0200).
+
+    **This is the guard that did not exist**, and its absence shipped a live
+    break: after the vocabulary migration every surface table was still keyed on
+    the characters, so in all three migrated suites the filter chips read
+    `unrecognised · 33`, rows lost their colour through
+    `MARK_CLASS[mark] ?? 'unknown'`, and `MARK_TITLE[mark] ?? ''` emptied both
+    the tooltip and the aria-label.
+
+    The three existing renderer guards stayed green throughout, because each
+    asserts a table's CONTENTS and none asserts that its KEYS match the corpus.
+    So this walks the real marks and demands every table answer.
+    """
+    import re as _re
+    from pathlib import Path as _Path
+    from project_os_cockpit import acceptance as _acc
+    from project_os_cockpit.index import Index as _Index
+
+    fleet = _Path.home() / "Dev" / "repos"
+    marks: set[str] = set()
+    for repo in ("project-os-cockpit", "your-sudoku", "your-trainer"):
+        docs = fleet / repo / "docs"
+        if not docs.is_dir():
+            continue
+        marks |= {i.mark for i in _acc.load(docs, _Index.build(docs)).items}
+    assert marks, "no suite reachable — this guard would pass vacuously"
+
+    missing = sorted(m for m in marks if m not in _acc.MARK_MEANING)
+    assert not missing, f"MARK_MEANING has no label for {missing}; the filter bar reads 'unrecognised'"
+
+    renderer = (_Path(__file__).resolve().parent.parent / "desktop" / "src"
+                / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    for table in ("MARK_GLYPH", "MARK_TITLE", "MARK_CLASS", "VERDICT_FOR"):
+        block = renderer[renderer.index(f"const {table}"):]
+        block = block[:block.index("};")]
+        absent = sorted(m for m in marks if not _re.search(rf"(^|[{{,\s]){m}\s*:", block))
+        assert not absent, f"{table} has no entry for {absent}"

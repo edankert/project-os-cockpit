@@ -15,6 +15,9 @@ release: ""
 acceptance: ""
 design: ""
 related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]", "[[ISS-0202-Needs-A-Run-Versus-The-Tiers]]", "[[ISS-0195-Two-Types-Carry-One-Act]]"]
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-18
+review_verdict: changes-requested
 ---
 
 # The axes stop implying each other

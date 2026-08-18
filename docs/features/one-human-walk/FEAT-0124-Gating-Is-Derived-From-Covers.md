@@ -15,6 +15,9 @@ release: ""
 acceptance: ""
 design: ""
 related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]"]
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-18
+review_verdict: changes-requested
 ---
 
 # Gating is derived from `covers:`

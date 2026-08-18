@@ -12,10 +12,12 @@ priority: high
 scope: "obligation registry"
 implements: "[[FEAT-0122-One-Human-Walked-Population]]"
 acceptance:
-  - "[ ] One predicate decides who runs a test. `cockpit._is_manual_test` and `obligations._is_owed` agree on every test in every repo — they disagree on 8 of 788 today, and none of the 8 involves a `command:`, so it is latent rather than live."
-  - "[ ] `kind:` is gone from the schema and from every note. `command:` answers who runs a test and nothing else claims to — a constraint would leave two fields and add a rule (ADR-0034 decision 4)."
-  - "[ ] The Tests badge is derived from the tiers and is not larger than the number it replaced, per repo. Baseline: project-os-cockpit 1, your-sudoku 0, your-trainer 5."
-  - "[ ] No acceptance row reaches a badge. ADR-0027 survives ADR-0033 untouched, and the guard that asserts it stays green."
+  - "[x] One predicate decides who runs a test — `obligations._is_owed` calls `cockpit._is_manual_test`. 788 tests fleet-wide, 0 disagreements; it was 8."
+  - "[x] `kind:` is gone from every note AND from all four `test.md` templates — the three fleet templates still carried it when this was first ticked."
+  - "[x] `automation:` stopped answering who-runs-this too. Set on 671 of 788 notes and reading `manual` on 466, it would have become the second declaration the moment `kind:` went."
+  - "[x] The predicate is `not command:`, with no fallback: four heuristics collapsed to the one question the corpus can answer."
+  - "[~] The badge is not larger than the number it replaced — reconciled at your-sudoku 0 -> 1, a true finding: TST-0013 claimed automated with no `command:`, so nothing could run it."
+  - "[x] No acceptance row reaches a badge in any repo."
 covers: []
 related: ["[[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]"]
 ---
@@ -29,8 +31,10 @@ Eight tests disagree between them fleet-wide. None involves a `command:`, which 
 ## Acceptance criteria
 
 - [x] **One predicate decides who runs a test.** `obligations._is_owed` calls `cockpit._is_manual_test`. Verified across the fleet: 788 tests, **0 disagreements** — it was 8.
-- [x] **`kind:` is gone** from `test.md` and from every note fleet-wide: 57 here, 69 in `your-sudoku`, 597 in `your-trainer`, 8 in `your-health`. Deleted rather than constrained, and `test_nothing_declares_who_runs_a_test_except_the_command` fails if a second declaration returns.
-- [x] **The badge is not larger than the number it replaced**, per repo: 1 → 1, 0 → 0, 5 → 5, 2 → 2. It *did* move — `your-trainer` went to 8 the moment the predicates were unified, because three frozen per-release suites at `status: ready` started asking to be walked. They are `retired` now, which is what they are.
+- [x] **`kind:` is gone** from every note fleet-wide and from **all four** `test.md` templates. *Ticked prematurely on 2026-08-18 and corrected: the three fleet templates still carried it, so the scaffold went on creating the field the decision deleted.* The note counts are **727** demonstrable from history rather than the 731 first written — `your-trainer` is 593, not 597, because four notes were untracked when the script ran.
+- [x] **And `automation:` stopped answering it too.** Deleting `kind:` while `_is_manual_test` still read `automation:` would have **moved** the ambiguity rather than removed it: that field is set on 671 of 788 fleet notes and reads `manual` on 466. It answers *does a machine cover this check*, beside `covered_by:` — a coverage claim, not a declaration of who walks it. Found by independent review.
+- [x] **The predicate is now `not command:`, with no fallback at all.** Four heuristics collapsed to the one question the corpus can actually answer: a note with no `command:` cannot be run by anything but a person.
+- [~] **The badge is not larger than the number it replaced.** Reconciled, and the exception is a true finding: `project-os-cockpit` 1 → 1, `your-trainer` 5 → 5, `your-health` 2 → 2, and **`your-sudoku` 0 → 1**. TST-0013 declared `kind: automated` with no `command:` — precisely the state the old entrypoint guard existed to flag — so under a rule with no heuristics it is correctly owed to a person until somebody gives it a way to run. *The committed pre-change figure for `your-trainer` was **3**, not 5; 5 was true of that day's working tree and is not reproducible from the repository.* It *did* move — `your-trainer` went to 8 the moment the predicates were unified, because three frozen per-release suites at `status: ready` started asking to be walked. They are `retired` now, which is what they are.
 - [x] **No acceptance row reaches a badge** in any repo.
 
 ## Advanced 2026-08-18

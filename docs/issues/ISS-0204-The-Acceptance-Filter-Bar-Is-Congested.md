@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0204
 aliases: ["ISS-0204"]
 title: "The acceptance page leads with five filter axes and 164 chips — the reader meets the filter bar before the checks"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 severity: low
 component: ui
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-036-One-Human-Walk]]"
 related: ["[[FEAT-0114-The-Suite-Is-A-View]]", "[[ISS-0203-Tier-Selection-Does-Not-Change-The-Page]]", "[[TESTING-MODEL]]"]
 ---
 
@@ -57,3 +57,8 @@ Leading with **mark** alone is right for the common question — *what is outsta
 **Leading with mark is nearly free.** The mark axis is **2 chips on `your-trainer`** (`passed` 513, `unwalked` 66) and **2 here** (`passed` 33, `partial` 1) — because `-`, `!` and `?` are written nowhere in the fleet ([[ISS-0200-Marks-Versus-Statuses]]). So the proposed primary filter costs two chips today and can only reach six.
 
 **Verdict: approved. Correct the "milder" sentence to the per-check ratio, and note that mark-only is a two-chip bar rather than a six.**
+## Fixed 2026-08-18
+
+`CHIP_CAP = 8`. A wider axis collapses to a `<details>` carrying its own value count **and its own selection count**, so a filter cannot hide inside a fold and quietly shorten the list. Measured after: 164 chips → 8 on `your-trainer`, 65 → 4 here.
+
+The caveat in this note held: `area` stays reachable behind the fold at 7.6 checks each — one sitting's work, which is what the field means — while `covers` at 80 values is a query rather than a filter bar.

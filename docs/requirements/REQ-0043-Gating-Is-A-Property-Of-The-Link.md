@@ -31,9 +31,16 @@ The rule this requirement forbids is any sentence of the form *"a test of kind X
 ## Acceptance criteria
 
 - [x] **One rule gates every item type.** `Suite.blocking_for(subjects)`; `blocking()` is its `subjects=None` case, so the release gate and the per-item gate are one predicate.
-- [x] **No gate decides WHETHER something gates from `level:`, `tier:`, `kind:` or `command:`.** Execution mode decides only what *settled* means — a runner's exit code, or a settled `mark:`.
+- [~] **No gate decides WHETHER something gates from `level:`, `tier:`, `kind:` or `command:`.** Reconciled: `blocking_for` still opens on `item.tier not in GATING_TIERS`, so Tier 3 is excluded by the tier field rather than by anything derived. Removing that line changes the blocking set, which independent review demonstrated. **The criterion as written is not met**, and the honest statement is narrower: *no gate decides whether something gates from who RUNS it*. Tier remains a lifetime filter on the release gate, which [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 leaves open rather than resolves.
 - [x] **The derived gate names the same blocking set as the tier rule**, per repo, proven by membership rather than count: 0 / 56 / 60.
 - [x] **No acceptance row reaches a badge** in any repo: 1 / 0 / 5 / 2, unchanged.
+
+## Corrected after independent review
+
+Two things this note claimed that the code does not do:
+
+1. The tier filter above.
+2. **`blocking_for(subjects)` has no production caller.** It is exercised by tests and by `blocking()`'s `subjects=None` case; nothing on a surface passes it a real subject set yet, so *gating at any granularity* is implemented and not yet **used**. That is the difference between a capability and a feature, and it belongs in the record rather than in a later discovery.
 
 ## Advanced 2026-08-18
 

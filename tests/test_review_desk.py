@@ -73,9 +73,15 @@ def workspace(tmp_path: Path) -> Path:
         "type": "[[test]]", "id": "TST-0001", "title": "Live instrumentation",
         "status": "ready", "automation": "manual",
     }, body=MANUAL_TEST_BODY)
+    # **A `command:`, because that is now the only thing that makes a test
+    # automated** (ADR-0034 decision 4). This fixture said `automation:
+    # automated` and no more — which was the pre-2026-08-18 rule, and the exact
+    # shape `your-sudoku`'s TST-0013 was in: claiming to be machine-run with no
+    # way to run it. Under the new rule that state does not exist, so the
+    # fixture has to declare what it means.
     _note(docs / "tests" / "TST-0002-Auto.md", {
         "type": "[[test]]", "id": "TST-0002", "title": "Automated thing",
-        "status": "ready", "automation": "automated",
+        "status": "ready", "command": "pytest -q",
     })
     _note(docs / "requirements" / "REQ-0001-Draft.md", {
         "type": "[[requirement]]", "id": "REQ-0001", "title": "Drafty",

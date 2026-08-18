@@ -2638,31 +2638,29 @@ def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
 
 
 def _is_manual_test(record: NoteRecord) -> bool:
-    """Manual tests are the ones a human can run from the desk.
+    """Who runs this test: the machine if it declares a `command:`, else a person.
 
-    Convention: frontmatter ``automation``/``kind``/``mode`` saying manual,
-    or a body with a Steps section and no automated-runner reference.
+    **One field, no heuristics** (ADR-0034 decision 4). This consulted
+    `command`, then `automation`/`kind`/`mode`/`method`, then the shape of the
+    body — four fallbacks approximating one question. `kind:` was deleted, and
+    independent review caught that leaving `automation:` in the list would have
+    MOVED the ambiguity rather than removed it: it is set on 671 of 788 fleet
+    notes and reads `manual` on 466, so it became the second who-runs-this field
+    the moment the first one went.
 
-    **A recorded ``command`` settles it first** (TASK-0371). That is already
-    the project's rule — :func:`_is_unproven` reads the same field and says
-    *"executable: the runner stamps it, not a human"* — and this function did
-    not know about it, so a test with a pytest command and a checklist-shaped
-    body read as manual. TST-0022 is exactly that: ``command: .venv/bin/pytest
-    tests/test_surface_ownership.py -q``, offered a Run ▸ stepper on the desk
-    and counted among the "manual" tests a scope asks a human to walk. Swept
-    2026-08-10 across all twelve repos the cockpit renders: **1 of 92 tests**,
-    and it is this repo's own. One rule for "who runs this", not two.
+    `automation:` answers *does a machine cover this check* — `full`/`partial`/
+    `manual`, beside `covered_by:` — a claim about **coverage**, not about who
+    performs the walk. The two were conflated because before ADR-0031 they
+    described the same population.
+
+    **The remaining rule is total and needs no fallback**: a note with no
+    `command:` cannot be run by anything except a person. That is not an
+    inference about intent — it is what the corpus can and cannot execute — and
+    it makes the previously-possible state *"treated as automated, declares no
+    way to run"* unreachable rather than merely rare. `your-sudoku`'s TST-0013
+    was in exactly that state and is now correctly owed to a person.
     """
-    fm = record.frontmatter
-    if str(fm.get("command") or "").strip():
-        return False
-    for key in ("automation", "kind", "mode", "method"):
-        value = str(fm.get(key) or "").lower()
-        if "manual" in value:
-            return True
-        if value in ("automated", "auto", "ci"):
-            return False
-    return bool(manual_test_steps(record.body))
+    return not str(record.frontmatter.get("command") or "").strip()
 
 
 # Manual tests in the wild head their procedure several ways — this repo's

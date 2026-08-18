@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0205
 aliases: ["ISS-0205"]
 title: "The close-out sweep writes `type: [[check]]` notes with `CHK-*` ids, which a migrated repo's reader cannot see — the sweep is silently writing invisible checks right now"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -40,3 +40,8 @@ The acceptance-sweep obligation is **live**: 1 feature in this repo and 4 in `yo
 - [ ] `_write_new_check` writes a `[[test]]` at `level: acceptance` with a `TST-*` id, and `_TIER_LABELS`-consistent fields.
 - [ ] The sweep's tests run against a **migrated** corpus. The existing fixture must move, not be supplemented — leaving it in place preserves the branch that hid this.
 - [ ] A guard that a swept check is readable by the repo it was written into, asserted through `acceptance.load`.
+## Fixed 2026-08-18
+
+`_write_new_check` writes `[[test]]` at `level: acceptance` with a `TST-*` id allocated from **both** populations, since they share the space.
+
+**The third done-when was the one that mattered and was initially unmet.** Moving the fixture to the merged type was not enough: reverting the writer to `type: "[[check]]"` left all 22 sweep tests green, because they assert the note's fields rather than whether the suite can load it. `test_the_sweep_writes_a_note_the_reader_can_see` reads the sweep's own output back through `acceptance.load` on a migrated corpus, and is the only thing that fails on that mutation. Found by independent review.
