@@ -111,18 +111,50 @@ Measured across all three suites: **`automation: manual` on 669 of 669, `covered
 
 Consequence, live: the `~checks` filter bar offers no automation axis at all — the backend emits a single-valued axis and `buildCheckFilters` drops any axis with fewer than two values, deliberately. So the one question *"which of these does a machine already do?"* cannot be asked of the corpus that answers it in prose 203 times.
 
+## The asymmetry that actually costs: a test can be automated in place, a check cannot be automated at all
+
+*Edwin, 2026-08-18, after the review: "the issue I have with the 2 different types … is that it becomes very difficult to move a CHK to an automated test."* **This is the finding, and it inverts the review's own reasoning.** The review used *"a check has no retirement path into an automated test; a change-verifying manual test does"* as the argument for keeping the types apart. That asymmetry is not a justification — it is the defect, and it is one-directional.
+
+**A manual `TST-*` automates in place.** Add `command:` to its frontmatter and `tools/scripts/run-tests.py` executes it and stamps its status from the exit code ([[project-os-dev#ADR-0010]]). Same id, same inbound references, same gates, no migration. `your-trainer`'s TST-0018 documents itself taking exactly that route: *"the logic half moves into TST-0016 and what remains here is the environment half, which stays manual permanently."*
+
+**A `CHK-*` has no such path, at four levels:**
+
+1. **No field.** `docs/__templates__/check.md` has no `command:`. A check cannot declare an executable.
+2. **No runner.** `run-tests.py` filters on `^TST-\d+` filenames (line 79). A `CHK-*` is invisible to it by construction.
+3. **No gate effect.** `Suite.blocking()` is `tier in GATING_TIERS and not settled`, and `settled` is `checked or reconciled or excepted`. **`automation:` and `covered_by:` are not in the predicate.** A check marked `automation: full` with a `covered_by:` naming a passing test still blocks the release until a human ticks it by hand.
+4. **No writer.** `mark_check` writes `mark`/`verdict_date`/`verdict_reason`; `invalidate_check` writes `invalidated_by`. **Nothing writes `automation:`, `covered_by:`, `tier:` or `status: retired`** — so TESTING.md's documented Tier 2 → Tier 3 → remove path is prose with no action behind it, and `retired` is a status in the vocabulary that no code can reach. `sweep.py:346` hard-codes `covered_by: []`, so every check the sweep creates is born with the link empty.
+
+The two fields ADR-0030 defined for exactly this reach only a facet in the checks view (suppressed at one value) and one stat on the release page. **Automating a check today costs the automation work and buys nothing.**
+
+### What that costs, measured
+
+**15 of the 60 checks currently blocking `your-trainer`'s release say in their own bodies that a machine already covers them.** A quarter of the blocking set. The sharpest is `CHK-0505`:
+
+> Difficult to reproduce on real hardware without a misbehaving trainer. Exercised via `TrainerCompatibilityTestFailureModesTest.silentMode_completesWithScorecardAndNoAbortBanner` … *(automated.)*
+
+Tier 1/2, unmarked, blocking a release — waiting for a person to do by hand the thing its own text says is hard to do by hand and is already automated. That is not a documentation problem; it is the gate asking for work that has been done.
+
+And the data for the fix is already in the corpus: **203 of 579 bodies name their covering test in prose.** The link exists as text and was never moved into the field defined to hold it.
+
 ## Options
 
-**The nine and the thirteen are answers to different questions, and no option should be applied to both.**
+**The nine and the thirteen are answers to different questions, and no option should be applied to both** — and since the section above, **the deciding property is which type can be automated**, which reorders everything below.
 
 1. **Write the boundary down.** Cheap, reversible, collides with nothing — but the first draft's premise was wrong: TESTING.md does not draw an *automated vs manual* split, it draws *formal test tracking vs the release checklist*, and warns that `level: acceptance` on a `TST-*` is a third thing again. The first draft also quoted `docs/tests/acceptance/README.md` as this repo's live rule; **that line sits under `## What the file said, kept verbatim`** — a preserved artefact of a deleted document, not a standing rule. What needs writing is narrower than the first draft claimed.
 2. **Migrate B into C.** **Reject.** It breaks the inbound references (**61** in `tests:`/`verified_by:`/`tests_verified:`; 98 counting every frontmatter field — the review's own net gave 78, and all three agree the answer is *dozens*, including two release notes), and worse, it destroys the in-flight rule's application: checks carry no subject field and cannot rest, so **6 currently-badged rows become 22 permanently-unowed ones**. It loses the signal rather than tidying it.
 3. **TST keeps the gate, CHK holds the walk.** **Coherent as a data model; the first draft's claim that it leaves "both gates intact" is not established.** A derived `passing` means a human `mark: x` transitively writes the status ADR-0010 reserves for a runner's exit code; it arms `REVIEW_SETTLED_STATUSES = {"tests": ("passing",)}` on every derived TST, asking for evidence that *is* the walk; and any one of TST-0013's 107 checks re-arming un-passes the roll-up, returning the self-re-arming population to the badge by proxy. Avoiding all three needs a fourth test status, against a vocabulary [[ADR-0008]] spent a measurement collapsing.
 4. **Collapse into one type.** **Reject.** Reopening a one-day-old decision over 22 notes against 669 checks and 95 non-B tests, at the cost of five named collisions.
-5. **The review's proposal, and the smallest thing that answers Edwin's question.**
+5. **The review's proposal** — *and it now points the wrong way in its first clause.* Migrating the nine capability-naming tests into checks moves them **from the type that has an automation path to the type that has none**, which is a loss for exactly the nine most likely to be automated one day. Its second and third clauses stand.
    - **Migrate the nine capability-naming tests** (`your-trainer` TST-0001..0008, 79 parsed steps; seven have nothing pointing at them in either direction, and TST-0007's single inbound reference from TASK-0302 is the only thing to rehome). They are checks in all but type.
    - **Leave the thirteen as tests**, and write the one sentence that separates them — *a manual `TST-*` names the change it verifies and retires when that change is settled; a `CHK-*` names standing behaviour and re-arms every release.* Derived from the corpus rather than invented, and it makes [[ISS-0178]] the next thing to fix rather than a standing excuse.
    - **Fix the two defects that are not about the type at all.** `## Runs` is write-only. `automation:`/`covered_by:` are empty on 669 of 669 while 203 bodies carry the annotation as text.
+
+6. **Give the check type the automation path, and decide the type question afterwards.** Three changes, each small, each independently useful, and none of them touching the type boundary:
+   - **Make `covered_by:` reach the gate.** A check whose `automation: full` and whose `covered_by:` names a `TST-*` that is `passing` is settled by that test rather than by a human tick. The direction is safe: a machine's exit code discharging a human's checkbox, not a human's mark writing a runner's status — so [[project-os-dev#ADR-0010]] is untouched. **Name the consequence honestly:** a failing covering test then un-settles the check, which puts a machine-driven population into the release gate. That is the gate, not a badge, so [[ADR-0027]] is untouched too — but it is a real change and should be decided, not discovered.
+   - **Give it a writer and an action.** "Covered by `<TST>`" on the check page, setting `automation:` and `covered_by:` in one write and refused unless the id resolves to a test carrying a `command:` — the same shape as *Needs re-run*, which is already refused without a change id that resolves.
+   - **Give `status: retired` a writer**, so TESTING.md's Tier 2 → Tier 3 → remove path is performable rather than described.
+
+   The backfill is a script, not a migration: **203 bodies already name their covering test in prose.**
 
 ## What is owed
 
