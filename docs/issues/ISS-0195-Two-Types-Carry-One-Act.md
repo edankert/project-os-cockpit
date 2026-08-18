@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0195
 aliases: ["ISS-0195"]
 title: "Two types carry one act — but for 9 of 22 manual `TST-*`, not for all 22: the ones naming a capability are checks wearing a test id, and the ones naming a change are not"
-status: triage
+status: open
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -13,7 +13,7 @@ reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
 review_verdict: changes-requested
 phase: "[[PHASE-999-Future]]"
-related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
+related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 ---
 
 # Two types carry one act
@@ -233,3 +233,13 @@ Against my own counter: 149 of 669 checks name a `TASK-`/`ISS-` in `covers:`, so
 - [ ] Add the missing populations: 3 frozen release suites (377 steps), 2 `kind: hybrid`.
 - [ ] Restate rows 1, 2, 3, 4 and 6 of the governance table against what is implemented, and drop row 2 or re-derive it — `REL-0012` falsifies it as written.
 - [ ] Split B into its 8 and its 14 before any option is chosen; the options are answers to different questions for the two halves.
+
+## Adjudicated
+
+**2026-08-18, Edwin: option 4 with the direction normalised** — one type, ids renumbered into `TST-*`, and the verification link reduced to one encoding. His deciding argument is the one neither this note's first draft nor the review put at the centre: *"it becomes very difficult to move a CHK to an automated test."*
+
+Recorded as [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] and [[ADR-0032-The-Verification-Link-Has-One-Direction]], both `proposed`; built as [[FEAT-0118-The-Test-Type-Absorbs-The-Check]], [[FEAT-0119-The-Merge-Migration]], [[FEAT-0120-The-Automation-Path]] and [[FEAT-0121-The-Verification-Link-Normalises]] under [[PHASE-035-Acceptance-Checks-Are-Notes]].
+
+**The review's objections are not dismissed by that choice — they are answered in ADR-0031's collision table**, and its recommended fifth option is explicitly rejected in one clause: migrating the nine capability-naming tests *into* checks would move them from the type with an automation path to the type without one.
+
+Four findings left this note as their own issues: [[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]], [[ISS-0197-The-Runs-Section-Is-Write-Only]], [[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]] and [[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]. This note stays `open` until the phase closes.

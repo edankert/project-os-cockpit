@@ -2,24 +2,33 @@
 type: "[[phase]]"
 id: PHASE-035
 aliases: ["PHASE-035"]
-title: "Acceptance checks are notes — the record gets granular, the sweep gets a surface, and a release can be finished"
+title: "The testing model — acceptance checks become notes, then one type, and a check can finally be automated"
 status: active
 order: 35
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
-goal: "Move the acceptance record from one grammar-bearing document to first-class notes, and make the release process run on them end to end: invalidation happens where work lands, walking happens on a generated view with the same marks, and a release can be taken from naming its version to released inside the cockpit — with the sweep-was-considered question enforced at the one moment it is cheap and final."
+updated: "2026-08-18"
+goal: "Get the testing model right: move the acceptance record out of a grammar-bearing document into notes, run the release process on them end to end, and then remove the split between what a person walks and what a machine runs — so that verifying behaviour has one type, one link direction, and one way to become automated."
 features:
   - "[[FEAT-0113-The-Check-Type-And-The-Migration]]"
   - "[[FEAT-0114-The-Suite-Is-A-View]]"
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0116-A-Release-Can-Be-Finished]]"
   - "[[FEAT-0117-One-View-Per-Item]]"
-issues: ["[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]]"]
-related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
+  - "[[FEAT-0118-The-Test-Type-Absorbs-The-Check]]"
+  - "[[FEAT-0119-The-Merge-Migration]]"
+  - "[[FEAT-0120-The-Automation-Path]]"
+  - "[[FEAT-0121-The-Verification-Link-Normalises]]"
+issues: ["[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]]", "[[ISS-0195-Two-Types-Carry-One-Act]]", "[[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]]", "[[ISS-0197-The-Runs-Section-Is-Write-Only]]", "[[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]]", "[[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]"]
+related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
 ---
 
-# Acceptance checks are notes
+# The testing model
+
+> [!important] Widened 2026-08-18 — the phase now owns the testing model, not only the check type.
+> It was opened as *"acceptance checks are notes"* and delivered that in full. Then use found what the design had not: **a check cannot be automated.** Edwin: *"the issue I have with the 2 different types … is that it becomes very difficult to move a CHK to an automated test"*, and *"we just need to try and get this testing strategy/solution right now."*
+>
+> So [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] is **superseded by [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]** one day after it was accepted, and four more features join the phase. A new phase was the alternative, and this is not one: the goal is still stateable in a sentence without listing its parts, and the second half is the first half's own consequence rather than a new subject. **Legs one and two stand as the record of what was built and why it moved** — nothing below is rewritten to look like it always pointed here.
 
 ## Where this phase came from
 
@@ -45,6 +54,15 @@ The goal is stateable without listing its parts — *the acceptance record becom
 - **No maintained mirror.** The old file is deleted at migration, never kept as a tombstone someone will edit; frozen per-release snapshot suites are never rewritten.
 - **Nothing writes unasked and nothing pushes.** Every write stays loopback-guarded and human-initiated; Mark released prints the `git tag`/`git push` commands rather than running them.
 - **No lost rows.** Migration asserts row-count and mark parity per repo (34 / 56 / 579) rather than assuming it — ISS-0175's lesson.
+
+## Exit criteria — second half (added 2026-08-18)
+
+- [ ] **No note in any repo carries `type: [[check]]`**, and no code branches on that type — measured across all twelve repos, with the unreachable-function guard green.
+- [ ] **The Tests obligation badge is unchanged in every repo**, measured per repo rather than in aggregate ([[REQ-0037-The-Badge-Never-Admits-Acceptance-Tests]]). Baseline 2026-08-18: `project-os-cockpit` 1, `your-trainer` 5.
+- [ ] **Parity through the reader in all three suites** — 34 / 56 / 579 notes, identical `mark:` distributions, identical `covers:` target sets, identical gate figures, and `your-trainer`'s twelve-tag delta unchanged at 1, 10, 10, 15, 26, 85, 130, 22, 47, 47, 47, 47.
+- [ ] **A check is discharged by automating it**, demonstrated end to end: add `command:`, run the runner, watch it leave the blocking set with no human mark — reporting how many were discharged this way, not how many could be.
+- [ ] **One verification link**: `tests:` gone from features, `features:`/`verifies:`/`validates:` gone from tests, the path fallback deleted, and the VERIFY inversion proven behaviour-preserving against the current fleet corpus.
+- [ ] **An independent review of the result**, from the corpus and not from the plan, re-deriving every figure in [[ISS-0195-Two-Types-Carry-One-Act]] rather than accepting it ([[TASK-0490-Independent-Review-Of-The-Merge]]).
 
 ## Exit criteria
 
@@ -87,4 +105,5 @@ Run after the fleet migrated, against real corpora rather than fixtures. Every n
 1. ~~**`your-trainer`'s migration**~~ — **done 2026-08-17** (`1acc3850`): 579 rows, badges 37 → 37, zero checks owed.
 2. ~~**`mountAcceptanceMarks` and the `li[data-check]` plumbing**~~ — **deleted 2026-08-17.** 258 lines of source across five files, 22 guards whose subject went with them, three new ones in their place. `ACCEPTANCE_TESTS_v2.1.0.md` parses as 300 checks and renders **0 addresses, 0 marks** — the frozen record is inert. The delta at all twelve historical `your-trainer` tags is unchanged, which is the one thing the cull could have broken. The unreachable-function guard caught `suppressNextSoftReload` on the first run afterwards. [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]] is `fixed`.
 3. **The independent review** — owed on five `TST-*` notes and one `CHG-*`, and on any feature moving from `review` to `done`.
-4. **Two navigation defects on the view this phase built**, both found by Edwin from use on 2026-08-18 and both in the renderer rather than the record: [[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]] (arriving at `~checks` from Publication lands on the Tests landing instead) and [[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]] (no virtual page refreshes the nav highlight, so the left pane keeps pointing at the note you left). Neither touches `CHK-*` notes, the payload or the marks — `~checks` is reachable and correct, and it is the two ways of *getting there* that are wrong.
+4. **The second half of this phase** — [[FEAT-0118-The-Test-Type-Absorbs-The-Check]], [[FEAT-0119-The-Merge-Migration]], [[FEAT-0120-The-Automation-Path]] and [[FEAT-0121-The-Verification-Link-Normalises]], gated on [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] and [[ADR-0032-The-Verification-Link-Has-One-Direction]] both being accepted. Order and reasoning in `docs/features/one-test-type/plan/PLAN.md`. **This reverses decisions 1–3 of this phase's own ADR** — stated in both notes rather than smoothed over: the granularity was right, and the sibling type is the part that did not survive contact with use.
+5. **Two navigation defects on the view this phase built**, both found by Edwin from use on 2026-08-18 and both in the renderer rather than the record: [[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]] (arriving at `~checks` from Publication lands on the Tests landing instead) and [[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]] (no virtual page refreshes the nav highlight, so the left pane keeps pointing at the note you left). Neither touches `CHK-*` notes, the payload or the marks — `~checks` is reachable and correct, and it is the two ways of *getting there* that are wrong.

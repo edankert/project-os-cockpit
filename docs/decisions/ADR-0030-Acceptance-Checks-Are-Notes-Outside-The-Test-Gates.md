@@ -3,20 +3,23 @@ type: "[[decision]]"
 id: ADR-0030
 aliases: ["ADR-0030"]
 title: "Acceptance checks are notes — type `check`, id `CHK-*` — and the check type sits deliberately outside the test gates"
-status: accepted
+status: superseded
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
+updated: "2026-08-18"
 decision_date: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 related: ["[[project-os-dev#ADR-0009]]", "[[project-os-dev#ADR-0010]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]"]
 supersedes: []
+superseded: "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]"
 tags: [acceptance, conventions, schema]
 ---
 
 # Acceptance checks are notes, and the check type sits deliberately outside the test gates
 
 ## Status
+
+**Superseded by [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]], proposed 2026-08-18** — one day after acceptance, on an input this decision never weighed: **a check cannot be automated at all, while a manual test automates in place by adding `command:`.** Decisions 1, 2 and 3 below are reversed; **decisions 4, 5 and 6 are carried forward unchanged** — the suite stays a generated view, the frozen per-release suites still never migrate, and template-owned surfaces still land upstream first. Read those three as live rules; the alternatives section, and its rejection of reusing the test type, is what ADR-0031 revisits.
 
 **Accepted 2026-08-17.** The gate held for exactly as long as it was meant to: the phase was documented in full while this read `proposed`, and nothing migrated. Edwin's instruction to build it is the acceptance — *"implement, test and review phase 035 fully until all significant issues fixed"* — given against a phase note whose first exit criterion is this ADR being accepted, and against the honest tally below, the ~9.5 days and the two benefits that did not need the migration at all included.
 
