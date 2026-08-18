@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK
 aliases: ["TASK"]
 title: "Delete `gateMark`'s `actionable` parameter so no release row can write a check"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

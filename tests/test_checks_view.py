@@ -140,21 +140,31 @@ def test_marking_from_the_view_holds_the_readers_position() -> None:
     assert block.count("docView.scrollTop = held") == 2
 
 
-def test_one_walk_layer_serves_both_surfaces() -> None:
-    """TASK-0465: the gate row and the view row write through one function.
+def test_one_walk_layer_and_now_exactly_one_surface() -> None:
+    """TASK-0465: the write goes through one function. ADR-0035: one caller.
 
-    Not a style preference — the copies drifted twice already. ISS-0187's
-    unhandled rejection existed in one copy and not the other, and ISS-0188's
-    scroll fix had to be applied twice, one frame too early the first time.
+    This asserted that **both** `markGateRow` and `markCheckRow` delegated to
+    `walkOneCheck`, because the two copies had drifted twice — ISS-0187's
+    unhandled rejection existed in one and not the other, and ISS-0188's
+    scroll fix had to be applied twice.
+
+    `markGateRow` is now deleted: a release page reports the gate and records
+    nothing. The convergence this guarded is therefore complete rather than
+    abandoned — one write path, and now one caller of it — so the assertion
+    narrows to the surviving surface and the endpoint count below carries the
+    rest.
     """
     src = _renderer()
-    for caller in ("async function markGateRow", "async function markCheckRow"):
-        block = src[src.index(caller):]
-        block = block[:block.index("\n}")]
-        assert "walkOneCheck" in block, caller
-        # …and nothing else. A caller that still posts for itself is a second
-        # copy wearing a call to the first.
-        assert "postJson" not in block, caller
+    block = src[src.index("async function markCheckRow"):]
+    block = block[:block.index("\n}")]
+    assert "walkOneCheck" in block
+    # …and nothing else. A caller that still posts for itself is a second
+    # copy wearing a call to the first.
+    assert "postJson" not in block
+    assert "markGateRow" not in src.replace(
+        "// **No `markGateRow`** (ADR-0035). It was the release page's write path —", ""), (
+        "markGateRow is back — a release page must not write a check (ADR-0035)"
+    )
     assert src.count("'/api/notes/mark-check'") == 1, (
         "**one write path, full stop** (ISS-0192). It was two while a repo "
         "could still store its suite as a document; that surface is gone, and "

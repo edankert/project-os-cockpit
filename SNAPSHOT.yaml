@@ -1489,7 +1489,7 @@ items:
     ISS-0210:
       file: "docs/issues/ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks.md"
       title: "The release page offers a live mark control on every blocking check — sixty of them on REL-0013, on the page whose purpose is to report that the release is not ready"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       severity: high
@@ -1498,7 +1498,7 @@ items:
     ISS-0211:
       file: "docs/issues/ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was.md"
       title: "The mark picker renders `[done]` where it used to render `[x]`, and two more sites lost their glyph when marks became words"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       severity: medium
@@ -3570,13 +3570,13 @@ metrics:
     features_total: 129
     features_done: 113
     tasks_total: 511
-    tasks_done: 463
+    tasks_done: 466
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 11
+    issues_open: 9
     issues_triage: 0
     risks_open: 6
     releases_total: 1

@@ -542,3 +542,140 @@ def test_a_mistyped_mark_is_never_settled_by_either_reader() -> None:
             )
         index = {"T": ("path", {"mark": " done ", "level": "acceptance"})}
         assert module._acceptance_is_settled("T", index), copy.name
+
+
+# ----- the stored form never reaches a screen (ISS-0211) --------------------
+
+
+#: The seven words `mark:` may hold since ISS-0200. Storage, deliberately — a
+#: file wants an unambiguous token that survives an editor eating a `[ ]`.
+MARK_WORDS = (
+    "todo", "done", "incomplete", "canceled", "important", "question", "rerun",
+)
+
+
+def test_no_surface_brackets_a_raw_mark_rather_than_its_glyph() -> None:
+    """ISS-0211, and the reason it is a *guard* rather than three edits.
+
+    ISS-0200 changed `mark:` from characters to words in 669 notes. Three
+    render sites read `mark` directly instead of going through `MARK_GLYPH`,
+    and the migration re-keyed the maps by hand without noticing:
+
+    * the picker token bracketed the value, so the dialog read
+      **`[done] Done — walked and passed`** — the word in brackets beside a
+      label that already says it;
+    * `item.mark === '-'` became permanently false, so **canceled rows lost
+      their strikethrough**;
+    * a gate row's `title` said `TST-0123 — done` where the glyph had been.
+
+    **Two of the three fail silently.** A dead comparison raises nothing and a
+    `title` attribute is invisible until hovered, which is why a person reading
+    a screen found this and neither the type-checker nor the suite did.
+
+    This is the second vocabulary change in two phases to leave a live surface
+    on a stale key — `MARK_MEANING` read *"unrecognised · 33"* in all three
+    suites after the first. Re-keying by hand a third time is the failure this
+    asserts against.
+    """
+    src = _renderer_src()
+    # Bracketing a value is how a glyph is drawn (`[x]`, `[/]`). Bracketing a
+    # *mark-bearing expression* means the stored word reaches the screen.
+    offenders = re.findall(r"`\[\$\{([^}]*\bmark\b[^}]*)\}\]`", src)
+    allowed = {"mark", "choice.mark", "item.mark"}   # only inside a ?? fallback
+    for expr in offenders:
+        assert expr.strip() in allowed, (
+            f"`[${{{expr}}}]` brackets a mark directly — render it through "
+            "MARK_GLYPH, which maps `done` to `[x]` and already handles the "
+            "legacy characters"
+        )
+    # Every bracketed fallback must sit behind a MARK_GLYPH lookup, so the raw
+    # form is reachable only when the glyph map has no entry at all.
+    for expr in offenders:
+        pattern = r"MARK_GLYPH\[[^\]]+\]\s*\?\?\s*`\[\$\{" + re.escape(expr) + r"\}\]`"
+        assert re.search(pattern, src), (
+            f"`[${{{expr}}}]` is not guarded by a `MARK_GLYPH[...] ??` — it "
+            "would render the stored word whenever the map is consulted"
+        )
+
+
+def test_no_surface_compares_a_mark_to_a_legacy_character() -> None:
+    """The dead-comparison half, which removed styling and raised nothing.
+
+    `item.mark === '-'` was true before ISS-0200 and false forever after. The
+    marks a surface receives are normalised words; a comparison against a raw
+    character is either dead or about to be, and `MARK_CLASS` is the map that
+    answers the question it was asking.
+    """
+    src = _renderer_src()
+    legacy = re.findall(
+        r"\.mark\s*(?:\|\|\s*'[^']*'\s*\)?\s*)?===\s*'([^']{0,2})'", src)
+    for ch in legacy:
+        assert ch in MARK_WORDS, (
+            f"a surface compares a mark against the literal {ch!r}; marks "
+            "reaching a surface are words (ISS-0200), so this is dead. Use "
+            "MARK_CLASS, which maps both forms to one class name"
+        )
+
+
+# ----- a release page records nothing (ADR-0035 / ISS-0210) -----------------
+
+
+def test_a_gate_row_carries_a_token_and_never_a_control() -> None:
+    """ADR-0035, and the guard neither previous removal left behind.
+
+    `REL-0013 · 2.1.7` in `your-trainer` rendered **sixty blocking checks, each
+    with a live mark button** — `gateMark(item, releaseId, actionable=true)`.
+    The page whose entire purpose is to report that a release is not ready
+    offered sixty controls that make it ready, which is not a hypothetical
+    about carelessness: the rows are sorted by nothing except *blocks*, and the
+    control beside each one is the one that stops it blocking.
+
+    Edwin: *"definitely do not allow these acceptance tests to be checked."*
+
+    **This control has now been removed twice.** ISS-0192 took it off the
+    rendered document surface and did not touch this one, because they are
+    different code paths, and neither removal left a test. That is why it is
+    asserted on the *shape* — `gateMark` builds a span and nothing else — and
+    not merely on the absence of the parameter.
+    """
+    src = _renderer_src()
+    body = src[src.index("function gateMark("):]
+    body = body[:body.index("\n}\n") + 3]
+
+    assert "actionable" not in body, (
+        "`actionable` is back. ADR-0035 deletes the parameter rather than "
+        "defaulting it to false: a parameter with one live value is a decision "
+        "waiting to be re-litigated by whoever adds the next caller"
+    )
+    assert "createElement('button')" not in body, (
+        "a gate row builds a button — a release page reports the gate and "
+        "records nothing (ADR-0035); walking happens where the steps are"
+    )
+    assert "addEventListener" not in body, (
+        "a gate row wires a handler; the row is a link to the check, and the "
+        "mark itself is a static token"
+    )
+    assert "createElement('span')" in body
+
+
+def test_the_release_page_has_no_write_path_for_a_check() -> None:
+    """The helper goes too, not just its caller.
+
+    `markGateRow` was `walkOneCheck` plus a repaint, reachable only from the
+    control above. Left unreferenced it is how the next caller re-acquires the
+    behaviour a decision just removed — so ADR-0035 deletes it, and this says
+    so where a reader adding a release-page feature will meet it.
+    """
+    src = _renderer_src()
+    calls = re.findall(r"^(?!\s*(?://|\*)).*\bmarkGateRow\s*\(", src, re.M)
+    assert not calls, f"markGateRow is live again: {calls}"
+
+    # `buildGateSection`'s own body — not the span up to the next interface,
+    # which contains `walkOneCheck`'s definition and would make this vacuous
+    # in the noisiest possible way: passing because it matched a declaration.
+    start = src.index("function buildGateSection")
+    body = src[start:src.index("\n}\n", start) + 3]
+    assert "walkOneCheck" not in body, (
+        "the gate section reaches walkOneCheck — that is the write path "
+        "ADR-0035 removes from any page whose subject is a release"
+    )

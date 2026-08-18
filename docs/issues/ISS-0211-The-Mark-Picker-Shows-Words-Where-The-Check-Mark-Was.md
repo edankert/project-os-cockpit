@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0211
 aliases: ["ISS-0211"]
 title: "The mark picker renders `[done]` where it used to render `[x]`, and two more sites lost their glyph when marks became words"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

@@ -230,23 +230,21 @@ def test_a_gate_row_wears_the_documents_control_and_no_buttons() -> None:
     assert "review-btn" not in body, "a button crept back onto the row"
 
 
-def test_the_gate_mark_writes_through_the_documents_own_path() -> None:
+def test_the_walk_layer_still_writes_through_the_documents_own_path() -> None:
     """*"the same as in the .md file"* means the same dialog and the same
     endpoint, not a lookalike. Both are asserted as USED — the value reaching
     the call — rather than as names appearing somewhere in the function.
 
-    **The subject moved and this guard followed it** (TASK-0465). The gate row
-    and the acceptance view now write through one `walkOneCheck`, because the
-    two copies had already drifted twice: ISS-0187's unhandled rejection
-    existed in one and not the other. So the properties are asserted where the
-    work happens, and the delegation is asserted here — a guard that stayed
-    pointed at the old function would have gone green over an empty shell.
+    **The gate-row half of this guard is gone, and deliberately** (ADR-0035).
+    It asserted that `markGateRow` delegated to `walkOneCheck`; a release page
+    no longer writes a check at all, so there is nothing to delegate. That the
+    helper stays deleted is asserted in `test_acceptance_marks.py` — here it
+    would read as an absence, which is the weakest possible form of the claim.
+
+    What survives is the whole of the original property for the surface that
+    *does* write: `~checks` and the check's own note.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    caller = _body_of(src, "async function markGateRow(")
-    assert "walkOneCheck" in caller, caller
-    assert "postJson" not in caller, "a second copy of the write crept back"
-
     body = _body_of(src, "async function walkOneCheck(")
     assert "await askForMark({" in body, body
     assert "'/api/notes/mark-check'" in body, body
@@ -258,21 +256,20 @@ def test_the_gate_mark_writes_through_the_documents_own_path() -> None:
     assert "catch" in body and "showStatus(" in body
 
 
-def test_marking_a_gate_row_holds_the_readers_place() -> None:
-    """The repaint is correct here — the groups are a diff and a marked row
-    changes group — but a repaint that moves the reader is the defect
-    ISS-0187/0188/0189 were three rounds of.
+def test_the_walk_holds_the_readers_place() -> None:
+    """A repaint that moves the reader is the defect ISS-0187/0188/0189 were
+    three rounds of.
 
     Pinned on the ORDER (read, repaint, restore) and on the restore happening
     inside an animation frame as well, because ISS-0188's fix did exactly this
     one frame too early and a source-shape guard could not see it.
+
+    **The `renderReleasePage(releaseId)` assertion is gone** (ADR-0035): it
+    pinned the repaint the release page passed in, and the release page no
+    longer marks anything. The scroll property itself belongs to
+    `walkOneCheck` and is unchanged — it is what `~checks` still relies on.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    # The repaint is the ONLY thing the two callers differ by, so it is the
-    # only parameter — and this asserts the gate's caller still supplies its
-    # own page rather than repainting somebody else's.
-    assert "renderReleasePage(releaseId)" in _body_of(
-        src, "async function markGateRow(")
     body = _body_of(src, "async function walkOneCheck(")
 
     def at(needle: str) -> int:

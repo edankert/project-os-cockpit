@@ -4019,6 +4019,19 @@ def _test_item(
     }
 
 
+#: Statuses that mean *this test was checked and it passed*. `Verified` is
+#: entered by membership here and by nothing else (REQ-0046, ISS-0212) — it
+#: used to be the `else` branch, which made the group whose label asserts
+#: evidence the destination for every status nobody had thought about.
+_PASSING_STATUSES: frozenset[str] = frozenset({"passing", "verified", "done"})
+
+#: Resolved, and NOT a pass. A retired test is not a passing one, and the
+#: distinction is the whole of ISS-0212: `your-trainer` reported a retired
+#: *run plan* as a verified test.
+_RESOLVED_NOT_PASSING: frozenset[str] = frozenset(
+    {"retired", "superseded", "cancelled", "canceled", "obsolete"})
+
+
 def _tests_groups(
     index: Index, platform: str | None = None
 ) -> list[dict[str, Any]]:
@@ -4081,7 +4094,7 @@ def _tests_groups(
 
     buckets: dict[str, list[NoteRecord]] = {
         "needs-run": [], "resting": [], "failing": [], "stale": [],
-        "never": [], "verified": [],
+        "never": [], "verified": [], "resolved": [], "unclassified": [],
     }
     for record in tests:
         status = (record.status or "").strip().lower()
@@ -4099,12 +4112,33 @@ def _tests_groups(
             buckets["resting"].append(record)
         elif status in ("failing", "broken", "blocked"):
             buckets["failing"].append(record)
+        elif status in _RESOLVED_NOT_PASSING:
+            # **Not `Verified`** (ISS-0212). `retired` used to reach the
+            # `else` below and be reported as a test that was checked and
+            # passed. `your-trainer` carries three: a checklist, a test list
+            # and a *run plan*, all `status: retired`, all left carrying
+            # `type: "[[test]]"` by the PHASE-035 migration they were the
+            # source for. A run plan has no verdict to report.
+            buckets["resolved"].append(record)
         elif _test_is_stale(record.frontmatter, days):
             buckets["stale"].append(record)
         elif not _test_last_verified(record.frontmatter):
             buckets["never"].append(record)
-        else:
+        elif status in _PASSING_STATUSES:
             buckets["verified"].append(record)
+        else:
+            # **`Verified` is entered by a positive test, never as a
+            # fallback** (REQ-0046). It was the `else` branch, which made it
+            # the destination for every status the chain above did not name —
+            # and it is the one group whose label is a claim about evidence.
+            #
+            # The general rule matters more than the instance: `retired` is
+            # merely what this corpus happens to contain, and the next status
+            # anybody adds would have landed in the pass bucket too. Same
+            # shape as ADR-0034's fail-closed clause — when a classifier meets
+            # something it does not understand, the safe direction is the one
+            # that asks for a person.
+            buckets["unclassified"].append(record)
 
     labels = (
         ("needs-run", "Needs a walk"),
@@ -4116,6 +4150,11 @@ def _tests_groups(
         ("stale", f"Stale · over {days} days"),
         ("never", "Never verified"),
         ("verified", "Verified"),
+        ("resolved", "Retired · no longer verified"),
+        # Loud on purpose, and last so it is not mistaken for a normal state.
+        # An empty group is absent like every other, so this is invisible
+        # until a status nobody handled reaches the view.
+        ("unclassified", "Unrecognised status — not a verdict"),
     )
     out: list[dict[str, Any]] = []
     for key, label in labels:

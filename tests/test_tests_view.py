@@ -1689,3 +1689,69 @@ def test_the_review_route_stays_while_the_ledger_has_open_entries() -> None:
     )
     assert "/api/cockpit/review-queue" in server
     assert "/api/cockpit/review-resolve" in server
+
+
+# ----- `Verified` is a claim, not a fallback (ISS-0212 / REQ-0046) ----------
+
+
+def _groups_for(docs: Path) -> dict[str, list[str]]:
+    from project_os_cockpit.index import Index
+    return {
+        g["key"]: [str(i.get("id") or i.get("title")) for i in g["items"]]
+        for g in cockpit._tests_groups(Index.build(docs))
+    }
+
+
+def test_a_status_nobody_handled_is_visible_rather_than_reported_as_passing(
+    tmp_path: Path,
+) -> None:
+    """REQ-0046, asserted on the FALLBACK and not on the three known ids.
+
+    `_tests_groups` ended in `else: verified`, so any status the chain did not
+    name landed in the one group whose label is a claim about evidence — *this
+    was checked and it passed*. `your-trainer` supplied the instance: three
+    `status: retired` documents, one of them a **run plan**, reported as
+    verified tests.
+
+    The instance is not the point and a guard keyed on `retired` would miss
+    the next one. This invents a status no vocabulary contains and asserts it
+    surfaces loudly, which is the same shape as ADR-0034's fail-closed clause:
+    when a classifier meets something it does not understand, the safe
+    direction is the one that asks for a person.
+    """
+    docs = tmp_path / "docs"
+    (docs / "tests").mkdir(parents=True)
+    (docs / "tests" / "TST-0001-Invented.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "A test in a state nobody '
+        'planned for"\nstatus: quiescent\nlast_verified: 2026-08-18\n---\n\n'
+        "# A test in a state nobody planned for\n",
+        encoding="utf-8",
+    )
+    groups = _groups_for(docs)
+    assert "TST-0001" not in groups.get("verified", []), (
+        "an unrecognised status reached `Verified`, which asserts the test was "
+        "checked and passed — `Verified` must be entered by a positive test"
+    )
+    assert "TST-0001" in groups.get("unclassified", []), (
+        "an unrecognised status vanished instead of surfacing; a row the view "
+        "cannot classify must be visible, not quiet"
+    )
+
+
+def test_a_retired_test_is_not_a_passing_one(tmp_path: Path) -> None:
+    """The instance, kept beside the general rule rather than instead of it.
+
+    A retired test has been withdrawn, not passed. `your-trainer` carries a
+    retired checklist, a retired test list and a retired run plan — documents
+    the PHASE-035 migration read *from*, left carrying `type: "[[test]]"`.
+    """
+    docs = tmp_path / "docs"
+    (docs / "tests").mkdir(parents=True)
+    (docs / "tests" / "TST-0002-Withdrawn.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0002\ntitle: "Withdrawn"\n'
+        "status: retired\nlast_verified: 2026-08-18\n---\n\n# Withdrawn\n",
+        encoding="utf-8",
+    )
+    groups = _groups_for(docs)
+    assert "TST-0002" not in groups.get("verified", [])
+    assert "TST-0002" in groups.get("resolved", [])

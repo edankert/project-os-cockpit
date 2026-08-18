@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0210
 aliases: ["ISS-0210"]
 title: "The release page offers a live mark control on every blocking check — sixty of them on REL-0013, on the page whose purpose is to report that the release is not ready"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

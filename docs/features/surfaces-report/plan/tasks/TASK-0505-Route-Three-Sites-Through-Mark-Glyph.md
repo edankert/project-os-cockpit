@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK
 aliases: ["TASK"]
 title: "Render glyphs at the picker token, the canceled-row test and the gate tooltip, and guard against raw words"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

@@ -2338,7 +2338,11 @@ function askForMark(
       if (choice.mark === opts.current) btn.classList.add('is-current');
       const token = document.createElement('span');
       token.className = 'mark-choice-mark mono';
-      token.textContent = choice.mark === ' ' ? '[\u00a0]' : `[${choice.mark}]`;
+      // **Through `MARK_GLYPH`, never the raw mark** (ISS-0211). `choice.mark`
+      // became a WORD in ISS-0200 — storage, deliberately — and this line kept
+      // bracketing it, so the dialog read `[done] Done — walked and passed`:
+      // the word in brackets beside a label that already says it.
+      token.textContent = MARK_GLYPH[choice.mark] ?? `[${choice.mark}]`;
       const strong = document.createElement('strong');
       strong.textContent = choice.label;
       const small = document.createElement('span');
@@ -4566,7 +4570,7 @@ async function fillVerificationPanel(
       // under one feature is owed the reason it is here.
       a.title = row.unattributed
         ? `${row.id} — names no subject, so it blocks every scope`
-        : `${row.id}${row.mark ? ` — ${row.mark}` : ''}`;
+        : `${row.id}${row.mark ? ` — ${MARK_GLYPH[row.mark] ?? row.mark}` : ''}`;
       if (row.rel) {
         a.addEventListener('click', (ev) => {
           ev.preventDefault();
@@ -8116,70 +8120,50 @@ function buildGateSection(
   return g;
 }
 
-/** The mark, on the left, exactly as the document draws it (ISS-0190).
+/** The mark on a gate row — **a token, never a control** (ADR-0035).
  *
- *  This replaced `Pass · Partial · Fail` — three buttons, on the right of a
- *  row whose left column is a check number. Those buttons were a **second
- *  vocabulary for one act**: the same checks in the document already had this
- *  control, built over four rounds of Edwin's feedback (FEAT-0111,
- *  ISS-0185..ISS-0189), and it offers six marks where the buttons offered
- *  three verbs. Edwin: *"you can have the checkbox on the left as long as the
- *  check box functionality is the same as in the .md file."* It is the same
- *  dialog, the same six marks and the same endpoint.
+ *  This took an `actionable` argument until 2026-08-18 and passed `true` for
+ *  every blocking row on a release page. `REL-0013 · 2.1.7` in `your-trainer`
+ *  therefore rendered **sixty live mark buttons** on the page whose entire
+ *  purpose is to report that the release is not ready — so the fastest way to
+ *  unblock a release was to tick the things saying it was blocked.
  *
- *  `actionable` is false for the quiet and stale groups, which get the token
- *  as a plain `<span>`. Those rows never carried a verdict button either, and
- *  the reason stands: a quiet row describes a screen that has not been built,
- *  and a live-looking control on it invites marking a check nobody can walk.
+ *  Edwin: *"definitely do not allow these acceptance tests to be checked."*
+ *
+ *  The reasoning is [[ADR-0035]] and it is not about carelessness. A release
+ *  is not the subject of an acceptance check: a check verifies a feature, and
+ *  a release is a bag of features blocked by the sum. And this row shows the
+ *  check's **name**, never its **steps** — so the control sat at exactly the
+ *  distance from the procedure at which nobody can be walking it.
+ *
+ *  The parameter is **deleted rather than defaulted to `false`**. A parameter
+ *  with one live value is a decision waiting to be re-litigated by whoever
+ *  adds the next caller, and this control has now been removed from two
+ *  surfaces — [[ISS-0192]] took it off the rendered document and missed this
+ *  one, because they are different code paths.
+ *
+ *  Walking still happens, one click away: every row remains a link to the
+ *  check's own surface, which is where the steps are.
  */
-function gateMark(
-  item: GateItem, releaseId: string, actionable: boolean,
-): HTMLElement {
+function gateMark(item: GateItem): HTMLElement {
   const mark = item.mark || ' ';
   // `gate-mark` carries only this row's geometry; every colour, weight and
   // glyph rule comes from `acc-mark`, so the two surfaces cannot drift into
   // two vocabularies of colour for one vocabulary of marks.
   const cls = `acc-mark gate-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
-  const glyph = MARK_GLYPH[mark] ?? `[${mark}]`;
-  const title = MARK_TITLE[mark] ?? '';
-  if (!actionable) {
-    const span = document.createElement('span');
-    span.className = `${cls} is-static`;
-    span.textContent = glyph;
-    span.title = title;
-    return span;
-  }
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = cls;
-  btn.textContent = glyph;
-  btn.title = title;
-  btn.setAttribute('aria-label', `${item.number} ${item.name} — ${title}`);
-  btn.addEventListener('click', (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-    void markGateRow(item, releaseId);
-  });
-  return btn;
+  const span = document.createElement('span');
+  span.className = `${cls} is-static`;
+  span.textContent = MARK_GLYPH[mark] ?? `[${mark}]`;
+  span.title = MARK_TITLE[mark] ?? '';
+  return span;
 }
 
-/** Mark one gate row, then repaint the page around the reader.
- *
- *  **Repaint, where the document patches** (ISS-0189 does the opposite there,
- *  deliberately). These groups are a *diff against a tag*: a marked row leaves
- *  `New` or `Chronic` altogether and the count in the heading above it
- *  changes, so a locally-patched row would sit under a heading that had just
- *  stopped describing it.
- *
- *  What the repaint must not do is move the reader, which is the half
- *  ISS-0187 was right about and which this path never did. The position is
- *  held twice — once synchronously and once inside the frame — because
- *  `renderReleasePage` replaces the pane's children and layout lands a frame
- *  later, which is exactly how ISS-0188's fix came to do nothing.
- */
-async function markGateRow(item: GateItem, releaseId: string): Promise<void> {
-  await walkOneCheck(item, () => renderReleasePage(releaseId));
-}
+// **No `markGateRow`** (ADR-0035). It was the release page's write path —
+// `walkOneCheck` then repaint — and it is deleted rather than left unreferenced,
+// because a live-looking helper is how the next caller re-acquires the
+// behaviour a decision just removed. Walking a check happens on `~checks` and
+// on the check's own note; the gate row links there.
+
 
 /** **The walk layer** (TASK-0465): ask, write, repaint without moving the reader.
  *
@@ -8521,7 +8505,11 @@ function buildCheckRow(item: GateItem): HTMLElement {
   // Minimal strikes canceled text through — the clearest signal on a long
   // list that a row is not being waited for. It used to key on the rendered
   // `li[data-mark="-"]`; the class carries it now (ISS-0192).
-  if ((item.mark || ' ') === '-') row.classList.add('is-canceled');
+  // `MARK_CLASS` rather than a literal (ISS-0211): this read `=== '-'`, which
+  // ISS-0200 made permanently false when marks became words — so canceled rows
+  // silently lost their strikethrough. A dead comparison raises nothing, which
+  // is why it outlived the migration that broke it.
+  if (MARK_CLASS[item.mark || ' '] === 'canceled') row.classList.add('is-canceled');
   row.appendChild(checkMark(item));
 
   const body = document.createElement('div');
@@ -8930,7 +8918,7 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
     // The mark FIRST — the control, not a decoration, and the row's own
     // left-hand column (ISS-0190). A row that is not a thing to walk gets the
     // same token without the click, so the four lists still line up.
-    li.appendChild(gateMark(item, releaseId, !withSubjects && !withRerun));
+    li.appendChild(gateMark(item));
     const n = document.createElement('span');
     n.className = 'scoped-row-id mono';
     n.textContent = item.number;
