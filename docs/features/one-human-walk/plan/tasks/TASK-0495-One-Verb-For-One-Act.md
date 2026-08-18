@@ -15,6 +15,9 @@ depends: ["[[TASK-0492-Retire-The-Manual-Run-Obligation]]"]
 blocks: []
 related: []
 tests: []
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-18
+review_verdict: changes-requested
 ---
 
 # One verb
@@ -40,3 +43,11 @@ The vocabulary change is the one piece of FEAT-0123 that touches every surface a
 It is also now smaller than when it was written. `Needs a run` still contains only non-acceptance tests, but under [[ADR-0034-Three-Axes-Not-One-Word]] that is no longer a *different kind of test* — it is the same population filtered by execution. Renaming it is a one-line change once somebody picks the word.
 
 **Recommendation on the record**: *walk* for the human act and *run* for what a machine does to a `command:`, which is the split the two words already carry in ordinary use and the one `command:` makes structural.
+
+## Independent review — 2026-08-18, `model:claude-opus-5`, changes-requested
+
+Third verification pass, fresh context, separate session; model shared with the author and recorded above as provenance ([[project-os-dev#ADR-0013]]).
+
+**The verb landed.** Derived from the live payload rather than from the source text: `obligations.payload()` returns `verb='Walk'` for the `test` kind and `Walk` for the release gate, and no `Run` survives in the registry. `d1a8ad6` is the commit that made the change the second review found had silently no-opped; `a1279c2` had not.
+
+**It is unguarded, which is the finding.** Reverting `"Walk"` to `"Run"` in `obligations.py` and running the **full** suite gives `1697 passed, 4 skipped` — **zero failures**. The second review already recorded that the matching heading rename was unguarded (*"reverting it to `Needs a run` leaves the whole suite green"*); the verb was corrected without closing that gap, so the exact defect this task exists to fix can return without anything failing. A test asserting the payload verb — the derivation this review used — would close it.

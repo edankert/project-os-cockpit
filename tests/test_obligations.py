@@ -351,3 +351,36 @@ def test_the_note_less_memo_cannot_outlive_its_corpus(tmp_path) -> None:
     assert obligations.note_less_row_for(settled, "FEAT-9001") is None, (
         "a second corpus was served the first one's owed rows"
     )
+
+
+def test_one_verb_names_the_human_act_across_every_owed_kind() -> None:
+    """TASK-0495, and the guard it went four commits without.
+
+    The registry carried `Run` on the `test` obligation and `Walk` on the
+    release gate — one act, two verbs, rendered side by side as *"Run 5 tests"*
+    beside *"Walk 1 release gate"*. Every note the `test` obligation reaches has
+    **no `command:` by definition**, so `Run` named the one thing that cannot
+    happen to it.
+
+    The fix was applied twice. The first attempt was a `str.replace` whose
+    search string did not match the file, so it silently changed nothing and was
+    reported as done. The second landed — and the **third** independent review
+    reverted `"Walk"` to `"Run"` and ran the full suite: *1697 passed, zero
+    failures.* An unguarded fix is one careless edit from being a no-op again,
+    which is the exact failure mode this task's own history demonstrates.
+
+    Asserted on the payload rather than the constant, because the payload is
+    what the badge renders.
+    """
+    verbs = {kind: ob.verb for kind, ob in obligations.OBLIGATIONS.items()}
+    assert verbs["test"] == "Walk", (
+        "the `test` obligation is by definition tests with no `command:` — a "
+        "person walks them; `Run` names what a runner does to a different "
+        "population entirely"
+    )
+    assert "Run" not in set(verbs.values()) | set(
+        obligations.STANDING_VERBS.values()
+    ), (
+        "no obligation may say `Run`: the registry only ever names acts owed "
+        "to a person, and a runner is not a person"
+    )
