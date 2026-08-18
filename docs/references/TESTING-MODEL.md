@@ -16,6 +16,11 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Ve
 
 # The testing model
 
+> [!warning] Superseded in substance by [[PHASE-036-One-Human-Walk]], 2026-08-18.
+> Everything below describes the model **before** ADR-0034 separated the three axes. It still documents the four-heuristic `_is_manual_test`, the two-predicate disagreement, the character marks and a group called `Needs a run` — none of which is current. It is kept because the *reasoning* is still the clearest account of why the merge happened, and because rewriting a reference note into pretending it always said the right thing is how a record stops being one.
+>
+> **What is current**: `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates. Marks are the seven words. The verb is *walk*. Read [[ADR-0034-Three-Axes-Not-One-Word]] and the phase note.
+
 **Written down at Edwin's request, 2026-08-18, after PHASE-035 closed.** It describes what is *implemented*, not what was intended — where the two differ, the difference is named. The open questions this raised are [[ISS-0200-Marks-Versus-Statuses]] … [[ISS-0204-The-Acceptance-Filter-Bar-Is-Congested]].
 
 ## One type, one scale

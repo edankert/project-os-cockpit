@@ -114,9 +114,14 @@ OBLIGATIONS: dict[str, Obligation] = {
     "requirement": Obligation(("draft", "proposed"), VIEW_FEATURES, "Approve"),
     "issue": Obligation(("triage",), VIEW_ISSUES, "Triage"),
     "test": Obligation(
-        ("ready",), VIEW_TESTS, "Run",
-        predicate="manual tests only — an automated test at `ready` waits on a "
-                  "runner, not on a person",
+        ("ready",), VIEW_TESTS, "Walk",
+        # **One verb for one act** (TASK-0495). The registry carried `Run` here
+        # and `Walk` on the release gate, over one type — live as *"Run 5
+        # tests"* beside *"Walk 1 release gate"*. Every note this obligation
+        # reaches has no `command:` by definition, so `Run` named the one thing
+        # that cannot happen to it.
+        predicate="tests a person walks — one with a `command:` waits on a "
+                  "runner, not on anybody",
     ),
     "feature": Obligation(
         (), VIEW_FEATURES, "Accept",

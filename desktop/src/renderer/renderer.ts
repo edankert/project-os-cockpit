@@ -4494,6 +4494,21 @@ interface ScopeTest {
 // The server now ships `stale` on every test row, computed once. Nothing here
 // decides it.
 
+/** What stands between one scope and terminal (REQ-0043).
+ *
+ *  The server has computed this since `blocking_for` gained a production caller
+ *  and the renderer THREW IT AWAY — the response was typed `{ tests? }`, so
+ *  "a feature's panel answers what blocks this feature" described a panel that
+ *  did not exist. Found by the second independent review, which is the
+ *  difference between a payload and a surface.
+ */
+interface ScopeBlocking {
+  id: string; title: string; rel?: string;
+  tier?: number; mark?: string; unattributed?: boolean;
+}
+
+const scopeBlocking = new Map<string, ScopeBlocking[]>();
+
 async function fetchScopeTests(noteId: string): Promise<ScopeTest[]> {
   if (!sidecarBaseUrl) return [];
   try {
@@ -4501,7 +4516,10 @@ async function fetchScopeTests(noteId: string): Promise<ScopeTest[]> {
       `${sidecarBaseUrl}/api/cockpit/scope-tests?id=${encodeURIComponent(noteId)}`,
     );
     if (!resp.ok) return [];
-    const data = (await resp.json()) as { tests?: ScopeTest[] };
+    const data = (await resp.json()) as {
+      tests?: ScopeTest[]; blocking?: ScopeBlocking[];
+    };
+    scopeBlocking.set(noteId, data.blocking ?? []);
     return data.tests ?? [];
   } catch { return []; }
 }
@@ -4525,6 +4543,51 @@ async function fillVerificationPanel(
   noteId: string, head: HTMLElement, body: HTMLElement,
 ): Promise<void> {
   const tests = await fetchScopeTests(noteId);
+  const blocking = scopeBlocking.get(noteId) ?? [];
+  if (blocking.length > 0) {
+    // Above the test list, because it is the answer to a different and more
+    // urgent question: not *what verifies this* but *what stops it shipping*.
+    const gate = document.createElement('div');
+    gate.className = 'scope-blocking';
+    const label = document.createElement('p');
+    label.className = 'meta';
+    label.textContent = `${blocking.length} acceptance `
+      + `${blocking.length === 1 ? 'test' : 'tests'} unsettled for this scope`;
+    gate.appendChild(label);
+    const list = document.createElement('ul');
+    list.className = 'nav-items';
+    for (const row of blocking.slice(0, 12)) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.className = 'nav-item nav-item-line';
+      if (row.rel) a.href = `/docs/${row.rel}`;
+      a.textContent = row.title || row.id;
+      // An unattributable check blocks every scope, so a reader meeting it
+      // under one feature is owed the reason it is here.
+      a.title = row.unattributed
+        ? `${row.id} — names no subject, so it blocks every scope`
+        : `${row.id}${row.mark ? ` — ${row.mark}` : ''}`;
+      if (row.rel) {
+        a.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          void navigateTo(`/docs/${row.rel}`);
+        });
+      }
+      li.appendChild(a);
+      list.appendChild(li);
+    }
+    if (blocking.length > 12) {
+      const more = document.createElement('li');
+      more.className = 'meta';
+      more.textContent = `…${blocking.length - 12} more`;
+      list.appendChild(more);
+    }
+    gate.appendChild(list);
+    body.replaceChildren(gate);
+    if (tests.length === 0) return;
+    // Everything below appends rather than replaces, so the gate survives the
+    // test list being rendered after it.
+  }
   if (tests.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'meta';
@@ -4615,7 +4678,10 @@ async function fillVerificationPanel(
     li.addEventListener('click', () => void navigateTo(test.rel));
     list.appendChild(li);
   }
-  body.replaceChildren(list);
+  // **Append, not replace.** The blocking list is rendered above this and
+  // `replaceChildren` would silently delete it — which is the same shape as the
+  // defect this whole panel change fixes: a thing computed and then discarded.
+  body.appendChild(list);
 }
 
 function isStaleRun(test: ScopeTest): boolean {

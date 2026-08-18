@@ -496,3 +496,49 @@ def test_every_mark_in_the_corpus_has_a_label_a_glyph_and_a_colour() -> None:
         block = block[:block.index("};")]
         absent = sorted(m for m in marks if not _re.search(rf"(^|[{{,\s]){m}\s*:", block))
         assert not absent, f"{table} has no entry for {absent}"
+
+
+def test_a_mistyped_mark_is_never_settled_by_either_reader() -> None:
+    """`" x"` and `"x "` must stay unrecognised, in BOTH copies of the rule.
+
+    `_ITEM_RE`'s own comment is the reason: *"`\\" x\\".strip()` is `\\"x\\"`, so a
+    parser written from that comment would read a typo as a walked check."*
+    Stripping before matching moves a typo from *unrecognised and therefore
+    blocking* to `done` and settled — the one change in this migration that
+    could let a release through on a check nobody walked.
+
+    **Two readers, and the first fix reached only one.** `acceptance.normalise_mark`
+    was corrected and `validate-docs.py::_acceptance_is_settled` was not — which
+    is the copy that gates pre-commit and CI, so the fix landed everywhere except
+    where it mattered most. Both are asserted here, and the validator is loaded
+    from disk so the bundled copy cannot drift silently either.
+
+    A WORD may carry surrounding space, because YAML scalars do and `Done` is
+    not a typo. A CHARACTER may not.
+    """
+    import importlib.util
+    from pathlib import Path as _Path
+
+    from project_os_cockpit import acceptance as _acc
+
+    for typo in (" x", "x ", " /", "- ", "\tx"):
+        assert _acc.normalise_mark(typo) not in _acc._CHECKED_MARKS, typo
+        assert _acc.normalise_mark(typo) not in _acc._RECONCILED_MARKS, typo
+        assert _acc.normalise_mark(typo) not in _acc._EXCEPTED_MARKS, typo
+    assert _acc.normalise_mark("x") == "done"
+    assert _acc.normalise_mark(" Done ") == "done", "a word may carry space"
+
+    root = _Path(__file__).resolve().parent.parent
+    for copy in (root / "tools" / "scripts" / "validate-docs.py",
+                 root / "src" / "project_os_cockpit" / "validate_docs_bundled.py"):
+        spec = importlib.util.spec_from_file_location(f"v_{copy.stem}", copy)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for typo in (" x", "x ", " -"):
+            index = {"T": ("path", {"mark": typo, "level": "acceptance"})}
+            assert not module._acceptance_is_settled("T", index), (
+                f"{copy.name} settles the typo {typo!r} — a release can pass on "
+                "a check nobody walked"
+            )
+        index = {"T": ("path", {"mark": " done ", "level": "acceptance"})}
+        assert module._acceptance_is_settled("T", index), copy.name

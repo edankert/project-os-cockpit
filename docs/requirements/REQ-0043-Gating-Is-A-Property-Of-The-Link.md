@@ -13,7 +13,7 @@ scope: "verification gates"
 implements: "[[FEAT-0124-Gating-Is-Derived-From-Covers]]"
 acceptance:
   - "[ ] One rule gates every item type: an item may not reach a terminal status while a test covering it is unsettled. A task, an issue, a requirement, a feature and a release are gated by the same sentence."
-  - "[x] No gate reads `level:`, `kind:` or a `command:` to decide WHETHER something gates; execution mode decides only what `settled` MEANS. `tier:` is read as LIFETIME (ADR-0034 decision 6) — does this test still apply — which is prior to gating rather than a kind of it, and the constant is named `PERMANENT_TIERS` so the code says which question it is asking."
+  - "[~] No gate reads `level:`, `kind:` or a `command:` to decide WHETHER something gates — that half holds. `tier:` IS still read, and calling it lifetime was a rewording rather than a fix: ADR-0034 decision 6 says the tier rule should be RETIRED after the backfill, not renamed. Six unsettled Tier 3 checks in your-trainer are dropped by it before the fail-closed clause can see them."
   - "[ ] The derived gate names the same blocking SET as the tier gate, per repo, before the tier rule is retired. Baseline: 0 / 56 / 60."
   - "[ ] No acceptance row reaches a badge. Aggregation and ADR-0028's in-flight rule are what hold that, and both are explicit rather than incidental."
 covers: []
@@ -31,9 +31,13 @@ The rule this requirement forbids is any sentence of the form *"a test of kind X
 ## Acceptance criteria
 
 - [x] **One rule gates every item type.** `Suite.blocking_for(subjects)`; `blocking()` is its `subjects=None` case, so the release gate and the per-item gate are one predicate.
-- [x] **No gate decides whether something gates from `level:`, `kind:` or `command:`.** Execution mode decides only what *settled* means.
+- [~] **Half holds, and I claimed the other half twice.** No gate reads `level:`, `kind:` or `command:` to decide *whether* something gates — that is true and guarded.
 
-  **`tier:` is read, and the criterion was wrong to forbid it outright** — which independent review was right to catch and which is settled here rather than reconciled away. [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 says tier survives as a **lifetime** field, and TESTING.md defines Tier 3 as *"a one-time check for a specific build, promoted or removed after a verified release."* A test that has stopped applying cannot sensibly hold anything open, so asking *does this still apply* is **prior to** gating rather than a kind of it. The constant is now `PERMANENT_TIERS`, so the code names the question it is asking. Measured: 74 of `your-trainer`'s 83 unattributed checks are Tier 3 — already retired in practice.
+  **`tier:` is still read, and renaming the constant `PERMANENT_TIERS` did not change that.** The second independent review called it the criterion reworded to pass, and it was right on both counts: [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 prescribes *retiring* the tier rule after the backfill rather than reinterpreting it, and `GATING_TIERS` survives at nine sites including a payload key literally named `gating`.
+
+  **And the lifetime reading is false in the corpus.** I wrote that the 83 unattributed checks were "all settled". Measured: **six are not** — `your-trainer`'s TST-0592..0597 are Tier 3, `mark: todo`, never walked, and the tier filter drops them **before** the fail-closed clause can see them. So the one case the fail-closed clause exists for is the one case the tier filter hides.
+
+  Retiring the tier rule needs the backfill ADR-0034 makes it conditional on, and that is [[TASK-0499-Backfill-The-Eighty-Three]]'s successor rather than a rename. Left `[~]` and filed rather than claimed a third time.
 - [x] **The derived gate names the same blocking set as the tier rule**, per repo, proven by membership rather than count: 0 / 56 / 60.
 - [x] **No acceptance row reaches a badge** in any repo: 1 / 0 / 5 / 2, unchanged.
 

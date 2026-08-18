@@ -273,6 +273,9 @@ ACCEPTANCE_FORBIDDEN_STATUSES = ("ready", "passing", "failing")
 #: `acceptance.Item.settled` reads, named here because the validator does not
 #: import the cockpit package.
 _SETTLED_MARKS = ("done", "incomplete", "canceled", "x", "X", "/", "~", "-")
+#: The word half of the above — safe to strip and lowercase, unlike the
+#: characters, where surrounding space is a typo rather than formatting.
+_SETTLED_WORDS = ("done", "incomplete", "canceled")
 
 
 def _acceptance_is_settled(note_id, note_index):
@@ -289,7 +292,19 @@ def _acceptance_is_settled(note_id, note_index):
     fm = entry[1] or {}
     if str(fm.get("command", "") or "").strip():
         return str(fm.get("status", "") or "").strip() == "passing"
-    mark = str(fm.get("mark", "") or "").strip().strip('"')
+    # **Never strip the character form.** `" x"` and `"x "` are the exact typos
+    # the row parser refuses to normalise, and stripping moved them from
+    # unrecognised-and-blocking to settled. `acceptance.normalise_mark` was
+    # fixed for this on 2026-08-18 and **this copy was not** — which is the copy
+    # that gates pre-commit and CI, so the fix landed everywhere except where it
+    # mattered most. Found by the second independent review.
+    raw = str(fm.get("mark", "") or "")
+    mark = raw.strip('"')
+    if mark not in _SETTLED_MARKS:
+        # A WORD may carry surrounding space (YAML scalars do); a CHARACTER may
+        # not, because a space beside it is a typo and not formatting.
+        word = mark.strip().lower()
+        mark = word if word in _SETTLED_WORDS else mark
     return mark in _SETTLED_MARKS
 
 
@@ -424,6 +439,7 @@ _NON_STATUS_COLLECTIONS = frozenset({
     # thing they exist to preserve. Caught by this guard on the day it was
     # added, which is the third time it has earned its keep.
     "_SETTLED_MARKS",
+    "_SETTLED_WORDS",
     "MANUAL_DECLARATION_KEYS",
 })
 

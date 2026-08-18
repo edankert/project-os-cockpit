@@ -220,3 +220,30 @@ def test_the_scope_panel_answers_what_blocks_THIS_feature() -> None:
     assert all("unattributated" not in row for row in panel["blocking"])
     for row in panel["blocking"]:
         assert "unattributed" in row, "an orphan check must say why it appears here"
+
+
+def test_the_scope_panel_renders_what_it_computes() -> None:
+    """REQ-0043's criterion is about a SURFACE, not a payload.
+
+    The server computed `blocking` and the renderer threw it away — the response
+    was typed `{ tests? }` — so *"a feature's panel answers what blocks this
+    feature"* described a panel that did not exist. Found by the second
+    independent review; the first fix met the criterion in letter only.
+
+    Asserted on the renderer source, because the property is that the value
+    reaches the DOM and no payload test can see that.
+    """
+    renderer = (Path(__file__).resolve().parent.parent / "desktop" / "src"
+                / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    assert "blocking?: ScopeBlocking[]" in renderer, (
+        "the scope response is typed without `blocking` again, so the renderer "
+        "discards what the server computed"
+    )
+    panel = renderer[renderer.index("async function fillVerificationPanel"):]
+    panel = panel[:panel.index("\nfunction ")]
+    assert "scopeBlocking.get(noteId)" in panel, "the panel never reads it"
+    assert "scope-blocking" in panel, "nothing is appended to the DOM for it"
+    assert "body.replaceChildren(list)" not in panel, (
+        "the test list replaces the panel's children, which silently deletes "
+        "the blocking list rendered above it"
+    )
