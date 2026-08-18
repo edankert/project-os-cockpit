@@ -4,7 +4,8 @@ id: DES-0012
 aliases: ["DES-0012"]
 title: "Tests in two flows — how `TST-*` serves the development flow and the release flow, as one query at two zoom levels"
 role: proposal
-status: "proposed"
+decided: 2026-08-18
+status: "accepted"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
@@ -52,18 +53,61 @@ So the proposal is to group by **scope**, with tier, level and execution demoted
 
 `your-trainer` carries **22 `full`, 181 `partial`, 376 `manual`** — a populated, useful field that no list surfaces, sitting beside the field [[ADR-0034]] declared the single answer to the same question. Edwin asked for *a* distinction; there are two, and D2 picks.
 
-## The five decisions
+## The five decisions — answered 2026-08-18
 
-Full options, trade-offs and a worked mock are in the artifact beside this note.
+### D1 — group by **surface**, which is `area:`, inside tier
 
-1. **D1 — what groups the list.** Tier extended to every test / **scope** (recommended) / level. If scope: what happens to the **83 checks that cover nothing**?
-2. **D2 — which field means automated.** `command:` alone / both, named differently / retire `automation:` and express it as `covers:` links.
-3. **D3 — whether tier survives.** Demoted to an attribute, or removed ([[ISS-0208]]). And the six never-walked Tier 3 checks: retire, or let them gate (60 → 66)?
-4. **D4 — what a release contains.** Confirm the picker: features *and* phases, written to the note, **opt-in**, refusing on a frozen release.
-5. **D5 — where a walk happens.** Does [[ADR-0035]] hold for a release-scoped *test list*? I lean to holding it.
+Edwin: *"can we scope them differently, based on where they sit in the application instead, the surface they are supposed to test, these are always application level tests?"*
+
+**The field already exists and holds exactly that.** `area:` and `section:` are 1:1 (76 and 76 in `your-trainer`), and Tier 1's values are the application's surfaces: *Profile Management, Hardware Connectivity, Workout Execution, AI Workout Builder, Monetization & Licensing*. Not features, not scopes — surfaces.
+
+**So grouping by feature is dropped.** Edwin is right that it is unlike the rest of the tool and that 80 groups is unusable. `area:` gives 25 groups in Tier 1 and is what a person means by *where in the app*.
+
+**Areas do not span tiers** — 25 + 46 + 5 = 76 distinct, no overlap — so area is a *sub-division* of tier rather than an orthogonal axis. The structure is therefore **tier → surface → rows**, which is what the generated page had until [[TASK-0513]] flattened it a few hours before this was written. That flattening was mine and it was wrong: the request it answered was about the left pane's tier sections, and I applied it to the page's surface headings. It is reverted.
+
+**One caveat, for Edwin.** Tier 2's `area:` values are not surfaces — they are individual past bugs (*Family License on Cold Start, HRM Mid-Workout Reconnect, ERG Target Power Sync*), 46 of them over 158 checks. Grouping Tier 2 by area gives ~3 checks per group. That is faithful to how Tier 2 is authored, and it is a data question rather than a display one.
+
+### D2 — `command:` only
+
+Decided by Edwin. `automation:` stops being read as an answer to *who runs this*.
+
+**Its cost, stated:** `your-trainer`'s 22 `full` and 181 `partial` checks all read as manual, which is true of the *check* and silent about the coverage behind it. And 66 Tier 3 checks sit in an area literally called *"Moved from Tier 1 / Tier 2 — Fully Automated"* while carrying `automation: manual` — the field already disagrees with itself, which is the strongest argument for dropping it.
+
+### D3 — tiers stay; the names are `your-trainer`'s own, and Tier 3's lifecycle is already written
+
+Edwin: *"those are very strange names for these tiers … please re-review the reason we created these tiers."*
+
+Re-read from source. `your-trainer/tools/instructions/TESTING.md` defines them, and the cockpit's `_TIER_LABELS` copies the names verbatim:
+
+| tier | TESTING.md's name | created when | lifetime |
+| --- | --- | --- | --- |
+| 1 | Feature Tests (permanent) | a feature is first implemented | never removed |
+| 2 | Regression Tests (permanent) | a bug fix lands; each references its `ISS-*` | never removed |
+| 3 | Verification Tests (temporary) | a one-time check for a specific build | **promoted to Tier 2, or removed, after a verified release** |
+
+**They name why a test was created, not what it tests** — which is exactly why they read oddly next to a surface. The corpus confirms each definition: Tier 1's areas are surfaces, Tier 2's are individual bugs, Tier 3's are one-offs.
+
+**Tier 3 already has the different lifecycle Edwin asked about**, in as many words: after a verified release it is promoted or removed. It is never reopened. What has not happened is the *doing* of it — **66 of Tier 3's 74 checks are the "Unit test replacement" rule's holding pen**, moved there because unit tests cover them, with TESTING.md saying *"remove after the next release"*. They were not removed. That is the real Tier 3 finding, and it subsumes [[ISS-0208]]'s six unwalked rows: Tier 3 is not a gate question, it is a **housekeeping obligation nobody performs at release**.
+
+### D4 — agreed, and platform enters it
+
+Edwin: *"this is important now that we have iOS features and Android features/phases, each of them have their own releases (although going forward they probably have the same releases?)"*
+
+The picker must therefore be **platform-aware**: `platform:` already exists on notes and the nav already filters by it. A release picks features, and the candidate list is narrowed by the release's platform. If iOS and Android converge on one release later, a release with no platform takes both — which is the same opt-in rule as contents.
+
+### D5 — one verb, and it is not "walk"
+
+Edwin: *"can you stop talking about 'walking'."*
+
+Dropped, in the prose and in the product. [[TASK-0495]] changed the registry's verb from `Run` to `Walk` on the argument that a person walks a procedure and a machine runs a command. **D2 removes the premise**: with `command:` as the only answer to who runs a test, one verb covers both — a test with a command is run by a runner, one without is run by a person. `Run` comes back, and the guard that made `Walk` permanent gets inverted.
+
+That is the second reversal of this verb in a week. It is worth recording that both were argued from the same fact and reached opposite conclusions, and the tie-break was that a reader should not need the argument.
 
 ## Consequences
 
-- [[FEAT-0128]] is partly built against the old shape and will need revisiting under D1 — the collapse and the tracking line survive any answer; the grouping does not.
+- **[[TASK-0513]] is reverted**: the generated page returns to tier → surface → rows. Flattening it removed the exact structure D1 restores.
+- **Progress is a bar, not a number.** Edwin: *"I want to see a bar the same as we do for phases on the overview page … this could nicely be per scope/surface."* `.ov-phase-under` and the segmented `.ov-mixbar` already exist; a surface group gets one, and so does each tier.
+- [[FEAT-0128]]'s collapse and tracking line survive; its grouping does not.
 - [[FEAT-0129]] is unblocked by D4 alone and is the prerequisite for the release lens.
+- **Tier 3 needs a release-time obligation** — promote or remove — which is where its 66 overdue rows come from. New, and not yet scoped.
 - The sweep ([[FEAT-0115]]) is the mechanism that *creates* `invalidated_by:` data. Both re-run populations are currently **0 in every repo**, so the tracking line has nothing to track until sweeps happen — which makes the sweep obligation load-bearing for this design rather than incidental to it.

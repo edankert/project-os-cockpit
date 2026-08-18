@@ -316,7 +316,7 @@
 
 <div class="wrap">
   <header class="masthead">
-    <p class="eyebrow">DES-0012 · proposal · awaiting decision</p>
+    <p class="eyebrow">DES-0012 · accepted 2026-08-18 · all five decided</p>
     <h1>Tests in two flows</h1>
     <p class="standfirst">The cockpit has one population of tests and two questions to answer with it: <em>is this feature done?</em> and <em>can we ship this set?</em> Today the tests view answers neither, because it is organised by three different principles at once. This proposes one structure, and asks you for five decisions.</p>
   </header>
@@ -410,8 +410,8 @@ flowchart LR
               <div><b>Against</b><span>Tier is a lifetime statement, not a scope — it answers neither flow's question. And ADR-0034 already resolved to retire it.</span></div>
             </div>
           </div>
-          <div class="opt pick">
-            <div class="opt-head"><span class="opt-label">B</span><p class="opt-name">Scope — what the test covers</p><span class="tag">recommended</span></div>
+          <div class="opt">
+            <div class="opt-head"><span class="opt-label">B</span><p class="opt-name">Scope — what the test covers</p><span class="tag">superseded by D1</span></div>
             <p>Group by the feature (or release) the test covers. Tier, level and execution become row attributes and filter chips. The same view serves both flows by changing what is in scope.</p>
             <div class="cost">
               <div><b>For</b><span>The only axis both flows share. Percentage complete becomes meaningful per feature <em>and</em> per release. "Organise tests by release" falls out for free.</span></div>
@@ -429,8 +429,8 @@ flowchart LR
         </div>
         <p><strong>Recommendation: B, with A's shape as the default view.</strong> Group by scope, but when nothing is selected, collapse to the tier summary you already know — so the landing page stays three lines, and choosing a feature or a release expands into its own tests. Scope is the structure; tier is the default zoom.</p>
         <div class="decision">
-          <p class="dlabel">D1 — needs your answer</p>
-          <p>A, B, or C. If B: what happens to the 83 unattributed checks — a visible “covers nothing” group, or a backfill first?</p>
+          <p class="dlabel">D1 — decided: group by <em>surface</em></p>
+          <p>Not feature — Edwin: <em>“scope them based on where they sit in the application, the surface they are supposed to test.”</em> That field already exists: <code>area:</code>, and Tier 1's values <strong>are</strong> the surfaces — Profile Management, Hardware Connectivity, Workout Execution, Monetization &amp; Licensing. 25 groups, not 80. Areas do not span tiers, so the structure is <strong>tier → surface → rows</strong> — which the generated page had until I flattened it hours before writing this. Reverted.</p>
         </div>
       </section>
 
@@ -443,8 +443,8 @@ flowchart LR
           <li><strong>Retire <code>automation:</code>, express it as <code>covers:</code></strong> — a check that says "the automated <code>LicenseSeatResolverTest</code> covers the caps" should <em>link</em> that test rather than describe it in a field. Most honest, most work, and it makes the roll-up derived rather than authored.</li>
         </ul>
         <div class="decision">
-          <p class="dlabel">D2 — needs your answer</p>
-          <p>One field, two fields, or fold <code>automation:</code> into links. My preference is the third eventually and the second now, because it is the only one that shows you something true today without a migration.</p>
+          <p class="dlabel">D2 — decided: <code>command:</code> only</p>
+          <p><code>automation:</code> stops answering “who runs this”. The cost, stated: 22 <code>full</code> and 181 <code>partial</code> checks read as manual. The argument for it: 66 Tier 3 checks sit in an area called <em>“Moved from Tier 1 / Tier 2 — Fully Automated”</em> while carrying <code>automation: manual</code>. The field already disagrees with itself.</p>
         </div>
       </section>
 
@@ -453,8 +453,8 @@ flowchart LR
         <p>ISS-0208 is open on this and it now blocks D1. ADR-0034 decision 6 says tier survives "only if it earns its place as a lifetime field". Under option B it stops being structure and becomes an attribute — which is either the retirement that ADR intended, or the demotion that saves it.</p>
         <p>There is a live sub-question underneath: <strong>six Tier 3 checks in <code>your-trainer</code> have never been walked</strong> and cover nothing. TESTING.md says Tier 3 does not gate a release. Either they are stale notes to retire, or a never-walked check should gate whatever its tier — that is a 60 → 66 move on the gate.</p>
         <div class="decision">
-          <p class="dlabel">D3 — needs your answer</p>
-          <p>Tier as attribute (demoted), or removed entirely? And for the six: retire them, or let them gate?</p>
+          <p class="dlabel">D3 — decided: tiers stay, and Tier 3's lifecycle was already written</p>
+          <p>The names are <code>your-trainer</code>'s own — TESTING.md defines Feature / Regression / Verification and the cockpit copies them verbatim. They name <em>why a test was created</em>, which is why they read oddly beside a surface. Tier 3 is already “promoted or removed after a verified release”, never reopened. What is missing is anyone doing it: <strong>66 of Tier 3's 74 checks are the unit-test-replacement holding pen</strong>, marked “remove after the next release” and never removed. That subsumes the six unwalked rows — Tier 3 is a housekeeping obligation, not a gate question.</p>
         </div>
       </section>
 
@@ -464,8 +464,8 @@ flowchart LR
         <p>The field already exists and works: <code>REL-0001</code> carries 27 entries. What is missing is a way to fill it other than by hand. Once it is filled, <code>blocking_for(release.features)</code> makes the release page report <em>itself</em> rather than the whole suite — and "organise tests by release" is the same query.</p>
         <p><strong>Safety property:</strong> naming contents must be opt-in. A picker that changed the meaning of <code>features: []</code> would rewrite the gate for eleven historical releases.</p>
         <div class="decision">
-          <p class="dlabel">D4 — needs your answer</p>
-          <p>Confirm: pick features <em>and</em> phases (a phase contributing its features), written to the release note, opt-in, refusing on a frozen release. Anything to add?</p>
+          <p class="dlabel">D4 — decided, and platform enters it</p>
+          <p>Agreed as proposed, plus: iOS and Android features and phases have their own releases today. The picker is <strong>platform-aware</strong> — <code>platform:</code> already exists and the nav already filters on it, so the candidate list narrows to the release's platform. A release with no platform takes both, which is how the two converge later without a migration.</p>
         </div>
       </section>
 
@@ -473,8 +473,8 @@ flowchart LR
         <h2><span class="num">Decision 5</span>Where a walk happens</h2>
         <p>ADR-0035 (accepted, built today) says a release page reports and records nothing — walking happens where the procedure is visible. If tests organise by release, the temptation returns immediately: a release view listing its own tests is exactly where a person clearing a gate stands.</p>
         <div class="decision">
-          <p class="dlabel">D5 — needs your answer</p>
-          <p>Does ADR-0035 hold for a release-scoped <em>test list</em>, or is that list the one place a release page may offer the mark? I lean to holding it: the row can link to the check, and the check's page shows the steps you are attesting to.</p>
+          <p class="dlabel">D5 — decided: one verb, and it is not “walk”</p>
+          <p>Edwin: <em>“can you stop talking about ‘walking’.”</em> Dropped in the prose and in the product. TASK-0495 changed the verb from <strong>Run</strong> to <strong>Walk</strong> because a person walks a procedure and a machine runs a command — and D2 removes that premise. With <code>command:</code> the only answer, one verb covers both: a test with a command is run by a runner, one without is run by a person. <strong>Run</strong> returns, and the guard that made <em>Walk</em> permanent is inverted. ADR-0035 still holds: a release page reports, it does not record.</p>
         </div>
       </section>
 
