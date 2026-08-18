@@ -1,0 +1,523 @@
+<title>Tests in two flows — a design for how TST-* serves development and release</title>
+<style>
+  :root {
+    --paper:        #F6F7F9;
+    --surface:      #FFFFFF;
+    --ink:          #171A20;
+    --ink-soft:     #454B57;
+    --ink-faint:    #6D7481;
+    --rule:         #DDE1E7;
+    --rule-soft:    #EAEDF1;
+    --accent:       #2B4C7E;
+    --accent-soft:  #E8EEF6;
+    --walked:       #2F6B4F;
+    --owed:         #9C5711;
+    --blocked:      #97313A;
+    --walked-bg:    #E7F1EB;
+    --owed-bg:      #FBF0E2;
+    --blocked-bg:   #F8E9EA;
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:       #14171C;
+      --surface:     #1B1F26;
+      --ink:         #E8EAEE;
+      --ink-soft:    #B3B9C4;
+      --ink-faint:   #848B98;
+      --rule:        #2E343E;
+      --rule-soft:   #242A32;
+      --accent:      #8FB3E0;
+      --accent-soft: #1E2A3A;
+      --walked:      #7FBF9C;
+      --owed:        #D9A164;
+      --blocked:     #E08A92;
+      --walked-bg:   #17261E;
+      --owed-bg:     #2A2015;
+      --blocked-bg:  #2B1A1D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:       #14171C;
+    --surface:     #1B1F26;
+    --ink:         #E8EAEE;
+    --ink-soft:    #B3B9C4;
+    --ink-faint:   #848B98;
+    --rule:        #2E343E;
+    --rule-soft:   #242A32;
+    --accent:      #8FB3E0;
+    --accent-soft: #1E2A3A;
+    --walked:      #7FBF9C;
+    --owed:        #D9A164;
+    --blocked:     #E08A92;
+    --walked-bg:   #17261E;
+    --owed-bg:     #2A2015;
+    --blocked-bg:  #2B1A1D;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 20px 120px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  header.masthead {
+    padding: 72px 0 34px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 44px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 20px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(34px, 5.2vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+  .standfirst {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ---- two-column shell ---- */
+  .shell { display: grid; grid-template-columns: 1fr; gap: 48px; }
+  @media (min-width: 1000px) {
+    .shell { grid-template-columns: 210px minmax(0, 1fr); gap: 56px; align-items: start; }
+    .rail { position: sticky; top: 32px; }
+  }
+  .rail-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+  .rail a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 13.5px;
+    line-height: 1.35;
+    display: block;
+    border-left: 2px solid var(--rule);
+    padding-left: 11px;
+  }
+  .rail a:hover, .rail a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+  .rail .dnum { font-family: var(--mono); font-size: 11px; color: var(--accent); display: block; }
+
+  main { min-width: 0; display: flex; flex-direction: column; gap: 52px; }
+  section { display: flex; flex-direction: column; gap: 17px; }
+
+  h2 {
+    font-family: var(--display);
+    font-size: 29px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin: 0;
+    text-wrap: balance;
+    padding-top: 6px;
+    border-top: 1px solid var(--rule);
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 9px;
+    font-weight: 400;
+  }
+  h3 {
+    font-family: var(--body);
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0.005em;
+    margin: 10px 0 0;
+  }
+  p { margin: 0; max-width: 68ch; }
+  ul, ol.body-list { margin: 0; padding-left: 21px; max-width: 66ch; display: flex; flex-direction: column; gap: 8px; }
+  li { padding-left: 3px; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--rule-soft);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+  }
+  strong { font-weight: 650; }
+  em { font-style: italic; color: var(--ink-soft); }
+
+  /* ---- data table ---- */
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  caption {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-bottom: 9px;
+  }
+  th, td { text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    border-bottom: 1px solid var(--rule);
+  }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---- option cards ---- */
+  .options { display: flex; flex-direction: column; gap: 15px; }
+  .opt {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+  .opt.pick { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+  .opt-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+  .opt-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.09em; color: var(--accent); }
+  .opt-name { font-family: var(--display); font-size: 20px; font-weight: 600; margin: 0; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .cost { display: grid; grid-template-columns: 1fr; gap: 7px; font-size: 14px; }
+  @media (min-width: 620px) { .cost { grid-template-columns: 1fr 1fr; gap: 7px 26px; } }
+  .cost div { display: flex; gap: 8px; }
+  .cost b { font-weight: 600; flex: none; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); padding-top: 2px; min-width: 34px; }
+
+  /* ---- decision block ---- */
+  .decision {
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    background: var(--accent-soft);
+    padding: 19px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .decision .dlabel {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .decision p { max-width: 64ch; }
+
+  /* ---- state chips ---- */
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.w { background: var(--walked-bg); color: var(--walked); }
+  .chip.o { background: var(--owed-bg); color: var(--owed); }
+  .chip.b { background: var(--blocked-bg); color: var(--blocked); }
+
+  /* ---- mock ---- */
+  .mock {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--ink-soft);
+  }
+  .mock b { color: var(--ink); font-weight: 600; }
+  .mock .pct { color: var(--accent); }
+  .mock .mw { color: var(--walked); }
+  .mock .mo { color: var(--owed); }
+
+  .callout {
+    border-left: 3px solid var(--blocked);
+    background: var(--blocked-bg);
+    padding: 15px 19px;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .callout .clabel {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blocked);
+  }
+
+  pre.mermaid {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--ink-faint);
+    max-width: 68ch;
+  }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">DES-0012 · proposal · awaiting decision</p>
+    <h1>Tests in two flows</h1>
+    <p class="standfirst">The cockpit has one population of tests and two questions to answer with it: <em>is this feature done?</em> and <em>can we ship this set?</em> Today the tests view answers neither, because it is organised by three different principles at once. This proposes one structure, and asks you for five decisions.</p>
+  </header>
+
+  <div class="shell">
+    <nav class="rail" aria-label="Contents">
+      <p class="rail-title">Decisions</p>
+      <ol>
+        <li><a href="#d1"><span class="dnum">D1</span> What groups the list</a></li>
+        <li><a href="#d2"><span class="dnum">D2</span> Manual vs automated</a></li>
+        <li><a href="#d3"><span class="dnum">D3</span> Tier's future</a></li>
+        <li><a href="#d4"><span class="dnum">D4</span> What a release contains</a></li>
+        <li><a href="#d5"><span class="dnum">D5</span> Where a walk happens</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="now">
+        <h2><span class="num">The problem</span>The list is sorted three ways at once</h2>
+        <p>The tests view builds its groups from two functions that never agreed on what a group <em>is</em>. <code>_tests_groups</code> buckets non-acceptance tests by <strong>verification state</strong> — owed, failing, stale, verified. <code>_acceptance_tier_groups</code> buckets acceptance tests by <strong>tier</strong>, which is a statement about lifetime. Nothing buckets by <strong>what the test covers</strong>, which is the only thing either flow actually asks about.</p>
+        <p>So "Needs a walk" sits outside the tier sections not by choice but because the two lists have no common axis. Folding one into the other is not a layout change — it is the decision below.</p>
+        <div class="scroll">
+          <table>
+            <caption>Measured 2026-08-18, across three repos</caption>
+            <thead>
+              <tr><th>Repo</th><th class="n">Tests</th><th class="n">Acceptance</th><th class="n">Other</th><th class="n">Manual / auto</th><th class="n">Subjects covered</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>your-trainer</td><td class="n">600</td><td class="n">579</td><td class="n">21</td><td class="n">19 / 2</td><td class="n">80 of 102</td></tr>
+              <tr><td>project-os-cockpit</td><td class="n">77</td><td class="n">34</td><td class="n">43</td><td class="n">5 / 38</td><td class="n">40</td></tr>
+              <tr><td>your-sudoku</td><td class="n">69</td><td class="n">56</td><td class="n">13</td><td class="n">13 / 0</td><td class="n">18</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><em>Manual / auto counts non-acceptance tests only — every acceptance check is walked by a person by definition. The ratio inverts between repos: this repo is 38 automated to 5 manual, your-sudoku is 0 to 13.</em></p>
+      </section>
+
+      <section id="flows">
+        <h2><span class="num">The frame</span>Two flows, one population, different scopes</h2>
+        <p>Both flows consume the same tests. What differs is <strong>how much</strong> they ask about at once — and that is exactly what <code>covers:</code> already encodes.</p>
+        <pre class="mermaid">
+flowchart LR
+  subgraph DEV["Development flow — scope: one feature"]
+    T1[task done] --> T2[tests covering it settle]
+    T2 --> T3[feature done]
+  end
+  subgraph REL["Release flow — scope: a set of features"]
+    R1[release preparing] --> R2[tests covering its contents settle]
+    R2 --> R3[gate clear]
+    R3 --> R4[mark released · record frozen]
+    R4 --> R5[deploy]
+  end
+  T3 -.->|feature becomes eligible| R1
+  TESTS[("TST-* · one population<br/>covers: is the join")] --- T2
+  TESTS --- R2
+        </pre>
+        <p>The code already has the primitive: <code>blocking_for(subjects)</code> takes a set of subjects and returns what holds them. <code>blocking()</code> is the <code>subjects=None</code> case. <strong>The dev flow and the release flow are the same query at two zoom levels</strong> — and no surface presents them that way.</p>
+      </section>
+
+      <section id="axes">
+        <h2><span class="num">What we have</span>Four axes, and one of them is recorded twice</h2>
+        <div class="scroll">
+          <table>
+            <caption>The fields a test carries today</caption>
+            <thead><tr><th>Field</th><th>Answers</th><th>Values</th><th>Set by</th></tr></thead>
+            <tbody>
+              <tr><td><code>level:</code></td><td>What it exercises</td><td>unit · integration · system · e2e · acceptance</td><td>author</td></tr>
+              <tr><td><code>command:</code></td><td>Who runs it</td><td>present → a runner; absent → a person</td><td>author</td></tr>
+              <tr><td><code>covers:</code></td><td>What it gates</td><td>FEAT-* / ISS-* / REQ-* / TASK-*</td><td>author</td></tr>
+              <tr><td><code>tier:</code></td><td>How long it lives</td><td>1 capability · 2 regression · 3 one build</td><td>author</td></tr>
+              <tr><td><code>automation:</code></td><td><em>Also</em> who runs it</td><td>full · partial · manual</td><td>author</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <p class="clabel">A defect this design has to resolve</p>
+          <p><strong><code>command:</code> and <code>automation:</code> both answer "manual or automated", and they disagree by construction.</strong> <code>command:</code> asks whether <em>this note</em> has a runner. <code>automation:</code> asks whether the <em>thing the check describes</em> is covered by automated tests living somewhere else. In <code>your-trainer</code>: <strong>22 full, 181 partial, 376 manual</strong> — a populated, useful field that no list surfaces, sitting beside a field ADR-0034 declared the single answer to the same question.</p>
+          <p>You asked for a manual/automated distinction. We have two, and picking one is <a href="#d2">D2</a>.</p>
+        </div>
+      </section>
+
+      <section id="d1">
+        <h2><span class="num">Decision 1</span>What groups the list</h2>
+        <p>Three candidates. Each makes one flow easy and costs something on the other.</p>
+        <div class="options">
+          <div class="opt">
+            <div class="opt-head"><span class="opt-label">A</span><p class="opt-name">Tier, extended to every test</p><span class="tag">smallest change</span></div>
+            <p>Give non-acceptance tests a tier so all 600 sit in the same three sections. "Needs a walk" folds in as a row badge rather than a section.</p>
+            <div class="cost">
+              <div><b>For</b><span>Closest to what you asked for, and the view barely moves.</span></div>
+              <div><b>Against</b><span>Tier is a lifetime statement, not a scope — it answers neither flow's question. And ADR-0034 already resolved to retire it.</span></div>
+            </div>
+          </div>
+          <div class="opt pick">
+            <div class="opt-head"><span class="opt-label">B</span><p class="opt-name">Scope — what the test covers</p><span class="tag">recommended</span></div>
+            <p>Group by the feature (or release) the test covers. Tier, level and execution become row attributes and filter chips. The same view serves both flows by changing what is in scope.</p>
+            <div class="cost">
+              <div><b>For</b><span>The only axis both flows share. Percentage complete becomes meaningful per feature <em>and</em> per release. "Organise tests by release" falls out for free.</span></div>
+              <div><b>Against</b><span>80 groups in <code>your-trainer</code> when nothing is scoped, and <strong>83 checks cover nothing at all</strong> — they would need a home, or backfilling.</span></div>
+            </div>
+          </div>
+          <div class="opt">
+            <div class="opt-head"><span class="opt-label">C</span><p class="opt-name">Level — what it exercises</p></div>
+            <p>Group by <code>level:</code>: unit, integration, system, acceptance.</p>
+            <div class="cost">
+              <div><b>For</b><span>Every test has one, and it is the industry's own vocabulary.</span></div>
+              <div><b>Against</b><span>22 tests in this repo carry no level. And it answers "how deep does this go", which is a question neither flow asks.</span></div>
+            </div>
+          </div>
+        </div>
+        <p><strong>Recommendation: B, with A's shape as the default view.</strong> Group by scope, but when nothing is selected, collapse to the tier summary you already know — so the landing page stays three lines, and choosing a feature or a release expands into its own tests. Scope is the structure; tier is the default zoom.</p>
+        <div class="decision">
+          <p class="dlabel">D1 — needs your answer</p>
+          <p>A, B, or C. If B: what happens to the 83 unattributed checks — a visible “covers nothing” group, or a backfill first?</p>
+        </div>
+      </section>
+
+      <section id="d2">
+        <h2><span class="num">Decision 2</span>Which field means "automated"</h2>
+        <p>Both exist and both are populated. They are not redundant — they answer genuinely different questions — but only one can drive a badge that says "automated" without lying.</p>
+        <ul>
+          <li><strong>Keep <code>command:</code> as the single answer</strong> (status quo, ADR-0034). A test is automated iff something can run it. <code>automation:</code> becomes descriptive prose and stops being read. Cost: <code>your-trainer</code>'s 22 <code>full</code> and 181 <code>partial</code> checks all read as "manual", which is true of the <em>check</em> and misleading about the <em>coverage</em>.</li>
+          <li><strong>Surface both, named differently.</strong> <code>command:</code> → "who runs it"; <code>automation:</code> → "how much a machine already covers". Two chips on a row. Cost: two vocabularies for a reader to hold.</li>
+          <li><strong>Retire <code>automation:</code>, express it as <code>covers:</code></strong> — a check that says "the automated <code>LicenseSeatResolverTest</code> covers the caps" should <em>link</em> that test rather than describe it in a field. Most honest, most work, and it makes the roll-up derived rather than authored.</li>
+        </ul>
+        <div class="decision">
+          <p class="dlabel">D2 — needs your answer</p>
+          <p>One field, two fields, or fold <code>automation:</code> into links. My preference is the third eventually and the second now, because it is the only one that shows you something true today without a migration.</p>
+        </div>
+      </section>
+
+      <section id="d3">
+        <h2><span class="num">Decision 3</span>Whether tier survives</h2>
+        <p>ISS-0208 is open on this and it now blocks D1. ADR-0034 decision 6 says tier survives "only if it earns its place as a lifetime field". Under option B it stops being structure and becomes an attribute — which is either the retirement that ADR intended, or the demotion that saves it.</p>
+        <p>There is a live sub-question underneath: <strong>six Tier 3 checks in <code>your-trainer</code> have never been walked</strong> and cover nothing. TESTING.md says Tier 3 does not gate a release. Either they are stale notes to retire, or a never-walked check should gate whatever its tier — that is a 60 → 66 move on the gate.</p>
+        <div class="decision">
+          <p class="dlabel">D3 — needs your answer</p>
+          <p>Tier as attribute (demoted), or removed entirely? And for the six: retire them, or let them gate?</p>
+        </div>
+      </section>
+
+      <section id="d4">
+        <h2><span class="num">Decision 4</span>What a release contains</h2>
+        <p>Today a release's contents are <strong>derived</strong> — "32 features unshipped since REL-0012" — or <strong>frozen</strong> at <em>Mark released</em>. There is no middle state, which is the state a preparing release is actually in. <code>REL-0013</code> is <code>preparing: 2026-08-16</code> with <code>features: []</code>.</p>
+        <p>The field already exists and works: <code>REL-0001</code> carries 27 entries. What is missing is a way to fill it other than by hand. Once it is filled, <code>blocking_for(release.features)</code> makes the release page report <em>itself</em> rather than the whole suite — and "organise tests by release" is the same query.</p>
+        <p><strong>Safety property:</strong> naming contents must be opt-in. A picker that changed the meaning of <code>features: []</code> would rewrite the gate for eleven historical releases.</p>
+        <div class="decision">
+          <p class="dlabel">D4 — needs your answer</p>
+          <p>Confirm: pick features <em>and</em> phases (a phase contributing its features), written to the release note, opt-in, refusing on a frozen release. Anything to add?</p>
+        </div>
+      </section>
+
+      <section id="d5">
+        <h2><span class="num">Decision 5</span>Where a walk happens</h2>
+        <p>ADR-0035 (accepted, built today) says a release page reports and records nothing — walking happens where the procedure is visible. If tests organise by release, the temptation returns immediately: a release view listing its own tests is exactly where a person clearing a gate stands.</p>
+        <div class="decision">
+          <p class="dlabel">D5 — needs your answer</p>
+          <p>Does ADR-0035 hold for a release-scoped <em>test list</em>, or is that list the one place a release page may offer the mark? I lean to holding it: the row can link to the check, and the check's page shows the steps you are attesting to.</p>
+        </div>
+      </section>
+
+      <section id="shape">
+        <h2><span class="num">If you take B</span>What the view becomes</h2>
+        <p>Percentage on every group header, execution visible on every row, nothing in a separate state section.</p>
+        <div class="mock"><b>Tests</b>                                  scope: <b>REL-0013 · v2.1.7</b> ▾
+
+<b>FEAT-0051 · Workout authoring</b>          <span class="pct">78%</span>  72/92   <span class="mo">20 to walk</span>
+  <span class="mw">[x]</span> 1.6.150  Multi-Rider on FREE          auto     T1
+  <span class="mw">[x]</span> 1.6.160  FREE at cap offers nothing   partial  T1
+  <span class="mo">[ ]</span> 1.6.170  Seat resolution on downgrade person   T1
+  <span class="mo">[ ]</span> 2.0.10   Import round-trip            person   T2
+
+<b>FEAT-0045 · Equipment hub</b>              <span class="pct">100%</span> 44/44
+<b>FEAT-0011 · Monetization</b>               <span class="pct">63%</span>  17/27   <span class="mo">10 to walk</span>
+
+<b>Covers nothing</b>                         <span class="pct">—</span>    0/83    <span class="mo">83 unattributed</span>
+</div>
+        <p>The same view with <em>scope: all</em> collapses to the three tier lines you have now. With <em>scope: FEAT-0051</em> it is the dev flow. With <em>scope: REL-0013</em> it is the release flow. One structure, three zooms.</p>
+      </section>
+
+      <section id="asks">
+        <h2><span class="num">Traceability</span>Your six asks, mapped</h2>
+        <div class="scroll">
+          <table>
+            <caption>What each request becomes under the recommendation</caption>
+            <thead><tr><th>You asked for</th><th>Becomes</th><th>Blocked on</th></tr></thead>
+            <tbody>
+              <tr><td>Percentage complete on tiers</td><td>Percentage on every group header, whatever the grouping</td><td class="n">—</td></tr>
+              <tr><td>Fold "Needs a walk" into the tier tests</td><td>State is a row badge, never a section</td><td class="n">D1</td></tr>
+              <tr><td>Manual vs automated distinction</td><td>An execution chip per row + a tally per header</td><td class="n">D2</td></tr>
+              <tr><td>Select features in a release</td><td>A picker writing <code>features:</code>, opt-in</td><td class="n">D4</td></tr>
+              <tr><td>Organise tests by release</td><td>A scope selector; release is one of its values</td><td class="n">D1, D4</td></tr>
+              <tr><td>A clear design of the two flows</td><td>This document</td><td class="n">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer>
+        <p>DES-0012, proposal, 2026-08-18. Figures measured from <code>your-trainer</code>, <code>project-os-cockpit</code> and <code>your-sudoku</code> on the date of writing. Related: ADR-0034 (three axes), ADR-0035 (a release page records nothing), ISS-0208 (retire the tier rule), ISS-0206 (a check cannot be scoped to a release), PHASE-037.</p>
+      </footer>
+    </main>
+  </div>
+</div>
