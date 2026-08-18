@@ -1271,8 +1271,13 @@ async function navigateToInner(
     if (ok) commitVirtualPage(normalised, opts);
     return;
   }
-  if (normalised === '~checks') {
-    const ok = await renderChecksPage();
+  if (normalised === '~checks' || normalised.startsWith('~checks/')) {
+    // `~checks/tier/2` — the filter lives in the ADDRESS (ISS-0203). Every tier
+    // head used to carry a bare `~checks`, so the label differed and the
+    // destination did not; and because `checkFilters` was click-only, nothing a
+    // reader selected survived a navigation. Both are the same missing thing.
+    const tierMatch = /^~checks\/tier\/(\d+)$/.exec(normalised);
+    const ok = await renderChecksPage(tierMatch ? tierMatch[1] : '');
     if (ok) commitVirtualPage(normalised, opts);
     return;
   }
@@ -8225,7 +8230,7 @@ function commitVirtualPage(rel: string, opts: { replace?: boolean }): void {
   refreshActiveNavRow();
 }
 
-async function renderChecksPage(): Promise<boolean> {
+async function renderChecksPage(tier: string = ''): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
@@ -8253,6 +8258,9 @@ async function renderChecksPage(): Promise<boolean> {
   docView.classList.remove('overview-pane', 'agents-page', 'design-page',
     'is-design-shell', 'review-page');
   rightPaneContent.replaceChildren();
+  // A tier in the address preselects it, so the page a navigator row opens is
+  // the one the row's label promised.
+  checkFilters.tiers = tier ? new Set([tier]) : new Set();
   docView.replaceChildren(buildChecksPage(checksData));
   docView.hidden = false;
   placeholder.hidden = true;
@@ -8317,16 +8325,37 @@ function buildCheckFilters(v: ChecksView): HTMLElement {
     ['marks', 'mark'], ['tiers', 'tier'], ['areas', 'area'],
     ['covers', 'covers'], ['automation', 'automation'],
   ];
+  // **How many values an axis may render as chips** (ISS-0204). Measured on
+  // `your-trainer` when this was written: marks 2, tiers 3, areas 76, covers 80,
+  // automation 3 — **164 chips above the first check**, with no cap. And the
+  // ratio is worse in the small repo, not better: 65 chips over 34 checks here
+  // is 1.9 per check against `your-trainer`'s 0.28, so the design failed at both
+  // ends of the corpus.
+  //
+  // `areas` and `covers` scale with the corpus, which is the defect: the surface
+  // degrades exactly as the suite it serves becomes more useful. Above the cap
+  // an axis collapses to a `<details>` — reachable, not rendered — because
+  // `area` earns its place (76 areas over 579 rows is 7.6 checks each, one
+  // sitting's work, which is what the field means) while `covers` at 80 values
+  // is a query wearing a filter bar.
+  const CHIP_CAP = 8;
   for (const [axis, label] of axes) {
     const values = v.facets[axis] || [];
     // A single value on an axis is not a filter, it is a fact — offering it
     // costs a click and can only ever return everything.
     if (values.length < 2) continue;
-    const row = document.createElement('div');
+    const wide = values.length > CHIP_CAP;
+    const row = document.createElement(wide ? 'details' : 'div');
     row.className = 'checks-filter-row';
-    const name = document.createElement('span');
+    const name = document.createElement(wide ? 'summary' : 'span');
     name.className = 'checks-filter-label';
-    name.textContent = label;
+    const chosen = checkFilters[axis]?.size ?? 0;
+    // The count on a collapsed axis, so a reader can see there is something
+    // behind it — and their own selection, so a filter cannot hide inside a
+    // fold and quietly shorten the list.
+    name.textContent = wide
+      ? `${label} · ${values.length}${chosen ? ` · ${chosen} selected` : ''}`
+      : label;
     row.appendChild(name);
     for (const facet of values) {
       const chip = document.createElement('button');
@@ -8861,7 +8890,17 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
     li.style.cursor = 'pointer';
     li.addEventListener('click', (ev) => {
       if ((ev.target as HTMLElement).closest('.acc-mark')) return;
-      void navigateTo(`/docs/${rel}${item.anchor ? `#${item.anchor}` : ''}`);
+      // **The check itself** (ISS-0201). This navigated to
+      // `/docs/${rel}#${anchor}` — the suite README with a section fragment
+      // that no longer exists, because the document those anchors came from was
+      // deleted at the migration. `item.rel` is the check's own path and has
+      // been sitting unused in the same payload since ADR-0030.
+      //
+      // ISS-0142's defect with a new subject: a row carrying an address that
+      // nothing routes to.
+      void navigateTo(item.rel
+        ? `/docs/${item.rel}`
+        : `/docs/${rel}${item.anchor ? `#${item.anchor}` : ''}`);
     });
     rows.appendChild(li);
   }

@@ -4187,7 +4187,17 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         group: dict[str, Any] = {
             "key": f"tier{tier['tier']}",
             "label": label,
-            "url": url,
+            # **Its own tier, not the whole suite** (ISS-0203). Every tier head
+            # carried the identical `~checks`, so the label differed and the
+            # destination did not — selecting Tier 2 rendered what Tier 1 had.
+            # Swept across seven nav modes on both sidecars, these were the only
+            # sibling groups in the navigator sharing a url.
+            #
+            # A filter in the ADDRESS rather than in a click is also what lets
+            # back/forward move between tiers, and what the release page links
+            # to instead of re-rendering rows.
+            "url": (f"{url}/tier/{tier['tier']}"
+                    if url == CHECKS_VIEW_ROUTE else url),
             "status": None,
             "item_layout": "stacked",
             "items": [

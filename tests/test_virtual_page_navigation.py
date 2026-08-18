@@ -79,3 +79,70 @@ def test_the_tier_heads_still_carry_the_address_the_highlight_matches_on() -> No
     src = RENDERER.read_text(encoding="utf-8")
     assert "summary.dataset.rel = groupRel;" in src
     assert "summary[data-rel]" in src
+
+
+# ---- FEAT-0123: the surfaces say one thing --------------------------------
+
+
+def test_each_tier_head_addresses_its_own_tier() -> None:
+    """ISS-0203: the label differed and the destination did not.
+
+    Every tier head carried the identical `~checks`, so selecting Tier 2
+    rendered what Tier 1 had. Swept across seven nav modes on both sidecars,
+    these were the **only** sibling groups in the navigator sharing a url.
+
+    Asserted on the payload rather than the renderer, because the address is
+    what makes the fix work: a filter in the url is also what lets back/forward
+    move between tiers and what the release page can link to.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+    from project_os_cockpit.cockpit import nav_payload
+    from project_os_cockpit.index import Index
+
+    index = Index.build(Path(__file__).resolve().parent.parent / "docs")
+    tiers = {
+        g["key"]: g.get("url")
+        for g in nav_payload(index, mode="tests")["groups"]
+        if str(g["key"]).startswith("tier")
+    }
+    assert len(tiers) >= 2, "this repo no longer has two tiers to distinguish"
+    assert len(set(tiers.values())) == len(tiers), (
+        f"tier heads share a destination again: {tiers}"
+    )
+    for key, url in tiers.items():
+        assert url.endswith("/tier/" + key.removeprefix("tier")), (key, url)
+
+
+def test_the_checks_route_parses_a_tier_out_of_the_address() -> None:
+    """The other half: an address carrying a tier has to be routed.
+
+    A payload that emits `~checks/tier/2` against a renderer that only matches
+    `~checks` exactly is a dead click — which is [[ISS-0142]]'s defect, and
+    the reason this asserts the route rather than trusting the payload.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "normalised.startsWith('~checks/')" in src, (
+        "the checks route matches only the bare address; every tier head is a "
+        "dead click"
+    )
+    assert "~checks\\/tier\\/(\\d+)" in src or "~checks\\\\/tier" in src
+
+
+def test_no_filter_axis_renders_a_chip_per_corpus_item() -> None:
+    """ISS-0204: 164 chips came before the first check.
+
+    `areas` (76) and `covers` (80) scale with the corpus, so the surface
+    degraded exactly as the suite became more useful — and the ratio was worse
+    in the small repo, 1.9 chips per check against 0.28.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "const CHIP_CAP" in src, "the filter bar has no cap again"
+    block = src[src.index("function buildCheckFilters"):]
+    block = block[:block.index("\n}")]
+    assert "values.length > CHIP_CAP" in block
+    assert "'details'" in block, "a wide axis must collapse, not disappear"
+    assert "selected" in block, (
+        "a collapsed axis must show its own selection, or a filter can hide "
+        "inside a fold and quietly shorten the list"
+    )

@@ -26,3 +26,11 @@ The split made sense while they were different types. Under [[ADR-0031-One-Test-
 Pick one deliberately. *Walk* describes what a person does to a checklist; *Run* describes what a machine does to a command — which is an argument for `Walk` on the human side and `Run` staying with `command:`. Apply it to the registry verbs, the group headings and the buttons in one pass, or the two words simply move.
 
 Done when: one verb names the human act everywhere, and `run` refers only to something a machine does.
+
+## Not done, and deliberately last
+
+The vocabulary change is the one piece of FEAT-0123 that touches every surface at once — registry verbs, group headings, buttons — and it is the one with no measurement behind it: *walk* versus *run* is a naming judgement, where the other three tasks each had a number.
+
+It is also now smaller than when it was written. `Needs a run` still contains only non-acceptance tests, but under [[ADR-0034-Three-Axes-Not-One-Word]] that is no longer a *different kind of test* — it is the same population filtered by execution. Renaming it is a one-line change once somebody picks the word.
+
+**Recommendation on the record**: *walk* for the human act and *run* for what a machine does to a `command:`, which is the split the two words already carry in ordinary use and the one `command:` makes structural.

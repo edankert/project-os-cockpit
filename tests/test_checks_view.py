@@ -221,7 +221,11 @@ def test_the_tier_heads_open_the_view_not_a_directory() -> None:
     tiers = [g for k, g in groups.items() if k.startswith("tier")]
     assert tiers, "the migrated suite renders no tier groups at all"
     for group in tiers:
-        assert group["url"] == cockpit.CHECKS_VIEW_ROUTE, group["url"]
+        # `~checks/tier/N`, not the bare route (ISS-0203). Every head carried
+        # the identical address until 2026-08-18, so the label differed and the
+        # destination did not — selecting Tier 2 rendered what Tier 1 had.
+        assert group["url"].startswith(cockpit.CHECKS_VIEW_ROUTE + "/tier/"), group["url"]
+        assert group["url"].endswith("/" + group["key"].removeprefix("tier")), group["url"]
         for row in group["items"]:
             # …and the ROW opens the check itself, which is the difference the
             # migration buys a reader over a link into a 1082-line document.

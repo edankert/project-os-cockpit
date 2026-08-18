@@ -100,7 +100,7 @@ items:
     FEAT-0123:
       file: "docs/features/one-human-walk/FEAT-0123-The-Walk-Surfaces-Say-One-Thing.md"
       title: "The walk surfaces say one thing — one verb, a tier you can address, a page that leads with the checks, and a release that shows what is outstanding"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       requirements: [REQ-0042]
@@ -3400,7 +3400,7 @@ metrics:
     features_total: 124
     features_done: 112
     tasks_total: 500
-    tasks_done: 459
+    tasks_done: 462
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182

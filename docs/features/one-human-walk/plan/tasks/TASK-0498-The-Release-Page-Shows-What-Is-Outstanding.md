@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0498
 aliases: ["TASK-0498"]
 title: "The release page shows what is outstanding, and its rows address the check"
-status: backlog
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -28,3 +28,11 @@ Edwin: *"it should probably now just show a list of unchecked/open acceptance te
 **And this reverses part of [[ISS-0190]]**, which put the acceptance section first *and* rendered its rows, on Edwin's own instruction the day before. Say so in the note rather than letting the next reader find two decisions pointing opposite ways.
 
 Done when: a row opens its check, the outstanding set is what the page leads with, and the link carries the filter ([[TASK-0496-The-Tier-Is-In-The-Address]]).
+
+## Done 2026-08-18 — and the note was wrong about what was broken
+
+**Half of what this task asked for was already built**, which the issue did not say: the release page renders 13 new + 27 chronic + 0 regressed, collapses 20 quiet and caps each group at 40. It does not re-render 579 rows.
+
+**What was actually broken is narrower and worse.** Every gate row navigated to `/docs/${rel}#${anchor}` — the suite README plus a section fragment inherited from the document ADR-0030 deleted. **Every one was a dead click**, and `item.rel`, the check's own path, had been sitting unused in the same payload since the migration. [[ISS-0142]]'s defect with a new subject.
+
+A row opens its check now, with the old address kept as a fallback for a repo whose payload predates `rel`.
