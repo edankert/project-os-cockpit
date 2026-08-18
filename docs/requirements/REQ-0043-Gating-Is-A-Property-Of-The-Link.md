@@ -20,7 +20,7 @@ acceptance:
 covers: []
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[ISS-0208-Retire-The-Tier-Rule]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]"]
 ---
 
@@ -84,3 +84,15 @@ Measured against the committed code:
 **The criteria of record show nothing met.** `criteria._declared_criteria` treats the frontmatter `acceptance:` list as the criteria of record; it reads `[ ] [ ] [ ] [~] [ ]` — 0 of 5 — while the body shows four `[x]` and `status:` is `implemented`. [[REQ-0041]] ticks both halves, so the convention is this author's own. The previous review reported 1 of 4 against 4 of 4; the split is now wider.
 
 **To clear this**: restate criterion 3 as what the code does (the derived gate reproduces the tier gate exactly, 0 / 56 / 60, and the fail-closed clause is subordinate to the tier filter — the blind spot ISS-0208 carries), drop the claim about `test_derived_gate.py`, and reconcile the frontmatter list with the body.
+
+## Independent review — 2026-08-18, `model:claude-opus-5`, approved (fourth pass)
+
+Fresh context, separate session; the model is shared with the author and recorded above as provenance ([[project-os-dev#ADR-0013]]). Nothing was credited on a source reading: every figure was re-derived from the corpus and every fix mutated to confirm it dies.
+
+**Criterion 3 now states the committed behaviour, and the behaviour is what it says.** Ran `Suite.blocking()` against all three corpora: **0 / 56 / 60**, and `blocking_for(None)` names the *identical* set to `tier in GATING_TIERS and not settled` in each — equality, not superset. `test_the_derived_gate_names_the_same_items_as_the_tier_rule` is real, is parametrised over the three suites, and asserts membership. No live claim of 60 → 66 or of a superset guard survives anywhere in the note; the three remaining mentions are explicitly quoted as what the text *used* to say.
+
+**Frontmatter and body agree.** `criteria.payload(index, "FEAT-0124")` returns `{'open': 0, 'ticked': 4, 'reconciled': 1}` — the 0-of-5 / 4-ticked split the third pass found is closed.
+
+**The `[~]` is a sound reconciliation and was re-measured, not accepted.** Applying the change it declines — fail-closed clause ahead of the tier filter — takes `your-trainer` from 60 to **66** and makes `test_the_derived_gate_names_the_same_items_as_the_tier_rule[your-trainer]` fail, so the recorded cost is exact and the committed suite genuinely forbids the alternative. The six checks are real and unattributed: TST-0592..0597, Tier 3, `mark: todo`, `refs=()`, unsettled. The nine unattributed Tier 1/2 are all settled, as the phase note claims. `blocking_for` carries the blind spot as a comment naming [[ISS-0208-Retire-The-Tier-Rule]].
+
+Under `STATUSES.md` (`requirement` → `implemented`: *"every acceptance criterion ticked-with-evidence or reconciled"*) four ticked and one reconciled resolves every criterion, so `implemented` is correctly set. Findings from this pass fall on [[PHASE-036-One-Human-Walk]] and [[TASK-0495]], not here.
