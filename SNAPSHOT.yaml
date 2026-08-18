@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 35
+  ADR: 36
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -60,13 +60,13 @@ counters:
   CHG:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 129
+  FEAT: 131
   ISS: 213
   PHASE: 37
-  REQ: 48
+  REQ: 50
   RISK: 7
   REL: 1
-  TASK: 513
+  TASK: 521
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -95,7 +95,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0045"]
-      tasks: ["TASK-0505"]
+      tasks: ["TASK-0505", "TASK-0521"]
       note: "ISS-0200 regression. Three sites read `mark` directly instead of through MARK_GLYPH: the picker token now renders `[done]` beside the label `Done`, `=== '-'` is a dead comparison so canceled rows lost their strikethrough, and a gate tooltip shows the word. Two of the three fail SILENTLY. Second vocabulary change in two phases to leave a live surface on a stale key."
     FEAT-0127:
       file: "docs/features/surfaces-report/FEAT-0127-Every-Row-In-The-Tests-View-Is-A-Test.md"
@@ -113,7 +113,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
-      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513"]
+      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520"]
       note: "Built when the corpus had 23 tests, where showing all of them WAS the summary. At 579 it is a wall. Collapse Resting to a line, collapse tier sections to tracking lines carrying walked/re-run/to-walk, and put feature tests above the flat groups. Constraint: every collapsed count must expand to exactly its rows, or work has been hidden rather than organised."
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
@@ -208,10 +208,10 @@ items:
     FEAT-0115:
       file: "docs/features/acceptance-checks/FEAT-0115-The-Sweep-Is-Continuous.md"
       title: "The sweep is continuous — invalidation happens where work lands, in one action, and a feature says its acceptance impact was considered"
-      status: done
+      status: superseded
       owner: user:edwin
-      phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
-      tasks: [TASK-0466, TASK-0467, TASK-0468]
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      tasks: [TASK-0466, TASK-0467, TASK-0468, "TASK-0519"]
       goal: "TESTING.md rule 3 becomes performable instead of merely documented: invalidating a check names the change and the reason in one write, a feature's close-out offers a batched sweep — mark existing checks needs-re-run and author new ones, one Save, one commit — and the feature records that its acceptance impact was considered, in one authored line with three honest states."
       note: "THE MEASUREMENT: 57 RE-RUN annotations, 54 still ticked — people annotate instead of unchecking because unchecking destroys the record. Benchmark for the sweep is a4577c01 (six added + three unchecked, one commit, by hand). acceptance_impact: date / none-with-reason / absent — three states because a boolean collapses nothing-to-do into not-done and nags forever."
     FEAT-0116:
@@ -3567,12 +3567,12 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 129
-    features_done: 113
-    tasks_total: 512
-    tasks_done: 470
+    features_total: 131
+    features_done: 112
+    tasks_total: 520
+    tasks_done: 471
     tests_total: 43
-    tests_passing: 40
+    tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
@@ -3580,4 +3580,4 @@ metrics:
     issues_triage: 0
     risks_open: 6
     releases_total: 1
-    decisions_total: 26
+    decisions_total: 27

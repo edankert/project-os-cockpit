@@ -240,6 +240,12 @@ def test_every_manual_test_in_this_repo_is_runnable() -> None:
         # paragraph, deliberately, because one note IS one check. The stepper's
         # completeness claim is about the population it actually offers.
         and str(record.frontmatter.get("level", "") or "").strip().lower() != "acceptance"
+        # A retired test is not offered to anybody, so "can the cockpit walk
+        # it" is not a question about it. TST-0042 became the first of these
+        # when ADR-0036 withdrew its subject and its `command:` was cleared —
+        # leaving a stale command pointing at a deleted suite would have been
+        # the worse choice, and this is the honest consequence of the better one.
+        and (record.status or "").strip().lower() != "retired"
         and cockpit._is_manual_test(record)
         and not cockpit.manual_test_steps(record.body)
     ]

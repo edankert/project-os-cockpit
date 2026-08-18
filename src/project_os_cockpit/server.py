@@ -752,8 +752,6 @@ def _make_handler(
                 self._serve_mark_check()
                 return
 
-            if path == "/api/notes/acceptance-sweep":
-                self._serve_acceptance_sweep()
                 return
 
             if path == "/api/notes/release-mark-released":
@@ -1018,23 +1016,6 @@ def _make_handler(
                         (params.get("item") or [""])[0],
                     ),
                 })
-                return
-
-            if path == "/api/cockpit/sweep":
-                # What a feature's close-out sweep would offer (TASK-0467).
-                # Read-only: nothing is invalidated and nothing authored until
-                # a person presses Save, which is a POST.
-                params = urllib.parse.parse_qs(parsed.query)
-                from . import sweep as _sweep
-                try:
-                    self._respond_json({
-                        "schema_version": cockpit.SCHEMA_VERSION,
-                        **_sweep.candidates(
-                            index, (params.get("id") or [""])[0]),
-                    })
-                except note_writes.WriteError as exc:
-                    self._respond_json({"ok": False, "error": exc.message},
-                                       status=HTTPStatus(exc.status))
                 return
 
             if path == "/api/cockpit/scope-tests":
@@ -2434,42 +2415,6 @@ def _make_handler(
                     actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"])
                            if body.get("mtime") is not None else None),
-                )
-            except note_writes.WriteError as exc:
-                self._respond_json({"ok": False, "error": exc.message},
-                                   status=HTTPStatus(exc.status))
-                return
-            except (TypeError, ValueError) as exc:
-                self._respond_json({"ok": False, "error": str(exc)},
-                                   status=HTTPStatus.BAD_REQUEST)
-                return
-            self._respond_json({"ok": True, **result})
-
-        def _serve_acceptance_sweep(self) -> None:
-            """``POST /api/notes/acceptance-sweep`` — one Save (TASK-0467).
-
-            N new checks, M invalidations and one line on the feature, written
-            together and committed together. The benchmark is `a4577c01`, the
-            corpus's own hand commit: six added, three invalidated, one commit.
-
-            **Cancelling is not calling this.** Nothing is written until the
-            person presses Save, which is why there is no draft state to clean
-            up and no half-swept corpus to recover from.
-            """
-            if not self._require_loopback():
-                return
-            body = self._read_json_body()
-            if body is None:
-                return
-            from . import sweep as _sweep
-            try:
-                result = _sweep.apply(
-                    index,
-                    str(body.get("feature") or ""),
-                    invalidate=list(body.get("invalidate") or []),
-                    create=list(body.get("create") or []),
-                    impact=str(body.get("impact") or ""),
-                    commit=bool(body.get("commit", True)),
                 )
             except note_writes.WriteError as exc:
                 self._respond_json({"ok": False, "error": exc.message},

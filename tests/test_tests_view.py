@@ -195,6 +195,9 @@ def test_an_empty_group_is_absent_rather_than_zero(repo_index: Index) -> None:
     note_keys = {g["key"] for g in groups if not g["key"].startswith("tier")}
     assert note_keys < {
         "needs-run",
+        # ISS-0212: `Verified` stopped being the `else` branch, so a status the
+        # chain does not name lands here loudly instead of reading as a pass.
+        "resolved", "unclassified",
         # ADR-0028: owed by its type, resting by its subject. It gets a group
         # rather than falling through to `Never verified` — that group is a
         # statement about evidence, and evidence is not why this one is quiet.

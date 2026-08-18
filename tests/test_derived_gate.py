@@ -156,40 +156,31 @@ def test_a_walked_test_goes_stale_when_a_change_invalidates_it(tmp_path: Path) -
     assert cockpit._test_is_stale(clean, 90) is False
 
 
-def test_the_sweep_writes_a_note_the_reader_can_see(tmp_path: Path) -> None:
-    """ISS-0205's third done-when, which was never asserted.
+def test_nothing_writes_a_check_the_reader_cannot_see() -> None:
+    """ISS-0205's third done-when, kept as a standing constraint.
 
-    Reverting `_write_new_check` to `type: "[[check]]"` left all 22 sweep tests
-    green, because they check the note's fields rather than whether the suite
-    can load it. This reads the sweep's own output back through
-    `acceptance.load` on a MIGRATED corpus, which is the only thing that fails.
+    This drove the sweep's writer: it wrote a check, read it back through
+    `acceptance.load` on a migrated corpus, and was the only guard that failed
+    when `_write_new_check` reverted to `type: "[[check]]"` — the other 22
+    asserted fields rather than readability.
+
+    **The sweep is withdrawn ([[ADR-0036]]) and it was the only thing that
+    created checks**, so the property has no subject to exercise. Rather than
+    delete it silently, this asserts the *absence*: nothing creates a check
+    today, and whoever adds the next writer inherits the obligation to restore
+    a read-back test. The failure this guards against is a writer arriving with
+    22 field assertions and no reader.
     """
-    from project_os_cockpit import sweep
-    from project_os_cockpit.index import Index as Idx
-
-    docs = tmp_path / "docs"
-    (docs / "tests" / "acceptance").mkdir(parents=True)
-    (docs / "features").mkdir()
-    (docs / "features" / "FEAT-0001-Thing.md").write_text(
-        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "t"\nstatus: doing\n'
-        'owner: user:edwin\n---\n\nbody\n', encoding="utf-8")
-    (docs / "tests" / "acceptance" / "TST-0001-Existing.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "existing"\nstatus: active\n'
-        'level: acceptance\ntier: 1\nmark: done\narea: "A"\nsection: "1.1"\n'
-        'ordinal: 10\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
-
-    before = len(acceptance.load(docs, Idx.build(docs)).items)
-    sweep.apply(Idx.build(docs), "FEAT-0001",
-                create=[{"name": "A new check", "tier": 1, "area": "A",
-                         "text": "do the thing"}],
-                impact="2026-08-18")
-    after = acceptance.load(docs, Index.build(docs)).items
-    assert len(after) == before + 1, (
-        "the sweep wrote a note the suite cannot load — which is exactly what "
-        "ISS-0205 was, and what a field-shaped assertion cannot see"
+    src = (Path(__file__).resolve().parents[1] / "src" / "project_os_cockpit")
+    writers = [
+        f.name for f in src.glob("*.py")
+        if "_write_new_check" in f.read_text(encoding="utf-8")
+    ]
+    assert not writers, (
+        f"{writers} creates acceptance checks again. Restore a test that reads "
+        "the written note back through `acceptance.load` on a MIGRATED corpus "
+        "— field assertions cannot see an unreadable note (ISS-0205)"
     )
-
-
 def test_the_scope_panel_answers_what_blocks_THIS_feature() -> None:
     """`blocking_for` has a production caller (REQ-0043).
 

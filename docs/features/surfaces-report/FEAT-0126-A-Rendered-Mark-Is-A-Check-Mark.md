@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-18"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0045-Storage-Is-Words-Display-Is-Glyphs]]"]
-tasks: ["[[TASK-0505-Route-Three-Sites-Through-Mark-Glyph]]"]
+tasks: ["[[TASK-0505-Route-Three-Sites-Through-Mark-Glyph]]", "[[TASK-0521-One-Verb-Again]]"]
 issues: ["[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]"]
 related: ["[[ISS-0200-Marks-Versus-Statuses]]"]
 tags: [feature]

@@ -1540,7 +1540,7 @@ def mark_released(
     a forge is published, and this project's rule is that publishing is a
     person clicking something, not a side effect of a status write.
     """
-    from . import acceptance, publication, sweep
+    from . import acceptance, publication
 
     path = resolve_note(index, release_id)
     record = index.get(path)
@@ -1596,26 +1596,20 @@ def mark_released(
             str(f["id"]) for f in publication.shipping_in(index, release_id)
         ]
 
-    # ---- refusal 2: considered-ness -------------------------------------
-    unconsidered = []
-    for feature_id in frozen_ids:
-        feature_path = index.by_id(feature_id)
-        feature = index.get(feature_path) if feature_path is not None else None
-        if feature is None or (feature.note_type or "") != "feature":
-            continue
-        if sweep.impact_state(str(
-                feature.frontmatter.get("acceptance_impact") or "")) == "owed":
-            unconsidered.append(feature_id)
-    if unconsidered:
-        raise WriteError(
-            f"{', '.join(unconsidered)} "
-            f"{'has' if len(unconsidered) == 1 else 'have'} no "
-            "`acceptance_impact:` — nobody has said whether shipping "
-            f"{'it' if len(unconsidered) == 1 else 'them'} needed the "
-            "acceptance suite touched. Run the sweep on each, or record "
-            "`none — <reason>`.",
-            status=409,
-        )
+    # ---- refusal 2: WITHDRAWN with the sweep (ADR-0036) -----------------
+    #
+    # This refused to freeze a release while any shipping feature carried no
+    # `acceptance_impact:` — *"nobody has said whether shipping it needed the
+    # acceptance suite touched"* — and told the caller to run the sweep.
+    #
+    # **It has to go with the sweep, not after it.** The only way to satisfy
+    # it was the mechanism ADR-0036 removes, so leaving it would make
+    # `Mark released` refuse forever with advice nobody can follow. A gate
+    # whose remedy has been deleted is not a gate, it is a wall.
+    #
+    # Refusal 1 (a released release cannot be released again) and refusal 3
+    # are untouched: they are about the release's own state, which is still
+    # knowable.
 
     # ---- the write ------------------------------------------------------
     today = _today()

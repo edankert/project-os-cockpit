@@ -543,11 +543,13 @@ def release_item_payload(
     as questions once `covers:` and `invalidated_by:` are fields.
 
     **The empty state is the point, not a failure.** A feature with all three
-    empty shows its authored `acceptance_impact` line: *"considered, none"* and
-    *"not yet swept"* are opposite sentences, and until this phase the surface
-    could not tell them apart.
+    empty is the normal case — Edwin: *"not all features might need acceptance
+    tests"* — and the surface says so in words rather than rendering an empty
+    page. It also shows any authored `acceptance_impact:` line, which since
+    [[ADR-0036]] is a record of a question somebody answered rather than one
+    anybody is being asked.
     """
-    from . import sweep
+    from . import acceptance as _acc
 
     releases = _releases(index)
     held = next((r for r in releases if r["id"] == release_id), None)
@@ -583,14 +585,34 @@ def release_item_payload(
         out["in_areas"] = []
         return out
 
-    data = sweep.candidates(index, record.note_id or item_id)
+    # **A read over the suite, not a sweep** (ADR-0036). This called
+    # `sweep.candidates`, which computed these three lists *and* the offer of
+    # what to write. The write half is withdrawn; the read half is what this
+    # page has always been for — *which checks does this feature answer for* —
+    # so it is inlined rather than lost with the module that hosted it.
+    fid = record.note_id or item_id
+    suite = _acc.load(index.docs_root, index)
+    originated = [i for i in suite.items if fid in (i.refs or ())]
+    # `invalidated_by:` naming this feature. Empty in every repo today — the
+    # population the sweep existed to create — and kept because a note written
+    # before the withdrawal still says what overtook it.
+    invalidated = [
+        i for i in suite.items
+        if i.invalidated.change and i.invalidated.change == fid
+        and i not in originated
+    ]
+    areas = {i.area for i in originated if i.area}
+    seen = {id(i) for i in originated} | {id(i) for i in invalidated}
+    in_areas = [i for i in suite.items if i.area in areas and id(i) not in seen]
     out.update({
-        "acceptance_impact": data["feature"]["acceptance_impact"],
-        "impact_state": data["feature"]["impact_state"],
-        "originated": data["originated"],
-        "invalidated": data["invalidated"],
-        "in_areas": data["in_areas"],
-        "subjects": data["subjects"],
+        "acceptance_impact": str(
+            record.frontmatter.get("acceptance_impact") or "").strip(),
+        # No `impact_state`: nothing is owed, so there is no state to be in.
+        "impact_state": "",
+        "originated": [_acc._row(i) for i in originated],
+        "invalidated": [_acc._row(i) for i in invalidated],
+        "in_areas": [_acc._row(i) for i in in_areas],
+        "subjects": [fid],
     })
     # The issues this feature closed — from the record, never inferred. A
     # feature's `fixes:`/`issues:` is what it says it closed; a heuristic over

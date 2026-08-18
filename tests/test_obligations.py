@@ -328,27 +328,40 @@ def test_the_note_less_memo_cannot_outlive_its_corpus(tmp_path) -> None:
     Driven over two corpora that disagree, with the first dropped in between,
     so a module-level cache surviving the object would show up as the wrong
     answer rather than as a slow one.
+
+    **Driven through the release gate since [[ADR-0036]].** The worked example
+    was the acceptance sweep — the note-less obligation whose subject was a
+    feature — and it is withdrawn. The property is about the memo, not about
+    which obligation exercises it, so it moves to one that still exists rather
+    than being deleted with the one that does not.
     """
     import gc
 
     from project_os_cockpit.index import Index
 
-    def corpus(name: str, status: str) -> Index:
-        docs = tmp_path / name / "docs" / "features" / "f"
-        docs.mkdir(parents=True)
-        (docs / "FEAT-9001-F.md").write_text(
-            f'---\ntype: "[[feature]]"\nid: FEAT-9001\ntitle: "F"\n'
-            f"status: {status}\nowner: user:edwin\ncreated: 2026-08-01\n"
-            "updated: 2026-08-01\n---\n\n# F\n", encoding="utf-8")
-        return Index.build(tmp_path / name / "docs")
+    def corpus(name: str, mark: str) -> Index:
+        root = tmp_path / name / "docs"
+        (root / "tests" / "acceptance").mkdir(parents=True)
+        (root / "releases").mkdir(parents=True)
+        (root / "releases" / "REL-9001-V1.md").write_text(
+            '---\ntype: "[[release]]"\nid: REL-9001\ntitle: "v1"\n'
+            'status: draft\nversion: "1.0.0"\npreparing: "2026-08-18"\n'
+            "owner: user:edwin\ncreated: 2026-08-01\nupdated: 2026-08-01\n"
+            "---\n\n# v1\n", encoding="utf-8")
+        (root / "tests" / "acceptance" / "TST-9001-C.md").write_text(
+            '---\ntype: "[[test]]"\nid: TST-9001\ntitle: "C"\n'
+            "level: acceptance\nstatus: active\ntier: 1\n"
+            f'number: "1.1.10"\narea: "A"\nmark: {mark}\n---\n\n# C\n',
+            encoding="utf-8")
+        return Index.build(root)
 
-    owing = corpus("a", "doing")           # in flight, no acceptance_impact
-    assert obligations.note_less_row_for(owing, "FEAT-9001") is not None
+    owing = corpus("a", "todo")            # unsettled — the gate is blocked
+    assert obligations.note_less_row_for(owing, "REL-9001") is not None
     del owing
     gc.collect()
 
-    settled = corpus("b", "backlog")       # nothing changed yet, owes nothing
-    assert obligations.note_less_row_for(settled, "FEAT-9001") is None, (
+    settled = corpus("b", "done")          # settled — the gate is clear
+    assert obligations.note_less_row_for(settled, "REL-9001") is None, (
         "a second corpus was served the first one's owed rows"
     )
 

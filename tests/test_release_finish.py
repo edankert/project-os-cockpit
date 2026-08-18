@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from project_os_cockpit import note_writes, publication, sweep
+from project_os_cockpit import note_writes, publication
 from project_os_cockpit.index import Index
 from project_os_cockpit.note_writes import WriteError
 
@@ -99,24 +99,24 @@ SWEPT = 'acceptance_impact: "none — nothing user-visible"\n'
 
 # --------------------------------------------------------- the two refusals
 
-def test_it_refuses_while_a_frozen_feature_has_not_been_considered(
-    tmp_path: Path,
-) -> None:
-    """Edwin: *"whether all acceptance tests have been considered … when
-    somebody presses that release start button or maybe even before this."*
+def test_it_no_longer_refuses_on_considered_ness(tmp_path: Path) -> None:
+    """The refusal is withdrawn WITH the sweep, not after it ([[ADR-0036]]).
 
-    Before it, always — the sweep is continuous. **Mark released is where
-    considered-ness is ENFORCED**, because it is the one moment that is both
-    cheap and final: nothing has shipped yet, and after this nothing can be
-    added to what did.
+    It refused to freeze a release while any shipping feature carried no
+    `acceptance_impact:` — Edwin's own ask at the time: *"whether all
+    acceptance tests have been considered … when somebody presses that release
+    start button."* Mark released was the right place to enforce it: cheap and
+    final, nothing shipped yet.
+
+    **The only way to satisfy it was the mechanism ADR-0036 removes.** Leaving
+    it would make `Mark released` refuse forever with advice nobody can follow
+    — *"run the sweep on each"* — and a gate whose remedy has been deleted is
+    not a gate, it is a wall. That is the specific failure this asserts against,
+    because it is the one a withdrawal produces by omission.
     """
-    index = _repo(tmp_path)
-    with pytest.raises(WriteError) as caught:
-        note_writes.mark_released(index, "REL-9001")
-    # Naming the subject is the point. "Something is not ready" is a refusal
-    # nobody can act on.
-    assert "FEAT-9001" in caught.value.message
-    assert "acceptance_impact" in caught.value.message
+    index = _repo(tmp_path)          # no `acceptance_impact:` anywhere
+    result = note_writes.mark_released(index, "REL-9001")
+    assert result, "Mark released must still work with no acceptance_impact"
 
 
 def test_it_refuses_on_a_blocked_gate_without_recorded_exceptions(
@@ -375,21 +375,32 @@ def test_the_item_page_answers_with_release_context(tmp_path: Path) -> None:
     assert data["exists"] and data["release"] == "REL-9001"
     assert data["release_version"] == "1.2.0"
     assert [r["id"] for r in data["originated"]] == ["CHK-0001"]
-    assert data["impact_state"] == "none"
+    # **No `impact_state`** since [[ADR-0036]]: the field said whether a sweep
+    # was owed, and nothing is owed any more. The authored line itself is still
+    # carried — a record, not an ask.
+    assert data["impact_state"] == ""
+    assert data["acceptance_impact"] == "none — nothing user-visible"
 
 
-def test_a_feature_with_no_checks_reads_as_considered_or_owed() -> None:
-    """The empty state is the point, not a failure.
+def test_the_impact_line_survives_as_a_record_not_as_an_ask() -> None:
+    """[[ADR-0036]] withdrew the sweep. The line it wrote is not withdrawn.
 
-    *"Acceptance impact considered — none"* and *"not yet swept"* are opposite
-    sentences, and until this phase the surface could only render both as an
-    empty list.
+    This asserted both halves of an empty state — *"Acceptance impact
+    considered — none"* against *"not yet swept"* — because until that phase
+    the surface rendered both as an empty list.
+
+    *"Not yet swept"* is now unreachable: nothing is owed and no button offers
+    a sweep. But a feature swept **before** the withdrawal carries a real
+    `acceptance_impact:`, and that is a true statement about a date. Deleting
+    the display would destroy history to tidy a schema, so the read stays and
+    the ask goes.
     """
     src = RENDERER.read_text(encoding="utf-8")
     body = src[src.index("function buildReleaseItemPage("):]
     body = body[:body.index("\n// ") if "\n// " in body else len(body)]
-    assert "Acceptance impact not yet swept." in body
     assert "Acceptance impact — ${d.acceptance_impact}" in body
+    assert "not yet swept" not in body
+    assert "Sweep ▸" not in body
     # …and the bare note is one row away, never the destination.
     assert "note · docs/${d.rel}" in body
 
@@ -402,10 +413,31 @@ def test_marking_a_check_from_the_item_page_uses_the_one_control() -> None:
     assert "buildCheckRow(item)" in body
 
 
-def test_the_sweep_page_writes_nothing_until_save() -> None:
-    """Cancelling is closing the page — there is no draft state to clean up."""
+def test_the_sweep_is_withdrawn_and_leaves_no_write_path() -> None:
+    """[[ADR-0036]]: the sweep is removed, and removal means the write too.
+
+    This asserted the sweep page posted exactly once and only on Save. The page
+    is gone, so the property it guarded is vacuous — but the *reason* it existed
+    is not: a withdrawn feature that leaves its endpoint reachable is a feature
+    that comes back the moment somebody adds a caller. The same mistake was
+    made with the release page's mark control, which ISS-0192 removed from one
+    surface and left live on another for weeks.
+
+    So the guard inverts rather than being deleted.
+    """
     src = RENDERER.read_text(encoding="utf-8")
-    body = src[src.index("function buildSweepPage("):]
-    body = body[:body.index("\n// ") if "\n// " in body else len(body)]
-    assert body.count("postJson(") == 1
-    assert "'/api/notes/acceptance-sweep'" in body
+    assert "buildSweepPage" not in src
+    assert "renderSweepPage" not in src
+    assert "'/api/notes/acceptance-sweep'" not in src
+    assert "~sweep/" not in src.replace(
+        "  // **No `~sweep/` route** (ADR-0036): the acceptance sweep is withdrawn.", "")
+
+    server = (Path(__file__).resolve().parents[1] / "src" / "project_os_cockpit"
+              / "server.py").read_text(encoding="utf-8")
+    assert "/api/notes/acceptance-sweep" not in server
+    assert "/api/cockpit/sweep" not in server
+
+    # The record survives the mechanism. `acceptance_impact:` values already
+    # written stay readable — they say somebody considered the question on a
+    # date, which is true whether or not anything asks (ADR-0036).
+    assert "acceptance_impact" in src

@@ -1264,13 +1264,7 @@ async function navigateToInner(
   // ~checks — the acceptance suite as a list (FEAT-0114 / TASK-0464). It is a
   // page rather than a nav mode: the suite lives inside Tests, and giving it a
   // ninth mode would put one corpus in two places, which is ISS-0068's defect.
-  // ~sweep/<FEAT-ID> — the close-out sweep (TASK-0467).
-  if (normalised.startsWith('~sweep/')) {
-    const ok = await renderSweepPage(
-      normalised.slice('~sweep/'.length).toUpperCase());
-    if (ok) commitVirtualPage(normalised, opts);
-    return;
-  }
+  // **No `~sweep/` route** (ADR-0036): the acceptance sweep is withdrawn.
   if (normalised === '~checks' || normalised.startsWith('~checks/')) {
     // `~checks/tier/2` — the filter lives in the ADDRESS (ISS-0203). Every tier
     // head used to carry a bare `~checks`, so the label differed and the
@@ -7396,28 +7390,18 @@ function buildReleaseItemPage(
     : 'In the next release — derived, not yet frozen.';
   wrap.appendChild(context);
 
-  // ---- the authored line, always ---------------------------------------
+  // ---- the authored line, when there is one (ADR-0036) -------------------
   //
-  // The empty state is the POINT. *"Acceptance impact considered — none"* and
-  // *"not yet swept"* are opposite sentences about a feature with no checks,
-  // and until `acceptance_impact:` existed the surface could only render both
-  // as an empty list.
+  // The sweep is withdrawn, so nothing is *owed* and no button offers one.
+  // What survives is the **record**: a feature that was swept before the
+  // withdrawal carries `acceptance_impact:`, and that line is a true statement
+  // about a date. Deleting the display would destroy history to tidy a schema.
   const impact = document.createElement('p');
   impact.className = 'release-impact';
-  if (d.type !== 'feature') {
-    impact.textContent = 'An issue carries no acceptance sweep — the sweep is '
-      + 'scoped to the feature that changed the surface.';
-  } else if (d.impact_state === 'owed') {
-    impact.textContent = 'Acceptance impact not yet swept.';
-    impact.classList.add('is-owed');
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.className = 'review-btn';
-    go.textContent = 'Sweep ▸';
-    go.addEventListener('click', () => { void navigateTo(`~sweep/${d.id}`); });
-    impact.appendChild(go);
-  } else {
+  if (d.type === 'feature' && d.acceptance_impact) {
     impact.textContent = `Acceptance impact — ${d.acceptance_impact}`;
+  } else {
+    impact.hidden = true;
   }
   wrap.appendChild(impact);
 
@@ -8601,253 +8585,16 @@ async function markCheckRow(item: GateItem): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// The close-out sweep (FEAT-0115 / TASK-0467) — `~sweep/<FEAT-ID>`.
+// The close-out sweep is WITHDRAWN (ADR-0036) — no route, no page, no payload,
+// no `Save sweep`. It asked an in-flight feature what its change did to the
+// acceptance suite, and it was built from a real measurement: 54 rows across
+// the fleet carried a hand-written `RE-RUN (…)` and all 54 were still ticked.
 //
-// The benchmark is the corpus's own hand commit, `a4577c01`: six checks added,
-// three invalidated, ONE commit. This page reproduces that shape — the checks
-// in the feature's areas with Needs-re-run in place, new checks as repeating
-// rows, and one Save that writes everything and commits it together.
-//
-// **Cancelling is closing the page.** Nothing is written until Save, which is
-// why there is no draft state to clean up.
+// That population is now empty — `mark: rerun` and `invalidated_by:` are 0 in
+// every repo — so what remained was the asking. `acceptance_impact:` values
+// already written stay in their notes; they record that somebody considered
+// the question on a date, which is true whether or not anything reads it.
 // ---------------------------------------------------------------------------
-
-interface SweepPayload {
-  feature: {
-    id: string; title: string; status: string; rel: string;
-    acceptance_impact: string; impact_state: string;
-  };
-  subjects: string[];
-  exists: boolean;
-  originated: GateItem[];
-  invalidated: GateItem[];
-  in_areas: GateItem[];
-  areas: { tier: number; section: string; area: string }[];
-}
-
-async function renderSweepPage(featureId: string): Promise<boolean> {
-  if (!sidecarBaseUrl || !featureId) return false;
-  let data: SweepPayload | null = null;
-  try {
-    const resp = await fetch(
-      `${sidecarBaseUrl}/api/cockpit/sweep?id=${encodeURIComponent(featureId)}`,
-    );
-    if (!resp.ok) return false;
-    data = (await resp.json()) as SweepPayload;
-  } catch { return false; }
-  if (!data?.feature) return false;
-  if (currentNavMode !== 'features') setNavMode('features');
-  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
-    'is-design-shell', 'review-page');
-  rightPaneContent.replaceChildren();
-  docView.replaceChildren(buildSweepPage(data));
-  docView.hidden = false;
-  placeholder.hidden = true;
-  return true;
-}
-
-function buildSweepPage(d: SweepPayload): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'review-body sweep-page';
-
-  const head = document.createElement('div');
-  head.className = 'release-head';
-  const h = document.createElement('h2');
-  h.textContent = `Acceptance sweep · ${d.feature.id}`;
-  head.appendChild(h);
-  const state = document.createElement('span');
-  state.className = 'release-state';
-  state.textContent = d.feature.impact_state === 'owed'
-    ? 'not yet swept' : d.feature.acceptance_impact;
-  head.appendChild(state);
-  wrap.appendChild(head);
-
-  const lead = document.createElement('p');
-  lead.className = 'meta';
-  // The rule, in the contract's own words rather than a paraphrase.
-  lead.textContent = `${d.feature.title} — TESTING.md rule 3: a change adds `
-    + 'the checks it needs and invalidates the checks it overtook. '
-    + `Invalidations name ${d.subjects.join(' or ')}.`;
-  wrap.appendChild(lead);
-
-  // ---- what to invalidate --------------------------------------------
-  const chosen = new Map<string, string>();      // check id -> reason
-  const groups: [string, GateItem[], string][] = [
-    ['Checks this feature originated', d.originated,
-      'These name it in `covers:`. If the work changed what they describe, '
-      + 'they are the first place it shows.'],
-    ['Checks in the same areas', d.in_areas,
-      'Offered, never inferred: scope overlap is a judgement, so nothing here '
-      + 'is invalidated unless you tick it.'],
-    ['Already invalidated by this work', d.invalidated,
-      'Recorded by an earlier sweep. Shown so a second one does not re-do it.'],
-  ];
-  for (const [label, items, hint] of groups) {
-    const box = document.createElement('section');
-    box.className = 'sweep-group';
-    const gh = document.createElement('h3');
-    gh.textContent = `${label} · ${items.length}`;
-    box.appendChild(gh);
-    const note = document.createElement('p');
-    note.className = 'meta';
-    note.textContent = hint;
-    box.appendChild(note);
-    if (!items.length) {
-      const none = document.createElement('p');
-      none.className = 'empty-note';
-      none.textContent = 'None — which is a normal answer, not a missing one.';
-      box.appendChild(none);
-    }
-    for (const item of items) {
-      const row = document.createElement('label');
-      row.className = 'sweep-row';
-      const box2 = document.createElement('input');
-      box2.type = 'checkbox';
-      box2.disabled = label.startsWith('Already');
-      const reason = document.createElement('input');
-      reason.type = 'text';
-      reason.className = 'ask-field sweep-reason';
-      reason.placeholder = 'why this check no longer holds (optional)';
-      reason.hidden = true;
-      box2.addEventListener('change', () => {
-        if (box2.checked) chosen.set(item.id || '', reason.value);
-        else chosen.delete(item.id || '');
-        reason.hidden = !box2.checked;
-      });
-      reason.addEventListener('input', () => {
-        if (box2.checked) chosen.set(item.id || '', reason.value);
-      });
-      const text = document.createElement('span');
-      text.className = 'sweep-row-name';
-      text.textContent = `${item.id ? `${item.id} · ` : ''}${item.name}`;
-      row.append(box2, text);
-      box.appendChild(row);
-      box.appendChild(reason);
-    }
-    wrap.appendChild(box);
-  }
-
-  // ---- new checks, as repeating rows ----------------------------------
-  //
-  // The marginal cost of one more check has to stay a line in a form. Adding a
-  // check used to be a line in a file, and a five-field ceremony per check
-  // would make people stop adding them — which is the regression the review
-  // said tooling had to prevent.
-  const authored: { name: string; tier: number; area: string; text: string }[] = [];
-  const newBox = document.createElement('section');
-  newBox.className = 'sweep-group';
-  const nh = document.createElement('h3');
-  nh.textContent = 'New checks';
-  newBox.appendChild(nh);
-  const rows = document.createElement('div');
-  newBox.appendChild(rows);
-
-  const addRow = (): void => {
-    const entry = { name: '', tier: 1, area: d.areas[0]?.area ?? '', text: '' };
-    authored.push(entry);
-    const row = document.createElement('div');
-    row.className = 'sweep-new';
-    const name = document.createElement('input');
-    name.type = 'text';
-    name.className = 'ask-field';
-    name.placeholder = 'what a person does, and what they should see';
-    name.addEventListener('input', () => { entry.name = name.value; });
-    const tier = document.createElement('select');
-    for (const n of [1, 2, 3]) {
-      const opt = document.createElement('option');
-      opt.value = String(n);
-      opt.textContent = `Tier ${n}`;
-      tier.appendChild(opt);
-    }
-    tier.addEventListener('change', () => { entry.tier = Number(tier.value); });
-    const area = document.createElement('select');
-    for (const a of d.areas) {
-      const opt = document.createElement('option');
-      opt.value = a.area;
-      opt.textContent = `${a.section} ${a.area}`;
-      area.appendChild(opt);
-    }
-    area.addEventListener('change', () => { entry.area = area.value; });
-    const text = document.createElement('input');
-    text.type = 'text';
-    text.className = 'ask-field';
-    text.placeholder = 'the procedure and the expected result';
-    text.addEventListener('input', () => { entry.text = text.value; });
-    row.append(name, tier, area, text);
-    rows.appendChild(row);
-  };
-  addRow();
-  const more = document.createElement('button');
-  more.type = 'button';
-  more.className = 'review-btn';
-  more.textContent = '+ another';
-  more.addEventListener('click', addRow);
-  newBox.appendChild(more);
-  wrap.appendChild(newBox);
-
-  // ---- the one line the feature authors --------------------------------
-  const impactBox = document.createElement('section');
-  impactBox.className = 'sweep-group';
-  const ih = document.createElement('h3');
-  ih.textContent = 'What this feature records';
-  impactBox.appendChild(ih);
-  const ihint = document.createElement('p');
-  ihint.className = 'meta';
-  // Three states because two would lie — the middle one is the whole reason
-  // this does not nag forever.
-  ihint.textContent = 'Saving with anything ticked or authored writes today’s '
-    + 'date. A sweep that changes nothing must say why instead — '
-    + '`none — <reason>` discharges permanently.';
-  impactBox.appendChild(ihint);
-  const impact = document.createElement('input');
-  impact.type = 'text';
-  impact.className = 'ask-field';
-  impact.placeholder = 'none — this feature touches no user-visible surface';
-  impactBox.appendChild(impact);
-  wrap.appendChild(impactBox);
-
-  const err = document.createElement('p');
-  err.className = 'ask-error';
-  err.hidden = true;
-  wrap.appendChild(err);
-
-  const actions = document.createElement('div');
-  actions.className = 'ask-actions ask-actions-commit';
-  const save = document.createElement('button');
-  save.type = 'button';
-  save.className = 'review-btn is-primary';
-  save.textContent = 'Save sweep';
-  save.addEventListener('click', () => {
-    void (async () => {
-      save.disabled = true;
-      err.hidden = true;
-      try {
-        const written = await postJson('/api/notes/acceptance-sweep', {
-          feature: d.feature.id,
-          invalidate: Array.from(chosen, ([id, reason]) => ({ id, reason })),
-          create: authored.filter((a) => a.name.trim()),
-          impact: impact.value.trim(),
-        }) as { created?: string[]; invalidated?: string[]; sha?: string };
-        showStatus(
-          `${(written.created ?? []).length} added, `
-          + `${(written.invalidated ?? []).length} invalidated`
-          + (written.sha ? ` · ${written.sha}` : ' · not committed'),
-          'info');
-        scheduleHide(6000);
-        await navigateTo(`/docs/${d.feature.rel}`);
-      } catch (e: unknown) {
-        // Shown HERE, beside the form that caused it, rather than in a toast
-        // that disappears before it has been read (ISS-0187's lesson).
-        err.textContent = e instanceof Error ? e.message : String(e);
-        err.hidden = false;
-        save.disabled = false;
-      }
-    })();
-  });
-  actions.appendChild(save);
-  wrap.appendChild(actions);
-  return wrap;
-}
 
 interface GateGroupOptions {
   items: GateItem[];
@@ -13384,7 +13131,7 @@ function attachSidecarEventStream(baseUrl: string): void {
  *  which is the guard doing exactly its job.
  *
  *  Nothing needs it now: every surface that writes a verdict (`~checks`,
- *  `~sweep/…`, a release page) is a tilde route, and the reload below already
+ *  a release page) is a tilde route, and the reload below already
  *  leaves those alone — it re-navigates only a real document path. */
 function scheduleSoftReload(): void {
   if (softReloadTimer != null) window.clearTimeout(softReloadTimer);
