@@ -40,5 +40,9 @@ Withdraw it entirely: the obligation, the registry rows, the `~sweep/` route and
 ## Consequences
 
 - The `Sweep` verb and its `action` leave the obligation registry; no badge counts it.
-- Nothing replaces it yet. When invalidation matters again — and under [[DES-0012]] it will, because the re-run tracking line has nothing to track without it — the replacement should be keyed on the **surface** a change touched, not on the feature.
+- **Something does replace it, and it is not another ask.** Edwin, on reading this: *"I expected you to automate creating acceptance tests for each feature, a project-os rule, not a manual step."* Withdrawing the obligation was right; leaving the gap was not. [[FEAT-0132]] scaffolds a Tier 1 acceptance test **with the feature** and gates the terminal status at close-out — a rule, running whether or not anyone remembers.
+
+  The measurement that settles which of the two works: `your-trainer` has **75 of 102 features with no acceptance check at all**, produced while the sweep existed. A mechanism that asks a person at close-out produces the coverage of whoever was paying attention that day.
+
+- When *invalidation* matters again — and under [[DES-0012]] it will, because the re-run tracking line has nothing to track without it — the replacement should be keyed on the **surface** a change touched, not on the feature.
 - This is the first built feature this project has withdrawn. Recorded as a decision rather than a deletion so the reasoning survives, and so re-introducing it starts from the measurement above rather than from scratch.

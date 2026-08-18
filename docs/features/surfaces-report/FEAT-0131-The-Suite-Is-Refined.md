@@ -26,7 +26,9 @@ Measured 2026-08-18: **66 of Tier 3's 74 checks** sit in an area called `"Moved 
 
 **Tier 3's holding pen is mechanical** — the area name states why each is there, and TESTING.md states what happens next. High confidence, and it is 66 of 74.
 
-**Tier 2 is a judgement per check.** Each references the `ISS-*` that created it, and the question — *could this regress?* — is answerable only by reading the fix. TESTING.md's default for Tier 2 is **never removed**, so the burden is on closing, not on keeping. 158 checks; expect the number closed to be small.
+**Tier 2 belongs to its issue.** Edwin: *"tier 2 should be associated with their issue, there should be very few tier-2 items active at any given time, so should not overwhelm."* TESTING.md already says each Tier 2 test *"references the `ISS-*` that created it"* — measured, **85 of 158 actually do**, so 73 have lost the link that explains why they exist. Restoring it is what makes Tier 2 groupable by issue rather than by 46 one-off scenario names, and it is what makes "few active at a time" true rather than aspirational: an issue is closed, and its guard goes quiet with it.
+
+**The rest of Tier 2 is a judgement per check.** Each references the `ISS-*` that created it, and the question — *could this regress?* — is answerable only by reading the fix. TESTING.md's default for Tier 2 is **never removed**, so the burden is on closing, not on keeping. 158 checks; expect the number closed to be small.
 
 ## What "closed" means
 

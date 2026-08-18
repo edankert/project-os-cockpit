@@ -17,6 +17,7 @@ features:
   - "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]"
   - "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
   - "[[FEAT-0131-The-Suite-Is-Refined]]"
+  - "[[FEAT-0132-Acceptance-Tests-Are-Scaffolded-By-Rule]]"
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
 issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0213-Acceptance-Tests-Carrying-Level-System]]"]
 related: ["[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[PHASE-036-One-Human-Walk]]"]
