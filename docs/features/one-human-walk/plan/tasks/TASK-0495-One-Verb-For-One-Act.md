@@ -17,7 +17,8 @@ related: []
 tests: []
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
-review_verdict: changes-requested
+review_verdict: approved
+review_note: "Fifth pass, fresh context, separate session. The guard is mutation-proven in BOTH directions: registry `Walk`->`Run` fails, and `badges_payload` emitting `Run` for the `test` kind with the registry untouched — the mutation that passed 1698 tests for the fourth pass — also fails. The docstring and the assertion now agree."
 ---
 
 # One verb
@@ -73,3 +74,16 @@ The line above — *"It is unguarded, which is the finding"* — is no longer tr
 It took two attempts, and the first is worth recording because it is this task's own failure mode a second time. Version one carried the docstring *"Asserted on the payload rather than the constant, because the payload is what the badge renders"* — and asserted the constant. The fourth reviewer mutated `badges_payload` to emit `Run` for the `test` kind while leaving the registry at `Walk`: **1698 passed, zero failures**, with the badge rendering *"Run 5 tests"*. A description written ahead of the code, inside the guard against descriptions written ahead of the code.
 
 Both mutations now fail: registry `Walk`→`Run`, and payload-only `Run` with the registry untouched.
+
+## Independent review — 2026-08-18, `model:claude-opus-5`, approved (fifth pass)
+
+Fresh context, separate session; model shared with the author and recorded above as provenance ([[project-os-dev#ADR-0013]]).
+
+**Both mutations kill the guard, run independently against the full suite.** Baseline `1699 passed, 3 skipped`.
+
+- `OBLIGATIONS["test"]` verb `"Walk"` → `"Run"` — **1 failed**, 1697 passed.
+- The registry left at `"Walk"` while `badges_payload`'s `"verbs"` dict emits `"Run"` for the `test` kind only — the mutation the fourth pass got **1698 passing** on — **1 failed**, 1697 passed.
+
+`obligations.py` restored afterwards; `git status --short` clean. The docstring now describes the assertion the body makes, which is the whole of the fourth pass's finding 1, and the section ending *"It is unguarded, which is the finding"* is annotated rather than left standing.
+
+*One narrowing worth recording, not a defect:* the earlier version also asserted `"Run"` was absent from `STANDING_VERBS`, and `payload["verbs"]` does not carry those. The claim the docstring makes is about the badge, and the badge reads this payload, so the assertion matches its claim — but a `Run` appearing in `STANDING_VERBS` would now go unguarded here. Its four values are `Create` / `Write` / `Resolve` / `Confirm`.
