@@ -11,7 +11,6 @@ updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0103]] — the criterion that cannot be met from a payload"]
 scope: system
-kind: manual
 level: system
 entrypoint: "Publication → Release gate, against a throwaway repo"
 command: ""

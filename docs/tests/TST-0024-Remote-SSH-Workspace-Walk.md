@@ -10,7 +10,6 @@ updated: 2026-08-13
 phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
 source: ["[[FEAT-0099-Remote-SSH-Workspaces]]"]
 scope: system
-kind: manual
 level: system
 entrypoint: "Two-machine desktop cockpit acceptance walk, with a second account on the remote host"
 command: ""

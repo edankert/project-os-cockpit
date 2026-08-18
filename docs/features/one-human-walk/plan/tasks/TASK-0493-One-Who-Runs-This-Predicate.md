@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0493
 aliases: ["TASK-0493"]
 title: "One predicate for 'who runs this', and the eight notes that currently disagree"
-status: backlog
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -26,3 +26,11 @@ tests: []
 The reader's rule survives; the registry calls it. Guard on the two agreeing across every test in every repo rather than on the eight, because the eight are today's symptom and the disagreement is the defect.
 
 Done when: one predicate, called from both places, and a guard that fails if they ever diverge again.
+
+## Done 2026-08-18
+
+`obligations._is_owed` calls `cockpit._is_manual_test`, imported inside the function because `cockpit` imports this module — the same shape `acceptance` and `publication` are already brought in with, one function down.
+
+**The 8 disagreements, named rather than counted**: `your-health` TST-0007..0011 (five notes the reader calls human-walked and the registry did not — all `passing`, so the status gate hid it) and `your-trainer`'s three frozen suites (which the change then surfaced, see [[TASK-0492-Retire-The-Manual-Run-Obligation]]).
+
+The guard asserts the two agree across every test in every repo, not that the eight are fixed: the eight were today's symptom and the disagreement was the defect.

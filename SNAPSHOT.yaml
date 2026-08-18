@@ -82,7 +82,7 @@ items:
     FEAT-0122:
       file: "docs/features/one-human-walk/FEAT-0122-One-Human-Walked-Population.md"
       title: "The axes stop implying each other — `kind:` is deleted, one predicate answers who runs a test, and re-arming follows execution rather than level"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       requirements: [REQ-0041]
@@ -2274,7 +2274,7 @@ items:
     REQ-0041:
       file: "docs/requirements/REQ-0041-One-Answer-To-Who-Runs-This.md"
       title: "One answer to 'who runs this' — the reader and the registry must never disagree about a test"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       implements: "FEAT-0122"
@@ -3398,9 +3398,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 124
-    features_done: 110
+    features_done: 111
     tasks_total: 500
-    tasks_done: 452
+    tasks_done: 456
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182

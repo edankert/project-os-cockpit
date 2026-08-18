@@ -11,7 +11,6 @@ owner: user:edwin
 created: 2026-07-06
 updated: 2026-08-13
 scope: feature
-kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_stats_scope.py"
 tasks: ["[[TASK-0128]]"]

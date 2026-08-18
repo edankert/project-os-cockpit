@@ -23,7 +23,6 @@ evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.5.1 @ 7de1a86"
 related: []
 level: acceptance
-kind: manual
 merged_from: "CHK-0032 @ 4c02731"
 ---
 

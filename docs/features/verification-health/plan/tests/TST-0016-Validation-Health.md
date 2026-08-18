@@ -11,7 +11,6 @@ owner: user:edwin
 created: 2026-07-17
 updated: 2026-08-13
 scope: feature
-kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_validation.py"
 tasks: ["[[TASK-0111]]", "[[TASK-0113]]"]

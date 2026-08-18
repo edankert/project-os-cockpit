@@ -270,7 +270,38 @@ def _test_last_verified(fm: dict[str, Any]) -> str:
 
 
 def _test_is_stale(fm: dict[str, Any], days: int) -> bool:
-    """Whether a test's last verification is older than the project threshold.
+    """Whether a test's verification no longer holds.
+
+    **Two rules, chosen by execution rather than by level** (ADR-0034
+    decision 2). A machine re-runs on every commit, so currency is free and the
+    only question is whether the last run is old. A person does not, so the
+    question is whether anything has CHANGED underneath the walk — which is
+    what `invalidated_by:` records, and which no threshold can answer.
+
+    *"This walk was true 89 days ago"* is not a question anybody asks; *"has
+    something changed under it"* is. Time-based staleness was a proxy for change
+    that a corpus carrying an invalidation field no longer needs — and the proxy
+    is actively wrong in both directions: a walk untouched for a year is current
+    if nothing it covers has moved, and one performed yesterday is stale if
+    something has.
+    """
+    if not str(fm.get("command") or "").strip():
+        invalidated = fm.get("invalidated_by") or {}
+        if isinstance(invalidated, dict) and str(
+                invalidated.get("change") or "").strip():
+            verdict = str(fm.get("verdict_date") or fm.get("last_verified") or "").strip()
+            when = str(invalidated.get("date") or "").strip()
+            # Arithmetic where both dates are known: a walk recorded AFTER the
+            # invalidating change answers it. Where either is missing the
+            # invalidation stands, because not one of the fleet's annotations
+            # carried a date when this was measured.
+            return not (verdict and when and verdict >= when)
+        return False
+    return _test_is_stale_by_time(fm, days)
+
+
+def _test_is_stale_by_time(fm: dict[str, Any], days: int) -> bool:
+    """Whether an executable test's last verification is older than the threshold.
 
     Delegates to :func:`_is_stale_verification` — literally the same rule the
     validator and the overview's ``unproven`` marker use, reached through

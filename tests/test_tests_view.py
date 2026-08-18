@@ -211,7 +211,8 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _corpus(root: Path, staleness: str | None, last_verified: str) -> Index:
+def _corpus(root: Path, staleness: str | None, last_verified: str,
+            *, command: str = "pytest -q") -> Index:
     snapshot = "project: demo\n"
     if staleness is not None:
         snapshot += f"verification:\n  staleness_days: {staleness}\n"
@@ -222,7 +223,11 @@ def _corpus(root: Path, staleness: str | None, last_verified: str) -> Index:
         "id: TST-0001\n"
         'title: "An old pass"\n'
         "status: passing\n"
-        f'last_verified: "{last_verified}"\n'
+        # **A `command:`, because time-based staleness is now an EXECUTABLE
+        # test's rule** (ADR-0034 decision 2). A command-less test re-arms by
+        # `invalidated_by:` instead, which is what the next test asserts.
+        + (f'command: "{command}"\nlast_run: "{last_verified}"\n' if command else "")
+        + f'last_verified: "{last_verified}"\n'
         "---\n\n# TST-0001\n"
     ))
     return Index.build(root / "docs")
@@ -248,6 +253,23 @@ def test_staleness_reads_the_projects_config_key(tmp_path: Path) -> None:
     fresh = _corpus(tmp_path / "loose", "99999", day)
     keys = {g["key"] for g in nav_payload(fresh, mode="tests")["groups"]}
     assert keys == {"verified"}
+
+
+def test_a_human_walked_test_does_not_go_stale_by_time(tmp_path: Path) -> None:
+    """ADR-0034 decision 2: re-arming is a property of execution, not of age.
+
+    A machine re-runs on every commit, so *"is this result old"* is a fair
+    question. A person does not, so the question is *"has anything CHANGED
+    under this walk"* — which `invalidated_by:` answers and no threshold can.
+
+    The proxy was wrong in both directions: a walk untouched for a year is
+    current if nothing it covers has moved, and one performed yesterday is
+    stale if something has. Same note, same date, same threshold as the `stale`
+    case above — only the `command:` differs.
+    """
+    walked = _corpus(tmp_path / "walked", "30", "2026-01-01", command="")
+    keys = {g["key"] for g in nav_payload(walked, mode="tests")["groups"]}
+    assert keys == {"verified"}, "a command-less test must not be graded by age"
 
 
 def test_the_default_threshold_is_the_validators(tmp_path: Path) -> None:

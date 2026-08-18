@@ -8,8 +8,8 @@ created: 2026-01-27
 updated: 2026-01-27
 source: []
 scope: feature
-kind: manual
-level: system       # unit | integration | system | e2e | acceptance
+level: system       # unit | integration | system | e2e | acceptance — what it EXERCISES.
+                    # Who RUNS it is `command:` below, and nothing else (ADR-0034).
 entrypoint: ""
 command: ""          # runnable check; when set, `status` is written by the runner, never by hand (ADR-0010)
 last_verified: ""    # manual tests only (no `command:`) — date the procedure was last performed; goes stale

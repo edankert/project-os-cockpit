@@ -11,7 +11,6 @@ updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0102]] acceptance criteria", "Edwin 2026-08-16: 'I am also afraid that this could overwhelm my attention'"]
 scope: system
-kind: automated
 level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_release_gate_campaign.py -q"

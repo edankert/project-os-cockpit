@@ -10,7 +10,6 @@ owner: user:edwin
 created: 2026-07-05
 updated: "2026-07-27"
 scope: feature
-kind: manual
 level: e2e
 entrypoint: ""
 tasks: ["[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0121]]", "[[TASK-0124]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0132]]", "[[TASK-0133]]", "[[TASK-0134]]", "[[TASK-0138]]", "[[TASK-0142]]"]

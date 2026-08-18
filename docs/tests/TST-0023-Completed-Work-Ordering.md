@@ -12,7 +12,6 @@ created: 2026-08-02
 updated: 2026-08-13
 source: ["[[FEAT-0056-Completed-Work-Ordering]]"]
 scope: "system"
-kind: "automated"
 level: "unit"
 entrypoint: "tests/test_completed_work_ordering.py"
 artifacts: []

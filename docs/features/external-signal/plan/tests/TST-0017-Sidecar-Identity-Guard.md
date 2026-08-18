@@ -6,7 +6,6 @@ title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, ext
 status: passing
 covers: ["[[TASK-0146-Sidecar-Identity-Guard]]", "[[ISS-0007-Stale-Url-Cross-Workspace-Poisoning]]", "[[FEAT-0027-External-Session-Signal]]"]
 command: ".venv/bin/pytest tests/test_identity_guard.py -q"
-kind: automated
 owner: user:edwin
 created: 2026-07-19
 updated: 2026-08-13

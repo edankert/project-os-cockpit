@@ -93,25 +93,31 @@ def test_every_declared_entrypoint_names_files_that_exist():
     assert not broken, "entrypoints naming files that do not exist: %s" % ", ".join(broken)
 
 
-def test_a_manual_test_is_left_manual():
-    """The exemption has to stay narrow, or the first guard is satisfied by relabelling.
+def test_nothing_declares_who_runs_a_test_except_the_command():
+    """`command:` is the only answer to who runs a test (ADR-0034 decision 4).
 
-    A note may only be exempt by *saying* it is manual, never by omission — which
-    was the pre-2026-08-13 state, where a note that declared nothing at all was
-    read as automated and still had no entrypoint.
+    This asserted that an exempt note must *say* it is manual — a real guard
+    while `kind:` existed, because before 2026-08-13 a note declaring nothing
+    was read as automated and still had no entrypoint. **ADR-0034 deletes
+    `kind:` instead of constraining it**, so the ambiguity is gone with the
+    field that created it: absence of a `command:` IS the declaration, and
+    there is no longer such a thing as being exempt by accident.
+
+    What still needs guarding is that a second declaration does not come back.
+    Two fields answering one question is how the reader and the registry came
+    to disagree about 8 of 788 tests, and re-adding one would be silent.
     """
-    for record in _test_notes():
-        if _command(record):
-            continue
-        declared = " ".join(
-            str(record.frontmatter.get(key) or "")
-            for key in ("automation", "kind", "mode", "method")
-        ).lower()
-        assert "manual" in declared, (
-            "%s has no command: and does not declare itself manual; it is exempt "
-            "from the entrypoint rule by accident rather than by intent"
-            % _note_id(record)
-        )
+    banned = ("kind", "mode", "method")
+    offenders = [
+        "%s carries %s:" % (_note_id(record), key)
+        for record in _test_notes()
+        for key in banned
+        if str(record.frontmatter.get(key) or "").strip()
+    ]
+    assert not offenders, (
+        "a second who-runs-this field is back, and it will drift from `command:` "
+        "the way `kind:` did: %s" % ", ".join(offenders)
+    )
 
 
 @pytest.mark.parametrize("note_id", ["TST-0011", "TST-0024"])

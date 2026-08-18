@@ -11,7 +11,6 @@ owner: user:edwin
 created: 2026-07-05
 updated: 2026-08-13
 scope: feature
-kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_agent_hooks.py"
 tasks: ["[[TASK-0114]]", "[[TASK-0123]]", "[[TASK-0125]]", "[[TASK-0126]]"]

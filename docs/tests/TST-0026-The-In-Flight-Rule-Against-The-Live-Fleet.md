@@ -11,7 +11,6 @@ updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0101]] acceptance criteria — the numbers are claims about twelve real repos"]
 scope: system
-kind: manual
 level: system
 entrypoint: "the discovered fleet under ~/Dev/repos"
 command: ""

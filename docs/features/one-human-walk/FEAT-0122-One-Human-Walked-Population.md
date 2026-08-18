@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0122
 aliases: ["FEAT-0122"]
 title: "The axes stop implying each other — `kind:` is deleted, one predicate answers who runs a test, and re-arming follows execution rather than level"
-status: backlog
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18

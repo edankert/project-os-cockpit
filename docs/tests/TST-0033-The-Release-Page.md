@@ -11,7 +11,6 @@ updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0106]] acceptance criteria"]
 scope: system
-kind: automated
 level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_release_page.py -q"

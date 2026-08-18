@@ -12,7 +12,6 @@ created: 2026-05-08
 updated: 2026-08-13
 source: []
 scope: "system"
-kind: "automated"
 level: "unit"
 entrypoint: "tests/test_cockpit.py"
 artifacts: []

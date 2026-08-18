@@ -980,13 +980,22 @@ def _is_owed(record: Any, ob: Obligation, index: "Index | None" = None) -> bool:
 
     if record.note_type == "test":
         # Manual only: an automated test at `ready` waits on a runner, not a
-        # person. `kind`/`level` carry that in this corpus.
+        # person.
         if status not in ob.states:
             return False
-        blob = " ".join(
-            str(record.frontmatter.get(k) or "") for k in ("kind", "level", "runner")
-        ).lower()
-        if "manual" not in blob:
+        # **One predicate, and it is the reader's** (ADR-0034 / REQ-0041). This
+        # asked whether `kind`/`level`/`runner` contained the word "manual" and
+        # never read `command:` at all -- so the rule filling this badge was the
+        # weaker of the two, and 8 of 788 fleet tests disagreed with
+        # `_is_manual_test`. None involved a `command:`, which is why nothing
+        # broke and why nothing would have announced it when it did.
+        #
+        # Imported inside the function: `cockpit` imports this module, and a
+        # module-level import would be a cycle. The same shape `acceptance` and
+        # `publication` are already brought in with, one function down.
+        from .cockpit import _is_manual_test
+
+        if not _is_manual_test(record):
             return False
     elif status not in ob.states:
         return False
