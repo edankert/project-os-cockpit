@@ -11,7 +11,7 @@ tier: 2
 area: "Stat tiles are not dead ends"
 section: "2.2"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

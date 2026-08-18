@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 VALIDATOR = REPO_ROOT / "tools" / "scripts" / "validate-docs.py"
 
 #: A check with a real verdict on it — the state the gates are asked about.
-#: `mark: "!"` is deliberately the *failed* mark: if any gate were keyed on
+#: `mark: "important"` is deliberately the *failed* mark: if any gate were keyed on
 #: something other than `status:`, a failed check is where it would show.
 CHECK_NOTE = """---
 type: "[[check]]"
@@ -41,7 +41,7 @@ tier: 1
 area: "The navigator"
 section: "1.3"
 ordinal: 10
-mark: "!"
+mark: "important"
 verdict_date: 2026-08-17
 verdict_reason: "the tray was empty with three items at triage"
 automation: manual

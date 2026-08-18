@@ -11,7 +11,7 @@ tier: 1
 area: "Agents and sessions"
 section: "1.10"
 ordinal: 20
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

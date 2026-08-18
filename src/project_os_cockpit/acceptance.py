@@ -79,7 +79,7 @@ _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
 #: parser written from that comment would read a typo as a walked check.*
 _ITEM_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*?)\s*$")
 #: Walked. `X` is Markdown-legal and appears in the wild.
-_CHECKED_MARKS = frozenset({"x", "X"})
+_CHECKED_MARKS = frozenset({"done", "x", "X"})
 #: Settled by a decision rather than by being walked — the check describes a
 #: surface that was retired, or asks for a precondition that cannot be made.
 #: It does not block; it is counted and named, which is the difference between
@@ -88,7 +88,7 @@ _CHECKED_MARKS = frozenset({"x", "X"})
 #: never written. Every one of `../your-trainer`'s seven `~` rows says
 #: *"Partial pass"*, which is why `~` aliases `/` and not `-` — an earlier
 #: draft had it the other way and the rows corrected it (ADR-0029).
-_RECONCILED_MARKS = frozenset({"/", "~"})
+_RECONCILED_MARKS = frozenset({"incomplete", "/", "~"})
 #: **Shipping anyway** (FEAT-0104). A check that is not done, on a release
 #: somebody has decided to ship regardless. `TESTING.md` line 113 has always
 #: allowed this — *"A test may be marked as a release exception if it cannot
@@ -106,7 +106,7 @@ _RECONCILED_MARKS = frozenset({"/", "~"})
 #: not holding the release — and it keeps its field and its separate count.
 #: Only the character changed, from the `[!]` this project minted and which was
 #: written in zero suites fleet-wide.
-_EXCEPTED_MARKS = frozenset({"-"})
+_EXCEPTED_MARKS = frozenset({"canceled", "-"})
 #: **Failed, and tracked** (TASK-0454). `../your-trainer`'s own suites use this
 #: with a dated verdict and a linked issue — *"`[F]` … **FAILS 2026-06-07** —
 #: collapse state is stored globally … Tracked as [[ISS-0285]]"*.
@@ -126,13 +126,24 @@ _EXCEPTED_MARKS = frozenset({"-"})
 #: written in zero suites across twelve repos, verified before the decision
 #: rather than after — any `[!]` authored in the one day it meant the opposite
 #: would silently begin blocking a release.
-_FAILED_MARKS = frozenset({"!", "F"})
+_FAILED_MARKS = frozenset({"important", "!", "F"})
 #: `[?]` is Minimal's *question* — the walker read the check and cannot tell
 #: what it is asking. **Blocks**, and it is a third blocking mark that means a
 #: third thing: `[ ]` nobody looked, `[!]` somebody looked and it broke, `[?]`
 #: somebody looked and could not tell. Collapsing any pair loses the
 #: distinction the vocabulary exists for.
-_QUESTION_MARKS = frozenset({"?"})
+_QUESTION_MARKS = frozenset({"question", "?"})
+#: **Walked, then invalidated by a later change** (ADR-0034 decision 5). The
+#: seventh value, and the one the character vocabulary could not express: an
+#: invalidated check was written `mark: " "` — *"nobody has walked it"* — plus
+#: an `invalidated_by:` block, so the two states were the same value in the one
+#: field every surface reads. **Blocks**, like every other unsettled value.
+#:
+#: It has no legacy character, deliberately. `LEGACY_MARKS` maps `" "` to
+#: `todo`, which is what an unmigrated repo means by it; the invalidation is
+#: still carried there by `invalidated_by:` and recovered by comparing dates,
+#: exactly as it was before.
+_RERUN_MARKS = frozenset({"rerun"})
 #: A check that is ticked but whose evidence was invalidated by a later change.
 #: `TESTING.md` rule 2 says a code change unchecks the tests it overlaps; the
 #: practice in `../your-trainer` is softer — the tick stays and the row gains
@@ -270,12 +281,22 @@ class Item:
     #: surface can distinguish *"nobody has walked this"* from *"somebody
     #: walked it and it failed"*, which are the same colour today.
     failed: bool = False
+    #: **Walked, then invalidated by a later change** (ADR-0034 decision 5).
+    #: Blocking, and the state the character vocabulary could not say: an
+    #: invalidated check was `mark: " "` — *"nobody has walked it"* — beside an
+    #: `invalidated_by:` block, so a check somebody walked and one nobody has
+    #: touched were the same value in the field every surface reads.
+    needs_rerun: bool = False
     #: The invalidation, structured. `rerun` below is the string every existing
     #: caller already reads, kept as a property so the two cannot disagree —
     #: which they would within a week if both were fields set side by side.
     invalidated: Invalidation = _NOT_INVALIDATED
-    #: The mark character exactly as the file writes it — `" "`, `"x"`, `"/"`,
-    #: `"~"`, `"-"`, `"!"`, `"F"`, `"?"`, or whatever nobody recognises.
+    #: The mark as a WORD, normalised on read by :func:`normalise_mark` —
+    #: `todo`, `done`, `incomplete`, `canceled`, `important`, `question`,
+    #: `rerun`, or whatever nobody recognises. A note authored with a character
+    #: (an unmigrated repo, or any of the twelve historical tags `suite_at`
+    #: reads) arrives here already translated, so nothing downstream carries a
+    #: second vocabulary.
     #:
     #: The five booleans above are *classifications* of this, and they are
     #: lossy on purpose: `x` and `X` are one thing to the gate, and so are `/`
@@ -552,6 +573,7 @@ def parse(text: str) -> list[Item]:
             excepted=mark in _EXCEPTED_MARKS,
             failed=mark in _FAILED_MARKS,
             question=mark in _QUESTION_MARKS,
+            needs_rerun=mark in _RERUN_MARKS,
             invalidated=split_rerun(rerun.group(1)) if rerun else _NOT_INVALIDATED,
             mark=mark,
             refs=refs, ordinal=ordinal, heading=full_heading,
@@ -658,7 +680,7 @@ def item_from_note(
         tier = 0
     if tier not in (1, 2, 3):
         tier = 1
-    mark = str(fm.get("mark", " ") or " ")
+    mark = normalise_mark(str(fm.get("mark", " ") or " "))
     # A YAML scalar cannot hold a bare space, so `mark: " "` round-trips as the
     # empty string through some writers. Both mean unwalked; nothing else is
     # normalised, because `[ x]` staying unrecognised is the point of the
@@ -699,6 +721,7 @@ def item_from_note(
         reconciled=mark in _RECONCILED_MARKS,
         excepted=mark in _EXCEPTED_MARKS,
         failed=mark in _FAILED_MARKS,
+        needs_rerun=mark in _RERUN_MARKS,
         question=mark in _QUESTION_MARKS,
         invalidated=invalid,
         mark=mark,
@@ -1530,16 +1553,54 @@ def gate_payload(
 #: blank. `[~]` and `[x]` both pass the gate and mean opposite things about
 #: whether anything was verified — which is why `[~]` cannot be written
 #: without a reason.
+#: **Words, not characters** (ADR-0034 decision 5, ISS-0200). Minimal's
+#: distinctions kept; Minimal's notation dropped. The notation was adopted
+#: because the suite WAS a Markdown document that Obsidian rendered; the
+#: document is gone and a `mark: "/"` in frontmatter is a lookup, not a render.
 VERDICTS: dict[str, str] = {
-    "pass": "x",         # Minimal: done
-    "partial": "/",      # Minimal: incomplete
-    "excused": "-",      # Minimal: canceled
-    "failed": "!",       # Minimal: important
-    "question": "?",     # Minimal: question
-    "clear": " ",        # Minimal: to-do
+    "pass": "done",
+    "partial": "incomplete",
+    "excused": "canceled",
+    "failed": "important",
+    "question": "question",
+    "clear": "todo",
+    #: **The seventh, and the one that pays for the migration.** An invalidated
+    #: check was written as `mark: " "` plus an `invalidated_by:` block --
+    #: *"nobody has walked it"* recorded against a check somebody walked. The
+    #: two states were the same value in the one field every surface reads, so
+    #: telling them apart needed a date comparison. `your-trainer` carries 54.
+    "rerun": "rerun",
 }
-#: The legacy marks, read forever and never written (ADR-0029).
-LEGACY_MARKS: dict[str, str] = {"~": "/", "F": "!", "X": "x"}
+#: The characters, read forever and never written (ADR-0029, ADR-0034). Every
+#: repo that has not migrated its vocabulary keeps working, and `suite_at`
+#: reads twelve historical tags where only characters exist.
+LEGACY_MARKS: dict[str, str] = {
+    "~": "incomplete", "F": "important", "X": "done",
+    "x": "done", "/": "incomplete", "-": "canceled",
+    "!": "important", "?": "question", " ": "todo", "": "todo",
+}
+def normalise_mark(raw: str) -> str:
+    """A mark as a word, whatever it was written as.
+
+    One place translates, and it runs on **read** rather than at each
+    comparison — so every surface, every gate and every count sees the same
+    vocabulary whether the note was authored today or two migrations ago, and
+    `suite_at` can read twelve historical tags that contain only characters.
+    """
+    mark = str(raw or "").strip()
+    if not mark:
+        return "todo"
+    lowered = mark.lower()
+    if lowered in _ALL_WORDS:
+        return lowered
+    return LEGACY_MARKS.get(mark, mark)
+
+
+#: Every legal word. Anything else stays verbatim and is therefore unrecognised,
+#: which the gate reads as blocking — the direction that fails safely.
+_ALL_WORDS: frozenset[str] = frozenset(
+    {"done", "incomplete", "canceled", "important", "question", "todo", "rerun"})
+
 #: Refused without a reason. The mark and its justification are one action, so
 #: a check cannot leave the gate silently — the whole gap [[ISS-0177]] records
 #: for `[!]`, which shipped its permissive half with no way to ask why.

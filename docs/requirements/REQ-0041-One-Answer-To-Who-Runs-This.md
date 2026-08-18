@@ -2,7 +2,7 @@
 type: "[[requirement]]"
 id: REQ-0041
 aliases: ["REQ-0041"]
-title: "One answer to \"who runs this\" — the reader and the registry must never disagree about a test"
+title: "One answer to 'who runs this' — the reader and the registry must never disagree about a test"
 status: draft
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin

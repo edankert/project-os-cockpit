@@ -82,7 +82,7 @@ def _repo(tmp_path: Path, *, impact: str = "", suite: bool = False) -> Index:
             'title: "Nobody has walked this"\nstatus: active\n'
             "owner: user:edwin\ncreated: 2026-08-01\nupdated: 2026-08-01\n"
             'tier: 1\narea: "The thing"\nsection: "1.1"\nordinal: 10\n'
-            'mark: " "\nverdict_date: ""\nverdict_reason: ""\n'
+            'mark: "todo"\nverdict_date: ""\nverdict_reason: ""\n'
             "invalidated_by: {}\nautomation: manual\ncovered_by: []\n"
             'covers: ["[[FEAT-9001]]"]\nburden: []\nevidence: []\n'
             'migrated_from: ""\nrelated: []\n---\n\n# Nobody has walked this\n\n'

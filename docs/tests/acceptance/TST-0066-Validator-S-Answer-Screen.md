@@ -11,7 +11,7 @@ tier: 1
 area: "Verification health and the fleet"
 section: "1.11"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

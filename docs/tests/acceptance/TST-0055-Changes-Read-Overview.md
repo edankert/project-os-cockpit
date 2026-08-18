@@ -11,7 +11,7 @@ tier: 1
 area: "The overview"
 section: "1.5"
 ordinal: 20
-mark: "/"
+mark: incomplete
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

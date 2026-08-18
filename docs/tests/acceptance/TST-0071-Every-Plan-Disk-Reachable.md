@@ -11,7 +11,7 @@ tier: 2
 area: "Plans are visible"
 section: "2.1"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

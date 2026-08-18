@@ -51,7 +51,7 @@ tier: 1
 area: "An area"
 section: "1.1"
 ordinal: 10
-mark: " "
+mark: "todo"
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}
@@ -106,8 +106,11 @@ def _check(index: Index) -> acceptance.Item:
 
 
 @pytest.mark.parametrize(("verdict", "mark"), [
-    ("pass", "x"), ("partial", "/"), ("excused", "-"),
-    ("failed", "!"), ("question", "?"),
+    ("pass", "done"), ("partial", "incomplete"), ("excused", "canceled"),
+    ("failed", "important"), ("question", "question"),
+    # `rerun` is the seventh (ADR-0034 / ISS-0200) and is NOT written by
+    # `mark_check` -- it is what `invalidate_check` writes, because a check is
+    # invalidated by a change rather than by somebody choosing that verdict.
 ])
 def test_each_verdict_writes_its_mark_and_reads_back(
     tmp_path: Path, verdict: str, mark: str,
@@ -133,7 +136,7 @@ def test_a_pass_may_carry_no_witness(tmp_path: Path) -> None:
     index = _corpus(tmp_path)
     note_writes.mark_check(index, check_id="CHK-0001", verdict="pass")
     item = _check(Index.build(index.docs_root))
-    assert item.mark == "x" and item.verdict_reason == ""
+    assert item.mark == "done" and item.verdict_reason == ""
 
 
 @pytest.mark.parametrize("reason", [
@@ -160,7 +163,7 @@ def test_a_reason_cannot_escape_the_field_it_lands_in(
                            reason=reason)
     # It parses at all — a broken scalar makes the whole note unreadable.
     item = _check(Index.build(index.docs_root))
-    assert item.mark == "/"
+    assert item.mark == "incomplete"
     assert item.verdict_reason, "the reason vanished"
     assert "\n" not in item.verdict_reason
 
@@ -175,7 +178,7 @@ def test_a_verdict_that_needs_a_reason_is_refused_without_one(
     with pytest.raises(note_writes.WriteError) as caught:
         note_writes.mark_check(index, check_id="CHK-0001", verdict=verdict)
     assert "reason" in caught.value.message
-    assert _check(index).mark == " ", "the note was written despite the refusal"
+    assert _check(index).mark == "todo", "the note was written despite the refusal"
 
 
 def test_a_reason_citing_a_note_that_does_not_exist_is_refused(
@@ -191,7 +194,7 @@ def test_a_reason_citing_a_note_that_does_not_exist_is_refused(
     # …and one that does exist is accepted.
     note_writes.mark_check(index, check_id="CHK-0001", verdict="failed",
                            reason="tracked as ISS-0285")
-    assert _check(Index.build(index.docs_root)).mark == "!"
+    assert _check(Index.build(index.docs_root)).mark == "important"
 
 
 def test_an_unknown_verdict_is_refused(tmp_path: Path) -> None:
@@ -211,7 +214,7 @@ def test_clearing_a_mark_clears_the_reason_it_was_carrying(
     index = Index.build(index.docs_root)
     note_writes.mark_check(index, check_id="CHK-0001", verdict="clear")
     item = _check(Index.build(index.docs_root))
-    assert item.mark == " "
+    assert item.mark == "todo"
     assert item.verdict_reason == "" and item.verdict_date == ""
 
 
@@ -228,7 +231,7 @@ def test_a_verdict_replaces_the_previous_one_rather_than_stacking_it(
     note_writes.mark_check(index, check_id="CHK-0001", verdict="failed",
                            reason="crashes on launch")
     item = _check(Index.build(index.docs_root))
-    assert item.mark == "!" and item.verdict_reason == "crashes on launch"
+    assert item.mark == "important" and item.verdict_reason == "crashes on launch"
     assert "de-DE" not in (index.docs_root / item.rel).read_text(encoding="utf-8")
 
 
@@ -424,15 +427,15 @@ def test_the_write_path_addresses_the_merged_type(tmp_path) -> None:
     (docs / "tests" / "acceptance" / "TST-0500-Merged.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0500\naliases: ["TST-0500", "CHK-0012"]\n'
         'title: "a migrated check"\nstatus: active\nlevel: acceptance\nkind: manual\n'
-        'tier: 1\nmark: " "\nverdict_date: ""\nverdict_reason: ""\narea: "A"\n'
+        'tier: 1\nmark: "todo"\nverdict_date: ""\nverdict_reason: ""\narea: "A"\n'
         'section: "1.1"\nordinal: 10\nautomation: manual\ncovered_by: []\n'
         'covers: []\nmerged_from: "CHK-0012 @ abc1234"\n---\n\nwalk it\n',
         encoding="utf-8")
 
     out = note_writes.mark_check(Index.build(docs), check_id="TST-0500", verdict="pass")
-    assert out["mark"] == "x"
+    assert out["mark"] == "done"
 
     import frontmatter as _fm
     note = _fm.loads((docs / "tests" / "acceptance" / "TST-0500-Merged.md").read_text())
-    assert note["mark"] == "x"
+    assert note["mark"] == "done"
     assert note["status"] == "active", "ticking must never touch the lifecycle"

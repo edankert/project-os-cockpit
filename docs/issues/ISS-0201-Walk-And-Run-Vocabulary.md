@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0201
 aliases: ["ISS-0201"]
-title: "\"Walk\" and \"Run\" are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
+title: "'Walk' and 'Run' are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
 status: triage
 owner: user:edwin
 created: 2026-08-18

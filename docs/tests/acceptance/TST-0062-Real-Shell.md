@@ -11,7 +11,7 @@ tier: 1
 area: "The embedded terminal"
 section: "1.9"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

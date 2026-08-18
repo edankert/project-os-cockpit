@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0200
 aliases: ["ISS-0200"]
 title: "Why are acceptance verdicts six terse characters rather than more status values? The reasoning is recorded but it was never tested against the alternative it dismisses"
-status: triage
+status: open
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 severity: medium
 component: docs
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-036-One-Human-Walk]]"
 related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[TESTING-MODEL]]"]
 ---
 
@@ -50,3 +50,13 @@ Edwin, 2026-08-18: *"The status vs marks, why would we use those terse character
 **"The surfaces already render a label rather than the character" is half true**, and the wrong half for the migration estimate. The filter chips render `MARK_MEANING` words (`passed`, `unwalked`); the row control renders `MARK_GLYPH` — `[x]`, `[/]`, `[-]` — with a comment giving its reason as *"a reader who edits the Markdown by hand has already seen what to type"*. That rationale expires with reason 1 (a hand-editor now types `mark: "x"` in YAML), which **supports** the argument here — but it means the migration is not "669 notes plus the six-value tables": it is `MARK_GLYPH`/`MARK_TITLE`/`MARK_CLASS`, the six-mark dialog, `VERDICTS`/`VERDICTS_NEEDING_REASON`/`MARK_MEANING`/`LEGACY_MARKS`, the five mark frozensets, and the fail-safe that an unrecognised mark blocks — which a word vocabulary has to reproduce or it fails open.
 
 **Verdict: the question stands and reason 2 is correctly analysed; the treatment of ADR-0029 needs the anti-invention argument added and answered, and the cost figures need the parser-stays-forever and zero-usage measurements.**
+
+## Decided 2026-08-18 — words, and a seventh value
+
+Edwin: *"replace the characters with their status options — done, incomplete, canceled, important, question, rerun and todo."*
+
+Seven values replace six characters, recorded in [[ADR-0034-Three-Axes-Not-One-Word]] decision 5. Six are Minimal's own distinctions under Minimal's own labels — **the convention ADR-0029 was right to adopt is kept; only the notation goes**, and the notation was the half that died with the document it was rendered in.
+
+**The seventh is the one that pays for the migration.** `rerun` is a state the corpus has always had and never been able to say: an invalidated check is written today as `mark: " "` — *"nobody has walked it"* — plus an `invalidated_by:` block, so a check somebody walked and a check nobody has touched are the same value in the one field every surface reads. `your-trainer` carries 54 of them. Making it a value means the distinction stops needing a date comparison to recover.
+
+This closes with [[FEAT-0122]]'s migration rather than separately: the corpus is rewritten once.

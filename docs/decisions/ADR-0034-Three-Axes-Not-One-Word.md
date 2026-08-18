@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0034
 aliases: ["ADR-0034"]
 title: "Three axes, not one word — `level` says what a test exercises, `command:` says who runs it, `covers:` says what it gates, and no axis implies another"
-status: proposed
+status: accepted
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
-decision_date: ""
+decision_date: 2026-08-18
 phase: "[[PHASE-036-One-Human-Walk]]"
 supersedes: "[[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]"
 superseded: ""
@@ -19,7 +19,9 @@ tags: [testing, conventions, schema]
 
 ## Status
 
-**Proposed 2026-08-18.** Nothing changes until Edwin accepts it. It **supersedes [[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]**, which was proposed six hours earlier and is right about its conclusion and wrong about its reason — see *Why this supersedes ADR-0033* below.
+**Accepted 2026-08-18.** Edwin's instruction is the acceptance: *"Implement, test and independently verify phase 036 and fix ISS-0200 as part of this, replace the characters with their status options."* Given against a phase note, three features and a measured precondition — the same gate [[ADR-0030]], [[ADR-0031]] and [[ADR-0033]] all used.
+
+**And it decides [[ISS-0200-Marks-Versus-Statuses]] with it**, which this ADR had deliberately left open. That is Edwin's call to make in one pass rather than mine to keep separate: the corpus is being rewritten once, and the argument for holding the vocabulary back was to stop it being folded in *silently*, not to stop it being decided. It **supersedes [[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]**, which was proposed six hours earlier and is right about its conclusion and wrong about its reason — see *Why this supersedes ADR-0033* below.
 
 ## Context
 
@@ -55,7 +57,21 @@ Not one of those follows from what the word means.
 2. **Re-arming is a property of execution, not of level.** A machine re-runs on every commit, so currency is free. A person does not, so *"has something changed under this walk"* has to be recorded — `invalidated_by:`. It attaches to **any test with no `command:`**, at any level, and the 90-day staleness threshold is retired for that population.
 3. **`level: acceptance` survives and stops meaning anything else.** It is ISTQB-standard and it names something real; it will no longer imply manual, `mark:`, or release-scoped gating. Automating an acceptance test does not stop it being one.
 4. **`kind: manual` is deleted as a field.** `command:` already answers it, and two fields answering one question is how the reader and the registry came to disagree about 8 of 788 tests.
-5. **One outcome vocabulary for every test**, rich enough for the states a walk needs — pass, fail, partial, excepted, unclear — and reachable by an automated test too, which already has `skip`/`xfail`. **Whether it is written as a character or a word is [[ISS-0200-Marks-Versus-Statuses]] and is deliberately not decided here**, because touching every note is exactly when a second decision gets folded in silently.
+5. **One outcome vocabulary for every test, written as words** (Edwin, 2026-08-18):
+
+   | was | becomes | means |
+   |---|---|---|
+   | `x` | **`done`** | walked and it held |
+   | `/` | **`incomplete`** | partially holds; the reason says which part |
+   | `-` | **`canceled`** | will not be walked, and is not holding the release |
+   | `!` | **`important`** | walked and failed, with the failure tracked |
+   | `?` | **`question`** | walked and not understood — the check itself is unclear |
+   | `" "` | **`todo`** | nobody has walked it |
+   | *(new)* | **`rerun`** | it was walked, and a change since invalidated the result |
+
+   **`rerun` is the addition and it earns the migration on its own.** Today an invalidated check is written as `mark: " "` plus an `invalidated_by:` block — *"nobody has walked it"* recorded against a check somebody walked. The two states were indistinguishable in the one field every surface reads, which is why `Stale evidence` had to be computed by comparing dates. As a value it is simply true.
+
+   The characters were adopted because [[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]] found an existing convention rather than inventing one, and because the suite was a Markdown document where Obsidian rendered them. **The second reason died with the document**; the first is honoured by keeping Minimal's *distinctions* and dropping its *notation*, which was never the part carrying meaning in frontmatter.
 6. **Tiers become lifetime, or they go.** Tier 1 (permanent capability), Tier 2 (permanent regression guard), Tier 3 (one build, then promoted or removed) is not a level and not a scope — it is *how long this test is expected to live*. Once gating comes from `covers:`, Tier 1/2/3 stops being load-bearing and survives only if it earns its place as a lifetime field.
 
 ## Why this supersedes ADR-0033

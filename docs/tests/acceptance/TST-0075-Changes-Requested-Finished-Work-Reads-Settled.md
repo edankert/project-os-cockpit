@@ -11,7 +11,7 @@ tier: 2
 area: "A settled verdict is not owed"
 section: "2.5"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

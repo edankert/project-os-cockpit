@@ -11,7 +11,7 @@ tier: 1
 area: "Issues and capture"
 section: "1.8"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

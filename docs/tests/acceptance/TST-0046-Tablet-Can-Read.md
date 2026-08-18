@@ -11,7 +11,7 @@ tier: 1
 area: "Render server and the browser front door"
 section: "1.1"
 ordinal: 30
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

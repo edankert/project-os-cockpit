@@ -2237,7 +2237,12 @@ def invalidate_check(
         raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
     fm_lines, body = _split_frontmatter(raw)
     today = _today()
-    fm_lines = _set_field(fm_lines, "mark", " ")
+    # **`rerun`, not blank** (ADR-0034 decision 5). This wrote `" "` until
+    # 2026-08-18, which said *"nobody has walked it"* about a check somebody
+    # had walked — the two states were one value in the field every surface
+    # reads, and telling them apart needed `verdict_date` against
+    # `invalidated.date`. As a word it is simply true.
+    fm_lines = _set_field(fm_lines, "mark", "rerun")
     # The verdict fields are NOT cleared. `verdict_date` is what makes
     # staleness arithmetic — a later pass answers this invalidation and an
     # earlier one does not — so erasing it here would throw away the number
@@ -2249,7 +2254,7 @@ def invalidate_check(
     fm_lines = _set_field(fm_lines, "updated", today)
     _write(path, fm_lines, body)
     return {
-        "id": check_id, "mark": " ", "verdict": "needs-re-run",
+        "id": check_id, "mark": "rerun", "verdict": "needs-re-run",
         "invalidated_by": {"change": change, "reason": reason, "date": today},
     }
 

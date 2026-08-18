@@ -11,7 +11,7 @@ tier: 1
 area: "Tests"
 section: "1.7"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

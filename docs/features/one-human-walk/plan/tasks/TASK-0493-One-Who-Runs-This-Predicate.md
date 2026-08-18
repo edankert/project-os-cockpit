@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0493
 aliases: ["TASK-0493"]
-title: "One predicate for "who runs this", and the eight notes that currently disagree"
+title: "One predicate for 'who runs this', and the eight notes that currently disagree"
 status: backlog
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin

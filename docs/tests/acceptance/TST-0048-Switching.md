@@ -11,7 +11,7 @@ tier: 1
 area: "Desktop shell and workspaces"
 section: "1.2"
 ordinal: 20
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

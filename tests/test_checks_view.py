@@ -271,7 +271,7 @@ def test_a_passing_covering_test_settles_the_check(tmp_path) -> None:
     write('["[[TST-0900-Covering]]"]')
     suite = acceptance.load(docs, Index.build(docs))
     assert suite.blocking() == [], "a passing covering test must settle the check"
-    assert suite.items[0].mark == " ", "settling must not write a mark"
+    assert suite.items[0].mark == "todo", "settling must not write a mark"
 
     # The covering test fails: the check re-enters the gate. Decided in
     # ADR-0031 rather than discovered -- this is what puts a machine-driven
@@ -298,7 +298,7 @@ def test_coverage_cannot_settle_without_an_index() -> None:
     from project_os_cockpit.acceptance import Item
 
     item = Item(tier=1, section="1.1", area="Area", name="x", text="x",
-                checked=False, mark=" ",
+                checked=False, mark="todo",
                 covered_by=("[[TST-0900]]",), covered_by_status=())
     assert item.settled is False
 
@@ -323,7 +323,7 @@ def test_coverage_is_all_covers_not_any(tmp_path) -> None:
             f'last_run: "2026-08-18"\ncovers: []\n---\n\nb\n', encoding="utf-8")
     (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 1\nmark: " "\narea: "A"\n'
+        'level: acceptance\nkind: manual\ntier: 1\nmark: "todo"\narea: "A"\n'
         'section: "1.1"\nordinal: 10\nautomation: full\n'
         'covered_by: ["[[TST-0900-C]]", "[[TST-0901-C]]"]\ncovers: []\n---\n\nwalk\n',
         encoding="utf-8")
@@ -350,7 +350,7 @@ def test_a_manual_covering_test_is_not_coverage(tmp_path) -> None:
         encoding="utf-8")
     (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 1\nmark: " "\narea: "A"\n'
+        'level: acceptance\nkind: manual\ntier: 1\nmark: "todo"\narea: "A"\n'
         'section: "1.1"\nordinal: 10\nautomation: full\n'
         'covered_by: ["[[TST-0900-Manual]]"]\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
     suite = acceptance.load(docs, Index.build(docs))
@@ -379,7 +379,7 @@ def _write_repo(tmp_path):
         encoding="utf-8")
     (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "a check"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 2\nmark: "x"\nverdict_date: "2026-08-01"\n'
+        'level: acceptance\nkind: manual\ntier: 2\nmark: "done"\nverdict_date: "2026-08-01"\n'
         'verdict_reason: ""\narea: "A"\nsection: "1.1"\nordinal: 10\n'
         'automation: manual\ncovered_by: []\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
     return docs, Index.build(docs)
@@ -461,11 +461,11 @@ def test_promotion_is_refused_without_coverage_and_retirement_keeps_the_verdict(
     import frontmatter as _fm
     note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
     assert str(note["tier"]) == "3"
-    assert note["mark"] == "x", "promotion must not erase the verdict"
+    assert note["mark"] == "done", "promotion must not erase the verdict"
 
     note_writes.retire_check(Index.build(docs), check_id="TST-0902",
                              reason="shipped in v2; TST-0900 owns it")
     note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
     assert note["status"] == "retired"
-    assert note["mark"] == "x", "retiring is deprecation, not erasure"
+    assert note["mark"] == "done", "retiring is deprecation, not erasure"
     assert str(note["verdict_date"]) == "2026-08-01", "the walk's date survives it"

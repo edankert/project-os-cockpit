@@ -220,12 +220,28 @@ def test_the_legacy_aliases_behave_exactly_as_their_targets() -> None:
     assert one("X") == one("x")
 
 
-def test_the_marks_the_tool_writes_are_all_minimals() -> None:
-    """No invented character. The point of ADR-0029 is that the third
-    vocabulary is somebody else's."""
-    MINIMAL = set(' /x->< ?!*"lbiSIpcfkwud')
-    for verdict, mark in acceptance.VERDICTS.items():
-        assert mark in MINIMAL, f"{verdict} writes {mark!r}, not a Minimal value"
+def test_the_vocabulary_is_minimals_distinctions_under_minimals_names() -> None:
+    """No invented CONCEPT. ADR-0029's point survives ADR-0034's notation change.
+
+    This asserted that every written mark was a Minimal *character*. ADR-0034
+    replaced the characters with words (ISS-0200), so the character assertion
+    would now fail on a decision rather than on a defect — and deleting it
+    would take with it the property ADR-0029 was actually protecting: **the
+    vocabulary is somebody else's, so a third one does not get invented.**
+
+    So it guards the names instead. Six of the seven are Minimal's own labels
+    for its own checkbox states; `rerun` is the deliberate addition, and it is
+    asserted as such rather than waved through — an eighth value appearing
+    without a decision is exactly what this guards.
+    """
+    MINIMAL_NAMES = {"done", "incomplete", "canceled", "important", "question", "todo"}
+    written = set(acceptance.VERDICTS.values())
+    invented = written - MINIMAL_NAMES - {"rerun"}
+    assert not invented, (
+        f"{sorted(invented)} is neither a Minimal label nor the one addition "
+        "ADR-0034 records; a third vocabulary is what ADR-0029 exists to prevent"
+    )
+    assert "rerun" in written, "the seventh value is the reason ISS-0200 was worth doing"
     for legacy in acceptance.LEGACY_MARKS:
         assert legacy not in acceptance.VERDICTS.values(), (
             f"{legacy!r} is a legacy alias and must never be written"

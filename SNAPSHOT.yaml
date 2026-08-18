@@ -1483,7 +1483,7 @@ items:
       note: "The direct answer to `what makes an item appear in needs a run and not in Tier 1/2`: they are different populations of one type, separated by level:. Needs-a-run = NON-acceptance manual tests at `ready`; the tiers = level: acceptance, which rest at `active` and are keyed out of the obligation by construction. Nothing is in the wrong group — and both halves of the observation are real defects underneath. (1) TST-0024 covers FEAT-0099 (backlog) plus REQ-0035/0036 (draft); RESTING_STATES has no `draft` and ids_in_flight is `in flight if ANY subject is`, so two draft requirements outvote a backlog feature. The ANY rule was written for PEERS (`a section naming several features`); a feature and its own requirements are not peers — it is the same fact counted twice in the direction that asks. (2) No field scopes a check to a release, so your-trainer`s iOS checks block a release that does not contain them."
     ISS-0201:
       file: "docs/issues/ISS-0201-Walk-And-Run-Vocabulary.md"
-      title: "\"Walk\" and \"Run\" are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
+      title: "'Walk' and 'Run' are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
       status: triage
       owner: user:edwin
       phase: "[[PHASE-999-Future]]"
@@ -1494,9 +1494,9 @@ items:
     ISS-0200:
       file: "docs/issues/ISS-0200-Marks-Versus-Statuses.md"
       title: "Why are acceptance verdicts six terse characters rather than more status values? The reasoning is recorded but it was never tested against the alternative it dismisses"
-      status: triage
+      status: open
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-036-One-Human-Walk]]"
       severity: medium
       component: docs
       related: [ADR-0029, ADR-0031]
@@ -2273,7 +2273,7 @@ items:
   requirements:
     REQ-0041:
       file: "docs/requirements/REQ-0041-One-Answer-To-Who-Runs-This.md"
-      title: "One answer to \"who runs this\" — the reader and the registry must never disagree about a test"
+      title: "One answer to 'who runs this' — the reader and the registry must never disagree about a test"
       status: draft
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
@@ -3293,7 +3293,7 @@ items:
     ADR-0034:
       file: "docs/decisions/ADR-0034-Three-Axes-Not-One-Word.md"
       title: "Three axes, not one word — `level` says what a test exercises, `command:` says who runs it, `covers:` says what it gates, and no axis implies another"
-      status: proposed
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       supersedes: "ADR-0033"
@@ -3406,8 +3406,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 7
-    issues_triage: 2
+    issues_open: 8
+    issues_triage: 1
     risks_open: 6
     releases_total: 1
     decisions_total: 25

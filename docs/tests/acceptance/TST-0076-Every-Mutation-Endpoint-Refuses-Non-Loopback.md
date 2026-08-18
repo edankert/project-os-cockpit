@@ -11,7 +11,7 @@ tier: 2
 area: "Writes are loopback-only"
 section: "2.6"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

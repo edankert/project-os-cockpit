@@ -323,7 +323,13 @@ def _write_new_check(
     body = str(entry.get("text") or "").strip()
     path.write_text(
         "---\n"
-        'type: "[[check]]"\n'
+        # ADR-0031: an acceptance check IS a test at `level: acceptance`.
+        # This wrote `type: "[[check]]"` until 2026-08-18 (ISS-0205), and in a
+        # migrated repo `acceptance.load` reads
+        # `[tests at level: acceptance] or notes_by_type("check")` -- the `or`
+        # never evaluates, so a swept check was written to disk and then
+        # counted by nothing, rendered by nothing and gated by nothing.
+        'type: "[[test]]"\n'
         f"id: {check_id}\n"
         f'aliases: ["{check_id}"]\n'
         f"title: {_yaml(name)}\n"
@@ -331,6 +337,7 @@ def _write_new_check(
         f"owner: {feature.frontmatter.get('owner') or 'user:edwin'}\n"
         f"created: {today}\n"
         f"updated: {today}\n"
+        "level: acceptance\n"
         f"tier: {tier}\n"
         f"area: {_yaml(area)}\n"
         f"section: {_yaml(section)}\n"
@@ -338,7 +345,7 @@ def _write_new_check(
         # Unwalked, always. A check authored as passed would be the assertion
         # problem ADR-0010 removed from tests, arriving on the population that
         # gates releases.
-        'mark: " "\n'
+        "mark: todo\n"
         'verdict_date: ""\n'
         'verdict_reason: ""\n'
         "invalidated_by: {}\n"
@@ -365,21 +372,26 @@ def _write_new_check(
 
 
 def _next_id(index: "Index", pending: "list[acceptance.Item]") -> str:
-    """The next `CHK-####`, from the corpus rather than from the counter.
+    """The next `TST-####`, from the corpus rather than from the counter.
 
-    `counters.CHK` is derived at pre-commit by `sync-snapshot.py`, so between a
+    `counters.TST` is derived at pre-commit by `sync-snapshot.py`, so between a
     sweep and a commit it is behind by exactly the checks this sweep is
     writing. Reading the notes is the answer that is true at the moment of
     writing — and counters only ever rise, so the two converge.
+
+    **Every test, not just the acceptance ones** (ISS-0205). The two
+    populations share the `TST-*` space since ADR-0031, so allocating from the
+    acceptance half alone would collide with an executable test.
     """
     top = 0
-    ids = [str(r.note_id or "") for r in index.notes_by_type("check")]
+    ids = [str(r.note_id or "") for r in index.notes_by_type("test")]
+    ids += [str(r.note_id or "") for r in index.notes_by_type("check")]
     ids += [i.note_id for i in pending if i.note_id]
     for note_id in ids:
-        found = re.match(r"^CHK-(\d+)$", note_id)
+        found = re.match(r"^TST-(\d+)$", note_id)
         if found:
             top = max(top, int(found.group(1)))
-    return f"CHK-{top + 1:04d}"
+    return f"TST-{top + 1:04d}"
 
 
 _STOPWORDS = {"a", "an", "the", "and", "or", "of", "to", "in", "on", "is", "it"}

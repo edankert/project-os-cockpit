@@ -54,10 +54,20 @@ parent: "[[FEAT-9001]]"
 
 
 def _check(cid: str, *, area: str, section: str, ordinal: int,
-           covers: str = "", mark: str = "x") -> str:
+           covers: str = "", mark: str = "done") -> str:
+    """A MIGRATED acceptance note — `[[test]]` at `level: acceptance`.
+
+    This fixture built `type: "[[check]]"` notes until 2026-08-18, and that is
+    exactly why ISS-0205 could not fail here: `acceptance.load` reads
+    `[tests at level: acceptance] or notes_by_type("check")`, so a check-typed
+    fixture leaves the left branch empty and the `or` falls through to the very
+    shape the sweep was writing. **The guard and the defect shared an
+    assumption.** Moved rather than supplemented, deliberately: keeping a
+    check-typed fixture alongside would preserve the branch that hid it.
+    """
     return (
         "---\n"
-        'type: "[[check]]"\n'
+        'type: "[[test]]"\n'
         f"id: {cid}\n"
         f'aliases: ["{cid}"]\n'
         f'title: "Check {cid}"\n'
@@ -65,6 +75,7 @@ def _check(cid: str, *, area: str, section: str, ordinal: int,
         "owner: user:edwin\n"
         "created: 2026-08-01\n"
         "updated: 2026-08-01\n"
+        "level: acceptance\n"
         "tier: 1\n"
         f'area: "{area}"\n'
         f'section: "{section}"\n'
@@ -101,17 +112,17 @@ def repo(tmp_path: Path) -> Path:
     # Two checks this feature originated, one in the same area it did not, and
     # one somewhere else entirely — so "in areas" has something to be right or
     # wrong about.
-    (checks / "CHK-0001-A.md").write_text(
-        _check("CHK-0001", area="The navigator", section="1.1", ordinal=10,
+    (checks / "TST-0001-A.md").write_text(
+        _check("TST-0001", area="The navigator", section="1.1", ordinal=10,
                covers='"[[FEAT-9001]]"'), encoding="utf-8")
-    (checks / "CHK-0002-B.md").write_text(
-        _check("CHK-0002", area="The navigator", section="1.1", ordinal=20,
+    (checks / "TST-0002-B.md").write_text(
+        _check("TST-0002", area="The navigator", section="1.1", ordinal=20,
                covers='"[[FEAT-9001]]"'), encoding="utf-8")
-    (checks / "CHK-0003-C.md").write_text(
-        _check("CHK-0003", area="The navigator", section="1.1", ordinal=30),
+    (checks / "TST-0003-C.md").write_text(
+        _check("TST-0003", area="The navigator", section="1.1", ordinal=30),
         encoding="utf-8")
-    (checks / "CHK-0004-D.md").write_text(
-        _check("CHK-0004", area="The overview", section="1.2", ordinal=10),
+    (checks / "TST-0004-D.md").write_text(
+        _check("TST-0004", area="The overview", section="1.2", ordinal=10),
         encoding="utf-8")
     (tmp_path / "SNAPSHOT.yaml").write_text(
         'version: 1\nupdated: "2026-08-01T00:00Z"\n'
@@ -141,12 +152,12 @@ def test_the_three_lists_are_three_different_questions(index: Index) -> None:
     rather than folded into the first.
     """
     data = sweep.candidates(index, "FEAT-9001")
-    assert [r["id"] for r in data["originated"]] == ["CHK-0001", "CHK-0002"]
-    assert [r["id"] for r in data["in_areas"]] == ["CHK-0003"]
+    assert [r["id"] for r in data["originated"]] == ["TST-0001", "TST-0002"]
+    assert [r["id"] for r in data["in_areas"]] == ["TST-0003"]
     assert data["invalidated"] == []
-    # CHK-0004 is in another area and appears nowhere. A sweep that offered the
+    # TST-0004 is in another area and appears nowhere. A sweep that offered the
     # whole suite would be a sweep nobody reads.
-    assert "CHK-0004" not in str(data)
+    assert "TST-0004" not in str(data)
 
 
 def test_the_subjects_include_the_features_tasks(index: Index) -> None:
@@ -188,7 +199,7 @@ def test_one_save_reproduces_the_benchmarks_shape(repo: Path,
     """
     result = sweep.apply(
         index, "FEAT-9001",
-        invalidate=[{"id": "CHK-0001", "reason": "the tray moved"}],
+        invalidate=[{"id": "TST-0001", "reason": "the tray moved"}],
         create=[
             {"name": "The tray opens first", "tier": 1, "area": "The navigator",
              "text": "Open it. Expect the tray."},
@@ -196,8 +207,8 @@ def test_one_save_reproduces_the_benchmarks_shape(repo: Path,
              "area": "The navigator", "text": "Expect a count."},
         ],
     )
-    assert result["created"] == ["CHK-0005", "CHK-0006"]
-    assert result["invalidated"] == ["CHK-0001"]
+    assert result["created"] == ["TST-0005", "TST-0006"]
+    assert result["invalidated"] == ["TST-0001"]
     assert result["sha"], "the sweep did not commit"
 
     files = subprocess.run(
@@ -205,9 +216,9 @@ def test_one_save_reproduces_the_benchmarks_shape(repo: Path,
         capture_output=True, text=True, check=True).stdout.split()
     assert sorted(files) == sorted([
         "docs/features/nav/FEAT-9001-Nav.md",
-        "docs/tests/acceptance/CHK-0001-A.md",
-        "docs/tests/acceptance/CHK-0005-Tray-Opens-First.md",
-        "docs/tests/acceptance/CHK-0006-Tray-Counts-What-Owed.md",
+        "docs/tests/acceptance/TST-0001-A.md",
+        "docs/tests/acceptance/TST-0005-Tray-Opens-First.md",
+        "docs/tests/acceptance/TST-0006-Tray-Counts-What-Owed.md",
     ]), files
 
 
@@ -220,10 +231,15 @@ def test_the_invalidated_check_keeps_its_record(repo: Path,
     rather than an annotation somebody has to read.
     """
     sweep.apply(index, "FEAT-9001",
-                invalidate=[{"id": "CHK-0001", "reason": "the tray moved"}])
+                invalidate=[{"id": "TST-0001", "reason": "the tray moved"}])
     item = next(i for i in acceptance.load_notes(
-        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "CHK-0001")
-    assert item.mark == " " and not item.checked
+        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "TST-0001")
+    # **`rerun`, not `todo`** (ADR-0034 / ISS-0200). This asserted a blank mark
+    # until 2026-08-18, which said *"nobody has walked it"* about a check
+    # somebody had walked — the two states were one value in the field every
+    # surface reads, and telling them apart needed a date comparison.
+    assert item.mark == "rerun" and not item.checked
+    assert item.needs_rerun and not item.settled
     assert item.invalidated.change == "FEAT-9001"
     assert item.invalidated.reason == "the tray moved"
     assert item.verdict_date == "2026-08-01", (
@@ -239,8 +255,8 @@ def test_a_new_check_is_authored_unwalked(repo: Path, index: Index) -> None:
                 create=[{"name": "New thing", "tier": 1,
                          "area": "The navigator", "text": "Do it."}])
     item = next(i for i in acceptance.load_notes(
-        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "CHK-0005")
-    assert item.mark == " " and not item.settled
+        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "TST-0005")
+    assert item.mark == "todo" and not item.settled
     assert item.refs == ("FEAT-9001",), "covers: was not prefilled"
     assert item.area == "The navigator" and item.section == "1.1"
     # Sparse and after everything in its section, so nothing renumbered.
@@ -260,7 +276,7 @@ def test_two_new_checks_in_one_section_do_not_collide(repo: Path,
     ])
     items = {i.note_id: i for i in acceptance.load_notes(
         repo / "docs" / acceptance.CHECKS_REL)}
-    assert items["CHK-0005"].ordinal != items["CHK-0006"].ordinal
+    assert items["TST-0005"].ordinal != items["TST-0006"].ordinal
 
 
 # ------------------------------------------------------------- refusals
@@ -288,8 +304,8 @@ def test_none_needs_a_reason(index: Index) -> None:
 def test_it_refuses_a_check_it_cannot_see(index: Index) -> None:
     with pytest.raises(WriteError) as caught:
         sweep.apply(index, "FEAT-9001",
-                    invalidate=[{"id": "CHK-9999", "reason": "x"}])
-    assert "CHK-9999" in caught.value.message
+                    invalidate=[{"id": "TST-9999", "reason": "x"}])
+    assert "TST-9999" in caught.value.message
 
 
 def test_nothing_is_written_when_anything_is_refused(repo: Path,
@@ -301,14 +317,14 @@ def test_nothing_is_written_when_anything_is_refused(repo: Path,
     record would look complete.
     """
     before = sorted(p.name for p in
-                    (repo / "docs" / acceptance.CHECKS_REL).glob("CHK-*.md"))
+                    (repo / "docs" / acceptance.CHECKS_REL).glob("TST-*.md"))
     with pytest.raises(WriteError):
         sweep.apply(index, "FEAT-9001", create=[
             {"name": "Fine", "tier": 1, "area": "The navigator", "text": "a"},
             {"name": "", "tier": 1, "area": "The navigator", "text": "b"},
         ])
     after = sorted(p.name for p in
-                   (repo / "docs" / acceptance.CHECKS_REL).glob("CHK-*.md"))
+                   (repo / "docs" / acceptance.CHECKS_REL).glob("TST-*.md"))
     assert after == before
 
 
@@ -363,9 +379,9 @@ def test_no_check_is_ever_owed_however_many_are_unwalked(repo: Path) -> None:
     Measured on a corpus where every check is unwalked — the state that would
     make per-check obligations most tempting and most numerous.
     """
-    for path in (repo / "docs" / acceptance.CHECKS_REL).glob("CHK-*.md"):
+    for path in (repo / "docs" / acceptance.CHECKS_REL).glob("TST-*.md"):
         path.write_text(path.read_text(encoding="utf-8").replace(
-            'mark: "x"', 'mark: " "'), encoding="utf-8")
+            'mark: "done"', 'mark: "todo"'), encoding="utf-8")
     index = Index.build(repo / "docs")
     assert len(acceptance.load(repo / "docs", index).blocking()) == 4
     for view, rows in obligations.owed_items(index).items():
@@ -389,12 +405,12 @@ def test_a_pass_discharges_the_invalidation_it_answers(repo: Path,
     from project_os_cockpit import note_writes
 
     sweep.apply(index, "FEAT-9001",
-                invalidate=[{"id": "CHK-0001", "reason": "the tray moved"}])
+                invalidate=[{"id": "TST-0001", "reason": "the tray moved"}])
     fresh = Index.build(repo / "docs")
-    note_writes.mark_check(fresh, check_id="CHK-0001", verdict="pass",
+    note_writes.mark_check(fresh, check_id="TST-0001", verdict="pass",
                            reason="walked again on the new tray")
     item = next(i for i in acceptance.load_notes(
-        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "CHK-0001")
+        repo / "docs" / acceptance.CHECKS_REL) if i.note_id == "TST-0001")
     assert item.checked
     assert not item.invalidated, (
         "the invalidation survived a re-walk, so the check is stale forever"
@@ -411,7 +427,7 @@ def test_staleness_is_arithmetic_once_both_dates_are_known(repo: Path,
     directions are asserted, because a rule that only ever returns `True` also
     passes a one-sided test — and did, until a mutation said so.
     """
-    path = next((repo / "docs" / acceptance.CHECKS_REL).glob("CHK-0001-*.md"))
+    path = next((repo / "docs" / acceptance.CHECKS_REL).glob("TST-0001-*.md"))
     base = path.read_text(encoding="utf-8")
 
     def rewrite(verdict_date: str, invalidated: str) -> acceptance.Item:
@@ -425,7 +441,7 @@ def test_staleness_is_arithmetic_once_both_dates_are_known(repo: Path,
                          f'  date: "{invalidated}"'),
             encoding="utf-8")
         return next(i for i in acceptance.load_notes(path.parent)
-                    if i.note_id == "CHK-0001")
+                    if i.note_id == "TST-0001")
 
     assert rewrite("2026-08-01", "2026-08-10").stale is True
     assert rewrite("2026-08-20", "2026-08-10").stale is False

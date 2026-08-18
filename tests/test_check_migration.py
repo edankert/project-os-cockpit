@@ -144,8 +144,8 @@ def test_legacy_marks_are_normalised_without_changing_a_verdict(repo: Path) -> N
     assert _migrate(repo, "--apply").returncode == 0
     items = {i.name: i for i in
              acceptance.load_notes(repo / "docs" / acceptance.CHECKS_REL)}
-    assert items["Reconciled"].mark == "/" and items["Reconciled"].reconciled
-    assert items["Failed"].mark == "!" and items["Failed"].failed
+    assert items["Reconciled"].mark == "incomplete" and items["Reconciled"].reconciled
+    assert items["Failed"].mark == "important" and items["Failed"].failed
     assert not any(i.mark in ("~", "F", "X") for i in items.values())
 
 
@@ -240,7 +240,7 @@ def test_parity_failure_leaves_the_source_alone(repo: Path, monkeypatch) -> None
     original = module.note_text
     monkeypatch.setattr(
         module, "note_text",
-        lambda item, **kw: original(item, **kw).replace('mark: "x"', 'mark: " "'))
+        lambda item, **kw: original(item, **kw).replace('mark: "done"', 'mark: "todo"'))
     code = module.main.__wrapped__ if hasattr(module.main, "__wrapped__") else None
     assert code is None  # main() is plain; run it through argv instead
     import sys
@@ -393,7 +393,7 @@ def test_a_check_nobody_can_classify_blocks(tmp_path: Path) -> None:
         "---\n"
         'type: "[[check]]"\nid: CHK-0001\ntitle: "Tier says nothing"\n'
         'status: active\ntier: ""\narea: "x"\nsection: "1.1"\nordinal: 10\n'
-        'mark: "x"\n---\n\n# Tier says nothing\n\nDo it.\n',
+        'mark: "done"\n---\n\n# Tier says nothing\n\nDo it.\n',
         encoding="utf-8")
     items = acceptance.load_notes(checks)
     assert len(items) == 1, "the check vanished from the suite"
@@ -443,7 +443,7 @@ def test_a_ref_read_survives_non_ascii_prose(tmp_path: Path) -> None:
             f'type: "[[check]]"\nid: CHK-{n:04d}\ntitle: "Row {n}"\n'
             'status: active\ntier: 1\narea: "A"\nsection: "1.1"\n'
             f"ordinal: {n * 10}\n"
-            'mark: " "\ninvalidated_by: {}\ncovers: []\n---\n\n'
+            'mark: "todo"\ninvalidated_by: {}\ncovers: []\n---\n\n'
             f"# Row {n}\n\n{prose}\n", encoding="utf-8")
     for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"],
                 ["config", "user.name", "T"], ["add", "-A"],

@@ -40,7 +40,7 @@ def _run(root: Path, *args: str) -> subprocess.CompletedProcess:
 def _check(cid: str, extra: str = "") -> str:
     return (f'---\ntype: "[[check]]"\nid: {cid}\naliases: ["{cid}"]\n'
             f'title: "A check"\nstatus: active\ntier: 1\narea: "Area"\n'
-            f'section: "1.1"\nordinal: 10\nmark: "x"\n{extra}---\n\nwalk it\n')
+            f'section: "1.1"\nordinal: 10\nmark: "done"\n{extra}---\n\nwalk it\n')
 
 
 def test_a_frontmatterless_note_is_refused_before_anything_is_written(tmp_path) -> None:

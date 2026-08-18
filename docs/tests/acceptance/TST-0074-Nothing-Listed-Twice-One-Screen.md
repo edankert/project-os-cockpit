@@ -11,7 +11,7 @@ tier: 2
 area: "One home per obligation"
 section: "2.4"
 ordinal: 10
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}

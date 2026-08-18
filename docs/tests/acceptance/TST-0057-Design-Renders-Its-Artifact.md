@@ -11,7 +11,7 @@ tier: 1
 area: "Design and the constraints view"
 section: "1.6"
 ordinal: 20
-mark: "x"
+mark: done
 verdict_date: ""
 verdict_reason: ""
 invalidated_by: {}
