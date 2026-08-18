@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 121
-  ISS: 199
+  ISS: 204
   PHASE: 35
   REQ: 40
   RISK: 7
@@ -1414,6 +1414,56 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0204:
+      file: "docs/issues/ISS-0204-The-Acceptance-Filter-Bar-Is-Congested.md"
+      title: "The acceptance page leads with five filter axes and 164 chips — the reader meets the filter bar before the checks"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: low
+      component: ui
+      related: [FEAT-0114, ISS-0203]
+      note: "Edwin, from use. Measured on your-trainer: marks 2, tiers 3, areas 76, covers 80, automation 3 — 164 chips ABOVE the first check. areas and covers scale with the corpus, so the surface degrades exactly as the suite gets more useful; project-os-cockpit is milder only because it has 34 checks not 579. The single-value suppression rule already exists and never fires on the two axes that need it. Caveat on his proposal: `area` is how a walker BATCHES work (the field`s own definition is `one walk`s worth of related checks`), so it should move behind a control rather than be deleted."
+    ISS-0203:
+      file: "docs/issues/ISS-0203-Tier-Selection-Does-Not-Change-The-Page.md"
+      title: "Selecting Tier 1 and selecting Tier 2 open the same page — every tier head points at `~checks` with no tier in the address"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: ui
+      related: [FEAT-0114, ISS-0193]
+      note: "Confirmed against the live payload: tier1 -> ~checks, tier2 -> ~checks. _acceptance_tier_groups computes ONE url for the whole suite and hands the identical value to every tier, so the label differs and the destination does not. Same class as ISS-0193 — a navigator row whose destination does not match what the row says — and true since FEAT-0114. The page already HAS a working tier filter (facets.tiers, 3 values); what is missing is an ADDRESS that carries a filter."
+    ISS-0202:
+      file: "docs/issues/ISS-0202-Needs-A-Run-Versus-The-Tiers.md"
+      title: "A `draft` requirement keeps a manual test owed while the feature it verifies is `backlog` — and a check cannot be scoped to a release, so another platform's work blocks this one"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: cockpit-server
+      related: [ADR-0028, ADR-0027, ISS-0201]
+      note: "The direct answer to `what makes an item appear in needs a run and not in Tier 1/2`: they are different populations of one type, separated by level:. Needs-a-run = NON-acceptance manual tests at `ready`; the tiers = level: acceptance, which rest at `active` and are keyed out of the obligation by construction. Nothing is in the wrong group — and both halves of the observation are real defects underneath. (1) TST-0024 covers FEAT-0099 (backlog) plus REQ-0035/0036 (draft); RESTING_STATES has no `draft` and ids_in_flight is `in flight if ANY subject is`, so two draft requirements outvote a backlog feature. The ANY rule was written for PEERS (`a section naming several features`); a feature and its own requirements are not peers — it is the same fact counted twice in the direction that asks. (2) No field scopes a check to a release, so your-trainer`s iOS checks block a release that does not contain them."
+    ISS-0201:
+      file: "docs/issues/ISS-0201-Walk-And-Run-Vocabulary.md"
+      title: "\"Walk\" and \"Run\" are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
+      status: triage
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: ui
+      related: [FEAT-0116, ADR-0031]
+      note: "The split made sense while they were different types; under ADR-0031 they are one type on a scale, so the surface has two words for one act separated by a field the reader cannot see. It shows directly: the group called `Needs a run` contains only NON-acceptance tests, while the population a person actually walks sits under Tier 1/2/3 with no verb at all. And the release page re-renders the suite as clickable rows — a second copy of a surface that did not exist when it was written (FEAT-0114 gave the suite ~checks). Edwin: it should show the outstanding set and link to the walk."
+    ISS-0200:
+      file: "docs/issues/ISS-0200-Marks-Versus-Statuses.md"
+      title: "Why are acceptance verdicts six terse characters rather than more status values? The reasoning is recorded but it was never tested against the alternative it dismisses"
+      status: triage
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: docs
+      related: [ADR-0029, ADR-0031]
+      note: "Two reasons are on the record and only one still holds. (1) The characters WERE the storage format — a check was a `- [x]` line and Obsidian rendered it. That reason EXPIRED: the document is gone and the mark is now a YAML scalar a reader has to look up. (2) `mark` is not `status`, which is what keeps 669 rows out of the review gate, the runner-only rule and the Run obligation BY CONSTRUCTION. Reason 2 is real but it argues for a separate FIELD, not for terse characters — `verdict: partial` keeps every property the construction needs. The two have been carried as one. Against changing: 669 notes carry them, ADR-0008 collapsed statuses 64->53 by measurement, and -/!/? carry meanings no status word obviously supplies."
     ISS-0199:
       file: "docs/issues/ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated.md"
       title: "20 of 61 feature→test edges are not reciprocated — the verification link is hand-maintained in two directions and a third of it already disagrees"
@@ -3271,8 +3321,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
-    issues_triage: 0
+    issues_open: 6
+    issues_triage: 2
     risks_open: 6
     releases_total: 1
     decisions_total: 23
