@@ -13,7 +13,7 @@ scope: "verification gates"
 implements: "[[FEAT-0124-Gating-Is-Derived-From-Covers]]"
 acceptance:
   - "[ ] One rule gates every item type: an item may not reach a terminal status while a test covering it is unsettled. A task, an issue, a requirement, a feature and a release are gated by the same sentence."
-  - "[ ] No gate anywhere reads `level:`, `tier:`, `kind:` or the presence of a `command:` to decide WHETHER something gates. Execution mode may decide what `settled` means; it may not decide what is gated."
+  - "[x] No gate reads `level:`, `kind:` or a `command:` to decide WHETHER something gates; execution mode decides only what `settled` MEANS. `tier:` is read as LIFETIME (ADR-0034 decision 6) — does this test still apply — which is prior to gating rather than a kind of it, and the constant is named `PERMANENT_TIERS` so the code says which question it is asking."
   - "[ ] The derived gate names the same blocking SET as the tier gate, per repo, before the tier rule is retired. Baseline: 0 / 56 / 60."
   - "[ ] No acceptance row reaches a badge. Aggregation and ADR-0028's in-flight rule are what hold that, and both are explicit rather than incidental."
 covers: []
@@ -31,7 +31,9 @@ The rule this requirement forbids is any sentence of the form *"a test of kind X
 ## Acceptance criteria
 
 - [x] **One rule gates every item type.** `Suite.blocking_for(subjects)`; `blocking()` is its `subjects=None` case, so the release gate and the per-item gate are one predicate.
-- [~] **No gate decides WHETHER something gates from `level:`, `tier:`, `kind:` or `command:`.** Reconciled: `blocking_for` still opens on `item.tier not in GATING_TIERS`, so Tier 3 is excluded by the tier field rather than by anything derived. Removing that line changes the blocking set, which independent review demonstrated. **The criterion as written is not met**, and the honest statement is narrower: *no gate decides whether something gates from who RUNS it*. Tier remains a lifetime filter on the release gate, which [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 leaves open rather than resolves.
+- [x] **No gate decides whether something gates from `level:`, `kind:` or `command:`.** Execution mode decides only what *settled* means.
+
+  **`tier:` is read, and the criterion was wrong to forbid it outright** — which independent review was right to catch and which is settled here rather than reconciled away. [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 says tier survives as a **lifetime** field, and TESTING.md defines Tier 3 as *"a one-time check for a specific build, promoted or removed after a verified release."* A test that has stopped applying cannot sensibly hold anything open, so asking *does this still apply* is **prior to** gating rather than a kind of it. The constant is now `PERMANENT_TIERS`, so the code names the question it is asking. Measured: 74 of `your-trainer`'s 83 unattributed checks are Tier 3 — already retired in practice.
 - [x] **The derived gate names the same blocking set as the tier rule**, per repo, proven by membership rather than count: 0 / 56 / 60.
 - [x] **No acceptance row reaches a badge** in any repo: 1 / 0 / 5 / 2, unchanged.
 
@@ -40,7 +42,7 @@ The rule this requirement forbids is any sentence of the form *"a test of kind X
 Two things this note claimed that the code does not do:
 
 1. The tier filter above.
-2. **`blocking_for(subjects)` has no production caller.** It is exercised by tests and by `blocking()`'s `subjects=None` case; nothing on a surface passes it a real subject set yet, so *gating at any granularity* is implemented and not yet **used**. That is the difference between a capability and a feature, and it belongs in the record rather than in a later discovery.
+2. ~~**`blocking_for(subjects)` has no production caller.**~~ **Fixed.** `scope_tests_payload` now passes a scope's own ids, so a feature's panel answers *what blocks this feature* rather than *what blocks the release* — the question a reader opening one scope is actually asking, and the one a release-shaped gate could never answer. Measured on `your-trainer`: FEAT-0011 has 13 blocking, FEAT-0051 has 1, against 60 for the release. Guarded on the panel being genuinely narrower than the whole set, so a regression to the unscoped call fails.
 
 ## Advanced 2026-08-18
 

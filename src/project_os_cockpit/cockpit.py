@@ -2630,10 +2630,39 @@ def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
             })
     decisions.sort(key=lambda d: str(d["id"] or ""), reverse=True)
 
+    # **What stands between this scope and terminal** (ADR-0034 / REQ-0043).
+    # The first production caller of `blocking_for`: independent review found
+    # gating-at-any-granularity implemented and used by nothing, which is the
+    # difference between a capability and a feature.
+    #
+    # Scoped to THIS note's ids, so a feature's panel answers *what blocks this
+    # feature* rather than *what blocks the release* — the question a reader
+    # opening one scope is actually asking, and the one the release-shaped gate
+    # could never answer.
+    blocking: list[dict[str, Any]] = []
+    try:
+        suite = _acceptance.load(index.docs_root, index)
+    except OSError:                                   # pragma: no cover
+        suite = None
+    if suite is not None:
+        for item in suite.blocking_for(scope_ids):
+            blocking.append({
+                "id": item.note_id or item.number,
+                "title": item.name,
+                "rel": item.rel,
+                "tier": item.tier,
+                "mark": item.mark,
+                # Named rather than implied: an unattributable check blocks
+                # every scope, and a reader seeing it under one feature is owed
+                # the reason it is there.
+                "unattributed": not item.refs,
+            })
+
     return {
         "schema_version": SCHEMA_VERSION,
         "tests": out,
         "decisions": decisions,
+        "blocking": blocking,
     }
 
 
@@ -2909,7 +2938,7 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
 
 
 #: Views whose navigator already leads with what they owe, under a name that
-#: says more than "needs you" — `Needs triage` and `Needs a run`. Adding the
+#: says more than "needs you" — `Needs triage` and `Needs a walk`. Adding the
 #: shared group there would duplicate in the one place it buys nothing, which
 #: ADR-0025 permits and does not require.
 #: Views that gather what they owe into their own groups, so prepending a
@@ -4010,8 +4039,9 @@ def _tests_groups(
     **Groups name their own state**, so the order is by what is owed rather
     than by category:
 
-    * ``Needs a run`` — the registry's obligation for this view (``test @
-      ready``, manual only). ``needs_human``.
+    * ``Needs a walk`` — the registry's obligation for this view (``test @
+      ready``, manual only). ``needs_human``. Called *Needs a walk* since
+      TASK-0495: a person walks a procedure, a machine runs a ``command:``.
     * ``Failing`` — the test ran and did not pass.
     * ``Stale`` — passing, but last verified longer ago than the project's
       threshold allows.
@@ -4032,7 +4062,7 @@ def _tests_groups(
     # Before ADR-0031 this was free — a check was a different type and
     # `notes_by_type("test")` could not see one. The merge removed that
     # separation and the exclusion has to be written down, or every acceptance
-    # test renders twice on one screen: once in a `Verified`/`Needs a run`
+    # test renders twice on one screen: once in a `Verified`/`Needs a walk`
     # bucket and once under its tier. Caught by the guard rather than by
     # reading, which is the argument for the guard.
     tests = [
@@ -4077,7 +4107,7 @@ def _tests_groups(
             buckets["verified"].append(record)
 
     labels = (
-        ("needs-run", "Needs a run"),
+        ("needs-run", "Needs a walk"),
         # Quiet, and visible. `Resting` rather than a bare count because the
         # reader has to be able to tell "nobody owes this yet" from "nobody
         # got round to it" (TASK-0425).

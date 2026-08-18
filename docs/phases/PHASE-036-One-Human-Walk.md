@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-036
 aliases: ["PHASE-036"]
 title: "Three axes — what a test exercises, who runs it and what it gates stop being one word, and gating is derived from `covers:` at any granularity"
-status: planned
+status: done
 order: 36
 owner: user:edwin
 created: 2026-08-18
@@ -43,17 +43,17 @@ Five further concerns from the same reading became [[ISS-0200-Marks-Versus-Statu
 
 ## Exit criteria
 
-- [ ] **`kind:` is gone from the schema.** `command:` answers who runs a test, and nothing else claims to. Baseline 2026-08-18: 22 notes carry `kind: manual` outside `level: acceptance` — 5 here, 15 in `your-trainer`, 2 in `your-health`.
-- [ ] **An item of any type can be gated by a test, through `covers:` alone** — a task, an issue, a requirement, a feature and a release, with no rule anywhere keyed on the test's level or on who runs it.
-- [ ] **The derived gate reproduces the tier gate exactly** before the tier rule is retired, measured per repo. Baseline: 0 / 56 / 60 blocking. **Precondition: 83 of 669 acceptance tests carry an empty `covers:` and gate nothing until backfilled.**
-- [ ] **Re-arming follows execution**: every test with no `command:` re-arms by `invalidated_by:`, at any level, and the 90-day threshold no longer applies to it.
-- [ ] **One predicate answers "who runs this."** `cockpit._is_manual_test` and `obligations._is_owed` agree on every test in every repo — they disagree on **8 of 788** today.
-- [ ] **`Needs a run` is gone as a population**, and what a person owes is unsettled Tier 1/2 rows. The Tests badge in every repo reads a number derived from the tiers, and it is not larger than the number it replaced.
-- [ ] **Tier 1 and Tier 2 open different pages**, and the filter survives back/forward because it is in the address.
-- [ ] **The acceptance page leads with the checks.** Measured today: 164 filter chips above the first row on `your-trainer`, 65 over 34 checks here — 1.9 chips per check, which is the worse ratio of the two.
-- [ ] **A swept check is readable by the repo it was written into**, asserted on a migrated corpus rather than on a `check`-typed fixture.
-- [ ] **The known duplicate is gone**: `TST-0011` item 7 and `TST-0064`/`TST-0065` no longer describe the same behaviour in two records.
-- [ ] An independent review, from the corpus rather than from these notes.
+- [x] **`kind:` is gone from the schema**, from every note fleet-wide (727 demonstrable from history) and from all four `test.md` templates — the three fleet templates still carried it when this was first claimed, so the scaffold went on creating the deleted field.
+- [x] **An item of any type can be gated by a test through `covers:` alone** — `Suite.blocking_for(subjects)`, with `blocking()` as its `subjects=None` case, and a production caller in the per-scope panel: FEAT-0011 shows 13 blocking against 60 for the release. `tier:` is read as **lifetime** (does this still apply), never as a kind of test.
+- [x] **The derived gate reproduces the tier gate** by membership, per repo: 0 / 56 / 60, identical sets. The 83 unattributed turned out to be 74 Tier 3 and 9 Tier 1/2, all settled; they are not backfilled and the gate fails closed on them instead.
+- [x] **Re-arming follows execution**: a test with no `command:` re-arms by `invalidated_by:` at any level, and the 90-day threshold no longer applies to it.
+- [x] **One predicate answers "who runs this."** `obligations._is_owed` calls `cockpit._is_manual_test`, which is now `not command:` with no fallback — four heuristics collapsed to the one question the corpus can answer. 788 tests fleet-wide, **0** disagreements; it was 8.
+- [~] **`Needs a run` is gone** — renamed `Needs a walk`, and one verb now names the human act everywhere. **Reconciled on the second clause**: what a person owes is still the manual population rather than unsettled Tier 1/2 rows, because folding acceptance rows into that count is what ADR-0027 forbids. Badges per repo: 1→0 here (TST-0024 correctly quieted), 0→1 in `your-sudoku` (TST-0013 claimed automated with no way to run), 5→5, 2→2.
+- [x] **Tier 1 and Tier 2 open different pages** — `~checks/tier/N`, parsed by the route and preselected, so back/forward move between tiers. The other four filter axes remain click-only, recorded on [[REQ-0042-The-Suite-Is-Addressable]].
+- [x] **The acceptance page leads with the checks.** `CHIP_CAP = 8`; wider axes collapse to a `<details>` carrying their value count and their selection count. 164 chips → 8 on `your-trainer`, 65 → 4 here — which was the worse ratio at 1.9 per check.
+- [x] **A swept check is readable by the repo it was written into.** `test_the_sweep_writes_a_note_the_reader_can_see` reads the sweep's own output back through `acceptance.load` on a migrated corpus, and is the only guard that fails when the writer reverts — the other 22 assert fields.
+- [~] **The known duplicate is not gone.** `TST-0011` still holds a 13-item checklist whose item 7 is `TST-0064`/`TST-0065`. Reconciled rather than cut: [[ADR-0034-Three-Axes-Not-One-Word]] superseded the decision that would have split it, and under the axes it is a `level: system` test that legitimately covers nine features. Splitting it is now a content judgement, not a schema consequence.
+- [x] **An independent review, from the corpus rather than these notes** — returned `changes-requested` with six blocking findings, every one fixed. It caught a live user-visible break (the surfaces still keyed on characters), a fail-safe I had inverted, four behaviours that survived deletion, and two criteria ticked for things that had not happened.
 
 ## What this phase must not do
 
@@ -100,3 +100,25 @@ Badges **1 / 0 / 5 / 2** exactly, from `obligations.counts_by_kind`. The **5 →
 10. **Record state.** `docs/__templates__/test.md` still documents the retired vocabulary (`mark: " "   # THE VERDICT: " " | x | / | - | ! | ?`, `verdict_reason: ""   # required for / - ! ?`), so a hand-scaffolded check arrives with a character; `TESTING.md` never states the word vocabulary. `SNAPSHOT.yaml` `focus` still names PHASE-035 / FEAT-0118 / TASK-0473 / ISS-0195 — four commits of this phase landed without preflight step 3. This phase is `planned` with two features `done`. [[ISS-0200]] and [[ISS-0205]] are `open` although their work landed; [[ISS-0203]] and [[ISS-0204]] are `open` and homed at `PHASE-999-Future` while this note's `issues:` claims them and TASK-0496/0497 are `done`. `sweep._write_new_check` returns an in-memory `Item(mark=" ")` while writing `mark: todo`. [[TASK-0491]] is `done` with "the duplicate is gone rather than moved" unmet — `TST-0011` still carries its thirteen items, item 7 still duplicating `TST-0064`/`TST-0065` — and its Done section does not say so.
 
 **Verdict: changes-requested** on this phase and on [[FEAT-0122-One-Human-Walked-Population]], [[FEAT-0123-The-Walk-Surfaces-Say-One-Thing]] and [[FEAT-0124-Gating-Is-Derived-From-Covers]]. Findings 1–6 are blocking. The engineering underneath is sound and the hard numbers hold; what fails is the join between the model and the surfaces (1), the direction of one fail-safe (2), and the gap between what the requirement boxes assert and what the code and the guards do (3–6).
+
+## Closed 2026-08-18
+
+Three features, eleven tasks, three requirements, seven issues — and a decision superseded inside the phase for the second time in two days, which is on the record rather than smoothed over.
+
+**What it set out to do.** `level: acceptance` carried three independent claims — *a person walks it*, *its verdict is `mark:`*, *it gates the release* — and none followed from the word. ISTQB and the Agile Testing Quadrants both say so, which is why the decision was researched rather than argued. The three are separated: `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates.
+
+**And ISS-0200 with it**: seven words for six characters, plus `rerun` — the state the corpus always had and could never say, because an invalidated check was written `mark: " "` beside an `invalidated_by:` block.
+
+**Two exit criteria are reconciled**, both narrowly and both filed rather than waved: the tier is in the address and the other four filter axes are not, and a check still cannot be scoped to a release ([[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]).
+
+## What this phase should be remembered for
+
+Not the merge. **Three separate changes reported success having done nothing**, and each was caught by a different mechanism:
+
+1. A removal regex that needed a trailing newline the last frontmatter line does not have — it printed *"30 features cleaned"* having cleaned none. Caught by independent review counting the corpus.
+2. A script that raised before its `write_text`, so a behaviour-preservation proof compared a file with itself and reported *identical*. Caught by asking which single repo's finding **should** have moved.
+3. A new gate rule that referenced an out-of-scope variable and would have crashed rather than fired — every real repo reported **0 findings**, which is indistinguishable from working. Caught by building a two-note corpus that had to fail.
+
+And a fourth shape: **four behaviours survived deletion with the whole suite green**, because each guard asserted something adjacent to the property it was named for. The equivalence test passed `subjects=None`, where the filter short-circuits — a tautology. The fail-closed guard skipped, because every orphan was settled. The sweep's tests asserted a note's fields rather than whether the suite could load it.
+
+The lesson is one sentence: **a green result is evidence about the test, not about the code**, and the only way to learn which is to make the test fail on purpose.

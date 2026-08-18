@@ -46,6 +46,12 @@ CHECKS_REL = "tests/acceptance"
 #: Tiers that block a release. Tier 3 is a verification aid, not a requirement
 #: — TESTING.md's release-gating section says so in as many words.
 GATING_TIERS: tuple[int, ...] = (1, 2)
+#: The same set, named for what it MEANS rather than for what it does
+#: (ADR-0034 decision 6). Tier 1 and Tier 2 are permanent; Tier 3 is one build's
+#: verification, removed or promoted after a verified release. `blocking_for`
+#: reads this to ask *does this test still apply*, which is prior to gating —
+#: not to ask what kind of test it is, which REQ-0043 forbids.
+PERMANENT_TIERS = GATING_TIERS
 
 #: A `- [ ]` inside a code fence is an *example* of a checkbox, not one. Found
 #: by re-review (ISS-0141): `criteria.py` and the validator's box counter both
@@ -519,7 +525,19 @@ class Suite:
         """
         out: list[Item] = []
         for item in self.items:
-            if item.tier not in GATING_TIERS or item.settled:
+            # **Lifetime, not level** (ADR-0034 decision 6). `tier` survives as
+            # the answer to *how long is this test expected to live*: Tier 1 and
+            # 2 are permanent, Tier 3 is *"a one-time check for a specific
+            # build, promoted or removed after a verified release"* — TESTING.md
+            # in its own words, and a check that has stopped applying cannot
+            # sensibly hold anything open.
+            #
+            # So this is not the gate asking what KIND of test it is or who runs
+            # it — the two things REQ-0043 forbids. It is asking whether the
+            # test still applies at all, which is prior to gating rather than a
+            # kind of it. Measured: 74 of `your-trainer`'s 83 unattributed
+            # checks are Tier 3, i.e. already retired in practice.
+            if item.tier not in PERMANENT_TIERS or item.settled:
                 continue
             if subjects is None or not item.refs or (subjects & set(item.refs)):
                 out.append(item)

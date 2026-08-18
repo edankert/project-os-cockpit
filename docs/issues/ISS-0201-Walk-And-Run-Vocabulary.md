@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0201
 aliases: ["ISS-0201"]
 title: "'Walk' and 'Run' are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
-status: triage
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 severity: medium
 component: ui
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-036-One-Human-Walk]]"
 related: ["[[TESTING-MODEL]]", "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[FEAT-0116-A-Release-Can-Be-Finished]]"]
 ---
 
@@ -55,3 +55,9 @@ Every blocking row is addressed by its **document** number (`item.number`, e.g. 
 *"each linking into `~checks` at that row"* means removing the live mark control from the gate rows. That control is [[ISS-0190]], 2026-08-17, at your own instruction — *"you can have the checkbox on the left as long as the check box functionality is the same as in the .md file"* — and it was built specifically to retire a second vocabulary (`Pass · Partial · Fail`) on those same rows. Reversing it may still be right, but the note should record that it is a reversal and answer ISS-0190's argument, or the two decisions will simply take turns.
 
 **Verdict: keep the vocabulary half; rewrite the release-page half around the addressing defect, and correct "all 579 rows" to the 40 live rows the page actually renders.**
+
+## Fixed 2026-08-18
+
+**One verb: `Walk`.** The human act is a walk; `Run` is what a machine does to a `command:` — the split the two words already carry in ordinary use, and the one `command:` makes structural. Every note the `test` obligation reaches has no `command:` by definition, so `Run` was naming the one thing that cannot happen to it. The registry verb, the group heading (`Needs a walk`) and the predicate text changed in one pass.
+
+**And the release page**, where this note was wrong about what was broken: the page already renders 13 new + 27 chronic + 0 regressed, collapses 20 quiet and caps each group at 40 — it does not re-render 579 rows. What *was* broken is that every gate row navigated to the suite README plus a fragment inherited from the document ADR-0030 deleted. **Every one was a dead click**, while `item.rel` sat unused in the same payload. A row opens its check now.

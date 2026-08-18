@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0495
 aliases: ["TASK-0495"]
 title: "One verb for one act — the registry carries `Run` and `Walk` over the same type today"
-status: backlog
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -27,7 +27,13 @@ Pick one deliberately. *Walk* describes what a person does to a checklist; *Run*
 
 Done when: one verb names the human act everywhere, and `run` refers only to something a machine does.
 
-## Not done, and deliberately last
+## Done 2026-08-18
+
+**`Walk`** is the human act; **`Run`** is what a machine does to a `command:`. That is the split the two words already carry in ordinary use and the one `command:` makes structural — and every note the `test` obligation reaches has no `command:` by definition, so `Run` was naming the one thing that cannot happen to it.
+
+The registry verb, the group heading (`Needs a walk`) and the predicate text all changed in one pass. Live on `your-trainer` before this: *"Run 5 tests"* beside *"Walk 1 release gate"*, two words for one act on the same screen.
+
+### Why it was left last
 
 The vocabulary change is the one piece of FEAT-0123 that touches every surface at once — registry verbs, group headings, buttons — and it is the one with no measurement behind it: *walk* versus *run* is a naming judgement, where the other three tasks each had a number.
 

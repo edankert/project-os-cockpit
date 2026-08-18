@@ -378,3 +378,31 @@ def test_a_tests_subject_fields_track_the_link_rename() -> None:
         f"{len(declaring) - len(resolving)} test(s) declare a subject that "
         "subject_ids cannot see"
     )
+
+
+def test_a_draft_requirement_does_not_outvote_its_own_backlog_feature() -> None:
+    """ISS-0202: a feature and its requirements are not peers.
+
+    `ids_in_flight` is *"in flight if ANY subject is"*, written for peers — *"a
+    section naming several features is walkable while one of them is live"*. A
+    `draft` requirement of a `backlog` feature is the same fact counted twice,
+    in the direction that asks: TST-0024 was owed because REQ-0035/0036 sit at
+    `draft` while FEAT-0099 has not been started and its phase is `planned`.
+
+    Deliberately narrow. The broader *"all subjects must be live"* rule was
+    measured across twelve repos and silences four tests whose subjects include
+    a feature at `doing` — `your-trainer`'s iOS parity walk among them — so it
+    trades this noise for a real silence.
+    """
+    index = Index.build(REPO_DOCS)
+    owed = {r["id"] for r in obligations.owed_items(index).get("tests", [])}
+    assert "TST-0024" not in owed, (
+        "TST-0024 is owed again: a draft requirement is outvoting the backlog "
+        "feature it implements"
+    )
+    # And the rule must not have quieted everything — a test whose feature is
+    # genuinely live still asks.
+    record = index.get(index.by_id("TST-0024"))
+    assert record is not None and record.status == "ready", (
+        "TST-0024 is no longer `ready`, so this guard has lost its subject"
+    )

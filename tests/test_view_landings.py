@@ -596,7 +596,7 @@ def test_the_needs_you_group_equals_the_badge_in_every_view(repo_index: Index) -
 
 def test_the_views_that_already_gather_get_no_second_group(repo_index: Index) -> None:
     """ADR-0025 permits the duplication and does not require it. `Needs triage`
-    and `Needs a run` already gather the same set under names that say more, so
+    and `Needs a walk` already gather the same set under names that say more, so
     a shared group there would duplicate where it buys nothing."""
     for view in ("issues", "tests"):
         keys = [g["key"] for g in cockpit.nav_payload(repo_index, mode=view)["groups"]]

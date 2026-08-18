@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0202
 aliases: ["ISS-0202"]
 title: "A `draft` requirement keeps a manual test owed while the feature it verifies is `backlog` — and a check cannot be scoped to a release, so another platform's work blocks this one"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 severity: medium
 component: cockpit-server
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-036-One-Human-Walk]]"
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[TESTING-MODEL]]", "[[ISS-0201-Walk-And-Run-Vocabulary]]"]
 ---
 
@@ -85,3 +85,11 @@ The items you saw are `TST-0012` (*iOS BLE hardening acceptance*) and `TST-0013`
 The residual claim — *no field scopes a check to a release, and a release's record derives its feature list rather than its check list* — is correct and unfalsified.
 
 **Verdict: Defect 1 approved, with the alternative narrowed to one option; Defect 2 needs rewriting around `Needs a run` and `platform:`, keeping the release-membership gap as its own statement.**
+
+## Fixed 2026-08-18 — defect 1. Defect 2 is [[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]
+
+**Defect 1 fixed, narrowly.** `ids_in_flight` no longer lets a requirement vote independently of the feature it implements: a `draft` requirement whose `implements:` names a resting feature is resting too. TST-0024 is quiet, and its FEAT-0099 is still `backlog` in a `planned` phase.
+
+**The narrowness is the decision.** Independent review measured the alternatives across all twelve repos: this quiets exactly **one** note; the crude `RESTING_STATES ∪ {draft}` quiets the same one; and the broader *"all subjects must be live"* rule silences **four** tests whose subjects include a feature at `doing` — `your-trainer`'s iOS parity walk among them. The rule that trades this noise for that silence is the wrong trade, and it was rejected on the measurement rather than on taste.
+
+**Defect 2 — a check cannot be scoped to a release — is split out.** It is a schema question with its own design, not a predicate fix, and leaving it inside a `fixed` issue would bury it. Review also corrected the framing: **zero** of `your-trainer`'s 60 blocking rows mention iOS, and **no** acceptance note there carries `platform:` — the iOS items Edwin saw are TST-0012/TST-0013 in `Needs a walk`, which is defect 1's population.

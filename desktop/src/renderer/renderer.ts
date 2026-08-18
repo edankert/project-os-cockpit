@@ -11557,7 +11557,7 @@ function groupLabelIsCategory(mode: NavMode): boolean {
 
 function groupNamesStateThemselves(mode: NavMode): boolean {
   // `tests` joins `tasks` here (TASK-0371) for the same reason and with more
-  // force: its groups are `Needs a run` / `Failing` / `Stale` / `Verified`,
+  // force: its groups are `Needs a walk` / `Failing` / `Stale` / `Verified`,
   // which ARE the states. Rolling them under a "settled" divider would file
   // `Verified` — the answer the view exists to give, and today all 23 of
   // them — behind a line that says nothing about tests at all.

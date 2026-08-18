@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 124
-  ISS: 205
+  ISS: 206
   PHASE: 36
   REQ: 43
   RISK: 7
@@ -100,7 +100,7 @@ items:
     FEAT-0123:
       file: "docs/features/one-human-walk/FEAT-0123-The-Walk-Surfaces-Say-One-Thing.md"
       title: "The walk surfaces say one thing — one verb, a tier you can address, a page that leads with the checks, and a release that shows what is outstanding"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       requirements: [REQ-0042]
@@ -1441,6 +1441,16 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0206:
+      file: "docs/issues/ISS-0206-A-Check-Cannot-Belong-To-A-Release.md"
+      title: "A check cannot be scoped to a release, so work for one platform blocks a release that does not contain it"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: cockpit-server
+      related: [ISS-0202, ADR-0034, FEAT-0124]
+      note: "Split from ISS-0202 so it is not buried in a closed issue. Review corrected the framing: NO acceptance note in your-trainer carries platform: (1,414 other notes do) and ZERO of its 60 blocking rows mention iOS — the iOS items Edwin saw were TST-0012/0013 in Needs a walk, which was ISS-0202`s first defect and is fixed. So the gap is real and is not currently causing the symptom that surfaced it. blocking_for can already scope to any subject set; what is missing is the STATEMENT of which checks a release contains. Two candidates, not equivalent: derive from covers: (free, consistent with ADR-0032, inherits the 83 unattributed as a hole) or a field on the check (explicit, a second encoding of something derivable — what ADR-0032 spent a decision removing)."
     ISS-0205:
       file: "docs/issues/ISS-0205-The-Sweep-Writes-Notes-A-Migrated-Repo-Cannot-Read.md"
       title: "The close-out sweep writes `type: [[check]]` notes with `CHK-*` ids, which a migrated repo's reader cannot see — the sweep is silently writing invisible checks right now"
@@ -1474,9 +1484,9 @@ items:
     ISS-0202:
       file: "docs/issues/ISS-0202-Needs-A-Run-Versus-The-Tiers.md"
       title: "A `draft` requirement keeps a manual test owed while the feature it verifies is `backlog` — and a check cannot be scoped to a release, so another platform's work blocks this one"
-      status: open
+      status: fixed
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-036-One-Human-Walk]]"
       severity: medium
       component: cockpit-server
       related: [ADR-0028, ADR-0027, ISS-0201]
@@ -1484,9 +1494,9 @@ items:
     ISS-0201:
       file: "docs/issues/ISS-0201-Walk-And-Run-Vocabulary.md"
       title: "'Walk' and 'Run' are two words for one act, and the release page still offers the whole suite instead of what is outstanding"
-      status: triage
+      status: fixed
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-036-One-Human-Walk]]"
       severity: medium
       component: ui
       related: [FEAT-0116, ADR-0031]
@@ -2290,7 +2300,7 @@ items:
     REQ-0042:
       file: "docs/requirements/REQ-0042-The-Suite-Is-Addressable.md"
       title: "The suite is addressable — a filtered view has a URL, so a navigator row can select one and back/forward can return to it"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       implements: "FEAT-0123"
@@ -2457,7 +2467,7 @@ items:
     PHASE-036:
       file: "docs/phases/PHASE-036-One-Human-Walk.md"
       title: "Three axes — what a test exercises, who runs it and what it gates stop being one word, and gating is derived from `covers:` at any granularity"
-      status: planned
+      status: done
       owner: user:edwin
       goal: "Separate the three things `level: acceptance` currently means — what a test exercises, who runs it, and what it gates — so that any test can gate any item through `covers:`, re-arming follows execution rather than level, and the surfaces show one population instead of two."
       features: [FEAT-0122, FEAT-0124, FEAT-0123]
@@ -3398,16 +3408,16 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 124
-    features_done: 112
+    features_done: 113
     tasks_total: 500
-    tasks_done: 462
+    tasks_done: 463
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 4
-    issues_triage: 1
+    issues_triage: 0
     risks_open: 6
     releases_total: 1
     decisions_total: 25

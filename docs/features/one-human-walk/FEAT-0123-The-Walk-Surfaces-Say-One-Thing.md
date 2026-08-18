@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0123
 aliases: ["FEAT-0123"]
 title: "The walk surfaces say one thing — one verb, a tier you can address, a page that leads with the checks, and a release that shows what is outstanding"
-status: doing
+status: done
 phase: "[[PHASE-036-One-Human-Walk]]"
 owner: user:edwin
 created: 2026-08-18
@@ -32,4 +32,4 @@ Four defects Edwin found from use, and they share a cause: [[FEAT-0114-The-Suite
 
 **Three of four done.** The tier is in the address, the filter bar leads with the checks, and a release-page row opens its check rather than a dead fragment — and the three shared one cause, exactly as this note predicted: *a filtered view had no URL*.
 
-**[[TASK-0495-One-Verb-For-One-Act]] is open**, deliberately last. It is the only piece with no measurement behind it — *walk* versus *run* is a naming judgement where the other three each had a number — and it is smaller than when it was written, because `Needs a run` is no longer a different kind of test but the same population filtered by execution.
+**[[TASK-0495-One-Verb-For-One-Act]] landed last**, deliberately. It was the only piece with no measurement behind it — *walk* versus *run* is a naming judgement where the other three each had a number. `Walk` won: it is the human act, `Run` is what a machine does to a `command:`, and every note the obligation reaches has no `command:` by definition.

@@ -188,3 +188,35 @@ def test_the_sweep_writes_a_note_the_reader_can_see(tmp_path: Path) -> None:
         "the sweep wrote a note the suite cannot load — which is exactly what "
         "ISS-0205 was, and what a field-shaped assertion cannot see"
     )
+
+
+def test_the_scope_panel_answers_what_blocks_THIS_feature() -> None:
+    """`blocking_for` has a production caller (REQ-0043).
+
+    Independent review found gating-at-any-granularity implemented and used by
+    nothing — the difference between a capability and a feature. The per-scope
+    panel now answers *what blocks this feature*, which is the question a reader
+    opening one scope is asking and the one a release-shaped gate cannot answer.
+    """
+    from project_os_cockpit import cockpit
+
+    docs = FLEET / "your-trainer" / "docs"
+    if not docs.is_dir():
+        pytest.skip("your-trainer is not on this machine")
+    index = Index.build(docs)
+    suite = acceptance.load(docs, index)
+    everything = len(suite.blocking_for(None))
+    assert everything, "your-trainer has nothing blocking; pick another corpus"
+
+    covered = sorted({r for i in suite.blocking_for(None) for r in i.refs
+                      if r.startswith("FEAT-")})
+    assert covered, "no blocking check names a feature"
+    panel = cockpit.scope_tests_payload(index, covered[0])
+    assert "blocking" in panel, "the panel no longer reports what blocks the scope"
+    assert 0 < len(panel["blocking"]) < everything, (
+        "a feature's panel returned the release's whole blocking set; it is not "
+        "scoped, which is the entire point of blocking_for taking subjects"
+    )
+    assert all("unattributated" not in row for row in panel["blocking"])
+    for row in panel["blocking"]:
+        assert "unattributed" in row, "an orphan check must say why it appears here"

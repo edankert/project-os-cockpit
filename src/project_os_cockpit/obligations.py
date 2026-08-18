@@ -940,6 +940,31 @@ def ids_in_flight(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
         status = (subject.status or "").strip().lower()
         if status in RESTING_STATES:
             continue
+        # **A requirement does not vote independently of the feature it
+        # implements** (ISS-0202). The ANY rule above was written for PEERS —
+        # *"a section naming several features is walkable while one of them is
+        # live"* — and a feature together with its own requirements are not
+        # peers: a `draft` requirement of a `backlog` feature is the same fact
+        # counted twice, in the direction that asks.
+        #
+        # Measured across all twelve repos: this quiets exactly ONE note,
+        # `project-os-cockpit`'s TST-0024, whose FEAT-0099 is `backlog` in a
+        # `planned` phase while REQ-0035/0036 sit at `draft`. Asking somebody to
+        # hand-walk a remote-SSH procedure for a feature nobody has started is
+        # the noise ADR-0028 exists to remove.
+        #
+        # Deliberately NOT the broader "all subjects must be live" rule, which
+        # the same sweep showed silencing four tests whose subjects include a
+        # feature at `doing` — including `your-trainer`'s iOS parity walk.
+        if subject.note_type == "requirement":
+            owner = str(subject.frontmatter.get("implements") or "").strip()
+            owner_id = re.search(r"([A-Z]{2,6}-\d{3,4})", owner)
+            if owner_id:
+                owner_path = index.by_id(owner_id.group(1))
+                owner_rec = index.get(owner_path) if owner_path else None
+                if owner_rec is not None and (
+                        owner_rec.status or "").strip().lower() in RESTING_STATES:
+                    continue
         return True          # in flight, or a status nobody declared
     return False
 
