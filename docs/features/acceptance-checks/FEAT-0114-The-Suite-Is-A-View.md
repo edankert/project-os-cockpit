@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0114
 aliases: ["FEAT-0114"]
 title: "The suite is a view — the same list, the same marks, generated from notes, and one walk layer for checks and manual tests"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -37,3 +37,9 @@ Edwin's aside — *"probably the same for normal tests"* — is the strongest st
 - [ ] Marking a check from the view writes the note's `mark:`/`verdict_date:`/`verdict_reason:` and repaints without moving the reader.
 - [ ] `mountAcceptanceMarks` and the document-path plumbing are deleted, not stranded — the unreachable-function guard stays green.
 - [ ] The view dices: by mark, tier, area, covering feature, automation — each filter derived from frontmatter, none from prose.
+
+## Closed 2026-08-18
+
+Every task scope-resolved and the linked tests `passing` — the feature had sat at `review` since its build leg finished on 2026-08-17, which is the state PHASE-035 could not close through.
+
+**And it is closed knowing what came next.** [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] superseded this phase's own [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] one day after it was accepted, so parts of what this feature built have already been replaced. That is not a reason to leave it open: what it delivered was delivered, the record of *why the sibling type existed* is what makes ADR-0031 legible, and a feature left at `review` because its decision moved on is a phase that can never close.

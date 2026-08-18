@@ -100,7 +100,7 @@ items:
     FEAT-0120:
       file: "docs/features/one-test-type/FEAT-0120-The-Automation-Path.md"
       title: "The automation path — a passing covering test settles the check, `covered_by:` becomes writable, and `retired` becomes reachable"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0039]
@@ -118,7 +118,7 @@ items:
     FEAT-0113:
       file: "docs/features/acceptance-checks/FEAT-0113-The-Check-Type-And-The-Migration.md"
       title: "The check type and the migration — one note per acceptance check, upstream first, pilot here, fleet last"
-      status: review
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0459, TASK-0460, TASK-0461, TASK-0462, TASK-0463]
@@ -127,7 +127,7 @@ items:
     FEAT-0114:
       file: "docs/features/acceptance-checks/FEAT-0114-The-Suite-Is-A-View.md"
       title: "The suite is a view — the same list, the same marks, generated from notes, and one walk layer for checks and manual tests"
-      status: review
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0464, TASK-0465]
@@ -136,7 +136,7 @@ items:
     FEAT-0115:
       file: "docs/features/acceptance-checks/FEAT-0115-The-Sweep-Is-Continuous.md"
       title: "The sweep is continuous — invalidation happens where work lands, in one action, and a feature says its acceptance impact was considered"
-      status: review
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0466, TASK-0467, TASK-0468]
@@ -145,7 +145,7 @@ items:
     FEAT-0116:
       file: "docs/features/acceptance-checks/FEAT-0116-A-Release-Can-Be-Finished.md"
       title: "A release can be finished — Mark released freezes the record behind two refusals, Start shrinks to naming the version, and the page reports what it kept"
-      status: review
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0469, TASK-0470, TASK-0471]
@@ -154,7 +154,7 @@ items:
     FEAT-0117:
       file: "docs/features/acceptance-checks/FEAT-0117-One-View-Per-Item.md"
       title: "One view per item — a release's row opens the item as it stands in this release, not the bare note"
-      status: review
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       tasks: [TASK-0472]
@@ -1417,7 +1417,7 @@ items:
     ISS-0199:
       file: "docs/issues/ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated.md"
       title: "20 of 61 feature→test edges are not reciprocated — the verification link is hand-maintained in two directions and a third of it already disagrees"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -1427,7 +1427,7 @@ items:
     ISS-0198:
       file: "docs/issues/ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks.md"
       title: "`automation:` and `covered_by:` are empty on 669 of 669 checks while 203 bodies name their covering test in prose — the bridge ADR-0030 defined was never populated"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -1437,7 +1437,7 @@ items:
     ISS-0197:
       file: "docs/issues/ISS-0197-The-Runs-Section-Is-Write-Only.md"
       title: "`## Runs` is write-only — a 107-step manual test records every step result and nothing can answer which steps currently stand"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -1447,7 +1447,7 @@ items:
     ISS-0196:
       file: "docs/issues/ISS-0196-The-Review-Gate-Is-Described-Two-Ways.md"
       title: "TESTING.md and QUALITY.md disagree on what the independent-review gate keys on — a status in one, a note being touched in the other, and the validator implements only the first"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -1457,9 +1457,9 @@ items:
     ISS-0195:
       file: "docs/issues/ISS-0195-Two-Types-Carry-One-Act.md"
       title: "Two types carry one act — but for 9 of 22 manual `TST-*`, not for all 22: the ones naming a capability are checks wearing a test id, and the ones naming a change are not"
-      status: open
+      status: fixed
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
       component: docs
       reviewed_by: model:claude-opus-5
@@ -1469,7 +1469,7 @@ items:
     ISS-0194:
       file: "docs/issues/ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight.md"
       title: "No virtual page refreshes the nav highlight, so the left pane goes on pointing at the note you left — `~checks`, `~sweep`, `~history`, `~accept` and the test runner all inherit it"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -1479,7 +1479,7 @@ items:
     ISS-0193:
       file: "docs/issues/ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page.md"
       title: "Opening the acceptance checks from any view but Tests lands on the Tests landing page instead — the view switch fires its own landing over the page that requested it"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       severity: medium
@@ -2203,7 +2203,7 @@ items:
     REQ-0039:
       file: "docs/requirements/REQ-0039-A-Covering-Test-Settles-The-Check.md"
       title: "A passing covering test settles the acceptance test it covers — automating a check must discharge it, which is the whole reason for the merge"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0120"
@@ -2346,7 +2346,7 @@ items:
     PHASE-035:
       file: "docs/phases/PHASE-035-Acceptance-Checks-Are-Notes.md"
       title: "The testing model — acceptance checks become notes, then one type, and a check can finally be automated"
-      status: active
+      status: done
       owner: user:edwin
       goal: "Get the testing model right: move the acceptance record out of a grammar-bearing document into notes, run the release process on them end to end, and then remove the split between what a person walks and what a machine runs — so that verifying behaviour has one type, one link direction, and one way to become automated."
       features: [FEAT-0113, FEAT-0114, FEAT-0115, FEAT-0116, FEAT-0117, FEAT-0118, FEAT-0119, FEAT-0120, FEAT-0121]
@@ -3263,15 +3263,15 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 121
-    features_done: 104
+    features_done: 110
     tasks_total: 489
-    tasks_done: 449
+    tasks_done: 452
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 10
+    issues_open: 3
     issues_triage: 0
     risks_open: 6
     releases_total: 1

@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0198
 aliases: ["ISS-0198"]
 title: "`automation:` and `covered_by:` are empty on 669 of 669 checks while 203 bodies name their covering test in prose — the bridge ADR-0030 defined was never populated"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -39,3 +39,11 @@ The annotations name **JVM test classes** (`LicensingManagerTest`, `RiderCardTes
 
 - [ ] Decide the class-vs-id rule before writing anything.
 - [ ] Backfill what resolves; **list** what does not rather than skipping silently.
+
+## Fixed 2026-08-18 — one field, and why not the other
+
+**`automation:` is populated**: 181 `partial` + 22 `full` in `your-trainer`, from the annotations the document migration had carried across as prose. The `~checks` automation filter renders for the first time.
+
+**`covered_by:` stays empty, on measurement rather than on omission.** The 203 bodies name **54 distinct JVM test classes** and **none names a `TST-*` id**. Filling the field would mean inventing 54 test notes whose gradle command nobody can execute — and since [[TASK-0482-Covered-By-Reaches-The-Gate]] made this field decide a release gate, an unrunnable claim in it is worse than an empty one. `cover_check` refuses exactly that, so the field is empty *because the guard works*.
+
+What would close the remaining half is somebody with the Android toolchain writing a `TST-*` per class that a runner can actually execute. That is real work in `your-trainer`, not in this phase.

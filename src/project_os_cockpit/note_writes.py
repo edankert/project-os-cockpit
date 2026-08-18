@@ -2116,13 +2116,31 @@ def _require_check(index: Index, check_id: str) -> "tuple[Path, Any]":
     A verdict written onto a `FEAT-*` because a caller passed the wrong id
     would be a status write with no vocabulary behind it — the type is checked
     here rather than trusted from the route.
+
+    **The predicate is `level: acceptance`, not the type** (ADR-0031). It was
+    `note_type == "check"`, and after the merge migration that is false for
+    every note in every repo — so `mark_check` and `invalidate_check` refused
+    the entire corpus and the mark dialog wrote nothing. Nothing caught it:
+    both writers are exercised in tests against fixtures that still carried the
+    retired type, and the acceptance suite that would have noticed is the very
+    thing that stopped being writable.
+
+    The retired type is still accepted, for the same reason `acceptance.load`
+    accepts it: a repo that has not migrated must keep working.
     """
     path = resolve_note(index, check_id)
     record = index.get(path)
-    if record is None or (record.note_type or "") != "check":
+    is_acceptance = record is not None and (
+        (record.note_type or "") == "check"
+        or ((record.note_type or "") == "test"
+            and str(record.frontmatter.get("level", "") or "").strip().lower()
+            == "acceptance")
+    )
+    if not is_acceptance:
         raise WriteError(
             f"{check_id} is a {(record.note_type if record else None) or 'note'}, "
-            "not an acceptance check — verdicts are written only on `check` notes",
+            "not an acceptance check — verdicts are written only on tests at "
+            "`level: acceptance`",
             status=409,
         )
     return path, record
@@ -2233,6 +2251,175 @@ def invalidate_check(
     return {
         "id": check_id, "mark": " ", "verdict": "needs-re-run",
         "invalidated_by": {"change": change, "reason": reason, "date": today},
+    }
+
+
+def cover_check(
+    index: Index,
+    *,
+    check_id: str,
+    covered_by: str,
+    automation: str = "full",
+    reason: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """**Covered by** — record that a machine answers this check (TASK-0483).
+
+    The write half of [[REQ-0039]]. `Item.settled` already reads `covered_by:`
+    and discharges a check whose covering test passes; until now nothing could
+    write the field, so the whole automation path ended at a note somebody had
+    to hand-edit.
+
+    **Refused unless the id resolves to a test that declares a `command:`** —
+    the same discipline *Needs re-run* has, and for a sharper reason. Coverage
+    is a claim that a MACHINE answers this check, and `_resolve_coverage`
+    accepts only an executable test precisely so that one hand-walked note
+    cannot discharge another. A link to something unrunnable would be a claim
+    the gate is built to ignore, written into the field the gate reads: it
+    would look like coverage on every surface and settle nothing.
+
+    **`partial` requires a reason**, exactly as the `/` mark does. "Some of
+    this is automated" without saying which part is the shrug this whole
+    vocabulary exists to refuse.
+    """
+    covered_by = (covered_by or "").strip()
+    if not covered_by:
+        raise WriteError(
+            "covered-by must name the test that covers this check — coverage "
+            "nobody can open is an assertion, not evidence",
+            status=400,
+        )
+    automation = (automation or "").strip().lower() or "full"
+    if automation not in ("full", "partial"):
+        raise WriteError(
+            f"{automation!r} is not a coverage claim; expected 'full' or "
+            "'partial' ('manual' is the absence of coverage, which is what "
+            "clearing the field records)",
+            status=400,
+        )
+    reason = (reason or "").strip()
+    if automation == "partial" and not reason:
+        raise WriteError(
+            "partial coverage must say which part is automated — the same rule "
+            "the `/` mark carries, and for the same reason",
+            status=400,
+        )
+
+    target_path = index.by_id(covered_by)
+    target = index.get(target_path) if target_path is not None else None
+    if target is None:
+        raise WriteError(
+            f"{covered_by} is not in the record — coverage must name a test "
+            "somebody can open",
+            status=400,
+        )
+    if (target.note_type or "") != "test":
+        raise WriteError(
+            f"{covered_by} is a {target.note_type or 'note'}, not a test; only "
+            "a test can cover a check",
+            status=400,
+        )
+    if not str(target.frontmatter.get("command") or "").strip():
+        raise WriteError(
+            f"{covered_by} declares no command:, so nothing can run it — and a "
+            "check is settled by coverage only when a MACHINE answers it. "
+            "Give that test a command:, or walk this check by hand",
+            status=400,
+        )
+
+    path, _ = _require_check(index, check_id)
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    today = _today()
+    fm_lines = _set_field(fm_lines, "automation", automation)
+    # `quote=False`: this is a YAML LIST, and quoting it writes a string that
+    # parses back as one scalar -- the exact defect TASK-0445 fixed on
+    # `tests_verified:`, where a release reported nothing it had verified.
+    fm_lines = _set_field(
+        fm_lines, "covered_by", f'["[[{target_path.stem}]]"]', quote=False)
+    if reason:
+        fm_lines = _set_field(fm_lines, "verdict_reason", _yaml_safe(reason))
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": check_id, "automation": automation,
+        "covered_by": target.note_id, "covered_by_status": target.status,
+    }
+
+
+def retire_check(
+    index: Index,
+    *,
+    check_id: str,
+    reason: str,
+    promote: bool = False,
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """**Promote** and **Retire** — TESTING.md's removal path, made performable.
+
+    That document has always described a lifecycle nothing could carry out:
+    *"when unit tests are written that cover the same logic, the acceptance
+    test can be moved from Tier 2 to Tier 3 … after the next verified release,
+    remove the Tier 3 test."* No code wrote `tier:`, and until ADR-0031 gave the
+    test type a `retired` status no code could write a terminal one either —
+    which is [[ISS-0178]]'s whole subject.
+
+    **Retiring is not deleting.** LIFECYCLE.md forbids deleting completed
+    notes, and a retired acceptance test is the record that a behaviour was
+    once walked by hand and is now covered by a machine. That is exactly the
+    history somebody wants when the automated test is later deleted as
+    redundant — the moment the deletion looks safe is the moment that record
+    stops existing.
+
+    **Both transitions are refused without a reason**, and promotion is refused
+    without coverage: Tier 3 is where a check goes when a machine took it over,
+    so promoting one that nothing covers is moving it out of the gate on no
+    evidence at all.
+    """
+    reason = (reason or "").strip()
+    if not reason:
+        raise WriteError(
+            "retiring or promoting a check must say why — a check that leaves "
+            "the gate without a reason is indistinguishable from one that was "
+            "quietly dropped",
+            status=400,
+        )
+    path, record = _require_check(index, check_id)
+    if promote and not (record.frontmatter.get("covered_by") or []):
+        raise WriteError(
+            f"{check_id} names nothing in covered_by:, so there is no evidence "
+            "a machine took it over — Tier 3 is where a check goes when one "
+            "did, not a way out of the gate",
+            status=400,
+        )
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    today = _today()
+    if promote:
+        # An int in the schema, so unquoted: `tier: "3"` would make every
+        # reader coerce a string that the migration wrote as a number.
+        fm_lines = _set_field(fm_lines, "tier", "3", quote=False)
+    else:
+        fm_lines = _set_field(fm_lines, "status", "retired")
+    # The mark and its date are left exactly as they are. A retired check's
+    # verdict is the record of what was true when it was last walked, and
+    # clearing it would turn a deprecation into an erasure.
+    fm_lines = _set_field(fm_lines, "verdict_reason", _yaml_safe(reason))
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+    return {
+        "id": check_id,
+        "tier": 3 if promote else record.frontmatter.get("tier"),
+        "status": record.status if promote else "retired",
+        "reason": reason,
     }
 
 

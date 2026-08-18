@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0196
 aliases: ["ISS-0196"]
 title: "TESTING.md and QUALITY.md disagree on what the independent-review gate keys on — a status in one, a note being touched in the other, and the validator implements only the first"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -33,3 +33,9 @@ The merge does not create this ambiguity, but it is the first thing that makes t
 
 - [ ] Decide which reading is the rule — status, or note-touched — and make the losing document say the winner's sentence rather than a paraphrase of it.
 - [ ] Both files are template-owned: upstream first.
+
+## Fixed 2026-08-18
+
+**The status reading is the rule**, and QUALITY.md now says so in the same terms TESTING.md and the validator already used: the gate is keyed on a `TST-*` reaching `passing`, a requirement reaching `implemented`, a feature reaching `done` — not on a note being touched.
+
+The ambiguity was cheap until ADR-0031 and stopped being cheap the moment it landed: the note-touched reading would have made 669 migrated acceptance tests gate-bearing overnight. QUALITY.md carries a sentence recording that, so the next reader knows why one of two plausible readings won.

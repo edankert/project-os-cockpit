@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0120
 aliases: ["FEAT-0120"]
 title: "The automation path — a passing covering test settles the check, `covered_by:` becomes writable, and `retired` becomes reachable"
-status: doing
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -32,8 +32,12 @@ Three mechanisms, each small:
 
 **And the backfill is where it becomes visible.** 203 of `your-trainer`'s bodies already name their covering test in prose — *"(partially automated: `LicensingManagerTest` covers PRO tier resolution…)"*. The data is in the corpus and in the wrong place. Moving it is a script, and afterwards the automation filter has more than one value for the first time.
 
-## Where this stands
+## Delivered
 
-**The read path is done and it is the part that pays.** A `passing` test named in `covered_by:` settles the acceptance test that names it, with no human mark; a failing one un-settles it; an unrun one settles nothing. Four states asserted end to end on real notes.
+*(This read "the read path is done, the write path is not" until 2026-08-18.)*
 
-**The write path is not.** [[TASK-0483-The-Covered-By-Action]] (the action and its refusal) and [[TASK-0484-A-Writer-For-Retired]] are open, and [[TASK-0485-Backfill-Automation-From-The-Prose]] is blocked on a decision nobody has made: the 203 annotations name JVM classes, not `TST-*` ids, and `_resolve_coverage` resolves ids and nothing else — deliberately, because anything else is a claim the gate cannot check.
+**The read path is the part that pays.** A `passing` test named in `covered_by:` settles the acceptance test that names it, with no human mark; a failing one un-settles it; an unrun one settles nothing. Four states asserted end to end on real notes.
+
+**And the write path landed with it.** `cover_check` writes the link behind four refusals — unresolvable id, wrong type, no `command:`, `partial` with no reason — and `retire_check` carries TESTING.md's promote-then-retire path, refusing promotion without coverage and never erasing the mark. `automation:` is backfilled on `your-trainer`'s 203; `covered_by:` is deliberately empty there, because its 54 JVM classes have no test note and inventing them would put unrunnable claims into the field the gate reads.
+
+*The original note said:* [[TASK-0483-The-Covered-By-Action]] (the action and its refusal) and [[TASK-0484-A-Writer-For-Retired]] are open, and [[TASK-0485-Backfill-Automation-From-The-Prose]] is blocked on a decision nobody has made: the 203 annotations name JVM classes, not `TST-*` ids, and `_resolve_coverage` resolves ids and nothing else — deliberately, because anything else is a claim the gate cannot check.

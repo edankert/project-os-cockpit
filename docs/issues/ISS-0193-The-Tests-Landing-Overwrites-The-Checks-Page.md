@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0193
 aliases: ["ISS-0193"]
 title: "Opening the acceptance checks from any view but Tests lands on the Tests landing page instead — the view switch fires its own landing over the page that requested it"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -61,3 +61,9 @@ The renderer only. The nav payload is correct — `cockpit.py:4369` emits `~chec
 
 - [ ] Suppress the landing across the mode switch in `renderChecksPage`, or teach the landing which virtual pages belong to which view — one map, not a special case per page. `~sweep/<FEAT>` will want the same answer.
 - [ ] A guard that arrives at `~checks` from a non-Tests mode and asserts what the centre pane is showing **after** the landing would have fired. Asserting immediately would pass against the defect.
+
+## Fixed 2026-08-18
+
+`renderChecksPage` arms `suppressLandingOnce` **before** `setNavMode('tests')`, using the mechanism built for exactly this shape. Arming it afterwards would not work — `loadWsNav` has already read the flag by then — so `test_the_checks_page_suppresses_the_arriving_view_landing` asserts the *ordering*, not the flag.
+
+This was the fourth instance of the shape, and the first where the arriving landing belonged to the same view as the page it overwrote.

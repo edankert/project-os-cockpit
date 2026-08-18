@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0116
 aliases: ["FEAT-0116"]
 title: "A release can be finished — Mark released freezes the record behind two refusals, Start shrinks to naming the version, and the page reports what it kept"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -36,3 +36,9 @@ The view can begin a release and walk its gate; it cannot finish one. `HUMAN_TRA
 - [ ] It prints the `git tag`/`git push` commands and runs neither — publishing stays a human act.
 - [ ] Name the version scaffolds from `docs/__templates__/release.md` — `previous_release:` set, Known-issues and Post-Release-Actions sections present, filename matching the corpus convention.
 - [ ] The page shows: the note as a clickable row, still-owed as `N open · M done · K unknowable` with open first, prose `tests_verified` entries rendered as recorded claims rather than broken links, and the confidence roll-up.
+
+## Closed 2026-08-18
+
+Every task scope-resolved and the linked tests `passing` — the feature had sat at `review` since its build leg finished on 2026-08-17, which is the state PHASE-035 could not close through.
+
+**And it is closed knowing what came next.** [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] superseded this phase's own [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] one day after it was accepted, so parts of what this feature built have already been replaced. That is not a reason to leave it open: what it delivered was delivered, the record of *why the sibling type existed* is what makes ADR-0031 legible, and a feature left at `review` because its decision moved on is a phase that can never close.

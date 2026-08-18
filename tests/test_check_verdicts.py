@@ -400,3 +400,39 @@ def test_nothing_on_the_release_page_ticks_itself() -> None:
 #    HTML so a mark did not cost a re-navigation. `~checks` repaints itself and
 #    holds the reader's position twice (test_checks_view.py), so there is no
 #    row to patch and no HTML to send.
+
+
+def test_the_write_path_addresses_the_merged_type(tmp_path) -> None:
+    """The predicate that broke silently, guarded on a MIGRATED note.
+
+    `_require_check` demanded `note_type == "check"`, which after ADR-0031's
+    migration is false for every note in every repo — so `mark_check` and
+    `invalidate_check` refused the entire corpus and the mark dialog wrote
+    nothing. **Nothing caught it**: every fixture in this file still builds the
+    retired type, so the writers were only ever exercised against notes that no
+    longer exist anywhere.
+
+    This one builds what the corpus actually holds. It fails if the predicate
+    ever narrows back to the type, and it is deliberately separate from the
+    fixtures above so that updating them cannot quietly take its subject away.
+    """
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "tests" / "acceptance" / "TST-0500-Merged.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0500\naliases: ["TST-0500", "CHK-0012"]\n'
+        'title: "a migrated check"\nstatus: active\nlevel: acceptance\nkind: manual\n'
+        'tier: 1\nmark: " "\nverdict_date: ""\nverdict_reason: ""\narea: "A"\n'
+        'section: "1.1"\nordinal: 10\nautomation: manual\ncovered_by: []\n'
+        'covers: []\nmerged_from: "CHK-0012 @ abc1234"\n---\n\nwalk it\n',
+        encoding="utf-8")
+
+    out = note_writes.mark_check(Index.build(docs), check_id="TST-0500", verdict="pass")
+    assert out["mark"] == "x"
+
+    import frontmatter as _fm
+    note = _fm.loads((docs / "tests" / "acceptance" / "TST-0500-Merged.md").read_text())
+    assert note["mark"] == "x"
+    assert note["status"] == "active", "ticking must never touch the lifecycle"

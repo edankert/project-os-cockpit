@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0194
 aliases: ["ISS-0194"]
 title: "No virtual page refreshes the nav highlight, so the left pane goes on pointing at the note you left — `~checks`, `~sweep`, `~history`, `~accept` and the test runner all inherit it"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -58,3 +58,9 @@ The Electron renderer. The browser front door has the mirror-image defect and it
 
 - [ ] Hoist the repeated five lines into one helper that also calls `refreshActiveNavRow()`, so a virtual page added tomorrow inherits the highlight rather than the omission.
 - [ ] A guard that navigates to a virtual page and asserts the *previously* active row is no longer `is-active`. Asserting that the new row **is** active only covers the pages whose rel appears in the nav; asserting the old one is not covers all of them.
+
+## Fixed 2026-08-18
+
+Nine call sites now go through `commitVirtualPage`, which does the five things each branch did by hand and the sixth every copy had lost — `refreshActiveNavRow()`.
+
+Hoisted rather than fixed nine times, because the duplication is what lost the line. `test_every_virtual_page_refreshes_the_nav_highlight` fails on any branch that commits `currentRel` by hand again, which is the shape of the regression rather than its symptom.

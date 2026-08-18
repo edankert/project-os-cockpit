@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0115
 aliases: ["FEAT-0115"]
 title: "The sweep is continuous — invalidation happens where work lands, in one action, and a feature says its acceptance impact was considered"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -35,3 +35,9 @@ The rule already exists — TESTING.md: *"Any code change must uncheck all Tier 
 - [ ] A feature reaching `done` offers the sweep: the checks in its touched areas, batch-invalidate plus batch-author (name, tier, area inherited, `covers:` prefilled), one Save, one commit — `a4577c01`'s shape, reproduced by tooling.
 - [ ] The sweep's close writes `acceptance_impact:` on the feature; a feature in flight without it appears as an obligation on the features view; `none — reason` discharges permanently; no per-check row appears on any badge anywhere.
 - [ ] A pass records its date, and a check whose pass predates its `invalidated_by:` change is computably stale — the 60-versus-113 gap becomes arithmetic instead of hand-annotation.
+
+## Closed 2026-08-18
+
+Every task scope-resolved and the linked tests `passing` — the feature had sat at `review` since its build leg finished on 2026-08-17, which is the state PHASE-035 could not close through.
+
+**And it is closed knowing what came next.** [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] superseded this phase's own [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] one day after it was accepted, so parts of what this feature built have already been replaced. That is not a reason to leave it open: what it delivered was delivered, the record of *why the sibling type existed* is what makes ADR-0031 legible, and a feature left at `review` because its decision moved on is a phase that can never close.

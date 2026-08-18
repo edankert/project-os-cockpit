@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0197
 aliases: ["ISS-0197"]
 title: "`## Runs` is write-only — a 107-step manual test records every step result and nothing can answer which steps currently stand"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -33,3 +33,15 @@ It is worth its own decision later — whether a long manual test should be seve
 
 - [ ] Parse `## Runs` back, so the most recent result per step is available to the Tests view and the runner resumes where a walk stopped.
 - [ ] Then reconsider whether a 107-step test should be 107 notes, with the parsed data to argue from rather than an intuition.
+
+## Fixed 2026-08-18
+
+`cockpit.manual_test_runs` parses the section back, and `manual_test_step_state` answers the question it could not: **which steps currently stand**. The Tests row carries `steps_proven` beside `steps`, absent when the note has never been walked — *"0 of 107 proven"* and *"never walked"* are different sentences and a row that conflated them would be the original defect wearing a number.
+
+**A step's state is its result in the most recent run that mentions it**, not in the most recent run. A partial walk does not un-prove the steps it never reached, and reading "the latest run" would have reported step 1 as unproven because a later, shorter walk did not repeat it. That distinction is the whole content of the fix and it has its own guard.
+
+**Parsed with the writer's own shape**, so the two cannot drift quietly: `test_the_runs_section_round_trips_through_its_own_writer` drives `stamp_test_run` and reads its output back, and fails on the same commit that changes the format — rather than the reader returning nothing, which is indistinguishable from a test nobody has walked.
+
+## What this does not do
+
+A 107-step test is still one note. Whether a long manual procedure should be several acceptance tests is a separate decision, and it is now one that can be argued from parsed data rather than from an intuition.

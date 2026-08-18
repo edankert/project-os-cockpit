@@ -355,3 +355,117 @@ def test_a_manual_covering_test_is_not_coverage(tmp_path) -> None:
         'covered_by: ["[[TST-0900-Manual]]"]\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
     suite = acceptance.load(docs, Index.build(docs))
     assert len(suite.blocking()) == 1, "a manual covering test must not settle anything"
+
+
+# ---- the write path (TASK-0483 / TASK-0484) -------------------------------
+
+
+def _write_repo(tmp_path):
+    """A repo with one acceptance check and three candidate covering tests."""
+    from project_os_cockpit.index import Index
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "tests" / "TST-0900-Executable.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "runnable"\nstatus: passing\n'
+        'kind: automated\nlevel: unit\ncommand: "pytest -q"\nlast_run: "2026-08-18"\n'
+        'covers: []\n---\n\nb\n', encoding="utf-8")
+    (docs / "tests" / "TST-0901-Manual.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0901\ntitle: "hand-walked"\nstatus: passing\n'
+        'kind: manual\nlevel: system\nlast_verified: "2026-08-18"\ncovers: []\n---\n\nb\n',
+        encoding="utf-8")
+    (docs / "features").mkdir()
+    (docs / "features" / "FEAT-0001-Thing.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "t"\nstatus: done\n---\n\nb\n',
+        encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "a check"\nstatus: active\n'
+        'level: acceptance\nkind: manual\ntier: 2\nmark: "x"\nverdict_date: "2026-08-01"\n'
+        'verdict_reason: ""\narea: "A"\nsection: "1.1"\nordinal: 10\n'
+        'automation: manual\ncovered_by: []\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
+    return docs, Index.build(docs)
+
+
+def test_covered_by_is_refused_unless_the_test_can_actually_run(tmp_path) -> None:
+    """The refusal that makes the field mean something.
+
+    `_resolve_coverage` accepts only an executable test, so a link to a manual
+    one would look like coverage on every surface and settle nothing — a claim
+    written into the exact field the gate reads, that the gate is built to
+    ignore. Refusing at the write is the only place it can be caught.
+    """
+    from project_os_cockpit import note_writes
+    docs, index = _write_repo(tmp_path)
+
+    with pytest.raises(note_writes.WriteError) as manual:
+        note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0901")
+    assert "declares no command" in str(manual.value)
+
+    with pytest.raises(note_writes.WriteError) as missing:
+        note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-9999")
+    assert "not in the record" in str(missing.value)
+
+    with pytest.raises(note_writes.WriteError) as wrong_type:
+        note_writes.cover_check(index, check_id="TST-0902", covered_by="FEAT-0001")
+    assert "not a test" in str(wrong_type.value)
+
+    with pytest.raises(note_writes.WriteError) as partial:
+        note_writes.cover_check(index, check_id="TST-0902",
+                                covered_by="TST-0900", automation="partial")
+    assert "which part is automated" in str(partial.value)
+
+
+def test_covered_by_writes_the_link_the_gate_reads(tmp_path) -> None:
+    """And the round trip: written here, read by `settled` there."""
+    from project_os_cockpit import acceptance, note_writes
+    from project_os_cockpit.index import Index
+    docs, index = _write_repo(tmp_path)
+
+    out = note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0900")
+    assert out["automation"] == "full"
+
+    suite = acceptance.load(docs, Index.build(docs))
+    item = suite.items[0]
+    assert item.covered_by, "the field the gate reads must be populated"
+    assert item.covered_by_passing, "a passing executable cover must discharge it"
+
+
+def test_promotion_is_refused_without_coverage_and_retirement_keeps_the_verdict(tmp_path) -> None:
+    """Tier 3 is where a check goes when a machine took it over.
+
+    Promoting one that nothing covers is moving it out of the gating tiers on
+    no evidence — which is the escape hatch, not the lifecycle. And retiring
+    must not erase the mark: a retired check is the record that a behaviour was
+    once walked, which is exactly what somebody wants when the automated test
+    is later deleted as redundant.
+    """
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+    docs, index = _write_repo(tmp_path)
+
+    with pytest.raises(note_writes.WriteError) as bare:
+        note_writes.retire_check(index, check_id="TST-0902", reason="", promote=True)
+    assert "must say why" in str(bare.value)
+
+    with pytest.raises(note_writes.WriteError) as uncovered:
+        note_writes.retire_check(index, check_id="TST-0902",
+                                 reason="covered now", promote=True)
+    assert "covered_by" in str(uncovered.value)
+
+    note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0900")
+    index = Index.build(docs)
+    note_writes.retire_check(index, check_id="TST-0902",
+                             reason="TST-0900 covers it", promote=True)
+    # Read as frontmatter, not as a string: whether a scalar is quoted is a
+    # writer's habit, and asserting on it would fail on a cosmetic change while
+    # passing on a semantic one.
+    import frontmatter as _fm
+    note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
+    assert str(note["tier"]) == "3"
+    assert note["mark"] == "x", "promotion must not erase the verdict"
+
+    note_writes.retire_check(Index.build(docs), check_id="TST-0902",
+                             reason="shipped in v2; TST-0900 owns it")
+    note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
+    assert note["status"] == "retired"
+    assert note["mark"] == "x", "retiring is deprecation, not erasure"
+    assert str(note["verdict_date"]) == "2026-08-01", "the walk's date survives it"

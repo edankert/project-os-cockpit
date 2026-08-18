@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0113
 aliases: ["FEAT-0113"]
 title: "The check type and the migration — one note per acceptance check, upstream first, pilot here, fleet last"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -36,3 +36,9 @@ The record half of [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates
 - [ ] `docs/tests/ACCEPTANCE_TESTS.md` is deleted in the migration commit and a README says where checks live and how to read pre-migration history.
 - [ ] `gate_payload` at every real `your-trainer` tag returns the same blocking numbers after the cut as before it.
 - [ ] The `CHK` counter exists per repo and `sync-snapshot.py` raises it like any other.
+
+## Closed 2026-08-18
+
+Every task scope-resolved and the linked tests `passing` — the feature had sat at `review` since its build leg finished on 2026-08-17, which is the state PHASE-035 could not close through.
+
+**And it is closed knowing what came next.** [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] superseded this phase's own [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] one day after it was accepted, so parts of what this feature built have already been replaced. That is not a reason to leave it open: what it delivered was delivered, the record of *why the sibling type existed* is what makes ADR-0031 legible, and a feature left at `review` because its decision moved on is a phase that can never close.

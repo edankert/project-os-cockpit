@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0199
 aliases: ["ISS-0199"]
 title: "20 of 61 feature→test edges are not reciprocated — the verification link is hand-maintained in two directions and a third of it already disagrees"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -33,3 +33,11 @@ Ten errors in sixty-one hand-maintained bidirectional edges is a **16% failure r
 
 - [ ] Resolve the twenty in [[TASK-0486-Backfill-Covers-On-The-Ten]], recording which side was right in each case, while both sides still exist to compare.
 - [ ] Do not add a reconciliation rule in the meantime — it is work against a field that is being removed.
+
+## Fixed 2026-08-18 — by construction
+
+`tests:` is gone from all **81** feature notes that carried it (22 live edges) and from `feature.md`. With one encoding there is no second copy to disagree, which is what ADR-0032 predicted and is the reason this was not fixed by adding a reconciliation rule.
+
+The eight disagreements in this repo were **read and resolved individually** before the field was removed, rather than being deleted along with it — seven in the feature's favour (TST-0011 covers nine features, not the four it claimed), one in the test's (FEAT-0117's claim on TST-0043 was unfounded).
+
+*The title's "20 of 61" was wrong and the body carries the correction: it is 10 fleet-wide, 8 of them here.* The other two are in `project-os-dev`, which still carries `tests:` on its features and is covered by the forward-field fallback until it consolidates.

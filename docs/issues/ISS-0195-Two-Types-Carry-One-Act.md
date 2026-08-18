@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0195
 aliases: ["ISS-0195"]
 title: "Two types carry one act — but for 9 of 22 manual `TST-*`, not for all 22: the ones naming a capability are checks wearing a test id, and the ones naming a change are not"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -12,7 +12,7 @@ component: docs
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
 review_verdict: changes-requested
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 ---
 
@@ -242,4 +242,12 @@ Recorded as [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] and [[ADR-0032-The-
 
 **The review's objections are not dismissed by that choice — they are answered in ADR-0031's collision table**, and its recommended fifth option is explicitly rejected in one clause: migrating the nine capability-naming tests *into* checks would move them from the type with an automation path to the type without one.
 
-Four findings left this note as their own issues: [[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]], [[ISS-0197-The-Runs-Section-Is-Write-Only]], [[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]] and [[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]. This note stays `open` until the phase closes.
+Four findings left this note as their own issues: [[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]], [[ISS-0197-The-Runs-Section-Is-Write-Only]], [[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]] and [[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]. This note stayed `open` until the phase closed; it is `fixed` as of 2026-08-18.
+
+## Fixed 2026-08-18
+
+The two types are one. 669 checks across three repos are `[[test]]` notes at `level: acceptance`, no note in any of the twelve repos carries `type: [[check]]`, and **the asymmetry that started this is gone**: an acceptance test becomes automated by adding a `command:`, and a `passing` test named in `covered_by:` settles the check it covers — the thing that bought nothing before.
+
+Edwin's original observation was right and his second one was righter. *"I didn't realise that TSTs required my attention as well as CHKs"* opened it; *"it becomes very difficult to move a CHK to an automated test"* is what actually decided it, and it inverted the independent review's own argument — the review had used that asymmetry as the reason to keep the types apart.
+
+**What this note got wrong is on the record above rather than tidied away**: five figures corrected by the first review, the fleet drift six times smaller than claimed, and a central claim — that manual-test steps were invisible — refuted by shipped code. What survived was the direction.

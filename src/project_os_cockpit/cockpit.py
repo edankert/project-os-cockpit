@@ -3856,6 +3856,76 @@ def _test_feature_ids(index: Index, record: NoteRecord) -> list[str]:
     return out
 
 
+#: One run under `## Runs`, as `_append_run_log` writes it:
+#: `### 2026-08-18 — passing (by user:edwin)`.
+_RUN_HEADING_RE = re.compile(
+    r"^###\s+(\d{4}-\d{2}-\d{2})\s+[—-]\s+(\S+)(?:\s+\(by\s+([^)]+)\))?\s*$",
+    re.MULTILINE)
+#: One step result inside it: `- **pass** · Do the thing — evidence`.
+_RUN_STEP_RE = re.compile(r"^-\s+\*\*([^*]+)\*\*\s+·\s+(.*)$")
+
+
+def manual_test_runs(body: str) -> list[dict[str, Any]]:
+    """Read `## Runs` back (ISS-0197) — the half that was never written.
+
+    `stamp_test_run` has written a per-step result under this heading since the
+    runner existed, and **nothing has ever parsed it**: `_RUNS_HEADING_RE`
+    occurred only in the writer. So the results were prose, the note's own
+    status was the only state a run left behind, and *"which of TST-0013's 107
+    steps is currently unproven"* had no answer — a walk interrupted at step 60
+    recorded sixty results and reported nothing.
+
+    Newest first here, because every caller wants the current answer; the
+    document stays newest-last, because it reads as a chronological log.
+
+    **Parsed with the writer's own shape**, deliberately: if the two ever
+    diverge this returns nothing rather than something plausible, and
+    `test_the_runs_section_round_trips` fails on the same commit that breaks it.
+    """
+    runs: list[dict[str, Any]] = []
+    matches = list(_RUN_HEADING_RE.finditer(body or ""))
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        steps: list[dict[str, str]] = []
+        for line in body[match.end():end].splitlines():
+            step = _RUN_STEP_RE.match(line.strip())
+            if not step:
+                continue
+            text, _, evidence = step.group(2).partition(" — ")
+            steps.append({
+                "result": step.group(1).strip(),
+                "text": text.strip(),
+                "evidence": evidence.strip(),
+            })
+        runs.append({
+            "date": match.group(1), "outcome": match.group(2),
+            "runner": (match.group(3) or "").strip(), "steps": steps,
+        })
+    runs.reverse()
+    return runs
+
+
+def manual_test_step_state(body: str) -> dict[str, Any]:
+    """Which steps currently stand, and which are unproven (ISS-0197).
+
+    The question the write-only log could not answer. A step's state is its
+    result **in the most recent run that mentions it** — not in the most recent
+    run, because a partial walk does not un-prove the steps it did not reach.
+    """
+    latest: dict[str, str] = {}
+    for run in reversed(manual_test_runs(body)):          # oldest first
+        for step in run["steps"]:
+            if step["text"]:
+                latest[step["text"]] = step["result"].lower()
+    declared = [s["text"] for s in manual_test_steps(body)]
+    proven = [t for t in declared if latest.get(t) in ("pass", "passing", "ok")]
+    unproven = [t for t in declared if t not in proven]
+    return {
+        "declared": len(declared), "proven": len(proven),
+        "unproven": unproven, "results": latest,
+    }
+
+
 def _test_item(
     index: Index, record: NoteRecord, days: int,
 ) -> dict[str, Any]:
@@ -3879,6 +3949,13 @@ def _test_item(
         "last_verified": verified,
         "stale": _test_is_stale(fm, days),
         "steps": len(manual_test_steps(record.body)),
+        # ISS-0197: how many of those steps currently stand. Before the read-back
+        # this row could say a test had 107 steps and nothing about whether any
+        # of them held -- so a walk abandoned at step 60 looked exactly like one
+        # nobody had started. Absent when the note carries no run, because "0 of
+        # 107 proven" and "never walked" are different sentences.
+        **({"steps_proven": _proven["proven"]}
+           if (_proven := manual_test_step_state(record.body))["results"] else {}),
         **_owed_flag(record, index),
         **_verification_flags(record),
     }

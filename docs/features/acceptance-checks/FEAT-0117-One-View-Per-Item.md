@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0117
 aliases: ["FEAT-0117"]
 title: "One view per item — a release's row opens the item as it stands in this release, not the bare note"
-status: review
+status: done
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -36,3 +36,9 @@ Two reasons, both from the review and both Edwin-shaped. First, the item list wa
 - [ ] A feature row inside a release opens `~release/<id>/<ITEM-ID>` and never the bare note; the bare note is one row away.
 - [ ] The page shows the three derived lists with the mark control inline on each check, and the authored `acceptance_impact` line.
 - [ ] A feature with no checks anywhere reads as considered-or-owed, in words — never as an empty page.
+
+## Closed 2026-08-18
+
+Every task scope-resolved and the linked tests `passing` — the feature had sat at `review` since its build leg finished on 2026-08-17, which is the state PHASE-035 could not close through.
+
+**And it is closed knowing what came next.** [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] superseded this phase's own [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] one day after it was accepted, so parts of what this feature built have already been replaced. That is not a reason to leave it open: what it delivered was delivered, the record of *why the sibling type existed* is what makes ADR-0031 legible, and a feature left at `review` because its decision moved on is a phase that can never close.
