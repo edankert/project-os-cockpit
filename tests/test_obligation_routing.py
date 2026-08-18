@@ -333,10 +333,12 @@ def test_routing_moves_the_row_and_never_the_note() -> None:
     from its own view at the moment a reader needed it would make the tree
     wrong exactly when it matters."""
     index = Index.build(REPO_DOCS)
+    # Tier groups included since ADR-0031: an acceptance test is a `test` note
+    # and the navigator lists it under its tier. Skipping them here was free
+    # while a check was a different type; now it would assert that 34 notes have
+    # vanished from a view they are plainly in.
     listed = set()
     for group in cockpit.nav_payload(index, "tests")["groups"]:
-        if str(group["key"]).startswith("tier"):
-            continue
         listed.update(str(i["id"]) for i in group["items"])
     corpus = {
         r.note_id for r in index.notes_by_type("test")

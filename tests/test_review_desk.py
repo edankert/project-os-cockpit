@@ -229,6 +229,11 @@ def test_every_manual_test_in_this_repo_is_runnable() -> None:
         record.note_id
         for record in index.notes_by_type("test")
         if not record.rel_path.startswith("__templates__/")
+        # An acceptance test is walked in the `~checks` view with the six-mark
+        # dialog, not through the manual stepper -- its body is a procedure in a
+        # paragraph, deliberately, because one note IS one check. The stepper's
+        # completeness claim is about the population it actually offers.
+        and str(record.frontmatter.get("level", "") or "").strip().lower() != "acceptance"
         and cockpit._is_manual_test(record)
         and not cockpit.manual_test_steps(record.body)
     ]

@@ -26,3 +26,10 @@ With no `CHK-*` note left anywhere, the type's code has lost its subject. `accep
 **Run the unreachable-function guard afterwards.** It earned its keep on the [[ISS-0192]] cull by catching `suppressNextSoftReload` on the first run.
 
 Done when: no code branches on the check note type, the guard is green, and the tests that guarded the retired paths are removed with a list of what went, in the file they went from.
+
+
+## Blocked
+
+Depends on [[TASK-0480-The-Fleet-Migration]]. **The check type still has live subjects** — 635 `CHK-*` notes in `your-sudoku` and `your-trainer` — so removing the code that reads them would take those two repos' suites off the surface entirely.
+
+What has already happened, and is enough for this repo: `acceptance.load` reads the merged type **first** and the `check` type second; `_tests_groups` excludes `level: acceptance`; and the validator's `check` row survives with a comment saying to remove it once no repo carries one. The cull is a deletion pass with a precondition, and the precondition is not met.

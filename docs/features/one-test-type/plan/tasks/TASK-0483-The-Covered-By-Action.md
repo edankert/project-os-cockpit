@@ -24,3 +24,9 @@ An action on the acceptance page that sets `automation:` and `covered_by:` in on
 `automation:` follows from the shape of the claim rather than being asked for separately: naming one covering test that fully covers it is `full`; naming one that covers part is `partial` and requires the reason field, exactly as a `/` mark does.
 
 Done when: the link is writable from the surface, unresolvable and non-runnable ids are refused with the replacement named, and the `automation` filter on `~checks` has more than one value for the first time.
+
+## Not done
+
+`covered_by:` now *reaches* the gate ([[TASK-0482-Covered-By-Reaches-The-Gate]]) and nothing yet *writes* it from the surface. The field is hand-editable and the gate reads it correctly; what is missing is the action and its refusal.
+
+Deliberately left after the read path rather than built alongside it: the refusal it needs — *unless the id resolves to a test carrying a `command:`* — is only meaningful once the gate acts on the field, and building both at once would have shipped a control whose effect nobody had seen.

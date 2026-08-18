@@ -26,7 +26,7 @@ The format is the template's own, so nothing here invents a convention:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, replace, field
 from pathlib import Path
 from typing import Any
 
@@ -316,6 +316,13 @@ class Item:
     #: — as first proposed — a feature stat.
     automation: str = ""
     covered_by: tuple[str, ...] = ()
+    #: The status of each test named in `covered_by:`, resolved through the
+    #: index when one is available. This is what makes automating a check PAY
+    #: (ADR-0031 / REQ-0039): a `passing` covering test settles this one with no
+    #: human mark. Empty when the suite was loaded without an index — a
+    #: directory read cannot resolve an id — so `settled` falls back to the mark
+    #: alone, which is the safe direction: it can only ever under-settle.
+    covered_by_status: tuple[str, ...] = ()
     #: What the walker must have to hand. TASK-0449 was cancelled for the
     #: absence of exactly this field, on the finding that inferring it from
     #: prose was 6-of-6 false positives.
@@ -351,13 +358,42 @@ class Item:
         return slugify(self.heading, "-") if self.heading else ""
 
     @property
+    def covered_by_passing(self) -> bool:
+        """A machine already answers this check, and it currently passes.
+
+        The whole return on ADR-0031. Before it, `automation:` and `covered_by:`
+        were read by one facet and one release stat and by nothing that could
+        discharge anything — so 15 of the 60 checks blocking `your-trainer` said
+        in their own bodies that a test already covered them, and blocked the
+        release anyway.
+
+        **`passing`, not "not failing".** An unrun covering test settles
+        nothing: `ready` means defined and never executed, which is exactly the
+        state that must not clear a gate.
+        """
+        return any(s == "passing" for s in self.covered_by_status)
+
+    @property
     def settled(self) -> bool:
-        """What the gate reads — walked, reconciled, or excepted.
+        """What the gate reads — walked, reconciled, excepted, or **covered**.
 
         Not "done": a reconciled item was never performed and an excepted one
         is being shipped undone, and the tier counts say so separately.
+
+        The fourth clause is ADR-0031's: a `passing` test named in
+        `covered_by:` settles this check without a human mark. The direction is
+        what keeps it safe — a machine's exit code discharges a person's
+        checkbox, never the reverse — so ADR-0010's runner-only rule is
+        untouched.
+
+        **And a covering test that FAILS un-settles it**, because this reads the
+        live status rather than a remembered one. That is a real consequence and
+        it was decided rather than discovered: it puts a machine-driven
+        population into the release gate, which is the gate and not a badge, so
+        ADR-0027 is untouched too.
         """
-        return self.checked or self.reconciled or self.excepted
+        return (self.checked or self.reconciled or self.excepted
+                or self.covered_by_passing)
 
     @property
     def stale(self) -> bool:
@@ -726,6 +762,39 @@ def load_notes(checks_dir: Path) -> list[Item]:
     return sort_items(items)
 
 
+
+def _resolve_coverage(items: "list[Item]", index: "Any") -> "list[Item]":
+    """Fill `covered_by_status` from the index (REQ-0039).
+
+    Resolved at LOAD rather than stored on the note, and that is the whole
+    design: a remembered status is a claim about a run that happened once, and
+    what the gate needs to know is whether the covering test passes **now**. It
+    is also why a failing covering test un-settles the check it covers -- the
+    same read, in the other direction.
+
+    Only an index can do this, so a directory read leaves the tuple empty and
+    `settled` falls back to the mark alone. That direction is deliberate: it can
+    only ever under-settle, which fails a gate closed rather than open.
+    """
+    out: list[Item] = []
+    for item in items:
+        if not item.covered_by:
+            out.append(item)
+            continue
+        statuses: list[str] = []
+        for ref in item.covered_by:
+            # `[[TST-0016-Seat-Resolution]]`, `TST-0016`, or a bare module name.
+            # Only the id form resolves; anything else is a claim the gate
+            # cannot check, which is why the write path refuses it.
+            match = re.search(r"([A-Z]+-\d{2,})", str(ref))
+            path = index.by_id(match.group(1)) if match else None
+            record = index.get(path) if path is not None else None
+            statuses.append(
+                str(record.status or "").strip().lower() if record is not None else "")
+        out.append(replace(item, covered_by_status=tuple(statuses)))
+    return out
+
+
 def load(docs_root: Path, index: "Any | None" = None) -> Suite:
     """The suite, or an empty one when the repo has never instantiated it.
 
@@ -759,6 +828,7 @@ def load(docs_root: Path, index: "Any | None" = None) -> Suite:
             is not None
         ]
         if items:
+            items = _resolve_coverage(items, index)
             return Suite(path=checks_dir, items=sort_items(items),
                          shape=SHAPE_NOTES)
     elif checks_dir.is_dir():

@@ -26,3 +26,11 @@ The annotations name real classes — `LicensingManagerTest`, `RiderCardTest`, `
 **Report what it could not resolve.** A backfill that silently skips is indistinguishable from one that found nothing.
 
 Done when: every resolvable annotation is a field, the unresolvable ones are listed rather than skipped, and the blocking count on `your-trainer` is re-measured — 15 of its 60 blocking checks claim automation in prose today.
+
+## Not done, and the decision inside it is unmade
+
+The 203 annotations name **JVM test classes** (`LicensingManagerTest`, `TrainerCompatibilityTestFailureModesTest`), not `TST-*` ids. `_resolve_coverage` resolves ids through the index and nothing else, deliberately — *"anything else is a claim the gate cannot check"* — so writing those class names into `covered_by:` would produce 203 notes of plausible data the gate ignores.
+
+The rule has to be chosen first: record the class in a checkable form, or create a `TST-*` per class and name that. Recorded in [[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]], which stays open.
+
+It is also downstream of [[TASK-0480-The-Fleet-Migration]]: all 203 are in `your-trainer`.

@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0478
 aliases: ["TASK-0478"]
 title: "Renumber into the `TST-*` space, and record the counter jump where a reader will meet it"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -26,3 +26,11 @@ Ids move `CHK-####` → the next free `TST-####` per repo, in `section`/`ordinal
 `your-trainer`'s TST counter goes 18 → ~597. Record it in that repo's SNAPSHOT `note:` — a counter that jumps 579 in one commit is the kind of thing somebody later reads as corruption.
 
 Done when: every merged note carries a `TST-*` id and a `CHK-*` alias, counters are raised by `sync-snapshot.py`, and the fleet validates.
+
+## Done
+
+Ids run in **suite order** — tier, then section, then ordinal — rather than in old-id order, so the numbering follows the direction somebody walks the suite. That is the one improvement a renumber gets to make over what it replaces.
+
+`aliases:` keeps the `CHK-*` id, so typing it into the palette still lands on the note. Verified again at migration time rather than trusted: **zero inbound `[[CHK-*]]` references exist anywhere in the fleet**, so nothing needed rewriting.
+
+This repo: `CHK-0001..0034` → `TST-0044..0077`, counter raised 43 → 77 by `sync-snapshot.py`.

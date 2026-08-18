@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0121
 aliases: ["FEAT-0121"]
 title: "The verification link normalises — `covers:` on the test is the only encoding, VERIFY inverts, and the path stops meaning anything"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -24,3 +24,11 @@ related: ["[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ISS-0199-Tw
 **The measurement that decides the direction**: 20 of 61 feature→test edges are already unreciprocated, and 112 of 669 checks fan out to more than one subject. The many side is where the key belongs.
 
 **Order matters here.** Backfill the ten first, then invert VERIFY, then delete the fields — inverting before the backfill would make ten features look unverified for the length of a commit, and deleting before inverting would take the gate offline.
+
+## Delivered
+
+One encoding, one direction. `covers:` on 43 tests; `tests:` gone from 30 features and 10 snapshot entries; the legacy forward fields gone from the tests that carried them; the path fallback deleted from `_test_feature_ids` after measuring that exactly **3** tests fleet-wide depended on it and backfilling all three.
+
+**The inversion was proved behaviour-preserving the hard way.** Its first comparison — 56 findings before, 56 after — was a *false pass*: the edit had never been written to disk. Caught by asking which single repo's finding should have moved and finding it had not.
+
+Re-run for real it drops one finding (obsidian's test says `verifies:`), so `covers_index` falls back to the forward field names for an unconsolidated repo — a rename transition, since every name it reads points test → subject. With the fallback it **adds** one: `your-trainer`'s FEAT-0086 is `done` while TST-0013 has never been walked, invisible to the old lookup because the feature does not list the test. Net: nothing lost, one true violation surfaced.

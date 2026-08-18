@@ -1250,11 +1250,7 @@ async function navigateToInner(
       const ok = await renderReleaseItemPage(
         tail.slice(0, slash), tail.slice(slash + 1).toUpperCase());
       if (ok) {
-        currentRel = normalised;
-        currentDispatchHistory = null;
-        currentNoteStatus = null;
-        pushHistory(normalised, opts.replace ?? false);
-        refreshFooterPath();
+        commitVirtualPage(normalised, opts);
         return;
       }
     }
@@ -1272,37 +1268,19 @@ async function navigateToInner(
   if (normalised.startsWith('~sweep/')) {
     const ok = await renderSweepPage(
       normalised.slice('~sweep/'.length).toUpperCase());
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   if (normalised === '~checks') {
     const ok = await renderChecksPage();
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   if (normalised === '~history' || normalised.startsWith('~history/')) {
     const at = normalised === '~history'
       ? null : normalised.slice('~history/'.length);
     const ok = await renderHistoryPage(at);
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   // ~tests/<TST>/run — the manual test runner (TASK-0372). It moved off the
@@ -1326,26 +1304,14 @@ async function navigateToInner(
   if (normalised.startsWith('~accept/')) {
     const featureId = normalised.slice('~accept/'.length).toUpperCase();
     const ok = await renderAcceptanceRun(featureId);
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
 
   if (normalised.startsWith('~tests/') && normalised.endsWith('/run')) {
     const id = normalised.slice('~tests/'.length, -'/run'.length);
     const ok = await renderTestRunPage(id);
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   // ~review — the desk (FEAT-0041). `~review` is the queue with nothing
@@ -1365,13 +1331,7 @@ async function navigateToInner(
     const target = normalised === '~review'
       ? '' : normalised.slice('~review/'.length);
     const ok = await renderReviewPage(target);
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   // ~design — the design bench (FEAT-0042 / TASK-0215). `~design` lists the
@@ -1385,8 +1345,7 @@ async function navigateToInner(
   }
   if (normalised.startsWith('~inbox/')) {
     const name = decodeURIComponent(normalised.slice('~inbox/'.length));
-    currentRel = normalised;
-    pushHistory(normalised, opts.replace ?? false);
+    commitVirtualPage(normalised, opts);
     await renderInboxItemView(name);
     void renderInboxPanel();
     return;
@@ -1396,35 +1355,19 @@ async function navigateToInner(
   // were reading, while their badges counted things the view never gathered.
   if (VIEW_LANDING_RELS.has(normalised)) {
     const ok = await renderViewLanding(normalised.slice(1));
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   if (normalised === '~design' || normalised.startsWith('~design/')) {
     const target = normalised === '~design'
       ? '' : normalised.slice('~design/'.length);
     const ok = await renderDesignPage(target);
-    if (ok) {
-      currentRel = normalised;
-      currentDispatchHistory = null;
-      currentNoteStatus = null;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   if (normalised.startsWith('~session/')) {
     const ok = await renderSessionDetailPage(normalised.slice('~session/'.length));
-    if (ok) {
-      currentRel = normalised;
-      pushHistory(normalised, opts.replace ?? false);
-      refreshFooterPath();
-    }
+    if (ok) commitVirtualPage(normalised, opts);
     return;
   }
   if (normalised === '~agents') {
@@ -8256,6 +8199,32 @@ function checkMatches(item: GateItem, tier: number): boolean {
   return true;
 }
 
+/** Commit a virtual page as the current location (ISS-0194).
+ *
+ *  Seven `~page` branches each repeated the same five lines, and one of the
+ *  five -- `refreshActiveNavRow()` -- was missing from every copy. So no
+ *  virtual page ever refreshed the nav highlight: the left pane went on
+ *  pointing at the note you had left, which is worse than showing no selection
+ *  because it shows the WRONG one, confidently.
+ *
+ *  It looked intermittent because anything that repaints the navigator calls
+ *  the sweep itself -- a mode switch, or the file-watcher's soft reload -- so
+ *  the same click highlighted or did not depending on whether a watcher had
+ *  ticked.
+ *
+ *  Hoisted rather than fixed seven times: the duplication is what lost the line
+ *  in the first place, and a virtual page added tomorrow now inherits the
+ *  highlight instead of inheriting the omission.
+ */
+function commitVirtualPage(rel: string, opts: { replace?: boolean }): void {
+  currentRel = rel;
+  currentDispatchHistory = null;
+  currentNoteStatus = null;
+  pushHistory(rel, opts.replace ?? false);
+  refreshFooterPath();
+  refreshActiveNavRow();
+}
+
 async function renderChecksPage(): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   try {
@@ -8265,7 +8234,22 @@ async function renderChecksPage(): Promise<boolean> {
     if (!data.view) return false;
     checksData = data.view;
   } catch { return false; }
-  if (currentNavMode !== 'tests') setNavMode('tests');
+  if (currentNavMode !== 'tests') {
+    // ISS-0193: `setNavMode` fires `loadWsNav`, which lands the Tests view on
+    // `~tests` because `currentRel` is not `~checks` yet -- the branch assigns
+    // it only after this function resolves. So the landing always starts second
+    // and always finishes last, and the checks page gets painted over by the
+    // page whose button the reader did not press.
+    //
+    // Not a race: everything after this call is synchronous. It cannot be won
+    // by being fast, so it is SUPPRESSED, once -- the mechanism built for
+    // exactly this shape, whose own comment records the three earlier times it
+    // was got wrong (ISS-0040, then the guard that named only `overview`).
+    // This is the fourth, and the first where the arriving landing belongs to
+    // the same view as the page it was overwriting.
+    suppressLandingOnce = true;
+    setNavMode('tests');
+  }
   docView.classList.remove('overview-pane', 'agents-page', 'design-page',
     'is-design-shell', 'review-page');
   rightPaneContent.replaceChildren();

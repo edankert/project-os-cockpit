@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0118
 aliases: ["FEAT-0118"]
 title: "The test type absorbs the check — one schema, `level: acceptance` as the discriminator, and `retired` at last"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -24,3 +24,11 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0030-Accept
 **The status vocabulary is the load-bearing change.** Tests go from three values to five. `active` is what makes the merge safe — an acceptance test that rests at `active` reaches neither the review gate nor the Run obligation, by the same construction the `check` type used. `retired` is what makes it worth doing twice: [[ISS-0178-A-Test-Cannot-Be-Retired]] has been `deferred` because the vocabulary had no terminal value, and this repo's TST-0029 is the live instance — subject deleted, retired in prose because there was no word for it.
 
 **`check.md` is deleted, not tombstoned.** The template directory is a scaffolding source; a template for a type that no longer exists scaffolds notes the validator will reject.
+
+## Delivered
+
+Landed upstream as `project-os eb10a45` and hand-merged into this repo, because all six template files were already locally diverged and `sync-project-os.sh` correctly refused them — the guard working, not failing.
+
+`ACCEPTANCE-STATUS` is the part worth naming: an ERROR, not a warning, when an acceptance test holds `ready`/`passing`/`failing` without a `command:`. ADR-0031's central construction is that these rest at `active`, and a construction nothing asserts is one careless status write from failing — with the symptom (a badge nobody can act on) appearing far from the cause.
+
+**`retired` closes [[ISS-0178-A-Test-Cannot-Be-Retired]]'s vocabulary gap**, which was `deferred` for want of a terminal test status.

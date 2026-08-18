@@ -227,3 +227,77 @@ def test_the_tier_heads_open_the_view_not_a_directory() -> None:
             # migration buys a reader over a link into a 1082-line document.
             assert re.fullmatch(r"/docs/tests/acceptance/(TST|CHK)-\d+-.*\.md",
                                 row["url"]), row
+
+
+# ---- the automation path (REQ-0039 / ADR-0031) ---------------------------
+
+
+def test_a_passing_covering_test_settles_the_check(tmp_path) -> None:
+    """The return on the whole merge, asserted end to end on real notes.
+
+    Before ADR-0031 this could not happen at all: `automation:` and
+    `covered_by:` were read by one facet and one release stat, and by nothing
+    that could discharge anything. 15 of the 60 checks blocking `your-trainer`
+    said in their own bodies that a machine already covered them, and blocked
+    the release anyway.
+    """
+    from project_os_cockpit import acceptance
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "tests").joinpath("TST-0900-Covering.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "The covering test"\n'
+        'status: passing\nkind: automated\nlevel: integration\n'
+        'command: "pytest -q"\nlast_run: "2026-08-18"\ncovers: []\n---\n\nbody\n',
+        encoding="utf-8")
+    check = docs / "tests" / "acceptance" / "TST-0901-Covered.md"
+
+    def write(covered_by: str, mark: str = " ") -> None:
+        check.write_text(
+            '---\ntype: "[[test]]"\nid: TST-0901\ntitle: "A covered check"\n'
+            f'status: active\nlevel: acceptance\nkind: manual\ntier: 1\n'
+            f'mark: "{mark}"\narea: "Area"\nsection: "1.1"\nordinal: 10\n'
+            f'automation: full\ncovered_by: {covered_by}\ncovers: []\n---\n\nwalk it\n',
+            encoding="utf-8")
+
+    # Unwalked and uncovered: it blocks, which is the baseline the rest means
+    # nothing without.
+    write("[]")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking()) == 1
+
+    # Unwalked, but a PASSING test covers it: settled, with no human mark.
+    write('["[[TST-0900-Covering]]"]')
+    suite = acceptance.load(docs, Index.build(docs))
+    assert suite.blocking() == [], "a passing covering test must settle the check"
+    assert suite.items[0].mark == " ", "settling must not write a mark"
+
+    # The covering test fails: the check re-enters the gate. Decided in
+    # ADR-0031 rather than discovered -- this is what puts a machine-driven
+    # population into the release gate.
+    covering = docs / "tests" / "TST-0900-Covering.md"
+    covering.write_text(covering.read_text().replace("status: passing", "status: failing"), "utf-8")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking()) == 1, "a failing covering test must un-settle the check"
+
+    # `ready` is not "not failing": a covering test that has never run settles
+    # nothing, which is the whole difference between coverage and a promise.
+    covering.write_text(covering.read_text().replace("status: failing", "status: ready"), "utf-8")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking()) == 1, "an unrun covering test must not settle anything"
+
+
+def test_coverage_cannot_settle_without_an_index() -> None:
+    """A directory read cannot resolve an id, so it must under-settle.
+
+    The safe direction, and stated as a property rather than left to chance: a
+    reader that guessed `passing` for an unresolvable reference would clear a
+    release gate on a claim nobody checked.
+    """
+    from project_os_cockpit.acceptance import Item
+
+    item = Item(tier=1, section="1.1", area="Area", name="x", text="x",
+                checked=False, mark=" ",
+                covered_by=("[[TST-0900]]",), covered_by_status=())
+    assert item.settled is False

@@ -82,7 +82,7 @@ items:
     FEAT-0118:
       file: "docs/features/one-test-type/FEAT-0118-The-Test-Type-Absorbs-The-Check.md"
       title: "The test type absorbs the check — one schema, `level: acceptance` as the discriminator, and `retired` at last"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0037]
@@ -91,7 +91,7 @@ items:
     FEAT-0119:
       file: "docs/features/one-test-type/FEAT-0119-The-Merge-Migration.md"
       title: "The merge migration — 669 checks become tests, renumbered to `TST-*`, with parity asserted through the reader in every repo"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0038]
@@ -100,7 +100,7 @@ items:
     FEAT-0120:
       file: "docs/features/one-test-type/FEAT-0120-The-Automation-Path.md"
       title: "The automation path — a passing covering test settles the check, `covered_by:` becomes writable, and `retired` becomes reachable"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0039]
@@ -109,7 +109,7 @@ items:
     FEAT-0121:
       file: "docs/features/one-test-type/FEAT-0121-The-Verification-Link-Normalises.md"
       title: "The verification link normalises — `covers:` on the test is the only encoding, VERIFY inverts, and the path stops meaning anything"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0040]
@@ -2187,7 +2187,7 @@ items:
     REQ-0037:
       file: "docs/requirements/REQ-0037-The-Badge-Never-Admits-Acceptance-Tests.md"
       title: "The obligation badge never admits acceptance tests — the merge must not put 669 self-re-arming rows in front of a person"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0118"
@@ -2211,7 +2211,7 @@ items:
     REQ-0040:
       file: "docs/requirements/REQ-0040-One-Verification-Link.md"
       title: "One verification link, one direction — `covers:` on the test is the only encoding, and nothing derives the relationship from a path"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0121"
@@ -3263,9 +3263,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 121
-    features_done: 101
+    features_done: 103
     tasks_total: 489
-    tasks_done: 442
+    tasks_done: 446
     tests_total: 77
     tests_passing: 40
     test_cases_total: 182

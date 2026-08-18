@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0477
 aliases: ["TASK-0477"]
 title: "The merge migration script — note to note, parity asserted through the reader"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -26,3 +26,11 @@ tests: []
 Runs `--dry-run` by default and refuses to write without `--write`.
 
 Done when: the script round-trips this repo's 34 in a scratch clone with every parity assertion green, and refuses on any mismatch rather than reporting it.
+
+## Done
+
+`tools/scripts/merge-checks-into-tests.py`. Per note: `type` → `[[test]]`, `level: acceptance`, `kind: manual`, `status: active`, every acceptance field carried through untouched, `migrated_from:` preserved verbatim and `merged_from:` added with the `CHK-*` id and the pre-merge sha.
+
+**Parity is a fingerprint, not a count.** Note count, the full distribution of `mark:` values, the distribution of `tier:`, the complete set of `covers:` targets, the gate's blocking figure, and the sorted set of titles — compared before and after **through `acceptance.load`**, which is the reader every surface uses. `--write` prints `REFUSING to report success` and exits non-zero on any mismatch rather than reporting one.
+
+`--dry-run` is the default; it refuses to write without `--write`.

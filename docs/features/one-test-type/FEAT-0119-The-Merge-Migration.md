@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0119
 aliases: ["FEAT-0119"]
 title: "The merge migration — 669 checks become tests, renumbered to `TST-*`, with parity asserted through the reader in every repo"
-status: backlog
+status: doing
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -26,3 +26,9 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[FEAT-0113-The-C
 **Provenance survives by the record, not by git.** `migrated_from:` is carried through verbatim — it still points at the original `ACCEPTANCE_TESTS.md#section.ordinal` and sha — and a new `merged_from:` carries the `CHK-*` id and the pre-merge sha. Blame will not cross this commit either; that was accepted the first time and the mitigation is the same one.
 
 **The cockpit cull is part of this feature, not a follow-up.** Seven modules and two stylesheets carry `check`-type vocabulary, and the renderer has 173 `check` sites. Leaving them is how a retired type stays half-alive.
+
+## Where this stands
+
+**Pilot done, fleet not.** This repo's 34 checks are `TST-0044..0077` at `level: acceptance`, with parity asserted through the reader on six dimensions and the obligation badge unmoved at 3.
+
+`your-sudoku` (56) and `your-trainer` (579) are **not migrated**, and [[TASK-0480-The-Fleet-Migration]] records why: every repo's `validate-docs.py` and instruction files are locally diverged, so each needs a hand-merge before its notes can change type. `your-sudoku` was taken as far as the sync and returned to exactly the state it was found in. Nothing there is broken in the meantime — `acceptance.load` reads both shapes.

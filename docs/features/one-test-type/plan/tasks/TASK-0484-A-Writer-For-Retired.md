@@ -26,3 +26,7 @@ Two writes, both refused without a reason: **promote** (tier 2 → 3, requiring 
 **Retiring is not deleting** — LIFECYCLE.md forbids deleting completed notes, and a retired acceptance test is the record that the behaviour was once walked by hand and is now covered by a machine. That is exactly the history somebody will want when the automated test is later deleted as redundant.
 
 Done when: both transitions are writable, both refuse without their justification, and a retired test leaves the gate without leaving the corpus.
+
+## Not done
+
+`status: retired` is now **legal** for a test ([[TASK-0473-Test-Statuses-Gain-Active-And-Retired]]), which is the half that closes [[ISS-0178-A-Test-Cannot-Be-Retired]]'s vocabulary gap. No writer performs the transition yet, so TESTING.md's Tier 2 → Tier 3 → remove path is still described rather than performable.
