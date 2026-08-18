@@ -14,7 +14,6 @@ review_verdict: approved
 verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Overview mode keeps the app-wide pane contract: the left pane lists scopes (project + phases), selecting one renders that scope's dashboard in the centre (scoped hero, feature squares, exit criteria, scoped activity), and the right pane shows the scope's context plus a live agent Now column — with the mode's lifecycle bugs (history dead-end, re-render churn, fetch fan-out, stale right pane, static live numbers, uncached stats) fixed."
 requirements: []
-tests: ["[[TST-0012]]", "[[TST-0011]]"]
 tasks: ["[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0173]]"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0022-Session-Insight-And-Traceability]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
 waiver_expires: 2026-10-23

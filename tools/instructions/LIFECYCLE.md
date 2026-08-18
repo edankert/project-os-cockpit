@@ -96,8 +96,24 @@ After completing a task/issue/feature:
 4. If new hazards were introduced (new dependency, env var, contract), add/update a `RISK-*` and link it.
 5. Do not delete completed notes; use status + links to preserve history.
 6. Apply verification gating (see `QUALITY.md`): only close/verify/done when required `[[test]]` notes are `status: passing`.
-7. Run `bash tools/scripts/validate-docs.sh` and fix anything it reports — the same validator runs at pre-commit and in CI, so drift left behind here becomes a build failure there.
-8. If the work created/updated a `TST-*` or `CHG-*` note, or transitions a requirement to `implemented` / feature to `done`, run the independent review pass (`../skills/independent-review/SKILL.md`).
+7. Run `bash tools/scripts/validate-docs.sh` and fix anything it reports.
+8. Before pushing, run `bash tools/scripts/validate-docs.sh --as-committed`. This materialises `HEAD` into a temporary tree and runs **the full CI step set** against it — the validator, `sync-snapshot --check`, and `generate-adapters --check`.
+9. **After pushing, confirm the run went green** (`gh run list --limit 1`). Do not report a change as landed until you have seen it.
+10. If the work created/updated a `TST-*` or `CHG-*` note, or transitions a requirement to `implemented` / feature to `done`, run the independent review pass (`../skills/independent-review/SKILL.md`).
+
+### A local pass is not a CI pass
+
+Step 7 is **not** equivalent to CI, and this file used to claim it was.
+
+- `validate-docs.sh` runs one check. **CI runs three** — it also verifies the snapshot's derived fields and the generated adapters.
+- Every local check reads the **working tree**. CI reads the **commit**. A file that is present on disk but ignored, untracked, or merely unstaged is invisible locally and absent in CI.
+
+That second gap is the dangerous one, because the local run does not merely miss the problem — it actively reports success, and the success gets offered as evidence. Two instances, both of which validated clean on the authoring machine and failed on a fresh clone:
+
+- an unanchored `inbox/` in `.gitignore` swallowed a `docs/features/inbox/`, so a feature note, its plan and three task notes were missing from `main` for weeks;
+- a stock `.claude/` line inherited from a language scaffold swallowed the generated adapters, so `generate-adapters --check` could never pass in CI — while passing locally against the very files git was ignoring. Every push failed for days.
+
+Steps 8 and 9 exist because of those. Step 8 catches the class mechanically; step 9 catches whatever the local approximation still cannot see.
 
 ## Snapshot retention (active + recent)
 - Keep `../../SNAPSHOT.yaml` focused on active + recent items.

@@ -4,6 +4,7 @@ id: TST-0025
 aliases: ["TST-0025"]
 title: "Obligation routing is per-item and complete — an unrouted kind fails, the in-flight rule behaves on constructed subjects, and `deferred` beats the rule in both directions"
 status: passing
+covers: ["[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: unit
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_obligation_routing.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"]
 issues: []
 tasks: ["[[TASK-0423-An-Obligations-View-Is-Decided-Per-Item]]", "[[TASK-0424-The-In-Flight-Predicate]]", "[[TASK-0425-The-Quiet-Is-On-Screen]]"]
 artifacts: []

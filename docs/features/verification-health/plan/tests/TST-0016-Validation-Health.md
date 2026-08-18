@@ -4,6 +4,7 @@ id: TST-0016
 aliases: ["TST-0016"]
 title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
 status: passing
+covers: ["[[FEAT-0018-Verification-Health-Surface]]"]
 command: ".venv/bin/pytest tests/test_validation.py -q"
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
@@ -13,7 +14,6 @@ scope: feature
 kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_validation.py"
-features: ["[[FEAT-0018-Verification-Health-Surface]]"]
 tasks: ["[[TASK-0111]]", "[[TASK-0113]]"]
 adequacy: "2 mutation runs 2026-07-17, both killed: (1) suppress the first-run SSE publish in ValidationRunner._observable_changed → test_no_sse_when_result_unchanged fails; (2) remove the /api/cockpit/validation route from server.py → 5 tests fail (endpoint states + schema-header matrix). Suite restored green after each revert."
 reviewed_by: "model:claude-opus"

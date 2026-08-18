@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "The pipeline records each event once and means the same thing on every path: hook ingestion dedups the terminal+external double-capture (live evidence: every prompt in your-sudoku's session index is stored twice); the external hook adopts the tracker's Notification subtype gate; the three independent 600s decay windows collapse to one shared constant; and the small surface rots (dead transcript link, stale queue tooltip, four wordings of 'undocumented', sessions-feed staleness) are cleaned up."
 requirements: []
-tests: []
 tasks: ["[[TASK-0152]]", "[[TASK-0153]]", "[[TASK-0154]]", "[[TASK-0155]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0027-External-Session-Signal]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
 ---

@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "Coarse agent state appears exactly once per scope: rail dots for the fleet, the agent strip for the active workspace. The status-footer agent dot (a styling-incomplete duplicate of the strip) is removed — the footer keeps sidecar health only — and the Overview 'Now' card shrinks to a one-liner linking onward. The strip gains a rate-limit pip (5h budget %, amber above 80) from already-collected statusline data."
 requirements: []
-tests: []
 tasks: ["[[TASK-0148]]", "[[TASK-0149]]"]
 related: ["[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0030-Agent-Inbox]]"]
 ---

@@ -4,6 +4,7 @@ id: TST-0028
 aliases: ["TST-0028"]
 title: "The release gate names its number and stays one obligation — 60 is stated, never summed, and it asks only while a release is `draft`"
 status: passing
+covers: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_release_gate_campaign.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 issues: ["[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"]
 tasks: ["[[TASK-0429-The-Gate-Is-A-Campaign]]"]
 artifacts: []

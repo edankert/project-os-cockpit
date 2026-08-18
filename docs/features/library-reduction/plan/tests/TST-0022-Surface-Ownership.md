@@ -4,12 +4,12 @@ id: TST-0022
 aliases: ["TST-0022"]
 title: "Surface ownership — every moved type is reachable, and Library is reduced"
 status: passing
+covers: ["[[REQ-0025-No-Type-Loses-Its-Surface]]", "[[FEAT-0046-Plans-On-The-Feature]]", "[[FEAT-0047-Risks-On-The-Issues-Surface]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0050-Library-Reduction]]", "[[ISS-0062-Most-Plans-Are-Invisible]]", "[[ISS-0063-Dead-Stat-Tiles]]"]
 phase: "[[PHASE-010-Surface-Ownership]]"
 owner: user:edwin
 created: 2026-07-29
 updated: 2026-08-13
 source: ["[[PHASE-010-Surface-Ownership]]"]
-verifies: ["[[REQ-0025-No-Type-Loses-Its-Surface]]", "[[FEAT-0046-Plans-On-The-Feature]]", "[[FEAT-0047-Risks-On-The-Issues-Surface]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0050-Library-Reduction]]", "[[ISS-0062-Most-Plans-Are-Invisible]]", "[[ISS-0063-Dead-Stat-Tiles]]"]
 path: "tests/test_surface_ownership.py"
 command: ".venv/bin/pytest tests/test_surface_ownership.py -q"
 last_run: "2026-08-13T18:28Z"

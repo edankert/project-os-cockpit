@@ -144,6 +144,8 @@ def build_skill(name, src_rel, body):
         "1. Read `%s` in full — it is the source of truth for this skill." % src_rel,
         "2. Execute its checklist exactly, honoring the preflight and close-out rules in `tools/instructions/LIFECYCLE.md` (document first, update `SNAPSHOT.yaml` and notes in the same turn as the work).",
         "3. Before finishing, run `bash tools/scripts/validate-docs.sh` and fix anything it reports.",
+        "4. Before pushing, run `bash tools/scripts/validate-docs.sh --as-committed` — it checks `HEAD` as a fresh clone would see it, against the full CI step set. Step 3 runs one check against your working tree; CI runs three against the commit.",
+        "5. After pushing, confirm the run went green (`gh run list --limit 1`). A change is not landed until you have seen that.",
         "",
     ]
     return "\n".join(lines)
@@ -231,6 +233,39 @@ def install_hooks(root, force=False):
     return "merged hooks into .claude/settings.json"
 
 
+
+def untracked_artifacts(root, artifacts):
+    """Generated artifacts present on disk that git will not carry.
+
+    The failure this catches is silent and total: the artifacts are correct
+    locally, `--check` passes locally, and CI reports every one of them stale
+    forever, because a fresh checkout does not contain them at all. Regenerating
+    cannot fix it — the fix is always in .gitignore.
+
+    A local check that reads the working tree cannot see the difference, which is
+    exactly why it has to be asked explicitly.
+
+    Returns [] when git is unavailable or this is not a repository: an inability
+    to check is not evidence of a problem.
+    """
+    import subprocess
+
+    rels = sorted(artifacts)
+    if not rels:
+        return []
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--cached", "--"] + rels,
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if proc.returncode != 0:
+        return []
+    tracked = {line.strip() for line in proc.stdout.splitlines() if line.strip()}
+    return [rel for rel in rels if (root / rel).is_file() and rel not in tracked]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Generate native adapter artifacts from project-os playbooks.")
     ap.add_argument("--repo-root", default=".", help="Repo root (default: cwd)")
@@ -262,6 +297,18 @@ def main(argv=None):
             for rel in stale:
                 print("generate-adapters: STALE %s" % rel)
             print("generate-adapters: %d artifact(s) out of date; run: python3 tools/scripts/generate-adapters.py" % len(stale))
+            return 1
+        untracked = untracked_artifacts(root, artifacts)
+        if untracked:
+            for rel in untracked:
+                print("generate-adapters: UNTRACKED %s" % rel)
+            print(
+                "generate-adapters: %d artifact(s) exist here but are not tracked by git.\n"
+                "  These are build outputs the repository is meant to carry (SYNCING.md: 'template-owned\n"
+                "  build outputs'), so a fresh clone will not have them and CI will report every one STALE\n"
+                "  however many times you regenerate. Check .gitignore — a stock '.claude/' or '.cursor/'\n"
+                "  line from a language scaffold is the usual cause." % len(untracked)
+            )
             return 1
         print("generate-adapters: all %d artifacts current" % len(artifacts))
         return 0

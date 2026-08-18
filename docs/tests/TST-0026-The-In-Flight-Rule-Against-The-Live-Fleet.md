@@ -4,6 +4,7 @@ id: TST-0026
 aliases: ["TST-0026"]
 title: "The in-flight rule against the live fleet — the 64 to 31 claim is measured on the real corpus, and a repo with no phases routes correctly"
 status: passing
+covers: ["[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: system
 entrypoint: "the discovered fleet under ~/Dev/repos"
 command: ""
 last_verified: "2026-08-16"
-requirements: []
-features: ["[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"]
 issues: []
 tasks: ["[[TASK-0424-The-In-Flight-Predicate]]"]
 artifacts: []

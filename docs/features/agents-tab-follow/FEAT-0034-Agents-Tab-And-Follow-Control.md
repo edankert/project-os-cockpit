@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "The centre pane gains a slim tab strip when ~agents is open — the doc on one tab, Agents pinned on another — so the fleet view survives navigation and agent activity; follow-mode navigations land on the doc tab without stealing the view. The desktop gains the Following/Manual toggle mode-1 already has (persisted per workspace), and automatic navigation never evicts a deliberately-opened virtual page (REQ-0020)."
 requirements: ["[[REQ-0020-View-Sovereignty]]"]
-tests: []
 tasks: ["[[TASK-0158]]", "[[TASK-0159]]"]
 related: ["[[FEAT-0032-Agents-Screen]]", "[[ISS-0011-Follow-Mode-Evicts-Chosen-View]]"]
 ---

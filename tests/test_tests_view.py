@@ -21,6 +21,8 @@ has already been caught disagreeing with itself:
 
 from __future__ import annotations
 
+import copy
+
 import datetime as _dt
 import re
 from pathlib import Path
@@ -44,10 +46,15 @@ def repo_index() -> Index:
 def _items(groups: list) -> list[dict]:
     """Rows from the TEST-NOTE groups only.
 
-    The view carries two populations (TASK-0373): the `TST-*` notes, and the
-    acceptance suite's tier checkboxes. Everything in this section is about the
-    first, so the tier groups are excluded here rather than by each assertion —
-    a filter written once is one that cannot be forgotten in the next test.
+    The view carries two populations (TASK-0373): the executable/manual test
+    notes, and the acceptance suite's tiers. Everything in this section is about
+    the first, so the tier groups are excluded here rather than by each
+    assertion — a filter written once is one that cannot be forgotten in the
+    next test.
+
+    Since ADR-0031 both populations are the `test` type and `level:` separates
+    them, so the corpus side of these comparisons filters on level rather than
+    getting the separation free from the type.
     """
     out: list[dict] = []
     for group in groups:
@@ -75,7 +82,8 @@ def test_the_view_holds_the_whole_test_corpus(repo_index: Index) -> None:
     """
     groups = nav_payload(repo_index, mode="tests")["groups"]
     listed = {item["id"] for item in _items(groups)}
-    corpus = {r.note_id for r in repo_index.notes_by_type("test")}
+    corpus = {r.note_id for r in repo_index.notes_by_type("test")
+              if str(r.frontmatter.get("level", "") or "").strip().lower() != "acceptance"}
     assert listed == corpus, {
         "missing from the view": sorted(corpus - listed),
         "in the view but not the corpus": sorted(listed - corpus),
@@ -98,7 +106,8 @@ def test_both_storage_locations_reach_the_view(repo_index: Index) -> None:
     Guarded against the vacuous pass: the corpus must actually hold both, or
     this asserts nothing.
     """
-    corpus = list(repo_index.notes_by_type("test"))
+    corpus = [r for r in repo_index.notes_by_type("test")
+              if str(r.frontmatter.get("level", "") or "").strip().lower() != "acceptance"]
     scoped = {r.note_id for r in corpus if r.rel_path.startswith("features/")}
     system = {r.note_id for r in corpus if r.rel_path.startswith("tests/")}
     assert scoped and system, "the corpus no longer exercises both locations"
@@ -108,17 +117,52 @@ def test_both_storage_locations_reach_the_view(repo_index: Index) -> None:
 
 
 def test_a_row_says_which_feature_it_verifies(repo_index: Index) -> None:
-    """The reader's mental model is the feature, not the directory."""
+    """The reader's mental model is the feature, not the directory.
+
+    ADR-0032: the answer comes from the test's ``covers:`` and from nothing
+    else. The path case this used to assert is gone with the fallback — three
+    tests fleet-wide resolved that way and all three now declare their subject,
+    which is the whole point of removing an encoding that only applied when
+    another was missing.
+    """
     rows = {i["id"]: i for i in _items(nav_payload(repo_index, mode="tests")["groups"])}
-    # Declared, multi-feature, and path-resolved — one of each, so a resolver
-    # that handled only its own repo's convention would fail here.
+    # TST-0011 covers NINE features, not four. Five of them (FEAT-0023..0027)
+    # were named by the features' own `tests:` lists and not by the test, and
+    # its checklist items cite them by number in the body -- so the reverse
+    # encoding was the more complete of the two, which is the finding that
+    # made the drift worth measuring rather than assuming.
     assert rows["TST-0011"]["features"] == [
         "FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022",
+        "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027",
     ]
     assert rows["TST-0016"]["features"] == ["FEAT-0018"]
+    # A test that was resolved BY PATH before ADR-0032 and now declares it.
+    assert rows["TST-0019"]["features"] == ["FEAT-0006"]
     # docs/tests/ — system-wide, and correctly owned by nothing.
     assert rows["TST-0001"]["features"] == []
     assert "system-wide" in rows["TST-0001"]["subtitle"]
+
+
+def test_a_tests_subjects_never_come_from_its_directory(repo_index: Index) -> None:
+    """ADR-0032: where a test lives is a filing decision, not a claim.
+
+    Guarded on a test that HAS the path shape a resolver would fall back on —
+    ``features/<slug>/plan/tests/`` — with its ``covers:`` removed. A resolver
+    still reading the directory answers with the owning feature; one reading
+    only the declared edge answers with nothing.
+    """
+    from project_os_cockpit.cockpit import _test_feature_ids
+
+    record = next(
+        r for r in repo_index.notes_by_type("test")
+        if r.rel_path.startswith("features/") and r.note_id == "TST-0019"
+    )
+    stripped = copy.copy(record)
+    stripped.frontmatter = {
+        k: v for k, v in record.frontmatter.items()
+        if k not in ("covers", "features", "verifies", "validates", "parent", "implements")
+    }
+    assert _test_feature_ids(repo_index, stripped) == []
 
 
 # ---- the obligation ------------------------------------------------------
@@ -243,7 +287,15 @@ def test_the_scope_panel_is_graded_by_the_same_rule(repo_index: Index) -> None:
     view = {i["id"]: i["stale"] for i in _items(nav_payload(repo_index, mode="tests")["groups"])}
     panel = cockpit.scope_tests_payload(repo_index, "FEAT-0018")["tests"]
     assert panel, "FEAT-0018 no longer has linked tests — pick another scope"
-    for row in panel:
+    # Compared over what BOTH surfaces list, which is the property: two rules
+    # must not disagree about one test. Since ADR-0031 the panel legitimately
+    # holds more — an acceptance test covering FEAT-0018 verifies it, so the
+    # per-scope panel says so, while the navigator renders that population under
+    # its tier instead. Different membership by design; identical grading where
+    # they overlap.
+    shared = [row for row in panel if row["id"] in view]
+    assert shared, "the panel and the view no longer share a test — the comparison is vacuous"
+    for row in shared:
         assert row["stale"] == view[row["id"]], row["id"]
 
 
@@ -635,7 +687,13 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     if "tier3" in groups:
         assert "needs_human" not in groups["tier3"]
     # And no note id appears in a tier group: one item, one home (ISS-0068).
-    note_ids = {r.note_id for r in repo_index.notes_by_type("test")}
+    #
+    # Since ADR-0031 both populations share the `test` type, so the two sets are
+    # separated by `level:` rather than by type — and the separation has to be
+    # written down rather than inherited. This assertion is what caught the
+    # merge rendering all 34 acceptance tests twice on one screen.
+    note_ids = {r.note_id for r in repo_index.notes_by_type("test")
+                if str(r.frontmatter.get("level", "") or "").strip().lower() != "acceptance"}
     tier_ids = {i["id"] for k, g in groups.items() if k.startswith("tier")
                 for i in g["items"]}
     assert not (note_ids & tier_ids)
@@ -716,7 +774,7 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
         else:
             assert "reconciled" not in group["label"], group["label"]
         # Keyed on whichever address the row carries. Once a repo has migrated
-        # (ADR-0030) that is the check's own `CHK-*` id; before, it is the
+        # (ADR-0030/ADR-0031) that is the acceptance test's own id; before, it is the
         # document position. Both are in the map rather than one being picked,
         # so this test asserts the same property in either storage.
         by_address = {i.number: i for i in items}
@@ -935,12 +993,17 @@ def test_the_live_suite_loses_no_line_to_the_parser() -> None:
         # subject changes storage and is deleted takes its property with it,
         # which is how a corpus loses the only check that was ever independent
         # of the reader under test.
-        # Every `CHK-*.md`, without asking whether its tier reads — because a
-        # check whose tier cannot be read still blocks (it lands in Tier 1),
-        # and a counter that skipped it would agree with a reader that had
-        # lost it.
-        raw = len(list((REPO_DOCS / acceptance.CHECKS_REL).glob("CHK-*.md")))
-        subject = "CHK-* note(s) on disk"
+        # Every note in the acceptance directory, without asking whether its
+        # tier reads — because a check whose tier cannot be read still blocks
+        # (it lands in Tier 1), and a counter that skipped it would agree with
+        # a reader that had lost it.
+        #
+        # Both id shapes: `TST-*` since ADR-0031 folded the check type into
+        # `test`, `CHK-*` in a repo that has not run the merge migration. Never
+        # both — the migration renames in place.
+        _acc = REPO_DOCS / acceptance.CHECKS_REL
+        raw = len(list(_acc.glob("TST-*.md")) or list(_acc.glob("CHK-*.md")))
+        subject = "acceptance note(s) on disk"
     parsed = len(acceptance.load(REPO_DOCS).items)
     assert parsed == raw, (
         f"{raw - parsed} {subject} are invisible to the reader — the gate is "

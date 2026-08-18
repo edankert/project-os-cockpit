@@ -4,12 +4,12 @@ id: TST-0009
 aliases: ["TST-0009"]
 title: "Agent-state pipe — storage, endpoint, SSE delivery, decay, CLI"
 status: passing
+covers: ["[[TASK-0076-Agent-State-Storage]]", "[[TASK-0077-Endpoint-And-SSE]]", "[[TASK-0078-CLI-Signal-Subcommands]]", "[[FEAT-0013-Agent-State-Signal]]"]
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
 updated: 2026-08-13
 source: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]"]
-verifies: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]", "[[FEAT-0013-Agent-State-Signal]]"]
 path: "tests/test_cockpit_state.py + tests/test_agent_state.py + tests/test_cli_signal.py"
 command: ".venv/bin/pytest tests/test_cockpit_state.py tests/test_agent_state.py tests/test_cli_signal.py -q"
 last_verified: "2026-08-10"

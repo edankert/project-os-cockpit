@@ -14,7 +14,6 @@ review_verdict: approved
 verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Dispatch a TASK or ISS note to the agent directly from the nav: a context-menu action types a templated, note-aware prompt into the workspace terminal, and follow mode makes the resulting work observable end-to-end."
 requirements: []
-tests: ["[[TST-0011]]"]
 tasks: ["[[TASK-0121]]", "[[TASK-0122]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]"]
 waiver_expires: 2026-10-23

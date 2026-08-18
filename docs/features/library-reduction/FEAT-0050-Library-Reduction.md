@@ -14,7 +14,6 @@ requirements: ["[[REQ-0025-No-Type-Loses-Its-Surface]]"]
 tasks: ["[[TASK-0243-Drop-Duplicated-Groups]]", "[[TASK-0244-Workflows-Into-The-Docs-Tree]]", "[[TASK-0245-Drop-Relocated-Groups]]"]
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[FEAT-0046-Plans-On-The-Feature]]", "[[FEAT-0047-Risks-On-The-Issues-Surface]]", "[[FEAT-0048-Changes-On-The-Overview]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[TASK-0019-Cockpit-Library-And-Pinning]]"]
-tests: ["[[TST-0022-Surface-Ownership]]"]
 reviewed_by: "model:claude-opus-5"
 review_date: "2026-07-30"
 review_verdict: "approved"

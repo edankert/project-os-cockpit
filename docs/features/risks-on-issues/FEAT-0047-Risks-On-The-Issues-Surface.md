@@ -14,7 +14,6 @@ requirements: []
 tasks: ["[[TASK-0237-Risks-Group-In-Issues-Mode]]", "[[TASK-0238-Risks-Tile-Destination]]"]
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[ISS-0063-Dead-Stat-Tiles]]", "[[FEAT-0050-Library-Reduction]]"]
-tests: ["[[TST-0022-Surface-Ownership]]"]
 reviewed_by: "model:claude-opus-5"
 review_date: "2026-07-30"
 review_verdict: "approved"

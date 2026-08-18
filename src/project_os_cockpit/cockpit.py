@@ -2540,7 +2540,7 @@ def scope_tests_payload(index: Index, note_id: str) -> dict[str, Any]:
             if target in fm_phase.upper() and feature.note_id:
                 scope_ids.add(feature.note_id.upper())
 
-    link_fields = ("features", "verifies", "validates", "tests", "parent",
+    link_fields = ("covers", "features", "verifies", "validates", "tests", "parent",
                    "implements", "related", "phase")
 
     days = _staleness_days(index.docs_root)
@@ -3818,21 +3818,20 @@ def _issues_groups(
 def _test_feature_ids(index: Index, record: NoteRecord) -> list[str]:
     """The features a test verifies (TASK-0371).
 
-    Same shape as :func:`_task_feature_id` and the same rule — the declared
-    edge wins, the path is the fallback only for a note that declares nothing —
-    but it returns a **list**, because a test legitimately verifies more than
-    one feature and this corpus has four that do: TST-0011 names four
-    (FEAT-0019/0020/0021/0022), TST-0010 and TST-0014 name two each.
+    **``covers:`` is the answer** (ADR-0032) — one field, one direction, on the
+    many side. It returns a **list** because a test legitimately verifies more
+    than one feature: 20 of the fleet's 117 do, and this repo's TST-0011 covers
+    nine.
 
-    ``features``/``verifies``/``validates`` are the linking fields
-    :func:`scope_tests_payload` already reads; ``parent``/``implements`` join
-    them because the fleet writes those too. Measured here: 9 of 23 tests
-    declare a feature, 12 more resolve by path, and 2 (TST-0001, TST-0002)
-    live in ``docs/tests/`` and verify nothing in particular — the system-wide
-    half of LIFECYCLE.md's hybrid storage rule, and correctly unowned.
+    The legacy names (``features``/``verifies``/``validates``) and the
+    subject-shaped ones (``parent``/``implements``) are still read, because this
+    cockpit renders twelve repos and only this one has consolidated its fields.
+    That is a **rename** transition and not a return to the bidirectional pair:
+    every name here points test → subject. A subject's own ``tests:`` is not
+    read, and the directory path is not read at all.
     """
     out: list[str] = []
-    for field in ("features", "verifies", "validates", "parent", "implements"):
+    for field in ("covers", "features", "verifies", "validates", "parent", "implements"):
         raw = record.frontmatter.get(field)
         candidates: list[str] = []
         if isinstance(raw, str):
@@ -3845,16 +3844,16 @@ def _test_feature_ids(index: Index, record: NoteRecord) -> list[str]:
             if rec is not None and rec.note_type == "feature" and rec.note_id:
                 if rec.note_id not in out:
                     out.append(rec.note_id)
-    if out:
-        return out
-
-    parts = record.rel_path.split("/")
-    if len(parts) >= 4 and parts[0] == "features" and parts[-2] == "tests":
-        feature_dir = Path(record.rel_path).parent.parent.parent
-        for sibling in index.notes_by_type("feature"):
-            if Path(sibling.rel_path).parent == feature_dir and sibling.note_id:
-                return [sibling.note_id]
-    return []
+    # **No path fallback** (ADR-0032). Where a test LIVES is a filing decision,
+    # not a statement about what it verifies -- the same sentence the acceptance
+    # README has always made about checks, now true of tests too. It was the
+    # encoding that produced the impression a test cannot span features, and a
+    # link that exists only when another is absent is a rule nobody can state.
+    #
+    # Measured before deleting it, fleet-wide: exactly **3** tests resolved by
+    # path alone, all in this repo, and all three now carry `covers:`. The other
+    # 34 under a feature directory declare their subjects.
+    return out
 
 
 def _test_item(
@@ -3921,7 +3920,20 @@ def _tests_groups(
     as two rows on one screen, which is the failure ISS-0068 names.
     """
     days = _staleness_days(index.docs_root)
-    tests = [r for r in index.notes_by_type("test") if _platform_match(r, platform)]
+    # **Acceptance tests are excluded here and rendered by
+    # `_acceptance_tier_groups` below** (ISS-0068: one item, one home).
+    #
+    # Before ADR-0031 this was free — a check was a different type and
+    # `notes_by_type("test")` could not see one. The merge removed that
+    # separation and the exclusion has to be written down, or every acceptance
+    # test renders twice on one screen: once in a `Verified`/`Needs a run`
+    # bucket and once under its tier. Caught by the guard rather than by
+    # reading, which is the argument for the guard.
+    tests = [
+        r for r in index.notes_by_type("test")
+        if _platform_match(r, platform)
+        and str(r.frontmatter.get("level", "") or "").strip().lower() != "acceptance"
+    ]
 
     def sort_key(record: NoteRecord) -> tuple[str, str]:
         # "By verification state first, then by owning feature" — the state is

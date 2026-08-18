@@ -4,6 +4,7 @@ id: TST-0031
 aliases: ["TST-0031"]
 title: "The exception mark and its justification — the cycle writes on every click, an unjustified exception is owed, and clicking past it leaves nothing behind"
 status: passing
+covers: ["[[FEAT-0104-The-Suite-Is-The-Surface]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_acceptance_exceptions.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0104-The-Suite-Is-The-Surface]]"]
 issues: []
 tasks: []
 artifacts: []

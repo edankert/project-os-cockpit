@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0475
 aliases: ["TASK-0475"]
 title: "`level: acceptance` becomes the discriminator across TAXONOMY, TESTING and QUALITY"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -28,3 +28,7 @@ Three instruction files change:
 - **QUALITY.md** — the review gate states what it keys on, which is where [[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]] gets settled rather than carried forward.
 
 Done when: no template-owned document describes the check as a separate type, and TESTING.md's Tier 2 → Tier 3 → retire path is written against the merged type.
+
+## Done
+
+TAXONOMY.md: `level: acceptance` is named as the discriminator, and `mark`/`automation`/`burden` re-headed from *(checks)* to *(tests at `level: acceptance`)*. TESTING.md's *Relationship to TST-\* notes* rewritten — the four bullets that said a check *is not* a `TST-*` now say `level:` is a spectrum a note moves along, and that adding `command:` is how a walk becomes automated. QUALITY.md settles [[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]] in favour of the status reading, with a sentence recording that the other reading would have made several hundred migrated notes gate-bearing overnight.

@@ -11,7 +11,6 @@ updated: 2026-07-26
 source: ["https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be"]
 goal: "The overview surfaces (project + phase drill-down) are rebuilt around state-before-history: a quiet-first focus band, stat tiles with status mix-bars (Requirements tile restored), a liveness-sorted phase accordion with a Completed band, a Waiting-on-you list of durable human-shaped states, full-width activity sparkbar + git-anchored commits panel, and a Decisions/Verification/Library record column in the right pane — with the Active and Recent nav-mode buttons retired."
 requirements: ["[[REQ-0022-Overview-State-Above-History]]"]
-tests: ["[[TST-0020-Overview-Payloads]]"]
 tasks: ["[[TASK-0199]]", "[[TASK-0200]]", "[[TASK-0201]]", "[[TASK-0202]]", "[[TASK-0203]]", "[[TASK-0204]]", "[[TASK-0212]]"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0036-Live-Work-Views]]", "[[FEAT-0038-Console-Progress-Rail]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0041-Review-Desk]]", "[[ADR-0006-Retire-Delivered-Band]]"]
 design: ["[[DES-0001-Overview-Redesign]]"]

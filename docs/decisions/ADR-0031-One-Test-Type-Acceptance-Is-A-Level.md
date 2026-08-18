@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0031
 aliases: ["ADR-0031"]
 title: "One test type — an acceptance check is a `[[test]]` at `level: acceptance`, and the automation path is the reason"
-status: proposed
+status: accepted
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
-decision_date: ""
+decision_date: 2026-08-18
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 supersedes: "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]"
 superseded: ""
@@ -19,7 +19,9 @@ tags: [acceptance, conventions, schema, testing]
 
 ## Status
 
-**Proposed 2026-08-18.** Nothing migrates, and no note changes type, until Edwin accepts it — the gate [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] used one day earlier, for the same reason: the acceptance should be about something concrete and fully costed.
+**Accepted 2026-08-18.** The gate held for exactly as long as it was meant to: the whole phase — two ADRs, four features, seventeen tasks, four requirements — was documented and committed while this read `proposed`, and nothing migrated. Edwin's instruction is the acceptance: *"implement, test and independently review the full PHASE-035 functionality."* Given against a phase whose exit criteria name this decision, and against the measured price below, the second migration of the same corpus in two weeks included.
+
+This is the same shape [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]] used one day earlier, and deliberately so: an acceptance should be about something concrete and fully costed.
 
 ## Context
 
@@ -79,3 +81,8 @@ The same construction survives the merge, because an acceptance test rests at `a
 - **Leave it (ADR-0030 as it stands).** Rejected on the measurement above: 15 blocking checks a machine already covers, and no path for any of them.
 - **Give the check type its own automation path** — `command:` on checks, the runner learning a second prefix, `covered_by:` reaching the gate. Considered seriously and it is the smaller change. Rejected because it ends with two types that both have a runner, both have marks and statuses, and both gate releases — the duplication ISS-0195 measured, with the last difference removed and the two names kept.
 - **Keep `CHK-*` ids on `type: test`.** Cheaper and preserves the prose-level tell. Rejected by Edwin, 2026-08-18: one type should have one id space.
+
+## Decision record
+
+> [!note] Accept — 2026-08-18 (user:edwin)
+> *"implement, test and independently review the full PHASE-035 functionality."* — given after the phase, both ADRs and the ~6–8 day estimate were on the record. What is accepted is the whole of it: the reversal of [[ADR-0030]]'s first three decisions one day after they were accepted, the renumber into the `TST-*` space, and the behaviour change in which a failing covering test un-settles the check it covers.

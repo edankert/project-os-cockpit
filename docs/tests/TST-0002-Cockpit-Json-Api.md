@@ -4,6 +4,7 @@ id: TST-0002
 aliases: ["TST-0002"]
 title: "Cockpit JSON API — nav + context payloads"
 status: passing
+covers: ["[[REQ-0013-Cockpit-Layout]]"]
 command: ".venv/bin/pytest tests/test_cockpit.py -q"
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
@@ -14,7 +15,6 @@ scope: "system"
 kind: "automated"
 level: "unit"
 entrypoint: "tests/test_cockpit.py"
-verifies: ["[[REQ-0013]]"]
 artifacts: []
 evidence: ["13 passed in 0.06s (2026-05-08)"]
 last_run: "2026-08-13T18:28Z"

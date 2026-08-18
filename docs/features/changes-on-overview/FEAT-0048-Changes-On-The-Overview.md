@@ -14,7 +14,6 @@ requirements: []
 tasks: ["[[TASK-0239-Changes-Payload]]", "[[TASK-0240-Changes-Tile]]"]
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[TASK-0040-Changes-Hybrid-Buckets]]", "[[FEAT-0050-Library-Reduction]]"]
-tests: ["[[TST-0022-Surface-Ownership]]"]
 reviewed_by: "model:claude-opus-5"
 review_date: "2026-07-30"
 review_verdict: "approved"

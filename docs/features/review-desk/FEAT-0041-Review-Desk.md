@@ -11,7 +11,6 @@ updated: 2026-07-26
 source: ["https://claude.ai/code/artifact/3e6b4313-66e9-4fca-b11b-97c3d7a1d1be"]
 goal: "A new virtual page (~review, same family as ~overview/~agents/~session) where the agent's asks meet a human: a queue grouped Decisions / Proposals / Questions / Test runs; proposal-set review with Accept set / Request changes / Reject — accept stamps the existing independent-review fields via a guarded review write-back endpoint, reject flips to `cancelled`, no new states anywhere; question/revise round-trips over the dispatch runtime; and a manual test runner that executes TST notes step-by-step and writes results back — announced on the overview by typed Waiting-on-you rows and a queue-count badge on the Review mode button."
 requirements: []
-tests: ["[[TST-0021-Review-Desk]]"]
 tasks: ["[[TASK-0205]]", "[[TASK-0206]]", "[[TASK-0207]]", "[[TASK-0208]]", "[[TASK-0209]]", "[[TASK-0210]]", "[[TASK-0211]]"]
 related: ["[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0025-Dispatch-Runtime]]", "[[FEAT-0030-Agent-Inbox]]", "[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0040-Overview-Rework]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
 design: ["[[DES-0001-Overview-Redesign]]"]

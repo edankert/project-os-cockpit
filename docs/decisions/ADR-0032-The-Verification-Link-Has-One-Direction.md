@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0032
 aliases: ["ADR-0032"]
 title: "The verification link has one direction and one encoding — `covers:` on the test, and a feature never lists its tests"
-status: proposed
+status: accepted
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
-decision_date: ""
+decision_date: 2026-08-18
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 supersedes: ""
 superseded: ""
@@ -19,7 +19,7 @@ tags: [conventions, schema, testing, traceability]
 
 ## Status
 
-**Proposed 2026-08-18.** Independent of [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] in principle — either could land without the other — and coupled to it in practice, because ADR-0031's one uncovered collision is the gate this decision removes.
+**Accepted 2026-08-18**, on the same instruction as [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] and documented in full before it. Independent of [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] in principle — either could land without the other — and coupled to it in practice, because ADR-0031's one uncovered collision is the gate this decision removes.
 
 ## Context
 
@@ -64,3 +64,8 @@ The relationship becomes queryable in one direction and answerable in both, beca
 - **Keep both directions and add a validator rule that they agree.** Rejected: it makes the drift loud instead of removing it, and 20 existing violations would have to be fixed before the rule could be turned on anyway — at which point one side is redundant.
 - **Normalise the other way — the feature's `tests:` wins.** Rejected by the fan-out: 669 checks pointing at features is a field on 669 notes; the same relationship expressed on the feature side is a list of hundreds of ids on a handful of notes, and it is the side already measured drifting.
 - **Leave the path as a fallback.** Rejected: it is the encoding that produced Edwin's original impression that a test cannot span features, and a link that exists only when another one is absent is a rule nobody can state.
+
+## Decision record
+
+> [!note] Accept — 2026-08-18 (user:edwin)
+> *"I think we should normalise this?"*, then *"implement, test and independently review the full PHASE-035 functionality."* The measurement that carried it: **20 of 61 feature→test edges already disagree**, and the relationship is encoded three ways.

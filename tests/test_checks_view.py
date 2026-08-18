@@ -71,7 +71,7 @@ def test_every_row_can_draw_its_own_mark(view: dict) -> None:
         for area in tier["areas"]:
             for row in area["items"]:
                 assert row["mark"], row
-                assert row["id"].startswith("CHK-"), row
+                assert row["id"].startswith(("TST-", "CHK-")), row
                 assert row["rel"].endswith(".md"), row
 
 
@@ -225,5 +225,5 @@ def test_the_tier_heads_open_the_view_not_a_directory() -> None:
         for row in group["items"]:
             # …and the ROW opens the check itself, which is the difference the
             # migration buys a reader over a link into a 1082-line document.
-            assert re.fullmatch(r"/docs/tests/acceptance/CHK-\d+-.*\.md",
+            assert re.fullmatch(r"/docs/tests/acceptance/(TST|CHK)-\d+-.*\.md",
                                 row["url"]), row

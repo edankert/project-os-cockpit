@@ -4,6 +4,7 @@ id: TST-0029
 aliases: ["TST-0029"]
 title: "The walker ticks what it walked and nothing else — pass writes a witness, fail stays unticked, skip writes nothing, and a stale or reconciled row is refused"
 status: ready
+covers: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ""
 last_verified: "2026-08-16"
-requirements: []
-features: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 issues: []
 tasks: ["[[TASK-0430-The-Suite-Is-Addressable]]", "[[TASK-0431-Declare-The-Next-Release]]", "[[TASK-0432-The-Gate-Lists-Its-Checks]]", "[[TASK-0433-The-Acceptance-Walker]]"]
 artifacts: []

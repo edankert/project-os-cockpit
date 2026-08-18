@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "The 5-hour and 7-day rate-limit budgets — account-scoped facts — move to a compact block at the foot of the attention panel: thin bars with used %, the reset clock, and (stretch) a projected time-to-cap from the recent burn slope; hidden when no session ran today. The session rail sheds the 5h pip and shows only session-scoped facts (state, tool/prompt, session ctx%, session $). The ~agents header keeps its aggregate copy as the inspection surface."
 requirements: []
-tests: []
 tasks: ["[[TASK-0160]]", "[[TASK-0161]]"]
 related: ["[[FEAT-0031-Ambient-Status-Consolidation]]", "[[FEAT-0030-Agent-Inbox]]", "[[TASK-0149]]"]
 ---

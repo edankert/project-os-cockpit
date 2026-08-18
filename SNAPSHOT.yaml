@@ -67,7 +67,7 @@ counters:
   RISK: 7
   REL: 1
   TASK: 490
-  TST: 43
+  TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
@@ -212,7 +212,6 @@ items:
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0426, TASK-0427, TASK-0428, TASK-0429]
-      tests: [TST-0027, TST-0028]
       depends: [ADR-0028]
       goal: "Give publication the surface it has never had: one view holding every rung a repo can reach — the commits, what is unpushed, what is undeployed and named-not-offered, the versioned releases and their tags — and the acceptance gate attached to the release rung, so a person can see how far their work has travelled and what stands between it and shipping."
       note: "Edwin asked for a release nav mode and attached the right question — 'there are probably multiple types of releases, from committing, pushing, deploying and actual versioned releases'. The fleet answers it: a Releases mode would be EMPTY IN 9 OF 12 REPOS, while the ladder is universal (commit 12/12, push 8, deploy 2, versioned release 3). And three of the four rungs already exist — history_payload returns remote_kind, unpublished_count, publication_known and a per-commit unpublished flag; git_state.py mentions 'tag' once, in a comment. So this is not a new surface bolted on: it is the third phase, built by finishing the one that already holds most of it. THE GATE IS ONE OBLIGATION, NEVER SIXTY (ADR-0027's re-arming rule) — 60 is a number the campaign STATES and no badge ever sums. The unit is the sitting: your-trainer's 60 cluster into 17 sections, two of which carry 33, and the suite's own Manual Test Environment Breakdown already says what each needs at hand and nothing reads it. Reads better after ISS-0173; buildable without it, but then designed against a corpus where no row can name its subject."
@@ -223,7 +222,6 @@ items:
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       tasks: [TASK-0423, TASK-0424, TASK-0425]
-      tests: [TST-0025, TST-0026]
       depends: [ADR-0028]
       goal: "Take what needs a person from one undifferentiated number down to the items whose subject is actually being worked — measured 64 to 31 in your-trainer — by routing each obligation to the phase that owns its subject and letting it ask only while that subject is in flight, with everything it quiets still on screen as a collapsed line carrying its reason."
       note: "FIRST in PHASE-034 after the two issues; FEAT-0102 meets it at TASK-0429, which is why TASK-0424's predicate takes a SUBJECT rather than a feature — a test's subject gains a second kind (a release) once the release rung lands. The measured case: 23 of your-trainer's 26 owed requirements attach to features still in `backlog` and 21 belong to PHASE-999-Future; 10 of its 15 owed tests verify only `done` or system-wide work and have sat at `ready` for four to seven months with last_run empty on all 15. THE CRITERION MOST LIKELY TO BE GOT WRONG is the subject-less one: TST-0001/0002 name no feature at all, and a naive reading makes them never-owed, which LOSES two tests rather than quieting them. Nothing can prove a subject-less obligation is resting, so it asks. TASK-0425 is not optional and must land in the same session as TASK-0424 — between them the tool has silently dropped 33 rows, which is the failure this feature exists to prevent."
@@ -244,7 +242,6 @@ items:
       phase: "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"
       requirements: [REQ-0035, REQ-0036]
       tasks: [TASK-0405, TASK-0406, TASK-0407, TASK-0408, TASK-0409, TASK-0410, TASK-0411, TASK-0412, TASK-0413]
-      tests: [TST-0024]
       risks: [RISK-0007]
       note: "A staged VS Code Remote SSH-like desktop workflow: verified SSH profiles, a remote docs sidecar constrained to SSH, a bounded repository browser, and interactive remote agent terminals. REVISED 2026-08-13 on Edwin's three decisions — full write parity, shared/multi-user hosts in scope, full fleet membership — which together make the authorisation question live NOW: attaching the sidecar attaches twenty mutating routes guarded only by _require_loopback(), and on a shared host every co-tenant passes that gate. ADR-0026's spike is still first, but it now chooses between stdio and an AUTHENTICATED listener; the unauthenticated variant is eliminated. TASK-0411/0412/0413 are the added legs. Owns PHASE-033."
     FEAT-0091:
@@ -542,7 +539,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       tasks: [TASK-0235, TASK-0236]
       fixes: ["ISS-0062"]
-      tests: ["TST-0022"]
       note: "Found by path, not by frontmatter type: 19 of this repo's 33 PLAN.md files carry no frontmatter and are invisible everywhere today (features/ is excluded from the Docs tree too)."
     FEAT-0047:
       file: "docs/features/risks-on-issues/FEAT-0047-Risks-On-The-Issues-Surface.md"
@@ -551,7 +547,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       tasks: [TASK-0237, TASK-0238]
       fixes: ["ISS-0063"]
-      tests: ["TST-0022"]
       note: "Library's Risks group is the only place risks appear anywhere in the cockpit. Both types already bucket by the same severity vocabulary."
     FEAT-0048:
       file: "docs/features/changes-on-overview/FEAT-0048-Changes-On-The-Overview.md"
@@ -559,7 +554,6 @@ items:
       status: done
       phase: "[[PHASE-010-Surface-Ownership]]"
       tasks: [TASK-0239, TASK-0240]
-      tests: ["TST-0022"]
       note: "Owner's call (2026-07-29): the archive travels with the recent ones, collapsed — not routed through the Docs tree. _changes_subgroups relocates rather than dies."
     FEAT-0049:
       file: "docs/features/review-desk-record/FEAT-0049-Review-Desk-As-Record.md"
@@ -567,7 +561,6 @@ items:
       status: done
       phase: "[[PHASE-010-Surface-Ownership]]"
       tasks: [TASK-0241, TASK-0242]
-      tests: ["TST-0022"]
       note: "The desk shows the transient and hides the durable: Test runs is gated to manual-and-ready (1 of 22 here), and the 62 notes carrying a non-empty review_verdict are listed nowhere. Reviewed comes from note frontmatter, not the store — _MAX_REQUESTS trims the store's tail. Six notes declare review_verdict empty and are correctly excluded."
     FEAT-0050:
       file: "docs/features/library-reduction/FEAT-0050-Library-Reduction.md"
@@ -576,7 +569,6 @@ items:
       phase: "[[PHASE-010-Surface-Ownership]]"
       requirements: ["REQ-0025"]
       tasks: [TASK-0243, TASK-0244, TASK-0245]
-      tests: ["TST-0022"]
       note: "Gated on REQ-0025. TASK-0243/0244 land independently (duplicates and a relocation); TASK-0245 waits on all four destinations — each is the sole navigable route to its type."
     FEAT-0043:
       file: "docs/features/design-surface/FEAT-0043-Design-Top-Level-Surface.md"
@@ -2232,7 +2224,6 @@ items:
       priority: high
       scope: "Every connection from the desktop cockpit to a remote project-os workspace, its docs sidecar, filesystem API, and PTY sessions"
       features: [FEAT-0099]
-      tests: [TST-0024]
     REQ-0036:
       file: "docs/requirements/REQ-0036-Remote-Development-Workflow.md"
       title: "A remote project workspace is a full workspace — docs, repository context, agent sessions and fleet surfaces, or an honest statement that a surface cannot reach it"
@@ -2241,7 +2232,6 @@ items:
       priority: high
       scope: "The desktop cockpit workflow for a selected remote repository"
       features: [FEAT-0099]
-      tests: [TST-0024]
     REQ-0033:
       file: "docs/requirements/REQ-0033-Every-Project-Can-Say-What-It-Is.md"
       title: "Every project can say what it is — the standing documents are declared as data, singular by construction, extensible without code, and their freshness is reported"
@@ -3183,14 +3173,14 @@ items:
     ADR-0032:
       file: "docs/decisions/ADR-0032-The-Verification-Link-Has-One-Direction.md"
       title: "The verification link has one direction and one encoding — `covers:` on the test, and a feature never lists its tests"
-      status: proposed
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       note: "Edwin: 'a TST currently is linked from a feature ... and a CHK links back to the features, that sounds like the same functionality but in 2 different directions'. His premise about spanning is wrong (20 of 117 tests already name more than one feature; what confines is the PATH, and only for the 3 that declare nothing) and the conclusion is right. THREE encodings of one relationship: directory path (37 tests), the test`s features:/verifies:/validates: (82), the feature`s tests: (61 edges) — and 20 OF THE 61 ARE NOT RECIPROCATED, a third, silently. A check has one: covers:, and 112 of 669 fan out past one subject. Decision: covers: on the test is the only encoding; feature.tests: is deleted; VERIFY inverts to a reverse index; the path stops being a link. Backfill measured at TEN notes (3 path-only, 7 feature-edge-only, 25 genuinely system-wide and left empty on purpose). ALSO CLOSES ADR-0031`s one uncovered collision: VERIFY demands `passing` and an acceptance test rests at `active`, so deleting the field means it can never reach that lookup — construction, not exemption."
     ADR-0031:
       file: "docs/decisions/ADR-0031-One-Test-Type-Acceptance-Is-A-Level.md"
       title: "One test type — an acceptance check is a `[[test]]` at `level: acceptance`, and the automation path is the reason"
-      status: proposed
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       supersedes: "ADR-0030"
@@ -3275,8 +3265,8 @@ metrics:
     features_total: 121
     features_done: 101
     tasks_total: 489
-    tasks_done: 435
-    tests_total: 43
+    tasks_done: 442
+    tests_total: 77
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181

@@ -11,7 +11,6 @@ updated: 2026-07-17
 goal: "Make the project-os verification state visible while browsing: a live health badge backed by tools/scripts/validate-docs.py, a drift panel deep-linking each violation to the offending note, and badges for verification waivers, review verdicts, and test adequacy."
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0041-Review-Desk]]", "[[TASK-0211-Verification-Panel]]"]
 tasks: ["[[TASK-0111]]", "[[TASK-0112]]", "[[TASK-0113]]"]
-tests: ["[[TST-0016]]"]
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-30
 review_verdict: "approved"

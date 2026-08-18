@@ -3,6 +3,7 @@ type: "[[test]]"
 id: TST-0024
 title: "Remote SSH workspace walk — verified host, docs, repository and agent terminal"
 status: ready
+covers: ["[[FEAT-0099-Remote-SSH-Workspaces]]", "[[REQ-0035-Secure-Remote-Workspace-Connection]]", "[[REQ-0036-Remote-Development-Workflow]]"]
 owner: unassigned
 created: 2026-08-12
 updated: 2026-08-13
@@ -19,8 +20,6 @@ command: ""
 # Filed as [[ISS-0155-A-Never-Run-Manual-Test-Must-Assert-A-Verification-Date]];
 # the validator is template-owned, so the fix is upstream, not here.
 last_verified: "2026-08-12"
-requirements: ["[[REQ-0035-Secure-Remote-Workspace-Connection]]", "[[REQ-0036-Remote-Development-Workflow]]"]
-features: ["[[FEAT-0099-Remote-SSH-Workspaces]]"]
 issues: []
 tasks: ["[[TASK-0405-Define-Remote-Session-Architecture]]", "[[TASK-0406-Manage-SSH-Connection-Profiles]]", "[[TASK-0407-Bridge-Remote-Workspace-And-Docs]]", "[[TASK-0408-Provide-Remote-Terminals-And-Agent-Launchers]]", "[[TASK-0409-Deliver-Remote-Repository-Browser]]", "[[TASK-0410-Verify-Remote-Connection-Safety-And-Recovery]]", "[[TASK-0411-Deliver-And-Version-The-Remote-Sidecar]]", "[[TASK-0412-Fleet-Surfaces-For-A-Remote-Workspace]]", "[[TASK-0413-Authorize-Remote-Writes-Without-Loopback]]"]
 artifacts: []

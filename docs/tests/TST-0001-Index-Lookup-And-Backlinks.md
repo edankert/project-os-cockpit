@@ -4,6 +4,7 @@ id: TST-0001
 aliases: ["TST-0001"]
 title: "Index — lookup tables, link graph, invalidation"
 status: passing
+covers: ["[[REQ-0002-Wikilink-Resolution]]", "[[REQ-0008-Backlinks-Panel]]"]
 command: ".venv/bin/pytest tests/test_index.py -q"
 phase: "[[PHASE-002-Project-OS-Adapter]]"
 owner: user:edwin
@@ -14,7 +15,6 @@ scope: "system"
 kind: "automated"
 level: "unit"
 entrypoint: "tests/test_index.py"
-verifies: ["[[REQ-0002]]", "[[REQ-0008]]"]
 artifacts: []
 evidence: ["12 passed in 0.06s (2026-05-08)"]
 last_run: "2026-08-13T18:28Z"

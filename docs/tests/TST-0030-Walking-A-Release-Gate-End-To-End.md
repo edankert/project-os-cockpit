@@ -4,6 +4,7 @@ id: TST-0030
 aliases: ["TST-0030"]
 title: "Walking a release gate end to end — declare a release, see its checks, walk a section, and watch the count fall"
 status: ready
+covers: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: system
 entrypoint: "Publication → Release gate, against a throwaway repo"
 command: ""
 last_verified: "2026-08-16"
-requirements: []
-features: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 issues: []
 tasks: ["[[TASK-0433-The-Acceptance-Walker]]"]
 artifacts: []

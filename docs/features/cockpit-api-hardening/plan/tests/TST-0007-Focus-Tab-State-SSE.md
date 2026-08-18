@@ -4,12 +4,12 @@ id: TST-0007
 aliases: ["TST-0007"]
 title: "Wire-level coverage for focus POST, tab-state POST, and SSE event shapes"
 status: passing
+covers: ["[[TASK-0069-Fill-Regression-Test-Gaps]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
 updated: 2026-08-13
 source: ["[[TASK-0069]]"]
-verifies: ["[[TASK-0069]]", "[[FEAT-0008-Cockpit-API-Hardening]]"]
 path: "tests/test_focus_and_tab_state.py"
 command: ".venv/bin/pytest tests/test_focus_and_tab_state.py -q"
 last_verified: "2026-08-10"

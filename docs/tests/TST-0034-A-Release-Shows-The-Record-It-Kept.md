@@ -4,6 +4,7 @@ id: TST-0034
 aliases: ["TST-0034"]
 title: "A release shows the record it kept — what it verified, what it shipped with, what it published, and never today's gate"
 status: passing
+covers: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_release_record.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"]
 issues: []
 tasks: ["[[TASK-0443-Releases-Are-The-Navigator]]", "[[TASK-0444-A-Shipped-Release-Shows-Its-Own-Record]]", "[[TASK-0445-Capture-At-Ship]]"]
 artifacts: []

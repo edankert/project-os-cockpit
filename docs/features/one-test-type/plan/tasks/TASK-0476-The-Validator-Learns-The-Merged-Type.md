@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0476
 aliases: ["TASK-0476"]
 title: "The validator learns the merged type — status tables, collections, metrics, and the badge guard"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -24,3 +24,11 @@ tests: []
 **And the guard [[REQ-0037-The-Badge-Never-Admits-Acceptance-Tests]] asks for lands here**, before any migration runs: an assertion that no note at `level: acceptance` is ever counted by the Run obligation, at any status. It must fail loudly rather than warn — 669 rows arriving on a badge is not a warning-shaped event.
 
 Done when: both validators accept the merged type, reject an acceptance test at a status the Run obligation counts, and the fleet still validates green.
+
+## Done
+
+Both validators know the merged type. **`ACCEPTANCE-STATUS` is a new ERROR**: an acceptance test holding `ready`/`passing`/`failing` *without* a `command:` fails the build, because that is ADR-0031's central construction failing silently. `command:` is the deliberate exception — a test that declares how to run itself has been automated, and the runner owns it from then on.
+
+**The validator's own guard caught the first cut**: `ACCEPTANCE_FORBIDDEN_STATUSES` was flagged by the unregistered-status-collection rule (the ISS-0012/ISS-0013 guard), so it is registered in `FLAT_STATUS_TABLES` against the `test` type rather than exempted — a typo in it would otherwise disarm the assertion silently.
+
+**And the bundled copy is a verbatim bundle, not a fork** — hand-mirroring the change failed `test_bundled_validator_matches_the_canonical_one` immediately, which is the guard doing exactly its job.

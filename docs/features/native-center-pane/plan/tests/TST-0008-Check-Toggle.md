@@ -4,12 +4,12 @@ id: TST-0008
 aliases: ["TST-0008"]
 title: "POST /api/notes/check-toggle — write-back, error shapes, nested tasks"
 status: passing
+covers: ["[[TASK-0074-Interactive-Checkboxes]]", "[[FEAT-0011-Native-Center-Pane]]"]
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
 created: 2026-05-25
 updated: 2026-08-13
 source: ["[[TASK-0074]]"]
-verifies: ["[[TASK-0074]]", "[[FEAT-0011-Native-Center-Pane]]"]
 path: "tests/test_check_toggle.py"
 command: ".venv/bin/pytest tests/test_check_toggle.py -q"
 last_verified: "2026-08-10"

@@ -44,7 +44,8 @@ Project-defined free text label, but keep it stable. Examples:
 
 ## `level` (tests)
 - `unit`, `integration`, `system`, `e2e`, `acceptance`
-- `acceptance` marks user-level acceptance checks that gate releases (see `TESTING.md` tiers and `../skills/release-verification/SKILL.md`).
+- **`acceptance` is the discriminator of the merged type (ADR-0031)**: a test at this level is the thing a person walks — it rests at `status: active`, its verdict is `mark:`, and it carries the acceptance fields below. Everything else on the scale is executable. The field has always been here; since ADR-0031 it carries the distinction the retired `check` type used to.
+- A test moves along the scale rather than between types. **Adding a `command:` to an `acceptance` test is how a walk becomes automated**, and a `passing` test named in another's `covered_by:` settles it (see `TESTING.md` tiers and `../skills/release-verification/SKILL.md`).
 
 ## `acceptance:` on a feature (FEAT-0064)
 
@@ -75,9 +76,9 @@ That set was narrowed after the first cut fired **five false positives on this c
 ## `scope` (tests)
 - `feature`, `system`
 
-## `mark` (checks)
+## `mark` (tests at `level: acceptance`)
 
-The verdict on a `[[check]]` — one character, [Minimal's alternate checkbox vocabulary](https://minimal.guide/checklists), read exactly as the acceptance suite reads it:
+The verdict on an acceptance test — one character, [Minimal's alternate checkbox vocabulary](https://minimal.guide/checklists), read exactly as the acceptance suite reads it:
 
 | `mark` | means | blocks a release |
 |---|---|---|
@@ -88,15 +89,15 @@ The verdict on a `[[check]]` — one character, [Minimal's alternate checkbox vo
 | `!` | walked and failed, with the failure tracked | yes |
 | `?` | walked and not understood — the check itself is unclear | yes |
 
-`/`, `-`, `!` and `?` are **refused without a `verdict_reason:`**. The mark and its justification are one write, so a check cannot leave the gate without saying why.
+`/`, `-`, `!` and `?` are **refused without a `verdict_reason:`**. The mark and its justification are one write, so an acceptance test cannot leave the gate without saying why.
 
-**`mark:` is not `status:`.** A check's lifecycle is `status:` (`draft`/`active`/`retired`); its verdict is `mark:`. Ticking never touches `status:`, which is what keeps a check outside the runner-only rule that governs `[[test]]` statuses — see `STATUSES.md` `[[check]]`.
+**`mark:` is not `status:`.** An acceptance test's lifecycle is `status:` — it rests at `active`, and `retired` is terminal; its verdict is `mark:`. Ticking never touches `status:`, and that is precisely what keeps it outside the runner-only rule, the independent-review gate and the `Run` obligation now that it shares a type with executable tests — see `STATUSES.md` `[[test]]`. The protection is the same one the `check` type provided, held by status rather than by type.
 
-## `automation` (checks)
+## `automation` (tests at `level: acceptance`)
 - `full`, `partial`, `manual`
 - What already covers this check mechanically. `covered_by:` names the `TST-*` (or test module) doing the covering; a `full` check with no `covered_by:` is a claim with nothing behind it.
 
-## `burden` (checks)
+## `burden` (tests at `level: acceptance`)
 Optional, project-defined free text naming what a walker must have to hand — `App`, `Trainer`, `Strava`, `hardware`. Its purpose is to avoid making somebody set the same thing up twice, so keep the labels stable and few.
 
 ## `check` versus `level: acceptance` on a test

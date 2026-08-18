@@ -4,6 +4,7 @@ id: TST-0032
 aliases: ["TST-0032"]
 title: "The release accumulates, then asks — open is silent, preparing gates, and shipping freezes what it named"
 status: passing
+covers: ["[[FEAT-0105-There-Is-Always-A-Release]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_release_lifecycle.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0105-There-Is-Always-A-Release]]"]
 issues: []
 tasks: []
 artifacts: []

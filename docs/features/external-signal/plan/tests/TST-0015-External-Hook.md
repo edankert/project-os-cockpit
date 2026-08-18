@@ -4,6 +4,7 @@ id: TST-0015
 aliases: ["TST-0015"]
 title: "External agent-state hook — no-op scoping, state mapping, sidecar POST, fallback"
 status: passing
+covers: ["[[FEAT-0027-External-Session-Signal]]"]
 command: ".venv/bin/pytest tests/test_external_hook.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -13,7 +14,6 @@ scope: feature
 kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_external_hook.py"
-features: ["[[FEAT-0027-External-Session-Signal]]"]
 tasks: ["[[TASK-0141]]", "[[TASK-0143]]"]
 last_verified: 2026-07-06
 last_run: "2026-08-13T18:28Z"

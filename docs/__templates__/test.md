@@ -9,13 +9,12 @@ updated: 2026-01-27
 source: []
 scope: feature
 kind: manual
-level: system
+level: system       # unit | integration | system | e2e | acceptance
 entrypoint: ""
 command: ""          # runnable check; when set, `status` is written by the runner, never by hand (ADR-0010)
 last_verified: ""    # manual tests only (no `command:`) — date the procedure was last performed; goes stale
-requirements: []
-features: []
-issues: []
+covers: []           # THE verification link (ADR-0032): [[FEAT-...]] / [[ISS-...]] / [[REQ-...]]. One direction, one encoding.
+issues: []           # context only — what this test VERIFIES goes in covers:
 tasks: []
 artifacts: []
 evidence: []
@@ -26,6 +25,21 @@ reviewed_by: ""
 review_date: ""
 review_verdict: ""
 related: []
+# --- level: acceptance only (ADR-0031) ---------------------------------
+# Delete these on an executable test; they are meaningless there.
+tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
+mark: " "            # THE VERDICT: " " | x | / | - | ! | ?   — never `status`
+verdict_date: ""
+verdict_reason: ""   # required for / - ! ?
+invalidated_by: {}   # {change: TASK-0000, reason: "", date: ""} — TESTING.md rule 3, as a field
+automation: ""       # full | partial | manual
+covered_by: []       # a `passing` test named here SETTLES this one (ADR-0031)
+area: ""             # the human grouping — one walk's worth of related checks
+section: ""
+ordinal: ""
+burden: []
+migrated_from: ""
+merged_from: ""
 ---
 
 # <Test>

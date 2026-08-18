@@ -4,13 +4,12 @@ id: TST-0021
 aliases: ["TST-0021"]
 title: "Review desk — queue without new states, guarded note write-back, manual-run logging"
 status: passing
+covers: ["[[FEAT-0041-Review-Desk]]", "[[TASK-0206-Review-Virtual-Page]]", "[[TASK-0207-Proposal-Set-Review]]", "[[TASK-0209-Manual-Test-Runner]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
 created: 2026-07-26
 updated: 2026-08-13
 source: ["[[TASK-0207-Proposal-Set-Review]]"]
-verifies: ["[[TASK-0206-Review-Virtual-Page]]", "[[TASK-0207-Proposal-Set-Review]]", "[[TASK-0209-Manual-Test-Runner]]", "[[FEAT-0041-Review-Desk]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
-features: ["[[FEAT-0041-Review-Desk]]"]
 path: "tests/test_review_desk.py"
 command: ".venv/bin/pytest tests/test_review_desk.py -q"
 automation: automated

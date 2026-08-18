@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "A dedicated virtual page (~agents, reachable from the rail and the inbox header) with one row per workspace: live state + elapsed, current prompt, last file, dispatch origin, queue depth, ctx/$ meters, and jump actions (terminal / session / queue); a header aggregating total burn, active count, and the rate-limit budget. Session history and ~session pages become children of this screen instead of hiding inside ~overview."
 requirements: ["[[REQ-0019-Agent-Fleet-Visibility]]"]
-tests: []
 tasks: ["[[TASK-0150]]", "[[TASK-0151]]"]
 related: ["[[FEAT-0030-Agent-Inbox]]", "[[FEAT-0031-Ambient-Status-Consolidation]]", "[[FEAT-0021-Task-Dispatch]]"]
 ---

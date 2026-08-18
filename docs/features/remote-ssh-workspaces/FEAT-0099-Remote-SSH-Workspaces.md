@@ -13,7 +13,6 @@ goal: "Make an authenticated SSH-connected host feel like a cockpit workspace: b
 requirements: ["[[REQ-0035-Secure-Remote-Workspace-Connection]]", "[[REQ-0036-Remote-Development-Workflow]]"]
 tasks: ["[[TASK-0405-Define-Remote-Session-Architecture]]", "[[TASK-0406-Manage-SSH-Connection-Profiles]]", "[[TASK-0407-Bridge-Remote-Workspace-And-Docs]]", "[[TASK-0408-Provide-Remote-Terminals-And-Agent-Launchers]]", "[[TASK-0409-Deliver-Remote-Repository-Browser]]", "[[TASK-0410-Verify-Remote-Connection-Safety-And-Recovery]]", "[[TASK-0411-Deliver-And-Version-The-Remote-Sidecar]]", "[[TASK-0412-Fleet-Surfaces-For-A-Remote-Workspace]]", "[[TASK-0413-Authorize-Remote-Writes-Without-Loopback]]"]
 related: ["[[REQ-0005-Terminal-Local-Only]]", "[[REQ-0034-A-Non-Loopback-Write-Is-Authenticated]]", "[[ADR-0002-Terminal-Approach]]", "[[RISK-0001-Terminal-Exposure]]", "[[RISK-0007-Remote-Workspace-Trust-Boundary]]", "[[ADR-0026-Remote-Workspace-Transport]]", "[[ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch]]", "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]"]
-tests: ["[[TST-0024-Remote-SSH-Workspace-Walk]]"]
 tags: [feature, remote, security]
 ---
 

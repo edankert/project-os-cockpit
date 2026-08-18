@@ -4,6 +4,7 @@ id: TST-0027
 aliases: ["TST-0027"]
 title: "The ladder is non-empty in every repo — every rung a repo reaches is present, every rung it cannot is absent, and an unknown count is never a zero"
 status: passing
+covers: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-08-16"
@@ -15,8 +16,6 @@ level: integration
 entrypoint: ""
 command: ".venv/bin/pytest tests/test_publication_ladder.py -q"
 last_verified: ""
-requirements: []
-features: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 issues: []
 tasks: ["[[TASK-0426-The-Ladder-As-Data]]", "[[TASK-0427-The-Publication-View]]", "[[TASK-0428-The-Release-Rung]]"]
 artifacts: []

@@ -698,7 +698,12 @@ def sort_items(items: list[Item]) -> list[Item]:
 
 
 def load_notes(checks_dir: Path) -> list[Item]:
-    """Every `CHK-*` note under ``checks_dir``, in suite order.
+    """Every acceptance note under ``checks_dir``, in suite order.
+
+    `TST-*` since ADR-0031, `CHK-*` in a repo that has not run the merge
+    migration. Never both: the migration renames in place, so a directory
+    holding one shape has finished and a directory holding the other has not
+    started.
 
     Reads the directory directly rather than through the index, so the
     migration script and the tests can use it without building one. Live
@@ -708,7 +713,8 @@ def load_notes(checks_dir: Path) -> list[Item]:
     import frontmatter as _fm
 
     items: list[Item] = []
-    for path in sorted(checks_dir.glob("CHK-*.md")):
+    paths = sorted(checks_dir.glob("TST-*.md")) or sorted(checks_dir.glob("CHK-*.md"))
+    for path in paths:
         try:
             post = _fm.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError, UnicodeDecodeError):
@@ -737,8 +743,17 @@ def load(docs_root: Path, index: "Any | None" = None) -> Suite:
     """
     checks_dir = docs_root / CHECKS_REL
     if index is not None:
+        # ADR-0031: an acceptance check is a `[[test]]` at `level: acceptance`.
+        # The retired `check` type is still read, because eight of the twelve
+        # repos this cockpit renders are upstream-behind and a repo that has
+        # not run the merge migration must keep its suite rather than losing
+        # it silently -- which is what reading only the new shape would do.
+        records = [
+            r for r in index.notes_by_type("test")
+            if str(r.frontmatter.get("level", "") or "").strip().lower() == "acceptance"
+        ] or list(index.notes_by_type("check"))
         items = [
-            item for record in index.notes_by_type("check")
+            item for record in records
             if (item := item_from_note(record.frontmatter, body=record.body,
                                        rel=record.rel_path))
             is not None

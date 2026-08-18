@@ -4,6 +4,7 @@ id: TST-0023
 aliases: ["TST-0023"]
 title: "Completed work orders rather than disappears — both surfaces, checked by mutation"
 status: passing
+covers: ["[[FEAT-0056-Completed-Work-Ordering]]", "[[FEAT-0057-The-Record-Grammar]]", "[[FEAT-0058-One-Shape-Per-Navigator]]"]
 command: ".venv/bin/pytest tests/test_completed_work_ordering.py -q"
 phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
 owner: user:edwin
@@ -14,7 +15,6 @@ scope: "system"
 kind: "automated"
 level: "unit"
 entrypoint: "tests/test_completed_work_ordering.py"
-verifies: ["[[FEAT-0056-Completed-Work-Ordering]]", "[[ISS-0082-Phantom-Phase-Group-From-The-016-Merge]]"]
 artifacts: []
 evidence: ["30 passed in 0.75s (2026-08-02); desktop node suite 65 passed"]
 last_run: "2026-08-13T18:28Z"

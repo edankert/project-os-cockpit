@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0474
 aliases: ["TASK-0474"]
 title: "The test schema absorbs the check's fields, and `check.md` is deleted"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -24,3 +24,7 @@ tests: []
 `check.md` is **deleted, not tombstoned**: the template directory is a scaffolding source, and a template for a type the validator rejects scaffolds broken notes. Same reasoning [[ADR-0030]] decision 4 used for `ACCEPTANCE_TESTS.md`.
 
 Done when: a note scaffolded from `test.md` at `level: acceptance` validates, `check.md` is gone upstream and here, and no template references the check type.
+
+## Done
+
+`test.md` gained the acceptance block (`tier`, `mark`, `verdict_*`, `invalidated_by`, `automation`, `covered_by`, `area`, `section`, `ordinal`, `burden`, `migrated_from`, `merged_from`) with a comment saying to delete them on an executable test. SCHEMAS.md documents them under an *Acceptance fields (`level: acceptance` only)* heading, with the three *Where NOT used* clauses carried over verbatim from the check entry. `check.md` deleted upstream and here.

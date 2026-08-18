@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "Right-click works everywhere: a single main-process context-menu handler provides role-based Cut/Copy/Paste/Select All wherever there is a selection or editable field (plus macOS Look Up and spellcheck for free), deferring to the existing custom nav/link/rail menus; the terminal gets its own menu (Copy when selected, bracketed Paste, Select All, Clear) plus ⌘C/⌘V wiring and an opt-in copy-on-select setting; the doc pane gains Copy ID / Copy path unification and 'Dispatch selection as prompt…' glue into the verb system."
 requirements: []
-tests: []
 tasks: ["[[TASK-0166]]", "[[TASK-0167]]", "[[TASK-0168]]"]
 related: ["[[FEAT-0012-Native-Nav-Right-Pane]]", "[[FEAT-0024-Agent-Verbs]]"]
 ---

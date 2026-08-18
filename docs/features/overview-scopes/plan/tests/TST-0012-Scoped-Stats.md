@@ -4,6 +4,7 @@ id: TST-0012
 aliases: ["TST-0012"]
 title: "Scoped stats payload + cache"
 status: passing
+covers: ["[[FEAT-0023-Overview-Scopes]]"]
 command: ".venv/bin/pytest tests/test_stats_scope.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -13,7 +14,6 @@ scope: feature
 kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_stats_scope.py"
-features: ["[[FEAT-0023-Overview-Scopes]]"]
 tasks: ["[[TASK-0128]]"]
 last_verified: 2026-07-06
 last_run: "2026-08-13T18:28Z"

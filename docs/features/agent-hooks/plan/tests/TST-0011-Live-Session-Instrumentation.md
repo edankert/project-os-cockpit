@@ -4,6 +4,7 @@ id: TST-0011
 aliases: ["TST-0011"]
 title: "Live-session instrumentation + activity surfaces — manual checklist"
 status: "passing"
+covers: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0022-Session-Insight-And-Traceability]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0025-Dispatch-Runtime]]", "[[FEAT-0026-Verb-Polish]]", "[[FEAT-0027-External-Session-Signal]]"]
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
@@ -12,7 +13,6 @@ scope: feature
 kind: manual
 level: e2e
 entrypoint: ""
-features: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 tasks: ["[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0121]]", "[[TASK-0124]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0132]]", "[[TASK-0133]]", "[[TASK-0134]]", "[[TASK-0138]]", "[[TASK-0142]]"]
 last_verified: "2026-07-27"
 last_run: "2026-07-27"

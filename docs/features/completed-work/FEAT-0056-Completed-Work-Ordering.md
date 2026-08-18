@@ -18,7 +18,6 @@ tasks:
   - "[[TASK-0270-Folding-Keyed-On-Length]]"
 release: ""
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[FEAT-0043-Overview-Rework]]", "[[ISS-0023-Status-Vocabulary-Drift]]"]
-tests: ["[[TST-0023-Completed-Work-Ordering]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-02
 review_verdict: changes-requested

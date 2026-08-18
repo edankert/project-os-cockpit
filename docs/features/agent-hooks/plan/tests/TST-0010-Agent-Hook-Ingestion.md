@@ -4,6 +4,7 @@ id: TST-0010
 aliases: ["TST-0010"]
 title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
 status: passing
+covers: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 command: ".venv/bin/pytest tests/test_agent_hooks.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -13,7 +14,6 @@ scope: feature
 kind: automated
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_agent_hooks.py"
-features: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 tasks: ["[[TASK-0114]]", "[[TASK-0123]]", "[[TASK-0125]]", "[[TASK-0126]]"]
 last_verified: 2026-07-05
 last_run: "2026-08-13T18:28Z"

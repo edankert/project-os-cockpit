@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "The cockpit stops being a static snapshot: a status-diff layer turns note saves into transition events (TASK-0157 doing→done), feeding (a) a 'work' tab in the session rail — one status box per docs note this session touched, filling live as the agent closes items, expandable to a chip list; (b) an 'Active' left-pane nav mode showing only in-flight items across types (Doing / Next / Done today, agent chips, live row migration) — also the default landing view for phase-less projects where the overview has nothing to say; (c) later, a full-width Now board replacing the empty phase grid on the overview."
 requirements: []
-tests: []
 tasks: ["[[TASK-0162]]", "[[TASK-0163]]", "[[TASK-0164]]", "[[TASK-0165]]"]
 related: ["[[FEAT-0020-Agent-Activity-Surfaces]]", "[[FEAT-0023-Overview-Scopes]]", "[[FEAT-0030-Agent-Inbox]]", "[[FEAT-0040-Overview-Rework]]"]
 ---

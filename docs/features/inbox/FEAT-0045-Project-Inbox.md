@@ -17,7 +17,6 @@ tasks:
 release: ""
 design: []
 related: ["[[FEAT-0041-Review-Desk]]"]
-tests: []
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-30
 review_verdict: "changes-requested"

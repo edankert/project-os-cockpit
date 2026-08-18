@@ -13,7 +13,6 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "A docked attention panel at the bottom of the left nav pane answers 'what needs me?' at a glance: zero-height when empty, it materialises with needs-input rows (act now) and waiting rows (turn finished — review, with cost) across all workspaces, plus a one-line 'N finished today' link onward; the top-bar bell is deleted. The attention lifecycle stops crying wolf: a normally-finished turn stays amber (idle_prompt no longer escalates to red), and pulses calm to static once seen — pulse means unseen, static means known-and-pending, gone means resolved."
 requirements: ["[[REQ-0018-Agent-Attention-Completeness]]"]
-tests: []
 tasks: ["[[TASK-0147]]", "[[TASK-0156]]", "[[TASK-0157]]"]
 related: ["[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0009-Popovers-Never-Hide]]", "[[FEAT-0032-Agents-Screen]]"]
 ---

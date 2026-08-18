@@ -4,6 +4,7 @@ id: TST-0042
 aliases: ["TST-0042"]
 title: "TESTING.md rule 3 made performable — one Save, N added, M invalidated, one commit"
 status: passing
+covers: ["[[FEAT-0115-The-Sweep-Is-Continuous]]"]
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
@@ -11,10 +12,8 @@ last_verified: 2026-08-17
 last_run: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
-verifies: ["[[FEAT-0115-The-Sweep-Is-Continuous]]"]
 automated: true
 command: ".venv/bin/pytest tests/test_acceptance_sweep.py -q"
-requirements: []
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]"]
 ---
 

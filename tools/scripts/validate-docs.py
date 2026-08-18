@@ -69,13 +69,6 @@ COLLECTION_TYPE = {
     "phases": {"phase"},
     "risks": {"risk"},
     "tests": {"test"},
-    # Declared, and deliberately never populated: acceptance checks are
-    # notes but not snapshot items -- a repo can hold hundreds and the
-    # snapshot is active-and-recent context (SCHEMAS.md `check.md`). The
-    # row exists so the type is KNOWN to every table check below rather
-    # than being absent, which is how a type ends up validated against
-    # nothing.
-    "checks": {"check"},
     "workflows": {"workflow"},
     "changes": {"change"},
     "decisions": {"adr", "decision"},
@@ -115,20 +108,37 @@ ALLOWED_STATUS = {
     # type out of an unordered set, so it fired by hash seed (6/12 measured).
     # ISS-0015 replaced that pick with a union check.
     "decision": {"proposed", "accepted", "superseded"},
-    "test": {"ready", "passing", "failing"},
-    # An acceptance check: `status` is the LIFECYCLE, and the verdict is
-    # `mark:` (TAXONOMY.md / STATUSES.md `[[check]]`). Three values, all
-    # of them already in the vocabulary -- `draft` from requirement and
-    # workflow, `active` from workflow and reference, `retired` from
-    # requirement -- so this type adds no status value, the same bar
-    # `design` was held to.
+    # ADR-0031 (project-os-cockpit): the `check` type folds into `test`, and
+    # `level: acceptance` carries the distinction. Three values became six, and
+    # the two additions are what keep the merge safe rather than being a
+    # convenience:
     #
-    # The absence that matters is `passing`. A check never reaches it, so
-    # the runner-only rule (TEST_RUNNER_STATUSES) and the review gate
-    # (REVIEW_SETTLED_STATUSES) -- both keyed on a status this type cannot
-    # hold -- never engage. That is by construction, not by exemption
-    # logic, which is the whole reason `check` is a sibling of `test`
-    # rather than a `TST-*` wearing extra fields.
+    #   `active`  -- where an acceptance test RESTS. It is in neither
+    #               REVIEW_SETTLED_STATUSES nor the Run obligation's states, so
+    #               a 669-note population reaches neither the review gate nor a
+    #               badge. That is the same construction the `check` type used,
+    #               kept after the type itself is gone: the gates are keyed on
+    #               statuses this population does not hold.
+    #   `retired` -- terminal, and the only removal (TESTING.md: acceptance
+    #               checks are "never removed, only deprecated"). It also closes
+    #               ISS-0178, which sat `deferred` because a test whose subject
+    #               was deleted had no honest status: leave it `passing` and it
+    #               claims to verify a deleted surface; delete it and
+    #               LIFECYCLE.md forbids that.
+    #
+    # `draft` joins for symmetry with the type it absorbed; every one of the
+    # three already existed elsewhere in the vocabulary, which is the bar
+    # `check` itself was held to.
+    "test": {"draft", "active", "ready", "passing", "failing", "retired"},
+    # RETIRED by ADR-0031 -- the `check` type folded into `test` at
+    # `level: acceptance`. The row survives only so that a repo which has not
+    # yet run the merge migration still validates: eight of the twelve repos
+    # carry no checks at all, and the three that did are migrated. Remove it
+    # once no `type: "[[check]]"` note exists in any repo the template serves.
+    #
+    # The construction it protected is preserved on the merged type and
+    # asserted by ACCEPTANCE-STATUS rather than left implicit: the gates are
+    # keyed on statuses an acceptance test does not hold.
     "check": {"draft", "active", "retired"},
     "release": {"draft", "released", "reverted"},
     # `plan` is consumed by validate_plan_notes through load_allowed_status(). It
@@ -249,6 +259,25 @@ REVIEW_SETTLED_STATUSES = {
     "tests": ("passing",),
 }
 
+#: Statuses at which an acceptance test never sits, and therefore the exact
+#: gates ADR-0031 relies on staying off. `passing` is the review gate and the
+#: runner-only rule; `ready` is the obligation registry's `Run`. A note at
+#: `level: acceptance` holding either of these means the merge's central
+#: construction has failed -- and it fails silently, as several hundred rows
+#: arriving on a badge nobody can act on (ADR-0027). ACCEPTANCE-STATUS is an
+#: ERROR rather than a warning for that reason.
+ACCEPTANCE_FORBIDDEN_STATUSES = ("ready", "passing", "failing")
+
+
+def _is_acceptance_test(note_id, note_index):
+    """True when `note_id` names a test at `level: acceptance`."""
+    entry = note_index.get(note_id)
+    if not entry:
+        return False
+    fm = entry[1] or {}
+    return str(fm.get("level", "") or "").strip().lower() == "acceptance"
+
+
 #: Test statuses that only the runner may write (TEST-FIELDS, ADR-0010).
 #: Inline until ISS-0013 -- the second round of review found it, which is the
 #: point: an inline literal is invisible to the guard by construction.
@@ -267,10 +296,9 @@ METRIC_PREFIX_TYPE = {
     # `decisions_total` is a total (`allowed is None`) and the check `continue`d
     # before reaching the prefix. Every total metric was unguarded the same way.
     "ADR": "adr",
-    # No `checks_*` metric exists and none should: a count of acceptance
-    # rows on the overview is a number nobody acts on. The row is here so
-    # that a metric added later cannot silently count zero (ISS-0016).
-    "CHK": "check",
+    # `CHK` is retired (ADR-0031): acceptance checks are tests and their ids
+    # live in the `TST` space. The prefix stays in ID_PREFIXES so that a
+    # `[[CHK-0001]]` alias in an older note still resolves.
 }
 
 #: metric name -> (ID prefix, statuses counted). `None` means "count them all".
@@ -307,19 +335,12 @@ METRIC_STATUS_FILTERS = {
 #: to the note type its value must be legal for.
 TERMINAL = {
     "tasks": "done",
-    # `retired` is terminal for a check (STATUSES.md: never removed, only
-    # deprecated). Inert in practice -- there is no `items.checks` -- and
-    # the verification invariant below disclaims it explicitly rather than
-    # relying on that emptiness, because a gate that is safe only while a
-    # collection stays empty is a trap for whoever fills it.
-    "checks": "retired",
     "issues": "fixed",   # ADR-0008: `closed` merged into `fixed`; 3% follow-through fleet-wide
     "requirements": "implemented",
     "features": "done",
 }
 TERMINAL_TYPES = {
     "tasks": "task",
-    "checks": "check",
     "issues": "issue",
     "requirements": "requirement",
     "features": "feature",
@@ -329,6 +350,10 @@ TERMINAL_TYPES = {
 #: validate_status_tables walks this, so adding a status table means adding a row
 #: here rather than remembering to write another check by hand.
 FLAT_STATUS_TABLES = {
+    # Registered rather than exempted: every value in it IS a test status, and
+    # the point of the collection is that an acceptance test must not hold one.
+    # A typo here would silently disarm ADR-0031's central construction.
+    "ACCEPTANCE_FORBIDDEN_STATUSES": (ACCEPTANCE_FORBIDDEN_STATUSES, ("test",)),
     "RESOLVED_STATUSES": (RESOLVED_STATUSES, ("task", "feature")),
     "FEATURE_ACTIVE_STATUSES": (FEATURE_ACTIVE_STATUSES, ("feature",)),
     "CLOSED_PHASE_STATUSES": (CLOSED_PHASE_STATUSES, ("phase",)),
@@ -1527,6 +1552,33 @@ def validate(root, report):
     # -- per-item checks
     all_snapshot_ids = []
     path_alias_items = []
+    # subject id -> the tests naming it in `covers:` (ADR-0032). Built once:
+    # the validator has no index of its own -- it works from SNAPSHOT.yaml plus
+    # note frontmatter -- so the reverse direction is materialised here rather
+    # than looked up per subject.
+    covers_index = {}
+    for _tst_id, (_tst_path, _tst_fm) in note_index.items():
+        if note_type(_tst_fm) != "test":
+            continue
+        _subjects = extract_ids((_tst_fm or {}).get("covers"))
+        # A repo that has not consolidated its fields yet keeps its coverage.
+        # These are the FORWARD fields `covers:` renames -- test -> subject, the
+        # same direction -- so reading them is a rename transition and not a
+        # return to the bidirectional pair ADR-0032 removes. The subject's own
+        # `tests:` is deliberately NOT read here.
+        #
+        # Measured when the inversion landed: without this, obsidian-supernote-
+        # sync silently lost its one VERIFY finding, because its TST-0001 says
+        # `verifies:` and nothing had rewritten it. A gate that quietly stops
+        # firing in a repo nobody is looking at is the worst shape this change
+        # could have taken.
+        if not _subjects:
+            for _legacy in ("features", "verifies", "validates"):
+                _subjects = extract_ids((_tst_fm or {}).get(_legacy))
+                if _subjects:
+                    break
+        for _subject in _subjects:
+            covers_index.setdefault(_subject, set()).add(_tst_id)
     for coll_name, coll in (items.items() if isinstance(items, dict) else []):
         if not isinstance(coll, dict):
             continue
@@ -1604,7 +1656,19 @@ def validate(root, report):
                 terminal = None
             if terminal and status == terminal:
                 waiver = str(fm.get("verification_waiver", "") or entry.get("verification_waiver", "")).strip()
-                linked_tests = set(extract_ids(entry.get("tests"))) | set(extract_ids(fm.get("tests")))
+                # ADR-0032: the verification link has ONE encoding and one
+                # direction -- the test's `covers:` -- so this reads the reverse
+                # index rather than the subject's own list. `tests:` on the
+                # subject was the second, hand-maintained copy, and 20 of the
+                # fleet's 61 feature->test edges disagreed with it when measured.
+                #
+                # `tests:` is still unioned in for `task`, `issue` and
+                # `requirement`, which are not normalised yet (330 live edges
+                # against the feature's 62). A feature's `tests:` is gone from
+                # the schema, so for a feature this is the reverse index alone.
+                linked_tests = set(covers_index.get(item_id, ()))
+                if coll_name != "features":
+                    linked_tests |= set(extract_ids(entry.get("tests"))) | set(extract_ids(fm.get("tests")))
                 if waiver:
                     expires_raw = fm.get("waiver_expires") or entry.get("waiver_expires")
                     expires = _parse_date(expires_raw)
@@ -1625,6 +1689,19 @@ def validate(root, report):
                                     % (item_id, terminal, expires, waiver))
                 else:
                     for tst in sorted(linked_tests):
+                        # ADR-0031/ADR-0032: an acceptance test rests at
+                        # `active` and its verdict is `mark:`, so demanding
+                        # `passing` of one would fire on every note in a suite
+                        # of several hundred. ADR-0032 removes `tests:` from
+                        # the feature, which closes this by construction there;
+                        # `task`, `issue` and `requirement` still carry the
+                        # field (330 live edges fleet-wide against the
+                        # feature's 62), so the guard stays until those are
+                        # normalised too. It is deliberately keyed on the
+                        # LEVEL and not on the id prefix -- after the merge a
+                        # walk and a pytest module share the `TST-` space.
+                        if _is_acceptance_test(tst, note_index):
+                            continue
                         tst_status = ""
                         tests_coll = items.get("tests") or {}
                         if tst in tests_coll and isinstance(tests_coll[tst], dict):
@@ -1734,6 +1811,26 @@ def validate(root, report):
         rel = path.relative_to(root).as_posix()
         command = str((fm or {}).get("command", "") or "").strip()
         status = str((fm or {}).get("status", "") or "").strip()
+        level = str((fm or {}).get("level", "") or "").strip().lower()
+
+        # ADR-0031's central construction, asserted rather than trusted. An
+        # acceptance test rests at `active`; that is the ONLY reason the
+        # review gate, the runner-only rule and the `Run` obligation stay off
+        # a population of several hundred self-re-arming rows. One careless
+        # status write undoes it, and the symptom -- a badge nobody can act on
+        # (ADR-0027) -- appears far from the cause.
+        #
+        # `command:` is the deliberate exception and the whole point of the
+        # merged type: an acceptance test that declares a way to run itself
+        # HAS been automated, and the runner owns its status from then on.
+        if level == "acceptance" and status in ACCEPTANCE_FORBIDDEN_STATUSES and not command:
+            emit_for("ACCEPTANCE-STATUS", the_id)(
+                "ACCEPTANCE-STATUS",
+                "%s is at level: acceptance and status: '%s', which is a status it must never hold without a "
+                "command: -- it rests at `active` and its verdict is `mark:` (ADR-0031). Holding '%s' puts it "
+                "in front of the review gate and the Run obligation, which is what ADR-0027 forbids for this "
+                "population (%s)" % (the_id, status, status, rel))
+
         if command:
             # An executable test's status is the runner's output, so it must carry
             # the run that produced it. A stamped status with no `last_run` means
@@ -1763,6 +1860,24 @@ def validate(root, report):
                     "status cannot be refreshed by machine -- add a command:, or say kind: manual (%s)"
                     % (the_id, status, rel))
             if not has_value((fm or {}).get("last_verified")):
+                if level == "acceptance":
+                    # An acceptance test records WHEN IT WAS WALKED in
+                    # `verdict_date:`, beside the `mark:` that says what the walk
+                    # found. Demanding `last_verified:` as well would be the same
+                    # fact in two fields, which is the duplication ADR-0032 exists
+                    # to remove -- and the migration would have had to synthesise
+                    # it, inventing a date for 669 notes.
+                    #
+                    # Found by RUNNING the migration, not by reading the ADR: the
+                    # pilot's 34 notes failed this rule the moment they became
+                    # tests, which is a sixth collision ADR-0031 did not name. Its
+                    # five were about gates that fire on a STATUS; this one fires
+                    # on a FIELD, and no amount of resting at `active` avoids it.
+                    #
+                    # Staleness for this population is `invalidated_by:` against
+                    # `verdict_date:` -- change-driven, not time-driven -- so the
+                    # TEST-STALE branch below is deliberately skipped too.
+                    continue
                 if status == "ready":
                     # `ready` means defined but not yet executed -- STATUSES.md calls
                     # it "the only honest state for a check that has never run".
