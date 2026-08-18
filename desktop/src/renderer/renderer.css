@@ -5916,16 +5916,28 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   font-size: 13px;
   font-weight: 600;
 }
-.checks-area { margin: 0 0 14px; }
-.checks-area > h4 {
-  margin: 0 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted, var(--text-faint));
+/* `.checks-area` and its `<h4>` are gone (TASK-0513): the list is flat per
+   tier and the area rides on the row. The rules are removed rather than left
+   unused — dead CSS is how a reader concludes the structure still exists. */
+.checks-list { display: flex; flex-direction: column; }
+/* The check number, first column, fixed width so names line up down the list.
+   It used to be implied by the area block's ordering; a flat list has to say
+   it, and a ragged left edge is what makes 579 rows unreadable. */
+.checks-row-number {
+  flex: none;
+  min-width: 62px;
+  font-size: 11px;
+  color: var(--text-faint);
 }
-.checks-area-refs {
-  margin-left: 8px;
-  font-weight: 400;
+/* The area, right-aligned and quiet — present on every row so nothing the
+   area heading carried is lost, but not competing with the name. `title`
+   carries the `covers:` refs, which the heading showed inline. */
+.checks-row-area {
+  flex: none;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   color: var(--text-faint);
 }

@@ -1755,3 +1755,76 @@ def test_a_retired_test_is_not_a_passing_one(tmp_path: Path) -> None:
     groups = _groups_for(docs)
     assert "TST-0002" not in groups.get("verified", [])
     assert "TST-0002" in groups.get("resolved", [])
+
+
+# ----- the tier tracking line (TASK-0509) -----------------------------------
+
+
+def _suite_repo(tmp_path: Path, rows: list[tuple[str, str, str]]) -> Path:
+    """A minimal notes-shaped acceptance suite. `rows` is (id, mark, extra)."""
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    for num, (tid, mark, extra) in enumerate(rows, start=1):
+        (docs / "tests" / "acceptance" / f"{tid}.md").write_text(
+            f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "Check {num}"\n'
+            f'level: acceptance\nstatus: active\ntier: 1\n'
+            f'number: "1.1.{num}0"\narea: "Area"\nmark: {mark}\n{extra}---\n\n'
+            f"# Check {num}\n",
+            encoding="utf-8",
+        )
+    return docs
+
+
+def _tier_label(docs: Path) -> str:
+    from project_os_cockpit.index import Index
+    for g in cockpit._tests_groups(Index.build(docs)):
+        if str(g.get("key", "")).startswith("tier"):
+            return str(g["label"])
+    raise AssertionError("no tier group")
+
+
+def test_the_tracking_line_counts_re_runs_and_stale_ticks_separately() -> None:
+    """TASK-0509, on synthetic data **because the corpus cannot exercise it.**
+
+    Edwin: *"it would be nice to show a tracking line how many tsts have been
+    completed and how many tests will need to be rerun."*
+
+    Two different things mean "needs re-run" and the tracking line counts them
+    apart. `mark: rerun` is the explicit act — the tick was cleared and the
+    change named. `stale` is a tick still standing over evidence the record
+    says was overtaken.
+
+    **Neither exists in any live repo right now**: `your-trainer` carries 0 of
+    each, because the 54 hand-written `RE-RUN` annotations were deliberately
+    cleared. So both halves of this feature would ship never having run, which
+    is how the `tier["stale"]` version of this line — a key that payload does
+    not have — nearly shipped as a clause that could never fire.
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        docs = _suite_repo(Path(td), [
+            ("TST-0001", "done", ""),
+            ("TST-0002", "done", ""),
+            ("TST-0003", "rerun", ""),
+            ("TST-0004", "todo", ""),
+            ("TST-0005", "done",
+             'invalidated_by:\n  change: "TASK-0999"\n  reason: "the API moved"\n'),
+        ])
+        label = _tier_label(docs)
+
+    assert "1 need re-run" in label, label
+    assert "1 stale" in label, (
+        f"the stale tick is not counted: {label!r}. It is a tick standing over "
+        "evidence the record says was overtaken — neither walked nor owed, and "
+        "the larger of the two populations in practice"
+    )
+    # **2, not 1** — the `rerun` row counts here as well as under its own
+    # heading, because a check whose tick was cleared is a check somebody has
+    # to walk. Asserted deliberately rather than adjusted to match: the first
+    # version of this expected 1, which would have meant a re-run row silently
+    # missing from the count of outstanding work.
+    assert "2 to walk" in label, label
+    # Walked is the numerator, and a stale tick still counts as walked: it was.
+    # What is untrue is that the evidence still holds, which is why it is
+    # reported beside the fraction rather than subtracted from it.
+    assert "3/5 walked" in label, label

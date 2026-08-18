@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK
 aliases: ["TASK"]
 title: "Order the tests view so feature tests come above the flat state groups"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

@@ -8468,24 +8468,20 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     if (tier.stale) label += ` · ${tier.stale} stale`;
     th.textContent = label;
     section.appendChild(th);
+    // **Flat** (TASK-0513). This nested tier → area → rows, so reaching one
+    // check on `your-trainer` meant scrolling past 60-odd area headings inside
+    // 3 tier sections. Edwin: *"can we just show them as a list the same as
+    // the features underneath?"* The areas are still ordered together, because
+    // the rows arrive grouped; what is gone is the heading between them.
+    const list = document.createElement('div');
+    list.className = 'checks-list';
     for (const area of areas) {
-      const block = document.createElement('div');
-      block.className = 'checks-area';
-      const ah = document.createElement('h4');
-      ah.textContent = area.section ? `${area.section} ${area.area}` : area.area;
-      block.appendChild(ah);
-      if (area.refs.length) {
-        const refs = document.createElement('span');
-        refs.className = 'checks-area-refs';
-        refs.textContent = area.refs.join(', ');
-        ah.appendChild(refs);
-      }
       for (const item of area.items) {
-        block.appendChild(buildCheckRow(item));
+        list.appendChild(buildCheckRow(item));
         shown += 1;
       }
-      section.appendChild(block);
     }
+    section.appendChild(list);
     host.appendChild(section);
   }
   if (!shown) {
@@ -8511,6 +8507,13 @@ function buildCheckRow(item: GateItem): HTMLElement {
   // is why it outlived the migration that broke it.
   if (MARK_CLASS[item.mark || ' '] === 'canceled') row.classList.add('is-canceled');
   row.appendChild(checkMark(item));
+
+  // **The number, on the row** (TASK-0513). It used to be carried by the
+  // area block's ordering; the list is flat now, so the row says it.
+  const num = document.createElement('span');
+  num.className = 'checks-row-number mono';
+  num.textContent = item.number;
+  row.appendChild(num);
 
   const body = document.createElement('div');
   body.className = 'checks-row-body';
@@ -8541,6 +8544,19 @@ function buildCheckRow(item: GateItem): HTMLElement {
     body.appendChild(line);
   }
   row.appendChild(body);
+
+  // **Area and refs move here from the area block** (TASK-0513 / REQ-0047
+  // criterion 3). Flattening the list must not lose what the heading carried:
+  // the section number, the area name and the `covers:` refs were all on the
+  // `<h4>` this replaces. Grouping by area survives as a *filter* — the area
+  // facet is unchanged — rather than as structure.
+  if (item.area) {
+    const area = document.createElement('span');
+    area.className = 'checks-row-area';
+    area.textContent = item.section ? `${item.section} ${item.area}` : item.area;
+    if (item.refs?.length) area.title = item.refs.join(', ');
+    row.appendChild(area);
+  }
 
   if (item.rel) {
     const open = document.createElement('button');

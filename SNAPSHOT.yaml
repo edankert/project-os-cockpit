@@ -66,7 +66,7 @@ counters:
   REQ: 48
   RISK: 7
   REL: 1
-  TASK: 512
+  TASK: 513
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -113,7 +113,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
-      tasks: ["TASK-0508", "TASK-0509", "TASK-0510"]
+      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513"]
       note: "Built when the corpus had 23 tests, where showing all of them WAS the summary. At 579 it is a wall. Collapse Resting to a line, collapse tier sections to tracking lines carrying walked/re-run/to-walk, and put feature tests above the flat groups. Constraint: every collapsed count must expand to exactly its rows, or work has been hidden rather than organised."
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
@@ -3569,8 +3569,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 129
     features_done: 113
-    tasks_total: 511
-    tasks_done: 466
+    tasks_total: 512
+    tasks_done: 470
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182

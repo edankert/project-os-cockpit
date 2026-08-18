@@ -4172,10 +4172,29 @@ def _tests_groups(
         }
         if key == "needs-run":
             group["needs_human"] = True
+        if key in ("resting", "resolved", "verified"):
+            # **Collapsed, not deleted** (TASK-0508). Edwin does not think the
+            # Resting section is needed; the distinction it carries is real
+            # (ADR-0028 — "nobody owes this yet" is not "nobody got round to
+            # it") and survives being one line. `resolved` joins it: a retired
+            # test is a fact about the past, not work. So does `verified` —
+            # REQ-0047 criterion 1 says the landing state is not a list of
+            # every test, and 40 passing rows here is the same wall as 579.
+            group["default_open"] = False
         out.append(group)
 
-    out.extend(_acceptance_tier_groups(index))
-    return out
+    # **Feature tests first** (TASK-0510). Edwin: *"the feature tests are shown
+    # below those sections, even though I think these sections should be
+    # clearly at the forefront."* They are the substance of the view and sat
+    # under three flat state groups. Ordering only — no group gains or loses a
+    # member, which is what `test_exactly_one_group_per_test` keeps true.
+    #
+    # `Needs a walk` stays above them: it is the one group that is asking, and
+    # a view that opens on work owed is the whole of REQ-0047.
+    tiers = _acceptance_tier_groups(index)
+    owed = [g for g in out if g.get("needs_human")]
+    rest = [g for g in out if not g.get("needs_human")]
+    return owed + tiers + rest
 
 
 #: Which suite tiers a checked box is "done" for. The Tests navigator folds on
@@ -4248,7 +4267,34 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         # what the document holds, and a check settled by decision is named
         # rather than quietly removed from both halves of the fraction.
         reconciled = int(tier.get("reconciled") or 0)
-        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']}"
+        # **The re-run count** (TASK-0509). Edwin: *"it would be nice to show a
+        # tracking line how many tsts have been completed and how many tests
+        # will need to be rerun."* Both halves are already loaded — `rerun` is
+        # a mark since ISS-0200 — so this is a tally, not new data. A check
+        # needing a re-run was walked and then overtaken, which is neither
+        # `checked` nor untouched, and folding it into either is what made the
+        # honest blocking number on `your-trainer` 113 against a reported 60.
+        #
+        # **Two things mean "needs re-run" and they are counted separately.**
+        # `mark: rerun` is the explicit act — somebody cleared the tick and
+        # named the change. `stale` is the tick still standing over evidence
+        # the record says was overtaken. Folding them loses which one a person
+        # is looking at, and the second is the larger population: 53 of
+        # `your-trainer`'s ticked rows are stale, which is why its honest
+        # blocking number is 113 against a reported 60.
+        rerun = sum(1 for i in items if (i.get("mark") or "") == "rerun")
+        # From the ITEMS, not `tier["stale"]` — this payload has no such key
+        # (that is `checks_view`'s), so reading it would have been a clause
+        # that could never fire. Caught before it shipped by printing the
+        # payload rather than trusting the field name.
+        stale = sum(1 for i in items if i.get("stale"))
+        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']} walked"
+        if rerun:
+            label = f"{label} · {rerun} need re-run"
+        if stale:
+            label = f"{label} · {stale} stale"
+        if unchecked:
+            label = f"{label} · {unchecked} to walk"
         if reconciled:
             label = f"{label} · {reconciled} reconciled"
         group: dict[str, Any] = {
@@ -4266,6 +4312,12 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             "url": (f"{url}/tier/{tier['tier']}"
                     if url == CHECKS_VIEW_ROUTE else url),
             "status": None,
+            # **Collapsed** (TASK-0509). Edwin: *"there is no point showing all
+            # the tests inside the left hand Tier x - sections."* 579 rows on
+            # `your-trainer` across three tiers, under headings that already
+            # carry the counts. The rows are not removed — REQ-0047 criterion 3
+            # — they are one click behind a line that says how many there are.
+            "default_open": False,
             "item_layout": "stacked",
             "items": [
                 {
