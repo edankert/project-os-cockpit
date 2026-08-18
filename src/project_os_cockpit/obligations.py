@@ -114,13 +114,22 @@ OBLIGATIONS: dict[str, Obligation] = {
     "requirement": Obligation(("draft", "proposed"), VIEW_FEATURES, "Approve"),
     "issue": Obligation(("triage",), VIEW_ISSUES, "Triage"),
     "test": Obligation(
-        ("ready",), VIEW_TESTS, "Walk",
-        # **One verb for one act** (TASK-0495). The registry carried `Run` here
-        # and `Walk` on the release gate, over one type — live as *"Run 5
-        # tests"* beside *"Walk 1 release gate"*. Every note this obligation
-        # reaches has no `command:` by definition, so `Run` named the one thing
-        # that cannot happen to it.
-        predicate="tests a person walks — one with a `command:` waits on a "
+        ("ready",), VIEW_TESTS, "Run",
+        # **One verb for one act** (TASK-0495, then TASK-0521 which reversed
+        # it). The registry once carried `Run` here and `Walk` on the release
+        # gate — one act, two verbs, live as *"Run 5 tests"* beside *"Walk 1
+        # release gate"*. TASK-0495 unified on `Walk`, arguing that a person
+        # walks a procedure and a machine runs a `command:`.
+        #
+        # **DES-0012 D2 removed that premise.** With `command:` the single
+        # answer to who runs a test, one verb covers both populations: a test
+        # with a command is run by a runner, one without is run by a person.
+        # Edwin: *"can you stop talking about 'walking'."*
+        #
+        # Both changes were argued from the same fact and reached opposite
+        # conclusions. The tie-break is that a reader should not need the
+        # argument — and `Run` is the word people already use.
+        predicate="tests a person runs — one with a `command:` waits on a "
                   "runner, not on anybody",
     ),
     "feature": Obligation(
@@ -227,7 +236,7 @@ OBLIGATIONS: dict[str, Obligation] = {
     # a `check` note appearing with no declaration is a test failure rather
     # than a silent default. The exemption is a sentence somebody had to write.
     "check": NONE(
-        "ADR-0030: an acceptance check is walked, not owed. ADR-0027 measured "
+        "ADR-0030: an acceptance check is run by a person, not owed. ADR-0027 measured "
         "acceptance rows as the most self-re-arming population in the corpus — "
         "each re-arms on every change that touches it — so per-check "
         "obligations are the one use of this granularity that is forbidden "
@@ -556,7 +565,7 @@ def _gate_rows(index: Any) -> list[dict[str, Any]]:
         "type": GATE_OBLIGATION_KIND,
         "status": "draft",
         "detail": f"{unchecked} unchecked",
-        "verb": "Walk",
+        "verb": "Run",
         # The route the verb PERFORMS, so the action rides the row rather
         # than a group header (Edwin: *"that walk button looks totally out of
         # place there"*). Every other owed row names a verb and has nowhere to
@@ -568,7 +577,7 @@ def _gate_rows(index: Any) -> list[dict[str, Any]]:
 NOTE_LESS[GATE_OBLIGATION_KIND] = NoteLessObligation(
     kind=GATE_OBLIGATION_KIND,
     view=VIEW_PUBLICATION,
-    verb="Walk",
+    verb="Run",
     rows=_gate_rows,
     predicate="a release at `draft` whose acceptance tests still have unchecked "
               "Tier 1/2 items — ONE row for the campaign, never one per check",

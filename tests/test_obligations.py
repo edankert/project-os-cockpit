@@ -369,11 +369,15 @@ def test_the_note_less_memo_cannot_outlive_its_corpus(tmp_path) -> None:
 def test_one_verb_names_the_human_act_across_every_owed_kind(tmp_path: Path) -> None:
     """TASK-0495, and the guard it went four commits without.
 
-    The registry carried `Run` on the `test` obligation and `Walk` on the
-    release gate — one act, two verbs, rendered side by side as *"Run 5 tests"*
-    beside *"Walk 1 release gate"*. Every note the `test` obligation reaches has
-    **no `command:` by definition**, so `Run` named the one thing that cannot
-    happen to it.
+    The registry carried two verbs for one act — *"Run 5 tests"* beside *"Walk
+    1 release gate"*. TASK-0495 unified on `Walk`; **TASK-0521 reversed it to
+    `Run`** after DES-0012 D2 made `command:` the single answer to who runs a
+    test, which removed the premise the first change argued from.
+
+    The property under test is unchanged by that reversal: **one verb**. Only
+    which word it is moved, which is why this guard was inverted rather than
+    rewritten — a guard that has to be rebuilt every time a value changes is
+    asserting the value, not the property.
 
     **Asserted on `badges_payload`, because the payload is what the badge
     renders.** The first version of this test said exactly that in its docstring
@@ -393,14 +397,15 @@ def test_one_verb_names_the_human_act_across_every_owed_kind(tmp_path: Path) -> 
     docs.mkdir()
     payload = obligations.badges_payload(Index.build(docs))
 
-    assert payload["verbs"]["test"] == "Walk", (
-        "the badge renders this string; the `test` obligation is by definition "
-        "tests with no `command:`, which a person walks — `Run` names what a "
-        "runner does to a different population entirely"
+    assert payload["verbs"]["test"] == "Run", (
+        "the badge renders this string, and one verb covers both populations "
+        "since DES-0012 D2: a test with a `command:` is run by a runner, one "
+        "without is run by a person"
     )
-    assert "Run" not in set(payload["verbs"].values()), (
-        "no badge may say `Run`: the registry only ever names acts owed to a "
-        "person, and a runner is not a person"
+    assert "Walk" not in set(payload["verbs"].values()), (
+        "no badge may say `Walk` (TASK-0521). Edwin: 'can you stop talking "
+        "about walking.' The guard is INVERTED rather than deleted — the "
+        "property that matters is one verb, and it survived the reversal"
     )
     # The registry is the payload's only source, so a divergence between them
     # is itself a defect — this is what makes asserting the payload strictly

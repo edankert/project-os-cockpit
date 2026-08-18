@@ -81,7 +81,12 @@ def test_a_draft_release_with_unchecked_checks_owes_exactly_one(
     rows = obligations.owed_items(Index.build(docs))["publication"]
     gate = [r for r in rows if r["type"] == obligations.GATE_OBLIGATION_KIND]
     assert len(gate) == 1, "the CAMPAIGN is the obligation, not the checkbox"
-    assert gate[0]["verb"] == "Walk"
+    # `Run`, not `Walk` (TASK-0521). The release gate was the surface that
+    # already said `Walk` when the test registry said `Run`; TASK-0495 unified
+    # on `Walk`, and DES-0012 D2 reversed it once `command:` became the single
+    # answer to who runs a test. The property this asserts is the same in both
+    # directions: the gate and the registry use ONE verb.
+    assert gate[0]["verb"] == "Run"
     assert "3" in gate[0]["title"], gate[0]["title"]
 
 

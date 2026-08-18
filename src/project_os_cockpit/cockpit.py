@@ -2938,7 +2938,7 @@ def _standing_rel_paths(docs_root: Path) -> frozenset[str]:
 
 
 #: Views whose navigator already leads with what they owe, under a name that
-#: says more than "needs you" — `Needs triage` and `Needs a walk`. Adding the
+#: says more than "needs you" — `Needs triage` and `Needs a run`. Adding the
 #: shared group there would duplicate in the one place it buys nothing, which
 #: ADR-0025 permits and does not require.
 #: Views that gather what they owe into their own groups, so prepending a
@@ -4052,9 +4052,11 @@ def _tests_groups(
     **Groups name their own state**, so the order is by what is owed rather
     than by category:
 
-    * ``Needs a walk`` — the registry's obligation for this view (``test @
-      ready``, manual only). ``needs_human``. Called *Needs a walk* since
-      TASK-0495: a person walks a procedure, a machine runs a ``command:``.
+    * ``Needs a run`` — the registry's obligation for this view (``test @
+      ready``, manual only). ``needs_human``. Named *Needs a walk* by TASK-0495
+      and returned to *Needs a run* by TASK-0521: DES-0012 D2 makes ``command:``
+      the single answer to who runs a test, so one verb covers both — a runner
+      runs the ones with a command, a person runs the rest.
     * ``Failing`` — the test ran and did not pass.
     * ``Stale`` — passing, but last verified longer ago than the project's
       threshold allows.
@@ -4075,7 +4077,7 @@ def _tests_groups(
     # Before ADR-0031 this was free — a check was a different type and
     # `notes_by_type("test")` could not see one. The merge removed that
     # separation and the exclusion has to be written down, or every acceptance
-    # test renders twice on one screen: once in a `Verified`/`Needs a walk`
+    # test renders twice on one screen: once in a `Verified`/`Needs a run`
     # bucket and once under its tier. Caught by the guard rather than by
     # reading, which is the argument for the guard.
     tests = [
@@ -4141,7 +4143,7 @@ def _tests_groups(
             buckets["unclassified"].append(record)
 
     labels = (
-        ("needs-run", "Needs a walk"),
+        ("needs-run", "Needs a run"),
         # Quiet, and visible. `Resting` rather than a bare count because the
         # reader has to be able to tell "nobody owes this yet" from "nobody
         # got round to it" (TASK-0425).
@@ -4189,7 +4191,7 @@ def _tests_groups(
     # under three flat state groups. Ordering only — no group gains or loses a
     # member, which is what `test_exactly_one_group_per_test` keeps true.
     #
-    # `Needs a walk` stays above them: it is the one group that is asking, and
+    # `Needs a run` stays above them: it is the one group that is asking, and
     # a view that opens on work owed is the whole of REQ-0047.
     tiers = _acceptance_tier_groups(index)
     owed = [g for g in out if g.get("needs_human")]
