@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 117
-  ISS: 192
+  ISS: 194
   PHASE: 35
   REQ: 36
   RISK: 7
@@ -1386,6 +1386,26 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0194:
+      file: "docs/issues/ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight.md"
+      title: "No virtual page refreshes the nav highlight, so the left pane goes on pointing at the note you left — `~checks`, `~sweep`, `~history`, `~accept` and the test runner all inherit it"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
+      severity: medium
+      component: desktop-renderer
+      related: [ISS-0193, FEAT-0114, ISS-0132]
+      note: "Edwin, from use: 'the acceptance tests are not selected'. `refreshActiveNavRow()` has two call sites — `renderDoc` and `renderWsNav` — and NONE of the seven virtual-page branches in `navigateTo` calls it, so `~checks`, `~sweep`, `~history`, `~accept` and the test runner all leave the previous note highlighted. Not an absent selection: a CONFIDENTLY WRONG one. The cause is the five-line block copied seven times with one line missing from the copy. Looks intermittent because anything that repaints the navigator (a mode switch, the file-watcher soft reload) does call the sweep — so the same click highlights or does not depending on whether a watcher ticked. The tier heads already carry `data-rel` (ISS-0132's fix); nothing in the payload or the DOM needs to change."
+    ISS-0193:
+      file: "docs/issues/ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page.md"
+      title: "Opening the acceptance checks from any view but Tests lands on the Tests landing page instead — the view switch fires its own landing over the page that requested it"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
+      severity: medium
+      component: desktop-renderer
+      related: [ISS-0194, FEAT-0114, FEAT-0092, ISS-0190]
+      note: "Edwin: 'this brings me to the TST view'. Confirmed live against your-trainer: the Publication navigator's first subgroup is `Acceptance tests · 60 unchecked` with one row pointing at `~checks`. `renderChecksPage` calls `setNavMode('tests')` as a side effect; `loadWsNav` then fires FEAT-0092's `~tests` landing because `currentRel` is not yet `~checks` — the branch assigns it only after `renderChecksPage()` resolves. NOT a race: everything after the `setNavMode` call is synchronous, so the landing always starts second and always finishes last. The fix mechanism already exists — `suppressLandingOnce`, whose own comment records this as the third time the shape was got wrong (ISS-0040, then the guard that named only `overview`). This is the fourth, and the first where the arriving landing belongs to the same view as the page it overwrites."
     ISS-0191:
       file: "docs/issues/ISS-0191-The-Left-Pane-Calls-The-Acceptance-Tests-A-Suite-And-Says-They-Are-Ready.md"
       title: "The navigator gives the acceptance tests a hard-coded status of `ready`, which is the one thing a 542-row suite is never, and the release page labels the file `suite`"
@@ -2220,6 +2240,7 @@ items:
       owner: user:edwin
       goal: "Move the acceptance record from one grammar-bearing document to first-class notes, and make the release process run on them end to end: invalidation happens where work lands, walking happens on a generated view with the same marks, and a release can be taken from naming its version to released inside the cockpit — with the sweep-was-considered question enforced at the one moment it is cheap and final."
       features: [FEAT-0113, FEAT-0114, FEAT-0115, FEAT-0116, FEAT-0117]
+      issues: [ISS-0193, ISS-0194]
       note: "GATED: ADR-0030 is proposed and nothing migrates until Edwin accepts it; then upstream lands first. Order: type+migration (pilot HERE, 34 rows) -> view -> two-shape delta -> frontmatter verdict writes -> close-out sweep -> Mark released -> fleet (trainer LAST, 579 rows) -> per-item view. Must-nots: no per-check obligations ever (ADR-0027), no maintained mirror, frozen snapshot suites never rewritten, no lost rows (parity asserted 34/56/579), badge total must not rise."
     # PHASE-023..027 registered 2026-08-11: REL-0001's re-scope makes them the
     # release's definition, so the snapshot has to carry them as active context.
@@ -3125,7 +3146,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 3
+    issues_open: 5
     issues_triage: 0
     risks_open: 6
     releases_total: 1

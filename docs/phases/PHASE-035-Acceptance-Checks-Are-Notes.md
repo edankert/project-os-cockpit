@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0116-A-Release-Can-Be-Finished]]"
   - "[[FEAT-0117-One-View-Per-Item]]"
-issues: []
+issues: ["[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]]"]
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
 ---
 
@@ -87,3 +87,4 @@ Run after the fleet migrated, against real corpora rather than fixtures. Every n
 1. ~~**`your-trainer`'s migration**~~ — **done 2026-08-17** (`1acc3850`): 579 rows, badges 37 → 37, zero checks owed.
 2. ~~**`mountAcceptanceMarks` and the `li[data-check]` plumbing**~~ — **deleted 2026-08-17.** 258 lines of source across five files, 22 guards whose subject went with them, three new ones in their place. `ACCEPTANCE_TESTS_v2.1.0.md` parses as 300 checks and renders **0 addresses, 0 marks** — the frozen record is inert. The delta at all twelve historical `your-trainer` tags is unchanged, which is the one thing the cull could have broken. The unreachable-function guard caught `suppressNextSoftReload` on the first run afterwards. [[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]] is `fixed`.
 3. **The independent review** — owed on five `TST-*` notes and one `CHG-*`, and on any feature moving from `review` to `done`.
+4. **Two navigation defects on the view this phase built**, both found by Edwin from use on 2026-08-18 and both in the renderer rather than the record: [[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]] (arriving at `~checks` from Publication lands on the Tests landing instead) and [[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]] (no virtual page refreshes the nav highlight, so the left pane keeps pointing at the note you left). Neither touches `CHK-*` notes, the payload or the marks — `~checks` is reachable and correct, and it is the two ways of *getting there* that are wrong.
