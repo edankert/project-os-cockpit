@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0299-The-Agent-Side]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0063-The-Acceptance-Runner]]"]
-tests: []
+
 ---
 
 # Visual evidence

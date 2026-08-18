@@ -8,6 +8,9 @@ phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-18
+review_verdict: changes-requested
 goal: "Replace three encodings of one relationship with one: the test's `covers:`, in the direction test → subject. A feature stops listing its tests, VERIFY builds a reverse index instead of reading a field, and a test's location on disk becomes a filing decision with no semantic weight."
 requirements: ["[[REQ-0040-One-Verification-Link]]"]
 tasks: ["[[TASK-0486-Backfill-Covers-On-The-Ten]]", "[[TASK-0487-Invert-VERIFY]]", "[[TASK-0488-Drop-The-Feature-Tests-Field-And-The-Path-Fallback]]"]

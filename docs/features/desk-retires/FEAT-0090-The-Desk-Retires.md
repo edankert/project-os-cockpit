@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0378-The-Route-Retires]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0041-Review-Desk]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]", "[[FEAT-0084-One-View-Vocabulary]]"]
-tests: []
+
 ---
 
 # The desk retires

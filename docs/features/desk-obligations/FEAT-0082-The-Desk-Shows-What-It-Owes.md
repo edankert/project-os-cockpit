@@ -20,7 +20,7 @@ design: "[[DES-0010-The-Desk-Shows-What-It-Owes]]"
 superseded_by: "[[ADR-0020-Obligations-Live-With-Their-Subject]]"
 release: ""
 related: ["[[ISS-0121-Reviewed-Register-Counts-Settled-Work-As-Owed]]", "[[DES-0005-The-Actuator-Grammar]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0041-Review-Desk]]", "[[TST-0022-Surface-Ownership]]"]
-tests: []
+
 ---
 
 # The desk shows what it owes

@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0260-History-In-The-Rail]]"
 release: ""
 related: ["[[FEAT-0052-History-Timeline]]"]
-tests: []
+
 ---
 
 # History navigation

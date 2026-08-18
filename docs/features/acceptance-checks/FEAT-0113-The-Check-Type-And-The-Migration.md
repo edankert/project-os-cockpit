@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[ISS-0178-A-Test-Cannot-Be-Retired]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: ["[[TST-0039]]", "[[TST-0040]]"]
+
 ---
 
 # The check type and the migration

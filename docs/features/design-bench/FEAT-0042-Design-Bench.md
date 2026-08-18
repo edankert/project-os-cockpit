@@ -29,7 +29,7 @@ tasks:
 release: ""
 design: ["[[DES-0001-Overview-Redesign]]"]
 related: ["[[FEAT-0041-Review-Desk]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[TST-0019-Status-Vocabulary-Parity]]"]
-tests: []
+
 ---
 
 # Design bench

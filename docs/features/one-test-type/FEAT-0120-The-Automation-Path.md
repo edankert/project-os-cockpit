@@ -8,6 +8,9 @@ phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-18
+review_verdict: changes-requested
 goal: "Make automating an acceptance check pay: a check whose `covered_by:` names a passing test is settled without a human mark, the link is writable from the surface and refused unless it resolves to a runnable test, `status: retired` finally has a writer, and the 203 checks that already name their covering test in prose have it moved into the field."
 requirements: ["[[REQ-0039-A-Covering-Test-Settles-The-Check]]"]
 tasks: ["[[TASK-0482-Covered-By-Reaches-The-Gate]]", "[[TASK-0483-The-Covered-By-Action]]", "[[TASK-0484-A-Writer-For-Retired]]", "[[TASK-0485-Backfill-Automation-From-The-Prose]]"]

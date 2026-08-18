@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0277-Changes-Requested-Is-Not-Finished]]"
 release: ""
 related: ["[[FEAT-0057-The-Record-Grammar]]", "[[ISS-0086-The-Rollup-Hid-The-Taxonomy]]"]
-tests: ["[[TST-0023-Completed-Work-Ordering]]"]
+
 ---
 
 # One shape per navigator

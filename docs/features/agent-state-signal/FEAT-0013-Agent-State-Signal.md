@@ -14,7 +14,7 @@ related: ["[[FEAT-0010-Native-Nav-Right-Pane]]", "[[FEAT-0006-Cockpit-Layout]]",
 requirements: []
 tasks: []
 release: ""
-tests: []
+
 ---
 
 # Agent state signal

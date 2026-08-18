@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0302-Choose-Records-The-Decision]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
-tests: []
+
 ---
 
 # Designs render their artefacts

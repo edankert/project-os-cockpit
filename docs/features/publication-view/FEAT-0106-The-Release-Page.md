@@ -19,7 +19,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0105-There-Is-Always-A-Release]]"]
 related: ["[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]", "[[FEAT-0105-There-Is-Always-A-Release]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[ADR-0022]]"]
-tests: ["[[TST-0033-The-Release-Page]]"]
+
 ---
 
 # The release page

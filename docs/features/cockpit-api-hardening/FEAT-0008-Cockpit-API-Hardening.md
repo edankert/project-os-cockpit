@@ -14,7 +14,7 @@ related: ["[[FEAT-0006-Cockpit-Layout]]", "[[FEAT-0007-Desktop-Shell]]", "[[PHAS
 requirements: []
 tasks: []
 release: ""
-tests: []
+
 ---
 
 # Cockpit API hardening

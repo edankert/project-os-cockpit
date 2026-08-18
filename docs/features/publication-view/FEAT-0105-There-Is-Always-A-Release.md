@@ -19,7 +19,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[FEAT-0072]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]"]
-tests: ["[[TST-0032-The-Release-Accumulates-Then-Asks]]"]
+
 ---
 
 # There is always a release

@@ -371,7 +371,17 @@ class Item:
         nothing: `ready` means defined and never executed, which is exactly the
         state that must not clear a gate.
         """
-        return any(s == "passing" for s in self.covered_by_status)
+        # **ALL, not ANY** — and the difference is a check that clears a gate
+        # on partial evidence. Two covers, one passing and one failing, settled
+        # under `any`, which contradicts the sentence every note about this
+        # feature carries: *a failing covering test un-settles the check*.
+        # Found by independent review, unguarded until now.
+        #
+        # An empty tuple is not coverage: `all([])` is True, so the emptiness
+        # check comes first. That is the same fail-closed direction as the
+        # missing-index case.
+        return bool(self.covered_by_status) and all(
+            s == "passing" for s in self.covered_by_status)
 
     @property
     def settled(self) -> bool:
@@ -789,8 +799,19 @@ def _resolve_coverage(items: "list[Item]", index: "Any") -> "list[Item]":
             match = re.search(r"([A-Z]+-\d{2,})", str(ref))
             path = index.by_id(match.group(1)) if match else None
             record = index.get(path) if path is not None else None
-            statuses.append(
-                str(record.status or "").strip().lower() if record is not None else "")
+            # **Only an EXECUTABLE test counts as coverage.** A manual test at
+            # `passing` is a person's own walk, so accepting it would let one
+            # hand-walked note discharge another -- a walk laundered into
+            # automation, which is the opposite of what REQ-0039 buys. The
+            # covering test must declare a `command:`, which is the same bar
+            # the write path is required to enforce (TASK-0483).
+            status = ""
+            if record is not None:
+                if str(record.frontmatter.get("command") or "").strip():
+                    status = str(record.status or "").strip().lower()
+                else:
+                    status = "not-executable"
+            statuses.append(status)
         out.append(replace(item, covered_by_status=tuple(statuses)))
     return out
 

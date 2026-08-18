@@ -14,7 +14,7 @@ related: ["[[FEAT-0007-Desktop-Shell]]", "[[FEAT-0015-Cockpit-IA-V2]]"]
 requirements: []
 tasks: ["[[TASK-0106]]", "[[TASK-0107]]", "[[TASK-0108]]"]
 release: ""
-tests: []
+
 ---
 
 # Project management

@@ -19,7 +19,7 @@ design: ""
 release: ""
 depends: ["[[ADR-0028-Work-Has-Three-Phases]]"]
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0022]]", "[[FEAT-0100-Unpushed-Work-Needs-A-Person]]", "[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[DES-0011-Publication-Is-An-Obligation]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0027-The-Ladder-Is-Non-Empty-In-Every-Repo]]", "[[TST-0028-The-Release-Gate-Names-Its-Number]]"]
+
 ---
 
 # Publication becomes a view

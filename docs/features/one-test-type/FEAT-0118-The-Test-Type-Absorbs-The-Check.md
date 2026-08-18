@@ -8,6 +8,9 @@ phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-18
+review_verdict: changes-requested
 goal: "Make `[[test]]` the single type for anything that verifies behaviour, with `level: acceptance` carrying the distinction the `check` type used to carry, so that a check and a test differ by a field rather than by a schema — and so that adding `command:` is all it takes to automate one."
 requirements: ["[[REQ-0037-The-Badge-Never-Admits-Acceptance-Tests]]"]
 tasks: ["[[TASK-0473-Test-Statuses-Gain-Active-And-Retired]]", "[[TASK-0474-The-Test-Schema-Absorbs-The-Check-Fields]]", "[[TASK-0475-Level-Acceptance-Becomes-The-Discriminator]]", "[[TASK-0476-The-Validator-Learns-The-Merged-Type]]"]

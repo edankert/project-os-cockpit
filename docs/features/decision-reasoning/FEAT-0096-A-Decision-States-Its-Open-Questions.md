@@ -15,7 +15,7 @@ tasks:
   - "[[TASK-0399-Criteria-On-A-Decision]]"
   - "[[TASK-0400-ADR-0010-States-Its-Questions]]"
 related: ["[[ADR-0010]]", "[[ISS-0152]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"]
-tests: []
+
 ---
 
 # A decision states its open questions

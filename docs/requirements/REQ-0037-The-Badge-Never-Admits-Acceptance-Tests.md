@@ -29,7 +29,9 @@ related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0031-On
 
 ## Acceptance criteria
 
-- [x] **After the merge, the Tests badge reads what it read before it — measured per repo.** `obligations.owed_items(index)["tests"]` returns 3 — `TST-0024`, `TST-0029`, `TST-0030` — the same three manual notes that were `ready` before the migration. **Zero of the 34 migrated notes reach it.**
+- [x] **After the merge, the Tests badge reads what it read before it — measured per repo.** `obligations.owed_items(index)["tests"]` returns **1** (`TST-0024`), which is what the pre-merge code returned against the pre-merge corpus.
+
+  *This criterion was ticked on 2026-08-18 while it was **false**, and the correction is the most important sentence in this note.* The badge had moved **1 → 3**, and not because of the acceptance notes: `obligations.SUBJECT_FIELDS["test"]` still named `verifies`/`features`/`requirements`, all three of which ADR-0032 deleted. So `subject_ids` resolved nothing for **77 of 77** tests, and `subject_is_in_flight` treats a subject-less note as live **by design** — which switched ADR-0028's in-flight quieting off for the entire test population. A rename missed in one table, disarming a rule two ADRs away, reported by nothing. Found by independent review; `covers` is now first in that tuple and `test_a_tests_subject_fields_track_the_link_rename` fails if a future rename does the same.
 - [x] **No acceptance test appears in `obligations.owed_items`, at any status.** Held by construction: `obligations._is_owed` requires `status in ("ready",)` for a test and an acceptance test rests at `active`.
 - [x] **A guard fails loudly if one ever reaches a status the `Run` obligation counts.** `ACCEPTANCE-STATUS` is a validator **ERROR** in both the canonical and the bundled validator, exempting only a note carrying a `command:` — which is a note that has been automated and whose status the runner owns.
 

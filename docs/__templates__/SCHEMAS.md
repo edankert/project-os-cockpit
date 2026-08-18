@@ -88,7 +88,9 @@ Fields:
 - (required) `goal` (string): Short outcome statement.
 - (optional) `requirements` (list of links): `[[REQ-...]]` links implemented by this feature.
 - (optional) `tasks` (list of links): `[[TASK-...]]` links that deliver the feature.
-- (optional) `tests` (list of links): `[[TST-...]]` links used to verify the feature.
+- ~~`tests`~~ — **removed (ADR-0032).** A feature does not list its tests. The verification link has one direction and one encoding: the test's `covers:`. A feature's tests are rendered from a reverse index over that field, so the list is derived and cannot drift — where the field could only ever be as correct as the last person to edit both sides, and 8 of this repo's 61 feature→test edges disagreed when it was measured.
+
+  *The same reverse encoding still exists on `task`, `issue` and `requirement`. Normalising those is decided in principle and not yet done; until then `VERIFY` ignores any linked test at `level: acceptance` so the merged type cannot trip the gate from those three.*
 - (optional) `release` (string): Milestone/release label.
 
 Where used:
@@ -192,8 +194,8 @@ Fields:
 - (recommended) `level` (string): `unit|integration|system|e2e`.
 - (optional) `entrypoint` (string): Repo-relative command/script to run (or blank for purely manual tests).
 - (recommended) `requirements` (list of links): Requirements verified by this test (`[[REQ-...]]`).
-- (optional) `features` (list of links): Related features (`[[FEAT-...]]`).
-- (optional) `issues` (list of links): Related issues (`[[ISS-...]]`).
+- (required where the test verifies anything in particular) `covers` (list of links): **the single encoding of what this test verifies** — `[[FEAT-...]]`, `[[ISS-...]]`, `[[REQ-...]]` (ADR-0032). Resolvable through the index. A system-wide test that verifies nothing in particular leaves it empty, deliberately.
+- (optional) `issues` (list of links): Related issues (`[[ISS-...]]`) — context, not verification. What the test *verifies* goes in `covers`.
 - (optional) `tasks` (list of links): Related tasks (`[[TASK-...]]`).
 - (optional) `artifacts` (list): Expected artifacts/logs.
 - (optional) `evidence` (list): Evidence from the last run (paths/log excerpts).
@@ -204,36 +206,38 @@ Fields:
 - (optional) `review_date` (string/date): Date of the independent review.
 - (optional) `review_verdict` (string): `approved | changes-requested`.
 
-Where used:
-- Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.
+### Acceptance fields (`level: acceptance` only)
 
-## `check.md` (`type: [[check]]`)
+An acceptance test is the thing a person walks. It carries the fields below and rests at `status: active`; every one of them is meaningless on an executable test and the validator does not require them there.
 
-Purpose: one acceptance check — a single line of a manual walk, with a persistent human verdict. Stored at `docs/tests/acceptance/CHK-####-Slug.md`. See ADR "Acceptance checks are notes" (project-os-cockpit ADR-0030) for why this is a sibling of `[[test]]` rather than a `TST-*` with extra fields.
-
-Fields:
 - (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
-- (required) `mark` (string): the verdict — one of `" "`, `x`, `/`, `-`, `!`, `?` (`TAXONOMY.md`, "`mark` (checks)"). **Never `status`.**
-- (required) `status` (string): the lifecycle — `draft|active|retired`. Ticking never touches it.
+- (required) `mark` (string): the verdict — one of `" "`, `x`, `/`, `-`, `!`, `?` (`TAXONOMY.md`, "`mark`"). **Never `status`.**
 - (optional) `verdict_date` (date): when the current `mark` was recorded.
 - (optional) `verdict_reason` (string): why. **Required** for `/`, `-`, `!` and `?`.
-- (optional) `invalidated_by` (map): `{change, reason, date}` — the change that made an existing pass untrustworthy. This is `TESTING.md` rule 3 as a field rather than an annotation: `change` names a `TASK-*`/`ISS-*`/`FEAT-*`, and a check whose `verdict_date` predates `invalidated_by.date` is computably stale.
+- (optional) `invalidated_by` (map): `{change, reason, date}` — the change that made an existing pass untrustworthy. `TESTING.md` rule 3 as a field rather than an annotation: a test whose `verdict_date` predates `invalidated_by.date` is computably stale.
 - (optional) `automation` (string): `full|partial|manual`, with `covered_by` naming what covers it.
-- (optional) `covered_by` (list of links): the `TST-*` notes or test modules providing that coverage.
-- (optional) `covers` (list of links): what this check verifies — `[[FEAT-...]]`, `[[ISS-...]]`. Resolvable through the index, which is the point: the pre-migration form was an id in a section heading that nothing could resolve.
+- (optional) `covered_by` (list of links): the `TST-*` notes providing that coverage. **A `passing` test named here settles the acceptance test**, which is how automating a walk discharges it (ADR-0031). Refused unless the id resolves to a test carrying a `command:` — a link to something unrunnable records a claim nobody can check.
 - (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
 - (optional) `section` (string): the legacy `1.3`-style section number, kept for addressing continuity.
 - (optional) `ordinal` (int): display order within the area. Sparse, so an insert shifts nothing.
 - (optional) `burden` (list): what the walker must have to hand (`TAXONOMY.md`).
-- (optional) `evidence` (list): paths, screenshots or log excerpts supporting the current verdict.
 - (optional) `migrated_from` (string): the pre-migration address (`#section.ordinal`) plus the sha the file held at the cut, for repos that migrated from a single `ACCEPTANCE_TESTS.md`.
-
-Where used:
-- Read as a set by the release gate and the acceptance view. **Deliberately not tracked in `SNAPSHOT.yaml` `items.*`** — a repo can hold hundreds, and the snapshot is active-and-recent context. `counters.CHK` is maintained like every other counter.
+- (optional) `merged_from` (string): the `CHK-*` id this note carried before ADR-0031, plus the sha at the merge.
 
 Where NOT used:
-- The obligation registry: `check` is declared owed-nothing. Acceptance rows are the most self-re-arming population in a corpus, and per-check obligations are the one use of this granularity that is forbidden outright.
-- The independent-review gate (`QUALITY.md`): the review of a check is the walk.
+- The obligation registry: an acceptance test is never owed. Acceptance rows are the most self-re-arming population in a corpus, and per-check obligations are the one use of this granularity that is forbidden outright. Held by construction — the `Run` obligation is keyed on `ready` and these rest at `active`.
+- The independent-review gate (`QUALITY.md`): keyed on `passing`, which an acceptance test does not hold. The review of an acceptance test is the walk.
+- `SNAPSHOT.yaml` `items.tests`: a repo can hold hundreds of acceptance tests and the snapshot is active-and-recent context. Executable tests are tracked as before.
+
+
+Where used:
+- Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.
+
+## `check.md` — removed (ADR-0031)
+
+There is no `check` type and no `check.md` template. An acceptance check is a `[[test]]` at `level: acceptance`; its fields are documented under `test.md` above.
+
+The type existed so a human verdict could not collide with the machinery a test carries, and it was removed because that separation blocked the thing that mattered more: **a check could not be automated.** A manual test becomes automated by adding `command:`. See [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]], which supersedes [[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]].
 
 ## `workflow.md` (`type: [[workflow]]`)
 

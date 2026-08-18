@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0280-Create-Issue-And-The-Hardening-Suite]]"
 release: ""
 related: ["[[RISK-0005-The-Write-Surface]]"]
-tests: []
+
 ---
 
 # The write service widens

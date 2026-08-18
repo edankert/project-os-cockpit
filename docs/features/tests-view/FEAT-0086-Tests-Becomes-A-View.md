@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0373-The-Tier-Suite-And-The-Release-Gate]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0049-Review-Desk-As-Record]]", "[[FEAT-0063-The-Acceptance-Runner]]", "[[FEAT-0064-The-Acceptance-Gate]]", "[[FEAT-0072-The-Release-Surface]]", "[[PHASE-024-Acceptance-Witnessed]]"]
-tests: []
+
 ---
 
 # Tests becomes a view

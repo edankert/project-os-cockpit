@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0388-The-Landing-Pages]]"
   - "[[TASK-0389-The-Badge-Leads-To-Its-Items]]"
 related: ["[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ISS-0145]]", "[[ADR-0023]]"]
-tests: []
+
 ---
 
 # Every view lands on what it owes

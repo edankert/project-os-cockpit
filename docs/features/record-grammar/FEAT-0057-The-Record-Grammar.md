@@ -18,7 +18,7 @@ tasks:
   - "[[TASK-0274-The-Context-Pane-Becomes-Record-Cards]]"
 release: ""
 related: ["[[FEAT-0056-Completed-Work-Ordering]]", "[[FEAT-0043-Overview-Rework]]", "[[DES-0004-Attention-In-The-Squares]]"]
-tests: ["[[TST-0023-Completed-Work-Ordering]]"]
+
 ---
 
 # The record grammar

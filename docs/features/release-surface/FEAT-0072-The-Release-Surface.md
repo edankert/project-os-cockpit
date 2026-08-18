@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0317-The-Gate-Band]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0064-The-Acceptance-Gate]]"]
-tests: []
+
 ---
 
 # The release surface

@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0296-Parity-With-The-Validator]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0018-Verification-Health-Surface]]"]
-tests: []
+
 ---
 
 # Acceptance debt

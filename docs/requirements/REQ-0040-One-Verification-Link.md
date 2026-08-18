@@ -29,11 +29,13 @@ Three encodings of one relationship, two of them hand-maintained in opposite dir
 
 ## Acceptance criteria
 
-- [~] **No note type carries both encodings.** Reconciled, narrower than written: `tests:` is gone from `feature.md` and the four legacy fields are gone from `test.md`, but `task`, `issue` and `requirement` still carry `tests:` — **330 live edges fleet-wide against the feature's 62**. ADR-0032 scoped the decision to features and did not cost the other three, so widening is filed rather than done silently. VERIFY skips acceptance-level tests meanwhile, so the merged type cannot trip the gate from them.
+- [~] **No note type carries both encodings.** Reconciled, narrower than written: `tests:` is gone from `feature.md` and the four legacy fields are gone from `test.md`, but `task`, `issue` and `requirement` still carry `tests:` — **248 live edges fleet-wide on `task`/`issue`/`requirement`, against the feature's 61**. ADR-0032 scoped the decision to features and did not cost the other three, so widening is filed rather than done silently. VERIFY skips acceptance-level tests meanwhile, so the merged type cannot trip the gate from them.
 - [x] **VERIFY resolves a feature's tests from a reverse index over `covers:`.** Proved across all twelve repos: 56 findings before, 57 after, and the one difference is a *true* violation the old lookup was blind to (`your-trainer` FEAT-0086 is `done` with TST-0013 never walked).
 - [x] **`_test_feature_ids` no longer falls back to the directory path.** Deleted, after measuring that exactly 3 tests fleet-wide depended on it and backfilling all three. Guarded by `test_a_tests_subjects_never_come_from_its_directory`, which strips a note that still has the path shape and asserts the resolver answers with nothing.
 - [~] **The ten backfilled.** Three of the ten — the path-only ones, all in this repo — carry an explicit `covers:`. The other seven are in `your-health` and `project-os-dev`, whose validators do not read the field yet; the forward-field fallback covers them so nothing is lost. The 25 genuinely system-wide tests are left empty deliberately.
-- [x] **Zero unreciprocated edges remain in this repo.** The eight were read and resolved individually — seven in the feature's favour, one in the test's — and with one encoding there is no second copy to disagree.
+- [x] **Zero unreciprocated edges remain in this repo**, and zero `tests:` edges of any kind: all **22** are gone from all **81** feature notes that carried the field. The eight disagreements were read and resolved individually — seven in the feature's favour, one in the test's.
+
+  *Ticked prematurely on 2026-08-18 and corrected here.* The removal script matched `^tests:[ \t]*.*\n` against a frontmatter slice that **ends at that line with no trailing newline**, so `re.sub` replaced nothing while `re.search` reported a match — and the run printed "30 features cleaned" having cleaned none. Independent review measured 81 still carrying it. The same false report would have hidden any later removal, which is why the fixed pass asserts the substitution changed the text rather than counting matches.
 
 ## Advanced 2026-08-18
 

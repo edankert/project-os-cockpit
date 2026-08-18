@@ -14,7 +14,7 @@ related: ["[[FEAT-0007-Desktop-Shell]]", "[[FEAT-0010-Native-Nav-Right-Pane]]", 
 requirements: []
 tasks: []
 release: ""
-tests: []
+
 ---
 
 # Native shell layout

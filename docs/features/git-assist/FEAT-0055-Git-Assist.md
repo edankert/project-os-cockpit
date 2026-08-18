@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0266-A-Deliberate-Push-Action]]"
 release: ""
 related: ["[[FEAT-0028-Fleet-Health-Surface]]"]
-tests: []
+
 ---
 
 # Git assist

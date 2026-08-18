@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0391-The-Cross-Repo-Wikilink]]"
   - "[[TASK-0392-Following-It]]"
 related: ["[[ISS-0148]]", "[[ISS-0123]]", "[[FEAT-0016]]", "[[ADR-0024]]"]
-tests: []
+
 ---
 
 # A note in another project is one click away

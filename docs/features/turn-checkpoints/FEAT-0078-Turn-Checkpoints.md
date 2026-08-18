@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0337-Restore-As-A-Recorded-Action]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[RISK-0006-The-Unattended-Worker]]", "[[FEAT-0074-The-Standing-Worker]]", "[[FEAT-0055-Git-Assist]]"]
-tests: []
+
 ---
 
 # Turn checkpoints

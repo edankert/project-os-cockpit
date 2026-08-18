@@ -18,7 +18,7 @@ tasks:
   - "[[TASK-0385-The-View-Is-Called-Intent]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0042-Design-Bench]]", "[[FEAT-0050-Library-Reduction]]", "[[FEAT-0077-The-Intent-Charter]]", "[[DES-0003-Intent-Page-And-Claims-Board]]"]
-tests: []
+
 ---
 
 # Design widens into the project's constraints

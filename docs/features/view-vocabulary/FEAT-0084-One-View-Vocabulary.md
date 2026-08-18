@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0365-Recent-Gets-One-Verdict]]"
 release: ""
 related: ["[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[ISS-0023-Status-Vocabulary-Drift]]", "[[ISS-0122-Active-Modes-Doing-Column-Counts-Notes-Nobody-Is-Working]]"]
-tests: []
+
 ---
 
 # One view vocabulary

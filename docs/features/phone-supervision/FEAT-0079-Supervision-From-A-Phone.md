@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0339-The-Supervision-Payload]]"
 release: ""
 related: ["[[FEAT-0071-Since-You-Looked]]", "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]", "[[RISK-0005-The-Write-Surface]]"]
-tests: []
+
 ---
 
 # Supervision from a phone

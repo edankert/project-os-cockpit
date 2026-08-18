@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0286-Answer-In-Place]]"
 release: ""
 related: ["[[FEAT-0058-One-Shape-Per-Navigator]]"]
-tests: []
+
 ---
 
 # Desk resolution flows

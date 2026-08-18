@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0363-The-Read-Only-Guard]]"
 release: ""
 related: ["[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[RISK-0001-Render-Server-Exposure]]", "[[FEAT-0040-Overview-Rework]]", "[[FEAT-0079-Supervision-From-A-Phone]]"]
-tests: []
+
 ---
 
 # The browser cockpit answers questions

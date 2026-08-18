@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0254-Close-Out-Files-What-Survives]]"
 release: ""
 related: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0028-Fleet-Health-Surface]]", "[[FEAT-0020-Agent-Activity-Strip]]"]
-tests: []
+
 ---
 
 # Validator errors as session work

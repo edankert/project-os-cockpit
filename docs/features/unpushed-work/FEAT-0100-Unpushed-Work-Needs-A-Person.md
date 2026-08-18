@@ -18,7 +18,7 @@ tasks: ["[[TASK-0415-Git-State-For-Every-Workspace]]", "[[TASK-0416-Generalise-T
 design: "[[DES-0011-Publication-Is-An-Obligation]]"
 release: ""
 related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0025]]", "[[ADR-0022]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0098]]", "[[FEAT-0055]]", "[[ISS-0156-The-Open-Workspace-Is-The-One-Whose-Unpushed-Count-Is-Never-Computed]]"]
-tests: []
+
 ---
 
 # Unpushed work needs a person

@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0038
 aliases: ["REQ-0038"]
 title: "Nothing is lost in the merge — row count, mark and coverage parity asserted per repo before the old shape is deleted"
-status: draft
+status: approved
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -26,3 +26,7 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[FEAT-0113-The-C
 The previous migration asserted parity per repo (34 / 56 / 579) rather than assuming it, and that discipline is why it is trusted. This is the same corpus moving a second time in two weeks; the bar does not drop because the move is smaller.
 
 **Assert through the reader, not the files.** A file-count match proves the script wrote as many notes as it read. It does not prove the suite still loads, still tiers, still marks and still gates — which is what a reader depends on and what [[ISS-0175]] was filed about.
+
+## Approved 2026-08-18
+
+Approved on the pilot's evidence rather than ahead of it: 34 notes migrated with the fingerprint identical on all six original dimensions and bodies byte-identical. It stays `approved` rather than `implemented` because two of the three suites — `your-sudoku` (56) and `your-trainer` (579) — have not run the migration, and this requirement is a claim about all of them.

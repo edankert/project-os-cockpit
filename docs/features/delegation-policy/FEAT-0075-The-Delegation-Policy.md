@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0328-The-Push-Decision]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: []
-tests: []
+
 ---
 
 # The delegation policy

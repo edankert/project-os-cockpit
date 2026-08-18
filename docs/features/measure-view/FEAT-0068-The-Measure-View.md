@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0305-The-Diff-Table]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[DES-0002-Cockpit-Design-System]]"]
-tests: []
+
 ---
 
 # The measure view

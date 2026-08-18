@@ -18,7 +18,7 @@ tasks:
   - "[[TASK-0325-Stop-Conditions-By-Drill]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[RISK-0006-The-Unattended-Worker]]"]
-tests: []
+
 ---
 
 # The standing worker

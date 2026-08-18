@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0035-FEAT0108]]"]
+
 ---
 
 # The gate is a delta, not a census

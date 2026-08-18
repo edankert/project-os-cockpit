@@ -20,7 +20,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[ISS-0141]]", "[[ISS-0139]]", "[[FEAT-0105-There-Is-Always-A-Release]]"]
-tests: ["[[TST-0031-The-Exception-Mark-And-Its-Justification]]", "[[TST-0038-FEAT0104]]"]
+
 ---
 
 # The suite is the surface

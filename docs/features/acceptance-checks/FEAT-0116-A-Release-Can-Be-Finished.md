@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0115-The-Sweep-Is-Continuous]]"]
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0105-There-Is-Always-A-Release]]", "[[FEAT-0110-Still-Owed-By-A-Shipped-Release]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: ["[[TST-0043]]"]
+
 ---
 
 # A release can be finished

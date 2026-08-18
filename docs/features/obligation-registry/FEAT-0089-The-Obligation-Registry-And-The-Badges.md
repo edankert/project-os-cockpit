@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0370-Badges-On-The-View-Buttons]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[TASK-0357-Obligation-Groups-And-Verbs-In-The-Payload]]", "[[ISS-0023-Status-Vocabulary-Drift]]", "[[DES-0008-The-Returning-Human]]"]
-tests: []
+
 ---
 
 # The obligation registry and the badges

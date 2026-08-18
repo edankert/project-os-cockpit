@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0022]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0036-FEAT0109]]"]
+
 ---
 
 # Still owed by a shipped release

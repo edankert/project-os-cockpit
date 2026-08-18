@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0293-Accept-Stale-And-The-Upstream-Proposal]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0063-The-Acceptance-Runner]]"]
-tests: []
+
 ---
 
 # The acceptance gate

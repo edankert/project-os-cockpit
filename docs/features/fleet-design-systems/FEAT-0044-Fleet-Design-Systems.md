@@ -17,7 +17,7 @@ tasks:
 release: ""
 design: ["[[DES-0002-Cockpit-Design-System]]"]
 related: ["[[FEAT-0042-Design-Bench]]", "[[ISS-0023-Status-Vocabulary-Drift]]"]
-tests: []
+
 ---
 
 # A design system per UX, read from its own CSS

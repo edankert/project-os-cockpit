@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0102-Publication-Becomes-A-View]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[FEAT-0106-The-Release-Page]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: []
+
 ---
 
 # Publication is a list of releases

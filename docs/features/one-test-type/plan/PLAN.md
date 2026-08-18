@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — one test type, and one verification link"
-status: draft
+status: active
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"

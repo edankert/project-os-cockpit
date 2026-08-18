@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0368-The-Tasks-View-Retires-In-Both-Front-Doors]]"
 release: ""
 related: ["[[FEAT-0058-One-Shape-Per-Navigator]]", "[[FEAT-0056-Completed-Work-Ordering]]", "[[FEAT-0084-One-View-Vocabulary]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]"]
-tests: []
+
 ---
 
 # The navigator shows the structure the record has

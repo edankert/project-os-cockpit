@@ -18,7 +18,7 @@ tasks:
   - "[[TASK-0321-The-Mode-1-ADR]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[DES-0002-Cockpit-Design-System]]"]
-tests: []
+
 ---
 
 # One voice

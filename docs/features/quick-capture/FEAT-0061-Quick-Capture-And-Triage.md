@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0284-The-Triage-Tray]]"
 release: ""
 related: ["[[FEAT-0059-The-Write-Service-Widens]]"]
-tests: []
+
 ---
 
 # Quick capture and triage

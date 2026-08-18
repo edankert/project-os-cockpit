@@ -19,7 +19,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[FEAT-0102-Publication-Becomes-A-View]]", "[[FEAT-0063]]", "[[ISS-0172-A-Manual-Test-With-Subsections-Has-No-Runnable-Steps]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0029-The-Walker-Ticks-What-It-Walked]]", "[[TST-0030-Walking-A-Release-Gate-End-To-End]]"]
+
 ---
 
 # The gate is walkable

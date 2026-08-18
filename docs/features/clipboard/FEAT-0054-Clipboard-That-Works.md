@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0263-Terminal-Copy-And-Paste]]"
 release: ""
 related: ["[[FEAT-0037-Native-Text-Menus]]"]
-tests: []
+
 ---
 
 # A clipboard that works

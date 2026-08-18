@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0009-The-Principal-Is-A-Role]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0108-The-Gate-Is-A-Delta-Not-A-Census]]", "[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[PHASE-999-Future]]"]
-tests: []
+
 ---
 
 # The acceptance suite gets a machine-readable projection

@@ -22,7 +22,7 @@ review_date: 2026-07-28
 review_verdict: approved
 design: ["[[DES-0002-Cockpit-Design-System]]"]
 related: ["[[FEAT-0042-Design-Bench]]", "[[REQ-0022-Overview-State-Above-History]]"]
-tests: []
+
 ---
 
 # Design as a top-level surface

@@ -13,7 +13,7 @@ requirements: []
 tasks: ["[[TASK-0195-Phase-Pinned-Subagents]]", "[[TASK-0196-Routing-Hint-Hook]]", "[[TASK-0197-Upstream-And-Adopt]]"]
 release: ""
 related: []
-tests: []
+
 ---
 
 # Model routing — phase-pinned subagents + routing-hint hook

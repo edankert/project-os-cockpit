@@ -14,7 +14,7 @@ related: ["[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0009-Native-Shell-Layou
 requirements: []
 tasks: []
 release: ""
-tests: []
+
 ---
 
 # Native centre pane + routing

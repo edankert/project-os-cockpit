@@ -34,3 +34,16 @@ Done when: the script round-trips this repo's 34 in a scratch clone with every p
 **Parity is a fingerprint, not a count.** Note count, the full distribution of `mark:` values, the distribution of `tier:`, the complete set of `covers:` targets, the gate's blocking figure, and the sorted set of titles — compared before and after **through `acceptance.load`**, which is the reader every surface uses. `--write` prints `REFUSING to report success` and exits non-zero on any mismatch rather than reporting one.
 
 `--dry-run` is the default; it refuses to write without `--write`.
+
+
+## Corrected after independent review (2026-08-18)
+
+The script had **zero test coverage** while being a line-regex frontmatter editor that unlinks its inputs — the review's sharpest finding about this task, and correct. Five defects, all fixed and all now guarded in `tests/test_merge_migration.py`:
+
+- **The refusal fired after every file was written and every `CHK-*` unlinked** — a report, not a refusal. Preconditions now run before the first write.
+- **A frontmatter-less note was destroyed while parity stayed green**, because a note the reader can never see is missing from both sides of the comparison. Refused.
+- **Block-style `aliases:`** would have been rewritten into invalid YAML. Refused.
+- **A dirty tree** would have stamped `merged_from:` with a sha that does not contain the notes — the exact defect TASK-0463 fixed in the previous migration. Refused.
+- **The fingerprint guarded 6 of ~22 fields.** Now 13, including `area`, `burden`, `evidence`, `automation` and the verdict triple — a migration that silently dropped any of them used to pass.
+
+And `_set` used `value` as an `re.sub` **replacement**, so a backslash in a check title would have been interpreted rather than written.

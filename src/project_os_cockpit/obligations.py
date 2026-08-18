@@ -823,7 +823,15 @@ RESTING_STATES: frozenset[str] = (
 #: and it is owed in every phase.
 SUBJECT_FIELDS: dict[str, tuple[str, ...]] = {
     "requirement": ("implements",),
-    "test": ("verifies", "features", "requirements"),
+    # `covers` FIRST, and the three after it are the legacy names it renamed
+    # (ADR-0032). Missing it was a silent disarming rather than an error:
+    # ADR-0032 deleted `verifies`/`features`/`requirements` from every test in
+    # this repo, so `subject_ids` resolved nothing for 77 of 77 notes, and
+    # `subject_is_in_flight` treats a subject-less note as LIVE by design --
+    # which switched ADR-0028's in-flight quieting off for the entire test
+    # population and moved the badge from 1 to 3 with nothing reporting it.
+    # Found by independent review, not by a guard; the guard now exists.
+    "test": ("covers", "verifies", "features", "requirements"),
 }
 
 _SUBJECT_ID_RE = re.compile(r"([A-Z]{2,6}-\d{3,4})")

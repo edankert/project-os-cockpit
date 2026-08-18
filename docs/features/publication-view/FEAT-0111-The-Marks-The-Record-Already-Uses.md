@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: []
 related: ["[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]", "[[ISS-0141]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0037-FEAT0111]]"]
+
 ---
 
 # The marks the record already uses

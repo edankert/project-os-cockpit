@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0115-The-Sweep-Is-Continuous]]"]
 related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0107-Publication-Is-A-List-Of-Releases]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: ["[[TST-0043]]"]
+
 ---
 
 # One view per item

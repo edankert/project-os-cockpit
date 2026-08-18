@@ -281,7 +281,13 @@ def debt_payload(index: Index) -> dict[str, Any]:
     for record in index.notes_by_type("test"):
         if record.rel_path.startswith("__templates__/"):
             continue
-        verified_ids.update(_link_ids(record.frontmatter.get("verifies")))
+        # `covers:` first, legacy names after (ADR-0032). Missing this was a
+        # silent widening: with `verifies:` deleted from every test here, 23
+        # tests declared it before the rename and 0 after, so the unverified-
+        # requirements count went 31 -> 37 -- six requirements reported as
+        # unverified by tests that verify them. Found by independent review.
+        for _field in ("covers", "verifies"):
+            verified_ids.update(_link_ids(record.frontmatter.get(_field)))
 
     unverified: list[dict[str, Any]] = []
     unresolved: list[dict[str, Any]] = []

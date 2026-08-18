@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0311-The-Upstream-Proposal]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0059-The-Write-Service-Widens]]"]
-tests: []
+
 ---
 
 # Design gating and scaffolding

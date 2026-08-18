@@ -37,7 +37,7 @@ The premise about spanning is wrong and the conclusion is right. Measured across
 | the test's `features:` / `verifies:` / `validates:` | test → feature | 82 tests |
 | the feature's `tests:` | feature → test | **61 edges** |
 
-**And it has already drifted: 20 of the 61 feature→test edges are not reciprocated** — a third. The feature claims a test verifies it and the test does not say so (8 in this repo, 10 in `your-health`, 2 in `project-os-dev`). Both sides are hand-maintained and nothing reconciles them, so the drift is silent and it is already here.
+**And it has already drifted: 10 of the 61 feature→test edges are not reciprocated** — the feature claims a test verifies it and the test does not say so. *Corrected 2026-08-18 after independent review re-derived it: 8 in this repo and 2 in `project-os-dev`; `your-health`'s 10 edges all reciprocate, and the first measurement counted them as drift because it read only the test's `features:` and not the other names a test may use.* Both sides are hand-maintained and nothing reconciles them, so the drift is silent and it is already here.
 
 A check has exactly **one** encoding, `covers:`, and fans out further than tests do: **112 of 669 cover more than one subject**, up to seven.
 

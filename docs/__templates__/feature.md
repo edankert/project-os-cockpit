@@ -23,7 +23,6 @@ acceptance: ""
 # the pending band while that design was never accepted.
 design: ""
 related: []
-tests: []
 ---
 
 # <Feature>

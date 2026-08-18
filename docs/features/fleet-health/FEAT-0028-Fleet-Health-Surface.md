@@ -14,7 +14,7 @@ requirements: []
 tasks: ["[[TASK-0248-Live-Workspace-Validation-Aggregate]]", "[[TASK-0249-Cold-Workspace-Validation]]", "[[TASK-0250-Fleet-Badge-On-The-Rail]]", "[[TASK-0251-Fleet-Roll-Up]]"]
 release: ""
 related: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0007-Desktop-Shell]]"]
-tests: []
+
 ---
 
 # Fleet health surface

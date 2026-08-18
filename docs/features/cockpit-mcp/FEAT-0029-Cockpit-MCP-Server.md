@@ -14,7 +14,7 @@ requirements: []
 tasks: []
 release: ""
 related: ["[[COCKPIT-API]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0018-Verification-Health-Surface]]"]
-tests: []
+
 ---
 
 # Cockpit MCP server

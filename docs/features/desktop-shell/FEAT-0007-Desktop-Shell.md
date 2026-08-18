@@ -17,7 +17,7 @@ related: ["[[FEAT-0003-Embedded-Terminal]]", "[[FEAT-0006-Cockpit-Layout]]", "[[
 requirements: []
 tasks: ["[[TASK-0058]]", "[[TASK-0059]]", "[[TASK-0060]]", "[[TASK-0061]]", "[[TASK-0062]]", "[[TASK-0063]]", "[[TASK-0064]]", "[[TASK-0065]]", "[[TASK-0144]]", "[[TASK-0145]]"]
 release: ""
-tests: []
+
 ---
 
 # Electron desktop shell

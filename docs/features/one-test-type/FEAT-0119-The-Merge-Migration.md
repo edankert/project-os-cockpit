@@ -8,6 +8,9 @@ phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
+reviewed_by: "model:claude-opus-5"
+review_date: 2026-08-18
+review_verdict: changes-requested
 goal: "Move every `CHK-*` note in the fleet onto the merged type and renumber it into the `TST-*` space, proving per repo and through the loaded suite — never by file count — that no row, mark, coverage target or gate figure changed in the process; then retire the check type from the cockpit's seven modules and two stylesheets."
 requirements: ["[[REQ-0038-Nothing-Is-Lost-In-The-Merge]]"]
 tasks: ["[[TASK-0477-The-Merge-Migration-Script]]", "[[TASK-0478-Renumber-Into-The-TST-Space]]", "[[TASK-0479-Pilot-This-Repo]]", "[[TASK-0480-The-Fleet-Migration]]", "[[TASK-0481-Retire-The-Check-Type-From-The-Cockpit]]", "[[TASK-0490-Independent-Review-Of-The-Merge]]"]

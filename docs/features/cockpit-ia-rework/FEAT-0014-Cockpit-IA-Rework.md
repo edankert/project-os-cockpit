@@ -14,7 +14,7 @@ related: ["[[FEAT-0007-Desktop-Shell]]", "[[FEAT-0009-Native-Shell-Layout]]", "[
 requirements: []
 tasks: ["[[TASK-0097]]", "[[TASK-0098]]", "[[TASK-0099]]"]
 release: ""
-tests: []
+
 ---
 
 # Cockpit IA rework

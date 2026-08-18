@@ -14,7 +14,7 @@ related: ["[[FEAT-0014-Cockpit-IA-Rework]]", "[[FEAT-0009-Native-Shell-Layout]]"
 requirements: []
 tasks: ["[[TASK-0100]]", "[[TASK-0101]]", "[[TASK-0102]]", "[[TASK-0103]]", "[[TASK-0104]]", "[[TASK-0105]]"]
 release: ""
-tests: []
+
 ---
 
 # Cockpit IA v2

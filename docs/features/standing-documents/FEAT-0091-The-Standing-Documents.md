@@ -19,7 +19,7 @@ tasks:
   - "[[TASK-0384-Propose-The-Manifest-Upstream]]"
 release: ""
 related: ["[[ISS-0124-Four-Note-Types-Have-No-Status-Table]]", "[[ISS-0122-Active-Modes-Doing-Column-Counts-Notes-Nobody-Is-Working]]", "[[FEAT-0087-Design-Widens-Into-The-Projects-Constraints]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[REQ-0025-No-Type-Loses-Its-Surface]]"]
-tests: []
+
 ---
 
 # The standing documents

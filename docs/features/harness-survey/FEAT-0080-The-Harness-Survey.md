@@ -19,7 +19,7 @@ tasks:
   - "[[TASK-0414-The-Remote-Transport-Round]]"
 release: ""
 related: ["[[FEAT-0078-Turn-Checkpoints]]", "[[FEAT-0079-Supervision-From-A-Phone]]", "[[ISS-0094-Permission-Prompts-Are-Detected-But-Not-Answerable]]", "[[ISS-0095-The-Agent-Roster-Is-Hard-Coded]]", "[[ISS-0096-No-Surface-Says-What-Changed]]"]
-tests: []
+
 ---
 
 # The harness survey

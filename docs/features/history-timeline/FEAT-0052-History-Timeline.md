@@ -17,7 +17,7 @@ tasks:
   - "[[TASK-0257-Full-History-View]]"
 release: ""
 related: ["[[FEAT-0048-Changes-On-The-Overview]]", "[[TASK-0199-Commits-As-Documentation-Events]]"]
-tests: []
+
 ---
 
 # History

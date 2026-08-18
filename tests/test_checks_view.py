@@ -301,3 +301,57 @@ def test_coverage_cannot_settle_without_an_index() -> None:
                 checked=False, mark=" ",
                 covered_by=("[[TST-0900]]",), covered_by_status=())
     assert item.settled is False
+
+
+def test_coverage_is_all_covers_not_any(tmp_path) -> None:
+    """Two covers, one failing: the check is NOT settled.
+
+    `any()` settled it, which contradicts the sentence every note about this
+    feature carries — *a failing covering test un-settles the check*. Found by
+    independent review, and the shape of the defect is why the guard exists:
+    the single-cover case, which every other test here uses, passes either way.
+    """
+    from project_os_cockpit import acceptance
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    for tid, status in (("TST-0900", "passing"), ("TST-0901", "failing")):
+        (docs / "tests" / f"{tid}-C.md").write_text(
+            f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "c"\nstatus: {status}\n'
+            f'kind: automated\nlevel: unit\ncommand: "pytest -q"\n'
+            f'last_run: "2026-08-18"\ncovers: []\n---\n\nb\n', encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
+        'level: acceptance\nkind: manual\ntier: 1\nmark: " "\narea: "A"\n'
+        'section: "1.1"\nordinal: 10\nautomation: full\n'
+        'covered_by: ["[[TST-0900-C]]", "[[TST-0901-C]]"]\ncovers: []\n---\n\nwalk\n',
+        encoding="utf-8")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking()) == 1, "one failing cover must keep the check in the gate"
+
+
+def test_a_manual_covering_test_is_not_coverage(tmp_path) -> None:
+    """A hand-walked test at `passing` must not discharge another check.
+
+    Coverage means a MACHINE answers it. Accepting a manual `passing` would let
+    one walk launder itself into another's automation — the opposite of what
+    REQ-0039 buys, and reachable today because every migrated acceptance note
+    carries `kind: manual`.
+    """
+    from project_os_cockpit import acceptance
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "tests" / "TST-0900-Manual.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "m"\nstatus: passing\n'
+        'kind: manual\nlevel: system\nlast_verified: "2026-08-18"\ncovers: []\n---\n\nsteps\n',
+        encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
+        'level: acceptance\nkind: manual\ntier: 1\nmark: " "\narea: "A"\n'
+        'section: "1.1"\nordinal: 10\nautomation: full\n'
+        'covered_by: ["[[TST-0900-Manual]]"]\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert len(suite.blocking()) == 1, "a manual covering test must not settle anything"

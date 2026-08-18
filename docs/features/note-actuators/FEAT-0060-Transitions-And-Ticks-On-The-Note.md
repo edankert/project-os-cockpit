@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0282-Live-Checkboxes]]"
 release: ""
 related: ["[[FEAT-0059-The-Write-Service-Widens]]"]
-tests: []
+
 ---
 
 # Transitions and ticks on the note

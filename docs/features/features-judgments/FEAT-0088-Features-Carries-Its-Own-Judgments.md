@@ -15,7 +15,7 @@ tasks:
   - "[[TASK-0376-Approval-And-Acceptance-On-The-Feature]]"
 release: ""
 related: ["[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0085-The-Navigator-Shows-The-Structure-The-Record-Has]]", "[[DES-0006-The-Acceptance-Desk]]", "[[FEAT-0063-The-Acceptance-Runner]]", "[[FEAT-0064-The-Acceptance-Gate]]"]
-tests: []
+
 ---
 
 # Features carries its own judgments

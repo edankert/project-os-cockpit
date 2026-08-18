@@ -345,3 +345,36 @@ def test_routing_moves_the_row_and_never_the_note() -> None:
         if r.note_id and not r.rel_path.startswith("__templates__/")
     }
     assert corpus <= listed, corpus - listed
+
+
+def test_a_tests_subject_fields_track_the_link_rename() -> None:
+    """ADR-0032 renamed the field `subject_ids` reads, and the rename was missed.
+
+    `SUBJECT_FIELDS["test"]` named `verifies`/`features`/`requirements`, all
+    three of which ADR-0032 deleted from every test in this repo — so
+    `subject_ids` resolved nothing for 77 of 77 notes and
+    `subject_is_in_flight` treats a subject-less note as LIVE by design. The
+    in-flight quieting switched off for the whole test population and the badge
+    moved 1 → 3, silently. Found by independent review.
+
+    Asserted as *the field a test declares must be one this reads*, so the next
+    rename fails here instead of moving a number nobody is watching.
+    """
+    from project_os_cockpit import obligations
+
+    assert "covers" in obligations.SUBJECT_FIELDS["test"], (
+        "SUBJECT_FIELDS lost the field ADR-0032 made canonical; the in-flight "
+        "rule silently stops applying to every test"
+    )
+    index = Index.build(REPO_DOCS)
+    resolving = [
+        r.note_id for r in index.notes_by_type("test")
+        if r.frontmatter.get("covers") and obligations.subject_ids(r)
+    ]
+    declaring = [
+        r.note_id for r in index.notes_by_type("test") if r.frontmatter.get("covers")
+    ]
+    assert len(resolving) == len(declaring), (
+        f"{len(declaring) - len(resolving)} test(s) declare a subject that "
+        "subject_ids cannot see"
+    )

@@ -2195,7 +2195,7 @@ items:
     REQ-0038:
       file: "docs/requirements/REQ-0038-Nothing-Is-Lost-In-The-Merge.md"
       title: "Nothing is lost in the merge — row count, mark and coverage parity asserted per repo before the old shape is deleted"
-      status: draft
+      status: approved
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0119"
@@ -2203,7 +2203,7 @@ items:
     REQ-0039:
       file: "docs/requirements/REQ-0039-A-Covering-Test-Settles-The-Check.md"
       title: "A passing covering test settles the acceptance test it covers — automating a check must discharge it, which is the whole reason for the merge"
-      status: draft
+      status: approved
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0120"
@@ -3265,8 +3265,8 @@ metrics:
     features_total: 121
     features_done: 103
     tasks_total: 489
-    tasks_done: 446
-    tests_total: 77
+    tasks_done: 447
+    tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181

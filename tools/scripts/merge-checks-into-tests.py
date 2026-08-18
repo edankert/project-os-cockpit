@@ -41,7 +41,11 @@ def _field(head: str, name: str) -> str:
 
 def _set(head: str, name: str, value: str) -> str:
     if re.search(rf"^{name}:", head, re.M):
-        return re.sub(rf"^{name}:[ \t]*.*$", f"{name}: {value}", head, count=1, flags=re.M)
+        # `value` is a REPLACEMENT string, so a literal backslash or `\g` in a
+        # title would be interpreted rather than written. Escaped, because a
+        # check name is free text.
+        return re.sub(rf"^{name}:[ \t]*.*$", lambda _m: f"{name}: {value}",
+                      head, count=1, flags=re.M)
     return head.rstrip("\n") + f"\n{name}: {value}"
 
 
@@ -78,6 +82,18 @@ def fingerprint(suite) -> dict:
         "covers": sorted({r for i in suite.items for r in i.refs}),
         "blocking": len(suite.blocking()),
         "titles": sorted(i.name for i in suite.items),
+        # Widened after review found the fingerprint guarding 6 of ~22 fields.
+        # A migration that silently dropped `area`, `burden` or a verdict reason
+        # would have passed every assertion above it.
+        "areas": dict(Counter(i.area for i in suite.items)),
+        "sections": sorted(i.section for i in suite.items),
+        "verdicts": sorted((i.verdict_date, i.verdict_reason) for i in suite.items),
+        "automation": dict(Counter(i.automation for i in suite.items)),
+        "burden": sorted(tuple(i.burden) for i in suite.items),
+        "evidence": sorted(tuple(i.evidence) for i in suite.items),
+        "invalidated": sorted(
+            (i.invalidated.change, i.invalidated.reason, i.invalidated.date)
+            for i in suite.items),
     }
 
 
@@ -126,6 +142,37 @@ def main(argv=None) -> int:
         slug = path.name.split("-", 2)[2] if path.name.count("-") >= 2 else path.name
         plan.append((path, checks_dir / f"{new_id}-{slug}", old_id, new_id, head, body))
 
+    # **Refusals BEFORE the first write.** The first cut validated parity after
+    # every file had been written and every `CHK-*` unlinked, which is a report
+    # rather than a refusal -- by the time it fired the corpus was already
+    # rewritten. Found by independent review.
+    problems: list[str] = []
+    for path, _target, old_id, _new_id, head, _body in plan:
+        if not head.startswith("---"):
+            problems.append("%s has no frontmatter; a line-regex editor would "
+                            "destroy it while parity stayed green" % path.name)
+        if not old_id:
+            problems.append("%s declares no id:" % path.name)
+        if re.search(r"^aliases:[ \t]*$", head, re.M):
+            problems.append("%s uses block-style aliases:, which this editor "
+                            "cannot rewrite without producing invalid YAML" % path.name)
+    try:
+        dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        dirty = ""
+    if dirty and args.write:
+        # `merged_from:` records the sha the notes came from. Against a dirty
+        # tree that sha does not contain what was migrated, which is the exact
+        # defect TASK-0463 fixed in the previous migration by stamping
+        # "(uncommitted at migration)" instead of pointing at a lie.
+        problems.append("the working tree is dirty; `merged_from:` would name a "
+                        "sha that does not contain these notes (commit first)")
+    if problems:
+        for problem in problems:
+            print("merge-checks: REFUSED -- %s" % problem)
+        return 1
+
     print("merge-checks: %d check(s) -> %s..%s" % (len(plan), plan[0][3], plan[-1][3]))
     if not args.write:
         for path, target, old_id, new_id, _h, _b in plan[:3]:
@@ -153,7 +200,7 @@ def main(argv=None) -> int:
 
     after = fingerprint(read_suite(docs))
     ok = True
-    for key in ("n", "marks", "tiers", "covers", "blocking", "titles"):
+    for key in sorted(before):
         if before[key] != after[key]:
             ok = False
             b, a = before[key], after[key]

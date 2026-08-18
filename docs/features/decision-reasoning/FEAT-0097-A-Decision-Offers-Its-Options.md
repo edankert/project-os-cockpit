@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0402-The-Choice-On-The-Row]]"
   - "[[TASK-0403-The-Validator-Keeps-The-Shape]]"
 related: ["[[ADR-0010]]", "[[FEAT-0095]]", "[[ISS-0152]]"]
-tests: []
+
 ---
 
 # A decision offers its options

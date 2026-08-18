@@ -19,7 +19,7 @@ design: ""
 release: ""
 depends: ["[[ADR-0028-Work-Has-Three-Phases]]"]
 related: ["[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0102-Publication-Becomes-A-View]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
-tests: ["[[TST-0025-Obligation-Routing-Is-Per-Item-And-Complete]]", "[[TST-0026-The-In-Flight-Rule-Against-The-Live-Fleet]]"]
+
 ---
 
 # Obligations route by the state of their subject

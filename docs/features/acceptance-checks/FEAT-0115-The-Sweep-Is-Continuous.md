@@ -16,7 +16,7 @@ design: ""
 release: ""
 depends: ["[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 related: ["[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
-tests: ["[[TST-0042]]"]
+
 ---
 
 # The sweep is continuous

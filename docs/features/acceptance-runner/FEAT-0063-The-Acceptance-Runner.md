@@ -18,7 +18,7 @@ tasks:
   - "[[TASK-0290-The-Queue-Entry-And-Resolution]]"
 release: "[[REL-0001-The-Human-Has-Levers]]"
 related: ["[[FEAT-0059-The-Write-Service-Widens]]", "[[FEAT-0061-Quick-Capture-And-Triage]]", "[[FEAT-0066-Visual-Evidence]]"]
-tests: []
+
 ---
 
 # The acceptance runner

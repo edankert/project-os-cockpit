@@ -32,7 +32,7 @@ reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
 review_verdict: approved
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"]
-tests: []
+
 ---
 
 # What a session costs to keep alive

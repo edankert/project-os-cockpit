@@ -16,7 +16,7 @@ tasks:
   - "[[TASK-0394-The-Owed-Mark-In-Place]]"
   - "[[TASK-0395-Needs-You-On-The-Overview]]"   # cancelled
 related: ["[[ADR-0025]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]", "[[FEAT-0092]]"]
-tests: []
+
 ---
 
 # Needs you leads every view

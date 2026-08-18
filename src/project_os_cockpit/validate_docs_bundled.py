@@ -827,8 +827,21 @@ def compute_metric_counts(items, note_index, claimants=None):
         if claimed and claimed != nid:
             continue
         statuses.setdefault(nid, str((fm or {}).get("status", "") or ""))
+    # Acceptance tests are excluded from every metric (ADR-0030, carried into
+    # ADR-0031): *"a count of acceptance rows on the overview is a number
+    # nobody acts on"*. That refusal used to be free, because a check carried
+    # a `CHK-` prefix and no metric named it; the renumber into the `TST-`
+    # space undid it silently and `tests_total` went 43 -> 77 here, with the
+    # overview's *Tests passing* tile reading 40/77 instead of 40/43 -- and it
+    # would read ~18/597 in `your-trainer`. Found by independent review.
+    acceptance_ids = {
+        nid for nid, (_path, _fm) in (note_index or {}).items()
+        if str((_fm or {}).get("level", "") or "").strip().lower() == "acceptance"
+    }
     by_prefix = {}
     for the_id, status in statuses.items():
+        if the_id in acceptance_ids:
+            continue
         m = ID_RE.match(the_id)
         if m and m.group(1) in METRIC_PREFIXES:
             by_prefix.setdefault(m.group(1), []).append(status)
@@ -1823,13 +1836,31 @@ def validate(root, report):
         # `command:` is the deliberate exception and the whole point of the
         # merged type: an acceptance test that declares a way to run itself
         # HAS been automated, and the runner owns its status from then on.
-        if level == "acceptance" and status in ACCEPTANCE_FORBIDDEN_STATUSES and not command:
+        # `ready` is forbidden EVEN WITH a command:, and that exception to the
+        # exception is the whole point. `ready` means defined and never
+        # executed, and it is the status the `Run` obligation counts -- so an
+        # acceptance test parked there with a command: reaches the badge, which
+        # is what ADR-0027 forbids for this population.
+        #
+        # Reproduced by independent review before this line existed: give one
+        # migrated note a command: and status: ready and the validator said OK
+        # while the badge went 3 -> 4. A bulk automation pass (TASK-0485's
+        # shape, 203+ notes) would have walked straight into it.
+        #
+        # `passing`/`failing` stay exempt with a command:, because those are the
+        # runner's own output and the runner is exactly what a command: hands
+        # the note over to.
+        forbidden = (ACCEPTANCE_FORBIDDEN_STATUSES if not command
+                     else tuple(s for s in ACCEPTANCE_FORBIDDEN_STATUSES
+                                if s not in TEST_RUNNER_STATUSES))
+        if level == "acceptance" and status in forbidden:
             emit_for("ACCEPTANCE-STATUS", the_id)(
                 "ACCEPTANCE-STATUS",
-                "%s is at level: acceptance and status: '%s', which is a status it must never hold without a "
-                "command: -- it rests at `active` and its verdict is `mark:` (ADR-0031). Holding '%s' puts it "
-                "in front of the review gate and the Run obligation, which is what ADR-0027 forbids for this "
-                "population (%s)" % (the_id, status, status, rel))
+                "%s is at level: acceptance and status: '%s' -- it rests at `active` and its verdict is "
+                "`mark:` (ADR-0031). Holding '%s' puts it in front of the review gate and/or the Run "
+                "obligation, which is what ADR-0027 forbids for this population. A command: exempts "
+                "`passing`/`failing` (the runner writes those) but never `ready`, which is the status the "
+                "Run obligation counts (%s)" % (the_id, status, status, rel))
 
         if command:
             # An executable test's status is the runner's output, so it must carry
