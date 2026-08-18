@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-18"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0050-A-Check-That-Cannot-Regress-Is-Closed]]"]
-tasks: ["[[TASK-0517-Close-The-Tier-Three-Holding-Pen]]", "[[TASK-0518-Review-Tier-Two-For-One-Time-Fixes]]"]
+tasks: ["[[TASK-0517-Close-The-Tier-Three-Holding-Pen]]", "[[TASK-0518-Review-Tier-Two-For-One-Time-Fixes]]", "[[TASK-0525-Relink-Tier-Two-To-Its-Issue]]", "[[TASK-0526-A-Tier-Two-Check-Rests-With-Its-Issue]]"]
 related: ["[[DES-0012-Tests-In-Two-Flows]]", "[[ISS-0208-Retire-The-Tier-Rule]]"]
 tags: [feature]
 ---

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0506
+aliases: ["TASK-0506"]
 title: "`Verified` requires a positive test; an unrecognised status gets a visible group"
 status: done
 owner: user:edwin

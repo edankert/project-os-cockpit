@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0514
+aliases: ["TASK-0514"]
 title: "A `SUR-*` note type, with template, schema entry and validator support"
 status: backlog
 owner: user:edwin

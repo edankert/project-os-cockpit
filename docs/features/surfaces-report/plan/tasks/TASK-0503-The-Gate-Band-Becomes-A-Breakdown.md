@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0503
+aliases: ["TASK-0503"]
 title: "Replace the sixty-row blocking wall with a breakdown by area, each part linking to a filtered `~checks`"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0511
+aliases: ["TASK-0511"]
 title: "A preparing release can add and remove features and phases, written to its note"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0520
+aliases: ["TASK-0520"]
 title: "Restore tier → surface → rows on the generated page, with a progress bar per group"
 status: backlog
 owner: user:edwin

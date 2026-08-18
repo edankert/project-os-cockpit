@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0510
+aliases: ["TASK-0510"]
 title: "Order the tests view so feature tests come above the flat state groups"
 status: done
 owner: user:edwin

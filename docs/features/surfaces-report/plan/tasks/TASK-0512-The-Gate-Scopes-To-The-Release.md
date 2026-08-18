@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0512
+aliases: ["TASK-0512"]
 title: "When a release names contents, its gate reports what blocks THAT release"
 status: backlog
 owner: user:edwin

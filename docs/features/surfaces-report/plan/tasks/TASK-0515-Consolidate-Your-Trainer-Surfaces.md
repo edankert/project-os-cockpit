@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0515
+aliases: ["TASK-0515"]
 title: "Map your-trainer's 76 areas onto a set of 12-15 surfaces, recording each mapping"
 status: backlog
 owner: user:edwin

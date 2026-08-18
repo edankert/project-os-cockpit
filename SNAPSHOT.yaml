@@ -61,12 +61,12 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 132
-  ISS: 213
+  ISS: 214
   PHASE: 37
   REQ: 51
   RISK: 7
   REL: 1
-  TASK: 524
+  TASK: 526
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -3569,14 +3569,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 132
     features_done: 112
-    tasks_total: 523
+    tasks_total: 525
     tasks_done: 471
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 9
+    issues_open: 10
     issues_triage: 0
     risks_open: 6
     releases_total: 1

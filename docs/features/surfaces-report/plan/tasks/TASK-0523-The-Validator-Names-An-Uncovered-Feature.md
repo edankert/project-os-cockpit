@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0523
+aliases: ["TASK-0523"]
 title: "A feature reaching a terminal status with nothing covering it is a validator error"
 status: backlog
 owner: user:edwin

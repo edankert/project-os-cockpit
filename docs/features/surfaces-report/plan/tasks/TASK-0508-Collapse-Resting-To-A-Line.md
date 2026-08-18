@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0508
+aliases: ["TASK-0508"]
 title: "Collapse `Resting · no feature in flight` to one expandable line"
 status: done
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0507
+aliases: ["TASK-0507"]
 title: "Decide a `level:` for the five `level: system` manual tests in your-trainer, one at a time"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0522
+aliases: ["TASK-0522"]
 title: "The feature scaffold emits a Tier 1 acceptance test beside PLAN.md"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0516
+aliases: ["TASK-0516"]
 title: "Surfaces appear on the design view, with a surface carrying zero checks visible as such"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0509
+aliases: ["TASK-0509"]
 title: "Tier sections show walked / needing re-run / to walk, and expand on demand"
 status: done
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0504
+aliases: ["TASK-0504"]
 title: "Show the open `TST-*` rows for the features in the release"
 status: backlog
 owner: user:edwin

@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0502
+aliases: ["TASK-0502"]
 title: "Delete `gateMark`'s `actionable` parameter so no release row can write a check"
 status: done
 owner: user:edwin

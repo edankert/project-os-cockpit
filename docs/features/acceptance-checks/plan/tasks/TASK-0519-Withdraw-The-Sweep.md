@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0519
+aliases: ["TASK-0519"]
 title: "Remove the sweep obligation, its route, its page and its write path"
 status: done
 owner: user:edwin

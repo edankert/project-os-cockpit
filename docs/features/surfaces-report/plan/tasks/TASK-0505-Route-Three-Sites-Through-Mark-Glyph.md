@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0505
+aliases: ["TASK-0505"]
 title: "Render glyphs at the picker token, the canceled-row test and the gate tooltip, and guard against raw words"
 status: done
 owner: user:edwin

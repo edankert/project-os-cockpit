@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
-id: TASK
-aliases: ["TASK"]
+id: TASK-0524
+aliases: ["TASK-0524"]
 title: "Backfill or except the 75 your-trainer features with no acceptance check"
 status: backlog
 owner: user:edwin
