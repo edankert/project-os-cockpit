@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 117
-  ISS: 194
+  ISS: 195
   PHASE: 35
   REQ: 36
   RISK: 7
@@ -1386,6 +1386,18 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0195:
+      file: "docs/issues/ISS-0195-Two-Types-Carry-One-Act.md"
+      title: "Two types carry one act — but for 9 of 22 manual `TST-*`, not for all 22: the ones naming a capability are checks wearing a test id, and the ones naming a change are not"
+      status: triage
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: docs
+      reviewed_by: model:claude-opus-5
+      review_verdict: changes-requested
+      related: [ADR-0030, ADR-0027, ADR-0028, ISS-0178, FEAT-0113]
+      note: "Edwin: 'I didn`t realise that TSTs required my attention as well as CHKs ... we potentially use 2 different types for the same / similar functionality.' REVISED after independent review returned changes-requested; the direction survived, the scope did not. Fleet holds FOUR populations, not three: 54 machine-verified TSTs, 22 `kind: manual` (362 parsed steps), 669 checks, and 3 FROZEN per-release suites in your-trainer at 377 steps that the first draft missed entirely — larger than the manual-TST population it was about. THE THESIS HOLDS FOR 9 OF 22, not 22: your-trainer TST-0001..0008 link only FEAT/REQ — a capability, which IS a check`s `covers:` semantics — while 13 name the TASK/ISS they verify, and TST-0018 states its own retirement path INTO an automated test, which no check has. your-sudoku is the control the table contained and nobody read: 56 checks, 13 automated tests, ZERO manual — so B is migration residue in two repos, not a structural third type. THREE CORRECTIONS THAT MATTER: the badge is 6 fleet-wide, not 20, because ADR-0028`s in-flight rule rests the other 10 (cited in related: and never applied — Edwin`s complaint is a 5-row problem in your-trainer); the feature-gate-vs-release-gate row is FALSE, REL-0012 carries TST-0011/TST-0014 in tests_verified:; and `the boxes are addressable by nothing` is refuted by shipped code — manual_test_steps parses all 362, steps= is on every nav row, ~tests/<id>/run is a stepper and stamp_test_run writes per-step results. What survives is narrower: _RUNS_HEADING_RE occurs only in the WRITER, so `## Runs` is write-only and `which of TST-0013`s 107 steps stands` is unanswerable. Five figures corrected (~40->18, 208->203/221, 23->22, 171->180 boxes/362 steps, ISS-0178 open->deferred) and 11 your-health notes moved from manual to automated. Options 2 and 4 rejected with measurements; option 3 is coherent as a data model but its `both gates intact` claim is not established (three ADR-0030 collisions, needs a fourth test status against ADR-0008). RECOMMENDED FIFTH: migrate the 9, keep the 13 and write the one sentence that separates them, and fix the two defects that are not about the type at all."
     ISS-0194:
       file: "docs/issues/ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight.md"
       title: "No virtual page refreshes the nav highlight, so the left pane goes on pointing at the note you left — `~checks`, `~sweep`, `~history`, `~accept` and the test runner all inherit it"
@@ -3147,7 +3159,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 5
-    issues_triage: 0
+    issues_triage: 1
     risks_open: 6
     releases_total: 1
     decisions_total: 21
