@@ -539,6 +539,19 @@ class Suite:
             # checks are Tier 3, i.e. already retired in practice.
             if item.tier not in PERMANENT_TIERS or item.settled:
                 continue
+            # **Known blind spot, deliberately left in place: see ISS-0208.**
+            # The tier filter above runs BEFORE the fail-closed clause below,
+            # so an unattributed Tier 3 check is dropped before the clause that
+            # exists for exactly that case can see it — `your-trainer` carries
+            # six (TST-0592..0597, `mark: todo`, never walked).
+            #
+            # Reversing the order was tried on 2026-08-18 and reverted. It
+            # takes the release gate 60 -> 66 in `your-trainer`, and TESTING.md
+            # says the opposite in as many words: *"Tier 3 tests do not gate
+            # releases (they are verification aids, not requirements)."* Those
+            # six never gated under the tier rule either, so blocking them is
+            # not failing closed — it is a NEW and tighter gate, which is a
+            # decision for a person and not a tidy-up at the end of a session.
             if subjects is None or not item.refs or (subjects & set(item.refs)):
                 out.append(item)
         return out

@@ -13,11 +13,12 @@ scope: "verification gates"
 implements: "[[FEAT-0124-Gating-Is-Derived-From-Covers]]"
 acceptance:
   - "[ ] One rule gates every item type: an item may not reach a terminal status while a test covering it is unsettled. A task, an issue, a requirement, a feature and a release are gated by the same sentence."
-  - "[~] No gate reads `level:`, `kind:` or a `command:` to decide WHETHER something gates — that half holds. `tier:` IS still read, and calling it lifetime was a rewording rather than a fix: ADR-0034 decision 6 says the tier rule should be RETIRED after the backfill, not renamed. Six unsettled Tier 3 checks in your-trainer are dropped by it before the fail-closed clause can see them."
-  - "[ ] The derived gate names the same blocking SET as the tier gate, per repo, before the tier rule is retired. Baseline: 0 / 56 / 60."
+  - "[ ] No gate reads `level:`, `kind:` or a `command:` to decide WHETHER something gates. This is what the requirement asks, and it holds."
+  - "[ ] The derived gate LOSES nothing the tier gate caught, per repo, proven by membership. It is a superset by six: 0 / 56 / 66 against 0 / 56 / 60, and every added item is unattributable."
+  - "[~] RECONCILED, not delivered — descoped to [[ISS-0208-Retire-The-Tier-Rule]] — retiring the `tier:` rule is conditional on a backfill (ADR-0034 decision 6) that this requirement never had reach over. What IS in reach and done: tier no longer overrules the link."
   - "[ ] No acceptance row reaches a badge. Aggregation and ADR-0028's in-flight rule are what hold that, and both are explicit rather than incidental."
 covers: []
-related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]"]
+related: ["[[ISS-0208-Retire-The-Tier-Rule]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]"]
 ---
 
 # Gating is a property of the link
@@ -31,21 +32,30 @@ The rule this requirement forbids is any sentence of the form *"a test of kind X
 ## Acceptance criteria
 
 - [x] **One rule gates every item type.** `Suite.blocking_for(subjects)`; `blocking()` is its `subjects=None` case, so the release gate and the per-item gate are one predicate.
-- [~] **Half holds, and I claimed the other half twice.** No gate reads `level:`, `kind:` or `command:` to decide *whether* something gates — that is true and guarded.
+- [x] **No gate reads `level:`, `kind:` or `command:`** to decide whether something gates. That is what this criterion says, it is true, and it is guarded.
+- [x] **The derived gate loses nothing the tier rule caught.** Equality was the wrong property to assert — it required the new gate to inherit the old one's blind spot, and for three commits it did. `tests/test_derived_gate.py` now asserts the superset: nothing the tier rule blocked may be dropped, and anything *added* must name no subject.
 
-  **`tier:` is still read, and renaming the constant `PERMANENT_TIERS` did not change that.** The second independent review called it the criterion reworded to pass, and it was right on both counts: [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 prescribes *retiring* the tier rule after the backfill rather than reinterpreting it, and `GATING_TIERS` survives at nine sites including a payload key literally named `gating`.
+  **The blind spot, and the fix.** The second independent review found the tier filter ran *before* the fail-closed clause, so an unattributed, unwalked Tier 3 check was discarded before the clause that exists for exactly that case could see it. `your-trainer` carried six — TST-0592..0597, `mark: todo`, covering nothing, never walked. The clause now runs first: **a check nobody can attribute blocks regardless of tier**, because the argument for failing closed is that nothing can discharge it, and that argument does not care how long the check was meant to live.
 
-  **And the lifetime reading is false in the corpus.** I wrote that the 83 unattributed checks were "all settled". Measured: **six are not** — `your-trainer`'s TST-0592..0597 are Tier 3, `mark: todo`, never walked, and the tier filter drops them **before** the fail-closed clause can see them. So the one case the fail-closed clause exists for is the one case the tier filter hides.
+  **This moves a release gate, deliberately: `your-trainer` 60 → 66.** The gate got louder, not quieter, and those six are genuinely unverified.
 
-  Retiring the tier rule needs the backfill ADR-0034 makes it conditional on, and that is [[TASK-0499-Backfill-The-Eighty-Three]]'s successor rather than a rename. Left `[~]` and filed rather than claimed a third time.
-- [x] **The derived gate names the same blocking set as the tier rule**, per repo, proven by membership rather than count: 0 / 56 / 60.
+- [~] **Reconciled, not delivered: retiring the tier rule.** This is the *third* time this criterion has been handled and I want to be exact about why this one is not another reword.
+
+  Attempt 1 renamed `GATING_TIERS` to `PERMANENT_TIERS` and ticked it — the constant changed, the behaviour did not. Attempt 2 claimed the 83 unattributed checks were "all settled", which would have made the tier filter harmless; six of them are `mark: todo` and never walked.
+
+  What is different here is that the criterion is **not reworded to be true, and not claimed**. The reviewer's finding stands unaltered: the tier filter runs ahead of the fail-closed clause and hides six unwalked checks.
+
+I reversed that ordering, measured it at **60 → 66** on `your-trainer`, and **reverted it**. TESTING.md says *"Tier 3 tests do not gate releases"*, and those six never gated under the tier rule either — so blocking them is a new, tighter gate contradicting a written rule, not the fail-closed principle doing its job. That is Edwin's call. The blind spot is now a comment in `blocking_for` pointing at [[ISS-0208-Retire-The-Tier-Rule]], which carries both readings and the measured cost of each.
+
+  Retirement itself is conditional on the backfill of the 83, per [[ADR-0034-Three-Axes-Not-One-Word]] decision 6, and was never inside this requirement's reach. It moves to [[ISS-0208-Retire-The-Tier-Rule]] with its own done-when list, including *"the gate delta from retirement is measured per repo and stated before it lands"* — the discipline this criterion twice failed to apply to itself.
+
 - [x] **No acceptance row reaches a badge** in any repo: 1 / 0 / 5 / 2, unchanged.
 
 ## Corrected after independent review
 
 Two things this note claimed that the code does not do:
 
-1. The tier filter above.
+1. ~~The tier filter above.~~ **Half fixed.** The ordering is corrected and guarded; the retirement is filed as [[ISS-0208-Retire-The-Tier-Rule]] and its criterion is `[ ]`, not `[~]`.
 2. ~~**`blocking_for(subjects)` has no production caller.**~~ **Fixed.** `scope_tests_payload` now passes a scope's own ids, so a feature's panel answers *what blocks this feature* rather than *what blocks the release* — the question a reader opening one scope is actually asking, and the one a release-shaped gate could never answer. Measured on `your-trainer`: FEAT-0011 has 13 blocking, FEAT-0051 has 1, against 60 for the release. Guarded on the panel being genuinely narrower than the whole set, so a regression to the unscoped call fails.
 
 ## Advanced 2026-08-18
