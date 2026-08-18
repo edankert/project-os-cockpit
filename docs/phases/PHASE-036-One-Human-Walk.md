@@ -18,7 +18,7 @@ related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0033-A-Manual-Test-Is-A
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
 review_verdict: changes-requested
-review_note: "Five passes, all `model:claude-opus-5`, each from fresh context in a session that did not author the work. The fifth pass (## Fifth review) re-ran both mutations on the verb guard and approved [[TASK-0495]]; five of the fourth pass's six findings reproduce as fixed. It holds `changes-requested` on this note for ONE finding: the first exit criterion still misstates the template figures — twelve `test.md` and twelve `SCHEMAS.md`, not nine and eleven, each verified 1->0 against its removal commit's parent. The closure itself remains legitimate; this is a record correction, not grounds to reopen."
+review_note: "Six passes, all `model:claude-opus-5`, each from fresh context in a session that did not author the work. The sixth pass (## Sixth review) independently re-derived the template figures BEFORE reading this note and confirms twelve and twelve — the fifth pass's correction is right. It holds `changes-requested` on two further defects in the SAME ticked criterion: (a) the fleet-wide note figure is 751, not 727 — 727 is the four-repo total the first pass measured, and the second pass then reported 24 more notes still carrying `kind:` (obsidian-supernote-sync 5, project-os-dev 4, yourtrainer-mcp 15), cleaned in the later waves; both halves of 727+24=751 are already in this note. (b) The derivation command the criterion embeds returns 0, not 1, in all twelve repos (regex operands reversed), and the method it states — each file's LAST MODIFYING commit — undercounts `test.md` by one. No regression: suite 1699 passed/3 skipped, validator OK, blocking 0/56/60 identical sets, both verb mutations kill the guard. The closure itself remains legitimate; these are record corrections, not grounds to reopen."
 ---
 
 # Three axes
@@ -44,7 +44,26 @@ Five further concerns from the same reading became [[ISS-0200-Marks-Versus-Statu
 
 ## Exit criteria
 
-- [x] **`kind:` is gone from the schema**, from every note fleet-wide (727 demonstrable from history) and from **twelve `test.md` templates and twelve `SCHEMAS.md`** — every repo carried it and every repo is clean at `HEAD`, verified with `git show HEAD:` rather than the working tree. *Third figure in this box: it said "all four `test.md`", then "nine and eleven", and both were wrong. Derived by walking each file's last modifying commit and counting the declaration in its **parent** blob — `git show <c>^:docs/__templates__/SCHEMAS.md | grep -E '`kind`.*\(required\)'` — which is 1 for all twelve repos and 0 at `HEAD` for all twelve. The 8-and-12 figures in the second-review paragraph below count something different and are also right: eight `test.md` still carried it at that moment, because four had been cleaned in the first wave.* It took three passes to land: the three fleet templates were missed first, then upstream's — which owns the file every repo syncs — then six more repos where the edit existed on disk and in no commit.
+- [x] **`kind:` is gone from the schema**, from **751 notes fleet-wide** and from **twelve `test.md` templates and twelve `SCHEMAS.md`** — every repo carried it in both files, and all twelve are clean at `HEAD`, verified with `git show HEAD:` rather than the working tree.
+
+  *Fourth and fifth figures in this box.* It has said "all four `test.md`", then "nine and eleven", then "twelve and twelve" (right) beside a note count of **727** (wrong) and a derivation command that **returns 0 in all twelve repos**. Both defects are the same mistake in different clothes: a number measured when the scope was four repos, restated after it widened to twelve.
+
+  **727 is the first wave only** — `project-os-cockpit` 57 + `your-sudoku` 69 + `your-trainer` 593 + `your-health` 8, which is all the first pass could see. The second pass then found **24** more still carrying it (`obsidian-supernote-sync` 5, `project-os-dev` 4, `yourtrainer-mcp` 15), cleaned at 18:13 and 18:59. **727 + 24 = 751**, and both halves were already written in this note, one criterion apart.
+
+  **The derivation, as it actually reproduces** — the earlier gloss said "each file's *last modifying* commit", which undercounts `test.md` by one because this repo's template was modified again after removal, and its embedded regex had the operands reversed (`SCHEMAS.md` reads `- (required) \`kind\` (string)`, so `(required)` *precedes* the field):
+
+  ```sh
+  # per repo: R = the commit that took `^kind:` in test.md from 1 to 0
+  git show $R^:docs/__templates__/SCHEMAS.md | grep -cE '^- \(required\) .kind.'   # 1, all twelve
+  git show $R^:docs/__templates__/test.md    | grep -c  '^kind:'                    # 1, all twelve
+  git show HEAD:docs/__templates__/SCHEMAS.md | grep -cE '^- \(required\) .kind.'  # 0, all twelve
+  ```
+
+  A pickaxe does **not** work here and is the trap: `git log -S'kind'` never surfaces the removal commit, because the same commit adds the `~~kind~~` strikethrough and the occurrence count barely moves.
+
+  The 8-and-12 figures in the second-review paragraph below measure a different moment and are also right: eight `test.md` still carried it *then*, because four had been cleaned in the first wave.
+
+  It took three passes to land: the three fleet templates were missed first, then upstream's — which owns the file every repo syncs — then six more repos where the edit existed on disk and in no commit.
 - [x] **An item of any type can be gated by a test through `covers:` alone** — `Suite.blocking_for(subjects)`, with `blocking()` as its `subjects=None` case, and a production caller in the per-scope panel: FEAT-0011 shows 13 blocking against 60 for the release. `tier:` **is still read**, and calling that "lifetime rather than a kind of test" was my reinterpretation, not a change: [[ADR-0034-Three-Axes-Not-One-Word]] decision 6 prescribes *retiring* the rule after the backfill. Renaming the constant `PERMANENT_TIERS` did not retire it and `GATING_TIERS` survives at nine sites. Carried by [[ISS-0208-Retire-The-Tier-Rule]]; [[REQ-0043]]'s criterion is `[~]` reconciled, not ticked.
 - [x] **The derived gate reproduces the tier gate** by membership, per repo: 0 / 56 / 60, identical sets. The 83 unattributed are 74 Tier 3 and 9 Tier 1/2; the **9 Tier 1/2 are all settled** and the gate fails closed on them. ~~all settled~~ — I wrote that of all 83 and it is false: **six of the Tier 3 are `mark: todo`, never walked** (`your-trainer` TST-0592..0597), and the tier filter drops them before the fail-closed clause can see them. Found by the second independent verification; the blind spot is documented in `blocking_for` and carried by [[ISS-0208-Retire-The-Tier-Rule]] with both readings and the measured cost of each (60 → 66).
 - [x] **Re-arming follows execution**: a test with no `command:` re-arms by `invalidated_by:` at any level, and the 90-day threshold no longer applies to it.
@@ -54,9 +73,11 @@ Five further concerns from the same reading became [[ISS-0200-Marks-Versus-Statu
 - [x] **The acceptance page leads with the checks.** `CHIP_CAP = 8`; wider axes collapse to a `<details>` carrying their value count and their selection count. 164 chips → 8 on `your-trainer`, 65 → 4 here — which was the worse ratio at 1.9 per check.
 - [x] **A swept check is readable by the repo it was written into.** `test_the_sweep_writes_a_note_the_reader_can_see` reads the sweep's own output back through `acceptance.load` on a migrated corpus, and is the only guard that fails when the writer reverts — the other 22 assert fields.
 - [~] **The known duplicate is not gone.** `TST-0011` still holds a 13-item checklist whose item 7 is `TST-0064`/`TST-0065`. Reconciled rather than cut: [[ADR-0034-Three-Axes-Not-One-Word]] superseded the decision that would have split it, and under the axes it is a `level: system` test that legitimately covers nine features. Splitting it is now a content judgement, not a schema consequence.
-- [x] **An independent review, from the corpus rather than these notes** — **five** passes, every one `changes-requested`, **25 blocking findings**: nineteen fixed, one reconciled ([[ISS-0208-Retire-The-Tier-Rule]]), one filed with its cost measured ([[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]), the rest corrections to this record.
+- [x] **An independent review, from the corpus rather than these notes** — **six** passes, every one `changes-requested`, **27 blocking findings**: nineteen fixed, one reconciled ([[ISS-0208-Retire-The-Tier-Rule]]), one filed with its cost measured ([[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]), the rest corrections to this record.
 
-  **The fifth pass returned a single finding, and it was against this box**: the template figures, which the fourth pass had already corrected once. Three wrong numbers in one ticked criterion is the phase's own failure mode surviving into the sentence that certifies the reviews caught it. *This criterion read "two passes … every one fixed" while the same note described a third; it is the kind of drift the reviews exist to catch, found in the sentence certifying them.*
+  **The fifth and sixth passes returned three findings between them, all against the criterion above.** The template figures, which the fourth pass had already corrected once; then the fleet-wide note count; then a derivation command that returned 0 where the text claimed 1.
+
+  Four wrong numbers in one ticked box, each one a measurement taken when the scope was four repos and restated after it widened to twelve. The reviews converged on it because it is where this phase's own failure mode — a claim written ahead of what was checked — outlived every pass that named it. The command is now embedded verbatim and **was run across all twelve repos before this sentence was written**: `1 / 1 / 0`, twelve for twelve. *This criterion read "two passes … every one fixed" while the same note described a third; it is the kind of drift the reviews exist to catch, found in the sentence certifying them.*
 
   The fourth pass judged the closure itself against `STATUSES.md` rather than preference — nine `[x]`, two `[~]`, both follow-up issues re-homed to `PHASE-999` — and ruled a reconciled criterion with filed follow-ups **closes this phase correctly**.
 
@@ -74,6 +95,56 @@ Five further concerns from the same reading became [[ISS-0200-Marks-Versus-Statu
   - **The `kind:` removal was uncommitted in six more repos.** Committed; all twelve now clean at HEAD, verified against `git show HEAD:` rather than the working tree.
   - **The acceptance gate reaches no repo that holds acceptance checks.** Not fixable by syncing: the fleet validators are 690–725 lines behind upstream, and installing upstream's into `your-sudoku` flooded a repo that currently passes. Filed as [[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]] with the measurement.
   - **[[REQ-0043]] showed 0 of 5 criteria of record met** while `implemented` — the frontmatter boxes were unticked while the body's were ticked. Both halves now agree, per the [[REQ-0041]]/[[REQ-0042]] convention.
+
+## Sixth review — 2026-08-18, `model:claude-opus-5`, changes-requested
+
+**What was independent, and what was not.** Fresh context, separate session, no memory of authoring any of this. Every template figure below was derived from git **before this note was opened**, and this note was read last. The authoring session's reasoning was never available and the author was not consulted. What was **not** independent is the model: author and reviewer are both Opus 5, recorded in `reviewed_by:` as provenance ([[project-os-dev#ADR-0013]]). A shared model correlates capability; a shared *context* correlates commitment, and only the second is what this pass breaks.
+
+**Scope.** The fifth pass's single finding — the template figures — and the integrity of the criterion it sits in. Nothing was credited on a reading; the figures were re-measured and the guards re-mutated.
+
+### The fifth pass's correction is right: twelve and twelve
+
+Derived independently, per repo, by locating the commit that **removed** the declaration and counting in that commit's **parent** blob against `HEAD`. All **twenty-four** transitions are 1 → 0: twelve `test.md` and twelve `SCHEMAS.md`. Every one of the twelve `SNAPSHOT.yaml`-bearing repos carried the field in both files and no longer does; `kind:` is absent from note frontmatter at `HEAD` in all twelve (0 notes fleet-wide). The three waves the criterion describes reproduce from the commit timestamps: `test.md` here at 15:44, three fleet repos at 17:02–17:03, six repos at 18:12–18:13, six more at 18:59.
+
+**The pickaxe caution is sound and worth keeping.** `git log -S'kind' -- docs/__templates__/SCHEMAS.md` does **not** surface the removal commit in this repo: the same commit adds the `~~kind~~` strikethrough line that replaces the declaration, so the occurrence count never changes and `-S` sees nothing. Anyone re-deriving this figure with a pickaxe gets a wrong answer silently.
+
+### Finding 1 — the fleet-wide note figure is 751, not 727 (blocking)
+
+The criterion opens *"gone from the schema, from every note fleet-wide (**727** demonstrable from history)"*. Measured: **751** notes carried `kind:` in frontmatter immediately before their own repo's first removal commit, and all 751 are clean at `HEAD`. Two independent methods agree — counting `-kind: ` deletions across `docs/` history, and counting frontmatter-bearing notes in each removal commit's parent tree.
+
+**727 is the four-repo figure, restated as if it were the twelve-repo one.** It is exactly `project-os-cockpit` 57 + `your-sudoku` 69 + `your-trainer` 593 + `your-health` 8 — the repos cleaned in the first wave, which is what the first pass could measure when it corrected 731 to 727. The second pass then reported **24 test notes fleet-wide still carrying `kind:`** — `obsidian-supernote-sync` 5, `project-os-dev` 4, `yourtrainer-mcp` 15 — and those were cleaned at 18:13 and 18:59. 727 + 24 = **751**, and *both halves of that arithmetic are already written in this note*, one criterion apart from each other.
+
+This is the same class of defect as *"nine and eleven"*: a number measured at one moment, restated after the scope widened. It is the fourth wrong figure in this one ticked box, and it is the only one no earlier pass checked — the fifth pass explicitly recorded *"Not re-derived by this pass: the `727` note-level figure"*.
+
+### Finding 2 — the criterion's own derivation refutes it (blocking)
+
+The criterion embeds ``git show <c>^:docs/__templates__/SCHEMAS.md | grep -E '`kind`.*\(required\)'`` and claims it *"is 1 for all twelve repos"*. Run verbatim, it returns **0 in all twelve**: the operands are reversed. `SCHEMAS.md:193` reads ``- (required) `kind` (string): `manual|automated`.`` — `(required)` *precedes* the field rather than following it, so the pattern can never match. A reader who does what the criterion invites concludes the figure is unsupported. (That code span is also delimited with single backticks around a string that contains backticks, so it does not render as code either.)
+
+Separately, the **method** the criterion states — *"walking each file's **last modifying commit**"* — is unsound and yields **eleven**, not twelve, for `test.md`. This repo's `test.md` was modified again *after* its removal commit (`5ee31cf`, parent `1f5cafd`), so its last-modifying parent already carries zero. The sound method is the one the Fifth review's own body describes — the commit that *removed* the declaration — and only that one yields twelve. The criterion's gloss and the review section it summarises do not agree.
+
+Commands that do reproduce, `<removal>` being the removing commit:
+
+- `git show <removal>^:docs/__templates__/SCHEMAS.md | grep -cE '^- \(required\) .kind.'` → **1**, all twelve; **0** at `HEAD`, all twelve.
+- `git show <removal>^:docs/__templates__/test.md | grep -c '^kind:'` → **1**, all twelve; **0** at `HEAD`, all twelve.
+
+### The rest of the criterion's figures reconcile
+
+- **8-and-12 against 12-and-12.** Consistent, and the criterion's own explanation is correct. The eight `test.md` the second pass named (`articles`, `edankert.com`, `obsidian-supernote-sync`, `project-os`, `project-os-bench`, `project-os-dev`, `your-applications.com`, `yourtrainer-mcp`) plus the four already cleaned = twelve; twelve `SCHEMAS.md` still carried it at that moment and twelve were cleaned.
+- **Badges 1/0/5/2 → 0/1/5/2, plus `obsidian-supernote-sync` 0→1.** Measured live from `obligations.owed_items`: `project-os-cockpit` 0, `your-sudoku` 1 (TST-0013), `your-trainer` 5 (TST-0011/0012/0013/0015/0018), `your-health` 2 (TST-0012/0013), `obsidian-supernote-sync` 1 (TST-0004). The after-state is exactly as stated. The pre-state figures are not re-derivable from the repository and the note says so itself — `your-trainer`'s *"5"* is the working tree of the day, where the committed pre-change state gives 3. The criterion writes `5→5` without that caveat, but the note carries it four paragraphs down, so it is disclosed rather than hidden.
+- **Five passes / 25 blocking findings.** Coherent but not exactly re-derivable, which is a documentation gap rather than an error: the five review sections carry 10, 7, 7, 6 and 1 numbered findings, and only the first (*"Findings 1–6 are blocking"*) and the third (a `### Blocking findings` heading) say which of theirs count. The 25 follows from the fifth pass's *"6 per pass"* convention plus its own single finding, and `19 + 1 + 1 + 4` balances against it. Nothing here contradicts anything; the term *blocking finding* is simply never defined.
+
+### Nothing has regressed
+
+- Full suite **1699 passed, 3 skipped**, run twice from a clean tree.
+- `bash tools/scripts/validate-docs.sh` → **OK** (only the pre-existing `[REVIEW]` warnings on TST-0003..0017).
+- `Suite.blocking()` on the live corpora: **0 / 56 / 60** (`project-os-cockpit` 34 items, `your-sudoku` 56, `your-trainer` 579), and the derived set is **identical** to `tier in {1,2} and not settled` in all three, by membership.
+- **Both verb mutations kill the guard**, each run against the full suite from a clean baseline. (a) `OBLIGATIONS["test"]` verb `"Walk"` → `"Run"`: **1 failed, 1697 passed, 4 skipped**. (b) Registry left at `"Walk"` while `badges_payload`'s `"verbs"` dict emits `"Run"` for the `test` kind only — the mutation that passed 1698 tests for the fourth pass: **1 failed, 1697 passed, 4 skipped**. `obligations.py` restored; `git status --short` empty.
+
+### Non-blocking observations
+
+- **Five fleet repos carry an uncommitted `tools/cockpit/src/project_os_cockpit/validate_docs_bundled.py`** (`edankert.com`, `obsidian-supernote-sync`, `project-os-bench`, `your-applications.com`, `yourtrainer-mcp`). The diff is ADR-0018/FEAT-0022 metric-count work, unrelated to this phase — but it is the same *on disk and in no commit* shape the third pass caught here, still live in five repos.
+
+**Verdict: changes-requested**, on two findings, both inside the first exit criterion and neither about delivered behaviour. The engineering holds under everything this pass could throw at it: every guard mutated dies, every live figure re-derives, the closure is legitimate on the fourth pass's own reading of `STATUSES.md`. What blocks is that a ticked box states a fleet-wide count that is 24 short and cites a command that returns nothing. `PHASE-BOXES` exists to keep a ticked criterion truthful; this one still is not. The fix is two sentences.
 
 ## Fifth review — 2026-08-18, `model:claude-opus-5`, changes-requested
 
