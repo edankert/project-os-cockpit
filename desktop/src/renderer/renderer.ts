@@ -8452,20 +8452,36 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     if (tier.stale) label += ` · ${tier.stale} stale`;
     th.textContent = label;
     section.appendChild(th);
-    // **Flat** (TASK-0513). This nested tier → area → rows, so reaching one
-    // check on `your-trainer` meant scrolling past 60-odd area headings inside
-    // 3 tier sections. Edwin: *"can we just show them as a list the same as
-    // the features underneath?"* The areas are still ordered together, because
-    // the rows arrive grouped; what is gone is the heading between them.
-    const list = document.createElement('div');
-    list.className = 'checks-list';
+    section.appendChild(checkProgress(areas.flatMap((a) => a.items)));
+    // **Tier → surface → rows** (TASK-0520, restoring what TASK-0513 flattened).
+    //
+    // `area:` IS the surface — Tier 1's values in `your-trainer` are Profile
+    // Management, Hardware Connectivity, Workout Execution, Monetization &
+    // Licensing. Edwin: *"scope them based on where they sit in the
+    // application, the surface they are supposed to test."*
+    //
+    // TASK-0513 removed these headings answering a request that was about the
+    // LEFT PANE's tier sections, and applied it here. This puts them back,
+    // with a progress bar on each.
     for (const area of areas) {
+      const block = document.createElement('div');
+      block.className = 'checks-area';
+      const ah = document.createElement('h4');
+      ah.textContent = area.section ? `${area.section} ${area.area}` : area.area;
+      if (area.refs.length) {
+        const refs = document.createElement('span');
+        refs.className = 'checks-area-refs';
+        refs.textContent = area.refs.join(', ');
+        ah.appendChild(refs);
+      }
+      block.appendChild(ah);
+      block.appendChild(checkProgress(area.items));
       for (const item of area.items) {
-        list.appendChild(buildCheckRow(item));
+        block.appendChild(buildCheckRow(item));
         shown += 1;
       }
+      section.appendChild(block);
     }
-    section.appendChild(list);
     host.appendChild(section);
   }
   if (!shown) {
@@ -8476,6 +8492,54 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     none.textContent = 'No check matches these filters. Clear one to see more.';
     host.appendChild(none);
   }
+}
+
+/** A progress bar over a set of checks — the one the overview draws for phases.
+ *
+ *  Edwin: *"I want to see a bar the same as we do for phases on the overview
+ *  page, not just a percentage, this could nicely be per scope/surface."* So
+ *  it wears `.ov-mixbar`'s segmented shape rather than a new one, and its
+ *  segments are the status families, never new hues.
+ *
+ *  **Four segments, because three would lie.** `done` and `to run` are the
+ *  obvious pair; `attention` carries a check run and failed, or one nobody
+ *  understood, which is neither; and a **stale** tick — standing over evidence
+ *  the record says was overtaken — is drawn apart from `done` because folding
+ *  it in is what made `your-trainer`'s honest blocking number 113 against a
+ *  reported 60.
+ */
+function checkProgress(items: GateItem[]): HTMLElement {
+  const bar = document.createElement('div');
+  bar.className = 'ov-mixbar checks-progress';
+  const total = items.length;
+  if (!total) { bar.classList.add('is-empty'); return bar; }
+
+  const cls = (i: GateItem): string => MARK_CLASS[i.mark || ' '] ?? 'unknown';
+  const settled = items.filter(
+    (i) => ['done', 'incomplete', 'canceled'].includes(cls(i)));
+  const stale = settled.filter((i) => i.stale);
+  const done = settled.filter((i) => !i.stale);
+  const attention = items.filter(
+    (i) => ['important', 'question'].includes(cls(i)));
+  const todo = total - done.length - stale.length - attention.length;
+
+  const segs: Array<[string, number]> = [
+    ['done', done.length], ['attention', attention.length],
+    ['doing', stale.length], ['backlog', todo],
+  ];
+  for (const [seg, n] of segs) {
+    if (n <= 0) continue;
+    const el = document.createElement('i');
+    el.dataset.seg = seg;
+    el.style.flex = String(n);
+    bar.appendChild(el);
+  }
+  const pct = Math.round((done.length / total) * 100);
+  bar.title = `${pct}% · ${done.length} of ${total} run`
+    + (stale.length ? ` · ${stale.length} stale` : '')
+    + (attention.length ? ` · ${attention.length} need attention` : '')
+    + (todo ? ` · ${todo} to run` : '');
+  return bar;
 }
 
 function buildCheckRow(item: GateItem): HTMLElement {

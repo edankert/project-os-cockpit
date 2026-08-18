@@ -483,3 +483,48 @@ def test_promotion_is_refused_without_coverage_and_retirement_keeps_the_verdict(
     assert note["status"] == "retired"
     assert note["mark"] == "done", "retiring is deprecation, not erasure"
     assert str(note["verdict_date"]) == "2026-08-01", "the walk's date survives it"
+
+
+# ----- surface grouping and the progress bar (TASK-0520) --------------------
+
+
+def test_the_page_groups_by_surface_and_not_as_one_flat_list() -> None:
+    """TASK-0520, restoring what TASK-0513 removed.
+
+    `area:` IS the surface — Tier 1's values in `your-trainer` are *Profile
+    Management*, *Hardware Connectivity*, *Workout Execution*. TASK-0513
+    flattened these headings away while answering a request that was about the
+    LEFT PANE's tier sections, which is the specific mistake this guards.
+    """
+    src = _renderer()
+    body = src[src.index("function paintCheckList("):]
+    body = body[:body.index("\n}\n") + 3]
+    assert "checks-area" in body, (
+        "the surface heading is gone again — `area:` is where a check sits in "
+        "the application, and a flat list of 579 rows answers no question"
+    )
+    assert "for (const area of areas)" in body
+    assert "checkProgress(area.items)" in body, "a surface with no bar"
+
+
+def test_a_stale_tick_is_not_drawn_as_done() -> None:
+    """Four segments, because three would lie.
+
+    A stale tick stands over evidence the record says was overtaken. Counting
+    it as `done` is what made `your-trainer`'s honest blocking number 113
+    against a reported 60, so the bar draws it apart — and the percentage in
+    the title counts only unstale ticks.
+    """
+    src = _renderer()
+    body = src[src.index("function checkProgress("):]
+    body = body[:body.index("\n}\n") + 3]
+    assert "settled.filter((i) => i.stale)" in body
+    assert "settled.filter((i) => !i.stale)" in body
+    # The percentage is over `done`, never over `settled`.
+    assert "(done.length / total)" in body, (
+        "the percentage counts stale ticks as run — the one thing this bar "
+        "exists not to do"
+    )
+    # Every segment colour comes from the overview's families (ADR: no new hues).
+    for seg in ("'done'", "'attention'", "'doing'", "'backlog'"):
+        assert seg in body
