@@ -77,18 +77,35 @@ def test_block_style_aliases_are_refused(tmp_path) -> None:
     assert "block-style aliases" in proc.stdout
 
 
-def test_a_dirty_tree_is_refused(tmp_path) -> None:
-    """`merged_from:` records a sha, and against a dirty tree that sha is a lie.
+def test_uncommitted_acceptance_notes_are_refused(tmp_path) -> None:
+    """`merged_from:` records a sha, and if the notes are uncommitted it is a lie.
 
     The previous migration hit this and fixed it by stamping "(uncommitted at
     migration)"; this one refuses instead, because a migration is a moment
     somebody can choose.
     """
     root = _repo(tmp_path, {"CHK-0001-Good.md": _check("CHK-0001")})
-    (root / "docs" / "dirty.md").write_text("x\n", encoding="utf-8")
+    (root / "docs" / "tests" / "acceptance" / "CHK-0002-New.md").write_text(
+        _check("CHK-0002"), encoding="utf-8")
     proc = _run(root, "--write")
     assert proc.returncode == 1
-    assert "working tree is dirty" in proc.stdout
+    assert "acceptance notes are uncommitted" in proc.stdout
+
+
+def test_unrelated_dirt_does_not_block_the_migration(tmp_path) -> None:
+    """Scoped to the notes, deliberately.
+
+    `your-trainer` carries ~100 uncommitted files of unrelated work at any
+    moment. A whole-tree refusal there is an automation people disable, and a
+    whole-tree *stage* is the thing CLAUDE.md forbids by name. What
+    `merged_from:` claims is that its sha contains THESE checks; a dirty Kotlin
+    file says nothing about that.
+    """
+    root = _repo(tmp_path, {"CHK-0001-Good.md": _check("CHK-0001")})
+    (root / "unrelated.kt").write_text("fun main() {}\n", encoding="utf-8")
+    proc = _run(root, "--write")
+    assert proc.returncode == 0, proc.stdout
+    assert "parity holds" in proc.stdout
 
 
 def test_a_clean_migration_renames_and_keeps_the_old_id_reachable(tmp_path) -> None:

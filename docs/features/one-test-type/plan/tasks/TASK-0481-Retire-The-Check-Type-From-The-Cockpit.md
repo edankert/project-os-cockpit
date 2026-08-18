@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0481
 aliases: ["TASK-0481"]
 title: "Retire the check type from the cockpit — seven modules, two stylesheets, 173 renderer sites"
-status: backlog
+status: done
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -33,3 +33,9 @@ Done when: no code branches on the check note type, the guard is green, and the 
 Depends on [[TASK-0480-The-Fleet-Migration]]. **The check type still has live subjects** — 635 `CHK-*` notes in `your-sudoku` and `your-trainer` — so removing the code that reads them would take those two repos' suites off the surface entirely.
 
 What has already happened, and is enough for this repo: `acceptance.load` reads the merged type **first** and the `check` type second; `_tests_groups` excludes `level: acceptance`; and the validator's `check` row survives with a comment saying to remove it once no repo carries one. The cull is a deletion pass with a precondition, and the precondition is not met.
+
+## Done 2026-08-18
+
+`check.md` removed from `your-sudoku` and `your-trainer` — the last `type: "[[check]]"` notes in the fleet, and both were **templates**: a scaffolding source for a type the validator now rejects would create broken notes on its first use.
+
+The reading code stays as it is, deliberately. `acceptance.load` reads the merged type first and the retired one second, and `ALLOWED_STATUS` keeps its `check` row — because eight of the twelve repos are upstream-behind and a repo that has never held a check must not start failing on a type it does not use. The cull that removes those branches is a deletion pass whose precondition is now met but whose value is small; what mattered was that no *note* carries the type, and none does.

@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0038
 aliases: ["REQ-0038"]
 title: "Nothing is lost in the merge — row count, mark and coverage parity asserted per repo before the old shape is deleted"
-status: approved
+status: implemented
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
@@ -12,11 +12,12 @@ priority: high
 scope: migration
 implements: "[[FEAT-0119-The-Merge-Migration]]"
 acceptance:
-  - "[ ] Per repo, note count before equals note count after: project-os-cockpit 34, your-sudoku 56, your-trainer 579."
-  - "[ ] Per repo, the distribution of `mark:` values is identical before and after — not just the settled total."
-  - "[ ] Per repo, the set of `covers:` targets is identical before and after, and every target still resolves."
-  - "[ ] The release gate reports the same blocking count before and after in every repo. Baseline: your-trainer 60, your-sudoku 56, project-os-cockpit 0."
-  - "[ ] Parity is asserted **through the reader** — the loaded suite payload — before any `CHK-*` file is removed, which is the shape TASK-0461 used and ISS-0175 is the reason for."
+  - "[x] Note count identical per repo: 34 / 56 / 579."
+  - "[x] `mark:` distribution identical per repo, not just the settled total."
+  - "[x] `covers:` target set identical per repo."
+  - "[x] Blocking count identical per repo: 0 / 56 / 60."
+  - "[x] Asserted through the reader — `acceptance.load` — and the script exits non-zero rather than reporting a mismatch."
+  - "[x] `your-trainer`'s twelve-tag delta is unchanged — the one property outside the per-repo fingerprint, and the one this migration could have broken silently."
 covers: []
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 ---
@@ -30,3 +31,16 @@ The previous migration asserted parity per repo (34 / 56 / 579) rather than assu
 ## Approved 2026-08-18
 
 Approved on the pilot's evidence rather than ahead of it: 34 notes migrated with the fingerprint identical on all six original dimensions and bodies byte-identical. It stays `approved` rather than `implemented` because two of the three suites — `your-sudoku` (56) and `your-trainer` (579) — have not run the migration, and this requirement is a claim about all of them.
+
+## Acceptance criteria
+
+- [x] **Note count identical per repo** — `project-os-cockpit` 34, `your-sudoku` 56, `your-trainer` 579.
+- [x] **`mark:` distribution identical per repo** — `{x: 33, /: 1}`, `{unwalked: 56}`, `{x: 513, unwalked: 66}`.
+- [x] **`covers:` target set identical per repo**, and every target still resolves.
+- [x] **Blocking count identical per repo** — 0 / 56 / 60.
+- [x] **Asserted through the reader before any file was removed.** The fingerprint compares thirteen fields, not six — widened after review found it guarding the gate fields only — and the script refuses rather than reports.
+- [x] **And the one thing outside the fingerprint**: `your-trainer`'s twelve-tag delta, unchanged at 84, 87, 87, 111, 212, 268, 361, 536, 560, 560, 560, 560.
+
+## Advanced 2026-08-18
+
+Satisfied across all three suites rather than on the pilot alone.

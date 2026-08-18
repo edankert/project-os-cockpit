@@ -156,9 +156,17 @@ def main(argv=None) -> int:
         if re.search(r"^aliases:[ \t]*$", head, re.M):
             problems.append("%s uses block-style aliases:, which this editor "
                             "cannot rewrite without producing invalid YAML" % path.name)
+    # **Scoped to the notes being migrated**, not the whole tree. What
+    # `merged_from:` claims is that its sha contains THESE checks; a dirty
+    # Kotlin file says nothing about that. Measured on `your-trainer`, which
+    # carries 100 uncommitted files of somebody else's work at any given
+    # moment -- a whole-tree refusal there is an automation people disable, and
+    # a whole-tree *stage* is the one CLAUDE.md forbids by name.
     try:
-        dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain"],
-                               capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--",
+             str(checks_dir.relative_to(root))],
+            capture_output=True, text=True, check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         dirty = ""
     if dirty and args.write:
@@ -166,8 +174,8 @@ def main(argv=None) -> int:
         # tree that sha does not contain what was migrated, which is the exact
         # defect TASK-0463 fixed in the previous migration by stamping
         # "(uncommitted at migration)" instead of pointing at a lie.
-        problems.append("the working tree is dirty; `merged_from:` would name a "
-                        "sha that does not contain these notes (commit first)")
+        problems.append("the acceptance notes are uncommitted; `merged_from:` would "
+                        "name a sha that does not contain them (commit first)")
     if problems:
         for problem in problems:
             print("merge-checks: REFUSED -- %s" % problem)

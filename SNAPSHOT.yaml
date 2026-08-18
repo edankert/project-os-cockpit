@@ -91,7 +91,7 @@ items:
     FEAT-0119:
       file: "docs/features/one-test-type/FEAT-0119-The-Merge-Migration.md"
       title: "The merge migration — 669 checks become tests, renumbered to `TST-*`, with parity asserted through the reader in every repo"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       requirements: [REQ-0038]
@@ -2195,7 +2195,7 @@ items:
     REQ-0038:
       file: "docs/requirements/REQ-0038-Nothing-Is-Lost-In-The-Merge.md"
       title: "Nothing is lost in the merge — row count, mark and coverage parity asserted per repo before the old shape is deleted"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
       implements: "FEAT-0119"
@@ -3263,9 +3263,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 121
-    features_done: 103
+    features_done: 104
     tasks_total: 489
-    tasks_done: 447
+    tasks_done: 449
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
