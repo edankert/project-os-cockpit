@@ -1441,6 +1441,36 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0209:
+      file: "docs/issues/ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo.md"
+      title: "The acceptance gate runs in no repo that holds acceptance checks — the fleet validators are ~690 lines behind upstream and cannot be synced without a migration"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: high
+      component: tooling
+      related: [ADR-0034, PHASE-036, ISS-0208]
+      note: "Measured, not assumed: copying upstream's validator into your-sudoku turned a passing repo into FAIL (189 errors) — 181 PARENT-BACKLINK, 8 SNAPSHOT-MEMBERSHIP. So the fleet validators are not behind by the acceptance gate; they are behind by every upstream rule added since their last sync, and pulling one pulls all of them. That is a migration per repo. Raised by all three of the first reviews and reproduced exactly by the fourth."
+    ISS-0208:
+      file: "docs/issues/ISS-0208-Retire-The-Tier-Rule.md"
+      title: "`tier:` still decides whether an attributed check gates — ADR-0034 decision 6 says retire the rule, and nine sites still read it"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: cockpit-server
+      related: [ADR-0034, REQ-0043, PHASE-036]
+      note: "DECISION OWED BY EDWIN. your-trainer TST-0592..0597 are Tier 3, mark: todo, cover nothing, never walked, and the tier filter drops them before the fail-closed clause can see them. Two honest readings: they are stale one-build notes to retire (gate stays 60, matches TESTING.md's `Tier 3 tests do not gate releases`), or a never-walked check gates whatever its tier (gate goes 60->66). Reversing the ordering was tried, measured and REVERTED — those six never gated under the tier rule either, so blocking them is a new tighter gate contradicting a written rule, not the fail-closed principle doing its job."
+    ISS-0207:
+      file: "docs/issues/ISS-0207-Entrypoint-Is-Two-Fields-Wearing-One-Name.md"
+      title: "`entrypoint:` holds runnable commands and prose in the same field, so 37 tests carry a way to run them that nothing can read"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: low
+      component: docs
+      related: [ADR-0034, REQ-0041]
+      note: "Found by a badge rising in obsidian-supernote-sync (TST-0004), not by looking for it. Reading entrypoint: as a second who-runs-this field would restore the ambiguity ADR-0034 spent a decision removing, so it stays deliberately unread until the 37 values are split into commands and prose."
     ISS-0206:
       file: "docs/issues/ISS-0206-A-Check-Cannot-Belong-To-A-Release.md"
       title: "A check cannot be scoped to a release, so work for one platform blocks a release that does not contain it"

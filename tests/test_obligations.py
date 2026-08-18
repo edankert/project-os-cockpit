@@ -353,7 +353,7 @@ def test_the_note_less_memo_cannot_outlive_its_corpus(tmp_path) -> None:
     )
 
 
-def test_one_verb_names_the_human_act_across_every_owed_kind() -> None:
+def test_one_verb_names_the_human_act_across_every_owed_kind(tmp_path: Path) -> None:
     """TASK-0495, and the guard it went four commits without.
 
     The registry carried `Run` on the `test` obligation and `Walk` on the
@@ -362,25 +362,34 @@ def test_one_verb_names_the_human_act_across_every_owed_kind() -> None:
     **no `command:` by definition**, so `Run` named the one thing that cannot
     happen to it.
 
-    The fix was applied twice. The first attempt was a `str.replace` whose
-    search string did not match the file, so it silently changed nothing and was
-    reported as done. The second landed — and the **third** independent review
-    reverted `"Walk"` to `"Run"` and ran the full suite: *1697 passed, zero
-    failures.* An unguarded fix is one careless edit from being a no-op again,
-    which is the exact failure mode this task's own history demonstrates.
+    **Asserted on `badges_payload`, because the payload is what the badge
+    renders.** The first version of this test said exactly that in its docstring
+    and then asserted `OBLIGATIONS[...].verb` — the constant. The fourth
+    independent review mutated `badges_payload` to emit `Run` for the `test`
+    kind while leaving the registry at `Walk`, ran the full suite, and got
+    **1698 passed, zero failures**: the badge said *"Run 5 tests"*, the defect
+    this task exists to remove, and nothing noticed.
 
-    Asserted on the payload rather than the constant, because the payload is
-    what the badge renders.
+    That is the same failure the task itself documents — a description written
+    ahead of the code — reproduced inside the guard against it. The payload is
+    the surface's only source for this string (`obligations.py`: *"The verb is
+    the registry's, never the surface's"*), so it is the assertion that has
+    teeth.
     """
-    verbs = {kind: ob.verb for kind, ob in obligations.OBLIGATIONS.items()}
-    assert verbs["test"] == "Walk", (
-        "the `test` obligation is by definition tests with no `command:` — a "
-        "person walks them; `Run` names what a runner does to a different "
-        "population entirely"
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    payload = obligations.badges_payload(Index.build(docs))
+
+    assert payload["verbs"]["test"] == "Walk", (
+        "the badge renders this string; the `test` obligation is by definition "
+        "tests with no `command:`, which a person walks — `Run` names what a "
+        "runner does to a different population entirely"
     )
-    assert "Run" not in set(verbs.values()) | set(
-        obligations.STANDING_VERBS.values()
-    ), (
-        "no obligation may say `Run`: the registry only ever names acts owed "
-        "to a person, and a runner is not a person"
+    assert "Run" not in set(payload["verbs"].values()), (
+        "no badge may say `Run`: the registry only ever names acts owed to a "
+        "person, and a runner is not a person"
     )
+    # The registry is the payload's only source, so a divergence between them
+    # is itself a defect — this is what makes asserting the payload strictly
+    # stronger than asserting the constant rather than merely different.
+    assert payload["verbs"]["test"] == obligations.OBLIGATIONS["test"].verb
