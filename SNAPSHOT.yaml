@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 32
+  ADR: 33
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -60,13 +60,13 @@ counters:
   CHG:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 121
-  ISS: 204
-  PHASE: 35
-  REQ: 40
+  FEAT: 123
+  ISS: 205
+  PHASE: 36
+  REQ: 42
   RISK: 7
   REL: 1
-  TASK: 490
+  TASK: 498
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -79,6 +79,24 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0122:
+      file: "docs/features/one-human-walk/FEAT-0122-One-Human-Walked-Population.md"
+      title: "One human-walked population — the 22 manual tests become tiered acceptance tests, and one predicate answers who runs a test"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      requirements: [REQ-0041]
+      tasks: [TASK-0491, TASK-0492, TASK-0493, TASK-0494]
+      note: "22 notes fleet-wide — 5 here, 15 your-trainer, 2 your-health. The tiering is a judgement per note: Tier 1 capability, Tier 2 regression naming its ISS, Tier 3 one-build verification (which is the find — the genuinely transient case has a home and it is not a separate type). TST-0011 is not one note`s work: its 13 items already exist as separate acceptance tests, so splitting it is how ISS-0195`s duplicate resolves rather than moves."
+    FEAT-0123:
+      file: "docs/features/one-human-walk/FEAT-0123-The-Walk-Surfaces-Say-One-Thing.md"
+      title: "The walk surfaces say one thing — one verb, a tier you can address, a page that leads with the checks, and a release that shows what is outstanding"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      requirements: [REQ-0042]
+      tasks: [TASK-0495, TASK-0496, TASK-0497, TASK-0498]
+      note: "Four defects Edwin found from use, one cause: FEAT-0114 built a view of the WHOLE suite and every entry point was pointed at it wholesale. ADDRESSABILITY IS THE COMMON FIX — tier heads share one url, filters are click-only on all five axes, and the release page re-renders rows because it has nothing to link to. Measured: 164 chips above the first check on your-trainer, and 1.9 chips per check here, which is the worse ratio."
     FEAT-0118:
       file: "docs/features/one-test-type/FEAT-0118-The-Test-Type-Absorbs-The-Check.md"
       title: "The test type absorbs the check — one schema, `level: acceptance` as the discriminator, and `retired` at last"
@@ -1414,6 +1432,16 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0205:
+      file: "docs/issues/ISS-0205-The-Sweep-Writes-Notes-A-Migrated-Repo-Cannot-Read.md"
+      title: "The close-out sweep writes `type: [[check]]` notes with `CHK-*` ids, which a migrated repo's reader cannot see — the sweep is silently writing invisible checks right now"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      severity: high
+      component: cockpit-server
+      related: [ADR-0031, FEAT-0115]
+      note: "Found by independent review and LIVE. acceptance.load reads `[tests at level: acceptance] or notes_by_type(check)` — in a migrated repo the `or` never evaluates, so a swept CHK-* note is written, counted by nothing and gated by nothing. Reproduced on a two-note corpus: reader returns 1 item, 0 blocking. test_acceptance_sweep.py cannot fail on it because its whole fixture is check-typed, so the left branch is empty there — the guard and the defect share an assumption, exactly as _require_check did after the merge. The obligation is live on 1 feature here and 4 in your-trainer: the first person to answer it writes checks that vanish."
     ISS-0204:
       file: "docs/issues/ISS-0204-The-Acceptance-Filter-Bar-Is-Congested.md"
       title: "The acceptance page leads with five filter axes and 164 chips — the reader meets the filter bar before the checks"
@@ -2234,6 +2262,22 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0041:
+      file: "docs/requirements/REQ-0041-One-Answer-To-Who-Runs-This.md"
+      title: "One answer to \"who runs this\" — the reader and the registry must never disagree about a test"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      implements: "FEAT-0122"
+      note: "Two predicates decide this and the WEAKER one fills the badge: obligations._is_owed asks whether kind/level/runner contains `manual` and never reads command:. 8 of 788 fleet tests disagree with cockpit._is_manual_test; none involves a command:, which is why nothing has broken and why nothing would announce it when it does."
+    REQ-0042:
+      file: "docs/requirements/REQ-0042-The-Suite-Is-Addressable.md"
+      title: "The suite is addressable — a filtered view has a URL, so a navigator row can select one and back/forward can return to it"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      implements: "FEAT-0123"
+      note: "Three of Edwin`s five concerns are one missing thing. Also names the release page`s real defect, which the issue understated: rows show item.number (1.4.20) and link to /docs/tests/acceptance#16-... — the suite README with a dead fragment — while item.rel sits unused in the same payload."
     REQ-0037:
       file: "docs/requirements/REQ-0037-The-Badge-Never-Admits-Acceptance-Tests.md"
       title: "The obligation badge never admits acceptance tests — the merge must not put 669 self-re-arming rows in front of a person"
@@ -2393,6 +2437,15 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-036:
+      file: "docs/phases/PHASE-036-One-Human-Walk.md"
+      title: "One human walk — the manual/acceptance split ends, and the surfaces stop carrying two of everything"
+      status: planned
+      owner: user:edwin
+      goal: "Finish what ADR-0031 started: collapse the two human-walked populations into one, so that a person sees one verb, one verdict field and one re-arming model — and fix the surfaces that still show the suite as two things or offer it in one undifferentiated list."
+      features: [FEAT-0122, FEAT-0123]
+      issues: [ISS-0200, ISS-0201, ISS-0202, ISS-0203, ISS-0204, ISS-0205]
+      note: "NOT PHASE-035 reopened: that phase closed having merged the TYPES, and this exists because merging the types left two POPULATIONS behind. ISS-0205 does not wait for the ADR — the sweep is writing invisible notes now, with the obligation live on 1 feature here and 4 in your-trainer. The dangerous task is TASK-0492: retiring `Needs a run` must not turn a badge of 5 into 60, which is the exact harm ADR-0027 exists to prevent."
     PHASE-035:
       file: "docs/phases/PHASE-035-Acceptance-Checks-Are-Notes.md"
       title: "The testing model — acceptance checks become notes, then one type, and a check can finally be automated"
@@ -3220,6 +3273,13 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0033:
+      file: "docs/decisions/ADR-0033-A-Manual-Test-Is-An-Acceptance-Test.md"
+      title: "A manual test is an acceptance test — `kind: manual` outside `level: acceptance` is a contradiction, and the tier system already holds the case it was invented for"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      note: "Edwin, reading the model note ADR-0031 produced: `why would these manual tests not be true in a year? If the feature changes the test has to be re-run. A manual test is always an acceptance test`. He is right and the corpus says so: TST-0024 does not retire when FEAT-0099 ships, your-trainer`s TST-0018 says the half that stays is `manual permanently`, and ZERO of 22 manual tests have ever been retired by automation. THE CASE THE SPLIT WAS INVENTED FOR ALREADY HAS A HOME: TESTING.md`s Tier 3 is `one-time checks for a specific build, promoted or removed after a verified release` — which is exactly TST-0026`s measured 64-to-31 claim. Decision: kind: manual outside level: acceptance becomes invalid; the 22 migrate to a tier; `Needs a run` disappears as a population; ONE predicate answers who-runs-this (the reader and the registry disagree on 8 of 788 today); and invalidated_by: replaces the 90-day threshold, because `has anything changed underneath it` is the question and `was true 89 days ago` is not. NAMED COST: manual tests gate a FEATURE through VERIFY and acceptance tests gate only the release, so migrating moves 22 notes out of the feature gate — decided, not absorbed."
     ADR-0032:
       file: "docs/decisions/ADR-0032-The-Verification-Link-Has-One-Direction.md"
       title: "The verification link has one direction and one encoding — `covers:` on the test, and a feature never lists its tests"
@@ -3312,17 +3372,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 121
+    features_total: 123
     features_done: 110
-    tasks_total: 489
+    tasks_total: 497
     tasks_done: 452
     tests_total: 43
     tests_passing: 40
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 6
+    issues_open: 7
     issues_triage: 2
     risks_open: 6
     releases_total: 1
-    decisions_total: 23
+    decisions_total: 24

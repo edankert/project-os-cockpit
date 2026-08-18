@@ -43,3 +43,17 @@ Leading with **mark** alone is right for the common question — *what is outsta
 
 - [ ] The page leads with the checks. Mark is the primary filter; tier follows from the address ([[ISS-0203]]).
 - [ ] `areas` and `covers` are reachable but not rendered as 156 chips — a picker, a search, or a grouping the list already has.
+
+## Independent review
+
+**2026-08-18, `model:claude-opus-5`, fresh context, measured against both live sidecars.**
+
+**The counts are exact.** `your-trainer`: marks 2, tiers 3, areas 76, covers 80, automation 3 = **164 chips**, and `buildCheckFilters` renders every value with no cap and no collapse, above the list. The single-value suppression (`if (values.length < 2) continue`) is present and correct, and on `your-trainer` it fires on nothing.
+
+**"`project-os-cockpit` less so" is true of the height and false of the ratio.** This repo renders **65 chips over 34 checks** — marks 2, tiers 2, areas 21, covers 40, with `automation` (1 value) correctly suppressed. That is **1.9 chips per check against `your-trainer`'s 0.28**. The small repo is the worse offender per row; what makes it feel milder is that 65 chips is two or three lines rather than eight. Worth correcting in the note, because it changes what the fix has to survive: the design fails at both ends of the corpus-size range, not only the large one.
+
+**The caveat about `area` is right, and it has a number.** 76 areas over 579 checks is **7.6 checks per area** — one sitting's worth, which is what the field's definition claims for it, so it earns a control rather than deletion. `covers` has no comparable defence: 80 values over 579 rows, and the same question is answerable from a feature's own page through the reverse index ([[ADR-0032]]).
+
+**Leading with mark is nearly free.** The mark axis is **2 chips on `your-trainer`** (`passed` 513, `unwalked` 66) and **2 here** (`passed` 33, `partial` 1) — because `-`, `!` and `?` are written nowhere in the fleet ([[ISS-0200-Marks-Versus-Statuses]]). So the proposed primary filter costs two chips today and can only reach six.
+
+**Verdict: approved. Correct the "milder" sentence to the per-check ratio, and note that mark-only is a two-chip bar rather than a six.**

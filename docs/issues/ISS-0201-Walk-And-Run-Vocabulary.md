@@ -33,3 +33,25 @@ Edwin's proposal, which reads correctly: **show the outstanding set and link to 
 
 - [ ] One verb for one act, chosen deliberately, and applied to the registry, the group headings and the buttons.
 - [ ] The release page shows unsettled Tier 1/2 rows only, each linking into `~checks` at that row — with the settled majority reachable but not rendered.
+
+## Independent review
+
+**2026-08-18, `model:claude-opus-5`, fresh context, against the live payloads on `:8765`/`:8766` and `desktop/src/renderer/renderer.ts`.** The vocabulary half is right and can be made stronger. The release-page half is wrong about what the page does, and right by accident about what it should do.
+
+### Two words, one act — confirmed, and it is not only prose
+
+The registry carries **both verbs at once, over one type**: `OBLIGATIONS["test"].verb == "Run"` and the note-less `release gate` obligation's verb is `"Walk"`. Live on `your-trainer` right now: the Tests view badge says *Run 5 tests* and the Publication badge says *Walk 1 release gate*, and after ADR-0031 both populations are `[[test]]`. The split is therefore encoded in the registry, not merely in headings — which is where a single-verb decision has to land.
+
+### The release page does not re-render the suite
+
+`gate_payload` returns `suite.blocking()` — unsettled Tier 1/2 only. Measured on `your-trainer`: **60 blocking of 579**, rendered as `New 13` + `Chronic 27` + `Regressed 0`, with `Quiet 20` collapsed behind a `<details>` and `Stale 0`. `gateGroup` caps every list at 40 rows and appends *"…N more"*. The 579 rows are never sent to the page and never were. **The first "Done when" bullet is substantially already true**, and the note should not claim otherwise — it describes finished work as outstanding.
+
+### What is actually wrong on that page, which the note does not name
+
+Every blocking row is addressed by its **document** number (`item.number`, e.g. `1.4.20`) and its click handler navigates to `/docs/${gate.rel}${'#'+item.anchor}` — where `gate.rel` is the directory `tests/acceptance` and `item.anchor` is the deleted document's slug (`16-monetization-licensing`). That resolves to the suite **README**, with a dead fragment. `item.rel` — `tests/acceptance/TST-0076-Multi-Rider-FREE.md` — is in the same payload and unused. `_acceptance_tier_groups` substitutes `~checks` for the notes shape; this call site inherited the pre-migration form and nothing caught it. So *"link to the walk"* is the right ask, reached through the wrong diagnosis: the page is not showing too much, it is pointing the rows it already shows at a page that no longer describes them.
+
+### The second bullet reverses a one-day-old decision without saying so
+
+*"each linking into `~checks` at that row"* means removing the live mark control from the gate rows. That control is [[ISS-0190]], 2026-08-17, at your own instruction — *"you can have the checkbox on the left as long as the check box functionality is the same as in the .md file"* — and it was built specifically to retire a second vocabulary (`Pass · Partial · Fail`) on those same rows. Reversing it may still be right, but the note should record that it is a reversal and answer ISS-0190's argument, or the two decisions will simply take turns.
+
+**Verdict: keep the vocabulary half; rewrite the release-page half around the addressing defect, and correct "all 579 rows" to the 40 live rows the page actually renders.**
