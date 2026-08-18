@@ -143,4 +143,12 @@ Edwin: *"Why would these manual tests not be true in a year? If the feature chan
 
 And the one genuine verify-this-build-then-stop case — this repo's `TST-0026` and its measured *"64 to 31"* claim — is **a Tier 3 acceptance test**, which TESTING.md already defines as *"one-time checks for a specific build, promoted or removed after a verified release."* It was never a separate kind of note.
 
-[[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]] records the decision; [[PHASE-036-One-Human-Walk]] carries the work. **Read the two-population tables above as a description of what is implemented today, not as a design.**
+**And the reason was wrong too.** [[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]] argued from re-arming and then wrote *"manual tests gate a feature, acceptance tests gate the release"* as an accepted cost. Edwin: *"It doesn't matter … they should be able to gate at any granularity. I think we don't need necessarily acceptance tests any more in that case?"*
+
+Two independent bodies of practice agree with him. **ISTQB** keeps test *level* and test *type* independent expressly to prevent gaps in a test concept, and holds manual-versus-automated out of both as an execution concern; acceptance is a level defined by *whose criteria are checked*, never by who performs it. **The Agile Testing Quadrants** (Marick; Crispin and Gregory) run business-facing/technology-facing against supporting/critiquing — and manual-versus-automated is **not an axis in either**: Q2 is the ATDD/BDD quadrant and is routinely automated.
+
+So `level: acceptance` has been carrying three independent claims: *a person walks it*, *its verdict is `mark:`*, and *it gates the release*. None follows from the word.
+
+[[ADR-0034-Three-Axes-Not-One-Word]] supersedes ADR-0033 and separates them — `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates, at any granularity. [[PHASE-036-One-Human-Walk]] carries the work, gated on a measured precondition: **83 of 669 acceptance tests carry an empty `covers:`** and would gate nothing under a derived rule.
+
+**Read every table above as a description of what is implemented today, not as a design.**

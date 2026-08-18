@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 33
+  ADR: 34
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -60,13 +60,13 @@ counters:
   CHG:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 123
+  FEAT: 124
   ISS: 205
   PHASE: 36
-  REQ: 42
+  REQ: 43
   RISK: 7
   REL: 1
-  TASK: 498
+  TASK: 501
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -81,13 +81,22 @@ items:
   features:
     FEAT-0122:
       file: "docs/features/one-human-walk/FEAT-0122-One-Human-Walked-Population.md"
-      title: "One human-walked population — the 22 manual tests become tiered acceptance tests, and one predicate answers who runs a test"
+      title: "The axes stop implying each other — `kind:` is deleted, one predicate answers who runs a test, and re-arming follows execution rather than level"
       status: backlog
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       requirements: [REQ-0041]
       tasks: [TASK-0491, TASK-0492, TASK-0493, TASK-0494]
       note: "22 notes fleet-wide — 5 here, 15 your-trainer, 2 your-health. The tiering is a judgement per note: Tier 1 capability, Tier 2 regression naming its ISS, Tier 3 one-build verification (which is the find — the genuinely transient case has a home and it is not a separate type). TST-0011 is not one note`s work: its 13 items already exist as separate acceptance tests, so splitting it is how ISS-0195`s duplicate resolves rather than moves."
+    FEAT-0124:
+      file: "docs/features/one-human-walk/FEAT-0124-Gating-Is-Derived-From-Covers.md"
+      title: "Gating is derived from `covers:` — one rule at every granularity, and the tier gate retires only once the derived one is proven identical"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      requirements: [REQ-0043]
+      tasks: [TASK-0499, TASK-0500, TASK-0501]
+      note: "One rule replaces three: an item may not reach terminal while a test covering it is unsettled — a release being an item whose covered set is the union of its contents`. Not new mechanism: ADR-0032 built the link and only the release gate reads it, as a tier filter. THE WHOLE RISK IS THE PRECONDITION: 83 of 669 acceptance tests carry an empty covers: and would gate nothing SILENTLY, where the tier rule has no hole. Backfill, then prove the derived gate names the same blocking SET (not the same count — membership can rotate), then retire the tier rule. A gate that gets quieter during a migration is the failure this project already paid for once, in a repo nobody was looking at."
     FEAT-0123:
       file: "docs/features/one-human-walk/FEAT-0123-The-Walk-Surfaces-Say-One-Thing.md"
       title: "The walk surfaces say one thing — one verb, a tier you can address, a page that leads with the checks, and a release that shows what is outstanding"
@@ -2270,6 +2279,14 @@ items:
       phase: "[[PHASE-036-One-Human-Walk]]"
       implements: "FEAT-0122"
       note: "Two predicates decide this and the WEAKER one fills the badge: obligations._is_owed asks whether kind/level/runner contains `manual` and never reads command:. 8 of 788 fleet tests disagree with cockpit._is_manual_test; none involves a command:, which is why nothing has broken and why nothing would announce it when it does."
+    REQ-0043:
+      file: "docs/requirements/REQ-0043-Gating-Is-A-Property-Of-The-Link.md"
+      title: "Gating is a property of the link, not of the test — no rule may ask what level a test is or who runs it"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      implements: "FEAT-0124"
+      note: "Forbids any sentence of the form `a test of kind X gates Y`. Execution mode may decide what `settled` MEANS; it may not decide what is gated. The third criterion exists because of the measured hole: 83 of 669 cover nothing today, so until they do the derived gate is quieter than the rule it replaces — and quieter is the one direction a gate must never move without somebody deciding it."
     REQ-0042:
       file: "docs/requirements/REQ-0042-The-Suite-Is-Addressable.md"
       title: "The suite is addressable — a filtered view has a URL, so a navigator row can select one and back/forward can return to it"
@@ -2439,11 +2456,11 @@ items:
   phases:
     PHASE-036:
       file: "docs/phases/PHASE-036-One-Human-Walk.md"
-      title: "One human walk — the manual/acceptance split ends, and the surfaces stop carrying two of everything"
+      title: "Three axes — what a test exercises, who runs it and what it gates stop being one word, and gating is derived from `covers:` at any granularity"
       status: planned
       owner: user:edwin
-      goal: "Finish what ADR-0031 started: collapse the two human-walked populations into one, so that a person sees one verb, one verdict field and one re-arming model — and fix the surfaces that still show the suite as two things or offer it in one undifferentiated list."
-      features: [FEAT-0122, FEAT-0123]
+      goal: "Separate the three things `level: acceptance` currently means — what a test exercises, who runs it, and what it gates — so that any test can gate any item through `covers:`, re-arming follows execution rather than level, and the surfaces show one population instead of two."
+      features: [FEAT-0122, FEAT-0124, FEAT-0123]
       issues: [ISS-0200, ISS-0201, ISS-0202, ISS-0203, ISS-0204, ISS-0205]
       note: "NOT PHASE-035 reopened: that phase closed having merged the TYPES, and this exists because merging the types left two POPULATIONS behind. ISS-0205 does not wait for the ADR — the sweep is writing invisible notes now, with the obligation live on 1 feature here and 4 in your-trainer. The dangerous task is TASK-0492: retiring `Needs a run` must not turn a badge of 5 into 60, which is the exact harm ADR-0027 exists to prevent."
     PHASE-035:
@@ -3273,10 +3290,18 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0034:
+      file: "docs/decisions/ADR-0034-Three-Axes-Not-One-Word.md"
+      title: "Three axes, not one word — `level` says what a test exercises, `command:` says who runs it, `covers:` says what it gates, and no axis implies another"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-036-One-Human-Walk]]"
+      supersedes: "ADR-0033"
+      note: "Edwin rejected ADR-0033`s reasoning six hours after it was proposed: `manual tests are not different to acceptance tests or other tests, they should be able to gate at any granularity`. ADR-0033 had written `manual tests gate a feature, acceptance tests gate the release` as an ACCEPTED COST — the conflation restated as a consequence. RESEARCH BACKS HIM, in two independent frameworks: ISTQB keeps test LEVEL and test TYPE independent expressly to prevent gaps, and holds manual-vs-automated out of both as an execution concern; the Agile Testing Quadrants are business/technology-facing by supporting/critiquing, and manual-vs-automated is not an axis in either — Q2 is the ATDD/BDD quadrant and is routinely automated. So `level: acceptance` currently implies THREE independent things (a person walks it, its verdict is mark:, it gates the release) and not one follows from the word. Decision: three axes, none implying another; gating derived from covers: at any granularity; re-arming keyed on EXECUTION not level; kind: deleted because command: answers it; one outcome vocabulary (whether character or word stays ISS-0200, deliberately not folded in); tiers become lifetime or go. MEASURED PRECONDITION: 83 of 669 acceptance tests have an empty covers: and would gate NOTHING — the tier rule has no such hole, so backfill and prove equivalence BEFORE retiring it."
     ADR-0033:
       file: "docs/decisions/ADR-0033-A-Manual-Test-Is-An-Acceptance-Test.md"
       title: "A manual test is an acceptance test — `kind: manual` outside `level: acceptance` is a contradiction, and the tier system already holds the case it was invented for"
-      status: proposed
+      status: superseded
       owner: user:edwin
       phase: "[[PHASE-036-One-Human-Walk]]"
       note: "Edwin, reading the model note ADR-0031 produced: `why would these manual tests not be true in a year? If the feature changes the test has to be re-run. A manual test is always an acceptance test`. He is right and the corpus says so: TST-0024 does not retire when FEAT-0099 ships, your-trainer`s TST-0018 says the half that stays is `manual permanently`, and ZERO of 22 manual tests have ever been retired by automation. THE CASE THE SPLIT WAS INVENTED FOR ALREADY HAS A HOME: TESTING.md`s Tier 3 is `one-time checks for a specific build, promoted or removed after a verified release` — which is exactly TST-0026`s measured 64-to-31 claim. Decision: kind: manual outside level: acceptance becomes invalid; the 22 migrate to a tier; `Needs a run` disappears as a population; ONE predicate answers who-runs-this (the reader and the registry disagree on 8 of 788 today); and invalidated_by: replaces the 90-day threshold, because `has anything changed underneath it` is the question and `was true 89 days ago` is not. NAMED COST: manual tests gate a FEATURE through VERIFY and acceptance tests gate only the release, so migrating moves 22 notes out of the feature gate — decided, not absorbed."
@@ -3372,9 +3397,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 123
+    features_total: 124
     features_done: 110
-    tasks_total: 497
+    tasks_total: 500
     tasks_done: 452
     tests_total: 43
     tests_passing: 40
@@ -3385,4 +3410,4 @@ metrics:
     issues_triage: 2
     risks_open: 6
     releases_total: 1
-    decisions_total: 24
+    decisions_total: 25

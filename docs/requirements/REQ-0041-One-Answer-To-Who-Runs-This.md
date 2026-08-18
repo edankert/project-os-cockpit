@@ -13,7 +13,7 @@ scope: "obligation registry"
 implements: "[[FEAT-0122-One-Human-Walked-Population]]"
 acceptance:
   - "[ ] One predicate decides who runs a test. `cockpit._is_manual_test` and `obligations._is_owed` agree on every test in every repo — they disagree on 8 of 788 today, and none of the 8 involves a `command:`, so it is latent rather than live."
-  - "[ ] No note in any repo carries `kind: manual` outside `level: acceptance`, and the validator refuses the combination."
+  - "[ ] `kind:` is gone from the schema and from every note. `command:` answers who runs a test and nothing else claims to — a constraint would leave two fields and add a rule (ADR-0034 decision 4)."
   - "[ ] The Tests badge is derived from the tiers and is not larger than the number it replaced, per repo. Baseline: project-os-cockpit 1, your-sudoku 0, your-trainer 5."
   - "[ ] No acceptance row reaches a badge. ADR-0027 survives ADR-0033 untouched, and the guard that asserts it stays green."
 covers: []

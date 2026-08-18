@@ -3,14 +3,14 @@ type: "[[adr]]"
 id: ADR-0033
 aliases: ["ADR-0033"]
 title: "A manual test is an acceptance test — `kind: manual` outside `level: acceptance` is a contradiction, and the tier system already holds the case it was invented for"
-status: proposed
+status: superseded
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
 decision_date: ""
 phase: "[[PHASE-036-One-Human-Walk]]"
 supersedes: ""
-superseded: ""
+superseded: "[[ADR-0034-Three-Axes-Not-One-Word]]"
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ISS-0195-Two-Types-Carry-One-Act]]", "[[TESTING-MODEL]]"]
 tags: [testing, conventions, schema]
 ---
@@ -18,6 +18,8 @@ tags: [testing, conventions, schema]
 # A manual test is an acceptance test
 
 ## Status
+
+**Superseded by [[ADR-0034-Three-Axes-Not-One-Word]] on the day it was proposed**, and the reason is worth more than the note. Its conclusion is right — a manual test is an acceptance test — and its *reason* was the wrong axis: it argued from re-arming, then wrote as an accepted cost that *"manual tests gate a feature and acceptance tests gate the release."* Edwin: *"It doesn't matter … they should be able to gate at any granularity."* That sentence was the conflation restated as a consequence. The migration this ADR asks for survives inside ADR-0034 as a **consequence** of separating the axes rather than as the decision itself.
 
 **Proposed 2026-08-18.** Nothing changes type or status until Edwin accepts it — the gate [[ADR-0030]] and [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]] both used, for the same reason.
 
