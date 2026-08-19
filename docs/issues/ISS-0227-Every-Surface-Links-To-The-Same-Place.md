@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0227
 aliases: ["ISS-0227"]
 title: "Every surface row links to `~checks/tier/N`, so selecting one changes nothing — ISS-0203's defect reintroduced one level down, and there is no way to see a surface's checks in the left pane"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -41,6 +41,6 @@ That is a real loss for the reader who wanted them, and [[REQ-0047]] criterion 3
 
 ## Done when
 
-- [ ] Selecting a surface changes what the page shows.
-- [ ] A surface expands to its checks in the left pane.
-- [ ] Two surfaces never share a URL — asserted, because this is the second time.
+- [x] Selecting a surface changes what the page shows.
+- [x] A surface expands to its checks in the left pane.
+- [x] Two surfaces never share a URL — asserted, because this is the second time.

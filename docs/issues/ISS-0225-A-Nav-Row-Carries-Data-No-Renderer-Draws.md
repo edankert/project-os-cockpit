@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0225
 aliases: ["ISS-0225"]
 title: "The surface percentage is computed, sent and discarded — `buildNavRow` documents that `subtitle` is never rendered, and nothing fails when a payload carries a field no renderer draws"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -35,5 +35,5 @@ So `82% · 27/33` is computed per surface, serialised, sent over the wire, and d
 
 ## Done when
 
-- [ ] A surface row draws its progress.
-- [ ] A payload field no renderer reads is a test failure, not a shrug.
+- [x] A surface row draws its progress.
+- [x] A payload field no renderer reads is a test failure, not a shrug.

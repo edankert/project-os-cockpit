@@ -704,8 +704,7 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
         #: dropped checks would be hiding work rather than grouping it.
         areas = {str(x.area or "").strip() or "—" for x in suite.tier(1)}
         assert len(groups["tier1"]["items"]) == len(areas)
-        counted = sum(int(str(r["subtitle"]).split("/")[1].split(" ")[0])
-                      for r in groups["tier1"]["items"])
+        counted = sum(r["progress"]["total"] for r in groups["tier1"]["items"])
         assert counted == len(suite.tier(1)), "a surface dropped checks"
     # The gating tiers ask something of a person while anything is unsettled;
     # Tier 3 never does — TESTING.md is explicit that it does not gate. Stated
@@ -813,17 +812,24 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
         per_area: dict[str, list] = {}
         for i in items:
             per_area.setdefault(str(i.area or "").strip() or "—", []).append(i)
+        #: **A surface carries no status** (ISS-0226). It wore `ready`/
+        #: `passing` — the runner's vocabulary, for a place in the application
+        #: that is not run and cannot pass, and a second encoding of the bar
+        #: besides. Its state is `progress`, and its CHECKS keep their own
+        #: statuses as children.
         for row in group["items"]:
             found = per_area[row["id"]]
-            settled = all(i.checked or i.reconciled or i.excepted
-                          for i in found)
-            stale = any(i.stale for i in found)
-            expected = "passing" if settled and not stale else "ready"
-            assert row["status"] == expected, (row["id"], row["status"])
+            assert "status" not in row, (row["id"], row.get("status"))
+            settled = sum(1 for i in found
+                          if i.checked or i.reconciled or i.excepted)
+            assert row["progress"]["done"] == settled
+            assert row["progress"]["total"] == len(found)
+            assert row["progress"]["stale"] == sum(1 for i in found if i.stale)
+            assert len(row["items"]) == len(found), "a surface lost its checks"
     # The property the status buys, stated where it can fail: every value the
     # view emits is one the vocabulary knows, so no surface ranks it open.
-    emitted = {row["status"] for k, g in groups.items() if k.startswith("tier")
-               for row in g["items"]}
+    emitted = {kid["status"] for k, g in groups.items() if k.startswith("tier")
+               for row in g["items"] for kid in row.get("items") or []}
     assert emitted <= statuses.VOCABULARY, emitted - statuses.VOCABULARY
     assert "reconciled" in statuses.COMPLETED_STATUSES
 
@@ -1842,3 +1848,52 @@ def test_the_tracking_line_counts_re_runs_and_stale_ticks_separately() -> None:
     # What is untrue is that the evidence still holds, which is why it is
     # reported beside the fraction rather than subtracted from it.
     assert "3/5 completed" in label, label
+
+
+def test_no_nav_payload_field_is_sent_and_never_drawn() -> None:
+    """**The class, not the instance** ([[ISS-0225]]).
+
+    `TASK-0550` put a surface's progress in `subtitle`, which `buildNavRow`
+    documents as *"deliberately NOT rendered"*. It was computed per surface,
+    serialised, sent, and dropped — and every test passed, because every test
+    asserted the payload.
+
+    Nothing anywhere failed when the server sent a field no renderer read.
+    This is that check: every key the nav emits on an item must appear in
+    `buildNavRow`'s source, or it is data nobody will ever see.
+    """
+    from pathlib import Path as _P
+
+    #: **The whole renderer, not just `buildNavRow`.** A key another row
+    #: builder or the palette reads is not dropped on the floor; the claim
+    #: here is that nothing is sent which NOTHING reads.
+    src = (_P(__file__).resolve().parents[1] / "desktop" / "src" / "renderer"
+           / "renderer.ts").read_text()
+
+    emitted: set[str] = set()
+    for group in nav_payload(Index.build(REPO_DOCS), "tests")["groups"]:
+        for item in group.get("items") or []:
+            emitted |= set(item)
+            for kid in item.get("items") or []:
+                emitted |= set(kid)
+
+    #: `subtitle` is the one key deliberately dropped, and the docstring says
+    #: so. Named here rather than exempted by absence, because an exemption
+    #: nobody can see is how the next one gets added.
+    known_unread = {
+        #: Documented in `buildNavRow` as never rendered — the left pane is a
+        #: selection list, not a place for summaries.
+        "subtitle",
+        #: **Found by this guard on its first run, and pre-existing.**
+        #: `ISS-0197` added it so a row could say *"60 of 107 proven"* rather
+        #: than leaving an abandoned walk indistinguishable from one nobody
+        #: started — and no renderer ever read it. Named here rather than
+        #: deleted, because the sentence it was added for is still worth
+        #: saying and the fix is to draw it, not to stop sending it
+        #: ([[ISS-0229]]).
+        "steps_proven",
+    }
+    unread = {k for k in emitted - known_unread if k not in src}
+    assert not unread, (
+        f"the nav sends {sorted(unread)} and buildNavRow reads none of them — "
+        "data computed, serialised and dropped on the floor")

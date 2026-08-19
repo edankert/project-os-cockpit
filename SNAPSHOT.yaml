@@ -61,12 +61,12 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 138
-  ISS: 228
+  ISS: 229
   PHASE: 38
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 551
+  TASK: 555
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -167,7 +167,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
-      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520", "TASK-0549", "TASK-0550", "TASK-0551"]
+      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520", "TASK-0549", "TASK-0550", "TASK-0551", "TASK-0552", "TASK-0553", "TASK-0554", "TASK-0555"]
       note: "Built when the corpus had 23 tests, where showing all of them WAS the summary. At 579 it is a wall. Collapse Resting to a line, collapse tier sections to tracking lines carrying walked/re-run/to-walk, and put feature tests above the flat groups. Constraint: every collapsed count must expand to exactly its rows, or work has been hidden rather than organised."
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
@@ -807,6 +807,34 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0552:
+      file: "docs/features/tests-view/plan/tasks/TASK-0552-The-navs-surfaces-get-their-own-address-and-their-ow.md"
+      title: "The nav's surfaces get their own address and their own children"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0553:
+      file: "docs/features/tests-view/plan/tasks/TASK-0553-A-surface-row-draws-its-progress-and-a-payload-field.md"
+      title: "A surface row draws its progress, and a payload field no renderer reads is a failure"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0554:
+      file: "docs/features/tests-view/plan/tasks/TASK-0554-A-surface-carries-no-test-status.md"
+      title: "A surface carries no test status"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0555:
+      file: "docs/features/tests-view/plan/tasks/TASK-0555-The-check-id-renders-once-at-the-start-and-is-select.md"
+      title: "The check id renders once, at the start, and is selectable"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0549:
       file: "docs/features/tests-view/plan/tasks/TASK-0549-One-Grouping-Key-And-It-Is-The-Id.md"
       title: "Retire `section:`/`ordinal:` — order on `(tier, note_id)`, group on `area` alone"
@@ -862,34 +890,6 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0527:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0527-The-Ledger-Schema-And-The-Working-Ledger.md"
-      title: "Define the ledger file — schema, the working ledger per platform, and sealing at release cut"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0528:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0528-The-Validator-Reads-A-Ledger.md"
-      title: "The validator reads a ledger — required fields, reason-bearing marks, and a sealed ledger that cannot change"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0529:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0529-Backfill-One-Ledger-Per-Repo.md"
-      title: "Backfill one ledger per repo from the scalar marks, and measure the gate delta before it lands"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0530:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0530-Remove-The-Seven-Fields-Upstream-First.md"
-      title: "Remove the seven verdict fields from the schema, the template and the validator — upstream first"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0134
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0531:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0531-The-Note-To-Ledger-Migration-Script.md"
@@ -3891,14 +3891,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 117
-    tasks_total: 550
-    tasks_done: 497
+    tasks_total: 554
+    tasks_done: 501
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 13
+    issues_open: 10
     issues_triage: 0
     risks_open: 6
     releases_total: 1

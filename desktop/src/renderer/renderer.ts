@@ -3698,6 +3698,14 @@ interface NavItem {
   status?: string;
   url?: string;
   subtitle?: string;
+  /** A surface's completion (ISS-0225). **Drawn**, unlike `subtitle`, which
+   *  `buildNavRow` documents as never rendered — the progress went there and
+   *  was discarded in silence. */
+  progress?: { done: number; total: number; stale: number; pct: number };
+  /** A surface's checks (ISS-0227). REQ-0047 criterion 3: a collapsed group
+   *  expands to exactly the rows it collapsed, and a surface that expanded to
+   *  nothing had taken 579 rows away rather than organising them. */
+  items?: NavItem[];
   type?: string;
   children?: NavItem[];
   /** Set by the group when every item shares one status, so the head can
@@ -8712,8 +8720,12 @@ function buildCheckRow(item: GateItem): HTMLElement {
   // **The number, on the row** (TASK-0513). It used to be carried by the
   // area block's ordering; the list is flat now, so the row says it.
   const num = document.createElement('span');
+  // **Selectable** (ISS-0228). This is the value somebody pastes into a note
+  // or types into the palette, and it could not be copied without opening the
+  // check. `user-select: text` is on `.checks-row-number`.
   num.className = 'checks-row-number mono';
   num.textContent = item.number;
+  num.title = `${item.number} — select to copy`;
   row.appendChild(num);
 
   const body = document.createElement('div');
@@ -8763,8 +8775,13 @@ function buildCheckRow(item: GateItem): HTMLElement {
     const open = document.createElement('button');
     open.type = 'button';
     open.className = 'checks-row-open';
-    open.textContent = item.id || 'open';
-    open.title = 'Open this check';
+    // **`open`, not the id again** (ISS-0228). `number` and `id` were
+    // different things — the document position and the note id — until
+    // ISS-0224 made `number` return the id, and the row then drew one value
+    // at both ends. Nothing failed, because both fields were correct; that is
+    // the shape of change that has to be looked at rather than tested.
+    open.textContent = 'open';
+    open.title = `Open ${item.id || 'this check'}`;
     open.addEventListener('click', () => { void navigateTo(`/docs/${item.rel}`); });
     row.appendChild(open);
   }
@@ -11339,6 +11356,7 @@ function pickItemRenderer(layout: string | undefined): ItemRenderer {
  */
 function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
   const li = document.createElement('li');
+  if (item.progress) li.classList.add('nav-row-has-progress');
   const rel = extractRel(item.url);
   if (rel) li.dataset.rel = rel;
   if (item.id) li.dataset.id = String(item.id);
@@ -11429,6 +11447,55 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
       void navigateTo(rel);
     });
   }
+  // **The sliver bar** (ISS-0225). `.ov-phase-under` is the instrument the
+  // overview draws under a phase — 2px — which is what Edwin meant by *"the
+  // same as we do for phases"*. A nav row is one line tall: room for an
+  // underline, none for a segmented block. That is why the earlier attempt
+  // put a percentage in the second-line field, which this function documents as never
+  // rendered, and it was discarded in silence.
+  //
+  // **Stale is on the bar, not folded into it.** A tick standing on evidence
+  // a change overtook is not done, and merging the two is what made
+  // `your-trainer`'s honest blocking number 113 read as a reported 60.
+  if (item.progress) {
+    const prog = item.progress;
+    const under = document.createElement('div');
+    under.className = 'ov-phase-under nav-row-progress';
+    if (prog.stale) under.classList.add('has-stale');
+    const fill = document.createElement('i');
+    fill.style.width = `${prog.pct}%`;
+    under.appendChild(fill);
+    under.title = `${prog.done} of ${prog.total} completed`
+      + (prog.stale
+        ? `, ${prog.stale} standing on evidence a change overtook` : '');
+    card.appendChild(under);
+  }
+
+  // **A surface expands to its checks** (ISS-0227 / REQ-0047 criterion 3).
+  // Collapsed by default: `your-trainer` has 77 surfaces over 581 checks.
+  if (item.items?.length) {
+    li.classList.add('nav-row-parent');
+    const kids = document.createElement('ul');
+    kids.className = 'nav-children';
+    kids.hidden = true;
+    for (const kid of item.items) kids.appendChild(buildNavRow(kid));
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'nav-row-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = String(item.items.length);
+    toggle.title = `Show the ${item.items.length} checks in this surface`;
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      kids.hidden = !kids.hidden;
+      toggle.setAttribute('aria-expanded', String(!kids.hidden));
+    });
+    card.appendChild(toggle);
+    li.appendChild(card);
+    li.appendChild(kids);
+    return li;
+  }
+
   li.appendChild(card);
   return li;
 }

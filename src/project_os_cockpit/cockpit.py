@@ -4223,20 +4223,38 @@ _TIER_LABELS: dict[int, str] = {
 CHECKS_VIEW_ROUTE = "~checks"
 
 
+def _area_slug(area: str) -> str:
+    """A surface's address component.
+
+    **Derived, and therefore fragile** — `area:` is free text, so renaming a
+    surface silently breaks a bookmark to it. [[FEAT-0130]] is the fix (a
+    `SUR-*` note with an id of its own); until then this is stated here rather
+    than discovered by somebody whose link stopped working.
+    """
+    out = "".join(c.lower() if c.isalnum() else "-" for c in (area or ""))
+    while "--" in out:
+        out = out.replace("--", "-")
+    return out.strip("-") or "unnamed"
+
+
 def _surface_rows(items: list[dict[str, Any]], url: str,
                   tier: int) -> list[dict[str, Any]]:
-    """One row per surface, carrying a **percentage** ([[ISS-0222]]).
+    """One row per surface, each **its own address with its own children**.
 
-    A percentage rather than a bar, and the reasoning is [[ISS-0223]]'s in the
-    other direction: a nav row is one line tall and a segmented bar is not a
-    one-line element. The bar Edwin is comparing to lives in the overview's
-    phase *cards*, which have the height for it.
+    Three defects fixed together, because they are one row ([[ISS-0225]],
+    [[ISS-0226]], [[ISS-0227]]):
 
-    **The stale distinction survives the compression.** A surface holding a
-    tick that stands over overtaken evidence is marked, because folding stale
-    into done is what made `your-trainer`'s honest blocking number 113 read as
-    60 — and a percentage that quietly re-merges them is that defect in a
-    smaller element.
+    * **Its own url.** Every row used to carry `~checks/tier/N`, so the label
+      differed and the destination did not — which is [[ISS-0203]] verbatim,
+      fixed for tiers one day and reintroduced for surfaces the next, in the
+      function written to add them. A filter in the ADDRESS is also what lets
+      back and forward move between surfaces.
+    * **Its own children.** A surface expands to its checks. [[REQ-0047]]
+      criterion 3 is *"every collapsed group expands to exactly the rows it
+      collapsed"*, and a surface row that expanded to nothing had taken 579
+      rows away rather than organising them.
+    * **No test status, and progress the renderer will actually draw.** See
+      `progress` below and the absence of `status`.
     """
     order: list[str] = []
     per: dict[str, list[dict[str, Any]]] = {}
@@ -4255,21 +4273,37 @@ def _surface_rows(items: list[dict[str, Any]], url: str,
                       if i.get("checked") or i.get("reconciled")
                       or i.get("excepted"))
         stale = sum(1 for i in found if i.get("stale"))
-        pct = round(settled * 100 / total) if total else 0
-        label = f"{pct}% · {settled}/{total}"
-        if stale:
-            label = f"{label} · {stale} stale"
         rows.append({
             "id": area,
             "title": area,
-            "subtitle": label,
-            #: `passing` only when the whole surface is settled AND none of it
-            #: is standing on overtaken evidence. A surface that reads green
-            #: while one of its ticks is stale is the same lie one level up.
-            "status": ("passing" if settled == total and not stale
-                       else "ready"),
-            "url": (f"{url}/tier/{tier}" if url == CHECKS_VIEW_ROUTE else url),
-            "type": "test",
+            #: **Drawn, not merely sent** ([[ISS-0225]]). `subtitle` is
+            #: documented as never rendered — the percentage went there and
+            #: was discarded, computed and serialised and dropped, while every
+            #: test passed because every test read the payload. `progress` is
+            #: a key `buildNavRow` draws.
+            "progress": {
+                "done": settled, "total": total, "stale": stale,
+                "pct": round(settled * 100 / total) if total else 0,
+            },
+            #: **No `status`** ([[ISS-0226]]). It carried `ready`/`passing` —
+            #: the runner's vocabulary, for a place in the application that is
+            #: not run and cannot pass. It was also a second encoding of the
+            #: bar, which is the thing this phase exists to remove.
+            "url": (f"{url}/tier/{tier}/area/{_area_slug(area)}"
+                    if url == CHECKS_VIEW_ROUTE else url),
+            "type": "surface",
+            "items": [
+                {
+                    "id": i.get("id") or i["number"],
+                    "title": i["name"],
+                    "status": ("passing" if i.get("checked")
+                               else "reconciled" if i.get("reconciled")
+                               else "ready"),
+                    "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
+                    "type": "test",
+                }
+                for i in found
+            ],
         })
     return rows
 

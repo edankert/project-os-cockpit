@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0226
 aliases: ["ISS-0226"]
 title: "A surface row carries `ready`/`passing` — the runner's vocabulary, borrowed for a thing that is not a test and cannot pass"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -31,5 +31,5 @@ If a signal beyond the bar is wanted, it must mean something about a *surface* r
 
 ## Done when
 
-- [ ] A surface row emits no test status.
-- [ ] Whatever it does emit is not a value `statuses.VOCABULARY` defines, or it is one deliberately and the note says why.
+- [x] A surface row emits no test status.
+- [x] Whatever it does emit is not a value `statuses.VOCABULARY` defines, or it is one deliberately and the note says why.

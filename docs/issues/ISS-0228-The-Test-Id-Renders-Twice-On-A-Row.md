@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0228
 aliases: ["ISS-0228"]
 title: "The generated page shows the `TST-*` id at both ends of a row, and neither is selectable — `number` and `id` used to differ and ISS-0224 made them identical"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -31,5 +31,5 @@ That is the expected shape of this kind of change and the reason to look at the 
 
 ## Done when
 
-- [ ] The id appears once per row.
-- [ ] It is selectable and says what it is.
+- [x] The id appears once per row.
+- [x] It is selectable and says what it is.
