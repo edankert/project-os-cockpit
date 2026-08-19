@@ -21,7 +21,8 @@ tags: [task]
 - [ ] `SCHEMAS.md` "Acceptance fields" describes only intent: `tier`, `area`, `section`, `ordinal`, `covers`, `burden`, `migrated_from`, `merged_from`.
 - [ ] `docs/__templates__/test.md` scaffolds none of the seven.
 - [ ] `TESTING.md` and `STATUSES.md` describe the ledger rather than `mark:`.
-- [ ] The validator errors on any of the seven, and the message names the ledger.
+- [ ] The validator errors on any of the seven, and the message names the ledger — for `evidence` it names the ledger's `evidence` collection specifically ([[TASK-0544]]), because a message that just says *"the ledger"* leaves a person hunting for a field that is not there.
+- [ ] `tests_verified:` leaves the **release** template and schema in the same pass ([[TASK-0546]]) — it is the same decision one level up, and splitting it across two syncs means two rounds of fleet divergence.
 - [ ] **All of it lands in `~/Dev/repos/project-os` first** ([[ADR-0030]] decision 6), then `sync-project-os.sh` down.
 
 ## Notes

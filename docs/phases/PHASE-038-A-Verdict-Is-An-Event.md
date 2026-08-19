@@ -37,7 +37,7 @@ tags: [phase]
 
 **An acceptance verdict is a fact about (check × platform × release).** It is stored as a scalar. This phase moves it into a per-release, single-platform ledger of dated events, leaves the note holding only intent, and turns the walk list, the release gate and the cross-platform burndown into queries over ledgers.
 
-[[ADR-0037-A-Verdict-Is-An-Event]] carries the decision and the measurements. **It is `proposed`, and nothing in this phase migrates until it is accepted** — the gate [[ADR-0030]], [[ADR-0031]] and [[ADR-0034]] all used.
+[[ADR-0037-A-Verdict-Is-An-Event]] carries the decision and the measurements. **Accepted 2026-08-19 by Edwin** — the gate [[ADR-0030]], [[ADR-0031]] and [[ADR-0034]] all used held for its day, and the phase was documented in full, amended twice and audited once while it read `proposed`. Two questions left open in the ADR were answered in the same instruction: `evidence` moves to the ledger as a sibling collection ([[TASK-0544]]), and `tests_verified:` becomes derived ([[TASK-0546]]). **This phase is now clear to start.**
 
 ## Why this is a phase
 
@@ -69,7 +69,8 @@ tags: [phase]
 - [ ] **No acceptance note in any migrated repo carries `mark:`, `verdict_date:`, `verdict_reason:`, `invalidated_by:`, `automation:` or `covered_by:`** — and no cockpit surface reads or writes one.
 - [ ] **The release gate is a query over ledgers**, and its delta against today's gate is measured and stated **per repo before that repo migrates**. A repo whose delta has not been stated does not migrate.
 - [ ] **A check with no entry for a platform reports as owed on that platform**, with no field anywhere declaring applicability.
-- [ ] **A sealed ledger cannot be modified**, proved by a test that tries.
+- [ ] **A sealed ledger cannot be modified**, proved by a test that tries — `entries` and `evidence` both.
+- [ ] **A release's verified list is computed, not typed.** `tests_verified:` is gone from the schema and the page reads the sealed ledger, naming the platform it read.
 - [ ] **A check can be excused from one release without being excused from the next.** *Unable to test*, *not tested this cycle* and *could not run it right now* are three recordable answers with three different effects on the gate, and the middle one **expires when its ledger seals** — the property [[ADR-0029]] designed and lost.
 - [ ] **One outcome vocabulary exists in one document, and it is the vocabulary the data uses** — verified by a check that reads both, so `TAXONOMY.md` cannot drift from the corpus again ([[ISS-0218]] is what that drift looks like today).
 - [ ] **The splitter is fixed and proved on a hard-wrapped bullet** before any repo runs a migration.

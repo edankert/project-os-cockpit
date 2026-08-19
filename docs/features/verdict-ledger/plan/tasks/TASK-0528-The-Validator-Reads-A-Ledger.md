@@ -21,6 +21,7 @@ tags: [task]
 - [ ] An `excused` entry in a **sealed** ledger does not clear the gate of any later release — the expiry is enforced, not documented.
 - [ ] `check` must resolve to an existing acceptance test.
 - [ ] An entry may not carry a `platform` that contradicts its file.
+- [ ] An `evidence` item whose `check` + `date` matches no entry is an error — evidence for a walk nobody recorded is a claim with nothing behind it, the same shape as the `covered_by` guard [[ISS-0198]] closed on.
 - [ ] A sealed ledger differing from its committed content is an error — **proved by a test that edits one and expects the failure**.
 - [ ] Errors land upstream in `~/Dev/repos/project-os/tools/scripts/validate-docs.py` first ([[ADR-0030]] decision 6), then sync down.
 

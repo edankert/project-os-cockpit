@@ -3,24 +3,27 @@ type: "[[adr]]"
 id: ADR-0037
 aliases: ["ADR-0037"]
 title: "A verdict is an event in a per-release, single-platform ledger — the note holds intent, the ledger holds reality, and platform stops being a note field"
-status: proposed
+status: "accepted"
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
-decision_date: ""
+decision_date: 2026-08-19
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 source: ["Edwin 2026-08-19, via a working session in ~/Dev/repos/your-trainer: 'Acceptance verification becomes a per-release ledger, and platform stops being a note field'"]
 supersedes: ""
 superseded: ""
 related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[ISS-0215-One-Hundred-And-Forty-Rows-Outside-The-Suite]]", "[[ISS-0216-The-Suite-Parser-Splits-On-Physical-Lines]]", "[[ISS-0217-The-Two-Repos-Holding-Every-Check-Describe-A-Retired-Type]]", "[[DES-0012-Tests-In-Two-Flows]]"]
 tags: [acceptance, conventions, schema, testing]
+decided_option: "3"
 ---
 
 # A verdict is an event
 
 ## Status
 
-**Proposed 2026-08-19.** Nothing migrates while this reads `proposed` — the same gate [[ADR-0030]], [[ADR-0031]], [[ADR-0033]] and [[ADR-0034]] all used, and the same reason: an acceptance should be about something concrete and fully costed.
+**Accepted 2026-08-19 by Edwin**, through the cockpit's decision actuator — *"I have confirmed the ADR."* The gate held for exactly as long as it was meant to: this decision, six features, six requirements, twenty tasks and three issues were all documented and committed while it read `proposed`, and nothing migrated. In that window it was amended twice and audited once against its own task list, which is what the `proposed` day is for.
+
+Accepted with its two open questions answered in the same instruction: **evidence lives in the ledger and not on the entry**, and **`tests_verified:` becomes derived**. Both are recorded below — the first under decision 1, the second under *Consequences*.
 
 **Read this sentence before the rest. This is the fourth schema change to the same corpus in four weeks** — [[ADR-0030]] (~9.5 days), [[ADR-0031]] (6–8 days), [[ADR-0034]], and now this. Nobody should accept it without that on the record. What is different this time, and it is the whole argument for going again, is stated under *Why a fourth time* below: the previous three all moved the same scalar between shapes. This one is the first to notice that the scalar cannot hold the fact.
 
@@ -89,6 +92,10 @@ level: acceptance
 
 **Removed:** `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`, `automation`, `covered_by`, `evidence`. **The note holds nothing platform-shaped and nothing verdict-shaped at all.**
 
+**`evidence` goes to the ledger, and not onto the entry** — *Edwin, 2026-08-19.* A screenshot or a log is proof that **one walk happened, on one platform, on one date**; on a permanent check it is a standing claim of exactly the kind decision 3 rejects for `automation:`. It does not belong inline on the entry either: an entry is one short line in an append-only file, while evidence is bulky, arrives late, and is often produced once for a session covering several checks. So the ledger carries a **sibling `evidence` collection**, joining by `check` + `date`.
+
+Measured before deciding, as [[TASK-0544]] required: `evidence:` is non-empty on **0 of 671** acceptance notes — the fifth removed field no repo has ever filled. It is populated only on *executable* tests, where it holds run output (`"30 passed in 0.75s"`), and those are untouched. **The field has never held anything on an acceptance note precisely because a walk's evidence has no home on a permanent check** — which is the same argument this whole decision makes about the verdict itself.
+
 `covers:` stays — it is the gating axis [[ADR-0034]] decision 1 established and [[ADR-0032]] built, and it is a statement of intent, not of outcome.
 
 ### 2. The ledger is reality
@@ -113,11 +120,16 @@ Append-only, **one per release per platform**. Because releases are per-platform
      "method": "manual", "by": "user:edwin",
      "reason": "Route-map redraw is not in v2.1.6; owed again at the next seal."},
     {"check": "TST-0028", "invalidated_by": "TASK-0776", "date": "2026-08-16"}
+  ],
+  "evidence": [
+    {"check": "TST-0034", "date": "2026-08-15",
+     "ref": "docs/tests/evidence/2026-08-15-scanner-modal.png",
+     "note": "Modal after a failed scan, Pixel 8a."}
   ]
 }
 ```
 
-`sealed` is absent while this is the working ledger. One entry per line, so a diff reads as *what was added*, which is what an append-only file is for.
+`sealed` is absent while this is the working ledger. One entry per line, so a diff reads as *what was added*, which is what an append-only file is for. **`evidence` is a sibling collection rather than a field on the entry** (decision 1), because one artefact often covers several checks and an entry has to stay one line.
 
 ### 3. Automation is an event, not a standing claim
 
@@ -201,6 +213,7 @@ This is Stage 2. Before `covered_by:` is deleted, whatever it holds is seeded in
 - **With its subject.** [[ADR-0020]]: obligations live with their subject, and a ledger's subject is a release.
 - **One open ledger per platform, always.** Every event lands in the working ledger for its platform; **sealing is what assigns it to a release** ([[ISS-0206]]'s "somewhere else" answered). At release cut the working ledger gains `release`, `version` and `sealed`, is renamed, and a fresh working ledger starts.
 - **A sealed ledger is never edited.** The validator enforces it. *Was release R walked?* is answered by reading its ledger, and the answer does not change afterwards.
+- **Two collections: `entries` and `evidence`.** Entries are the verdicts; evidence is what backs them, joined by `check` + `date` (decision 1). Both are append-only and both freeze at the seal.
 
 **Why JSON, measured rather than preferred: this project has never written YAML.** `yaml.dump` and `yaml.safe_dump` occur **zero times** in `src/` and `tools/scripts/`. PyYAML is a read-only dependency — every YAML file in the corpus is authored by a person or edited line-by-line (`note_writes._set_field`, `_set_block`), and `note_writes._yaml_safe` exists precisely because hand-rolling YAML quoting is fiddly enough to need a helper. Twelve modules already import `json`.
 
@@ -230,6 +243,8 @@ The suite is a generated view, not a document. The frozen per-release suites nev
 **The gate moves, and the delta is measured per repo before it lands.** Under decision 5, 124 `todo` notes become *no entry* — which is the same blocking state, not a quieter one. But 546 `pass` entries land in a **single-platform** ledger, so on `your-trainer` every one of the 513 Android passes stops counting toward an iOS release. That is the honesty gain and it is also a large, deliberate tightening of one repo's gate. *"Quieter is the one direction a gate must never move without somebody deciding it"* ([[ISS-0208]]) cuts both ways, and this moves it the other way, hard. **No repo migrates before its delta is stated.**
 
 **An exception now expires, and today it does not.** `Item.excepted` is `mark in {canceled, -}` read from frontmatter, scoped to nothing — so a check excused once is excused on every release afterwards, while the comment above that set still describes the per-release property [[ADR-0029]] removed when it moved the exception from `[!]` to `[-]`. Latent rather than live: `mark: canceled` is written **0 times in all three repos**. If this ADR is declined the defect stays and should be filed; if it is accepted, decision 7 removes it by construction rather than by a fix.
+
+**`tests_verified:` on a release becomes derived** — *Edwin, 2026-08-19.* A `[[release]]` note lists by hand what its sealed ledger computes ([[REL-0001]] carries 13 entries; `publication.py:167` and `cockpit.py:4574` read them, and the shipped-release page renders them). Two encodings of one fact is what [[ADR-0032]] spent a decision removing for the verification link, and the argument does not change because the second encoding is small: it drifts, and the drift is silent. The field leaves the release template and schema, and the page reads the ledger. **[[REL-0001]] is not rewritten** — it predates the ledger and there is nothing for it to derive from, so its list stays as the record of what that release was measured against.
 
 **The backfilled dates are honest and imprecise, because there is nothing better.** All 546 `pass` verdicts have no `verdict_date:`. The backfill writes the migration date with `by: migration` and a `note:` recording that the verdict predates the ledger and naming the pre-migration address from `migrated_from:`. Recovering true dates from `git log -L` over the pre-migration document is possible and is **not** proposed: it is expensive, partial, and the resulting precision would be indistinguishable from precision anybody could trust.
 
@@ -271,7 +286,9 @@ That gap closes through [[FEAT-0132]] (a feature is scaffolded with its check, a
 
 ## Decision record
 
-> [!note] Proposed — 2026-08-19
-> Awaiting Edwin. What acceptance would cover: the fourth schema change to this corpus in four weeks; a gate that tightens sharply on `your-trainer` because 513 Android passes stop counting for iOS; `rerun` retired three weeks after being minted; and a read/write path spanning 87 TypeScript sites and six Python modules.
+> [!note] Accept — 2026-08-19 (user:edwin)
+> *"I have confirmed the ADR. The entry does not carry evidence, this should be in the ledger. And `tests_verified` should be derived."* — given through the cockpit's decision actuator against a phase documented in full, twice amended and once audited while this read `proposed`.
 >
-> **Amended 2026-08-19, twice, before acceptance.** Decision 6 was rewritten and decision 7 added after Edwin asked how to record *unable to test* and *not tested* separately — the answer being that the schema cannot, and that the per-release exception [[ADR-0029]] designed stopped expiring when its mark moved. Decision 9 moved the ledger from YAML to JSON on his instruction, and the measurement behind it is better than the argument the first draft gave.
+> What is accepted: the fourth schema change to this corpus in four weeks; a gate that tightens sharply on `your-trainer` because 513 Android passes stop counting for iOS; `rerun` retired three weeks after being minted; and a read/write path spanning 87 TypeScript sites and six Python modules.
+>
+> **Amended twice before acceptance, both Edwin's.** Decision 6 was rewritten and decision 7 added after Edwin asked how to record *unable to test* and *not tested* separately — the answer being that the schema cannot, and that the per-release exception [[ADR-0029]] designed stopped expiring when its mark moved. Decision 9 moved the ledger from YAML to JSON on his instruction, and the measurement behind it is better than the argument the first draft gave.

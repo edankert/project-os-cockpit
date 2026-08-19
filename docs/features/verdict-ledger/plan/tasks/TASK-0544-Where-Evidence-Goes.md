@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0544
 aliases: ["TASK-0544"]
-title: "Decide where `evidence:` goes — the entry carries it, or its loss is stated as a loss"
+title: "`evidence` moves to the ledger as a sibling collection, not onto the entry and not onto the note"
 status: backlog
 owner: user:edwin
 created: 2026-08-19
@@ -18,13 +18,19 @@ tags: [task]
 
 This is not a small omission. [[ADR-0030]]'s honest tally of what one-note-per-check bought led with *"per-check evidence attachments"* — it is the first item on the list of things that were **genuinely unlocked** rather than merely improved. Deleting the field without replacing it would give that back.
 
+## Decided 2026-08-19 (Edwin)
+
+*"The entry does not carry evidence, this should be in the ledger."*
+
+**The ledger carries a sibling `evidence` collection**, alongside `entries`, joining by `check` + `date`. Not on the note — a screenshot proves one walk on one platform on one date, and on a permanent check that is the standing claim decision 3 rejects for `automation:`. Not inline on the entry either — an entry is one short line in an append-only file, and evidence is bulky, arrives late, and is often produced once for a session covering several checks.
+
+**Measured first, as this task required: `evidence:` is non-empty on 0 of 671 acceptance notes** across all three repos. It is populated only on *executable* tests, where it holds run output (`"30 passed in 0.75s"`), and those are untouched. The field has never held anything on an acceptance note precisely because a walk's evidence has no home on a permanent check — the same argument [[ADR-0037]] makes about the verdict.
+
 ## Definition of Done
 
-- [ ] Decided, in [[ADR-0037]] rather than in a commit: the entry carries `evidence` (a list of paths or urls), **or** the capability is dropped and the ADR says so in its consequences.
-- [ ] If it is carried: evidence attaches to the **event**, not to the check — a screenshot is proof of one walk on one platform on one date, which is the whole thesis applied to the field.
-- [ ] `Item.evidence` (`acceptance.py:358`, read at `:801`) follows the decision.
-- [ ] Measured first: how many notes carry a non-empty `evidence:` today, per repo. If it is zero everywhere the decision is cheap, and that should be known before it is made rather than after.
-
-## Notes
-
-Evidence on the event is the better shape and this task should probably confirm it rather than open it: a verdict without its evidence is the thing the whole phase is arguing against, and evidence on the *check* would be a standing claim of exactly the kind decision 3 rejects for `automation:`.
+- [x] Decided in [[ADR-0037]] decision 1 rather than in a commit.
+- [x] Measured per repo before deciding: 0 of 671.
+- [ ] The ledger schema carries `evidence` as a sibling of `entries` ([[TASK-0527]]), with `check` and `date` required on each item.
+- [ ] The validator refuses an evidence item whose `check` + `date` matches no entry — evidence for a walk that was never recorded is a claim with nothing behind it.
+- [ ] `Item.evidence` (`acceptance.py:358`, read at `:801`) reads the ledger, and the field leaves the note schema with [[TASK-0530]].
+- [ ] Evidence freezes at the seal with everything else.

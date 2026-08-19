@@ -18,8 +18,9 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] File schema documented: `release`, `version`, `platform`, `sealed`, `entries[]`.
+- [ ] File schema documented: `release`, `version`, `platform`, `sealed`, `entries[]`, `evidence[]`.
 - [ ] Entry schema documented: `check`, `mark`, `date`, `by`, `method`, `reason`; or `check`, `invalidated_by`, `date`.
+- [ ] **`evidence` is a sibling collection of `entries`**, not a field on an entry ([[ADR-0037]] decision 1, [[TASK-0544]]). Each item carries `check`, `date`, `ref` and an optional `note`, and joins to an entry by `check` + `date`.
 - [ ] Exactly one open ledger per platform, created on demand.
 - [ ] Sealing is a single operation: stamp `release`/`version`/`sealed`, rename, start a fresh working ledger.
 - [ ] **Sealing expires `excused`** and carries `pass`/`partial`/`na` forward ([[ADR-0037]] decision 7). This is the one behaviour of the seal that is not bookkeeping.
