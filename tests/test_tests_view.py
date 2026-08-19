@@ -699,7 +699,14 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     for tier in (1, 2, 3):
         present = f"tier{tier}" in groups
         assert present is bool(suite.tier(tier)), (tier, sorted(groups))
-    assert len(groups["tier1"]["items"]) == len(suite.tier(1))
+        #: **Surfaces, not checks** (ISS-0222). Every check is inside exactly
+        #: one of them, which is the property that matters — a surface that
+        #: dropped checks would be hiding work rather than grouping it.
+        areas = {str(x.area or "").strip() or "—" for x in suite.tier(1)}
+        assert len(groups["tier1"]["items"]) == len(areas)
+        counted = sum(int(str(r["subtitle"]).split("/")[1].split(" ")[0])
+                      for r in groups["tier1"]["items"])
+        assert counted == len(suite.tier(1)), "a surface dropped checks"
     # The gating tiers ask something of a person while anything is unsettled;
     # Tier 3 never does — TESTING.md is explicit that it does not gate. Stated
     # as the rule rather than as today's answer: the first version asserted
@@ -798,16 +805,20 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
             assert f"· {reconciled} reconciled" in group["label"], group["label"]
         else:
             assert "reconciled" not in group["label"], group["label"]
-        # Keyed on whichever address the row carries. Once a repo has migrated
-        # (ADR-0030/ADR-0031) that is the acceptance test's own id; before, it is the
-        # document position. Both are in the map rather than one being picked,
-        # so this test asserts the same property in either storage.
-        by_address = {i.number: i for i in items}
-        by_address.update({i.note_id: i for i in items if i.note_id})
+        # **A row is a SURFACE** (ISS-0222), so its status is about the whole
+        # surface: `passing` only when every check in it is settled AND none
+        # is standing on evidence a change overtook. A surface that read green
+        # while one of its ticks was stale would be the lie that made
+        # `your-trainer`'s honest blocking number 113 read as 60, one level up.
+        per_area: dict[str, list] = {}
+        for i in items:
+            per_area.setdefault(str(i.area or "").strip() or "—", []).append(i)
         for row in group["items"]:
-            item = by_address[row["id"]]
-            expected = ("passing" if item.checked
-                        else "reconciled" if item.reconciled else "ready")
+            found = per_area[row["id"]]
+            settled = all(i.checked or i.reconciled or i.excepted
+                          for i in found)
+            stale = any(i.stale for i in found)
+            expected = "passing" if settled and not stale else "ready"
             assert row["status"] == expected, (row["id"], row["status"])
     # The property the status buys, stated where it can fail: every value the
     # view emits is one the vocabulary knows, so no surface ranks it open.

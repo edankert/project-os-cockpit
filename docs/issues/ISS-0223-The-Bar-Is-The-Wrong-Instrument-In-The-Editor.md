@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0223
 aliases: ["ISS-0223"]
 title: "The segmented bar on the generated checks page is the wrong instrument for that surface — a percentage says the same thing in a tenth of the width"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -36,6 +36,8 @@ A percentage is the same claim at a glance and leaves the width for the surface'
 
 ## Done when
 
-- [ ] Surface headers on the generated page show a percentage; tier headers keep the bar.
-- [ ] The percentage and the bar are computed from one predicate.
-- [ ] A surface holding a stale tick is visibly distinguished from one that is not.
+- [x] Surface headers on the generated page show a percentage; tier headers keep the bar.
+- [x] The percentage and the bar are computed from one predicate.
+- [x] A surface holding a stale tick is visibly distinguished from one that is not.
+
+## Fixed 2026-08-19 — [[TASK-0551]]

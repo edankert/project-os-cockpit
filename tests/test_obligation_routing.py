@@ -340,11 +340,27 @@ def test_routing_moves_the_row_and_never_the_note() -> None:
     listed = set()
     for group in cockpit.nav_payload(index, "tests")["groups"]:
         listed.update(str(i["id"]) for i in group["items"])
+    #: **Acceptance checks are represented by their SURFACE** (ISS-0222), so
+    #: they are not individually listed and must not be: `your-trainer` put
+    #: 579 of them in this pane. Nothing is lost — REQ-0047 criterion 3 — the
+    #: surface row expands to its checks on the page that can walk them, and
+    #: says how many. What this guards is that every EXECUTABLE test still has
+    #: its own row, which is the population ADR-0025's shortcut is about.
     corpus = {
         r.note_id for r in index.notes_by_type("test")
         if r.note_id and not r.rel_path.startswith("__templates__/")
+        and str(r.frontmatter.get("level", "") or "").strip().lower()
+        != "acceptance"
     }
     assert corpus <= listed, corpus - listed
+
+    #: And every acceptance check is accounted for by exactly one surface row.
+    from project_os_cockpit import acceptance as _acc
+
+    suite = _acc.load(index.docs_root, index)
+    if suite.exists:
+        areas = {str(i.area or "").strip() or "—" for i in suite.items}
+        assert areas <= listed, areas - listed
 
 
 def test_a_tests_subject_fields_track_the_link_rename() -> None:

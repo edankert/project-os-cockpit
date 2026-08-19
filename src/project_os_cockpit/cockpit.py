@@ -4223,6 +4223,57 @@ _TIER_LABELS: dict[int, str] = {
 CHECKS_VIEW_ROUTE = "~checks"
 
 
+def _surface_rows(items: list[dict[str, Any]], url: str,
+                  tier: int) -> list[dict[str, Any]]:
+    """One row per surface, carrying a **percentage** ([[ISS-0222]]).
+
+    A percentage rather than a bar, and the reasoning is [[ISS-0223]]'s in the
+    other direction: a nav row is one line tall and a segmented bar is not a
+    one-line element. The bar Edwin is comparing to lives in the overview's
+    phase *cards*, which have the height for it.
+
+    **The stale distinction survives the compression.** A surface holding a
+    tick that stands over overtaken evidence is marked, because folding stale
+    into done is what made `your-trainer`'s honest blocking number 113 read as
+    60 — and a percentage that quietly re-merges them is that defect in a
+    smaller element.
+    """
+    order: list[str] = []
+    per: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        area = str(item.get("area") or "").strip() or "—"
+        if area not in per:
+            per[area] = []
+            order.append(area)
+        per[area].append(item)
+
+    rows: list[dict[str, Any]] = []
+    for area in order:
+        found = per[area]
+        total = len(found)
+        settled = sum(1 for i in found
+                      if i.get("checked") or i.get("reconciled")
+                      or i.get("excepted"))
+        stale = sum(1 for i in found if i.get("stale"))
+        pct = round(settled * 100 / total) if total else 0
+        label = f"{pct}% · {settled}/{total}"
+        if stale:
+            label = f"{label} · {stale} stale"
+        rows.append({
+            "id": area,
+            "title": area,
+            "subtitle": label,
+            #: `passing` only when the whole surface is settled AND none of it
+            #: is standing on overtaken evidence. A surface that reads green
+            #: while one of its ticks is stale is the same lie one level up.
+            "status": ("passing" if settled == total and not stale
+                       else "ready"),
+            "url": (f"{url}/tier/{tier}" if url == CHECKS_VIEW_ROUTE else url),
+            "type": "test",
+        })
+    return rows
+
+
 def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     """The acceptance suite's tiers, beneath the test notes (TASK-0373).
 
@@ -4321,35 +4372,21 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             # — they are one click behind a line that says how many there are.
             "default_open": False,
             "item_layout": "stacked",
-            "items": [
-                {
-                    # The CHECK's id once it has one (ADR-0030), falling back
-                    # to the document address for a repo that has not
-                    # migrated. Typing `CHK-0001` into the palette must land
-                    # on the check — `1.1.1` is not an id anybody would type,
-                    # and a note carrying an id that no route reaches is
-                    # ISS-0142's defect with a new subject.
-                    "id": i.get("id") or i["number"],
-                    "title": i["name"],
-                    # The area and the ids its heading names — a Tier 2 item's
-                    # `ISS-*` is the contract's own requirement, so it belongs
-                    # on the row rather than only in the document.
-                    "subtitle": " · ".join(
-                        [p for p in (i.get("area"), ", ".join(i.get("refs") or [])) if p]
-                    ),
-                    "status": (
-                        "passing" if i.get("checked")
-                        else "reconciled" if i.get("reconciled")
-                        else "ready"
-                    ),
-                    # The check's own note, where one exists. The group head
-                    # still opens the suite; the ROW opens the check, which is
-                    # the whole difference the migration buys a reader.
-                    "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
-                    "type": "test",
-                }
-                for i in items
-            ],
+            # **The rows are SURFACES, not checks** ([[ISS-0222]]).
+            #
+            # Edwin: *"I expected the %bar and the areas/surface to group
+            # things in the left hand pane."* The surfaces and the progress
+            # both existed — on the generated page — because the request was
+            # built where its note was rather than where its sentence pointed:
+            # *"the same as we do for phases"* is a statement about this pane,
+            # the only place a phase bar appears.
+            #
+            # It also removes a wall this list had all along. `your-trainer`
+            # put **579 individual checks** in here; it now puts 77 surfaces,
+            # and the checks are on the page that can actually walk them.
+            # Nothing is hidden ([[REQ-0047]] criterion 3) — a surface row
+            # expands to its checks one click away, and says how many.
+            "items": _surface_rows(items, url, tier["tier"]),
         }
         # Only the gating tiers ask anything of a person. Tier 3 is a
         # verification aid — TESTING.md is explicit that it does not gate.

@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-19"
 severity: medium
 component: tooling
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 related: ["[[ADR-0009]]", "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]", "[[PHASE-038-A-Verdict-Is-An-Event]]", "[[ISS-0142]]"]
 ---
 

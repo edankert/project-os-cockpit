@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0222
 aliases: ["ISS-0222"]
 title: "The surfaces and the progress bar landed on the generated page and not in the left pane — where they were asked for, and where every other progress bar in the tool lives"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -40,7 +40,9 @@ That is the failure worth recording: the request named its *model surface* and t
 
 ## Done when
 
-- [ ] The nav shows tier → surface → count, collapsed at the surface level.
-- [ ] A tier row carries a bar; a surface row carries a percentage.
-- [ ] Clicking a surface opens the generated page scrolled to it — the two panes agree about what a surface is, or the grouping is decoration.
-- [ ] Proved on `your-trainer` (77 surfaces) that the nav does not become the wall it was built to avoid.
+- [x] The nav shows tier → surface → count, collapsed at the surface level.
+- [x] A tier row carries a bar; a surface row carries a percentage.
+- [x] Clicking a surface opens the generated page scrolled to it — the two panes agree about what a surface is, or the grouping is decoration.
+- [x] Proved on `your-trainer` (77 surfaces) that the nav does not become the wall it was built to avoid.
+
+## Fixed 2026-08-19 — [[TASK-0550]]

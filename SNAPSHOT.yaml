@@ -817,14 +817,14 @@ items:
     TASK-0550:
       file: "docs/features/tests-view/plan/tasks/TASK-0550-The-Nav-Groups-By-Surface.md"
       title: "The left pane groups tier → surface → count, with a bar on the tier and a percentage on the surface"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0128
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0551:
       file: "docs/features/tests-view/plan/tasks/TASK-0551-A-Percentage-Where-The-Reader-Is-Working.md"
       title: "The generated page's surface headers show a percentage; tier headers keep the bar"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0128
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -3892,13 +3892,13 @@ metrics:
     features_total: 138
     features_done: 117
     tasks_total: 550
-    tasks_done: 495
+    tasks_done: 497
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 11
+    issues_open: 9
     issues_triage: 0
     risks_open: 6
     releases_total: 1

@@ -8586,7 +8586,20 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
         ah.appendChild(refs);
       }
       block.appendChild(ah);
-      block.appendChild(checkProgress(area.items));
+      // **A percentage, not a bar** (ISS-0223). Edwin: *"having the areas
+      // surfaces in the generated/derived acceptance tests editor I like but
+      // having the bar there doesn't make much sense, a % probably does."*
+      //
+      // A segmented bar answers *what shape is this set* — worth four
+      // segments on a card being SCANNED, which the overview's phase strip
+      // is. This page is not scanned, it is WORKED: the rows directly below
+      // this header already say, individually and in full, exactly what the
+      // bar summarises. Restating it in a wide element, 77 times on
+      // `your-trainer`, spends the width the surface's name needs.
+      //
+      // The tier header above keeps its bar — a tier IS scanned, before
+      // choosing where to work.
+      block.appendChild(checkPercent(area.items));
       for (const item of area.items) {
         block.appendChild(buildCheckRow(item));
         shown += 1;
@@ -8619,6 +8632,35 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
  *  it in is what made `your-trainer`'s honest blocking number 113 against a
  *  reported 60.
  */
+/** The same claim as `checkProgress`, in a tenth of the width (ISS-0223).
+ *
+ *  **One predicate behind both**, so they cannot disagree — the settled set
+ *  here is the settled set there, and a second definition is how a header and
+ *  the rows under it come to report different numbers about one list.
+ *
+ *  **The stale distinction survives the compression.** A tick standing over
+ *  evidence the record says was overtaken is not `done`, and folding the two
+ *  is what made `your-trainer`'s honest blocking number 113 read as a
+ *  reported 60. A percentage that quietly re-merges them is that defect in a
+ *  smaller element, so a surface holding one is marked.
+ */
+function checkPercent(items: GateItem[]): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'checks-percent';
+  const total = items.length;
+  if (!total) { el.textContent = '—'; return el; }
+  const cls = (i: GateItem): string => MARK_CLASS[i.mark || ' '] ?? 'unknown';
+  const settled = items.filter(
+    (i) => ['done', 'incomplete', 'canceled'].includes(cls(i)));
+  const stale = items.filter((i) => i.stale).length;
+  const pct = Math.round((settled.length / total) * 100);
+  el.textContent = stale ? `${pct}% · ${stale} stale` : `${pct}%`;
+  if (stale) el.classList.add('has-stale');
+  el.title = `${settled.length} of ${total} settled`
+    + (stale ? `, ${stale} standing on evidence a change overtook` : '');
+  return el;
+}
+
 function checkProgress(items: GateItem[]): HTMLElement {
   const bar = document.createElement('div');
   bar.className = 'ov-mixbar checks-progress';

@@ -6032,3 +6032,13 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .release-confidence { margin: 6px 0 14px; }
 /* A recorded claim is not a broken link — it renders as the sentence it is. */
 .scoped-row-title.is-claim { font-style: italic; }
+
+/* ISS-0223: the compact form of `.checks-progress`, for a surface header on
+   the generated page — a place a reader is WORKING rather than scanning. */
+.checks-percent {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+  color: var(--fg-muted, #8b949e);
+  white-space: nowrap;
+}
+.checks-percent.has-stale { color: var(--warn, #d29922); }
