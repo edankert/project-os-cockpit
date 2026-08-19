@@ -838,7 +838,7 @@ items:
     TASK-0528:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0528-The-Validator-Reads-A-Ledger.md"
       title: "The validator reads a ledger — required fields, reason-bearing marks, and a sealed ledger that cannot change"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0133
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 478
+    tasks_done: 479
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

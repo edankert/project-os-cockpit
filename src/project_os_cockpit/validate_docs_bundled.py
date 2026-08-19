@@ -441,6 +441,16 @@ _NON_STATUS_COLLECTIONS = frozenset({
     "_SETTLED_MARKS",
     "_SETTLED_WORDS",
     "MANUAL_DECLARATION_KEYS",
+    # ADR-0037: the acceptance LEDGER's outcome vocabulary, its reason-bearing
+    # subset, and how a result arrived. None is a status, and registering them
+    # as one would assert the opposite of what they exist to preserve: a
+    # verdict is an EVENT, deliberately outside the status vocabulary, which is
+    # what keeps 671 acceptance tests off the review gate and off a badge.
+    # Caught by this guard on the day they were added — the fourth time it has
+    # earned its keep.
+    "LEDGER_MARKS",
+    "LEDGER_NEEDS_REASON",
+    "LEDGER_METHODS",
 })
 
 
@@ -1564,6 +1574,137 @@ def validate_plan_notes(root, docs_dir, allowed_status, grandfathered, report):
         )
 
 
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+LEDGERS_REL = "releases/ledgers"
+#: The acceptance ledger's outcome vocabulary (project-os-cockpit ADR-0037).
+#: Restated here rather than imported: this script is template-owned and runs
+#: in twelve repos, none of which may depend on the cockpit being installed.
+#: `tests/test_ledger.py::test_taxonomy_documents_exactly_the_vocabulary`
+#: keeps the restatement honest by reading TAXONOMY.md against the module.
+LEDGER_MARKS = ("pass", "partial", "na", "excused", "blocked", "fail",
+                "question")
+LEDGER_NEEDS_REASON = tuple(m for m in LEDGER_MARKS if m != "pass")
+LEDGER_METHODS = ("manual", "automated", "migration")
+
+
+def validate_ledgers(root, report, note_index):
+    """The acceptance ledgers — required fields, reasons, and immutability.
+
+    Three rules, and the third is the one that makes *"was release R walked?"*
+    answerable at all:
+
+    * every entry names a check, a date, an author and a method;
+    * every mark but `pass` carries a reason — [[ADR-0029]]'s rule, enforced
+      here for the first time against something that exists (`verdict_reason:`
+      was non-empty on **0 of 671** notes, because nobody ever wrote one of the
+      marks that demanded it);
+    * **a sealed ledger differing from its committed content is an error.**
+      Without that, the ledger is a mutable log, which is a scalar with extra
+      steps.
+
+    A repo with no ledger directory is silent: nine of twelve fleet repos have
+    none, and absent is a real state rather than a broken one.
+    """
+    import json
+    import subprocess
+
+    ledger_dir = root / "docs" / LEDGERS_REL
+    if not ledger_dir.is_dir():
+        return
+    for path in sorted(ledger_dir.glob("*.json")):
+        rel = "docs/%s/%s" % (LEDGERS_REL, path.name)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            report.error("LEDGER-PARSE", "%s is not readable as JSON: %s"
+                         % (rel, exc))
+            continue
+        if not isinstance(data, dict):
+            report.error("LEDGER-PARSE", "%s is not an object" % rel)
+            continue
+        entries = data.get("entries") or []
+        pairs = set()
+        for n, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                report.error("LEDGER-ENTRY", "%s entry %d is not an object"
+                             % (rel, n))
+                continue
+            check = str(entry.get("check") or "").strip()
+            when = str(entry.get("date") or "").strip()
+            if not check:
+                report.error("LEDGER-ENTRY",
+                             "%s entry %d names no check" % (rel, n))
+                continue
+            pairs.add((check, when))
+            if not DATE_RE.match(when):
+                report.error("LEDGER-ENTRY", "%s %s has no usable date (%r)"
+                             % (rel, check, when))
+            if "platform" in entry:
+                report.error(
+                    "LEDGER-ENTRY",
+                    "%s %s carries its own platform — the platform is the "
+                    "ledger's, and an entry that can contradict its file is a "
+                    "second encoding of one fact" % (rel, check))
+            if note_index and check not in note_index:
+                report.error("LEDGER-ENTRY",
+                             "%s %s is not a note in this repo" % (rel, check))
+            if entry.get("invalidated_by"):
+                if entry.get("mark"):
+                    report.error(
+                        "LEDGER-ENTRY",
+                        "%s %s carries both a mark and an invalidation — they "
+                        "are two events and belong on two lines" % (rel, check))
+                continue
+            mark = str(entry.get("mark") or "").strip()
+            if mark not in LEDGER_MARKS:
+                report.error("LEDGER-MARK", "%s %s has mark %r; expected one "
+                             "of %s" % (rel, check, mark,
+                                        ", ".join(LEDGER_MARKS)))
+                continue
+            if mark in LEDGER_NEEDS_REASON and not str(
+                    entry.get("reason") or "").strip():
+                report.error(
+                    "LEDGER-REASON",
+                    "%s a %s verdict on %s needs a reason — the mark and its "
+                    "justification are one event, so a check cannot leave the "
+                    "gate without saying why" % (rel, mark, check))
+            if str(entry.get("method") or "").strip() not in LEDGER_METHODS:
+                report.error("LEDGER-ENTRY", "%s %s has method %r; expected "
+                             "one of %s" % (rel, check, entry.get("method"),
+                                            ", ".join(LEDGER_METHODS)))
+            if not str(entry.get("by") or "").strip():
+                report.error("LEDGER-ENTRY",
+                             "%s %s names nobody in `by`" % (rel, check))
+
+        for n, item in enumerate(data.get("evidence") or []):
+            if not isinstance(item, dict):
+                continue
+            key = (str(item.get("check") or "").strip(),
+                   str(item.get("date") or "").strip())
+            if key not in pairs:
+                report.error(
+                    "LEDGER-EVIDENCE",
+                    "%s evidence %d is for %s @ %s, which matches no entry — "
+                    "evidence for a walk nobody recorded is a claim with "
+                    "nothing behind it" % (rel, n, key[0] or "?", key[1] or "?"))
+
+        if not str(data.get("sealed") or "").strip():
+            continue
+        try:
+            committed = subprocess.run(
+                ["git", "show", "HEAD:%s" % rel], cwd=str(root),
+                capture_output=True, text=True, check=False)
+        except OSError:                                  # pragma: no cover
+            continue
+        if committed.returncode == 0 and committed.stdout != path.read_text(
+                encoding="utf-8"):
+            report.error(
+                "LEDGER-SEALED",
+                "%s is sealed and differs from HEAD — a sealed ledger is what "
+                "makes `was release R walked?` answerable, and an answer that "
+                "changes afterwards is not one" % rel)
+
+
 def validate(root, report):
     # Self-check first: it needs no repo state, and a validator whose own status
     # tables disagree cannot be trusted to report on anything else.
@@ -1591,6 +1732,7 @@ def validate(root, report):
     docs_dir = root / "docs"
     note_index, note_claimants = build_note_index(docs_dir)
     allowed_status = load_allowed_status(root)
+    validate_ledgers(root, report, note_index)
     grandfathered = load_grandfathered(root)
     verification_cfg = snap.get("verification") if isinstance(snap.get("verification"), dict) else {}
     try:

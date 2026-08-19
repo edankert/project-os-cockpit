@@ -127,6 +127,14 @@ const VALIDATION_LABELS: Record<string, string> = {
   'DEFER-RETENTION': 'deferred note pruned from the snapshot',
   'DEFER-SCOPE': 'deferred note outside its scope',
   'STATUS-TABLE': "the validator's own tables disagree",
+  // The acceptance ledger (ADR-0037). A verdict is an event, so the failures
+  // are about an event that cannot be trusted rather than about a note.
+  'LEDGER-PARSE': 'a ledger will not parse',
+  'LEDGER-ENTRY': 'a verdict is missing part of what makes it one',
+  'LEDGER-MARK': 'a verdict uses a mark nothing recognises',
+  'LEDGER-REASON': 'a verdict left the gate without saying why',
+  'LEDGER-EVIDENCE': 'evidence for a walk nobody recorded',
+  'LEDGER-SEALED': 'a sealed ledger was edited',
 };
 
 
