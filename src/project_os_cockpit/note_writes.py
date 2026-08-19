@@ -2597,8 +2597,15 @@ def retire_check(
 
 
 def _yaml_safe(value: str) -> str:
-    """One line, and nothing that can end the scalar it is written into."""
-    return " ".join(str(value or "").split()).replace('"', "'")
+    """One line, and nothing that can end the scalar it is written into.
+
+    Backslashes are escaped **before** quotes are downgraded, because in a
+    double-quoted YAML scalar a trailing `\\` escapes the closing quote and
+    swallows the rest of the frontmatter. Found by independent review,
+    2026-08-19; unreachable from today's callers and one paste away.
+    """
+    flat = " ".join(str(value or "").split())
+    return flat.replace("\\", "\\\\").replace('"', "'")
 
 
 def _set_block_list(fm_lines: list[str], key: str,
@@ -2621,10 +2628,22 @@ def _set_block_list(fm_lines: list[str], key: str,
             skipping = True
             continue
         if skipping:
-            if line[:1].isspace() and line.strip():
+            #: **A blank line and an unindented `- ` are both still inside the
+            #: block.** The first version stopped at either, so a `ledgers:`
+            #: block containing a blank line left its remaining rows behind as
+            #: orphans AND appended a second block — one key, twice, with junk
+            #: between. Both shapes are valid YAML and both were reproduced by
+            #: independent review, 2026-08-19.
+            #:
+            #: A line that starts a new KEY ends the block; nothing else does.
+            if not line.strip() or line[:1].isspace() or line.startswith("- "):
                 continue
             skipping = False
         out.append(line)
+    #: Trailing blank lines would otherwise separate the frontmatter from the
+    #: block appended after them.
+    while out and not out[-1].strip():
+        out.pop()
     return out + block
 
 

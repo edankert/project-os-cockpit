@@ -57,3 +57,18 @@ It is also strictly stronger than what this issue asked for. The old check compa
 `ledger.blob_sha` computes it without a subprocess and matches `git hash-object` exactly — asserted against the real command.
 
 **A second rule fell out of it, and it is the half this issue did not ask for:** a sealed ledger that **no** release note vouches for is now an error of its own. An unvouched seal is precisely the state the old check could not tell from a good one.
+
+## Reopened and re-fixed the same day — four bypasses
+
+The first implementation ticked this issue's criteria and **did not hold**. Independent review reproduced four clean escapes, and the cause was one design error: the check walked `docs/releases/ledgers/*.json` and examined the files whose `sealed` key was set — **gating the check on a field inside the file it protects.**
+
+| bypass | why it worked |
+| --- | --- |
+| delete `sealed:`, rewrite every entry | the file opted itself out |
+| delete the ledger file | nothing walked the vouched list to notice an absence |
+| move it out of the directory | same |
+| rewrite LF → CRLF | `Path.read_text()` normalises newlines, so the "hash of the bytes" was not |
+
+**The walk starts from the release note now**, because the record that vouches lives outside the file it vouches for — and it reads **bytes**. All four are guarded, each by a test written from the bypass.
+
+The lesson is not about ledgers: *a tamper check keyed on data the tamperer controls is not a tamper check.*

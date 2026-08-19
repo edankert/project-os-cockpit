@@ -66,7 +66,7 @@ tags: [phase]
 
 ## Exit criteria
 
-**All nine hold as of 2026-08-19.** Three did not when this was first marked, and each is annotated with what moved — the record of a criterion being *amended* rather than quietly met is the point of writing them down first.
+**All nine hold as of 2026-08-19.** Four moved rather than being met, and each is annotated with what moved — the record of a criterion being *amended* rather than quietly met is the point of writing them down first.
 
 - [x] **A verdict cannot be written without a platform, a method, an author and a date.** `ledger.check_entry` refuses at write time; `LEDGER-ENTRY` refuses at commit time.
 - [x] **No acceptance note in any migrated repo carries the seven fields** — and no cockpit surface reads one. `LEDGER-FIELD` refuses them; the guard is behavioural (`test_a_note_cannot_change_a_verdict_in_a_repo_that_keeps_ledgers`), because a surviving frontmatter read returns something that looks exactly like a verdict.
@@ -75,7 +75,7 @@ tags: [phase]
 - [x] **A sealed ledger cannot be modified**, `entries` and `evidence` both. [[ADR-0037]] decision 9a: the release note records the ledger's **git blob hash**, so the check is against the bytes — an edit is caught committed, uncommitted, rebased or restored from a backup. A sealed ledger no release vouches for is its own error, because an unvouched seal is exactly the state the old check could not tell from a good one. [[ISS-0220]] closed.
 - [x] **A release's verified list is computed where there is a ledger to compute it from**, and the page names the platform it read. *Amended 2026-08-19:* this said `tests_verified:` must be **gone from the schema**, which contradicted [[TASK-0546]]'s decision to keep it as the fallback for pre-ledger releases. The criterion moved, not the decision — deleting the field would destroy the only verification record [[REL-0001]] has, and a criterion that trades a real record for a tidy schema is the wrong one. The field is the fallback; it is never the source where a ledger exists.
 - [x] **A check can be excused from one release without being excused from the next.** *Unable to test*, *not tested this cycle* and *could not run it right now* are three recordable answers with three different effects on the gate, and the middle one expires when its ledger seals. **Reachable in the product since [[TASK-0547]]**: the release page seals the platform's ledger, so the expiry fires where a person can see it rather than only in a test.
-- [x] **One outcome vocabulary in one document, and it is the one the data uses** — `TAXONOMY.md` here and upstream, verified by a check that reads the table's values *and both behaviour columns* against `ledger.MARKS`.
+- [x] **One outcome vocabulary in one document, and it is the one the data uses** — `TAXONOMY.md` in all four repos, verified by a check that reads the table's values *and both behaviour columns*. *Amended 2026-08-19, and this is the FOURTH criterion to move, not the third:* it asked the check to read *"the corpus"*; it reads `ledger.MARKS`, a constant in code. That is a weaker claim — a value the corpus carries and neither the table nor the code knows would pass — and it is stated rather than papered over. It also cannot see prose: the stale `check` section that survived ADR-0031 in this very file was found by a person, not by the check.
 - [x] **The splitter is fixed and proved on a hard-wrapped bullet** before any repo migrated, and mutation-proven against three plausible wrong fixes.
 
 ## Sequencing

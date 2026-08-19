@@ -481,6 +481,16 @@ Body: `id`, `verdict`, `platform`, `by`, `method`, `reason`, and `change` for `v
 
 `verdict` is the ledger's vocabulary — `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — and every one but `pass` is refused without a `reason`. See `tools/instructions/TAXONOMY.md` for what each does to the gate, and which survive a release seal.
 
+### `POST /api/notes/seal-ledger`
+
+Closes a platform's working ledger against a release, and writes the sealed file's **git blob hash** into that release note's `ledgers:` — **in the same write**, so the ledger and the record vouching for it land in one commit.
+
+Body: `release`, `platform`. Returns `{file, sha}`.
+
+Refused on a release that has already shipped: re-sealing one would rewrite what it was measured against, and a sealed ledger is only worth reading because that cannot happen.
+
+**Sealing is when `excused` expires.** Everything else that clears — `pass`, `partial`, `na` — carries into the next cycle until an invalidation supersedes it. A check excused for this release is owed again on the next one, with nobody having to remember.
+
 ## SSE channel
 
 ### `GET /_events`

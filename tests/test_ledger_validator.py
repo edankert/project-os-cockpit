@@ -147,6 +147,111 @@ SEALED = {"platform": "macos", "release": "REL-0001", "version": "v1",
           "sealed": "2026-08-19", "entries": [GOOD], "evidence": []}
 
 
+def _vouched(tmp_path: Path, text: str,
+             name: str = "REL-0001-macos.json") -> Path:
+    """A sealed ledger on disk with a release note vouching for its bytes."""
+    (tmp_path / "docs" / "releases" / "ledgers").mkdir(parents=True,
+                                                       exist_ok=True)
+    (tmp_path / "SNAPSHOT.yaml").write_text(SNAPSHOT)
+    (tmp_path / "docs" / "tests").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs" / "tests" / "TST-0001-A.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\nstatus: active\n'
+        'level: acceptance\n---\n\n# A\n')
+    path = tmp_path / "docs" / "releases" / "ledgers" / name
+    path.write_text(text)
+    import hashlib
+    raw = path.read_bytes()
+    sha = hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest()
+    (tmp_path / "docs" / "releases").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs" / "releases" / "REL-0001-A.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0001\nstatus: released\n'
+        f'version: "v1"\nledgers:\n  - file: "{name}"\n    sha: "{sha}"\n'
+        '---\n\n# A\n')
+    return path
+
+
+def _validate(tmp_path: Path) -> list[str]:
+    out = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--repo-root", str(tmp_path)],
+        capture_output=True, text=True)
+    return [l for l in out.stdout.splitlines() if "LEDGER-" in l]
+
+
+#: Multi-line, as `Ledger.to_json` writes it — one entry per line so a diff
+#: reads as what was added. A single-line fixture would make the CRLF case
+#: below vacuous, which is how the first attempt at that test passed.
+SEALED_TEXT = """{
+  "platform": "macos",
+  "release": "REL-0001",
+  "sealed": "2026-08-19",
+  "entries": [
+    {"check": "TST-0001", "mark": "pass", "date": "2026-08-19", "method": "manual", "by": "m"}
+  ],
+  "evidence": []
+}
+"""
+
+
+def test_a_vouched_ledger_is_silent(tmp_path: Path) -> None:
+    _vouched(tmp_path, SEALED_TEXT)
+    assert _validate(tmp_path) == []
+
+
+def test_dropping_the_sealed_key_does_not_escape_the_check(
+    tmp_path: Path,
+) -> None:
+    """**The bypass that mattered most.** The first version walked the ledger
+    directory and checked the files whose `sealed` key was set — gating the
+    check on a field *inside the file it protects*. Delete the key, rewrite
+    every entry, clean run.
+
+    The walk starts from the release note now, because the record that vouches
+    lives outside the file it vouches for.
+    """
+    path = _vouched(tmp_path, SEALED_TEXT)
+    path.write_text(
+        SEALED_TEXT.replace('  "sealed": "2026-08-19",' + chr(10), "")
+        .replace('"mark": "pass"', '"mark": "na", "reason": "x"'))
+    assert "LEDGER-SEALED" in _codes(_validate(tmp_path))
+
+
+def test_deleting_a_vouched_ledger_is_caught(tmp_path: Path) -> None:
+    """A release recording what it was measured against, against a file
+    nobody can open, is the answer silently becoming unavailable."""
+    _vouched(tmp_path, SEALED_TEXT).unlink()
+    lines = _validate(tmp_path)
+    assert "LEDGER-SEALED" in _codes(lines)
+    assert "not there" in lines[0]
+
+
+def test_moving_a_vouched_ledger_out_of_the_directory_is_caught(
+    tmp_path: Path,
+) -> None:
+    path = _vouched(tmp_path, SEALED_TEXT)
+    path.rename(tmp_path / "docs" / "REL-0001-macos.json")
+    assert "LEDGER-SEALED" in _codes(_validate(tmp_path))
+
+
+def test_rewriting_the_line_endings_is_caught(tmp_path: Path) -> None:
+    """**Bytes, not text.** `Path.read_text()` normalises newlines, so a CRLF
+    rewrite hashed identically — and a hash that is not a hash of the bytes is
+    not a hash."""
+    path = _vouched(tmp_path, SEALED_TEXT)
+    path.write_bytes(SEALED_TEXT.replace(chr(10), chr(13) + chr(10)).encode())
+    assert "LEDGER-SEALED" in _codes(_validate(tmp_path))
+
+
+def test_a_ledger_whose_platform_field_contradicts_its_filename_is_caught(
+    tmp_path: Path,
+) -> None:
+    """`ledger._parse` RAISES on this, so one such file makes every ledger in
+    the repo unreadable — and the validator said nothing."""
+    path = _vouched(tmp_path, SEALED_TEXT)
+    path.write_text(SEALED_TEXT.replace('"platform": "macos"',
+                                        '"platform": "ios"'))
+    assert "LEDGER-NAME" in _codes(_validate(tmp_path))
+
+
 def test_a_sealed_ledger_edited_after_committing_is_caught(
     tmp_path: Path,
 ) -> None:

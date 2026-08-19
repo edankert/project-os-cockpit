@@ -54,6 +54,7 @@ parser that supports the constrained YAML subset SNAPSHOT.yaml uses
 
 import argparse
 import datetime
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -1605,7 +1606,7 @@ LEDGER_MARKS = ("pass", "partial", "na", "excused", "blocked", "fail",
                 "question")
 LEDGER_NEEDS_REASON = tuple(m for m in LEDGER_MARKS if m != "pass")
 LEDGER_METHODS = ("manual", "automated", "migration")
-LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-.+$")
+LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-(.+)$")
 
 
 #: The seven fields ADR-0037 moved into the ledger. Refused **only in a repo
@@ -1616,6 +1617,50 @@ LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-.+$")
 LEDGER_MOVED_FIELDS = ("mark", "verdict_date", "verdict_reason",
                        "invalidated_by", "automation", "covered_by",
                        "evidence")
+
+
+def validate_vouched_ledgers(root, report, note_index):
+    """Every ledger a release vouches for still hashes to what it recorded.
+
+    **Driven from the release note, not from the ledger.** The first version
+    walked `docs/releases/ledgers/*.json` and checked the ones whose `sealed`
+    key was set -- gating the check on a field *inside the file it protects*.
+    Independent review reproduced four clean bypasses: delete the `sealed`
+    key and rewrite every entry; delete the file; move it out of the
+    directory; rewrite LF to CRLF. The record that vouches lives outside the
+    file, so the walk starts there.
+
+    **Bytes, not text.** `Path.read_text()` normalises newlines, so a CRLF
+    rewrite hashed identically -- a hash that is not a hash of the bytes is
+    not a hash.
+    """
+    for note_id, (path, fm) in sorted((note_index or {}).items()):
+        if not isinstance(fm, dict):
+            continue
+        for row in fm.get("ledgers") or []:
+            if not isinstance(row, dict) or not row.get("file"):
+                continue
+            name = str(row["file"])
+            vouched = str(row.get("sha") or "")
+            target = root / "docs" / LEDGERS_REL / name
+            rel = "docs/%s/%s" % (LEDGERS_REL, name)
+            if not target.is_file():
+                report.error(
+                    "LEDGER-SEALED",
+                    "%s vouches for %s and it is not there. A release that "
+                    "records what it was measured against, against a file "
+                    "nobody can open, is the answer `was release R walked?` "
+                    "silently becoming unavailable" % (note_id, rel))
+                continue
+            raw = target.read_bytes()
+            found = hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest()
+            if found != vouched:
+                report.error(
+                    "LEDGER-SEALED",
+                    "%s no longer hashes to what %s records (%s != %s). "
+                    "`was release R walked?` is answerable only while that "
+                    "answer cannot change"
+                    % (rel, note_id, found[:12], vouched[:12] or "nothing"))
 
 
 def validate_moved_verdict_fields(root, report, note_index):
@@ -1717,6 +1762,15 @@ def validate_ledgers(root, report, note_index):
         if not isinstance(data, dict):
             report.error("LEDGER-PARSE", "%s is not an object" % rel)
             continue
+        stated = str(data.get("platform") or "").strip()
+        named = LEDGER_NAME_RE.match(path.stem)
+        if stated and named and stated != named.group(1):
+            report.error(
+                "LEDGER-NAME",
+                "%s says platform %r and is filed under %r. The reader "
+                "REFUSES this rather than guessing, so one such file makes "
+                "every ledger in the repo unreadable"
+                % (rel, stated, named.group(1)))
         entries = data.get("entries") or []
         pairs = set()
         for n, entry in enumerate(entries):
@@ -1783,30 +1837,13 @@ def validate_ledgers(root, report, note_index):
                     "evidence for a walk nobody recorded is a claim with "
                     "nothing behind it" % (rel, n, key[0] or "?", key[1] or "?"))
 
-        if not str(data.get("sealed") or "").strip():
-            continue
-        # **Content, not history** (ADR-0037 decision 9a, ISS-0220). This
-        # compared the working tree to `git show HEAD:<path>`, which caught an
-        # uncommitted edit and passed FOREVER once that edit was committed --
-        # so the one property immutability exists to give was not given. The
-        # release note records the sealed ledger's blob hash; an edit changes
-        # the hash whether it was committed, rebased or restored from backup.
-        vouched = sealed_shas.get(path.name)
-        found = _blob_sha(path.read_text(encoding="utf-8"))
-        if vouched is None:
+        if str(data.get("sealed") or "").strip() and path.name not in sealed_shas:
             report.error(
                 "LEDGER-SEALED",
                 "%s is sealed and no release note vouches for it. A sealed "
                 "ledger with nothing recording its hash is exactly the state "
                 "the old check could not tell from a good one -- add "
                 "`ledgers: [{file, sha}]` to its release" % rel)
-        elif vouched != found:
-            report.error(
-                "LEDGER-SEALED",
-                "%s is sealed and its content no longer hashes to what its "
-                "release note records (%s != %s). `was release R walked?` is "
-                "answerable only while that answer cannot change"
-                % (rel, found[:12], vouched[:12]))
 
 
 def validate(root, report):
@@ -1838,6 +1875,7 @@ def validate(root, report):
     allowed_status = load_allowed_status(root)
     validate_ledgers(root, report, note_index)
     validate_moved_verdict_fields(root, report, note_index)
+    validate_vouched_ledgers(root, report, note_index)
     grandfathered = load_grandfathered(root)
     verification_cfg = snap.get("verification") if isinstance(snap.get("verification"), dict) else {}
     try:

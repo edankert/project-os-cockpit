@@ -985,3 +985,49 @@ def test_sealing_an_unknown_release_is_refused(docs: Path) -> None:
     with pytest.raises(note_writes.WriteError, match="not a release"):
         note_writes.seal_ledger(docs, Index.build(docs),
                                 release_id="REL-9999", platform="macos")
+
+
+def test_blob_sha_is_the_hash_git_computes(tmp_path: Path) -> None:
+    """**Against the real command, not against itself.**
+
+    The only assertion on this used to be `blob_sha(x) == blob_sha(x)`, which
+    a plain `sha1(text)` satisfies — and a hash that is not git's is a hash
+    nothing else can check, on the one value the immutability rule rests on.
+    Independent review, 2026-08-19.
+    """
+    import subprocess
+
+    for content in ("", "x", "a\nb\n", "ünïcødé — em dash and ✅\n",
+                    '{"platform": "macos"}\n' * 50):
+        f = tmp_path / "blob.txt"
+        f.write_text(content, encoding="utf-8")
+        theirs = subprocess.run(["git", "hash-object", str(f)],
+                                capture_output=True, text=True,
+                                check=True).stdout.strip()
+        assert L.blob_sha(content) == theirs, repr(content[:20])
+
+
+def test_a_release_note_survives_a_block_that_is_not_tidy(docs: Path) -> None:
+    """`_set_block_list` rewrites frontmatter line by line.
+
+    A blank line inside an existing `ledgers:` block, and an unindented `- `
+    item, are both **still inside the block** and both valid YAML. Stopping at
+    either left orphan rows behind AND appended a second block — one key,
+    twice, with junk between.
+    """
+    import yaml
+    from project_os_cockpit import note_writes
+
+    p = docs / "n.md"
+    p.write_text('---\nid: REL-0001\nledgers:\n  - file: "a.json"\n'
+                 '    sha: "1"\n\n- file: "b.json"\n  sha: "2"\nversion: "v1"\n'
+                 '---\n\n# A\n')
+    fm, body = note_writes._split_frontmatter(p.read_text())
+    out = note_writes._set_block_list(fm, "ledgers",
+                                      [{"file": "c.json", "sha": "3"}])
+    note_writes._write(p, out, body)
+
+    parsed = yaml.safe_load(p.read_text().split("---")[1])
+    assert parsed["ledgers"] == [{"file": "c.json", "sha": "3"}]
+    assert parsed["version"] == "v1", "a key after the block must survive"
+    assert p.read_text().count("ledgers:") == 1, "one key, once"

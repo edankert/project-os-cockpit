@@ -119,6 +119,8 @@ The mapping into the ledger is `done`→`pass`, `incomplete`→`partial`, **`can
 ## `burden` (tests at `level: acceptance`)
 Optional, project-defined free text naming what a walker must have to hand — `App`, `Trainer`, `Strava`, `hardware`. Its purpose is to avoid making somebody set the same thing up twice, so keep the labels stable and few.
 
-## `check` versus `level: acceptance` on a test
+## `check` — retired (ADR-0031)
 
-Both exist and they are not the same thing. `level: acceptance` on a `[[test]]` is a **specification** — usually one automated module, statuses written by the runner. A `[[check]]` is one line of a **manual walk** with a persistent human verdict. `TESTING.md` has always said the two coexist; the type boundary is what stops the release gate, the runner-status rule and the independent-review gate from being applied to the wrong population.
+**There is no `check` type.** An acceptance check is a `[[test]]` at `level: acceptance`; a note that carried `type: "[[check]]"` was migrated, keeping its old id as an alias.
+
+*(This heading read "`check` versus `level: acceptance` on a test — Both exist and they are not the same thing…" until 2026-08-19. It survived ADR-0031 by nobody reading past the mark table, and was then copied into two more repos by the very sync that was fixing [[ISS-0217]] — the drift travelling under its own fix. The ISS-0218 drift check reads the mark TABLE and cannot see prose, which is why this one needed a person.)*
