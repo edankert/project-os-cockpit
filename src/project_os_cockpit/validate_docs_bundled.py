@@ -53,6 +53,7 @@ parser that supports the constrained YAML subset SNAPSHOT.yaml uses
 """
 
 import argparse
+import datetime
 import re
 import sys
 from pathlib import Path
@@ -1575,6 +1576,24 @@ def validate_plan_notes(root, docs_dir, allowed_status, grandfathered, report):
 
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _is_real_date(raw):
+    """A date, not a date-SHAPED string.
+
+    `2026-13-45` matched the regex and was accepted. A ledger is sorted by this
+    field, so a nonsense date does not merely look wrong — it reorders which
+    verdict wins. Found by independent review, 2026-08-19.
+    """
+    if not DATE_RE.match(raw or ""):
+        return False
+    try:
+        datetime.date.fromisoformat(raw)
+    except ValueError:
+        return False
+    return True
+
+
 LEDGERS_REL = "releases/ledgers"
 #: The acceptance ledger's outcome vocabulary (project-os-cockpit ADR-0037).
 #: Restated here rather than imported: this script is template-owned and runs
@@ -1585,6 +1604,7 @@ LEDGER_MARKS = ("pass", "partial", "na", "excused", "blocked", "fail",
                 "question")
 LEDGER_NEEDS_REASON = tuple(m for m in LEDGER_MARKS if m != "pass")
 LEDGER_METHODS = ("manual", "automated", "migration")
+LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-.+$")
 
 
 def validate_ledgers(root, report, note_index):
@@ -1613,6 +1633,17 @@ def validate_ledgers(root, report, note_index):
         return
     for path in sorted(ledger_dir.glob("*.json")):
         rel = "docs/%s/%s" % (LEDGERS_REL, path.name)
+        # A filename the reader cannot place is a ledger that disappears from
+        # its own platform while still sitting there looking read -- the same
+        # failure the `_platform_of` fix closed, reached through a different
+        # door (independent review, finding 5).
+        if not LEDGER_NAME_RE.match(path.stem):
+            report.error(
+                "LEDGER-NAME",
+                "%s does not name a platform. It must be "
+                "`WORKING-<platform>.json` or `REL-####-<platform>.json`, or "
+                "its verdicts are invisible to every query" % rel)
+            continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
@@ -1636,7 +1667,7 @@ def validate_ledgers(root, report, note_index):
                              "%s entry %d names no check" % (rel, n))
                 continue
             pairs.add((check, when))
-            if not DATE_RE.match(when):
+            if not _is_real_date(when):
                 report.error("LEDGER-ENTRY", "%s %s has no usable date (%r)"
                              % (rel, check, when))
             if "platform" in entry:

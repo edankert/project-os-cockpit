@@ -8,6 +8,9 @@ order: 38
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-19
+review_verdict: changes-requested
 goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
 features:
   - "[[FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives]]"
@@ -91,3 +94,67 @@ Three stages, from [[ADR-0037]]. Each is independently useful.
 
 - **This is the fourth schema change to the same corpus in four weeks.** [[ADR-0037]] says so in its own status section and so does this. The argument for going again is that the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact.
 - **The measurements are fresh**, taken 2026-08-19 against all three repos, and they corrected the source proposal in four places: the stranded-row count (156 across four notes, not ~156 across four — the fourth is `TST-0014`, and [[ISS-0215]] undercounts at 140/three), the doc-drift location ([[ISS-0217]] — the drift is in the fleet repos, not here), the vocabulary count (four live vocabularies, not three), and the cost (87 TypeScript sites the proposal does not mention).
+
+## Independent review — 2026-08-19, `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and `git diff 46cdaaa..HEAD` alone, in a session that did not author any of this work and never saw its reasoning ([[project-os-dev#ADR-0013]]: fresh context is the gate, model family is not). Same model family as the author, recorded in `reviewed_by` as provenance. `.venv/bin/pytest -q` → 1735 passed, 3 skipped; `bash tools/scripts/validate-docs.sh` → OK. Both green, which is why the findings below are about what the green does not cover.
+
+Findings are ranked; each was reproduced rather than reasoned about. Items the task list already records as not started ([[TASK-0530]], [[TASK-0531]], [[TASK-0535]]/[[TASK-0536]] partials, [[TASK-0538]], [[TASK-0545]], [[TASK-0546]], the upstream `TAXONOMY.md` copy, concurrent appends, and the unmigrated fleet repos) are excluded.
+
+### 1. The measured delta is taken against a smaller corpus than the gate it protects
+
+`tools/scripts/backfill-ledger.py` calls `acceptance.load(docs)` **with no index**. Every production gate calls `acceptance.load(docs_root, index)`, and the indexed branch collects every `[[test]]` at `level: acceptance` **anywhere** under `docs/`, where the un-indexed branch reads `docs/tests/acceptance/` only. In `your-trainer` that is **581 checks / 62 blocking** against the script's **579 / 60**. The headline *"60 → 60 (+0)"* is a statement about a population the release gate does not use.
+
+Reproduced on a two-note fixture: one `mark: done`, `tier: 1`, `level: acceptance` note outside `docs/tests/acceptance/` gets no ledger entry, and `apply_ledger` then overwrites its `done` with `todo`. The script prints `GATE DELTA 0 blocking -> 0 blocking (+0)` while the cockpit's own gate goes **0 → 1 blocking** and a recorded pass is destroyed. In `your-trainer` today the two invisible notes are `TST-0015`/`TST-0018` and both happen to be `mark: todo`, so nothing is lost — by luck, not design, and they are exactly the pair [[ISS-0219]] is about. The discrepancy is already visible inside [[TASK-0529]] and unremarked: its DoD says *"`your-trainer` (581)"* and its result table says *"checks 579"*.
+
+This is the phase's exit criterion 3 and [[REQ-0054]] criterion 7. The number that gates the migration does not measure the gate.
+
+### 2. A non-persisting mark in a sealed ledger destroys the persisting verdict underneath it
+
+[[ADR-0037]] decision 7: `pass` *"persists into the next cycle's view **until an invalidation event supersedes**"* it. An `excused` is not an invalidation, yet `ledger.resolve` pops the check outright when the ledger holding the `excused` seals. Reproduced: `pass` in a sealed `REL-0001`, `excused` in a sealed `REL-0002` → `verdicts()` is `{}`. Same for a sealed `fail`/`blocked`/`question` sitting on a pass.
+
+The gate consequence is benign (owed either way). The **burndown** consequence is not: `ledger.burndown` selects A-`pass` rows, so excusing a check on Android for one release silently removes a genuine iOS parity gap from the report built to replace `PARITY_MATRIX`'s rotting rows. No test stacks a non-persisting mark on a persisting one — `test_an_excused_check_expires_when_its_ledger_seals` excuses a check with nothing under it. Whichever semantics is intended, the ADR text and the code currently disagree and nothing records the choice.
+
+### 3. Three of the four `close_row()` call sites are unguarded
+
+Mutation-tested: deleting `close_row()` from the fence branch, from the tier-heading branch, or from the section-heading branch each leaves `tests/test_row_wrapping.py` 11/11 green (and the wider acceptance tests green for the section case). `test_a_fence_closes_the_row` and `test_a_heading_closes_the_row` pass because the row is closed later by a different mechanism, so neither guards the behaviour it is named for. A distinguishing input exists and is untested: an indented line *after* a closing fence is dropped today and would be folded into the row if the fence call were removed.
+
+### 4. The continuation rule folds structure it was written to exclude
+
+`_CONTINUATION_RE` excludes only `-`/`*`/`+`. Measured: `  1. Open the app.` folds into the row (`"Do the thing. 1. Open the app. 2. Tap the button."`), and so do an indented table (`"| col | col | | --- | --- |"`), an indented `## heading` and an indented `> quote`. The docstring's own justification — *"a nested `- plain` is a sub-point … folding it into the parent's prose would invent a sentence nobody wrote"* — applies verbatim to an ordered sub-item. `_LAZY_WRAP_RE` already treats `#` and `>` as structure; `_CONTINUATION_RE` does not.
+
+Not reachable in any committed suite: old and new `parse()` produce identical output over all 137 committed revisions of the suite file across the three repos. But [[TASK-0531]]'s migration has not run and this is the parser it will run through, which is the ordering [[PLAN]] calls non-negotiable.
+
+### 5. A ledger whose filename does not match `_LEDGER_NAME_RE` still disappears from its own platform
+
+`REL-12-ios.json` (two-digit release), `working-ios.json`, `ios.json`: `_platform_of` returns `""`, `load(docs, "ios")` skips the file, and `platforms(docs)` still reports `ios` from the field it loaded. Reproduced: `platforms() == ['ios']`, `verdicts(docs, 'ios') == {}`. With `apply_ledger` every check then falls to `todo` while a sealed ledger of passes sits in the directory. `validate_ledgers` never checks that a filename yields a platform, or that `platform` is present at all — so the validator is silent. This is the failure the `_platform_of` fix was celebrated for finding, reachable through a different door.
+
+### 6. `validate_ledgers` has no test, and its immutability rule is weaker than the exit criterion
+
+142 new lines and six new codes, in two byte-identical copies (`tools/scripts/validate-docs.py`, `src/project_os_cockpit/validate_docs_bundled.py`); `grep -rn "LEDGER-" tests/` returns nothing. [[TASK-0528]]'s evidence is a manual one-off. `LEDGER-SEALED` compares the working tree to `git show HEAD:<path>`, so editing a sealed ledger **and committing it** passes forever afterwards. Exit criterion 5 (*"a sealed ledger cannot be modified, proved by a test that tries — `entries` and `evidence` both"*) and [[REQ-0052]] criterion 4 are met by no test; `ledger.append`'s sealed guard is `# pragma: no cover`.
+
+### 7. The drift check leaves the persistence column free
+
+Mutation-tested: changing `TAXONOMY.md`'s `na` row from `yes, until invalidated` to `**no — expires with its release**` — the exact inversion [[ADR-0037]] calls *"the sharpest single argument in this ADR"* — leaves `tests/test_ledger.py` 38/38 green. The check compares the value set and the **gate** column only. [[REQ-0056]] criterion 3 is also worded *"reads the documented vocabulary **and the corpus**"*; the implemented check reads the document and `ledger.MARKS`, never the corpus.
+
+### 8. "This repo has a ledger" is decided by a directory existing
+
+`apply_ledger` returns its input only when `not found and not ledgers_dir.is_dir()`. An **empty** `docs/releases/ledgers/` — which `ledger.write()` creates via `mkdir(parents=True)` before writing, and which survives deleting the JSON — turns every verdict in the repo to `todo`. Reproduced. Fail-closed, but the docstring's stated mechanism (*"`verdicts()` returns `{}` and this returns its input"*) is not what the code does, and no surface prints a reason.
+
+### 9. `mark_check` can still write a scalar into a note in a repo that has a ledger
+
+The server routes on the presence of `platform` in the payload; nothing checks whether the repo has a ledger, and `mark_check` never receives `docs_root`. [[PLAN]] says *"Nothing is dual-written — a repo has a ledger or it does not"* — this repo has `WORKING-macos.json` **and** 34 notes carrying `mark:`, both live, and which one a reader sees depends on whether the caller passed `platform`. `walkOneCheck` in `renderer.ts` sends `id`/`number`/`name`/`verdict`/`reason`/`change` and no platform, so after [[TASK-0530]] strips the fields the first walk puts a scalar straight back. That is [[REQ-0055]]'s stated failure mode, and it is reachable without the 87-site renderer migration going wrong.
+
+### 10. Smaller
+
+- **Resolution is file order, not date order.** `pass @2026-08-19` then `fail @2020-01-01` resolves to `fail`; `_DATE_RE` also accepts `2026-13-45`. Safe through HTTP only because `record_verdict` does not expose `when`.
+- **`record_verdict` defaults `by` to the literal `user:edwin`**, so [[REQ-0052]]'s *"names its author"* can be satisfied by a hardcoded stranger. `seal()` interpolates an unvalidated `release` into a filename while `platform` gets `_PLATFORM_RE`.
+- **Seven `done` tasks carry 0 of N DoD boxes ticked** ([[TASK-0529]], [[TASK-0533]], [[TASK-0534]], [[TASK-0535]], [[TASK-0536]], [[TASK-0539]], [[TASK-0541]]) against 7/7, 4/4 and 4/4 on three others. Nothing checks it; `QUALITY.md`'s ticking discipline is written for requirements only.
+- **[[TASK-0534]] is `done` with an unimplemented, unmentioned criterion**: *"a release with no platform reads every platform's ledger and is blocked by any of them"*. The actual behaviour is the opposite and permissive — `platform=""` reads no ledger and falls back to the note's `mark:`. Its title also claims the release gate reads a ledger; `publication.py:857` and `cockpit.py:2644` pass no platform, and no production caller anywhere does. `ledger.seal`, `ledger.burndown`, `ledger.owed` and `orphan_evidence` have no production caller at all.
+- **[[ADR-0037]]'s measurement table** lists `automation:` as *"non-empty **203** of 671"*. Measured: non-empty on **669** of 671; 203 is the non-`manual` count in `your-trainer` (22 `full` + 181 `partial` against 376 `manual`). [[REQ-0053]] words it correctly; the table does not, in a table whose neighbouring rows are read literally.
+- **`your-sudoku`'s "56 → 56 (+0)" is vacuous** — the script writes **0** entries there. The lossless claim rests on `your-trainer` (513) and this repo (34).
+- `Ledger.to_json` computes `last=not self.evidence and False`, which is always `False`.
+
+### What was checked and could not be refuted
+
+`671` notes; `platform:` on 2; `verdict_date`/`verdict_reason`/`invalidated_by`/`covered_by`/`evidence` empty on all 671; **87** `renderer.ts` sites (lines matching `\bmark\b`, exact); `505` iOS against `60` Android, reproduced by re-running the script. `Item.number`'s fallback is genuinely guarded — reverting it fails `test_gate_delta::test_the_delta_against_your_trainers_real_tags` — and no positional consumer breaks (`_delta_key` is `(tier, name)`, `ages()` keys are computed within one run, `renderer.py` and `migrate-acceptance-checks.py` see only file-shape items). Adding `excused` to `PERSISTS` fails two tests; the `_platform_of` prefix anchoring is guarded; each `apply_ledger` property fails when inverted. Old and new `parse()` are output-identical over every committed revision of every suite file in all three repos: no row dropped, none duplicated.

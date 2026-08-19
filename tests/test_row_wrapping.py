@@ -27,6 +27,8 @@ non-continuation lines in exactly the position a naive fix would eat.
 
 from __future__ import annotations
 
+import pytest
+
 from project_os_cockpit import acceptance
 
 
@@ -245,3 +247,92 @@ More ordinary prose after it.
     report: list[str] = []
     acceptance.parse(suite, report=report)
     assert report == []
+
+
+# ================= what independent review found, 2026-08-19 =================
+
+
+def test_a_fence_closes_the_row_before_its_contents(  # finding 3
+) -> None:
+    """`test_a_fence_closes_the_row` passed with the fence's `close_row()`
+    deleted, because the row was closed later by a different mechanism.
+
+    A test that passes when the thing it names is removed is not guarding it.
+    This is the distinguishing input: an **indented** line after the closing
+    fence, which reaches the continuation branch and would be appended to a
+    row that should have ended three lines earlier.
+    """
+    suite = """# Tier 1 — Feature Tests
+
+## 1.1 A surface
+
+- [ ] **A check.** Its text.
+```
+  fenced
+```
+      an indented line after the fence
+"""
+    rows = acceptance.parse(suite)
+    assert len(rows) == 1
+    assert rows[0].text == "Its text.", (
+        "the fence ends the row; nothing after it belongs to the row")
+
+
+def test_a_tier_heading_closes_the_row_before_its_contents() -> None:  # finding 3
+    suite = """# Tier 1 — Feature Tests
+
+## 1.1 A surface
+
+- [ ] **A check.** Its text.
+# Tier 2 — Regression Tests
+      an indented line under the new tier
+"""
+    rows = acceptance.parse(suite)
+    assert len(rows) == 1
+    assert rows[0].text == "Its text."
+    assert rows[0].tier == 1
+
+
+def test_a_section_heading_closes_the_row_before_its_contents() -> None:  # 3
+    suite = """# Tier 1 — Feature Tests
+
+## 1.1 First
+
+- [ ] **A check.** Its text.
+## 1.2 Second
+      an indented line under the new section
+"""
+    rows = acceptance.parse(suite)
+    assert len(rows) == 1
+    assert rows[0].text == "Its text."
+    assert rows[0].section == "1.1"
+
+
+@pytest.mark.parametrize("line,label", [
+    ("  1. Open the app.", "an ordered-list step"),
+    ("  | col | col |", "a table row"),
+    ("  ## A heading", "a heading"),
+    ("  > A quote", "a block quote"),
+])
+def test_indented_structure_is_not_folded_into_the_row(  # finding 4
+    line: str, label: str,
+) -> None:
+    """The exclusion is five shapes, not one.
+
+    The first version excluded `-*+` alone, and every one of these folded into
+    the row's detail — *"| col | col |"* read as part of a sentence. The
+    docstring's own argument against nested bullets applies verbatim: folding
+    structure into prose invents a sentence nobody wrote.
+
+    Unreachable in any committed suite, and reachable the moment
+    [[TASK-0531]]'s migration runs, which is the parser it runs through.
+    """
+    suite = f"""# Tier 1 — Feature Tests
+
+## 1.1 A surface
+
+- [ ] **A check.** Its text.
+{line}
+"""
+    rows = acceptance.parse(suite)
+    assert rows[0].text == "Its text.", f"{label} was folded into the row"

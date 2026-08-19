@@ -58,6 +58,27 @@ Stage 1, against Edwin's goal *"implement, test and independently review the ful
 
 **The read path and the write path both exist and neither is the only path yet.** That is the honest state of a migration whose second half ([[TASK-0530]], removing the seven fields) has not run: `mark_check` still writes notes for the nine fleet repos with no ledger, and `apply_ledger` is an overlay rather than a replacement. Nothing is dual-written — a repo has a ledger or it does not — but the frontmatter-read guard [[REQ-0055]] asks for cannot be written until the field is gone.
 
+## Independent review, 2026-08-19 — `changes-requested`, ten findings, all addressed
+
+The verdict was right and the findings were real. Two could have destroyed data and one was a false claim in this very file.
+
+| # | finding | fix |
+| --- | --- | --- |
+| 1 | **The migration measured a smaller corpus than the gate it protects.** `backfill-ledger.py` called `acceptance.load(docs)` with no index; every production gate passes one, and the indexed branch finds acceptance tests anywhere under `docs/`. 581/62 in `your-trainer`, not 579/60 | builds an index; delta re-measured and still 0 everywhere |
+| 2 | **An expiring mark destroyed the verdict underneath it.** `pass` in REL-0001 + `excused` in REL-0002 resolved to *nothing* after the seal — contradicting decision 7 in as many words. Benign for the gate, **not** for the burndown, which selects A-`pass` rows | `resolve` keeps a standing and a transient layer |
+| 3 | Three of four `close_row()` sites were unguarded — two tests passed with the thing they name deleted | three distinguishing tests; all four sites mutation-proven |
+| 4 | The continuation rule folded ordered lists, tables, headings and quotes — the docstring's own argument, ignored | exclusion widened to five shapes, four parametrised guards |
+| 5 | A ledger whose filename misses the naming rule still vanished from its own platform | reader refuses; `LEDGER-NAME` in the validator |
+| 6 | **`validate_ledgers` had no test at all** — 142 lines, six codes, `grep LEDGER- tests/` empty | 18 tests, one per defect |
+| 7 | The drift check left the persistence column free — flipping `na` to *expires* stayed green | reads both behaviour columns |
+| 8 | "Has a ledger" meant *the directory exists*, which `write()` creates first | `has_ledger()` looks for a file |
+| 9 | **`mark_check` could still write a scalar in a repo with a ledger**, and `walkOneCheck` sends no platform | refused with a 409 |
+| 10 | dates were shape-checked (`2026-13-45` passed); resolution was file order; `by` defaulted to a hardcoded name; `release` unguarded in a filename; seven `done` tasks had every DoD box unticked | each fixed |
+
+**Three corrections to claims in this record**, because a wrong number is a finding too: `your-trainer` is **581 checks / 62 blocking / 507 owed on iOS** (not 579/60/505); `automation:` is non-empty on **669** of 671, and 203 is the count that is not `manual`; and **this file's "nothing is dual-written" was false of this repo** — it held a ledger *and* 34 notes carrying `mark:`. Finding 9 is now what makes it true.
+
+**Two things the review left standing that are worth naming.** `LEDGER-SEALED` compares the working tree to `HEAD`, so editing a sealed ledger **and committing it** passes forever — filed as [[ISS-0220]], with the gap asserted by a test so it cannot quietly stop being true. And [[TASK-0534]], [[TASK-0536]] and [[TASK-0539]] went back to `doing`: each has one genuinely open DoD item, and a task with an open box is not done — the same rule the validator taught about [[FEAT-0133]] an hour earlier, one level down.
+
 ## The through-line
 
 **Every deformation this phase fixes has the same cause: a scalar holding a fact with three dimensions.** The platform silence, `invalidated_by:` reconstructing history from one field, `automation:` as a claim that rots, `todo` as a value meaning "no data" — each is what a one-slot container does to a three-slot fact.

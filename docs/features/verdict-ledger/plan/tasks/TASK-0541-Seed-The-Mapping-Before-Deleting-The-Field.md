@@ -16,10 +16,10 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `covered_by:` is extracted from every repo — measured, it holds **nothing anywhere**, and that is recorded rather than assumed.
-- [ ] `your-trainer`'s **203** parenthesised annotations (181 `(partially automated`, 22 `(automated`) are extracted with the check id and the class name they name.
-- [ ] The 54 distinct JVM classes are listed.
-- [ ] The seed is committed **before** [[TASK-0530]] removes `automation:`.
+- [x] `covered_by:` is extracted from every repo — measured, it holds **nothing anywhere**, and that is recorded rather than assumed.
+- [x] `your-trainer`'s **203** parenthesised annotations (181 `(partially automated`, 22 `(automated`) are extracted with the check id and the class name they name.
+- [x] The 54 distinct JVM classes are listed.
+- [x] The seed is committed **before** [[TASK-0530]] removes `automation:`.
 
 ## Done 2026-08-19 — and the seed is larger than the ADR said
 

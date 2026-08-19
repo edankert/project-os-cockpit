@@ -512,6 +512,12 @@ def test_recording_a_verdict_appends_an_event_and_touches_no_note(
         docs, Index.build(docs), check_id="TST-0001", platform="android",
         verdict="pass", by="user:edwin")
 
+    # …and it refuses to invent one when the caller does not know.
+    with pytest.raises(note_writes.WriteError, match="name who produced it"):
+        note_writes.record_verdict(
+            docs, Index.build(docs), check_id="TST-0001", platform="android",
+            verdict="pass", by="")
+
     assert out["mark"] == "pass" and out["platform"] == "android"
     assert note.read_text() == before, "recording a walk must not touch a note"
     assert L.verdicts(docs, "android")["TST-0001"].mark == "pass"
@@ -577,15 +583,28 @@ def test_taxonomy_documents_exactly_the_vocabulary_the_code_writes() -> None:
         f"documented-only {sorted(documented - L.MARKS)}, "
         f"code-only {sorted(L.MARKS - documented)}")
 
-    # And the gate column has to say the same thing the code does, or the
-    # document is right about the values and wrong about what they DO — which
-    # is the more dangerous half.
-    for row in re.finditer(r"^\| `([a-z]+)` \|[^|]*\|([^|]*)\|", section, re.M):
-        mark, gate = row.group(1), row.group(2)
+    # **Both behaviour columns**, not just the values. A document right about
+    # the names and wrong about what they DO is the more dangerous half, and
+    # the persistence column was left free by the first version of this check:
+    # flipping `na` to "expires with its release" — the exact inversion
+    # ADR-0037 calls its sharpest argument — left the suite green. Found by
+    # independent review, 2026-08-19.
+    rows = list(re.finditer(
+        r"^\| `([a-z]+)` \|[^|]*\|([^|]*)\|([^|]*)\|", section, re.M))
+    assert len(rows) == len(L.MARKS), (
+        f"only {len(rows)} of {len(L.MARKS)} rows matched the table shape — "
+        f"the scrape broke, which would make this check pass vacuously")
+    for row in rows:
+        mark, gate, persists = row.group(1), row.group(2), row.group(3)
         clears = "clears" in gate and "blocks" not in gate
         assert clears == (mark in L.CLEARING), (
             f"TAXONOMY.md says {mark!r} {gate.strip()!r}; the code says "
             f"{'clears' if mark in L.CLEARING else 'blocks'}")
+        documented_persists = "yes" in persists.lower()
+        assert documented_persists == (mark in L.PERSISTS), (
+            f"TAXONOMY.md says {mark!r} persists={persists.strip()!r}; the "
+            f"code says {mark in L.PERSISTS}. This column is the difference "
+            f"between `na` and `excused`, which is the whole of decision 7")
 
 
 def test_the_legacy_values_stay_readable_and_are_not_presented_as_current(
@@ -597,3 +616,117 @@ def test_the_legacy_values_stay_readable_and_are_not_presented_as_current(
         assert acceptance.normalise_mark(legacy) == word
     # …and none of them is a value the ledger will accept.
     assert not (set("x-?") & L.MARKS)
+
+
+# ================= what independent review found, 2026-08-19 =================
+#
+# Nine findings, each reproduced before it was fixed. These are the guards that
+# were missing, written from the failure rather than from the fix — a test
+# written after the fix tends to assert what the code now does, which is how a
+# fixed bug comes back looking like a passing suite.
+
+
+def test_an_excuse_does_not_destroy_the_pass_underneath_it(docs: Path) -> None:
+    """**Finding 2.** ADR-0037 decision 7: `pass` persists *until an
+    invalidation event supersedes* it — and an excuse is not an invalidation.
+
+    `resolve` popped on expiry, so a `pass` in REL-0001 followed by an
+    `excused` in REL-0002 resolved to nothing once REL-0002 sealed. The gate
+    consequence was benign; **the burndown consequence was not**, because
+    `burndown` selects A-`pass` rows — so excusing a check on Android silently
+    removed a real iOS gap from the report built to replace `PARITY_MATRIX`.
+    """
+    _walk(docs, "android", "TST-0001", "pass", when="2026-01-10")
+    L.seal(docs, "android", release="REL-0001", version="v1", when="2026-02-01")
+    _walk(docs, "android", "TST-0001", "excused", reason="Not this cycle.",
+          when="2026-03-10")
+    assert L.verdicts(docs, "android")["TST-0001"].mark == "excused"
+
+    L.seal(docs, "android", release="REL-0002", version="v2", when="2026-04-01")
+    found = L.verdicts(docs, "android")
+    assert found["TST-0001"].mark == "pass", (
+        "the excuse expired; the pass underneath it did not")
+    assert found["TST-0001"].release == "REL-0001"
+
+
+def test_the_burndown_still_sees_a_gap_excused_on_the_far_side(
+    docs: Path,
+) -> None:
+    """Finding 2's real consequence, as its own guard."""
+    _walk(docs, "android", "TST-0001", "pass", when="2026-01-10")
+    _walk(docs, "ios", "TST-0002", "pass", when="2026-01-10")
+    L.seal(docs, "android", release="REL-0001", version="v1", when="2026-02-01")
+    _walk(docs, "android", "TST-0001", "excused", reason="Skipped this cycle.",
+          when="2026-03-10")
+    L.seal(docs, "android", release="REL-0002", version="v2", when="2026-04-01")
+    assert [g.check for g in L.burndown(docs, "android", "ios")] == ["TST-0001"]
+
+
+def test_a_later_pass_retires_a_transient_verdict_over_it(docs: Path) -> None:
+    """The other direction of finding 2: walking a check settles it outright.
+
+    Leaving a stale `blocked` on top of a fresh `pass` would report the rig as
+    still down after somebody plugged it back in.
+    """
+    _walk(docs, "android", "TST-0001", "blocked", reason="Rig down.",
+          when="2026-08-14")
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-15")
+    assert L.verdicts(docs, "android")["TST-0001"].mark == "pass"
+
+
+def test_a_ledger_the_reader_cannot_place_is_refused(docs: Path) -> None:
+    """**Finding 5.** `REL-12-ios.json` misses the naming rule.
+
+    Skipping it is the same failure the first-hyphen bug had — a ledger that
+    disappears from its own platform while `platforms()` still reports the
+    platform — reached through a different door. Silence is the wrong answer:
+    the file sits there looking read.
+    """
+    L.ledgers_dir(docs).mkdir(parents=True)
+    for name in ("REL-12-ios.json", "working-ios.json", "ios.json"):
+        path = L.ledgers_dir(docs) / name
+        path.write_text(json.dumps(
+            {"platform": "ios", "entries": [], "evidence": []}))
+        with pytest.raises(L.LedgerError, match="does not name a platform"):
+            L.load(docs)
+        path.unlink()
+
+
+def test_an_empty_ledger_directory_is_not_a_ledger(docs: Path) -> None:
+    """**Finding 8.** `write()` creates the directory before writing, so an
+    interrupted first write used to turn a whole suite to `todo`."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done"})
+    L.ledgers_dir(docs).mkdir(parents=True)
+    assert not L.has_ledger(docs)
+    assert acceptance.load(docs, platform="android").items[0].mark == "done"
+
+
+def test_a_scalar_cannot_be_written_in_a_repo_that_keeps_ledgers(
+    docs: Path,
+) -> None:
+    """**Finding 9.** `mark_check` writes frontmatter and never sees a ledger.
+
+    Reachable today: `walkOneCheck` in the renderer sends no `platform`, so
+    after the fields are removed the first walk would put a scalar back — the
+    exact failure [[REQ-0055]] names, without the 87-site renderer migration
+    going wrong at all.
+    """
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0002", "pass", when="2026-08-14")
+    with pytest.raises(note_writes.WriteError, match="records verdicts in a "
+                       "ledger"):
+        note_writes.mark_check(Index.build(docs), check_id="TST-0001",
+                               verdict="pass")
+
+
+def test_a_release_id_is_guarded_like_a_platform_is(docs: Path) -> None:
+    """**Finding 10.** Both halves of a filename, or neither."""
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    for bad in ("../etc", "REL", "rel-0012", ""):
+        with pytest.raises(L.LedgerError, match="usable release id"):
+            L.seal(docs, "android", release=bad, version="v1")

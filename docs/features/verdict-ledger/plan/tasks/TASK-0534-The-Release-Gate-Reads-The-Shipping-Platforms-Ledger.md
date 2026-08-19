@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0534
 aliases: ["TASK-0534"]
 title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-status: done
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -16,11 +16,11 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `Suite.blocking_for(subjects)` takes its settled-ness from the ledger for the release's platform.
-- [ ] No entry, `fail`, `blocked` or `question` blocks. `pass`, `partial` and `na` clear, and so does an `excused` belonging to **this** release.
-- [ ] `blocked` blocking is deliberate and tested: `na`/`excused` are decisions about this release, `blocked` is an accident that will be gone next week ([[ADR-0037]] decision 6).
-- [ ] A release with no platform reads every platform's ledger and is blocked by any of them — the same opt-in rule [[DES-0012]] D4 gives release contents.
-- [ ] The delta against today's gate is computed per repo and recorded before that repo migrates.
+- [x] `Suite.blocking_for(subjects)` takes its settled-ness from the ledger for the release's platform.
+- [x] No entry, `fail`, `blocked` or `question` blocks. `pass`, `partial` and `na` clear, and so does an `excused` belonging to **this** release.
+- [x] `blocked` blocking is deliberate and tested: `na`/`excused` are decisions about this release, `blocked` is an accident that will be gone next week ([[ADR-0037]] decision 6).
+- [ ] A release with no platform reads every platform's ledger and is blocked by any of them — the same opt-in rule [[DES-0012]] D4 gives release contents. **NOT IMPLEMENTED.** `apply_ledger` takes one platform, and a caller passing `""` gets the pre-ledger read rather than the union. Named by independent review, 2026-08-19; it is a real gap and it is why this task's other criteria are ticked and this one is not.
+- [x] The delta against today's gate is computed per repo and recorded before that repo migrates.
 
 ## Notes
 
@@ -34,6 +34,6 @@ The delta is the whole risk of this phase. `your-trainer`'s iOS position gets mu
 
 **`blocked` blocking is deliberate and tested** (`test_both_exceptions_clear_the_gate_and_blocked_does_not`): `na` and `excused` are decisions somebody made about this release, `blocked` is an accident that will be gone next week.
 
-**The delta, measured before anything was written** ([[TASK-0529]]): **0 in all three repos** on the platform the verdicts were earned on — the backfill is lossless. `your-trainer`'s iOS gate is 505 against Android's 60, and that is not a gate that moved: those 505 were always unverified on iOS and the schema had no way to say so.
+**The delta, measured before anything was written** ([[TASK-0529]]): **0 in all three repos** on the platform the verdicts were earned on — the backfill is lossless. `your-trainer`'s iOS gate is **507** against Android's **62**, and that is not a gate that moved: those 507 were always unverified on iOS and the schema had no way to say so.
 
 **`tier:` is untouched.** [[ISS-0208]] still owns the tier filter and the fail-closed clause; nothing here changes which checks gate.

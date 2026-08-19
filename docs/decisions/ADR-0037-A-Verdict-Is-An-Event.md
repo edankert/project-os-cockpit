@@ -47,7 +47,9 @@ The design arrived as a written proposal from a working session in `~/Dev/repos/
 | `verdict_reason:` | **0** | 671 |
 | `invalidated_by:` | **0** | 671 |
 | `covered_by:` | **0** | 671 |
-| `automation:` | 203 (`your-trainer` only: 22 `full`, 181 `partial`) | 671 |
+| `automation:` | **669** — but only **203** say anything but `manual` (`your-trainer`: 22 `full`, 181 `partial`) | 671 |
+
+*(Corrected 2026-08-19 by independent review: this row read “203” for `automation:`, which is the count of values that are not `manual`. The field itself is populated on 669 of 671 — the number that matters for the argument is the 203, and the row said so in a column headed “non-empty”, which is a different claim.)*
 
 Four of the six fields this decision removes are empty in **100%** of the corpus. That is not an argument that they are harmless — it is the measurement that makes the removal nearly free, and it is also the strongest available evidence that a per-note verdict record does not get kept. `verdict_reason:` is empty on all 671 while [[ADR-0029]] made it *required* for four of six marks; the requirement holds only because nobody has ever written one of those four marks.
 

@@ -99,13 +99,24 @@ _ITEM_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*?)\s*$")
 #:   would be wrong here: the pre-migration file carries 23 unindented `- *…
 #:   moved to §3.5*` annotation bullets directly under checkboxes, and they are
 #:   separate list items, not the row's text.
-#: * *Not itself a bullet* — a nested `  - [ ]` is a check of its own and
+#: * *Not itself STRUCTURE* — a nested `  - [ ]` is a check of its own and
 #:   `_ITEM_RE` claims it first; a nested `  - plain` is a sub-point rather
 #:   than a wrap, and folding it into the parent's prose would invent a
 #:   sentence nobody wrote.
 #:
+#:   **The exclusion is five shapes, not one.** The first version excluded
+#:   `-*+` alone, and independent review measured what that let through: an
+#:   ordered-list step (`  1. Open the app.`), an indented table, an indented
+#:   `##` heading and an indented `>` quote all folded into the row's detail —
+#:   *"| col | col | | --- | --- |"* as a sentence. The docstring's own
+#:   argument against nested bullets applies verbatim to every one of them.
+#:   Unreachable in any committed suite (old and new `parse()` agree over all
+#:   137 committed revisions across three repos), and reachable the moment
+#:   [[TASK-0531]]'s migration runs, which is the parser it runs through.
+#:
 #: A blank line, a heading, a fence or the next bullet closes the row.
-_CONTINUATION_RE = re.compile(r"^\s+(?![-*+]\s)(\S.*?)\s*$")
+_CONTINUATION_RE = re.compile(
+    r"^\s+(?!(?:[-*+]\s|\d+[.)]\s|#{1,6}\s|>|\|))(\S.*?)\s*$")
 #: A line under a checkbox that is unindented, not a bullet and not a heading —
 #: Markdown would read it as a LAZY continuation of the row and this parser
 #: does not. Reported rather than accepted: the pre-migration corpus puts real
@@ -1035,9 +1046,9 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
     """
     from . import ledger as _ledger
 
-    found = _ledger.verdicts(docs_root, platform)
-    if not found and not _ledger.ledgers_dir(docs_root).is_dir():
+    if not _ledger.has_ledger(docs_root):
         return items
+    found = _ledger.verdicts(docs_root, platform)
     out: list[Item] = []
     for item in items:
         verdict = found.get(item.note_id)

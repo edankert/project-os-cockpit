@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0539
 aliases: ["TASK-0539"]
 title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
-status: done
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -16,9 +16,9 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `TAXONOMY.md`'s `mark` section is rewritten as the ledger's outcome vocabulary: `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — with the gate column **and** the persists-past-the-seal column, because the second is what separates `na` from `excused`.
-- [ ] Absence is documented as a state — *"no entry"* is what "nobody has run it" looks like, and it is not a value.
-- [ ] Minimal's characters and [[ADR-0034]]'s words are listed as **read-only legacy**, in a section that says so.
+- [x] `TAXONOMY.md`'s `mark` section is rewritten as the ledger's outcome vocabulary: `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — with the gate column **and** the persists-past-the-seal column, because the second is what separates `na` from `excused`.
+- [x] Absence is documented as a state — *"no entry"* is what "nobody has run it" looks like, and it is not a value.
+- [x] Minimal's characters and [[ADR-0034]]'s words are listed as **read-only legacy**, in a section that says so.
 - [ ] Landed in `~/Dev/repos/project-os` first, then synced to all four repos — the drift is currently in every one of them, upstream included.
 
 ## Done here 2026-08-19, and NOT yet upstream

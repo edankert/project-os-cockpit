@@ -135,6 +135,7 @@ const VALIDATION_LABELS: Record<string, string> = {
   'LEDGER-REASON': 'a verdict left the gate without saying why',
   'LEDGER-EVIDENCE': 'evidence for a walk nobody recorded',
   'LEDGER-SEALED': 'a sealed ledger was edited',
+  'LEDGER-NAME': 'a ledger filename names no platform',
 };
 
 

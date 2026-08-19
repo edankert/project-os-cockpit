@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 138
-  ISS: 219
+  ISS: 220
   PHASE: 38
   REQ: 57
   RISK: 7
@@ -880,7 +880,7 @@ items:
     TASK-0534:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger.md"
       title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-      status: done
+      status: doing
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -894,7 +894,7 @@ items:
     TASK-0536:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0536-The-Read-Path-Moves-To-The-Ledger.md"
       title: "`acceptance.load` and `Item` take the verdict from the ledger, and a guard test fails on any frontmatter read"
-      status: done
+      status: doing
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -915,7 +915,7 @@ items:
     TASK-0539:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0539-Settle-The-Vocabulary-Upstream.md"
       title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
-      status: done
+      status: doing
       owner: user:edwin
       parent: FEAT-0137
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,13 +3857,13 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 486
+    tasks_done: 483
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 14
+    issues_open: 15
     issues_triage: 0
     risks_open: 6
     releases_total: 1

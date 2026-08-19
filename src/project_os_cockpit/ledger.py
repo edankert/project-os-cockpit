@@ -48,10 +48,28 @@ LEDGERS_REL = "releases/ledgers"
 WORKING_PREFIX = "WORKING"
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _is_date(raw: str) -> bool:
+    """A real date, not a date-SHAPED string.
+
+    `2026-13-45` matched the regex and was accepted — and a ledger is sorted by
+    this field, so a nonsense date does not merely look wrong, it reorders the
+    resolution. Found by independent review, 2026-08-19.
+    """
+    if not _DATE_RE.match(raw or ""):
+        return False
+    try:
+        date.fromisoformat(raw)
+    except ValueError:
+        return False
+    return True
 #: A platform is a filename component, so it may not contain a separator or a
 #: dot. Checked rather than trusted: the platform comes from a note field and a
 #: `../` in it would write outside the ledger directory.
 _PLATFORM_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+#: The other half of a sealed ledger's filename, guarded for the same reason.
+_RELEASE_RE = re.compile(r"^[A-Z]{2,6}-\d{3,4}$")
 
 
 # ---------------------------------------------------------------- vocabulary
@@ -200,7 +218,7 @@ class Ledger:
             return out
 
         lines += block("entries", [_entry_json(e) for e in self.entries],
-                       last=not self.evidence and False)
+                       last=False)
         lines += block("evidence", [_evidence_json(v) for v in self.evidence],
                        last=True)
         return "{\n" + "\n".join(lines) + "\n}\n"
@@ -242,7 +260,7 @@ def check_entry(raw: dict[str, Any], *, where: str) -> Entry:
     if not check:
         raise LedgerError(f"{where}: an entry names no check")
     when = str(raw.get("date", "") or "").strip()
-    if not _DATE_RE.match(when):
+    if not _is_date(when):
         raise LedgerError(f"{where}: {check} has no usable date ({when!r})")
     if "platform" in raw:
         raise LedgerError(
@@ -288,7 +306,7 @@ def check_evidence(raw: dict[str, Any], *, where: str) -> Evidence:
     when = str(raw.get("date", "") or "").strip()
     if not check or not ref:
         raise LedgerError(f"{where}: an evidence item needs a check and a ref")
-    if not _DATE_RE.match(when):
+    if not _is_date(when):
         raise LedgerError(f"{where}: evidence for {check} has no usable date")
     return Evidence(check=check, date=when, ref=ref,
                     note=str(raw.get("note", "") or "").strip())
@@ -366,6 +384,18 @@ def load(docs_root: Path, platform: str | None = None) -> list[Ledger]:
     out: list[Ledger] = []
     for path in sorted(root.glob("*.json")):
         found = _platform_of(path)
+        if not found:
+            #: **Refused, not skipped.** `REL-12-ios.json`, `working-ios.json`
+            #: and `ios.json` all miss the naming rule, and skipping them is
+            #: the same failure the first-hyphen bug had — a ledger that
+            #: disappears from its own platform while `platforms()` still
+            #: reports the platform — reached through a different door. Found
+            #: by independent review, 2026-08-19.
+            raise LedgerError(
+                f"{LEDGERS_REL}/{path.name}: the filename does not name a "
+                f"platform. It must be `WORKING-<platform>.json` or "
+                f"`REL-####-<platform>.json`, or its verdicts are invisible "
+                f"to every query while the file sits there looking read")
         if platform and found != platform:
             continue
         ledger = _parse(path.read_text(encoding="utf-8"),
@@ -374,6 +404,19 @@ def load(docs_root: Path, platform: str | None = None) -> list[Ledger]:
         out.append(ledger)
     out.sort(key=lambda l: (l.is_working, l.sealed))
     return out
+
+
+def has_ledger(docs_root: Path) -> bool:
+    """Whether this repo keeps verdicts in ledgers.
+
+    **A ledger FILE, not a directory.** `write()` creates the directory before
+    writing, and an empty one used to mean *"every check is owed"* — so an
+    interrupted first write turned a whole suite to `todo`. Fail-closed, and
+    still not the mechanism the docstring claimed. Found by independent
+    review, 2026-08-19.
+    """
+    root = ledgers_dir(docs_root)
+    return root.is_dir() and any(root.glob("*.json"))
 
 
 def platforms(docs_root: Path) -> list[str]:
@@ -438,26 +481,55 @@ def resolve(ledgers: Iterable[Ledger]) -> dict[str, Verdict]:
     the answer*: no entry for a platform means owed on that platform, with no
     field anywhere declaring applicability ([[REQ-0054]]).
     """
-    out: dict[str, Verdict] = {}
+    #: **Two layers, because an expiring mark must not destroy the verdict
+    #: underneath it.** `standing` holds the last PERSISTING verdict — a
+    #: `pass`, a `partial`, an `na`. `transient` holds a non-persisting one and
+    #: outranks it only while its own ledger is open.
+    #:
+    #: The first version kept one layer and *popped* on expiry, which meant a
+    #: `pass` in REL-0001 followed by an `excused` in REL-0002 resolved to
+    #: NOTHING once REL-0002 sealed. That contradicts decision 7 in as many
+    #: words — `pass` persists *"until an invalidation event supersedes"* it,
+    #: and an excuse is not an invalidation. The gate consequence was benign
+    #: (owed rather than cleared) and the **burndown** consequence was not:
+    #: `burndown` selects A-`pass` rows, so excusing a check on Android
+    #: silently removed a real iOS parity gap from the report built to replace
+    #: `PARITY_MATRIX`. Found by independent review, 2026-08-19.
+    standing: dict[str, Verdict] = {}
+    transient: dict[str, Verdict] = {}
     for ledger in ledgers:
-        expired = not ledger.is_working
-        for entry in ledger.entries:
+        #: **By date, ties by file order.** Append-only means file order is
+        #: usually chronological, and *usually* is not a property — a backfill,
+        #: a hand-edit or a merge can put an older event last, and then a 2020
+        #: `fail` supersedes a 2026 `pass`. A stable sort keeps the append
+        #: order for same-day events, which is the only ordering the file
+        #: itself can claim to know. Found by independent review, 2026-08-19.
+        for entry in sorted(ledger.entries, key=lambda e: e.date):
             if entry.is_invalidation:
-                out.pop(entry.check, None)
+                #: An invalidation clears BOTH layers. It is the one event that
+                #: says *the evidence is untrustworthy*, and evidence beneath a
+                #: superseded excuse is no more trustworthy than evidence above
+                #: it.
+                standing.pop(entry.check, None)
+                transient.pop(entry.check, None)
                 continue
-            if expired and entry.mark not in PERSISTS:
-                # `excused` was a statement about THAT release, and so are
-                # `fail`/`blocked`/`question` — none of them says anything
-                # about the next one. Dropping them is what puts the check
-                # back in the owed set with nobody having to remember.
-                out.pop(entry.check, None)
-                continue
-            out[entry.check] = Verdict(
+            found = Verdict(
                 check=entry.check, mark=entry.mark, date=entry.date,
                 by=entry.by, method=entry.method, reason=entry.reason,
                 release=ledger.release if not ledger.is_working else "",
             )
-    return out
+            if entry.mark in PERSISTS:
+                standing[entry.check] = found
+                #: A new persisting verdict retires any transient one over it:
+                #: walking a check settles it outright, and leaving a stale
+                #: `blocked` on top would report the rig as still down.
+                transient.pop(entry.check, None)
+            elif ledger.is_working:
+                transient[entry.check] = found
+            else:
+                #: Expired with its release, and it takes nothing with it.
+                continue
+    return {**standing, **transient}
 
 
 def verdicts(docs_root: Path, platform: str) -> dict[str, Verdict]:
@@ -537,6 +609,12 @@ def seal(
         raise LedgerError(
             f"no working ledger for {platform} — sealing an empty cycle would "
             f"record a release nobody verified anything for")
+    if not _RELEASE_RE.match(release or ""):
+        raise LedgerError(
+            f"{release!r} is not a usable release id — it becomes part of a "
+            f"filename, so it must look like `REL-0012`. `platform` was "
+            f"guarded and this was not, which is the asymmetry that lets one "
+            f"of two filename components escape the directory")
     ledger.release = release
     ledger.version = version
     ledger.sealed = when or _today()

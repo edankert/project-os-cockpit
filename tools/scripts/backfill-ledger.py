@@ -68,7 +68,24 @@ def main() -> int:
 
     root = Path(args.repo_root).resolve()
     docs = root / "docs"
-    suite = A.load(docs)
+    #: **Indexed, because that is the corpus the GATE reads.**
+    #:
+    #: `A.load(docs)` with no index walks `docs/tests/acceptance/` only.
+    #: Every production gate — `publication.release_payload`,
+    #: `cockpit.gate_payload` — passes an index, and the indexed branch
+    #: collects every `[[test]]` at `level: acceptance` ANYWHERE under
+    #: `docs/`. In `../your-trainer` that is 581 checks / 62 blocking against
+    #: the un-indexed 579 / 60.
+    #:
+    #: A migration that measures a smaller corpus than the gate it protects
+    #: prints `+0` while destroying a recorded pass: a `mark: done` note
+    #: outside `docs/tests/acceptance/` gets no ledger entry, `apply_ledger`
+    #: then reads it as `todo`, and the gate moves by a number nobody saw.
+    #: Found by independent review 2026-08-19; the two notes it would have hit
+    #: today (`TST-0015`, `TST-0018`) are both `todo`, so the corpus was saved
+    #: by luck rather than by the check.
+    from project_os_cockpit.index import Index                # noqa: PLC0415
+    suite = A.load(docs, Index.build(docs))
     if not suite.exists:
         print(f"backfill: no acceptance suite under {docs} — nothing to do")
         return 2

@@ -2101,10 +2101,21 @@ def record_verdict(
             entry = _ledger.append(docs_root, platform, check=check_id,
                                    invalidated_by=change, reason=reason)
         else:
+            if not (by or "").strip():
+                #: **Not defaulted to a name.** `by` was `by or "user:edwin"`,
+                #: which invents an author — and an invented author on a
+                #: verdict is worse than none, because it reads as evidence
+                #: that somebody stood behind it. The caller knows who is
+                #: walking; this does not. Found by independent review,
+                #: 2026-08-19.
+                raise WriteError(
+                    "a verdict must name who produced it — a person for a "
+                    "walk, the test for a run. Inventing one would put a name "
+                    "behind a claim nobody made.",
+                    status=400)
             entry = _ledger.append(
                 docs_root, platform, check=check_id, mark=verdict,
-                by=by or "user:edwin", method=method, reason=reason,
-                evidence=evidence)
+                by=by, method=method, reason=reason, evidence=evidence)
     except _ledger.LedgerError as exc:
         raise WriteError(str(exc), status=400) from None
     return {"id": check_id, "platform": platform, "mark": entry.mark,
@@ -2144,7 +2155,25 @@ def mark_check(
     the `[!]` this repo minted — that one ships its permissive half with no way
     to ask why, and [[ISS-0177]] records the gap it leaves.
     """
-    from . import acceptance
+    from . import acceptance, ledger as _ledger
+
+    #: **Refused outright in a repo that keeps ledgers** (independent review,
+    #: 2026-08-19, finding 9). This writes a scalar into frontmatter, and in a
+    #: repo where the ledger is the source that scalar is a second answer to a
+    #: question that already has one — reachable today, because `walkOneCheck`
+    #: in the renderer sends no `platform` and would route here.
+    #:
+    #: The guard is on the repo rather than on the caller: a caller that has
+    #: to remember which write path a repo is on is a caller that will one day
+    #: get it wrong, which is precisely how PLAN.md came to claim *"nothing is
+    #: dual-written"* about a repo holding a ledger AND 34 notes with `mark:`.
+    if _ledger.has_ledger(index.docs_root):
+        raise WriteError(
+            "this repo records verdicts in a ledger, so a mark cannot be "
+            "written onto a note — a verdict is an event and needs the "
+            "platform it was earned on (ADR-0037). Use the ledger write path "
+            "and send `platform`.",
+            status=409)
 
     verdict = (verdict or "").strip().lower()
     mark = acceptance.VERDICTS.get(verdict)

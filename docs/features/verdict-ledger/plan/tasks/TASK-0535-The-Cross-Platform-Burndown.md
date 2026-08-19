@@ -16,10 +16,10 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `burndown(a, b)` returns checks with a terminal `pass` on A and no terminal entry on B.
-- [ ] `na` on B drops out by construction, with its reason available. `excused` does **not** drop out — it expired with its release, so the check is owed again.
-- [ ] An invalidation on A re-arms **both** platforms, because it invalidates *the check*.
-- [ ] Proved on a fixture with one Android pass, one iOS gap, one iOS `na` and one invalidation.
+- [x] `burndown(a, b)` returns checks with a terminal `pass` on A and no terminal entry on B.
+- [x] `na` on B drops out by construction, with its reason available. `excused` does **not** drop out — it expired with its release, so the check is owed again.
+- [x] An invalidation on A re-arms **both** platforms, because it invalidates *the check*.
+- [x] Proved on a fixture with one Android pass, one iOS gap, one iOS `na` and one invalidation.
 
 ## Notes
 

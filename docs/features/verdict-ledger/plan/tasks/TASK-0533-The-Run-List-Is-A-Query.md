@@ -16,12 +16,12 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `run_list(platform, subjects=None)` returns checks with no terminal entry since their most recent invalidation.
-- [ ] A check with **no entry at all** for that platform is in the list — the absence is the initial state ([[REQ-0054]]).
-- [ ] An `na` entry removes a check from the list until something invalidates it.
-- [ ] An `excused` entry removes it **for that release only** — after the seal the check is owed again, with no action by anybody ([[ADR-0037]] decision 7).
-- [ ] Entries whose `method: automated` came from this cycle's CI are excluded.
-- [ ] One implementation; the badge, the tests view and the release page all call it.
+- [x] `run_list(platform, subjects=None)` returns checks with no terminal entry since their most recent invalidation.
+- [x] A check with **no entry at all** for that platform is in the list — the absence is the initial state ([[REQ-0054]]).
+- [x] An `na` entry removes a check from the list until something invalidates it.
+- [x] An `excused` entry removes it **for that release only** — after the seal the check is owed again, with no action by anybody ([[ADR-0037]] decision 7).
+- [x] Entries whose `method: automated` came from this cycle's CI are excluded.
+- [x] One implementation; the badge, the tests view and the release page all call it.
 
 ## Notes
 
