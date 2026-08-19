@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0038
 aliases: ["ADR-0038"]
 title: "An automated test records that it is automated, not whether it passed — the suite is the verdict, and only a manual test carries one"
-status: "proposed"
+status: "accepted"
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
-decision_date: ""
+decision_date: 2026-08-19
 phase: "[[PHASE-999-Future]]"
 source: ["Edwin 2026-08-19: 'In general, the automated tests should record that they are automated, they do not need to record that they pass, there should be a rule which doesn't allow unit or automated regressions to fail (I think this is a general sw-dev rule). The tst does not need to record this, however for manual tests, we do need to record this.'"]
 supersedes: ""
@@ -18,6 +18,12 @@ decided_option: "3"
 ---
 
 # The suite is the verdict
+
+## Status
+
+**Accepted 2026-08-19 by Edwin**, by directing implementation — *"Define the features/requirements/tasks etc .. to implement the discussed changes fully"*, then *"After creating the docs, then implement, test and independently verify the full implementation."* Not through the decision actuator, so the instruction is quoted here rather than a click being cited.
+
+Accepted alongside [[ADR-0039]], which depends on it. [[PHASE-039]] is the body of work.
 
 ## Rule
 

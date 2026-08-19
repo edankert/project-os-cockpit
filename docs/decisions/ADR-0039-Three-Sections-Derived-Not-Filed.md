@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0039
 aliases: ["ADR-0039"]
 title: "Three sections, derived and not filed — a check is re-checked when behaviour changes, done once when it verifies a fix, or executed by CI, and `tier:` says none of it"
-status: "proposed"
+status: "accepted"
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
-decision_date: ""
+decision_date: 2026-08-19
 phase: "[[PHASE-999-Future]]"
 source: ["Edwin 2026-08-19: 'On the verification tests ... these are the tests which have been automated. Can we just make one section and call it automated tests and move all automated tests there, it doesn't matter why they were automated? On the regression tests, these only exist to test issues which were fixed but which we do not expect to be re-occuring and which need to either be tested manually once or otherwise have an automated test. The Feature tests are really the acceptance tests which need to be un-checked set to todo when functionality is changed which warrants a genuine re-check.'"]
 supersedes: ""
@@ -18,6 +18,10 @@ decided_option: "3"
 ---
 
 # Three sections, derived and not filed
+
+## Status
+
+**Accepted 2026-08-19 by Edwin**, by directing implementation, and with two clauses settled in the same exchange: the `Broken command` section takes that name (*"Let's use 'Broken command' as the section. I am happy with the other sections"*), and *run* stays in the documents but leaves the UI.
 
 ## Amended before acceptance, 2026-08-19
 
@@ -150,4 +154,4 @@ The instruction file is template-owned; canonical is `~/Dev/repos/project-os/too
 - **`tier:` stops being written and stops being read.** 671 notes carry one; the field is left in place and ignored rather than stripped in the same change, so a bad derivation is recoverable. Removing it is a later, separate migration once the sections have been read against for a while.
 - **`GATING_TIERS = (1, 2)` and `PERMANENT_TIERS` go with it.** Gating becomes: an unsettled manual check blocks, an automated one never enters the manual list. That is one rule where there were two constants and a tier test.
 - **68 checks are grandfathered, by ID and with a promotion date.** They are the ones that cannot name the issue they verify. This is debt that cannot grow, because the authoring rule refuses new instances.
-- **A new obligation exists**: a check whose `command:` no longer resolves. Measured 2026-08-19 across all 139 automated notes fleet-wide, **zero** currently fail to resolve — so this cannot be proved from the corpus and must be proved on constructed input, which is [[FEAT-0138]]'s acceptance criterion 4.
+- **A new obligation exists, and it is called `Broken command`**: an automated test whose `command:` no longer resolves. Named by Edwin, 2026-08-19, over *Unwired* — the state has a plain description and does not need an image. Measured 2026-08-19 across all 139 automated notes fleet-wide, **zero** currently fail to resolve — so this cannot be proved from the corpus and must be proved on constructed input, which is [[FEAT-0138]]'s acceptance criterion 4.

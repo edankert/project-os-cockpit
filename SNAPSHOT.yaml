@@ -60,13 +60,13 @@ counters:
   CHG:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 138
+  FEAT: 141
   ISS: 239
-  PHASE: 38
-  REQ: 57
+  PHASE: 39
+  REQ: 60
   RISK: 7
   REL: 1
-  TASK: 558
+  TASK: 575
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -3889,9 +3889,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 138
+    features_total: 141
     features_done: 117
-    tasks_total: 557
+    tasks_total: 574
     tasks_done: 502
     tests_total: 43
     tests_passing: 39
