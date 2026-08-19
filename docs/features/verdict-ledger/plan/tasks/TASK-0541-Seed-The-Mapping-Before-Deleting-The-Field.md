@@ -23,6 +23,6 @@ tags: [task]
 
 ## Notes
 
-[[ADR-0037]] decision 7 says seed before deleting; this is that step, and it is the whole reason Stage 2 is not simply "write an emitter".
+[[ADR-0037]] decision 8 says seed before deleting; this is that step, and it is the whole reason Stage 2 is not simply "write an emitter".
 
 These annotations are the only record of which machine covers which check. They survived the document migration as prose, were backfilled into `automation:` by [[ISS-0198]], and `covered_by:` was left deliberately empty because they name classes, not `TST-*` ids. Under observed coverage that is no longer a problem — but only if the mapping still exists.

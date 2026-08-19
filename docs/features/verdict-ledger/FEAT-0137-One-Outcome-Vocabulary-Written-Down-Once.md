@@ -21,20 +21,24 @@ tags: [feature]
 
 Four vocabularies are in play ([[ISS-0218]]): Minimal's characters (documented as current in all four repos), [[ADR-0034]]'s words (live in all 671 notes), the four words nothing has ever written, and [[ADR-0037]]'s event marks. Settle them in one pass.
 
-| ADR-0034 word | ledger mark | live count, fleet-wide |
-| --- | --- | --- |
-| `done` | `pass` | 546 |
-| `todo` | *(no entry)* | 124 |
-| `incomplete` | `partial` | 1 |
-| `canceled` | `na` | **0** |
-| `important` | `fail` | **0** |
-| `question` | `question` | **0** |
-| `rerun` | *(an invalidation event)* | **0** |
-| — | `blocked` | new |
+| ADR-0034 word | ledger mark | gate | persists past the seal | live count, fleet-wide |
+| --- | --- | --- | --- | --- |
+| `done` | `pass` | clears | yes | 546 |
+| `todo` | *(no entry)* | blocks | — | 124 |
+| `incomplete` | `partial` | clears | yes | 1 |
+| `canceled` | `na` | clears | **yes** | **0** |
+| — | `excused` | clears | **no — expires** | new |
+| — | `blocked` | **blocks** | no | new |
+| `important` | `fail` | blocks | no | **0** |
+| `question` | `question` | blocks | no | **0** |
+| `rerun` | *(an invalidation event)* | — | — | **0** |
 
 **The live vocabulary is three values.** Four of the seven are written nowhere in the fleet, which is the same standing [[ADR-0029]] had when it reversed the meaning of `[!]` — verified before deciding, not after. So this migration is 546 `pass` entries, 124 absences and one `partial`.
 
-## The two judgements inside it
+## The three judgements inside it
+
+**"Not run" is three answers, not one**, and it came from Edwin asking how to record *unable to test* and *not tested* separately. Measured: `excused` → `mark: canceled` is the only non-gating route today, and *"not tested, and here is why"* is impossible — clearing a mark blanks `verdict_reason`. `na` persists, `excused` expires at the seal, `blocked` gates. See [[ADR-0037]] decisions 6 and 7.
+
 
 **`question` is kept**, against the source proposal, which drops it by omission rather than by argument. [[ADR-0029]] made the distinction deliberately: `fail` says the behaviour is wrong, `question` says the **check** is wrong, and they route to different work. Collapsing them into `blocked` loses the only signal the corpus has that a check needs rewriting.
 

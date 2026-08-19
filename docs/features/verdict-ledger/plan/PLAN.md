@@ -8,7 +8,7 @@
 
 **0. [[TASK-0532]] — the splitter — is first and is not negotiable.** [[ISS-0216]]: the row parser drops every physical line after the first in a hard-wrapped bullet, silently. Six notes in `your-trainer` are already truncated by it and one body is the word `From`. Running another migration through a parser that loses input is how the same damage gets multiplied.
 
-**1. [[FEAT-0133]] — the ledger file.** Everything else reads or writes it. The backfill ([[TASK-0529]]) is inside this feature rather than after it, because a format with no data in it is a format nobody has tested.
+**1. [[FEAT-0133]] — the ledger file.** JSON, at `docs/releases/ledgers/`. Everything else reads or writes it. The backfill ([[TASK-0529]]) is inside this feature rather than after it, because a format with no data in it is a format nobody has tested. **Sealing is not bookkeeping** — it assigns events to a release *and* expires that release's `excused` entries ([[ADR-0037]] decision 7), which is the one behaviour of the seal that changes what the gate says next cycle.
 
 **2. [[FEAT-0134]] — the note sheds the verdict.** Upstream first ([[TASK-0530]]), then the migration ([[TASK-0531]]). One commit strips and emits, so no state exists where both hold a verdict.
 
@@ -19,6 +19,16 @@
 **5. [[FEAT-0137]] — the vocabulary.** Independent of the others and could go first; placed here because [[ISS-0218]] is a live defect the ledger does not cause and does not need. If [[ADR-0037]] is declined, **this feature survives on its own** — the same test [[ISS-0198]] applied to itself.
 
 **6. [[FEAT-0138]] — observed coverage.** Stage 2. [[TASK-0541]] (seed the mapping) must land before [[TASK-0530]] removes `automation:`, which is the one cross-stage ordering constraint in the plan.
+
+## Two amendments to [[ADR-0037]], made before acceptance
+
+Both are Edwin's, 2026-08-19, and both are recorded in the ADR's decision record rather than folded in silently.
+
+**"Not run" is three answers, not one.** Asked how to record *unable to test (with reason)* and *not tested (with reason)*, and whether either should gate. Measured: today `excused` → `mark: canceled` is the only non-gating route, and *"not tested, and here is why"* is structurally impossible — `_mark_check_note` blanks `verdict_reason` when a mark is cleared. Decision 6 now splits it into `na` (cannot apply here — clears, persists), `excused` (not done this cycle, by decision — clears, **expires at the seal**) and `blocked` (could not run it right now — **gates**). Decision 7 is new and carries the expiry rule.
+
+That surfaced a live defect: `Item.excepted` is scoped to nothing, so **an exception never expires**, while the comment above it still describes the per-release property [[ADR-0029]] removed when the mark moved from `[!]` to `[-]`. Latent — `mark: canceled` is written 0 times in all three repos — and unfiled as an issue; if the ADR is declined it should be.
+
+**JSON, not YAML.** Decision 9. The measurement is better than the first draft's hand-editability argument: `yaml.dump`/`yaml.safe_dump` occur **zero times** in `src/` and `tools/scripts/`, so YAML would mean this project's first hand-rolled YAML writer on the file CI appends to most often.
 
 ## The through-line
 

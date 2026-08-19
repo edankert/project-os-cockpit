@@ -47,7 +47,7 @@ tags: [phase]
 
 ## Scope
 
-- The ledger file: schema, the working ledger, sealing at release cut, and immutability afterwards.
+- The ledger file: JSON schema, the working ledger, sealing at release cut, and immutability afterwards.
 - The check note sheds `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`, `automation`, `covered_by`, `evidence`.
 - The four queries — walk list, release gate, cross-platform burndown, *was release R walked*.
 - The cockpit's read path, write path and API surface.
@@ -70,6 +70,7 @@ tags: [phase]
 - [ ] **The release gate is a query over ledgers**, and its delta against today's gate is measured and stated **per repo before that repo migrates**. A repo whose delta has not been stated does not migrate.
 - [ ] **A check with no entry for a platform reports as owed on that platform**, with no field anywhere declaring applicability.
 - [ ] **A sealed ledger cannot be modified**, proved by a test that tries.
+- [ ] **A check can be excused from one release without being excused from the next.** *Unable to test*, *not tested this cycle* and *could not run it right now* are three recordable answers with three different effects on the gate, and the middle one **expires when its ledger seals** — the property [[ADR-0029]] designed and lost.
 - [ ] **One outcome vocabulary exists in one document, and it is the vocabulary the data uses** — verified by a check that reads both, so `TAXONOMY.md` cannot drift from the corpus again ([[ISS-0218]] is what that drift looks like today).
 - [ ] **The splitter is fixed and proved on a hard-wrapped bullet** before any repo runs a migration.
 

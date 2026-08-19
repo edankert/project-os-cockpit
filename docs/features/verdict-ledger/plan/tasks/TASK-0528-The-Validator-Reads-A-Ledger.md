@@ -17,7 +17,8 @@ tags: [task]
 ## Definition of Done
 
 - [ ] An entry missing `check`, `mark`, `date`, `by` or `method` is an error naming the file and the index.
-- [ ] `fail`, `partial`, `blocked`, `question`, `na` refused without `reason`. `pass` is not.
+- [ ] `fail`, `partial`, `blocked`, `question`, `na` and `excused` refused without `reason`. `pass` is not.
+- [ ] An `excused` entry in a **sealed** ledger does not clear the gate of any later release — the expiry is enforced, not documented.
 - [ ] `check` must resolve to an existing acceptance test.
 - [ ] An entry may not carry a `platform` that contradicts its file.
 - [ ] A sealed ledger differing from its committed content is an error — **proved by a test that edits one and expects the failure**.

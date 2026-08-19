@@ -14,7 +14,7 @@ implements: "[[FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives]]"
 acceptance:
   - "[ ] An entry missing a check, a mark, a date, an author or a method is refused by the validator."
   - "[ ] The platform comes from the ledger the entry is in; no entry may declare a different one."
-  - "[ ] `fail`, `partial`, `blocked`, `question` and `na` are refused without a reason; `pass` is not."
+  - "[ ] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not."
   - "[ ] A sealed ledger cannot be modified, proved by a test that attempts it."
   - "[ ] Every event lands in the working ledger for its platform; sealing is what assigns it to a release."
 covers: []

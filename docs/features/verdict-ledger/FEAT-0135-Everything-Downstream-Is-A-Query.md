@@ -23,9 +23,18 @@ tags: [feature]
 | --- | --- |
 | Is this automated on platform P? | `method` of its latest entry for P |
 | What must a person run for release R? | No terminal entry since the last invalidation, and not covered by this cycle's CI |
-| Where does platform B stand against A? | A-`pass` with no terminal B entry; `na` drops out by construction |
-| Release gate | Every gated check has a terminal entry (`pass` or `na`) for the shipping platform |
+| Where does platform B stand against A? | A-`pass` with no terminal B entry; `na` drops out by construction, `excused` does not |
+| Release gate | Every gated check has a clearing entry for the shipping platform — `pass`, `partial`, `na`, or an `excused` belonging to **this** release |
+| What did we ship without verifying? | That release's `excused` entries, each with its reason |
 | Was release R walked? | Read its ledger; it is immutable |
+
+## Three answers to "not run", and only two of them clear
+
+[[ADR-0037]] decision 6 splits what is today one value. The queries have to honour the split or it is decoration:
+
+- **`na`** — cannot apply here. Clears, and **persists** until invalidated.
+- **`excused`** — not done this cycle, by decision. Clears, and **expires when its ledger seals**. This is the property [[ADR-0029]] designed and lost, and no field on a note can hold it.
+- **`blocked`** — could not run it right now. **Blocks**, because it is an accident rather than a decision.
 
 ## The rule that makes all of them work
 

@@ -14,8 +14,10 @@ implements: "[[FEAT-0135-Everything-Downstream-Is-A-Query]]"
 acceptance:
   - "[ ] A check with no terminal entry for platform P reports as owed on P, with no field anywhere declaring applicability."
   - "[ ] Adding a platform to a repo requires no note edit, no schema change and no backfill."
-  - "[ ] `na` is the only way a check leaves a platform's owed set without being run, and it carries a date, an author and a required reason."
-  - "[ ] An `na` is invalidatable by a later event, through the same machinery that re-arms a stale pass."
+  - "[ ] There are exactly two ways a check leaves a platform's owed set without being run — `na` and `excused` — and both carry a date, an author and a required reason."
+  - "[ ] An `excused` expires when its ledger seals; the check is owed again on the next release with no action by anybody."
+  - "[ ] An `na` persists until invalidated, through the same machinery that re-arms a stale pass."
+  - "[ ] `blocked` does not clear the gate, and a test proves it."
   - "[ ] The gate delta against today's gate is measured and recorded per repo before that repo migrates."
 covers: []
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]"]
@@ -26,7 +28,15 @@ tags: [requirement]
 
 ## Statement
 
-Applicability **shall not** be declared. A check with no terminal entry for a platform **shall** be reported as owed on that platform. The only exit without a run is an `na` event carrying a date, an author and a reason.
+Applicability **shall not** be declared. A check with no terminal entry for a platform **shall** be reported as owed on that platform.
+
+There are exactly **two** exits without a run, and they differ in whether the exception comes back: an **`na`** event (cannot apply here — persists until invalidated) and an **`excused`** event (not done this cycle, by decision — **expires when its ledger seals**). Both carry a date, an author and a required reason. A check that could not be run for an environmental reason is **`blocked`** and still gates.
+
+## Why `excused` is a separate value, and why it must expire
+
+`na` and `excused` differ in exactly one property: **whether the exception comes back.** Re-declaring `na` every release is the maintained-matrix failure this phase exists to remove, so it persists. `excused` is a statement about one release, and if it persists then a check excused once is excused forever.
+
+**That is what the code does today.** `Item.excepted` is `mark in {canceled, -}` read from frontmatter and scoped to nothing — while the comment directly above that set still describes the per-release property [[ADR-0029]] removed when the exception moved from `[!]` to `[-]`. Latent, not live: `mark: canceled` is written 0 times in all three repos.
 
 ## Why not an `applies:` field
 
@@ -42,6 +52,8 @@ The absence costs nothing to maintain and cannot be wrong. Add a platform and ev
 
 - [ ] No entry for a platform means owed on that platform.
 - [ ] A new platform needs no edits anywhere.
-- [ ] `na` requires date, author and reason.
-- [ ] `na` is invalidatable.
+- [ ] Two exits, both requiring date, author and reason.
+- [ ] `excused` expires at the seal.
+- [ ] `na` persists until invalidated.
+- [ ] `blocked` still gates, proved.
 - [ ] Per-repo gate delta measured and recorded before migration.

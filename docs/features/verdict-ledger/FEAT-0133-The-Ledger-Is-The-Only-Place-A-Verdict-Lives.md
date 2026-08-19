@@ -21,7 +21,9 @@ tags: [feature]
 
 A verdict is a fact about **(check × platform × release)**. Give it a container with three dimensions.
 
-`docs/releases/ledgers/REL-####-<platform>.yaml`, plus one open `WORKING-<platform>.yaml` per platform. Append-only. Plain YAML, hand-editable, one entry per list item. Sealed at release cut and never edited afterwards.
+`docs/releases/ledgers/REL-####-<platform>.json`, plus one open `WORKING-<platform>.json` per platform. Append-only, one entry per line so a diff reads as *what was added*. Sealed at release cut and never edited afterwards.
+
+**JSON rather than YAML** ([[ADR-0037]] decision 9, Edwin's call): this project has never written YAML — `yaml.dump`/`yaml.safe_dump` occur zero times in `src/` and `tools/scripts/` — so YAML would mean a first, hand-rolled writer on the file CI appends to most often.
 
 ## Scope
 
@@ -47,6 +49,7 @@ And the platform is the point: `your-trainer`'s 513 passes were earned on Androi
 
 - [ ] A ledger file exists with a documented schema, and a working ledger per platform.
 - [ ] An entry without a platform (from its file), a method, an author or a date is refused.
-- [ ] `fail`, `partial`, `blocked`, `question` and `na` are refused without a reason; `pass` is not.
+- [ ] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not.
 - [ ] A sealed ledger cannot be modified — proved by a test that tries.
+- [ ] Sealing expires the release's `excused` entries and carries `pass`/`partial`/`na` forward ([[ADR-0037]] decision 7), proved across a seal.
 - [ ] One release is backfilled per repo, with the gate delta measured and stated first.

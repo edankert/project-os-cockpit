@@ -38,9 +38,12 @@ There are now **four** vocabularies in play, not the three the [[ADR-0037]] sour
 1. Minimal's characters — `TAXONOMY.md`, all four repos, documented as current.
 2. The words — [[ADR-0034]], live in all 671 notes.
 3. The words the reader also accepts but nothing writes — `canceled`, `important`, `question`, `rerun`: **0 occurrences each, fleet-wide**.
-4. The event marks [[ADR-0037]] proposes — `pass` / `fail` / `partial` / `blocked` / `question` / `na`.
+4. The event marks [[ADR-0037]] proposes — `pass` / `partial` / `na` / `excused` / `blocked` / `fail` / `question`.
 
-The mapping is not clean and the source proposal is right about that: `-` (canceled) becomes `na`, and `?` (question) has no home in the five values the proposal lists — [[ADR-0037]] decision 6 keeps it as a sixth rather than dropping it by omission.
+The mapping is not clean and the source proposal is right about that. Two values it lists cannot absorb what the old vocabulary held, and [[ADR-0037]] decision 6 widens it twice rather than dropping either by omission:
+
+- **`?` (question) has no home in the five values the proposal lists.** Kept as a seventh: `fail` says the behaviour is wrong, `question` says the *check* is wrong.
+- **`-` (canceled) is carrying two meanings**, which is what Edwin's question on 2026-08-19 exposed — *unable to test* and *not tested this cycle* are different claims about a release, and today only the first is expressible. It splits into `na` (persists) and `excused` (expires when its ledger seals).
 
 ## Expected
 

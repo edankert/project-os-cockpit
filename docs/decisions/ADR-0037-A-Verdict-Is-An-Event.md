@@ -95,32 +95,29 @@ level: acceptance
 
 Append-only, **one per release per platform**. Because releases are per-platform in any repo shipping independent cadences, **each ledger is single-platform by construction** — there is no cross-platform release object to hang a shared ledger on. The cross-platform view is a query across ledgers, not a document.
 
-```yaml
-release: REL-0012
-version: v2.1.6
-platform: android
-sealed: 2026-08-20        # absent while the ledger is the working one
-entries:
-  - check: TST-0028
-    method: automated
-    by: ScannerModalTest
-    mark: pass
-    date: 2026-08-14
-  - check: TST-0034
-    method: manual
-    by: user:edwin
-    mark: pass
-    date: 2026-08-15
-  - check: TST-0141
-    method: manual
-    by: user:edwin
-    mark: na
-    reason: "No OS-level auto-backup surface on iOS."
-    date: 2026-08-19
-  - check: TST-0028
-    invalidated_by: TASK-0776
-    date: 2026-08-16
+```json
+{
+  "release": "REL-0012",
+  "version": "v2.1.6",
+  "platform": "android",
+  "sealed": "2026-08-20",
+  "entries": [
+    {"check": "TST-0028", "mark": "pass", "date": "2026-08-14",
+     "method": "automated", "by": "ScannerModalTest"},
+    {"check": "TST-0034", "mark": "pass", "date": "2026-08-15",
+     "method": "manual", "by": "user:edwin"},
+    {"check": "TST-0141", "mark": "na", "date": "2026-08-19",
+     "method": "manual", "by": "user:edwin",
+     "reason": "No OS-level auto-backup surface on iOS."},
+    {"check": "TST-0402", "mark": "excused", "date": "2026-08-19",
+     "method": "manual", "by": "user:edwin",
+     "reason": "Route-map redraw is not in v2.1.6; owed again at the next seal."},
+    {"check": "TST-0028", "invalidated_by": "TASK-0776", "date": "2026-08-16"}
+  ]
+}
 ```
+
+`sealed` is absent while this is the working ledger. One entry per line, so a diff reads as *what was added*, which is what an append-only file is for.
 
 ### 3. Automation is an event, not a standing claim
 
@@ -128,7 +125,7 @@ A standing `automation: full, covered_by: [X]` rots **silently**: rename, delete
 
 Automation is not a property of the check. It is a claim about the codebase at a point in time, carrying the same three dimensions as a verdict. A CI-green run and a human walk are two answers to one question, so they unify into one event with a `method:` field.
 
-**This repo already measured the failure.** [[ISS-0198]] found `covered_by: []` on 669 of 669 checks and closed with the field still empty *on purpose*: the 203 annotated bodies name **54 JVM test classes and not one `TST-*` id**, and `cover_check` correctly refuses a link to something no runner can execute. The standing-claim field could not be filled without inventing 54 unrunnable notes. Under an observed-coverage model that population is exactly the one that works — see decision 7.
+**This repo already measured the failure.** [[ISS-0198]] found `covered_by: []` on 669 of 669 checks and closed with the field still empty *on purpose*: the 203 annotated bodies name **54 JVM test classes and not one `TST-*` id**, and `cover_check` correctly refuses a link to something no runner can execute. The standing-claim field could not be filled without inventing 54 unrunnable notes. Under an observed-coverage model that population is exactly the one that works — see decision 8.
 
 ### 4. Platform applicability is an event, not a note field
 
@@ -144,26 +141,51 @@ You do not record that you did not do something. `todo` — **124 of the 671 not
 
 `rerun` goes the same way, and its going is the most awkward consequence here: [[ADR-0034]] minted it three weeks ago and called it *"the addition that earns the migration on its own"*. It earned that on the argument that `mark: " "` plus an `invalidated_by:` block recorded *"nobody has walked it"* against a check somebody had walked — two states indistinguishable in the one field every surface reads. **The ledger makes the argument moot rather than wrong**: an invalidation is an event with a date, sitting after the pass it invalidates, so the two states are distinguishable by construction and neither needs a value. Measured: `mark: rerun` is written **0 times in every repo**, so nothing is lost in the corpus — only in the record, which this paragraph is.
 
-### 6. One outcome vocabulary, and it is the event's
+### 6. One outcome vocabulary, and "not run" is three answers, not one
 
-| ADR-0034 word | ledger mark | notes |
-| --- | --- | --- |
-| `done` | **`pass`** | reads correctly as an event — *it passed on the 14th* |
-| `incomplete` | **`partial`** | reason required |
-| `canceled` | **`na`** | reason required. Same meaning [[ADR-0029]] gave `[-]`: will not be done, not holding the release |
-| `important` | **`fail`** | `important` was Minimal's name for a *glyph*; it was never a good name for the meaning |
-| `question` | **`question`** | **kept — see below** |
-| — | **`blocked`** | new: attempted, could not be completed for an environmental reason |
-| `todo` | *(no entry)* | decision 5 |
-| `rerun` | *(an invalidation event)* | decision 5 |
+Edwin, 2026-08-19: *"How do I mark a TST as unable to test (with reason) and not tested (with reason) — maybe these are the same, but these should then not gate a release?"*
 
-**`question` is kept, and this is the one place this decision widens the proposal it came from.** The source proposal lists five values and drops `question` by omission rather than by argument. [[ADR-0029]] made the distinction deliberately — *"nobody looked, somebody looked and it broke, somebody looked and could not tell"* — three things, all blocking. Decision 5 retires the first. The remaining two are still two: `fail` says the behaviour is wrong, `question` says **the check is wrong**, and they route to different work. Collapsing them into `blocked` would lose the only signal the corpus has that a check needs rewriting.
+**They are not the same, and the current schema cannot tell them apart.** Measured against the live code: `excused` → `mark: canceled` is the *only* non-gating route for a check nobody ran, and *"not tested, and here is why"* is structurally impossible — `_mark_check_note` blanks `verdict_date` and `verdict_reason` when a mark is cleared, on the stated rule that *"a row cannot claim both that nobody walked it and that somebody decided why"*. So there is one value where there are three questions.
 
-**The cost of getting this wrong is zero either way, and that is why it is decided on the argument.** Measured 2026-08-19: `canceled`, `important`, `question` and `rerun` are each written **0 times in all three repos**. The live vocabulary is three values — `done` 546, `todo` 124, `incomplete` 1. This is the same standing [[ADR-0029]] had when it reversed the meaning of `[!]`: verified before deciding, not after.
+| ADR-0034 word | ledger mark | gate | persists past the seal | means |
+| --- | --- | --- | --- | --- |
+| `done` | **`pass`** | clears | yes, until invalidated | walked, it held |
+| `incomplete` | **`partial`** | clears | yes, until invalidated | some clauses hold; the reason says which |
+| `canceled` | **`na`** | clears | **yes, until invalidated** | **cannot apply here** — no OS surface on this platform, the surface was retired |
+| — | **`excused`** | clears | **no — expires with its release** | **not done this cycle, by decision** — out of scope, low risk, no time |
+| — | **`blocked`** | **blocks** | no | **could not be run right now** — rig down, device unavailable, dependency broken |
+| `important` | **`fail`** | blocks | no | walked, it failed |
+| `question` | **`question`** | blocks | no | walked, and the *check* is not understood |
+| `todo` | *(no entry)* | blocks | — | decision 5 |
+| `rerun` | *(an invalidation event)* | — | — | decision 5 |
 
-`fail`, `partial`, `blocked`, `question` and `na` are **refused without a reason**. `pass` is not. That is [[ADR-0029]]'s rule unchanged, moved onto the event where it can finally be enforced against something that exists.
+**Why `blocked` blocks and the other two clear.** `na` and `excused` are *decisions*: somebody weighed the check against this release and said it does not hold shipping. `blocked` is an *accident* — the evidence is missing for a reason that will be gone next week, and nobody decided the release is safe without it. A gate that clears on "the device was unplugged" is a gate that clears on whatever happens to be broken on the day.
 
-### 7. Coverage is observed, not declared
+**Why `na` and `excused` are two values and not one.** They differ in exactly one property and it is the one that matters: **whether the exception comes back.** `na` is a statement about the check and the platform — re-asking it every release is the maintained-matrix failure this whole decision exists to avoid, so it persists until something invalidates it. `excused` is a statement about the check, the platform **and this release** — and if it persists, a check excused once is excused forever.
+
+**That is not hypothetical; it is what the code does today.** `Item.excepted` is `mark in {canceled, -}` read from frontmatter, and **nothing anywhere scopes it to a release** — not `acceptance.py`, not `cockpit.py`, not `note_writes.py`. Meanwhile the comment sitting directly above that set still describes the property the mark is supposed to have: *"`~` is permanent and says the check no longer applies; `!` is **per-release** and says the check still applies and was not done… conflating them would make an exception look settled forever when it expires with its release."* [[ADR-0029]] moved the release exception from `[!]` to `[-]`, and **the per-release half did not move with it.** The comment has described a design the code stopped implementing ever since, and nothing reported it because `mark: canceled` is written **0 times in all three repos** — latent, not live, and verified before deciding rather than after.
+
+So this decision **amends [[ADR-0029]] decision 2**, which moved the release exception onto `[-]` and lost its expiry. The concept is restored as `excused`, and it expires by construction rather than by anybody remembering — see decision 7.
+
+**`question` is kept, and it is one of two places this decision widens the proposal it came from.** The source proposal lists five values and drops `question` by omission rather than by argument. [[ADR-0029]] made the distinction deliberately — *"nobody looked, somebody looked and it broke, somebody looked and could not tell"* — three things, all blocking. Decision 5 retires the first. The remaining two are still two: `fail` says the behaviour is wrong, `question` says **the check is wrong**, and they route to different work. Collapsing them into `blocked` would lose the only signal the corpus has that a check needs rewriting.
+
+**The cost of getting any of this wrong is zero, and that is why it is decided on the argument.** Measured 2026-08-19: `canceled`, `important`, `question` and `rerun` are each written **0 times in all three repos**. The live vocabulary is three values — `done` 546, `todo` 124, `incomplete` 1. This is the same standing [[ADR-0029]] had when it reversed the meaning of `[!]`.
+
+`fail`, `partial`, `blocked`, `question`, `na` and `excused` are **refused without a reason**. `pass` is not. That is [[ADR-0029]]'s rule unchanged, moved onto the event where it can finally be enforced against something that exists — measured, `verdict_reason:` is non-empty on 0 of 671 notes, so on the note it never was.
+
+### 7. An entry either persists past the seal or expires with it, and the entry says which
+
+Sealing a ledger does not only assign events to a release (decision 9) — **it is also when exceptions expire.**
+
+- **`pass`, `partial` and `na` persist** into the next cycle's view until an invalidation event supersedes them. That is the existing re-arming model and it is unchanged.
+- **`excused` does not.** It was true of one release. When that ledger seals, the check is owed again on the next one, with no action by anybody.
+- `fail`, `blocked` and `question` block, so persistence is moot for the gate; they persist as history.
+
+**This is the property the note form cannot have at any price**, and it is worth stating as the sharpest single argument in this ADR. A field on a note has one value and no release attached; "expires with its release" is not expressible in it, which is precisely why [[ADR-0029]]'s per-release exception quietly became permanent the moment its mark moved. An event in a per-release ledger gets the property **by construction** — the ledger it is in *is* the release it applies to.
+
+*Inserting this shifted the last three decisions by one — coverage is now 8, the ledger's location 9, and the ADR-0030 carry-forward 10. Renumbered rather than appended because the persistence rule belongs beside the vocabulary that needs it, and the ADR was `proposed` with no external citation of the old numbers.*
+
+### 8. Coverage is observed, not declared
 
 **The test declares the check** — `@Covers("TST-0028")`, or a comment-and-grep convention for v1 — and the CI run emits `method: automated` entries into the working ledger. `covered_by:` is deleted from the note.
 
@@ -171,18 +193,24 @@ A deleted test simply stops emitting, and the check **reappears in the walk list
 
 This is Stage 2. Before `covered_by:` is deleted, whatever it holds is seeded into the mapping — measured, that is nothing, so the real seed is `your-trainer`'s 203 prose annotations naming 54 classes.
 
-### 8. Where the ledger lives
+### 9. Where the ledger lives, and it is JSON
 
-`docs/releases/ledgers/REL-####-<platform>.yaml`, with the open one at `docs/releases/ledgers/WORKING-<platform>.yaml`.
+`docs/releases/ledgers/REL-####-<platform>.json`, with the open one at `docs/releases/ledgers/WORKING-<platform>.json`.
 
-- **Plain YAML, not a note.** It is read by tooling far more than by humans, and hundreds of entries do not belong in frontmatter.
+- **JSON, not a note.** *Edwin's call, 2026-08-19.* An earlier draft of this decision said plain YAML on a hand-editability argument; the measurement below is better than that argument was.
 - **With its subject.** [[ADR-0020]]: obligations live with their subject, and a ledger's subject is a release.
-- **One open ledger per platform, always.** Every event lands in the working ledger for its platform; **sealing is what assigns it to a release** ([[ISS-0206]]'s "somewhere else" answered). At release cut the working ledger gains `release:`, `version:` and `sealed:`, is renamed, and a fresh working ledger starts.
+- **One open ledger per platform, always.** Every event lands in the working ledger for its platform; **sealing is what assigns it to a release** ([[ISS-0206]]'s "somewhere else" answered). At release cut the working ledger gains `release`, `version` and `sealed`, is renamed, and a fresh working ledger starts.
 - **A sealed ledger is never edited.** The validator enforces it. *Was release R walked?* is answered by reading its ledger, and the answer does not change afterwards.
 
-**Why this is not the JSON that [[ADR-0030]] rejected.** [[FEAT-0112]]'s JSON was a *projection* — a second copy of state the notes already held, which is what made the tool mandatory to edit a check and what inverted [[project-os-dev#ADR-0009]]'s notes-are-the-source rule. The ledger holds state that exists **nowhere else**. It is authored, not derived; hand-editable YAML, one entry per list item; and the notes remain the authored source of everything they still hold. The distinction is *derived versus authored*, not *YAML versus frontmatter*, and it is the line [[ADR-0009]] actually draws.
+**Why JSON, measured rather than preferred: this project has never written YAML.** `yaml.dump` and `yaml.safe_dump` occur **zero times** in `src/` and `tools/scripts/`. PyYAML is a read-only dependency — every YAML file in the corpus is authored by a person or edited line-by-line (`note_writes._set_field`, `_set_block`), and `note_writes._yaml_safe` exists precisely because hand-rolling YAML quoting is fiddly enough to need a helper. Twelve modules already import `json`.
 
-### 9. [[ADR-0030]] decisions 4, 5 and 6 carry forward unchanged
+So a YAML ledger would introduce this project's **first YAML writer**, hand-rolled, on the one file a CI runner appends to on every green build. `json.dumps` is stdlib and total. The failure mode being avoided is not theoretical: YAML's implicit typing reads `no` as `False` and bare dates as `date` objects, and a ledger is a file of ids, dates and short words.
+
+**What is given up, stated:** comments, and a shape a person edits comfortably by hand. Neither is load-bearing. Comments have nowhere to go that `reason` does not already cover, and the ledger is written by a walk, a runner or a migration — **the notes are what stay hand-editable**, and that is what [[project-os-dev#ADR-0009]] actually protects.
+
+**Why this is not the JSON that [[ADR-0030]] rejected — and the reason has nothing to do with the format.** [[FEAT-0112]]'s JSON was a *projection*: a second copy of state the notes already held, which is what made the tool mandatory to edit a check and what inverted the notes-are-the-source rule. The ledger holds state that exists **nowhere else**. It is authored, not derived. The distinction [[ADR-0009]] draws is *derived versus authored*, not *JSON versus frontmatter* — which is why the format is free to be chosen on the merits above, and why the earlier draft's YAML-versus-JSON framing was answering a question nobody had asked.
+
+### 10. [[ADR-0030]] decisions 4, 5 and 6 carry forward unchanged
 
 The suite is a generated view, not a document. The frozen per-release suites never migrate. **Template-owned surfaces land upstream in `~/Dev/repos/project-os` and sync down before any note changes downstream** — which for this decision covers `SCHEMAS.md`, `TAXONOMY.md`, `TESTING.md`, `STATUSES.md`, the test template, and `validate-docs.py`.
 
@@ -192,13 +220,16 @@ The suite is a generated view, not a document. The frozen per-release suites nev
 | --- | --- |
 | Is this automated on platform P? | `method` of its latest entry for P. Cannot rot — it describes a run, not a claim |
 | What must a person run for release R? | No terminal entry since the last invalidation, and not covered by this cycle's CI |
-| Where does platform B stand against A? | A-`pass` with no terminal B entry. `na` drops out by construction |
-| Release gate | Every check the release gates on has a terminal entry (`pass` or `na`) for the shipping platform. No entry, `fail`, `blocked` or `question` blocks |
+| Where does platform B stand against A? | A-`pass` with no terminal B entry. `na` drops out by construction; `excused` does not, because it expires |
+| Release gate | Every check the release gates on has a clearing entry for the shipping platform — `pass`, `partial`, `na`, or an `excused` belonging to **this** release. No entry, `fail`, `blocked` or `question` blocks |
+| What did we ship without verifying? | The `excused` entries in that release's ledger, each with its reason. A question nothing can answer today |
 | Was release R walked? | Read its ledger. Immutable once sealed |
 
 ## Consequences
 
 **The gate moves, and the delta is measured per repo before it lands.** Under decision 5, 124 `todo` notes become *no entry* — which is the same blocking state, not a quieter one. But 546 `pass` entries land in a **single-platform** ledger, so on `your-trainer` every one of the 513 Android passes stops counting toward an iOS release. That is the honesty gain and it is also a large, deliberate tightening of one repo's gate. *"Quieter is the one direction a gate must never move without somebody deciding it"* ([[ISS-0208]]) cuts both ways, and this moves it the other way, hard. **No repo migrates before its delta is stated.**
+
+**An exception now expires, and today it does not.** `Item.excepted` is `mark in {canceled, -}` read from frontmatter, scoped to nothing — so a check excused once is excused on every release afterwards, while the comment above that set still describes the per-release property [[ADR-0029]] removed when it moved the exception from `[!]` to `[-]`. Latent rather than live: `mark: canceled` is written **0 times in all three repos**. If this ADR is declined the defect stays and should be filed; if it is accepted, decision 7 removes it by construction rather than by a fix.
 
 **The backfilled dates are honest and imprecise, because there is nothing better.** All 546 `pass` verdicts have no `verdict_date:`. The backfill writes the migration date with `by: migration` and a `note:` recording that the verdict predates the ledger and naming the pre-migration address from `migrated_from:`. Recovering true dates from `git log -L` over the pre-migration document is possible and is **not** proposed: it is expensive, partial, and the resulting precision would be indistinguishable from precision anybody could trust.
 
@@ -233,9 +264,14 @@ That gap closes through [[FEAT-0132]] (a feature is scaffolded with its check, a
 - **Option 1, leave it.** Rejected on the 579 notes claiming a platform-free result they do not have, and on `invalidated_by:` existing only to reconstruct from one scalar what a log carries natively.
 - **Option 2, `platform:` on the note.** Rejected as `PARITY_MATRIX` in frontmatter: per-note, hand-maintained, and rotting by the mechanism the matrix already demonstrated eight times in one device session.
 - **One ledger with a `platform:` per entry.** Simpler file layout, and it makes "was release R walked" answerable only by filtering. Rejected because releases genuinely are per-platform where this bites, so the file boundary and the fact boundary coincide — and because a single file is a single append point for two independent cadences.
+- **One exception value, as today.** Keep `na`/`canceled` alone and let it carry both *cannot apply here* and *not done this cycle*. Cheapest, and it is what the code does now — which is exactly why it is rejected: the two differ in whether the exception comes back, and one value cannot answer that. [[ADR-0029]] already tried to hold the distinction across two marks and lost it in a move nobody noticed for three weeks.
+- **Make `blocked` clear the gate**, on the reading that *"unable to test"* should never hold a release. Rejected: `na` and `excused` are decisions somebody made about this release, and `blocked` is an accident that will be gone next week. A gate that clears because the rig was down clears on whatever happens to be broken that day — and the person who would have made that call was never asked.
+- **YAML for the ledger**, as this ADR's first draft proposed on hand-editability. Rejected on measurement: the project has never written YAML — `yaml.dump`/`yaml.safe_dump` occur zero times in `src/` and `tools/scripts/` — so it would mean a first, hand-rolled YAML writer on the file CI appends to most often. *Edwin, 2026-08-19: "use json instead of yaml."*
 - **Keep `automation:` as a note field alongside the ledger.** Rejected: [[DES-0012]] D2 already ruled that `command:` is the single answer to *who runs this*, and `automation:` disagreeing with itself (66 Tier 3 checks in an area named *"Fully Automated"* carrying `automation: manual`) is the evidence that a standing claim rots.
 
 ## Decision record
 
 > [!note] Proposed — 2026-08-19
 > Awaiting Edwin. What acceptance would cover: the fourth schema change to this corpus in four weeks; a gate that tightens sharply on `your-trainer` because 513 Android passes stop counting for iOS; `rerun` retired three weeks after being minted; and a read/write path spanning 87 TypeScript sites and six Python modules.
+>
+> **Amended 2026-08-19, twice, before acceptance.** Decision 6 was rewritten and decision 7 added after Edwin asked how to record *unable to test* and *not tested* separately — the answer being that the schema cannot, and that the per-release exception [[ADR-0029]] designed stopped expiring when its mark moved. Decision 9 moved the ledger from YAML to JSON on his instruction, and the measurement behind it is better than the argument the first draft gave.

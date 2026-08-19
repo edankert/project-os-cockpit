@@ -16,13 +16,13 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] `TAXONOMY.md`'s `mark` section is rewritten as the ledger's outcome vocabulary: `pass`, `fail`, `partial`, `blocked`, `question`, `na`.
+- [ ] `TAXONOMY.md`'s `mark` section is rewritten as the ledger's outcome vocabulary: `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — with the gate column **and** the persists-past-the-seal column, because the second is what separates `na` from `excused`.
 - [ ] Absence is documented as a state — *"no entry"* is what "nobody has run it" looks like, and it is not a value.
 - [ ] Minimal's characters and [[ADR-0034]]'s words are listed as **read-only legacy**, in a section that says so.
 - [ ] Landed in `~/Dev/repos/project-os` first, then synced to all four repos — the drift is currently in every one of them, upstream included.
 
 ## Notes
 
-Two judgements are already made in [[ADR-0037]] decision 6 and should not be re-opened here: `question` is kept (the source proposal drops it by omission, and it is the only signal that a *check* rather than a behaviour is wrong), and `rerun` is retired three weeks after being minted.
+Three judgements are already made in [[ADR-0037]] decision 6 and should not be re-opened here: `question` is kept (the source proposal drops it by omission, and it is the only signal that a *check* rather than a behaviour is wrong); `rerun` is retired three weeks after being minted; and *not run* splits into three — `na` (cannot apply here, persists), `excused` (not done this cycle, expires at the seal) and `blocked` (could not run it right now, **blocks**).
 
 Measured 2026-08-19: `canceled`, `important`, `question` and `rerun` are each written **0 times** fleet-wide. The live vocabulary is `done` 546, `todo` 124, `incomplete` 1.
