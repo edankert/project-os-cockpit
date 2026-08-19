@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0533
 aliases: ["TASK-0533"]
 title: "The run list is a query — no terminal entry since the last invalidation, and not covered by this cycle's CI"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -28,3 +28,11 @@ tags: [task]
 *Run*, not *walk* — [[DES-0012]] D5 and [[TASK-0521]]. One verb: a test with a command is run by a runner, one without is run by a person. That property survived being argued in both directions and should not be re-litigated here.
 
 The invalidation cursor is what `mark: rerun` was reaching for. As an event with a date it needs no value ([[ADR-0037]] decision 5).
+
+## Done 2026-08-19 — at the ledger layer
+
+`ledger.owed(docs_root, platform, checks)` returns what a platform still owes: no surviving verdict, or one that blocks. **It is the same predicate the gate reads**, which is the point — *"what must a person run"* and *"can we ship"* are the same question at two zoom levels ([[DES-0012]]), and two implementations of one predicate is how a badge and a gate come to disagree about one corpus.
+
+An `excused` entry removes a check **for its release only**; after the seal it is owed again with no action by anybody. Pinned by `test_an_expired_excuse_reappears_in_the_burndown`.
+
+**Not wired into the badge or the tests view.** That is [[TASK-0538]]'s renderer work and it is not done. The query exists and is tested; the surface still reads the pre-ledger path.

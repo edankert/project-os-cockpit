@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0527
 aliases: ["TASK-0527"]
 title: "Define the ledger file — schema, the working ledger per platform, and sealing at release cut"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

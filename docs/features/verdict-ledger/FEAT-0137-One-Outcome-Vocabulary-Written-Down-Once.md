@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0137
 aliases: ["FEAT-0137"]
 title: "One outcome vocabulary, written down once — four vocabularies collapse to one, and a check stops the document drifting from the data again"
-status: backlog
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

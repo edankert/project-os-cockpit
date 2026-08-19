@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0534
 aliases: ["TASK-0534"]
 title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -27,3 +27,13 @@ tags: [task]
 **This does not touch `tier:`.** [[ISS-0208]] owns the tier filter and the fail-closed clause, and both are orthogonal to where the verdict is stored. Folding them together would make one open issue impossible to reason about — the same reason [[PHASE-037]] refused the gate question.
 
 The delta is the whole risk of this phase. `your-trainer`'s iOS position gets much worse on paper, because it was always that bad and the schema could not say so.
+
+## Done 2026-08-19, and the delta is measured
+
+`acceptance.load(docs, platform=…)` joins the ledger, so `Suite.blocking()` and `blocking_for()` take their settled-ness from the shipping platform's ledger with no change to either. `pass`, `partial`, `na` and a live `excused` clear; no entry, `fail`, `blocked` and `question` block.
+
+**`blocked` blocking is deliberate and tested** (`test_both_exceptions_clear_the_gate_and_blocked_does_not`): `na` and `excused` are decisions somebody made about this release, `blocked` is an accident that will be gone next week.
+
+**The delta, measured before anything was written** ([[TASK-0529]]): **0 in all three repos** on the platform the verdicts were earned on — the backfill is lossless. `your-trainer`'s iOS gate is 505 against Android's 60, and that is not a gate that moved: those 505 were always unverified on iOS and the schema had no way to say so.
+
+**`tier:` is untouched.** [[ISS-0208]] still owns the tier filter and the fail-closed clause; nothing here changes which checks gate.

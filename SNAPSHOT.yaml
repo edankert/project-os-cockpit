@@ -82,7 +82,7 @@ items:
     FEAT-0133:
       file: "docs/features/verdict-ledger/FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives.md"
       title: "The ledger is a file — append-only, one per release per platform — and it is the only place a verdict lives"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0052"]
@@ -91,7 +91,7 @@ items:
     FEAT-0134:
       file: "docs/features/verdict-ledger/FEAT-0134-The-Note-Sheds-The-Verdict.md"
       title: "The check note sheds the verdict — seven fields leave the schema, the template and the validator, and the note holds nothing platform-shaped"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0053"]
@@ -100,7 +100,7 @@ items:
     FEAT-0135:
       file: "docs/features/verdict-ledger/FEAT-0135-Everything-Downstream-Is-A-Query.md"
       title: "Everything downstream is a query — the walk list, the release gate and the cross-platform burndown are computed from ledgers, never maintained"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0054"]
@@ -109,7 +109,7 @@ items:
     FEAT-0136:
       file: "docs/features/verdict-ledger/FEAT-0136-The-Cockpit-Reads-And-Writes-The-Ledger.md"
       title: "The cockpit reads and writes the ledger — the read path, the write path and five endpoints move off the note's frontmatter"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0055"]
@@ -118,7 +118,7 @@ items:
     FEAT-0137:
       file: "docs/features/verdict-ledger/FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once.md"
       title: "One outcome vocabulary, written down once — four vocabularies collapse to one, and a check stops the document drifting from the data again"
-      status: backlog
+      status: doing
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0056"]
@@ -831,7 +831,7 @@ items:
     TASK-0527:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0527-The-Ledger-Schema-And-The-Working-Ledger.md"
       title: "Define the ledger file — schema, the working ledger per platform, and sealing at release cut"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0133
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -845,7 +845,7 @@ items:
     TASK-0529:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0529-Backfill-One-Ledger-Per-Repo.md"
       title: "Backfill one ledger per repo from the scalar marks, and measure the gate delta before it lands"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0133
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -873,28 +873,28 @@ items:
     TASK-0533:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0533-The-Run-List-Is-A-Query.md"
       title: "The run list is a query — no terminal entry since the last invalidation, and not covered by this cycle's CI"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0534:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger.md"
       title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0535:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0535-The-Cross-Platform-Burndown.md"
       title: "The cross-platform burndown — A-pass with no terminal B entry, computed, never maintained"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0536:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0536-The-Read-Path-Moves-To-The-Ledger.md"
       title: "`acceptance.load` and `Item` take the verdict from the ledger, and a guard test fails on any frontmatter read"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -2887,7 +2887,7 @@ items:
     PHASE-038:
       file: "docs/phases/PHASE-038-A-Verdict-Is-An-Event.md"
       title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-      status: planned
+      status: active
       owner: user:edwin
       goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
       features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137", "FEAT-0138"]
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 479
+    tasks_done: 485
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

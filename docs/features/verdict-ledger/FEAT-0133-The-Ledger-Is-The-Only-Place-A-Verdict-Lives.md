@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0133
 aliases: ["FEAT-0133"]
 title: "The ledger is a file — append-only, one per release per platform — and it is the only place a verdict lives"
-status: backlog
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

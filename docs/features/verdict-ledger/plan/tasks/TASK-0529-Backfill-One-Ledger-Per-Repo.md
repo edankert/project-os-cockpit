@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0529
 aliases: ["TASK-0529"]
 title: "Backfill one ledger per repo from the scalar marks, and measure the gate delta before it lands"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

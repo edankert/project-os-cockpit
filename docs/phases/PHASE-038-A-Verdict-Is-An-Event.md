@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-038
 aliases: ["PHASE-038"]
 title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-status: planned
+status: active
 order: 38
 owner: user:edwin
 created: 2026-08-19

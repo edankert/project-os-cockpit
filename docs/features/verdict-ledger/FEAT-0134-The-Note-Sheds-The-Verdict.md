@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0134
 aliases: ["FEAT-0134"]
 title: "The check note sheds the verdict — seven fields leave the schema, the template and the validator, and the note holds nothing platform-shaped"
-status: backlog
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

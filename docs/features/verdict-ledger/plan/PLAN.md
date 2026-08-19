@@ -30,6 +30,34 @@ That surfaced a live defect: `Item.excepted` is scoped to nothing, so **an excep
 
 **JSON, not YAML.** Decision 9. The measurement is better than the first draft's hand-editability argument: `yaml.dump`/`yaml.safe_dump` occur **zero times** in `src/` and `tools/scripts/`, so YAML would mean this project's first hand-rolled YAML writer on the file CI appends to most often.
 
+## Progress — 2026-08-19
+
+Stage 1, against Edwin's goal *"implement, test and independently review the full PHASE-038 functionality, Stage 1 only."*
+
+| task | state | |
+| --- | --- | --- |
+| [[TASK-0532]] splitter | **done** | ran first; six truncated notes in `your-trainer` repaired |
+| [[TASK-0527]] ledger schema | **done** | `ledger.py`, JSON, `entries` + `evidence` |
+| [[TASK-0528]] validator | **done** | six `LEDGER-*` codes |
+| [[TASK-0529]] backfill | **done** | delta **0** in all three repos; cockpit applied |
+| [[TASK-0533]] run list | **done** | `ledger.owed` — not wired to the badge |
+| [[TASK-0534]] gate | **done** | reads the shipping platform's ledger |
+| [[TASK-0535]] burndown | **done** | no rendered view |
+| [[TASK-0536]] read path | **done** | `apply_ledger`; the frontmatter-read guard is owed |
+| [[TASK-0537]] write path | **done** | `record_verdict`; concurrency not addressed |
+| [[TASK-0539]] vocabulary | **done here, not upstream** | |
+| [[TASK-0540]] drift check | **done** | mutation-proven both ways |
+| [[TASK-0544]] evidence | **decided, part-built** | schema done; `Item.evidence` waits on [[TASK-0530]] |
+| [[TASK-0530]] remove the fields | **not started** | upstream-first, and the fleet repos are a generation behind |
+| [[TASK-0531]] migration script | **not started** | |
+| [[TASK-0538]] renderer | **not started** | 87 sites |
+| [[TASK-0545]] `suite_at` | **not started** | |
+| [[TASK-0546]] `tests_verified` | **not started** | |
+
+**[[FEAT-0133]] and [[FEAT-0137]] are `doing`, not `done`, and the validator is why.** Both were set to `done` and `FEATURE-REQ`/`VERIFY` refused it, correctly: [[TASK-0544]] still owes `Item.evidence` reading the ledger and [[TASK-0539]] still owes the upstream copy. A feature whose task has an open item is not finished, and the gate said so before anybody had to notice.
+
+**The read path and the write path both exist and neither is the only path yet.** That is the honest state of a migration whose second half ([[TASK-0530]], removing the seven fields) has not run: `mark_check` still writes notes for the nine fleet repos with no ledger, and `apply_ledger` is an overlay rather than a replacement. Nothing is dual-written — a repo has a ledger or it does not — but the frontmatter-read guard [[REQ-0055]] asks for cannot be written until the field is gone.
+
 ## The through-line
 
 **Every deformation this phase fixes has the same cause: a scalar holding a fact with three dimensions.** The platform silence, `invalidated_by:` reconstructing history from one field, `automation:` as a claim that rots, `todo` as a value meaning "no data" — each is what a one-slot container does to a three-slot fact.

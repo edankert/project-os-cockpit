@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0536
 aliases: ["TASK-0536"]
 title: "`acceptance.load` and `Item` take the verdict from the ledger, and a guard test fails on any frontmatter read"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -27,3 +27,15 @@ tags: [task]
 ## Notes
 
 The guard is not ceremony. A surviving frontmatter read does not raise — it returns a stale scalar that looks exactly like a verdict, so the failure is silent and indistinguishable from success. That is the case a guard exists for, and this migration touches too many sites to be verified by reading.
+
+## Done 2026-08-19 — `acceptance.apply_ledger`, an overlay
+
+The verdict comes from the ledger for the platform in view. Three properties, each pinned:
+
+* **A repo with no ledger is untouched.** Nine of twelve fleet repos have none and must read exactly as they did.
+* **A check with no entry falls to `todo`, not to whatever the note still says.** Once a ledger exists the absence *is* the verdict, and a leftover `mark: done` must not out-vote it ([[REQ-0054]]).
+* **The expiry lives in `ledger.resolve`**, not here — one implementation rather than one per surface.
+
+`Suite` now carries the `platform` its verdicts are about, so a surface cannot render a verdict without knowing which platform it belongs to.
+
+**The guard test is not written.** The DoD asks for a test that fails if any module reads `mark` from frontmatter, and the pre-ledger path still legitimately does — so the guard cannot be written until [[TASK-0530]] removes the field. Recorded rather than quietly dropped: this is the criterion that catches a survivor among 87 renderer sites, and it is owed.

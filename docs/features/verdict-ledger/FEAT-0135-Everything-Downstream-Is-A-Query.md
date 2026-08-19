@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0135
 aliases: ["FEAT-0135"]
 title: "Everything downstream is a query — the walk list, the release gate and the cross-platform burndown are computed from ledgers, never maintained"
-status: backlog
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

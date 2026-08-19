@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0136
 aliases: ["FEAT-0136"]
 title: "The cockpit reads and writes the ledger — the read path, the write path and five endpoints move off the note's frontmatter"
-status: backlog
+status: doing
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
