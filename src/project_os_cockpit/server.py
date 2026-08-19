@@ -748,6 +748,9 @@ def _make_handler(
                 self._serve_tick_owed()
                 return
 
+            if path == "/api/notes/seal-ledger":
+                self._serve_seal_ledger()
+                return
             if path == "/api/notes/mark-check":
                 self._serve_mark_check()
                 return
@@ -2350,6 +2353,32 @@ def _make_handler(
             except (TypeError, ValueError) as exc:
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_seal_ledger(self) -> None:
+            """``POST /api/notes/seal-ledger`` — close a cycle ([[TASK-0547]]).
+
+            **The ledger had no lifecycle before this.** `ledger.seal()`
+            existed and nothing but a script called it, so entries accumulated
+            in `WORKING-<platform>.json` forever, no verdict was ever
+            attributed to a release, and decision 7's expiry — the sharpest
+            argument in [[ADR-0037]] — could not fire in normal use.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.seal_ledger(
+                    docs_root, index,
+                    release_id=str(body.get("release") or ""),
+                    platform=str(body.get("platform") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
                 return
             self._respond_json({"ok": True, **result})
 

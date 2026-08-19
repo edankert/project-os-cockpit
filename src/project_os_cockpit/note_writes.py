@@ -2123,6 +2123,67 @@ def record_verdict(
             "invalidated_by": entry.invalidated_by}
 
 
+def seal_ledger(
+    docs_root: "Path",
+    index: Index,
+    *,
+    release_id: str,
+    platform: str,
+) -> dict[str, Any]:
+    """Close a platform's working ledger against a release, and vouch for it.
+
+    **Two writes, one commit.** The ledger is sealed and the release note
+    records `{file, sha}` for it — the sealed file's git blob hash, computed
+    from its content ([[ADR-0037]] decision 9a). Recording a *commit* sha
+    instead would need two commits with an unprotected window between them,
+    where a reader cannot tell a half-sealed release from a tampered one.
+
+    **Refused on a release that has already shipped.** [[ADR-0035]] says a
+    release page reports and does not record; re-sealing a shipped release is
+    the one write that would rewrite history rather than add to it.
+    """
+    from . import ledger as _ledger
+
+    #: `by_id` answers with a PATH; the record is a second lookup. Kept
+    #: explicit rather than wrapped, because every other writer here does the
+    #: same two steps and a helper that hid one of them would make the next
+    #: reader wonder which of the two this file trusts.
+    found = index.by_id((release_id or "").strip())
+    record = index.get(found) if found else None
+    if record is None or (record.note_type or "") != "release":
+        raise WriteError(
+            f"{release_id!r} is not a release in this record", status=400)
+    status = (record.status or "").strip().lower()
+    if status == "released":
+        raise WriteError(
+            f"{release_id} has shipped. Sealing it again would rewrite what it "
+            f"was measured against, and a sealed ledger is only worth reading "
+            f"because that cannot happen.",
+            status=409)
+
+    path = docs_root / (record.rel_path or "")
+    if not path.is_file():                               # pragma: no cover
+        raise WriteError(f"{release_id} has no file", status=500)
+    try:
+        stamped = _ledger.seal_record(
+            docs_root, (platform or "").strip().lower(),
+            release=release_id,
+            version=str(record.frontmatter.get("version") or "").strip())
+    except _ledger.LedgerError as exc:
+        raise WriteError(str(exc), status=400) from None
+
+    raw = path.read_text(encoding="utf-8")
+    fm_lines, body = _split_frontmatter(raw)
+    existing = record.frontmatter.get("ledgers") or []
+    rows = [r for r in existing
+            if isinstance(r, dict) and r.get("file") != stamped["file"]]
+    rows.append(stamped)
+    fm_lines = _set_block_list(fm_lines, "ledgers", rows)
+    fm_lines = _set_field(fm_lines, "updated", _today())
+    _write(path, fm_lines, body)
+    return {"release": release_id, "platform": platform, **stamped}
+
+
 def mark_check(
     index: Index,
     *,
@@ -2538,6 +2599,33 @@ def retire_check(
 def _yaml_safe(value: str) -> str:
     """One line, and nothing that can end the scalar it is written into."""
     return " ".join(str(value or "").split()).replace('"', "'")
+
+
+def _set_block_list(fm_lines: list[str], key: str,
+                    rows: list[dict[str, Any]]) -> list[str]:
+    """A YAML list-of-maps in frontmatter, written line by line.
+
+    Line-oriented like every other write here: a round-trip through a YAML
+    dumper would reformat the whole note and bury the one real change.
+    """
+    block = [f"{key}:"]
+    for row in rows:
+        first = True
+        for name, value in row.items():
+            lead = "  - " if first else "    "
+            block.append(f'{lead}{name}: "{_yaml_safe(str(value))}"')
+            first = False
+    out, skipping = [], False
+    for line in fm_lines:
+        if line.startswith(f"{key}:"):
+            skipping = True
+            continue
+        if skipping:
+            if line[:1].isspace() and line.strip():
+                continue
+            skipping = False
+        out.append(line)
+    return out + block
 
 
 def _set_block(

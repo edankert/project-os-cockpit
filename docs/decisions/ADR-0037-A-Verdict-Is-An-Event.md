@@ -225,6 +225,26 @@ So a YAML ledger would introduce this project's **first YAML writer**, hand-roll
 
 **Why this is not the JSON that [[ADR-0030]] rejected — and the reason has nothing to do with the format.** [[FEAT-0112]]'s JSON was a *projection*: a second copy of state the notes already held, which is what made the tool mandatory to edit a check and what inverted the notes-are-the-source rule. The ledger holds state that exists **nowhere else**. It is authored, not derived. The distinction [[ADR-0009]] draws is *derived versus authored*, not *JSON versus frontmatter* — which is why the format is free to be chosen on the merits above, and why the earlier draft's YAML-versus-JSON framing was answering a question nobody had asked.
 
+### 9a. A sealed ledger names its own content hash, and the release note holds it
+
+*Amendment, 2026-08-19 — Edwin: "on ISS-0220 let's move SHA goes in the release note."*
+
+Decision 9 said a sealed ledger is never edited and the validator enforces it. **It did not.** The check compared the file on disk to `git show HEAD:<path>`, which catches an uncommitted edit and passes forever once that edit is committed — so *"was release R walked?"* had an answer that could still change, which is the one property the whole immutability rule exists to give.
+
+**The release note records the sealed ledger's git blob sha**, and the validator compares the file's *computed* hash to it:
+
+```yaml
+ledgers:
+  - file: REL-0012-android.json
+    sha: 3f9a2c1…
+```
+
+**A blob hash rather than a commit sha, and the difference is not cosmetic.** A commit sha does not exist until after the commit, so recording one would make sealing a two-commit operation — write the ledger, commit, then stamp the sha, commit again — with a window in between where the record is unprotected and a reader cannot tell a half-sealed release from a tampered one. A blob hash is a hash of the *content*, computable at seal time, so the ledger and the note that vouches for it land in **one commit**.
+
+It is also strictly stronger: it verifies the bytes rather than the history. An edit is caught whether it is committed, uncommitted, rebased, cherry-picked or restored from a backup, because the content no longer hashes to what the note says.
+
+**The release note is the right home** because a release already vouches for what it contains, and this is the same claim in a checkable form. It also means a release with no ledger — every release before this decision — simply has no `ledgers:` entry, and nothing to verify, which is the correct answer rather than a missing one.
+
 ### 10. [[ADR-0030]] decisions 4, 5 and 6 carry forward unchanged
 
 The suite is a generated view, not a document. The frozen per-release suites never migrate. **Template-owned surfaces land upstream in `~/Dev/repos/project-os` and sync down before any note changes downstream** — which for this decision covers `SCHEMAS.md`, `TAXONOMY.md`, `TESTING.md`, `STATUSES.md`, the test template, and `validate-docs.py`.
@@ -292,5 +312,7 @@ That gap closes through [[FEAT-0132]] (a feature is scaffolded with its check, a
 > *"I have confirmed the ADR. The entry does not carry evidence, this should be in the ledger. And `tests_verified` should be derived."* — given through the cockpit's decision actuator against a phase documented in full, twice amended and once audited while this read `proposed`.
 >
 > What is accepted: the fourth schema change to this corpus in four weeks; a gate that tightens sharply on `your-trainer` because 513 Android passes stop counting for iOS; `rerun` retired three weeks after being minted; and a read/write path spanning 87 TypeScript sites and six Python modules.
+>
+> **Amended once after acceptance** — decision 9a, 2026-08-19, closing [[ISS-0220]]: the immutability decision 9 claimed was not enforced, and the release note now holds each sealed ledger's blob hash so the bytes are checkable rather than the history.
 >
 > **Amended twice before acceptance, both Edwin's.** Decision 6 was rewritten and decision 7 added after Edwin asked how to record *unable to test* and *not tested* separately — the answer being that the schema cannot, and that the per-release exception [[ADR-0029]] designed stopped expiring when its mark moved. Decision 9 moved the ledger from YAML to JSON on his instruction, and the measurement behind it is better than the argument the first draft gave.

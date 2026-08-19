@@ -1650,6 +1650,26 @@ def validate_moved_verdict_fields(root, report, note_index):
                    LEDGERS_REL, rel))
 
 
+def _blob_sha(text):
+    """Git's blob hash, computed rather than shelled out."""
+    import hashlib
+
+    raw = text.encode("utf-8")
+    return hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest()
+
+
+def _sealed_shas(note_index):
+    """`{ledger filename: sha}` from every release note's `ledgers:`."""
+    out = {}
+    for _note_id, (_path, fm) in (note_index or {}).items():
+        if not isinstance(fm, dict):
+            continue
+        for row in fm.get("ledgers") or []:
+            if isinstance(row, dict) and row.get("file"):
+                out[str(row["file"])] = str(row.get("sha") or "")
+    return out
+
+
 def validate_ledgers(root, report, note_index):
     """The acceptance ledgers — required fields, reasons, and immutability.
 
@@ -1674,6 +1694,7 @@ def validate_ledgers(root, report, note_index):
     ledger_dir = root / "docs" / LEDGERS_REL
     if not ledger_dir.is_dir():
         return
+    sealed_shas = _sealed_shas(note_index)
     for path in sorted(ledger_dir.glob("*.json")):
         rel = "docs/%s/%s" % (LEDGERS_REL, path.name)
         # A filename the reader cannot place is a ledger that disappears from
@@ -1764,19 +1785,28 @@ def validate_ledgers(root, report, note_index):
 
         if not str(data.get("sealed") or "").strip():
             continue
-        try:
-            committed = subprocess.run(
-                ["git", "show", "HEAD:%s" % rel], cwd=str(root),
-                capture_output=True, text=True, check=False)
-        except OSError:                                  # pragma: no cover
-            continue
-        if committed.returncode == 0 and committed.stdout != path.read_text(
-                encoding="utf-8"):
+        # **Content, not history** (ADR-0037 decision 9a, ISS-0220). This
+        # compared the working tree to `git show HEAD:<path>`, which caught an
+        # uncommitted edit and passed FOREVER once that edit was committed --
+        # so the one property immutability exists to give was not given. The
+        # release note records the sealed ledger's blob hash; an edit changes
+        # the hash whether it was committed, rebased or restored from backup.
+        vouched = sealed_shas.get(path.name)
+        found = _blob_sha(path.read_text(encoding="utf-8"))
+        if vouched is None:
             report.error(
                 "LEDGER-SEALED",
-                "%s is sealed and differs from HEAD — a sealed ledger is what "
-                "makes `was release R walked?` answerable, and an answer that "
-                "changes afterwards is not one" % rel)
+                "%s is sealed and no release note vouches for it. A sealed "
+                "ledger with nothing recording its hash is exactly the state "
+                "the old check could not tell from a good one -- add "
+                "`ledgers: [{file, sha}]` to its release" % rel)
+        elif vouched != found:
+            report.error(
+                "LEDGER-SEALED",
+                "%s is sealed and its content no longer hashes to what its "
+                "release note records (%s != %s). `was release R walked?` is "
+                "answerable only while that answer cannot change"
+                % (rel, found[:12], vouched[:12]))
 
 
 def validate(root, report):

@@ -585,6 +585,24 @@ def append(
     return entry
 
 
+def blob_sha(text: str) -> str:
+    """Git's blob hash for ``text`` — `sha1("blob <len>\\0" + bytes)`.
+
+    **Computed, not shelled out.** It is the same value `git hash-object`
+    prints, and computing it here means `seal()` can record the hash of a file
+    it is about to write — which is what makes sealing ONE commit instead of
+    two ([[ADR-0037]] decision 9a).
+
+    A blob hash rather than a commit sha because it verifies the **bytes**
+    rather than the history: an edit is caught whether it was committed,
+    rebased, cherry-picked or restored from a backup.
+    """
+    import hashlib
+
+    raw = text.encode("utf-8")
+    return hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest()
+
+
 def write(ledger: Ledger) -> None:
     if ledger.path is None:                          # pragma: no cover
         raise LedgerError("a ledger with no path cannot be written")
@@ -625,6 +643,23 @@ def seal(
     write(ledger)
     working_path(docs_root, platform).unlink()
     return target
+
+
+def seal_record(docs_root: Path, platform: str, *, release: str, version: str,
+                when: str | None = None) -> dict[str, str]:
+    """Seal, and return what the release note must record to vouch for it.
+
+    `{file, sha}` — the sealed ledger's name and its content hash. The caller
+    writes it into the release note **in the same commit**, which is the whole
+    point of hashing content rather than history ([[ADR-0037]] decision 9a):
+    a commit sha does not exist until after the commit, so recording one would
+    leave a window where the seal is unprotected and a reader cannot tell a
+    half-sealed release from a tampered one.
+    """
+    target = seal(docs_root, platform, release=release, version=version,
+                  when=when)
+    return {"file": target.name,
+            "sha": blob_sha(target.read_text(encoding="utf-8"))}
 
 
 # ------------------------------------------------------------------ queries

@@ -66,7 +66,7 @@ counters:
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 546
+  TASK: 548
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -86,7 +86,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0052"]
-      tasks: ["TASK-0527", "TASK-0528", "TASK-0529", "TASK-0544"]
+      tasks: ["TASK-0527", "TASK-0528", "TASK-0529", "TASK-0544", "TASK-0547", "TASK-0548"]
       note: "docs/releases/ledgers/REL-####-<platform>.json plus one open WORKING-<platform>.json per platform. Sealing does two things and only one is bookkeeping: it assigns events to a release (ISS-0206's third question, no field on anything) and it EXPIRES that release's excused entries. JSON on Edwin's call and on measurement — yaml.dump/safe_dump occur zero times in src/ and tools/scripts/. ADR-0030 rejected FEAT-0112's JSON for inverting notes-are-the-source, and that objection does not reach this file: FEAT-0112's was a PROJECTION of state the notes already held; this holds state that exists nowhere else. THE BACKFILL HAS NO DATES — verdict_date is empty on 671 of 671 notes fleet-wide, so entries carry the migration date with by: migration and a note naming the pre-migration address."
     FEAT-0134:
       file: "docs/features/verdict-ledger/FEAT-0134-The-Note-Sheds-The-Verdict.md"
@@ -827,6 +827,20 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0135
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0547:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0547-Seal-A-Release-From-The-Cockpit.md"
+      title: "A release can be sealed from the cockpit — the ledger has no lifecycle until something closes it"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0133
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0548:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0548-A-Sealed-Ledger-Names-Its-Own-Content.md"
+      title: "A sealed ledger names its own content hash and the release note holds it, so an edit is caught whether or not it was committed"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0133
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0527:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0527-The-Ledger-Schema-And-The-Working-Ledger.md"
@@ -1692,7 +1706,7 @@ items:
     ISS-0217:
       file: "docs/issues/ISS-0217-The-Two-Repos-Holding-Every-Check-Describe-A-Retired-Type.md"
       title: "TESTING.md and SCHEMAS.md in your-trainer and your-sudoku still describe the `[[check]]` type and the `CHK-####` path ADR-0031 retired — and those two repos hold all 637 acceptance notes"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       severity: high
@@ -1701,7 +1715,7 @@ items:
     ISS-0218:
       file: "docs/issues/ISS-0218-Taxonomy-Documents-A-Mark-Vocabulary-The-Data-Abandoned.md"
       title: "`TAXONOMY.md` documents the single-character mark vocabulary in every repo including upstream, three weeks after ADR-0034 moved all 671 notes to words — and the reader silently accepts both"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       severity: medium
@@ -1776,9 +1790,9 @@ items:
     ISS-0206:
       file: "docs/issues/ISS-0206-A-Check-Cannot-Belong-To-A-Release.md"
       title: "A check cannot be scoped to a release, so work for one platform blocks a release that does not contain it"
-      status: open
+      status: fixed
       owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       severity: medium
       component: cockpit-server
       related: [ISS-0202, ADR-0034, FEAT-0124]
@@ -3856,14 +3870,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 117
-    tasks_total: 545
-    tasks_done: 492
+    tasks_total: 547
+    tasks_done: 494
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 14
+    issues_open: 10
     issues_triage: 0
     risks_open: 6
     releases_total: 1

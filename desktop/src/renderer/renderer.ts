@@ -2229,6 +2229,17 @@ const VERDICT_FOR: Record<string, string> = {
  * the point: it asks the walker which platform they were on rather than
  * guessing, and a guess here is exactly the bug this decision removes.
  */
+/** The platform whose ledger a Seal action would close.
+ *
+ * The nav filter's value, and `all` is not one: sealing "everything" would
+ * have to invent which cycle it was closing. No platform selected means no
+ * Seal button, which asks the reader to say what they are sealing rather than
+ * guessing on their behalf.
+ */
+function sealPlatform(): string {
+  return verdictPlatform();
+}
+
 function verdictPlatform(): string {
   const found = loadStoredPlatform();
   return found && found !== 'all' ? found : '';
@@ -7627,6 +7638,51 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     noteRow.textContent = `note · docs/${d.rel}`;
     noteRow.addEventListener('click', () => { void navigateTo(`/docs/${d.rel}`); });
     wrap.appendChild(noteRow);
+  }
+
+  // ---- Seal the ledger (TASK-0547) -------------------------------------
+  //
+  // **The ledger had no lifecycle before this.** `ledger.seal()` existed and
+  // nothing but a script called it, so entries accumulated in
+  // `WORKING-<platform>.json` forever, no verdict was ever attributed to a
+  // release, and decision 7's expiry — the sharpest argument in ADR-0037 —
+  // could not fire in normal use.
+  //
+  // Offered only on a release still being prepared: sealing one that has
+  // shipped would rewrite what it was measured against, and a sealed ledger
+  // is only worth reading because that cannot happen (ADR-0035).
+  if (d.exists && d.status !== 'released' && sealPlatform()) {
+    const seal = document.createElement('div');
+    seal.className = 'release-start';
+    const sealBtn = document.createElement('button');
+    sealBtn.type = 'button';
+    sealBtn.className = 'review-btn';
+    sealBtn.textContent = `Seal the ${sealPlatform()} ledger · ${d.id}`;
+    const sealErr = document.createElement('p');
+    sealErr.className = 'ask-error';
+    sealErr.hidden = true;
+    sealBtn.addEventListener('click', () => {
+      void (async () => {
+        sealBtn.disabled = true;
+        sealErr.hidden = true;
+        try {
+          const res = await postJson('/api/notes/seal-ledger',
+            { release: d.id, platform: sealPlatform() }) as
+            { file?: string; sha?: string };
+          showStatus(
+            `Sealed ${res.file} — ${d.id} now records its hash, and any check `
+            + 'excused this cycle is owed again', 'info');
+          scheduleHide(8000);
+          void loadWsNav();
+        } catch (e: unknown) {
+          sealErr.textContent = e instanceof Error ? e.message : String(e);
+          sealErr.hidden = false;
+          sealBtn.disabled = false;
+        }
+      })();
+    });
+    seal.appendChild(sealBtn);
+    wrap.append(seal, sealErr);
   }
 
   // ---- Mark released (TASK-0469) ---------------------------------------

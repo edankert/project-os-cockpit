@@ -10,7 +10,7 @@ updated: "2026-08-19"
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 goal: "An acceptance verdict is a dated, attributed event in a single-platform, per-release ledger, so the stored fact has the same arity as the real one."
 requirements: ["[[REQ-0052-A-Verdict-Names-Its-Platform-Method-Author-And-Date]]"]
-tasks: ["[[TASK-0527-The-Ledger-Schema-And-The-Working-Ledger]]", "[[TASK-0528-The-Validator-Reads-A-Ledger]]", "[[TASK-0529-Backfill-One-Ledger-Per-Repo]]", "[[TASK-0544-Where-Evidence-Goes]]"]
+tasks: ["[[TASK-0527-The-Ledger-Schema-And-The-Working-Ledger]]", "[[TASK-0528-The-Validator-Reads-A-Ledger]]", "[[TASK-0529-Backfill-One-Ledger-Per-Repo]]", "[[TASK-0544-Where-Evidence-Goes]]", "[[TASK-0547-Seal-A-Release-From-The-Cockpit]]", "[[TASK-0548-A-Sealed-Ledger-Names-Its-Own-Content]]"]
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]"]
 tags: [feature]
 ---

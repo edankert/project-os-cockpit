@@ -122,66 +122,66 @@ def test_the_bundled_copy_carries_the_same_rules() -> None:
         assert code in bundled
 
 
-def test_a_sealed_ledger_edited_in_the_working_tree_is_caught(
+# ============ ISS-0220, closed by ADR-0037 decision 9a ============
+
+def _release_note(tmp_path: Path, rows: list[dict]) -> None:
+    (tmp_path / "docs" / "tests").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs" / "tests" / "TST-0001-A.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\nstatus: active\n'
+        'level: acceptance\n---\n\n# A\n')
+    (tmp_path / "docs" / "releases").mkdir(parents=True, exist_ok=True)
+    ledgers = "\n".join(
+        f'  - file: "{r["file"]}"\n    sha: "{r["sha"]}"' for r in rows) or "  []"
+    (tmp_path / "docs" / "releases" / "REL-0001-A.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0001\nstatus: released\n'
+        f'version: "v1"\nledgers:\n{ledgers}\n---\n\n# A\n')
+
+
+def _blob(text: str) -> str:
+    import hashlib
+    raw = text.encode("utf-8")
+    return hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest()
+
+
+SEALED = {"platform": "macos", "release": "REL-0001", "version": "v1",
+          "sealed": "2026-08-19", "entries": [GOOD], "evidence": []}
+
+
+def test_a_sealed_ledger_edited_after_committing_is_caught(
     tmp_path: Path,
 ) -> None:
-    """`LEDGER-SEALED`, and **the limit it carries**.
+    """**The gap ISS-0220 named, closed.**
 
-    The rule diffs the working tree against `git show HEAD:<path>`, so it
-    catches an uncommitted edit and **passes forever once the edit is
-    committed**. That is a real hole in *"immutable once sealed"* and it is
-    recorded here rather than in a summary: the honest scope of this rule is
-    *"you did not edit a sealed ledger since the last commit"*, which is what
-    a pre-commit gate can see and not what the ADR claims.
-
-    Closing it needs the seal to be checked against the commit that created
-    it, which needs the sealing commit recorded — [[ISS-0220]].
+    The old rule diffed the working tree against `HEAD`, so an edit that was
+    *committed* passed forever — and *was release R walked?* had an answer
+    that could still change, which is the one property immutability exists to
+    give. The release note now records the ledger's blob hash, so the check is
+    against the **bytes**: caught committed, uncommitted, rebased, or restored
+    from a backup, because none of those changes what the content hashes to.
     """
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "config", "user.email", "t@t"], cwd=tmp_path,
-                   check=True)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path,
-                   check=True)
-    sealed = {"platform": "macos", "release": "REL-0001", "version": "v1",
-              "sealed": "2026-08-19", "entries": [GOOD], "evidence": []}
-    ledgers = tmp_path / "docs" / "releases" / "ledgers"
-    ledgers.mkdir(parents=True)
-    (tmp_path / "SNAPSHOT.yaml").write_text(SNAPSHOT)
-    path = ledgers / "REL-0001-macos.json"
-    path.write_text(json.dumps(sealed))
-    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "commit", "-qm", "seal"], cwd=tmp_path, check=True)
+    text = json.dumps(SEALED)
+    _release_note(tmp_path, [{"file": "REL-0001-macos.json",
+                              "sha": _blob(text)}])
+    assert _run(tmp_path, SEALED, name="REL-0001-macos.json") == []
 
-    # Clean.
-    out = subprocess.run(
-        [sys.executable, str(VALIDATOR), "--repo-root", str(tmp_path)],
-        capture_output=True, text=True)
-    assert "LEDGER-SEALED" not in out.stdout
-
-    # Edited, uncommitted — caught.
-    sealed["entries"][0]["mark"] = "fail"
-    sealed["entries"][0]["reason"] = "rewriting history"
-    path.write_text(json.dumps(sealed))
-    out = subprocess.run(
-        [sys.executable, str(VALIDATOR), "--repo-root", str(tmp_path)],
-        capture_output=True, text=True)
-    assert "LEDGER-SEALED" in out.stdout
-
-    # Committed — NOT caught. The limit, asserted so it cannot be forgotten.
-    subprocess.run(["git", "commit", "-qam", "edit"], cwd=tmp_path, check=True)
-    out = subprocess.run(
-        [sys.executable, str(VALIDATOR), "--repo-root", str(tmp_path)],
-        capture_output=True, text=True)
-    assert "LEDGER-SEALED" not in out.stdout, (
-        "if this now fails, the rule was strengthened — update ISS-0220")
+    tampered = json.loads(text)
+    tampered["entries"][0]["mark"] = "na"
+    tampered["entries"][0]["reason"] = "rewriting history"
+    lines = _run(tmp_path, tampered, name="REL-0001-macos.json")
+    assert "LEDGER-SEALED" in _codes(lines), lines
+    assert "no longer hashes" in lines[0]
 
 
-def test_a_ledger_filename_that_names_no_platform_is_caught(
-    tmp_path: Path,
-) -> None:
-    """Finding 5's other half: the reader refuses it, and so must the gate."""
-    for name in ("REL-12-ios.json", "working-ios.json", "ios.json"):
-        lines = _run(tmp_path, {"platform": "ios", "entries": [], "evidence": []},
-                     name=name)
-        assert "LEDGER-NAME" in _codes(lines), f"{name} passed"
-        (tmp_path / "docs" / "releases" / "ledgers" / name).unlink()
+def test_a_sealed_ledger_nobody_vouches_for_is_caught(tmp_path: Path) -> None:
+    """An unvouched seal is exactly the state the old check could not tell
+    from a good one."""
+    _release_note(tmp_path, [])
+    lines = _run(tmp_path, SEALED, name="REL-0001-macos.json")
+    assert "LEDGER-SEALED" in _codes(lines)
+    assert "no release note vouches for it" in lines[0]
+
+
+def test_a_working_ledger_needs_no_voucher(tmp_path: Path) -> None:
+    """Only a sealed ledger is a record. The open one is still being written."""
+    assert _run(tmp_path, {"platform": "macos", "entries": [GOOD],
+                           "evidence": []}) == []

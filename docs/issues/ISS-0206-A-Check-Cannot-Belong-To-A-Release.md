@@ -3,13 +3,13 @@ type: "[[issue]]"
 id: ISS-0206
 aliases: ["ISS-0206"]
 title: "A check cannot be scoped to a release, so work for one platform blocks a release that does not contain it"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-19"
 severity: medium
 component: cockpit-server
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 related: ["[[ISS-0202-Needs-A-Run-Versus-The-Tiers]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[FEAT-0124-Gating-Is-Derived-From-Covers]]"]
 ---
 
@@ -36,5 +36,15 @@ Two candidate answers, and they are not equivalent:
 
 ## Done when
 
-- [ ] A release states which checks it gates on, by one of the two routes above, decided rather than defaulted.
-- [ ] `platform:` is either part of that answer or explicitly ruled out — a platform is not a release, and conflating them is how "the iOS ones" became a release question in the first place.
+- [x] A release states which checks it gates on, by one of the two routes above, decided rather than defaulted.
+- [x] `platform:` is either part of that answer or explicitly ruled out — a platform is not a release, and conflating them is how "the iOS ones" became a release question in the first place.
+
+## Fixed 2026-08-19 — [[ADR-0037]], and the answer is neither of the two routes
+
+This issue offered two candidates: derive a release's checks from `covers:`, or add a field to the check. **Both were wrong, and the reason is the thing the issue could not see: a verdict is a fact about *(check × platform × release)*, and the question "which checks does this release gate on" was being asked of a schema that could not hold the answer.**
+
+The answer is that **a release's checks are the ones its ledger carries**, and *sealing* is what puts them there. No field on a check, no derivation from `covers:` — the events that happened during a cycle are that cycle's contents, by construction, and the assignment happens at the moment somebody closes the release.
+
+**`platform:` is explicitly ruled out as a note field**, which is this issue's second done-when. A per-note platform is `PARITY_MATRIX` in frontmatter; the platform is the ledger's, and an entry that could contradict its file is refused (`LEDGER-ENTRY`).
+
+The symptom that opened this — *"some items which need a run are not part of this release"* — is now answerable in the direction it was actually asked: `ledger.owed(docs, platform, checks)`, and a check with no entry for a platform is owed there.

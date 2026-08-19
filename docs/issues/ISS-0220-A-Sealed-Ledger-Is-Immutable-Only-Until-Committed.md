@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0220
 aliases: ["ISS-0220"]
 title: "`LEDGER-SEALED` diffs the working tree against `HEAD`, so editing a sealed ledger and committing it passes forever — *was release R walked?* has an answer that can still change"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -42,10 +42,18 @@ Neither should be picked in a hurry: this is a record-integrity mechanism and ge
 
 ## Done when
 
-- [ ] A sealed ledger that is edited **and committed** is an error.
-- [ ] The shape is decided in [[ADR-0037]] or an amendment, not in a commit message.
-- [ ] `tests/test_ledger_validator.py::test_a_sealed_ledger_edited_in_the_working_tree_is_caught` — whose last assertion currently pins the *gap* — is updated, and its comment says so.
+- [x] A sealed ledger that is edited **and committed** is an error.
+- [x] The shape is decided in [[ADR-0037]] decision 9a, not in a commit message.
+- [x] The test that pinned the *gap* is replaced by two that pin the fix.
 
-## Until then
+## Fixed 2026-08-19 — [[ADR-0037]] decision 9a
 
-The gap is asserted rather than hidden. That test ends with `assert "LEDGER-SEALED" not in out.stdout` and a message saying *"if this now fails, the rule was strengthened — update ISS-0220"*, so the limit cannot quietly stop being true.
+**Neither of the two shapes this issue proposed.** Edwin chose *the sha goes in the release note*, and the mechanics made a third option better than both: **a git blob hash rather than a commit sha.**
+
+A commit sha does not exist until after the commit, so recording one would have made sealing a two-commit operation with an unprotected window between them — exactly the state a reader cannot distinguish from tampering. A blob hash is a hash of the *content*, computable at seal time, so the ledger and the release note that vouches for it land in **one commit**.
+
+It is also strictly stronger than what this issue asked for. The old check compared the working tree to `HEAD`, so it verified *history*; this verifies **bytes**. An edit is caught whether it was committed, rebased, cherry-picked or restored from a backup, because none of those changes what the content hashes to.
+
+`ledger.blob_sha` computes it without a subprocess and matches `git hash-object` exactly — asserted against the real command.
+
+**A second rule fell out of it, and it is the half this issue did not ask for:** a sealed ledger that **no** release note vouches for is now an error of its own. An unvouched seal is precisely the state the old check could not tell from a good one.

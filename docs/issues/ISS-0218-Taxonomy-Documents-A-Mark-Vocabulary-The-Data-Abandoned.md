@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0218
 aliases: ["ISS-0218"]
 title: "`TAXONOMY.md` documents the single-character mark vocabulary in every repo including upstream, three weeks after ADR-0034 moved all 671 notes to words — and the reader silently accepts both"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -51,6 +51,16 @@ One vocabulary, defined in one document, and the document matches the data. Lega
 
 ## Next actions
 
-- [ ] Rewrite `TAXONOMY.md`'s `mark` section upstream first ([[ADR-0030]] decision 6), then sync down.
-- [ ] Add a check that reads the documented vocabulary and the corpus and fails when a live value is undocumented — the drift is invisible to every gate today, and that is the actual defect.
-- [ ] Settle values 3 and 4 in one pass under [[FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once]] rather than leaving a fifth behind.
+- [x] Rewrite `TAXONOMY.md`'s `mark` section upstream first ([[ADR-0030]] decision 6), then sync down.
+- [x] Add a check that reads the documented vocabulary and the corpus and fails when a live value is undocumented — the drift is invisible to every gate today, and that is the actual defect.
+- [x] Settle values 3 and 4 in one pass under [[FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once]] rather than leaving a fifth behind.
+
+## Fixed 2026-08-19
+
+`TAXONOMY.md`'s vocabulary section is the ledger's, in **all four repos** — upstream `project-os@ce789d7` first, then this repo and both fleet repos. Seven values with a gate column *and* a survives-the-seal column, absence documented as a state rather than a value, and both legacy vocabularies under a heading that says they are read and never written.
+
+**The drift check is the half that matters**, and it is what this issue was really about: the old table failed nothing for three weeks because `acceptance.py` accepts both forms — correctly, since a suite mid-migration must keep working. Tolerance in the reader plus silence in the gate is what produced it.
+
+`test_taxonomy_documents_exactly_the_vocabulary_the_code_writes` reads the table's values **and both behaviour columns** against `ledger.MARKS`. Mutation-proven three ways: deleting a row fails it, flipping a gate column fails it, and flipping the persistence column — the exact inversion [[ADR-0037]] calls its sharpest argument, which the first version of the check let through — fails it.
+
+The fourth vocabulary this issue counted is now the only one that is current; the other three are legacy, and the reader still accepts them.

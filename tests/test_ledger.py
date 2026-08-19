@@ -896,3 +896,92 @@ def test_every_acceptance_payload_names_its_platform(docs: Path) -> None:
     # And the gate answers differently per platform, which is the whole point.
     assert acceptance.gate_payload(docs, platform="android")["blocked"] is False
     assert acceptance.gate_payload(docs, platform="ios")["blocked"] is True
+
+
+# ------------------------------------------- sealing from the app (0547/0548)
+
+RELEASE_NOTE = '''---
+type: "[[release]]"
+id: REL-0001
+aliases: ["REL-0001"]
+title: "A release"
+status: preparing
+version: "v1.0.0"
+owner: user:edwin
+created: 2026-08-19
+updated: 2026-08-19
+ledgers: []
+---
+
+# A release
+'''
+
+
+def _release(docs: Path) -> None:
+    (docs / "releases").mkdir(parents=True, exist_ok=True)
+    (docs / "releases" / "REL-0001-A.md").write_text(RELEASE_NOTE)
+
+
+def test_sealing_closes_a_cycle_and_the_release_vouches_for_it(
+    docs: Path,
+) -> None:
+    """[[TASK-0547]] + [[TASK-0548]], end to end.
+
+    **The whole point of the lifecycle**: an `excused` check is owed again on
+    the next cycle, with nobody having to remember. Before this there was no
+    path from the cockpit to sealing, so decision 7's expiry — the sharpest
+    argument in [[ADR-0037]] — could not fire in normal use at all.
+    """
+    from project_os_cockpit import ledger as _L, note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo", "TST-0002": "todo"})
+    _release(docs)
+    _walk(docs, "macos", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "macos", "TST-0002", "excused", reason="Not this cycle.",
+          when="2026-08-14")
+
+    out = note_writes.seal_ledger(docs, Index.build(docs),
+                                  release_id="REL-0001", platform="macos")
+    assert out["file"] == "REL-0001-macos.json"
+
+    # The note vouches for the exact bytes.
+    note = (docs / "releases" / "REL-0001-A.md").read_text()
+    assert out["sha"] in note
+    sealed = _L.ledgers_dir(docs) / out["file"]
+    assert _L.blob_sha(sealed.read_text()) == out["sha"]
+
+    # And the cycle closed: the pass persists, the excuse does not.
+    found = _L.verdicts(docs, "macos")
+    assert found["TST-0001"].mark == "pass"
+    assert "TST-0002" not in found, (
+        "an excused check must be owed again on the next release")
+    assert not _L.working_path(docs, "macos").exists()
+
+
+def test_a_shipped_release_cannot_be_sealed_again(docs: Path) -> None:
+    """[[ADR-0035]]: a release page reports and does not record. Re-sealing a
+    shipped release is the one write that rewrites history."""
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _release(docs)
+    p = docs / "releases" / "REL-0001-A.md"
+    p.write_text(p.read_text().replace("status: preparing", "status: released"))
+    _walk(docs, "macos", "TST-0001", "pass", when="2026-08-14")
+    with pytest.raises(note_writes.WriteError, match="has shipped"):
+        note_writes.seal_ledger(docs, Index.build(docs),
+                                release_id="REL-0001", platform="macos")
+
+
+def test_sealing_an_unknown_release_is_refused(docs: Path) -> None:
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _release(docs)
+    _walk(docs, "macos", "TST-0001", "pass", when="2026-08-14")
+    with pytest.raises(note_writes.WriteError, match="not a release"):
+        note_writes.seal_ledger(docs, Index.build(docs),
+                                release_id="REL-9999", platform="macos")
