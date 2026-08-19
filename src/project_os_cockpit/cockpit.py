@@ -4255,6 +4255,21 @@ def _surface_ref(shared: set, index: "Index | None") -> dict[str, Any]:
     the row was showing the first while linking the second.
     """
     ref = shared.pop()
+    #: **An issue, and only an issue** ([[ISS-0235]]).
+    #:
+    #: This took any ref every check in the surface shared — and for Tier 1
+    #: that is the `FEAT-*` they all `covers:`, so `Profile Management`
+    #: rendered as *"User Management"*: the feature's title in place of the
+    #: area's name.
+    #:
+    #: Two relations conflated. **`covers:` is what a check VERIFIES; it is
+    #: not what the surface IS.** A Tier 2 surface *is* an issue — TESTING.md:
+    #: each Tier 2 test references the `ISS-*` that created it — while a Tier 1
+    #: surface is a place in the application that happens to verify a feature.
+    #: Substituting one title for the other is the same category error as
+    #: giving a surface a runner's status ([[ISS-0226]]).
+    if not ref.startswith("ISS-"):
+        return {}
     out: dict[str, Any] = {"ref": ref}
     if index is not None:
         found = index.by_id(ref)

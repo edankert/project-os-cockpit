@@ -1907,3 +1907,37 @@ def test_no_nav_payload_field_is_sent_and_never_drawn() -> None:
     assert not unread, (
         f"the nav sends {sorted(unread)} and buildNavRow reads none of them — "
         "data computed, serialised and dropped on the floor")
+
+
+def test_a_surface_ref_is_an_issue_or_nothing() -> None:
+    """[[ISS-0235]]: `covers:` is what a check verifies, not what the surface is.
+
+    `_surface_ref` resolved any ref every check in a surface shared — and for
+    Tier 1 that is the `FEAT-*` they all cover, so `Profile Management`
+    rendered as *"User Management"*. The renderer substitutes `ref_title` for
+    the title, so a non-issue ref silently renames the surface.
+
+    **Asserted across every reachable repo**, because this was invisible in
+    the one it was written in: `project-os-cockpit`'s Tier 1 areas span
+    several features, so no ref is shared and the intersection is empty. It
+    was live in `your-trainer` from the first commit.
+    """
+    from pathlib import Path as _P
+
+    fleet = _P.home() / "Dev" / "repos"
+    seen = 0
+    for repo in ("project-os-cockpit", "your-trainer", "your-sudoku"):
+        docs = fleet / repo / "docs"
+        if not docs.is_dir():
+            continue
+        for group in nav_payload(Index.build(docs), "tests")["groups"]:
+            if not str(group["key"]).startswith("tier"):
+                continue
+            for row in group.get("items") or []:
+                seen += 1
+                ref = row.get("ref")
+                assert ref is None or str(ref).startswith("ISS-"), (
+                    f"{repo}: surface {row['title']!r} carries {ref} — a "
+                    "surface IS an issue or it is nothing; a feature is what "
+                    "its checks cover")
+    assert seen > 20, "no surfaces reachable — this guard would pass vacuously"
