@@ -4,7 +4,7 @@ id: REQ-0057
 aliases: ["REQ-0057"]
 title: "Coverage is observed from a run and never declared on a note — a deleted covering test puts its check back on the run list"
 status: draft
-phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

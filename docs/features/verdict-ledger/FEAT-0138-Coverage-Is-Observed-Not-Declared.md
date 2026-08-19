@@ -7,7 +7,7 @@ status: backlog
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
-phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+phase: "[[PHASE-999-Future]]"
 goal: "A claim that a machine covers a check is produced by a run rather than asserted in frontmatter, so deleting or disabling the covering test puts the check back on the run list on its own."
 requirements: ["[[REQ-0057-Coverage-Is-Observed-From-A-Run]]"]
 tasks: ["[[TASK-0541-Seed-The-Mapping-Before-Deleting-The-Field]]", "[[TASK-0542-The-Test-Declares-The-Check]]", "[[TASK-0543-The-CI-Emitter-Writes-Into-The-Working-Ledger]]"]
@@ -46,3 +46,11 @@ Under observed coverage that population is exactly the one that works. The 54 cl
 - [ ] A CI run appends observed-coverage entries to the working ledger for its platform.
 - [ ] Deleting a covering test puts its check back on the run list within one CI cycle, proved.
 - [ ] Nothing declares coverage in a note.
+
+## Re-homed out of PHASE-038, 2026-08-19
+
+**Stage 2 is a body of work, not a leftover.** [[PHASE-038]] closed on the thing it was opened for — a verdict is an event, and the ledger is the only place one lives — and its nine exit criteria are met. Observed coverage is the *next* argument, and holding a finished phase open for it would make the phase's status say something false about the work that is done.
+
+The seed it depends on is safe: [[TASK-0541]] extracted **278 checks naming 81 JVM classes** before [[TASK-0530]] removed the field they lived in, and that file is committed.
+
+What it still needs before anybody starts it: a declaration convention that works in pytest *and* JVM without a shared library, and [[ISS-0209]] — the acceptance gate runs in no repo that holds a check, so an emitter would run here and nowhere the data lives.

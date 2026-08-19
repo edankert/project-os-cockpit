@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-038
 aliases: ["PHASE-038"]
 title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-status: active
+status: done
 order: 38
 owner: user:edwin
 created: 2026-08-19
@@ -18,14 +18,12 @@ features:
   - "[[FEAT-0135-Everything-Downstream-Is-A-Query]]"
   - "[[FEAT-0136-The-Cockpit-Reads-And-Writes-The-Ledger]]"
   - "[[FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once]]"
-  - "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
 requirements:
   - "[[REQ-0052-A-Verdict-Names-Its-Platform-Method-Author-And-Date]]"
   - "[[REQ-0053-The-Note-Holds-Nothing-Verdict-Shaped]]"
   - "[[REQ-0054-Absence-Is-The-Initial-State]]"
   - "[[REQ-0055-No-Surface-Writes-A-Verdict-Onto-A-Note]]"
   - "[[REQ-0056-One-Outcome-Vocabulary-And-The-Document-Matches-The-Data]]"
-  - "[[REQ-0057-Coverage-Is-Observed-From-A-Run]]"
 issues:
   - "[[ISS-0216-The-Suite-Parser-Splits-On-Physical-Lines]]"
   - "[[ISS-0217-The-Two-Repos-Holding-Every-Check-Describe-A-Retired-Type]]"
@@ -86,7 +84,7 @@ Three stages, from [[ADR-0037]]. Each is independently useful.
 
 **Stage 1 — the honesty gain.** [[FEAT-0133]], [[FEAT-0134]], [[FEAT-0135]], [[FEAT-0136]], [[FEAT-0137]]. Ledger format, one release backfilled, manual entries only; the notes shed the fields; the read and write paths move. This is where the *(check × platform × release)* fact starts being stored at its own arity.
 
-**Stage 2 — observed coverage.** [[FEAT-0138]]. The `@Covers` inversion and the CI emitter. Seed the mapping from `covered_by:` **before** deleting the field — measured, it holds nothing, so the real seed is `your-trainer`'s 203 prose annotations naming 54 JVM classes.
+**Stage 2 — observed coverage.** [[FEAT-0138]], **re-homed to [[PHASE-999]] on close.** Stage 2 is a body of work rather than a leftover, and holding a finished phase open for it would make the phase's status say something false about what is done. Its seed is safe: [[TASK-0541]] extracted **278 checks naming 81 JVM classes** — half again what [[ADR-0037]] estimated — before [[TASK-0530]] removed the field they lived in.
 
 **Stage 3 — rendered views replace hand-maintained tables.** Not scoped here; conditional on [[FEAT-0130]] and belonging to `your-trainer`.
 

@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
 parent: "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
-phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+phase: "[[PHASE-999-Future]]"
 tags: [task]
 ---
 
