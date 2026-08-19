@@ -1,0 +1,117 @@
+---
+type: "[[adr]]"
+id: ADR-0039
+aliases: ["ADR-0039"]
+title: "A permanent walk, a queue that empties, and a section nobody files into — an automated check appears under Automated tests because it has a `command:`, not because somebody moved it"
+status: "proposed"
+owner: user:edwin
+created: 2026-08-19
+updated: "2026-08-19"
+decision_date: ""
+phase: "[[PHASE-999-Future]]"
+source: ["Edwin 2026-08-19: 'On the verification tests ... these are the tests which have been automated. Can we just make one section and call it automated tests and move all automated tests there, it doesn't matter why they were automated? On the regression tests, these only exist to test issues which were fixed but which we do not expect to be re-occuring and which need to either be tested manually once or otherwise have an automated test. The Feature tests are really the acceptance tests which need to be un-checked set to todo when functionality is changed which warrants a genuine re-check.'"]
+supersedes: ""
+superseded: ""
+related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]", "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]", "[[DES-0012-Tests-In-Two-Flows]]"]
+tags: [acceptance, conventions, schema, testing]
+decided_option: "3"
+---
+
+# A walk, a queue, and a derived section
+
+## Context
+
+`TESTING.md` defines three tiers, and each is described by **why a check was created**. Two of the three have since come to mean something else, and the corpus says so plainly.
+
+### What the tiers hold, measured 2026-08-19
+
+| | checks | automated | open | of which automated |
+|---|---:|---:|---:|---:|
+| Tier 1 · Feature tests | 349 | 17 | 43 | 4 |
+| Tier 2 · Regression tests | 164 | 5 | 25 | 5 |
+| Tier 3 · Verification tests | 68 | **67** | 0 | 0 |
+
+`your-trainer`; this repo holds 27 + 7 and `your-sudoku` 51 + 5, all manual, no Tier 3 at all. **Nine of the 68 checks blocking `your-trainer`'s release are run by a machine**, which is [[ISS-0237]].
+
+### Tier 3 is not a tier, it is a destination
+
+`TESTING.md` calls Tier 3 *temporary* — one-time checks for a specific build, removed after a verified release. Its **Unit test replacement** rule is the one that actually fires: *"When unit tests are written that cover the same logic as an acceptance test, the acceptance test can be moved from Tier 2 to Tier 3… Remove after the next release."*
+
+So Tier 3 is where automated checks are parked on their way to deletion, and 67 of its 68 members got there that way. The label says *temporary*; the population is *permanently automated*. Those are opposite claims about the same 67 notes.
+
+The damage is recorded in the notes: all 67 read `area: "Moved from Tier 1 / Tier 2 — Fully Automated"` — **a section heading from a deleted document, not a place in the application** ([[ISS-0235]] drew exactly this distinction) — and `tier: 3`, and `covers: []`. The original areas are not in the notes. They are in `your-trainer`'s git history, first move `d69cf23c` on 2026-04-18 (*"move 10 fully-automated rows to Tier 3"*) and several since, so recovering them is archaeology across commits rather than a field rename. [[ISS-0238]] called it *authoring, not migration*; it is closer to *excavation*.
+
+### And filing is the mechanism that failed
+
+A check reached Tier 3 because a person moved it. That is the same shape of defect [[ADR-0038]] removed from the verdict: a standing claim, written once, that nothing returns to correct. Rename the covering test and the check stays filed under *Fully Automated* forever, verified by nothing.
+
+### Tier 2 was never permanent in practice
+
+`TESTING.md` says Tier 1 and Tier 2 are *"never removed"*. But its own Unit test replacement rule moves Tier 2 checks out, and Edwin's account of what a regression check is for does not describe a permanent walk at all: **a fixed bug we do not expect to recur, needing either one manual walk or an automated test.** A thing you expect to regress gets a machine watching it forever. A thing you do not gets checked once.
+
+Reading Tier 2 as permanent is what makes 25 checks sit open in a repo where nobody intends to walk them again.
+
+## Options
+
+1. **Leave the tiers as written.** Costs: 67 notes keep a temporary label over permanent content, nine automated checks keep blocking a release, and the *permanent* reading keeps 25 Tier 2 rows open indefinitely.
+2. **Re-tier by hand.** Give the 67 real areas and correct their tiers. Fixes today's data and rebuilds the same trap: the next automated check is filed by a person and rots the same way.
+3. **Three roles, and the automated one is derived.** Tier 1 is the permanent walk, Tier 2 is a queue that empties, and Automated tests is not a tier anybody files into — a check appears there because it carries a `command:`, and leaves when it stops carrying one.
+4. **Delete `tier:` entirely** ([[ISS-0208]]'s direction). Too far for now: Tier 1 and Tier 2 have genuinely different lifetimes under this decision, and that difference has to live somewhere.
+
+## Decision
+
+**Option 3.**
+
+### 1. Tier 1 — Feature tests. The permanent walk.
+
+Unchanged, and now the only tier with this property: **never removed, and un-checked when a change overlaps its scope.** `TESTING.md`'s *When to uncheck* rule stops naming Tier 2 and becomes Tier 1's defining behaviour. The machinery already exists — `mark: rerun` as the explicit act, computed `stale` for a tick standing over overtaken evidence, `invalidated_by:` carrying the change id — and the tier header already reports both counts.
+
+### 2. Tier 2 — Regression tests. A queue that empties.
+
+A regression check guards a fixed bug **we do not expect to recur**. It is discharged one of two ways, and then it is done:
+
+- **walked once**, and it stays settled — a later code change does **not** re-open it; or
+- **given a `command:`**, after which it renders under Automated tests and CI re-runs it forever.
+
+`TESTING.md`'s *"kept permanently / never removed"* is rewritten for Tier 2. The note is still never deleted (`LIFECYCLE.md`); what changes is that a settled Tier 2 check stops being owed.
+
+**This is the clause that carries risk**, and it is stated so it can be argued with: if a bug we did not expect to recur does recur, nothing re-opens its check automatically. The answer is that such a bug files a new issue, and a bug that recurs is by definition one we should have expected — which is what a `command:` is for.
+
+### 3. Automated tests — derived from `command:`, filed by nobody.
+
+**A check renders under Automated tests when its `command:` is non-empty, and nowhere else.** Not a `tier:` value, not a move, not a migration.
+
+- **Nothing is filed and nothing is deleted.** Removal-after-release goes; a check that has been automated is kept, because a kept check with a resolving command is self-correcting and a deleted one is a one-way door ([[ISS-0238]], [[FEAT-0138]]).
+- **`tier:` keeps its meaning and answers [[ISS-0238]]'s blocked question.** It records *why the check was created* — 1 feature, 2 regression — and it is where the check **falls back to** if its command stops resolving. So an automated check has a tier and does not display under it. `tier: 3` stops being allocated.
+- **`area:` must name a place in the application**, and the 67 notes reading a deleted document's section heading are wrong on their face. They are repaired or emptied, not left.
+- **It is one section regardless of why the check was automated**, which is Edwin's point exactly: promoted from Tier 1, replaced from Tier 2, or born with a command — the reader is asking *does a machine do this*, and there is one answer.
+
+### 4. The group that asks is called `Needs you`.
+
+`Needs a run` becomes `Needs you`, matching every other view ([[ADR-0025]], `_needs_you_group`). The existing comment argues a specific name *"says more than 'needs you'"*; consistency across the nav is the better argument, and the group already carries `needs_human: true`, so the look and feel is unchanged.
+
+## What `TESTING.md` must say
+
+The instruction file is template-owned; canonical is `~/Dev/repos/project-os/tools/instructions/TESTING.md`, and these edits land there and sync down.
+
+1. **Tier 3 § replaced** by Automated tests, defined by `command:` and explicitly permanent. *Unit test replacement* stops ending in removal — it ends in a `command:`.
+2. **Tier 2 §** loses *"kept permanently"*; gains the two discharges and the statement that a settled regression check is not re-opened by later change.
+3. **§ When to uncheck** narrows from *"all Tier 1 and Tier 2 tests"* to Tier 1.
+4. **§ When to remove** loses the Tier 3 clause, leaving nothing that removes a check.
+
+**`STATUSES.md` is corrected by the same change.** Its line 144 attributes *"never removed, only deprecated"* to `TESTING.md` as a rule about any test, while `TESTING.md` scopes it to Tier 1 and Tier 2 and removes Tier 3. That is the upstream ambiguity [[ISS-0238]] flagged; once nothing removes a check the two documents agree, and the attribution becomes true rather than merely uncontradicted.
+
+**Fleet state before the sync**, measured 2026-08-19: `project-os-cockpit`, `your-trainer` and `your-sudoku` are byte-identical to upstream. `your-health` and `project-os-dev` are stale by the same 26 lines — a plain sync, no conflict.
+
+## Alternatives
+
+- **Keep Tier 3 and add an `automated: true` flag.** A second field answering a question `command:` already answers — the exact defect [[ADR-0034]] decision 4 removed, re-introduced one level down.
+- **Let an automated check keep displaying under its tier, marked.** Considered and rejected against Edwin's *"it doesn't matter why they were automated"*: the mark would be the answer to the only question being asked, rendered as an annotation on a grouping that answers a different one.
+
+## Consequences
+
+- **The release gate drops from 68 open to 59** in `your-trainer` the moment Automated tests is derived — the nine automated checks in Tiers 1 and 2 stop being owed. Measured per repo before landing, as every [[PHASE-038]] gate change was. Zero change in this repo and `your-sudoku`, which hold no automated checks.
+- **Tier 2's 25 open checks each need a disposition** — walk once, or give it a command. That is a real body of work and it does not happen by re-labelling.
+- **The 67 areas are still wrong** and this decision does not fix them; it removes the reason they were destroyed. Excavating them from `your-trainer`'s history is a separate task with a real cost, and emptying the field is the honest alternative to inventing 67 areas.
+- **`tier: 3` stops being allocated.** Existing `tier: 3` notes keep the value until their real tier is recovered; the display stops reading it.
+- **A new obligation exists**: a check whose `command:` no longer resolves. Measured 2026-08-19 across all 139 automated notes fleet-wide, **zero** currently fail to resolve — so this cannot be proved from the corpus and must be proved on constructed input, which is [[FEAT-0138]]'s acceptance criterion 4.
