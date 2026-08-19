@@ -4246,6 +4246,22 @@ def _area_slug(area: str) -> str:
     return out.strip("-") or "unnamed"
 
 
+def _is_incomplete(item: dict[str, Any]) -> bool:
+    """Whether a check is still owed ([[TASK-0556]]).
+
+    **One predicate**, shared by the percentage, the bar and every sort below.
+    A second definition is how a surface's number and its position come to
+    disagree about the same set.
+
+    A stale tick counts as incomplete: it stands over evidence a change
+    overtook, and folding it into done is what made `../your-trainer`'s honest
+    blocking number 113 read as a reported 60.
+    """
+    settled = (item.get("checked") or item.get("reconciled")
+               or item.get("excepted"))
+    return not settled or bool(item.get("stale"))
+
+
 def _surface_ref(shared: set, index: "Index | None") -> dict[str, Any]:
     """The issue a surface IS — its id **and its own title**.
 
@@ -4353,6 +4369,9 @@ def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
                 shared := set.intersection(*(set(i.get("refs") or ())
                                              for i in found)) or set()) == 1
                else {}),
+            #: **Incomplete first**, then id order inside each band — so a
+            #: reader who knows where a check was still finds it, and what is
+            #: owed is at the top where the eye lands.
             "items": [
                 {
                     "id": i.get("id") or i["number"],
@@ -4367,9 +4386,24 @@ def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
                     "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
                     "type": "test",
                 }
-                for i in found
+                for i in sorted(found, key=lambda x: (
+                    not _is_incomplete(x), str(x.get("id") or x["number"])))
             ],
         })
+    #: **By percentage INCOMPLETE, descending** (Edwin, 2026-08-19). Ties: more
+    #: open checks first, then title. Both are needed — without the first a
+    #: surface with 2 of 2 open sits below one with 2 of 200, and without the
+    #: second the order shifts between renders, which is a view nobody can
+    #: walk.
+    #:
+    #: A finished surface therefore sinks to the bottom. That is what sorting
+    #: by what is owed means, and it is [[REQ-0047]]'s rule — the view opens on
+    #: the work.
+    rows.sort(key=lambda r: (
+        r["progress"]["pct"],
+        -(r["progress"]["total"] - r["progress"]["done"]),
+        str(r["title"]),
+    ))
     return rows
 
 

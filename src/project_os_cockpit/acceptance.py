@@ -1567,6 +1567,22 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
                     "refs": list(item.refs), "items": [],
                 })
             areas[-1]["items"].append(_row(item))
+        #: **Incomplete rows to the top of their own section** ([[TASK-0556]]).
+        #:
+        #: Edwin scoped this deliberately: the area order and the tier order do
+        #: not move, because this page is where the suite is WALKED and a list
+        #: that reorders itself as you tick things is one you lose your place
+        #: in. Inside a section, what is owed is at the top.
+        #:
+        #: Stale counts as incomplete — the same predicate the percentage on
+        #: the heading uses, so a section's number and its order cannot
+        #: disagree.
+        for area in areas:
+            area["items"].sort(key=lambda r: (
+                bool(r.get("checked") or r.get("reconciled")
+                     or r.get("excepted")) and not r.get("stale"),
+                str(r.get("id") or r.get("number") or ""),
+            ))
         tiers.append({
             "tier": n,
             "label": TIER_LABELS.get(n, f"Tier {n}"),

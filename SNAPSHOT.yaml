@@ -66,7 +66,7 @@ counters:
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 555
+  TASK: 556
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -167,7 +167,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
-      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520", "TASK-0549", "TASK-0550", "TASK-0551", "TASK-0552", "TASK-0553", "TASK-0554", "TASK-0555"]
+      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520", "TASK-0549", "TASK-0550", "TASK-0551", "TASK-0552", "TASK-0553", "TASK-0554", "TASK-0555", "TASK-0556"]
       note: "Built when the corpus had 23 tests, where showing all of them WAS the summary. At 579 it is a wall. Collapse Resting to a line, collapse tier sections to tracking lines carrying walked/re-run/to-walk, and put feature tests above the flat groups. Constraint: every collapsed count must expand to exactly its rows, or work has been hidden rather than organised."
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
@@ -807,6 +807,13 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0556:
+      file: "docs/features/tests-view/plan/tasks/TASK-0556-Incomplete-First.md"
+      title: "The nav sorts surfaces by percentage incomplete and lists incomplete checks first; the generated page moves incomplete rows to the top of their section"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0552:
       file: "docs/features/tests-view/plan/tasks/TASK-0552-The-navs-surfaces-get-their-own-address-and-their-ow.md"
       title: "The nav's surfaces get their own address and their own children"
@@ -890,13 +897,6 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0531:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0531-The-Note-To-Ledger-Migration-Script.md"
-      title: "The migration script — strip the fields, emit the ledger entries, refuse to run twice, list what it could not convert"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0134
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0532:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0532-Fix-The-Splitter-Before-Anything-Migrates.md"
@@ -3891,8 +3891,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 117
-    tasks_total: 554
-    tasks_done: 501
+    tasks_total: 555
+    tasks_done: 502
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

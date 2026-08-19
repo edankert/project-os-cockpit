@@ -1941,3 +1941,76 @@ def test_a_surface_ref_is_an_issue_or_nothing() -> None:
                     "surface IS an issue or it is nothing; a feature is what "
                     "its checks cover")
     assert seen > 20, "no surfaces reachable — this guard would pass vacuously"
+
+
+def test_the_nav_leads_with_what_is_owed() -> None:
+    """[[TASK-0556]]: surfaces by percentage incomplete, checks incomplete first.
+
+    Asserted across every reachable repo — the last three defects here were
+    each invisible in the one they were written in ([[ISS-0219]],
+    [[ISS-0221]], [[ISS-0235]]).
+    """
+    from pathlib import Path as _P
+
+    fleet = _P.home() / "Dev" / "repos"
+    seen = 0
+    for repo in ("project-os-cockpit", "your-trainer", "your-sudoku"):
+        docs = fleet / repo / "docs"
+        if not docs.is_dir():
+            continue
+        for group in nav_payload(Index.build(docs), "tests")["groups"]:
+            if not str(group["key"]).startswith("tier"):
+                continue
+            rows = group.get("items") or []
+            seen += len(rows)
+            pcts = [r["progress"]["pct"] for r in rows]
+            assert pcts == sorted(pcts), (
+                f"{repo}/{group['key']}: surfaces are not led by what is "
+                f"owed — {pcts}")
+            for row in rows:
+                #: A check with no mark is owed; one with a clearing mark is
+                #: not. The bands must not interleave.
+                bands = [bool(k.get("mark")) and k["mark"] in
+                         {"pass", "partial", "na", "excused"}
+                         for k in row.get("items") or []]
+                assert bands == sorted(bands), (
+                    f"{repo}: {row['title']!r} interleaves settled checks "
+                    "with owed ones")
+    assert seen > 20, "no surfaces reachable — this guard would pass vacuously"
+    #: **The child order is NOT asserted here**, and that is deliberate.
+    #: Measured: **zero** surfaces in the fleet mix settled and owed checks —
+    #: only this repo has a ledger and all 34 of its checks pass, while the
+    #: other two have no marks at all. So a corpus assertion about child order
+    #: would agree with any implementation, and a mutant removing the sort
+    #: survived exactly that. It is proved on constructed input instead, in
+    #: `test_incomplete_checks_sort_first_whatever_their_ids`.
+
+
+def test_incomplete_checks_sort_first_whatever_their_ids() -> None:
+    """The child order, on constructed input ([[TASK-0556]]).
+
+    **The corpus cannot prove this.** Every surface in the fleet that mixes
+    settled and owed checks happens to carry them in an order the id sort
+    already produces — so removing the child sort entirely left
+    `test_the_nav_leads_with_what_is_owed` green. A guard that only ever sees
+    data which agrees with it is not a guard.
+
+    So this constructs the case the corpus lacks: a settled check with a LOW
+    id and an owed one with a high id, where id order and owed-first order
+    disagree.
+    """
+    from project_os_cockpit import cockpit
+
+    items = [
+        {"id": "TST-0001", "number": "TST-0001", "name": "settled first",
+         "checked": True, "area": "A", "refs": ()},
+        {"id": "TST-0009", "number": "TST-0009", "name": "owed last",
+         "checked": False, "area": "A", "refs": ()},
+        {"id": "TST-0005", "number": "TST-0005", "name": "stale tick",
+         "checked": True, "stale": True, "area": "A", "refs": ()},
+    ]
+    rows = cockpit._surface_rows(items, "~checks", 1)
+    assert [k["id"] for k in rows[0]["items"]] == [
+        "TST-0005", "TST-0009", "TST-0001"], (
+        "owed first, then id order inside each band — and a STALE tick is "
+        "owed, because it stands over evidence a change overtook")
