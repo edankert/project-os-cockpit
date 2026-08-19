@@ -547,3 +547,57 @@ def seal(
     write(ledger)
     working_path(docs_root, platform).unlink()
     return target
+
+
+# ------------------------------------------------------------------ queries
+
+@dataclass(frozen=True)
+class Gap:
+    """One check that holds on A and has said nothing on B."""
+
+    check: str
+    since: str
+    by: str
+    method: str
+
+
+def burndown(docs_root: Path, a: str, b: str) -> list[Gap]:
+    """Where platform B stands against platform A.
+
+    *A-`pass` with no surviving verdict on B.* The question
+    `PARITY_MATRIX.md` was hand-maintained to answer, as a query that cannot
+    rot — and the first time this repo can ask it at all, because until the
+    ledger there was one scalar per check and no way to say *which platform*.
+
+    **`na` drops out by construction**: a check ruled inapplicable on B has a
+    surviving verdict on B, so it is not a gap. **`excused` does not** — it
+    expired with its release, so the check is owed again and appears here,
+    which is exactly right: *not done this cycle* is a gap, and saying so is
+    the difference between a burndown and a wish.
+
+    The payoff [[ADR-0037]] names: an Android fix invalidates **the check**, so
+    both platforms' verdicts re-arm at once. That is the structural fix for the
+    `ISS-0365`/`ISS-0366` class — an iOS twin of an Android fix that never
+    crossed, invisible because the matrix row already said DONE.
+    """
+    held = verdicts(docs_root, a)
+    other = verdicts(docs_root, b)
+    return [
+        Gap(check=check, since=v.date, by=v.by, method=v.method)
+        for check, v in sorted(held.items())
+        if v.mark == "pass" and check not in other
+    ]
+
+
+def owed(docs_root: Path, platform: str, checks: Iterable[str]) -> list[str]:
+    """Which of ``checks`` this platform still owes — the run list.
+
+    No surviving verdict, or one that blocks. It is the same predicate the
+    gate reads, which is deliberate: *"what must a person run"* and *"can we
+    ship"* are the same question at two zoom levels ([[DES-0012]]), and two
+    implementations of one predicate is how a badge and a gate come to
+    disagree about the same corpus.
+    """
+    found = verdicts(docs_root, platform)
+    return [c for c in checks
+            if (v := found.get(c)) is None or not v.clears]

@@ -531,6 +531,13 @@ class Suite:
     #: caller that has to look at a filename to know whether it may write row
     #: grammar is a caller that will one day get it wrong.
     shape: str = SHAPE_ABSENT
+    #: **Which platform these verdicts are about**, or `""` for the pre-ledger
+    #: read. Carried for the same reason `shape` is: a surface that renders
+    #: verdicts without naming their platform is the defect [[ADR-0037]] exists
+    #: to remove, and a caller that has to remember what it asked for is a
+    #: caller that will one day render an Android result as a fact about the
+    #: app.
+    platform: str = ""
 
     @property
     def exists(self) -> bool:
@@ -1002,7 +1009,64 @@ def _resolve_coverage(items: "list[Item]", index: "Any") -> "list[Item]":
     return out
 
 
-def load(docs_root: Path, index: "Any | None" = None) -> Suite:
+def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item]:
+    """Replace each check's verdict with what the platform's ledger says.
+
+    **The join** ([[ADR-0037]]). Before this, an item's verdict came out of its
+    own frontmatter, which is a scalar and cannot hold a fact about
+    *(check × platform × release)* — so 579 of `../your-trainer`'s 581
+    acceptance notes claimed a platform-free result that had in fact been
+    earned on Android.
+
+    Three properties, and each one is why this is an overlay rather than a
+    rewrite of `item_from_note`:
+
+    * **A repo with no ledger is untouched.** Nine of twelve fleet repos have
+      none, and every one of them must keep reading exactly as it did.
+      `verdicts()` returns `{}` and this returns its input.
+    * **A check with no entry falls to `todo`, not to whatever the note still
+      says.** That is [[REQ-0054]] made operational: once a ledger exists, the
+      absence of an entry IS the verdict, and a leftover `mark: done` in
+      frontmatter must not out-vote it. A migrated repo whose notes have shed
+      the field reaches the same place from the other direction.
+    * **`excused` and `na` both clear, and only one survives the seal** —
+      handled in `ledger.resolve`, not here, so there is one implementation of
+      the expiry rather than one per surface.
+    """
+    from . import ledger as _ledger
+
+    found = _ledger.verdicts(docs_root, platform)
+    if not found and not _ledger.ledgers_dir(docs_root).is_dir():
+        return items
+    out: list[Item] = []
+    for item in items:
+        verdict = found.get(item.note_id)
+        mark = verdict.mark if verdict else "todo"
+        out.append(replace(
+            item,
+            mark=mark,
+            checked=mark == "pass",
+            reconciled=mark == "partial",
+            #: BOTH non-gating exceptions land here, because `excepted` is what
+            #: `settled` reads and both clear. The difference between them is
+            #: not visible at this layer and must not be: it is *when they
+            #: expire*, which `ledger.resolve` has already applied.
+            excepted=mark in ("na", "excused"),
+            failed=mark == "fail",
+            question=mark == "question",
+            #: `blocked` blocks. It is not `failed` — the behaviour may be
+            #: perfectly fine and the rig was down — so it is carried as
+            #: neither, which is the state an unrecognised mark has always had
+            #: and is the direction that fails safe.
+            needs_rerun=False,
+            verdict_date=verdict.date if verdict else "",
+            verdict_reason=verdict.reason if verdict else "",
+        ))
+    return out
+
+
+def load(docs_root: Path, index: "Any | None" = None, *,
+         platform: str = "") -> Suite:
     """The suite, or an empty one when the repo has never instantiated it.
 
     **Absent is not passing.** A repo with no suite has no Tier 1/2 items, so
@@ -1036,12 +1100,17 @@ def load(docs_root: Path, index: "Any | None" = None) -> Suite:
         ]
         if items:
             items = _resolve_coverage(items, index)
+            if platform:
+                items = apply_ledger(items, docs_root, platform)
             return Suite(path=checks_dir, items=sort_items(items),
-                         shape=SHAPE_NOTES)
+                         shape=SHAPE_NOTES, platform=platform)
     elif checks_dir.is_dir():
         items = load_notes(checks_dir)
         if items:
-            return Suite(path=checks_dir, items=items, shape=SHAPE_NOTES)
+            if platform:
+                items = apply_ledger(items, docs_root, platform)
+            return Suite(path=checks_dir, items=items, shape=SHAPE_NOTES,
+                         platform=platform)
     path = docs_root / SUITE_REL
     try:
         text = path.read_text(encoding="utf-8")

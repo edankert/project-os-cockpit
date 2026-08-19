@@ -323,3 +323,171 @@ def test_a_repo_with_no_ledger_is_not_a_broken_one(docs: Path) -> None:
     assert L.load(docs) == []
     assert L.platforms(docs) == []
     assert L.verdicts(docs, "android") == {}
+
+
+# --------------------------------------------------- the join (TASK-0536)
+
+CHECK_NOTE = """---
+type: "[[test]]"
+id: {cid}
+level: acceptance
+status: active
+tier: 1
+area: "Hardware Connectivity"
+mark: {mark}
+covers: []
+---
+
+# {cid}
+
+A procedure.
+"""
+
+
+def _corpus(docs: Path, **checks: str) -> Path:
+    """A checks directory, with each note's LEGACY frontmatter mark."""
+    out = docs / "tests" / "acceptance"
+    out.mkdir(parents=True, exist_ok=True)
+    for cid, mark in checks.items():
+        (out / f"{cid}-A-Check.md").write_text(
+            CHECK_NOTE.format(cid=cid, mark=mark))
+    return out
+
+
+def test_a_repo_with_no_ledger_reads_exactly_as_before(docs: Path) -> None:
+    """Nine of twelve fleet repos have no ledger and must not move an inch."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done", "TST-0002": "todo"})
+    suite = acceptance.load(docs, platform="android")
+    marks = {i.note_id: i.mark for i in suite.items}
+    assert marks == {"TST-0001": "done", "TST-0002": "todo"}
+    assert [i.checked for i in suite.items if i.note_id == "TST-0001"] == [True]
+
+
+def test_the_ledger_outvotes_a_leftover_frontmatter_mark(docs: Path) -> None:
+    """[[REQ-0054]] made operational, and the direction matters.
+
+    Once a ledger exists, **the absence of an entry IS the verdict**. A
+    leftover `mark: done` in frontmatter — which every unmigrated note still
+    carries — must not out-vote it, or the migration would have two sources
+    disagreeing and the older one winning.
+    """
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done", "TST-0002": "done"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+
+    suite = acceptance.load(docs, platform="android")
+    by_id = {i.note_id: i for i in suite.items}
+    assert by_id["TST-0001"].mark == "pass" and by_id["TST-0001"].checked
+    assert by_id["TST-0002"].mark == "todo", (
+        "no entry means owed, whatever the note still says")
+    assert not by_id["TST-0002"].settled
+
+
+def test_the_same_check_settles_on_one_platform_and_not_the_other(
+    docs: Path,
+) -> None:
+    """The sentence the whole decision exists for."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+
+    assert acceptance.load(docs, platform="android").items[0].settled
+    assert not acceptance.load(docs, platform="ios").items[0].settled
+
+
+def test_both_exceptions_clear_the_gate_and_blocked_does_not(
+    docs: Path,
+) -> None:
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo", "TST-0002": "todo",
+                     "TST-0003": "todo"})
+    _walk(docs, "android", "TST-0001", "na", reason="No surface.",
+          when="2026-08-14")
+    _walk(docs, "android", "TST-0002", "excused", reason="Not this cycle.",
+          when="2026-08-14")
+    _walk(docs, "android", "TST-0003", "blocked", reason="Rig down.",
+          when="2026-08-14")
+
+    by_id = {i.note_id: i for i in acceptance.load(docs, platform="android").items}
+    assert by_id["TST-0001"].settled and by_id["TST-0002"].settled
+    assert not by_id["TST-0003"].settled, (
+        "an accident is not a decision — blocked must hold the release")
+
+
+def test_the_suite_says_which_platform_its_verdicts_are_about(
+    docs: Path,
+) -> None:
+    """A surface rendering verdicts without naming their platform is the
+    defect this decision exists to remove, one level up."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done"})
+    assert acceptance.load(docs, platform="ios").platform == "ios"
+    assert acceptance.load(docs).platform == ""
+
+
+# ---------------------------------------------------- burndown (TASK-0535)
+
+def test_the_burndown_is_a_query_over_ledgers(docs: Path) -> None:
+    """A-`pass` with no surviving verdict on B. The question PARITY_MATRIX was
+    hand-maintained to answer, and the first time this repo can ask it."""
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "android", "TST-0002", "pass", when="2026-08-14")
+    _walk(docs, "android", "TST-0003", "pass", when="2026-08-14")
+    _walk(docs, "ios", "TST-0002", "pass", when="2026-08-15")
+    _walk(docs, "ios", "TST-0003", "na", reason="No surface on iOS.",
+          when="2026-08-15")
+
+    gaps = L.burndown(docs, "android", "ios")
+    assert [g.check for g in gaps] == ["TST-0001"], (
+        "na drops out by construction; a walked check is not a gap")
+    assert gaps[0].since == "2026-08-14"
+
+
+def test_an_expired_excuse_reappears_in_the_burndown(docs: Path) -> None:
+    """`excused` is a gap and `na` is not, which is the whole reason they are
+    two values."""
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "ios", "TST-0001", "excused", reason="Not this cycle.",
+          when="2026-08-15")
+    assert L.burndown(docs, "android", "ios") == []
+
+    L.seal(docs, "ios", release="REL-0013", version="ios/v0.1.0",
+           when="2026-08-20")
+    assert [g.check for g in L.burndown(docs, "android", "ios")] == ["TST-0001"]
+
+
+def test_an_android_fix_re_arms_both_platforms_at_once(docs: Path) -> None:
+    """The `ISS-0365`/`ISS-0366` class, structurally.
+
+    An invalidation names **the check**, not a platform's copy of it — so a fix
+    that lands on Android puts the check back in the owed set on iOS too. That
+    is the whole reason an iOS twin of an Android fix can stop going missing.
+    """
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "ios", "TST-0001", "pass", when="2026-08-14")
+    assert L.owed(docs, "ios", ["TST-0001"]) == []
+
+    for platform in ("android", "ios"):
+        L.append(docs, platform, check="TST-0001",
+                 invalidated_by="TASK-0900", when="2026-08-18")
+    assert L.owed(docs, "android", ["TST-0001"]) == ["TST-0001"]
+    assert L.owed(docs, "ios", ["TST-0001"]) == ["TST-0001"]
+
+
+def test_the_run_list_and_the_gate_read_one_predicate(docs: Path) -> None:
+    """Two implementations of one predicate is how a badge and a gate come to
+    disagree about the same corpus."""
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "android", "TST-0002", "blocked", reason="Rig down.",
+          when="2026-08-14")
+    _walk(docs, "android", "TST-0003", "na", reason="No surface.",
+          when="2026-08-14")
+    assert L.owed(docs, "android",
+                  ["TST-0001", "TST-0002", "TST-0003", "TST-0004"]) == [
+        "TST-0002", "TST-0004"]
