@@ -84,6 +84,35 @@ _SECTION_RE = re.compile(r"^##\s+(\d+\.\d+)\s+(.*?)\s*$")
 #: inversion the code below refuses to make. `" x".strip()` is `"x"`, so a
 #: parser written from that comment would read a typo as a walked check.*
 _ITEM_RE = re.compile(r"^\s*[-*+]\s+\[([^\]]*)\]\s+(.*?)\s*$")
+#: **A hard-wrapped row's continuation** (ISS-0216). `_ITEM_RE` matches one
+#: PHYSICAL line, and every line it did not match was discarded outright — so a
+#: bullet wrapped across three lines parsed as its first line and the rest was
+#: dropped with no warning, no count and nothing in the migration's `problems`
+#: list. `../your-trainer` carries six notes written from that truncation and
+#: `TST-0596`'s entire body is the word `From`.
+#:
+#: **Indented, non-blank, and not itself a bullet.** Each half is load-bearing
+#: and each was measured against the corpus before being written:
+#:
+#: * *Indented* — the suite's own wrap is six spaces, aligning under the `**`.
+#:   Markdown also permits a LAZY continuation at column 0, and accepting one
+#:   would be wrong here: the pre-migration file carries 23 unindented `- *…
+#:   moved to §3.5*` annotation bullets directly under checkboxes, and they are
+#:   separate list items, not the row's text.
+#: * *Not itself a bullet* — a nested `  - [ ]` is a check of its own and
+#:   `_ITEM_RE` claims it first; a nested `  - plain` is a sub-point rather
+#:   than a wrap, and folding it into the parent's prose would invent a
+#:   sentence nobody wrote.
+#:
+#: A blank line, a heading, a fence or the next bullet closes the row.
+_CONTINUATION_RE = re.compile(r"^\s+(?![-*+]\s)(\S.*?)\s*$")
+#: A line under a checkbox that is unindented, not a bullet and not a heading —
+#: Markdown would read it as a LAZY continuation of the row and this parser
+#: does not. Reported rather than accepted: the pre-migration corpus puts real
+#: `- *… moved to §3.5*` bullets in exactly that position, and guessing wrong
+#: would fold a separate annotation into a check's procedure. Reporting says
+#: *look at this line* without inventing a sentence nobody wrote.
+_LAZY_WRAP_RE = re.compile(r"^(?![-*+#>]|\s|$)\S")
 #: Walked. `X` is Markdown-legal and appears in the wild.
 _CHECKED_MARKS = frozenset({"done", "x", "X"})
 #: Settled by a decision rather than by being walked — the check describes a
@@ -459,6 +488,25 @@ class Item:
 
     @property
     def number(self) -> str:
+        """The row's address — its POSITION where it has one, its ID where it
+        does not (ISS-0219).
+
+        A file-shape row is always at `section.ordinal`. A note-shape check
+        usually is too, because the migration carried both fields across. But a
+        check authored *outside* the migration has neither, and
+        `f"{'' }.{0}"` made every one of them `".0"` — so two such notes were
+        **two checks claiming one address**, and `test_gate_delta` caught it
+        the day `your-trainer` gained a second (TASK-0507 relevelled TST-0015
+        and TST-0018 out of `docs/tests/`).
+
+        The fallback is the note's own id, which is what [[ADR-0030]] decision
+        4 said the address should have become: *"ordinal is display-only and
+        sparse … which retires the shifting section-ordinal address for good"*.
+        The position survives here only because twelve historical tags hold
+        file-shape suites where it is the only address there is.
+        """
+        if not self.section and not self.ordinal and self.note_id:
+            return self.note_id
         return f"{self.section}.{self.ordinal}"
 
     @property
@@ -576,10 +624,24 @@ def _split_frontmatter(text: str) -> str:
     return parts[2] if len(parts) == 3 else text
 
 
-def parse(text: str) -> list[Item]:
+def parse(text: str, *, report: list[str] | None = None) -> list[Item]:
     """Items in document order. Anything outside a tier heading is ignored —
     the template's own preamble is prose, and the Rules section is a numbered
-    list that must not be mistaken for tests."""
+    list that must not be mistaken for tests.
+
+    **A row may be hard-wrapped** (ISS-0216). Its continuation lines are joined
+    into one logical row before it is parsed, so a wrapped `**bold name**`
+    still yields a name and the detail keeps every word. Before this, the row
+    was built from its first PHYSICAL line and the rest was discarded in
+    silence — `../your-trainer` carries six notes written from that truncation
+    and one of them has the single word `From` for a body.
+
+    Pass ``report`` to collect lines this parser saw under a checkbox and did
+    not read as its text. It is deliberately narrow: only *unindented, non-
+    bullet, non-heading* lines, which are the ambiguous Markdown-legal "lazy"
+    wraps. Ordinary prose between rows is not a loss and is not reported —
+    a report nobody can act on is the kind people learn to skip.
+    """
     body = _split_frontmatter(text)
     items: list[Item] = []
     tier = 0
@@ -589,20 +651,56 @@ def parse(text: str) -> list[Item]:
     refs: tuple[str, ...] = ()
     ordinal = 0
 
+    #: The row being read, held open until something closes it. A row is not
+    #: built at its first line any more (ISS-0216): its text can continue on
+    #: the next, and `_NAME_RE` has to run against the WHOLE row or a wrapped
+    #: `**bold name**` parses as an unnamed one.
+    open_row: dict[str, Any] | None = None
+
+    def close_row() -> None:
+        nonlocal open_row
+        if open_row is None:
+            return
+        rest = " ".join(open_row["rest"]).strip()
+        named = _NAME_RE.match(rest)
+        name, detail = (named.group(1), named.group(2)) if named else (rest, "")
+        detail = detail.strip()
+        rerun = _RERUN_RE.search(detail)
+        mark = open_row["mark"]
+        items.append(Item(
+            tier=open_row["tier"], section=open_row["section"],
+            area=open_row["area"],
+            name=name.strip(), text=detail,
+            checked=mark in _CHECKED_MARKS,
+            reconciled=mark in _RECONCILED_MARKS,
+            excepted=mark in _EXCEPTED_MARKS,
+            failed=mark in _FAILED_MARKS,
+            question=mark in _QUESTION_MARKS,
+            needs_rerun=mark in _RERUN_MARKS,
+            invalidated=split_rerun(rerun.group(1)) if rerun else _NOT_INVALIDATED,
+            mark=mark,
+            refs=open_row["refs"], ordinal=open_row["ordinal"],
+            heading=open_row["heading"],
+        ))
+        open_row = None
+
     in_fence = False
     for line in body.splitlines():
         if _FENCE_RE.match(line):
+            close_row()
             in_fence = not in_fence
             continue
         if in_fence:
             continue
         tier_head = _TIER_HEADING_RE.match(line)
         if tier_head:
+            close_row()
             tier = int(tier_head.group(1))
             section, area, refs = "", "", ()
             continue
         sect = _SECTION_RE.match(line)
         if sect:
+            close_row()
             section = sect.group(1)
             ordinal = 0
             heading = sect.group(2)
@@ -614,32 +712,35 @@ def parse(text: str) -> list[Item]:
         if tier == 0:
             continue
         item = _ITEM_RE.match(line)
-        if not item:
+        if item:
+            close_row()
+            ordinal += 1
+            open_row = {
+                # NOT stripped before comparing: `[ ]` and `[]` are both the
+                # plain unchecked box, but `[ x]` is a two-character mark
+                # nobody recognises, and stripping it into `x` would silently
+                # promote a typo to a walked check — the failure this whole
+                # regex exists to stop, inverted.
+                "mark": item.group(1), "rest": [item.group(2)],
+                "tier": tier, "section": section, "area": area,
+                "refs": refs, "ordinal": ordinal, "heading": full_heading,
+            }
             continue
-        # NOT stripped before comparing: `[ ]` and `[]` are both the plain
-        # unchecked box, but `[ x]` is a two-character mark nobody recognises,
-        # and stripping it into `x` would silently promote a typo to a walked
-        # check — the failure this whole regex exists to stop, inverted.
-        mark = item.group(1)
-        rest = item.group(2)
-        named = _NAME_RE.match(rest)
-        name, detail = (named.group(1), named.group(2)) if named else (rest, "")
-        detail = detail.strip()
-        rerun = _RERUN_RE.search(detail)
-        ordinal += 1
-        items.append(Item(
-            tier=tier, section=section, area=area,
-            name=name.strip(), text=detail,
-            checked=mark in _CHECKED_MARKS,
-            reconciled=mark in _RECONCILED_MARKS,
-            excepted=mark in _EXCEPTED_MARKS,
-            failed=mark in _FAILED_MARKS,
-            question=mark in _QUESTION_MARKS,
-            needs_rerun=mark in _RERUN_MARKS,
-            invalidated=split_rerun(rerun.group(1)) if rerun else _NOT_INVALIDATED,
-            mark=mark,
-            refs=refs, ordinal=ordinal, heading=full_heading,
-        ))
+        if open_row is not None:
+            wrapped = _CONTINUATION_RE.match(line)
+            if wrapped:
+                open_row["rest"].append(wrapped.group(1))
+                continue
+            #: Anything else closes the row, and a line that MIGHT have been a
+            #: lazy wrap is reported rather than dropped — see `parse_report`.
+            if report is not None and _LAZY_WRAP_RE.match(line):
+                report.append(
+                    f"tier {tier} §{open_row['section']} row {open_row['ordinal']}: "
+                    f"unindented line under a checkbox, not read as its text: "
+                    f"{line.strip()[:60]!r}"
+                )
+        close_row()
+    close_row()
     return items
 
 

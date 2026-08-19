@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 138
-  ISS: 218
+  ISS: 219
   PHASE: 38
   REQ: 57
   RISK: 7
@@ -71,11 +71,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0505"
-  feature: "FEAT-0126"
-  phase: "PHASE-037"
-  issue: "ISS-0211"
-  note: "2026-08-18 — PHASE-037 opened on five defects Edwin found by USING the cockpit on his own repos, not by audit. PHASE-036 is done and independently APPROVED (seventh pass). Order is in docs/features/surfaces-report/plan/PLAN.md and it is deliberate: (1) FEAT-0126, the glyph regression, because it is live in every repo right now and has no dependencies; (2) FEAT-0125 tasks 0502-0503, because ISS-0210 is the highest-severity item here — REL-0013 renders 60 blocking checks each with a LIVE MARK BUTTON, on the page whose whole purpose is to report the release is not ready; (3) FEAT-0127, the two data defects, because `Verified` as the else-branch is a correctness bug that outlives this corpus; (4) FEAT-0128, presentation, pointless before the rows are correct; (5) FEAT-0129, the only new scope and the only new write path. THE THROUGH-LINE: three of these tasks collapse or remove something from a screen, and the failure mode for all three is identical — a count that no longer expands to its rows is work hidden rather than organised (REQ-0047 criterion 3). NOT IN SCOPE: ISS-0208 owns the tier/gate question and nothing here changes which checks block; ISS-0209 (fleet validators) is a migration per repo; ISS-0206 is borne on by FEAT-0129 without being resolved. PHASE-038 exists as of 2026-08-19 and is NOT the focus: it is documented in full and gated on ADR-0037 being accepted, the same proposed-first gate ADR-0030/0031/0034 used. Do not start it, and do not let it pull PHASE-037 sideways — the two overlap only at ISS-0206, which PHASE-038 answers by ruling platform out as a note field."
+  task: "TASK-0532"
+  feature: "FEAT-0134"
+  phase: "PHASE-038"
+  issue: "ISS-0216"
+  note: "2026-08-19 — PHASE-038 STARTED. ADR-0037 accepted; Edwin's instruction is the goal: implement, test and independently review the full PHASE-038 functionality, STAGE 1 ONLY (FEAT-0133..FEAT-0137). DO NOT START FEAT-0138. Order is in docs/features/verdict-ledger/plan/PLAN.md. (0) TASK-0532 FIRST and non-negotiable: the row parser drops every physical line after the first in a hard-wrapped bullet, six notes in your-trainer are already truncated and one body is the word `From` (ISS-0216). Running another migration through it multiplies the damage. (1) FEAT-0133 the ledger file, JSON at docs/releases/ledgers/, entries + evidence as sibling collections, working ledger per platform, sealing assigns AND expires excused. (2) FEAT-0134 the note sheds seven fields, upstream first. (3) FEAT-0135 the queries. (4) FEAT-0136 the cockpit read/write path — 87 renderer.ts sites, 65 in acceptance.py, five endpoints, plus suite_at gaining a third shape (TASK-0545, the only gap that produces a WRONG ANSWER rather than an error). (5) FEAT-0137 the vocabulary. FOUR CONSTRAINTS: splitter before any migration; NO REPO MIGRATES BEFORE ITS GATE DELTA IS WRITTEN DOWN (TASK-0529/0534); template-owned surfaces land upstream in ~/Dev/repos/project-os first and do NOT blind-copy into your-trainer, whose TESTING.md holds its own tier definitions (ISS-0217); and TASK-0541 (seed the 203 automation annotations) MUST land before TASK-0530 removes the field — it is data preservation guarding the removal, not FEAT-0138 functionality. PHASE-037 remains active with FEAT-0125..0129 at doing; this does not close it."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -866,7 +866,7 @@ items:
     TASK-0532:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0532-Fix-The-Splitter-Before-Anything-Migrates.md"
       title: "Fix the physical-line splitter and repair the six truncated notes, before any repo migrates again"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0134
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 474
+    tasks_done: 475
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

@@ -326,7 +326,27 @@ def main() -> int:
         return 2
 
     text = source.read_text(encoding="utf-8")
-    before = A.parse(text)
+    #: **Lines the parser saw under a checkbox and did not read as its text**
+    #: (ISS-0216). This script used to run a parser that discarded every line
+    #: it could not classify, in silence — so a hard-wrapped row was migrated
+    #: as its first physical line and the note recorded no loss. Six notes in
+    #: `../your-trainer` were written that way and one of them has the single
+    #: word `From` for a body.
+    #:
+    #: Continuations are now joined. What is left in this list is the one shape
+    #: that stays ambiguous — an unindented, non-bullet line, which Markdown
+    #: would read as a lazy wrap and this parser will not, because the corpus
+    #: puts real separate annotations in exactly that position. It is REPORTED
+    #: and the migration continues: a person decides, and nothing is invented.
+    wraps: list[str] = []
+    before = A.parse(text, report=wraps)
+    if wraps:
+        print(f"migrate: {len(wraps)} unindented line(s) under a checkbox were "
+              f"NOT read as that row's text — check each before applying:")
+        for line in wraps[:40]:
+            print(f"  ? {line}")
+        if len(wraps) > 40:
+            print(f"  … and {len(wraps) - 40} more")
     if not before:
         print("migrate: the suite parses to zero checks — refusing")
         return 2
