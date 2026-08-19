@@ -1669,7 +1669,7 @@ async function mountReleaseGate(): Promise<void> {
     const reconciled = (t1?.reconciled ?? 0) + (t2?.reconciled ?? 0);
     band.append(
       gateLine(reconciled
-        ? `Release gate clear — every Tier 1 and Tier 2 test is settled, ${reconciled} by reconciliation rather than by being walked.`
+        ? `Release gate clear — every Tier 1 and Tier 2 test is settled, ${reconciled} by reconciliation rather than by being completed.`
         : 'Release gate clear — every Tier 1 and Tier 2 test is checked.'),
       gateNote(`${t1?.total ?? 0} Tier 1 · ${t2?.total ?? 0} Tier 2`),
     );
@@ -1768,7 +1768,7 @@ async function mountTestRunButton(
   if (steps === 0) {
     const why = document.createElement('span');
     why.className = 'meta note-run-empty';
-    why.textContent = 'No runnable steps found — open the note to walk it by hand.';
+    why.textContent = 'No runnable steps found — open the note to complete it by hand.';
     why.title = 'A procedure is a `## Steps` / `## Procedure` / `## Cases` '
       + 'section, or a body of `- [ ]` checkboxes.';
     row.append(label, why);

@@ -332,7 +332,7 @@ def test_a_recorded_command_means_the_machine_runs_it(repo_index: Index) -> None
     stamps it, not a human"*. `_is_manual_test` did not, so TST-0022 —
     ``command: .venv/bin/pytest tests/test_surface_ownership.py -q`` — was
     offered a manual stepper and counted among the tests a scope asks a person
-    to walk. One question, one rule (TASK-0371).
+    todo. One question, one rule (TASK-0371).
     """
     by_id = {r.note_id: r for r in repo_index.notes_by_type("test")}
     tst22 = by_id["TST-0022"]
@@ -1054,8 +1054,8 @@ def test_a_clear_gate_says_which_of_its_tests_were_reconciled() -> None:
     a green light. The band must have both sentences and pick on the count."""
     src = RENDERER.read_text(encoding="utf-8")
     band = re.search(r"async function mountReleaseGate\(\).*?\n\}", src, re.S).group(0)
-    assert "reconciled" in band, "the clear band cannot distinguish walked from settled"
-    assert "by reconciliation rather than by being walked" in band
+    assert "reconciled" in band, "the clear band cannot distinguish completed from settled"
+    assert "by reconciliation rather than by being completed" in band
     assert band.index("const reconciled") < band.index("Release gate clear")
 
 
@@ -1834,11 +1834,11 @@ def test_the_tracking_line_counts_re_runs_and_stale_ticks_separately() -> None:
     )
     # **2, not 1** — the `rerun` row counts here as well as under its own
     # heading, because a check whose tick was cleared is a check somebody has
-    # to walk. Asserted deliberately rather than adjusted to match: the first
+    # todo. Asserted deliberately rather than adjusted to match: the first
     # version of this expected 1, which would have meant a re-run row silently
     # missing from the count of outstanding work.
-    assert "2 to walk" in label, label
+    assert "2 todo" in label, label
     # Walked is the numerator, and a stale tick still counts as walked: it was.
     # What is untrue is that the evidence still holds, which is why it is
     # reported beside the fraction rather than subtracted from it.
-    assert "3/5 walked" in label, label
+    assert "3/5 completed" in label, label

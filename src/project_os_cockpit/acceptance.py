@@ -1653,11 +1653,11 @@ MARK_MEANING: dict[str, str] = {
     "excused": "excused this release", "blocked": "could not run",
     "fail": "failed",
     #: The pre-ledger words. Read forever, written nowhere.
-    "todo": "unwalked", "done": "passed", "incomplete": "partial",
+    "todo": "todo", "done": "passed", "incomplete": "partial",
     "canceled": "canceled", "important": "failed", "question": "unclear",
     "rerun": "needs re-run",
     # legacy characters, for any path that reaches here un-normalised
-    " ": "unwalked", "x": "passed", "X": "passed",
+    " ": "todo", "x": "passed", "X": "passed",
     "/": "partial", "~": "partial", "-": "canceled",
     "!": "failed", "F": "failed", "?": "unclear",
 }
@@ -1875,7 +1875,7 @@ def gate_payload(
         "local_rule": "This repo also settles a check by reconciliation — a "
                       "`- [~]` mark, meaning the check was closed by a "
                       "decision recorded on its own line rather than by being "
-                      "walked. Reconciled checks do not block and are counted "
+                      "completed. Reconciled checks do not block and are counted "
                       "separately; they are not release exceptions.",
         "blocking": [_row(i) for i in blocking],
         # --- the delta, additive to `blocking` above ----------------------

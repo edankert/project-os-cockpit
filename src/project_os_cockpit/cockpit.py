@@ -4341,13 +4341,18 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         # that could never fire. Caught before it shipped by printing the
         # payload rather than trusting the field name.
         stale = sum(1 for i in items if i.get("stale"))
-        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']} walked"
+        #: **`completed` and `todo`**, not `walked` and `to walk` (Edwin,
+        #: 2026-08-19). *Walk* survived [[DES-0012]] D5's decision to use one
+        #: verb — `Run` — in the surfaces it did not name, and it is the wrong
+        #: word regardless: a check with a `command:` is not walked by anybody.
+        #: `completed` says what happened without claiming who did it.
+        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']} completed"
         if rerun:
             label = f"{label} · {rerun} need re-run"
         if stale:
             label = f"{label} · {stale} stale"
         if unchecked:
-            label = f"{label} · {unchecked} to walk"
+            label = f"{label} · {unchecked} todo"
         if reconciled:
             label = f"{label} · {reconciled} reconciled"
         group: dict[str, Any] = {
@@ -4644,7 +4649,7 @@ def _release_content_rows(
                           if gate.get("shape") == _acceptance.SHAPE_NOTES
                           else "ACCEPTANCE_TESTS.md"),
                 "subtitle": (
-                    f"{unchecked} of {total} Tier 1/2 checks unwalked — a "
+                    f"{unchecked} of {total} Tier 1/2 checks todo — a "
                     "release is blocked while any is"
                     if unchecked else
                     f"all {total} Tier 1/2 checks settled"

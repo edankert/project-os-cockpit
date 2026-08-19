@@ -1578,7 +1578,7 @@ def mark_released(
                           for r in blocking[:5])
         more = f" (and {len(blocking) - 5} more)" if len(blocking) > 5 else ""
         raise WriteError(
-            f"{len(blocking)} Tier 1/2 check(s) are unwalked and the note "
+            f"{len(blocking)} Tier 1/2 check(s) are todo and the note "
             f"records no exceptions: {names}{more}. Walk them, or document the "
             "exceptions with justification in the release note — TESTING.md "
             "allows the second and this refusal is what makes it a decision "
