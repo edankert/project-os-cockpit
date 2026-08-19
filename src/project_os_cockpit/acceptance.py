@@ -498,6 +498,23 @@ class Item:
         """
         if not (self.checked and self.invalidated):
             return False
+        #: **Only a feature check is re-opened by a change** (ADR-0039
+        #: decision 2). A feature check asserts *the system does X*, and a
+        #: later change can falsify that. A regression check asserts *this
+        #: defect was fixed* -- a claim about a past event that nothing a
+        #: later change does can falsify -- so it is completed once and stays
+        #: completed. An automated check is executed by CI and is current by
+        #: construction.
+        #:
+        #: This is the clause carrying the risk, and it is stated so it can be
+        #: argued with: nothing re-opens a settled regression check
+        #: automatically. If such a bug recurs it files a new issue, and a bug
+        #: we expected to recur should have had a `command:`.
+        #:
+        #: An explicit `mark: rerun` still re-opens anything -- that is a
+        #: person saying so, and `needs_rerun` is read separately from this.
+        if section_of(self) != SECTION_FEATURE:
+            return False
         if self.verdict_date and self.invalidated.date:
             return self.verdict_date < self.invalidated.date
         return True
@@ -1785,7 +1802,7 @@ MARK_MEANING: dict[str, str] = {
     #: The pre-ledger words. Read forever, written nowhere.
     "todo": "todo", "done": "passed", "incomplete": "partial",
     "canceled": "canceled", "important": "failed", "question": "unclear",
-    "rerun": "needs re-run",
+    "rerun": "needs re-check",
     # legacy characters, for any path that reaches here un-normalised
     " ": "todo", "x": "passed", "X": "passed",
     "/": "partial", "~": "partial", "-": "canceled",

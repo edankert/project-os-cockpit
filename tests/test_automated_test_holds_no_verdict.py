@@ -167,3 +167,75 @@ def test_a_manual_note_can_still_be_stamped(tmp_path: Path) -> None:
     result = note_writes.stamp_test_run(index, "TST-0010", outcome="passing", steps=[])
     assert result["outcome"] == "passing"
     assert 'status: "passing"' in note.read_text(encoding="utf-8")
+
+
+# ------------------------------------------------ the authoring rule (REQ-0060)
+
+CHECK = """---
+type: "[[test]]"
+id: TST-0011
+title: "a check"
+status: active
+level: acceptance
+mark: " "
+covers: {covers}
+{command}---
+
+# body
+"""
+
+
+def _check_repo(tmp_path: Path, *, covers="[]", command="") -> Path:
+    (tmp_path / "docs" / "tests" / "acceptance").mkdir(parents=True)
+    (tmp_path / "SNAPSHOT.yaml").write_text(
+        "version: 1\ncounters:\n  TST: 11\nitems: {}\n", encoding="utf-8")
+    (tmp_path / "docs" / "tests" / "acceptance" / "TST-0011-A.md").write_text(
+        CHECK.format(covers=covers, command=command), encoding="utf-8")
+    return tmp_path
+
+
+def _all_codes(repo: Path) -> list[str]:
+    out = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True, timeout=120).stdout
+    # The validator pads its severity column, so `WARN` arrives as `WARN  [`.
+    return [ln.split("]")[0].split("[")[1]
+            for ln in out.splitlines()
+            if ln.lstrip().startswith(("ERROR", "WARN")) and "[" in ln
+            and "TST-0011" in ln]
+
+
+@pytest.mark.parametrize("covers", ['[]', '["[[PHASE-0013]]"]', '["[[TASK-0001]]"]'])
+def test_a_check_naming_no_subject_is_reported(tmp_path: Path, covers: str) -> None:
+    """`covers:` carrying provenance is the same conflation ISS-0235 found.
+
+    Measured 2026-08-20: 44 checks in `your-trainer` and **none** in the other
+    two suite repos — 12 name nothing, 32 name only a `PHASE-*` or a `TASK-*`,
+    which is the work the check came out of rather than the thing it verifies.
+    """
+    assert "CHECK-SUBJECT" in _all_codes(_check_repo(tmp_path, covers=covers))
+
+
+@pytest.mark.parametrize("covers", ['["[[FEAT-0001]]"]', '["[[ISS-0001]]"]'])
+def test_a_check_naming_its_subject_is_fine(tmp_path: Path, covers: str) -> None:
+    assert "CHECK-SUBJECT" not in _all_codes(_check_repo(tmp_path, covers=covers))
+
+
+def test_an_automated_check_is_exempt(tmp_path: Path) -> None:
+    """`command:` decides its section outright, so nothing is being guessed."""
+    repo = _check_repo(tmp_path, covers="[]", command='command: "pytest tests/x.py"\n')
+    assert "CHECK-SUBJECT" not in _all_codes(repo)
+
+
+def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
+    """ADR-0011 clause 3: the debt is real and bounded, so it is dated.
+
+    A check with a justification and no cutover is the permanent-warning tier
+    that ADR forbids — the mistake TEST-ENTRYPOINT and STATUS-TYPE shipped with
+    and were corrected for on the same day.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("v_promo", VALIDATOR)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"

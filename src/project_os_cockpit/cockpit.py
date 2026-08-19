@@ -2363,7 +2363,7 @@ def review_queue_payload(
             {"key": "decisions", "label": "Decisions", "items": decisions},
             {"key": "proposals", "label": "Proposals", "items": proposals},
             {"key": "questions", "label": "Questions", "items": questions},
-            {"key": "runs", "label": "Test runs", "items": runs},
+            {"key": "runs", "label": "Tests to do", "items": runs},
         ],
         "registers": {
             "tests": _tests_register(index),

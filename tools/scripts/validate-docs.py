@@ -857,6 +857,21 @@ PROMOTIONS = {
     # invented without a status table. Cheaper to clear than TEST-ENTRYPOINT
     # and dated the same day for one cutover rather than two.
     "STATUS-TYPE": "2026-11-12",
+    # ADR-0039 / REQ-0060. A check's section is DERIVED from `covers:` -- a
+    # `FEAT-*` makes it a standing behaviour claim that a change re-opens, an
+    # `ISS-*` makes it a claim about a fixed defect that nothing re-opens. A
+    # check naming neither cannot be classified and defaults to a behaviour
+    # claim, which is the safe direction but is a guess.
+    #
+    # 44 findings at introduction, ALL in `your-trainer`, none in the other two
+    # suite repos: 12 name nothing at all and 32 name only a `PHASE-*` or a
+    # `TASK-*` -- provenance, the work the check came out of, rather than the
+    # thing it verifies. That is the same conflation ISS-0235 found between
+    # what a check verifies and where it came from.
+    #
+    # Warned rather than errored on day one for ADR-0011 clause 3: the debt is
+    # real, bounded, and one line per note to clear.
+    "CHECK-SUBJECT": "2026-11-18",
 }
 
 
@@ -2391,6 +2406,22 @@ def validate(root, report):
                 % (the_id,
                    "declares a command:" if automated else "is at level: acceptance",
                    status, status, rel))
+
+        #: **A check names what it verifies** (REQ-0060). Without a `FEAT-*` or
+        #: an `ISS-*` its section cannot be derived and it defaults to a
+        #: behaviour claim -- which keeps it on the list, the safe direction,
+        #: but by guessing rather than by reading.
+        #:
+        #: Automated checks are exempt: `command:` decides their section
+        #: outright, so nothing about them is being guessed.
+        if level == "acceptance" and not command:
+            refs = extract_ids((fm or {}).get("covers"))
+            if not any(r.startswith(("FEAT-", "ISS-")) for r in refs):
+                promotion_emit(report, "CHECK-SUBJECT", grandfathered, the_id)(
+                    "CHECK-SUBJECT",
+                    "%s names no FEAT-* or ISS-* in covers:, so its section cannot be derived and it "
+                    "defaults to a feature check -- name the feature it verifies, or the issue whose "
+                    "fix it verifies (ADR-0039) (%s)" % (the_id, rel))
 
         if command:
             # **Evidence of an execution, on a note that records no execution**
