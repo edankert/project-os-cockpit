@@ -1683,7 +1683,7 @@ items:
     ISS-0216:
       file: "docs/issues/ISS-0216-The-Suite-Parser-Splits-On-Physical-Lines.md"
       title: "The acceptance suite parser matches rows per physical line, so a hard-wrapped bullet loses everything after its first line — six migrated notes in your-trainer are truncated, one body is the word \"From\""
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       severity: high
@@ -3863,7 +3863,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 15
+    issues_open: 14
     issues_triage: 0
     risks_open: 6
     releases_total: 1

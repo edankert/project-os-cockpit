@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0216
 aliases: ["ISS-0216"]
 title: "The acceptance suite parser matches rows per physical line, so a hard-wrapped bullet loses everything after its first line — six migrated notes in your-trainer are truncated, one body is the word \"From\""
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -56,7 +56,11 @@ A hard-wrapped bullet parses as one item carrying its full text. A line the pars
 
 ## Next actions
 
-- [ ] Add continuation handling to `acceptance.parse`: a non-matching, indented line following an item appends to that item's text.
-- [ ] Report unclassified lines rather than dropping them, and surface the count in the migration's `problems` output.
-- [ ] Prove it on a hard-wrapped fixture **before any repo runs a migration again** — this is a [[PHASE-038]] exit criterion.
-- [ ] Repair the six `your-trainer` notes from the README prose, one at a time, recording the source address.
+- [x] Continuation handling in `acceptance.parse` — the row is held open and closed by what follows it, so the join happens **before** `_NAME_RE` runs.
+- [x] Lazy wraps reported rather than dropped; `migrate-acceptance-checks.py` prints them before applying.
+- [x] Proved on a hard-wrapped fixture, and mutation-proven against three plausible wrong fixes.
+- [x] The six `your-trainer` notes repaired from the README prose — through the *fixed* parser, each recovery asserted to start with the truncated text. **Uncommitted in that repo**: 58 files of other work in flight.
+
+## Fixed 2026-08-19
+
+The exclusion rule ended up wider than this issue proposed. Independent review measured what *"indented and not a bullet"* still let through — an ordered-list step, a table row, an indented heading, a block quote — and each folded into the row's prose, inventing a sentence nobody wrote. It is five shapes now, and the four extra are parametrised guards.
