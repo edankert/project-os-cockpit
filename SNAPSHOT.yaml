@@ -3146,7 +3146,7 @@ items:
     TST-0028:
       file: "docs/tests/TST-0028-The-Release-Gate-Names-Its-Number.md"
       title: "The release gate names its number and stays one obligation — 60 is stated, never summed, and it asks only while a release is `draft`"
-      status: passing
+      status: active
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       scope: system
@@ -3157,7 +3157,7 @@ items:
     TST-0027:
       file: "docs/tests/TST-0027-The-Ladder-Is-Non-Empty-In-Every-Repo.md"
       title: "The ladder is non-empty in every repo — every rung a repo reaches is present, every rung it cannot is absent, and an unknown count is never a zero"
-      status: passing
+      status: active
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       scope: system
@@ -3179,7 +3179,7 @@ items:
     TST-0025:
       file: "docs/tests/TST-0025-Obligation-Routing-Is-Per-Item-And-Complete.md"
       title: "Obligation routing is per-item and complete — an unrouted kind fails, the in-flight rule behaves on constructed subjects, and `deferred` beats the rule in both directions"
-      status: passing
+      status: active
       owner: user:edwin
       phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
       scope: system
@@ -3201,68 +3201,68 @@ items:
     TST-0022:
       file: "docs/features/library-reduction/plan/tests/TST-0022-Surface-Ownership.md"
       title: "Surface ownership — every moved type is reachable, and Library is reduced"
-      status: passing
+      status: active
       phase: "[[PHASE-010-Surface-Ownership]]"
       validates: ["REQ-0025", "FEAT-0046", "FEAT-0047", "FEAT-0048", "FEAT-0049", "FEAT-0050", "ISS-0062", "ISS-0063"]
       note: "Counts against the live corpus, not non-emptiness — a group that renders but lost half its rows passes the existing payload-shape tests and must fail this. Carries manual steps because both PHASE-009 reachability bugs were renderer-side with correct payloads."
     TST-0019:
       title: "Status vocabulary parity — one canonical band map, six surfaces held to it"
-      status: passing
+      status: active
       path: "docs/features/cockpit/plan/tests/TST-0019-Status-Vocabulary-Parity.md"
       validates: ["TASK-0198", "ISS-0023", "REQ-0012"]
     TST-0018:
       title: "Status-diff layer — transitions emit once, non-changes and cold seed are silent"
-      status: passing
+      status: active
       path: "docs/features/live-work/plan/tests/TST-0018-Status-Diff-Layer.md"
       validates: ["TASK-0162"]
     TST-0001:
       title: "Index — lookup tables, link graph, invalidation"
-      status: passing
+      status: active
       path: "docs/tests/TST-0001-Index-Lookup-And-Backlinks.md"
       validates: ["REQ-0002", "REQ-0008"]
     TST-0002:
       title: "Cockpit JSON API — nav + context payloads"
-      status: passing
+      status: active
       path: "docs/tests/TST-0002-Cockpit-Json-Api.md"
       validates: ["REQ-0013"]
     TST-0003:
       title: "Unknown POST drains body — keep-alive stays synced"
-      status: passing
+      status: active
       path: "docs/features/cockpit/plan/tests/TST-0003-Unknown-Post-Drains-Body.md"
       validates: ["TASK-0057", "FEAT-0006"]
     TST-0004:
       title: "Sidecar contract — /healthz, COCKPIT_DESKTOP gating, mode-1 regression guard"
-      status: passing
+      status: active
       path: "docs/features/desktop-shell/plan/tests/TST-0004-Sidecar-Contract.md"
       validates: ["TASK-0059", "FEAT-0007"]
     TST-0005:
       title: "GET /api/render — HTML fragment + metadata, error shapes, path-traversal guard"
-      status: passing
+      status: active
       path: "docs/features/cockpit-api-hardening/plan/tests/TST-0005-Render-Endpoint.md"
       validates: ["TASK-0067", "FEAT-0008"]
     TST-0006:
       title: "Every JSON endpoint emits X-Cockpit-Schema matching cockpit.SCHEMA_VERSION"
-      status: passing
+      status: active
       path: "docs/features/cockpit-api-hardening/plan/tests/TST-0006-Schema-Header.md"
       validates: ["TASK-0068", "FEAT-0008"]
     TST-0007:
       title: "Wire-level coverage for focus POST, tab-state POST, and SSE event shapes"
-      status: passing
+      status: active
       path: "docs/features/cockpit-api-hardening/plan/tests/TST-0007-Focus-Tab-State-SSE.md"
       validates: ["TASK-0069", "FEAT-0008"]
     TST-0008:
       title: "POST /api/notes/check-toggle — write-back, error shapes, nested tasks"
-      status: passing
+      status: active
       path: "docs/features/native-center-pane/plan/tests/TST-0008-Check-Toggle.md"
       validates: ["TASK-0074", "FEAT-0011"]
     TST-0009:
       title: "Agent-state pipe — storage, endpoint, SSE delivery, decay, CLI"
-      status: passing
+      status: active
       path: "docs/features/agent-state-signal/plan/tests/TST-0009-Agent-State.md"
       validates: ["TASK-0076", "TASK-0077", "TASK-0078", "FEAT-0013"]
     TST-0010:
       title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
-      status: passing
+      status: active
       path: "docs/features/agent-hooks/plan/tests/TST-0010-Agent-Hook-Ingestion.md"
     TST-0011:
       title: "Live-session instrumentation + activity surfaces — manual checklist"
@@ -3270,28 +3270,28 @@ items:
       path: "docs/features/agent-hooks/plan/tests/TST-0011-Live-Session-Instrumentation.md"
     TST-0012:
       title: "Scoped stats payload + cache"
-      status: passing
+      status: active
       path: "docs/features/overview-scopes/plan/tests/TST-0012-Scoped-Stats.md"
     TST-0013:
       title: "Agent verb registry — defaults, YAML override, endpoint"
-      status: passing
+      status: active
       path: "docs/features/agent-verbs/plan/tests/TST-0013-Verb-Registry.md"
     TST-0014:
       title: "Dispatch ledger, queue-requests, status-aware verbs, CLI"
-      status: passing
+      status: active
       path: "docs/features/dispatch-runtime/plan/tests/TST-0014-Dispatch-Ledger.md"
     TST-0015:
       title: "External agent-state hook — no-op scoping, state mapping, sidecar POST, fallback"
-      status: passing
+      status: active
       path: "docs/features/external-signal/plan/tests/TST-0015-External-Hook.md"
     TST-0016:
       title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
-      status: passing
+      status: active
       path: "docs/features/verification-health/plan/tests/TST-0016-Validation-Health.md"
       validates: ["TASK-0111", "TASK-0113", "FEAT-0018"]
     TST-0017:
       title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
-      status: passing
+      status: active
       path: "docs/features/external-signal/plan/tests/TST-0017-Sidecar-Identity-Guard.md"
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
@@ -3894,7 +3894,7 @@ metrics:
     tasks_total: 574
     tasks_done: 502
     tests_total: 43
-    tests_passing: 39
+    tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0

@@ -56,6 +56,7 @@ import argparse
 import datetime
 import hashlib
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -319,6 +320,81 @@ def _is_acceptance_test(note_id, note_index):
     return str(fm.get("level", "") or "").strip().lower() == "acceptance"
 
 
+#: **Does the thing a `command:` names still exist?** (ADR-0039)
+#:
+#: A deliberate duplicate of `command_targets.py`. This module is stdlib-only
+#: and self-contained because it is copied whole into every downstream repo, so
+#: it cannot import the package. `tests/test_command_target_parity.py` asserts
+#: the two agree on every command in the corpus and on the constructed cases --
+#: the same treatment `_SETTLED_MARKS` gets, for the same reason.
+#:
+#: Three answers, never two. A command naming no target this can find is
+#: UNCHECKABLE, not resolved and not broken: 5 of the fleet's 139 automated
+#: notes are that shape, and calling them either would be a lie in one
+#: direction or the other.
+CMD_RESOLVES, CMD_BROKEN, CMD_UNCHECKABLE = "resolves", "broken", "uncheckable"
+_CMD_JVM_CLASS = re.compile(r"(?:--tests|class=)\s*([A-Za-z_][\w.]*\.[A-Z]\w+)")
+_CMD_JVM_SUFFIXES = (".kt", ".java")
+_CMD_SOURCE_PATH = re.compile(r"\.(py|ts|tsx|js|mjs|swift)$")
+
+
+def command_targets(command):
+    """Every target a command names, as (kind, value). Mirrors `command_targets.targets`."""
+    out = []
+    if not command:
+        return out
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError:
+        tokens = []
+    for token in tokens:
+        if token.startswith("-"):
+            continue
+        head = token.split("::", 1)[0]
+        if _CMD_SOURCE_PATH.search(head):
+            out.append(("path", head))
+    for match in _CMD_JVM_CLASS.finditer(command):
+        out.append(("class", match.group(1)))
+    return out
+
+
+def _command_target_exists(kind, value, root):
+    if kind == "path":
+        if (root / value).exists():
+            return True
+        return any(root.rglob(Path(value).name))
+    leaf = value.rsplit(".", 1)[-1]
+    return any(any(root.rglob(leaf + suffix)) for suffix in _CMD_JVM_SUFFIXES)
+
+
+def _command_target_checkable(kind, value, root):
+    """Is there source here to look in at all?
+
+    A missing file inside a directory that exists is a RENAME. A missing
+    directory is a tree that was never here. Without this the validator
+    silently depends on the source tree: against a docs-only checkout every
+    automated test reports a broken command at once -- 71 errors over a valid
+    corpus, which is how a gate teaches people to stop reading it.
+    """
+    if kind == "path":
+        return (root / value).parent.is_dir()
+    return any(any(root.rglob("*" + suffix)) for suffix in _CMD_JVM_SUFFIXES)
+
+
+def resolve_command(command, root):
+    """CMD_RESOLVES / CMD_BROKEN / CMD_UNCHECKABLE. Mirrors `command_targets.resolve`."""
+    found = command_targets(command)
+    if not found:
+        return CMD_UNCHECKABLE
+    checkable = [(k, v) for k, v in found if _command_target_checkable(k, v, root)]
+    if not checkable:
+        return CMD_UNCHECKABLE
+    for kind, value in checkable:
+        if not _command_target_exists(kind, value, root):
+            return CMD_BROKEN
+    return CMD_RESOLVES
+
+
 #: Test statuses that only the runner may write (TEST-FIELDS, ADR-0010).
 #: Inline until ISS-0013 -- the second round of review found it, which is the
 #: point: an inline literal is invisible to the guard by construction.
@@ -450,6 +526,12 @@ _NON_STATUS_COLLECTIONS = frozenset({
     # what keeps 671 acceptance tests off the review gate and off a badge.
     # Caught by this guard on the day they were added — the fourth time it has
     # earned its keep.
+    # ADR-0039: SOURCE FILE SUFFIXES a JVM test class could live in. Not a
+    # status by any reading, and caught by this guard the moment the resolver
+    # landed -- the fifth time it has earned its keep, and the second time in
+    # one day that a collection added for a good reason was stopped from
+    # entering the status vocabulary by accident.
+    "_CMD_JVM_SUFFIXES",
     "LEDGER_MARKS",
     "LEDGER_NEEDS_REASON",
     "LEDGER_METHODS",
@@ -2138,9 +2220,31 @@ def validate(root, report):
                         else:
                             emit_for("VERIFY", item_id)("VERIFY", "%s is %s but linked test %s was not found" % (item_id, terminal, tst))
                             continue
-                        if tst_status != "passing":
+                        # **An automated test is discharged by its command
+                        # resolving, not by a stamped status** (ADR-0038).
+                        #
+                        # It carries no verdict at all now, so reading `status`
+                        # here would fail every automated test on the day the
+                        # migration landed -- which it did, loudly, and that is
+                        # what this branch is for.
+                        #
+                        # The claim being checked is strictly stronger than the
+                        # one it replaces: a stamped `passing` cannot notice
+                        # that the test it stands for was renamed. A command
+                        # stops resolving.
+                        tst_command = ""
+                        if tst in note_index:
+                            tst_command = str((note_index[tst][1] or {}).get("command", "") or "").strip()
+                        if tst_command:
+                            if resolve_command(tst_command, root) == CMD_BROKEN:
+                                emit_for("VERIFY", item_id)(
+                                    "VERIFY",
+                                    "%s is %s but linked automated test %s has a broken command -- "
+                                    "it names something that no longer exists, so nothing is verifying it"
+                                    % (item_id, terminal, tst))
+                        elif tst_status != "passing":
                             emit_for("VERIFY", item_id)("VERIFY", "%s is %s but linked test %s is '%s', not passing" % (item_id, terminal, tst, tst_status))
-                        elif tst in note_index and is_stale(note_index[tst][1], staleness_days):
+                        elif not tst_command and tst in note_index and is_stale(note_index[tst][1], staleness_days):
                             # REQ-0023: verification that was true a year ago is not
                             # evidence about today's system.
                             emit_for("VERIFY", item_id)(

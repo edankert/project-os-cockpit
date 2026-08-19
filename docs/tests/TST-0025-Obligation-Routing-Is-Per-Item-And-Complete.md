@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0025
 aliases: ["TST-0025"]
 title: "Obligation routing is per-item and complete — an unrouted kind fails, the in-flight rule behaves on constructed subjects, and `deferred` beats the rule in both directions"
-status: passing
+status: active
 covers: ["[[FEAT-0101-Obligations-Route-By-The-State-Of-Their-Subject]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: []
 tasks: ["[[TASK-0423-An-Obligations-View-Is-Decided-Per-Item]]", "[[TASK-0424-The-In-Flight-Predicate]]", "[[TASK-0425-The-Quiet-Is-On-Screen]]"]
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

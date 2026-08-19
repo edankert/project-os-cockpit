@@ -1877,9 +1877,8 @@ def gate_payload(
         "platform": suite.platform,
         "rel": suite_rel(suite),
         "blocked": bool(blocking),
-        "rule": "A release is blocked while any Tier 1/Tier 2 test is "
-                "unchecked (exceptions must be documented in the release "
-                "note).",
+        "rule": "A release is blocked while any manual check is unsettled "
+                "(exceptions must be documented in the release note).",
         # The contract's sentence is quoted verbatim above and must stay that
         # way — a paraphrase becomes a second statement of the rule and the two
         # drift. But this repo now clears a check by a second mechanism the

@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0021
 aliases: ["TST-0021"]
 title: "Review desk — queue without new states, guarded note write-back, manual-run logging"
-status: passing
+status: active
 covers: ["[[FEAT-0041-Review-Desk]]", "[[TASK-0206-Review-Virtual-Page]]", "[[TASK-0207-Proposal-Set-Review]]", "[[TASK-0209-Manual-Test-Runner]]", "[[ADR-0007-Planning-Artifact-Approval-Gate]]"]
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
@@ -17,8 +17,6 @@ last_verified: "2026-08-10"
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26
 review_verdict: approved
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

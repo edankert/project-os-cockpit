@@ -771,7 +771,7 @@ def test_the_gate_states_the_contracts_own_rule() -> None:
         encoding="utf-8",
     )
     assert rule in template, "the band's wording is not the template's"
-    assert "**blocked** if any Tier 1 or Tier 2 test is unchecked" in contract
+    assert "**blocked** if any **manual** check is not settled" in contract
 
 
 def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> None:
@@ -845,9 +845,13 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
 
 
 def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None:
-    """The contract blocks on *unchecked* and names one escape: a documented
+    """The contract blocks on *unsettled* and names one escape: a documented
     release exception. This repo clears a check a second way — reconciliation —
     so the gate implements something looser than the sentence it quotes.
+
+    The contract's word changed with ADR-0039 (*unchecked* → *unsettled*, and
+    *Tier 1/Tier 2* → *manual*); the shape of this guard did not, which is the
+    point of quoting rather than paraphrasing.
 
     Independent review's finding. The answer is not to paraphrase the contract
     (that is the drift `rule` exists to prevent) but to state the extension
@@ -855,7 +859,7 @@ def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None
     reconciled check is **not** a release exception.
     """
     gate = acceptance.gate_payload(REPO_DOCS)
-    assert "unchecked" in gate["rule"]
+    assert "unsettled" in gate["rule"]
     local = gate["local_rule"]
     assert "reconcil" in local.lower()
     assert "not release exceptions" in local, (

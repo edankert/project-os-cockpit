@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
 decision_date: 2026-08-19
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 source: ["Edwin 2026-08-19: 'On the verification tests ... these are the tests which have been automated. Can we just make one section and call it automated tests and move all automated tests there, it doesn't matter why they were automated? On the regression tests, these only exist to test issues which were fixed but which we do not expect to be re-occuring and which need to either be tested manually once or otherwise have an automated test. The Feature tests are really the acceptance tests which need to be un-checked set to todo when functionality is changed which warrants a genuine re-check.'"]
 supersedes: ""
 superseded: ""

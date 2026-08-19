@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0033
 aliases: ["TST-0033"]
 title: "The release page — its payload, its refusals, and the absence of `window.prompt`"
-status: passing
+status: active
 covers: ["[[FEAT-0106-The-Release-Page]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: ["[[ISS-0176-Every-Prompt-In-The-Desktop-Shell-Is-Dead]]"]
 tasks: ["[[TASK-0440-The-Release-Payload]]", "[[TASK-0441-The-Release-Page-And-An-Input-That-Works]]"]
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

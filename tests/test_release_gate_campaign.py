@@ -156,7 +156,7 @@ def test_the_rule_sentence_is_the_contracts_words(tmp_path: Path) -> None:
     BESIDE it rather than folded in — a gate that quotes one rule while
     implementing another is drift wearing the quote as cover."""
     gate = acceptance.gate_payload(_docs(tmp_path))
-    assert gate["rule"].startswith("A release is blocked while any Tier 1/Tier 2")
+    assert gate["rule"].startswith("A release is blocked while any manual check")
     assert "reconciliation" in gate["local_rule"]
     assert "reconcil" not in gate["rule"], "the contract's sentence is untouched"
 

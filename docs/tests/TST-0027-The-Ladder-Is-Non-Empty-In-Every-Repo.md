@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0027
 aliases: ["TST-0027"]
 title: "The ladder is non-empty in every repo — every rung a repo reaches is present, every rung it cannot is absent, and an unknown count is never a zero"
-status: passing
+status: active
 covers: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: []
 tasks: ["[[TASK-0426-The-Ladder-As-Data]]", "[[TASK-0427-The-Publication-View]]", "[[TASK-0428-The-Release-Rung]]"]
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

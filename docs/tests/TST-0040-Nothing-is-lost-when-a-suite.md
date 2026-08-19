@@ -3,13 +3,12 @@ type: "[[test]]"
 id: TST-0040
 aliases: ["TST-0040"]
 title: "Nothing is lost when a suite becomes notes — parity, both annotation positions, and two shapes at their own refs"
-status: passing
+status: active
 covers: ["[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
 last_verified: 2026-08-17
-last_run: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
 automated: true

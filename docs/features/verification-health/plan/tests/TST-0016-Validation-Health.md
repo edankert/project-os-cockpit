@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0016
 aliases: ["TST-0016"]
 title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
-status: passing
+status: active
 covers: ["[[FEAT-0018-Verification-Health-Surface]]"]
 command: ".venv/bin/pytest tests/test_validation.py -q"
 phase: "[[PHASE-011-Unproven-Claims]]"
@@ -19,8 +19,6 @@ reviewed_by: "model:claude-opus"
 review_date: 2026-07-18
 review_verdict: approved
 last_verified: 2026-07-18
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

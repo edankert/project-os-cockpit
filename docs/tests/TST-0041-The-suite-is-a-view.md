@@ -3,13 +3,12 @@ type: "[[test]]"
 id: TST-0041
 aliases: ["TST-0041"]
 title: "The suite is a view — the same list, the same marks, and a repaint that does not move the reader"
-status: passing
+status: active
 covers: ["[[FEAT-0114-The-Suite-Is-A-View]]"]
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
 last_verified: 2026-08-17
-last_run: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
 automated: true

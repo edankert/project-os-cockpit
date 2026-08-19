@@ -1,34 +1,37 @@
 #!/usr/bin/env python3
-"""Execute TST-* notes that declare a `command:` and stamp their status (ADR-0010).
+"""Execute TST-* notes that declare a `command:` and report what happened (ADR-0038).
+
+A test note carrying a `command:` records **that a machine executes it**. It does
+not record whether it passed, and this script does not write one.
 
 `QUALITY.md` builds its close-out rules on one gate: an item may not reach a
 terminal status while a linked TST-* is not `passing`. Across 10 repos and 5,890
 status writes that gate has never once observed a failure -- `failing` was
 written zero times, 78% of test notes are born `passing`, and 99% never change
-again. The mechanism is structural, not cultural: the status is written by the
-agent that wants the transition, at the moment it wants it, and nothing returns
-to the note when CI goes red three weeks later.
+again.
 
-This removes the conflict of interest. A note carrying a `command:` has its
-`status` written here, from the exit code, and nowhere else.
+**That measurement is unchanged; its reading is.** `project-os-dev#ADR-0010`
+read "no failure was ever recorded" as *authors do not record failures* and moved
+the writer here. The alternative reading fits the same number and costs a field
+instead of a mechanism: **a red automated test is not a state anybody records,
+because it is a state nobody ships.** A broken build gets fixed, not documented.
 
-Three outcomes, deliberately distinguished:
+So the verdict lives in CI, and what the note keeps is the `command:` -- which is
+strictly the better claim, because a stamped `passing` cannot notice that the
+test it stands for was renamed and a command that stops resolving can.
+
+Three outcomes, still deliberately distinguished, and all three are reported
+rather than stored:
 
   passing     exit 0
   failing     non-zero exit -- the check ran and the system is wrong
   unrunnable  the command could not execute at all (missing binary, missing
-              env, timeout). Reported, and the status is left ALONE.
-
-The third matters more than it looks. Stamping `failing` on a test that could
-not run conflates "the system is broken" with "my machine is missing a tool",
-and that is exactly the noise that teaches people to stop believing a status --
-the failure mode this whole change exists to end. It is also the `blocked` vs
-`failing` confusion ADR-0007's amendment called out one level up.
+              env, timeout)
 
 Exit codes: 0 = no failures, 1 = at least one test failed, 2 = usage error.
 
 Stdlib only. Usage:
-    run-tests.py [--repo-root PATH] [--write] [--filter TST-0001] [--timeout N]
+    run-tests.py [--repo-root PATH] [--filter TST-0001] [--timeout N]
 """
 
 from __future__ import annotations
@@ -39,7 +42,6 @@ import re
 import shlex
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_TIMEOUT = 600
@@ -59,13 +61,6 @@ def fm_get(fm, key):
     if not m:
         return ""
     return m.group(1).strip().strip('"').strip("'")
-
-
-def fm_set(fm, key, value):
-    line = "%s: %s" % (key, value)
-    if re.search(r"^%s:" % re.escape(key), fm, re.M):
-        return re.sub(r"^%s:.*$" % re.escape(key), line, fm, count=1, flags=re.M)
-    return fm.rstrip("\n") + "\n" + line + "\n"
 
 
 def discover(root, only=None):
@@ -118,7 +113,11 @@ def run_one(root, cmd, timeout):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Run TST-* commands and stamp their status.")
     ap.add_argument("--repo-root", default=".")
-    ap.add_argument("--write", action="store_true", help="Stamp status/last_run (default: dry run)")
+    #: **Kept, and inert** (ADR-0038). Removing the flag would make every
+    #: existing invocation fail with a usage error, and the honest answer to
+    #: `--write` is not "unknown option" -- it is "there is nothing to write".
+    ap.add_argument("--write", action="store_true",
+                    help="Accepted and ignored: an automated test records no verdict (ADR-0038)")
     ap.add_argument("--filter", action="append", default=None, help="Only these TST ids")
     ap.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     args = ap.parse_args(argv)
@@ -133,26 +132,19 @@ def main(argv=None):
         print("run-tests: %s — no TST-* notes declare a `command:`" % root.name)
         return 0
 
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+    if args.write:
+        print("run-tests: --write is ignored; an automated test records no verdict (ADR-0038)",
+              file=sys.stderr)
     counts = {"passing": 0, "failing": 0, "unrunnable": 0}
-    print("== %s  %s ==" % ("RUN" if args.write else "DRY RUN", root.name))
-    for path, tid, cmd in tests:
-        outcome, code, detail = run_one(root, cmd, args.timeout)
+    print("== %s ==" % root.name)
+    for _path, tid, cmd in tests:
+        outcome, _code, detail = run_one(root, cmd, args.timeout)
         counts[outcome] += 1
         print("   %-12s %-10s %s%s" % (tid, outcome, cmd[:48], ("  — " + detail[:60]) if detail else ""))
-        if not args.write or outcome == "unrunnable":
-            continue
-        text = path.read_text(encoding="utf-8")
-        pre, fm, post = split_frontmatter(text)
-        fm = fm_set(fm, "status", outcome)
-        fm = fm_set(fm, "last_run", '"%s"' % stamp)
-        fm = fm_set(fm, "exit_code", str(code))
-        fm = fm_set(fm, "updated", stamp[:10])
-        path.write_text(pre + fm + post, encoding="utf-8")
 
     print("   passing=%(passing)d failing=%(failing)d unrunnable=%(unrunnable)d" % counts)
     if counts["unrunnable"]:
-        print("   note: unrunnable tests keep their previous status — an environment gap is not a failure")
+        print("   note: unrunnable is an environment gap, not a failure")
     return 1 if counts["failing"] else 0
 
 

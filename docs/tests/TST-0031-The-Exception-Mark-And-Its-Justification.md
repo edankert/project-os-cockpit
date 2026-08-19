@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0031
 aliases: ["TST-0031"]
 title: "The exception mark and its justification — the cycle writes on every click, an unjustified exception is owed, and clicking past it leaves nothing behind"
-status: passing
+status: active
 covers: ["[[FEAT-0104-The-Suite-Is-The-Surface]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: []
 tasks: []
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

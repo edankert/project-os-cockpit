@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
 decision_date: 2026-08-19
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 source: ["Edwin 2026-08-19: 'In general, the automated tests should record that they are automated, they do not need to record that they pass, there should be a rule which doesn't allow unit or automated regressions to fail (I think this is a general sw-dev rule). The tst does not need to record this, however for manual tests, we do need to record this.'"]
 supersedes: ""
 superseded: ""

@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0004
 aliases: ["TST-0004"]
 title: "Sidecar contract — /healthz, COCKPIT_DESKTOP gating, mode-1 regression guard"
-status: passing
+status: active
 covers: ["[[TASK-0059-Python-Sidecar-Contract]]", "[[FEAT-0007-Desktop-Shell]]"]
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
@@ -13,8 +13,6 @@ source: ["[[TASK-0059]]"]
 path: "tests/test_sidecar_contract.py"
 command: ".venv/bin/pytest tests/test_sidecar_contract.py -q"
 last_verified: "2026-08-10"
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

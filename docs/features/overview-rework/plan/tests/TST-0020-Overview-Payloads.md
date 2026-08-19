@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0020
 aliases: ["TST-0020"]
 title: "Overview payloads — focus block, issue severity, commits join, and sidecar-owned status buckets"
-status: passing
+status: active
 covers: ["[[FEAT-0040-Overview-Rework]]", "[[TASK-0199-Sidecar-Payload-Additions]]", "[[TASK-0200-Overview-Stage-Rework]]", "[[REQ-0022-Overview-State-Above-History]]"]
 phase: "[[PHASE-008-State-And-Review-Surfaces]]"
 owner: user:edwin
@@ -17,8 +17,6 @@ last_verified: "2026-08-10"
 reviewed_by: model:claude-fable-5
 review_date: 2026-07-26
 review_verdict: approved
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

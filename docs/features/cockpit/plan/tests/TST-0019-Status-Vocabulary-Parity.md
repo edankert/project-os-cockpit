@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0019
 aliases: ["TST-0019"]
 title: "Status vocabulary parity — one canonical band map, six surfaces held to it"
-status: passing
+status: active
 covers: ["[[TASK-0198-Delivered-Status-Band]]", "[[ISS-0023-Implemented-Status-Band-Drift]]", "[[REQ-0012-Visual-Style]]", "[[FEAT-0006-Cockpit-Layout]]"]
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
@@ -13,8 +13,6 @@ source: ["[[TASK-0198-Delivered-Status-Band]]"]
 path: "tests/test_status_vocabulary.py"
 command: ".venv/bin/pytest tests/test_status_vocabulary.py -q"
 last_verified: "2026-08-10"
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

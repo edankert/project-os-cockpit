@@ -43,15 +43,17 @@ The order matters and was a fix: a test with a pytest `command:` and a checklist
 
 ## Two populations, one type
 
-| | **executable test** | **acceptance test** (`level: acceptance`) |
-|---|---|---|
-| run by | `tools/scripts/run-tests.py`, from `command:` | a person, in `~checks` |
-| result in | `status:` — `passing`/`failing`, **written by the runner from the exit code** ([[project-os-dev#ADR-0010]]) | `mark:` — `" " x / - ! ?`, with `verdict_date:` and `verdict_reason:` |
-| rests at | `ready` (defined, never executed) | `active` |
-| terminal | `retired` | `retired` |
-| goes stale by | **time** — `last_verified:` against a threshold | **change** — `invalidated_by:` against `verdict_date:` |
-| gates | a task/issue/feature reaching terminal (VERIFY) | the release (Tier 1/2 unsettled ⇒ blocked) |
-| appears in | `Needs a run` when manual and `ready` | `Tier 1/2/3` groups, and `~checks` |
+| | **automated test** (`command:`) | **manual test** | **acceptance test** (`level: acceptance`) |
+|---|---|---|---|
+| executed by | CI | a person | a person, in `~checks` |
+| result in | **nowhere** — the note records no verdict ([[ADR-0038]]) | `status:` — `passing`/`failing`, author-written | `mark:` — `" " x / - ! ?`, with `verdict_date:` and `verdict_reason:` |
+| rests at | `active` | `ready` (defined, never executed) | `active` |
+| terminal | `retired` | `retired` | `retired` |
+| goes stale by | **nothing** — CI is current by construction | **time** — `last_verified:` against a threshold | **change** — `invalidated_by:` against `verdict_date:` |
+| gates | a task/issue/feature reaching terminal, discharged when its `command:` resolves | the same, discharged by `passing` and not stale | the release (any unsettled manual check ⇒ blocked) |
+| appears in | `Automated tests`, or `Broken command` when its command stops resolving | `Needs you` when owed | `Feature tests` / `Regression tests`, and `~checks` |
+
+*(Corrected 2026-08-19, [[ADR-0038]] and [[ADR-0039]]. The `result in` row used to read **"written by the runner from the exit code"** and the last row named `Tier 1/2/3`. Both are reversed: an automated test records no verdict, and there are no tiers — a check's section is derived from `covers:` and `command:`.)*
 
 **Walking an acceptance test never touches `status:`.** That one rule carries the design.
 
@@ -86,16 +88,20 @@ automation: full
 
 ## What the cockpit implements today
 
-**Tests view** — both populations, separated by `level:`, never mixed:
+**Tests view** — six sections, every one of them derived ([[ADR-0039]]):
 
-- `Needs a run` — **non-acceptance** manual tests at `ready`. Badge-bearing.
-- `Resting · no feature in flight` — owed by type, quiet because their subject is not live ([[ADR-0028-Work-Has-Three-Phases]]).
-- `Failing` / `Stale` / `Never verified` / `Verified`.
-- `Tier 1/2/3` — the acceptance population.
+- `Needs you` — what a person owes, gathered from the sections below.
+- `Feature tests` — `covers:` names a `FEAT-*`. Re-checked when a change overlaps.
+- `Regression tests` — `covers:` names an `ISS-*`. Completed once, never re-opened by a change.
+- `Automated tests` — `command:` is non-empty. Executed by CI, no verdict, no checkbox.
+- `Broken command` — an automated test whose `command:` no longer resolves. The one thing an automated test can owe a person.
+- `Retired` — the subject is gone; kept as record.
 
-**`~checks`** — the walk: tier → area → rows in `ordinal` order, the six-mark dialog, and filters over mark, tier, area, covers and automation.
+**`~checks`** — section → area → rows, the six-mark dialog, and filters over mark, area, covers and automation.
 
-**Writes** — mark, *Needs re-run* (clears the mark and names the invalidating change in one write), *Covered by*, promote (Tier 2 → 3) and retire. Each refuses rather than accept a claim nobody can check.
+**Writes** — mark, *Needs re-check* (clears the mark and names the invalidating change in one write), *Covered by* and retire. Each refuses rather than accept a claim nobody can check.
+
+*(Corrected 2026-08-19. This list used to name `Needs a run`, four verdict-state groups and `Tier 1/2/3`. The verdict states went with [[ADR-0038]] — an automated test has no verdict, and 37 of this repo's 38 sat in one collapsed `Verified` group — and the tiers went with [[ADR-0039]].)*
 
 **Reads** — `## Runs` parses back, so a partly-walked procedure can say which steps stand. *(This belongs to the executable/manual half, not the acceptance surface it is filed under here: 14 notes fleet-wide carry a `## Runs` section, all in this repo, none at `level: acceptance`.)* A step's state is: a step's state is its result in the most recent run that **mentions** it, so a partial walk does not un-prove what it never reached.
 

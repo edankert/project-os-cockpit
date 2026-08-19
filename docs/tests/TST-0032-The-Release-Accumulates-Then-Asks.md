@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0032
 aliases: ["TST-0032"]
 title: "The release accumulates, then asks — open is silent, preparing gates, and shipping freezes what it named"
-status: passing
+status: active
 covers: ["[[FEAT-0105-There-Is-Always-A-Release]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: []
 tasks: []
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

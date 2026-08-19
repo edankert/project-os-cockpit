@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0008
 aliases: ["TST-0008"]
 title: "POST /api/notes/check-toggle — write-back, error shapes, nested tasks"
-status: passing
+status: active
 covers: ["[[TASK-0074-Interactive-Checkboxes]]", "[[FEAT-0011-Native-Center-Pane]]"]
 phase: "[[PHASE-006-Native-Cockpit-UI]]"
 owner: user:edwin
@@ -13,8 +13,6 @@ source: ["[[TASK-0074]]"]
 path: "tests/test_check_toggle.py"
 command: ".venv/bin/pytest tests/test_check_toggle.py -q"
 last_verified: "2026-08-10"
-last_run: "2026-08-13T18:28Z"
-exit_code: 0
 
 ---
 

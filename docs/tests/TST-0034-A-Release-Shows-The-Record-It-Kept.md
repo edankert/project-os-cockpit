@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0034
 aliases: ["TST-0034"]
 title: "A release shows the record it kept — what it verified, what it shipped with, what it published, and never today's gate"
-status: passing
+status: active
 covers: ["[[FEAT-0107-Publication-Is-A-List-Of-Releases]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: []
 tasks: ["[[TASK-0443-Releases-Are-The-Navigator]]", "[[TASK-0444-A-Shipped-Release-Shows-Its-Own-Record]]", "[[TASK-0445-Capture-At-Ship]]"]
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

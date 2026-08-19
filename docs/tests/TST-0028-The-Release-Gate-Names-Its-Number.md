@@ -3,7 +3,7 @@ type: "[[test]]"
 id: TST-0028
 aliases: ["TST-0028"]
 title: "The release gate names its number and stays one obligation — 60 is stated, never summed, and it asks only while a release is `draft`"
-status: passing
+status: active
 covers: ["[[FEAT-0102-Publication-Becomes-A-View]]"]
 owner: user:edwin
 created: 2026-08-16
@@ -19,8 +19,6 @@ issues: ["[[ISS-0173-The-Suites-Own-Ids-Are-Written-In-A-Form-Nothing-Reads]]"]
 tasks: ["[[TASK-0429-The-Gate-Is-A-Campaign]]"]
 artifacts: []
 evidence: []
-last_run: "2026-08-16T00:00Z"
-exit_code: 0
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""

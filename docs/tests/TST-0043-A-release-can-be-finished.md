@@ -3,13 +3,12 @@ type: "[[test]]"
 id: TST-0043
 aliases: ["TST-0043"]
 title: "A release can be finished — two refusals that name their subjects, a frozen list, and commands it does not run"
-status: passing
+status: active
 covers: ["[[FEAT-0116-A-Release-Can-Be-Finished]]"]
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
 last_verified: 2026-08-17
-last_run: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
 automated: true

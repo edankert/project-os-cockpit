@@ -9,7 +9,6 @@ owner: user:edwin
 created: 2026-08-17
 updated: "2026-08-17"
 last_verified: 2026-08-17
-last_run: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
 automated: true
