@@ -24,7 +24,7 @@ tags: [task]
 - [x] Exactly one open ledger per platform, created on demand.
 - [x] Sealing stamps `release`/`version`/`sealed`, renames, and starts a fresh working ledger.
 - [x] **Sealing expires `excused`** and carries `pass`/`partial`/`na` forward.
-- [ ] `docs/releases/ledgers/README.md` explains the lifecycle for a human opening the directory.
+- [x] `docs/releases/ledgers/README.md` explains the lifecycle for a human opening the directory — including the one thing the directory cannot show them: a clean ledger is *everything anybody thought to ask about is answered*, not a verified release.
 
 ## Done 2026-08-19 — `src/project_os_cockpit/ledger.py`, 24 tests
 
