@@ -150,6 +150,38 @@ def baseline_ref(project_root: Path, index: "Index") -> str:
     return str(tags[0]["name"])
 
 
+def _sealed_for(docs_root: Path, release_id: str) -> list:
+    """The sealed ledgers belonging to one release, or `[]`."""
+    from . import ledger as _ledger
+
+    if not release_id:
+        return []
+    return [l for l in _ledger.load(docs_root) if l.release == release_id]
+
+
+def _verified_for(docs_root: Path, release_id: str,
+                  authored: list[str]) -> list[str]:
+    """What a release verified — computed, with the authored list as fallback.
+
+    Every check with a clearing entry in that release's ledger. `na` and
+    `excused` are in it and that is not a lie: they are recorded decisions
+    about this release, and a list of *what we verified* that hid them would
+    be the hand-maintained excerpt this replaces.
+    """
+    sealed = _sealed_for(docs_root, release_id)
+    if not sealed:
+        return authored
+    from . import ledger as _ledger
+
+    return sorted({c for c, v in _ledger.resolve(sealed).items() if v.clears})
+
+
+def _verified_platform(docs_root: Path, release_id: str) -> str:
+    """Which platform's ledger the list came from."""
+    return ", ".join(sorted({l.platform for l in _sealed_for(docs_root, release_id)
+                             if l.platform}))
+
+
 def _releases(index: "Index") -> list[dict[str, Any]]:
     """`REL-*` notes, newest id first."""
     out: list[dict[str, Any]] = []
@@ -164,9 +196,29 @@ def _releases(index: "Index") -> list[dict[str, Any]]:
             # When it shipped. Empty on a draft, which is the point — `date:`
             # records when it went live and a drafted note has not.
             "date": str(record.frontmatter.get("date") or "").strip(),
-            "tests_verified": [
-                str(v) for v in (record.frontmatter.get("tests_verified") or [])
-            ],
+            #: **Derived from the sealed ledger where there is one**
+            #: ([[TASK-0546]], [[ADR-0037]]). A release note listing by hand
+            #: what its ledger computes is two encodings of one fact — what
+            #: [[ADR-0032]] spent a decision removing — and the argument does
+            #: not weaken because the second encoding is short: it drifts, and
+            #: the drift is silent.
+            #:
+            #: **The field is the fallback, not the source.** [[REL-0001]]
+            #: predates the ledger and has nothing to derive from, so its 13
+            #: entries stay as the record of what that release was measured
+            #: against — the same two-shapes-split-by-time pattern `suite_at`
+            #: uses, and for the same reason: a shipped release is immutable,
+            #: so what it holds is a permanent fact about the past.
+            "tests_verified": _verified_for(
+                index.docs_root, str(record.note_id or ""),
+                [str(v) for v in
+                 (record.frontmatter.get("tests_verified") or [])]),
+            #: **A release page that lists verified checks without naming the
+            #: platform is this decision's own defect one level up**, so the
+            #: platform travels with the list rather than being remembered by
+            #: whoever renders it.
+            "tests_verified_platform": _verified_platform(
+                index.docs_root, str(record.note_id or "")),
             # `preparing:` is FRONTMATTER, not a status (FEAT-0105 /
             # TASK-0438). STATUSES.md allows a release only draft / released /
             # reverted and is template-owned, so adding vocabulary there would

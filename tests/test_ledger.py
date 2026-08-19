@@ -841,3 +841,41 @@ def test_a_platform_less_release_fails_closed_on_a_blocking_verdict(
     _walk(docs, "ios", "TST-0001", "blocked", reason="Rig down.",
           when="2026-08-16")
     assert not acceptance.load(docs).items[0].settled
+
+
+# --------------------------------------------- tests_verified (TASK-0546)
+
+def test_a_release_computes_what_it_verified(docs: Path, tmp_path: Path) -> None:
+    """[[TASK-0546]]: derived from the sealed ledger, field as fallback.
+
+    A release note listing by hand what its ledger computes is two encodings
+    of one fact — what [[ADR-0032]] spent a decision removing.
+    """
+    from project_os_cockpit import publication
+
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "android", "TST-0002", "na", reason="No surface.",
+          when="2026-08-14")
+    _walk(docs, "android", "TST-0003", "fail", reason="Broken.",
+          when="2026-08-14")
+    L.seal(docs, "android", release="REL-0001", version="v1", when="2026-08-20")
+
+    assert publication._verified_for(docs, "REL-0001", ["[[TST-9999]]"]) == [
+        "TST-0001", "TST-0002"], (
+        "na is a recorded decision about this release, not a lie; fail is not "
+        "a verification")
+    assert publication._verified_platform(docs, "REL-0001") == "android"
+
+
+def test_a_pre_ledger_release_keeps_its_authored_list(docs: Path) -> None:
+    """[[REL-0001]] predates the ledger and has nothing to derive from.
+
+    The same two-shapes-split-by-time pattern `suite_at` uses, and for the
+    same reason: a shipped release is immutable, so what it holds is a
+    permanent fact about the past.
+    """
+    from project_os_cockpit import publication
+
+    authored = ["[[TST-0001]]", "[[TST-0002]]"]
+    assert publication._verified_for(docs, "REL-9999", authored) == authored
+    assert publication._verified_platform(docs, "REL-9999") == ""

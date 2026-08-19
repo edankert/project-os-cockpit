@@ -824,7 +824,7 @@ items:
     TASK-0546:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0546-Tests-Verified-Is-Derived.md"
       title: "`tests_verified:` on a release becomes derived from its sealed ledger"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 490
+    tasks_done: 491
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

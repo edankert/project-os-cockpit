@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0546
 aliases: ["TASK-0546"]
 title: "`tests_verified:` on a release becomes derived from its sealed ledger"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -28,12 +28,24 @@ The editorial reading — *an authored list of the tests that mattered* — is d
 
 - [x] Decided: derived.
 - [ ] `tests_verified:` leaves the release template and `SCHEMAS.md`, upstream first ([[ADR-0030]] decision 6).
-- [ ] `publication.py:167`, `cockpit.py:4574` and the shipped-release page (`publication.py:477`) read the sealed ledger instead.
-- [ ] The rendered list says which platform's ledger it came from — a release page that lists verified checks without naming the platform is the defect [[ADR-0037]] exists to remove, one level up.
-- [ ] **[[REL-0001]] is not rewritten.** It predates the ledger and there is nothing for it to derive from; its 13 entries stay as the record of what that release was measured against, and the page falls back to the field when no ledger exists.
+- [x] `publication.py:167`, `cockpit.py:4574` and the shipped-release page (`publication.py:477`) read the sealed ledger instead.
+- [x] The rendered list says which platform's ledger it came from — a release page that lists verified checks without naming the platform is the defect [[ADR-0037]] exists to remove, one level up.
+- [x] **[[REL-0001]] is not rewritten.** It predates the ledger and there is nothing for it to derive from; its 13 entries stay as the record of what that release was measured against, and the page falls back to the field when no ledger exists.
 
 ## Notes
 
 `tests_verified:` was the honest answer when a release had 13 tests. Under the ledger a release has hundreds of entries and the field becomes a hand-maintained excerpt of a computable set — the [[DES-0012]] failure mode (*"a maintained matrix rots"*) in a smaller frame.
 
 The fallback for pre-ledger releases is the same two-shapes-split-by-time pattern `suite_at` already uses ([[TASK-0545]]) and for the same reason: a shipped release is immutable, so what it holds is a permanent fact about the past.
+
+## Done 2026-08-19 — derived, with the field as fallback
+
+`publication._verified_for` returns every check with a **clearing** entry in that release's sealed ledger, and falls back to the authored `tests_verified:` when there is no ledger for that release.
+
+**`na` and `excused` are in the list and that is not a lie.** They are recorded decisions about this release, and a list of *what we verified* that hid them would be the hand-maintained excerpt this replaces. `fail` and `blocked` are not: neither is a verification.
+
+**`tests_verified_platform` travels beside it.** A release page listing verified checks without naming the platform is this decision's own defect one level up, so the platform is carried rather than remembered by whoever renders it.
+
+**[[REL-0001]] is untouched** and keeps its 13 authored entries — it predates the ledger and has nothing to derive from. The same two-shapes-split-by-time pattern `suite_at` uses, and for the same reason: a shipped release is immutable, so what it holds is a permanent fact about the past.
+
+**The field stays in the schema**, deliberately: it is now the fallback rather than the source, and removing it would delete the only record every pre-ledger release has.
