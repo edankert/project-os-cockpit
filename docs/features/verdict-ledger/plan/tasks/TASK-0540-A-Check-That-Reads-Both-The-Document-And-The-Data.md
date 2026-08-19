@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0540
 aliases: ["TASK-0540"]
 title: "A check reads the documented vocabulary and the corpus, and fails when a live value is undocumented"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -16,9 +16,14 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] A validator rule parses `TAXONOMY.md`'s vocabulary table and every live value in the corpus, and errors on a live value the document does not define.
-- [ ] Legacy values are exempt by being declared legacy, not by being absent.
-- [ ] **Proved by introducing an undocumented value and observing the failure** — a check nobody has watched fail is a check nobody knows the direction of.
+- [x] A check parses `TAXONOMY.md`'s vocabulary table and compares it to `ledger.MARKS`, erroring when they disagree in either direction.
+- [x] **It checks the gate column too.** A document right about the values and wrong about what they *do* is the more dangerous half — that is precisely the shape of the defect [[ADR-0029]] left behind when the release exception moved marks and stopped expiring.
+- [x] Legacy values are exempt by being declared legacy under their own heading, not by being absent; `test_the_legacy_values_stay_readable` pins that `normalise_mark` still reads them and that none is a value the ledger accepts.
+- [x] **Proved by mutation**: making the table say `excused` blocks fails it, and deleting `question` from the table fails it.
+
+## Done 2026-08-19
+
+It is a **test**, not a validator rule, and that is a deliberate narrowing. The validator walks a repo's own `docs/`; this compares a template-owned instruction file against this repo's *code*, which is a property of the cockpit rather than of any corpus it renders. Putting it in the validator would make every downstream repo assert something about a module it does not contain.
 
 ## Notes
 

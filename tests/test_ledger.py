@@ -491,3 +491,109 @@ def test_the_run_list_and_the_gate_read_one_predicate(docs: Path) -> None:
     assert L.owed(docs, "android",
                   ["TST-0001", "TST-0002", "TST-0003", "TST-0004"]) == [
         "TST-0002", "TST-0004"]
+
+
+# -------------------------------------------------- the write path (0537)
+
+def test_recording_a_verdict_appends_an_event_and_touches_no_note(
+    docs: Path,
+) -> None:
+    """[[REQ-0055]], and the reason it is a test rather than a review: a
+    surviving frontmatter write does not raise — it puts a scalar back where
+    the migration removed one, and reads exactly like success."""
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    checks = _corpus(docs, **{"TST-0001": "todo"})
+    note = checks / "TST-0001-A-Check.md"
+    before = note.read_text()
+
+    out = note_writes.record_verdict(
+        docs, Index.build(docs), check_id="TST-0001", platform="android",
+        verdict="pass", by="user:edwin")
+
+    assert out["mark"] == "pass" and out["platform"] == "android"
+    assert note.read_text() == before, "recording a walk must not touch a note"
+    assert L.verdicts(docs, "android")["TST-0001"].mark == "pass"
+
+
+def test_a_verdict_without_a_platform_is_refused(docs: Path) -> None:
+    """A default would put the old bug back with a friendlier interface."""
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    with pytest.raises(note_writes.WriteError, match="platform"):
+        note_writes.record_verdict(docs, Index.build(docs),
+                                   check_id="TST-0001", platform="",
+                                   verdict="pass")
+
+
+def test_an_invalidation_through_the_write_path_must_name_a_change(
+    docs: Path,
+) -> None:
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    index = Index.build(docs)
+    with pytest.raises(note_writes.WriteError, match="name the change"):
+        note_writes.record_verdict(docs, index, check_id="TST-0001",
+                                   platform="android", verdict="needs-re-run")
+    with pytest.raises(note_writes.WriteError, match="not in the record"):
+        note_writes.record_verdict(docs, index, check_id="TST-0001",
+                                   platform="android", verdict="needs-re-run",
+                                   change="TASK-9999")
+
+
+# ------------------------------------------- the vocabulary drift check
+
+def test_taxonomy_documents_exactly_the_vocabulary_the_code_writes() -> None:
+    """[[TASK-0540]] / [[ISS-0218]]: the document and the data, read together.
+
+    `TAXONOMY.md` documented Minimal's single characters as *current* in all
+    four repos — including upstream — for three weeks after [[ADR-0034]] moved
+    all 671 notes to words. **It failed nothing**, because `acceptance.py`
+    accepts both forms, correctly and deliberately, since a suite mid-migration
+    must keep working. Tolerance in the reader plus silence in the gate is what
+    produced it; this removes the silence and keeps the tolerance.
+
+    The check runs against the vocabulary *table*, not against prose: a value
+    the code can write and the table does not list is the failure, and so is a
+    value the table lists that the code will not accept.
+    """
+    import re
+    from pathlib import Path as _P
+
+    text = (_P(__file__).resolve().parents[1]
+            / "tools" / "instructions" / "TAXONOMY.md").read_text()
+    section = text.split("## Acceptance outcomes", 1)[1].split(
+        "### Legacy values", 1)[0]
+    documented = {
+        m.group(1) for m in re.finditer(r"^\| `([a-z]+)` \|", section, re.M)}
+
+    assert documented == L.MARKS, (
+        f"TAXONOMY.md and ledger.MARKS disagree: "
+        f"documented-only {sorted(documented - L.MARKS)}, "
+        f"code-only {sorted(L.MARKS - documented)}")
+
+    # And the gate column has to say the same thing the code does, or the
+    # document is right about the values and wrong about what they DO — which
+    # is the more dangerous half.
+    for row in re.finditer(r"^\| `([a-z]+)` \|[^|]*\|([^|]*)\|", section, re.M):
+        mark, gate = row.group(1), row.group(2)
+        clears = "clears" in gate and "blocks" not in gate
+        assert clears == (mark in L.CLEARING), (
+            f"TAXONOMY.md says {mark!r} {gate.strip()!r}; the code says "
+            f"{'clears' if mark in L.CLEARING else 'blocks'}")
+
+
+def test_the_legacy_values_stay_readable_and_are_not_presented_as_current(
+) -> None:
+    """The tolerance the last two migrations depended on, kept."""
+    from project_os_cockpit import acceptance
+
+    for legacy, word in (("x", "done"), ("-", "canceled"), ("?", "question")):
+        assert acceptance.normalise_mark(legacy) == word
+    # …and none of them is a value the ledger will accept.
+    assert not (set("x-?") & L.MARKS)

@@ -2364,7 +2364,27 @@ def _make_handler(
                          if body.get("mtime") is not None else None)
                 verdict = str(body.get("verdict") or "")
                 check_id = str(body.get("id") or "")
-                if verdict == "needs-re-run":
+                platform = str(body.get("platform") or "")
+                if platform:
+                    #: **The ledger path** ([[ADR-0037]]). A verdict that names
+                    #: its platform is an EVENT and never touches a note; the
+                    #: branch below is the pre-ledger writer, kept for the nine
+                    #: fleet repos that have not migrated.
+                    #:
+                    #: The discriminator is the payload rather than a config
+                    #: flag on purpose: a repo mid-migration has both shapes
+                    #: reachable for exactly as long as it takes, and a flag
+                    #: would have to be flipped by somebody who remembered.
+                    result = note_writes.record_verdict(
+                        docs_root, index, check_id=check_id,
+                        platform=platform, verdict=verdict,
+                        reason=str(body.get("reason") or ""),
+                        by=str(body.get("by") or ""),
+                        method=str(body.get("method") or "manual"),
+                        change=str(body.get("change") or ""),
+                        evidence=body.get("evidence") or None,
+                    )
+                elif verdict == "needs-re-run":
                     # The seventh action (TASK-0466). Routed here rather than
                     # to its own endpoint because it IS a verdict write from
                     # the caller's side — one control, one refusal surface —

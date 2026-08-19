@@ -901,7 +901,7 @@ items:
     TASK-0537:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0537-The-Write-Path-Appends-An-Event.md"
       title: "The write path appends an event — `mark_check` stops being a note write, and the endpoint says which platform it recorded"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -915,14 +915,14 @@ items:
     TASK-0539:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0539-Settle-The-Vocabulary-Upstream.md"
       title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0137
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0540:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0540-A-Check-That-Reads-Both-The-Document-And-The-Data.md"
       title: "A check reads the documented vocabulary and the corpus, and fails when a live value is undocumented"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0137
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 475
+    tasks_done: 478
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

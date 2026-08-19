@@ -76,22 +76,45 @@ That set was narrowed after the first cut fired **five false positives on this c
 ## `scope` (tests)
 - `feature`, `system`
 
-## `mark` (tests at `level: acceptance`)
+## Acceptance outcomes (the ledger's vocabulary)
 
-The verdict on an acceptance test — one character, [Minimal's alternate checkbox vocabulary](https://minimal.guide/checklists), read exactly as the acceptance suite reads it:
+The verdict on an acceptance test is **an event in a per-release, single-platform ledger**, not a field on the note (ADR-0037). It is a fact about *(check × platform × release)* and a scalar cannot hold a three-tuple — measured before deciding: 579 of `your-trainer`'s 581 acceptance notes carried no platform at all, while every one of its 513 passes was earned on Android.
 
-| `mark` | means | blocks a release |
-|---|---|---|
-| `" "` | nobody has walked it | yes |
-| `x` | walked and passed | no |
-| `/` | partial pass — some clauses hold, some do not | no |
-| `-` | canceled: will not be walked, and is not holding the release | no |
-| `!` | walked and failed, with the failure tracked | yes |
-| `?` | walked and not understood — the check itself is unclear | yes |
+| mark | means | gate | survives the seal |
+|---|---|---|---|
+| `pass` | walked, and it held | clears | yes, until invalidated |
+| `partial` | some clauses hold, some do not | clears | yes, until invalidated |
+| `na` | **cannot apply here** — no such surface on this platform | clears | yes, until invalidated |
+| `excused` | **not done this cycle, by decision** — out of scope, low risk, no time | clears | **no — expires with its release** |
+| `blocked` | **could not be run right now** — rig down, device unavailable | **blocks** | no |
+| `question` | walked, and the *check* is not understood | **blocks** | no |
+| `fail` | walked, and it failed | **blocks** | no |
+| *(no entry)* | nobody has run it on this platform | **blocks** | — |
 
-`/`, `-`, `!` and `?` are **refused without a `verdict_reason:`**. The mark and its justification are one write, so an acceptance test cannot leave the gate without saying why.
+**Every mark but `pass` is refused without a reason.** A check that clears the gate without being run, or blocks it after being run, is a claim about the release; the claim carries its evidence or it is refused.
 
-**`mark:` is not `status:`.** An acceptance test's lifecycle is `status:` — it rests at `active`, and `retired` is terminal; its verdict is `mark:`. Ticking never touches `status:`, and that is precisely what keeps it outside the runner-only rule, the independent-review gate and the `Run` obligation now that it shares a type with executable tests — see `STATUSES.md` `[[test]]`. The protection is the same one the `check` type provided, held by status rather than by type.
+**"Not run" is three answers, not one, and only two of them clear.** `na` and `excused` are *decisions* somebody made about this release; `blocked` is an *accident* that will be gone next week, and a gate that clears because the rig was down clears on whatever happens to be broken that day.
+
+**`na` and `excused` differ in exactly one property and it is the one that matters: whether the exception comes back.** `na` is about the check and the platform, so re-asking it every release is the maintained-matrix failure this design removes. `excused` is about the check, the platform **and this release** — and a field on a note cannot hold *"expires with its release"* at any price, which is how ADR-0029's per-release exception silently became permanent when its mark moved from `[!]` to `[-]`.
+
+**There is no "not yet walked" value.** You do not record that you did not do something: no entry for a platform means owed on that platform, so adding a platform makes every check immediately owed there with no schema change and no backfill.
+
+**An invalidation is an event, not a mark.** `{check, invalidated_by, date}` sitting after the verdict it overtakes — which is why `rerun` is not in this table.
+
+### Legacy values, read forever and never written
+
+Two earlier vocabularies stay **readable** so that a repo mid-migration keeps working; neither is current, and nothing writes them.
+
+| era | values |
+|---|---|
+| ADR-0029 — [Minimal's alternate checkboxes](https://minimal.guide/checklists) | `" "` `x` `/` `-` `!` `?` |
+| ADR-0034 — the same distinctions as words | `todo` `done` `incomplete` `canceled` `important` `question` `rerun` |
+
+The mapping into the ledger is `done`→`pass`, `incomplete`→`partial`, **`canceled`→`na` (never `excused`)**, `important`→`fail`, `question`→`question`, `todo`→*no entry*, `rerun`→*an invalidation*.
+
+`canceled` gets a written rule because one old value has two successors: a migration that guessed would either make a permanent exception expire or make a per-release one permanent. `na` is right for a backfill — nothing in the old field said which release it belonged to, and `excused` is precisely the value that claims one.
+
+**`mark:` is not `status:`.** An acceptance test's lifecycle is `status:` — it rests at `active`, and `retired` is terminal. Its verdict is not on the note at all. That is what keeps it outside the runner-only rule, the independent-review gate and the `Run` obligation — see `STATUSES.md` `[[test]]`.
 
 ## `automation` (tests at `level: acceptance`)
 - `full`, `partial`, `manual`

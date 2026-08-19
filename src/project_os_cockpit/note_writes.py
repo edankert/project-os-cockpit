@@ -2036,6 +2036,82 @@ def record_verification(
     return {"id": release_id, "tests_verified": clean}
 
 
+def record_verdict(
+    docs_root: "Path",
+    index: Index,
+    *,
+    check_id: str,
+    platform: str,
+    verdict: str,
+    reason: str = "",
+    by: str = "",
+    method: str = "manual",
+    change: str = "",
+    evidence: "list[dict[str, str]] | None" = None,
+) -> dict[str, Any]:
+    """One acceptance verdict, appended to a ledger. **It writes no note.**
+
+    This is [[REQ-0055]]'s whole content and it lives in `note_writes.py` under
+    protest: the module is the boundary that says what may touch a note, and a
+    ledger writer inside it re-opens the question a reader would otherwise stop
+    asking. It is here so that every caller of `mark_check` has one obvious
+    place to move to, and it is named for what it does rather than for where it
+    used to live.
+
+    **The platform is required.** A verdict without one is the defect
+    [[ADR-0037]] exists to remove — 579 of `../your-trainer`'s 581 acceptance
+    notes recorded an Android result as a platform-free fact — so it is refused
+    here rather than defaulted. A default would put the old bug back with a
+    friendlier interface.
+    """
+    from . import acceptance, ledger as _ledger
+
+    check_id = (check_id or "").strip()
+    if not check_id:
+        raise WriteError("a verdict needs the check's id", status=400)
+    _require_check(index, check_id)
+    platform = (platform or "").strip().lower()
+    if not platform:
+        raise WriteError(
+            "a verdict must name the platform it was earned on — a verdict "
+            "without one is a claim about every platform, which is the state "
+            "579 acceptance notes were in before ADR-0037",
+            status=400)
+
+    reason = (reason or "").strip()
+    unresolved = [note_id for note_id in acceptance.issue_refs_in(reason)
+                  if index.by_id(note_id) is None]
+    if unresolved:
+        raise WriteError(
+            f"{', '.join(unresolved)} is not in the record — a reason must "
+            f"not cite a note that does not exist", status=400)
+
+    try:
+        if verdict == "needs-re-run":
+            change = (change or "").strip()
+            if not change:
+                raise WriteError(
+                    "needs-re-run must name the change that invalidated this "
+                    "check — an invalidation nobody can trace is an unticked "
+                    "box with no reason", status=400)
+            if index.by_id(change) is None:
+                raise WriteError(
+                    f"{change} is not in the record — an invalidation must "
+                    f"name a change somebody can open", status=400)
+            entry = _ledger.append(docs_root, platform, check=check_id,
+                                   invalidated_by=change, reason=reason)
+        else:
+            entry = _ledger.append(
+                docs_root, platform, check=check_id, mark=verdict,
+                by=by or "user:edwin", method=method, reason=reason,
+                evidence=evidence)
+    except _ledger.LedgerError as exc:
+        raise WriteError(str(exc), status=400) from None
+    return {"id": check_id, "platform": platform, "mark": entry.mark,
+            "date": entry.date, "reason": entry.reason,
+            "invalidated_by": entry.invalidated_by}
+
+
 def mark_check(
     index: Index,
     *,
@@ -2045,6 +2121,14 @@ def mark_check(
     mtime: float | None = None,
 ) -> dict[str, Any]:
     """Mark one acceptance check with a verdict and its justification.
+
+    **Superseded by `record_verdict`** ([[ADR-0037]]). This writes the verdict
+    into the note's frontmatter, which is a scalar and cannot hold a fact about
+    *(check × platform × release)*. It is kept because nine of twelve fleet
+    repos have no ledger and their suites must keep working exactly as they
+    did — a write path that stopped working the day the schema changed
+    upstream would take the tool away from every repo that had not migrated.
+
 
     **One storage, one address** ([[ADR-0030]]). A check is a `CHK-*` note and
     the verdict goes in its frontmatter. The `number`+`name` branch that wrote
