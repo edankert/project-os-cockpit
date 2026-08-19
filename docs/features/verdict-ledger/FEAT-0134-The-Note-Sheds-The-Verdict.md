@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0134
 aliases: ["FEAT-0134"]
 title: "The check note sheds the verdict — seven fields leave the schema, the template and the validator, and the note holds nothing platform-shaped"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -43,8 +43,8 @@ Remove `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`, `automation`,
 
 ## Acceptance
 
-- [ ] No acceptance note in a migrated repo carries any of the seven fields.
-- [ ] The validator refuses one that does, naming the ledger as the place it belongs.
-- [ ] The migration is reversible from git and refuses a second run.
-- [ ] The splitter parses a hard-wrapped bullet as one item, proved on a fixture, before any migration runs.
-- [ ] `your-trainer`'s 203 automation annotations are preserved in a form [[FEAT-0138]] can seed from.
+- [x] No acceptance note in a migrated repo carries any of the seven fields.
+- [x] The validator refuses one that does, naming the ledger as the place it belongs.
+- [x] The migration is reversible from git and refuses a second run.
+- [x] The splitter parses a hard-wrapped bullet as one item, proved on a fixture, before any migration runs.
+- [x] `your-trainer`'s 203 automation annotations are preserved in a form [[FEAT-0138]] can seed from.

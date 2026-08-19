@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0135
 aliases: ["FEAT-0135"]
 title: "Everything downstream is a query — the walk list, the release gate and the cross-platform burndown are computed from ledgers, never maintained"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -56,9 +56,9 @@ tags: [feature]
 
 ## Acceptance
 
-- [ ] Each of the five queries has one implementation and one test.
-- [ ] A check with no entry for a platform reports as owed there, with no field declaring applicability.
-- [ ] Adding a platform to a repo requires no note edit and no schema change.
-- [ ] The gate delta is measured and recorded per repo before that repo migrates.
-- [ ] `was release R walked` returns the same answer twice across an intervening working-ledger append.
-- [ ] `tests_verified:` is derived or deliberately kept, decided rather than left ([[TASK-0546]]).
+- [x] Each of the five queries has one implementation and one test.
+- [x] A check with no entry for a platform reports as owed there, with no field declaring applicability.
+- [x] Adding a platform to a repo requires no note edit and no schema change.
+- [x] The gate delta is measured and recorded per repo before that repo migrates.
+- [x] `was release R walked` returns the same answer twice across an intervening working-ledger append.
+- [x] `tests_verified:` is derived or deliberately kept, decided rather than left ([[TASK-0546]]).

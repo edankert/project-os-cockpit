@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0136
 aliases: ["FEAT-0136"]
 title: "The cockpit reads and writes the ledger — the read path, the write path and five endpoints move off the note's frontmatter"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -48,9 +48,9 @@ This is the real cost of [[ADR-0037]] and the source proposal understates it. Me
 
 ## Acceptance
 
-- [ ] No cockpit module reads `mark` from frontmatter; a guard test fails if one does.
-- [ ] Recording a walk appends one event and modifies no note.
-- [ ] Every acceptance endpoint states the platform its answer is about.
-- [ ] A sealed release's page renders identically before and after an unrelated working-ledger append.
-- [ ] `COCKPIT-API.md` matches the endpoints.
-- [ ] `suite_at` reads a historical ref correctly, proved on a real tag ([[TASK-0545]]) — the one read path where the moved verdict produces a **wrong answer** rather than an error.
+- [x] No cockpit module reads `mark` from frontmatter; a guard test fails if one does.
+- [x] Recording a walk appends one event and modifies no note.
+- [x] Every acceptance endpoint states the platform its answer is about.
+- [x] A sealed release's page renders identically before and after an unrelated working-ledger append.
+- [x] `COCKPIT-API.md` matches the endpoints.
+- [x] `suite_at` reads a historical ref correctly, proved on a real tag ([[TASK-0545]]) — the one read path where the moved verdict produces a **wrong answer** rather than an error.

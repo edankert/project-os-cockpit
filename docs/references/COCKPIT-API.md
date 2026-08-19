@@ -456,6 +456,31 @@ or
 
 ---
 
+## Acceptance (ADR-0037)
+
+### `GET /api/cockpit/acceptance?platform=<name>`
+
+The suite, the release gate and the walkable view — **for one platform**.
+
+A verdict is a fact about *(check × platform × release)* and lives as a dated event in `docs/releases/ledgers/`, never on the check note. So every answer here is about a platform, and every payload says which in its `platform` field.
+
+| `platform=` | means |
+| --- | --- |
+| `android`, `ios`, … | that platform's ledger |
+| `all` or omitted | **the union** — a check clears only where *every* platform with a ledger clears it |
+
+The union is not a convenience. A release that has not said what it ships must not inherit the loosest platform's answer, so it fails closed: a platform that has recorded nothing has no entry, and the intersection is empty.
+
+**A repo with no ledger is unchanged.** Eight of twelve fleet repos have none; their verdicts are still the scalar `mark:` on each note and `platform=` does nothing.
+
+### `POST /api/notes/mark-check`
+
+Records one verdict. **`platform` is required to reach the ledger** — send it and the write appends an event and touches no note; omit it and the request takes the pre-ledger path, which is *refused outright* in a repo that keeps ledgers rather than silently writing a second source for one fact.
+
+Body: `id`, `verdict`, `platform`, `by`, `method`, `reason`, and `change` for `verdict: needs-re-run`.
+
+`verdict` is the ledger's vocabulary — `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — and every one but `pass` is refused without a `reason`. See `tools/instructions/TAXONOMY.md` for what each does to the gate, and which survive a release seal.
+
 ## SSE channel
 
 ### `GET /_events`

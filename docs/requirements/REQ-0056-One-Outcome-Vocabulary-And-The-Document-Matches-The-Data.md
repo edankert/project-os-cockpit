@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0056
 aliases: ["REQ-0056"]
 title: "One outcome vocabulary, defined in one document, and a check that fails when the document and the corpus disagree"
-status: draft
+status: implemented
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 owner: user:edwin
 created: 2026-08-19
@@ -12,10 +12,10 @@ priority: medium
 scope: "taxonomy"
 implements: "[[FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once]]"
 acceptance:
-  - "[ ] `TAXONOMY.md` documents exactly one set of outcome values, landed upstream first and synced to every repo."
-  - "[ ] Legacy values remain readable and are not presented as current."
-  - "[ ] A check reads the documented vocabulary and the corpus, and fails when a live value is undocumented."
-  - "[ ] The check is proved by introducing an undocumented value and observing the failure."
+  - "[x] `TAXONOMY.md` documents exactly one set of outcome values, landed upstream first and synced to every repo."
+  - "[x] Legacy values remain readable and are not presented as current."
+  - "[x] A check reads the documented vocabulary and the corpus, and fails when a live value is undocumented."
+  - "[x] The check is proved by introducing an undocumented value and observing the failure."
 covers: []
 related: ["[[ISS-0218-Taxonomy-Documents-A-Mark-Vocabulary-The-Data-Abandoned]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0037-A-Verdict-Is-An-Event]]"]
 tags: [requirement]
@@ -35,7 +35,7 @@ There **shall** be one outcome vocabulary for acceptance verdicts, defined in on
 
 ## Acceptance criteria
 
-- [ ] One documented set, upstream first.
-- [ ] Legacy readable, not presented as current.
-- [ ] A drift check exists.
-- [ ] The drift check is proved to fail.
+- [x] One documented set, upstream first.
+- [x] Legacy readable, not presented as current.
+- [x] A drift check exists.
+- [x] The drift check is proved to fail.

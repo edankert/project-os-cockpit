@@ -995,11 +995,24 @@ def _make_handler(
                 # suite was "a checklist, not a note the graph resolves", which
                 # was true of the file shape and is the exact thing ADR-0030
                 # changed.
+                #
+                # **`?platform=` names whose verdicts these are** ([[ADR-0037]]).
+                # The nav filter's value, and `all` is not a platform: it means
+                # the UNION, where every platform must clear a check for it to
+                # read as cleared. That is how a release which has not said
+                # what it ships fails closed rather than inheriting the
+                # loosest platform's answer.
+                _platform = (urllib.parse.parse_qs(parsed.query)
+                             .get("platform", [""])[0]).strip().lower()
+                if _platform == "all":
+                    _platform = ""
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
-                    **acceptance.payload(docs_root, index),
-                    "gate": acceptance.gate_payload(docs_root, index=index),
-                    "view": acceptance.view_payload(docs_root, index),
+                    **acceptance.payload(docs_root, index, platform=_platform),
+                    "gate": acceptance.gate_payload(docs_root, index=index,
+                                                    platform=_platform),
+                    "view": acceptance.view_payload(docs_root, index,
+                                                    platform=_platform),
                 })
                 return
 

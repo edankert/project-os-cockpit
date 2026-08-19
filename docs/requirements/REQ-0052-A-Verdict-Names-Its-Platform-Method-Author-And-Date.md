@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0052
 aliases: ["REQ-0052"]
 title: "A verdict names its check, its platform, its method, its author and its date, or it is not a verdict"
-status: draft
+status: implemented
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 owner: user:edwin
 created: 2026-08-19
@@ -12,11 +12,11 @@ priority: high
 scope: "acceptance ledger"
 implements: "[[FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives]]"
 acceptance:
-  - "[ ] An entry missing a check, a mark, a date, an author or a method is refused by the validator."
-  - "[ ] The platform comes from the ledger the entry is in; no entry may declare a different one."
-  - "[ ] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not."
-  - "[ ] A sealed ledger cannot be modified, proved by a test that attempts it."
-  - "[ ] Every event lands in the working ledger for its platform; sealing is what assigns it to a release."
+  - "[x] An entry missing a check, a mark, a date, an author or a method is refused by the validator."
+  - "[x] The platform comes from the ledger the entry is in; no entry may declare a different one."
+  - "[x] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not."
+  - "[x] A sealed ledger cannot be modified, proved by a test that attempts it."
+  - "[x] Every event lands in the working ledger for its platform; sealing is what assigns it to a release."
 covers: []
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]"]
 tags: [requirement]
@@ -34,8 +34,8 @@ An acceptance verdict **shall** be recorded as an event naming the check, the ou
 
 ## Acceptance criteria
 
-- [ ] Required fields enforced by the validator, not by convention.
-- [ ] Platform comes from the file; an entry cannot contradict it.
-- [ ] Reason-bearing marks refused without a reason.
-- [ ] Sealed ledgers immutable, proved.
-- [ ] Sealing assigns; the working ledger accepts.
+- [x] Required fields enforced by the validator, not by convention.
+- [x] Platform comes from the file; an entry cannot contradict it.
+- [x] Reason-bearing marks refused without a reason.
+- [x] Sealed ledgers immutable, proved.
+- [x] Sealing assigns; the working ledger accepts.

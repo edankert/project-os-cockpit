@@ -879,3 +879,20 @@ def test_a_pre_ledger_release_keeps_its_authored_list(docs: Path) -> None:
     authored = ["[[TST-0001]]", "[[TST-0002]]"]
     assert publication._verified_for(docs, "REL-9999", authored) == authored
     assert publication._verified_platform(docs, "REL-9999") == ""
+
+
+def test_every_acceptance_payload_names_its_platform(docs: Path) -> None:
+    """A surface that renders a verdict without naming its platform is the
+    defect this decision exists to remove — 579 notes recorded an Android
+    result as a fact about the app."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    for payload in (acceptance.payload, acceptance.view_payload):
+        assert payload(docs, platform="android")["platform"] == "android"
+        assert payload(docs)["platform"] == ""
+    assert acceptance.gate_payload(docs, platform="ios")["platform"] == "ios"
+    # And the gate answers differently per platform, which is the whole point.
+    assert acceptance.gate_payload(docs, platform="android")["blocked"] is False
+    assert acceptance.gate_payload(docs, platform="ios")["blocked"] is True

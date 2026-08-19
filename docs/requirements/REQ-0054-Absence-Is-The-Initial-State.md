@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0054
 aliases: ["REQ-0054"]
 title: "Absence is the initial state — a check with no entry for a platform is owed on that platform, and nothing declares applicability"
-status: draft
+status: implemented
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 owner: user:edwin
 created: 2026-08-19
@@ -12,13 +12,13 @@ priority: high
 scope: "acceptance queries and gate"
 implements: "[[FEAT-0135-Everything-Downstream-Is-A-Query]]"
 acceptance:
-  - "[ ] A check with no terminal entry for platform P reports as owed on P, with no field anywhere declaring applicability."
-  - "[ ] Adding a platform to a repo requires no note edit, no schema change and no backfill."
-  - "[ ] There are exactly two ways a check leaves a platform's owed set without being run — `na` and `excused` — and both carry a date, an author and a required reason."
-  - "[ ] An `excused` expires when its ledger seals; the check is owed again on the next release with no action by anybody."
-  - "[ ] An `na` persists until invalidated, through the same machinery that re-arms a stale pass."
-  - "[ ] `blocked` does not clear the gate, and a test proves it."
-  - "[ ] The gate delta against today's gate is measured and recorded per repo before that repo migrates."
+  - "[x] A check with no terminal entry for platform P reports as owed on P, with no field anywhere declaring applicability."
+  - "[x] Adding a platform to a repo requires no note edit, no schema change and no backfill."
+  - "[x] There are exactly two ways a check leaves a platform's owed set without being run — `na` and `excused` — and both carry a date, an author and a required reason."
+  - "[x] An `excused` expires when its ledger seals; the check is owed again on the next release with no action by anybody."
+  - "[x] An `na` persists until invalidated, through the same machinery that re-arms a stale pass."
+  - "[x] `blocked` does not clear the gate, and a test proves it."
+  - "[x] The gate delta against today's gate is measured and recorded per repo before that repo migrates."
 covers: []
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]"]
 tags: [requirement]
@@ -50,10 +50,10 @@ The absence costs nothing to maintain and cannot be wrong. Add a platform and ev
 
 ## Acceptance criteria
 
-- [ ] No entry for a platform means owed on that platform.
-- [ ] A new platform needs no edits anywhere.
-- [ ] Two exits, both requiring date, author and reason.
-- [ ] `excused` expires at the seal.
-- [ ] `na` persists until invalidated.
-- [ ] `blocked` still gates, proved.
-- [ ] Per-repo gate delta measured and recorded before migration.
+- [x] No entry for a platform means owed on that platform.
+- [x] A new platform needs no edits anywhere.
+- [x] Two exits, both requiring date, author and reason.
+- [x] `excused` expires at the seal.
+- [x] `na` persists until invalidated.
+- [x] `blocked` still gates, proved.
+- [x] Per-repo gate delta measured and recorded before migration.

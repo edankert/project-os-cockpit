@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0137
 aliases: ["FEAT-0137"]
 title: "One outcome vocabulary, written down once — four vocabularies collapse to one, and a check stops the document drifting from the data again"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -50,7 +50,7 @@ Four vocabularies are in play ([[ISS-0218]]): Minimal's characters (documented a
 
 ## Acceptance
 
-- [ ] `TAXONOMY.md` documents one vocabulary, upstream first, synced down to all repos.
-- [ ] Legacy values stay readable and are not presented as current.
-- [ ] A check reads the documented vocabulary and the corpus and fails when a live value is undocumented.
-- [ ] The check is proved by introducing an undocumented value and watching it fail.
+- [x] `TAXONOMY.md` documents one vocabulary, upstream first, synced down to all repos.
+- [x] Legacy values stay readable and are not presented as current.
+- [x] A check reads the documented vocabulary and the corpus and fails when a live value is undocumented.
+- [x] The check is proved by introducing an undocumented value and watching it fail.

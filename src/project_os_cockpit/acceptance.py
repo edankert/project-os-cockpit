@@ -1509,7 +1509,8 @@ TIER_LABELS: dict[int, str] = {
 }
 
 
-def view_payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
+def view_payload(docs_root: Path, index: "Any | None" = None, *,
+                 platform: str = "") -> dict[str, Any]:
     """The suite as a **list somebody walks** (FEAT-0114 / TASK-0464).
 
     Edwin's contract, verbatim: *"We can then present them still as the same
@@ -1528,7 +1529,7 @@ def view_payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
     section heading happened to say, and `missing_issue_refs` reported 158 of
     158 because it could not read the form the headings were written in.
     """
-    suite = load(docs_root, index)
+    suite = load(docs_root, index, platform=platform)
     tiers: list[dict[str, Any]] = []
     for n in (1, 2, 3):
         items = suite.tier(n)
@@ -1558,6 +1559,12 @@ def view_payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
     return {
         "exists": suite.exists,
         "shape": suite.shape,
+        #: **Which platform these verdicts are about** ([[ADR-0037]]). A
+        #: surface that renders a verdict without naming its platform is the
+        #: defect this decision exists to remove: 579 acceptance notes recorded
+        #: an Android result as a fact about the app. Empty means the union —
+        #: every platform must clear a check for it to read as cleared.
+        "platform": suite.platform,
         "rel": suite_rel(suite),
         # The rules preamble, as a row rather than as re-rendered prose: the
         # README holds it verbatim and is one click away. Re-rendering it into
@@ -1633,12 +1640,18 @@ MARK_MEANING: dict[str, str] = {
 }
 
 
-def payload(docs_root: Path, index: "Any | None" = None) -> dict[str, Any]:
+def payload(docs_root: Path, index: "Any | None" = None, *,
+            platform: str = "") -> dict[str, Any]:
     """The suite as data, for the Tests view's tier groups."""
-    suite = load(docs_root, index)
+    suite = load(docs_root, index, platform=platform)
     return {
         "exists": suite.exists,
         "shape": suite.shape,
+        #: **Which platform these verdicts are about** ([[ADR-0037]]). Empty
+        #: means the union: every platform must clear a check for it to read
+        #: as cleared, which is how a release that has not said what it ships
+        #: fails closed.
+        "platform": suite.platform,
         "rel": suite_rel(suite),
         "tiers": [
             {
@@ -1747,6 +1760,7 @@ def gate_payload(
     project_root: Path | None = None,
     baseline_ref: str = "",
     tags: "list[str] | None" = None,
+    platform: str = "",
 ) -> dict[str, Any]:
     """What blocks a release, in the template's own terms.
 
@@ -1760,7 +1774,7 @@ def gate_payload(
     it always returned, which is what keeps the Tests view and every existing
     caller working while the Publication page asks for more.
     """
-    suite = load(docs_root, index)
+    suite = load(docs_root, index, platform=platform)
     blocking = suite.blocking()
 
     # --- quiet: the subject is not in flight (TASK-0447) ------------------
@@ -1817,6 +1831,11 @@ def gate_payload(
     return {
         "exists": suite.exists,
         "shape": suite.shape,
+        #: **Which platform these verdicts are about** ([[ADR-0037]]). Empty
+        #: means the union: every platform must clear a check for it to read
+        #: as cleared, which is how a release that has not said what it ships
+        #: fails closed.
+        "platform": suite.platform,
         "rel": suite_rel(suite),
         "blocked": bool(blocking),
         "rule": "A release is blocked while any Tier 1/Tier 2 test is "

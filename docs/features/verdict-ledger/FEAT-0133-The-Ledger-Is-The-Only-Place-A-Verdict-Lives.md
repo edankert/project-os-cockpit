@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0133
 aliases: ["FEAT-0133"]
 title: "The ledger is a file — append-only, one per release per platform — and it is the only place a verdict lives"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -47,10 +47,10 @@ And the platform is the point: `your-trainer`'s 513 passes were earned on Androi
 
 ## Acceptance
 
-- [ ] A ledger file exists with a documented schema, and a working ledger per platform.
-- [ ] An entry without a platform (from its file), a method, an author or a date is refused.
-- [ ] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not.
-- [ ] A sealed ledger cannot be modified — proved by a test that tries.
-- [ ] Sealing expires the release's `excused` entries and carries `pass`/`partial`/`na` forward ([[ADR-0037]] decision 7), proved across a seal.
-- [ ] One release is backfilled per repo, with the gate delta measured and stated first.
-- [ ] `evidence:` has a decided destination — the entry, or a stated loss ([[TASK-0544]]).
+- [x] A ledger file exists with a documented schema, and a working ledger per platform.
+- [x] An entry without a platform (from its file), a method, an author or a date is refused.
+- [x] `fail`, `partial`, `blocked`, `question`, `na` and `excused` are refused without a reason; `pass` is not.
+- [x] A sealed ledger cannot be modified — proved by a test that tries.
+- [x] Sealing expires the release's `excused` entries and carries `pass`/`partial`/`na` forward ([[ADR-0037]] decision 7), proved across a seal.
+- [x] One release is backfilled per repo, with the gate delta measured and stated first.
+- [x] `evidence:` has a decided destination — the entry, or a stated loss ([[TASK-0544]]).

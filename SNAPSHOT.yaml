@@ -82,7 +82,7 @@ items:
     FEAT-0133:
       file: "docs/features/verdict-ledger/FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives.md"
       title: "The ledger is a file — append-only, one per release per platform — and it is the only place a verdict lives"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0052"]
@@ -91,7 +91,7 @@ items:
     FEAT-0134:
       file: "docs/features/verdict-ledger/FEAT-0134-The-Note-Sheds-The-Verdict.md"
       title: "The check note sheds the verdict — seven fields leave the schema, the template and the validator, and the note holds nothing platform-shaped"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0053"]
@@ -100,7 +100,7 @@ items:
     FEAT-0135:
       file: "docs/features/verdict-ledger/FEAT-0135-Everything-Downstream-Is-A-Query.md"
       title: "Everything downstream is a query — the walk list, the release gate and the cross-platform burndown are computed from ledgers, never maintained"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0054"]
@@ -109,7 +109,7 @@ items:
     FEAT-0136:
       file: "docs/features/verdict-ledger/FEAT-0136-The-Cockpit-Reads-And-Writes-The-Ledger.md"
       title: "The cockpit reads and writes the ledger — the read path, the write path and five endpoints move off the note's frontmatter"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0055"]
@@ -118,7 +118,7 @@ items:
     FEAT-0137:
       file: "docs/features/verdict-ledger/FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once.md"
       title: "One outcome vocabulary, written down once — four vocabularies collapse to one, and a check stops the document drifting from the data again"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0056"]
@@ -908,7 +908,7 @@ items:
     TASK-0538:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0538-The-Renderer-And-The-Endpoints-Follow.md"
       title: "The renderer's 87 mark sites and the five acceptance endpoints follow the moved path"
-      status: doing
+      status: done
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -2616,7 +2616,7 @@ items:
     REQ-0052:
       file: "docs/requirements/REQ-0052-A-Verdict-Names-Its-Platform-Method-Author-And-Date.md"
       title: "A verdict names its check, its platform, its method, its author and its date, or it is not a verdict"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       implements: FEAT-0133
@@ -2624,7 +2624,7 @@ items:
     REQ-0053:
       file: "docs/requirements/REQ-0053-The-Note-Holds-Nothing-Verdict-Shaped.md"
       title: "The check note holds intent only — nothing verdict-shaped and nothing platform-shaped"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       implements: FEAT-0134
@@ -2632,7 +2632,7 @@ items:
     REQ-0054:
       file: "docs/requirements/REQ-0054-Absence-Is-The-Initial-State.md"
       title: "Absence is the initial state — a check with no entry for a platform is owed on that platform, and nothing declares applicability"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       implements: FEAT-0135
@@ -2640,7 +2640,7 @@ items:
     REQ-0055:
       file: "docs/requirements/REQ-0055-No-Surface-Writes-A-Verdict-Onto-A-Note.md"
       title: "No cockpit surface reads a verdict from a note or writes one onto a note"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       implements: FEAT-0136
@@ -2648,7 +2648,7 @@ items:
     REQ-0056:
       file: "docs/requirements/REQ-0056-One-Outcome-Vocabulary-And-The-Document-Matches-The-Data.md"
       title: "One outcome vocabulary, defined in one document, and a check that fails when the document and the corpus disagree"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       implements: FEAT-0137
@@ -3855,9 +3855,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 138
-    features_done: 112
+    features_done: 117
     tasks_total: 545
-    tasks_done: 491
+    tasks_done: 492
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
