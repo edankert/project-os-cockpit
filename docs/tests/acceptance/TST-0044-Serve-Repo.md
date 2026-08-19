@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "Render server and the browser front door"
-section: "1.1"
-ordinal: 10
 covers: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0006]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.1.1 @ 7de1a86"

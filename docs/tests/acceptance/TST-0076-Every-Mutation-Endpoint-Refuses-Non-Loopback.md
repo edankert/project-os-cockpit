@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 2
 area: "Writes are loopback-only"
-section: "2.6"
-ordinal: 10
 covers: ["[[ISS-0129]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.6.1 @ 7de1a86"

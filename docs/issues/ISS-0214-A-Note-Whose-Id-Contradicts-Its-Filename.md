@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0214
 aliases: ["ISS-0214"]
 title: "Nothing checks that a note's `id:` matches its filename — 23 task notes carried `id: TASK` and every gate passed"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-19"
@@ -48,6 +48,12 @@ Fixed in place (backticks instead of quotes). Filed here rather than as a new is
 ## Done when
 
 - [ ] A note whose frontmatter `id:` disagrees with the `<TYPE>-<NNNN>` prefix of its filename is a validator error.
-- [ ] **A note whose frontmatter does not parse as YAML is a validator error**, naming the file and the parser's message. Today the corpus has one and nothing reports it.
+- [x] **A note whose frontmatter does not parse as YAML is a validator error** — `NOTE-FRONTMATTER`, 2026-08-19. It uses a real YAML parse rather than the validator's own deliberate subset, which read `title: "Retire "walk" from it"` without complaint, and is silent where PyYAML is absent rather than pretending a subset parse is a YAML parse.
+
+## Fixed 2026-08-19 — after it fired a third time
+
+The rule was written the moment a **third** note broke the same way: `FEAT-0128`'s `tasks:` list was truncated by a scripted edit, past a green validator, exactly as `TASK-0521` had been. Three occurrences in two days, all invisible to every gate, is the argument the first two could not make on their own.
+
+The `id:`-versus-filename half is still open in principle and is now much less urgent: a truncated `id:` on an unparseable note is caught by this rule first.
 - [ ] The rule is upstream, since every repo's notes are written the same way.
 - [ ] The check names both values, so the fix is obvious from the message.

@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "History"
-section: "1.12"
-ordinal: 10
 covers: ["[[FEAT-0052]]", "[[FEAT-0053]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.12.1 @ 7de1a86"

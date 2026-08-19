@@ -66,7 +66,7 @@ counters:
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 548
+  TASK: 551
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -167,7 +167,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
-      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520"]
+      tasks: ["TASK-0508", "TASK-0509", "TASK-0510", "TASK-0513", "TASK-0520", "TASK-0549", "TASK-0550", "TASK-0551"]
       note: "Built when the corpus had 23 tests, where showing all of them WAS the summary. At 579 it is a wall. Collapse Resting to a line, collapse tier sections to tracking lines carrying walked/re-run/to-walk, and put feature tests above the flat groups. Constraint: every collapsed count must expand to exactly its rows, or work has been hidden rather than organised."
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
@@ -807,6 +807,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0549:
+      file: "docs/features/tests-view/plan/tasks/TASK-0549-One-Grouping-Key-And-It-Is-The-Id.md"
+      title: "Retire `section:`/`ordinal:` — order on `(tier, note_id)`, group on `area` alone"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0550:
+      file: "docs/features/tests-view/plan/tasks/TASK-0550-The-Nav-Groups-By-Surface.md"
+      title: "The left pane groups tier → surface → count, with a bar on the tier and a percentage on the surface"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0551:
+      file: "docs/features/tests-view/plan/tasks/TASK-0551-A-Percentage-Where-The-Reader-Is-Working.md"
+      title: "The generated page's surface headers show a percentage; tier headers keep the bar"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0128
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0544:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0544-Where-Evidence-Goes.md"
       title: "`evidence` moves to the ledger as a sibling collection, not onto the entry and not onto the note"
@@ -3870,14 +3891,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 117
-    tasks_total: 547
-    tasks_done: 494
+    tasks_total: 550
+    tasks_done: 495
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 13
+    issues_open: 11
     issues_triage: 0
     risks_open: 6
     releases_total: 1

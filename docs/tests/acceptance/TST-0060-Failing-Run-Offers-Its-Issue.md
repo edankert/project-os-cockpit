@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "Tests"
-section: "1.7"
-ordinal: 30
 covers: ["[[FEAT-0086]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.7.3 @ 7de1a86"

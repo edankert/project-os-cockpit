@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "Agents and sessions"
-section: "1.10"
-ordinal: 20
 covers: ["[[FEAT-0019]]", "[[FEAT-0020]]", "[[FEAT-0032]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.10.2 @ 7de1a86"

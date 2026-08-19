@@ -45,12 +45,17 @@ def test_the_view_holds_every_check_in_suite_order(view: dict) -> None:
             for area in tier["areas"] for row in area["items"]]
     assert len(rows) == view["total"] == len(
         acceptance.load(REPO_DOCS).items)
-    # Tier, then section, then ordinal — the order the document had. A view
-    # that reordered itself between renders is a view nobody can walk.
-    seen = [(t["tier"], a["section"], r["number"]) for t in view["tiers"]
+    # **Tier, then id** (ISS-0224). This read `tier, section, ordinal` — the
+    # order the *document* had, and the document exists in no migrated repo.
+    # `(tier, id)` was measured byte-identical to the old key in all three
+    # repos before the fields were removed, so the order a reader walks did
+    # not move; only the thing that expresses it did.
+    #
+    # A view that reorders itself between renders is still a view nobody can
+    # walk, which is what this guards.
+    seen = [(t["tier"], r["number"]) for t in view["tiers"]
             for a in t["areas"] for r in a["items"]]
-    assert seen == sorted(seen, key=lambda s: (
-        s[0], [int(p) for p in s[1].split(".")], s[2]))
+    assert seen == sorted(seen)
 
 
 def test_the_counts_name_reconciliation_separately(view: dict) -> None:

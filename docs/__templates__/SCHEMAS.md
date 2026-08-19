@@ -216,8 +216,7 @@ An acceptance test is the thing a person walks. It carries the fields below and 
 
 - (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
 - (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
-- (optional) `section` (string): the legacy `1.3`-style section number, kept for addressing continuity.
-- (optional) `ordinal` (int): display order within the area. Sparse, so an insert shifts nothing.
+- ~~`section`~~, ~~`ordinal`~~ — **removed (ISS-0224).** They were a check's position in `ACCEPTANCE_TESTS.md`, a document that exists in no migrated repo. Order is `(tier, id)` and grouping is `area` alone; measured before removing them, `(tier, id)` reproduces the old order byte-for-byte in every repo, and no area spans two sections anywhere. `migrated_from:` keeps the old address **and the sha** — a record of the past, not a claim about the present.
 - (optional) `burden` (list): what the walker must have to hand (`TAXONOMY.md`).
 - (optional) `migrated_from` (string): the pre-migration address (`#section.ordinal`) plus the sha the file held at the cut, for repos that migrated from a single `ACCEPTANCE_TESTS.md`.
 - (optional) `merged_from` (string): the `CHK-*` id this note carried before ADR-0031, plus the sha at the merge.

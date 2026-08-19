@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "Issues and capture"
-section: "1.8"
-ordinal: 10
 covers: ["[[FEAT-0061]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.8.1 @ 7de1a86"

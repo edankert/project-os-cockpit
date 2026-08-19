@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0224
 aliases: ["ISS-0224"]
 title: "`section:` and `ordinal:` are a positional address for a document that no longer exists — and `(tier, note_id)` reproduces the suite order exactly in all three repos"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -56,8 +56,8 @@ That is not luck. The migration allocated ids in document order, so the id *enco
 
 ## Done when
 
-- [ ] `sort_items` reads `(tier, note_id)`, proved order-identical on all three repos.
-- [ ] Nothing groups on `section`.
-- [ ] `Item.number` is the note id.
-- [ ] The fields leave the schema and template, upstream first, refused only where a ledger exists.
-- [ ] `suite_at` still reads the twelve pre-migration tags.
+- [x] `sort_items` reads `(tier, note_id)`, proved order-identical on all three repos.
+- [x] Nothing groups on `section`.
+- [x] `Item.number` is the note id.
+- [x] The fields leave the schema and template, upstream first, refused only where a ledger exists.
+- [x] `suite_at` still reads the twelve pre-migration tags.

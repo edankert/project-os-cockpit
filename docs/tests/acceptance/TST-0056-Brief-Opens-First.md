@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "Design and the constraints view"
-section: "1.6"
-ordinal: 10
 covers: ["[[FEAT-0042]]", "[[FEAT-0043]]", "[[FEAT-0044]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.6.1 @ 7de1a86"

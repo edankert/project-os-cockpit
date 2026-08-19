@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "The note page"
-section: "1.4"
-ordinal: 10
 covers: ["[[FEAT-0011]]", "[[FEAT-0060]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.4.1 @ 7de1a86"

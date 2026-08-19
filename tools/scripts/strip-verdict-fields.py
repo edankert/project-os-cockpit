@@ -29,7 +29,12 @@ from project_os_cockpit import ledger as L              # noqa: E402
 from project_os_cockpit.index import Index              # noqa: E402
 
 FIELDS = ("mark", "verdict_date", "verdict_reason", "invalidated_by",
-          "automation", "covered_by", "evidence")
+          "automation", "covered_by", "evidence",
+          #: ISS-0224 — a position in a document that no longer exists. No
+          #: verdict rides on these, so the safety check does not apply to
+          #: them; they are removed with the rest because they are the same
+          #: kind of thing, a field the note no longer needs to carry.
+          "section", "ordinal")
 #: A scalar mark that says nothing was ever recorded. Removing one of these
 #: loses no verdict, so a check at `todo` needs no ledger entry to be safe.
 EMPTY_MARKS = {"todo", "", " ", "rerun"}

@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "The embedded terminal"
-section: "1.9"
-ordinal: 10
 covers: ["[[FEAT-0003]]", "[[FEAT-0037]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.9.1 @ 7de1a86"

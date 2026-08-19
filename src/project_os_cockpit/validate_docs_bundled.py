@@ -1616,7 +1616,10 @@ LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-(.+)$")
 #: exactly that state. Same construction that keeps `mark_check` alive.
 LEDGER_MOVED_FIELDS = ("mark", "verdict_date", "verdict_reason",
                        "invalidated_by", "automation", "covered_by",
-                       "evidence")
+                       "evidence",
+                       # ISS-0224: a position in a document that no longer
+                       # exists. Order is (tier, id); grouping is `area`.
+                       "section", "ordinal")
 
 
 def validate_vouched_ledgers(root, report, note_index):
@@ -1693,6 +1696,50 @@ def validate_moved_verdict_fields(root, report, note_index):
                 "one fact (ADR-0037) (%s)"
                 % (note_id, ", ".join("`%s`" % f for f in found),
                    LEDGERS_REL, rel))
+
+
+def validate_frontmatter_parses(root, report):
+    """A note whose frontmatter is not YAML ([[ISS-0214]]).
+
+    Identity comes from the FILENAME almost everywhere, so a note whose
+    frontmatter will not parse still indexes, still links, still counts -- and
+    every field on it silently reads as absent. No status, no parent, no
+    phase. It is worse than a wrong value and it fired twice in one day:
+    `TASK-0521` shipped with unescaped quotes in its title, and `FEAT-0128`
+    with a truncated `tasks:` list, both past a green validator.
+    """
+    try:
+        import yaml
+    except ImportError:                                  # pragma: no cover
+        return
+    docs = root / "docs"
+    if not docs.is_dir():
+        return
+    for path in sorted(docs.rglob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:                                  # pragma: no cover
+            continue
+        if not text.startswith("---"):
+            continue
+        try:
+            #: **A real YAML parse, not `load_yaml`.** This script's own
+            #: parser is a deliberate dependency-free SUBSET, and it is
+            #: lenient exactly where a broken note is broken -- it read
+            #: `title: "Retire "walk" from it"` without complaint. So the
+            #: check needs PyYAML, and is silent where PyYAML is absent
+            #: rather than pretending a subset parse is a YAML parse.
+            yaml.safe_load(text.split("---", 2)[1])
+        except Exception as exc:                         # noqa: BLE001
+            try:
+                rel = path.relative_to(root)
+            except ValueError:                           # pragma: no cover
+                rel = path
+            report.error(
+                "NOTE-FRONTMATTER",
+                "%s: frontmatter does not parse (%s). Identity comes from the "
+                "filename, so this note still indexes and links while every "
+                "field on it reads as absent" % (rel, str(exc).splitlines()[0]))
 
 
 def _blob_sha(text):
@@ -1850,6 +1897,7 @@ def validate(root, report):
     # Self-check first: it needs no repo state, and a validator whose own status
     # tables disagree cannot be trusted to report on anything else.
     validate_status_tables(report)
+    validate_frontmatter_parses(root, report)
 
     snap_path = root / "SNAPSHOT.yaml"
     if not snap_path.is_file():

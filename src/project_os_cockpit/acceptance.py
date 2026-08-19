@@ -516,9 +516,16 @@ class Item:
         The position survives here only because twelve historical tags hold
         file-shape suites where it is the only address there is.
         """
-        if not self.section and not self.ordinal and self.note_id:
-            return self.note_id
-        return f"{self.section}.{self.ordinal}"
+        #: **The id, whenever there is one** ([[ISS-0224]]). This was the
+        #: positional address with the id as a fallback, which [[ISS-0219]]
+        #: added because a check authored outside the migration had no
+        #: position and every one of them rendered `.0` — two checks claiming
+        #: one address. That fix was this decision applied to one case; this
+        #: is the general form.
+        #:
+        #: A file-shape row has no note and keeps its position, which is the
+        #: only address it has.
+        return self.note_id or f"{self.section}.{self.ordinal}"
 
     @property
     def key(self) -> str:
@@ -935,16 +942,28 @@ def _section_key(section: str) -> tuple[int, ...]:
 
 
 def sort_items(items: list[Item]) -> list[Item]:
-    """Suite order: tier, then section, then `ordinal`, then id.
+    """Suite order: **tier, then id** ([[ISS-0224]]).
 
-    `ordinal` is sparse and display-only, which is what retires the shifting
-    section-ordinal address for good — an insert between two checks takes a
-    number between theirs and moves nothing. `note_id` breaks the tie so the
-    order is total, because a view that reorders itself between renders is a
-    view a reader cannot walk.
+    `section` and `ordinal` are a check's position in `ACCEPTANCE_TESTS.md` —
+    a document that exists in no migrated repo. [[ADR-0030]] decision 4 already
+    declared that address retired; the fields were kept to order the view, and
+    then kept ordering it through two further migrations without anybody
+    asking whether they still had to.
+
+    **Measured before removing them, and this is the whole argument: `(tier,
+    note_id)` is byte-identical to `(tier, section, ordinal, note_id)` in all
+    three repos** — 34, 581 and 56 items, first row to last. Not luck: the
+    migration allocated ids in document order, so the id *encodes* the
+    position it replaced — and unlike the position, it does not move when
+    something above it does.
+
+    A file-shape item has no `note_id`, so it keeps the positional key. That
+    branch is permanent: twelve historical tags hold that shape, and a tag is
+    immutable.
     """
     return sorted(items, key=lambda i: (
-        i.tier, _section_key(i.section), i.ordinal, i.note_id))
+        i.tier, "", 0, i.note_id) if i.note_id else (
+        i.tier, _section_key(i.section), i.ordinal, ""))
 
 
 def load_notes(checks_dir: Path) -> list[Item]:
@@ -1537,8 +1556,12 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
             continue
         areas: list[dict[str, Any]] = []
         for item in items:
-            key = (item.section, item.area)
-            if not areas or (areas[-1]["section"], areas[-1]["area"]) != key:
+            #: **`area` alone** ([[ISS-0224]]). Measured 2026-08-19: areas
+            #: spanning more than one section — **0** in all three repos
+            #: (21/21, 77/77, 20/20), so `section` added nothing to the key
+            #: and only a second thing to keep in step.
+            key = item.area
+            if not areas or areas[-1]["area"] != key:
                 areas.append({
                     "section": item.section, "area": item.area,
                     "refs": list(item.refs), "items": [],

@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 2
 area: "One home per obligation"
-section: "2.4"
-ordinal: 10
 covers: ["[[ISS-0068]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.4.1 @ 7de1a86"

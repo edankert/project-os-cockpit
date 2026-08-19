@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 2
 area: "Plans are visible"
-section: "2.1"
-ordinal: 10
 covers: ["[[ISS-0062]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.1.1 @ 7de1a86"

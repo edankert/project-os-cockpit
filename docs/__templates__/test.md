@@ -31,8 +31,6 @@ related: []
 # about (check x platform x release) and a field cannot hold three.
 tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
 area: ""             # the human grouping — one walk's worth of related checks
-section: ""
-ordinal: ""
 burden: []
 migrated_from: ""
 merged_from: ""

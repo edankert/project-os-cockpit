@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 1
 area: "The navigator"
-section: "1.3"
-ordinal: 10
 covers: ["[[FEAT-0010]]", "[[FEAT-0046]]", "[[FEAT-0058]]", "[[FEAT-0085]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.3.1 @ 7de1a86"

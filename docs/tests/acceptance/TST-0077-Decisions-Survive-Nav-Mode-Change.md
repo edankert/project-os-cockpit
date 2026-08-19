@@ -9,8 +9,6 @@ created: 2026-08-17
 updated: 2026-08-17
 tier: 2
 area: "The record column has its own source"
-section: "2.7"
-ordinal: 10
 covers: ["[[ISS-0065]]"]
 burden: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.7.1 @ 7de1a86"
