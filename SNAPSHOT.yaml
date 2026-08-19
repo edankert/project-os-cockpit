@@ -2901,7 +2901,7 @@ items:
     PHASE-038:
       file: "docs/phases/PHASE-038-A-Verdict-Is-An-Event.md"
       title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-      status: active
+      status: done
       owner: user:edwin
       goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
       features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137"]
