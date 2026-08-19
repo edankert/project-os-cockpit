@@ -880,7 +880,7 @@ items:
     TASK-0534:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger.md"
       title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-      status: doing
+      status: done
       owner: user:edwin
       parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -908,7 +908,7 @@ items:
     TASK-0538:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0538-The-Renderer-And-The-Endpoints-Follow.md"
       title: "The renderer's 87 mark sites and the five acceptance endpoints follow the moved path"
-      status: backlog
+      status: doing
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 489
+    tasks_done: 490
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

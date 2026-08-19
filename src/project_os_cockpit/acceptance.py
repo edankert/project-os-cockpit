@@ -1048,7 +1048,26 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
 
     if not _ledger.has_ledger(docs_root):
         return items
-    found = _ledger.verdicts(docs_root, platform)
+    if platform:
+        found = _ledger.verdicts(docs_root, platform)
+    else:
+        #: **No platform named: every platform must clear it** ([[DES-0012]]
+        #: D4, [[TASK-0534]]). A release that has not said which platform it
+        #: ships takes them all — the same opt-in rule D4 gives release
+        #: contents — so a check clears only where every platform with a
+        #: ledger says it clears, and the earliest such verdict is reported
+        #: because that is the weakest evidence behind the claim.
+        #:
+        #: Fails closed by construction: a platform that has said nothing has
+        #: no entry, so the check is owed and the intersection is empty.
+        per = [_ledger.verdicts(docs_root, p)
+               for p in _ledger.platforms(docs_root)]
+        found = {}
+        if per:
+            for check in set(per[0]).intersection(*(set(d) for d in per[1:])):
+                verdicts = [d[check] for d in per]
+                if all(v.clears for v in verdicts):
+                    found[check] = min(verdicts, key=lambda v: v.date)
     by_check: dict[str, list[Any]] = {}
     for led in _ledger.load(docs_root, platform):
         for item in led.evidence:
@@ -1124,15 +1143,13 @@ def load(docs_root: Path, index: "Any | None" = None, *,
         ]
         if items:
             items = _resolve_coverage(items, index)
-            if platform:
-                items = apply_ledger(items, docs_root, platform)
+            items = apply_ledger(items, docs_root, platform)
             return Suite(path=checks_dir, items=sort_items(items),
                          shape=SHAPE_NOTES, platform=platform)
     elif checks_dir.is_dir():
         items = load_notes(checks_dir)
         if items:
-            if platform:
-                items = apply_ledger(items, docs_root, platform)
+            items = apply_ledger(items, docs_root, platform)
             return Suite(path=checks_dir, items=items, shape=SHAPE_NOTES,
                          platform=platform)
     path = docs_root / SUITE_REL
@@ -1598,6 +1615,14 @@ def _facets(suite: Suite) -> dict[str, list[dict[str, Any]]]:
 #: surfaces did not. The characters stay as aliases for a payload built without
 #: normalisation.
 MARK_MEANING: dict[str, str] = {
+    #: **The ledger's vocabulary** ([[ADR-0037]]), which is what a migrated
+    #: repo's items carry. `na` and `excused` both clear and are named apart,
+    #: because the difference — whether the exception comes back — is the one
+    #: a reader most needs and the one no single word for both could carry.
+    "pass": "passed", "partial": "partial", "na": "not applicable",
+    "excused": "excused this release", "blocked": "could not run",
+    "fail": "failed",
+    #: The pre-ledger words. Read forever, written nowhere.
     "todo": "unwalked", "done": "passed", "incomplete": "partial",
     "canceled": "canceled", "important": "failed", "question": "unclear",
     "rerun": "needs re-run",

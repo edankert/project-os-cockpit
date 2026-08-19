@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0534
 aliases: ["TASK-0534"]
 title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -19,7 +19,7 @@ tags: [task]
 - [x] `Suite.blocking_for(subjects)` takes its settled-ness from the ledger for the release's platform.
 - [x] No entry, `fail`, `blocked` or `question` blocks. `pass`, `partial` and `na` clear, and so does an `excused` belonging to **this** release.
 - [x] `blocked` blocking is deliberate and tested: `na`/`excused` are decisions about this release, `blocked` is an accident that will be gone next week ([[ADR-0037]] decision 6).
-- [ ] A release with no platform reads every platform's ledger and is blocked by any of them — the same opt-in rule [[DES-0012]] D4 gives release contents. **NOT IMPLEMENTED.** `apply_ledger` takes one platform, and a caller passing `""` gets the pre-ledger read rather than the union. Named by independent review, 2026-08-19; it is a real gap and it is why this task's other criteria are ticked and this one is not.
+- [x] A release with no platform reads every platform's ledger and is blocked by any of them — the same opt-in rule [[DES-0012]] D4 gives release contents. **NOT IMPLEMENTED.** `apply_ledger` takes one platform, and a caller passing `""` gets the pre-ledger read rather than the union. Named by independent review, 2026-08-19; it is a real gap and it is why this task's other criteria are ticked and this one is not.
 - [x] The delta against today's gate is computed per repo and recorded before that repo migrates.
 
 ## Notes
@@ -37,3 +37,11 @@ The delta is the whole risk of this phase. `your-trainer`'s iOS position gets mu
 **The delta, measured before anything was written** ([[TASK-0529]]): **0 in all three repos** on the platform the verdicts were earned on — the backfill is lossless. `your-trainer`'s iOS gate is **507** against Android's **62**, and that is not a gate that moved: those 507 were always unverified on iOS and the schema had no way to say so.
 
 **`tier:` is untouched.** [[ISS-0208]] still owns the tier filter and the fail-closed clause; nothing here changes which checks gate.
+
+## Completed 2026-08-19 — the last criterion
+
+**A release that has not said which platform it ships takes them all**, so a check clears only where *every* platform with a ledger clears it, and the verdict reported is the **earliest** — that is the weakest evidence behind the claim, and reporting the newest would flatter it.
+
+Fails closed by construction: a platform that has said nothing has no entry, so the check is owed and the intersection is empty.
+
+**A latent bug went with it.** `apply_ledger` was called only `if platform:`, so the platform-less path was unreachable — the union could not have run even once. Found by the test rather than by reading, which is the argument for writing the test from the criterion instead of from the code.

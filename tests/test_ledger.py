@@ -803,3 +803,41 @@ def test_suite_at_reads_all_three_shapes() -> None:
         "a migrated ref whose verdicts are in the ledger must not read as "
         "zero-walked — that is the one failure here that produces a WRONG "
         "answer rather than an error")
+
+
+def test_a_release_with_no_platform_is_blocked_by_any_of_them(
+    docs: Path,
+) -> None:
+    """[[TASK-0534]]'s last criterion, and [[DES-0012]] D4's opt-in rule.
+
+    A release that has not said which platform it ships takes them all. So a
+    check clears only where **every** platform with a ledger clears it — and
+    the verdict reported is the earliest, because that is the weakest evidence
+    behind the claim.
+    """
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo", "TST-0002": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "ios", "TST-0001", "pass", when="2026-08-16")
+    _walk(docs, "android", "TST-0002", "pass", when="2026-08-14")
+    # TST-0002 has said nothing on iOS.
+
+    by_id = {i.note_id: i for i in acceptance.load(docs).items}
+    assert by_id["TST-0001"].settled
+    assert by_id["TST-0001"].verdict_date == "2026-08-14", (
+        "the weakest evidence, not the newest")
+    assert not by_id["TST-0002"].settled, (
+        "a platform that has said nothing blocks a release that takes it")
+
+
+def test_a_platform_less_release_fails_closed_on_a_blocking_verdict(
+    docs: Path,
+) -> None:
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    _walk(docs, "ios", "TST-0001", "blocked", reason="Rig down.",
+          when="2026-08-16")
+    assert not acceptance.load(docs).items[0].settled

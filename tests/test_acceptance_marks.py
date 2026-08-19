@@ -138,24 +138,43 @@ def test_the_mark_has_no_border_around_a_glyph_that_is_already_one() -> None:
 
 def test_one_dialog_offers_every_option() -> None:
     """Edwin: *"maybe if we bring up a dialog, can we then have one dialog with
-    all options?"* Six choices now (ADR-0029), and the four that move the gate
-    on somebody's judgement cannot be taken without a reason."""
+    all options?"*
+
+    **The ledger's vocabulary** (ADR-0037), and the three answers to *"not
+    run"* are drawn apart because they do different things: `na` clears and
+    persists, `excused` clears **this release only**, `blocked` keeps
+    blocking. Everything but a plain `pass` — and `clear`, which records
+    nothing — must say why.
+    """
     src = _renderer_src()
     block = src[src.index("const MARK_CHOICES"):]
     block = block[:block.index("function askForMark")]
-    for verdict in ("pass", "partial", "excused", "failed", "question", "clear"):
+    for verdict in ("pass", "partial", "na", "excused", "blocked", "fail",
+                    "question"):
         assert f"verdict: '{verdict}'" in block, verdict
-    # Every mark that clears or holds the gate on someone's judgement needs a
-    # reason; only a plain pass and a plain clear do not.
-    assert block.count("needsReason: true") == 4
-    # Three now: pass, clear, and **needs-re-run** (TASK-0466), which is not a
-    # seventh mark — it writes `[ ]` like clear — but a seventh ACT, and the
-    # only one that requires naming a change rather than a reason. Both
-    # requirements are asserted, because an option that asks for nothing is
-    # exactly the `[!]` gap ISS-0177 records.
-    assert block.count("needsReason: false") == 3
+    # Six: partial, na, excused, blocked, fail, question. Each moves the gate
+    # on somebody's judgement, and an option that asks for nothing is exactly
+    # the `[!]` gap ISS-0177 records.
+    assert block.count("needsReason: true") == 6
+    # Two: a plain `pass`, and **needs-re-run** (TASK-0466) — not a mark at all
+    # but an ACT, and the only one requiring a change rather than a reason.
+    assert block.count("needsReason: false") == 2
     assert block.count("needsChange: true") == 1
     assert "verdict: 'needs-re-run'" in block
+
+    # **`clear` is gone, and that is decision 5 reaching the dialog.** There
+    # is no way to record that nobody walked something, because you do not
+    # record that you did not do a thing — the absence of an entry says it.
+    # The consequence for a walker is real and deliberate: un-recording a
+    # verdict means naming the change that invalidated it, which is
+    # `needs-re-run` and requires a change id that resolves.
+    assert "verdict: 'clear'" not in block
+    # **`canceled` is gone too.** It was one value carrying two questions —
+    # "cannot apply here" and "not done this cycle" — and the difference
+    # between them is whether the exception comes back.
+    assert "label: 'Canceled'" not in block
+
+
 
 
 def test_the_dialog_refuses_a_reasonless_verdict_before_the_round_trip() -> None:

@@ -2206,30 +2206,61 @@ async function submitTick(
 // chips read `unrecognised`, the rows lost their colour, and the tooltips and
 // aria-labels went empty.
 const VERDICT_FOR: Record<string, string> = {
-  todo: 'clear', done: 'pass', incomplete: 'partial', canceled: 'excused',
+  // **Identity, under the ledger** (ADR-0037): a stored value IS the verdict
+  // name, because the store is the event. The rows below map the pre-ledger
+  // vocabularies onto it, and `canceled -> na` is the mapping the migration
+  // uses — never `excused`, because nothing in the old field said which
+  // release it belonged to and `excused` is the value that claims one.
+  pass: 'pass', partial: 'partial', na: 'na', excused: 'excused',
+  blocked: 'blocked', fail: 'fail',
+  todo: 'clear', done: 'pass', incomplete: 'partial', canceled: 'na',
   important: 'failed', question: 'question', rerun: 'rerun',
   ' ': 'clear', x: 'pass', X: 'pass', '/': 'partial', '~': 'partial',
-  '-': 'excused', '!': 'failed', F: 'failed', '?': 'question',
+  '-': 'na', '!': 'fail', F: 'fail', '?': 'question',
 };
 /** The four choices, in the order a walker meets them. `label` is what the
  *  button says; `hint` is what it does to the release. */
+/** The platform a verdict is being recorded for.
+ *
+ * **The nav filter's value, and `all` is not a platform.** A verdict earned
+ * while the reader was looking at everything is a verdict about nothing in
+ * particular — which is the state 579 acceptance notes were in before
+ * ADR-0037 — so it is sent empty and the server refuses it. The refusal is
+ * the point: it asks the walker which platform they were on rather than
+ * guessing, and a guess here is exactly the bug this decision removes.
+ */
+function verdictPlatform(): string {
+  const found = loadStoredPlatform();
+  return found && found !== 'all' ? found : '';
+}
+
 const MARK_CHOICES: Array<{
   verdict: string; mark: string; label: string; hint: string;
   needsReason: boolean; needsChange?: boolean;
 }> = [
-  { verdict: 'pass', mark: 'done', label: 'Done',
-    hint: 'walked and passed — clears the gate', needsReason: false },
-  { verdict: 'partial', mark: 'incomplete', label: 'Incomplete',
-    hint: 'partial pass — clears the gate, needs a reason', needsReason: true },
-  { verdict: 'excused', mark: 'canceled', label: 'Canceled',
-    hint: 'could not be run, not holding the release', needsReason: true },
-  { verdict: 'failed', mark: 'important', label: 'Important',
-    hint: 'walked and failed — keeps blocking', needsReason: true },
+  // **The ledger's vocabulary** (ADR-0037). Seven outcomes, and the three
+  // answers to "not run" are drawn apart because they do different things:
+  // `na` clears and persists, `excused` clears THIS release only, `blocked`
+  // keeps blocking — an accident is not a decision, and a gate that clears
+  // because the rig was down clears on whatever is broken that day.
+  { verdict: 'pass', mark: 'pass', label: 'Pass',
+    hint: 'run, and it held — clears the gate', needsReason: false },
+  { verdict: 'partial', mark: 'partial', label: 'Partial',
+    hint: 'some clauses hold — clears the gate, needs a reason',
+    needsReason: true },
+  { verdict: 'na', mark: 'na', label: 'Not applicable',
+    hint: 'cannot apply on this platform — clears, and stays cleared',
+    needsReason: true },
+  { verdict: 'excused', mark: 'excused', label: 'Excused',
+    hint: 'not done this cycle, by decision — clears THIS release only',
+    needsReason: true },
+  { verdict: 'blocked', mark: 'blocked', label: 'Blocked',
+    hint: 'could not run it right now — keeps blocking', needsReason: true },
+  { verdict: 'fail', mark: 'fail', label: 'Fail',
+    hint: 'run, and it failed — keeps blocking', needsReason: true },
   { verdict: 'question', mark: 'question', label: 'Question',
-    hint: 'not understood — keeps blocking', needsReason: true },
-  { verdict: 'clear', mark: 'todo', label: 'To-do',
-    hint: 'nobody has walked it — keeps blocking, clears any reason',
-    needsReason: false },
+    hint: 'the check itself is not understood — keeps blocking',
+    needsReason: true },
   // **The seventh action** (TASK-0466). Not a seventh MARK — it writes `[ ]`
   // like To-do above — but a different act, and the corpus proves the two need
   // telling apart: 54 rows in `../your-trainer` carry a hand-written
@@ -2430,12 +2461,24 @@ function askForMark(
  * — a reader who edits the Markdown by hand has already seen what to type.
  * A legacy alias shows its own character, because that is what is in the file. */
 const MARK_GLYPH: Record<string, string> = {
+  // **The ledger's vocabulary** (ADR-0037). `na` and `excused` both clear and
+  // are drawn apart: the difference is whether the exception comes back, and a
+  // reader who cannot see it will read a one-release excuse as permanent.
+  pass: '[x]', partial: '[/]', na: '[\u2013]', excused: '[\u00b7]',
+  blocked: '[\u25a0]', fail: '[!]',
+  // Pre-ledger words, read forever and written nowhere.
   todo: '[\u00a0]', done: '[x]', incomplete: '[/]', canceled: '[-]',
   important: '[!]', question: '[?]', rerun: '[\u21bb]',
   ' ': '[\u00a0]', x: '[x]', X: '[X]', '/': '[/]', '~': '[~]',
   '-': '[-]', '!': '[!]', F: '[F]', '?': '[?]',
 };
 const MARK_TITLE: Record<string, string> = {
+  pass: 'Pass — run, and it held.',
+  partial: 'Partial — some clauses hold, some do not. Clears the gate.',
+  na: 'Not applicable — cannot apply on this platform. Clears, and persists until invalidated.',
+  excused: 'Excused — not done this cycle, by decision. Clears THIS release only; owed again after the seal.',
+  blocked: 'Blocked — could not be run right now. Blocks the release: an accident is not a decision.',
+  fail: 'Fail — run, and it failed. Blocks the release.',
   todo: 'To-do — nobody has walked this. Blocks the release.',
   done: 'Done — walked and passed.',
   incomplete: 'Incomplete — partial pass. Clears the gate.',
@@ -2455,6 +2498,11 @@ const MARK_TITLE: Record<string, string> = {
 };
 /** The CSS suffix per mark, so a legacy alias styles as its target. */
 const MARK_CLASS: Record<string, string> = {
+  // The ledger's vocabulary reuses the existing colours rather than minting
+  // new ones: `na` and `excused` both clear, so both wear `canceled`'s
+  // non-blocking colour, and `blocked` wears a blocking one because it is.
+  pass: 'done', partial: 'incomplete', na: 'canceled', excused: 'canceled',
+  blocked: 'important', fail: 'important',
   todo: 'todo', done: 'done', incomplete: 'incomplete', canceled: 'canceled',
   important: 'important', question: 'question', rerun: 'rerun',
   ' ': 'todo', x: 'done', X: 'done', '/': 'incomplete', '~': 'incomplete',
@@ -8189,6 +8237,13 @@ async function walkOneCheck(
       id: item.id ?? '', number: item.number, name: item.name,
       verdict: chosen.verdict, reason: chosen.reason,
       change: chosen.change ?? '',
+      // **The platform the verdict was earned on** (ADR-0037). Sending it is
+      // what routes the write to the ledger; without it the server takes the
+      // pre-ledger path and writes a scalar into the note — which is refused
+      // outright in a repo that keeps ledgers, so the failure is loud rather
+      // than a second source for one fact.
+      platform: verdictPlatform(),
+      by: 'user:edwin', method: 'manual',
     });
   } catch (err: unknown) {
     showStatus(`Could not mark ${item.id || item.number}: ${
