@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 36
+  ADR: 37
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -60,13 +60,13 @@ counters:
   CHG:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 132
-  ISS: 215
-  PHASE: 37
-  REQ: 51
+  FEAT: 138
+  ISS: 218
+  PHASE: 38
+  REQ: 57
   RISK: 7
   REL: 1
-  TASK: 526
+  TASK: 543
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -75,10 +75,64 @@ focus:
   feature: "FEAT-0126"
   phase: "PHASE-037"
   issue: "ISS-0211"
-  note: "2026-08-18 — PHASE-037 opened on five defects Edwin found by USING the cockpit on his own repos, not by audit. PHASE-036 is done and independently APPROVED (seventh pass). Order is in docs/features/surfaces-report/plan/PLAN.md and it is deliberate: (1) FEAT-0126, the glyph regression, because it is live in every repo right now and has no dependencies; (2) FEAT-0125 tasks 0502-0503, because ISS-0210 is the highest-severity item here — REL-0013 renders 60 blocking checks each with a LIVE MARK BUTTON, on the page whose whole purpose is to report the release is not ready; (3) FEAT-0127, the two data defects, because `Verified` as the else-branch is a correctness bug that outlives this corpus; (4) FEAT-0128, presentation, pointless before the rows are correct; (5) FEAT-0129, the only new scope and the only new write path. THE THROUGH-LINE: three of these tasks collapse or remove something from a screen, and the failure mode for all three is identical — a count that no longer expands to its rows is work hidden rather than organised (REQ-0047 criterion 3). NOT IN SCOPE: ISS-0208 owns the tier/gate question and nothing here changes which checks block; ISS-0209 (fleet validators) is a migration per repo; ISS-0206 is borne on by FEAT-0129 without being resolved."
+  note: "2026-08-18 — PHASE-037 opened on five defects Edwin found by USING the cockpit on his own repos, not by audit. PHASE-036 is done and independently APPROVED (seventh pass). Order is in docs/features/surfaces-report/plan/PLAN.md and it is deliberate: (1) FEAT-0126, the glyph regression, because it is live in every repo right now and has no dependencies; (2) FEAT-0125 tasks 0502-0503, because ISS-0210 is the highest-severity item here — REL-0013 renders 60 blocking checks each with a LIVE MARK BUTTON, on the page whose whole purpose is to report the release is not ready; (3) FEAT-0127, the two data defects, because `Verified` as the else-branch is a correctness bug that outlives this corpus; (4) FEAT-0128, presentation, pointless before the rows are correct; (5) FEAT-0129, the only new scope and the only new write path. THE THROUGH-LINE: three of these tasks collapse or remove something from a screen, and the failure mode for all three is identical — a count that no longer expands to its rows is work hidden rather than organised (REQ-0047 criterion 3). NOT IN SCOPE: ISS-0208 owns the tier/gate question and nothing here changes which checks block; ISS-0209 (fleet validators) is a migration per repo; ISS-0206 is borne on by FEAT-0129 without being resolved. PHASE-038 exists as of 2026-08-19 and is NOT the focus: it is documented in full and gated on ADR-0037 being accepted, the same proposed-first gate ADR-0030/0031/0034 used. Do not start it, and do not let it pull PHASE-037 sideways — the two overlap only at ISS-0206, which PHASE-038 answers by ruling platform out as a note field."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0133:
+      file: "docs/features/verdict-ledger/FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives.md"
+      title: "The ledger is a file — append-only, one per release per platform — and it is the only place a verdict lives"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0052"]
+      tasks: ["TASK-0527", "TASK-0528", "TASK-0529"]
+      note: "docs/releases/ledgers/REL-####-<platform>.yaml plus one open WORKING-<platform>.yaml per platform. Sealing is what assigns an event to a release, which answers ISS-0206's third question with no field on anything. Plain YAML and not a note: ADR-0030 rejected FEAT-0112's JSON for inverting notes-are-the-source, but that file was a PROJECTION of state the notes already held; this holds state that exists nowhere else. THE BACKFILL HAS NO DATES — verdict_date is empty on 671 of 671 notes fleet-wide, so entries carry the migration date with by: migration and a note naming the pre-migration address."
+    FEAT-0134:
+      file: "docs/features/verdict-ledger/FEAT-0134-The-Note-Sheds-The-Verdict.md"
+      title: "The check note sheds the verdict — seven fields leave the schema, the template and the validator, and the note holds nothing platform-shaped"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0053"]
+      tasks: ["TASK-0530", "TASK-0531", "TASK-0532"]
+      note: "mark, verdict_date, verdict_reason, invalidated_by, automation, covered_by, evidence. FOUR OF THE SEVEN ARE EMPTY ON ALL 671 NOTES (verdict_date, verdict_reason, invalidated_by, covered_by), so the removal is nearly free — and covered_by being empty is not neglect, ISS-0198 closed it deliberately because the 203 annotated bodies name 54 JVM classes and no TST-* id. The two carrying data are mark (671) and automation (203 non-manual). TASK-0532 (the splitter fix, ISS-0216) lands BEFORE any repo migrates again."
+    FEAT-0135:
+      file: "docs/features/verdict-ledger/FEAT-0135-Everything-Downstream-Is-A-Query.md"
+      title: "Everything downstream is a query — the walk list, the release gate and the cross-platform burndown are computed from ledgers, never maintained"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0054"]
+      tasks: ["TASK-0533", "TASK-0534", "TASK-0535"]
+      note: "A maintained matrix rots; a computed query cannot. The rule that makes all five queries work: a check with NO ENTRY for a platform is owed on that platform — no applies: field, no backfill when a platform is added, the absence IS the initial state. Carries the phase's only real risk: 124 todo -> no entry is a no-op, but 546 passes becoming platform-specific tightens your-trainer's iOS gate sharply. Does NOT touch tier: — ISS-0208 owns that."
+    FEAT-0136:
+      file: "docs/features/verdict-ledger/FEAT-0136-The-Cockpit-Reads-And-Writes-The-Ledger.md"
+      title: "The cockpit reads and writes the ledger — the read path, the write path and five endpoints move off the note's frontmatter"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0055"]
+      tasks: ["TASK-0536", "TASK-0537", "TASK-0538"]
+      note: "THE REAL COST, and larger than the source proposal's `~9 cockpit modules`: renderer.ts 87 mark sites (more than any Python module and unmentioned), acceptance.py 65, note_writes 17, validate_docs_bundled 15, cockpit 9, server 6, five acceptance endpoints. A surviving frontmatter read does not raise — it returns a stale scalar indistinguishable from a verdict — so the guard is a test, not a review. REQ-0045 (glyph rendering) and ADR-0035 (a release page records nothing) must not weaken."
+    FEAT-0137:
+      file: "docs/features/verdict-ledger/FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once.md"
+      title: "One outcome vocabulary, written down once — four vocabularies collapse to one, and a check stops the document drifting from the data again"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0056"]
+      tasks: ["TASK-0539", "TASK-0540"]
+      note: "FOUR vocabularies, not the three the source proposal names: Minimal's characters (documented as CURRENT in all four repos including upstream), ADR-0034's words (live in all 671 notes), four words nothing has ever written (canceled/important/question/rerun — 0 occurrences each), and ADR-0037's event marks. The live vocabulary is three values: done 546, todo 124, incomplete 1. SURVIVES ADR-0037 BEING DECLINED — ISS-0218 is a live defect the ledger neither causes nor needs. Two judgements already made in ADR-0037 d6: question is KEPT (fail says the behaviour is wrong, question says the CHECK is wrong), rerun is retired three weeks after ADR-0034 minted it."
+    FEAT-0138:
+      file: "docs/features/verdict-ledger/FEAT-0138-Coverage-Is-Observed-Not-Declared.md"
+      title: "Coverage is observed, not declared — the test names the check it covers, CI emits the entry, and a deleted test simply stops emitting"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      requirements: ["REQ-0057"]
+      tasks: ["TASK-0541", "TASK-0542", "TASK-0543"]
+      note: "Stage 2. A standing covered_by: rots SILENTLY — rename/delete/@Ignore the covering test and the note keeps asserting coverage while the check leaves the run list permanently with no signal. Inverting it makes deletion self-correcting. ISS-0198 already measured why the standing claim cannot work here: 203 bodies name 54 JVM classes and no TST-* id, and cover_check correctly refuses an unrunnable link — which is exactly the population observed coverage handles. ONE CROSS-STAGE CONSTRAINT: TASK-0541 seeds the mapping before TASK-0530 removes automation:. LIMIT: ISS-0209 means the emitter runs here and nowhere the data lives."
     FEAT-0125:
       file: "docs/features/surfaces-report/FEAT-0125-The-Release-Page-Reports-What-Holds-It.md"
       title: "The release page reports what holds the release, and offers no control that changes a check"
@@ -753,6 +807,125 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0527:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0527-The-Ledger-Schema-And-The-Working-Ledger.md"
+      title: "Define the ledger file — schema, the working ledger per platform, and sealing at release cut"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0133
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0528:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0528-The-Validator-Reads-A-Ledger.md"
+      title: "The validator reads a ledger — required fields, reason-bearing marks, and a sealed ledger that cannot change"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0133
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0529:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0529-Backfill-One-Ledger-Per-Repo.md"
+      title: "Backfill one ledger per repo from the scalar marks, and measure the gate delta before it lands"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0133
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0530:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0530-Remove-The-Seven-Fields-Upstream-First.md"
+      title: "Remove the seven verdict fields from the schema, the template and the validator — upstream first"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0134
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0531:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0531-The-Note-To-Ledger-Migration-Script.md"
+      title: "The migration script — strip the fields, emit the ledger entries, refuse to run twice, list what it could not convert"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0134
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0532:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0532-Fix-The-Splitter-Before-Anything-Migrates.md"
+      title: "Fix the physical-line splitter and repair the six truncated notes, before any repo migrates again"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0134
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0533:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0533-The-Run-List-Is-A-Query.md"
+      title: "The run list is a query — no terminal entry since the last invalidation, and not covered by this cycle's CI"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0135
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0534:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger.md"
+      title: "The release gate reads the shipping platform's ledger, and the delta is stated per repo before it lands"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0135
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0535:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0535-The-Cross-Platform-Burndown.md"
+      title: "The cross-platform burndown — A-pass with no terminal B entry, computed, never maintained"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0135
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0536:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0536-The-Read-Path-Moves-To-The-Ledger.md"
+      title: "`acceptance.load` and `Item` take the verdict from the ledger, and a guard test fails on any frontmatter read"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0136
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0537:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0537-The-Write-Path-Appends-An-Event.md"
+      title: "The write path appends an event — `mark_check` stops being a note write, and the endpoint says which platform it recorded"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0136
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0538:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0538-The-Renderer-And-The-Endpoints-Follow.md"
+      title: "The renderer's 87 mark sites and the five acceptance endpoints follow the moved path"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0136
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0539:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0539-Settle-The-Vocabulary-Upstream.md"
+      title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0137
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0540:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0540-A-Check-That-Reads-Both-The-Document-And-The-Data.md"
+      title: "A check reads the documented vocabulary and the corpus, and fails when a live value is undocumented"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0137
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0541:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0541-Seed-The-Mapping-Before-Deleting-The-Field.md"
+      title: "Seed the check-to-covering-test mapping from the 203 prose annotations, before `automation:` is removed"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0138
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0542:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0542-The-Test-Declares-The-Check.md"
+      title: "The test declares the check it covers — comment-and-grep for v1, one convention per language"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0138
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0543:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0543-The-CI-Emitter-Writes-Into-The-Working-Ledger.md"
+      title: "The CI emitter appends observed-coverage entries into the working ledger for its platform"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0138
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
@@ -1486,6 +1659,33 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0216:
+      file: "docs/issues/ISS-0216-The-Suite-Parser-Splits-On-Physical-Lines.md"
+      title: "The acceptance suite parser matches rows per physical line, so a hard-wrapped bullet loses everything after its first line — six migrated notes in your-trainer are truncated, one body is the word \"From\""
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      severity: high
+      component: tooling
+      note: "acceptance.parse (acceptance.py:579) iterates splitlines() and drops any line _ITEM_RE does not match, with no report. migrate-acceptance-checks.py builds every note body from that parse, so the truncation is permanent. your-trainer TST-0592..0597: TST-0596 is titled `Chrome reachable from every pre-ride screen` and its ENTIRE BODY IS THE WORD `From`. The full text survived only because build_readme copies the source prose verbatim into the directory README — luck, not design. MUST BE FIXED BEFORE ANY REPO MIGRATES AGAIN (a PHASE-038 exit criterion)."
+    ISS-0217:
+      file: "docs/issues/ISS-0217-The-Two-Repos-Holding-Every-Check-Describe-A-Retired-Type.md"
+      title: "TESTING.md and SCHEMAS.md in your-trainer and your-sudoku still describe the `[[check]]` type and the `CHK-####` path ADR-0031 retired — and those two repos hold all 637 acceptance notes"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      severity: high
+      component: docs
+      note: "CORRECTS THE SOURCE PROPOSAL, which implied this drift lives here. Measured 2026-08-19: project-os-cockpit and upstream project-os are CURRENT; your-trainer (581 acceptance notes) and your-sudoku (56) both still say `type: [[check]], id CHK-*, scaffolded from check.md` against directories holding only TST-* notes and no check.md. An agent working there reads it as contract and builds the retired thing — TESTING-MODEL already recorded that exact failure from the other direction (sweep._write_new_check authored notes acceptance.load could not see). Shares a cause with ISS-0209 and NOT a remedy: these are prose, template-owned, and sync-project-os.sh already copies them; the validator cannot be synced without a per-repo migration."
+    ISS-0218:
+      file: "docs/issues/ISS-0218-Taxonomy-Documents-A-Mark-Vocabulary-The-Data-Abandoned.md"
+      title: "`TAXONOMY.md` documents the single-character mark vocabulary in every repo including upstream, three weeks after ADR-0034 moved all 671 notes to words — and the reader silently accepts both"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      severity: medium
+      component: docs
+      note: "Measured 2026-08-19 in project-os-cockpit, your-trainer, your-sudoku AND upstream project-os: all four still present Minimal's characters as current. Live values are done 546 / todo 124 / incomplete 1 — not one note in the fleet carries a character. IT FAILS NOTHING, because acceptance.py accepts both and LEGACY_MARKS maps forward — correct and deliberate, since a suite mid-migration must keep working, and precisely why nothing fired. Establishes that there are FOUR vocabularies in play, not the three the ADR-0037 source names. Fixed under FEAT-0137, and it survives ADR-0037 being declined."
     ISS-0210:
       file: "docs/issues/ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks.md"
       title: "The release page offers a live mark control on every blocking check — sixty of them on REL-0013, on the page whose purpose is to report that the release is not ready"
@@ -2392,6 +2592,54 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0052:
+      file: "docs/requirements/REQ-0052-A-Verdict-Names-Its-Platform-Method-Author-And-Date.md"
+      title: "A verdict names its check, its platform, its method, its author and its date, or it is not a verdict"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0133
+      note: "The reason clause is ADR-0029's rule finally enforceable: verdict_reason: is non-empty on 0 of 671 notes, so the rule held only because nobody ever wrote one of the four marks that demand it. On an event it is checked at write time."
+    REQ-0053:
+      file: "docs/requirements/REQ-0053-The-Note-Holds-Nothing-Verdict-Shaped.md"
+      title: "The check note holds intent only — nothing verdict-shaped and nothing platform-shaped"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0134
+      note: "Seven fields out, four of them empty on all 671 notes. covers:, tier:, area: and level: stay — they state intent, not outcome. The one thing that must survive the removal is automation:'s prose provenance: its values were themselves backfilled from 203 annotations naming 54 JVM classes, and those are FEAT-0138's only seed."
+    REQ-0054:
+      file: "docs/requirements/REQ-0054-Absence-Is-The-Initial-State.md"
+      title: "Absence is the initial state — a check with no entry for a platform is owed on that platform, and nothing declares applicability"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0135
+      note: "A per-note per-platform applies: field is PARITY_MATRIX in frontmatter, rotting by the mechanism that matrix demonstrated eight times in one device session (ISS-0359..0366, all on rows it called DONE). CRITERION 5 GATES THE OTHER FOUR: the per-repo gate delta is measured and recorded BEFORE that repo migrates."
+    REQ-0055:
+      file: "docs/requirements/REQ-0055-No-Surface-Writes-A-Verdict-Onto-A-Note.md"
+      title: "No cockpit surface reads a verdict from a note or writes one onto a note"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0136
+      note: "Guarded by a test rather than by review: 87 renderer.ts sites plus 65 in acceptance.py, and a surviving frontmatter read returns a stale scalar that looks exactly like a verdict — silent and indistinguishable from success."
+    REQ-0056:
+      file: "docs/requirements/REQ-0056-One-Outcome-Vocabulary-And-The-Document-Matches-The-Data.md"
+      title: "One outcome vocabulary, defined in one document, and a check that fails when the document and the corpus disagree"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0137
+      note: "TAXONOMY.md has documented the wrong vocabulary in all four repos including upstream for three weeks and FAILED NOTHING, because acceptance.py accepts both forms — correctly, since a suite mid-migration must keep working. Tolerance in the reader plus silence in the gate is the combination; criterion 3 removes the silence and keeps the tolerance."
+    REQ-0057:
+      file: "docs/requirements/REQ-0057-Coverage-Is-Observed-From-A-Run.md"
+      title: "Coverage is observed from a run and never declared on a note — a deleted covering test puts its check back on the run list"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      implements: FEAT-0138
+      note: "Only available because automation moved into the ledger; it could not have been proposed against a note field. LIMIT CARRIED FROM THE ADR: ISS-0209 means criterion 4 is proved in project-os-cockpit only, and the fleet must not be reported as covered."
     REQ-0044:
       file: "docs/requirements/REQ-0044-A-Release-Page-Records-Nothing.md"
       title: "A page whose subject is a release reports the gate and records nothing"
@@ -2615,6 +2863,16 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-038:
+      file: "docs/phases/PHASE-038-A-Verdict-Is-An-Event.md"
+      title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
+      status: planned
+      owner: user:edwin
+      goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
+      features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137", "FEAT-0138"]
+      requirements: ["REQ-0052", "REQ-0053", "REQ-0054", "REQ-0055", "REQ-0056", "REQ-0057"]
+      issues: ["ISS-0216", "ISS-0217", "ISS-0218", "ISS-0206"]
+      note: "GATED ON ADR-0037 BEING ACCEPTED — it reads proposed and nothing migrates until Edwin decides, the same gate ADR-0030/0031/0034 used. Opened 2026-08-19 from a written proposal out of a your-trainer working session; every claim in it was re-measured here first and four were corrected. THE FACT: a verdict is (check x platform x release) and it is stored in a scalar, so 579 of your-trainer's 581 acceptance notes carry no platform while all 513 of its passes were earned on Android. FOURTH schema change to this corpus in four weeks; what is different is that the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact. THE RISK IS THE GATE: 513 Android passes stop counting toward an iOS release, which is the honesty gain and a large deliberate tightening — TASK-0529 and TASK-0534 both refuse to run until the per-repo delta is written down. NOT IN SCOPE: ISS-0208 owns the tier rule, ISS-0209 means nothing built here is enforced where the checks live, PARITY_MATRIX retirement needs FEAT-0130 first."
     PHASE-037:
       file: "docs/phases/PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity.md"
       title: "The release page and the tests view report at the granularity the reader is working at"
@@ -3460,6 +3718,14 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0037:
+      file: "docs/decisions/ADR-0037-A-Verdict-Is-An-Event.md"
+      title: "A verdict is an event in a per-release, single-platform ledger — the note holds intent, the ledger holds reality, and platform stops being a note field"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      supersedes: ""
+      note: "PROPOSED 2026-08-19, nothing migrates until accepted. THE FACT: a verdict is (check x platform x release); a scalar mark: cannot hold a three-tuple and everything downstream is deformed by that. MEASURED FLEET-WIDE 2026-08-19 over 671 acceptance notes: platform non-empty on 2 (and both are the notes TASK-0507 relevelled from ordinary tests the day before, so the absence is a migration artefact not a position); verdict_date, verdict_reason, invalidated_by and covered_by non-empty on ZERO; live marks are done 546 / todo 124 / incomplete 1, with canceled, important, question and rerun written zero times. NINE DECISIONS: note=intent (seven fields removed); ledger=reality, append-only, one per release per platform, single-platform BY CONSTRUCTION because releases are per-platform where this bites; automation is an event not a standing claim; platform applicability is an event and ABSENCE IS THE INITIAL STATE (no applies: field — that is PARITY_MATRIX hiding in frontmatter); todo ceases to exist as a value; one vocabulary — pass/fail/partial/blocked/question/na, and question is KEPT against the source proposal which drops it by omission rather than by argument; coverage observed via a @Covers inversion; ledger at docs/releases/ledgers/ as plain YAML with sealing assigning a release; ADR-0030 d4/d5/d6 carried forward. FOURTH schema change to this corpus in four weeks — the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact. THE LIMIT, STATED: none of this sees a behaviour with no check; the ledger makes coverage legible, not complete, and does NOT yet retire PARITY_MATRIX because the matrix's first failure mode is a surface with no row, which is FEAT-0130's work."
     ADR-0034:
       file: "docs/decisions/ADR-0034-Three-Axes-Not-One-Word.md"
       title: "Three axes, not one word — `level` says what a test exercises, `command:` says who runs it, `covers:` says what it gates, and no axis implies another"
@@ -3567,17 +3833,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 132
+    features_total: 138
     features_done: 112
-    tasks_total: 525
+    tasks_total: 542
     tasks_done: 474
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 11
+    issues_open: 14
     issues_triage: 0
     risks_open: 6
     releases_total: 1
-    decisions_total: 27
+    decisions_total: 28

@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-18"
 decided: 2026-08-18
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-related: ["[[ADR-0030-One-Note-Per-Acceptance-Check]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0192]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]"]
+related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0192]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]"]
 tags: [decision]
 ---
 

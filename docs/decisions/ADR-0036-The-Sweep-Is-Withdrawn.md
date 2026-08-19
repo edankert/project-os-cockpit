@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-18"
 decided: 2026-08-18
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-related: ["[[ADR-0030-One-Note-Per-Acceptance-Check]]", "[[FEAT-0115]]", "[[DES-0012-Tests-In-Two-Flows]]"]
+related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[FEAT-0115]]", "[[DES-0012-Tests-In-Two-Flows]]"]
 tags: [decision]
 ---
 

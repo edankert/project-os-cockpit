@@ -6,11 +6,11 @@ title: "Nothing checks that a note's `id:` matches its filename — 23 task note
 status: open
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-19"
 severity: medium
 component: tooling
 phase: "[[PHASE-999-Future]]"
-related: ["[[ADR-0009]]", "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"]
+related: ["[[ADR-0009]]", "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]", "[[PHASE-038-A-Verdict-Is-An-Event]]", "[[ISS-0142]]"]
 ---
 
 # `id: TASK` on 23 notes, and everything reported green
@@ -31,8 +31,23 @@ Two `id: TASK` notes in one corpus are **two notes claiming one identity**. Wiki
 
 It is also the second identity-collision class this project has met: [[ISS-0142]] was a note carrying an id no route reached.
 
+## Recurrence 2026-08-19 — the same gate blindness, a different frontmatter defect
+
+Found while checking the wikilinks in [[PHASE-038]]'s notes. **`TASK-0521-One-Verb-Again.md` — written in the same session as the 23 — carried frontmatter that is not valid YAML:**
+
+```yaml
+title: "Retire "walk" from the product and the prose; one verb covers both populations"
+```
+
+The unescaped inner quotes terminate the scalar, and `yaml.safe_load` raises *"while parsing a block mapping"*. It is the **only** note in the corpus that does not parse — and `validate-docs.sh` reported OK, `sync-snapshot.py --check` reported up to date, and the pre-commit hook committed it.
+
+**This is worse than `id: TASK` and it survived for the same reason.** A truncated id is one wrong field; an unparseable block means the note has **no** frontmatter as far as any YAML reader is concerned — no `id`, no `status`, no `parent`, no `phase`. Identity comes from the filename, so the indexer still finds it and every gate still passes; everything that reads a *field* silently gets nothing.
+
+Fixed in place (backticks instead of quotes). Filed here rather than as a new issue because it is the same subject — frontmatter defects are invisible to every gate — and dedup is on that, not on the particular malformation.
+
 ## Done when
 
 - [ ] A note whose frontmatter `id:` disagrees with the `<TYPE>-<NNNN>` prefix of its filename is a validator error.
+- [ ] **A note whose frontmatter does not parse as YAML is a validator error**, naming the file and the parser's message. Today the corpus has one and nothing reports it.
 - [ ] The rule is upstream, since every repo's notes are written the same way.
 - [ ] The check names both values, so the fix is obvious from the message.

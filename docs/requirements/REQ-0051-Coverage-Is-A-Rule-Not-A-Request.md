@@ -18,7 +18,7 @@ acceptance:
   - "[ ] A feature that legitimately needs no acceptance test can say so once, in a field, and be quiet permanently."
   - "[ ] The rule lands upstream in project-os, not only here — it is a lifecycle rule for every repo."
 covers: []
-related: ["[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[ADR-0027]]", "[[ADR-0030-One-Note-Per-Acceptance-Check]]"]
+related: ["[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[ADR-0027]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]"]
 tags: [requirement]
 ---
 

@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0521
 aliases: ["TASK-0521"]
-title: "Retire "walk" from the product and the prose; one verb covers both populations"
+title: "Retire `walk` from the product and the prose; one verb covers both populations"
 status: done
 owner: user:edwin
 created: 2026-08-18
