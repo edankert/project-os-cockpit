@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-038
 aliases: ["PHASE-038"]
 title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-status: done
+status: active
 order: 38
 owner: user:edwin
 created: 2026-08-19
@@ -54,7 +54,7 @@ tags: [phase]
 - The cockpit's read path, write path and API surface.
 - One outcome vocabulary, defined in one document that matches the data.
 - The migration script for repos carrying scalar marks, and the splitter fix ([[ISS-0216]]) **before** any repo migrates again.
-- Stage 2: the `@Covers` inversion and the CI emitter.
+- ~~Stage 2: the `@Covers` inversion and the CI emitter.~~ **Descoped on close** — [[FEAT-0138]] and its tasks moved to [[PHASE-999]]. Struck rather than deleted: this phase's scope did include it, and a scope line that quietly disappears is a phase that looks like it always meant to stop here.
 
 ## Out of scope
 
@@ -95,7 +95,7 @@ Three stages, from [[ADR-0037]]. Each is independently useful.
 - **This is the fourth schema change to the same corpus in four weeks.** [[ADR-0037]] says so in its own status section and so does this. The argument for going again is that the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact.
 - **The measurements are fresh**, taken 2026-08-19 against all three repos, and they corrected the source proposal in four places: the stranded-row count (156 across four notes, not ~156 across four — the fourth is `TST-0014`, and [[ISS-0215]] undercounts at 140/three), the doc-drift location ([[ISS-0217]] — the drift is in the fleet repos, not here), the vocabulary count (four live vocabularies, not three), and the cost (87 TypeScript sites the proposal does not mention).
 
-## Independent review — 2026-08-19, `changes-requested`
+## Independent review, first pass — 2026-08-19, `changes-requested` (Stage 1 up to `f036c81`)
 
 Reviewed by `model:claude-opus-5` from the notes and `git diff 46cdaaa..HEAD` alone, in a session that did not author any of this work and never saw its reasoning ([[project-os-dev#ADR-0013]]: fresh context is the gate, model family is not). Same model family as the author, recorded in `reviewed_by` as provenance. `.venv/bin/pytest -q` → 1735 passed, 3 skipped; `bash tools/scripts/validate-docs.sh` → OK. Both green, which is why the findings below are about what the green does not cover.
 
@@ -158,3 +158,98 @@ The server routes on the presence of `platform` in the payload; nothing checks w
 ### What was checked and could not be refuted
 
 `671` notes; `platform:` on 2; `verdict_date`/`verdict_reason`/`invalidated_by`/`covered_by`/`evidence` empty on all 671; **87** `renderer.ts` sites (lines matching `\bmark\b`, exact); `505` iOS against `60` Android, reproduced by re-running the script. `Item.number`'s fallback is genuinely guarded — reverting it fails `test_gate_delta::test_the_delta_against_your_trainers_real_tags` — and no positional consumer breaks (`_delta_key` is `(tier, name)`, `ages()` keys are computed within one run, `renderer.py` and `migrate-acceptance-checks.py` see only file-shape items). Adding `excused` to `PERSISTS` fails two tests; the `_platform_of` prefix anchoring is guarded; each `apply_ledger` property fails when inverted. Old and new `parse()` are output-identical over every committed revision of every suite file in all three repos: no row dropped, none duplicated.
+
+## Independent review, second pass — 2026-08-19, `changes-requested` (the close: `f036c81..a9e51ad`)
+
+Reviewed by `model:claude-opus-5` from the notes and the diff after `f036c81` alone — a separate session that authored none of this work, never saw the author's reasoning, and holds no memory of writing it ([[project-os-dev#ADR-0013]]: fresh context is the gate; model family is not, and is recorded in `reviewed_by` as provenance). **What is independent: the context and the session. What is not: the model family, which is the same as the author's.**
+
+Run here: `.venv/bin/pytest -q` → **1 failed**, 1777 passed, 3 skipped. `bash tools/scripts/validate-docs.sh` → OK. `bash tools/scripts/validate-docs.sh --as-committed` → OK. Every finding below was reproduced, not reasoned about; each guard named was mutation-tested.
+
+### 1. `strip-verdict-fields.py`'s safety property is inoperative — it compares the ledger against itself
+
+*"No verdict may be removed that the ledger does not already carry"* is the script's stated whole reason for existing, and it **cannot fire**. The check reads `item.mark` off `A.load(docs, Index.build(docs))`, and `acceptance.load` now calls `apply_ledger` unconditionally ([[TASK-0538]], `df2b399`) — which replaces `item.mark` with the ledger's answer, or `"todo"` where there is no entry. `has_ledger()` at the top guarantees the repo has a ledger, so `mark not in EMPTY_MARKS` is never true and `would_lose` is always empty.
+
+Reproduced: three notes at `mark: done`, a ledger containing **zero** entries, `--apply` →
+
+```
+  acceptance notes   3
+  notes to strip     3
+  ledger entries     0 — every non-empty mark is carried
+strip: rewrote 3 note(s)
+```
+
+All three verdicts deleted, exit code 0, and the line printed asserts the property that was not checked. Deleting `if would_lose:` outright leaves the suite green: the script has **no test at all** (`grep -rn "strip" tests/` is empty).
+
+The proof recorded in [[TASK-0531]] (*"a note whose id the ledger cannot know is refused by name"*) was true when taken, at `a101288`, where `load()` still read `if platform: items = apply_ledger(...)`. An adjacent change three commits later removed the guard's input and nothing re-ran the proof. **This repo's own migration was safe** — 34 marks, 34 entries, verified at `a979af9` — by the state of the code at the time, not by the check. [[PLAN]] names the fleet migration as the next step, and `your-trainer` holds 581 notes and 513 passes.
+
+### 2. Exit criterion 5 is false — four reproduced bypasses of `LEDGER-SEALED`
+
+Each run against `tools/scripts/validate-docs.py` on a fixture with a sealed, correctly-vouched ledger; all four report **no error**:
+
+| edit | result |
+| --- | --- |
+| **delete the `sealed` key** and rewrite every entry | clean — the check is gated on `data["sealed"]`, a field inside the file it protects, so the protected file decides whether it is protected. The ledger also becomes `is_working`, so its marks stop expiring |
+| **delete the ledger file** | clean — `_sealed_shas` is built from the notes and never walked; nothing checks that a vouched file exists. *Was release R walked?* becomes unanswerable, silently |
+| **move it out of `docs/releases/ledgers/`** | clean, same reason |
+| **rewrite LF → CRLF** | clean — `Path.read_text()` performs universal-newline translation, so the computed hash is not a hash of the bytes |
+
+`entries` and `evidence` are covered *only* against edits that change the hash and leave `sealed` in place. [[REQ-0052]] criterion 4 (*"Sealed ledgers immutable, proved"*) and [[ISS-0220]]'s *"Done when"* item 1 are ticked against a property that does not hold. Renaming to another release id **is** caught (unvouched), which is the one direction that works.
+
+### 3. The suite is red at `HEAD`, and the closing commit reports it green
+
+`tests/test_coverage_registers.py::test_the_snapshot_phase_matches_the_note` fails: `SNAPSHOT.yaml` says `PHASE-038` for `FEAT-0138`, `TASK-0542`, `TASK-0543` and `REQ-0057` while their notes say `PHASE-999-Future`. `a9e51ad`'s message ends *"1777 passed"*. **Neither CI nor the pre-commit hook runs pytest** — `.github/workflows/validate-docs.yml` and `.git/hooks/pre-commit` run the validator, `sync-snapshot --check` and `generate-adapters --check` — so a manual run is the only place this surfaces, and the commit message is what a reader would otherwise rely on. That test was written after a previous instance of exactly this drift.
+
+### 4. The re-homing is recorded in three places and missing from four
+
+The *decision* is legitimate: Stage 2 was a named separate stage in [[ADR-0037]] and in this note's Sequencing from the day it opened, and the operating instruction was Stage 1 only. The *execution* is not, and `CLAUDE.md` documents the procedure verbatim (*"`sync-snapshot.py` propagates status but **not** `phase`"*).
+
+- Done: the four notes' `phase:`, this note's `features:`/`requirements:`, `PHASES.md`'s PHASE-038 row.
+- Not done: the four items' `phase:` in `SNAPSHOT.yaml`; `phases.PHASE-038.features`/`.requirements` in `SNAPSHOT.yaml`, which still list `FEAT-0138` and `REQ-0057`; `PHASES.md`'s **PHASE-999** row, which still lists only `FEAT-0029, TASK-0045, TASK-0065`; and `focus`, which still reads `phase: PHASE-038` / *"PHASE-038 STARTED"* on a phase that is `done`.
+- This note's own **Scope** section still lists *"Stage 2: the `@Covers` inversion and the CI emitter"* as in scope, contradicting the Sequencing paragraph two screens below it.
+
+### 5. [[ISS-0217]]'s fix propagated the defect [[ISS-0217]] is about
+
+The synced `TAXONOMY.md` **adds** to both fleet repos a section that asserts the type [[ADR-0031]] retired is current:
+
+> `## `check` versus `level: acceptance` on a test` — *"Both exist and they are not the same thing… A `[[check]]` is one line of a **manual walk** with a persistent human verdict. `TESTING.md` has always said the two coexist; the type boundary is what stops the release gate, the runner-status rule and the independent-review gate from being applied to the wrong population."*
+
+Verified: absent from `your-trainer` and `your-sudoku` at `HEAD`, present on disk after the sync; present in this repo (`TAXONOMY.md:122`) and upstream (`project-os/tools/instructions/TAXONOMY.md:96`). It is a live assertion in the present tense, not the tombstone the issue's closing note describes. The [[ISS-0218]] drift check reads the mark table against `ledger.MARKS` and cannot see it. [[ISS-0217]] is `fixed` on the claim *"the instruction drift is closed in both"*; [[REQ-0056]] criterion 2 (*"legacy readable, not presented as current"*) is ticked against the same paragraph.
+
+The rest of the sync claim holds: the other apparent deletions are replacements (`requirements:`/`features:` → `covers:`, [[ADR-0032]]) or a duplicated `## scope` heading, and the tier definitions [[DES-0012]] cites are intact.
+
+### 6. `blob_sha` is correct and nothing holds it there
+
+[[TASK-0548]], [[ISS-0220]] and `a9e51ad` all state that it *"matches `git hash-object` exactly, asserted against the real command"*. **No test in the repo invokes `git hash-object`.** The only assertion is `blob_sha(x) == out["sha"]`, where `out["sha"]` is `blob_sha(x)` — a tautology. Replacing `blob_sha` with a plain `sha1(text)` — not a git blob hash at all — leaves `test_ledger.py`, `test_ledger_validator.py`, `test_release.py` and `test_acceptance_marks.py` 112/112 green.
+
+The value *is* right: verified independently against `git hash-object` on non-ASCII (`2b03fb7…`), on an empty file (`e69de29…`) and on a single byte (`2e65efe…`), all three exact. What is missing is the guard, and the formula now exists in three hand-written copies (`ledger.py`, `validate-docs.py`, the test's own `_blob()`) with nothing tying any of them to git.
+
+### 7. Medium
+
+- **`_set_block_list` corrupts frontmatter on two hand-authored YAML shapes.** A blank line inside an existing `ledgers:` block leaves an orphan `    sha: "…"` at top level; unindented list items (`ledgers:` / `- file: …`, valid YAML) are left behind entirely while a second `ledgers:` block is appended. Both produce an unparseable note. Not reachable through `seal_ledger` alone, and these notes are hand-editable by design. `_yaml_safe` also does not escape backslashes, so a value containing `\b` becomes a YAML escape.
+- **The validator and the reader disagree about what a ledger is.** `_parse` raises when a ledger's `platform` field and its filename disagree; `validate_ledgers` never compares them. Reproduced: a `REL-0001-macos.json` copied to `REL-0001-ios.json` and vouched for by the note leaves the validator **clean** while `ledger.load()` raises for the whole repo — validator green, acceptance surface down. The new *"refused, not skipped"* rule in `load()` makes any stray `*.json` in that directory a hard failure of every read path, where it used to be skipped.
+- **`seal_ledger` is two non-atomic writes.** Decision 9a's whole argument is that seal and vouch land in one commit; the implementation renames the ledger, then writes the note, with no rollback. A failure between them produces a sealed, unvouched ledger — the error state the same commit invented.
+- **`POST /api/notes/seal-ledger` is undocumented** in `COCKPIT-API.md`, which gained two other endpoint sections in this diff, while [[REQ-0055]] criterion 5 (*"API reference matches"*) is ticked. `by` also became required on `mark-check` and the reference does not say so.
+
+### 8. Judgments the brief asked for
+
+**Criterion 6's amendment is a legitimate correction, and it overshoots its own argument.** The original criterion (*"`tests_verified:` is gone from the schema"*) contradicted [[ADR-0037]] *as accepted* — the ADR's own Consequences already said *"**[[REL-0001]] is not rewritten**"* — so it was wrong on the day it was written, which is not the [[ISS-0208]] pattern. But the two halves it reconciles were never actually in tension: removing `tests_verified: []` from `docs/__templates__/release.md` (where it still sits) was never the same act as deleting [[REL-0001]]'s thirteen entries. The amendment argues against a proposal nobody made, and the ADR still says *"The field leaves the release template and schema"* and was **not** amended — so the phase and the decision it derives from now contradict each other, with the phase closed on the phase's version.
+
+**Criterion 8 was reworded and ticked without being listed as an amendment.** It read *"verified by a check that reads both, so `TAXONOMY.md` cannot drift from the corpus again"*; it now reads *"against `ledger.MARKS`"* — a constant in code, not the corpus. This note says *"each is annotated with what moved"* of the three; this is a fourth that moved, unannotated. [[REQ-0056]] criterion 3 has the same gap.
+
+**Criterion 7's tick is honest as a code claim and untested as a product claim.** The Seal action exists, is loopback-guarded, and `seal_ledger` has three tests. It is offered only on a release that is not `released` and only with a platform selected — and [[REL-0001]] is the only release note in this repo and is `released`, so the button appears on nothing here. *"Reachable in the product"* is a reading of the code, not an observation of it.
+
+**Criterion 3's summary overstates a row its own task note states honestly.** *"0 on the earning platform in every one"* — `your-sudoku` has **0 entries** and 56 `todo`, so it has no earning platform; [[TASK-0529]]'s table says so plainly and the summary flattens it.
+
+### 9. Low
+
+- [[PLAN]]'s *"Stage 1 — complete"* and *"Two things the review left standing"* both still present [[ISS-0220]] as open and `LEDGER-SEALED` as diffing against `HEAD`. Closed in the next commit; the plan of record was not updated.
+- [[ISS-0217]] states `check.md` was *"deleted from both"*; it was already absent at `HEAD` in both, removed in `c00bd21a`. The ticked checklist item (*"confirm no `check.md` remains"*) is true; the fix line is not.
+- [[TASK-0529]] carries `66` and `68` for the same count, and `505` and `507` for the same count, in paragraphs added by the correction notice.
+- `ledger._is_date` and `resolve`'s date sort are unguarded — both mutations survive the full ledger/release/acceptance/migration suite. The validator's copy of `_is_date` **is** guarded (`2026-13-45`).
+- `_sealed_shas` reads `ledgers:` from any note type while the error says *"no release note vouches"*; `_ledger_at` parses each blob twice (the `json.loads` result is unused); `subprocess` is now an unused import in `validate_ledgers`.
+
+### What was checked and could not be refuted
+
+`blob_sha` against real `git hash-object` on non-ASCII, empty and single-byte input — exact in all three. The 34 migrated notes: **zero** of the seven fields across all 34 (35 files, one is `README.md`). The coverage seed: 278 checks / 81 classes, independently recounted at 268/82 with a cruder regex over `your-trainer`'s 580 acceptance notes — same population, no contradiction. The fleet sync lost nothing local: the tier definitions are intact and the apparent deletions are [[ADR-0032]] replacements or a duplicated heading. Finding 2 of the first pass is **properly guarded** — reverting `resolve` to pop the standing verdict on a sealed non-persisting mark fails two tests, including the burndown one. `mark_check`'s ledger refusal, `has_ledger`'s file check, `seal`'s `_RELEASE_RE`, `record_verdict`'s author refusal, `LEDGER-NAME`, `LEDGER-FIELD`, both `LEDGER-SEALED` branches, the widened `_CONTINUATION_RE` and the union path in `apply_ledger` each fail at least one test when reverted. `validate-docs.sh --as-committed` passes the full CI step set. The `Index` parses `ledgers:` as a list of maps, so sealing a second platform does not drop the first platform's row.
+
+**Findings are recorded here rather than as `ISS-*` notes**: finding 1 alone returns this phase to `active`, and allocating IDs from a review session concurrent with the author's is the failure mode that produced the truncated `id: TASK` notes in `8549ecc`. Filing is owed at the next close-out.

@@ -71,11 +71,11 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0532"
-  feature: "FEAT-0134"
+  task: ""
+  feature: ""
   phase: "PHASE-038"
-  issue: "ISS-0216"
-  note: "2026-08-19 — PHASE-038 STARTED. ADR-0037 accepted; Edwin's instruction is the goal: implement, test and independently review the full PHASE-038 functionality, STAGE 1 ONLY (FEAT-0133..FEAT-0137). DO NOT START FEAT-0138. Order is in docs/features/verdict-ledger/plan/PLAN.md. (0) TASK-0532 FIRST and non-negotiable: the row parser drops every physical line after the first in a hard-wrapped bullet, six notes in your-trainer are already truncated and one body is the word `From` (ISS-0216). Running another migration through it multiplies the damage. (1) FEAT-0133 the ledger file, JSON at docs/releases/ledgers/, entries + evidence as sibling collections, working ledger per platform, sealing assigns AND expires excused. (2) FEAT-0134 the note sheds seven fields, upstream first. (3) FEAT-0135 the queries. (4) FEAT-0136 the cockpit read/write path — 87 renderer.ts sites, 65 in acceptance.py, five endpoints, plus suite_at gaining a third shape (TASK-0545, the only gap that produces a WRONG ANSWER rather than an error). (5) FEAT-0137 the vocabulary. FOUR CONSTRAINTS: splitter before any migration; NO REPO MIGRATES BEFORE ITS GATE DELTA IS WRITTEN DOWN (TASK-0529/0534); template-owned surfaces land upstream in ~/Dev/repos/project-os first and do NOT blind-copy into your-trainer, whose TESTING.md holds its own tier definitions (ISS-0217); and TASK-0541 (seed the 203 automation annotations) MUST land before TASK-0530 removes the field — it is data preservation guarding the removal, not FEAT-0138 functionality. PHASE-037 remains active with FEAT-0125..0129 at doing; this does not close it."
+  issue: ""
+  note: "2026-08-19 — PHASE-038 is ACTIVE AGAIN after an independent review returned changes-requested on the close. The critical finding: strip-verdict-fields.py read Item.mark from acceptance.load, which applies the ledger, so its one safety property compared the ledger to ITSELF and could never refuse — reproduced as three `mark: done` notes destroyed against an empty ledger with exit 0, while the output asserted the property it had not checked. This repo's own 34-note migration was safe by TIMING, not by the check: the script ran three commits before the change that broke it. Fixed (the mark is read from disk), tested (the script had NO test) and mutation-proven. Remaining from the review: LEDGER-SEALED has four reproduced bypasses so exit criterion 5 is false; the ISS-0217 sync PROPAGATED a stale `## check versus level: acceptance` section into both fleet repos, which is ISS-0217's own defect travelling under its fix; blob_sha is never checked against real git; _set_block_list corrupts frontmatter on a blank line inside a block; the validator does not compare a ledger's platform field to its filename while ledger._parse RAISES on it. Stage 2 (FEAT-0138) is re-homed to PHASE-999 and stays there. Do not migrate the fleet."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -129,7 +129,7 @@ items:
       title: "Coverage is observed, not declared — the test names the check it covers, CI emits the entry, and a deleted test simply stops emitting"
       status: backlog
       owner: user:edwin
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      phase: "[[PHASE-999-Future]]"
       requirements: ["REQ-0057"]
       tasks: ["TASK-0541", "TASK-0542", "TASK-0543"]
       note: "Stage 2. A standing covered_by: rots SILENTLY — rename/delete/@Ignore the covering test and the note keeps asserting coverage while the check leaves the run list permanently with no signal. Inverting it makes deletion self-correcting. ISS-0198 already measured why the standing claim cannot work here: 203 bodies name 54 JVM classes and no TST-* id, and cover_check correctly refuses an unrunnable link — which is exactly the population observed coverage handles. ONE CROSS-STAGE CONSTRAINT: TASK-0541 seeds the mapping before TASK-0530 removes automation:. LIMIT: ISS-0209 means the emitter runs here and nowhere the data lives."
@@ -953,14 +953,14 @@ items:
       status: backlog
       owner: user:edwin
       parent: FEAT-0138
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      phase: "[[PHASE-999-Future]]"
     TASK-0543:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0543-The-CI-Emitter-Writes-Into-The-Working-Ledger.md"
       title: "The CI emitter appends observed-coverage entries into the working ledger for its platform"
       status: backlog
       owner: user:edwin
       parent: FEAT-0138
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      phase: "[[PHASE-999-Future]]"
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
@@ -2672,7 +2672,7 @@ items:
       title: "Coverage is observed from a run and never declared on a note — a deleted covering test puts its check back on the run list"
       status: draft
       owner: user:edwin
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+      phase: "[[PHASE-999-Future]]"
       implements: FEAT-0138
       note: "Only available because automation moved into the ledger; it could not have been proposed against a note field. LIMIT CARRIED FROM THE ADR: ISS-0209 means criterion 4 is proved in project-os-cockpit only, and the fleet must not be reported as covered."
     REQ-0044:
@@ -2901,11 +2901,11 @@ items:
     PHASE-038:
       file: "docs/phases/PHASE-038-A-Verdict-Is-An-Event.md"
       title: "A verdict is an event — the ledger holds what was actually verified, on which platform, for which release"
-      status: done
+      status: active
       owner: user:edwin
       goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
-      features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137", "FEAT-0138"]
-      requirements: ["REQ-0052", "REQ-0053", "REQ-0054", "REQ-0055", "REQ-0056", "REQ-0057"]
+      features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137"]
+      requirements: ["REQ-0052", "REQ-0053", "REQ-0054", "REQ-0055", "REQ-0056"]
       issues: ["ISS-0216", "ISS-0217", "ISS-0218", "ISS-0206"]
       note: "GATED ON ADR-0037 BEING ACCEPTED — it reads proposed and nothing migrates until Edwin decides, the same gate ADR-0030/0031/0034 used. Opened 2026-08-19 from a written proposal out of a your-trainer working session; every claim in it was re-measured here first and four were corrected. THE FACT: a verdict is (check x platform x release) and it is stored in a scalar, so 579 of your-trainer's 581 acceptance notes carry no platform while all 513 of its passes were earned on Android. FOURTH schema change to this corpus in four weeks; what is different is that the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact. THE RISK IS THE GATE: 513 Android passes stop counting toward an iOS release, which is the honesty gain and a large deliberate tightening — TASK-0529 and TASK-0534 both refuse to run until the per-repo delta is written down. NOT IN SCOPE: ISS-0208 owns the tier rule, ISS-0209 means nothing built here is enforced where the checks live, PARITY_MATRIX retirement needs FEAT-0130 first."
     PHASE-037:

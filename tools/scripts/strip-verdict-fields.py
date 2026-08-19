@@ -93,6 +93,32 @@ def main() -> int:
     suite = A.load(docs, Index.build(docs))
     carried = L.verdicts(docs, args.platform)
 
+    return _run(root, docs, suite, carried, args)
+
+
+def _frontmatter_mark(text: str) -> str:
+    """The `mark:` **as the file stores it**.
+
+    `Item.mark` is not that. `acceptance.load` applies the ledger to every
+    item, so an `Item`'s mark is the ledger's answer — and a guard that
+    compared it to the ledger was comparing the ledger to itself. Reproduced
+    by independent review 2026-08-19: three notes at `mark: done`, a ledger
+    with **zero** entries, and this script printed *"every non-empty mark is
+    carried"* while deleting all three.
+
+    The safety property is about what is on disk, so it is read from disk.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("mark:"):
+            return line.split(":", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+def _run(root, docs, suite, carried, args) -> int:
     would_lose, targets = [], []
     for item in suite.items:
         if not item.rel:
@@ -102,7 +128,8 @@ def main() -> int:
         _, removed = strip(text)
         if not removed:
             continue
-        mark = (item.mark or "").strip()
+        #: **From the file, never from the Item.** See `_frontmatter_mark`.
+        mark = _frontmatter_mark(text)
         if mark not in EMPTY_MARKS and item.note_id not in carried:
             would_lose.append(f"{item.note_id}: `mark: {mark}` and no entry "
                               f"in the {args.platform} ledger ({item.rel})")
