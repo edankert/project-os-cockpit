@@ -929,7 +929,7 @@ items:
     TASK-0541:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0541-Seed-The-Mapping-Before-Deleting-The-Field.md"
       title: "Seed the check-to-covering-test mapping from the 203 prose annotations, before `automation:` is removed"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0138
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 485
+    tasks_done: 486
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

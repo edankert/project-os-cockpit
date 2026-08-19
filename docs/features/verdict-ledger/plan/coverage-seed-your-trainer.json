@@ -1,0 +1,3331 @@
+{
+  "source": "your-trainer/docs/tests/acceptance",
+  "extracted": "2026-08-19",
+  "why": "ADR-0037 decision 8 seeds the @Covers inversion from these before TASK-0530 removes `automation:`. ISS-0198 closed with `covered_by:` deliberately empty because these name JVM CLASSES and no TST-* id, and cover_check refuses an unrunnable claim. Under observed coverage that is exactly the population that works.",
+  "checks": [
+    {
+      "check": "TST-0019",
+      "tier": 1,
+      "area": "Profile Management",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.empty_db_has_no_users` + `LicensingManagerTest.fresh_install_has_three_tokens_remaining` cover the empty-state + default-tier; dialog UI stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0020",
+      "tier": 1,
+      "area": "Profile Management",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "UnitConverterTest"
+      ]
+    },
+    {
+      "check": "TST-0021",
+      "tier": 1,
+      "area": "Profile Management",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "UnitConverterTest"
+      ]
+    },
+    {
+      "check": "TST-0028",
+      "tier": 1,
+      "area": "Hardware Connectivity",
+      "automation": "partial",
+      "annotation": "(partially automated: `ScannerModalTest` covers the scanner dialog + device tap-dispatch; `EquipmentSlotTest` covers post-connection status rendering; actual BLE / FTMS link stays hardware-dependent.)",
+      "classes": [
+        "EquipmentSlotTest",
+        "ScannerModalTest"
+      ]
+    },
+    {
+      "check": "TST-0029",
+      "tier": 1,
+      "area": "Hardware Connectivity",
+      "automation": "partial",
+      "annotation": "(partially automated: `ScannerModalTest` + `EquipmentSlotTest` cover the scan + status UI; live HR reception stays hardware-dependent.)",
+      "classes": [
+        "EquipmentSlotTest",
+        "ScannerModalTest"
+      ]
+    },
+    {
+      "check": "TST-0032",
+      "tier": 1,
+      "area": "Hardware Connectivity",
+      "automation": "partial",
+      "annotation": "(partially automated: HrmPromptTest.connectCallbackFired \u2014 full flow requires BLE)",
+      "classes": [
+        "HrmPromptTest"
+      ]
+    },
+    {
+      "check": "TST-0035",
+      "tier": 1,
+      "area": "Workout Execution",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.startFreeRide_default_is_SIMULATION_for_Route_tab` covers the mode-dispatch; slope +/- UI + trainer resistance stay hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0040",
+      "tier": 1,
+      "area": "Workout Execution",
+      "automation": "partial",
+      "annotation": "(partially automated: SessionEndOverlayTest.finishCallbackFired \u2014 full flow requires DB)",
+      "classes": [
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0041",
+      "tier": 1,
+      "area": "Workout Execution",
+      "automation": "partial",
+      "annotation": "(partially automated: SessionEndOverlayTest.discardCallbackFired)",
+      "classes": [
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0042",
+      "tier": 1,
+      "area": "Workout Execution",
+      "automation": "partial",
+      "annotation": "(partially automated: `SessionEndOverlayTest.resumeButtonShownWhenManualStop` covers resume-button visibility; free-ride-specific state transitions stay manual.)",
+      "classes": [
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0046",
+      "tier": 1,
+      "area": "AI Workout Builder",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest.userCreated_workout_appears_alongside_assets` covers the library-surfaces-save invariant; profile-graph rendering stays visual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0059",
+      "tier": 1,
+      "area": "Workout Editor",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.addRamp_inserts_a_ramp_with_targetPowerEndPercent` \u2014 ramp interval construction covered; terrain-graph diagonal rendering stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0060",
+      "tier": 1,
+      "area": "Workout Editor",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.updateInterval_replaces_the_indexed_entry` \u2014 cadence field round-trips via the editor VM; cockpit rendering stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0061",
+      "tier": 1,
+      "area": "Workout Editor",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest` covers the default-interval construction; cockpit \"no cadence target\" fallback stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0062",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryTierLimitTest` covers the 3-custom-workout cap enforcement; `WorkoutViewModelImportGateTest` covers the centralized import tier gate; lock-icon visual + paywall navigation flow stay manual.)",
+      "classes": [
+        "WorkoutRepositoryTierLimitTest",
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0063",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest.fresh_install_has_three_tokens_remaining` + `consumeErgToken_decrements_remaining_by_one` \u2014 counter math covered; paywall navigation still manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0064",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest.consumeErgToken_decrements_remaining_by_one` \u2014 consumption math covered; start-and-discard UI flow still manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0065",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers the tier-override + billing-priority logic in `getEffectiveTier`; Play Billing purchase flow stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0066",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `PaywallScreenTest.showsFamilyFeaturesChecklist` covers family-features rendering; active-plan state + Return button behaviour stay manual.)",
+      "classes": [
+        "PaywallScreenTest"
+      ]
+    },
+    {
+      "check": "TST-0067",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers PRO tier resolution; pro_to_family SKU + card render require Play Billing + stay manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0068",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution; About-pane button visibility stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0069",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` + `UserRepositoryTest` cover tier + multi-rider paths; rider-selection rendering stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0070",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers FREE tier resolution; lock-icon rendering + paywall nav stay manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0071",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers tier resolution; disabled-field visual stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0072",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution; editable-field visual stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0075",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers the device-wide tier resolution; Play Billing purchase + tier-flip state stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0076",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "full",
+      "annotation": "(automated: `LicenseSeatResolverTest` covers caps + visibility + that the FAMILY gates did not move; per-rider settings persistence and the lock rendering stay manual.)",
+      "classes": [
+        "LicenseSeatResolverTest"
+      ]
+    },
+    {
+      "check": "TST-0082",
+      "tier": 1,
+      "area": "Monetization & Licensing",
+      "automation": "full",
+      "annotation": "(automated: `Migration34To35Test.deleting_the_seated_rider_frees_the_pin_rather_than_dangling`, green on emulator; the resulting UI state stays manual.)",
+      "classes": [
+        "Migration34To35Test"
+      ]
+    },
+    {
+      "check": "TST-0089",
+      "tier": 1,
+      "area": "History & Data Portability",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutHistoryViewModelTest` exercises the empty-session path through the VM; exact copy + shimmer visibility stays manual.)",
+      "classes": [
+        "WorkoutHistoryViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0091",
+      "tier": 1,
+      "area": "History & Data Portability",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest` + `MetricRepositoryTest` + `AnalyticsMathTest` cover persistence and analytics math; graph rendering stays visual.)",
+      "classes": [
+        "AnalyticsMathTest",
+        "MetricRepositoryTest",
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0092",
+      "tier": 1,
+      "area": "History & Data Portability",
+      "automation": "partial",
+      "annotation": "(partially automated: SessionItemTest.showsExportFitButton)",
+      "classes": [
+        "SessionItemTest"
+      ]
+    },
+    {
+      "check": "TST-0093",
+      "tier": 1,
+      "area": "History & Data Portability",
+      "automation": "partial",
+      "annotation": "(partially automated: AiCoachCardTest.paidWithKeyShowsCopyContext \u2014 actual AI response requires real API)",
+      "classes": [
+        "AiCoachCardTest"
+      ]
+    },
+    {
+      "check": "TST-0094",
+      "tier": 1,
+      "area": "Workout Library & Favorites",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryFavoritesTest.single_user_toggle_marks_workout_as_favorite` \u2014 persistence + sort covered; star-icon visual stays manual.)",
+      "classes": [
+        "WorkoutRepositoryFavoritesTest"
+      ]
+    },
+    {
+      "check": "TST-0095",
+      "tier": 1,
+      "area": "Workout Library & Favorites",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryFavoritesTest` \u2014 `UserFavoriteDao` round-trip covered; app-restart survival still manual.)",
+      "classes": [
+        "WorkoutRepositoryFavoritesTest"
+      ]
+    },
+    {
+      "check": "TST-0096",
+      "tier": 1,
+      "area": "Workout Library & Favorites",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` exercises `isDevShowTestWorkouts()",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0097",
+      "tier": 1,
+      "area": "Workout Library & Favorites",
+      "automation": "partial",
+      "annotation": "(partially automated: same `WorkoutRepositoryLibraryTest` path; toggle UI stays manual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0099",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers the FREE-tier resolution; lock-icon visual + paywall navigation stay manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0101",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: `ApiKeyRepository` uses encrypted SharedPreferences \u2014 persistence round-trip is exercised via the repo's get/set API in `TestDatabaseFixture` construction; actual OAuth link stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0105",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: per-rider token storage is scoped by `userId`; Strava OAuth flow stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0106",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest` covers the per-user session scoping that drives dispatch; Strava upload stays manual.)",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0108",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: `MainViewModelPerRiderPrefsTest` proves the per-`userId` key scoping pattern that token storage uses.)",
+      "classes": [
+        "MainViewModelPerRiderPrefsTest"
+      ]
+    },
+    {
+      "check": "TST-0109",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "partial",
+      "annotation": "(partially automated: `MainViewModelPerRiderPrefsTest` pattern \u2014 token keys are `userId`-scoped.)",
+      "classes": [
+        "MainViewModelPerRiderPrefsTest"
+      ]
+    },
+    {
+      "check": "TST-0110",
+      "tier": 1,
+      "area": "Strava Integration",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HardcodedComposeTextTest"
+      ]
+    },
+    {
+      "check": "TST-0115",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.startFreeRide_*` \u2014 mode is set once at dispatch and only re-routed through `selectWorkout` / `startFreeRide`, so no in-cockpit mode cycle exists on the VM surface; cockpit-absence of the button stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0119",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PhysicsUtilsLinearSnapshotTest"
+      ]
+    },
+    {
+      "check": "TST-0126",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `PhysicsUtilsTest.calibration \u2014 160W flat for 75kg rider matches outdoor reference (~29 km h)",
+      "classes": [
+        "PhysicsUtilsTest"
+      ]
+    },
+    {
+      "check": "TST-0127",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "partial",
+      "annotation": "(partially automated: `VirtualGearTablesTest` covers the three-preset shape contract + LINEAR backward compat; chip rendering + count stay manual.)",
+      "classes": [
+        "VirtualGearTablesTest"
+      ]
+    },
+    {
+      "check": "TST-0129",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `PhysicsUtilsLinearSnapshotTest` 14 tests freeze every public physics-gear function's LINEAR output against the new 26-gear baseline \u2014 any drift fails CI; manual ride confirms the new feel.)",
+      "classes": [
+        "PhysicsUtilsLinearSnapshotTest"
+      ]
+    },
+    {
+      "check": "TST-0133",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `RiderFileSerializationTest.virtualGearPreset round-trips through serialization` + `\u2026 older rider file without virtualGearPreset deserialises as LINEAR` cover the round-trip + backwards-compat fallback.)",
+      "classes": [
+        "RiderFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0134",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `SlopeModeDispatchTest` covers the 4 \u00d7 2 = 8 dispatch cases + fromString fallbacks; chip rendering stays manual.)",
+      "classes": [
+        "SlopeModeDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0135",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `SlopeModeDispatchTest.auto_with_sim_capable_trainer_sends_sim_params` + `auto_with_erg_only_trainer_falls_back_to_resistance`.)",
+      "classes": [
+        "SlopeModeDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0136",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `SlopeModeDispatchTest.simulation_is_unavailable_on_erg_only_trainer` + `other_modes_are_always_available`.)",
+      "classes": [
+        "SlopeModeDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0137",
+      "tier": 1,
+      "area": "Simulation Mode",
+      "automation": "full",
+      "annotation": "(automated: `SlopeModeDispatchTest.simulation_with_erg_only_trainer_falls_back_to_resistance`.)",
+      "classes": [
+        "SlopeModeDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0159",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` \u2014 state cycle covered; icon + badge rendering + header placement stay visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0161",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutLoopTest` (unit)",
+      "classes": [
+        "WorkoutLoopTest"
+      ]
+    },
+    {
+      "check": "TST-0162",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutLoopTest` decrement math covered; badge rendering stays visual.)",
+      "classes": [
+        "WorkoutLoopTest"
+      ]
+    },
+    {
+      "check": "TST-0164",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutLoopTest` extends duration calc; header rendering stays visual.)",
+      "classes": [
+        "WorkoutLoopTest"
+      ]
+    },
+    {
+      "check": "TST-0165",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest.update_replaces_existing_session_by_id` (loopCount round-trips)",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0167",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` \u2014 cycle state from 0 \u2192 1 re-arm covered; visual badge state stays manual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0169",
+      "tier": 1,
+      "area": "Workout Loop/Repeat",
+      "automation": "full",
+      "annotation": "(automated: `WorkoutLoopTest.toggleLoop_cycles_through_unlimited_back_to_off` covers state; glyph swap stays visual.)",
+      "classes": [
+        "WorkoutLoopTest"
+      ]
+    },
+    {
+      "check": "TST-0171",
+      "tier": 1,
+      "area": "HR Zone Lock",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.startFreeRide_HR_ZONE_for_HR_tab` + `selectWorkout_HR_ZONE_sets_HR_ZONE_mode_and_seeds_target_from_first_interval` cover the entry-path dispatch; zone selector rendering stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0173",
+      "tier": 1,
+      "area": "HR Zone Lock",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the converge/locked/adjusting status machine and manual-nudge side effects; +/- button rendering + status label stay visual.)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0174",
+      "tier": 1,
+      "area": "HR Zone Lock",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the converge \u2192 locked transition + ceiling-band hysteresis; live HRM stream stays hardware-dependent.)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0182",
+      "tier": 1,
+      "area": "HR Zone Lock",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` FREE tier resolution + `ImportPaywallNavigationTest` covers the navigate-to-paywall flow pattern; lock-icon visual stays manual.)",
+      "classes": [
+        "ImportPaywallNavigationTest",
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0183",
+      "tier": 1,
+      "area": "HR Zone Lock",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.resetWorkout_clears_targetLoops_and_loopCount` + `startFreeRide_clears_previously_selected_workout` \u2014 state reset covered; terrain-graph rendering stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0184",
+      "tier": 1,
+      "area": "Workout Domain Tabs",
+      "automation": "partial",
+      "annotation": "(partially automated: `FreeRideCardTest.power_tab_renders_quick_ride_with_erg_subtitle` + `WorkoutViewModelDispatchTest.startFreeRide_ERG_for_Power_tab` \u2014 card + ride-mode dispatch both covered; ERG watt-control UI stays visual.)",
+      "classes": [
+        "FreeRideCardTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0185",
+      "tier": 1,
+      "area": "Workout Domain Tabs",
+      "automation": "partial",
+      "annotation": "(partially automated: `FreeRideCardTest.route_tab_renders_free_ride_with_slope_subtitle` + `WorkoutViewModelDispatchTest.startFreeRide_default_is_SIMULATION_for_Route_tab` \u2014 card + ride-mode dispatch both covered; slope/gear UI stays visual.)",
+      "classes": [
+        "FreeRideCardTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0186",
+      "tier": 1,
+      "area": "Workout Domain Tabs",
+      "automation": "partial",
+      "annotation": "(partially automated: `FreeRideCardTest.hr_tab_renders_zone_ride_with_zone_lock_subtitle` + `WorkoutViewModelDispatchTest.startFreeRide_HR_ZONE_for_HR_tab` \u2014 card + ride-mode dispatch both covered; zone-selector UI stays visual.)",
+      "classes": [
+        "FreeRideCardTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0187",
+      "tier": 1,
+      "area": "Workout Domain Tabs",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest.getAllWorkouts_returns_bundled_assets_for_fresh_install` verifies \u226520 bundled workouts surface; per-tab filtering + card rendering stay visual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0190",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest.workoutType_persisted_through_insert` \u2014 POWER/ROUTE/HR_ZONE discriminator round-trips; visual label + icon stay manual.)",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0191",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HistoryTypeFilterRowTest"
+      ]
+    },
+    {
+      "check": "TST-0192",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` covers the asset-catalogue surface; per-tab count + dev-toggle visibility stay manual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0193",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` + `IntervalDeserializerTest` cover the HR-Zone interval data (`targetHrZone` on each interval)",
+      "classes": [
+        "IntervalDeserializerTest",
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0194",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryFavoritesTest` covers favorite persistence across HR-Zone (any workoutType)",
+      "classes": [
+        "WorkoutRepositoryFavoritesTest"
+      ]
+    },
+    {
+      "check": "TST-0195",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_HR_ZONE_sets_HR_ZONE_mode_and_seeds_target_from_first_interval` covers the HR-Zone dispatch + target seeding; zone-stepping over time stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0196",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.addInterval_HR_ZONE_inserts_HR_zone_interval_with_targetHrZone` + `WorkoutViewModelDispatchTest.selectWorkout_HR_ZONE_*` cover the data that feeds the terrain renderer; drawing stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0197",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the manual-nudge watt step + status bump; +/- button rendering stays visual.)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0198",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the lookahead pre-ramp logic; live HRM + interval clock stays hardware-dependent.)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0199",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the asymmetric up-ramp vs down-step rates; runtime playback stays manual.)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0200",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` + `resetWorkout_clears_targetLoopsye_and_loopCount` cover the loop-count state machine shared with HR-Zone workouts; terrain bracket rendering + boundary-beep stay visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0201",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_HR_ZONE_sets_HR_ZONE_mode_and_seeds_target_from_first_interval` + `WorkoutEditorViewModelTest.moveInterval_keeps_warmup_and_cooldown_at_the_endpoints` cover the interval-stepping data path; skip-button UI stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0202",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.reset_seeds_default_warmup_and_cooldown` covers the template-scaffold data path; per-template catalog + duration-selector UI stay visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0203",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.reset_seeds_default_warmup_and_cooldown` + `addInterval_HR_ZONE_inserts_HR_zone_interval_with_targetHrZone` cover template \u2192 editor data seeding; zone-band terrain + template picker UI stay visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0204",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.updateInterval_replaces_the_indexed_entry` covers the zone-change data mutation; drag gesture + canvas re-render stay visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0205",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.updateInterval_replaces_the_indexed_entry` covers duration mutation; drag gesture + time label stay visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0206",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.addInterval_POWER_inserts_power_interval_before_cooldown` + `removeInterval_drops_the_indexed_interval` cover the state-machine contract; toolbar button rendering + min-size disable stay visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0207",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutEditorViewModelTest.addInterval_HR_ZONE_inserts_HR_zone_interval_with_targetHrZone` + `.updateInterval_replaces_the_indexed_entry` cover the zone/name/duration mutation path; bottom-sheet UI stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0209",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` covers save + appears-in-library + replace-by-id; `WorkoutEditorViewModelTest.loadWorkout_populates_programName_and_intervals` covers edit-round-trip; context-menu UI stays manual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest",
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0210",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `ImportPaywallNavigationTest` establishes the NavHost controller pattern used by the editor's back stack; the specific editor \u2194 start-screen back arrows stay visual.)",
+      "classes": [
+        "ImportPaywallNavigationTest"
+      ]
+    },
+    {
+      "check": "TST-0211",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupFileSerializationTest` covers `.ytw` JSON round-trip for HR_ZONE workoutType; Share intent + SAF save stay manual.)",
+      "classes": [
+        "BackupFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0212",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers the tier gate; `IntervalDeserializerTest` covers targetHrZone round-trip through Gson; SAF picker stays manual.)",
+      "classes": [
+        "IntervalDeserializerTest",
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0213",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSelectionScreen`'s per-tab extension filter is a simple list check; `ZwoParserTest` covers `.zwo` parsing; the toast copy + tab-specific extension allowlist stay manual.)",
+      "classes": [
+        "ZwoParserTest"
+      ]
+    },
+    {
+      "check": "TST-0216",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.startFreeRide_HR_ZONE_for_HR_tab` covers the dispatch path; `LicensingManagerTest` confirms Free-Ride dispatch never touches the structured-workout counter; cockpit START-button rendering on FREE tier stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0217",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` + `WorkoutRepositoryTierLimitTest` cover token decrement-at-start and no-refund-on-discard; cockpit counter text stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "WorkoutRepositoryTierLimitTest"
+      ]
+    },
+    {
+      "check": "TST-0218",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` \u2014 bundled library is not tier-gated at the repo level; library-tab rendering stays manual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0219",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution + `ImportPaywallNavigationTest` paywall dispatch; the tab-specific \"New\" button lock-icon rendering stays manual.)",
+      "classes": [
+        "ImportPaywallNavigationTest",
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0220",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers the VM-level tier gate that triggers the paywall; `ImportPaywallNavigationTest` covers the nav dispatch; button-lock rendering stays manual.)",
+      "classes": [
+        "ImportPaywallNavigationTest",
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0221",
+      "tier": 1,
+      "area": "HR-Zone Structured Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution; share-button availability stays manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0222",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` covers the bundled-asset catalogue surface (ROUTE workoutType subset)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0224",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` covers distance + ascent computation from route profile; card rendering stays visual.)",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0227",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `FreeRideCardTest.route_tab_renders_free_ride_with_slope_subtitle` \u2014 title + subtitle covered; accent-colour visual stays manual.)",
+      "classes": [
+        "FreeRideCardTest"
+      ]
+    },
+    {
+      "check": "TST-0230",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_ROUTE_with_sim_capable_trainer_uses_SIMULATION` + `.selectWorkout_ROUTE_populates_initial_grade_from_profile` \u2014 mode dispatch + initial grade are unit-covered; BLE resistance stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0231",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_ROUTE_populates_initial_grade_from_profile` covers distance-driven profile indexing; live marker render stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0232",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_ROUTE_populates_initial_grade_from_profile` \u2014 grade computation from profile is unit-covered; on-trainer resistance response stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0234",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_ROUTE_populates_initial_grade_from_profile` exercises the grade-interpolation path between samples; BLE resistance response stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0235",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.selectWorkout_ROUTE_without_sim_support_falls_back_to_ERG` \u2014 ERG fallback dispatch is unit-covered; on-trainer response stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0238",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` + `WorkoutLoopTest` cover the loop-count state machine and boundary logic that drive the rider-marker reset; distance accumulation stays visual.)",
+      "classes": [
+        "WorkoutLoopTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0239",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` covers the `targetLoops` state that drives the bracket-render branch; terrain drawing stays visual.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0240",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` exercises the per-tab extension allowlist that backs the button's copy; button text + accent-colour rendering stay visual.)",
+      "classes": [
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0241",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` covers parsing + distance/ascent/point-count; `RouteImportSummaryDialogTest` covers dialog rendering; SAF picker stays manual.)",
+      "classes": [
+        "RouteGpxImporterTest",
+        "RouteImportSummaryDialogTest"
+      ]
+    },
+    {
+      "check": "TST-0242",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteFitImporterTest` covers FIT parse; `RouteImportSummaryDialogTest` covers dialog; SAF picker stays manual.)",
+      "classes": [
+        "RouteFitImporterTest",
+        "RouteImportSummaryDialogTest"
+      ]
+    },
+    {
+      "check": "TST-0243",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteTcxImporterTest` covers TCX parse; `RouteImportSummaryDialogTest` covers dialog; SAF picker stays manual.)",
+      "classes": [
+        "RouteImportSummaryDialogTest",
+        "RouteTcxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0244",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteImportSummaryDialogTest.save_fires_onConfirm_with_edited_name` \u2014 library persist + toast still manual)",
+      "classes": [
+        "RouteImportSummaryDialogTest"
+      ]
+    },
+    {
+      "check": "TST-0245",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteImportSummaryDialogTest.cancel_fires_onCancel_not_onConfirm` \u2014 state-flow check still manual)",
+      "classes": [
+        "RouteImportSummaryDialogTest"
+      ]
+    },
+    {
+      "check": "TST-0246",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` + `WorkoutViewModelPendingImportTest` cover GPX parse + pending-import dispatch through the VM; AndroidManifest share-sheet registration stays manual.)",
+      "classes": [
+        "RouteGpxImporterTest",
+        "WorkoutViewModelPendingImportTest"
+      ]
+    },
+    {
+      "check": "TST-0247",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteFitImporterTest` covers FIT parse; AndroidManifest share-sheet registration stays manual.)",
+      "classes": [
+        "RouteFitImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0248",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteTcxImporterTest` covers TCX parse; AndroidManifest share-sheet registration stays manual.)",
+      "classes": [
+        "RouteTcxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0249",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers the VM choke-point \u2014 FREE-tier import of any extension short-circuits to a paywall signal before parsing; share-sheet + navigation stays manual.)",
+      "classes": [
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0254",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` malformed-input cases surface the typed failure; toast copy rendering stays manual.)",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0255",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` covers the no-elevation reject path; toast copy stays manual.)",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0256",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `RouteGpxImporterTest` covers the empty-track reject path; toast copy stays manual.)",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0257",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers the dispatch rejection for an unsupported extension; per-tab toast copy stays manual.)",
+      "classes": [
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0258",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers the VM tier gate + `ImportPaywallNavigationTest` covers the paywall nav dispatch; button lock-icon rendering stays manual.)",
+      "classes": [
+        "ImportPaywallNavigationTest",
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0259",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelImportGateTest` covers Pro-tier bypass of the import gate; `RouteImportSummaryDialogTest` covers the summary dialog; end-to-end SAF + rideability stays hardware-dependent.)",
+      "classes": [
+        "RouteImportSummaryDialogTest",
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0260",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest` covers session persistence + workoutType round-trip; history-list rendering stays manual.)",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0261",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutHistoryViewModelTest` filter-chip state drives the session predicate; chip UI stays manual.)",
+      "classes": [
+        "WorkoutHistoryViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0262",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "full",
+      "annotation": "(automated: `LapTimesStripFormatTest` + `LapRolloverFlowTest` cover the append-and-emit path; first-render visibility stays visual.)",
+      "classes": [
+        "LapRolloverFlowTest",
+        "LapTimesStripFormatTest"
+      ]
+    },
+    {
+      "check": "TST-0265",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "full",
+      "annotation": "(automated: `LapTimesStripTrophyTest` locks the decision rule; rendering stays visual.)",
+      "classes": [
+        "LapTimesStripTrophyTest"
+      ]
+    },
+    {
+      "check": "TST-0268",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "full",
+      "annotation": "(automated: `LapAccumulatorsTest` covers the reset semantics.)",
+      "classes": [
+        "LapAccumulatorsTest"
+      ]
+    },
+    {
+      "check": "TST-0273",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.startFreeRide_default_is_SIMULATION_for_Route_tab` + `LicensingManagerTest` \u2014 Free-Ride dispatch bypasses the structured-workout token bucket.)",
+      "classes": [
+        "LicensingManagerTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0274",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` + `WorkoutRepositoryTierLimitTest` cover decrement-at-start + no-refund-on-discard; counter text rendering stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "WorkoutRepositoryTierLimitTest"
+      ]
+    },
+    {
+      "check": "TST-0275",
+      "tier": 1,
+      "area": "Route Workouts",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutRepositoryLibraryTest` \u2014 bundled library listing is not tier-gated; library rendering stays manual.)",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0276",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.empty_db_has_no_users` + `insert_persists_user_and_surfaces_in_allUsers_flow` \u2014 visibility trigger data condition covered; Profile-screen rendering stays manual.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0277",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution; navigation pattern covered in `ImportPaywallNavigationTest`; button visual + SAF negative-case stay manual.)",
+      "classes": [
+        "ImportPaywallNavigationTest",
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0278",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` tier resolution; `RiderFileSerializationTest` covers the file-production shape; SAF + button-enable stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "RiderFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0279",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RiderFilenameTest"
+      ]
+    },
+    {
+      "check": "TST-0280",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` classifies the two file shapes deterministically \u2014 rider-file vs device-backup \u2014 so dispatch can't leak; dialog rendering stays manual.)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0281",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderImportConflictDetectionTest.empty_db_returns_None` + `PerRiderRestoreTest.first_ADD_NEW_import_creates_rider_with_full_data` \u2014 detection branch + data-correctness pinned; dialog rendering stays manual.)",
+      "classes": [
+        "PerRiderRestoreTest",
+        "RiderImportConflictDetectionTest"
+      ]
+    },
+    {
+      "check": "TST-0282",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderImportConflictDetectionTest.full_source_id_overlap_returns_FullOverlap_with_owner_name`; the missing-button invariant must be eyeballed in the dialog.)",
+      "classes": [
+        "RiderImportConflictDetectionTest"
+      ]
+    },
+    {
+      "check": "TST-0283",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderImportConflictDetectionTest.partial_source_id_overlap_returns_PartialOverlap_with_counts` + `PerRiderRestoreTest.merge_same_file_into_two_different_riders_lands_full_data_on_both` covers the merge path data correctness; auto-skip behaviour stays manual.)",
+      "classes": [
+        "PerRiderRestoreTest",
+        "RiderImportConflictDetectionTest"
+      ]
+    },
+    {
+      "check": "TST-0285",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderImportConflictDetectionTest.no_source_overlap_with_single_name_match_returns_NameCollisionSingle` + `suggestUniqueRiderName_*` cover detection + suggestion bumping; dialog rendering stays manual.)",
+      "classes": [
+        "RiderImportConflictDetectionTest"
+      ]
+    },
+    {
+      "check": "TST-0286",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "full",
+      "annotation": "(automated: `RiderImportConflictDetectionTest.renamed_rider_keeps_source_id_detection_with_current_name`.)",
+      "classes": [
+        "RiderImportConflictDetectionTest"
+      ]
+    },
+    {
+      "check": "TST-0287",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.delete_cascades_to_sessions_metrics_favorites_laps` + `PerRiderRestoreTest.second_ADD_NEW_import_of_same_file_creates_distinct_rider_with_full_data`.)",
+      "classes": [
+        "PerRiderRestoreTest",
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0288",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` covers the per-rider file parse; tier-free behaviour is a policy assertion, covered conceptually by there being no tier check on the import path.)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0289",
+      "tier": 1,
+      "area": "Per-Rider Data Export",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PerRiderImportRoundTripTest"
+      ]
+    },
+    {
+      "check": "TST-0290",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupController.kt:21-24` documents the no-query design + the static copy lives in `SettingsScreen.kt:517-535`; intent-resolution + visual copy stay manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0291",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest.H1_hasExistingData_false_when_empty` covers empty-db detection; button-text rendering + post-rider-creation transition stay manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0292",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest` hasExistingData transitions; button enable-state rendering stays manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0293",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest` C-series tests cover exporter row-count + structure; SAF save + snackbar rendering stays manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0294",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "full",
+      "annotation": "(automated: `UserRepositoryTest.delete_cascades_to_sessions_metrics_favorites_laps` confirms the cascade; SAF export + open-as-text stays manual as a privacy spot-check.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0295",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest` F-series + `BackupCredentialExclusionTest` cover the full-restore round-trip + the empty-credentials invariant; app-data wipe + reopen stays manual.)",
+      "classes": [
+        "BackupCredentialExclusionTest",
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0296",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` covers the parse path on any tier (no tier check in the importer)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0297",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers FREE tier resolution + `BackupRoomDbTest.C1_export_with_existing_data` confirms the exporter bypasses the import gate; button enable-state rendering stays manual.)",
+      "classes": [
+        "BackupRoomDbTest",
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0298",
+      "tier": 1,
+      "area": "Data Backup & Restore",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest` E/F/G-series tests cover merge / overwrite / transaction atomicity; prompt rendering + user-tap dispatch stay manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0299",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: `GhostRepositoryTest` covers the reconstruction path \u2014 session + lap + metric points \u2192 distance series; on-device marker visibility stays manual.)",
+      "classes": [
+        "GhostRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0300",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: the pause-freeze mechanism relies on `lapElapsedSeconds` being derived from the paused timer; live visual freeze stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0301",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: `lapElapsedSeconds` reset happens via the existing `_currentLapStartSec` flow used for PB lap bookkeeping; visual snap-back stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0302",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: view applies `if (isReversed)",
+      "classes": []
+    },
+    {
+      "check": "TST-0303",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: `GhostRepositoryTest.getFamilyBestLaps picks one fastest lap per other rider`; colour stability + initial markers stay manual.)",
+      "classes": [
+        "GhostRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0304",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "full",
+      "annotation": "(automated: `GhostRepositoryTest.Ghost distanceAt linearly interpolates between ticks`; smoothness on-device stays manual.)",
+      "classes": [
+        "GhostRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0305",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: tier-filter logic lives in `ActiveWorkoutScreen`; chip rendering + paywall nav stay manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0306",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: `ghostLock` is null when no other-rider ghosts exist; on-device stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0307",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: filter + chip decision lives in `ActiveWorkoutScreen`; on-device rendering stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0308",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: `ghostLock` is null when no other-rider ghosts exist.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0309",
+      "tier": 1,
+      "area": "Ghost Riders",
+      "automation": "partial",
+      "annotation": "(partially automated: tier filter returns the full ghost list.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0314",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PbCalculatorTest",
+        "PersonalBestCardFormatTest",
+        "PersonalBestCardTest",
+        "PersonalBestServiceTest",
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0315",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PbCalculatorTest",
+        "PersonalBestCardTest"
+      ]
+    },
+    {
+      "check": "TST-0316",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PbCalculatorTest",
+        "PersonalBestCardTest",
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0317",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "partial",
+      "annotation": "(partially automated: `PbCalculatorTest.hr zone primary is efficiency factor np over avg hr` + `PersonalBestServiceTest.first power attempt writes FIRST and upserts pb` (same evaluation path)",
+      "classes": [
+        "PbCalculatorTest",
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0318",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PbCalculatorTest",
+        "PersonalBestCardTest",
+        "PersonalBestServiceTest",
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0319",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PersonalBestCardTest",
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0320",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PbChipTest",
+        "PersonalBestCardFormatTest"
+      ]
+    },
+    {
+      "check": "TST-0321",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HistoryTypeFilterRowTest",
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0322",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "partial",
+      "annotation": "(partially automated: `PersonalBestServiceTest.session delete of pb holder promotes next best` + `deleting last qualifying attempt clears the pb row`.)",
+      "classes": [
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0323",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "partial",
+      "annotation": "(partially automated: `PersonalBestServiceTest.recompute for rider rebuilds pb from history` + `RiderFileSerializationTest` covers the export/import round-trip of the underlying session rows.)",
+      "classes": [
+        "PersonalBestServiceTest",
+        "RiderFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0324",
+      "tier": 1,
+      "area": "Workout Personal Bests",
+      "automation": "partial",
+      "annotation": "(partially automated: `PersonalBestBackfillWorker` enqueues idempotently in `YourTrainerApplication`; evaluate()",
+      "classes": [
+        "PersonalBestServiceTest"
+      ]
+    },
+    {
+      "check": "TST-0328",
+      "tier": 1,
+      "area": "FTP Calculation",
+      "automation": "partial",
+      "annotation": "(partially automated: SessionEndOverlayTest.ftpDetectionShown)",
+      "classes": [
+        "SessionEndOverlayTest"
+      ]
+    },
+    {
+      "check": "TST-0345",
+      "tier": 1,
+      "area": "Runtime Translate-on-Demand",
+      "automation": "full",
+      "annotation": "(automated: `BackupFileSerializationTest.runtime-translated locale block survives backup round-trip`.)",
+      "classes": [
+        "BackupFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0366",
+      "tier": 2,
+      "area": "Family License on Cold Start",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers device-wide tier resolution (billing-priority logic)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0367",
+      "tier": 2,
+      "area": "Family License on Cold Start",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.multiple_riders_sorted_or_not_still_each_retrievable` + `LicensingManagerTest` cover the multi-rider + tier resolution paths; CompletionOverlay rendering stays manual.)",
+      "classes": [
+        "LicensingManagerTest",
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0368",
+      "tier": 2,
+      "area": "Family License on Cold Start",
+      "automation": "partial",
+      "annotation": "(partially automated: `LicensingManagerTest` covers tier read-through on construction; app-restart + Settings-screen rendering stay manual.)",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0369",
+      "tier": 2,
+      "area": "Strava Cross-Rider Safety",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest.updateStravaUploadStatus_flips_status_in_place` + `SessionItemTest.showsRetryWhenFailedAndLinked` cover the retry button + status transitions; actual upload goes to external Strava.)",
+      "classes": [
+        "SessionItemTest",
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0387",
+      "tier": 2,
+      "area": "FTP Field Editing",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.update_replaces_existing_user_by_id` \u2014 FTP field round-trips through update; text-field reset behaviour stays manual.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0388",
+      "tier": 2,
+      "area": "FTP Field Editing",
+      "automation": "partial",
+      "annotation": "(partially automated: same `UserRepositoryTest` path; weightKg round-trips through the entity.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0392",
+      "tier": 2,
+      "area": "Skip-Back Data Preservation",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutSessionRepositoryTest.update_replaces_existing_session_by_id` \u2014 duration / loopCount round-trip through the repo; skip-back UI path stays manual.)",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0393",
+      "tier": 2,
+      "area": "Skip-Back Data Preservation",
+      "automation": "partial",
+      "annotation": "(partially automated: `MetricRepositoryTest` ordered-insert + read covers the underlying metric-point stream; graph rendering stays visual.)",
+      "classes": [
+        "MetricRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0395",
+      "tier": 2,
+      "area": "Ramp Intervals",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutMathTest` + `WorkoutEditorViewModelTest.addRamp_inserts_a_ramp_with_targetPowerEndPercent` \u2014 ramp data model covered; diagonal-slope rendering stays visual.)",
+      "classes": [
+        "WorkoutEditorViewModelTest",
+        "WorkoutMathTest"
+      ]
+    },
+    {
+      "check": "TST-0400",
+      "tier": 2,
+      "area": "ZWO Import",
+      "automation": "partial",
+      "annotation": "(partially automated: `ZwoParserTest` + `IntervalDeserializerTest` cover the full ZWO \u2192 `WorkoutProgram` parse; `WorkoutViewModelImportGateTest` covers the tier gate; SAF picker + library-refresh UI stay manual.)",
+      "classes": [
+        "IntervalDeserializerTest",
+        "WorkoutViewModelImportGateTest",
+        "ZwoParserTest"
+      ]
+    },
+    {
+      "check": "TST-0401",
+      "tier": 2,
+      "area": "ZWO Import",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutImporter` dispatch covered by parser unit tests; per-tab toast copy + extension filter stays manual.)",
+      "classes": []
+    },
+    {
+      "check": "TST-0402",
+      "tier": 2,
+      "area": "ZWO Import",
+      "automation": "partial",
+      "annotation": "(partially automated: `ZwoParserTest` covers the typed parse-failure surface; toast copy + import dispatch stay manual.)",
+      "classes": [
+        "ZwoParserTest"
+      ]
+    },
+    {
+      "check": "TST-0403",
+      "tier": 2,
+      "area": "ZWO Import",
+      "automation": "partial",
+      "annotation": "(partially automated: `IntervalDeserializerTest` covers the typed JSON-parse-failure surface for `.ytw` intervals; toast copy stays manual.)",
+      "classes": [
+        "IntervalDeserializerTest"
+      ]
+    },
+    {
+      "check": "TST-0414",
+      "tier": 2,
+      "area": "Session Metrics Display",
+      "automation": "partial",
+      "annotation": "(partially automated: NP / TSS / IF / VI math covered by `AnalyticsMathTest` (unit)",
+      "classes": [
+        "AnalyticsMathTest",
+        "MetricRepositoryTest",
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0417",
+      "tier": 2,
+      "area": "Rider Card",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderCardTest` + `RatingEngineTest` + `RiderAttributeCalculatorTest` \u2014 text render + attribute math covered; radar chart Canvas rendering stays visual.)",
+      "classes": [
+        "RatingEngineTest",
+        "RiderAttributeCalculatorTest",
+        "RiderCardTest"
+      ]
+    },
+    {
+      "check": "TST-0418",
+      "tier": 2,
+      "area": "Rider Card",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RatingEngineTest"
+      ]
+    },
+    {
+      "check": "TST-0419",
+      "tier": 2,
+      "area": "Rider Card",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RatingEngineTest"
+      ]
+    },
+    {
+      "check": "TST-0420",
+      "tier": 2,
+      "area": "Rider Card",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderCardTest.empty_state_renders_when_ratings_null` \u2014 null-ratings branch covered; \"Ride more\" copy + grey-out stay visual.)",
+      "classes": [
+        "RiderCardTest"
+      ]
+    },
+    {
+      "check": "TST-0421",
+      "tier": 2,
+      "area": "Rider Card",
+      "automation": "partial",
+      "annotation": "(partially automated: `RiderCardTest.compact_size_still_renders_name` \u2014 size variant renders; selection-screen layout stays manual.)",
+      "classes": [
+        "RiderCardTest"
+      ]
+    },
+    {
+      "check": "TST-0434",
+      "tier": 2,
+      "area": "Add Rider with Zero Users",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.empty_db_has_no_users` \u2014 empty-state data guarded; card rendering + tap-to-open form stay manual.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0435",
+      "tier": 2,
+      "area": "Add Rider with Zero Users",
+      "automation": "partial",
+      "annotation": "(partially automated: `UserRepositoryTest.multiple_riders_sorted_or_not_still_each_retrievable` \u2014 multi-rider persistence covered; add-card rendering stays manual.)",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0436",
+      "tier": 2,
+      "area": "Empty Workout History",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutHistoryViewModelTest` exercises the empty-session state through the VM; the exact copy + shimmer visibility stays manual.)",
+      "classes": [
+        "WorkoutHistoryViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0437",
+      "tier": 2,
+      "area": "Backup Auto Backup Exclusions",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupCredentialExclusionTest` guards the Strava-token + API-key exclusion at the serialisation layer \u2014 which is the same scrubbing path Auto Backup uses via `android:allowBackup` attribute rules; uninstall/reinstall round-trip stays manual.)",
+      "classes": [
+        "BackupCredentialExclusionTest"
+      ]
+    },
+    {
+      "check": "TST-0438",
+      "tier": 2,
+      "area": "Backup Family-Tier Integrity",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest.C3_export_with_multiple_riders_and_sessions` covers the multi-rider export-shape invariant; whole-file inspection stays manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0439",
+      "tier": 2,
+      "area": "Backup Family-Tier Integrity",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupRoomDbTest` F-series overwrite tests cover multi-rider restore; actual device wipe flow stays manual.)",
+      "classes": [
+        "BackupRoomDbTest"
+      ]
+    },
+    {
+      "check": "TST-0440",
+      "tier": 2,
+      "area": "Per-Rider File Dispatch",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` covers file-shape detection between rider vs backup files; dialog rendering + picker stay manual.)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0441",
+      "tier": 2,
+      "area": "Per-Rider File Dispatch",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` classifies the two file shapes deterministically; dialog UI stays manual.)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0442",
+      "tier": 2,
+      "area": "Per-Rider File Dispatch",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` classifies on the presence of `profile` vs `profiles` array \u2014 so a hand-edited file with `profiles[]` routes to the device path; re-gzip + SAF pick stays manual.)",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0443",
+      "tier": 2,
+      "area": "Per-Rider Cross-Rider Bleed",
+      "automation": "partial",
+      "annotation": "(partially automated: `BackupImporterParseTest` + `UserRepositoryTest` cover the per-rider-file parse and the rider-update/read round-trip that would surface an unintended field overwrite; the merge-picker dialog stays manual.)",
+      "classes": [
+        "BackupImporterParseTest",
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0447",
+      "tier": 2,
+      "area": "Pending Route Import Survives Process Death",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelPendingImportTest` covers the SavedStateHandle round-trip that preserves the parsed RouteFile across process/rotation kills; on-screen dialog re-render stays manual.)",
+      "classes": [
+        "WorkoutViewModelPendingImportTest"
+      ]
+    },
+    {
+      "check": "TST-0448",
+      "tier": 2,
+      "area": "Pending Route Import Survives Process Death",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelPendingImportTest` covers the SavedStateHandle persistence path that survives process death; share-sheet + reopen stays manual.)",
+      "classes": [
+        "WorkoutViewModelPendingImportTest"
+      ]
+    },
+    {
+      "check": "TST-0449",
+      "tier": 2,
+      "area": "Pending Route Import Survives Process Death",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelPendingImportTest.cancelPendingRouteImport_clears_SavedStateHandle` \u2014 cancellation clears the persisted handle entry.)",
+      "classes": [
+        "WorkoutViewModelPendingImportTest"
+      ]
+    },
+    {
+      "check": "TST-0450",
+      "tier": 2,
+      "area": "Trainer SIM Capability Re-Check",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.onSimParamsChanged_flips_route_to_ERG_fallback_during_active_ride` \u2014 the SIM\u2192ERG dispatch is unit-covered; actual BLE resistance response stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0451",
+      "tier": 2,
+      "area": "Trainer SIM Capability Re-Check",
+      "automation": "partial",
+      "annotation": "(partially automated: `WorkoutViewModelDispatchTest.onSimParamsChanged_ignored_when_no_workout_selected` + `.selectWorkout_ROUTE_without_sim_support_falls_back_to_ERG` \u2014 fresh-select dispatch is covered; the FTMS flag reset across BLE connections stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0452",
+      "tier": 2,
+      "area": "HR-Zone Controller Hardening",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the first-transition reset path (lookahead-already-open case)",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0453",
+      "tier": 2,
+      "area": "HR-Zone Controller Hardening",
+      "automation": "partial",
+      "annotation": "(partially automated: `HrZoneLockControllerTest` covers the loop-boundary reset path + `WorkoutViewModelDispatchTest.toggleLoop_cycles_off_1_2_3_off` covers the loop-count state driving the restart; live playback stays manual.)",
+      "classes": [
+        "HrZoneLockControllerTest",
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0488",
+      "tier": 2,
+      "area": "Slope-mode Route fallback honours forced RES",
+      "automation": "full",
+      "annotation": "(automated: `WorkoutViewModelDispatchTest.onSimParamsChanged_*` \u2014 flag math covered; BLE response stays hardware-dependent.)",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0520",
+      "tier": 2,
+      "area": "Compat-test must never leave the app stuck",
+      "automation": "full",
+      "annotation": "(automated: `TrainerCompatibilityTestFailureModesTest.noneMode_completesWithScorecardAndNoAbortBanner` \u2014 covers the happy-path baseline against the mock.)",
+      "classes": [
+        "TrainerCompatibilityTestFailureModesTest"
+      ]
+    },
+    {
+      "check": "TST-0521",
+      "tier": 2,
+      "area": "Compat-test must never leave the app stuck",
+      "automation": "full",
+      "annotation": "(automated: `TrainerCompatibilityTestFailureModesTest.disconnectOnFirstWriteMode_completesWithScorecardAndNoAbortBanner` \u2014 the Disconnected BleResult.Failed path is covered against the mock; this row covers the real-trainer equivalent.)",
+      "classes": [
+        "TrainerCompatibilityTestFailureModesTest"
+      ]
+    },
+    {
+      "check": "TST-0522",
+      "tier": 2,
+      "area": "Compat-test must never leave the app stuck",
+      "automation": "full",
+      "annotation": "(automated.)",
+      "classes": [
+        "TrainerCompatibilityTestFailureModesTest"
+      ]
+    },
+    {
+      "check": "TST-0523",
+      "tier": 2,
+      "area": "Compat-test must never leave the app stuck",
+      "automation": "full",
+      "annotation": "(automated.)",
+      "classes": [
+        "TrainerCompatibilityTestFailureModesTest"
+      ]
+    },
+    {
+      "check": "TST-0532",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "Migration19To20Test"
+      ]
+    },
+    {
+      "check": "TST-0533",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "Migration21To22Test"
+      ]
+    },
+    {
+      "check": "TST-0534",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutMathTest"
+      ]
+    },
+    {
+      "check": "TST-0535",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutMathTest"
+      ]
+    },
+    {
+      "check": "TST-0536",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "IntervalDeserializerTest",
+        "ZwoParserTest"
+      ]
+    },
+    {
+      "check": "TST-0537",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "BackupCredentialExclusionTest"
+      ]
+    },
+    {
+      "check": "TST-0538",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "BackupCredentialExclusionTest"
+      ]
+    },
+    {
+      "check": "TST-0539",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "BackupCredentialExclusionTest",
+        "BackupFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0540",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HrZoneLockControllerTest"
+      ]
+    },
+    {
+      "check": "TST-0541",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0542",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RouteGpxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0543",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RouteTcxImporterTest"
+      ]
+    },
+    {
+      "check": "TST-0544",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutTypeTabsTest"
+      ]
+    },
+    {
+      "check": "TST-0545",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RouteImportSummaryDialogTest"
+      ]
+    },
+    {
+      "check": "TST-0546",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutEditorInvalidationTest",
+        "WorkoutEditorLoadSaveIntegrationTest"
+      ]
+    },
+    {
+      "check": "TST-0547",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutEditorInvalidationTest",
+        "WorkoutEditorLoadSaveIntegrationTest"
+      ]
+    },
+    {
+      "check": "TST-0548",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutEditorTranslateRefreshTest"
+      ]
+    },
+    {
+      "check": "TST-0549",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "TranslateBannerCoverageTest"
+      ]
+    },
+    {
+      "check": "TST-0550",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "FreeRideCardTest"
+      ]
+    },
+    {
+      "check": "TST-0551",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutTypeTest"
+      ]
+    },
+    {
+      "check": "TST-0552",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HistoryTypeFilterRowTest"
+      ]
+    },
+    {
+      "check": "TST-0553",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "EquipmentSlotTest"
+      ]
+    },
+    {
+      "check": "TST-0554",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RatingEngineTest"
+      ]
+    },
+    {
+      "check": "TST-0555",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "UnitConverterTest"
+      ]
+    },
+    {
+      "check": "TST-0556",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "ZoneColorUtilsTest"
+      ]
+    },
+    {
+      "check": "TST-0557",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HrZoneCalculatorTest"
+      ]
+    },
+    {
+      "check": "TST-0558",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "CsvExportUtilsTest"
+      ]
+    },
+    {
+      "check": "TST-0559",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RatingEngineTest",
+        "RiderAttributeCalculatorTest"
+      ]
+    },
+    {
+      "check": "TST-0560",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HistoryStatsComponentsTest"
+      ]
+    },
+    {
+      "check": "TST-0561",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "YourTrainerTopBarTest"
+      ]
+    },
+    {
+      "check": "TST-0562",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RiderCardTest"
+      ]
+    },
+    {
+      "check": "TST-0563",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "ScannerModalTest"
+      ]
+    },
+    {
+      "check": "TST-0564",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutHistoryViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0565",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutRepositoryTierLimitTest"
+      ]
+    },
+    {
+      "check": "TST-0566",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutRepositoryFavoritesTest"
+      ]
+    },
+    {
+      "check": "TST-0567",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "MainViewModelPerRiderPrefsTest"
+      ]
+    },
+    {
+      "check": "TST-0568",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutSessionRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0569",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "MetricRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0570",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutViewModelDispatchTest"
+      ]
+    },
+    {
+      "check": "TST-0571",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutViewModelImportGateTest"
+      ]
+    },
+    {
+      "check": "TST-0572",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutViewModelPendingImportTest"
+      ]
+    },
+    {
+      "check": "TST-0573",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0574",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutRepositoryLibraryTest"
+      ]
+    },
+    {
+      "check": "TST-0575",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "UserRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0576",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutEditorViewModelTest"
+      ]
+    },
+    {
+      "check": "TST-0577",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "ImportPaywallNavigationTest"
+      ]
+    },
+    {
+      "check": "TST-0578",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "HrmPromptTest"
+      ]
+    },
+    {
+      "check": "TST-0579",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "WorkoutLoopTest"
+      ]
+    },
+    {
+      "check": "TST-0580",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "LapRolloverBannerFormatTest"
+      ]
+    },
+    {
+      "check": "TST-0581",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "LapRolloverFlowTest"
+      ]
+    },
+    {
+      "check": "TST-0582",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "SchemaVersionGuardTest"
+      ]
+    },
+    {
+      "check": "TST-0583",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PerRiderDemoGeneratorTest",
+        "RiderFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0584",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RiderFileSerializationTest"
+      ]
+    },
+    {
+      "check": "TST-0585",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "RiderFilenameTest"
+      ]
+    },
+    {
+      "check": "TST-0586",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "PerRiderImportRoundTripTest"
+      ]
+    },
+    {
+      "check": "TST-0587",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "BackupImporterParseTest"
+      ]
+    },
+    {
+      "check": "TST-0588",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "GhostRepositoryTest"
+      ]
+    },
+    {
+      "check": "TST-0589",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "LicensingManagerTest"
+      ]
+    },
+    {
+      "check": "TST-0590",
+      "tier": 3,
+      "area": "Moved from Tier 1 / Tier 2 \u2014 Fully Automated",
+      "automation": "manual",
+      "annotation": "",
+      "classes": [
+        "SessionBestGhostRuleTest"
+      ]
+    }
+  ],
+  "classes": {
+    "AiCoachCardTest": [
+      "TST-0093"
+    ],
+    "AnalyticsMathTest": [
+      "TST-0091",
+      "TST-0414"
+    ],
+    "BackupCredentialExclusionTest": [
+      "TST-0295",
+      "TST-0437",
+      "TST-0537",
+      "TST-0538",
+      "TST-0539"
+    ],
+    "BackupFileSerializationTest": [
+      "TST-0211",
+      "TST-0345",
+      "TST-0539"
+    ],
+    "BackupImporterParseTest": [
+      "TST-0280",
+      "TST-0288",
+      "TST-0296",
+      "TST-0440",
+      "TST-0441",
+      "TST-0442",
+      "TST-0443",
+      "TST-0587"
+    ],
+    "BackupRoomDbTest": [
+      "TST-0291",
+      "TST-0292",
+      "TST-0293",
+      "TST-0295",
+      "TST-0297",
+      "TST-0298",
+      "TST-0438",
+      "TST-0439"
+    ],
+    "CsvExportUtilsTest": [
+      "TST-0558"
+    ],
+    "EquipmentSlotTest": [
+      "TST-0028",
+      "TST-0029",
+      "TST-0553"
+    ],
+    "FreeRideCardTest": [
+      "TST-0184",
+      "TST-0185",
+      "TST-0186",
+      "TST-0227",
+      "TST-0550"
+    ],
+    "GhostRepositoryTest": [
+      "TST-0299",
+      "TST-0303",
+      "TST-0304",
+      "TST-0588"
+    ],
+    "HardcodedComposeTextTest": [
+      "TST-0110"
+    ],
+    "HistoryStatsComponentsTest": [
+      "TST-0560"
+    ],
+    "HistoryTypeFilterRowTest": [
+      "TST-0191",
+      "TST-0321",
+      "TST-0552"
+    ],
+    "HrZoneCalculatorTest": [
+      "TST-0557"
+    ],
+    "HrZoneLockControllerTest": [
+      "TST-0173",
+      "TST-0174",
+      "TST-0197",
+      "TST-0198",
+      "TST-0199",
+      "TST-0452",
+      "TST-0453",
+      "TST-0540"
+    ],
+    "HrmPromptTest": [
+      "TST-0032",
+      "TST-0578"
+    ],
+    "ImportPaywallNavigationTest": [
+      "TST-0182",
+      "TST-0210",
+      "TST-0219",
+      "TST-0220",
+      "TST-0258",
+      "TST-0277",
+      "TST-0577"
+    ],
+    "IntervalDeserializerTest": [
+      "TST-0193",
+      "TST-0212",
+      "TST-0400",
+      "TST-0403",
+      "TST-0536"
+    ],
+    "LapAccumulatorsTest": [
+      "TST-0268"
+    ],
+    "LapRolloverBannerFormatTest": [
+      "TST-0580"
+    ],
+    "LapRolloverFlowTest": [
+      "TST-0262",
+      "TST-0581"
+    ],
+    "LapTimesStripFormatTest": [
+      "TST-0262"
+    ],
+    "LapTimesStripTrophyTest": [
+      "TST-0265"
+    ],
+    "LicenseSeatResolverTest": [
+      "TST-0076"
+    ],
+    "LicensingManagerTest": [
+      "TST-0019",
+      "TST-0063",
+      "TST-0064",
+      "TST-0065",
+      "TST-0067",
+      "TST-0068",
+      "TST-0069",
+      "TST-0070",
+      "TST-0071",
+      "TST-0072",
+      "TST-0075",
+      "TST-0099",
+      "TST-0182",
+      "TST-0216",
+      "TST-0217",
+      "TST-0219",
+      "TST-0221",
+      "TST-0273",
+      "TST-0274",
+      "TST-0277",
+      "TST-0278",
+      "TST-0297",
+      "TST-0366",
+      "TST-0367",
+      "TST-0368",
+      "TST-0573",
+      "TST-0589"
+    ],
+    "MainViewModelPerRiderPrefsTest": [
+      "TST-0108",
+      "TST-0109",
+      "TST-0567"
+    ],
+    "MetricRepositoryTest": [
+      "TST-0091",
+      "TST-0393",
+      "TST-0414",
+      "TST-0569"
+    ],
+    "Migration19To20Test": [
+      "TST-0532"
+    ],
+    "Migration21To22Test": [
+      "TST-0533"
+    ],
+    "Migration34To35Test": [
+      "TST-0082"
+    ],
+    "PaywallScreenTest": [
+      "TST-0066"
+    ],
+    "PbCalculatorTest": [
+      "TST-0314",
+      "TST-0315",
+      "TST-0316",
+      "TST-0317",
+      "TST-0318"
+    ],
+    "PbChipTest": [
+      "TST-0320"
+    ],
+    "PerRiderDemoGeneratorTest": [
+      "TST-0583"
+    ],
+    "PerRiderImportRoundTripTest": [
+      "TST-0289",
+      "TST-0586"
+    ],
+    "PerRiderRestoreTest": [
+      "TST-0281",
+      "TST-0283",
+      "TST-0287"
+    ],
+    "PersonalBestCardFormatTest": [
+      "TST-0314",
+      "TST-0320"
+    ],
+    "PersonalBestCardTest": [
+      "TST-0314",
+      "TST-0315",
+      "TST-0316",
+      "TST-0318",
+      "TST-0319"
+    ],
+    "PersonalBestServiceTest": [
+      "TST-0314",
+      "TST-0316",
+      "TST-0317",
+      "TST-0318",
+      "TST-0319",
+      "TST-0321",
+      "TST-0322",
+      "TST-0323",
+      "TST-0324"
+    ],
+    "PhysicsUtilsLinearSnapshotTest": [
+      "TST-0119",
+      "TST-0129"
+    ],
+    "PhysicsUtilsTest": [
+      "TST-0126"
+    ],
+    "RatingEngineTest": [
+      "TST-0417",
+      "TST-0418",
+      "TST-0419",
+      "TST-0554",
+      "TST-0559"
+    ],
+    "RiderAttributeCalculatorTest": [
+      "TST-0417",
+      "TST-0559"
+    ],
+    "RiderCardTest": [
+      "TST-0417",
+      "TST-0420",
+      "TST-0421",
+      "TST-0562"
+    ],
+    "RiderFileSerializationTest": [
+      "TST-0133",
+      "TST-0278",
+      "TST-0323",
+      "TST-0583",
+      "TST-0584"
+    ],
+    "RiderFilenameTest": [
+      "TST-0279",
+      "TST-0585"
+    ],
+    "RiderImportConflictDetectionTest": [
+      "TST-0281",
+      "TST-0282",
+      "TST-0283",
+      "TST-0285",
+      "TST-0286"
+    ],
+    "RouteFitImporterTest": [
+      "TST-0242",
+      "TST-0247"
+    ],
+    "RouteGpxImporterTest": [
+      "TST-0224",
+      "TST-0241",
+      "TST-0246",
+      "TST-0254",
+      "TST-0255",
+      "TST-0256",
+      "TST-0541",
+      "TST-0542"
+    ],
+    "RouteImportSummaryDialogTest": [
+      "TST-0241",
+      "TST-0242",
+      "TST-0243",
+      "TST-0244",
+      "TST-0245",
+      "TST-0259",
+      "TST-0545"
+    ],
+    "RouteTcxImporterTest": [
+      "TST-0243",
+      "TST-0248",
+      "TST-0543"
+    ],
+    "ScannerModalTest": [
+      "TST-0028",
+      "TST-0029",
+      "TST-0563"
+    ],
+    "SchemaVersionGuardTest": [
+      "TST-0582"
+    ],
+    "SessionBestGhostRuleTest": [
+      "TST-0590"
+    ],
+    "SessionEndOverlayTest": [
+      "TST-0040",
+      "TST-0041",
+      "TST-0042",
+      "TST-0314",
+      "TST-0318",
+      "TST-0328"
+    ],
+    "SessionItemTest": [
+      "TST-0092",
+      "TST-0369"
+    ],
+    "SlopeModeDispatchTest": [
+      "TST-0134",
+      "TST-0135",
+      "TST-0136",
+      "TST-0137"
+    ],
+    "TrainerCompatibilityTestFailureModesTest": [
+      "TST-0520",
+      "TST-0521",
+      "TST-0522",
+      "TST-0523"
+    ],
+    "TranslateBannerCoverageTest": [
+      "TST-0549"
+    ],
+    "UnitConverterTest": [
+      "TST-0020",
+      "TST-0021",
+      "TST-0555"
+    ],
+    "UserRepositoryTest": [
+      "TST-0019",
+      "TST-0069",
+      "TST-0276",
+      "TST-0287",
+      "TST-0294",
+      "TST-0367",
+      "TST-0387",
+      "TST-0388",
+      "TST-0434",
+      "TST-0435",
+      "TST-0443",
+      "TST-0575"
+    ],
+    "VirtualGearTablesTest": [
+      "TST-0127"
+    ],
+    "WorkoutEditorInvalidationTest": [
+      "TST-0546",
+      "TST-0547"
+    ],
+    "WorkoutEditorLoadSaveIntegrationTest": [
+      "TST-0546",
+      "TST-0547"
+    ],
+    "WorkoutEditorTranslateRefreshTest": [
+      "TST-0548"
+    ],
+    "WorkoutEditorViewModelTest": [
+      "TST-0059",
+      "TST-0060",
+      "TST-0061",
+      "TST-0196",
+      "TST-0201",
+      "TST-0202",
+      "TST-0203",
+      "TST-0204",
+      "TST-0205",
+      "TST-0206",
+      "TST-0207",
+      "TST-0209",
+      "TST-0395",
+      "TST-0576"
+    ],
+    "WorkoutHistoryViewModelTest": [
+      "TST-0089",
+      "TST-0261",
+      "TST-0436",
+      "TST-0564"
+    ],
+    "WorkoutLoopTest": [
+      "TST-0161",
+      "TST-0162",
+      "TST-0164",
+      "TST-0169",
+      "TST-0238",
+      "TST-0579"
+    ],
+    "WorkoutMathTest": [
+      "TST-0395",
+      "TST-0534",
+      "TST-0535"
+    ],
+    "WorkoutRepositoryFavoritesTest": [
+      "TST-0094",
+      "TST-0095",
+      "TST-0194",
+      "TST-0566"
+    ],
+    "WorkoutRepositoryLibraryTest": [
+      "TST-0046",
+      "TST-0096",
+      "TST-0097",
+      "TST-0187",
+      "TST-0192",
+      "TST-0193",
+      "TST-0209",
+      "TST-0218",
+      "TST-0222",
+      "TST-0275",
+      "TST-0574"
+    ],
+    "WorkoutRepositoryTierLimitTest": [
+      "TST-0062",
+      "TST-0217",
+      "TST-0274",
+      "TST-0565"
+    ],
+    "WorkoutSessionRepositoryTest": [
+      "TST-0091",
+      "TST-0106",
+      "TST-0165",
+      "TST-0190",
+      "TST-0260",
+      "TST-0369",
+      "TST-0392",
+      "TST-0414",
+      "TST-0568"
+    ],
+    "WorkoutTypeTabsTest": [
+      "TST-0544"
+    ],
+    "WorkoutTypeTest": [
+      "TST-0551"
+    ],
+    "WorkoutViewModelDispatchTest": [
+      "TST-0035",
+      "TST-0115",
+      "TST-0159",
+      "TST-0167",
+      "TST-0171",
+      "TST-0183",
+      "TST-0184",
+      "TST-0185",
+      "TST-0186",
+      "TST-0195",
+      "TST-0196",
+      "TST-0200",
+      "TST-0201",
+      "TST-0216",
+      "TST-0230",
+      "TST-0231",
+      "TST-0232",
+      "TST-0234",
+      "TST-0235",
+      "TST-0238",
+      "TST-0239",
+      "TST-0273",
+      "TST-0450",
+      "TST-0451",
+      "TST-0453",
+      "TST-0488",
+      "TST-0570"
+    ],
+    "WorkoutViewModelImportGateTest": [
+      "TST-0062",
+      "TST-0212",
+      "TST-0220",
+      "TST-0240",
+      "TST-0249",
+      "TST-0257",
+      "TST-0258",
+      "TST-0259",
+      "TST-0400",
+      "TST-0571"
+    ],
+    "WorkoutViewModelPendingImportTest": [
+      "TST-0246",
+      "TST-0447",
+      "TST-0448",
+      "TST-0449",
+      "TST-0572"
+    ],
+    "YourTrainerTopBarTest": [
+      "TST-0561"
+    ],
+    "ZoneColorUtilsTest": [
+      "TST-0556"
+    ],
+    "ZwoParserTest": [
+      "TST-0213",
+      "TST-0400",
+      "TST-0402",
+      "TST-0536"
+    ]
+  }
+}
