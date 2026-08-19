@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-18"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0048-A-Release-Can-Be-Composed]]"]
-tasks: ["[[TASK-0511-A-Picker-Writes-Features-And-Phases]]", "[[TASK-0512-The-Gate-Scopes-To-The-Release]]"]
+tasks: ["[[TASK-0511-A-Picker-Writes-Features-And-Phases]]", "[[TASK-0512-The-Gate-Scopes-To-The-Release]]", "[[TASK-0557-One-Release-Per-Platform]]", "[[TASK-0558-A-Release-Composes-Its-Contents]]"]
 related: ["[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]", "[[FEAT-0125-The-Release-Page-Reports-What-Holds-It]]"]
 tags: [feature]
 ---
@@ -30,3 +30,5 @@ The field already exists and is already used: `REL-0001` carries 27 `features:` 
 - [ ] Adding a phase adds its features, and says so rather than storing a second encoding.
 - [ ] With contents named, the gate reports what blocks *this* release.
 - [ ] A release with no named contents keeps today's derived behaviour.
+- [ ] **One preparing release per platform**, and two on one platform is an error — the state [[ADR-0037]]'s ledger cannot represent, since sealing assigns one working ledger to one release. *Edwin, 2026-08-19: two concurrent releases on a platform are a branch, not a schema problem.*
+- [ ] **A feature in two open releases on the same platform is an error; across platforms it is the normal case.** The obvious version of this rule — any two open releases — is wrong the first time a feature ships to both, which is where it is going ([[ISS-0236]]).

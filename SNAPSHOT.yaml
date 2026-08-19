@@ -61,12 +61,12 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 138
-  ISS: 235
+  ISS: 236
   PHASE: 38
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 556
+  TASK: 558
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -176,7 +176,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0048"]
-      tasks: ["TASK-0511", "TASK-0512"]
+      tasks: ["TASK-0511", "TASK-0512", "TASK-0557", "TASK-0558"]
       note: "The one item here that is new scope rather than a fix. Contents are derived or frozen with no middle state, which is the state a preparing release is actually in. `features:` already exists (REL-0001 carries 27); what is missing is a way to fill it. Opt-in: naming nothing keeps today's derived behaviour, which eleven historical releases depend on."
     FEAT-0122:
       file: "docs/features/one-human-walk/FEAT-0122-One-Human-Walked-Population.md"
@@ -807,6 +807,20 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0557:
+      file: "docs/features/surfaces-report/plan/tasks/TASK-0557-One-Release-Per-Platform.md"
+      title: "One preparing release per platform — `preparing()` returns one per platform, not one overall"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0129
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0558:
+      file: "docs/features/surfaces-report/plan/tasks/TASK-0558-A-Release-Composes-Its-Contents.md"
+      title: "Add and remove a feature on a preparing release, from the release page"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0129
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0556:
       file: "docs/features/tests-view/plan/tasks/TASK-0556-Incomplete-First.md"
       title: "The nav sorts surfaces by percentage incomplete and lists incomplete checks first; the generated page moves incomplete rows to the top of their section"
@@ -897,20 +911,6 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0532:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0532-Fix-The-Splitter-Before-Anything-Migrates.md"
-      title: "Fix the physical-line splitter and repair the six truncated notes, before any repo migrates again"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0134
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0533:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0533-The-Run-List-Is-A-Query.md"
-      title: "The run list is a query — no terminal entry since the last invalidation, and not covered by this cycle's CI"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0534:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger.md"
@@ -3891,14 +3891,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 117
-    tasks_total: 555
+    tasks_total: 557
     tasks_done: 502
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 10
+    issues_open: 11
     issues_triage: 0
     risks_open: 6
     releases_total: 1
