@@ -1213,7 +1213,91 @@ def _suite_at_uncached(project_root: Path, ref: str, rel: str) -> Suite | None:
     items = _notes_at(project_root, ref)
     if items is None:
         return None
+    #: **The third shape** ([[TASK-0545]]). Refs before the document migration
+    #: hold `ACCEPTANCE_TESTS.md`; refs after it hold notes carrying their own
+    #: `mark:`; refs after [[ADR-0037]] hold notes carrying NOTHING, with the
+    #: verdict in a ledger beside them. Reading only the notes at such a ref
+    #: would report every tag as zero-walked — and that is the one failure mode
+    #: here that produces a WRONG ANSWER rather than an error, because a
+    #: historical suite with no verdicts looks exactly like a historical suite
+    #: nobody walked.
+    #:
+    #: A tag is immutable, so the shape a tag holds is a permanent fact about
+    #: the past and this branch never goes away.
+    at_ref = _ledger_at(project_root, ref)
+    if at_ref:
+        from . import ledger as _ledger
+        found = _ledger.resolve(at_ref)
+        items = [
+            replace(i,
+                    mark=(v.mark if (v := found.get(i.note_id)) else "todo"),
+                    checked=bool(v) and v.mark == "pass",
+                    reconciled=bool(v) and v.mark == "partial",
+                    excepted=bool(v) and v.mark in ("na", "excused"),
+                    failed=bool(v) and v.mark == "fail",
+                    question=bool(v) and v.mark == "question",
+                    needs_rerun=False,
+                    verdict_date=v.date if v else "",
+                    verdict_reason=v.reason if v else "")
+            for i in items
+        ]
     return Suite(path=None, items=items, shape=SHAPE_NOTES)
+
+
+def _ledger_at(project_root: Path, ref: str) -> list["Any"]:
+    """Every ledger at ``ref``, oldest first — the same two subprocesses.
+
+    Returns `[]` when the ref predates the ledger, which is not an error: it is
+    the second of the three shapes, and its verdicts are on the notes.
+    """
+    import json
+    import subprocess
+
+    from . import ledger as _ledger
+    from .git_state import _git_raw
+
+    listing = _git_raw(project_root, "ls-tree", "-r", "-z", ref,
+                       f"docs/{_ledger.LEDGERS_REL}/")
+    if not listing:
+        return []
+    shas, names = [], []
+    for entry in listing.split("\0"):
+        if not entry.strip():
+            continue
+        meta, _, path = entry.partition("\t")
+        parts = meta.split()
+        if len(parts) < 3 or parts[1] != "blob" or not path.endswith(".json"):
+            continue
+        shas.append(parts[2])
+        names.append(path.rsplit("/", 1)[-1])
+    if not shas:
+        return []
+    try:
+        blob = subprocess.run(
+            ["git", "cat-file", "--batch"], cwd=str(project_root),
+            input="\n".join(shas).encode(), capture_output=True, check=False)
+    except OSError:                                      # pragma: no cover
+        return []
+    out = []
+    for name, body in zip(names, _split_batch(blob.stdout)):
+        try:
+            raw = json.loads(body)
+        except ValueError:                               # pragma: no cover
+            continue
+        found = _ledger._LEDGER_NAME_RE.match(name[:-5])
+        if not found:
+            continue
+        try:
+            led = _ledger._parse(body, where=name,
+                                 platform=found.group("platform"))
+        except _ledger.LedgerError:
+            #: A historical ledger this reader cannot parse is skipped rather
+            #: than raised: the past is immutable, so refusing it would make a
+            #: surface unable to render a tag nobody can fix.
+            continue
+        out.append(led)
+    out.sort(key=lambda l: (l.is_working, l.sealed))
+    return out
 
 
 def _notes_at(project_root: Path, ref: str) -> list[Item] | None:
@@ -1239,7 +1323,15 @@ def _notes_at(project_root: Path, ref: str) -> list[Item] | None:
         parts = meta.split()
         if len(parts) < 3 or parts[1] != "blob":
             continue
-        if not path.rsplit("/", 1)[-1].startswith("CHK-") or not path.endswith(".md"):
+        name = path.rsplit("/", 1)[-1]
+        #: **`TST-` and `CHK-`.** This read `CHK-` alone and never followed
+        #: [[ADR-0031]]'s renumber, so from the merge onward it matched
+        #: nothing: `_notes_at` returned `None`, `suite_at` returned `None`,
+        #: and the release delta reported *"not comparable"* at every
+        #: post-migration ref — including HEAD. Silent, and in the direction
+        #: that makes a surface say less rather than something wrong, which is
+        #: why it survived two migrations. Found 2026-08-19 ([[ISS-0221]]).
+        if not (name.startswith(("TST-", "CHK-")) and name.endswith(".md")):
             continue
         shas.append(parts[2])
     if not shas:

@@ -776,3 +776,30 @@ def test_evidence_follows_the_verdict_it_backs(docs: Path) -> None:
     assert item.evidence == ("docs/tests/evidence/a.png",)
     # A different platform has the verdict and the evidence of neither.
     assert acceptance.load(docs, platform="ios").items[0].evidence == ()
+
+
+# ------------------------------------------------- suite_at (TASK-0545)
+
+def test_suite_at_reads_all_three_shapes() -> None:
+    """A historical ref holds one of three shapes, split by time.
+
+    Asserted against **real refs in this repo**, not a fixture. A fixture is
+    what hid [[ISS-0221]] for a day: `test_gate_delta` exercises twelve
+    historical tags and every one predates the migration, so the branch that
+    was broken was never the branch under test.
+
+    * before the document migration — `ACCEPTANCE_TESTS.md`
+    * after it — notes carrying their own `mark:`
+    * after [[ADR-0037]] — notes carrying nothing, verdict in a ledger
+    """
+    from project_os_cockpit import acceptance
+
+    root = Path(__file__).resolve().parents[1]
+    at_head = acceptance.suite_at(root, "HEAD")
+    assert at_head is not None, (
+        "None at HEAD is ISS-0221: a prefix filter that outlived its ids")
+    assert len(at_head.items) > 0
+    assert sum(1 for i in at_head.items if i.checked) > 0, (
+        "a migrated ref whose verdicts are in the ledger must not read as "
+        "zero-walked — that is the one failure here that produces a WRONG "
+        "answer rather than an error")

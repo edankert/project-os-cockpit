@@ -350,9 +350,34 @@ def test_the_note_shape_read_is_two_subprocesses_not_n(monkeypatch,
     acceptance._at_ref.clear()
     suite = acceptance.suite_at(root, "v2")
     assert suite is not None and len(suite.items) == 8
-    # `git show` (misses), `git ls-tree`, `git cat-file` — three, whatever the
-    # suite's size, and only the last two scale with anything.
-    assert len(calls) == 3, calls
+    # `git show` (misses), `ls-tree` + `cat-file` for the notes, `ls-tree` for
+    # the ledgers — **four, whatever the suite's size**, and none of them
+    # scales with the number of checks.
+    #
+    # It was three until TASK-0545 gave `suite_at` its third shape: a ref after
+    # ADR-0037 holds notes with no verdict on them and a ledger beside them, so
+    # the ledger has to be read too or every historical tag reports as
+    # zero-walked. The number a guard like this defends is the SCALING, not the
+    # constant — a fifth call appears when a ledger actually exists, and that
+    # is the case below.
+    assert len(calls) == 4, calls
+
+    acceptance._at_ref.clear()
+    calls.clear()
+    ledgers = root / "docs" / "releases" / "ledgers"
+    ledgers.mkdir(parents=True, exist_ok=True)
+    (ledgers / "WORKING-macos.json").write_text(
+        '{"platform": "macos", "entries": [], "evidence": []}')
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "ledger"], cwd=root, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "tag", "v3"], cwd=root, check=True,
+                   capture_output=True)
+    calls.clear()
+    suite = acceptance.suite_at(root, "v3")
+    assert suite is not None and len(suite.items) == 8
+    assert len(calls) == 5, calls
 
 
 def test_the_ref_cache_holds(tmp_path: Path) -> None:

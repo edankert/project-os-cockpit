@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 138
-  ISS: 220
+  ISS: 221
   PHASE: 38
   REQ: 57
   RISK: 7
@@ -817,7 +817,7 @@ items:
     TASK-0545:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0545-Suite-At-Gets-A-Third-Shape.md"
       title: "`suite_at` gets a third shape — a historical read after the ledger cut needs notes plus a ledger"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 488
+    tasks_done: 489
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182
