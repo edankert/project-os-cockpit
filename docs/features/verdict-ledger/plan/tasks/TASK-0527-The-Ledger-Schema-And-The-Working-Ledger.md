@@ -18,13 +18,21 @@ tags: [task]
 
 ## Definition of Done
 
-- [ ] File schema documented: `release`, `version`, `platform`, `sealed`, `entries[]`, `evidence[]`.
-- [ ] Entry schema documented: `check`, `mark`, `date`, `by`, `method`, `reason`; or `check`, `invalidated_by`, `date`.
-- [ ] **`evidence` is a sibling collection of `entries`**, not a field on an entry ([[ADR-0037]] decision 1, [[TASK-0544]]). Each item carries `check`, `date`, `ref` and an optional `note`, and joins to an entry by `check` + `date`.
-- [ ] Exactly one open ledger per platform, created on demand.
-- [ ] Sealing is a single operation: stamp `release`/`version`/`sealed`, rename, start a fresh working ledger.
-- [ ] **Sealing expires `excused`** and carries `pass`/`partial`/`na` forward ([[ADR-0037]] decision 7). This is the one behaviour of the seal that is not bookkeeping.
-- [ ] `docs/releases/ledgers/README.md` explains the working-to-sealed lifecycle for a human opening the directory.
+- [x] File schema: `release`, `version`, `platform`, `sealed`, `entries[]`, `evidence[]`.
+- [x] Entry schema: `check`, `mark`, `date`, `by`, `method`, `reason`; or `check`, `invalidated_by`, `date`.
+- [x] **`evidence` is a sibling collection of `entries`**, joining by `check` + `date`.
+- [x] Exactly one open ledger per platform, created on demand.
+- [x] Sealing stamps `release`/`version`/`sealed`, renames, and starts a fresh working ledger.
+- [x] **Sealing expires `excused`** and carries `pass`/`partial`/`na` forward.
+- [ ] `docs/releases/ledgers/README.md` explains the lifecycle for a human opening the directory.
+
+## Done 2026-08-19 — `src/project_os_cockpit/ledger.py`, 24 tests
+
+**The resolution rule is three lines and each is a decision.** A later terminal entry supersedes an earlier one; an invalidation clears the standing verdict; and **an entry that does not persist is dropped when its ledger seals**. `PERSISTS` is `{pass, partial, na}` — everything else was a statement about *that* release, including `fail`, `blocked` and `question`, which would otherwise still read `fail` in December against a build nobody ships.
+
+**A bug the format found by being exercised rather than read.** `_platform_of` split the filename on its *first* hyphen, so `REL-0012-android` parsed as platform `0012-android` — matching no filter. **A ledger disappeared from its own platform the moment it was sealed**, and every verdict in it silently stopped counting: silent, and in the direction that lets a release through. It is anchored on the prefix now (`WORKING` or `<TYPE>-####`) and pinned by `test_a_sealed_ledger_stays_on_its_own_platform`.
+
+**Mutation-proven on the two properties a cleanup would flatten first**: adding `excused` to `PERSISTS` fails the expiry test; restoring the first-hyphen split fails two.
 
 ## Notes
 

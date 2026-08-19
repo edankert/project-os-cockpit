@@ -1,0 +1,549 @@
+"""The acceptance ledger — a verdict is an event, not a field ([[ADR-0037]]).
+
+An acceptance verdict is a fact about **(check × platform × release)**. It was
+stored as a scalar `mark:` in the check note's frontmatter, and a scalar cannot
+hold a three-tuple: 579 of `../your-trainer`'s 581 acceptance notes carried no
+platform at all while every one of its 513 passes was earned on Android.
+
+This module is the container with the right arity.
+
+**One file per release per platform.** Because releases are per-platform in any
+repo shipping independent cadences (`your-trainer`: `v2.1.6` against
+`ios/v0.1.0`, separate tag namespaces), each ledger is single-platform *by
+construction* — there is no cross-platform release object to hang a shared one
+on. The cross-platform view is a query across ledgers, not a document.
+
+**JSON, not YAML** (decision 9, Edwin's call). Measured before adopting it:
+`yaml.dump`/`yaml.safe_dump` occur **zero** times in `src/` and
+`tools/scripts/`. PyYAML is a read-only dependency here — every YAML file in
+the corpus is authored by a person or edited line by line — so a YAML ledger
+would introduce this project's first hand-rolled YAML writer, on the one file a
+CI runner appends to on every green build. `json` is stdlib and total, and
+YAML's implicit typing (`no` → `False`, a bare date → `date`) is a live hazard
+on a file of ids, dates and short words.
+
+This is **not** the JSON [[ADR-0030]] rejected, and the reason has nothing to do
+with the format: [[FEAT-0112]]'s was a *projection* of state the notes already
+held, which is what made the tool mandatory to edit a check. This holds state
+that exists nowhere else. The line [[project-os-dev#ADR-0009]] draws is
+*derived versus authored*.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+from typing import Any, Iterable
+
+#: Where a ledger lives — with its subject ([[ADR-0020]]: obligations live with
+#: their subject, and a ledger's subject is a release).
+LEDGERS_REL = "releases/ledgers"
+#: The open ledger for a platform. There is always exactly one, and **sealing
+#: is what assigns its events to a release** — which is [[ISS-0206]]'s "where do
+#: invalidation events live before a release exists" answered without adding a
+#: field to anything.
+WORKING_PREFIX = "WORKING"
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+#: A platform is a filename component, so it may not contain a separator or a
+#: dot. Checked rather than trusted: the platform comes from a note field and a
+#: `../` in it would write outside the ledger directory.
+_PLATFORM_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+
+
+# ---------------------------------------------------------------- vocabulary
+
+#: **Clears the gate.** Four values, and they are not interchangeable — see
+#: `PERSISTS` for the property that separates `na` from `excused`.
+CLEARING: frozenset[str] = frozenset({"pass", "partial", "na", "excused"})
+#: **Blocks.** `fail` — walked, it failed. `question` — walked, and the *check*
+#: is not understood, which is a different piece of work from a broken
+#: behaviour and routes to a different person ([[ADR-0029]] kept the
+#: distinction; [[ADR-0037]] decision 6 keeps it again against a source
+#: proposal that dropped it by omission). `blocked` — could not be run right
+#: now, and it blocks **deliberately**: `na` and `excused` are decisions
+#: somebody made about this release, `blocked` is an accident that will be gone
+#: next week, and a gate that clears because the rig was down clears on
+#: whatever happens to be broken that day.
+BLOCKING: frozenset[str] = frozenset({"fail", "blocked", "question"})
+MARKS: frozenset[str] = CLEARING | BLOCKING
+
+#: **Survives the seal.** [[ADR-0037]] decision 7, and the sharpest single
+#: property in that decision.
+#:
+#: `na` is a statement about the check and the platform — *there is no
+#: OS-level auto-backup surface on iOS* — so re-asking it every release is the
+#: maintained-matrix failure the whole design exists to remove. It persists
+#: until an invalidation supersedes it.
+#:
+#: **`excused` does not.** It is a statement about the check, the platform
+#: **and this release**: *not done this cycle, by decision*. If it persisted, a
+#: check excused once would be excused forever.
+#:
+#: *That is what the code did before this module existed.* `Item.excepted` was
+#: `mark in {canceled, -}` read from frontmatter and scoped to nothing, while
+#: the comment directly above that set still described the per-release property
+#: [[ADR-0029]] removed when it moved the release exception from `[!]` to
+#: `[-]`. A field on a note cannot hold *"expires with its release"* at any
+#: price; an event in a per-release ledger gets it by construction, because the
+#: ledger it sits in **is** the release it applies to.
+PERSISTS: frozenset[str] = frozenset({"pass", "partial", "na"})
+#: Everything but `pass` carries its justification. [[ADR-0029]] made this rule
+#: and it was never enforced against anything: measured 2026-08-19,
+#: `verdict_reason:` is non-empty on **0 of 671** notes, because nobody ever
+#: wrote one of the marks that demanded it. On an event it is checked at write
+#: time, against something that exists.
+NEEDS_REASON: frozenset[str] = MARKS - {"pass"}
+
+#: How the result arrived. One field for two things that used to be two
+#: mechanisms: a CI exit code and a person's verdict are two answers to one
+#: question ([[ADR-0037]] decision 3).
+METHODS: frozenset[str] = frozenset({"manual", "automated", "migration"})
+
+
+class LedgerError(ValueError):
+    """A ledger that cannot be trusted. Never raised for an absent file — a
+    repo with no ledger is a repo that has not started, not a broken one."""
+
+
+# ------------------------------------------------------------------- records
+
+@dataclass(frozen=True)
+class Entry:
+    """One event. Either a verdict or an invalidation, never both."""
+
+    check: str
+    date: str
+    mark: str = ""
+    by: str = ""
+    method: str = ""
+    reason: str = ""
+    #: The change that made an existing verdict untrustworthy. An invalidation
+    #: is an **event with a date** sitting after the verdict it overtakes,
+    #: which is why `mark: rerun` is not a value in this vocabulary: the two
+    #: states [[ADR-0034]] minted `rerun` to tell apart are distinguishable by
+    #: construction here.
+    invalidated_by: str = ""
+
+    @property
+    def is_invalidation(self) -> bool:
+        return bool(self.invalidated_by)
+
+    @property
+    def clears(self) -> bool:
+        return self.mark in CLEARING
+
+
+@dataclass(frozen=True)
+class Evidence:
+    """What backs a verdict — a screenshot, a log, a path.
+
+    **A sibling of `entries`, not a field on one** ([[ADR-0037]] decision 1,
+    Edwin's call). It is bulky, it arrives late, and one artefact often covers
+    several checks, so it joins by `check` + `date` and an entry stays one line.
+
+    It is not on the *note* for the reason the whole decision runs on: a
+    screenshot proves one walk happened on one platform on one date, and on a
+    permanent check that is a standing claim of exactly the kind decision 3
+    rejects for `automation:`. Measured before removing it: `evidence:` was
+    non-empty on **0 of 671** acceptance notes — it never held anything
+    precisely because a walk's evidence has no home on a permanent check.
+    """
+
+    check: str
+    date: str
+    ref: str
+    note: str = ""
+
+
+@dataclass
+class Ledger:
+    """One release, one platform, append-only."""
+
+    platform: str
+    path: Path | None = None
+    release: str = ""
+    version: str = ""
+    #: The date this ledger was sealed. Empty means it is the working one.
+    sealed: str = ""
+    entries: list[Entry] = field(default_factory=list)
+    evidence: list[Evidence] = field(default_factory=list)
+
+    @property
+    def is_working(self) -> bool:
+        return not self.sealed
+
+    def to_json(self) -> str:
+        """One entry per line, so a diff reads as *what was added* — which is
+        what an append-only file is for. `json.dumps` with an indent puts every
+        scalar on its own line and turns a one-event append into a
+        forty-line diff, so the entries are composed rather than dumped."""
+        head: dict[str, Any] = {"platform": self.platform}
+        if self.release:
+            head["release"] = self.release
+        if self.version:
+            head["version"] = self.version
+        if self.sealed:
+            head["sealed"] = self.sealed
+        lines = [f'  "{k}": {json.dumps(v)},' for k, v in head.items()]
+
+        def block(name: str, rows: list[str], last: bool) -> list[str]:
+            if not rows:
+                return [f'  "{name}": []' + ("" if last else ",")]
+            out = [f'  "{name}": [']
+            for i, row in enumerate(rows):
+                out.append(f"    {row}" + ("" if i == len(rows) - 1 else ","))
+            out.append("  ]" + ("" if last else ","))
+            return out
+
+        lines += block("entries", [_entry_json(e) for e in self.entries],
+                       last=not self.evidence and False)
+        lines += block("evidence", [_evidence_json(v) for v in self.evidence],
+                       last=True)
+        return "{\n" + "\n".join(lines) + "\n}\n"
+
+
+def _entry_json(entry: Entry) -> str:
+    row: dict[str, Any] = {"check": entry.check}
+    if entry.invalidated_by:
+        row["invalidated_by"] = entry.invalidated_by
+    else:
+        row["mark"] = entry.mark
+    row["date"] = entry.date
+    for name in ("method", "by", "reason"):
+        value = getattr(entry, name)
+        if value:
+            row[name] = value
+    return json.dumps(row, ensure_ascii=False)
+
+
+def _evidence_json(item: Evidence) -> str:
+    row: dict[str, Any] = {"check": item.check, "date": item.date,
+                           "ref": item.ref}
+    if item.note:
+        row["note"] = item.note
+    return json.dumps(row, ensure_ascii=False)
+
+
+# -------------------------------------------------------------------- verify
+
+def check_entry(raw: dict[str, Any], *, where: str) -> Entry:
+    """One entry, or a `LedgerError` naming the file and what is missing.
+
+    Refused rather than coerced. A ledger is what a release gate reads, and an
+    entry missing its author or its date is a verdict nobody can stand behind —
+    which is the state all 671 notes were already in, with `verdict_date` and
+    `verdict_reason` empty on every one of them.
+    """
+    check = str(raw.get("check", "") or "").strip()
+    if not check:
+        raise LedgerError(f"{where}: an entry names no check")
+    when = str(raw.get("date", "") or "").strip()
+    if not _DATE_RE.match(when):
+        raise LedgerError(f"{where}: {check} has no usable date ({when!r})")
+    if "platform" in raw:
+        raise LedgerError(
+            f"{where}: {check} carries its own `platform` — the platform is "
+            f"the ledger's, and an entry that could contradict its file is a "
+            f"second encoding of one fact")
+
+    invalidated = str(raw.get("invalidated_by", "") or "").strip()
+    if invalidated:
+        if raw.get("mark"):
+            raise LedgerError(
+                f"{where}: {check} carries both a mark and an invalidation — "
+                f"they are two events and belong on two lines")
+        return Entry(check=check, date=when, invalidated_by=invalidated,
+                     reason=str(raw.get("reason", "") or "").strip())
+
+    mark = str(raw.get("mark", "") or "").strip()
+    if mark not in MARKS:
+        raise LedgerError(
+            f"{where}: {check} has mark {mark!r}; expected one of "
+            f"{', '.join(sorted(MARKS))}")
+    method = str(raw.get("method", "") or "").strip()
+    if method not in METHODS:
+        raise LedgerError(
+            f"{where}: {check} has method {method!r}; expected one of "
+            f"{', '.join(sorted(METHODS))}")
+    by = str(raw.get("by", "") or "").strip()
+    if not by:
+        raise LedgerError(f"{where}: {check} names nobody in `by`")
+    reason = str(raw.get("reason", "") or "").strip()
+    if mark in NEEDS_REASON and not reason:
+        raise LedgerError(
+            f"{where}: a {mark} verdict on {check} needs a reason — the mark "
+            f"and its justification are one event, so a check cannot leave "
+            f"the gate without saying why")
+    return Entry(check=check, date=when, mark=mark, by=by, method=method,
+                 reason=reason)
+
+
+def check_evidence(raw: dict[str, Any], *, where: str) -> Evidence:
+    check = str(raw.get("check", "") or "").strip()
+    ref = str(raw.get("ref", "") or "").strip()
+    when = str(raw.get("date", "") or "").strip()
+    if not check or not ref:
+        raise LedgerError(f"{where}: an evidence item needs a check and a ref")
+    if not _DATE_RE.match(when):
+        raise LedgerError(f"{where}: evidence for {check} has no usable date")
+    return Evidence(check=check, date=when, ref=ref,
+                    note=str(raw.get("note", "") or "").strip())
+
+
+def orphan_evidence(ledger: Ledger) -> list[Evidence]:
+    """Evidence for a walk nobody recorded.
+
+    The same guard `cover_check` applies to `covered_by:` and for the same
+    reason ([[ISS-0198]]): a claim pointing at nothing reads as backed and is
+    not. Evidence joins by `check` + `date`, so an item whose pair matches no
+    entry is either a typo or proof of a walk that was never written down, and
+    both want a person.
+    """
+    pairs = {(e.check, e.date) for e in ledger.entries}
+    return [v for v in ledger.evidence if (v.check, v.date) not in pairs]
+
+
+# ---------------------------------------------------------------------- read
+
+def _parse(text: str, *, where: str, platform: str) -> Ledger:
+    try:
+        raw = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise LedgerError(f"{where}: not readable as JSON — {exc}") from None
+    if not isinstance(raw, dict):
+        raise LedgerError(f"{where}: the ledger is not an object")
+    stated = str(raw.get("platform", "") or "").strip()
+    if stated and platform and stated != platform:
+        raise LedgerError(
+            f"{where}: says platform {stated!r} and is filed under "
+            f"{platform!r} — the filename and the field must agree")
+    return Ledger(
+        platform=stated or platform,
+        release=str(raw.get("release", "") or "").strip(),
+        version=str(raw.get("version", "") or "").strip(),
+        sealed=str(raw.get("sealed", "") or "").strip(),
+        entries=[check_entry(e, where=where)
+                 for e in (raw.get("entries") or [])],
+        evidence=[check_evidence(v, where=where)
+                  for v in (raw.get("evidence") or [])],
+    )
+
+
+#: `REL-0012-android` / `WORKING-android` -> `android`. **Anchored on the
+#: prefix, not on the first hyphen**, and that is not pedantry: splitting on
+#: the first hyphen read `REL-0012-android` as platform `0012-android`, which
+#: matched no filter — so a ledger disappeared from its own platform the moment
+#: it was sealed, and every verdict in it silently stopped counting. Found by
+#: sealing one, which is the argument for exercising a format rather than
+#: reading it.
+_LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-(?P<platform>.+)$")
+
+
+def _platform_of(path: Path) -> str:
+    found = _LEDGER_NAME_RE.match(path.stem)
+    return found.group("platform") if found else ""
+
+
+def ledgers_dir(docs_root: Path) -> Path:
+    return docs_root / LEDGERS_REL
+
+
+def load(docs_root: Path, platform: str | None = None) -> list[Ledger]:
+    """Every ledger, oldest first, the working one last.
+
+    Ordering is the resolution order — a later event supersedes an earlier one
+    — so it is a property of this function rather than of each caller. Sealed
+    ledgers sort by their seal date; the working ledger is always newest,
+    because everything in it happened after the last seal by definition.
+    """
+    root = ledgers_dir(docs_root)
+    if not root.is_dir():
+        return []
+    out: list[Ledger] = []
+    for path in sorted(root.glob("*.json")):
+        found = _platform_of(path)
+        if platform and found != platform:
+            continue
+        ledger = _parse(path.read_text(encoding="utf-8"),
+                        where=f"{LEDGERS_REL}/{path.name}", platform=found)
+        ledger.path = path
+        out.append(ledger)
+    out.sort(key=lambda l: (l.is_working, l.sealed))
+    return out
+
+
+def platforms(docs_root: Path) -> list[str]:
+    """Every platform this repo has a ledger for. A repo with none is a repo
+    that has not started, and its checks are owed everywhere."""
+    return sorted({l.platform for l in load(docs_root) if l.platform})
+
+
+def working_path(docs_root: Path, platform: str) -> Path:
+    if not _PLATFORM_RE.match(platform or ""):
+        raise LedgerError(
+            f"{platform!r} is not a usable platform name — it becomes part of "
+            f"a filename, so it must be lowercase alphanumerics, `-` or `_`")
+    return ledgers_dir(docs_root) / f"{WORKING_PREFIX}-{platform}.json"
+
+
+def working(docs_root: Path, platform: str) -> Ledger:
+    """The open ledger for a platform, created in memory if it has none yet."""
+    path = working_path(docs_root, platform)
+    if path.exists():
+        ledger = _parse(path.read_text(encoding="utf-8"),
+                        where=f"{LEDGERS_REL}/{path.name}", platform=platform)
+        ledger.path = path
+        return ledger
+    return Ledger(platform=platform, path=path)
+
+
+# ------------------------------------------------------------------ resolve
+
+@dataclass(frozen=True)
+class Verdict:
+    """What a platform currently says about one check."""
+
+    check: str
+    mark: str
+    date: str
+    by: str
+    method: str
+    reason: str
+    #: Which ledger it came from — `""` for the working one.
+    release: str
+
+    @property
+    def clears(self) -> bool:
+        return self.mark in CLEARING
+
+
+def resolve(ledgers: Iterable[Ledger]) -> dict[str, Verdict]:
+    """The current verdict per check, from a platform's ledgers in order.
+
+    Three rules, and each is a decision rather than a mechanic:
+
+    * a later terminal entry **supersedes** an earlier one;
+    * an invalidation **clears** the standing verdict — the check is owed
+      again, and `mark: rerun` is not needed to say so because the invalidation
+      is itself a dated event sitting after the verdict it overtakes;
+    * **an `excused` expires when its ledger seals** ([[ADR-0037]] decision 7).
+      It was true of one release. Everything else that clears — `pass`,
+      `partial`, `na` — persists until invalidated.
+
+    A check with no surviving verdict simply has no key, and *that absence is
+    the answer*: no entry for a platform means owed on that platform, with no
+    field anywhere declaring applicability ([[REQ-0054]]).
+    """
+    out: dict[str, Verdict] = {}
+    for ledger in ledgers:
+        expired = not ledger.is_working
+        for entry in ledger.entries:
+            if entry.is_invalidation:
+                out.pop(entry.check, None)
+                continue
+            if expired and entry.mark not in PERSISTS:
+                # `excused` was a statement about THAT release, and so are
+                # `fail`/`blocked`/`question` — none of them says anything
+                # about the next one. Dropping them is what puts the check
+                # back in the owed set with nobody having to remember.
+                out.pop(entry.check, None)
+                continue
+            out[entry.check] = Verdict(
+                check=entry.check, mark=entry.mark, date=entry.date,
+                by=entry.by, method=entry.method, reason=entry.reason,
+                release=ledger.release if not ledger.is_working else "",
+            )
+    return out
+
+
+def verdicts(docs_root: Path, platform: str) -> dict[str, Verdict]:
+    """The resolved state of one platform. The join every surface reads."""
+    return resolve(load(docs_root, platform))
+
+
+# ------------------------------------------------------------------- append
+
+def _today() -> str:
+    return date.today().isoformat()
+
+
+def append(
+    docs_root: Path,
+    platform: str,
+    *,
+    check: str,
+    mark: str = "",
+    by: str = "",
+    method: str = "manual",
+    reason: str = "",
+    invalidated_by: str = "",
+    when: str | None = None,
+    evidence: list[dict[str, str]] | None = None,
+) -> Entry:
+    """One event onto the working ledger, validated before it is written.
+
+    **It never touches a note.** That is the property [[REQ-0055]] exists for,
+    and it is guarded rather than reviewed: the read path spans 87 sites in the
+    renderer alone, and a surviving frontmatter write does not raise — it puts
+    a scalar back where the migration removed one.
+    """
+    ledger = working(docs_root, platform)
+    if not ledger.is_working:                        # pragma: no cover
+        raise LedgerError(f"{ledger.path} is sealed and cannot be appended to")
+    raw: dict[str, Any] = {"check": check, "date": when or _today()}
+    if invalidated_by:
+        raw["invalidated_by"] = invalidated_by
+        if reason:
+            raw["reason"] = reason
+    else:
+        raw.update({"mark": mark, "by": by, "method": method})
+        if reason:
+            raw["reason"] = reason
+    entry = check_entry(raw, where=f"append to {platform}")
+    ledger.entries.append(entry)
+    for item in evidence or []:
+        ledger.evidence.append(check_evidence(
+            {**item, "check": check, "date": entry.date},
+            where=f"append to {platform}"))
+    write(ledger)
+    return entry
+
+
+def write(ledger: Ledger) -> None:
+    if ledger.path is None:                          # pragma: no cover
+        raise LedgerError("a ledger with no path cannot be written")
+    ledger.path.parent.mkdir(parents=True, exist_ok=True)
+    ledger.path.write_text(ledger.to_json(), encoding="utf-8")
+
+
+def seal(
+    docs_root: Path, platform: str, *, release: str, version: str,
+    when: str | None = None,
+) -> Path:
+    """Close a platform's working ledger against a release.
+
+    Sealing does two things and only one of them is bookkeeping. It assigns
+    every event in the file to a release — [[ISS-0206]]'s question answered
+    without a field on anything — and it is **when `excused` expires**: from
+    the next resolution onward those checks are owed again, with nobody having
+    to remember.
+    """
+    ledger = working(docs_root, platform)
+    if ledger.path is None or not ledger.path.exists():
+        raise LedgerError(
+            f"no working ledger for {platform} — sealing an empty cycle would "
+            f"record a release nobody verified anything for")
+    ledger.release = release
+    ledger.version = version
+    ledger.sealed = when or _today()
+    target = ledgers_dir(docs_root) / f"{release}-{platform}.json"
+    if target.exists():
+        raise LedgerError(f"{target.name} already exists and is sealed")
+    ledger.path = target
+    write(ledger)
+    working_path(docs_root, platform).unlink()
+    return target

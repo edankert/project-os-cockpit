@@ -30,7 +30,7 @@ This is not a small omission. [[ADR-0030]]'s honest tally of what one-note-per-c
 
 - [x] Decided in [[ADR-0037]] decision 1 rather than in a commit.
 - [x] Measured per repo before deciding: 0 of 671.
-- [ ] The ledger schema carries `evidence` as a sibling of `entries` ([[TASK-0527]]), with `check` and `date` required on each item.
-- [ ] The validator refuses an evidence item whose `check` + `date` matches no entry — evidence for a walk that was never recorded is a claim with nothing behind it.
+- [x] The ledger schema carries `evidence` as a sibling of `entries`, with `check` and `date` required on each item.
+- [x] `ledger.orphan_evidence` reports an item whose `check` + `date` matches no entry — the same guard `cover_check` applies to `covered_by:` ([[ISS-0198]]), and for the same reason: a claim pointing at nothing reads as backed and is not.
 - [ ] `Item.evidence` (`acceptance.py:358`, read at `:801`) reads the ledger, and the field leaves the note schema with [[TASK-0530]].
-- [ ] Evidence freezes at the seal with everything else.
+- [x] Evidence freezes at the seal with everything else — it is in the same file.
