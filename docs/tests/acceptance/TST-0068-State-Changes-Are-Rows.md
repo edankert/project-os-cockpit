@@ -11,15 +11,8 @@ tier: 1
 area: "History"
 section: "1.12"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0052]]", "[[FEAT-0053]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.12.1 @ 7de1a86"
 related: []
 level: acceptance

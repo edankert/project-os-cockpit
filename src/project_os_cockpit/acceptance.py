@@ -1049,6 +1049,10 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
     if not _ledger.has_ledger(docs_root):
         return items
     found = _ledger.verdicts(docs_root, platform)
+    by_check: dict[str, list[Any]] = {}
+    for led in _ledger.load(docs_root, platform):
+        for item in led.evidence:
+            by_check.setdefault(item.check, []).append(item)
     out: list[Item] = []
     for item in items:
         verdict = found.get(item.note_id)
@@ -1072,6 +1076,15 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
             needs_rerun=False,
             verdict_date=verdict.date if verdict else "",
             verdict_reason=verdict.reason if verdict else "",
+            #: [[TASK-0544]]. Evidence follows the verdict it backs, so it is
+            #: joined out of the ledger's sibling collection rather than read
+            #: from the note — a screenshot proves one walk on one platform on
+            #: one date, and on a permanent check that is the standing claim
+            #: decision 3 rejects for `automation:`.
+            evidence=tuple(
+                v.ref for v in by_check.get(item.note_id, ())
+                if verdict and v.date == verdict.date
+            ),
         ))
     return out
 

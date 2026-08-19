@@ -17,7 +17,6 @@ covers: []           # THE verification link (ADR-0032): [[FEAT-...]] / [[ISS-..
 issues: []           # context only — what this test VERIFIES goes in covers:
 tasks: []
 artifacts: []
-evidence: []
 last_run: ""
 adequacy: ""
 mutation_score: ""
@@ -27,13 +26,10 @@ review_verdict: ""
 related: []
 # --- level: acceptance only (ADR-0031) ---------------------------------
 # Delete these on an executable test; they are meaningless there.
+# THE VERDICT IS NOT HERE (ADR-0037). It is a dated event in
+# docs/releases/ledgers/<release>-<platform>.json — a verdict is a fact
+# about (check x platform x release) and a field cannot hold three.
 tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
-mark: todo           # THE VERDICT: todo | done | incomplete | canceled | important | question | rerun
-verdict_date: ""
-verdict_reason: ""   # required for / - ! ?
-invalidated_by: {}   # {change: TASK-0000, reason: "", date: ""} — TESTING.md rule 3, as a field
-automation: ""       # full | partial | manual
-covered_by: []       # a `passing` test named here SETTLES this one (ADR-0031)
 area: ""             # the human grouping — one walk's worth of related checks
 section: ""
 ordinal: ""

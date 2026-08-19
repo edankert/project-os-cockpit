@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0544
 aliases: ["TASK-0544"]
 title: "`evidence` moves to the ledger as a sibling collection, not onto the entry and not onto the note"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -32,5 +32,9 @@ This is not a small omission. [[ADR-0030]]'s honest tally of what one-note-per-c
 - [x] Measured per repo before deciding: 0 of 671.
 - [x] The ledger schema carries `evidence` as a sibling of `entries`, with `check` and `date` required on each item.
 - [x] `ledger.orphan_evidence` reports an item whose `check` + `date` matches no entry — the same guard `cover_check` applies to `covered_by:` ([[ISS-0198]]), and for the same reason: a claim pointing at nothing reads as backed and is not.
-- [ ] `Item.evidence` (`acceptance.py:358`, read at `:801`) reads the ledger, and the field leaves the note schema with [[TASK-0530]].
+- [x] `Item.evidence` (`acceptance.py:358`, read at `:801`) reads the ledger, and the field leaves the note schema with [[TASK-0530]].
 - [x] Evidence freezes at the seal with everything else — it is in the same file.
+
+## Completed 2026-08-19
+
+`Item.evidence` is joined out of the ledger's sibling collection, matched on `check` + `date`, so evidence follows the verdict it backs and a different platform gets neither.

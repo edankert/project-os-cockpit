@@ -810,7 +810,7 @@ items:
     TASK-0544:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0544-Where-Evidence-Goes.md"
       title: "`evidence` moves to the ledger as a sibling collection, not onto the entry and not onto the note"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0133
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -852,14 +852,14 @@ items:
     TASK-0530:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0530-Remove-The-Seven-Fields-Upstream-First.md"
       title: "Remove the seven verdict fields from the schema, the template and the validator — upstream first"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0134
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0531:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0531-The-Note-To-Ledger-Migration-Script.md"
       title: "The migration script — strip the fields, emit the ledger entries, refuse to run twice, list what it could not convert"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0134
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -894,7 +894,7 @@ items:
     TASK-0536:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0536-The-Read-Path-Moves-To-The-Ledger.md"
       title: "`acceptance.load` and `Item` take the verdict from the ledger, and a guard test fails on any frontmatter read"
-      status: doing
+      status: done
       owner: user:edwin
       parent: FEAT-0136
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -915,7 +915,7 @@ items:
     TASK-0539:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0539-Settle-The-Vocabulary-Upstream.md"
       title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
-      status: doing
+      status: done
       owner: user:edwin
       parent: FEAT-0137
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
@@ -3857,7 +3857,7 @@ metrics:
     features_total: 138
     features_done: 112
     tasks_total: 545
-    tasks_done: 483
+    tasks_done: 488
     tests_total: 43
     tests_passing: 39
     test_cases_total: 182

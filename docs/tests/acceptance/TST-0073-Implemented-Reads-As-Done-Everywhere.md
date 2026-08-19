@@ -11,15 +11,8 @@ tier: 2
 area: "One status vocabulary"
 section: "2.3"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[ISS-0023]]", "[[ISS-0024]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.3.1 @ 7de1a86"
 related: []
 level: acceptance

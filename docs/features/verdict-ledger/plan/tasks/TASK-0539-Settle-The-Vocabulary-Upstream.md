@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0539
 aliases: ["TASK-0539"]
 title: "Settle the outcome vocabulary in `TAXONOMY.md` upstream — one table, matching the data, legacy readable but not current"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -19,7 +19,7 @@ tags: [task]
 - [x] `TAXONOMY.md`'s `mark` section is rewritten as the ledger's outcome vocabulary: `pass`, `partial`, `na`, `excused`, `blocked`, `fail`, `question` — with the gate column **and** the persists-past-the-seal column, because the second is what separates `na` from `excused`.
 - [x] Absence is documented as a state — *"no entry"* is what "nobody has run it" looks like, and it is not a value.
 - [x] Minimal's characters and [[ADR-0034]]'s words are listed as **read-only legacy**, in a section that says so.
-- [ ] Landed in `~/Dev/repos/project-os` first, then synced to all four repos — the drift is currently in every one of them, upstream included.
+- [x] Landed in `~/Dev/repos/project-os` first, then synced to all four repos — the drift is currently in every one of them, upstream included.
 
 ## Done here 2026-08-19, and NOT yet upstream
 
@@ -32,3 +32,7 @@ tags: [task]
 Three judgements are already made in [[ADR-0037]] decision 6 and should not be re-opened here: `question` is kept (the source proposal drops it by omission, and it is the only signal that a *check* rather than a behaviour is wrong); `rerun` is retired three weeks after being minted; and *not run* splits into three — `na` (cannot apply here, persists), `excused` (not done this cycle, expires at the seal) and `blocked` (could not run it right now, **blocks**).
 
 Measured 2026-08-19: `canceled`, `important`, `question` and `rerun` are each written **0 times** fleet-wide. The live vocabulary is `done` 546, `todo` 124, `incomplete` 1.
+
+## Completed 2026-08-19
+
+Landed upstream at `~/Dev/repos/project-os@ce789d7` as a targeted edit rather than a file copy — see [[TASK-0530]] for why a copy would have destroyed work in both directions.

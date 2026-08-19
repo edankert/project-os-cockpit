@@ -11,15 +11,8 @@ tier: 1
 area: "Render server and the browser front door"
 section: "1.1"
 ordinal: 20
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0006]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.1.2 @ 7de1a86"
 related: []
 level: acceptance

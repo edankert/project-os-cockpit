@@ -11,15 +11,8 @@ tier: 1
 area: "The navigator"
 section: "1.3"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0010]]", "[[FEAT-0046]]", "[[FEAT-0058]]", "[[FEAT-0085]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.3.1 @ 7de1a86"
 related: []
 level: acceptance

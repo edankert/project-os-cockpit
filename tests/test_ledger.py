@@ -730,3 +730,49 @@ def test_a_release_id_is_guarded_like_a_platform_is(docs: Path) -> None:
     for bad in ("../etc", "REL", "rel-0012", ""):
         with pytest.raises(L.LedgerError, match="usable release id"):
             L.seal(docs, "android", release=bad, version="v1")
+
+
+# ---------------------------------------------- the guard TASK-0530 unblocked
+
+def test_a_note_cannot_change_a_verdict_in_a_repo_that_keeps_ledgers(
+    docs: Path,
+) -> None:
+    """[[REQ-0055]]'s guard, writable at last.
+
+    It could not be written while the field legitimately existed on the note —
+    the pre-ledger read *must* keep working for the repos with no ledger. Now
+    that [[TASK-0531]] has stripped this corpus, the property is testable as
+    behaviour rather than as a grep: **editing a note's frontmatter changes no
+    verdict.** A surviving frontmatter read does not raise; it returns a scalar
+    that looks exactly like a verdict, so only a behavioural guard catches it.
+    """
+    from project_os_cockpit import acceptance
+
+    checks = _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-08-14")
+    assert acceptance.load(docs, platform="android").items[0].mark == "pass"
+
+    note = checks / "TST-0001-A-Check.md"
+    for scalar in ("done", "canceled", "important", "x", "-"):
+        note.write_text(note.read_text().replace(
+            "mark: todo", f"mark: {scalar}").replace(
+            f"mark: {scalar}\n", f"mark: {scalar}\n", 1))
+        found = acceptance.load(docs, platform="android").items[0]
+        assert found.mark == "pass", (
+            f"a note carrying `mark: {scalar}` changed the verdict — a "
+            f"frontmatter read survived the migration")
+        assert found.settled
+
+
+def test_evidence_follows_the_verdict_it_backs(docs: Path) -> None:
+    """[[TASK-0544]]: `Item.evidence` is joined out of the ledger."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    L.append(docs, "android", check="TST-0001", mark="pass", by="user:edwin",
+             method="manual", when="2026-08-14",
+             evidence=[{"ref": "docs/tests/evidence/a.png"}])
+    item = acceptance.load(docs, platform="android").items[0]
+    assert item.evidence == ("docs/tests/evidence/a.png",)
+    # A different platform has the verdict and the evidence of neither.
+    assert acceptance.load(docs, platform="ios").items[0].evidence == ()

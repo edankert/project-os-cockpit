@@ -452,6 +452,7 @@ _NON_STATUS_COLLECTIONS = frozenset({
     "LEDGER_MARKS",
     "LEDGER_NEEDS_REASON",
     "LEDGER_METHODS",
+    "LEDGER_MOVED_FIELDS",
 })
 
 
@@ -1607,6 +1608,48 @@ LEDGER_METHODS = ("manual", "automated", "migration")
 LEDGER_NAME_RE = re.compile(r"^(?:WORKING|[A-Z]{2,6}-\d{3,4})-.+$")
 
 
+#: The seven fields ADR-0037 moved into the ledger. Refused **only in a repo
+#: that keeps ledgers** — the discriminator matters more than the list: a
+#: schema change that broke every repo which had not migrated yet would be a
+#: worse failure than the one it fixes, and eight of twelve fleet repos are in
+#: exactly that state. Same construction that keeps `mark_check` alive.
+LEDGER_MOVED_FIELDS = ("mark", "verdict_date", "verdict_reason",
+                       "invalidated_by", "automation", "covered_by",
+                       "evidence")
+
+
+def validate_moved_verdict_fields(root, report, note_index):
+    """A verdict field on a note, in a repo whose verdicts live in ledgers.
+
+    Two sources for one fact is what this whole decision removes, and the
+    stale one wins by being older: `apply_ledger` reads the ledger, so a
+    leftover `mark: done` is invisible until somebody greps for it and
+    concludes the migration did not run.
+    """
+    if not (root / "docs" / LEDGERS_REL).is_dir():
+        return
+    if not any((root / "docs" / LEDGERS_REL).glob("*.json")):
+        return
+    for note_id, (path, fm) in sorted(note_index.items()):
+        if not isinstance(fm, dict):
+            continue
+        if str(fm.get("level", "") or "").strip().lower() != "acceptance":
+            continue
+        found = [f for f in LEDGER_MOVED_FIELDS if f in fm]
+        if found:
+            try:
+                rel = path.relative_to(root)
+            except ValueError:                       # pragma: no cover
+                rel = path
+            report.error(
+                "LEDGER-FIELD",
+                "%s carries %s — this repo records verdicts in "
+                "docs/%s/, and a verdict on the note is a second source for "
+                "one fact (ADR-0037) (%s)"
+                % (note_id, ", ".join("`%s`" % f for f in found),
+                   LEDGERS_REL, rel))
+
+
 def validate_ledgers(root, report, note_index):
     """The acceptance ledgers — required fields, reasons, and immutability.
 
@@ -1764,6 +1807,7 @@ def validate(root, report):
     note_index, note_claimants = build_note_index(docs_dir)
     allowed_status = load_allowed_status(root)
     validate_ledgers(root, report, note_index)
+    validate_moved_verdict_fields(root, report, note_index)
     grandfathered = load_grandfathered(root)
     verification_cfg = snap.get("verification") if isinstance(snap.get("verification"), dict) else {}
     try:

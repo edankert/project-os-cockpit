@@ -210,13 +210,11 @@ Fields:
 
 An acceptance test is the thing a person walks. It carries the fields below and rests at `status: active`; every one of them is meaningless on an executable test and the validator does not require them there.
 
+**The note holds intent. The verdict is not on it** (ADR-0037): a verdict is a fact about *(check × platform × release)* and a scalar field cannot hold a three-tuple. It lives as a dated, attributed event in `docs/releases/ledgers/` — see that directory's README.
+
+**Seven fields were removed** and the validator refuses each of them, *in a repo that keeps ledgers*: `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`, `automation`, `covered_by`, `evidence`. A repo with no ledger is untouched and keeps reading its scalar marks — a schema change that broke every repo that had not migrated yet would be a worse failure than the one it fixes.
+
 - (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
-- (required) `mark` (string): the verdict — one of `" "`, `x`, `/`, `-`, `!`, `?` (`TAXONOMY.md`, "`mark`"). **Never `status`.**
-- (optional) `verdict_date` (date): when the current `mark` was recorded.
-- (optional) `verdict_reason` (string): why. **Required** for `/`, `-`, `!` and `?`.
-- (optional) `invalidated_by` (map): `{change, reason, date}` — the change that made an existing pass untrustworthy. `TESTING.md` rule 3 as a field rather than an annotation: a test whose `verdict_date` predates `invalidated_by.date` is computably stale.
-- (optional) `automation` (string): `full|partial|manual`, with `covered_by` naming what covers it.
-- (optional) `covered_by` (list of links): the `TST-*` notes providing that coverage. **A `passing` test named here settles the acceptance test**, which is how automating a walk discharges it (ADR-0031). Refused unless the id resolves to a test carrying a `command:` — a link to something unrunnable records a claim nobody can check.
 - (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
 - (optional) `section` (string): the legacy `1.3`-style section number, kept for addressing continuity.
 - (optional) `ordinal` (int): display order within the area. Sparse, so an insert shifts nothing.

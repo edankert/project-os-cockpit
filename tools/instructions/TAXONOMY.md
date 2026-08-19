@@ -116,10 +116,6 @@ The mapping into the ledger is `done`→`pass`, `incomplete`→`partial`, **`can
 
 **`mark:` is not `status:`.** An acceptance test's lifecycle is `status:` — it rests at `active`, and `retired` is terminal. Its verdict is not on the note at all. That is what keeps it outside the runner-only rule, the independent-review gate and the `Run` obligation — see `STATUSES.md` `[[test]]`.
 
-## `automation` (tests at `level: acceptance`)
-- `full`, `partial`, `manual`
-- What already covers this check mechanically. `covered_by:` names the `TST-*` (or test module) doing the covering; a `full` check with no `covered_by:` is a claim with nothing behind it.
-
 ## `burden` (tests at `level: acceptance`)
 Optional, project-defined free text naming what a walker must have to hand — `App`, `Trainer`, `Strava`, `hardware`. Its purpose is to avoid making somebody set the same thing up twice, so keep the labels stable and few.
 

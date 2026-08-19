@@ -11,15 +11,8 @@ tier: 1
 area: "Agents and sessions"
 section: "1.10"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0019]]", "[[FEAT-0020]]", "[[FEAT-0032]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.10.1 @ 7de1a86"
 related: []
 level: acceptance

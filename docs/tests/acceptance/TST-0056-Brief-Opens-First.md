@@ -11,15 +11,8 @@ tier: 1
 area: "Design and the constraints view"
 section: "1.6"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0042]]", "[[FEAT-0043]]", "[[FEAT-0044]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.6.1 @ 7de1a86"
 related: []
 level: acceptance

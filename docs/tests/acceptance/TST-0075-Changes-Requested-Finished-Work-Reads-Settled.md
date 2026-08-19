@@ -11,15 +11,8 @@ tier: 2
 area: "A settled verdict is not owed"
 section: "2.5"
 ordinal: 10
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[ISS-0121]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#2.5.1 @ 7de1a86"
 related: []
 level: acceptance

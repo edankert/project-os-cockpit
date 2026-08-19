@@ -11,15 +11,8 @@ tier: 1
 area: "The note page"
 section: "1.4"
 ordinal: 20
-mark: done
-verdict_date: ""
-verdict_reason: ""
-invalidated_by: {}
-automation: manual
-covered_by: []
 covers: ["[[FEAT-0011]]", "[[FEAT-0060]]"]
 burden: []
-evidence: []
 migrated_from: "tests/ACCEPTANCE_TESTS.md#1.4.2 @ 7de1a86"
 related: []
 level: acceptance
