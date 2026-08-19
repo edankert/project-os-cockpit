@@ -34,7 +34,11 @@ FIELDS = ("mark", "verdict_date", "verdict_reason", "invalidated_by",
           #: verdict rides on these, so the safety check does not apply to
           #: them; they are removed with the rest because they are the same
           #: kind of thing, a field the note no longer needs to carry.
-          "section", "ordinal")
+          "section", "ordinal",
+          #: ISS-0233 — provenance of migrations that are over. No verdict
+          #: rides on these either, so the safety check does not apply; they
+          #: go with the rest because they are the same kind of thing.
+          "migrated_from", "merged_from", "burden")
 #: A scalar mark that says nothing was ever recorded. Removing one of these
 #: loses no verdict, so a check at `todo` needs no ledger entry to be safe.
 EMPTY_MARKS = {"todo", "", " ", "rerun"}

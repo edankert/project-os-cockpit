@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0067
-aliases: ["TST-0067", "CHK-0024"]
+aliases: ["TST-0067"]
 title: "Fleet roll-up"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Verification health and the fleet"
 covers: ["[[FEAT-0018]]", "[[FEAT-0028]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.11.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0024 @ 4c02731"
 ---
 
 # Fleet roll-up

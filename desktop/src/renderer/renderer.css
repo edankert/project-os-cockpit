@@ -6056,14 +6056,48 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 /* ISS-0228: the id at the start of a check row is the value people copy. */
 .checks-row-number { user-select: text; cursor: text; }
 
-/* Edwin, 2026-08-19: a surface is drawn like a phase in the overview's left
-   pane. The classes are the overview's, so the two cannot drift apart; only
-   the density differs, because the nav column is narrower than a card. */
+/* ISS-0231: one line — handle, id, title, bar, percentage. The bar is an
+   inline element here, not the overview's block, because a nav row is one
+   line tall; the previous attempt took the phase row's vertical stack. */
 .nav-surface { list-style: none; margin: 0; }
-.nav-surface .ov-phase { padding: 3px 0; }
-.nav-surface .ov-phase-title { font-size: 0.92em; }
-.nav-surface .ov-phase-count { font-size: 0.8em; }
-.nav-surface .ov-phase-under.has-stale > i { background: var(--warn, #d29922); }
-.nav-surface-checks { padding-left: 16px; }
-.nav-surface .ov-phase-id.is-link { cursor: pointer; }
-.nav-surface .ov-phase-id.is-link:hover { text-decoration: underline; }
+.nav-surface-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 4px; border-radius: 4px; min-width: 0;
+}
+.nav-surface-head:hover { background: var(--bg-subtle, #21262d); }
+.nav-surface-id { flex: none; font-size: 0.82em; color: var(--accent-link, #58a6ff); }
+.nav-surface-id.is-link { cursor: pointer; }
+.nav-surface-id.is-link:hover { text-decoration: underline; }
+.nav-surface-title {
+  flex: 1 1 auto; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; font-size: 0.92em;
+}
+.nav-surface-bar {
+  flex: none; width: 56px; height: 4px; border-radius: 2px;
+  background: var(--bg-inset, #010409); overflow: hidden;
+}
+.nav-surface-bar > i { display: block; height: 100%; background: var(--accent-link, #58a6ff); }
+.nav-surface-bar.has-stale > i { background: var(--warn, #d29922); }
+.nav-surface-pct {
+  flex: none; width: 34px; text-align: right;
+  font-size: 0.78em; color: var(--fg-muted, #8b949e);
+}
+.nav-surface-checks { list-style: none; margin: 0; padding-left: 18px; }
+.nav-check {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 4px; border-radius: 3px; min-width: 0;
+}
+.nav-check:hover { background: var(--bg-subtle, #21262d); }
+.nav-check-id { flex: none; font-size: 0.78em; color: var(--accent-link, #58a6ff); }
+.nav-check-name {
+  flex: 1 1 auto; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; font-size: 0.86em;
+}
+/* Right-aligned, which is what `flex:1` on the name buys. */
+.nav-check-mark { flex: none; font-size: 0.75em; text-transform: lowercase; }
+
+/* ISS-0234: the percentage sits on the area heading, right-aligned. */
+.checks-area-head { display: flex; align-items: baseline; gap: 8px; }
+.checks-area-name { flex: 1 1 auto; min-width: 0; }
+.checks-row-number.is-link { cursor: pointer; }
+.checks-row-number.is-link:hover { text-decoration: underline; }

@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0053
-aliases: ["TST-0053", "CHK-0010"]
+aliases: ["TST-0053"]
 title: "A criterion ticks with evidence"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "The note page"
 covers: ["[[FEAT-0011]]", "[[FEAT-0060]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.4.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0010 @ 4c02731"
 ---
 
 # A criterion ticks with evidence

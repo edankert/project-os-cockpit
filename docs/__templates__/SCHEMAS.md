@@ -215,11 +215,9 @@ An acceptance test is the thing a person walks. It carries the fields below and 
 **Seven fields were removed** and the validator refuses each of them, *in a repo that keeps ledgers*: `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`, `automation`, `covered_by`, `evidence`. A repo with no ledger is untouched and keeps reading its scalar marks — a schema change that broke every repo that had not migrated yet would be a worse failure than the one it fixes.
 
 - (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
+- ~~`burden`~~, ~~`migrated_from`~~, ~~`merged_from`~~ — **removed (ISS-0233).** Provenance of migrations that are finished, plus a field empty on every check in the fleet. Git holds the first two, with the shas ADR-0030 and ADR-0031 name; a field is the wrong place for a fact already immutable somewhere better.
 - (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
 - ~~`section`~~, ~~`ordinal`~~ — **removed (ISS-0224).** They were a check's position in `ACCEPTANCE_TESTS.md`, a document that exists in no migrated repo. Order is `(tier, id)` and grouping is `area` alone; measured before removing them, `(tier, id)` reproduces the old order byte-for-byte in every repo, and no area spans two sections anywhere. `migrated_from:` keeps the old address **and the sha** — a record of the past, not a claim about the present.
-- (optional) `burden` (list): what the walker must have to hand (`TAXONOMY.md`).
-- (optional) `migrated_from` (string): the pre-migration address (`#section.ordinal`) plus the sha the file held at the cut, for repos that migrated from a single `ACCEPTANCE_TESTS.md`.
-- (optional) `merged_from` (string): the `CHK-*` id this note carried before ADR-0031, plus the sha at the merge.
 
 Where NOT used:
 - The obligation registry: an acceptance test is never owed. Acceptance rows are the most self-re-arming population in a corpus, and per-check obligations are the one use of this granularity that is forbidden outright. Held by construction — the `Run` obligation is keyed on `ready` and these rest at `active`.

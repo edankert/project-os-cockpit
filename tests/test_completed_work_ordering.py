@@ -880,9 +880,10 @@ def test_the_picker_routes_only_to_known_renderers() -> None:
         #: exactly this subject — *"the two front doors answer the same
         #: questions, and differ only where a difference was decided"* — so
         #: the difference is named here and the guard keeps its teeth on both.
-        expected = {"navItemStacked", "navItemCompact", "navItem"}
-        if path.name == "renderer.ts":
-            expected |= {"navItemSurface"}
+        # Both front doors have it now (ISS-0230 fixed) — PHASE-029's rule
+        # restored: they answer the same questions.
+        expected = {"navItemStacked", "navItemCompact", "navItem",
+                    "navItemSurface"}
         assert returned == expected, (
             f"{path.name}: pickItemRenderer routes to {returned}; a new renderer "
             "must be brought into the shared row builder deliberately"

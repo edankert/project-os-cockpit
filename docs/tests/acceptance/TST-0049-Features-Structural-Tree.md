@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0049
-aliases: ["TST-0049", "CHK-0006"]
+aliases: ["TST-0049"]
 title: "Features is the structural tree"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "The navigator"
 covers: ["[[FEAT-0010]]", "[[FEAT-0046]]", "[[FEAT-0058]]", "[[FEAT-0085]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.3.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0006 @ 4c02731"
 ---
 
 # Features is the structural tree

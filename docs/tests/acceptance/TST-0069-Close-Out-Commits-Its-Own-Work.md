@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0069
-aliases: ["TST-0069", "CHK-0026"]
+aliases: ["TST-0069"]
 title: "Close-out commits its own work"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Close-out"
 covers: ["[[FEAT-0055]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.13.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0026 @ 4c02731"
 ---
 
 # Close-out commits its own work

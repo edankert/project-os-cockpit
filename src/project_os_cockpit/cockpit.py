@@ -4246,8 +4246,26 @@ def _area_slug(area: str) -> str:
     return out.strip("-") or "unnamed"
 
 
-def _surface_rows(items: list[dict[str, Any]], url: str,
-                  tier: int) -> list[dict[str, Any]]:
+def _surface_ref(shared: set, index: "Index | None") -> dict[str, Any]:
+    """The issue a surface IS — its id **and its own title**.
+
+    Edwin: *"for regression tests it should show `[issue-id] issue title`."*
+    The `area:` string and the issue's title are different things — the first
+    is free text somebody typed on a check, the second is the note's own — and
+    the row was showing the first while linking the second.
+    """
+    ref = shared.pop()
+    out: dict[str, Any] = {"ref": ref}
+    if index is not None:
+        found = index.by_id(ref)
+        record = index.get(found) if found else None
+        if record is not None and record.title:
+            out["ref_title"] = record.title
+    return out
+
+
+def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
+                  index: "Index | None" = None) -> list[dict[str, Any]]:
     """One row per surface, each **its own address with its own children**.
 
     Three defects fixed together, because they are one row ([[ISS-0225]],
@@ -4278,10 +4296,14 @@ def _surface_rows(items: list[dict[str, Any]], url: str,
     for area in order:
         found = per[area]
         total = len(found)
-        settled = sum(1 for i in found
-                      if i.get("checked") or i.get("reconciled")
-                      or i.get("excepted"))
         stale = sum(1 for i in found if i.get("stale"))
+        #: **Stale is not done** — excluded from the numerator rather than
+        #: named beside it. Counting a tick that stands over evidence a change
+        #: overtook is what made `your-trainer`'s honest blocking number 113
+        #: read as a reported 60.
+        settled = sum(1 for i in found
+                      if (i.get("checked") or i.get("reconciled")
+                          or i.get("excepted")) and not i.get("stale"))
         rows.append({
             "id": area,
             "title": area,
@@ -4312,7 +4334,7 @@ def _surface_rows(items: list[dict[str, Any]], url: str,
             #: Only when the whole surface agrees: a ref shared by every check
             #: in it is the surface's own subject, and one carried by some of
             #: them is a reference from a check.
-            **({"ref": shared.pop()} if len(
+            **(_surface_ref(shared, index) if len(
                 shared := set.intersection(*(set(i.get("refs") or ())
                                              for i in found)) or set()) == 1
                else {}),
@@ -4320,9 +4342,13 @@ def _surface_rows(items: list[dict[str, Any]], url: str,
                 {
                     "id": i.get("id") or i["number"],
                     "title": i["name"],
-                    "status": ("passing" if i.get("checked")
-                               else "reconciled" if i.get("reconciled")
-                               else "ready"),
+                    #: **The ledger mark, not a test status** ([[ISS-0232]]).
+                    #: `passing` belongs to the runner; an acceptance check
+                    #: rests at `active` and its outcome is an event's mark.
+                    #: A check with no entry carries none — *no entry* IS the
+                    #: state, and inventing a word for it is what [[ADR-0037]]
+                    #: decision 5 removed.
+                    "mark": i.get("mark") or "",
                     "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
                     "type": "test",
                 }
@@ -4452,7 +4478,7 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             # and the checks are on the page that can actually walk them.
             # Nothing is hidden ([[REQ-0047]] criterion 3) — a surface row
             # expands to its checks one click away, and says how many.
-            "items": _surface_rows(items, url, tier["tier"]),
+            "items": _surface_rows(items, url, tier["tier"], index),
         }
         # Only the gating tiers ask anything of a person. Tier 3 is a
         # verification aid — TESTING.md is explicit that it does not gate.

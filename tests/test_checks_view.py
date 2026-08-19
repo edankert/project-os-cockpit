@@ -416,7 +416,11 @@ def test_the_page_groups_by_surface_and_not_as_one_flat_list() -> None:
     #: SCANNED; this page is being WORKED, and the rows below the header
     #: already say in full what the bar summarised.
     assert "checkPercent(area.items)" in body, "a surface with no progress"
-    assert "checkProgress(areas.flatMap" in body, "the tier lost its bar"
+    #: **No bar on this page at all** (ISS-0234). ISS-0223 replaced the
+    #: surface bar with a percentage and kept the tier's; Edwin removed both.
+    #: The page is worked rather than scanned, and the heading carries the
+    #: number now — so `checkProgress` went with them, as dead code.
+    assert "checkProgress" not in body, "the bar came back"
 def test_a_stale_tick_is_not_drawn_as_done() -> None:
     """Four segments, because three would lie.
     A stale tick stands over evidence the record says was overtaken. Counting
@@ -425,15 +429,20 @@ def test_a_stale_tick_is_not_drawn_as_done() -> None:
     the title counts only unstale ticks.
     """
     src = _renderer()
-    body = src[src.index("function checkProgress("):]
+    body = src[src.index("function checkPercent("):]
     body = body[:body.index("\n}\n") + 3]
-    assert "settled.filter((i) => i.stale)" in body
-    assert "settled.filter((i) => !i.stale)" in body
+    #: The bar drew stale as its own segment; the percentage names it in
+    #: the text instead, because folding it into done is what made
+    #: `your-trainer`'s honest 113 read as a reported 60 (ISS-0234).
+    assert "items.filter((i) => i.stale)" in body
+    assert "stale} stale" in body
     # The percentage is over `done`, never over `settled`.
     assert "(done.length / total)" in body, (
         "the percentage counts stale ticks as run — the one thing this bar "
         "exists not to do"
     )
-    # Every segment colour comes from the overview's families (ADR: no new hues).
-    for seg in ("'done'", "'attention'", "'doing'", "'backlog'"):
-        assert seg in body
+    #: **The segment-colour assertion went with the segments** (ISS-0234).
+    #: It required four families because a bar HAS four bands; a percentage
+    #: has none, and the one distinction that survived the compression —
+    #: stale apart from done — is asserted above, in both the numerator and
+    #: the text.

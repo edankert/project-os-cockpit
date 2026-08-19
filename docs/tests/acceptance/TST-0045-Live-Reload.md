@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0045
-aliases: ["TST-0045", "CHK-0002"]
+aliases: ["TST-0045"]
 title: "Live reload"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Render server and the browser front door"
 covers: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0006]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.1.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0002 @ 4c02731"
 ---
 
 # Live reload

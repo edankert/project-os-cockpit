@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0230
 aliases: ["ISS-0230"]
 title: "The desktop shell draws a surface like a phase and the browser cockpit does not — the two front doors diverged in the left pane, which is PHASE-029's whole subject"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"
@@ -29,4 +29,6 @@ Port `navItemSurface` and the `.ov-phase*` styles it borrows. It is a copy rathe
 
 ## Done when
 
-- [ ] A surface renders the same in both front doors, or a decision records why it does not.
+- [x] A surface renders the same in both front doors, or a decision records why it does not.
+
+## Fixed 2026-08-19

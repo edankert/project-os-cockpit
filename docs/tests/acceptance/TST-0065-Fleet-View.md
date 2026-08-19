@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0065
-aliases: ["TST-0065", "CHK-0022"]
+aliases: ["TST-0065"]
 title: "The fleet view"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Agents and sessions"
 covers: ["[[FEAT-0019]]", "[[FEAT-0020]]", "[[FEAT-0032]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.10.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0022 @ 4c02731"
 ---
 
 # The fleet view

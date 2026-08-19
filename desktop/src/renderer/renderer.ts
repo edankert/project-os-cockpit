@@ -3705,6 +3705,10 @@ interface NavItem {
   /** The issue a surface IS, where it is one — Tier 2's areas are past
    *  bugs. Drawn like a phase's `PHASE-*`: shown, and clickable. */
   ref?: string;
+  /** The issue's own title, where a surface is an issue (ISS-0231). */
+  ref_title?: string;
+  /** A check's ledger mark (ISS-0232) — never a runner status. */
+  mark?: string;
   /** A surface's checks (ISS-0227). REQ-0047 criterion 3: a collapsed group
    *  expands to exactly the rows it collapsed, and a surface that expanded to
    *  nothing had taken 579 rows away rather than organising them. */
@@ -8574,7 +8578,9 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     if (tier.stale) label += ` · ${tier.stale} stale`;
     th.textContent = label;
     section.appendChild(th);
-    section.appendChild(checkProgress(areas.flatMap((a) => a.items)));
+    // **No bar on this page** (ISS-0234). The page is worked, not scanned:
+    // the rows below already say in full what a bar summarises, and the
+    // heading now carries the number.
     // **Tier → surface → rows** (TASK-0520, restoring what TASK-0513 flattened).
     //
     // `area:` IS the surface — Tier 1's values in `your-trainer` are Profile
@@ -8589,7 +8595,13 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
       const block = document.createElement('div');
       block.className = 'checks-area';
       const ah = document.createElement('h4');
-      ah.textContent = area.section ? `${area.section} ${area.area}` : area.area;
+      ah.className = 'checks-area-head';
+      // **No `section` prefix** — the field is gone (ISS-0224).
+      const ahName = document.createElement('span');
+      ahName.className = 'checks-area-name';
+      ahName.textContent = area.area;
+      ah.appendChild(ahName);
+      ah.appendChild(checkPercent(area.items));
       if (area.refs.length) {
         const refs = document.createElement('span');
         refs.className = 'checks-area-refs';
@@ -8610,7 +8622,8 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
       //
       // The tier header above keeps its bar — a tier IS scanned, before
       // choosing where to work.
-      block.appendChild(checkPercent(area.items));
+      // The percentage lives on the heading now (ISS-0234), right-aligned
+      // against the name — not on a line of its own beneath it.
       for (const item of area.items) {
         block.appendChild(buildCheckRow(item));
         shown += 1;
@@ -8629,31 +8642,12 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
   }
 }
 
-/** A progress bar over a set of checks — the one the overview draws for phases.
- *
- *  Edwin: *"I want to see a bar the same as we do for phases on the overview
- *  page, not just a percentage, this could nicely be per scope/surface."* So
- *  it wears `.ov-mixbar`'s segmented shape rather than a new one, and its
- *  segments are the status families, never new hues.
- *
- *  **Four segments, because three would lie.** `done` and `to run` are the
- *  obvious pair; `attention` carries a check run and failed, or one nobody
- *  understood, which is neither; and a **stale** tick — standing over evidence
- *  the record says was overtaken — is drawn apart from `done` because folding
- *  it in is what made `your-trainer`'s honest blocking number 113 against a
- *  reported 60.
- */
-/** The same claim as `checkProgress`, in a tenth of the width (ISS-0223).
- *
- *  **One predicate behind both**, so they cannot disagree — the settled set
- *  here is the settled set there, and a second definition is how a header and
- *  the rows under it come to report different numbers about one list.
+
+/** A surface's completion, for its heading (ISS-0223 / ISS-0234).
  *
  *  **The stale distinction survives the compression.** A tick standing over
- *  evidence the record says was overtaken is not `done`, and folding the two
- *  is what made `your-trainer`'s honest blocking number 113 read as a
- *  reported 60. A percentage that quietly re-merges them is that defect in a
- *  smaller element, so a surface holding one is marked.
+ *  evidence a change overtook is not `done`, and folding the two is what made
+ *  `your-trainer`'s honest blocking number 113 read as a reported 60.
  */
 function checkPercent(items: GateItem[]): HTMLElement {
   const el = document.createElement('span');
@@ -8664,46 +8658,16 @@ function checkPercent(items: GateItem[]): HTMLElement {
   const settled = items.filter(
     (i) => ['done', 'incomplete', 'canceled'].includes(cls(i)));
   const stale = items.filter((i) => i.stale).length;
-  const pct = Math.round((settled.length / total) * 100);
+  // **Stale is not done.** A tick standing over evidence a change overtook is
+  // excluded from the numerator, not merely named beside it — counting it is
+  // what made `your-trainer`'s honest blocking number 113 read as 60.
+  const done = settled.filter((i) => !i.stale);
+  const pct = Math.round((done.length / total) * 100);
   el.textContent = stale ? `${pct}% · ${stale} stale` : `${pct}%`;
   if (stale) el.classList.add('has-stale');
-  el.title = `${settled.length} of ${total} settled`
+  el.title = `${done.length} of ${total} completed`
     + (stale ? `, ${stale} standing on evidence a change overtook` : '');
   return el;
-}
-
-function checkProgress(items: GateItem[]): HTMLElement {
-  const bar = document.createElement('div');
-  bar.className = 'ov-mixbar checks-progress';
-  const total = items.length;
-  if (!total) { bar.classList.add('is-empty'); return bar; }
-
-  const cls = (i: GateItem): string => MARK_CLASS[i.mark || ' '] ?? 'unknown';
-  const settled = items.filter(
-    (i) => ['done', 'incomplete', 'canceled'].includes(cls(i)));
-  const stale = settled.filter((i) => i.stale);
-  const done = settled.filter((i) => !i.stale);
-  const attention = items.filter(
-    (i) => ['important', 'question'].includes(cls(i)));
-  const todo = total - done.length - stale.length - attention.length;
-
-  const segs: Array<[string, number]> = [
-    ['done', done.length], ['attention', attention.length],
-    ['doing', stale.length], ['backlog', todo],
-  ];
-  for (const [seg, n] of segs) {
-    if (n <= 0) continue;
-    const el = document.createElement('i');
-    el.dataset.seg = seg;
-    el.style.flex = String(n);
-    bar.appendChild(el);
-  }
-  const pct = Math.round((done.length / total) * 100);
-  bar.title = `${pct}% · ${done.length} of ${total} run`
-    + (stale.length ? ` · ${stale.length} stale` : '')
-    + (attention.length ? ` · ${attention.length} need attention` : '')
-    + (todo ? ` · ${todo} to run` : '');
-  return bar;
 }
 
 function buildCheckRow(item: GateItem): HTMLElement {
@@ -8726,9 +8690,17 @@ function buildCheckRow(item: GateItem): HTMLElement {
   // **Selectable** (ISS-0228). This is the value somebody pastes into a note
   // or types into the palette, and it could not be copied without opening the
   // check. `user-select: text` is on `.checks-row-number`.
-  num.className = 'checks-row-number mono';
+  // **The way in** (ISS-0234). It was selectable (ISS-0228) and is now the
+  // link as well, which is what removed the `open` button at the far end.
+  num.className = 'checks-row-number mono is-link';
   num.textContent = item.number;
-  num.title = `${item.number} — select to copy`;
+  num.title = `Open ${item.number}`;
+  if (item.rel) {
+    num.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void navigateTo(`/docs/${item.rel}`);
+    });
+  }
   row.appendChild(num);
 
   const body = document.createElement('div');
@@ -8761,33 +8733,11 @@ function buildCheckRow(item: GateItem): HTMLElement {
   }
   row.appendChild(body);
 
-  // **Area and refs move here from the area block** (TASK-0513 / REQ-0047
-  // criterion 3). Flattening the list must not lose what the heading carried:
-  // the section number, the area name and the `covers:` refs were all on the
-  // `<h4>` this replaces. Grouping by area survives as a *filter* — the area
-  // facet is unchanged — rather than as structure.
-  if (item.area) {
-    const area = document.createElement('span');
-    area.className = 'checks-row-area';
-    area.textContent = item.section ? `${item.section} ${item.area}` : item.area;
-    if (item.refs?.length) area.title = item.refs.join(', ');
-    row.appendChild(area);
-  }
-
-  if (item.rel) {
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'checks-row-open';
-    // **`open`, not the id again** (ISS-0228). `number` and `id` were
-    // different things — the document position and the note id — until
-    // ISS-0224 made `number` return the id, and the row then drew one value
-    // at both ends. Nothing failed, because both fields were correct; that is
-    // the shape of change that has to be looked at rather than tested.
-    open.textContent = 'open';
-    open.title = `Open ${item.id || 'this check'}`;
-    open.addEventListener('click', () => { void navigateTo(`/docs/${item.rel}`); });
-    row.appendChild(open);
-  }
+  // **The row ends after its own content** (ISS-0234). It used to carry the
+  // area again and an `open` button labelled with the id: both restate what
+  // the heading above and the id at the start already say. The area suffix
+  // existed because TASK-0513 flattened the headings away and it had to go
+  // somewhere — the headings are back.
   return row;
 }
 
@@ -11351,10 +11301,13 @@ function navItemSurface(item: NavItem): HTMLLIElement {
   li.className = 'nav-surface';
   if (item.id) li.dataset.id = String(item.id);
 
-  const row = document.createElement('div');
-  row.className = 'ov-phase';
+  // **One line** (ISS-0231): handle, id, title, bar, percentage. The previous
+  // attempt took `buildPhaseRow`'s vertical STACK — title, then the bar on a
+  // second line — when what was asked for was its ELEMENTS on one line. Third
+  // attempt, same cause each time: built from an interpretation rather than
+  // from the thing named.
   const head = document.createElement('div');
-  head.className = 'ov-phase-head';
+  head.className = 'nav-surface-head';
 
   const chev = document.createElement('button');
   chev.type = 'button';
@@ -11363,9 +11316,13 @@ function navItemSurface(item: NavItem): HTMLLIElement {
   chev.setAttribute('aria-label', `Expand ${item.title ?? ''}`);
   head.appendChild(chev);
 
+  // **The issue, where the surface IS one.** Tier 2's areas are past bugs, so
+  // the row carries the id and the issue's OWN title — the `area:` string and
+  // the issue's title are different things, and the row used to show the
+  // first while linking the second.
   if (item.ref) {
     const id = document.createElement('span');
-    id.className = 'ov-phase-id mono is-link';
+    id.className = 'nav-surface-id mono is-link';
     id.textContent = item.ref;
     id.title = `Open ${item.ref}`;
     id.addEventListener('click', (e) => {
@@ -11376,47 +11333,77 @@ function navItemSurface(item: NavItem): HTMLLIElement {
   }
 
   const title = document.createElement('span');
-  title.className = 'ov-phase-title';
-  title.textContent = item.title ?? '';
+  title.className = 'nav-surface-title';
+  title.textContent = item.ref_title || item.title || '';
+  title.title = title.textContent;
   head.appendChild(title);
 
   if (item.progress) {
-    const p = item.progress;
-    const frac = document.createElement('span');
-    frac.className = 'ov-phase-count num';
-    frac.textContent = `${p.done}/${p.total} · ${p.pct}%`
-      + (p.stale ? ` · ${p.stale} stale` : '');
-    head.appendChild(frac);
-  }
-  row.appendChild(head);
-
-  if (item.progress && item.progress.total > 0) {
-    const under = document.createElement('div');
-    under.className = 'ov-phase-under';
-    if (item.progress.stale) under.classList.add('has-stale');
+    const prog = item.progress;
+    const bar = document.createElement('span');
+    bar.className = 'nav-surface-bar';
+    if (prog.stale) bar.classList.add('has-stale');
     const fill = document.createElement('i');
-    fill.style.width = `${item.progress.pct}%`;
-    under.appendChild(fill);
-    row.appendChild(under);
-  }
+    fill.style.width = `${prog.pct}%`;
+    bar.appendChild(fill);
+    bar.title = `${prog.done} of ${prog.total} completed`
+      + (prog.stale ? `, ${prog.stale} stale` : '');
+    head.appendChild(bar);
 
-  const bar = document.createElement('div');
-  bar.className = 'ov-phase-bar nav-surface-checks';
-  for (const kid of item.items ?? []) bar.appendChild(buildNavRow(kid));
-  bar.hidden = true;
-  row.appendChild(bar);
+    const pct = document.createElement('span');
+    pct.className = 'nav-surface-pct num';
+    pct.textContent = `${prog.pct}%`;
+    head.appendChild(pct);
+  }
+  li.appendChild(head);
+
+  const kids = document.createElement('ul');
+  kids.className = 'nav-surface-checks';
+  kids.hidden = true;
+  for (const kid of item.items ?? []) kids.appendChild(navCheckRow(kid));
+  li.appendChild(kids);
 
   const toggle = (): void => {
-    const next = !row.classList.contains('is-open');
-    row.classList.toggle('is-open', next);
-    bar.hidden = !next;
-    chev.setAttribute('aria-expanded', String(next));
+    kids.hidden = !kids.hidden;
+    li.classList.toggle('is-open', !kids.hidden);
+    chev.setAttribute('aria-expanded', String(!kids.hidden));
   };
   chev.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
   head.addEventListener('click', toggle);
   head.style.cursor = 'pointer';
+  return li;
+}
 
-  li.appendChild(row);
+/** One check under a surface — id, name, and its **mark right-aligned**.
+ *
+ *  The mark, not a status (ISS-0232). `passing` belongs to the runner; an
+ *  acceptance check rests at `active` and its outcome is a ledger event. A
+ *  check with no entry shows nothing, because *no entry* is the state.
+ */
+function navCheckRow(item: NavItem): HTMLLIElement {
+  const li = document.createElement('li');
+  li.className = 'nav-check';
+  const id = document.createElement('span');
+  id.className = 'nav-check-id mono is-link';
+  id.textContent = String(item.id ?? '');
+  li.appendChild(id);
+  const name = document.createElement('span');
+  name.className = 'nav-check-name';
+  name.textContent = item.title ?? '';
+  name.title = item.title ?? '';
+  li.appendChild(name);
+  if (item.mark) {
+    const mark = document.createElement('span');
+    mark.className = `nav-check-mark acc-mark-${MARK_CLASS[item.mark] ?? 'unknown'}`;
+    mark.textContent = item.mark;
+    mark.title = MARK_TITLE[item.mark] ?? item.mark;
+    li.appendChild(mark);
+  }
+  const rel = extractRel(item.url);
+  if (rel) {
+    li.addEventListener('click', (e) => { e.stopPropagation(); void navigateTo(rel); });
+    li.style.cursor = 'pointer';
+  }
   return li;
 }
 

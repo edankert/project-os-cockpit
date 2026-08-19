@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0046
-aliases: ["TST-0046", "CHK-0003"]
+aliases: ["TST-0046"]
 title: "A tablet can read it"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Render server and the browser front door"
 covers: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[FEAT-0006]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.1.3 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0003 @ 4c02731"
 ---
 
 # A tablet can read it

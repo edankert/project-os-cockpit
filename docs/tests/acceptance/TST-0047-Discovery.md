@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0047
-aliases: ["TST-0047", "CHK-0004"]
+aliases: ["TST-0047"]
 title: "Discovery"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Desktop shell and workspaces"
 covers: ["[[FEAT-0007]]", "[[FEAT-0009]]", "[[FEAT-0016]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.2.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0004 @ 4c02731"
 ---
 
 # Discovery

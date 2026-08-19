@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0060
-aliases: ["TST-0060", "CHK-0017"]
+aliases: ["TST-0060"]
 title: "A failing run offers its issue"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Tests"
 covers: ["[[FEAT-0086]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.7.3 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0017 @ 4c02731"
 ---
 
 # A failing run offers its issue

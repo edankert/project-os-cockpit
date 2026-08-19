@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0071
-aliases: ["TST-0071", "CHK-0028"]
+aliases: ["TST-0071"]
 title: "Every plan on disk is reachable"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 2
 area: "Plans are visible"
 covers: ["[[ISS-0062]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#2.1.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0028 @ 4c02731"
 ---
 
 # Every plan on disk is reachable

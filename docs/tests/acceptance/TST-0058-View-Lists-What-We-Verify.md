@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0058
-aliases: ["TST-0058", "CHK-0015"]
+aliases: ["TST-0058"]
 title: "The view lists what we verify"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Tests"
 covers: ["[[FEAT-0086]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.7.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0015 @ 4c02731"
 ---
 
 # The view lists what we verify

@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0073
-aliases: ["TST-0073", "CHK-0030"]
+aliases: ["TST-0073"]
 title: "`implemented` reads as done everywhere"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 2
 area: "One status vocabulary"
 covers: ["[[ISS-0023]]", "[[ISS-0024]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#2.3.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0030 @ 4c02731"
 ---
 
 # `implemented` reads as done everywhere

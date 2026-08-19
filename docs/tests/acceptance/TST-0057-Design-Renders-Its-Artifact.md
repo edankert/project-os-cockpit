@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0057
-aliases: ["TST-0057", "CHK-0014"]
+aliases: ["TST-0057"]
 title: "A design renders its artifact"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Design and the constraints view"
 covers: ["[[FEAT-0042]]", "[[FEAT-0043]]", "[[FEAT-0044]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.6.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0014 @ 4c02731"
 ---
 
 # A design renders its artifact

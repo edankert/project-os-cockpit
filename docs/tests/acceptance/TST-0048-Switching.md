@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0048
-aliases: ["TST-0048", "CHK-0005"]
+aliases: ["TST-0048"]
 title: "Switching"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Desktop shell and workspaces"
 covers: ["[[FEAT-0007]]", "[[FEAT-0009]]", "[[FEAT-0016]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.2.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0005 @ 4c02731"
 ---
 
 # Switching

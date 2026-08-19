@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0063
-aliases: ["TST-0063", "CHK-0020"]
+aliases: ["TST-0063"]
 title: "Loopback only"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "The embedded terminal"
 covers: ["[[FEAT-0003]]", "[[FEAT-0037]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.9.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0020 @ 4c02731"
 ---
 
 # Loopback only

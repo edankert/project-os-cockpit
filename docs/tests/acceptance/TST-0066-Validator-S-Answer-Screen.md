@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0066
-aliases: ["TST-0066", "CHK-0023"]
+aliases: ["TST-0066"]
 title: "The validator's answer is on screen"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Verification health and the fleet"
 covers: ["[[FEAT-0018]]", "[[FEAT-0028]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.11.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0023 @ 4c02731"
 ---
 
 # The validator's answer is on screen

@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0075
-aliases: ["TST-0075", "CHK-0032"]
+aliases: ["TST-0075"]
 title: "`changes-requested` on finished work reads settled"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 2
 area: "A settled verdict is not owed"
 covers: ["[[ISS-0121]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#2.5.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0032 @ 4c02731"
 ---
 
 # `changes-requested` on finished work reads settled

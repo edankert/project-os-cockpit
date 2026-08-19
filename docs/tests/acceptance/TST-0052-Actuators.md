@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0052
-aliases: ["TST-0052", "CHK-0009"]
+aliases: ["TST-0052"]
 title: "Actuators"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "The note page"
 covers: ["[[FEAT-0011]]", "[[FEAT-0060]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.4.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0009 @ 4c02731"
 ---
 
 # Actuators

@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0059
-aliases: ["TST-0059", "CHK-0016"]
+aliases: ["TST-0059"]
 title: "A manual run works end to end"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Tests"
 covers: ["[[FEAT-0086]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.7.2 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0016 @ 4c02731"
 ---
 
 # A manual run works end to end

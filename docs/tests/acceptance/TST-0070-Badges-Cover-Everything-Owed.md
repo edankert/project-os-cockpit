@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0070
-aliases: ["TST-0070", "CHK-0027"]
+aliases: ["TST-0070"]
 title: "The badges cover everything owed"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Obligations"
 covers: ["[[FEAT-0089]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.14.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0027 @ 4c02731"
 ---
 
 # The badges cover everything owed

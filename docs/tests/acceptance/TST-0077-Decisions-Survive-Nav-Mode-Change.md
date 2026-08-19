@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0077
-aliases: ["TST-0077", "CHK-0034"]
+aliases: ["TST-0077"]
 title: "Decisions survive a nav-mode change"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 2
 area: "The record column has its own source"
 covers: ["[[ISS-0065]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#2.7.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0034 @ 4c02731"
 ---
 
 # Decisions survive a nav-mode change

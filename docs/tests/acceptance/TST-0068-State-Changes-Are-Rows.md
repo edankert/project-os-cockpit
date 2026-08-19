@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0068
-aliases: ["TST-0068", "CHK-0025"]
+aliases: ["TST-0068"]
 title: "State changes are the rows"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "History"
 covers: ["[[FEAT-0052]]", "[[FEAT-0053]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.12.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0025 @ 4c02731"
 ---
 
 # State changes are the rows

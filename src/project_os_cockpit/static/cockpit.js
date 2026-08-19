@@ -1509,7 +1509,93 @@
     return el("li", null, [card]);
   }
 
+  // A surface, drawn the same as in the desktop shell (ISS-0230). PHASE-029:
+  // the two front doors answer the same questions and differ only where a
+  // difference was decided — and nobody decided this one, which is why the
+  // guard that checks both files found it.
+  function navItemSurface(item) {
+    const li = document.createElement("li");
+    li.className = "nav-surface";
+    const head = document.createElement("div");
+    head.className = "nav-surface-head";
+    const chev = document.createElement("button");
+    chev.type = "button";
+    chev.className = "ov-chev";
+    chev.setAttribute("aria-expanded", "false");
+    head.appendChild(chev);
+    if (item.ref) {
+      const id = document.createElement("span");
+      id.className = "nav-surface-id mono is-link";
+      id.textContent = item.ref;
+      id.title = "Open " + item.ref;
+      id.addEventListener("click", (e) => {
+        e.stopPropagation();
+        navigateTo("~note/" + item.ref);
+      });
+      head.appendChild(id);
+    }
+    const title = document.createElement("span");
+    title.className = "nav-surface-title";
+    title.textContent = item.ref_title || item.title || "";
+    title.title = title.textContent;
+    head.appendChild(title);
+    if (item.progress) {
+      const p = item.progress;
+      const bar = document.createElement("span");
+      bar.className = "nav-surface-bar" + (p.stale ? " has-stale" : "");
+      const fill = document.createElement("i");
+      fill.style.width = p.pct + "%";
+      bar.appendChild(fill);
+      bar.title = p.done + " of " + p.total + " completed"
+        + (p.stale ? ", " + p.stale + " stale" : "");
+      head.appendChild(bar);
+      const pct = document.createElement("span");
+      pct.className = "nav-surface-pct num";
+      pct.textContent = p.pct + "%";
+      head.appendChild(pct);
+    }
+    li.appendChild(head);
+    const kids = document.createElement("ul");
+    kids.className = "nav-surface-checks";
+    kids.hidden = true;
+    for (const kid of item.items || []) kids.appendChild(navCheckRow(kid));
+    li.appendChild(kids);
+    const toggle = () => {
+      kids.hidden = !kids.hidden;
+      li.classList.toggle("is-open", !kids.hidden);
+      chev.setAttribute("aria-expanded", String(!kids.hidden));
+    };
+    chev.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });
+    head.addEventListener("click", toggle);
+    head.style.cursor = "pointer";
+    return li;
+  }
+
+  // One check — id, name, and its ledger MARK right-aligned. Never a runner
+  // status: an acceptance check rests at `active` and its outcome is an event.
+  function navCheckRow(item) {
+    const li = document.createElement("li");
+    li.className = "nav-check";
+    const id = document.createElement("span");
+    id.className = "nav-check-id mono is-link";
+    id.textContent = String(item.id || "");
+    li.appendChild(id);
+    const name = document.createElement("span");
+    name.className = "nav-check-name";
+    name.textContent = item.title || "";
+    name.title = item.title || "";
+    li.appendChild(name);
+    if (item.mark) {
+      const mark = document.createElement("span");
+      mark.className = "nav-check-mark";
+      mark.textContent = item.mark;
+      li.appendChild(mark);
+    }
+    return li;
+  }
+
   function pickItemRenderer(layout) {
+    if (layout === "surface") return navItemSurface;
     if (layout === "stacked") return navItemStacked;
     if (layout === "compact") return navItemCompact;
     return navItem;

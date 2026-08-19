@@ -828,10 +828,20 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
             assert len(row["items"]) == len(found), "a surface lost its checks"
     # The property the status buys, stated where it can fail: every value the
     # view emits is one the vocabulary knows, so no surface ranks it open.
-    emitted = {kid["status"] for k, g in groups.items() if k.startswith("tier")
-               for row in g["items"] for kid in row.get("items") or []}
-    assert emitted <= statuses.VOCABULARY, emitted - statuses.VOCABULARY
-    assert "reconciled" in statuses.COMPLETED_STATUSES
+    #: **A check emits a ledger MARK, and no status at all** ([[ISS-0232]]).
+    #: `passing` belongs to the runner; an acceptance check rests at `active`
+    #: and its outcome is an event. So the property this asserts inverts: no
+    #: row anywhere under a tier may carry a value `statuses.VOCABULARY` owns,
+    #: because that vocabulary is what decides whether something ranks as open
+    #: work — and a check ranked by it would be counted twice.
+    from project_os_cockpit import ledger as _ledger
+
+    rows = [kid for k, g in groups.items() if k.startswith("tier")
+            for row in g["items"] for kid in row.get("items") or []]
+    assert rows, "no checks reachable — this guard would pass vacuously"
+    assert not any("status" in kid for kid in rows)
+    marks = {kid["mark"] for kid in rows if kid.get("mark")}
+    assert marks <= _ledger.MARKS, marks - _ledger.MARKS
 
 
 def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None:

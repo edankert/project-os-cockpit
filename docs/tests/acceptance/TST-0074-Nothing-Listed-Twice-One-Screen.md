@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0074
-aliases: ["TST-0074", "CHK-0031"]
+aliases: ["TST-0074"]
 title: "Nothing is listed twice on one screen"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 2
 area: "One home per obligation"
 covers: ["[[ISS-0068]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#2.4.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0031 @ 4c02731"
 ---
 
 # Nothing is listed twice on one screen

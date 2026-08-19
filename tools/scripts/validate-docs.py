@@ -1619,7 +1619,13 @@ LEDGER_MOVED_FIELDS = ("mark", "verdict_date", "verdict_reason",
                        "evidence",
                        # ISS-0224: a position in a document that no longer
                        # exists. Order is (tier, id); grouping is `area`.
-                       "section", "ordinal")
+                       "section", "ordinal",
+                       # ISS-0233: provenance of migrations that are finished.
+                       # `migrated_from` names a document nobody can open;
+                       # `merged_from` an id space that is gone; `burden` was
+                       # empty on every check in the fleet. Git holds the
+                       # first two, with the shas ADR-0030 and ADR-0031 name.
+                       "migrated_from", "merged_from", "burden")
 
 
 def validate_vouched_ledgers(root, report, note_index):

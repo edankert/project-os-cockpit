@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0056
-aliases: ["TST-0056", "CHK-0013"]
+aliases: ["TST-0056"]
 title: "The brief opens first"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Design and the constraints view"
 covers: ["[[FEAT-0042]]", "[[FEAT-0043]]", "[[FEAT-0044]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.6.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0013 @ 4c02731"
 ---
 
 # The brief opens first

@@ -1,7 +1,7 @@
 ---
 type: "[[test]]"
 id: TST-0061
-aliases: ["TST-0061", "CHK-0018"]
+aliases: ["TST-0061"]
 title: "⌘N from anywhere"
 status: active
 owner: user:edwin
@@ -10,11 +10,8 @@ updated: 2026-08-17
 tier: 1
 area: "Issues and capture"
 covers: ["[[FEAT-0061]]"]
-burden: []
-migrated_from: "tests/ACCEPTANCE_TESTS.md#1.8.1 @ 7de1a86"
 related: []
 level: acceptance
-merged_from: "CHK-0018 @ 4c02731"
 ---
 
 # ⌘N from anywhere
