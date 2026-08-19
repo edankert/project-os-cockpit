@@ -10,7 +10,7 @@ updated: "2026-08-19"
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 goal: "No cockpit surface reads a verdict from a note or writes one onto a note — recording a walk appends an event to the working ledger for its platform."
 requirements: ["[[REQ-0055-No-Surface-Writes-A-Verdict-Onto-A-Note]]"]
-tasks: ["[[TASK-0536-The-Read-Path-Moves-To-The-Ledger]]", "[[TASK-0537-The-Write-Path-Appends-An-Event]]", "[[TASK-0538-The-Renderer-And-The-Endpoints-Follow]]"]
+tasks: ["[[TASK-0536-The-Read-Path-Moves-To-The-Ledger]]", "[[TASK-0537-The-Write-Path-Appends-An-Event]]", "[[TASK-0538-The-Renderer-And-The-Endpoints-Follow]]", "[[TASK-0545-Suite-At-Gets-A-Third-Shape]]"]
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[FEAT-0126-A-Rendered-Mark-Is-A-Check-Mark]]"]
 tags: [feature]
 ---
@@ -53,3 +53,4 @@ This is the real cost of [[ADR-0037]] and the source proposal understates it. Me
 - [ ] Every acceptance endpoint states the platform its answer is about.
 - [ ] A sealed release's page renders identically before and after an unrelated working-ledger append.
 - [ ] `COCKPIT-API.md` matches the endpoints.
+- [ ] `suite_at` reads a historical ref correctly, proved on a real tag ([[TASK-0545]]) — the one read path where the moved verdict produces a **wrong answer** rather than an error.

@@ -10,7 +10,7 @@ updated: "2026-08-19"
 phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
 goal: "A maintained matrix rots and a computed query cannot — so every question about verification state is answered by reading ledgers, including the one nobody can currently ask: where does one platform stand against another."
 requirements: ["[[REQ-0054-Absence-Is-The-Initial-State]]"]
-tasks: ["[[TASK-0533-The-Run-List-Is-A-Query]]", "[[TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger]]", "[[TASK-0535-The-Cross-Platform-Burndown]]"]
+tasks: ["[[TASK-0533-The-Run-List-Is-A-Query]]", "[[TASK-0534-The-Release-Gate-Reads-The-Shipping-Platforms-Ledger]]", "[[TASK-0535-The-Cross-Platform-Burndown]]", "[[TASK-0546-Tests-Verified-Is-Derived]]"]
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[DES-0012-Tests-In-Two-Flows]]"]
 tags: [feature]
 ---
@@ -61,3 +61,4 @@ tags: [feature]
 - [ ] Adding a platform to a repo requires no note edit and no schema change.
 - [ ] The gate delta is measured and recorded per repo before that repo migrates.
 - [ ] `was release R walked` returns the same answer twice across an intervening working-ledger append.
+- [ ] `tests_verified:` is derived or deliberately kept, decided rather than left ([[TASK-0546]]).

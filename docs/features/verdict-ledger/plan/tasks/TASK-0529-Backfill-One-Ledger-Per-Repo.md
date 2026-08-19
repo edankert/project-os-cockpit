@@ -18,6 +18,8 @@ tags: [task]
 
 - [ ] `project-os-cockpit` (34 notes), `your-sudoku` (56), `your-trainer` (581) each get one backfilled ledger.
 - [ ] `done` → one `pass` entry. `todo` → **no entry**. `incomplete` → `partial` with a reason.
+- [ ] **`canceled` → `na`, never `excused`.** Measured 0 occurrences fleet-wide, so the rule costs nothing — but it must be written down, because decision 6 gave the old single value two successors and a migration that guesses would silently make a permanent exception expire, or a per-release one permanent. `na` is right for a backfill: nothing in the old field said which release it belonged to, and `excused` is the value that claims one.
+- [ ] `important`, `question` and `rerun` → refuse and list. 0 occurrences, so a repo that has one is a repo this script has not been read against.
 - [ ] Platform: `your-trainer`'s is **android** — every one of its 513 passes was earned there. The other two repos are single-platform.
 - [ ] Each backfilled entry carries `by: migration`, the migration date, and a `note:` naming the pre-migration address from `migrated_from:`.
 - [ ] **The gate delta is measured per repo and written into this note before any repo migrates.**

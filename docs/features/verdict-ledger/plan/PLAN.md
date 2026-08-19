@@ -1,6 +1,6 @@
 # Plan — a verdict is an event
 
-[[PHASE-038-A-Verdict-Is-An-Event]]. Six features, seventeen tasks, three issues, one decision ([[ADR-0037-A-Verdict-Is-An-Event]]).
+[[PHASE-038-A-Verdict-Is-An-Event]]. Six features, twenty tasks, three issues, one decision ([[ADR-0037-A-Verdict-Is-An-Event]]).
 
 **Nothing here starts until [[ADR-0037]] is accepted.** It reads `proposed`, which is the gate [[ADR-0030]], [[ADR-0031]] and [[ADR-0034]] all used: the phase is documented in full, and no note migrates.
 
@@ -35,6 +35,16 @@ That surfaced a live defect: `Item.excepted` is scoped to nothing, so **an excep
 **Every deformation this phase fixes has the same cause: a scalar holding a fact with three dimensions.** The platform silence, `invalidated_by:` reconstructing history from one field, `automation:` as a claim that rots, `todo` as a value meaning "no data" — each is what a one-slot container does to a three-slot fact.
 
 And every task has the same obligation as [[PHASE-037]]'s, in a different register: **measure the movement before making it.** [[TASK-0529]] and [[TASK-0534]] both refuse to run until a number is written down, because this phase moves a release gate and the last three schema changes to this corpus did not.
+
+## Three gaps the audit found, 2026-08-19
+
+Each of [[ADR-0037]]'s ten decisions was checked against a task after the two amendments landed. Three had none, and all three are the same shape: **a surface that reads the verdict from the note and was not on anybody's list.**
+
+- **[[TASK-0545]] — `suite_at` gets a third shape.** It already carries two, split by time. A ref after this migration holds notes with no verdict in them. **This is the only one that produces a wrong answer rather than an error**: every historical tag would report zero walked, and the chronic-rows surface would call every row chronic.
+- **[[TASK-0544]] — `evidence:` has no destination.** [[REQ-0053]] removes seven fields; six have a home or a stated reason to go. [[ADR-0030]] led its list of what granularity *genuinely unlocked* with per-check evidence attachments, so deleting the field silently gives that back.
+- **[[TASK-0546]] — `tests_verified:` on a release** answers the same question a sealed ledger answers, by hand. Two encodings of one fact is what [[ADR-0032]] spent a decision removing.
+
+[[TASK-0529]] also gained the `canceled` migration rule, which decision 6 created by giving one old value two successors — a backfill that guessed would make a permanent exception expire, or a per-release one permanent.
 
 ## What is deliberately not here
 

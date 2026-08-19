@@ -66,7 +66,7 @@ counters:
   REQ: 57
   RISK: 7
   REL: 1
-  TASK: 543
+  TASK: 546
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -86,7 +86,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0052"]
-      tasks: ["TASK-0527", "TASK-0528", "TASK-0529"]
+      tasks: ["TASK-0527", "TASK-0528", "TASK-0529", "TASK-0544"]
       note: "docs/releases/ledgers/REL-####-<platform>.json plus one open WORKING-<platform>.json per platform. Sealing does two things and only one is bookkeeping: it assigns events to a release (ISS-0206's third question, no field on anything) and it EXPIRES that release's excused entries. JSON on Edwin's call and on measurement — yaml.dump/safe_dump occur zero times in src/ and tools/scripts/. ADR-0030 rejected FEAT-0112's JSON for inverting notes-are-the-source, and that objection does not reach this file: FEAT-0112's was a PROJECTION of state the notes already held; this holds state that exists nowhere else. THE BACKFILL HAS NO DATES — verdict_date is empty on 671 of 671 notes fleet-wide, so entries carry the migration date with by: migration and a note naming the pre-migration address."
     FEAT-0134:
       file: "docs/features/verdict-ledger/FEAT-0134-The-Note-Sheds-The-Verdict.md"
@@ -104,7 +104,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0054"]
-      tasks: ["TASK-0533", "TASK-0534", "TASK-0535"]
+      tasks: ["TASK-0533", "TASK-0534", "TASK-0535", "TASK-0546"]
       note: "A maintained matrix rots; a computed query cannot. The rule that makes the queries work: a check with NO ENTRY for a platform is owed on that platform — no applies: field, no backfill when a platform is added, the absence IS the initial state. THREE ANSWERS TO `not run` and only two clear: na (persists), excused (expires at the seal), blocked (gates, because it is an accident rather than a decision). Carries the phase's only real risk: 124 todo -> no entry is a no-op, but 546 passes becoming platform-specific tightens your-trainer's iOS gate sharply. Does NOT touch tier: — ISS-0208 owns that."
     FEAT-0136:
       file: "docs/features/verdict-ledger/FEAT-0136-The-Cockpit-Reads-And-Writes-The-Ledger.md"
@@ -113,7 +113,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
       requirements: ["REQ-0055"]
-      tasks: ["TASK-0536", "TASK-0537", "TASK-0538"]
+      tasks: ["TASK-0536", "TASK-0537", "TASK-0538", "TASK-0545"]
       note: "THE REAL COST, and larger than the source proposal's `~9 cockpit modules`: renderer.ts 87 mark sites (more than any Python module and unmentioned), acceptance.py 65, note_writes 17, validate_docs_bundled 15, cockpit 9, server 6, five acceptance endpoints. A surviving frontmatter read does not raise — it returns a stale scalar indistinguishable from a verdict — so the guard is a test, not a review. REQ-0045 (glyph rendering) and ADR-0035 (a release page records nothing) must not weaken."
     FEAT-0137:
       file: "docs/features/verdict-ledger/FEAT-0137-One-Outcome-Vocabulary-Written-Down-Once.md"
@@ -807,6 +807,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0544:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0544-Where-Evidence-Goes.md"
+      title: "Decide where `evidence:` goes — the entry carries it, or its loss is stated as a loss"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0133
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0545:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0545-Suite-At-Gets-A-Third-Shape.md"
+      title: "`suite_at` gets a third shape — a historical read after the ledger cut needs notes plus a ledger"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0136
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
+    TASK-0546:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0546-Tests-Verified-Is-Derived.md"
+      title: "`tests_verified:` on a release becomes derived from its sealed ledger, or is explicitly kept as authored"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0135
+      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0527:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0527-The-Ledger-Schema-And-The-Working-Ledger.md"
       title: "Define the ledger file — schema, the working ledger per platform, and sealing at release cut"
@@ -3835,7 +3856,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 138
     features_done: 112
-    tasks_total: 542
+    tasks_total: 545
     tasks_done: 474
     tests_total: 43
     tests_passing: 39
