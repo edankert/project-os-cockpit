@@ -2,7 +2,7 @@
 type: "[[adr]]"
 id: ADR-0039
 aliases: ["ADR-0039"]
-title: "A permanent walk, a queue that empties, and a section nobody files into — an automated check appears under Automated tests because it has a `command:`, not because somebody moved it"
+title: "Three sections, derived and not filed — a check is re-checked when behaviour changes, done once when it verifies a fix, or executed by CI, and `tier:` says none of it"
 status: "proposed"
 owner: user:edwin
 created: 2026-08-19
@@ -17,7 +17,7 @@ tags: [acceptance, conventions, schema, testing]
 decided_option: "3"
 ---
 
-# A walk, a queue, and a derived section
+# Three sections, derived and not filed
 
 ## Amended before acceptance, 2026-08-19
 
@@ -37,7 +37,7 @@ Option 4 was rejected as *"too far for now"* on the ground that Tier 1 and Tier 
 | Tier 2 · Regression tests | 164 | 5 | 25 | 5 |
 | Tier 3 · Verification tests | 68 | **67** | 0 | 0 |
 
-`your-trainer`; this repo holds 27 + 7 and `your-sudoku` 51 + 5, all manual, no Tier 3 at all. **Nine of the 68 checks blocking `your-trainer`'s release are run by a machine**, which is [[ISS-0237]].
+`your-trainer`; this repo holds 27 + 7 and `your-sudoku` 51 + 5, all manual, no Tier 3 at all. **Nine of the 68 checks blocking `your-trainer`'s release are executed by a machine**, which is [[ISS-0237]].
 
 ### Tier 3 is not a tier, it is a destination
 
@@ -53,22 +53,22 @@ A check reached Tier 3 because a person moved it. That is the same shape of defe
 
 ### Tier 2 was never permanent in practice
 
-`TESTING.md` says Tier 1 and Tier 2 are *"never removed"*. But its own Unit test replacement rule moves Tier 2 checks out, and Edwin's account of what a regression check is for does not describe a permanent walk at all: **a fixed bug we do not expect to recur, needing either one manual walk or an automated test.** A thing you expect to regress gets a machine watching it forever. A thing you do not gets checked once.
+`TESTING.md` says Tier 1 and Tier 2 are *"never removed"*. But its own Unit test replacement rule moves Tier 2 checks out, and Edwin's account of what a regression check is for does not describe something re-checked forever at all: **a fixed bug we do not expect to recur, needing either one manual check or an automated test.** A thing you expect to regress gets a machine watching it forever. A thing you do not gets checked once.
 
-Reading Tier 2 as permanent is what makes 25 checks sit open in a repo where nobody intends to walk them again.
+Reading Tier 2 as permanent is what makes 25 checks sit open in a repo where nobody intends to check them again.
 
 ## Options
 
 1. **Leave the tiers as written.** Costs: 67 notes keep a temporary label over permanent content, nine automated checks keep blocking a release, and the *permanent* reading keeps 25 Tier 2 rows open indefinitely.
 2. **Re-tier by hand.** Give the 67 real areas and correct their tiers. Fixes today's data and rebuilds the same trap: the next automated check is filed by a person and rots the same way.
-3. **Three roles, and the automated one is derived.** Tier 1 is the permanent walk, Tier 2 is a queue that empties, and Automated tests is not a tier anybody files into — a check appears there because it carries a `command:`, and leaves when it stops carrying one.
+3. **Three roles, and the automated one is derived.** Tier 1 is re-checked whenever behaviour changes, Tier 2 is a queue that empties, and Automated tests is not a tier anybody files into — a check appears there because it carries a `command:`, and leaves when it stops carrying one.
 4. **Delete `tier:` entirely** ([[ISS-0208]]'s direction), deriving every distinction it carried from fields that already exist. **Taken on amendment** — see decision 4. It was first rejected as too far, on a premise that turned out to be false: that the Tier 1 / Tier 2 difference had nowhere else to live.
 
 ## Decision
 
 **Option 3.**
 
-### 1. Feature tests. The permanent walk.
+### 1. Feature tests. Re-checked when behaviour changes.
 
 Unchanged, and now the only tier with this property: **never removed, and un-checked when a change overlaps its scope.** `TESTING.md`'s *When to uncheck* rule stops naming Tier 2 and becomes Tier 1's defining behaviour. The machinery already exists — `mark: rerun` as the explicit act, computed `stale` for a tick standing over overtaken evidence, `invalidated_by:` carrying the change id — and the tier header already reports both counts.
 
@@ -76,7 +76,7 @@ Unchanged, and now the only tier with this property: **never removed, and un-che
 
 A regression check guards a fixed bug **we do not expect to recur**. It is discharged one of two ways, and then it is done:
 
-- **walked once**, and it stays settled — a later code change does **not** re-open it; or
+- **done once**, and it stays settled — a later code change does **not** re-open it; or
 - **given a `command:`**, after which it renders under Automated tests and CI re-runs it forever.
 
 `TESTING.md`'s *"kept permanently / never removed"* is rewritten for Tier 2. The note is still never deleted (`LIFECYCLE.md`); what changes is that a settled Tier 2 check stops being owed.
@@ -106,7 +106,7 @@ A regression check guards a fixed bug **we do not expect to recur**. It is disch
 
 **One authoring rule makes it total: a check that is not a standing behaviour claim must name the `ISS-*` it verifies.** Enforceable at write time, which is what stops the debt growing.
 
-**The debt, measured 2026-08-19:** 68 of `your-trainer`'s 164 Tier 2 checks name **no `ISS-*` anywhere in the note** — not in `covers:`, not in the body. A further 5 name one outside `covers:` and are a scripted repair. Deriving today would silently reclassify those 68 as behaviour checks and put them back on the walk at every overlapping change, which is the exact behaviour this decision removes. So they are **grandfathered by ID with a dated promotion** ([[project-os-dev#ADR-0011]]), not migrated by guess. `covers:` on the legacy corpus records *provenance* — 35 point at a `FEAT-*`, 17 at `PHASE-013`, 26 at a `TASK-*` — which is the same conflation [[ISS-0235]] found between what a check verifies and what it came out of.
+**The debt, measured 2026-08-19:** 68 of `your-trainer`'s 164 Tier 2 checks name **no `ISS-*` anywhere in the note** — not in `covers:`, not in the body. A further 5 name one outside `covers:` and are a scripted repair. Deriving today would silently reclassify those 68 as behaviour checks and put them back on the list at every overlapping change, which is the exact behaviour this decision removes. So they are **grandfathered by ID with a dated promotion** ([[project-os-dev#ADR-0011]]), not migrated by guess. `covers:` on the legacy corpus records *provenance* — 35 point at a `FEAT-*`, 17 at `PHASE-013`, 26 at a `TASK-*` — which is the same conflation [[ISS-0235]] found between what a check verifies and what it came out of.
 
 ### 5. The group that asks is called `Needs you`.
 
@@ -121,7 +121,7 @@ Edwin, 2026-08-19: *"there was an issue in android which we fixed and we quickly
 - *Never reappears* is already the default. The check covers its `ISS-*`, so nothing invalidates it — and under [[ADR-0037]] decision 7 a `pass` **survives the seal** (`PERSISTS = {pass, partial, na}`), so it carries into the next release instead of being re-asked.
 - *Not inherited by iOS* is `na` in the iOS ledger — *"a statement about the check and the platform"*, which persists identically. It is asked once ever, not once per release. **A tier is a property of the check; this is a fact about check × platform**, and a scalar on the note cannot hold it. That is [[ISS-0236]]'s observation one level down.
 
-**Stated against the corpus rather than around it: this use case has zero instances.** All 68 Tier 3 checks are parking-bay residue, including the single manual one — `TST-0591` carries the same `area: "Moved from Tier 1 / Tier 2 — Fully Automated"` as the 67. And **no ledger entry exists anywhere in the fleet**; `na` and the persistence rule are implemented, validated and reachable, and have never run. This part of the decision therefore cannot be proved from data and must be proved on constructed input.
+**Stated against the corpus rather than around it: this use case has zero instances.** All 68 Tier 3 checks are parking-bay residue, including the single manual one — `TST-0591` carries the same `area: "Moved from Tier 1 / Tier 2 — Fully Automated"` as the 67. And **no ledger entry exists anywhere in the fleet**; `na` and the persistence rule are implemented, validated and reachable, and have never executed. This part of the decision therefore cannot be proved from data and must be proved on constructed input.
 
 ## What `TESTING.md` must say
 
@@ -145,9 +145,9 @@ The instruction file is template-owned; canonical is `~/Dev/repos/project-os/too
 ## Consequences
 
 - **The release gate drops from 68 open to 59** in `your-trainer` the moment Automated tests is derived — the nine automated checks in Tiers 1 and 2 stop being owed. Measured per repo before landing, as every [[PHASE-038]] gate change was. Zero change in this repo and `your-sudoku`, which hold no automated checks.
-- **Tier 2's 25 open checks each need a disposition** — walk once, or give it a command. That is a real body of work and it does not happen by re-labelling.
+- **Tier 2's 25 open checks each need a disposition** — do it once, or give it a command. That is a real body of work and it does not happen by re-labelling.
 - **The 67 areas are still wrong** and this decision does not fix them; it removes the reason they were destroyed. Excavating them from `your-trainer`'s history is a separate task with a real cost, and emptying the field is the honest alternative to inventing 67 areas.
 - **`tier:` stops being written and stops being read.** 671 notes carry one; the field is left in place and ignored rather than stripped in the same change, so a bad derivation is recoverable. Removing it is a later, separate migration once the sections have been read against for a while.
-- **`GATING_TIERS = (1, 2)` and `PERMANENT_TIERS` go with it.** Gating becomes: an unsettled manual check blocks, an automated one never enters the walk. That is one rule where there were two constants and a tier test.
+- **`GATING_TIERS = (1, 2)` and `PERMANENT_TIERS` go with it.** Gating becomes: an unsettled manual check blocks, an automated one never enters the manual list. That is one rule where there were two constants and a tier test.
 - **68 checks are grandfathered, by ID and with a promotion date.** They are the ones that cannot name the issue they verify. This is debt that cannot grow, because the authoring rule refuses new instances.
 - **A new obligation exists**: a check whose `command:` no longer resolves. Measured 2026-08-19 across all 139 automated notes fleet-wide, **zero** currently fail to resolve — so this cannot be proved from the corpus and must be proved on constructed input, which is [[FEAT-0138]]'s acceptance criterion 4.
