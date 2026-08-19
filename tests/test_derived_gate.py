@@ -40,7 +40,7 @@ def test_the_derived_gate_names_the_same_items_as_the_tier_rule(repo: str) -> No
     suite = _suite(repo)
     tier_rule = {
         i.note_id or i.number for i in suite.items
-        if i.tier in acceptance.GATING_TIERS and not i.settled
+        if acceptance.section_of(i) in acceptance.MANUAL_SECTIONS and not i.settled
     }
     derived = {i.note_id or i.number for i in suite.blocking_for(None)}
     assert derived == tier_rule, {
@@ -60,7 +60,7 @@ def test_a_check_that_covers_nothing_still_blocks(repo: str) -> None:
     """
     suite = _suite(repo)
     orphans = [i for i in suite.items
-               if not i.refs and i.tier in acceptance.GATING_TIERS]
+               if not i.refs and acceptance.section_of(i) in acceptance.MANUAL_SECTIONS]
     if not orphans:
         pytest.skip(f"{repo} has no gating check without covers:")
     # Scope it to a subject none of them names: an orphan must survive the

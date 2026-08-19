@@ -4219,11 +4219,13 @@ def _tests_groups(
 #: `tier:` itself is untouched — it is still the field, still the grouping,
 #: still what [[ISS-0208]] is about. Only the label stops leading with a
 #: number nobody can act on.
-_TIER_LABELS: dict[int, str] = {
-    1: "Feature tests",
-    2: "Regression tests",
-    3: "Verification tests",
-}
+#: **Gone with `tier:`** (ADR-0039). The three names survive as the labels of
+#: DERIVED sections and live in `acceptance.SECTION_LABELS`, so the navigator
+#: and the generated page cannot disagree about what a section is called. The
+#: third one changed meaning as well as owner: *Verification tests* was a
+#: temporary tier a person moved checks into on their way to deletion, and 67
+#: of `your-trainer`'s 68 arrived that way; *Automated tests* is derived from
+#: `command:` and nobody files into it.
 
 
 #: Where the acceptance suite is walked once it is notes. A page, not a nav
@@ -4479,15 +4481,27 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         #: verb — `Run` — in the surfaces it did not name, and it is the wrong
         #: word regardless: a check with a `command:` is not walked by anybody.
         #: `completed` says what happened without claiming who did it.
-        label = f"{_TIER_LABELS[tier['tier']]} · {tier['checked']}/{tier['total']} completed"
-        if rerun:
-            label = f"{label} · {rerun} need re-run"
-        if stale:
-            label = f"{label} · {stale} stale"
-        if unchecked:
-            label = f"{label} · {unchecked} todo"
-        if reconciled:
-            label = f"{label} · {reconciled} reconciled"
+        #: **An automated section reports what it holds, not what is owed**
+        #: (ADR-0039). `completed`, `todo`, `re-run` and `reconciled` are all
+        #: statements about a person's progress, and no person is progressing
+        #: through a list CI executes. Reporting `0/67 completed` there is the
+        #: same lie that put nine automated checks into `your-trainer`'s
+        #: blocking 68 ([[ISS-0237]]) -- a number a reader can only act on by
+        #: doing something nobody should do.
+        name = tier.get("section_key") or ""
+        heading = tier.get("label") or name
+        if not tier.get("manual", True):
+            label = f"{heading} · {tier['total']} executed by CI"
+        else:
+            label = f"{heading} · {tier['checked']}/{tier['total']} completed"
+            if rerun:
+                label = f"{label} · {rerun} need re-check"
+            if stale:
+                label = f"{label} · {stale} stale"
+            if unchecked:
+                label = f"{label} · {unchecked} todo"
+            if reconciled:
+                label = f"{label} · {reconciled} reconciled"
         group: dict[str, Any] = {
             "key": f"tier{tier['tier']}",
             "label": label,

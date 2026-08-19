@@ -941,6 +941,24 @@ def stamp_test_run(
         raise WriteError(f"cannot read note: {exc}", status=500) from None
     fm_lines, body = _split_frontmatter(text)
 
+    # **A note a machine executes may not be stamped from here** (ADR-0038).
+    #
+    # This path records a MANUAL run, and that is unchanged -- a manual test
+    # has no other place to put a verdict. But nothing stopped it being
+    # pointed at a note carrying a `command:`, and the write it performs is
+    # exactly the one the validator now refuses: `status`, `last_run`, and on
+    # a pass `last_verified` too.
+    #
+    # Refused rather than silently downgraded to a no-op: the caller asked to
+    # record a verdict, and "recorded nothing, said nothing" is how a person
+    # comes to believe a check is settled.
+    if _get_field(fm_lines, "command") and not aborted:
+        raise WriteError(
+            f"{note_id} declares a command: — a machine executes it, so it records no "
+            "verdict and none can be stamped here (ADR-0038). CI is its verdict.",
+            status=409,
+        )
+
     today = _today()
     if not aborted:
         _guard_transition("test-run", outcome)

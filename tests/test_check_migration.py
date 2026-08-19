@@ -121,17 +121,35 @@ def test_every_row_survives_with_its_verdict(repo: Path) -> None:
         assert tuple(new.refs) == tuple(old.refs)
 
 
-def test_the_gate_number_does_not_move(repo: Path) -> None:
-    """The one number a release is decided by, before and after the cut."""
+def test_the_gate_number_moves_by_exactly_the_retired_tier(repo: Path) -> None:
+    """The one number a release is decided by, before and after the cut.
+
+    **It used to be required not to move at all**, and under the tier system
+    that was right. ADR-0039 retires the tier, and with it the exemption that
+    kept a document's Tier 3 rows out of the gate: migrated, such a row is a
+    note with no `command:`, so it is a manual check like any other. Nothing
+    removes a check, and a one-time check nobody completed and nobody
+    automated is owed.
+
+    So the number moves, by exactly the Tier 3 rows and by nothing else — and
+    the migration must **say so on the way past**, because a gate that grows
+    silently during a migration is the thing this test was written to catch in
+    the first place.
+    """
     docs = repo / "docs"
     before = acceptance.load(docs)
     assert before.shape == acceptance.SHAPE_FILE
     was_blocking = len(before.blocking())
+    tier3_owed = [i for i in before.items if i.tier == 3 and not i.settled]
+    assert tier3_owed, "fixture has no Tier 3 row — this guard would be vacuous"
 
-    assert _migrate(repo, "--apply").returncode == 0
+    result = _migrate(repo, "--apply")
+    assert result.returncode == 0
     after = acceptance.load(docs)
     assert after.shape == acceptance.SHAPE_NOTES
-    assert len(after.blocking()) == was_blocking == 3
+    assert len(after.blocking()) == was_blocking + len(tier3_owed) == 4
+    assert "ENTER THE GATE" in result.stdout, (
+        "the migration grew the gate without saying so")
 
 
 def test_legacy_marks_are_normalised_without_changing_a_verdict(repo: Path) -> None:
@@ -284,12 +302,25 @@ def test_the_delta_reads_both_shapes_at_their_own_refs(tmp_path: Path) -> None:
     assert before is not None and before.shape == acceptance.SHAPE_FILE
     assert after is not None and after.shape == acceptance.SHAPE_NOTES
     assert len(after.items) == len(before.items)
-    assert len(after.blocking()) == len(before.blocking())
-    # And the delta between them is empty, because nothing was WALKED — only
-    # moved. A migration that showed up as five regressions would be telling
-    # the reader that the storage change broke their release.
+    # **Blocking grows by the retired tier, and by nothing else** (ADR-0039).
+    # A document's Tier 3 rows did not gate; migrated, they are notes with no
+    # `command:` and are owed like any other manual check. Asserted as an
+    # equation rather than a constant so it cannot silently absorb a second
+    # cause.
+    tier3_owed = [i for i in before.items if i.tier == 3 and not i.settled]
+    assert len(after.blocking()) == len(before.blocking()) + len(tier3_owed)
+    # **No REGRESSIONS, because nothing was completed and then un-completed —
+    # only moved.** A migration showing up as five regressions would be telling
+    # the reader that the storage change broke their release, and that is still
+    # the property being protected.
+    #
+    # `new` is not empty and must not be: the retired tier's rows enter the
+    # gate, and the delta is exactly where a reader should find that out
+    # (ADR-0039). Asserted as *those rows and no others*, so a second cause
+    # cannot hide inside a non-empty list.
     split = acceptance.delta(after, before)
-    assert split["comparable"] and not split["new"] and not split["regressed"]
+    assert split["comparable"] and not split["regressed"]
+    assert {r.name for r in split["new"]} == {i.name for i in tier3_owed}
 
 
 def test_a_ref_with_no_suite_at_all_is_still_none(tmp_path: Path) -> None:

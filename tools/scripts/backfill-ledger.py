@@ -139,7 +139,7 @@ def main() -> int:
     resolved = L.resolve([ledger])
     after_blocking = sum(
         1 for i in suite.items
-        if i.tier in A.GATING_TIERS
+        if A.section_of(i) in A.MANUAL_SECTIONS
         and not ((v := resolved.get(i.note_id)) and v.clears)
     )
     print(f"backfill: {root.name} / {args.platform}")
@@ -155,7 +155,7 @@ def main() -> int:
     #: platform with no ledger, because absence is the initial state
     #: ([[REQ-0054]]). That is not a gate that MOVED; it is a question the
     #: schema could not previously ask, answered for the first time.
-    gating = sum(1 for i in suite.items if i.tier in A.GATING_TIERS)
+    gating = sum(1 for i in suite.items if A.section_of(i) in A.MANUAL_SECTIONS)
     print(f"  GATE DELTA        {before_blocking} blocking -> "
           f"{after_blocking} blocking on {args.platform}"
           f"   ({after_blocking - before_blocking:+d})")

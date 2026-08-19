@@ -395,7 +395,17 @@ def resolve_command(command, root):
     return CMD_RESOLVES
 
 
-#: Test statuses that only the runner may write (TEST-FIELDS, ADR-0010).
+#: The two verdict statuses. **The name is now wrong and is kept anyway**: it
+#: is the key this collection is registered under in `FLAT_STATUS_TABLES`, and
+#: in the copy of this file that ships to every downstream repo. Renaming it
+#: buys accuracy in one identifier and costs a fleet-wide rename of a registry
+#: key, which is a bad trade for a comment that can simply say so.
+#:
+#: Nothing writes these from a run any more (ADR-0038). They belong to a MANUAL
+#: test, author-written; an automated one holds no verdict at all. The single
+#: remaining reader is TEST-ENTRYPOINT, which asks whether a note claiming a
+#: verdict has any way to refresh it.
+#:
 #: Inline until ISS-0013 -- the second round of review found it, which is the
 #: point: an inline literal is invisible to the guard by construction.
 TEST_RUNNER_STATUSES = ("passing", "failing")
@@ -2351,44 +2361,52 @@ def validate(root, report):
         # status write undoes it, and the symptom -- a badge nobody can act on
         # (ADR-0027) -- appears far from the cause.
         #
-        # `command:` is the deliberate exception and the whole point of the
-        # merged type: an acceptance test that declares a way to run itself
-        # HAS been automated, and the runner owns its status from then on.
-        # `ready` is forbidden EVEN WITH a command:, and that exception to the
-        # exception is the whole point. `ready` means defined and never
-        # executed, and it is the status the `Run` obligation counts -- so an
-        # acceptance test parked there with a command: reaches the badge, which
-        # is what ADR-0027 forbids for this population.
+        # **`command:` is no longer an exception; it is the other half of the
+        # domain** (ADR-0038). This rule used to range over `level: acceptance`
+        # and exempt `passing`/`failing` for a note carrying a command, on the
+        # ground that "the runner owns its status from then on". The runner
+        # owns nothing now: an automated test records no verdict at all, and
+        # CI answers the question the stamp was answering.
         #
-        # Reproduced by independent review before this line existed: give one
-        # migrated note a command: and status: ready and the validator said OK
-        # while the badge went 3 -> 4. A bulk automation pass (TASK-0485's
-        # shape, 203+ notes) would have walked straight into it.
+        # So the same three statuses are forbidden on both populations, and the
+        # rule finally covers the domain it always described. Measured
+        # 2026-08-19 before the widening: it already applied to 89 of the 139
+        # automated notes fleet-wide -- 64% -- purely because those happened to
+        # sit at `level: acceptance`, and nothing could say why it stopped
+        # there.
         #
-        # `passing`/`failing` stay exempt with a command:, because those are the
-        # runner's own output and the runner is exactly what a command: hands
-        # the note over to.
-        forbidden = (ACCEPTANCE_FORBIDDEN_STATUSES if not command
-                     else tuple(s for s in ACCEPTANCE_FORBIDDEN_STATUSES
-                                if s not in TEST_RUNNER_STATUSES))
-        if level == "acceptance" and status in forbidden:
+        # `ready` was forbidden even with a command: before this, and that
+        # exception-to-the-exception is now simply the rule. It was
+        # reproduced by independent review: give one migrated note a command:
+        # and status: ready and the validator said OK while the badge went
+        # 3 -> 4.
+        automated = bool(command)
+        if (level == "acceptance" or automated) and status in ACCEPTANCE_FORBIDDEN_STATUSES:
             emit_for("ACCEPTANCE-STATUS", the_id)(
                 "ACCEPTANCE-STATUS",
-                "%s is at level: acceptance and status: '%s' -- it rests at `active` and its verdict is "
-                "`mark:` (ADR-0031). Holding '%s' puts it in front of the review gate and/or the Run "
-                "obligation, which is what ADR-0027 forbids for this population. A command: exempts "
-                "`passing`/`failing` (the runner writes those) but never `ready`, which is the status the "
-                "Run obligation counts (%s)" % (the_id, status, status, rel))
+                "%s %s and is at status: '%s' -- it rests at `active` and holds no verdict "
+                "(ADR-0038/ADR-0031). Holding '%s' puts it in front of the review gate and/or the Run "
+                "obligation, which is what ADR-0027 forbids for this population; a machine-executed "
+                "test is never owed to a person and CI is its verdict (%s)"
+                % (the_id,
+                   "declares a command:" if automated else "is at level: acceptance",
+                   status, status, rel))
 
         if command:
-            # An executable test's status is the runner's output, so it must carry
-            # the run that produced it. A stamped status with no `last_run` means
-            # somebody typed it -- the exact thing ADR-0010 removes.
-            if status in TEST_RUNNER_STATUSES and not has_value((fm or {}).get("last_run")):
-                emit_for("TEST-FIELDS", the_id)(
-                    "TEST-FIELDS",
-                    "%s declares a command: and is '%s' but has no last_run:; an executable test's status is "
-                    "written by tools/scripts/run-tests.py, never by hand (ADR-0010) (%s)" % (the_id, status, rel))
+            # **Evidence of an execution, on a note that records no execution**
+            # (ADR-0038). `last_run:` and `exit_code:` existed to carry the run
+            # that produced a stamped status. There is no stamped status now, so
+            # they carry nothing -- and they do not merely go stale, they lie:
+            # measured 2026-08-19, `your-trainer` holds 69 `exit_code` values
+            # against 2 verdicts, so 67 notes assert a failure that exists
+            # nowhere else in the record.
+            for field in ("last_run", "exit_code"):
+                if has_value((fm or {}).get(field)):
+                    emit_for("TEST-AUTOMATED-EVIDENCE", the_id)(
+                        "TEST-AUTOMATED-EVIDENCE",
+                        "%s declares a command: and carries %s:; an automated test records no verdict and no "
+                        "evidence of one -- CI is the verdict, and this field outlives the status it used to "
+                        "explain (ADR-0038) (%s)" % (the_id, field, rel))
         else:
             # A test the corpus treats as automated but that declares no way to run
             # is a status no machine can refresh. Release verification re-runs a

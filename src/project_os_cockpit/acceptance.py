@@ -44,14 +44,12 @@ SUITE_REL = "tests/ACCEPTANCE_TESTS.md"
 CHECKS_REL = "tests/acceptance"
 
 #: Tiers that block a release. Tier 3 is a verification aid, not a requirement
-#: — TESTING.md's release-gating section says so in as many words.
-GATING_TIERS: tuple[int, ...] = (1, 2)
-#: The same set, named for what it MEANS rather than for what it does
-#: (ADR-0034 decision 6). Tier 1 and Tier 2 are permanent; Tier 3 is one build's
-#: verification, removed or promoted after a verified release. `blocking_for`
-#: reads this to ask *does this test still apply*, which is prior to gating —
-#: not to ask what kind of test it is, which REQ-0043 forbids.
-PERMANENT_TIERS = GATING_TIERS
+
+#: **`GATING_TIERS` and `PERMANENT_TIERS` are gone** (ADR-0039). Both were
+#: `(1, 2)` -- one constant written twice and read as two different questions,
+#: *does this gate a release* and *does this test still apply*. Neither is a
+#: tier question. The answer to both is now `MANUAL_SECTIONS`: an unsettled
+#: manual check blocks, and an automated one never enters the list.
 
 #: A `- [ ]` inside a code fence is an *example* of a checkbox, not one. Found
 #: by re-review (ISS-0141): `criteria.py` and the validator's box counter both
@@ -378,6 +376,13 @@ class Item:
     #: required for `/`, `-`, `!` and `?`; the write path refuses without one.
     verdict_date: str = ""
     verdict_reason: str = ""
+    #: **How a machine executes this check, and the field the reader never had**
+    #: ([[ISS-0237]]). `item_from_note` did not look at `command:` at all, so
+    #: every consumer -- the gate, the sections, the percentage -- treated an
+    #: automated check as one a person owed. Measured 2026-08-19: 89 checks in
+    #: `your-trainer` carry one, and **nine of the 68 blocking its release were
+    #: executed by a machine**.
+    command: str = ""
     #: `full` / `partial` / `manual`, and what supplies the coverage. Rolled up
     #: as a release's *confidence*, which is why it is a check property and not
     #: — as first proposed — a feature stat.
@@ -562,7 +567,18 @@ class Suite:
         return self.path is not None
 
     def tier(self, n: int) -> list[Item]:
+        """**Deprecated**: `tier:` is read nowhere and nothing writes one
+        (ADR-0039). Kept only for the file-shape parser, which still derives a
+        tier from a document heading it is reading. Use :meth:`section`."""
         return [i for i in self.items if i.tier == n]
+
+    def section(self, name: str) -> list[Item]:
+        """Items in a derived section — `feature`, `regression`, `automated`."""
+        return [i for i in self.items if section_of(i) == name]
+
+    def manual(self) -> list[Item]:
+        """Every check a person is asked to complete, across both sections."""
+        return [i for i in self.items if section_of(i) in MANUAL_SECTIONS]
 
     def blocking(self) -> list[Item]:
         """Unsettled Tier 1/2 items — what stops a release.
@@ -610,7 +626,7 @@ class Suite:
             # test still applies at all, which is prior to gating rather than a
             # kind of it. Measured: 74 of `your-trainer`'s 83 unattributed
             # checks are Tier 3, i.e. already retired in practice.
-            if item.tier not in PERMANENT_TIERS or item.settled:
+            if section_of(item) not in MANUAL_SECTIONS or item.settled:
                 continue
             # **Known blind spot, deliberately left in place: see ISS-0208.**
             # The tier filter above runs BEFORE the fail-closed clause below,
@@ -921,6 +937,7 @@ def item_from_note(
         status=str(fm.get("status", "") or "").strip(),
         verdict_date=str(fm.get("verdict_date", "") or "").strip(),
         verdict_reason=str(fm.get("verdict_reason", "") or "").strip(),
+        command=str(fm.get("command", "") or "").strip(),
         automation=str(fm.get("automation", "") or "").strip(),
         covered_by=_as_tuple(fm.get("covered_by")),
         burden=_as_tuple(fm.get("burden")),
@@ -1458,7 +1475,7 @@ def ages(
             continue
         snapshots.append((tag, {
             _delta_key(i) for i in suite.items
-            if i.tier in GATING_TIERS and not i.settled
+            if section_of(i) in MANUAL_SECTIONS and not i.settled
         }))
     out: dict[str, str] = {}
     for item in items:
@@ -1487,10 +1504,10 @@ def delta(current: Suite, baseline: Suite | None) -> dict[str, Any]:
         }
     was_settled = {
         _delta_key(i) for i in baseline.items
-        if i.tier in GATING_TIERS and i.settled
+        if section_of(i) in MANUAL_SECTIONS and i.settled
     }
     was_present = {
-        _delta_key(i) for i in baseline.items if i.tier in GATING_TIERS
+        _delta_key(i) for i in baseline.items if section_of(i) in MANUAL_SECTIONS
     }
     new, chronic, regressed = [], [], []
     for item in blocking:
@@ -1521,11 +1538,87 @@ def suite_rel(suite: Suite) -> str:
 
 #: How each tier reads on the view. The template's own words; TESTING.md is the
 #: contract and this must not paraphrase it into a second one.
-TIER_LABELS: dict[int, str] = {
-    1: "Tier 1 — feature tests",
-    2: "Tier 2 — regression tests",
-    3: "Tier 3 — verification tests",
+#: **The three sections, derived and never filed** ([[ADR-0039]]).
+#:
+#: `tier:` was a fourth axis restating part of a field [[ADR-0034]] had already
+#: made authoritative: `covers:` says what a check is about, `command:` says who
+#: executes it, and between them they answer everything the tier answered.
+#:
+#: The order below IS the precedence and it is deliberate. `command:` wins,
+#: because Edwin's question is *does a machine do this* and there is one answer
+#: — an automated regression check is an automated test, and it does not matter
+#: why it was automated.
+SECTION_AUTOMATED = "automated"
+SECTION_REGRESSION = "regression"
+SECTION_FEATURE = "feature"
+
+#: Sections in display order. Feature tests first: they are the standing claims
+#: about behaviour and the largest population (405 of 671 fleet-wide).
+SECTION_ORDER: tuple[str, ...] = (
+    SECTION_FEATURE, SECTION_REGRESSION, SECTION_AUTOMATED,
+)
+
+SECTION_LABELS: dict[str, str] = {
+    SECTION_FEATURE: "Feature tests",
+    SECTION_REGRESSION: "Regression tests",
+    SECTION_AUTOMATED: "Automated tests",
 }
+
+#: Sections a person is asked to complete. **This replaces `GATING_TIERS`**,
+#: and it is one rule where there were two constants and a tier test: an
+#: unsettled manual check blocks, an automated one never enters the list.
+MANUAL_SECTIONS: frozenset[str] = frozenset({SECTION_FEATURE, SECTION_REGRESSION})
+
+_ISS_REF = re.compile(r"\bISS-\d+")
+
+#: The older document shape's three headings, in the order `TESTING.md` has
+#: always listed them. Tier 3 maps to the automated section because that is
+#: what Tier 3 had become -- 67 of `your-trainer`'s 68 arrived there through
+#: the *Unit test replacement* rule -- and because it preserves the one
+#: behaviour that matters for an unmigrated repo: Tier 3 never gated.
+_FILE_SHAPE_SECTIONS: dict[int, str] = {
+    1: SECTION_FEATURE, 2: SECTION_REGRESSION, 3: SECTION_AUTOMATED,
+}
+
+
+def section_of(item: "Item") -> str:
+    """Which section a check belongs to. Computed; nothing files a check here.
+
+    A check asserting *the system does X* is a standing claim about behaviour
+    and a later change can falsify it. A check asserting *this defect was
+    fixed* is a claim about a past event, and nothing a later change does can
+    falsify it -- so *never re-checked* is a property of what the check
+    asserts rather than a policy applied to it. That is why this is derivable
+    at all, and it is [[ADR-0039]] decision 4.
+
+    **A check that names no `ISS-*` reads as a behaviour claim**, which is the
+    safe direction: it stays on the list rather than silently settling
+    forever. Measured 2026-08-19, 68 of `your-trainer`'s 164 regression checks
+    name none anywhere in the note, which is why [[REQ-0060]] makes the link an
+    authoring rule and grandfathers those by id.
+    """
+    #: **File shape reads its heading, because that is where its section was
+    #: authored.** A row parsed out of `ACCEPTANCE_TESTS.md` has no `command:`
+    #: and no frontmatter `covers:` -- a document cannot carry either -- so the
+    #: derivation has nothing to read and would classify all three of its
+    #: headings as feature tests. That would put a document's Tier 3 rows into
+    #: the gate for the first time, which is a change to what shipping means,
+    #: arrived at by accident, in the repos that have not migrated.
+    #:
+    #: `TESTING.md` still describes both shapes, and for the older one the
+    #: heading IS the authored section. The derivation is for notes, which is
+    #: where the two fields exist.
+    if not item.note_id:
+        return _FILE_SHAPE_SECTIONS.get(item.tier, SECTION_FEATURE)
+    if item.command:
+        return SECTION_AUTOMATED
+    if any(_ISS_REF.match(ref) for ref in item.refs):
+        return SECTION_REGRESSION
+    return SECTION_FEATURE
+
+
+def section_label(section: str) -> str:
+    return SECTION_LABELS.get(section, section)
 
 
 def view_payload(docs_root: Path, index: "Any | None" = None, *,
@@ -1550,8 +1643,18 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
     """
     suite = load(docs_root, index, platform=platform)
     tiers: list[dict[str, Any]] = []
-    for n in (1, 2, 3):
-        items = suite.tier(n)
+    #: **Sections, derived** ([[ADR-0039]]). This loop read `tier:` and
+    #: rendered `Tier 1 — feature tests`; it now asks `section_of` and renders
+    #: the same three names without a field selecting them. A check that gains
+    #: a `command:` moves here with no other edit, and one whose command stops
+    #: resolving moves back — which is the property a filed section could not
+    #: have, and the reason 67 of `your-trainer`'s 68 Tier 3 checks were still
+    #: reading a heading from a document that had been deleted.
+    by_section: dict[str, list[Item]] = {}
+    for item in suite.items:
+        by_section.setdefault(section_of(item), []).append(item)
+    for name in SECTION_ORDER:
+        items = by_section.get(name) or []
         if not items:
             continue
         areas: list[dict[str, Any]] = []
@@ -1583,15 +1686,24 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
                      or r.get("excepted")) and not r.get("stale"),
                 str(r.get("id") or r.get("number") or ""),
             ))
+        #: **An automated section carries no checkbox and no todo count.**
+        #: A tickbox beside something no person executes is what put nine
+        #: automated checks into `your-trainer`'s blocking 68 ([[ISS-0237]]).
+        manual = name in MANUAL_SECTIONS
         tiers.append({
-            "tier": n,
-            "label": TIER_LABELS.get(n, f"Tier {n}"),
-            "gating": n in GATING_TIERS,
+            "section_key": name,
+            "label": section_label(name),
+            # Kept so a client pinned to the old payload keeps rendering. The
+            # value is the section's position, not a `tier:` read from a note:
+            # nothing writes one any more.
+            "tier": SECTION_ORDER.index(name) + 1,
+            "manual": manual,
+            "gating": manual,
             "total": len(items),
             "checked": sum(1 for i in items if i.checked),
             "reconciled": sum(1 for i in items if i.reconciled),
             "excepted": sum(1 for i in items if i.excepted),
-            "unsettled": sum(1 for i in items if not i.settled),
+            "unsettled": sum(1 for i in items if manual and not i.settled),
             "stale": sum(1 for i in items if i.stale),
             "areas": areas,
         })
@@ -1641,7 +1753,9 @@ def _facets(suite: Suite) -> dict[str, list[dict[str, Any]]]:
         marks.append((item.mark, MARK_MEANING.get(item.mark, "unrecognised")))
     return {
         "marks": tally(marks),
-        "tiers": tally([(str(i.tier), TIER_LABELS.get(i.tier, f"Tier {i.tier}"))
+        # The facet is the SECTION now, under the key `tiers` so a pinned
+        # client keeps working. Nothing here reads `tier:`.
+        "tiers": tally([(section_of(i), section_label(section_of(i)))
                         for i in suite.items]),
         "areas": tally([(i.area, i.area) for i in suite.items if i.area]),
         "covers": tally([(ref, ref) for i in suite.items for ref in i.refs]),
@@ -1694,16 +1808,19 @@ def payload(docs_root: Path, index: "Any | None" = None, *,
         "rel": suite_rel(suite),
         "tiers": [
             {
-                "tier": n,
-                "total": len(suite.tier(n)),
-                "checked": sum(1 for i in suite.tier(n) if i.checked),
+                "tier": SECTION_ORDER.index(n) + 1,
+                "section_key": n,
+                "label": section_label(n),
+                "total": len(suite.section(n)),
+                "checked": sum(1 for i in suite.section(n) if i.checked),
                 # Reported beside `checked` rather than folded into it: the two
                 # are different claims, and a suite that showed 27/27 for 26
                 # walked and 1 reconciled would be the drop this replaced,
                 # rounded up instead of down (ISS-0141).
-                "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
-                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
-                "gating": n in GATING_TIERS,
+                "reconciled": sum(1 for i in suite.section(n) if i.reconciled),
+                "excepted": sum(1 for i in suite.section(n) if i.excepted),
+                "gating": n in MANUAL_SECTIONS,
+                "manual": n in MANUAL_SECTIONS,
                 "items": [
                     {
                         "key": i.key, "number": i.number,
@@ -1720,10 +1837,10 @@ def payload(docs_root: Path, index: "Any | None" = None, *,
                         "mark": i.mark, "automation": i.automation,
                         "stale": i.stale,
                     }
-                    for i in suite.tier(n)
+                    for i in suite.section(n)
                 ],
             }
-            for n in (1, 2, 3)
+            for n in SECTION_ORDER
         ],
     }
 
@@ -1836,7 +1953,7 @@ def gate_payload(
         ]
 
     # --- stale: ticked, but the row says the evidence no longer holds -----
-    stale = [i for i in suite.items if i.tier in GATING_TIERS and i.stale]
+    stale = [i for i in suite.items if section_of(i) in MANUAL_SECTIONS and i.stale]
 
     # --- the delta (TASK-0446) --------------------------------------------
     baseline = (
@@ -1924,14 +2041,21 @@ def gate_payload(
         # reported one is 60. Whether these should BLOCK is a change to what
         # shipping means and is deliberately not decided by a payload.
         "stale": [_row(i) for i in stale],
+        # Keyed `tier1`/`tier2` so a pinned client keeps reading, but the
+        # population is the manual SECTIONS -- feature checks then regression
+        # checks. An automated section has no entry here at all, because it is
+        # not something a person is asked to complete (ADR-0039).
         "counts": {
-            f"tier{n}": {
-                "total": len(suite.tier(n)),
-                "unchecked": sum(1 for i in suite.tier(n) if not i.settled),
-                "reconciled": sum(1 for i in suite.tier(n) if i.reconciled),
-                "excepted": sum(1 for i in suite.tier(n) if i.excepted),
+            f"tier{i + 1}": {
+                "section_key": name,
+                "label": section_label(name),
+                "total": len(suite.section(name)),
+                "unchecked": sum(1 for x in suite.section(name) if not x.settled),
+                "reconciled": sum(1 for x in suite.section(name) if x.reconciled),
+                "excepted": sum(1 for x in suite.section(name) if x.excepted),
             }
-            for n in GATING_TIERS
+            for i, name in enumerate(
+                n for n in SECTION_ORDER if n in MANUAL_SECTIONS)
         },
     }
 

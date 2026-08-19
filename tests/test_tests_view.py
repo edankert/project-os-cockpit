@@ -941,6 +941,10 @@ def test_a_reconciled_item_is_settled_and_still_counted(tmp_path: Path) -> None:
         # applies; `!` is per-release and says it still applies and was not
         # done. Conflating them is the loss ISS-0141 exists to prevent.
         "total": 1, "unchecked": 0, "reconciled": 1, "excepted": 0,
+        # ADR-0039: the bucket names the derived section it counts, so a
+        # reader is not left inferring it from the `tier1` key -- which is
+        # kept only so a pinned client keeps reading.
+        "section_key": "feature", "label": "Feature tests",
     }
     tier1 = acceptance.payload(docs)["tiers"][0]
     assert (tier1["total"], tier1["checked"], tier1["reconciled"]) == (1, 0, 1)
@@ -1846,7 +1850,7 @@ def test_the_tracking_line_counts_re_runs_and_stale_ticks_separately() -> None:
         ])
         label = _tier_label(docs)
 
-    assert "1 need re-run" in label, label
+    assert "1 need re-check" in label, label  # ADR-0039: no *run* in the UI
     assert "1 stale" in label, (
         f"the stale tick is not counted: {label!r}. It is a tick standing over "
         "evidence the record says was overtaken — neither walked nor owed, and "

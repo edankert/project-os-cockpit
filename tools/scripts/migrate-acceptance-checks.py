@@ -224,13 +224,44 @@ def compare(before: list[A.Item], after: list[A.Item]) -> list[str]:
     # The two numbers a release is decided by, asserted in their own right
     # rather than inferred from the rows above — a gate that agrees row by row
     # and disagrees in total is the kind of thing this project has shipped.
+    #
+    # **`blocking` is compared over the rows the tier system already gated**
+    # (ADR-0039). A document's Tier 3 rows were verification checks that did
+    # not gate; migrated, they are notes with no `command:`, so they become
+    # manual checks and enter the gate. That is a real consequence of retiring
+    # the tier — nothing removes a check, and a one-time check nobody
+    # completed and nobody automated is owed — but it is NOT a parity failure,
+    # and reporting it as one would stop every migration on a change the
+    # decision intends.
+    #
+    # It is surfaced rather than swallowed: `_entering_the_gate` below is
+    # printed by the caller, so the operator sees the delta before deleting
+    # the source.
+    def _gated(items):
+        return [i for i in items
+                if A.section_of(i) in A.MANUAL_SECTIONS and i.tier != 3]
+
     for label, fn in (("settled", lambda s: sum(1 for i in s if i.settled)),
                       ("blocking", lambda s: sum(
-                          1 for i in s
-                          if i.tier in A.GATING_TIERS and not i.settled))):
+                          1 for i in _gated(s) if not i.settled))):
         if fn(before) != fn(after):
             problems.append(f"{label}: {fn(before)} -> {fn(after)}")
     return problems
+
+
+def entering_the_gate(before: list[A.Item], after: list[A.Item]) -> list[A.Item]:
+    """Rows that did not gate before the migration and do after (ADR-0039).
+
+    Empty for every suite with no Tier 3 rows, which is every suite in this
+    fleet — all three migrated before the tier was retired. It exists for the
+    repos that have not migrated yet, where the number is the operator's to
+    accept.
+    """
+    was = {i.number for i in before
+           if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled}
+    return [i for i in after
+            if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled
+            and i.number not in was]
 
 
 # ----------------------------------------------------------------- the README
@@ -405,12 +436,19 @@ def main() -> int:
 
     settled = sum(1 for i in after if i.settled)
     blocking = sum(1 for i in after
-                   if i.tier in A.GATING_TIERS and not i.settled)
+                   if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled)
     marks: dict[str, int] = {}
     for item in after:
         marks[item.mark] = marks.get(item.mark, 0) + 1
     print(f"migrate: parity OK — {len(after)} checks, {settled} settled, "
           f"{blocking} blocking, marks {marks}")
+    entering = entering_the_gate(before, after)
+    if entering:
+        print(f"migrate: {len(entering)} verification check(s) ENTER THE GATE — "
+              "the tier that exempted them is retired (ADR-0039), and a one-time "
+              "check nobody completed and nobody automated is owed:")
+        for item in entering[:20]:
+            print(f"  + {item.number} {item.name}")
 
     if not args.apply:
         shutil.rmtree(target.parent, ignore_errors=True)
