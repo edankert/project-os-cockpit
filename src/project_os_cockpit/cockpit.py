@@ -4210,10 +4210,19 @@ def _tests_groups(
 #: work while their own gate read clear. Found by independent review. It is now
 #: a member of `statuses.BANDS["archived"]` — terminal, and terminal without the
 #: thing having been done — which is what makes every surface agree at once.
+#: **The tier NUMBER is dropped from the label** (Edwin, 2026-08-19: *"let's
+#: drop the Tier 1/2/3 part of it, this has no meaning"*). He is right, and
+#: [[DES-0012]] D3 says why: the numbers name *why a test was created*, not
+#: what it tests, which is exactly why they read oddly beside a surface. The
+#: words they stood for are the part that carries meaning and they stay.
+#:
+#: `tier:` itself is untouched — it is still the field, still the grouping,
+#: still what [[ISS-0208]] is about. Only the label stops leading with a
+#: number nobody can act on.
 _TIER_LABELS: dict[int, str] = {
-    1: "Tier 1 — feature tests",
-    2: "Tier 2 — regression tests",
-    3: "Tier 3 — verification tests",
+    1: "Feature tests",
+    2: "Regression tests",
+    3: "Verification tests",
 }
 
 
@@ -4292,6 +4301,21 @@ def _surface_rows(items: list[dict[str, Any]], url: str,
             "url": (f"{url}/tier/{tier}/area/{_area_slug(area)}"
                     if url == CHECKS_VIEW_ROUTE else url),
             "type": "surface",
+            #: **The issue a surface IS, where it is one** (Edwin, 2026-08-19:
+            #: *"when the area is an issue then it should show the issue and
+            #: allow the issue to be opened"*). Tier 2's areas are individual
+            #: past bugs — `TESTING.md` says each Tier 2 test references the
+            #: `ISS-*` that created it, and [[DES-0012]] D3 measured 46 such
+            #: areas over 158 checks. So the row can carry that id and open it,
+            #: the way a phase row carries `PHASE-*` and drills in.
+            #:
+            #: Only when the whole surface agrees: a ref shared by every check
+            #: in it is the surface's own subject, and one carried by some of
+            #: them is a reference from a check.
+            **({"ref": shared.pop()} if len(
+                shared := set.intersection(*(set(i.get("refs") or ())
+                                             for i in found)) or set()) == 1
+               else {}),
             "items": [
                 {
                     "id": i.get("id") or i["number"],
@@ -4410,7 +4434,10 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             # carry the counts. The rows are not removed — REQ-0047 criterion 3
             # — they are one click behind a line that says how many there are.
             "default_open": False,
-            "item_layout": "stacked",
+            # **`surface`, not `stacked`** — these rows are drawn like a phase in
+            # the overview, which is the thing Edwin named. See
+            # `navItemSurface`.
+            "item_layout": "surface",
             # **The rows are SURFACES, not checks** ([[ISS-0222]]).
             #
             # Edwin: *"I expected the %bar and the areas/surface to group

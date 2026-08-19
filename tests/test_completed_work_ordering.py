@@ -864,7 +864,26 @@ def test_the_picker_routes_only_to_known_renderers() -> None:
         body = re.search(pat, path.read_text(encoding="utf-8"), re.DOTALL)
         assert body, f"pickItemRenderer not found in {path.name}"
         returned = set(re.findall(r"return (navItem\w*)", body.group(1)))
-        assert returned == {"navItemStacked", "navItemCompact", "navItem"}, (
+        # `navItemSurface` is the fourth, added 2026-08-19, and it is the
+        # DELIBERATE case this guard asks for. The three above are
+        # lifecycle rows differing only by indent — which is why TASK-0271
+        # collapsed them after they drifted. A surface is not a lifecycle
+        # row: Edwin asked for it to be drawn "the same as the phases are
+        # shown in the left pane of the overview", so it is built from
+        # `buildPhaseRow`'s shape and REUSES THE OVERVIEW'S OWN CLASSES
+        # (`ov-phase`, `ov-phase-under`, `ov-chev`). That is the opposite
+        # of the drift this guards: it shares a definition with the thing
+        # it must look like rather than copying one.
+        #: **Per front door**, because they now differ and that is recorded
+        #: rather than hidden ([[ISS-0230]]): the desktop shell has
+        #: `navItemSurface`, the browser cockpit does not. [[PHASE-029]] is
+        #: exactly this subject — *"the two front doors answer the same
+        #: questions, and differ only where a difference was decided"* — so
+        #: the difference is named here and the guard keeps its teeth on both.
+        expected = {"navItemStacked", "navItemCompact", "navItem"}
+        if path.name == "renderer.ts":
+            expected |= {"navItemSurface"}
+        assert returned == expected, (
             f"{path.name}: pickItemRenderer routes to {returned}; a new renderer "
             "must be brought into the shared row builder deliberately"
         )

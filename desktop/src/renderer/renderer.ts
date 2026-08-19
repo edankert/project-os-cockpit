@@ -3702,6 +3702,9 @@ interface NavItem {
    *  `buildNavRow` documents as never rendered — the progress went there and
    *  was discarded in silence. */
   progress?: { done: number; total: number; stale: number; pct: number };
+  /** The issue a surface IS, where it is one — Tier 2's areas are past
+   *  bugs. Drawn like a phase's `PHASE-*`: shown, and clickable. */
+  ref?: string;
   /** A surface's checks (ISS-0227). REQ-0047 criterion 3: a collapsed group
    *  expands to exactly the rows it collapsed, and a surface that expanded to
    *  nothing had taken 579 rows away rather than organising them. */
@@ -11325,7 +11328,100 @@ function appendIf<T extends Node>(parent: Node, child: T | null): void {
 
 type ItemRenderer = (item: NavItem) => HTMLLIElement;
 
+/** A surface, drawn **exactly like a phase in the overview's left pane**.
+ *
+ *  Edwin, 2026-08-19: *"should show the items the same as the phases are shown
+ *  in the left pane of the overview view … the area name/title and then the
+ *  second part of this shows the completion bar and this item should have a
+ *  handle which allows you to open or close the area."*
+ *
+ *  So this is `buildPhaseRow`'s shape, not a nav row's: **chevron, id, title,
+ *  count — then `.ov-phase-under` beneath, and the children in a block the
+ *  chevron hides.** Three earlier attempts built from the description and put
+ *  the progress somewhere nothing drew it; this one copies the thing that was
+ *  named.
+ *
+ *  **The id opens the issue, the chevron opens the area** — two affordances,
+ *  two outcomes, which is the same pair `buildPhaseRow` documents. Tier 2's
+ *  areas ARE issues: `TESTING.md` says each Tier 2 test references the `ISS-*`
+ *  that created it.
+ */
+function navItemSurface(item: NavItem): HTMLLIElement {
+  const li = document.createElement('li');
+  li.className = 'nav-surface';
+  if (item.id) li.dataset.id = String(item.id);
+
+  const row = document.createElement('div');
+  row.className = 'ov-phase';
+  const head = document.createElement('div');
+  head.className = 'ov-phase-head';
+
+  const chev = document.createElement('button');
+  chev.type = 'button';
+  chev.className = 'ov-chev';
+  chev.setAttribute('aria-expanded', 'false');
+  chev.setAttribute('aria-label', `Expand ${item.title ?? ''}`);
+  head.appendChild(chev);
+
+  if (item.ref) {
+    const id = document.createElement('span');
+    id.className = 'ov-phase-id mono is-link';
+    id.textContent = item.ref;
+    id.title = `Open ${item.ref}`;
+    id.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void navigateTo(`~note/${item.ref}`);
+    });
+    head.appendChild(id);
+  }
+
+  const title = document.createElement('span');
+  title.className = 'ov-phase-title';
+  title.textContent = item.title ?? '';
+  head.appendChild(title);
+
+  if (item.progress) {
+    const p = item.progress;
+    const frac = document.createElement('span');
+    frac.className = 'ov-phase-count num';
+    frac.textContent = `${p.done}/${p.total} · ${p.pct}%`
+      + (p.stale ? ` · ${p.stale} stale` : '');
+    head.appendChild(frac);
+  }
+  row.appendChild(head);
+
+  if (item.progress && item.progress.total > 0) {
+    const under = document.createElement('div');
+    under.className = 'ov-phase-under';
+    if (item.progress.stale) under.classList.add('has-stale');
+    const fill = document.createElement('i');
+    fill.style.width = `${item.progress.pct}%`;
+    under.appendChild(fill);
+    row.appendChild(under);
+  }
+
+  const bar = document.createElement('div');
+  bar.className = 'ov-phase-bar nav-surface-checks';
+  for (const kid of item.items ?? []) bar.appendChild(buildNavRow(kid));
+  bar.hidden = true;
+  row.appendChild(bar);
+
+  const toggle = (): void => {
+    const next = !row.classList.contains('is-open');
+    row.classList.toggle('is-open', next);
+    bar.hidden = !next;
+    chev.setAttribute('aria-expanded', String(next));
+  };
+  chev.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  head.addEventListener('click', toggle);
+  head.style.cursor = 'pointer';
+
+  li.appendChild(row);
+  return li;
+}
+
 function pickItemRenderer(layout: string | undefined): ItemRenderer {
+  if (layout === 'surface') return navItemSurface;
   if (layout === 'stacked') return navItemStacked;
   if (layout === 'compact') return navItemCompact;
   return navItem;

@@ -6055,3 +6055,15 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .nav-children { list-style: none; margin: 0; padding-left: 14px; }
 /* ISS-0228: the id at the start of a check row is the value people copy. */
 .checks-row-number { user-select: text; cursor: text; }
+
+/* Edwin, 2026-08-19: a surface is drawn like a phase in the overview's left
+   pane. The classes are the overview's, so the two cannot drift apart; only
+   the density differs, because the nav column is narrower than a card. */
+.nav-surface { list-style: none; margin: 0; }
+.nav-surface .ov-phase { padding: 3px 0; }
+.nav-surface .ov-phase-title { font-size: 0.92em; }
+.nav-surface .ov-phase-count { font-size: 0.8em; }
+.nav-surface .ov-phase-under.has-stale > i { background: var(--warn, #d29922); }
+.nav-surface-checks { padding-left: 16px; }
+.nav-surface .ov-phase-id.is-link { cursor: pointer; }
+.nav-surface .ov-phase-id.is-link:hover { text-decoration: underline; }
