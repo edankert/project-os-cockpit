@@ -41,6 +41,7 @@ from . import git_state as _git_state
 from . import obligations as _obligations
 from . import statuses
 from . import token_sources
+from . import command_targets
 from .index import Index, NoteRecord
 
 _CHG_DATE_RE = re.compile(r"^CHG-(\d{4})(\d{2})(\d{2})")
@@ -3984,6 +3985,61 @@ def manual_test_step_state(body: str) -> dict[str, Any]:
     }
 
 
+_ISS_IN_REF = re.compile(r"\bISS-\d+")
+
+
+def _test_as_surface(index: Index, record: NoteRecord, days: int) -> dict[str, Any]:
+    """A non-acceptance manual test, shaped like a surface so it can share a
+    section with the acceptance checks instead of forming a second group under
+    the same name.
+
+    A nav group picks ONE item renderer (`item_layout`), so two shapes cannot
+    share one — and two groups both labelled `Feature tests` is precisely the
+    "one item, two homes" defect ISS-0068 exists to prevent, wearing a
+    different hat.
+
+    The population is small and shrinking by design: 5 here, 65 fleet-wide,
+    and ADR-0033's conclusion — which ADR-0034 kept while superseding it — is
+    that a human-completed test IS an acceptance test. This is what the
+    remainder looks like until they migrate.
+    """
+    row = _test_item(index, record, days)
+    settled = 0 if row.get("owed") else 1
+    #: **Every field the row carried survives.** The surface is the row plus a
+    #: shape, not a replacement for it: `scope_tests_payload` and this view are
+    #: compared field by field precisely because two payloads describing one
+    #: test is how two rules survived side by side for a month, and a surface
+    #: that quietly dropped `stale` would restart that.
+    return {
+        **row,
+        "type": "surface",
+        "progress": {"done": settled, "total": 1,
+                     "stale": int(bool(row.get("stale"))),
+                     "pct": settled * 100},
+        #: **No children.** A surface standing for ONE test whose only child
+        #: is that same test renders the row twice on one screen — the parent
+        #: and the child carry the same id, the same title and the same url.
+        #: That is ISS-0068's defect exactly, and it was caught here by the
+        #: one-item-one-home guard rather than by looking at the UI.
+        "items": [],
+    }
+
+
+def _covers_an_issue(record: NoteRecord) -> bool:
+    """Does this test verify a past defect rather than current behaviour?
+
+    The same question `acceptance.section_of` asks, over a note rather than an
+    `Item`, and it must stay the same question -- a second reading is how the
+    navigator and the generated page come to disagree about what a check is.
+
+    A test naming no `ISS-*` reads as a behaviour claim, which is the safe
+    direction: it stays on the list rather than settling forever.
+    """
+    raw = (record.frontmatter or {}).get("covers")
+    values = raw if isinstance(raw, (list, tuple)) else [raw]
+    return any(_ISS_IN_REF.search(str(v or "")) for v in values)
+
+
 def _test_item(
     index: Index, record: NoteRecord, days: int,
 ) -> dict[str, Any]:
@@ -4094,69 +4150,57 @@ def _tests_groups(
         features = _test_feature_ids(index, record)
         return (features[0] if features else "~", str(record.note_id or ""))
 
+    #: **Six sections, every one derived** ([[ADR-0039]]). What was here was
+    #: eight groups keyed on a VERDICT STATE -- `Failing`, `Stale`, `Never
+    #: verified`, `Verified`, `Resting`, and an unrecognised-status catch-all.
+    #: Under [[ADR-0038]] an automated test holds no verdict and a check's
+    #: verdict lives in the ledger, so those groups sorted on a field that no
+    #: longer exists for most of the population: measured 2026-08-19, **37 of
+    #: this repo's 38 automated tests sat in one collapsed `Verified` group**,
+    #: and 89 of `your-trainer`'s 91 were scattered through the tier surfaces.
+    #: There was nowhere in the navigator that showed the suite as the suite.
     buckets: dict[str, list[NoteRecord]] = {
-        "needs-run": [], "resting": [], "failing": [], "stale": [],
-        "never": [], "verified": [], "resolved": [], "unclassified": [],
+        "needs-you": [], "feature": [], "regression": [],
+        "automated": [], "broken-command": [], "retired": [],
     }
+    repo_root = index.docs_root.parent
     for record in tests:
         status = (record.status or "").strip().lower()
-        # The registry decides what is owed, not this function: the badge on
-        # the Tests button counts the same predicate, and a group that decided
-        # for itself would be the same number disagreeing with itself.
-        flag = _owed_flag(record, index)
-        if flag.get("owed"):
-            buckets["needs-run"].append(record)
-        elif flag.get("suppressed"):
-            # Owed by its type, resting by its subject (ADR-0028). It must not
-            # fall through to `Never verified` — that group is a statement
-            # about evidence, and this test's evidence is not the reason it is
-            # quiet. Its own group says which.
-            buckets["resting"].append(record)
-        elif status in ("failing", "broken", "blocked"):
-            buckets["failing"].append(record)
-        elif status in _RESOLVED_NOT_PASSING:
-            # **Not `Verified`** (ISS-0212). `retired` used to reach the
-            # `else` below and be reported as a test that was checked and
-            # passed. `your-trainer` carries three: a checklist, a test list
-            # and a *run plan*, all `status: retired`, all left carrying
-            # `type: "[[test]]"` by the PHASE-035 migration they were the
-            # source for. A run plan has no verdict to report.
-            buckets["resolved"].append(record)
-        elif _test_is_stale(record.frontmatter, days):
-            buckets["stale"].append(record)
-        elif not _test_last_verified(record.frontmatter):
-            buckets["never"].append(record)
-        elif status in _PASSING_STATUSES:
-            buckets["verified"].append(record)
+        command = str((record.frontmatter or {}).get("command") or "").strip()
+        if status in _RESOLVED_NOT_PASSING:
+            # A retired test is a fact about the past, not work (ISS-0212).
+            buckets["retired"].append(record)
+        elif command:
+            # **The one obligation an automated test can carry**: its command
+            # stopped resolving, so nothing is verifying it. Empty across all
+            # 139 automated notes in the fleet today, which is exactly why it
+            # is proved on constructed input rather than from the corpus.
+            if command_targets.is_broken(command, repo_root):
+                buckets["broken-command"].append(record)
+            else:
+                buckets["automated"].append(record)
+        elif _owed_flag(record, index).get("owed"):
+            buckets["needs-you"].append(record)
+        elif _covers_an_issue(record):
+            buckets["regression"].append(record)
         else:
-            # **`Verified` is entered by a positive test, never as a
-            # fallback** (REQ-0046). It was the `else` branch, which made it
-            # the destination for every status the chain above did not name —
-            # and it is the one group whose label is a claim about evidence.
-            #
-            # The general rule matters more than the instance: `retired` is
-            # merely what this corpus happens to contain, and the next status
-            # anybody adds would have landed in the pass bucket too. Same
-            # shape as ADR-0034's fail-closed clause — when a classifier meets
-            # something it does not understand, the safe direction is the one
-            # that asks for a person.
-            buckets["unclassified"].append(record)
+            buckets["feature"].append(record)
 
     labels = (
-        ("needs-run", "Needs a run"),
-        # Quiet, and visible. `Resting` rather than a bare count because the
-        # reader has to be able to tell "nobody owes this yet" from "nobody
-        # got round to it" (TASK-0425).
-        ("resting", "Resting · no feature in flight"),
-        ("failing", "Failing"),
-        ("stale", f"Stale · over {days} days"),
-        ("never", "Never verified"),
-        ("verified", "Verified"),
-        ("resolved", "Retired · no longer verified"),
-        # Loud on purpose, and last so it is not mistaken for a normal state.
-        # An empty group is absent like every other, so this is invisible
-        # until a status nobody handled reaches the view.
-        ("unclassified", "Unrecognised status — not a verdict"),
+        # `Needs you`, not `Needs a run` -- the name every other view uses
+        # (ADR-0025, `_needs_you_group`), and no verb at all. *Run* and *walk*
+        # are both out of the UI (Edwin, 2026-08-19): the verbs are do,
+        # execute, check and complete.
+        ("needs-you", "Needs you"),
+        ("feature", "Feature tests"),
+        ("regression", "Regression tests"),
+        # **A manifest, not a list anybody completes.** No checkbox and no
+        # todo count: a tickbox beside something no person executes is what
+        # put nine automated checks into `your-trainer`'s blocking 68
+        # (ISS-0237).
+        ("automated", "Automated tests"),
+        ("broken-command", "Broken command"),
+        ("retired", "Retired · no longer verified"),
     )
     out: list[dict[str, Any]] = []
     for key, label in labels:
@@ -4171,10 +4215,15 @@ def _tests_groups(
             "items": [
                 _test_item(index, r, days) for r in sorted(records, key=sort_key)
             ],
+            # Kept only until the merge below consumes it; a group that reaches
+            # a client still carrying this would be shipping note objects.
+            "_records": sorted(records, key=sort_key),
         }
-        if key == "needs-run":
+        if key in ("needs-you", "broken-command"):
+            # `Broken command` is an obligation too, and the only one an
+            # automated test can carry: nothing is verifying it.
             group["needs_human"] = True
-        if key in ("resting", "resolved", "verified"):
+        if key in ("automated", "retired"):
             # **Collapsed, not deleted** (TASK-0508). Edwin does not think the
             # Resting section is needed; the distinction it carries is real
             # (ADR-0028 — "nobody owes this yet" is not "nobody got round to
@@ -4193,10 +4242,56 @@ def _tests_groups(
     #
     # `Needs a run` stays above them: it is the one group that is asking, and
     # a view that opens on work owed is the whole of REQ-0047.
+    #: **One section per name** ([[ADR-0039]]). The acceptance checks arrive
+    #: as area surfaces and the non-acceptance tests as rows, and both derive
+    #: to the same three sections -- so they are MERGED rather than emitted as
+    #: two groups sharing a label. Two groups called `Feature tests` is
+    #: [[ISS-0068]]'s one-item-two-homes defect wearing a different hat.
+    #:
+    #: The acceptance surfaces come first inside a section: they are the bulk
+    #: of it (34 of 39 here, 581 of 586 in `your-trainer`) and they carry the
+    #: area structure the reader navigates by.
     tiers = _acceptance_tier_groups(index)
-    owed = [g for g in out if g.get("needs_human")]
-    rest = [g for g in out if not g.get("needs_human")]
-    return owed + tiers + rest
+    by_key = {g.get("key"): g for g in tiers}
+    merged: list[dict[str, Any]] = []
+    for group in out:
+        key = group.get("key")
+        host = by_key.pop(_SECTION_TO_TIER_KEY.get(key, ""), None)
+        if host is None:
+            group.pop("_records", None)
+            merged.append(group)
+            continue
+        host["items"] = list(host["items"]) + [
+            _test_as_surface(index, r, days) for r in group.pop("_records", [])
+        ]
+        merged.append(host)
+    # A section with acceptance checks and no non-acceptance tests still exists.
+    for key in ("tier1", "tier2", "tier3"):
+        leftover = by_key.pop(key, None)
+        if leftover is not None:
+            merged.append(leftover)
+    ordered = sorted(
+        merged, key=lambda g: _SECTION_ORDER_INDEX.get(str(g.get("key")), 99))
+    owed = [g for g in ordered if g.get("needs_human")]
+    rest = [g for g in ordered if not g.get("needs_human")]
+    return owed + rest
+
+
+#: A derived section's own key, and the key `_acceptance_tier_groups` emits for
+#: the same section. The second is `tier1`/`tier2`/`tier3` only because the
+#: front ends address a group by it; nothing reads a `tier:` from a note.
+_SECTION_TO_TIER_KEY: dict[str, str] = {
+    "feature": "tier1", "regression": "tier2", "automated": "tier3",
+}
+
+#: Display order. `Needs you` leads because it is the one group that is asking
+#: (REQ-0047); `Broken command` sits with it because it is the same claim about
+#: an automated test.
+_SECTION_ORDER_INDEX: dict[str, int] = {
+    "needs-you": 0, "broken-command": 1,
+    "tier1": 2, "feature": 2, "tier2": 3, "regression": 3,
+    "tier3": 4, "automated": 4, "retired": 5,
+}
 
 
 #: Which suite tiers a checked box is "done" for. The Tests navigator folds on

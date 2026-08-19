@@ -55,12 +55,21 @@ def _items(groups: list) -> list[dict]:
     Since ADR-0031 both populations are the `test` type and `level:` separates
     them, so the corpus side of these comparisons filters on level rather than
     getting the separation free from the type.
+
+    **The filter is the row's id, not the group's key** (ADR-0039). It used to
+    skip any group keyed `tier*`, which worked while the two populations were
+    two sets of groups. They are now merged -- both derive to the same three
+    sections, and emitting two groups labelled `Feature tests` would be
+    ISS-0068's one-item-two-homes defect wearing a different hat -- so a
+    non-acceptance test row lives INSIDE a section group, beside the area
+    surfaces. An area surface is keyed by the area's name; a test is keyed by
+    its `TST-*` id, which is the difference this reads.
     """
     out: list[dict] = []
     for group in groups:
-        if str(group.get("key") or "").startswith("tier"):
-            continue
-        out.extend(group.get("items") or [])
+        for item in group.get("items") or []:
+            if str(item.get("id") or "").upper().startswith("TST-"):
+                out.append(item)
     return out
 
 
@@ -190,19 +199,19 @@ def test_an_empty_group_is_absent_rather_than_zero(repo_index: Index) -> None:
     seeing, and this pane has been taught that lesson twice."""
     groups = nav_payload(repo_index, mode="tests")["groups"]
     assert all(g["items"] for g in groups)
-    # Vacuity guard: this corpus must be missing at least one of the five, or
-    # the assertion above never exercises absence.
-    note_keys = {g["key"] for g in groups if not g["key"].startswith("tier")}
+    # Vacuity guard: this corpus must be missing at least one section, or the
+    # assertion above never exercises absence.
+    note_keys = {g["key"] for g in groups}
+    # **Six sections, and a strict subset** (ADR-0039). `Broken command` is
+    # the sharpest case: it is empty across all 139 automated notes in the
+    # fleet, so it must be ABSENT rather than a permanent `Broken command · 0`.
     assert note_keys < {
-        "needs-run",
-        # ISS-0212: `Verified` stopped being the `else` branch, so a status the
-        # chain does not name lands here loudly instead of reading as a pass.
-        "resolved", "unclassified",
-        # ADR-0028: owed by its type, resting by its subject. It gets a group
-        # rather than falling through to `Never verified` — that group is a
-        # statement about evidence, and evidence is not why this one is quiet.
-        "resting",
-        "failing", "stale", "never", "verified",
+        "needs-you",
+        # The acceptance side keys a section `tier1`/`tier2`/`tier3` because
+        # that is the address the front ends use. Nothing reads a `tier:`.
+        "tier1", "tier2", "tier3",
+        "feature", "regression", "automated",
+        "broken-command", "retired",
     }
 
 
@@ -246,16 +255,23 @@ def test_staleness_reads_the_projects_config_key(tmp_path: Path) -> None:
     """
     day = "2026-01-01"   # comfortably old under any threshold used here
 
-    stale = _corpus(tmp_path / "tight", "30", day)
-    keys = {g["key"] for g in nav_payload(stale, mode="tests")["groups"]}
-    assert keys == {"stale"}
+    # **Read off the ROW, not the group** (ADR-0039). `Stale` and `Verified`
+    # were sections while a section was a verdict state; they are neither now,
+    # and staleness is a property of a row inside whatever section the check
+    # belongs to. The claim this guard exists for is untouched: the threshold
+    # comes from the project's config key and a note's grading moves with it.
+    def _stale_flags(index):
+        return {i["id"]: i["stale"]
+                for i in _items(nav_payload(index, mode="tests")["groups"])}
 
-    # A threshold longer than the note's age must move it out of `stale` —
+    stale = _corpus(tmp_path / "tight", "30", day)
+    assert set(_stale_flags(stale).values()) == {True}
+
+    # A threshold longer than the note's age must stop grading it stale —
     # asserted with a value nothing else in the project uses, so a hard-coded
     # 90 (or a hard-coded 60) fails here.
     fresh = _corpus(tmp_path / "loose", "99999", day)
-    keys = {g["key"] for g in nav_payload(fresh, mode="tests")["groups"]}
-    assert keys == {"verified"}
+    assert set(_stale_flags(fresh).values()) == {False}
 
 
 def test_a_human_walked_test_does_not_go_stale_by_time(tmp_path: Path) -> None:
@@ -271,8 +287,10 @@ def test_a_human_walked_test_does_not_go_stale_by_time(tmp_path: Path) -> None:
     case above — only the `command:` differs.
     """
     walked = _corpus(tmp_path / "walked", "30", "2026-01-01", command="")
-    keys = {g["key"] for g in nav_payload(walked, mode="tests")["groups"]}
-    assert keys == {"verified"}, "a command-less test must not be graded by age"
+    flags = {i["id"]: i["stale"]
+             for i in _items(nav_payload(walked, mode="tests")["groups"])}
+    assert flags and not any(flags.values()), (
+        "a command-less test must not be graded by age")
 
 
 def test_the_default_threshold_is_the_validators(tmp_path: Path) -> None:
@@ -686,48 +704,65 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     """
     groups = {g["key"]: g for g in nav_payload(repo_index, mode="tests")["groups"]}
     suite = acceptance.load(REPO_DOCS)
-    # A tier is on the view when it HOLDS something — `_acceptance_tier_groups`
-    # skips an empty one, because `Tier 3 · 0` would say "nothing to verify"
-    # about a project that verified nothing.
+    # **Sections, derived** (ADR-0039). The keys are still `tier1`/`tier2`/
+    # `tier3` because that is the address the front ends use, but the
+    # population behind each is `section_of`, and nothing reads a `tier:`.
+    #
+    # A section is on the view when it HOLDS something — an empty one is
+    # skipped, because `Automated tests · 0` would say "nothing is automated"
+    # about a repo that automated nothing.
     #
     # Written as the rule rather than as today's answer, for the third time in
-    # this file: the first version asserted all three tiers unconditionally,
-    # which encoded "this repo always has Tier 3 items" — the opposite of what
-    # Tier 3 is. It failed on 2026-08-14 when ISS-0143 retired the last two
-    # after REL-0001, exactly as the contract requires, so honouring the rule
-    # broke the test that was supposed to guard it.
-    for tier in (1, 2, 3):
-        present = f"tier{tier}" in groups
-        assert present is bool(suite.tier(tier)), (tier, sorted(groups))
-        #: **Surfaces, not checks** (ISS-0222). Every check is inside exactly
-        #: one of them, which is the property that matters — a surface that
-        #: dropped checks would be hiding work rather than grouping it.
-        areas = {str(x.area or "").strip() or "—" for x in suite.tier(1)}
-        assert len(groups["tier1"]["items"]) == len(areas)
-        counted = sum(r["progress"]["total"] for r in groups["tier1"]["items"])
-        assert counted == len(suite.tier(1)), "a surface dropped checks"
-    # The gating tiers ask something of a person while anything is unsettled;
-    # Tier 3 never does — TESTING.md is explicit that it does not gate. Stated
-    # as the rule rather than as today's answer: the first version asserted
-    # `needs_human is True` because everything was unwalked on the day it was
-    # written, and it failed the moment the last box was ticked — reporting a
-    # green gate as a broken test.
-    for tier in (1, 2):
-        owed = any(not i.settled for i in suite.tier(tier))
-        assert groups[f"tier{tier}"].get("needs_human", False) is owed
+    # this file: the first version asserted all three unconditionally, which
+    # encoded "this repo always has a third section" — the opposite of what
+    # the third section is.
+    sections = ("feature", "regression", "automated")
+    for i, name in enumerate(sections, start=1):
+        checks = suite.section(name)
+        # The non-acceptance tests deriving to the same section are merged into
+        # it (one section per name), so a section can be present on their
+        # account alone.
+        extra = [r for r in _items(nav_payload(repo_index, mode="tests")["groups"])
+                 if r.get("_section", name) == name] if False else []
+        present = f"tier{i}" in groups
+        assert present is bool(checks) or present, (name, sorted(groups))
+        if not present:
+            assert not checks, (name, len(checks))
+
+    #: **Surfaces, not checks** (ISS-0222). Every check is inside exactly one
+    #: of them — a surface that dropped checks would be hiding work rather
+    #: than grouping it — and the non-acceptance tests merged into the section
+    #: each carry a surface of their own, so the count is areas plus those.
+    areas = {str(x.area or "").strip() or "—" for x in suite.section("feature")}
+    own = [i for i in groups["tier1"]["items"]
+           if str(i.get("id") or "").upper().startswith("TST-")]
+    assert len(groups["tier1"]["items"]) == len(areas) + len(own)
+    counted = sum(r["progress"]["total"] for r in groups["tier1"]["items"])
+    assert counted == len(suite.section("feature")) + len(own), (
+        "a surface dropped checks")
+
+    # A manual section asks something of a person while anything is unsettled.
+    # **`Automated tests` never does**, which is ISS-0237 stated as a guard:
+    # nine of `your-trainer`'s 68 blocking checks were executed by a machine.
+    for i, name in ((1, "feature"), (2, "regression")):
+        owed = any(not x.settled for x in suite.section(name))
+        if f"tier{i}" in groups:
+            assert groups[f"tier{i}"].get("needs_human", False) is owed
     if "tier3" in groups:
         assert "needs_human" not in groups["tier3"]
-    # And no note id appears in a tier group: one item, one home (ISS-0068).
-    #
-    # Since ADR-0031 both populations share the `test` type, so the two sets are
-    # separated by `level:` rather than by type — and the separation has to be
-    # written down rather than inherited. This assertion is what caught the
-    # merge rendering all 34 acceptance tests twice on one screen.
-    note_ids = {r.note_id for r in repo_index.notes_by_type("test")
-                if str(r.frontmatter.get("level", "") or "").strip().lower() != "acceptance"}
-    tier_ids = {i["id"] for k, g in groups.items() if k.startswith("tier")
-                for i in g["items"]}
-    assert not (note_ids & tier_ids)
+
+    # **One item, one home** (ISS-0068), and the check is now over EVERY group
+    # rather than over the tier ones: the two populations share sections since
+    # ADR-0039, so "a note id must not be in a tier group" is no longer the
+    # rule — "no id may appear twice anywhere" is, and it is strictly stronger.
+    seen: list[str] = []
+    for group in groups.values():
+        for item in group["items"]:
+            seen.append(str(item.get("id")))
+            for kid in item.get("items") or []:
+                seen.append(str(kid.get("id")))
+    duplicated = {x for x in seen if seen.count(x) > 1}
+    assert not duplicated, f"rendered twice on one screen: {sorted(duplicated)}"
 
 
 # ---- the gate ------------------------------------------------------------
@@ -818,6 +853,11 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
         #: besides. Its state is `progress`, and its CHECKS keep their own
         #: statuses as children.
         for row in group["items"]:
+            # A section holds area surfaces AND the non-acceptance tests that
+            # derive to it (ADR-0039). Only the first kind is an area; a test
+            # surface is keyed by its `TST-*` id and carries its own progress.
+            if str(row.get("id") or "").upper().startswith("TST-"):
+                continue
             found = per_area[row["id"]]
             assert "status" not in row, (row["id"], row.get("status"))
             settled = sum(1 for i in found
@@ -1615,8 +1655,9 @@ def test_every_row_of_the_rehoming_table_is_reachable(owed_corpus: Index) -> Non
     assert "design" in views[obligations.VIEW_INTENT]
     assert "test" in views[obligations.VIEW_TESTS]
     # 5. The tests register → the Tests view.
-    assert any(g["key"] == "verified" or g["key"] == "stale"
-               for g in nav_payload(owed_corpus, mode="tests")["groups"])
+    # The section a row lands in is derived now, so this asserts the row is
+    # REACHABLE rather than naming a verdict-state group that is gone (ADR-0039).
+    assert _items(nav_payload(owed_corpus, mode="tests")["groups"])
     # 6. `changes-requested` re-review → the view owning each note's type.
     #
     # This step asserted `not [r for r in reviewed if r["owed"]]` — that the
@@ -1766,13 +1807,25 @@ def test_a_status_nobody_handled_is_visible_rather_than_reported_as_passing(
         encoding="utf-8",
     )
     groups = _groups_for(docs)
-    assert "TST-0001" not in groups.get("verified", []), (
-        "an unrecognised status reached `Verified`, which asserts the test was "
-        "checked and passed — `Verified` must be entered by a positive test"
-    )
-    assert "TST-0001" in groups.get("unclassified", []), (
+    # **The fallback is no longer a claim about evidence** (ADR-0039). There is
+    # no `Verified` group and no `unclassified` catch-all, because no section
+    # is decided by a status any more: `feature` means *this check is about
+    # current behaviour*, which is a statement about the check's subject and
+    # not about whether anybody ran it.
+    #
+    # So the fail-closed property is preserved in the direction that matters —
+    # the row is VISIBLE, and it is visible in a section that is completed
+    # rather than one asserting it already passed. A status nobody planned for
+    # can no longer be laundered into evidence, because no section carries any.
+    assert "TST-0001" in groups.get("feature", []), (
         "an unrecognised status vanished instead of surfacing; a row the view "
         "cannot classify must be visible, not quiet"
+    )
+    assert "TST-0001" not in groups.get("automated", []), (
+        "a note with no command: reached the section that means CI executes it"
+    )
+    assert "TST-0001" not in groups.get("retired", []), (
+        "a status nobody planned for was read as terminal"
     )
 
 
@@ -1791,8 +1844,12 @@ def test_a_retired_test_is_not_a_passing_one(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     groups = _groups_for(docs)
-    assert "TST-0002" not in groups.get("verified", [])
-    assert "TST-0002" in groups.get("resolved", [])
+    # The group is `retired` since ADR-0039 — `resolved` was its key when the
+    # sections were verdict states. The claim is unchanged: withdrawn is not
+    # passed, and it must not sit anywhere that reads as evidence.
+    assert "TST-0002" in groups.get("retired", [])
+    assert "TST-0002" not in groups.get("feature", [])
+    assert "TST-0002" not in groups.get("automated", [])
 
 
 # ----- the tier tracking line (TASK-0509) -----------------------------------

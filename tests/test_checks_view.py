@@ -197,7 +197,13 @@ def test_the_tier_heads_open_the_view_not_a_directory() -> None:
                 # the generated page at its tier rather than one check's
                 # note. This asserted a note url, from when the nav
                 # listed 579 individual checks.
-                assert row["url"].startswith("~checks/tier/"), row["url"]
+                if str(row.get("id") or "").upper().startswith("TST-"):
+                    # A non-acceptance test merged into this section
+                    # (ADR-0039) opens its own note: it IS one check, so the
+                    # generated page has nothing extra to show for it.
+                    assert row["url"].endswith(".md"), row["url"]
+                else:
+                    assert row["url"].startswith("~checks/tier/"), row["url"]
 # ---- the automation path (REQ-0039 / ADR-0031) ---------------------------
 def test_a_passing_covering_test_settles_the_check(tmp_path) -> None:
     """The return on the whole merge, asserted end to end on real notes.
