@@ -97,6 +97,45 @@ A fifth, upstream only: dropping the `level == "acceptance"` filter takes the la
 
 **And the live count is not 88 any more.** `validate-docs.sh` reports **93** in this repo after this phase's close-outs, against 88 when the rule landed three commits earlier. Nobody touched the rule; five features reached `done`. That drift is why `tests/test_feature_uncovered.py` builds constructed corpora instead of pinning the number — *"a guard that pins it would be edited, not obeyed."*
 
+## Corrected after independent review, 2026-08-20 — the half nothing guarded
+
+**The rule's POSITIVE half was asserted by no test, in the note that called the domain *"enumerated rather than sampled"*.** Executed: replacing `_features_covered_by_acceptance`'s body with `return covered` immediately after `covered = set()` — so a covered feature is never recognised — passes **all fourteen** tests in `tests/test_feature_uncovered.py`, in both validator copies **and** upstream, while taking this repo from 94 warnings to **125**.
+
+Row 5 of the six-case table below (*covered by an acceptance check -> 0*) was **measured** when the port was written and **asserted** nowhere. Row 6 asserts `== 1`, so it survives the mutant unchanged. Every other case in the file builds a check whose `covers:` is empty, so coverage was only ever exercised as the empty set — a suite of negative cases cannot see a rule that reports on everything.
+
+**Enumerating a domain and guarding it are two different acts**, and this note conflated them one section below the sentence claiming otherwise. That is the ninth check-that-cannot-fire this phase has produced, and the first where the enumeration was right and the assertions were missing.
+
+Three guards added, and the fixture that made the gap possible is widened — `_repo(..., covers=)` defaults to nothing, which is what every case used until now:
+
+| new test | what it fires on |
+|---|---|
+| `test_a_covered_feature_is_quiet` | the positive case, downstream |
+| `test_coverage_is_matched_on_the_id_not_the_whole_link` | `[[FEAT-0001-Thing]]` must count as `FEAT-0001`, which is the form most real notes carry |
+| `test_upstream_recognises_coverage_too` | the positive case, upstream |
+
+Mutants re-executed with `__pycache__` cleared and `PYTHONDONTWRITEBYTECODE=1`: the downstream mutant now fails **2** tests, the upstream mutant **1**, and restoring both returns 17 passed.
+
+## The fleet figures moved again, and one of them cannot move
+
+Re-measured 2026-08-20 across the twelve `SNAPSHOT.yaml` repos:
+
+| | when the rule landed | now |
+|---|---|---|
+| fleet, `done` and uncovered | 220 | **225** |
+| the three repos holding a suite | 134 | **139** |
+| this repo | 88 | **94** |
+| in repos with **no** suite | **86** | **86** |
+
+The whole delta is this repo's own close-outs; the nine no-suite repos did not move, so **86 is stable at either basis** and it is the number the *"only where there is something to cover with"* argument actually rests on. Both validator copies and upstream's now say so.
+
+**`93` was in the note and in a test docstring, and the corpus never held it.** Measured per commit: 88, then 92, then 94. 93 is a mid-session working tree with one of two features already flipped to `done` — written into the very docstring that explains the number moves. Corrected in both places.
+
+## Where the uncommitted-upstream exposure actually is
+
+This note said the exposure is *"the same exposure [[TASK-0514]] and [[TASK-0522]] already carry"*. **Neither of them said any such thing** — independent review checked and found no mention of *uncommitted*, *no commit* or *working tree* in either, and `TASK-0514` says its artefacts *"landed"* upstream with no caveat while upstream's `surface.md` is untracked to this day. The claim cited two notes as carrying a warning they did not carry.
+
+Fixed by making it true rather than by dropping it: both notes now carry the caveat, and so does the change note. What is exposed, precisely — upstream's `validate-docs.py`, `SCHEMAS.md`, `feature.md`, `TAXONOMY.md` and the scaffold skill are **modified and uncommitted**, and `docs/__templates__/surface.md` is **untracked**, in `~/Dev/repos/project-os`. None of it reaches any fleet repo until somebody commits it there.
+
 ## Independent review — third pass, 2026-08-20
 
 Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **changes-requested**. Every claim below was re-measured or re-executed.
@@ -137,3 +176,25 @@ The table pairs **236** with **148**, which is one row from each variant. The no
 Related: line 40 still sizes the `ADR-0011` argument on *"a date on 147 findings"* while the table above it now says 148, and the number the argument should use is the narrow **134** — three figures for one quantity inside one note.
 
 **The code comment was not corrected.** `tools/scripts/validate-docs.py:3025-3026` and its bundled twin still read *"236 … 147 … 93 of them here"*, and line 389 still says *"236 terminal features"*. That is the uncorrected wide triple sitting in the rule's own source, contradicting this note's now-primary 88.
+
+## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]). Every number below was re-measured, and every mutant re-executed with `__pycache__` cleared and `PYTHONDONTWRITEBYTECODE=1`. Upstream was backed up before mutation and checksum-verified after restore.
+
+**Verdict: changes-requested.** The port is real and the mutant table is exact. One case in the six-case table is asserted by nothing.
+
+### The mutant table reproduces exactly
+
+Re-executed against `~/Dev/repos/project-os` (backed up first, restored and checksum-verified after). Each of the four fails **exactly one** test and no other, matching the table row for row. The fifth — dropping the `level == "acceptance"` filter upstream — is confirmed to take the last row 1 -> 0 **and to kill no test**, which is what the note says.
+
+### BLOCKING — row 5 of the six-case table is measured and guarded by nothing
+
+*covered by an acceptance check -> 0* is the row that says the rule's escape actually works, and no test asserts it, here or upstream. Replacing `_features_covered_by_acceptance` with `return set()` passes all 14 tests in `tests/test_feature_uncovered.py`, both validator copies, and upstream; this repo goes from **94** findings to **125** in silence. Row 6 asserts `== 1` and so survives the mutant unchanged.
+
+The table is truthful as a record of *behaviour measured on the day*. What it cannot show, and what a reader takes from *"the domain was enumerated rather than sampled"*, is that five of the six rows are standing guards and one is a one-time observation. The rule's positive half — a covered feature is quiet — is the half with no guard.
+
+Fix shape: one fixture with an acceptance check whose `covers:` names the feature, asserting 0, against both validators. The corpus already proves it is constructible — `tests/test_surface_type.py::test_a_covered_surface_drops_off_the_head_count` is the same idea for surfaces.
+
+### Also
+
+The uncommitted-upstream disclosure in *"What it costs, said plainly"* is accurate and was verified: `FEATURE-UNCOVERED` appears **0** times in upstream at `HEAD` and once in the working tree; `acceptance_exception` likewise. *"beside seven other uncommitted files"* is right (7 modified + 1 untracked). [[REQ-0051]]'s claim that [[TASK-0514]] and [[TASK-0522]] already carry the same exposure is **not** supported by either note — see the finding recorded there.

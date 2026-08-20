@@ -7,6 +7,9 @@ status: open
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["measured while closing FEAT-0130, 2026-08-20"]
 severity: medium
 component: cockpit
@@ -61,10 +64,43 @@ Silent. The only signal is a number changing on a screen nobody is looking at fo
 
 - The join, quoted above, and its own docstring: *"a surface whose title matches no `area:` reads as zero, which is correct rather than a gap in the join."* True at the moment it was written and it is precisely the ambiguity above.
 - [[TASK-0515]] recorded this as the thing it left: *"the join is by name — so renaming a surface silently orphans 91 checks. Closing that is a schema change on the check (`area:` becomes a link), which is [[FEAT-0130]]'s endpoint rather than this task's."*
-- **The corpus is clean right now**, which is what makes a day-one error affordable. Measured in `your-trainer` 2026-08-20: **15** surface titles, **15** distinct non-empty `area:` values, and `comm -23` over the two sorted sets returns **nothing** — no area names a surface that does not exist. The two `level: acceptance` notes outside the directory (`TST-0015`, `TST-0018`) carry `area: ""` and are the empty case a rule must skip rather than report.
+- **The corpus is clean right now — in a working tree, and in no commit.** Measured in `your-trainer` 2026-08-20: **15** surface titles, **15** distinct non-empty `area:` values, and `comm -23` over the two sorted sets returns **nothing** — no area names a surface that does not exist. **`git log --all -- 'docs/surfaces/*'` returns nothing too**: those fifteen notes have never been committed on any branch, and at that repo's HEAD there are zero surfaces and 579 checks naming none of them. So *"the corpus is clean"* is true of one machine's disk and of no commit — which does not change the affordability argument (a rule fires against what is there) but does mean the clean state is not yet durable. The two `level: acceptance` notes outside the directory (`TST-0015`, `TST-0018`) carry `area: ""` and are the empty case a rule must skip rather than report.
 - No other fleet repo holds a `SUR-*` note, so a rule guarded on *"this repo has surfaces"* is silent in eleven of twelve.
 
 ## Next Actions
 
 - [ ] Decide the shape: a validator rule (`SURFACE-ORPHAN`) reporting an `area:` that names no surface, or the schema change that makes `area:` a `[[SUR-####]]` link. The rule is cheap and catches the same defect from the side where the population lives; the link is the real fix and touches 579 notes in another repo.
 - [ ] Whichever is chosen, construct the rename and **watch the check fire** — an orphan reading as an honest zero is the failure this phase has met eight times.
+
+## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** Reproduced end to end on the real corpus, against a copy of `your-trainer`'s `docs/` — that repo was not modified.
+
+Driving `surface_coverage` over `SUR-0011` with its `title:` rewritten:
+
+| `title:` | coverage |
+|---|---|
+| `Riding — routes` | **91** |
+| `Riding — Routes` | 91 |
+| `RIDING — ROUTES` | 91 |
+| `␠␠Riding — routes␠␠` | 91 |
+| `Riding - routes` (em dash -> hyphen) | **0** |
+| `Riding — routes & free ride` | 0 |
+
+So the correction this note makes to its own first version is right: case and surrounding whitespace survive, the em dash does not, and the drop is **91 to 0** exactly as the Repro says. The design-view head moves to *"1 with no checks"* in the failing cases.
+
+*"**8 of `your-trainer`'s 15** surface titles contain an em dash"* — confirmed by enumerating `docs/surfaces/SUR-*.md`: `Data — backup/export`, `Integrations — AI`, `Integrations — Strava`, `Riding — routes`, `Riding — simulation`, `Riding — structured`, `Workouts — authoring`, `Workouts — execution`. Eight.
+
+*"the corpus is clean right now — 15 titles, 15 distinct non-empty `area:` values, no orphan on either side"* — confirmed; the two sets are equal.
+
+One case found that the note does not list and that its own wording already covers (*"any other character"*): internal double-spacing around the em dash, `Riding␠␠—␠␠routes`, also drops to 0. Only *surrounding* whitespace is stripped.
+
+### One addition to the Evidence, which bears on the Next Actions
+
+The **Repro** correctly says *"working tree"*. The **Evidence** bullet — *"Measured in `your-trainer` 2026-08-20: 15 surface titles, 15 distinct non-empty `area:` values"* — does not, and the distinction matters here more than usual: `git ls-tree HEAD docs/surfaces/` in that repo returns nothing and `git log --all -- 'docs/surfaces/*'` returns nothing. The fifteen `SUR-*` notes exist **in no commit, ever**.
+
+So *"the corpus is clean right now, which is what makes a day-one error affordable"* holds for the working tree and inverts for the committed state: at `HEAD` that repo has **zero** surfaces and 579 checks whose `area:` values name none of them. A `SURFACE-ORPHAN` rule guarded on *"this repo has surfaces"* would be silent there in CI — not because the corpus is clean, but because the population is invisible.
+
+That does not change the shape of either option in Next Actions, and it is an argument for the rule being guarded on *"this repo has surfaces"* rather than against it. It does mean the affordability argument should be re-measured once those notes are committed.

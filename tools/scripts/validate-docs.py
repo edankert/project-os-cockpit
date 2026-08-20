@@ -386,11 +386,16 @@ def _repo_has_an_acceptance_suite(note_index):
 
     The uncovered-feature rule is meaningless where there is nothing to cover
     WITH. Measured across the twelve `SNAPSHOT.yaml`-bearing repos 2026-08-20:
-    **220** terminal features have no acceptance check under this rule, and
-    **only three repos hold a suite** -- so **86** of those findings would be
-    scolding repos for not using a mechanism they have never adopted.
-    (220 - 134; it read 89 until 2026-08-20, which was the gap between the two
-    WIDE figures carried over onto the narrow ones.)
+    **225** terminal features have no acceptance check under this rule, and
+    **only three repos hold a suite** -- so **86** of them sit in repos with
+    nothing to cover WITH, and firing there would scold them for not using a
+    mechanism they have never adopted.
+
+    **86 is the stable number here.** The fleet and suite totals move under
+    every commit -- 225 / 139 now, 220 / 134 hours earlier -- while the nine
+    repos with no suite do not move at all, so the gap is 86 at either basis.
+    It read 89 until 2026-08-20, which was the difference between the two WIDE
+    figures carried over onto the narrow ones.
     """
     for _id, entry in (note_index or {}).items():
         fm = (entry[1] if entry else None) or {}
@@ -3073,9 +3078,12 @@ def validate(root, report):
     #: [[ADR-0030]]).
     #:
     #: **A warning, and deliberately undated.** [[ADR-0011]] clause 3 forbids
-    #: promoting over debt: **220** terminal features fleet-wide have no
-    #: acceptance check under the rule as it SHIPS (`done` alone), **134**
-    #: counting only the three repos that hold a suite, **88** of them here.
+    #: promoting over debt: **225** terminal features fleet-wide have no
+    #: acceptance check under the rule as it SHIPS (`done` alone), **139**
+    #: counting only the three repos that hold a suite, **94** of them here
+    #: (2026-08-20; it was 220 / 134 / 88 earlier the same day and the whole
+    #: delta is this repo's own close-outs -- the number moves under every
+    #: commit, which is why no test pins it).
     #: (236 / 147 / 93 is the same count with `superseded` and `cancelled`
     #: treated as terminal too -- corrected after independent review, which
     #: found the note quoting the wide figures beside the narrow one.) A date would either fail every build on arrival or be moved when

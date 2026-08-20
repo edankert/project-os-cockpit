@@ -58,6 +58,14 @@ So a rule added upstream reaches every fleet repo whose validator still matches 
 
 The template edit ran **twice against upstream** — the second block inherited the shell's `cd` — so `acceptance_exception:` appeared there twice and downstream not at all. And the guard for the old wording matched **my own quotation of it** inside the new step: the over-broad text match that has now bitten four guards in this phase. It asserts the wording is absent as a live *instruction*, not as a quotation.
 
+### The upstream edit is uncommitted, and this note did not say so
+
+Added 2026-08-20 after independent review, which found [[TASK-0523]] and [[REQ-0051]] citing this note as already carrying that caveat when it carried nothing of the kind — no *uncommitted*, no *working tree*, no *no commit* anywhere in it.
+
+`tools/skills/feature-scaffold/SKILL.md` and `docs/__templates__/feature.md` are **modified and uncommitted** in `~/Dev/repos/project-os`, alongside `SCHEMAS.md`, `TAXONOMY.md`, `test.md`, `acceptance-tests.md` and `validate-docs.py`, plus an **untracked** `surface.md`. *"Upstream first"* is true of the edit and not yet of the record.
+
+This is the `kind:` failure mode this task's own opening line invokes — *"three passes because six repos held the edit on disk and in no commit"* — and it needs a commit in `project-os` that nothing in this repo can make.
+
 ## Independent review — fifth pass, 2026-08-20
 
 Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
@@ -69,3 +77,16 @@ Upstream-first is real, not asserted. `diff -q` reports the scaffold skill **byt
 **The scaffold and `FEATURE-UNCOVERED` name the same field**, verified by grep on both sides. That is what makes the escape usable: the rule tells you the field, the scaffold ships it empty, and nothing has to be remembered.
 
 Pre-filling the escape would defeat it — an exception that arrives already written is one nobody chose — and shipping it empty rather than omitting it is the difference between an escape a person finds and one they have to be told about.
+
+## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** The reversal is sound and the manifest quotation is verbatim.
+
+`tools/sync/MANIFEST.yaml` line 5 reads exactly as quoted: *"`template` — template-owned: overwritten when the downstream copy matches the recorded baseline; locally diverged copies are skipped and reported for hand-merge (`--force` overrides)"*, and `"tools/scripts/": template` is line 18. So the hazard the superseded section named genuinely does not exist, and this note is right to keep the `--force` clause that [[CHG-20260820]] drops.
+
+Two things to note without blocking:
+
+- The line counts are stale: measured at this commit, this repo's validator is **3267** lines and upstream's is **2493** at `HEAD` (**774** ahead) or **2581** with the port applied (**686** ahead), not *"3213 against 2500"* / *"720 ahead"*. The argument does not depend on the figure.
+- *"**Landed upstream 2026-08-20**"* is true of the working tree and of no commit — `FEATURE-UNCOVERED` appears **0** times in upstream at `HEAD`. [[TASK-0523]] and [[REQ-0051]] disclose that; this note does not, and [[REQ-0051]] cites this note as one of two that *"already carry it"*. It does not — recorded as a finding on [[REQ-0051]].

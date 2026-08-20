@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-20"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: approved
+review_verdict: changes-requested
 parent: "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -89,9 +89,13 @@ The pass that looked for stragglers tested whether `area:` began with `SUR-`, an
 
 **The table above is the *proposal*, and it is not what was applied.** **Thirteen of its fifteen surface names exist nowhere in `your-trainer`** — `Route & Free Ride`, `Power · Quick Ride & Editor`, `Trainer Compatibility` and ten others; only `Localization` survives verbatim and `Riders & Profiles` survives with a case change. The applied set is the fourteen Edwin approved plus `Not a product surface`, and the section below it records the *counts* of that pass without recording the *mapping*. So [[REQ-0049]] criterion 2 — *"every original area maps onto one, with the mapping recorded rather than inferred"* — was not met by this note until now, and the only copy of the mapping was an uncommitted working-tree diff in another repo. This section is that record.
 
-**Basis, stated because this phase has been bitten four times by not stating it.** Recovered from `git diff` in `your-trainer` against **`HEAD`** (`49cf2ce9`), which is where the original strings still are — the migration is uncommitted there. At `HEAD` the corpus carries **76** distinct `area:` values over **579** notes in `docs/tests/acceptance/`, none of them empty; the working-tree figure of **94** quoted in the section above is the count *after* [[TASK-0517]] resolved the parking bay into recovered heading names, which is a different pass against a different base. Both numbers are right about different things, and only one of them is reversible: the parking bay's recovered names exist in no commit, so the durable original is the one at `HEAD`.
+**Basis, stated because this phase has been bitten four times by not stating it — and then stated WRONG, which is the fifth.** Recovered from `git diff` in `your-trainer` against **`49cf2ce9`**, the last commit before any part of the surface migration was committed.
 
-`TST-0015` and `TST-0018` — the two `level: acceptance` notes outside the directory — carry **no `area:` field at `HEAD`** and gained `area: ""` in the working tree. They are not in this table because the migration did not touch them, which is the same two-check gap the correction above records.
+*(**This paragraph originally called `49cf2ce9` `HEAD`. It is not, and it was not when the table was built.** `your-trainer`'s HEAD is `0dad8104`, committed 2026-08-20 20:57 — fifteen minutes before the commit that recorded this table — and it migrated `area:` on six notes. So a reader following the instruction *"diff against HEAD"* today gets **73 distinct originals over 573 notes**, not 76 over 579, and does not reproduce the table below. Found by independent review. The table is unchanged and needs no correction: re-derived against `49cf2ce9` it matches **cell for cell**, every count and every note id, with an empty symmetric difference. What was wrong was the word `HEAD`.)*
+
+**And `49cf2ce9` is the right basis to record, not merely the one I happened to use.** It is the last state in which all **579** originals are recoverable from one place. Since then `0dad8104` committed six of them — `TST-0434`, `TST-0435` (`Add Rider with Zero Users`), `TST-0436` (`Empty Workout History`), `TST-0444`, `TST-0445`, `TST-0446` (`HRM State on User Switch`) — so those three rows are already in git history and the other 573 are still only in a working tree. At `HEAD` the corpus carries **76** distinct `area:` values over **579** notes in `docs/tests/acceptance/`, none of them empty; the working-tree figure of **94** quoted in the section above is the count *after* [[TASK-0517]] resolved the parking bay into recovered heading names, which is a different pass against a different base. Both numbers are right about different things, and only one of them is reversible: the parking bay's recovered names exist in no commit, so the durable original is the one at `HEAD`.
+
+`TST-0015` and `TST-0018` — the two `level: acceptance` notes outside the directory — carry **no `area:` field at `49cf2ce9`** and gained `area: ""` in the working tree. They are not in this table because the migration did not touch them, which is the same two-check gap the correction above records.
 
 ### 75 of the 76 map one-to-one
 
@@ -197,6 +201,12 @@ Total **513** checks. Every row is a rename: no original value on this list reac
 
 Total **66**. 513 + 66 = **579**, which is the number of notes the migration rewrote.
 
+### The surfaces themselves are in no commit, anywhere
+
+Disclosed after independent review, because nothing above said it and every claim here depends on it: `git log --all -- 'docs/surfaces/*'` in `your-trainer` returns **nothing**. The fifteen `SUR-*` notes have never been committed on any branch, and neither has the `area:` rewrite of the other 573 checks. **At `your-trainer`'s HEAD that repo has zero surfaces and 579 checks naming none of them.**
+
+So this whole migration is a working tree. That does not weaken the record — it is the reason the record was worth making, since a `git checkout` there would take the mapping with it — but it does bound every downstream claim, and the notes that made those claims now say so ([[FEAT-0130]], [[ISS-0250]]).
+
 ### What this record does and does not do
 
 It makes the consolidation **reversible by reading**, which is what [[REQ-0049]] criterion 4 protects: for any of the 579 checks, the original string is recoverable from one of the two tables above without opening a diff. What it does **not** do is put the original *on the note*, which is what that criterion literally asks for — see the reconciliation recorded on [[REQ-0049]].
@@ -231,3 +241,33 @@ Scoring each surface's titles against its own vocabulary, independent review fou
 A title heuristic is not a reading of the checks, so this is a signal rather than a verdict — but it points at the split I flagged as the one Edwin would most likely change, and it is the split I made without him. **`Not a product surface` is also a category rather than a place**, which the type's own template calls `surface-less` for exactly that reason.
 
 Left as a finding on the mapping rather than a silent re-cut: re-drawing 91 rows on a heuristic would be inventing a taxonomy while claiming to recover one, which is the error [[TASK-0517]] recorded.
+
+## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: changes-requested.** The mapping is exact. Its stated basis is not.
+
+### The table was re-derived from scratch and is correct in every cell
+
+Independently reconstructed by parsing `area:` out of every note in `docs/tests/acceptance/` at `49cf2ce9` and joining per file against the working tree, without reading this note's table first:
+
+- **580** files, **579** notes once `README.md` is excluded; **76** distinct `area:` values, none empty; **15** in the working tree.
+- **75** originals map one-to-one, totalling **513** checks. Compared row by row against the table above: **zero** rows missing, zero extra, zero disagreements on surface or on count.
+- The 76th fans across **13** surfaces over **66** checks, and every note ID in the second table matches — all thirteen rows, all 66 IDs.
+- 513 + 66 = **579**. Confirmed.
+- *"Thirteen of its fifteen proposal names exist nowhere"* — confirmed for the applied surface set: only `Localization` survives verbatim, `Riders & Profiles` survives as `Riders & profiles`, and the other thirteen match no applied surface under any casing.
+
+### BLOCKING — the basis is mislabelled, and the reason given for it is false
+
+*"Recovered from `git diff` in `your-trainer` against **`HEAD`** (`49cf2ce9`), which is where the original strings still are — the migration is uncommitted there."*
+
+`49cf2ce9` is dated 2026-08-18 15:44 and was **not** `HEAD` when this was written. `your-trainer`'s `HEAD` was `0dad8104`, committed 2026-08-20 **20:57** — fifteen minutes before `b4b9c50` at 21:12 — with four further commits in between.
+
+And `0dad8104` is *"TST-0434 TST-0435 TST-0436 TST-0444 TST-0445 TST-0446: name the feature each check verifies"*, which **committed the migrated `area:` on six notes**. So *"the migration is uncommitted there"* is false for `TST-0434`, `TST-0435`, `TST-0436`, `TST-0444`, `TST-0445` and `TST-0446`.
+
+The consequence is concrete rather than pedantic. Re-deriving the same table against the real `HEAD` gives 75 one-to-one rows again, but **three different keys**: `Riders & profiles` (2), `History & analytics` (1) and `Hardware` (3) stand where `Add Rider with Zero Users`, `Empty Workout History` and `HRM State on User Switch` are recorded here. A reader who follows this note's own instruction today does not reproduce this table.
+
+It cuts both ways, and the better half is worth stating: those three original strings now survive **only** in this table and in commits before `0dad8104`. The record is more load-bearing than the note claims, not less. What needs correcting is the sentence — name `49cf2ce9` as the basis it is, drop *"HEAD"*, and drop *"the migration is uncommitted there"*.
+
+The same stale basis carries into [[FEAT-0132]] (recorded there) and into [[REQ-0051]]'s fleet pair.

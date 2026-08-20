@@ -7,6 +7,9 @@ status: backlog
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 goal: "A claim that a machine covers a check is produced by a run rather than asserted in frontmatter, so deleting or disabling the covering test puts the check back on the run list on its own."
 requirements: ["[[REQ-0057-Coverage-Is-Observed-From-A-Run]]"]
@@ -64,3 +67,15 @@ Same shape as the miss the phase's own widening note records one level up: *"FEA
 Both now name `PHASE-037`, in the notes and in `SNAPSHOT.yaml` — `sync-snapshot.py` propagates status but **not** `phase`, so that second edit is by hand. [[TASK-0541]] keeps `PHASE-038`: it is `done`, and a finished task records where the work actually happened.
 
 **The consequence is deliberate and it is not small.** `PHASE-037` cannot close while either is unresolved, and neither can start: this feature's own note says what they wait on — a declaration convention that works in pytest *and* JVM without a shared library, and [[ISS-0209]], which is why an emitter would run here and nowhere the data lives.
+
+## Independent review — fresh-context pass, 2026-08-20 (`4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** The re-homing claim was verified by construction, not by reading.
+
+Forcing `PHASE-037` to `done` in a scratch copy of `HEAD` (in the phase note **and** in `SNAPSHOT.yaml` — `PHASE-CHILDREN` resolves the phase's status through `effective_status`, which reads the snapshot) produces an error naming **`TASK-0542 (backlog)`** and **`TASK-0543 (backlog)`** among fourteen unresolved children. Before the re-homing both named `PHASE-999`, whose status is `planned` and therefore outside `CLOSED_PHASE_STATUSES` — so *"invisible to every gate"* is literally right.
+
+`sync-snapshot.py` propagates `status` and not `phase`, so the hand edit to `SNAPSHOT.yaml` was required rather than belt-and-braces. Both entries carry `PHASE-037` there.
+
+Nothing in this note claims the feature is started, and nothing in the diff starts it. `status: backlog` is unchanged and correct.

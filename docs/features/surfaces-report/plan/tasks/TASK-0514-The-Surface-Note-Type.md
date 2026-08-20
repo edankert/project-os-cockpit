@@ -54,6 +54,14 @@ A type with no instance is a schema nobody has tested, so this is one rather tha
 
 **Nothing reads `area:` as a `SUR-*` link yet.** A check still carries the string, and the type is defined beside it. Making the two meet is [[TASK-0515]] (mapping `your-trainer`'s 94 areas onto a set of surfaces) and [[TASK-0516]] (rendering them). This task is the schema, and claiming more would be the overclaiming this phase exists to remove.
 
+## The template is untracked upstream — added 2026-08-20
+
+*"`docs/__templates__/surface.md` and the `TAXONOMY.md` entries **landed** in `~/Dev/repos/project-os`"* is how this note put it, with no caveat. Independent review checked: `surface.md` is **untracked** there and `TAXONOMY.md` is **modified and uncommitted**. Nothing has landed in the sense a downstream repo can receive — `sync-project-os.sh` copies from a checkout, and an untracked file in the source is not part of any commit a fleet repo could sync.
+
+The test that guards this compares the two files **byte for byte on disk**, so it passes exactly as well against an untracked upstream file as against a committed one. It is the right test for drift and it says nothing about durability.
+
+**And `your-trainer`'s fifteen `SUR-*` notes are in no commit either** — `git log --all -- 'docs/surfaces/*'` there returns nothing. The type is real and committed here; every instance of it, everywhere, is a working tree.
+
 ## Independent review — third pass, 2026-08-20
 
 Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.

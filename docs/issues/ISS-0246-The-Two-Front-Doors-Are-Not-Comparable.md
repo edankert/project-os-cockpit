@@ -9,7 +9,7 @@ created: 2026-08-20
 updated: "2026-08-20"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 source: ["measured while closing TASK-0511, 2026-08-20"]
 severity: high
 component: cockpit
@@ -130,3 +130,16 @@ Upgraded from my third-pass `approved` on one new finding. Everything I verified
 The eight live ones are `FEAT-0084` (planned), `TASK-0364`, `TASK-0365` (backlog), `REQ-0032` (draft) — the four annotated — plus `CHG-20260820-The-Suite-Is-The-Verdict` (active), `TST-0073` (active), `ISS-0240` (open) and this note itself (open).
 
 The four chosen are defensible on a *narrower* test than the one stated — *is this a live obligation about parity* rather than *is this terminal* — and excluding this note is obviously right. But the note argues from terminality, and by that argument four notes were missed. Either state the narrower rule, or annotate the rest.
+
+## Independent review — fresh-context pass, 2026-08-20 (`4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** The closure rests on recorded scope, the struck block is genuinely superseded, and the one item that could not be performed is re-homed rather than ticked.
+
+- **The duplicate `Done when` block.** Confirmed that the removed lower block was the original and that its first item — *"the decision is taken — ADR-0010 accepted, amended or declined"* — is answered by the correction section above it. Striking it with each item traced to where it stands is the right disposal; deleting it silently would not have been.
+- **The `[~]` on the `RISK-0005` measurement is legitimate.** It is a precondition on work that has not started, this issue has no write path to measure, and the obligation is now written explicitly on [[RISK-0005]] rather than dropped. The receiving note does carry it — checked, not assumed. This is re-homing, not fiat.
+- **The link fix is real.** `[[ADR-0010-Two-Front-Doors]]` resolves to no file in this repo or in `project-os-dev`; `docs/decisions/ADR-0010-What-The-Browser-Cockpit-Is-For.md` exists, and `project-os-dev` carries a different `ADR-0010-Test-Status-Stamped-By-Execution.md`, so the *"the fleet has two ADR-0010s"* claim is right. No reference to the dead name remains in `docs/`.
+- The scope this closes on is [[FEAT-0083]]'s and the note is explicit that the eleven views are **not built** and that it claims nothing about them.
+
+The validator is green on the working tree and the full suite passes (1978 passed, 3 skipped).

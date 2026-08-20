@@ -9,6 +9,9 @@ phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["Preflight risk scan for PHASE-023, per LIFECYCLE's security trigger"]
 component: server
 mitigation: "[[REQ-0027-Every-Write-Guarded]]"
@@ -64,3 +67,15 @@ Re-homed from [[ISS-0246]], which raised it and could not perform it: it is a pr
 **Before any write endpoint is offered on a LAN-reachable surface, [[REL-0001]]'s measurement is driven again.** Every mutation endpoint, over the real LAN interface, against the *new* authorisation model — not the loopback check it replaces. Ten of ten returned 403 in August 2026 **because the peer was not on loopback**; an authenticated path answers a different question, so a pass inherited from that run would be evidence about a mechanism that is no longer there.
 
 This bears directly on the eleven reading views [[FEAT-0083]] now scopes. Those are reads and nothing gates them. What is gated is `~release`, and the **write halves** of `~checks` and `~review` — marking a check, recording a verdict — which is why splitting those two at the view boundary rather than porting them whole is the difference between eleven reads and eleven reads plus three writes nobody authorised.
+
+## Independent review — fresh-context pass, 2026-08-20 (`4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** The obligation re-homed from [[ISS-0246]] is genuinely present here, which is what makes that issue's `[~]` a re-homing rather than a quiet drop.
+
+The section states the measurement to be re-run, the population (*every mutation endpoint, over the real LAN interface*), and — the part that matters — **why an inherited pass would be worthless**: the ten-of-ten returned 403 because the peer was not on loopback, so an authenticated path is answering a different question. That is the correct reason to refuse inheritance and it is stated rather than gestured at.
+
+It sits consistently beside the existing position in this note: `closed` today on loopback enforcement, re-opening **before** [[REQ-0034]] is implemented rather than after, re-closing on the new evidence. The trigger (*"any proposal to let mode 1 write"*) already named the moment, so the item has landed on the note that was already watching for it.
+
+No claim is made here that the measurement has been performed, and none should be.

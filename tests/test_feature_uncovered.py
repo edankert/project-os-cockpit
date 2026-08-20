@@ -2,8 +2,12 @@
 
 Built on constructed corpora rather than on this repo's, because the live
 number is exactly the kind of figure that drifts under every commit — and a
-guard that pins it would be edited, not obeyed. It was 88 when this rule
-landed and is **93** three commits later, without anyone touching the rule.
+guard that pins it would be edited, not obeyed. Measured per commit with each
+commit's own validator: **88** when the rule landed, **92**, then **94** — and
+nobody touched the rule. (**93 appears in no commit.** It was written here from
+a mid-session working tree with one of two features already flipped to `done`,
+and independent review caught it: a number the corpus never held, in the
+docstring explaining that the number moves.)
 """
 
 from __future__ import annotations
@@ -17,8 +21,16 @@ VALIDATOR = ROOT / "tools" / "scripts" / "validate-docs.py"
 BUNDLED = ROOT / "src" / "project_os_cockpit" / "validate_docs_bundled.py"
 
 
-def _repo(tmp: Path, *, suite: bool, status: str, exception: str = "") -> Path:
-    """A minimal repo: one feature, and optionally one acceptance check."""
+def _repo(tmp: Path, *, suite: bool, status: str, exception: str = "",
+          covers: str = "") -> Path:
+    """A minimal repo: one feature, and optionally one acceptance check.
+
+    `covers` is what the acceptance check names. It defaults to nothing, which
+    is the fixture every case here used until 2026-08-20 — and that is exactly
+    why the rule's POSITIVE half went unguarded: no test ever built a feature
+    that WAS covered, so `_features_covered_by_acceptance` returning the empty
+    set passed all of them.
+    """
     docs = tmp / "docs"
     (docs / "features" / "f").mkdir(parents=True)
     (tmp / "SNAPSHOT.yaml").write_text(
@@ -33,7 +45,7 @@ def _repo(tmp: Path, *, suite: bool, status: str, exception: str = "") -> Path:
         (docs / "tests" / "acceptance" / "TST-0001-C.md").write_text(
             '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\n'
             'level: acceptance\nstatus: active\narea: "A"\nmark: todo\n'
-            'covers: []\n---\n\n# C\n', encoding="utf-8")
+            f'covers: [{covers}]\n---\n\n# C\n', encoding="utf-8")
     return tmp
 
 
@@ -46,6 +58,39 @@ def _findings(repo: Path) -> int:
 
 def test_it_fires_on_a_done_feature_nothing_covers(tmp_path: Path) -> None:
     assert _findings(_repo(tmp_path, suite=True, status="done")) == 1
+
+
+def test_a_covered_feature_is_quiet(tmp_path: Path) -> None:
+    """**The rule's positive half, and until 2026-08-20 nothing guarded it.**
+
+    Every other case here builds a check that covers NOTHING, so coverage was
+    only ever exercised as the empty set. Executed: replacing
+    `_features_covered_by_acceptance`'s body with `return covered` immediately
+    after `covered = set()` — so a covered feature is never recognised — passed
+    **all fourteen** tests in this file, in both validator copies and upstream,
+    while taking this repo from 94 warnings to **125**.
+
+    A rule that reports on everything is as useless as one that reports on
+    nothing, and it is the failure mode a suite full of negative cases cannot
+    see. This is the case that fires.
+    """
+    repo = _repo(tmp_path, suite=True, status="done", covers='"[[FEAT-0001]]"')
+    assert _findings(repo) == 0, (
+        "a feature covered by an acceptance check is still being reported; "
+        "the coverage half of the rule is not running"
+    )
+
+
+def test_coverage_is_matched_on_the_id_not_the_whole_link(tmp_path: Path) -> None:
+    r"""`[[FEAT-0001-Thing]]` and a bare `FEAT-0001` name one feature.
+
+    The reverse index reads `FEAT-\d+` out of each `covers:` entry, so the slug
+    is display and the id is the member. A match on the whole wikilink would
+    quietly fail against the slugged form, which is what most real notes carry.
+    """
+    repo = _repo(tmp_path, suite=True, status="done",
+                 covers='"[[FEAT-0001-Thing]]"')
+    assert _findings(repo) == 0
 
 
 def test_it_is_silent_while_the_feature_is_unfinished(tmp_path: Path) -> None:
@@ -66,17 +111,21 @@ def test_an_exception_silences_it(tmp_path: Path) -> None:
 
 def test_it_says_nothing_in_a_repo_with_no_suite(tmp_path: Path) -> None:
     """Nine of the twelve fleet repos hold no acceptance check at all. Firing
-    there would scold them for not using a mechanism they never adopted —
-    **220** findings fleet-wide against **134** in the three that have a
-    suite, under the rule as it ships (`done` alone). The 236/147 pair is
-    the same count with a wider terminal set and is NOT this rule's number.
+    there would scold them for not using a mechanism they never adopted.
+    Re-measured 2026-08-20 across the twelve `SNAPSHOT.yaml` repos: **225**
+    fleet-wide against **139** in the three that hold a suite, under the rule
+    as it ships (`done` alone) — so **86** of the findings are in repos with
+    nothing to cover with. (It was 220/134 earlier the same day; the whole
+    delta is this repo's own close-outs. **86 does not move**, because the
+    nine no-suite repos did not.) The 236/147 pair is a wider terminal set and
+    is NOT this rule's number.
     """
     assert _findings(_repo(tmp_path, suite=False, status="done")) == 0
 
 
 def test_it_warns_and_never_errors(tmp_path: Path) -> None:
-    """**Undated, deliberately** ([[ADR-0011]] clause 3). The debt is **134**
-    in suite-bearing repos under the rule as it ships. A date would either fail
+    """**Undated, deliberately** ([[ADR-0011]] clause 3). The debt is **139**
+    in suite-bearing repos under the rule as it ships (2026-08-20). A date would either fail
     every build on arrival or be moved when it did, and a promotion nobody
     intends to honour teaches people to ignore the table.
     """
@@ -91,7 +140,7 @@ def test_it_warns_and_never_errors(tmp_path: Path) -> None:
     table = src[src.index("PROMOTIONS = {"):]
     table = table[:table.index("}")]
     assert "FEATURE-UNCOVERED" not in table, (
-        "the rule has been dated; 134 outstanding findings is not a promise"
+        "the rule has been dated; 139 outstanding findings is not a promise"
     )
 
 
@@ -146,6 +195,16 @@ def test_the_rule_runs_in_the_template_repo_and_not_only_here(tmp_path: Path) ->
     assert _upstream_findings(_repo(tmp_path, suite=True, status="done")) == 1
 
 
+def test_upstream_recognises_coverage_too(tmp_path: Path) -> None:
+    """The positive half, upstream. Case 5 of the six-case domain
+    [[TASK-0523]] tabulates — measured when the port was written and asserted
+    by nothing, in the note that called the domain *"enumerated rather than
+    sampled"*. Enumerating a domain and guarding it are two different acts.
+    """
+    repo = _repo(tmp_path, suite=True, status="done", covers='"[[FEAT-0001]]"')
+    assert _upstream_findings(repo) == 0
+
+
 def test_upstream_is_silent_where_there_is_nothing_to_cover_with(tmp_path: Path) -> None:
     """The other half of the same claim, and the half a rule that fires
     unconditionally would still pass: nine of the twelve fleet repos hold no
@@ -190,9 +249,9 @@ def test_the_scaffold_emits_a_check_by_rule_not_by_judgement() -> None:
     """[[TASK-0522]]. Step 9 read *"if the feature requires verification"* — a
     judgement made per feature, at the end, by whoever was tired.
 
-    Measured across the twelve project-os repos on 2026-08-20: **220 features
-    reached `done` with no acceptance check covering them** (236 counting a
-    wider terminal set). A rule applied when somebody remembers is not a rule.
+    Measured across the twelve project-os repos on 2026-08-20: **225 features
+    reached `done` with no acceptance check covering them** (220 earlier the
+    same day, before this phase's own close-outs). A rule applied when somebody remembers is not a rule.
     """
     src = SCAFFOLD.read_text(encoding="utf-8")
     assert "plan/tests/TST-####-*.md" in src, (
@@ -247,8 +306,9 @@ def test_a_non_acceptance_test_is_not_coverage(tmp_path: Path) -> None:
     """`_features_covered_by_acceptance` must read `level: acceptance` only.
 
     **Proved by mutant, by independent review**: dropping the level filter
-    passes every other test in this file and **silences 29 of this repo's
-    then-88 findings** — a non-acceptance `TST-*` naming a terminal feature would count
+    passes every other test in this file and **silences 29 findings in this
+    repo** — re-measured 2026-08-20 at 94 findings against 65, still exactly
+    29, so the figure is stable while the base is not — — a non-acceptance `TST-*` naming a terminal feature would count
     as coverage, and the rule would report silence on features nothing verifies
     in the sense it means.
 

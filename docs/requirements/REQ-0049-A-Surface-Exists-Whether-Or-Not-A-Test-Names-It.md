@@ -8,6 +8,9 @@ phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 priority: medium
 scope: "surfaces"
 implements: "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
@@ -43,3 +46,16 @@ Criterion 1 is the whole point of the type. A string cannot be absent; a note ca
 **Why one table rather than 579 fields, stated so it can be argued with.** A `prior_area:` on every note is a second, permanent encoding of a fact that is true once — the shape [[ADR-0032]] spent a decision removing, and the shape [[ADR-0037]] removed seven fields for. It would also need a schema entry in three validators and would be read by nothing. The single table is one copy, in the note that made the decision, and it does the reversal the criterion protects.
 
 **What it costs, honestly.** The table lives in `project-os-cockpit` and the notes live in `your-trainer`, so a reader of a single check cannot see where it came from without crossing repos. That is a real loss against the criterion as written, and it is the reason this is `[~]` rather than `[x]`. **If Edwin wants the field, the mapping now exists to write it from** — which it did not before, and that was the urgent part: the originals survived only in an uncommitted working-tree diff.
+
+## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
+
+Separate session, `model:claude-opus-5`, starting from the notes and the diff with no access to the author's reasoning. Same model family as the author, recorded in `reviewed_by`; the independence claimed here is **context**, not weights ([[project-os-dev#ADR-0013]]).
+
+**Verdict: approved.** The citations were checked by mutation rather than by reading, and the `[~]` is a real reconciliation.
+
+- **Criterion 3's** claim *"dropping the group fails it and three others"* is exact: removing the `surfaces` entry from the design view's constraints loop fails **four** tests — `::test_surfaces_have_a_home_on_the_design_view`, `::test_a_surface_with_no_checks_is_visible_as_such`, `::test_the_count_is_not_sent_on_a_field_no_renderer_draws`, `::test_a_covered_surface_drops_off_the_head_count`.
+- **Criterion 1's** cited tests both fail when `surface_coverage` is stubbed to `{}`, so neither is citing a property it does not assert.
+- **Criterion 2's** figures (76 -> 15 over 579, the mapping recorded on [[TASK-0515]]) were re-derived independently and match in every cell.
+- **Criterion 4 is a legitimate `[~]`, not closure by fiat.** It says *"not met as written"* in its own words, separates the property from the instrument, argues the alternative against [[ADR-0032]] and [[ADR-0037]], and states the cost — a reader of a single check must cross repos. It does not tick, and it names what would have to be built. That is what a reconciliation is supposed to look like.
+
+One caveat inherited rather than introduced: the mapping this criterion now rests on is recorded against `49cf2ce9`, which [[TASK-0515]] mislabels as `HEAD`. The table is correct; the pointer to how to reproduce it is not.
