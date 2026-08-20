@@ -8,11 +8,11 @@ severity: high
 phase: "[[PHASE-023-Levers-For-The-Human]]"
 owner: user:edwin
 created: 2026-08-03
-updated: 2026-08-11
+updated: "2026-08-20"
 source: ["Preflight risk scan for PHASE-023, per LIFECYCLE's security trigger"]
 component: server
 mitigation: "[[REQ-0027-Every-Write-Guarded]]"
-related: ["[[FEAT-0059-The-Write-Service-Widens]]", "[[REQ-0026-Only-Human-Owned-Transitions]]"]
+related: ["[[FEAT-0059-The-Write-Service-Widens]]", "[[REQ-0026-Only-Human-Owned-Transitions]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]"]
 tests: []
 ---
 
@@ -56,3 +56,11 @@ So the position is stated rather than left to be noticed:
 - **It stays `closed` today**, honestly: loopback-only is enforced, enumerated by walking the route table, and driven over a real LAN interface at ten of ten.
 - **It re-opens before [[REQ-0034]] is implemented**, not after. A risk whose mitigation is being swapped is live again from the moment the swap starts, and re-closing it must rest on the new evidence rather than inheriting the old closure.
 - The re-close condition is [[REQ-0034]]'s acceptance, in full — including that the enumerating guard still fails a forgetful endpoint **by existing**, which is the property that made the first closure worth anything.
+
+## The ten-of-ten is re-run, not inherited — 2026-08-20
+
+Re-homed from [[ISS-0246]], which raised it and could not perform it: it is a precondition on future work rather than work of its own, so it belongs on the risk whose trigger already names the moment.
+
+**Before any write endpoint is offered on a LAN-reachable surface, [[REL-0001]]'s measurement is driven again.** Every mutation endpoint, over the real LAN interface, against the *new* authorisation model — not the loopback check it replaces. Ten of ten returned 403 in August 2026 **because the peer was not on loopback**; an authenticated path answers a different question, so a pass inherited from that run would be evidence about a mechanism that is no longer there.
+
+This bears directly on the eleven reading views [[FEAT-0083]] now scopes. Those are reads and nothing gates them. What is gated is `~release`, and the **write halves** of `~checks` and `~review` — marking a check, recording a verdict — which is why splitting those two at the view boundary rather than porting them whole is the difference between eleven reads and eleven reads plus three writes nobody authorised.

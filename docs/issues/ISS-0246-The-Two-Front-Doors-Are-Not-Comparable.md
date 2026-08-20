@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0246
 aliases: ["ISS-0246"]
 title: "The browser cockpit has two views and the desktop shell has twelve — ADR-0010 decided parity and gated it on an authenticated write path that does not exist, and `both front doors` has been quoted since as though parity already applied"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -14,7 +14,7 @@ source: ["measured while closing TASK-0511, 2026-08-20"]
 severity: high
 component: cockpit
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-related: ["[[ISS-0230-The-Browser-Cockpit-Has-No-Surface-Row]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[ADR-0010-Two-Front-Doors]]", "[[TASK-0511-A-Picker-Writes-Features-And-Phases]]"]
+related: ["[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]", "[[RISK-0005-The-Write-Surface]]", "[[ISS-0230-The-Browser-Cockpit-Has-No-Surface-Row]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[TASK-0511-A-Picker-Writes-Features-And-Phases]]"]
 tests: []
 ---
 
@@ -70,13 +70,35 @@ The real defect stands, narrowed: ***both front doors* has been quoted as though
   The other four live notes are `CHG-20260820-The-Suite-Is-The-Verdict` (a change record, `active` because change notes do not close), [[TST-0073]] (a test whose subject is the vocabulary, not the doors), [[ISS-0240]] (`tier:` in sort and delta — it mentions the doors, it does not wait on them), and **this note**.
 
   So the annotation set stands and the stated rule did not. Recorded rather than either widening the annotation to notes that owe nothing or quietly restating the rule to fit the four already chosen — the narrower test is the right one, and it should have been the one written down.
-- [ ] `RISK-0005`'s ten-of-ten measurement is re-run before any write endpoint is offered on a LAN-reachable surface.
+- [~] `RISK-0005`'s ten-of-ten measurement is re-run before any write endpoint is offered on a LAN-reachable surface. — **Re-homed, not performed.** It is a precondition on work that has not started, and this issue could not discharge it: there is no new write path to measure. [[RISK-0005]] now carries it explicitly, beside the trigger that already named the moment (*"any proposal to let mode 1 write"*) and the position that the risk **re-opens before [[REQ-0034]] is implemented, not after**.
 
-## Done when
+## A second `Done when` block outlived the correction above it
 
-- [ ] The decision is taken — [[ADR-0010]] accepted, amended or declined, saying which pages the browser cockpit owes.
-- [ ] Notes that carry a *both front doors* obligation are re-read against it: [[TASK-0511]]'s follow-up is the live one.
-- [ ] Whatever is decided, the rule stops being quoted at pairs where only one side has the surface.
+**Struck 2026-08-20.** This note carried two `## Done when` sections. The lower one was the original, written before the [[ADR-0010]] correction, and its first item read *"The decision is taken — ADR-0010 accepted, amended or declined."* The section sixty lines above it — *"Corrected 2026-08-20 — the decision WAS taken, and I said it was not"* — answers that item, and the note went on carrying both. A reader following the note's own list was sent to take a decision that had been `accepted` on `decided_option: "4"` since 2026-08-12.
+
+Its three items, and where each actually stands:
+
+| original item | where it went |
+|---|---|
+| *the decision is taken* | Already taken. It is item 1 of the live list above, and the note's own correction section says so. |
+| *notes carrying a `both front doors` obligation are re-read* | Item 3 of the live list, done — four notes annotated, with the population arithmetic corrected after the fourth review (25 carry the phrase, 17 terminal, 8 live). |
+| *the rule stops being quoted at pairs where only one side has the surface* | This is the defect itself, and it is what closing this issue records as fixed. |
+
+**It is the same shape this phase keeps finding** — a superseded statement left standing beside the one that supersedes it, in one note, where a reader can reach either. [[FEAT-0083]] carried the identical defect in its `Scope`/**Out** list and was split for it on the same day.
+
+## Fixed 2026-08-20 — the scope exists, so the obligation can be discharged
+
+**What this issue actually asked for was a place to put the answer**, and [[FEAT-0083]] is now it. That note records, as scope rather than as a wish:
+
+- the measurement — **12** virtual pages in `renderer.ts` against **2** in `cockpit.js`, re-derived by independent review;
+- [[ADR-0010]] `accepted` on **option 4**, parity gated on an authenticated write path, decided 2026-08-12;
+- the split that follows from it — **eleven reading views owed and ungated**, `~release` gated because it composes contents, and the **write halves** of `~checks` and `~review` behind the auth gate while their reading halves are owed now;
+- the order, with `~overview` and `~design` already carrying [[TASK-0361]] and [[TASK-0362]];
+- and why the other nine are **deliberately not task notes yet** — each would say *"port view X"* and nothing else, which is the thin-note proliferation [[ISS-0077]] warns about.
+
+So *"both front doors"* is no longer a phrase quoted at pairs where only one side has the surface. It resolves to a stage: **owed now** (a read), or **behind [[REQ-0034]]** (a write). [[TASK-0511]]'s deferred picker is the second kind, and its note says so.
+
+**What this issue does not claim.** The eleven views are not built. Nothing here ports a single one. What is fixed is the defect this note narrowed itself to — an obligation carried note-to-note *in a form nobody could discharge*, reading as an omission each time rather than as the precondition it was.
 
 ## Independent review — third pass, 2026-08-20
 

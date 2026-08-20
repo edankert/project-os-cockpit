@@ -977,14 +977,14 @@ items:
       status: backlog
       owner: user:edwin
       parent: FEAT-0138
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0543:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0543-The-CI-Emitter-Writes-Into-The-Working-Ledger.md"
       title: "The CI emitter appends observed-coverage entries into the working ledger for its platform"
       status: backlog
       owner: user:edwin
       parent: FEAT-0138
-      phase: "[[PHASE-999-Future]]"
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
