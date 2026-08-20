@@ -18,7 +18,7 @@ design: ""
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 tags: [feature, documentation]
 ---
 
@@ -71,3 +71,9 @@ Fourth pass, `model:claude-opus-5`, fresh context, a different session from the 
 **The fleet sync verifies clean again and the `PROMOTIONS` comment now carries a real measurement**, reproduced exactly at every fleet `HEAD`: `TEST-AUTOMATED-STATUS` **12** (your-trainer 2, project-os-dev 4, your-health 6), `TEST-AUTOMATED-EVIDENCE` **24** (4/8/12), `ACCEPTANCE-STATUS` **0** everywhere. **What the next sync carries downstream has changed shape but is not closed**: the widened rule now dates its newly-forbidden half correctly, but a command-bearing note that is not `level: acceptance` at `ready` is reported by nothing in any repo the validator reaches — a hole rather than an undated error. Separately, *"89 of the fleet's 139 automated notes"* is carried without its basis in the validator comment and the test docstring: at every fleet `HEAD` that figure is **zero**, the 89 existing only in `your-trainer`'s uncommitted work. Detail in sections H1 and H6.
 
 Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.
+
+## Fifth independent review 2026-08-20 — `approved`
+
+Fifth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all four prior reviewers. Every cell, mutant and count executed here; fleet counts taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**The hole the fourth pass found is closed, and the fleet figures are exact.** A command-bearing note that is not `level: acceptance` at `ready` now warns under `TEST-AUTOMATED-STATUS` in every repo the validator reaches. This repo's validator run against `git archive HEAD` of each fleet repo reproduces the `PROMOTIONS` comment exactly: **12** (2/4/6), **24** (4/8/12), `CHECK-SUBJECT` **117** in `your-trainer` alone, `ACCEPTANCE-STATUS` **0** everywhere. The `89 of 139` figure now carries its basis; on today's trees the denominator is **137**, so it is a stale dated measurement rather than a wrong one. A one-sided edit to either validator copy still fails `test_the_two_validator_files_are_byte_identical`. No finding.

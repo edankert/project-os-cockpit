@@ -18,7 +18,7 @@ related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-Th
 tests: []
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 ---
 
 # A section is derived, never filed
@@ -73,3 +73,9 @@ Fourth pass, `model:claude-opus-5`, fresh context, a different session from the 
 **The third pass's finding against this note is fixed, and fixed honestly.** The Statement now says *no section or gate decision may read `tier:`*, criterion 2 is `~` with the four live readers named, the frontmatter `acceptance:` entry matches, and the correction states what the old wording claimed and why it was never true. Under mutation the delegation still holds: restoring `_covers_an_issue`'s own regex fails `test_the_navigator_and_the_page_classify_a_note_identically`, and it still fails after the `fm["level"] = "acceptance"` removal — that line is confirmed inert (`item_from_note` reads `id`, `tier`, `mark` and `invalidated_by`, never `level`), so dropping it weakened no guard. `missing_issue_refs` still cannot be emptied: `return []` fails its test.
 
 **No finding against this requirement.** It is `changes-requested` only because the correction did not travel: [[CHG-20260820-The-Suite-Is-The-Verdict]] line 24, under **What changed**, still asserts *"`tier:` is read by no code path"*, and line 51 repeats it. The pair of notes that disagree about one fact is now that note and this one. Detail in section H5 there.
+
+## Fifth independent review 2026-08-20 — `approved`
+
+Fifth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all four prior reviewers. Every cell, mutant and count executed here; fleet counts taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**Nothing outstanding against this requirement.** The Statement, criterion 2's `~` and the frontmatter `acceptance:` entry all say the same narrowed thing, and the four live `tier:` readers are named where a reader will meet them. Re-mutated here: `missing_issue_refs` still cannot be emptied (`return []` fails `test_every_tier_two_item_names_the_issue_that_created_it`). The open item is [[ISS-0240]]'s own prose, not this note — see [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fifth independent review*.

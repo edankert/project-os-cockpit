@@ -379,7 +379,7 @@ The clause is now `automated and (status in TEST_RUNNER_STATUSES or level != "ac
 
 ISS-0240's row count was reported as 579, then 580, then 578. All three counted something real: 580 `.md` files in `docs/tests/acceptance/`, 579 of them checks once `README.md` is excluded, and **581** — the population `acceptance.load` actually returns, because two acceptance-level notes live in `docs/tests/` rather than the acceptance directory. 581 is the number the code operates on.
 
-**The `232` figure is withdrawn, not corrected.** Re-measured directly, dropping `tier` from `_delta_key` makes exactly **2** items collide. I could not reproduce 232 by any reading, and a number that cannot be got twice does not belong in a note whose subject is measuring against the right basis. The prerequisite stands on a stronger and certain claim: `_delta_key` is `(tier, name)`, so removing the field **changes the value of all 581 keys**, and a delta computed across that commit matches nothing.
+**The `232` figure was withdrawn here, and that withdrawal was wrong** — see the fifth-pass section below. It reproduces exactly: 232 change, 349 do not, because `item_from_note` defaults an absent `tier:` to 1.
 
 ## The rest
 
@@ -391,4 +391,59 @@ ISS-0240's row count was reported as 579, then 580, then 578. All three counted 
 ## Still open, deliberately
 
 [[ISS-0238]], [[ISS-0240]], and [[ISS-0209]] — which remains the boundary on all of it: **the acceptance gate executes in no repo that holds a check.**
+
+## Fifth independent review 2026-08-20 — `changes-requested`, one finding
+
+Fifth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the four prior reviewers'. Same model family as the author and every prior pass, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]) — what is independent is the **context and the session**, not the weights, and this session has no memory of authoring any of it. Every cell, mutant and count below was executed here; fleet counts were taken from `git archive HEAD` copies, never a working tree. Baseline on a clean tree: **1878 passed, 3 skipped**; `validate-docs.sh` OK.
+
+### H1 is fixed, and the matrix is right in every cell
+
+The clause `automated and (status in TEST_RUNNER_STATUSES or level != "acceptance")` was checked against the validator rather than against `_SPLIT_MATRIX`: all 16 cells executed on constructed repos, and **all 16 agree with the table, code and severity**. The `ready` cell that fell silent now warns. Four extra levels were executed to look for a cell the table cannot see — `integration`, `unit`, `Acceptance`, `ACCEPTANCE` — and every one lands with its case-folded equivalent, so two level values are sufficient to cover the predicate.
+
+Five mutants, each applied and executed: restoring `automated and status in TEST_RUNNER_STATUSES` fails exactly the dropped cell (`[-True-ready-…]`); `newly_forbidden = automated` and `level == "acceptance"` both fail `test_ready_with_a_command_was_already_forbidden_and_still_errors` by downgrading a day-one error to a warning; `and` for `or` fails the `acceptance`/`passing` cell; `newly_forbidden = False` fails the widening outright. **No surviving mutant.**
+
+### The other four fourth-pass findings, re-measured
+
+| # | claim | verdict |
+| --- | --- | --- |
+| H3 | `REQ-0060` breakdown is 85/32 | **holds exactly** — at `your-trainer`'s `HEAD`, `CHECK-SUBJECT` is **117** = 85 naming nothing (83 `covers: []` + 2 with no `covers:`) + 32 naming only provenance (17 `PHASE-*`, 15 `TASK-*`) |
+| H4 | the module docstring carries fleet figures | **holds exactly** — this repo's validator run against `git archive HEAD` of every fleet repo gives `TEST-AUTOMATED-STATUS` **12** (2/4/6), `TEST-AUTOMATED-EVIDENCE` **24** (4/8/12), `CHECK-SUBJECT` **117** (your-trainer only), `ACCEPTANCE-STATUS` **0** everywhere |
+| H5 | line 24 corrected | **holds** — it now carries the retraction inline and names [[ISS-0240]] |
+| H6 | `89 of 139` carries its basis | **holds** — 89 `level: acceptance` command-bearing notes in `your-trainer`'s working tree, **0** at every fleet `HEAD`. The `139` denominator is now **137** on today's trees (this repo 37, your-trainer 91, your-health 6, project-os-dev 3); it is dated 2026-08-19, so it is stale rather than wrong |
+
+The five earlier fixes re-mutated here still bite: `missing_issue_refs` → `return []` fails `test_every_tier_two_item_names_the_issue_that_created_it`; deleting the `Broken command` routing fails two tests in `test_command_targets.py`; `Needs you` → `Needs a run` fails `test_every_section_label_carries_no_verb`; a one-sided edit to either validator copy fails `test_the_two_validator_files_are_byte_identical`.
+
+### The finding — the `232` withdrawal (blocking)
+
+**232 reproduces on the first reading, and the claim that replaced it is false.** `item_from_note` defaults an absent `tier:` to **1** (`acceptance.py:917-922`), so stripping the field changes only the non-Tier-1 keys: measured by rewriting all 581 notes in a copy of `HEAD` and diffing `_delta_key` per `note_id`, **232 keys change and 349 do not** — and 232 again at `HEAD` through the directory-only load (of 579) and again in the working tree (of 581). It is the count of Tier 2 + Tier 3 checks, which is why it is basis-independent and why three passes each measured it.
+
+[[ISS-0240]] line 33 now says the strip *"changes the value of every one of the 581 keys"* and that *"a delta … matches nothing: every check reads as removed and newly added"*; the title says *"changes every delta key"*. Both are false for the 349 Tier 1 rows. The `2` collisions the withdrawal rests on are a correct measurement of a **different** operation — dropping `tier` from `_delta_key`, which is step 2 of that note's *Done when*, not the strip the paragraph describes. So a true number was removed on the strength of a measurement that was not of the same thing, and an untrue one put in its place, in the note whose subject is measuring against the right basis. Same class as the four preceding rounds, this time in prose rather than in a predicate.
+
+Two smaller notes, neither blocking. The cross-product comment at `tests/test_automated_test_holds_no_verdict.py:293-295` says *"all 24 (three of the statuses plus `active`, at both levels, with and without a command)"* — the parenthetical enumerates 16; **24** is right for the fourth pass's own run, which used three level values. And this round's commit message reports `1877 passed` where a clean run here gives **1878**.
+
+### On the layering, asked directly
+
+A cold reader can reach the true state, but only through this note: [[PHASE-039]] and all three `FEAT-*` notes end on the fourth pass's findings with no marker that they were fixed, and each points here, where *"# Corrected after the fourth independent review"* says plainly *"This is the current state; everything above is evidence."* That convention works and is not a finding. The cheap improvement, if a sixth round happens, is one line at the head of each satellite review section — *"fixed, see CHG § Corrected after the Nth"* — so the pointer is not the only thing carrying it.
+
+### Verdict
+
+`changes-requested`, on one finding, and everything else has converged. The code is right: the widened rule now covers its stated domain, its cross-product is complete and non-vacuous, no mutant survives, and every count in the record that this pass could re-measure reproduces exactly. The remaining work is a paragraph — restore *"232 of 581 delta keys change, 349 do not, because a missing `tier:` reads as Tier 1"* to [[ISS-0240]]'s title and body, and to the *Denominator* section above. With that edit the record is true as it stands.
+
+---
+
+# Corrected after the fifth independent review, 2026-08-20
+
+**Five passes. The fifth found one thing, and it was the fix I made to the fourth.**
+
+**`232` is restored.** I withdrew it as unreproducible; it reproduces on the first reading. `item_from_note` defaults an absent or unreadable `tier:` to **1** (`acceptance.py:921`), so stripping the field from the notes leaves every Tier 1 key untouched and moves the rest: **232 change, 349 do not**, and the 232 are exactly the Tier 2 and Tier 3 checks. That is why it is basis-independent, and why three separate passes each measured the same number.
+
+**What I actually measured was a different operation** — dropping `tier` from the *key function*, which makes 2 items collide — and I reported it as though it measured stripping the field from the *notes*. The claim I substituted, *"all 581 keys change"*, is false for 349 rows. In the note whose entire subject is measuring against the right basis.
+
+The lesson is the one this phase keeps paying for: **a number I could not reproduce meant my measurement was wrong, not the number.** Withdrawing it looked like the conservative move and destroyed a true, three-times-confirmed finding.
+
+Everything else in the fourth-pass round was verified and holds: all 16 cells of the split matrix match on code and severity under independent enumeration, five mutants against the clause all fail, `CHECK-SUBJECT` is 117 = 85 + 32 exactly, and the fleet figures (12 / 24 / 0) reproduce.
+
+## Still open, deliberately
+
+[[ISS-0238]], [[ISS-0240]] — now carrying the right number — and [[ISS-0209]], which remains the boundary on all of it: **the acceptance gate executes in no repo that holds a check.**
 

@@ -18,7 +18,7 @@ design: ""
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[project-os-dev#ADR-0010]]", "[[ISS-0239-The-Runner-Stamps-Failing-On-A-Missing-Device]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 tags: [feature, testing]
 ---
 
@@ -72,3 +72,9 @@ Fourth pass, `model:claude-opus-5`, fresh context, a different session from the 
 **The recut is the right line and its matrix is not vacuous** — reverting the split to its `level`-first form fails two parametrisations — but it is incomplete. A command-bearing note that is not `level: acceptance`, at `status: ready`, is reported by nothing: silent before ADR-0038, **warned** by the immediately preceding commit, silent again now. All 24 cells of (`level` × `command` × `status`) were executed and that is the only one that does not land where the record says; the six-case matrix omits it, and closing it breaks no test. Zero instances at every fleet `HEAD`, so latent rather than live. The runner guard and the actuator refusal hold for a fourth time. Detail in section H1.
 
 Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.
+
+## Fifth independent review 2026-08-20 — `approved`
+
+Fifth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all four prior reviewers. Every cell, mutant and count executed here; fleet counts taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**The recut is complete and its matrix is right in every cell.** All 16 cells executed against the validator, all 16 agreeing with `_SPLIT_MATRIX` on code and severity, plus four extra level values that land with their case-folded equivalents. Five mutants applied and none survived — restoring the old clause fails exactly the cell it dropped. The runner guard and the `stamp_test_run` refusal hold for a fifth time. No finding against this feature; the one open item this round is [[ISS-0240]]'s prose, in section *Fifth independent review* of [[CHG-20260820-The-Suite-Is-The-Verdict]].

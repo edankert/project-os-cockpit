@@ -18,7 +18,7 @@ related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[project-os-dev#ADR
 tests: []
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 ---
 
 # A one-time check names its issue
@@ -68,3 +68,9 @@ Fourth pass, `model:claude-opus-5`, fresh context, a different session from the 
 **The `117` is correct and independently reproduced**: measured against `your-trainer` at its committed `HEAD` through this repo's validator, `CHECK-SUBJECT` reports **117**, and **44** in its working tree, with zero in every other fleet repo. Scope, criterion, both validator copies and the test docstring all carry it, and the surviving `44`s are quotations inside review sections, which is the right place for them. `PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"` is still asserted.
 
 **The finding is the clause after the number.** Criterion 2 reads *"the checkable population is **117** … — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`"*, and 12 + 32 = **44**: the decomposition belongs to the working-tree figure the same sentence withdraws. Measured at `HEAD`: **85** name nothing and **32** name only provenance. Both validator copies and the test docstring avoided this by dropping the breakdown rather than restating it, so it survives here alone. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section H3.
+
+## Fifth independent review 2026-08-20 — `approved`
+
+Fifth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all four prior reviewers. Every cell, mutant and count executed here; fleet counts taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**The corrected decomposition is exact.** Measured against `your-trainer` at `HEAD` with the validator's own `extract_ids`: `CHECK-SUBJECT` reports **117**, of which **85** name nothing (83 carrying `covers: []`, 2 carrying no `covers:` at all) and **32** name only provenance (17 `PHASE-*`, 15 `TASK-*`). 85 + 32 = 117, and 117 is 0 in every other fleet repo. `PROMOTIONS["CHECK-SUBJECT"]` is 2026-11-18 and asserted. No finding.

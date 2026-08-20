@@ -18,7 +18,7 @@ related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0031-One-Test-Type-Acc
 tests: []
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 ---
 
 # An automated test carries no verdict
@@ -69,3 +69,11 @@ Fourth pass, `model:claude-opus-5`, fresh context, a different session from the 
 **The finding is that the recut is incomplete, and criterion 1 states the closed reading.** A command-bearing note that is **not** `level: acceptance`, at `status: ready`, is now reported by nothing: `newly_forbidden` requires `status in TEST_RUNNER_STATUSES` (`passing`/`failing`), and the `elif level == "acceptance"` beneath it does not catch the rest. Executed across all 24 cells of (`level` × `command` × `status`): that one cell is silent under the current tree, **warned** under the immediately preceding commit (`72e2038`), and silent before ADR-0038 — so the widening has been reverted for `ready` over the non-acceptance half of the domain. This requirement's Statement — *"a test note that declares a `command:` **must not** hold `ready`, `passing` or `failing`"* — is enforced for two of its three statuses across the full domain, and for the third only where `level: acceptance` already forbade it.
 
 Criterion 1 reads *"the forbidden-status check ranges over `command:` non-empty, not over `level: acceptance` — domain went 89 → 139"* and is ticked `[x]`. Nothing asserts the gap in either direction: extending the predicate to close it passes the file unchanged. Zero instances at every fleet `HEAD` (50 command-bearing notes, none at `ready`), so latent rather than live — the same standing on which the third pass's A1 was filed blocking, in the more dangerous direction. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section H1.
+
+## Fifth independent review 2026-08-20 — `approved`
+
+Fifth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all four prior reviewers. Every cell, mutant and count executed here; fleet counts taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**H1 is fixed and criterion 1 is now true across the whole domain.** All 16 cells of `level` x `command` x four statuses were executed against the validator rather than read off `_SPLIT_MATRIX`, and all 16 land where the table says, code and severity both; the `ready` cell that fell silent warns again. Four further level values (`integration`, `unit`, and two casings of `acceptance`) behave as their case-folded equivalents, so two level values cover the predicate. Five mutants applied: the old clause fails exactly the cell it drops, `newly_forbidden = automated` and `level == "acceptance"` each downgrade a day-one error, `and` for `or` fails the acceptance/`passing` cell, and `False` fails the widening. No surviving mutant. The runner and evidence guards hold for a fifth time.
+
+One tidy, not a finding: criterion 1 still attributes the widened domain to `ACCEPTANCE-STATUS`, which after the split carries only the `level: acceptance` half — the union of the two codes is what covers `command:` non-empty. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fifth independent review*.

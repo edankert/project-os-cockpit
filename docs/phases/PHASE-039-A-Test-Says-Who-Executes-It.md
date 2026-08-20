@@ -125,3 +125,15 @@ Fourth pass, `model:claude-opus-5`, fresh context: a session that had seen neith
 **And [[ISS-0240]]'s title took the number the third pass rejected**: `232 of 580`, where that pass said 579 is right; measured here, 579 suite items, 578 distinct delta keys, 580 files including `README.md`.
 
 Full detail with line numbers and measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.
+
+## Fifth independent review 2026-08-20 — `changes-requested` (one finding)
+
+Fifth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the four prior reviewers'. Every cell, mutant and count executed here; every fleet count taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**H1 is fixed and this pass could not break it.** All 16 cells of the cross-product were executed against the validator rather than read off the table, and all 16 agree with it on code *and* severity; four further level values behave as their case-folded equivalents. Five mutants applied and none survived — restoring the old clause fails exactly the cell it dropped. The four non-blocking findings also hold under re-measurement: `REQ-0060` is 85 + 32 = 117 at `HEAD`, the fleet figures are 12/24/117/0 exactly, line 24 of the change note carries its retraction, and `89 of 139` carries its basis (137 on today's trees, so stale rather than wrong). The five earlier fixes re-mutated here still fail their guards.
+
+**The finding is [[ISS-0240]]'s `232`.** Withdrawing it lost a reproducible measurement and the claim that replaced it is false: stripping `tier:` changes **232** keys and leaves **349** unchanged, because `item_from_note` defaults an absent `tier:` to 1 (`acceptance.py:917-922`). 232 reproduces at `HEAD` on both load paths and in the working tree. Third consecutive round in which correcting a finding introduced a defect of the same class — a claim wider than the code — this time in prose rather than in a predicate.
+
+**Navigability**, asked directly: a reader starting here reaches the true state only by following the pointer to [[CHG-20260820-The-Suite-Is-The-Verdict]], whose *"Corrected after the fourth independent review"* section says plainly that it is the current state. That works; this note and the three `FEAT-*` notes would carry it better if each review section opened with one line saying whether its findings were later fixed.
+
+Full detail with measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fifth independent review*.

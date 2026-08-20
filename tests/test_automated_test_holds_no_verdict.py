@@ -290,10 +290,10 @@ def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
 
 #: **The whole cross-product, because a six-case sample missed a cell.**
 #:
-#: `level` present/absent x `command` present/absent x four statuses. The
-#: fourth independent review executed all 24 (three of the statuses plus
-#: `active`, at both levels, with and without a command) and found exactly one
-#: disagreement with the note: command-bearing, NOT an acceptance check, at
+#: `level` present/absent x `command` present/absent x four statuses = 16
+#: cells. The fourth independent review enumerated the cross-product and found
+#: exactly one disagreement with the note: command-bearing, NOT an acceptance
+#: check, at
 #: `ready` had fallen **silent** — it fails `TEST_RUNNER_STATUSES` and the
 #: `elif level == "acceptance"` does not catch it. It had warned one commit
 #: earlier.
