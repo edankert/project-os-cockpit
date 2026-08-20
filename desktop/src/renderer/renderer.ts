@@ -8210,6 +8210,7 @@ function buildGateSection(
     det.appendChild(sum);
     det.appendChild(gateGroup({
       items: gate.quiet, rel: gate.rel, releaseId, withSubjects: true,
+      withMark: true,
     }));
     g.appendChild(det);
   }
@@ -8227,49 +8228,25 @@ function buildGateSection(
     det.appendChild(sum);
     det.appendChild(gateGroup({
       items: gate.stale, rel: gate.rel, releaseId, withRerun: true,
+      withMark: true,
     }));
     g.appendChild(det);
   }
   return g;
 }
 
-/** The mark on a gate row — **a token, never a control** (ADR-0035).
- *
- *  This took an `actionable` argument until 2026-08-18 and passed `true` for
- *  every blocking row on a release page. `REL-0013 · 2.1.7` in `your-trainer`
- *  therefore rendered **sixty live mark buttons** on the page whose entire
- *  purpose is to report that the release is not ready — so the fastest way to
- *  unblock a release was to tick the things saying it was blocked.
- *
- *  Edwin: *"definitely do not allow these acceptance tests to be checked."*
- *
- *  The reasoning is [[ADR-0035]] and it is not about carelessness. A release
- *  is not the subject of an acceptance check: a check verifies a feature, and
- *  a release is a bag of features blocked by the sum. And this row shows the
- *  check's **name**, never its **steps** — so the control sat at exactly the
- *  distance from the procedure at which nobody can be walking it.
- *
- *  The parameter is **deleted rather than defaulted to `false`**. A parameter
- *  with one live value is a decision waiting to be re-litigated by whoever
- *  adds the next caller, and this control has now been removed from two
- *  surfaces — [[ISS-0192]] took it off the rendered document and missed this
- *  one, because they are different code paths.
- *
- *  Walking still happens, one click away: every row remains a link to the
- *  check's own surface, which is where the steps are.
- */
-function gateMark(item: GateItem): HTMLElement {
-  const mark = item.mark || ' ';
-  // `gate-mark` carries only this row's geometry; every colour, weight and
-  // glyph rule comes from `acc-mark`, so the two surfaces cannot drift into
-  // two vocabularies of colour for one vocabulary of marks.
-  const cls = `acc-mark gate-mark acc-mark-${MARK_CLASS[mark] ?? 'unknown'}`;
-  const span = document.createElement('span');
-  span.className = `${cls} is-static`;
-  span.textContent = MARK_GLYPH[mark] ?? `[${mark}]`;
-  span.title = MARK_TITLE[mark] ?? '';
-  return span;
-}
+// **No `gateMark`** ([[ISS-0244]]), on the same rule that deleted
+// `markGateRow` rather than leaving it unreferenced: *a live-looking helper is
+// how the next caller re-acquires the behaviour a decision just removed.*
+//
+// It drew a token that had already stopped being a control — [[ADR-0035]] took
+// the click away after [[ISS-0210]] found sixty live marks on the page whose
+// purpose is to report a release is NOT ready — and what survived was a glyph
+// identical on every row of the four unsettled lists, because those rows are
+// unsettled by construction.
+//
+// Where the mark carries information it is now a WORD in the row's meta line,
+// on the two groups where it varies. See `gateGroup`'s `withMark`.
 
 // **No `markGateRow`** (ADR-0035). It was the release page's write path —
 // `walkOneCheck` then repaint — and it is deleted rather than left unreferenced,
@@ -8631,7 +8608,25 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
       ahName.className = 'checks-area-name';
       ahName.textContent = area.area;
       ah.appendChild(ahName);
-      ah.appendChild(checkPercent(area.items));
+      //: **No completion figure on an automated area** ([[ISS-0243]]).
+      //: `checkPercent` is a person's progress through a list, and nobody is
+      //: progressing through one a machine executes ([[ADR-0039]]). It ran
+      //: here regardless of `manual`, so `your-trainer`'s automated page read
+      //: **90% complete across 15 areas** over 89 checks that carry
+      //: `evidence: []` and an empty `verdict_date` — no recorded result for
+      //: any of them — with nine at `mark: todo`. That is [[ISS-0241]]'s false
+      //: assurance again, one surface down and wearing a number instead of a
+      //: phrase. The area says how many it holds, which is the fact that is
+      //: true.
+      if (manual) {
+        ah.appendChild(checkPercent(area.items));
+      } else {
+        const n = document.createElement('span');
+        n.className = 'checks-percent';
+        n.textContent = String(area.items.length);
+        n.title = `${area.items.length} automated check(s) in this surface`;
+        ah.appendChild(n);
+      }
       if (area.refs.length) {
         const refs = document.createElement('span');
         refs.className = 'checks-area-refs';
@@ -8719,17 +8714,18 @@ function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
   // fact about it that can go stale.
   if (manual) {
     row.appendChild(checkMark(item));
-  } else {
-    const cmd = document.createElement('span');
-    cmd.className = 'checks-row-command mono';
-    // ISS-0241: `automated` is what this row can honestly say when the
-    // command is missing. The fallback should never fire — a section is
-    // non-manual BECAUSE its checks carry a `command:` — so what it prints
-    // is a statement about broken data, and it must not be a claim about CI.
-    cmd.textContent = item.command || 'automated';
-    cmd.title = item.command || '';
-    row.appendChild(cmd);
   }
+  //: **The command is NOT in the checkbox slot** ([[ISS-0243]]). Edwin: *"this
+  //: details page shows the command as one of the first list items, this
+  //: doesn't have enough space there; if we show the command then it should be
+  //: underneath the description instead."*
+  //:
+  //: It was worse than cramped. The slot is `max-width: 22ch` with an ellipsis,
+  //: and every one of `your-trainer`'s 89 commands begins
+  //: `cd android && ./gradlew` — so **all 89 rendered the identical string**,
+  //: one distinct value across the whole page, while the discriminating part
+  //: (the trailing `--tests com.yourtrainer…Test`) was exactly what the
+  //: ellipsis ate. It is appended to the row BODY below, under the text.
 
   // **The number, on the row** (TASK-0513). It used to be carried by the
   // area block's ordering; the list is flat now, so the row says it.
@@ -8762,6 +8758,20 @@ function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
     text.textContent = item.text;
     body.appendChild(text);
   }
+  //: Under the description, full width, and the TAIL is what is kept: a
+  //: command is discriminated by its last component, never its first.
+  if (!manual) {
+    const cmd = document.createElement('div');
+    cmd.className = 'checks-row-command mono';
+    //: `automated` is what this row can honestly say when the command is
+    //: missing ([[ISS-0241]]). The fallback should never fire — a section is
+    //: non-manual BECAUSE its checks carry a `command:` — so what it prints is
+    //: a statement about broken data, and it must not be a claim about CI.
+    cmd.textContent = item.command || 'automated';
+    cmd.title = item.command || '';
+    body.appendChild(cmd);
+  }
+
   const meta: string[] = [];
   if (item.verdict_date) meta.push(`verdict ${item.verdict_date}`);
   if (item.verdict_reason) meta.push(item.verdict_reason);
@@ -8850,6 +8860,12 @@ interface GateGroupOptions {
   withSubjects?: boolean;
   /** Stale rows only: the `RE-RUN` annotation, verbatim. */
   withRerun?: boolean;
+  /** Say what mark the row carries, as a word in the meta line (ISS-0241 /
+   *  [[ISS-0244]]). Set on the two groups where the mark VARIES and therefore
+   *  carries information — `Quiet` and `Stale evidence` — and never on the
+   *  four unsettled lists, where by construction every row is unsettled and
+   *  the glyph was the same on all of them. */
+  withMark?: boolean;
 }
 
 /** One group of gate rows. Every group renders through here so four lists
@@ -8863,7 +8879,7 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
   const {
     items, rel, releaseId,
     heading = '', count = '', hint = '', empty = '',
-    withAge = false, withSubjects = false, withRerun = false,
+    withAge = false, withSubjects = false, withRerun = false, withMark = false,
   } = opts;
   const box = document.createElement('div');
   box.className = 'release-gate-group';
@@ -8912,12 +8928,29 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
   rows.className = 'scoped-rowlist gate-rowlist';
   for (const item of items.slice(0, 40)) {
     const li = document.createElement('li');
-    // The mark FIRST — the control, not a decoration, and the row's own
-    // left-hand column (ISS-0190). A row that is not a thing to walk gets the
-    // same token without the click, so the four lists still line up.
-    li.appendChild(gateMark(item));
+    //: **No mark on the row** ([[ISS-0244]]). Edwin: *"it shows the
+    //: outstanding tests but it shows them with the check marks, just show
+    //: them as a list of tst links like the features below."*
+    //:
+    //: The glyph was correct while it was THE CONTROL — [[ISS-0190]] put it in
+    //: the left-hand column deliberately. [[ADR-0035]] then removed the click,
+    //: after [[ISS-0210]] found sixty live marks on the page whose whole
+    //: purpose is to report that a release is not ready, and what was left is
+    //: a decoration that is UNIFORM where it appears: every row of `Blocking`,
+    //: `New`, `Chronic` and `Regressed` is unsettled by construction, so the
+    //: same glyph drew on all of them.
+    //:
+    //: Where the mark VARIES it survives as a WORD in the meta line rather
+    //: than a glyph in the gutter — see `withMark`. A stale row is *ticked*,
+    //: which is the whole of what makes it stale, and dropping that outright
+    //: would erase the distinction behind 53 of `your-trainer`'s rows.
     const n = document.createElement('span');
-    n.className = 'scoped-row-id mono';
+    //: The features row's own treatment, which is the shape Edwin pointed at:
+    //: a typed, coloured id and a title. `item.number` already resolves to
+    //: `TST-0044` wherever a check carries no positional `number:` — the
+    //: fallback [[ISS-0219]] added — so the id on screen is already the note's.
+    n.className = 'scoped-row-id mono ov-typed';
+    n.dataset.type = 'test';
     n.textContent = item.number;
     const t = document.createElement('span');
     t.className = 'scoped-row-title';
@@ -8952,13 +8985,21 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
       }
     }
     if (withRerun && item.rerun) bits.push(item.rerun);
+    //: The mark as a word, on the two groups where it varies ([[ISS-0244]]).
+    //: `MARK_TITLE` is a sentence for a tooltip; the meta line wants the value.
+    if (withMark && item.mark) bits.push(`marked ${item.mark}`);
     // `failed` is no longer worth a word in the meta: the row's own mark says
     // it, in the file's own notation, at the left edge where the eye starts.
     a.textContent = bits.filter(Boolean).join(' · ');
     li.append(n, t, a, ...subjectLinks);
     li.style.cursor = 'pointer';
     li.addEventListener('click', (ev) => {
-      if ((ev.target as HTMLElement).closest('.acc-mark')) return;
+      //: **No `.acc-mark` escape hatch** ([[ISS-0244]]). This returned early
+      //: when the click landed on the row's mark, so marking did not also
+      //: navigate. The mark is gone from these rows, so the clause could no
+      //: longer fire — and a predicate that cannot fire is the exact defect
+      //: this phase has now shipped three times, each one written while
+      //: fixing the previous round. Deleted with the thing it guarded.
       // **The check itself** (ISS-0201). This navigated to
       // `/docs/${rel}#${anchor}` — the suite README with a section fragment
       // that no longer exists, because the document those anchors came from was

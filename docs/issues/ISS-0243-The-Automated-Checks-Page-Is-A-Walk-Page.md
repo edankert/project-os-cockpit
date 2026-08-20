@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0243
 aliases: ["ISS-0243"]
 title: "The generated page for an automated section is the walk page with the walking removed — it shows 90% complete over checks with no recorded result, and puts the command in a 22-character cell where all 89 render identically"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -61,9 +61,15 @@ Every one of `your-trainer`'s 89 commands begins `cd android && ./gradlew`. Trun
 - `desktop/src/renderer/renderer.ts` — `buildCheckRow` (the command slot), `renderChecks` (the area loop and `checkPercent`).
 - `desktop/src/renderer/renderer.css` — `.checks-row.is-automated .checks-row-command`.
 
+## Fixed
+
+- **The command moved out of the checkbox slot** into `.checks-row-command` inside the row body, under the description. The CSS lost `max-width: 22ch` and the ellipsis with it — the identifying part of a gradle invocation is its tail, and the old rule kept only the head that all 89 shared.
+- **`checkPercent` is guarded on `manual`.** An automated area shows how many checks it holds; it no longer reports a completion figure over checks with no recorded result.
+- Guards on both, and on the CSS rule, so a later tidy cannot restore the 22-character cell.
+
 ## Next Actions
 
-- [ ] Move the command under the description.
-- [ ] Remove or replace the percentage on automated areas.
-- [ ] Decide on area blocks for an automated section.
-- [ ] A guard that fails if an automated surface renders a completion figure — the class [[ISS-0241]] and [[ISS-0237]] both belong to.
+- [x] Move the command under the description.
+- [x] Remove or replace the percentage on automated areas.
+- [ ] **Decide on area blocks for an automated section.** Deliberately left open: areas exist so a walker can pick a surface, and nobody walks this one — but that is a design question rather than a defect, and [[FEAT-0138]] may change what an automated section should show at all.
+- [x] A guard that fails if an automated surface renders a completion figure.

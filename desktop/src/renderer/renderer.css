@@ -6105,11 +6105,15 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 /* An automated check's row (ADR-0039). It carries the command that executes
    it where a manual row carries its mark button — the row is a manifest
    entry, not something to tick. Dimmed because nothing here is owed. */
+/* ISS-0243: under the description, not in the checkbox slot, and NOT clipped
+   to 22ch — all 89 of your-trainer's commands share their first 22 characters
+   (`cd android && ./gradlew`), so the old cell rendered one distinct value
+   across the whole page. The tail is the part that identifies the test, so the
+   line wraps rather than truncating. */
 .checks-row.is-automated .checks-row-command {
   color: var(--text-muted);
   font-size: 0.85em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 22ch;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }

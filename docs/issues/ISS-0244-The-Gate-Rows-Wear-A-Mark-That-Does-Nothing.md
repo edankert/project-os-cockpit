@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0244
 aliases: ["ISS-0244"]
 title: "The release page draws a static check mark on every blocking row — a control that was disarmed rather than removed, identical on every row of the list where it appears"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -53,8 +53,26 @@ TST-0044   Paid, Key Configured — Generation (Gemini)      AI Workout Builder
 TST-0077   FREE at Cap Offers Nothing                      Monetization & Licensing
 ```
 
+## Fixed
+
+`gateMark` is **deleted**, on the rule this file already applied to `markGateRow`: *a live-looking helper is how the next caller re-acquires the behaviour a decision just removed.* The row is now a typed `TST-*` id, a title and its meta — the features row's own shape.
+
+Where the mark carries information it survives as a **word** in the meta line: `withMark` is set on `Quiet` and `Stale evidence` and nowhere else, because a stale row is *ticked* and that is the whole of what makes it stale.
+
+**A dead clause went with it.** The row's click handler opened with `if (ev.target.closest('.acc-mark')) return;` — an escape hatch so marking did not also navigate. With no mark on the row it could never fire again. That is the defect this phase has now shipped three times, each written while fixing the previous round, so it was deleted rather than left looking live.
+
+**Three existing guards had to be re-anchored rather than deleted**, and one of them is a genuine supersession:
+
+| guard | what happened |
+|---|---|
+| `test_a_gate_row_carries_a_token_and_never_a_control` | read `gateMark`'s body; now asserts on the row builder — **a stronger claim**, since there is no mark element to be static about |
+| `test_a_gate_row_wears_the_documents_control_and_no_buttons` | its checkbox half is **superseded by Edwin's later instruction**; the ADR-0035 half (no buttons, no second vocabulary) stays |
+| `test_one_walk_layer_and_now_exactly_one_surface` | stripped one known comment by exact text, so it broke when a second comment named `markGateRow`; now matches live code only |
+
+That last failure mode appeared **twice in one sitting** — a text guard tripping on the comment that explains it — and both are now line-matched with comment lines excluded. A guard that fails on its own explanation is a guard somebody weakens to make it pass.
+
 ## Next Actions
 
-- [ ] Drop `gateMark` on the four unsettled lists; align the id with the features row.
-- [ ] Carry the ticked/stale distinction in meta text for `Quiet` and `Stale evidence`.
-- [ ] A guard that fails if a gate list renders a glyph identical on every row — the general form, so this cannot come back as decoration a third time.
+- [x] Drop the mark on the four unsettled lists; align the id with the features row.
+- [x] Carry the distinction in meta text for `Quiet` and `Stale evidence`.
+- [x] Guards, comment-proof, on both front doors.

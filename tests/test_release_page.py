@@ -217,17 +217,33 @@ def test_a_gate_row_wears_the_documents_control_and_no_buttons() -> None:
         "the three verdict buttons are back"
     )
     body = _body_of(src, "function gateGroup(")
-    # APPENDED, not merely built. A guard that asserted a mark token was
-    # created and not that it was attached is how ISS-0186's last mutation
-    # survived; creating a node is not showing it.
-    assert "li.appendChild(gateMark(" in body, body[:400]
-    # …and it is the row's FIRST child, which is what "on the left" means.
-    first = body.index("li.appendChild(gateMark(")
-    assert first < body.index("li.append(n, t, a"), (
-        "the mark is added after the number and title, so it is not the "
-        "row's left-hand column"
-    )
+    #: **The checkbox half of this is SUPERSEDED, by the same person**
+    #: ([[ISS-0244]], 2026-08-20). The instruction above was permissive — *"if
+    #: you want you can have the checkbox on the left"* — and the later one is
+    #: not: *"it shows the outstanding tests but it shows them with the check
+    #: marks, just show them as a list of tst links like the features below."*
+    #:
+    #: So the two assertions that required a mark token, and required it first,
+    #: are gone rather than relaxed. What they were protecting — that a mark,
+    #: IF present, is the row's left-hand column and not an afterthought — has
+    #: no subject any more: `gateMark` is deleted and the four unsettled lists
+    #: drew the same glyph on every row.
+    #:
+    #: **The half that is not superseded stays, and is the reason this test
+    #: exists**: no second vocabulary, and no button on the row. That is
+    #: [[ADR-0035]], which nothing here revisits.
     assert "review-btn" not in body, "a button crept back onto the row"
+    assert "createElement('button')" not in body, (
+        "a control is back on a gate row — a release page reports the gate "
+        "and records nothing (ADR-0035)"
+    )
+    #: The row still reads as a row: a typed id, a title, and a click that
+    #: opens the check. Asserted so "no controls" cannot be met by inertness.
+    assert "'scoped-row-id mono ov-typed'" in body, (
+        "the gate row's id lost the features row's treatment — the shape "
+        "Edwin asked for was 'a list of tst links like the features below'"
+    )
+    assert "navigateTo(item.rel" in body, "the row no longer opens its check"
 
 
 def test_the_walk_layer_still_writes_through_the_documents_own_path() -> None:

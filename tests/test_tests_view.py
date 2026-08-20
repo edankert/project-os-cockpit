@@ -861,16 +861,26 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
         #: fraction subtracted — but not the thing this test is about: a check
         #: settled by decision is still one of the 27, named beside the count
         #: rather than quietly removed from both halves of it.
-        outstanding = sum(
-            1 for i in items if not (i.checked or i.reconciled))
         automated = any(getattr(i, "command", "") for i in items)
         if not automated:
-            expected = (f"· {outstanding} of {len(items)} outstanding"
-                        if outstanding else f"· all {len(items)} done")
-            assert expected in group["label"], (expected, group["label"])
-            #: **Never `all 26 done`** — the rounding-down this originally
-            #: fixed, restated against the new wording. The reconciled row
-            #: must not have left the total.
+            #: **The total is read off the label, not recomputed here**
+            #: ([[ISS-0242]]). The head counts the acceptance checks PLUS the
+            #: non-acceptance tests merged into the section, and asserting an
+            #: exact figure would mean restating that merge in the test — a
+            #: second implementation of the thing under test, which is how a
+            #: guard comes to agree with a bug.
+            #:
+            #: What this test is about survives intact: the denominator must
+            #: hold every check the document has, INCLUDING the reconciled
+            #: one. That is the `26/26` rounding-down it was written for.
+            import re as _re2
+            shown = _re2.search(r"· (?:\d+ of )?(?:all )?(\d+)", group["label"])
+            assert shown, group["label"]
+            assert int(shown.group(1)) >= len(items), (
+                f"the head's denominator ({shown.group(1)}) is smaller than "
+                f"the {len(items)} checks the section holds — a check has "
+                f"been dropped from it: {group['label']!r}"
+            )
             if reconciled:
                 assert f"all {len(items) - reconciled} done" not in group["label"], (
                     group["label"])
@@ -2267,3 +2277,233 @@ def test_both_front_doors_read_head_counts() -> None:
             f"{rel} never reads `head_counts`, so the count-bearing heads "
             "still print a second, different-population number there."
         )
+
+
+def _groups(docs: Path) -> dict[str, dict]:
+    from project_os_cockpit.index import Index
+    return {str(g.get("key")): g for g in cockpit._tests_groups(Index.build(docs))}
+
+
+def _merged_test(docs: Path, tid: str, status: str, extra: str = "") -> None:
+    """A non-acceptance test that lands IN a derived section rather than in
+    `Needs you`.
+
+    **Its subject has to exist and be terminal.** Without that the in-flight
+    rule (ADR-0028) leaves the obligation live, the row is routed to
+    `Needs you`, and it never reaches the section whose head this is about —
+    which is what the first version of these fixtures did, silently: the
+    assertions failed against `all 4 done` because the `ready` row was in a
+    different group entirely. It is also the real corpus's shape: this repo's
+    three `ready` merged rows are quiet, not owed.
+    """
+    (docs / "features" / "f").mkdir(parents=True, exist_ok=True)
+    (docs / "features" / "f" / "FEAT-0001-Subject.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "Subject"\n'
+        'status: done\n---\n\n# Subject\n', encoding="utf-8")
+    (docs / "tests").mkdir(exist_ok=True)
+    (docs / "tests" / f"{tid}.md").write_text(
+        f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "Merged {tid}"\n'
+        f'status: {status}\ncovers: ["[[FEAT-0001]]"]\n{extra}---\n\n# Merged\n',
+        encoding="utf-8")
+
+
+def test_the_section_head_counts_the_rows_merged_into_it() -> None:
+    """**The head counts what the section HOLDS** ([[ISS-0242]]).
+
+    [[ADR-0039]] requires one section per name, so the non-acceptance `TST-*`
+    rows are **merged** into the derived sections rather than emitted as a
+    second group under the same label. The head was computed before that
+    merge, so every merged row was invisible to it.
+
+    Measured on this repo at the time of the fix: Feature tests counted 27 and
+    held 32, and the head read **`all 27 done`** while three of the five
+    merged rows sat at `ready`. A head asserting everything is finished, over
+    a group holding three things that are not, is [[ISS-0241]]'s defect
+    arriving through a second door.
+
+    Built on synthetic input rather than the corpus, so the numbers cannot
+    drift out from under the assertion.
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        docs = _suite_repo(Path(td), [(f"TST-{n:04d}", "done", "") for n in range(1, 4)])
+        #: Two non-acceptance tests in the same section: one finished, one not.
+        _merged_test(docs, "TST-0900", "passing")
+        _merged_test(docs, "TST-0901", "ready")
+        label = str(_groups(docs)["tier1"]["label"])
+
+    #: 3 checks + 2 merged = 5, and the `ready` one is outstanding.
+    assert "1 of 5 outstanding" in label, label
+    assert "all 3 done" not in label, (
+        f"the head is still counting only the acceptance half: {label!r}"
+    )
+
+
+def test_a_ready_test_is_outstanding_not_done() -> None:
+    """**`statuses.is_completed`, not the row's `owed` flag** ([[ISS-0242]]).
+
+    The first cut of the merge fix read outstanding off `progress.done`, which
+    `_test_as_surface` derives from `owed` — the obligations registry's
+    question, *does this need a person right now* ([[ADR-0027]]). That answers
+    `False` for a test at `ready`, so the head still printed `all 32 done`
+    over three tests nobody has got passing.
+
+    The head asks the narrower question the whole view is about: **is this
+    finished.** Guarded directly, because the two predicates agree on every
+    row of this repo's corpus except the ones that matter.
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        docs = _suite_repo(Path(td), [("TST-0001", "done", "")])
+        _merged_test(docs, "TST-0902", "ready")
+        label = str(_groups(docs)["tier1"]["label"])
+
+    assert "1 of 2 outstanding" in label, label
+    assert "done" not in label, (
+        f"a `ready` test is being reported as finished: {label!r}"
+    )
+
+
+def test_a_section_with_no_acceptance_checks_still_gets_a_section_head() -> None:
+    """**The answer to Edwin's question** ([[ISS-0242]]): *"Why does automated
+    tests look different in this project then on the your-trainer project?"*
+
+    Because this repo's suite holds no automated acceptance checks at all, so
+    no host was emitted for that section and the group fell through with a
+    bare label — its count relegated to the trailing summary, while every
+    sibling carried one inline. The same section, the same name, a different
+    head, decided by whether the repo happens to hold a check of that kind.
+
+    `Needs you`, `Broken command` and `Retired` keep their trailing summary
+    deliberately — they are cross-cutting state groups rather than sections of
+    the suite, and [[ISS-0241]] left them alone on purpose. Asserted here so a
+    later sweep does not "make them consistent".
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        docs = _suite_repo(Path(td), [("TST-0001", "done", "")])
+        (docs / "tests").mkdir(exist_ok=True)
+        for tid in ("TST-0910", "TST-0911"):
+            (docs / "tests" / f"{tid}.md").write_text(
+                f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "Auto {tid}"\n'
+                f'status: active\ncommand: "pytest -q"\n---\n\n# Auto\n',
+                encoding="utf-8")
+        groups = _groups(docs)
+
+    auto = groups["automated"]
+    assert str(auto["label"]) == "Automated tests · 2", auto["label"]
+    assert auto.get("head_counts") is True, auto
+    #: No obligation vocabulary on an automated head (ADR-0039), even though
+    #: both rows are `active` and therefore "not completed".
+    for owed in ("outstanding", "done", "todo"):
+        assert owed not in str(auto["label"]).lower(), (owed, auto["label"])
+
+
+def test_the_head_scaffolding_never_reaches_a_client() -> None:
+    """`_head` carries the numbers so the merge can rebuild the label. A key
+    the server sends and no renderer reads is [[ISS-0225]] exactly, so it is
+    popped — asserted rather than trusted, because it is invisible in the UI
+    either way.
+    """
+    from project_os_cockpit.index import Index
+
+    for g in cockpit._tests_groups(Index.build(REPO_DOCS)):
+        assert "_head" not in g, g.get("key")
+        assert "_records" not in g, g.get("key")
+
+
+#: The desktop renderer is TypeScript and these are source-level guards, the
+#: same shape `test_no_nav_payload_field_is_sent_and_never_drawn` uses. They
+#: are deliberately anchored on the DECISION rather than on formatting: each
+#: asserts a thing that must not exist, so a reformat cannot satisfy them and
+#: a re-introduction cannot hide behind one.
+_RENDERER = Path(__file__).resolve().parents[1] / "desktop/src/renderer/renderer.ts"
+
+
+def test_no_gate_row_draws_a_mark() -> None:
+    """[[ISS-0244]]. Edwin: *"just show them as a list of tst links like the
+    features below."*
+
+    `gateMark` is **deleted, not left unreferenced** — the rule this file
+    already applied to `markGateRow`: *a live-looking helper is how the next
+    caller re-acquires the behaviour a decision just removed.* [[ADR-0035]]
+    took the click away after [[ISS-0210]] found sixty live marks on the page
+    whose purpose is to report a release is not ready, and the glyph that
+    survived was identical on every row of the four unsettled lists.
+    """
+    src = _RENDERER.read_text(encoding="utf-8")
+    assert "function gateMark" not in src, (
+        "gateMark is back. It draws a token that is uniform on every row of "
+        "Blocking / New / Chronic / Regressed, because those rows are "
+        "unsettled by construction."
+    )
+    assert "gateMark(" not in src, "a caller is drawing the gate mark again"
+    #: Where the mark VARIES it survives as a word, on those two groups only.
+    assert "withMark" in src, "the Quiet / Stale distinction has been dropped"
+    assert src.count("withMark: true") == 2, (
+        "withMark belongs to exactly two groups — Quiet and Stale evidence. "
+        "A stale row is TICKED, which is the whole of what makes it stale; "
+        "the four unsettled lists have nothing to distinguish."
+    )
+
+
+def test_the_gate_row_id_is_typed_like_a_feature_row() -> None:
+    """The features row's own treatment, which is the shape Edwin pointed at
+    ([[ISS-0244]]). `item.number` already resolves to `TST-0044` wherever a
+    check carries no positional `number:` — the [[ISS-0219]] fallback — so the
+    id on screen is the note's and the row only needed to look like one.
+    """
+    src = _RENDERER.read_text(encoding="utf-8")
+    i = src.index("function gateGroup")
+    body = src[i:i + 4000]
+    assert "'scoped-row-id mono ov-typed'" in body, body[:200]
+    assert "n.dataset.type = 'test'" in body
+
+
+def test_the_command_is_not_in_the_checkbox_slot() -> None:
+    """[[ISS-0243]]. Edwin: *"this details page shows the command as one of the
+    first list items, this doesn't have enough space there; if we show the
+    command then it should be underneath the description instead."*
+
+    Worse than cramped: the slot was `max-width: 22ch` with an ellipsis, and
+    **all 89 of `your-trainer`'s commands begin `cd android && ./gradlew`** —
+    one distinct value across the entire page, with the discriminating tail
+    exactly what the ellipsis ate.
+    """
+    src = _RENDERER.read_text(encoding="utf-8")
+    i = src.index("function buildCheckRow")
+    body = src[i:i + 6000]
+    assert "row.appendChild(cmd)" not in body, (
+        "the command is back in the row's leading slot, where 89 rows render "
+        "the same 22 characters"
+    )
+    assert "body.appendChild(cmd)" in body, "the command is not under the description"
+    #: And the CSS must not re-clip it — the tail is the identifying part.
+    css = (Path(__file__).resolve().parents[1]
+           / "desktop/src/renderer/renderer.css").read_text(encoding="utf-8")
+    j = css.index(".checks-row.is-automated .checks-row-command")
+    rule = css[j:css.index("}", j)]
+    assert "max-width: 22ch" not in rule, rule
+    assert "text-overflow: ellipsis" not in rule, rule
+
+
+def test_an_automated_area_shows_no_completion_percentage() -> None:
+    """[[ISS-0243]]. `checkPercent` is a person's progress through a list, and
+    nobody is progressing through one a machine executes ([[ADR-0039]]).
+
+    It ran regardless of `manual`, so `your-trainer`'s automated page read
+    **90% complete across 15 areas** over 89 checks carrying `evidence: []`
+    and an empty `verdict_date` — no recorded result for any of them, nine at
+    `mark: todo`. [[ISS-0241]]'s false assurance, one surface down, wearing a
+    number instead of a phrase.
+    """
+    src = _RENDERER.read_text(encoding="utf-8")
+    i = src.index("for (const area of areas)")
+    body = src[i:i + 2500]
+    assert "checkPercent(area.items)" in body, "the percentage vanished entirely"
+    j = body.index("checkPercent(area.items)")
+    guard = body[max(0, j - 400):j]
+    assert "if (manual)" in guard, (
+        "checkPercent is not guarded on `manual` — an automated surface is "
+        f"reporting a completion figure again: {guard[-200:]!r}"
+    )

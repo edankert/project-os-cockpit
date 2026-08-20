@@ -651,14 +651,21 @@ def test_a_gate_row_carries_a_token_and_never_a_control() -> None:
 
     Edwin: *"definitely do not allow these acceptance tests to be checked."*
 
-    **This control has now been removed twice.** ISS-0192 took it off the
-    rendered document surface and did not touch this one, because they are
-    different code paths, and neither removal left a test. That is why it is
-    asserted on the *shape* — `gateMark` builds a span and nothing else — and
-    not merely on the absence of the parameter.
+    **Re-anchored 2026-08-20 ([[ISS-0244]]), and the claim got stronger.** This
+    read the body of `gateMark` and asserted it built a span and nothing else.
+    `gateMark` no longer exists — Edwin: *"just show them as a list of tst
+    links like the features below"* — so there is no longer a mark element on a
+    gate row to be static ABOUT. The guard therefore moves up to the row
+    builder itself and asserts the property that actually matters and always
+    did: **nothing a gate row builds can record a verdict.**
+
+    Asserted on the row builder rather than on the absence of one helper,
+    because this control has now been removed three times — [[ISS-0192]] from
+    the rendered document, [[ADR-0035]] from the gate, and this — and each
+    removal that anchored on a name left the next one unguarded.
     """
     src = _renderer_src()
-    body = src[src.index("function gateMark("):]
+    body = src[src.index("function gateGroup("):]
     body = body[:body.index("\n}\n") + 3]
 
     assert "actionable" not in body, (
@@ -670,11 +677,26 @@ def test_a_gate_row_carries_a_token_and_never_a_control() -> None:
         "a gate row builds a button — a release page reports the gate and "
         "records nothing (ADR-0035); walking happens where the steps are"
     )
-    assert "addEventListener" not in body, (
-        "a gate row wires a handler; the row is a link to the check, and the "
-        "mark itself is a static token"
+    #: **Live code, not comments.** Matched line-wise with comment lines
+    #: excluded, because the comment recording *why* the mark went necessarily
+    #: names it — and a guard that fails on its own explanation is a guard
+    #: somebody weakens to make it pass. That happened twice in one sitting
+    #: here; the `markGateRow` check in `test_checks_view` had the same shape
+    #: and was rewritten the same way.
+    drawn = [ln for ln in re.findall(r"^(?!\s*(?://|\*|/\*)).*acc-mark.*$",
+                                     body, re.M)]
+    assert not drawn, (
+        "a gate row is drawing a mark token again. It was uniform on every "
+        "row of the four unsettled lists — those rows are unsettled by "
+        f"construction — and where the mark varies it is a word in the meta "
+        f"line, not a glyph in the gutter (ISS-0244): {drawn}"
     )
-    assert "createElement('span')" in body
+    #: The row is still a LINK to the check — the one handler it may carry.
+    #: Asserted so "no controls" is not satisfied by making the row inert.
+    assert "navigateTo(item.rel" in body, (
+        "a gate row no longer opens its check; walking has to stay one click "
+        "away, or the removal of the control removed the way to act as well"
+    )
 
 
 def test_the_release_page_has_no_write_path_for_a_check() -> None:

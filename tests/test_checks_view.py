@@ -129,9 +129,15 @@ def test_one_walk_layer_and_now_exactly_one_surface() -> None:
     # …and nothing else. A caller that still posts for itself is a second
     # copy wearing a call to the first.
     assert "postJson" not in block
-    assert "markGateRow" not in src.replace(
-        "// **No `markGateRow`** (ADR-0035). It was the release page's write path —", ""), (
-        "markGateRow is back — a release page must not write a check (ADR-0035)"
+    #: **Live code, not comments** ([[ISS-0244]]). This used to strip ONE known
+    #: comment line by exact text and then search the rest — so the guard broke
+    #: the moment a SECOND comment mentioned the name, which is what happened
+    #: when `gateMark` was deleted citing the same rule. A guard that fails on
+    #: a comment is a guard that gets weakened to make it pass.
+    live = re.findall(r"^(?!\s*(?://|\*|/\*)).*\bmarkGateRow\b.*$", src, re.M)
+    assert not live, (
+        f"markGateRow is back — a release page must not write a check "
+        f"(ADR-0035): {live}"
     )
     assert src.count("'/api/notes/mark-check'") == 1, (
         "**one write path, full stop** (ISS-0192). It was two while a repo "

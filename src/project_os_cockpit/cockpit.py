@@ -4275,12 +4275,64 @@ def _tests_groups(
         key = group.get("key")
         host = by_key.pop(_SECTION_TO_TIER_KEY.get(key, ""), None)
         if host is None:
-            group.pop("_records", None)
+            #: **A section with no acceptance checks still gets a section head**
+            #: ([[ISS-0242]]). Edwin: *"Why does automated tests look different
+            #: in this project then on the your-trainer project?"*
+            #:
+            #: Because this repo's suite holds **no automated acceptance checks
+            #: at all** (`feature: 27, regression: 7`), so `_acceptance_tier_
+            #: groups` emitted no host for it and the group fell through with a
+            #: bare label -- its count relegated to the trailing summary while
+            #: every sibling carried one inline. Same section, same name, a
+            #: different head, decided by whether the repo happens to hold a
+            #: check of that kind.
+            #:
+            #: The three DERIVED sections share one head format. `Needs you`,
+            #: `Broken command` and `Retired` keep their trailing summary
+            #: deliberately: they are cross-cutting state groups, not sections
+            #: of the suite, and [[ISS-0241]] left that alone on purpose.
+            records = group.pop("_records", [])
+            if key in _SECTION_TO_TIER_KEY and records:
+                group["_head"] = {
+                    "heading": str(group.get("label") or ""),
+                    "manual": key != "automated",
+                    "total": 0, "unchecked": 0,
+                    "rerun": 0, "stale": 0, "reconciled": 0,
+                    "extra_total": len(records),
+                    "extra_outstanding": sum(
+                        1 for r in records
+                        if not statuses.is_completed(r.status or "")),
+                }
+                group["label"] = _section_head_label(group["_head"])
+                group["head_counts"] = True
             merged.append(group)
             continue
-        host["items"] = list(host["items"]) + [
-            _test_as_surface(index, r, days) for r in group.pop("_records", [])
-        ]
+        extras = [_test_as_surface(index, r, days)
+                  for r in group.pop("_records", [])]
+        host["items"] = list(host["items"]) + extras
+        #: **The head counts what the section HOLDS** ([[ISS-0242]]). It was
+        #: built before this merge, so every row appended here was invisible to
+        #: it -- and in this repo that made `Feature tests · all 27 done` a
+        #: claim over a group holding three `ready` tests.
+        #:
+        #: **`statuses.is_completed`, not the row's `owed` flag.** Both were
+        #: tried. `owed` asks *does this need a person right now* -- the
+        #: obligations registry's question ([[ADR-0027]]) -- and it answers
+        #: `False` for a test sitting at `ready`, which is how the first cut of
+        #: this fix still printed `all 32 done` over three tests nobody has
+        #: got passing. The head's question is the narrower one the whole view
+        #: is about: **is this finished**. `passing` and `retired` are; `ready`,
+        #: `active` and `failing` are not.
+        #:
+        #: One predicate, from `statuses`, which is where the bands are already
+        #: canonical for six surfaces -- not a second reading invented here
+        #: ([[REQ-0059]], and `_covers_an_issue` was caught doing exactly that).
+        head = host.get("_head")
+        if head is not None:
+            head["extra_total"] = len(extras)
+            head["extra_outstanding"] = sum(
+                1 for e in extras if not statuses.is_completed(str(e.get("status") or "")))
+            host["label"] = _section_head_label(head)
         merged.append(host)
     # A section with acceptance checks and no non-acceptance tests still exists.
     for key in ("tier1", "tier2", "tier3"):
@@ -4289,6 +4341,10 @@ def _tests_groups(
             merged.append(leftover)
     ordered = sorted(
         merged, key=lambda g: _SECTION_ORDER_INDEX.get(str(g.get("key")), 99))
+    #: `_head` is scaffolding for the rebuild above and must not reach a
+    #: client -- a key the server sends and no renderer reads is [[ISS-0225]].
+    for g in ordered:
+        g.pop("_head", None)
     owed = [g for g in ordered if g.get("needs_human")]
     rest = [g for g in ordered if not g.get("needs_human")]
     return owed + rest
@@ -4521,6 +4577,58 @@ def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
     return rows
 
 
+def _section_head_label(head: dict[str, Any]) -> str:
+    """The head of a tests-view section, built from one place.
+
+    **Built here rather than inline so the MERGE can rebuild it** ([[ISS-0242]]).
+    `_tests_groups` appends non-acceptance `TST-*` rows into these sections --
+    [[ADR-0039]] requires one section per name, so they are merged rather than
+    emitted as a second group under the same label -- and the head was computed
+    before that happened. Measured 2026-08-20:
+
+    | section | checks the head counted | rows merged in and NOT counted |
+    |---|---|---|
+    | `project-os-cockpit` Feature tests | 27 | 5 |
+    | `your-trainer` Feature tests | 406 | 5 |
+    | `your-trainer` Automated tests | 89 | 2 |
+
+    The first row is the one that shows what it costs: this repo's head read
+    **`all 27 done`** while three of the five merged rows sat at `ready`. A
+    head asserting that everything is finished, over a group holding three
+    things that are not, is [[ISS-0241]]'s defect arriving through a second
+    door -- and it is why `Automated tests` looked different between the two
+    repos, which is the question that found it.
+
+    `extra_total` and `extra_outstanding` are the merged population. They are
+    zero for a section nothing merged into, which makes the merge a no-op here
+    rather than a special case.
+    """
+    heading = str(head.get("heading") or "")
+    total = int(head.get("total") or 0) + int(head.get("extra_total") or 0)
+    #: **An automated section reports what it HOLDS, not what is owed**
+    #: ([[ADR-0039]]). No fraction, no obligation vocabulary: nobody is
+    #: progressing through a list a machine executes.
+    if not head.get("manual", True):
+        return f"{heading} · {total}"
+    outstanding = int(head.get("unchecked") or 0) + int(head.get("extra_outstanding") or 0)
+    #: **What is OUTSTANDING, once** ([[ISS-0241]], Edwin's word: not `todo`).
+    #: The head carried `{checked}/{total} completed` and `{unchecked} todo`
+    #: together, and the second is the first subtracted -- no input exists that
+    #: makes them disagree.
+    label = (f"{heading} · {outstanding} of {total} outstanding" if outstanding
+             else f"{heading} · all {total} done")
+    #: These three SURVIVE, because none restates the first. `re-check` is an
+    #: explicit act, `stale` is a tick standing over overtaken evidence,
+    #: `reconciled` is a decision the release note carries -- three different
+    #: things that happened, not one thing counted three ways.
+    for n, word in ((head.get("rerun"), "need re-check"),
+                    (head.get("stale"), "stale"),
+                    (head.get("reconciled"), "reconciled")):
+        if n:
+            label = f"{label} · {n} {word}"
+    return label
+
+
 def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
     """The acceptance suite's tiers, beneath the test notes (TASK-0373).
 
@@ -4618,7 +4726,7 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             #: not appear a second time here; a `done` pill on a card called
             #: `Done` is what [[ISS-0089]] and [[ISS-0090]] took off the group
             #: heads, and it should not return through this door.
-            label = f"{heading} · {tier['total']}"
+            label = ""  # built by _section_head_label below
         else:
             #: **What is OUTSTANDING, once** ([[ISS-0241]], Edwin's word: not
             #: `todo`). This head carried `{checked}/{total} completed` and
@@ -4636,21 +4744,13 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             #: `0 of 27 outstanding` is a sentence about absence; `all 27 done`
             #: is the fact the reader wants, and it is the one state where the
             #: total alone is the whole answer.
-            if unchecked:
-                label = f"{heading} · {unchecked} of {tier['total']} outstanding"
-            else:
-                label = f"{heading} · all {tier['total']} done"
-            #: These three SURVIVE, because none of them restates the first.
-            #: `re-check` is an explicit act, `stale` is a tick standing over
-            #: overtaken evidence, `reconciled` is a decision the release note
-            #: carries -- three different things that happened, not one thing
-            #: counted three ways.
-            if rerun:
-                label = f"{label} · {rerun} need re-check"
-            if stale:
-                label = f"{label} · {stale} stale"
-            if reconciled:
-                label = f"{label} · {reconciled} reconciled"
+            label = ""  # built by _section_head_label below
+        head = {
+            "heading": heading, "manual": bool(tier.get("manual", True)),
+            "total": int(tier["total"]), "unchecked": unchecked,
+            "rerun": rerun, "stale": stale, "reconciled": reconciled,
+        }
+        label = _section_head_label(head)
         group: dict[str, Any] = {
             "key": f"tier{tier['tier']}",
             "label": label,
@@ -4708,6 +4808,11 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             # big it is. Only the sections built here are count-bearing, and
             # only they say so.
             "head_counts": True,
+            #: **The numbers the head was built from**, so `_tests_groups` can
+            #: rebuild it after merging non-acceptance tests in ([[ISS-0242]]).
+            #: Popped before the payload is emitted -- a key the client never
+            #: reads is the [[ISS-0225]] defect.
+            "_head": head,
         }
         # Only the gating tiers ask anything of a person. Tier 3 is a
         # verification aid — TESTING.md is explicit that it does not gate.
