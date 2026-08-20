@@ -130,3 +130,27 @@ One live inconsistency to resolve before anything is built: the criterion *"Noth
 **This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
 
 Basis blockquote present and its figures re-verified. The measurement it rests on reproduces exactly at the stated basis (59 / 39 / 18 / 2, nine features, 3-in / 6-out, `FEAT-0074` `backlog` with 20 = the whole `quiet` bucket, five of six `done`, ledgers in one of twelve repos), and the conclusion holds at HEAD too (40 of 43). Nothing further from me.
+
+## Re-scoped 2026-08-20 — over half of this shipped under [[FEAT-0129]]
+
+**This note says `backlog` with `tasks: []`, and it has been described as "a full build with no tasks" three times today. That is wrong**, and it was wrong because nobody re-read it against what landed.
+
+[[FEAT-0129]] — *"A release names its own contents"* — closed `done` today, and it is substantially the same feature seen from the implementation side. Measured against this note's own criteria:
+
+| criterion | state | where |
+|---|---|---|
+| 1 — uncheck/re-check, no hand-editing, reconciled on render | **built** | `note_writes.release_contents` (three refusals), `publication.contents_candidates` |
+| 2 — survives reload/restart; a later-completed feature appears checked | **built** | contents live in the note; the derived set is reconciled per render |
+| 3 — subtraction, guarded on the **mixed case** | **built** | `Suite.blocking_minus` under [[ADR-0040]]; `test_the_mixed_cell_still_gates` |
+| 4 — every exclusion carries a **reason**; page reads `N features held back · M checks no longer gating` | **NOT built** | `publication.py:948` computes held-back; no reason field, no summary line |
+| 5 — `chronic` still counts an excluded check | **NOT built** | no evidence anywhere in `publication.py` or the suite |
+| 6 — shipped contents frozen, no write path to a check | **built** | `test_a_shipped_release_is_immutable`, [[ADR-0035]] intact |
+| 7 — nothing ships before [[ADR-0040]] is accepted | **met** | `status: "accepted"` |
+
+**Five of seven are met. Two are not**, and they are the *reporting* half rather than the mechanism: an exclusion currently happens without recording **why**, and the page does not say what the selection cost. Criterion 5 is the sharper of the two — [[ADR-0028]]'s `chronic` count exists so a check that stops blocking does not also stop being visible, and a subtraction rule that quietly shrinks it would reintroduce exactly the overclaiming this phase spent itself removing.
+
+### What this changes
+
+This is not a feature waiting to start. It is a **feature two-thirds delivered under another note's tasks, never reconciled** — which is why it kept reading as untouched. The remaining work is small and specific, and it should be minted as two tasks against these two criteria rather than planned as a build.
+
+It also raises whether FEAT-0142 and [[FEAT-0129]] should be one note. They are not duplicates — 0129 is *"a release can name contents"* and 0142 is *"and the record says why, and what it cost"* — but a reader meeting both cold cannot tell that, and this note's `backlog` status actively misleads. That is a judgement for Edwin, not a tidy-up to perform.
