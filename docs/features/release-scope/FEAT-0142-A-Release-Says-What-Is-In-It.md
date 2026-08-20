@@ -14,7 +14,8 @@ phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["user:edwin"]
 goal: "A person preparing a release can move a feature out of it, or hold one for the next one, from the release page — and the record says which features were CHOSEN rather than which happened to be finished."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0576-An-Exclusion-Says-Why-And-What-It-Cost]]"
 release: ""
 acceptance: ""
 design: ""

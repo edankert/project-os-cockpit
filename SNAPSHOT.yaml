@@ -69,7 +69,7 @@ counters:
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 575
+  TASK: 576
   TST: 77
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -3901,7 +3901,7 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 142
     features_done: 127
-    tasks_total: 574
+    tasks_total: 575
     tasks_done: 536
     tests_total: 43
     tests_passing: 2
