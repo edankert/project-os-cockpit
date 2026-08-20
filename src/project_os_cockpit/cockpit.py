@@ -2411,7 +2411,9 @@ def _tests_register(index: Index) -> list[dict[str, Any]]:
 OWED_VERDICTS: frozenset[str] = frozenset({"changes-requested", "rejected"})
 
 
-def _verdict_is_owed(verdict: str, status: str | None) -> bool:
+def _verdict_is_owed(
+    verdict: str, status: str | None, note_type: object = None,
+) -> bool:
     """True when a verdict still owes somebody work (ISS-0121).
 
     The verdict alone is not enough, and reading it alone is the defect this
@@ -2435,9 +2437,35 @@ def _verdict_is_owed(verdict: str, status: str | None) -> bool:
     terminal, which frontmatter does not carry; ``status_diff`` recovers it from
     ``git log`` and wiring that into a per-request register is disproportionate
     to a case this corpus has never produced. If it occurs, that is the fix.
+
+    **The terminal test is per TYPE, not per band** ([[ISS-0245]]). This asked
+    `statuses.is_completed`, and `band_of("accepted")` is **`active`** -- so for
+    the four types whose terminal status IS `accepted` (`adr`, `design`,
+    `reference`, `requirement`) the obligation could never clear. A reviewer
+    wrote `changes-requested`, the author fixed everything, the note reached
+    `accepted`, and the row stayed in `Needs you` for the life of the record:
+    exactly the sticky verdict this function exists to end, surviving on the
+    one axis its fix did not cover.
+
+    It is also [[REQ-0059]]'s forbidden shape -- one question, two
+    implementations -- and `_covers_an_issue` was caught committing it a week
+    earlier. `is_done_status` is the app's answer to *is this note finished*,
+    so this asks that.
+
+    **Found because a test went green for the wrong reason.** `ADR-0040` was
+    stamped `changes-requested`, then accepted, and
+    `test_every_row_of_the_rehoming_table_is_reachable` failed. The suite went
+    green again when the reviewer updated its own verdict -- a legitimate act
+    that masked the defect, and one it named rather than let pass.
+
+    `note_type` defaults to `None` so a caller that cannot supply it falls back
+    to the old band test rather than raising; both real call sites have the
+    record in hand and pass it.
     """
     if verdict not in OWED_VERDICTS:
         return False
+    if note_type is not None:
+        return not is_done_status(note_type, status)
     return not statuses.is_completed(status)
 
 
@@ -2534,7 +2562,7 @@ def _reviewed_register(index: Index) -> list[dict[str, Any]]:
             "verdict": normalised,
             "reviewed_by": str(record.frontmatter.get("reviewed_by") or ""),
             "review_date": str(record.frontmatter.get("review_date") or ""),
-            "owed": _verdict_is_owed(normalised, record.status),
+            "owed": _verdict_is_owed(normalised, record.status, record.note_type),
         })
         out.append(item)
     # Most recent first. A note with no `review_date` still lists — it
@@ -6688,7 +6716,7 @@ def digest_payload(
     # the registry's total plus an enumerable set and never silently less.
     for record in index.iter_records():
         verdict = str(record.frontmatter.get("review_verdict") or "").strip().lower()
-        if _verdict_is_owed(verdict, record.status):
+        if _verdict_is_owed(verdict, record.status, record.note_type):
             needs_you.append(_slim_note(record))
 
     # One item, one row — the same rule the triage tray had to learn.

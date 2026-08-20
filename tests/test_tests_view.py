@@ -2608,3 +2608,57 @@ def test_no_group_asserts_a_pass_for_a_status_it_does_not_recognise() -> None:
         "`retired` is a legal test status — so the group it lands in is a "
         "statement about a real state, not a fallback"
     )
+
+
+def test_a_verdict_on_an_accepted_note_stops_being_owed() -> None:
+    """[[ISS-0245]]. `_verdict_is_owed` asked `statuses.is_completed`, which is
+    a **band** test — and `band_of("accepted")` is `active`.
+
+    So for the four types whose terminal status *is* `accepted`, a
+    `changes-requested` verdict was owed **forever**: the author fixed
+    everything, the note reached its terminal status, and the row stayed in
+    `Needs you` for the life of the record. That is [[ISS-0121]]'s sticky
+    verdict surviving on the one axis its fix did not cover, and
+    [[REQ-0059]]'s one-question-two-implementations besides.
+
+    The four pairs are asserted **by name**, because they are the entire
+    population where the two predicates disagree — and a guard that tested
+    only `issue`/`feature` would have passed against the bug for the same
+    reason the original did.
+    """
+    from project_os_cockpit import statuses as _st
+
+    disagree = [("adr", "accepted"), ("design", "accepted"),
+                ("reference", "accepted"), ("requirement", "accepted")]
+    for note_type, status in disagree:
+        #: The premise: these are exactly the pairs the two predicates split on.
+        assert not _st.is_completed(status), (note_type, status)
+        assert cockpit.is_done_status(note_type, status), (note_type, status)
+        #: And the obligation follows the type-aware one.
+        assert not cockpit._verdict_is_owed("changes-requested", status, note_type), (
+            f"a `changes-requested` verdict on a terminal {note_type} is owed "
+            "forever — the row can never leave `Needs you`"
+        )
+
+    #: Still owed where it should be: the note is not finished.
+    assert cockpit._verdict_is_owed("changes-requested", "proposed", "adr")
+    assert cockpit._verdict_is_owed("changes-requested", "open", "issue")
+    #: And a settled verdict is never owed, whatever the status.
+    assert not cockpit._verdict_is_owed("approved", "proposed", "adr")
+
+
+def test_the_owed_verdict_predicate_has_one_implementation() -> None:
+    """[[REQ-0059]]: one question, one predicate.
+
+    `_verdict_is_owed` must delegate to `is_done_status` rather than carry its
+    own reading of *finished*. Asserted on the source because the two agree on
+    every pair this repo's corpus contains except the four above — so a second
+    implementation would pass the behavioural test for months.
+    """
+    import inspect
+
+    src = inspect.getsource(cockpit._verdict_is_owed)
+    body = src[src.index('"""', src.index('"""') + 3) + 3:]
+    assert "is_done_status(" in body, (
+        "the owed test no longer delegates to the app's own done predicate"
+    )

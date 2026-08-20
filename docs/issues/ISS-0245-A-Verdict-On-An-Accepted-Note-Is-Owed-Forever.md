@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0245
 aliases: ["ISS-0245"]
 title: "A `changes-requested` verdict on an ADR, design, reference or requirement is owed forever — the obligation asks `is_completed` while the rest of the app asks `is_done_status`, and the two disagree on exactly those four"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -54,8 +54,28 @@ The independent reviewer stamped `review_verdict: changes-requested` on [[ADR-00
 
 Both call sites (`cockpit.py:2537`, `:6685`) have the record in hand.
 
+## Fixed 2026-08-20
+
+`_verdict_is_owed` takes the note type and delegates to `is_done_status`. Both call sites have the record in hand. `note_type` defaults to `None` and falls back to the band test, so a caller that cannot supply one degrades rather than raises.
+
+**The green is now the code's, not a field's.** The decisive check is the one the reviewer described: with `ADR-0040`'s verdict set back to `changes-requested`, `test_every_row_of_the_rehoming_table_is_reachable` **passes**. Before the fix it failed. That is the difference between a defect repaired and a symptom edited away.
+
+Two guards, both proved on the mutant that restores `statuses.is_completed`:
+
+- `test_a_verdict_on_an_accepted_note_stops_being_owed` asserts the four pairs **by name**, and asserts the premise as well — that the two predicates genuinely split on exactly those. A guard testing `issue`/`feature` would have passed against the bug for the same reason the original code did.
+- `test_the_owed_verdict_predicate_has_one_implementation` reads the source, because the two predicates agree on every pair this corpus holds except those four: a second implementation would pass the behavioural test for months.
+
 ## Next Actions
 
-- [ ] `_verdict_is_owed` takes the note type and delegates to `is_done_status`.
-- [ ] A guard on the four disagreeing pairs specifically — the corpus contains `adr` at `accepted` today, so this one **can** be proved from real data rather than constructed input.
-- [ ] Check the other readers of `statuses.is_completed` for the same substitution. `_section_head_label`'s merged-row count ([[ISS-0242]]) is a deliberate and correct use — it asks about a *test*, whose terminal statuses are all in the `done` band — but it was chosen without knowing this hazard existed, so it deserves the second look.
+- [x] `_verdict_is_owed` delegates to `is_done_status`.
+- [x] A guard on the four disagreeing pairs, provable from real data.
+- [x] Checked the other readers of `statuses.is_completed`. [[ISS-0242]]'s merged-row count in `_section_head_label` is the one that deserved the second look, and it is **correct — but not for the reason I first wrote down.**
+
+  The first version of this line claimed the two predicates *"cannot disagree"* on a test. **They do**, on exactly one value: `is_completed("retired")` is `True` (the `archived` band) while `is_done_status("test", "retired")` is `False`. Caught by running it rather than by reasoning about it, in the note whose entire subject is a predicate claim that was not checked.
+
+  It is nevertheless unreachable **and** the band answer is the right one:
+
+  - `_tests_groups` routes any status in `_RESOLVED_NOT_PASSING` — `retired`, `canceled`, `cancelled`, `obsolete`, `superseded` — to the `Retired` bucket **before** the feature/regression buckets exist, so a retired test never enters the merge and the disagreeing branch never runs.
+  - And if it ever did, `is_completed` gives the answer the head wants: a retired test is **not outstanding work**. Swapping to `is_done_status` there would make it outstanding, which is wrong.
+
+  So: left alone, with the reason stated and the near-miss recorded. `_section_head_label`'s merged-row count ([[ISS-0242]]) is a deliberate and correct use — it asks about a *test*, whose terminal statuses are all in the `done` band — but it was chosen without knowing this hazard existed, so it deserves the second look.
