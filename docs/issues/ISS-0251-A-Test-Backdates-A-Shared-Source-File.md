@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0251
 aliases: ["ISS-0251"]
 title: "A freshness test forward-dates a real source file in the working tree, so any other process running the suite at the same time gets a false staleness failure — the exact class of false bug report that test file exists to prevent"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -66,3 +66,29 @@ Running the suite twice at once in one working tree gives the same answer as run
   - **A file the test owns.** Write a throwaway `.py` into the package directory instead of touching `cockpit.py`, and delete it. Still shared, but the window belongs to a file nothing else asserts about — and a leftover is visible rather than silent.
   - **A staleness root the test can point somewhere else.** If the freshness scan took its package root as an argument, the test could build a temp package tree and the comparison would stay real while the blast radius became the temp directory.
 - [ ] Whichever is chosen, **run two suites at once and watch it not fail** — the property is about concurrency, so a single-process pass proves nothing about it.
+
+
+## Fixed 2026-08-20 — by moving the other side of the comparison
+
+The staleness predicate is `newest .py under the package > this process's start`. **It has two sides and only one of them is shared.**
+
+The test now moves `_PROCESS_STARTED_AT` — module state, private to this process — instead of the file's mtime. It exercises the identical predicate, in both directions (`0.0` → stale, `now + 60` → clear), and mutates nothing another reader can see. No `tmp_path` copy of the package was needed and no production signature changed.
+
+The obvious repair — keep forward-dating the file, restore it faster — was rejected: it narrows the window without closing it, and a race that fires rarely is worse than one that fires often.
+
+### Guarded, and the guard was wrong first
+
+`test_the_freshness_test_does_not_touch_a_shared_file` asserts **no test in this file sets an mtime at all**, which is the property that matters given the file's subject.
+
+Its first cut searched the source **text** for `os.utime(` and failed immediately — matching **its own docstring and its own assertion string**. That is the eighth over-broad text match this phase, and the second in which a guard was satisfied, or in this case defeated, by the prose explaining it.
+
+It parses with `ast` now and looks for real call sites, which cannot see a mention.
+
+### Both mutants executed
+
+| mutant | result |
+|---|---|
+| reintroduce `os.utime` on a shared path | guard **fails** |
+| `"sidecar_stale": False` in `server.py` | staleness test **fails** |
+
+Run with `__pycache__` cleared and `PYTHONDONTWRITEBYTECODE=1`, because same-second edits of equal length reuse the previous mutant's bytecode and report false catches — the failure mode that invalidated several earlier mutation results in this phase.

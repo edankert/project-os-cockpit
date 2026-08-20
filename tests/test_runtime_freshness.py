@@ -25,6 +25,7 @@ import time
 import urllib.request
 from pathlib import Path
 
+from project_os_cockpit import server
 from project_os_cockpit.server import (
     DocsServer,
     _NoDNSThreadingHTTPServer,
@@ -74,33 +75,83 @@ def test_a_fresh_process_is_not_stale(tmp_path: Path) -> None:
         httpd.shutdown()
 
 
-def test_source_newer_than_the_process_reads_as_stale(tmp_path: Path) -> None:
+def test_source_newer_than_the_process_reads_as_stale(
+        tmp_path: Path, monkeypatch) -> None:
     """The whole point: the answer is computed, not remembered.
 
     A `.py` under the package newer than the process start is exactly the
     condition a developer creates by editing code with the app open — and
     exactly what nothing reported until this endpoint existed.
-    """
-    import project_os_cockpit
 
+    **Written by moving the process start, not the file** ([[ISS-0251]]).
+
+    The first cut set the mtime of the **real** `src/project_os_cockpit/
+    cockpit.py` five seconds into the future and restored it in a `finally`.
+    Within one process that is safe. Across processes it is not: staleness is
+    `newest .py under the package > this process's start`, so for the length of
+    that window *every* sidecar running against this working tree reports
+    stale — including one another pytest process has just spun up. It cost two
+    red tests in a 1977-test run on 2026-08-20, both passing in isolation, in a
+    repo where a red suite is a stop signal.
+
+    That is precisely the failure this file exists to prevent. Its own opening
+    docstring: *"Both times the expensive part was investigating a defect that
+    did not exist."*
+
+    The comparison has two sides and only one of them is shared. Moving
+    `_PROCESS_STARTED_AT` — module state, private to this process — exercises
+    the identical predicate and mutates nothing another reader can see.
+    """
     port, httpd = _spin_up(_docs(tmp_path))
-    victim = Path(project_os_cockpit.__file__).resolve().parent / "cockpit.py"
-    before = victim.stat().st_mtime
     try:
-        future = time.time() + 5
-        os.utime(victim, (future, future))
-        assert _runtime(port)["sidecar_stale"] is True, (
+        #: Anything under the package's newest .py. Zero is unambiguous and
+        #: needs no clock arithmetic.
+        monkeypatch.setattr(server, "_PROCESS_STARTED_AT", 0.0)
+        r = _runtime(port)
+        assert r["sidecar_stale"] is True, (
             "a source file newer than the process must read as stale — this "
             "is the comparison ISS-0140 exists to make"
         )
-        os.utime(victim, (before, before))
+        #: The domain is real: the predicate is comparing against something.
+        assert r["source_newest"] > 0
+
+        monkeypatch.setattr(server, "_PROCESS_STARTED_AT", time.time() + 60)
         assert _runtime(port)["sidecar_stale"] is False, (
             "and it must clear again: a staleness signal that latches is a "
             "signal people learn to stop seeing"
         )
     finally:
-        os.utime(victim, (before, before))
         httpd.shutdown()
+
+
+def test_the_freshness_test_does_not_touch_a_shared_file() -> None:
+    """[[ISS-0251]]'s guard, and the reason it is a guard rather than an edit.
+
+    The obvious repair — keep forward-dating the file but restore it faster —
+    narrows the window without closing it. The property that matters is that
+    **no test in this file mutates a path outside `tmp_path`**, because this
+    file's whole subject is not reporting staleness that is not there.
+
+    **Parsed, not grepped.** The first cut searched the source text for the
+    call and matched *its own docstring and its own assertion string* — the
+    same over-broad-text-match this codebase has now produced eight times in
+    one phase. A guard satisfied by the prose explaining it is not a guard.
+
+    `ast` finds real call sites and cannot see a mention.
+    """
+    import ast
+
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    calls = [
+        n.lineno for n in ast.walk(tree)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+        and n.func.attr == "utime"
+    ]
+    assert not calls, (
+        "a test in this file sets an mtime (lines %s); if the target is a "
+        "real source file, every concurrent reader of this working tree sees "
+        "false staleness (ISS-0251)" % calls
+    )
 
 
 def test_assets_answer_even_when_there_are_none(tmp_path: Path) -> None:
