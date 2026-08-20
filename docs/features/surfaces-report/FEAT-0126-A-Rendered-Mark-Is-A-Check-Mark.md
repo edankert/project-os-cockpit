@@ -6,7 +6,7 @@ title: "A rendered mark is a check mark on every surface, whatever the file stor
 status: doing
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0045-Storage-Is-Words-Display-Is-Glyphs]]"]
 tasks: ["[[TASK-0505-Route-Three-Sites-Through-Mark-Glyph]]", "[[TASK-0521-One-Verb-Again]]"]
@@ -25,3 +25,12 @@ The fix is small. What matters is the **guard**: this is the second vocabulary c
 
 - [ ] The picker, the canceled-row styling and the gate tooltip all render glyphs.
 - [ ] A guard fails on a raw mark word reaching any surface.
+
+## Criteria re-read 2026-08-20
+
+**Met, with one clause superseded rather than unmet.**
+
+- *The picker … renders glyphs* — `MARK_GLYPH` is used at five sites; the mark dialog draws glyphs, not words.
+- *…the canceled-row styling…* — `.checks-row.is-canceled` carries the strikethrough and the dimming.
+- *…and the gate tooltip* — **superseded by [[ISS-0244]].** `gateMark` is deleted, so a gate row has no mark and therefore no tooltip to render a glyph in. The clause has no subject, not an unmet one. Recorded here rather than ticked, because ticking it would claim something that no longer exists.
+- *A guard fails on a raw mark word reaching any surface* — `test_acceptance_marks.py` asserts every `[${…}]` is guarded by a `MARK_GLYPH[…] ??` fallback.

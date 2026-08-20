@@ -6,7 +6,7 @@ title: "The tests view opens on what is owed and tracks progress, instead of on 
 status: doing
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0047-The-View-Opens-On-What-Is-Owed]]"]
 tasks: ["[[TASK-0508-Collapse-Resting-To-A-Line]]", "[[TASK-0509-Tier-Sections-Collapse-To-Tracking-Lines]]", "[[TASK-0510-Feature-Tests-Lead]]", "[[TASK-0513-The-Checks-Page-Is-A-Flat-List-Per-Tier]]", "[[TASK-0520-Group-The-Suite-By-Surface]]", "[[TASK-0549-One-Grouping-Key-And-It-Is-The-Id]]", "[[TASK-0550-The-Nav-Groups-By-Surface]]", "[[TASK-0551-A-Percentage-Where-The-Reader-Is-Working]]", "[[TASK-0552-The-navs-surfaces-get-their-own-address-and-their-ow]]", "[[TASK-0553-A-surface-row-draws-its-progress-and-a-payload-field]]", "[[TASK-0554-A-surface-carries-no-test-status]]", "[[TASK-0555-The-check-id-renders-once-at-the-start-and-is-select]]", "[[TASK-0556-Incomplete-First]]"]
@@ -30,3 +30,24 @@ Three changes, none of which removes information:
 - [ ] Resting is one collapsed line.
 - [ ] Tier sections show a tracking line and expand on demand.
 - [ ] Feature tests come first.
+
+## Criteria re-read 2026-08-20 — two met, one with a question
+
+- *Tier sections show a tracking line and expand on demand* — met. Every section head carries its count and `default_open: False`.
+- *Feature tests come first* — met, and guarded by `test_exactly_one_group_per_test`.
+- *Resting is one collapsed line* — **the mechanism exists and its population is empty in both repos.**
+
+### The open question
+
+The group is built (`cockpit.py`, `key: "suppressed"`, `label: "Quiet · N · no feature in flight"`, `reason: "no feature in flight"`) and [[TASK-0508]] is `done`. But it renders in **neither** corpus today:
+
+| repo | suppressed groups |
+|---|---|
+| `project-os-cockpit` | none |
+| `your-trainer` | none |
+
+This note recorded **"10 rows in `your-trainer`, 3 here"** when it was written. Both are now zero.
+
+**Two readings, and they are not equivalent.** Either the corpus moved — those subjects came into flight or reached a terminal status, which would make zero correct — or the predicate stopped firing, which is the defect this phase has found five times.
+
+**Not resolved, and deliberately not ticked.** A criterion whose subject cannot be produced on either corpus is exactly the shape that gets ticked on the strength of the code existing. Whoever closes this feature has to construct the case — a check whose subject is `backlog` — and watch the group appear.
