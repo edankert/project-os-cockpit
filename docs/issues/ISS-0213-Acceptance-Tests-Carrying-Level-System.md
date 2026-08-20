@@ -39,7 +39,44 @@ The reader sees five acceptance tests in a flat list and 579 in tier sections, w
 
 **The fix is data, not code** — and that makes it the one item here that needs a judgement per note rather than a rule. `EntitlementResolution` and `ProSeatSelectionAndHiddenRiders` are not obviously acceptance tests just because they are manual and system-level.
 
+## The judgement, made 2026-08-20
+
+Two of the five had already been resolved before this was picked up: **TST-0015** and **TST-0018** now carry `level: acceptance` and `status: active`, and both render under their tier. The issue's table above is that far out of date.
+
+The remaining three, each read rather than pattern-matched on its name:
+
+| id | judgement | why |
+|---|---|---|
+| **TST-0011** Android BLE hardening | `acceptance` | *"Validate, on a real smart trainer… This is the gate (with TST-0012 for iOS) that closes TASK-0592/0593/0766, ISS-0256/0329, FEAT-0085, REQ-0185 and RISK-0008. Until every Tier-A row here passes, the branch stays unmerged."* A note that holds a branch shut is an acceptance gate by any reading. |
+| **TST-0012** iOS BLE hardening | `acceptance` | The iOS half of the same gate, in the same words. |
+| **TST-0013** iOS parity acceptance | `acceptance`, **with a caveat below** | *"Manual acceptance coverage for everything the iOS parity push implemented… so Edwin can verify each new rider-facing surface before the iOS release."* Gates a release. |
+
+**The caveat on TST-0013 is worth more than the level.** It carries **107 checkbox rows** in one note (TST-0011 has 18, TST-0012 has 15). Under [[ADR-0030]] one note is one check, so calling it `level: acceptance` labels a 107-check document as a single acceptance check. The level is still right — the alternative is worse, since `system` routes it to a flat group that contradicts its own title — but the shape is the document-suite [[PHASE-035]] migrated away from, and it should eventually become notes. Noted rather than fixed here: that is a migration, not a field edit.
+
+## Measured before recommending it
+
+Relevelling all three was simulated on a **throwaway copy** of `your-trainer/docs` rather than reasoned about:
+
+```
+BEFORE: items=579 blocking=57
+AFTER : items=579 blocking=57
+newly blocking: []
+```
+
+**Zero gate impact.** `acceptance.load` reads the acceptance *directory*, and all three live in `docs/tests/`, so the change moves them in the navigator — out of the flat `Needs you` group and under their tier — and touches nothing the release gate counts. That is exactly the second criterion below and nothing else.
+
+## Not yet applied — the data change needs a hand
+
+The edit is three lines, `level: system` → `level: acceptance`, in:
+
+- `your-trainer/docs/tests/TST-0011-AndroidBleHardeningAcceptance.md`
+- `your-trainer/docs/tests/TST-0012-IosBleHardeningAcceptance.md`
+- `your-trainer/docs/tests/TST-0013-IosParityAcceptance.md`
+
+It was attempted and **refused by the sandbox** — writes into a second repository are blocked from this one, which is the right default: a change to `your-trainer`'s record should not arrive as a side effect of work in the cockpit.
+
 ## Done when
 
-- [ ] Each of the five is assigned a `level:` deliberately, with the reasoning recorded.
-- [ ] Whatever the outcome, no test's *group* contradicts its own name.
+- [x] Each of the five is assigned a `level:` deliberately, with the reasoning recorded — **done above**; two were already applied, three are decided and pending.
+- [ ] The three edits land in `your-trainer`.
+- [ ] Whatever the outcome, no test's *group* contradicts its own name. Verified for TST-0015/0018 (tier children); pending for the three.

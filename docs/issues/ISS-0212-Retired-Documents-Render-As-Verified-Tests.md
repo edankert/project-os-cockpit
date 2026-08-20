@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0212
 aliases: ["ISS-0212"]
 title: "Three retired documents render as `Verified` tests in your-trainer — a run plan and two checklists, in the group that means `this passed`"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
@@ -36,8 +36,18 @@ All three carry `type: "[[test]]"`, no `level:`, and `status: retired`.
 
 The first is the dangerous one and is general: **any status the chain does not name reads as `Verified`**. `retired` is merely the one the corpus happens to contain.
 
+## Resolved 2026-08-20
+
+**There is no `Verified` group any more.** `_tests_groups` buckets on `_RESOLVED_NOT_PASSING` first, so a `retired` note routes to a band that names what it is. Measured on `your-trainer`: all three documents land in `Retired · no longer verified`, alongside six retired `TST-*`.
+
+**The general case is guarded harder than this issue asked for, and not in the nav.** The ask was *"an unrecognised status gets its own visible group"*. It cannot get one, because it cannot reach a committed corpus: `STATUS-VALUE` errors on any value outside the type's allowed set (`active`, `failing`, `retired`, `passing`, `ready`, `draft` for a test), at pre-commit and in CI. A nav group for the case would be a second, weaker copy of a check that already fails the commit — and a group nobody may notice is precisely the quiet this issue objects to. The `else` branch is now `Feature tests`, which claims nothing about a verdict.
+
+**The three documents keep `type: [[test]]`**, which satisfies the second clause of the criterion rather than the first: they are not excluded, they are grouped under a label that says *no longer verified*. A run plan is still not a test, but the harm this issue was filed for — a document asserting it had passed — is gone.
+
+`test_no_group_asserts_a_pass_for_a_status_it_does_not_recognise` holds both properties. It is anchored on `^Verified`, not on the substring: the first cut asserted `"verified" not in label` and failed against `Retired · no longer verified` — a label saying the opposite of what the guard was hunting.
+
 ## Done when
 
-- [ ] A note whose status is terminal-but-not-passing never lands in `Verified`. Fail loud, not quiet: an unrecognised status gets its own visible group rather than the pass bucket.
-- [ ] The three documents stop being typed as tests, or are excluded by a rule that says why.
-- [ ] A guard covers the general case, not the three ids.
+- [x] A note whose status is terminal-but-not-passing never lands in `Verified`.
+- [x] The three documents are grouped by a rule that says why (`Retired · no longer verified`).
+- [x] A guard covers the general case — plus the validator rule that makes the nav case unreachable.

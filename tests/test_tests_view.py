@@ -2507,3 +2507,62 @@ def test_an_automated_area_shows_no_completion_percentage() -> None:
         "checkPercent is not guarded on `manual` — an automated surface is "
         f"reporting a completion figure again: {guard[-200:]!r}"
     )
+
+
+def test_no_group_asserts_a_pass_for_a_status_it_does_not_recognise() -> None:
+    """[[ISS-0212]]: *"a retired note is reported as verified."*
+
+    `_tests_groups` used to bucket by a chain of `elif`s ending in
+    `else: verified`, so `retired` — matching nothing above it — fell into the
+    group whose label makes the strongest possible claim: **this was checked
+    and it passed.** Three retired documents in `your-trainer` landed there: a
+    checklist, a test list and a **run plan**, none of which is a test at all.
+
+    Two properties, and the second is why this issue needs no nav-level
+    fail-loud group:
+
+    1. There is no group that asserts a pass. `retired` routes to a band that
+       names what it is, and the `else` is `Feature tests` — which claims
+       nothing about a verdict.
+    2. **An unrecognised status cannot reach a committed corpus.** `STATUS-VALUE`
+       errors on any value outside the type's allowed set, at pre-commit and in
+       CI. A group for the unrecognised case would be a second, weaker copy of
+       a check that already fails the commit — and a group nobody may notice is
+       exactly the quiet this issue objects to.
+    """
+    import tempfile
+    from project_os_cockpit.index import Index
+
+    with tempfile.TemporaryDirectory() as td:
+        docs = Path(td) / "docs"
+        (docs / "tests").mkdir(parents=True)
+        _merged_test(docs, "TST-0803", "passing")
+        (docs / "tests" / "TST-0802.md").write_text(
+            '---\ntype: "[[test]]"\nid: TST-0802\ntitle: "Retired doc"\n'
+            'status: retired\n---\n\n# Retired\n', encoding="utf-8")
+        groups = {str(g.get("key")): g for g in
+                  cockpit._tests_groups(Index.build(docs))}
+
+    assert "TST-0802" in [str(i.get("id")) for i in groups["retired"]["items"]]
+    #: **Anchored, not substring-matched.** The first cut asserted `"verified"
+    #: not in label` and failed on `Retired · no longer verified` — a label
+    #: that says the opposite of what the guard was looking for. Third time in
+    #: this sitting that an over-broad text match tripped on the words
+    #: explaining the fix; the claim is that no group is HEADED `Verified`.
+    import re as _re3
+    for g in groups.values():
+        label = str(g.get("label", ""))
+        assert not _re3.match(r"\s*verified\b", label, _re3.I), (
+            f"a group is headed `Verified` again — the one label that asserts "
+            f"a check was run and passed: {label!r}"
+        )
+
+    #: The second property, asserted against the validator rather than assumed.
+    from project_os_cockpit import validate_docs_bundled as _v
+    legal = _v.ALLOWED_STATUS.get("test") or _v.ALLOWED_STATUS.get("[[test]]")
+    assert legal, "no allowed-status table for a test note"
+    assert "wibble" not in legal, "sanity: the bogus value must not be legal"
+    assert "retired" in legal, (
+        "`retired` is a legal test status — so the group it lands in is a "
+        "statement about a real state, not a fallback"
+    )
