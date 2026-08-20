@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0562
 aliases: ["TASK-0562"]
 title: "Strip the verdict from the 49 automated notes that carry one"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: []
 parent: "[[FEAT-0139-The-Suite-Is-The-Verdict]]"
 effort: "M"

@@ -6,7 +6,7 @@ title: "A check leaves the manual walk for three different reasons and the displ
 status: open
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 severity: high
 component: cockpit-desktop
 phase: "[[PHASE-999-Future]]"
@@ -58,3 +58,13 @@ It states *"6 checks are genuinely `retired`"*. Measured 2026-08-19: **zero** ac
 - [ ] No new status value ([[ADR-0008]]).
 - [ ] `tier:`/`area:` on an automated check are decided, not left reading a deleted document's section name.
 - [ ] `STATUSES.md` and `TESTING.md` agree about Tier 3, upstream.
+
+## Partly resolved 2026-08-20 — [[ADR-0039]]. **Deliberately left open.**
+
+**There is now somewhere to put an automated check**, and nobody puts it there: `Automated tests` is derived from `command:`, is permanent, and a check leaves it by losing its command rather than by being moved. `retired` is not used for this and never was the right value — this issue's central argument, adopted.
+
+**`tier:` is answered by deletion.** It is read by no code path; `GATING_TIERS`, `PERMANENT_TIERS` and `TIER_LABELS` are gone. The question *what does `tier:` mean on an automated check* has no answer because the field has no readers.
+
+**`area:` is not fixed, and that is why this stays open.** All 67 still read `area: "Moved from Tier 1 / Tier 2 — Fully Automated"` — a heading from a deleted document. [[ADR-0039]] states the rule (`area:` names a place in the application) and scopes the repair out: the original values are recoverable only by walking `your-trainer`'s history from `d69cf23c` (2026-04-18, *"move 10 fully-automated rows to Tier 3"*) across several such commits. That is excavation, not migration, and emptying the field is the honest alternative to inventing 67 areas.
+
+**The upstream ambiguity is closed.** `STATUSES.md` quoted `TESTING.md` as *"never removed, only deprecated"* and generalised it to any test while `TESTING.md` scoped it to Tier 1/2 and removed Tier 3. Nothing removes a check now, so the quote is true as written.

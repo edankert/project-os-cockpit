@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0140
 aliases: ["FEAT-0140"]
 title: "Sections are derived, not filed — what a reader sees follows from `covers:` and `command:`, and `tier:` is read nowhere"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]"]
 goal: "Feature tests, Regression tests and Automated tests are computed from what a check covers and whether a machine executes it, in both front doors, with no field anybody files into."
 requirements: ["[[REQ-0059-A-Section-Is-Derived-Never-Filed]]", "[[REQ-0060-A-One-Time-Check-Names-Its-Issue]]"]

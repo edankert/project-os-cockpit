@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0141
 aliases: ["FEAT-0141"]
 title: "The contract says it upstream — `TESTING.md` and `STATUSES.md` carry the rules, and the fleet is synced"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: ["Edwin 2026-08-19: 'make sure this is covered eveywhere (project-os) to this extent'"]
 goal: "The tier vocabulary, the invalidation rule and the no-verdict rule are stated once in the template-owned instructions and reach every repo by sync."
 requirements: []

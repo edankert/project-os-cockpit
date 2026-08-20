@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0575
 aliases: ["TASK-0575"]
 title: "Sync the fleet"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: []
 parent: "[[FEAT-0141-The-Contract-Says-It-Upstream]]"
 effort: "S"

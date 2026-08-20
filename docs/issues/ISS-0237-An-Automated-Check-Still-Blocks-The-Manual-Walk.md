@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0237
 aliases: ["ISS-0237"]
 title: "`Item` does not read `command:` at all, so a check the runner owns is counted as an owed manual walk — nine of your-trainer's sixty-eight blocking checks are automated"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 severity: high
 component: cockpit-server
 phase: "[[PHASE-999-Future]]"
@@ -50,3 +50,11 @@ The surface percentage counts them, so a surface's denominator includes work nob
 
 - [ ] A check with a `command:` is not owed and not counted in a manual-walk percentage.
 - [ ] The delta is stated per repo before the change lands.
+
+## Fixed 2026-08-20 — [[PHASE-039]]
+
+**The deeper half first, because it was the cause.** `item_from_note` now reads `command:`, so the acceptance reader can tell an automated check from a manual one at all. Measured through the reader itself afterwards: 89 checks in `your-trainer` carry a command, and **nine of the 68 blocking its release were executed by a machine** — the same figure this issue reported, arrived at independently.
+
+**The gate delta, measured per repo before it landed** ([[TASK-0571]]): `your-trainer` **68 → 59**; `project-os-cockpit` 0 → 0; `your-sudoku` 56 → 56; `your-health` and `project-os-dev` hold no suite. That is the nine leaving, and nothing else moving.
+
+An automated check is no longer part of the manual list at all — not discounted within it. [[ADR-0039]] makes `Automated tests` a derived section, and the generated page renders it with no checkbox and no completed fraction.

@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0139
 aliases: ["FEAT-0139"]
 title: "The suite is the verdict — an automated test stops carrying one, and the gate asks whether its command resolves"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: ["[[ADR-0038-The-Suite-Is-The-Verdict]]"]
 goal: "A test note declaring a `command:` records that a machine executes it and nothing about whether it passed; the VERIFY gate is discharged by the command resolving."
 requirements: ["[[REQ-0058-An-Automated-Test-Carries-No-Verdict]]"]

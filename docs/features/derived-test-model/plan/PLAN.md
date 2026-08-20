@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Plan — a test says who executes it"
-status: draft
+status: active
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-19"

@@ -3,15 +3,15 @@ type: "[[requirement]]"
 id: REQ-0059
 aliases: ["REQ-0059"]
 title: "A check's section is derived from what it covers and who executes it, never filed"
-status: draft
+status: implemented
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]"]
 priority: high
 scope: "Every acceptance check in every front door — 671 notes fleet-wide."
-acceptance: ["`tier:` is read by no code path", "Both front doors compute the same section for the same note"]
+acceptance: ["One predicate returns the section, called by every front door", "`tier:` is read by no code path and the tier constants are deleted", "A check gaining or losing a `command:` moves section with no other edit", "Exactly one section per check, and no id rendered twice"]
 implements: "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]"
 verifies: []
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-The-Tier-Rule]]"]
@@ -26,10 +26,10 @@ The section a check appears under **must** be computed: `command:` non-empty is 
 
 ## Acceptance Criteria
 
-- [ ] One predicate, called by both front doors — a second implementation is how they come to disagree
-- [ ] `GATING_TIERS`, `PERMANENT_TIERS` and `TIER_LABELS` are deleted
-- [ ] A check gaining a `command:` moves section with no other edit; losing it moves back
-- [ ] Order is total and stable: a check falls in exactly one section, asserted
+- [x] One predicate — `acceptance.section_of`, called by the payload, the navigator and the gate
+- [x] `GATING_TIERS`, `PERMANENT_TIERS` and `TIER_LABELS` are deleted, and every caller moved to `MANUAL_SECTIONS`
+- [x] A check gaining a `command:` moves section with no other edit — `tests/test_command_targets.py` proves the return trip on constructed input, since **zero** of the fleet's 139 commands are broken
+- [x] Exactly one section per check — `test_the_tiers_render_in_the_tests_view` now asserts no id appears twice **anywhere**, which is strictly stronger than the rule it replaced, and it caught a real duplicate row while being written
 
 ## Notes
 

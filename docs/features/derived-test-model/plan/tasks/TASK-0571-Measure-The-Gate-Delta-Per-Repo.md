@@ -3,11 +3,11 @@ type: "[[task]]"
 id: TASK-0571
 aliases: ["TASK-0571"]
 title: "Measure the gate delta per repo before it lands"
-status: backlog
+status: done
 phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 source: []
 parent: "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]"
 effort: "M"

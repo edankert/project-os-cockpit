@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0239
 aliases: ["ISS-0239"]
 title: "`run-tests.py` classifies `unrunnable` on exit 127 alone, so a missing device stamps `failing` — the exact conflation its own docstring exists to prevent, and it overwrote a green verdict"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 severity: high
 component: tooling
 phase: "[[PHASE-999-Future]]"
@@ -53,3 +53,13 @@ Rule 2 is the load-bearing half — 1 reduces how often the question arises, 2 m
 
 - [ ] A missing device is `unrunnable`, proved on the captured Gradle output.
 - [ ] A non-result cannot overwrite a `passing` verdict, proved by a test that tries.
+
+## Dissolved 2026-08-20, not fixed — [[ADR-0038]]
+
+**There is no verdict in the note for a non-result to destroy.** `run-tests.py` reports and does not write: `fm_set` and the timestamp import are deleted, so the collateral this issue is really about cannot recur by any classifier's mistake. `tests/test_runner_writes_nothing.py` asserts the note is **byte-identical** after a run — not merely that `status` is unchanged, because stamping also wrote `last_run`, `exit_code` and `updated`, and a status-only guard would pass while three fields were still being rewritten.
+
+**Suggested fix 2 is withdrawn.** *"Never let a non-`passing` result overwrite an existing `passing`"* reads well and, taken literally, blocks the runner from recording a genuine regression — which is the one thing [[project-os-dev#ADR-0010]] existed to do. Only `failing` ever had teeth against it, so the rule would have had exactly the effect of turning every real failure into a held write.
+
+**Suggested fix 1 is still worth having and is not done.** A missing device landing in `failing` is now only a wrong line in a report, so it is a reporting defect rather than a data-loss one. A classifier was written this session and reverted on Edwin's instruction; the captured Gradle output and its 14 passing tests are in the session scratchpad if the report is worth correcting.
+
+**One correction to this note's own account**: `TST-0017` in `your-trainer` still carries `exit_code: 1` and `updated: 2026-08-19` over a passing run, uncommitted. The migration ([[TASK-0562]]) removes both fields wherever it is executed there; it has not been executed against that repo's working tree because it carries other people's in-flight work.
