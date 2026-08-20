@@ -50,4 +50,8 @@ This note recorded **"10 rows in `your-trainer`, 3 here"** when it was written. 
 
 **Two readings, and they are not equivalent.** Either the corpus moved — those subjects came into flight or reached a terminal status, which would make zero correct — or the predicate stopped firing, which is the defect this phase has found five times.
 
-**Not resolved, and deliberately not ticked.** A criterion whose subject cannot be produced on either corpus is exactly the shape that gets ticked on the strength of the code existing. Whoever closes this feature has to construct the case — a check whose subject is `backlog` — and watch the group appear.
+**Resolved 2026-08-20 by constructing the case, and the answer is the bad one: the predicate fires and the routing discards it.** A `ready` test covering a `backlog` feature is identified as quiet — `suppressed_items` returns `{'tests': 1}` — and lands in **`Feature tests · 1 of 1 outstanding`**. There is no quiet group in the tests nav at all, while `nav_payload`'s own comment says *"`tests` builds its own"*.
+
+So the criterion is **unmet**, and worse than unmet: the rows are counted as work somebody owes. That is [[ISS-0247]].
+
+Neither corpus can produce the case today, which is why looking at the app would never have shown it — the emptiness hid the defect rather than causing it. The 10-and-3 above were real when measured.
