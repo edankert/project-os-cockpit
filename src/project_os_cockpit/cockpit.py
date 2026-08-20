@@ -4240,6 +4240,12 @@ def _tests_groups(
     buckets: dict[str, list[NoteRecord]] = {
         "needs-you": [], "feature": [], "regression": [],
         "automated": [], "broken-command": [], "retired": [],
+        #: **What the in-flight rule quieted** ([[ISS-0247]]). Every other view
+        #: receives this from `suppressed_group`; `nav_payload` skips `tests`
+        #: because *"that view gathers instead of receiving a `Needs you`"* --
+        #: and the gathering never included the quiet half, so a check whose
+        #: subject does not exist yet was counted as outstanding work.
+        "quiet": [],
     }
     repo_root = index.docs_root.parent
     for record in tests:
@@ -4259,6 +4265,26 @@ def _tests_groups(
                 buckets["automated"].append(record)
         elif _owed_flag(record, index).get("owed"):
             buckets["needs-you"].append(record)
+        #: **`ids_are_unbuilt`, NOT `_owed_flag`'s `suppressed`** -- and the
+        #: first attempt at this used the second and was reverted.
+        #:
+        #: `suppressed` means *not in flight*, and a **terminal** subject is
+        #: not in flight either. Measured on this repo: of three rows it
+        #: quieted, `TST-0024` covers `FEAT-0099` at `backlog` -- correctly
+        #: quiet -- while `TST-0029` and `TST-0030` both cover `FEAT-0103`,
+        #: which is **done**. Those two are SHIPPED AND UNVERIFIED, and
+        #: quieting them hides exactly the population `FEATURE-UNCOVERED`
+        #: ([[TASK-0523]]) exists to surface.
+        #:
+        #: [[ADR-0028]] decision 3 is about subjects that do not exist YET.
+        #: Reusing it for subjects that are FINISHED inverts what it means, so
+        #: this asks the narrower question the release gate already asks.
+        elif record.frontmatter.get("covers") and _obligations.ids_are_unbuilt(
+                [m.group(0)
+                 for ref in (record.frontmatter.get("covers") or [])
+                 for m in re.finditer(r"[A-Z]+-\d+", str(ref))],
+                index):
+            buckets["quiet"].append(record)
         elif _covers_an_issue(record):
             buckets["regression"].append(record)
         else:
@@ -4279,6 +4305,9 @@ def _tests_groups(
         ("automated", "Automated tests"),
         ("broken-command", "Broken command"),
         ("retired", "Retired · no longer verified"),
+        #: LAST, and explicitly not asking -- the position and the reasoning
+        #: `nav_payload` uses for every other view.
+        ("quiet", "Quiet · no feature in flight"),
     )
     out: list[dict[str, Any]] = []
     for key, label in labels:
@@ -4301,7 +4330,10 @@ def _tests_groups(
             # `Broken command` is an obligation too, and the only one an
             # automated test can carry: nothing is verifying it.
             group["needs_human"] = True
-        if key in ("automated", "retired"):
+        if key == "quiet":
+            group["suppressed"] = True
+            group["reason"] = "no feature in flight"
+        if key in ("automated", "retired", "quiet"):
             # **Collapsed, not deleted** (TASK-0508, and REQ-0047 criterion 1:
             # the landing state is not a list of every test). Neither section
             # is asking for anything — CI executes one and the other is a fact

@@ -52,6 +52,6 @@ This note recorded **"10 rows in `your-trainer`, 3 here"** when it was written. 
 
 **Resolved 2026-08-20 by constructing the case, and the answer is the bad one: the predicate fires and the routing discards it.** A `ready` test covering a `backlog` feature is identified as quiet — `suppressed_items` returns `{'tests': 1}` — and lands in **`Feature tests · 1 of 1 outstanding`**. There is no quiet group in the tests nav at all, while `nav_payload`'s own comment says *"`tests` builds its own"*.
 
-So the criterion is **unmet**, and worse than unmet: the rows are counted as work somebody owes. That is [[ISS-0247]].
+So the criterion was **unmet**, and worse than unmet: the rows were counted as work somebody owes. **Fixed 2026-08-20** — [[ISS-0247]]. The group is built on `ids_are_unbuilt`, and the head moved from `3 of 32 outstanding` to `2 of 31`: one row quieted, and the two covering a `done` feature deliberately left in the count.
 
 **Corrected the same day**: the corpus *can* produce it — `suppressed_items` returns 3 here and 4 in `your-trainer`. The zero I first reported was the absence of a rendered group read as an absent population. And the obvious fix is wrong: two of this repo's three rows cover a `done` feature, so bucketing them as quiet would hide shipped-but-unverified work. See [[ISS-0247]].

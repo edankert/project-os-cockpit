@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0247
 aliases: ["ISS-0247"]
 title: "The tests view has no quiet group and a comment says it does — a check whose subject is not in flight is counted as outstanding work, which inflates the one number that view exists to make honest"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -74,7 +74,23 @@ Quiet must mean **subject not yet built** — `obligations.ids_are_unbuilt`'s qu
 
 ## Done when
 
-- [ ] `_tests_groups` builds the quiet group **on `ids_are_unbuilt`, not on `_owed_flag`'s `suppressed`** — the distinction this note's first attempt got wrong.
-- [ ] A check whose subject is **unbuilt** is not counted as outstanding; one whose subject is **done** still is.
-- [ ] Guarded on both cases explicitly — a `ready` test covering a `backlog` feature (quiet) and one covering a `done` feature (**not** quiet). A guard with only the first passes the reverted attempt.
-- [ ] The `nav_payload` comment claiming `tests` builds its own is true, or deleted.
+- [x] `_tests_groups` builds the quiet group on `ids_are_unbuilt`.
+- [x] Unbuilt subject → quiet; **finished subject → still outstanding**.
+- [x] Both cases guarded, and **the reverted attempt is the mutant**: swapping back to `_owed_flag`'s `suppressed` fails three tests.
+- [x] `nav_payload`'s comment is true now — `tests` does build its own.
+
+## Fixed 2026-08-20
+
+The bucket asks `obligations.ids_are_unbuilt` over the check's `covers:` — the same question the release gate asks, rather than a second reading of *quiet*.
+
+**What moved, measured on both repos:**
+
+| | before | after |
+|---|---|---|
+| `project-os-cockpit` Feature tests | `3 of 32 outstanding` | **`2 of 31 outstanding`** |
+| …and a `Quiet · no feature in flight` group | absent | **1 row — `TST-0024`** |
+| `your-trainer` Feature tests | `49 of 411 outstanding` | **unchanged** |
+
+`TST-0024` covers `FEAT-0099` at `backlog` and is genuinely not owed. **`TST-0029` and `TST-0030` stay counted** — they cover `FEAT-0103`, which is `done`, so they are shipped-and-unverified and belong in the number. `your-trainer` moves not at all: none of its four `suppressed` rows names an unbuilt subject.
+
+That last line is the whole difference between this fix and the one that was reverted, and it is why the guard asserts the **finished** case as well as the unbuilt one — a test with only the `backlog` case passes both versions.

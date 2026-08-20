@@ -212,6 +212,11 @@ def test_an_empty_group_is_absent_rather_than_zero(repo_index: Index) -> None:
         "tier1", "tier2", "tier3",
         "feature", "regression", "automated",
         "broken-command", "retired",
+        #: **Seven now** ([[ISS-0247]]). `Quiet · no feature in flight` is the
+        #: group this view was documented as gathering and never did, so a
+        #: check on a subject that does not exist yet was counted as work
+        #: somebody owes. It obeys the same absent-at-zero rule as the rest.
+        "quiet",
     }
 
 
@@ -2664,3 +2669,68 @@ def test_the_owed_verdict_predicate_has_one_implementation() -> None:
     assert "is_done_status(" in body, (
         "the owed test no longer delegates to the app's own done predicate"
     )
+
+
+def _quiet_probe(tmp: Path, subject_status: str) -> str:
+    """Which group a `ready` test lands in when its subject has `status`."""
+    from project_os_cockpit.index import Index
+
+    docs = tmp / subject_status / "docs"
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "tests").mkdir(parents=True)
+    (docs / "features" / "f" / "FEAT-0001-U.md").write_text(
+        f'---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "U"\n'
+        f'status: {subject_status}\n---\n\n# U\n', encoding="utf-8")
+    (docs / "tests" / "TST-0001-C.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nstatus: ready\n'
+        'covers: ["[[FEAT-0001]]"]\n---\n\n# C\n', encoding="utf-8")
+    groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(docs))}
+    return next((k for k, g in groups.items()
+                 if any(i.get("id") == "TST-0001" for i in g.get("items") or [])), "?")
+
+
+def test_a_check_on_an_unbuilt_subject_is_quiet(tmp_path: Path) -> None:
+    """[[ISS-0247]]. Every other view receives its quiet group from
+    `suppressed_group`; `nav_payload` skips `tests`, and the gathering never
+    included the quiet half — so a check on a thing that does not exist yet was
+    counted as work somebody owes.
+    """
+    assert _quiet_probe(tmp_path, "backlog") == "quiet"
+
+
+def test_a_check_on_a_FINISHED_subject_is_still_outstanding(tmp_path: Path) -> None:
+    """**The half that made the first fix wrong, and it was reverted for this.**
+
+    `_owed_flag`'s `suppressed` means *not in flight* — and a **terminal**
+    subject is not in flight either. Bucketing on it quieted `TST-0029` and
+    `TST-0030`, which both cover `FEAT-0103` at `done`: **shipped and
+    unverified**, exactly the population `FEATURE-UNCOVERED` ([[TASK-0523]])
+    exists to surface.
+
+    [[ADR-0028]] decision 3 is about subjects that do not exist **yet**.
+    Reusing it for subjects that are **finished** inverts it, so the bucket
+    asks `ids_are_unbuilt` — the narrower question the release gate already
+    asks.
+
+    A guard with only the `backlog` case passes the reverted attempt. This is
+    the one that does not.
+    """
+    for finished in ("done", "doing"):
+        assert _quiet_probe(tmp_path, finished) != "quiet", finished
+
+
+def test_the_quiet_group_is_one_collapsed_line_and_asks_nothing() -> None:
+    """[[FEAT-0128]]'s criterion. It exists to tell *"nobody owes this yet"*
+    apart from *"nobody got round to it"* ([[ADR-0028]]), and that reason
+    survives a `<details>`."""
+    from project_os_cockpit.index import Index
+
+    groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(REPO_DOCS))}
+    quiet = groups.get("quiet")
+    assert quiet is not None, sorted(groups)
+    assert quiet.get("default_open") is False
+    assert quiet.get("suppressed") is True
+    assert quiet.get("reason") == "no feature in flight"
+    #: Explicitly NOT owed: marking it would put the number back on the
+    #: surface it was taken off.
+    assert not quiet.get("needs_human")
