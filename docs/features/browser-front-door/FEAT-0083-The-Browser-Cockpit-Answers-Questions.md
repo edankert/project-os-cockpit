@@ -51,8 +51,8 @@ Mode 1 has no Overview, no Design and no Review. Two of those three are pure rea
 
 - [ ] Mode 1 exposes the project overview, rendering the same `/api/cockpit/stats` payload as the shell, with phases and scope rows
 - [ ] Mode 1 exposes the design register and can frame an artifact, with no verdict or capture control present in the DOM
-- [ ] A test asserts that every actuating endpoint refuses a non-loopback peer, and it fails if a new one is added without that check
-- [ ] Nothing in mode 1 issues a POST to a `note_writes`-backed endpoint
+- [x] A test asserts that every actuating endpoint refuses a non-loopback peer, and it fails if a new one is added without that check — [[TASK-0363]] done 2026-08-20; `tests/test_remote_peer_refusal.py` sends the requests, `test_every_note_mutating_endpoint_requires_loopback` catches the new route
+- [x] Nothing in mode 1 issues a POST to a `note_writes`-backed endpoint — measured: `cockpit.js` fetches exactly two endpoints, `/api/cockpit/tab-state` (POST, runtime-only) and `/api/terminal` (GET); pinned by `test_mode_one_posts_to_nothing_note_backed` against the *guarded set*, not a hand-list
 - [ ] [[RISK-0001]] is re-scanned and updated with what this changed
 
 ## Links
@@ -101,3 +101,25 @@ The widening is sound and the split is faithful to `ADR-0010` option 4: 12 views
 > **The review desk.** Per [[ADR-0010]]: its endpoints refuse non-loopback callers, and a queue of obligations you cannot discharge is worse than no queue.
 
 — unqualified, as current scope. Sixty lines below, `~review` is listed among *"the eleven"* owed reading views, with its acting half deferred. The later reading is the right one; the earlier bullet now contradicts it, and a reader taking the Scope section at face value gets the opposite answer. This is the pattern this phase has been repeatedly bitten by, and the fix is a clause on the Out bullet, not a new section.
+
+## 2026-08-20 — the guard landed, and it was already half there
+
+[[TASK-0363]] is `done`. It is the task this feature said must land **before** the two porting tasks, and closing it first was right for a reason the task did not anticipate: **most of it already existed.**
+
+`test_every_note_mutating_endpoint_requires_loopback` (TASK-0280) has enumerated the POST dispatch for months. It fails when a new route forgets the guard, it names the five runtime-only exemptions individually, and it checks each exemption really writes nothing under `docs/`. That is this feature's third criterion, apparently satisfied.
+
+**It decides by reading source text.** It asserts the substring `_require_loopback` appears in the handler body, and it has never sent a request. Given a guard that is present and disabled —
+
+```python
+if False and not self._require_loopback():   # MUTANT
+```
+
+— it passes. The new test fails, and the failure shows the remote peer receiving `400 {"error": "'' is not a verdict; expected one of clear, excused, failed, partial, pass, question, rerun"}`. So a dead guard does not just permit the write; it parses the LAN caller's body first and returns the API's internal vocabulary. All 27 guarded routes were confirmed to refuse **before** parsing — every one 403, none 400.
+
+### What this changes about the porting order
+
+Criterion 4 is also ticked, and measuring it was the useful part. `cockpit.js` fetches **exactly two** endpoints today. That number is the baseline the eleven views will move, and it is now pinned in a test — not as a wall, but so that growth appears in a diff. A ported view that brings a desktop write control with it would be refused over the LAN and would *work on the Mac*, which is the confusing half of [[ADR-0010]] that the reading/acting classification exists to prevent. The test asserts against the **guarded set** rather than a list of paths, so an endpoint added tomorrow is in its domain today.
+
+### One finding, filed
+
+The `note_writes` cross-check run in reverse: `retire_check` and `cover_check` are complete write functions reachable from nothing but `tests/`. Not a security finding — unreachable from the dispatch is unreachable from the LAN. But [[TASK-0518]] asks whether 83 rested checks should retire and there is no way to record the answer. [[ISS-0249]].

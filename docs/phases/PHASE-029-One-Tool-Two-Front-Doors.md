@@ -101,3 +101,15 @@ The gate is decided: [[ADR-0010]] took **option 4** — parity across surfaces, 
 - **The view set is classified** as reading or actuating, and an actuating view absent from mode 1 now says *what it waits on* — "absent" and "absent for now" stopped meaning the same thing.
 
 **The trap this avoids** is the one the decision was reconsidered to avoid: starting the parity work, meeting the loopback check halfway through, and deleting it because it is in the way. The precondition is a phase member now, so it is scheduled rather than discovered.
+
+## The precondition landed first — 2026-08-20
+
+**[[TASK-0363]] is `done` while this phase stays `planned`**, and that asymmetry is deliberate rather than drift.
+
+The section above names the trap: *"starting the parity work, meeting the loopback check halfway through, and deleting it because it is in the way."* The guard is the one piece of this phase that is worth having **before** the phase opens, because its whole value is being in place before anyone is inconvenienced by it. [[FEAT-0083]] says the same thing in stronger words — *"a guard written after the widening has already been trusted once."*
+
+So it was built and nothing else was. The phase status is **not** flipped to `active`: Edwin's direction on 2026-08-09 was to align the browser at a later stage, that direction has not changed, and a phase that reads `active` because one preparatory task closed would misreport what is being worked. `PHASE-037` is the active phase; this one gained a finished precondition, not a start date.
+
+**What the reader should take from the mismatch.** One `done` task under a `planned` phase means exactly what it looks like: the gate is ready and the work behind it has not begun. When this phase does open, the first two porting tasks ([[TASK-0361]], [[TASK-0362]]) are already unblocked — `blocks:` on TASK-0363 lists them both, and it is now satisfied.
+
+**What did not land, and is not implied by this.** [[REQ-0034]] — the authenticated write path — is untouched. The guard proves the current authorisation model *works*; it does not replace it, and every actuating view still waits on REQ-0034 exactly as the section above says. The eleven reading views are also untouched: the baseline is measured (`cockpit.js` fetches **two** endpoints) and pinned, so their arrival will be visible as movement in a number rather than an assertion that nothing broke.
