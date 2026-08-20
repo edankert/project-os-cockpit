@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0525
 aliases: ["TASK-0525"]
 title: "Restore the `ISS-*` link on the 73 Tier 2 checks that lost it"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
@@ -93,3 +93,30 @@ Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD
 **But *"67 of the 73 name a `FEAT-*`"* does not.** Parsed with YAML rather than a regex, at both bases: of the 73, **35** name a `FEAT-*`, 26 name a `TASK-*`, and **6** carry an empty `covers:`. 67 is almost certainly `73 − 6` — the count naming *any* subject — described as though it were the count naming a feature.
 
 That matters because 67 is the number the closure rests on: *"67 of the 73 need nothing"*. The conclusion may well survive on the section derivation, which is verified — but as written the note justifies it with a figure that is not what it says it is, and the reader cannot tell which of the two readings was actually used to decide.
+
+
+## Approved and applied 2026-08-20 — and the effect was not the one this note claimed
+
+Edwin approved the table. All six now name the feature they verify, committed in `your-trainer` (`0dad8104`), bare-id form to match the house convention.
+
+**But two claims above are false, and were caught only by measuring before writing rather than after.**
+
+> *"those same six are the only ones blocking, through `blocking_for`'s fail-closed clause"*
+> *"That moves them off the fail-closed path into Feature tests"*
+
+Re-measured at the time of writing:
+
+| | before | after |
+|---|---|---|
+| suite blocking | 59 | **59** |
+| of the six, blocking | **0** | 0 |
+| section | `feature` | `feature` |
+| `CHECK-SUBJECT` warnings | 44 | **38** |
+
+**None of the six was blocking.** All carry `mark: done`, so they already cleared the gate. And they were already in the `feature` section, because a check with no `covers:` **defaults** there — which is exactly what the `CHECK-SUBJECT` warning says: *"its section cannot be derived and it defaults to a feature check."*
+
+Repo-wide, **79** checks carry no `covers:` at all; **2** of those block and 77 are cleared by their mark. So the fail-closed clause is real and this note attributed the wrong population to it.
+
+**What the change actually bought**, which is duller and true: six `CHECK-SUBJECT` warnings cleared, the record now says what each check verifies, and if one of those marks is ever invalidated the check has a subject for [[ADR-0040]]'s selection-subtracts rule to reach.
+
+The decision was right for reasons the note stated correctly — they are feature behaviours, no issue should be invented — and it was *sold* on an effect that had not been re-measured since it was first written. The proposal was put to Edwin carrying that error.

@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0518
 aliases: ["TASK-0518"]
 title: "Review Tier 2 check by check for one-time fixes that cannot regress"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
@@ -52,3 +52,20 @@ Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. R
 The re-scoping is justified, not convenient, and the arithmetic is exact. Measured with an indexed loader on `your-trainer`: **86** regression-section checks, **83** with every named `ISS-*` closed. Of the **14** blocking regression checks, **11** rest and **3** name an issue still open — which is precisely when a regression guard should be live.
 
 So `TASK-0526`'s resting genuinely answers the population this task was hunting, and *"the 83 need nothing"* follows from the mechanism rather than from wanting to close the task. Leaving it `backlog` with the population narrowed from 158 to 83, and recording that doing nothing is now defensible, is the honest outcome — a task that closed itself here would have been the convenient one.
+
+
+## Closed 2026-08-20 — Edwin's decision: no retirements
+
+Asked directly, with the population narrowed to 83 and the alternatives laid out. **Answer: close it, retire nothing.**
+
+The reasoning the re-scoping had already reached, now decided rather than left open: `TASK-0526`'s **resting** mechanism solved the actual problem. A regression guard whose issue is closed is *kept, counted, listed, and not asked about* — and it wakes on its own if the issue reopens. That reconciles `TESTING.md`'s *"Tier 2 is never removed"* with Edwin's *"there should be very few Tier 2 items active at any time"*: both are right about different things, and resting expresses the distinction that retirement cannot.
+
+Retirement remains a real but rarer act — a check for a schema migration whose source version no longer ships cannot recur in any sense. **No check needs it today**, and doing nothing is a defensible outcome, which it was not before resting existed.
+
+**[[ISS-0249]] stays open and is the sting in this**: `retire_check` is a complete, tested write function that **nothing can call**. If the answer here ever changes, there is no button to press. That issue's recommendation was to wire it *with* this decision; the decision was "no", so it waits.
+
+### A correction about this note's own closure
+
+**It was reported to Edwin as closed roughly an hour before it was.** The decision was taken, the outcome relayed as done, and the status left at `backlog` — caught only when a completion check asked what was actually on disk rather than what had been said about it.
+
+The same shape as everything else this phase found, applied to the record instead of to code: *a claim stated confidently and never checked against the thing it described.*
