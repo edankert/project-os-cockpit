@@ -945,12 +945,36 @@ def release_payload(
         # Oldest-first for `ages`, which wants the FIRST tag a row was already
         # unsettled at; `_tags` returns newest-first for the ladder.
         ordered = [t["name"] for t in reversed(_tags(project_root))]
+        #: **What this release held back** ([[FEAT-0129]] / [[TASK-0512]]).
+        #: A release that NAMES contents has, by naming them, deselected every
+        #: derived feature it did not name -- and [[ADR-0040]] says selection
+        #: subtracts: a check drops only when every feature it covers was held
+        #: back. A release naming nothing deselects nothing, which is the
+        #: derived behaviour eleven historical releases depend on.
+        #: **From the NOTE's frontmatter, not from `held`.** `_releases()`
+        #: builds id/title/status/version/date/platform and no `features` key,
+        #: so the first cut of this read `held.get("features")`, got `None`
+        #: every time, and the subtraction could never fire -- caught only by
+        #: testing the POSITIVE case (a release that names three of its
+        #: thirty-two) rather than the invariant, which passed either way.
+        _rel_path = index.by_id(release_id) if release_id else None
+        _rel_rec = index.get(_rel_path) if _rel_path is not None else None
+        named = {
+            m.group(0)
+            for raw in ((_rel_rec.frontmatter.get("features") if _rel_rec else None) or [])
+            for m in re.finditer(r"FEAT-\d+", str(raw))
+        }
+        held_back = (
+            {str(r.get("id") or "") for r in (contents.get("rows") or [])} - named
+            if named else set()
+        )
         gate = acceptance.gate_payload(
             index.docs_root,
             index=index,
             project_root=project_root,
             baseline_ref=baseline_ref(project_root, index),
             tags=ordered,
+            deselected=held_back,
         )
     verified: list[dict[str, Any]] = []
     known_issues = ""

@@ -2010,6 +2010,7 @@ def gate_payload(
     baseline_ref: str = "",
     tags: "list[str] | None" = None,
     platform: str = "",
+    deselected: "set[str] | None" = None,
 ) -> dict[str, Any]:
     """What blocks a release, in the template's own terms.
 
@@ -2024,7 +2025,11 @@ def gate_payload(
     caller working while the Publication page asks for more.
     """
     suite = load(docs_root, index, platform=platform)
-    blocking = suite.blocking()
+    #: **Selection SUBTRACTS** ([[ADR-0040]] via [[TASK-0512]]). `deselected`
+    #: is the features a release has held back; empty or `None` means nothing
+    #: was, and this is exactly `blocking()`. Eleven historical releases depend
+    #: on that being true.
+    blocking = suite.blocking_minus(deselected)
 
     # --- quiet: the subject is not in flight (TASK-0447) ------------------
     #

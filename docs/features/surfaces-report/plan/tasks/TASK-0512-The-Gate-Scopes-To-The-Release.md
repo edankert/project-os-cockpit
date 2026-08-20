@@ -45,4 +45,16 @@ No release names contents yet — the picker is [[TASK-0511]] and [[TASK-0558]] 
 
 Three mutants run; **one of them was not a mutation.** Changing `if not deselected` to `if deselected is None` passed, and it should have: with an empty set the loop reaches the same verdict for every row, so the two are behaviourally identical. Recorded rather than counted as a pass — a mutant that cannot change the answer proves nothing, and calling it a third caught mutation would have overstated the guard. The two that do differ — dropping on intersection, and letting selection reach a non-feature subject — both fail, as does ignoring `deselected` entirely.
 
-**Dormant until the picker lands.** The plumbing is here and proved; nothing calls it with a non-empty set yet.
+## Wired end to end, 2026-08-20
+
+No longer dormant. `gate_payload` takes `deselected`, and `release_payload` computes it: a release that **names** contents has, by naming them, held back every derived feature it did not name.
+
+Proved against `your-trainer` in both directions:
+
+| | blocking |
+|---|---|
+| names nothing (the eleven-historical-releases case) | **59** |
+| names 3 of 32, none of which carry blocking checks | **59** |
+| holds back `FEAT-0047`, which carries one | **58** |
+
+**And the first wiring could never fire.** It read `held.get("features")` — and `_releases()` builds `id/title/status/version/date/platform` with **no `features` key**, so `named` was empty every time. The invariant test passed either way; it is the **positive** case that caught it. It reads the note's own frontmatter now, and a guard asserts that against the block rather than the whole function — the frozen branch reads `held.get("features")` legitimately, and a blanket search forbade it.

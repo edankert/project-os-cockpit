@@ -82,3 +82,82 @@ def test_selection_cannot_reach_a_non_feature_subject(tmp_path: Path) -> None:
     #: Even holding back every feature named anywhere here.
     kept = {i.note_id for i in s.blocking_minus({"FEAT-0001"})}
     assert kept == {"TST-0001", "TST-0002", "TST-0003"}, kept
+
+
+# ---- wired end to end (FEAT-0129) -----------------------------------------
+
+def test_a_release_that_names_contents_subtracts_from_its_own_gate(
+        tmp_path: Path) -> None:
+    """[[FEAT-0129]]: *"with contents named, the gate reports what blocks THIS
+    release"* — and [[ADR-0040]] says how: **selection subtracts.**
+
+    A release that names contents has, by naming them, held back every derived
+    feature it did not name. `blocking_minus` then drops a check only when
+    **every** feature it covers was held back.
+
+    Built as a fixture rather than measured on the corpus, but the wiring was
+    proved against `your-trainer` in both directions: holding back 29 features
+    that carry no blocking checks changes nothing (59 → 59), and holding back
+    the one feature that carries a blocking check drops exactly it (59 → 58).
+    """
+    from project_os_cockpit import publication
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "releases").mkdir(parents=True)
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    for fid in ("FEAT-0001", "FEAT-0002"):
+        (docs / "features" / "f" / f"{fid}-T.md").write_text(
+            f'---\ntype: "[[feature]]"\nid: {fid}\ntitle: "T"\n'
+            f'status: done\n---\n\n# T\n', encoding="utf-8")
+        (docs / "tests" / "acceptance" / f"TST-{fid[-4:]}-C.md").write_text(
+            f'---\ntype: "[[test]]"\nid: TST-{fid[-4:]}\ntitle: "C {fid}"\n'
+            f'level: acceptance\nstatus: active\narea: "A"\nmark: todo\n'
+            f'covers: ["[[{fid}]]"]\n---\n\n# C\n', encoding="utf-8")
+
+    def gate(features: str) -> int:
+        (docs / "releases" / "REL-0001-R.md").write_text(
+            f'---\ntype: "[[release]]"\nid: REL-0001\ntitle: "R"\n'
+            f'status: draft\nversion: "1.1.0"\nplatform: ""\npreparing: true\n'
+            f'features: {features}\n---\n\n# R\n', encoding="utf-8")
+        payload = publication.release_payload(
+            tmp_path, Index.build(docs), "REL-0001")
+        return len(payload["gate"].get("blocking") or [])
+
+    #: Naming nothing keeps the whole-suite gate — the invariant eleven
+    #: historical releases depend on.
+    assert gate("[]") == 2
+    #: Naming one holds the other back, and only its check drops.
+    assert gate('["[[FEAT-0001]]"]') == 1
+    #: Naming both holds nothing back.
+    assert gate('["[[FEAT-0001]]", "[[FEAT-0002]]"]') == 2
+
+
+def test_the_held_back_set_is_read_from_the_note(tmp_path: Path) -> None:
+    """`_releases()` builds id/title/status/version/date/platform and **no
+    `features` key**, so the first wiring read `held.get("features")`, got
+    `None` every time, and the subtraction could never fire.
+
+    The invariant test passed either way — it is the **positive** case that
+    caught it. Asserted on the source so the shortcut cannot come back.
+    """
+    import inspect
+
+    from project_os_cockpit import publication
+
+    src = inspect.getsource(publication.release_payload)
+    #: **Narrowed to the block it is about.** A blanket
+    #: `'held.get("features")' not in src` fails, and correctly: the FROZEN
+    #: branch reads exactly that, because a shipped release's contents are its
+    #: own hand-written list. Fifth over-broad text match this session — a
+    #: claim has to name the code it is a claim about.
+    start = src.index("named = {")
+    block = src[start:src.index("}", start) + 1]
+    assert "_rel_rec.frontmatter" in block, (
+        f"the held-back set is not read from the release NOTE: {block!r}"
+    )
+    assert "held.get(" not in block, (
+        "the held-back set reads the `_releases()` dict, which carries no "
+        "`features` key — so the subtraction can never fire"
+    )
