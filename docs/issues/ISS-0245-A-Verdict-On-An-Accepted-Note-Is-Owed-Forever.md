@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["independent review 2026-08-20"]
 severity: high
 component: cockpit
@@ -79,3 +82,13 @@ Two guards, both proved on the mutant that restores `statuses.is_completed`:
   - And if it ever did, `is_completed` gives the answer the head wants: a retired test is **not outstanding work**. Swapping to `is_done_status` there would make it outstanding, which is wrong.
 
   So: left alone, with the reason stated and the near-miss recorded. `_section_head_label`'s merged-row count ([[ISS-0242]]) is a deliberate and correct use — it asks about a *test*, whose terminal statuses are all in the `done` band — but it was chosen without knowing this hazard existed, so it deserves the second look.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+The defect my second pass surfaced is fixed correctly and the fix is guarded where it matters. `_verdict_is_owed` now delegates to `is_done_status`, and `test_a_verdict_on_an_accepted_note_stops_being_owed` asserts **all four** disagreeing pairs by name — `adr`, `design`, `reference`, `requirement` at `accepted` — which is the entire population where the two predicates split. A guard testing only `issue`/`feature` would have passed against the bug for the same reason the original code did; this one cannot.
+
+`test_the_owed_verdict_predicate_has_one_implementation` reads the function body with the docstring stripped, so the delegation cannot be satisfied by a comment. The `note_type=None` fallback keeps the old band test for callers without a record, and both real call sites pass one.
+
+The docstring names the masking honestly — the suite went green when the reviewer updated its own verdict — which is the right way to record it.

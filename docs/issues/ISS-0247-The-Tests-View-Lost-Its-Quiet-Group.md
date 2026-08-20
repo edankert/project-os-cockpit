@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 source: ["constructed while re-reading FEAT-0128's criteria, 2026-08-20"]
 severity: high
 component: cockpit
@@ -94,3 +97,20 @@ The bucket asks `obligations.ids_are_unbuilt` over the check's `covers:` — the
 `TST-0024` covers `FEAT-0099` at `backlog` and is genuinely not owed. **`TST-0029` and `TST-0030` stay counted** — they cover `FEAT-0103`, which is `done`, so they are shipped-and-unverified and belong in the number. `your-trainer` moves not at all: none of its four `suppressed` rows names an unbuilt subject.
 
 That last line is the whole difference between this fix and the one that was reverted, and it is why the guard asserts the **finished** case as well as the unbuilt one — a test with only the `backlog` case passes both versions.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **changes-requested**. Every claim below was re-measured or re-executed.
+
+**The predicate choice is right and the reverted attempt genuinely fails.** Executed: swapping the bucket back to `_owed_flag(...)["suppressed"]` fails `test_a_check_on_a_FINISHED_subject_is_still_outstanding`, `test_a_ready_test_is_outstanding_not_done` and `test_a_regression_guard_rests_when_its_issue_closes`. The discriminating guard is the `done` case, and a guard with only the `backlog` case would indeed pass both versions — the note is right that this is the whole difference. `TST-0029`/`TST-0030` stay counted, and `your-trainer` gains nothing.
+
+**But the bucket sits above `_covers_an_issue`, and it captures regression checks.** `NOT_YET_BUILT` contains `deferred`, and `deferred` is a legal **issue** status. Constructed and reproduced:
+
+```
+a regression check covering a DEFERRED issue lands in: quiet
+label: Quiet · no feature in flight
+```
+
+Two things are wrong with that. The row never reaches `Regression tests`, so the section loses a member on a subject-status condition nothing documents; and it lands under a heading that says *no feature in flight* when the subject is an issue and no feature is involved. `ADR-0028` decision 3 is about subjects that do not exist yet — an issue somebody deferred is a decision, not an unbuilt thing, which is the same category slip the note correctly diagnoses for terminal subjects, at the other end.
+
+Nothing guards it: no test constructs a check covering a non-`FEAT` subject at an unbuilt status. The fix is either to restrict the bucket to `FEAT-*` refs (matching its own label) or to widen the label and say so.
