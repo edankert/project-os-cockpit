@@ -311,6 +311,39 @@ def _acceptance_is_settled(note_id, note_index):
     return mark in _SETTLED_MARKS
 
 
+def _repo_has_an_acceptance_suite(note_index):
+    """Does this repo hold any acceptance check at all? ([[TASK-0523]])
+
+    The uncovered-feature rule is meaningless where there is nothing to cover
+    WITH. Measured across the twelve `SNAPSHOT.yaml`-bearing repos 2026-08-20:
+    236 terminal features have no acceptance check, and **only three repos hold
+    a suite** -- so 89 of those findings would be scolding repos for not using
+    a mechanism they have never adopted.
+    """
+    for _id, entry in (note_index or {}).items():
+        fm = (entry[1] if entry else None) or {}
+        if str(fm.get("level", "") or "").strip().lower() == "acceptance":
+            return True
+    return False
+
+
+def _features_covered_by_acceptance(note_index):
+    """Every `FEAT-*` named in the `covers:` of an acceptance check.
+
+    The reverse index, the direction [[ADR-0032]] settled on: the test names
+    what it covers, and nothing maintains a second copy on the feature.
+    """
+    covered = set()
+    for _id, entry in (note_index or {}).items():
+        fm = (entry[1] if entry else None) or {}
+        if str(fm.get("level", "") or "").strip().lower() != "acceptance":
+            continue
+        for ref in (fm.get("covers") or []):
+            for match in re.finditer(r"FEAT-\d+", str(ref)):
+                covered.add(match.group(0))
+    return covered
+
+
 def _is_acceptance_test(note_id, note_index):
     """True when `note_id` names a test at `level: acceptance`."""
     entry = note_index.get(note_id)
@@ -2905,6 +2938,57 @@ def validate(root, report):
             report.error("DEFER-RETENTION", "%s is deferred but missing from SNAPSHOT.yaml; deferred items are active and never pruned (%s)" % (item_id, path.relative_to(root)))
 
     # -- counter integrity (snapshot IDs and note IDs)
+    #: **A finished feature that nothing verifies** ([[TASK-0523]]).
+    #:
+    #: Walked over the NOTES, not the snapshot collections. The first cut sat
+    #: in the snapshot loop and fired **zero** times against 93 measured
+    #: findings in this repo, because retention prunes terminal features out of
+    #: `SNAPSHOT.yaml` -- a rule placed exactly where its subjects are not.
+    #: Another check that could not fire, caught by measuring the corpus first
+    #: and disbelieving the zero.
+    #:
+    #: One finding, on the FEATURE, at its terminal status -- not a per-check
+    #: obligation and not a badge that counts checks ([[ADR-0027]],
+    #: [[ADR-0030]]).
+    #:
+    #: **A warning, and deliberately undated.** [[ADR-0011]] clause 3 forbids
+    #: promoting over debt: 236 terminal features fleet-wide have no acceptance
+    #: check, 147 counting only the three repos that hold a suite, 93 of them
+    #: here. A date would either fail every build on arrival or be moved when
+    #: it did, and a promotion nobody intends to honour teaches people to
+    #: ignore the table. It earns a date when the number is small enough that
+    #: one is a promise.
+    #:
+    #: **Only where there is something to cover WITH.** Nine of the twelve
+    #: fleet repos hold no acceptance suite at all; firing there would scold
+    #: them for not using a mechanism they never adopted.
+    #:
+    #: **The escape is `acceptance_exception:`**, and the rule is dishonest
+    #: without it: some features never can have a check -- an engine with no
+    #: rider-facing surface, a phase of work, a repo that ships prose. Said
+    #: once, in the note. ([[TASK-0524]] refused to write 33 exceptions it
+    #: could not justify; this is where justified ones go.)
+    if _repo_has_an_acceptance_suite(note_index):
+        _covered = _features_covered_by_acceptance(note_index)
+        _uncovered = []
+        for _fid, (_fpath, _ffm) in sorted(note_index.items()):
+            _ffm = _ffm or {}
+            if note_type(_ffm) != "feature":
+                continue
+            _fstatus = str(_ffm.get("status", "") or "").strip().lower()
+            if _fstatus != TERMINAL.get("features"):
+                continue
+            if str(_ffm.get("acceptance_exception", "") or "").strip():
+                continue
+            if _fid in _covered:
+                continue
+            _uncovered.append(_fid)
+        for _fid in _uncovered:
+            report.warn(
+                "FEATURE-UNCOVERED",
+                "%s is done and no acceptance check covers it; add one, or "
+                "record why it needs none in `acceptance_exception:`" % _fid)
+
     if path_alias_items:
         report.warn("PATH-ALIAS", "%d item(s) use legacy `path:` instead of `file:` (e.g. %s); prefer `file:` per SNAPSHOT.md" % (len(path_alias_items), path_alias_items[0]))
 
