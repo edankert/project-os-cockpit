@@ -60,7 +60,9 @@ The real defect stands, narrowed: ***both front doors* has been quoted as though
 
 - [x] The decision is found and read. It exists; the error was mine.
 - [x] [[PHASE-029]] carries the eleven reading views as scoped work — recorded on [[FEAT-0083]], with the order, the two already planned, and the three views whose **write** halves stay behind the auth gate.
-- [ ] Notes carrying a *both front doors* obligation say which stage they are waiting on — the eleven views, or the authenticated write path.
+- [x] Notes carrying a *both front doors* obligation say which stage they wait on.
+
+  **Four, not twenty-five.** The phrase appears in 25 notes; 21 are `done`/`fixed`/`merged` records where it describes what was *done*, and annotating those would be the second-encoding defect this phase spent itself removing. The live ones are [[FEAT-0084]], [[TASK-0364]], [[TASK-0365]] and [[REQ-0032]] — each now names its stage, with `REQ-0032` naming all three because it is the requirement the stages serve.
 - [ ] `RISK-0005`'s ten-of-ten measurement is re-run before any write endpoint is offered on a LAN-reachable surface.
 
 ## Done when

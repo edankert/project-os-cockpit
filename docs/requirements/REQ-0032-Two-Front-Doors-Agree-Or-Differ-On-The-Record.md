@@ -7,7 +7,7 @@ status: "draft"
 phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: "2026-08-20"
 source: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]"]
 priority: medium
 scope: "The view set of both renderers — src/project_os_cockpit/static/cockpit.js and desktop/src/renderer/renderer.ts"
@@ -41,3 +41,13 @@ This requirement was written while the answer might have been *"they differ, per
 - An **actuating** view absent from mode 1 is neither a defect nor a permanent property. It is waiting on REQ-0034, and the record must say so — *"absent"* and *"absent for now"* are different claims and the classification carries which.
 
 The requirement therefore gains a clause rather than losing one: a difference is on the record **and names what would end it**, if anything would.
+
+## Which stage this waits on ([[ISS-0246]], 2026-08-20)
+
+[[ADR-0010]] is `accepted` on **option 4 — parity gated on an authenticated write path**. So a *both front doors* obligation is never simply owed; it waits on one of three stages, and saying which is the difference between a plan and a nag:
+
+1. **The eleven reading views** — owed now, nothing gates them ([[FEAT-0083]]).
+2. **An authenticated write path** — the gate. There is no authentication in this tool, and `REL-0001`'s acceptance pass measured **ten of ten** mutation endpoints returning 403 over the LAN while reads returned 200 ([[REQ-0027]], [[RISK-0005]]).
+3. **The writing surfaces** — after (2).
+
+**This note waits on **all three** — it is the requirement the stages serve, and it is satisfied when every difference is traceable to a stage rather than to neglect.**

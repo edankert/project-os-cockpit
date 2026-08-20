@@ -7,7 +7,7 @@ status: planned
 phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: "2026-08-20"
 source: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "Session 2026-08-09: `recent` is a live button in cockpit.js and a member of RETIRED_NAV_MODES in renderer.ts, simultaneously"]
 goal: "Make the view set a single source with a classification per view, so a view added to one front door cannot silently be missing from the other — the ISS-0023 fix applied to views instead of statuses."
 requirements: ["[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"]
@@ -53,3 +53,13 @@ The nav vocabulary is declared twice — `NAV_MODES` in `cockpit.js` and `NAV_MO
 - Precedent: `src/project_os_cockpit/statuses.py` and `tests/test_status_vocabulary.py` — the same problem solved once already, for statuses
 - Decision: [[ADR-0010-What-The-Browser-Cockpit-Is-For]]
 - Paths: `src/project_os_cockpit/static/cockpit.js`, `desktop/src/renderer/renderer.ts`, `src/project_os_cockpit/cockpit.py` (`NAV_MODES`)
+
+## Which stage this waits on ([[ISS-0246]], 2026-08-20)
+
+[[ADR-0010]] is `accepted` on **option 4 — parity gated on an authenticated write path**. So a *both front doors* obligation is never simply owed; it waits on one of three stages, and saying which is the difference between a plan and a nag:
+
+1. **The eleven reading views** — owed now, nothing gates them ([[FEAT-0083]]).
+2. **An authenticated write path** — the gate. There is no authentication in this tool, and `REL-0001`'s acceptance pass measured **ten of ten** mutation endpoints returning 403 over the LAN while reads returned 200 ([[REQ-0027]], [[RISK-0005]]).
+3. **The writing surfaces** — after (2).
+
+**This note waits on stage 1 — it is a vocabulary shared by views that must first exist on both doors.**
