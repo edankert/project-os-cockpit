@@ -57,6 +57,46 @@ Both are now guarded: the rule is walked over notes, and `test_the_two_validator
 
 Six tests, three mutants executed: disabling the rule, dropping the exception clause, and diverging the two copies.
 
+## Landed upstream 2026-08-20 — [[REQ-0051]] criterion 5
+
+[[TASK-0522]] had recorded that this rule *"stays downstream for now"* because pushing it up would be a partial sync. That reasoning does not survive reading `tools/sync/MANIFEST.yaml`: `tools/scripts/` is `template`-owned, and template ownership means a **diverged** downstream copy is *skipped and reported for hand-merge*, not overwritten. So an upstream edit reaches the fleet repos that are still on the baseline and leaves this repo's 720-line-ahead copy alone.
+
+`~/Dev/repos/project-os/tools/scripts/validate-docs.py` now carries `_repo_has_an_acceptance_suite`, `_features_covered_by_acceptance` and the rule. `docs/__templates__/SCHEMAS.md` gained an `acceptance_exception` entry in the feature section in **both** repos — it was documented in neither, so the rule named a field the schema did not, and an escape nobody can find is an escape nobody uses.
+
+**Guarded by execution, not by grep.** A substring search for `FEATURE-UNCOVERED` in upstream's source is satisfied by a *comment* mentioning it — the over-broad text match that has bitten this phase seven times, and which this task's own history includes. The four new tests in `tests/test_feature_uncovered.py` **drive upstream's validator over a constructed corpus** and read what it reports.
+
+The domain was enumerated rather than sampled. All six members behave upstream exactly as they do here:
+
+| case | upstream findings |
+|---|---|
+| `done`, repo has a suite, nothing covers it | **1** |
+| `doing` | 0 |
+| repo holds no acceptance check at all | 0 |
+| `acceptance_exception:` non-empty | 0 |
+| covered by an acceptance check | 0 |
+| covered **only** by a non-acceptance `TST-*` | **1** |
+
+Four mutants executed against upstream with `__pycache__` cleared and `PYTHONDONTWRITEBYTECODE=1`, each failing exactly one test and no other:
+
+| mutant | caught by |
+|---|---|
+| delete the rule block | `test_the_rule_runs_in_the_template_repo_and_not_only_here` |
+| `if _repo_has_an_acceptance_suite(...)` -> `if True:` | `test_upstream_is_silent_where_there_is_nothing_to_cover_with` |
+| drop the `acceptance_exception:` clause | `test_the_escape_is_the_same_field_upstream` |
+| strip `acceptance_exception` from `SCHEMAS.md` | `test_the_upstream_template_and_schema_carry_the_escape` |
+
+A fifth, upstream only: dropping the `level == "acceptance"` filter takes the last row of the table from **1 to 0** — the hole independent review found downstream, confirmed absent from the port.
+
+**What it costs, said plainly.** The upstream edit is in a working tree and in no commit, beside seven other uncommitted files there. That is the `kind:` failure mode exactly — *"three passes because six repos held the edit on disk and in no commit"* — and it is the same exposure [[TASK-0514]] and [[TASK-0522]] already carry for the surface template and the scaffold skill. Nothing in this session can close it; it needs a commit in `project-os`.
+
+## Two stale numbers, fixed
+
+**`_repo_has_an_acceptance_suite`'s docstring said 89** where the arithmetic gives **86** (220 - 134). It was the gap between the two *wide* figures (236 - 147) carried onto the narrow pair — the fourth review's finding, in the one place the fourth review's fix did not reach.
+
+**The rule's own explanatory comment was attached to a different rule.** In both validator copies the `#: **A finished feature that nothing verifies**` block sat above the `RELEASE-PREPARING` loop, with `FEATURE-UNCOVERED`'s actual code forty lines below it carrying no comment at all — and the `# -- counter integrity` marker it displaced was stranded two rules away from the counters. Moved to sit on its own rule.
+
+**And the live count is not 88 any more.** `validate-docs.sh` reports **93** in this repo after this phase's close-outs, against 88 when the rule landed three commits earlier. Nobody touched the rule; five features reached `done`. That drift is why `tests/test_feature_uncovered.py` builds constructed corpora instead of pinning the number — *"a guard that pins it would be edited, not obeyed."*
+
 ## Independent review — third pass, 2026-08-20
 
 Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **changes-requested**. Every claim below was re-measured or re-executed.

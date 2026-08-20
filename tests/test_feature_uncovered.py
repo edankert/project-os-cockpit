@@ -1,8 +1,9 @@
 """`FEATURE-UNCOVERED` — a finished feature that nothing verifies ([[TASK-0523]]).
 
 Built on constructed corpora rather than on this repo's, because the live
-number (88) is exactly the kind of figure that drifts under every commit — and
-a guard that pins it would be edited, not obeyed.
+number is exactly the kind of figure that drifts under every commit — and a
+guard that pins it would be edited, not obeyed. It was 88 when this rule
+landed and is **93** three commits later, without anyone touching the rule.
 """
 
 from __future__ import annotations
@@ -66,16 +67,18 @@ def test_an_exception_silences_it(tmp_path: Path) -> None:
 def test_it_says_nothing_in_a_repo_with_no_suite(tmp_path: Path) -> None:
     """Nine of the twelve fleet repos hold no acceptance check at all. Firing
     there would scold them for not using a mechanism they never adopted —
-    236 findings fleet-wide against 147 in the three that have a suite.
+    **220** findings fleet-wide against **134** in the three that have a
+    suite, under the rule as it ships (`done` alone). The 236/147 pair is
+    the same count with a wider terminal set and is NOT this rule's number.
     """
     assert _findings(_repo(tmp_path, suite=False, status="done")) == 0
 
 
 def test_it_warns_and_never_errors(tmp_path: Path) -> None:
-    """**Undated, deliberately** ([[ADR-0011]] clause 3). The debt is 147 in
-    suite-bearing repos, 88 of them in this one. A date would either fail every
-    build on arrival or be moved when it did, and a promotion nobody intends to
-    honour teaches people to ignore the table.
+    """**Undated, deliberately** ([[ADR-0011]] clause 3). The debt is **134**
+    in suite-bearing repos under the rule as it ships. A date would either fail
+    every build on arrival or be moved when it did, and a promotion nobody
+    intends to honour teaches people to ignore the table.
     """
     repo = _repo(tmp_path, suite=True, status="done")
     out = subprocess.run(
@@ -88,7 +91,7 @@ def test_it_warns_and_never_errors(tmp_path: Path) -> None:
     table = src[src.index("PROMOTIONS = {"):]
     table = table[:table.index("}")]
     assert "FEATURE-UNCOVERED" not in table, (
-        "the rule has been dated; 147 outstanding findings is not a promise"
+        "the rule has been dated; 134 outstanding findings is not a promise"
     )
 
 
@@ -108,6 +111,75 @@ def test_the_two_validator_copies_stay_identical() -> None:
     )
 
 
+# ---- the rule is a LIFECYCLE rule, so it lives upstream (REQ-0051 c5) -----
+
+UPSTREAM = Path.home() / "Dev" / "repos" / "project-os"
+UPSTREAM_VALIDATOR = UPSTREAM / "tools" / "scripts" / "validate-docs.py"
+
+
+def _upstream_findings(repo: Path) -> int:
+    out = subprocess.run(
+        [sys.executable, str(UPSTREAM_VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True).stdout
+    return out.count("FEATURE-UNCOVERED")
+
+
+def test_the_rule_runs_in_the_template_repo_and_not_only_here(tmp_path: Path) -> None:
+    """[[REQ-0051]] criterion 5: *"the rule lands upstream in project-os, not
+    only here — it is a lifecycle rule for every repo."*
+
+    **Asserted by EXECUTION, not by grep.** A substring search for
+    `FEATURE-UNCOVERED` in upstream's validator would be satisfied by a comment
+    mentioning it — the over-broad text match that has bitten this phase seven
+    times. So this drives upstream's validator over a constructed corpus and
+    reads what it reports.
+
+    `tools/scripts/` is `template`-owned in `tools/sync/MANIFEST.yaml`, so a
+    fleet repo whose validator still matches the baseline receives this on its
+    next sync; a diverged copy (this repo's, 720 lines ahead) is skipped and
+    reported for hand-merge rather than clobbered.
+    """
+    if not UPSTREAM_VALIDATOR.is_file():                  # pragma: no cover
+        raise AssertionError(
+            "no upstream validator at %s — the rule cannot have landed there"
+            % UPSTREAM_VALIDATOR)
+    assert _upstream_findings(_repo(tmp_path, suite=True, status="done")) == 1
+
+
+def test_upstream_is_silent_where_there_is_nothing_to_cover_with(tmp_path: Path) -> None:
+    """The other half of the same claim, and the half a rule that fires
+    unconditionally would still pass: nine of the twelve fleet repos hold no
+    acceptance check, and upstream itself is one of them — it reports **zero**
+    against its own docs.
+    """
+    assert _upstream_findings(_repo(tmp_path, suite=False, status="done")) == 0
+
+
+def test_the_escape_is_the_same_field_upstream(tmp_path: Path) -> None:
+    """A rule whose escape differs between repos is an escape nobody can use.
+    Executed rather than grepped, for the same reason as above.
+    """
+    repo = _repo(tmp_path, suite=True, status="done",
+                 exception="a phase of work, not a user-facing surface")
+    assert _upstream_findings(repo) == 0
+
+
+def test_the_upstream_template_and_schema_carry_the_escape() -> None:
+    """The field has to be scaffolded and *documented* upstream, or the rule
+    names a field a downstream author cannot find. `SCHEMAS.md` is the file the
+    author reads; the template is the file they get.
+    """
+    fm = (UPSTREAM / "docs" / "__templates__" / "feature.md").read_text(encoding="utf-8")
+    assert 'acceptance_exception: ""' in fm
+    schemas = (UPSTREAM / "docs" / "__templates__" / "SCHEMAS.md").read_text(encoding="utf-8")
+    feature_section = schemas[schemas.index("## `feature.md`"):]
+    feature_section = feature_section[:feature_section.index("\n## ")]
+    assert "acceptance_exception" in feature_section, (
+        "the escape is not documented in the feature section of upstream's "
+        "SCHEMAS.md, so the rule names a field the schema does not"
+    )
+
+
 # ---- the scaffold end of the same rule (TASK-0522) ------------------------
 
 SCAFFOLD = ROOT / "tools" / "skills" / "feature-scaffold" / "SKILL.md"
@@ -118,9 +190,9 @@ def test_the_scaffold_emits_a_check_by_rule_not_by_judgement() -> None:
     """[[TASK-0522]]. Step 9 read *"if the feature requires verification"* — a
     judgement made per feature, at the end, by whoever was tired.
 
-    Measured across the twelve project-os repos on 2026-08-20: **236 features
-    reached a terminal status with no acceptance check covering them.** A rule
-    applied when somebody remembers is not a rule.
+    Measured across the twelve project-os repos on 2026-08-20: **220 features
+    reached `done` with no acceptance check covering them** (236 counting a
+    wider terminal set). A rule applied when somebody remembers is not a rule.
     """
     src = SCAFFOLD.read_text(encoding="utf-8")
     assert "plan/tests/TST-####-*.md" in src, (
@@ -175,8 +247,8 @@ def test_a_non_acceptance_test_is_not_coverage(tmp_path: Path) -> None:
     """`_features_covered_by_acceptance` must read `level: acceptance` only.
 
     **Proved by mutant, by independent review**: dropping the level filter
-    passes every other test in this file and **silences 29 of this repo's 88
-    findings** — a non-acceptance `TST-*` naming a terminal feature would count
+    passes every other test in this file and **silences 29 of this repo's
+    then-88 findings** — a non-acceptance `TST-*` naming a terminal feature would count
     as coverage, and the rule would report silence on features nothing verifies
     in the sense it means.
 

@@ -19,7 +19,9 @@ tags: [task]
 
 Edwin's own examples set the grain: `Per-Rider Data Export` → `Data Import/Export`; `Workout Loop/Repeat` → a generic `Workouts`; `HR Zone Lock` → `HR Zones`.
 
-**Propose the mapping before applying it.** 579 checks change `area:`; the original string is preserved on each note (REQ-0049 criterion 4) so the consolidation is reversible by reading.
+**Propose the mapping before applying it.** 579 checks change `area:`; the original string must stay recoverable ([[REQ-0049]] criterion 4) so the consolidation is reversible by reading.
+
+*(**This sentence originally read "the original string is preserved on each note" and that is not what was built.** The migration overwrote `area:` in place and wrote the original nowhere — no field, no body line. What makes the consolidation reversible is the mapping recorded further down this note, and the criterion is reconciled rather than ticked on [[REQ-0049]]. Corrected 2026-08-20.)*
 
 ## The mapping — agreed with Edwin 2026-08-19
 
@@ -82,6 +84,123 @@ The pass that looked for stragglers tested whether `area:` began with `SUR-`, an
 ### What this leaves
 
 `area:` is a string that now happens to equal a surface's title. **A check still does not link to a `SUR-*`**, and the join is by name — so renaming a surface silently orphans 91 checks. Closing that is a schema change on the check (`area:` becomes a link), which is [[FEAT-0130]]'s endpoint rather than this task's, and it is stated here so nobody reads the collapse from 94 to 15 as the whole job.
+
+## The mapping as applied, recorded — 2026-08-20
+
+**The table above is the *proposal*, and it is not what was applied.** **Thirteen of its fifteen surface names exist nowhere in `your-trainer`** — `Route & Free Ride`, `Power · Quick Ride & Editor`, `Trainer Compatibility` and ten others; only `Localization` survives verbatim and `Riders & Profiles` survives with a case change. The applied set is the fourteen Edwin approved plus `Not a product surface`, and the section below it records the *counts* of that pass without recording the *mapping*. So [[REQ-0049]] criterion 2 — *"every original area maps onto one, with the mapping recorded rather than inferred"* — was not met by this note until now, and the only copy of the mapping was an uncommitted working-tree diff in another repo. This section is that record.
+
+**Basis, stated because this phase has been bitten four times by not stating it.** Recovered from `git diff` in `your-trainer` against **`HEAD`** (`49cf2ce9`), which is where the original strings still are — the migration is uncommitted there. At `HEAD` the corpus carries **76** distinct `area:` values over **579** notes in `docs/tests/acceptance/`, none of them empty; the working-tree figure of **94** quoted in the section above is the count *after* [[TASK-0517]] resolved the parking bay into recovered heading names, which is a different pass against a different base. Both numbers are right about different things, and only one of them is reversible: the parking bay's recovered names exist in no commit, so the durable original is the one at `HEAD`.
+
+`TST-0015` and `TST-0018` — the two `level: acceptance` notes outside the directory — carry **no `area:` field at `HEAD`** and gained `area: ""` in the working tree. They are not in this table because the migration did not touch them, which is the same two-check gap the correction above records.
+
+### 75 of the 76 map one-to-one
+
+| original `area:` at HEAD | surface | checks |
+|---|---|---|
+| Name-collision dialog button arrangement | App shell & UX | 1 |
+| Settings Master/Detail + About Inline | App shell & UX | 6 |
+| Split-Screen & Multi-Window | App shell & UX | 3 |
+| UI & UX | App shell & UX | 4 |
+| Auto-translate-on-import — translate-then-save with wait dialog | Data — backup/export | 6 |
+| Backup Auto Backup Exclusions | Data — backup/export | 1 |
+| Data Backup & Restore | Data — backup/export | 9 |
+| Generalised backup overlay | Data — backup/export | 1 |
+| ZWO Import | Data — backup/export | 4 |
+| Cadence Coaching | Hardware | 8 |
+| Compat-test must never leave the app stuck | Hardware | 4 |
+| Display Smoothing & Cadence Filter | Hardware | 7 |
+| Hardware Connectivity | Hardware | 6 |
+| HRM Mid-Workout Reconnect | Hardware | 4 |
+| HRM State on User Switch | Hardware | 3 |
+| Per-Rider Cross-Rider Bleed | Hardware | 1 |
+| Trainer Compatibility Verification | Hardware | 20 |
+| Empty Workout History | History & analytics | 1 |
+| History & Data Portability | History & analytics | 5 |
+| Coaching Text Events | Integrations — AI | 4 |
+| Strava Integration | Integrations — Strava | 13 |
+| Strava Polish — Branding + Pills + Reconciliation | Integrations — Strava | 17 |
+| Strava Retry Button Visibility | Integrations — Strava | 2 |
+| Localization Infrastructure | Localization | 6 |
+| Runtime translate model | Localization | 7 |
+| Runtime Translate-on-Demand | Localization | 11 |
+| AI Coach Tier Gating | Monetization | 2 |
+| Backup Family-Tier Integrity | Monetization | 2 |
+| Family License on Cold Start | Monetization | 3 |
+| Free Ride Display Name | Monetization | 2 |
+| Monetization & Licensing | Monetization | 27 |
+| Paywall Features | Monetization | 1 |
+| Tier-1 locale grammar — Dutch banner + corpus | Monetization | 3 |
+| Add Rider with Zero Users | Riders & profiles | 2 |
+| FTP Calculation | Riders & profiles | 1 |
+| FTP Field Editing | Riders & profiles | 2 |
+| New Rider Setup Dialog | Riders & profiles | 7 |
+| Per-Rider Data Export | Riders & profiles | 14 |
+| Per-Rider File Dispatch | Riders & profiles | 3 |
+| Profile Management | Riders & profiles | 9 |
+| Rider Card | Riders & profiles | 6 |
+| Strava Cross-Rider Safety | Riders & profiles | 1 |
+| Ghost Riders | Riding — routes | 15 |
+| Pending Route Import Survives Process Death | Riding — routes | 3 |
+| Route card overflow — Edit/Duplicate hidden, Rename for imported | Riding — routes | 4 |
+| Route Data Robustness | Riding — routes | 1 |
+| Route Workouts | Riding — routes | 54 |
+| Slope-mode Route fallback honours forced RES | Riding — routes | 3 |
+| Energy Decimal Consistency | Riding — simulation | 1 |
+| ERG Free Ride Minimum Power | Riding — simulation | 2 |
+| ERG Target Power Sync | Riding — simulation | 3 |
+| Simulation Mode | Riding — simulation | 44 |
+| Simulation Mode Replaces Resistance | Riding — simulation | 3 |
+| Trainer SIM Capability Re-Check | Riding — simulation | 2 |
+| Virtual Gear Range | Riding — simulation | 4 |
+| Haptic Feedback on Interval Transition | Riding — structured | 2 |
+| HR Zone Lock | Riding — structured | 13 |
+| HR-Zone Controller Hardening | Riding — structured | 3 |
+| HR-Zone Structured Workouts | Riding — structured | 32 |
+| Ramp Intervals | Riding — structured | 1 |
+| Workout Loop/Repeat | Riding — structured | 12 |
+| AI Workout Builder | Workouts — authoring | 16 |
+| Editor save/discard model | Workouts — authoring | 8 |
+| Workout Domain Tabs | Workouts — authoring | 6 |
+| Workout Editor | Workouts — authoring | 3 |
+| Workout Library & Favorites | Workouts — authoring | 4 |
+| Completion Overlay Resume | Workouts — execution | 3 |
+| Power Deviation UI | Workouts — execution | 2 |
+| Segment Power Labels | Workouts — execution | 2 |
+| Segment Time Display | Workouts — execution | 1 |
+| Session Metrics Display | Workouts — execution | 3 |
+| SessionEndOverlay Row Alignment | Workouts — execution | 1 |
+| Skip-Back Data Preservation | Workouts — execution | 3 |
+| Workout Execution | Workouts — execution | 9 |
+| Workout Personal Bests | Workouts — execution | 11 |
+
+Total **513** checks. Every row is a rename: no original value on this list reaches two surfaces, so reversing it needs nothing but this table.
+
+### The 76th fans out, so it is recorded per note
+
+`Moved from Tier 1 / Tier 2 — Fully Automated` is the parking bay — one string covering **66** checks that had already been moved once, which is why it is the single original value that could not map to one surface. [[TASK-0517]] resolved each to a recovered heading name first; those names are in no commit, so what is durable is the note-by-note assignment:
+
+| surface | checks | notes |
+|---|---|---|
+| App shell & UX | 1 | TST-0555 |
+| Data — backup/export | 5 | TST-0537, TST-0538, TST-0539, TST-0558, TST-0582 |
+| Hardware | 9 | TST-0553, TST-0563, TST-0578, TST-0592, TST-0593, TST-0594, TST-0595, TST-0596, TST-0597 |
+| History & analytics | 3 | TST-0560, TST-0568, TST-0569 |
+| Localization | 2 | TST-0548, TST-0549 |
+| Monetization | 3 | TST-0561, TST-0565, TST-0573 |
+| Not a product surface | 2 | TST-0571, TST-0577 |
+| Riders & profiles | 10 | TST-0554, TST-0559, TST-0562, TST-0567, TST-0575, TST-0583, TST-0584, TST-0585, TST-0586, TST-0587 |
+| Riding — routes | 11 | TST-0541, TST-0542, TST-0543, TST-0545, TST-0572, TST-0580, TST-0581, TST-0588, TST-0589, TST-0590, TST-0591 |
+| Riding — simulation | 1 | TST-0534 |
+| Riding — structured | 9 | TST-0532, TST-0535, TST-0536, TST-0540, TST-0552, TST-0556, TST-0557, TST-0564, TST-0579 |
+| Workouts — authoring | 9 | TST-0544, TST-0546, TST-0547, TST-0550, TST-0551, TST-0566, TST-0570, TST-0574, TST-0576 |
+| Workouts — execution | 1 | TST-0533 |
+
+Total **66**. 513 + 66 = **579**, which is the number of notes the migration rewrote.
+
+### What this record does and does not do
+
+It makes the consolidation **reversible by reading**, which is what [[REQ-0049]] criterion 4 protects: for any of the 579 checks, the original string is recoverable from one of the two tables above without opening a diff. What it does **not** do is put the original *on the note*, which is what that criterion literally asks for — see the reconciliation recorded on [[REQ-0049]].
+
 
 ## Independent review — third pass, 2026-08-20
 

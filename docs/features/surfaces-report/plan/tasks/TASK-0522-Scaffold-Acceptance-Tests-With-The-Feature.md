@@ -42,9 +42,17 @@ Step 9 read *"if the feature requires verification, create `TST-*` notes"*. That
 
 **The two ends now ask one question.** The scaffold emits or excepts; `FEATURE-UNCOVERED` ([[TASK-0523]]) warns at close-out for anything that is neither. A test asserts both name the same field, because a skill and a validator disagreeing about it is [[REQ-0059]]'s shape across two artefacts.
 
-### `FEATURE-UNCOVERED` stays downstream for now
+### `FEATURE-UNCOVERED` stayed downstream for a day, and the reason given was wrong
 
-The cockpit's validator is **3213 lines against upstream's 2493** — 720 ahead, not behind. Pushing one rule up while that gap exists would be a partial sync, which is how the `kind:` removal took three passes. The rule is cockpit-local until the validators are reconciled, and that is [[ISS-0209]]'s neighbourhood rather than this task's.
+**What this section used to say:** *"Pushing one rule up while that gap exists would be a partial sync, which is how the `kind:` removal took three passes. The rule is cockpit-local until the validators are reconciled."*
+
+The gap is real — the cockpit's validator is **3213 lines against upstream's 2500**, 720 **ahead** rather than behind. What is wrong is the conclusion, and `tools/sync/MANIFEST.yaml` answers it in one line:
+
+> `template` — *overwritten when the downstream copy matches the recorded baseline; **locally diverged copies are skipped and reported for hand-merge** (`--force` overrides)*
+
+So a rule added upstream reaches every fleet repo whose validator still matches the baseline, and this repo's diverged copy is **skipped**, not clobbered. The hazard the section named does not exist. It was a fair question that already had an answer, in a file nobody opened.
+
+**Landed upstream 2026-08-20**, which is [[REQ-0051]] criterion 5 — see [[TASK-0523]] for the port, its six-case domain and its four mutants.
 
 ### Two errors of mine, both from moving between repos
 

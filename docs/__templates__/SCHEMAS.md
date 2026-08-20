@@ -92,6 +92,7 @@ Fields:
 
   *The same reverse encoding still exists on `task`, `issue` and `requirement`. Normalising those is decided in principle and not yet done; until then `VERIFY` ignores any linked test at `level: acceptance` so the merged type cannot trip the gate from those three.*
 - (optional) `release` (string): Milestone/release label.
+- (optional) `acceptance_exception` (string): Why this feature can never have an acceptance check — an engine with no user-facing surface, a phase of work, a repo that ships prose. **Said once, at scaffold time, when the reason is known.** Non-empty silences `FEATURE-UNCOVERED` for this feature permanently; empty (the template's default) means the feature is expected to be covered by the time it is `done`. This is an escape, not a switch: a reason that is not true is worse than the warning it removes.
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.features`) for agent context and linked from feature notes.

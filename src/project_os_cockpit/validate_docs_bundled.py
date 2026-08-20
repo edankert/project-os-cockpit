@@ -387,8 +387,10 @@ def _repo_has_an_acceptance_suite(note_index):
     The uncovered-feature rule is meaningless where there is nothing to cover
     WITH. Measured across the twelve `SNAPSHOT.yaml`-bearing repos 2026-08-20:
     **220** terminal features have no acceptance check under this rule, and
-    **only three repos hold a suite** -- so 89 of those findings would be scolding repos for not using
-    a mechanism they have never adopted.
+    **only three repos hold a suite** -- so **86** of those findings would be
+    scolding repos for not using a mechanism they have never adopted.
+    (220 - 134; it read 89 until 2026-08-20, which was the gap between the two
+    WIDE figures carried over onto the narrow ones.)
     """
     for _id, entry in (note_index or {}).items():
         fm = (entry[1] if entry else None) or {}
@@ -3049,7 +3051,14 @@ def validate(root, report):
         if not in_snapshot:
             report.error("DEFER-RETENTION", "%s is deferred but missing from SNAPSHOT.yaml; deferred items are active and never pruned (%s)" % (item_id, path.relative_to(root)))
 
-    # -- counter integrity (snapshot IDs and note IDs)
+    for _platform, _ids in sorted(_preparing_conflicts(note_index).items()):
+        report.error(
+            "RELEASE-PREPARING",
+            "%s release(s) are preparing for platform '%s' at once (%s); "
+            "ADR-0037's ledger is one per platform, so a verdict recorded now "
+            "would belong to neither -- ship one, or branch"
+            % (len(_ids), _platform or "(all)", ", ".join(_ids)))
+
     #: **A finished feature that nothing verifies** ([[TASK-0523]]).
     #:
     #: Walked over the NOTES, not the snapshot collections. The first cut sat
@@ -3083,14 +3092,6 @@ def validate(root, report):
     #: rider-facing surface, a phase of work, a repo that ships prose. Said
     #: once, in the note. ([[TASK-0524]] refused to write 33 exceptions it
     #: could not justify; this is where justified ones go.)
-    for _platform, _ids in sorted(_preparing_conflicts(note_index).items()):
-        report.error(
-            "RELEASE-PREPARING",
-            "%s release(s) are preparing for platform '%s' at once (%s); "
-            "ADR-0037's ledger is one per platform, so a verdict recorded now "
-            "would belong to neither -- ship one, or branch"
-            % (len(_ids), _platform or "(all)", ", ".join(_ids)))
-
     if _repo_has_an_acceptance_suite(note_index):
         _covered = _features_covered_by_acceptance(note_index)
         _uncovered = []
@@ -3115,6 +3116,7 @@ def validate(root, report):
     if path_alias_items:
         report.warn("PATH-ALIAS", "%d item(s) use legacy `path:` instead of `file:` (e.g. %s); prefer `file:` per SNAPSHOT.md" % (len(path_alias_items), path_alias_items[0]))
 
+    # -- counter integrity (snapshot IDs and note IDs)
     def check_counter(the_id, origin):
         m = ID_RE.match(the_id)
         if not m:
