@@ -2809,3 +2809,53 @@ def test_a_built_non_feature_subject_keeps_a_check_out_of_quiet(tmp_path: Path) 
         "documented as walkable if ANY subject is built, and a filter that "
         "hides one lies to it by omission"
     )
+
+
+def test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses(
+        tmp_path: Path) -> None:
+    """**The predicate's stated domain, enumerated** (independent review, fifth
+    pass — this bucket's fourth defect).
+
+    [[ISS-0247]] describes the bucket over *subject not yet built*, which is
+    `NOT_YET_BUILT` = `{backlog, deferred, draft, planned, proposed}`. Only
+    **two** of those five can reach it: `_owed_flag` is tested first and asks
+    `RESTING_STATES`, which excludes `planned`, `proposed` and `draft`. The two
+    predicates give **opposite answers about the same subject** — *in flight*
+    against *not yet built* — and branch order decides which wins.
+
+    That is [[REQ-0059]]'s one-question-two-implementations, inside the bucket
+    corrected three times for that exact class. Latent: 0 rows in either
+    corpus, but **24 features sit at `planned` fleet-wide**, so the shape is
+    populated.
+
+    This test does not assert the split is *right* — [[ISS-0248]] holds that
+    question, and reconciling the sets is an [[ADR-0028]] decision rather than
+    a patch. It pins the domain the code actually has, so the note and the
+    code cannot drift apart again without something failing.
+    """
+    from project_os_cockpit.index import Index
+    from project_os_cockpit import obligations
+
+    def lands_in(status: str) -> str:
+        docs = tmp_path / status / "docs"
+        (docs / "features" / "f").mkdir(parents=True)
+        (docs / "tests").mkdir(parents=True)
+        (docs / "features" / "f" / "FEAT-0001-U.md").write_text(
+            f'---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "U"\n'
+            f'status: {status}\n---\n\n# U\n', encoding="utf-8")
+        (docs / "tests" / "TST-0001-C.md").write_text(
+            '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nstatus: ready\n'
+            'covers: ["[[FEAT-0001]]"]\n---\n\n# C\n', encoding="utf-8")
+        groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(docs))}
+        return next((k for k, g in groups.items()
+                     if any(i.get("id") == "TST-0001" for i in g.get("items") or [])), "?")
+
+    reaches = {s for s in obligations.NOT_YET_BUILT if lands_in(s) == "quiet"}
+    assert reaches == {"backlog", "deferred"}, (
+        f"the quiet bucket's reachable domain changed: {sorted(reaches)}. "
+        "If this is intended, ISS-0248 has been decided and the note's rule "
+        "must be updated with it — the two must not drift apart again."
+    )
+    #: The cause, asserted so a reader does not have to rediscover it.
+    assert obligations.NOT_YET_BUILT - obligations.RESTING_STATES == {
+        "draft", "planned", "proposed"}

@@ -136,3 +136,36 @@ Neighbouring cases are safe only by accident: `+ ISS@open`, `+ PHASE@active` and
 **Latent, not live** — zero instances in either corpus today, so nothing is currently mis-filed. But the guard set does not contain the case, so the next `covers:` pairing a backlog feature with an implemented requirement removes a check from the count silently.
 
 The fix that satisfies both this and my previous finding: keep `not _covers_an_issue(record)` for the label's sake, but pass **all** refs to `ids_are_unbuilt` rather than only the FEAT ones.
+
+## Independent review — fifth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **changes-requested** (supersedes the verdicts above). Re-measured or re-executed, not read.
+
+**My previous finding is fixed and the fix is correct.** `ids_are_unbuilt` now receives `_all_refs`; `_feat_refs` gates entry for the label's sake; `_covers_an_issue` still excludes regression guards. Re-probed: `FEAT@backlog` → quiet, `+REQ@implemented` → **feature** (the leak I reported is closed), `FEAT@done` → feature. `test_a_built_non_feature_subject_keeps_a_check_out_of_quiet` fails on the mutant.
+
+**But the fourth case is the one you asked me to find, and it is structural.** This note states the rule as *"`ids_are_unbuilt`'s question, which returns `backlog`/`planned`/`deferred`/`draft`/`proposed` only"* — five statuses. Probed, one fixture per status, identical but for the subject's status:
+
+| subject | lands in |
+|---|---|
+| `FEAT@backlog` | **quiet** |
+| `FEAT@deferred` | **quiet** |
+| `FEAT@planned` | `needs-you` |
+| `FEAT@proposed` | `needs-you` |
+| `FEAT@draft` | `needs-you` |
+
+**Three of the five stated statuses can never reach the bucket**, because the `_owed_flag` branch is tested first and it asks a *different* predicate:
+
+- `RESTING_STATES` = `COMPLETED_STATUSES | {backlog, deferred}`
+- `NOT_YET_BUILT` = `{backlog, planned, proposed, draft, deferred}`
+
+`planned`, `proposed` and `draft` are in one and not the other, so the two predicates give **opposite answers about the same subject** — in flight, and not yet built — and which one wins is decided by statement order rather than by anything anyone decided. That is `REQ-0059`'s one-question-two-implementations, inside the bucket that has now been corrected three times for that exact class, and it means a check on a `planned` feature is still *"counted as work somebody owes"* — this note's own opening complaint.
+
+**Latent, not live.** Measured with the real predicates on both corpora: **0** rows where the quiet branch would fire but `_owed_flag` claims them first. `TST-0024` is not an instance — its `draft` requirements are subordinated to a `backlog` feature by the `ISS-0202` rule, and it correctly reaches `quiet`. But 24 features sit at `planned` across the fleet, so the shape is populated even though no check covers one yet.
+
+Two honest resolutions: reconcile the sets (a change to `ADR-0028`'s in-flight rule, which is a decision, not a patch), or narrow this note's stated rule to the two statuses the bucket can actually reach. What must not stand is a branch documented over five statuses that fires on two.
+
+## The stated rule is broader than the bucket can reach ([[ISS-0248]])
+
+This note describes the bucket over *subject not yet built* — `NOT_YET_BUILT`, five statuses. **It can reach two.** `_owed_flag` is tested first and asks `RESTING_STATES`, which excludes `planned`, `proposed` and `draft`, so a check on a `planned` feature is still counted as work somebody owes — this note's own opening complaint, surviving its own fix.
+
+Found on the fifth review pass, by enumerating the predicate's stated domain rather than probing cases. [[ISS-0248]] carries the decision; the domain is now pinned by a test so the two cannot drift apart while it waits.
