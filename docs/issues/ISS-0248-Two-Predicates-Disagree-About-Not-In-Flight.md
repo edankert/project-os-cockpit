@@ -69,3 +69,36 @@ What must not stand is the current state: a branch documented over five statuses
 - [ ] The sets are reconciled, or [[ISS-0247]]'s rule is narrowed to `{backlog, deferred}` with the precedence recorded.
 - [ ] Whichever, `test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses` is updated **with** it — it is written to fail if the domain moves silently.
 - [ ] If the sets are reconciled, the obligations badge is re-measured: `RESTING_STATES` is not local to this pane.
+
+## 2026-08-20 — the decision was taken on a false measurement, and reverted
+
+Edwin chose **narrow the words to `{backlog, deferred}`** on my statement that it *"changes nothing either way — zero checks in either repo would move."* **That statement was wrong**, and the narrowing is reverted unmade.
+
+### What I measured, and what I claimed
+
+I measured *"how many rows would **become** quiet if the set were **widened**"* — that is genuinely **0**. I then reported it as *"changes nothing **either way**"*.
+
+The other direction was never measured. **Narrowing removes one live row.** `TST-0024` (*Remote SSH workspace walk*) covers `FEAT-0099` at `backlog` **and** `REQ-0035` / `REQ-0036` at `draft`. `ids_are_unbuilt` is an **all**-quantifier, so `draft` being in the set is what makes that row quiet. Take `draft` out and the row leaves `Quiet` and lands in `Feature tests · outstanding` — counted as work somebody owes, for a feature nobody has started.
+
+That is precisely the complaint [[ISS-0247]] was filed about. The "safe, documentation-only" option was the one that changes behaviour, and the direction it changes it in is the wrong one.
+
+**An asymmetric measurement reported as symmetric.** Third of this species today, and the same shape as the other two: measure one direction, state both.
+
+### And the premise of this issue is now in doubt
+
+This note says three statuses are unreachable, from an enumeration that only ever tested a **single** subject per check:
+
+| shape | lands in |
+|---|---|
+| `FEAT@draft` alone | `needs-you` |
+| `FEAT@backlog` alone | `quiet` |
+
+But `ids_are_unbuilt` quantifies over **every** ref, and `TST-0024` is quiet in the live corpus with three subjects. So `draft` is load-bearing in combination even though it is unreachable alone — which the single-subject enumeration cannot see, and which neither I nor the independent review noticed.
+
+*(A constructed three-subject fixture did **not** reproduce `TST-0024`'s bucketing, so the mechanism is not yet fully explained and no cause is asserted here. What is measured and certain: with `draft` in the set that row is quiet, without it that row is not.)*
+
+**So this issue needs re-deriving before it is decided again.** Its stated defect — *"the domain is five and the reach is two"* — is true of single-subject checks and false of the corpus's actual one.
+
+### State
+
+Code **unchanged**: `NOT_YET_BUILT` still `{backlog, deferred, draft, planned, proposed}`, one quiet row, suite green. Nothing was committed. The decision is Edwin's again, on numbers that are now right.
