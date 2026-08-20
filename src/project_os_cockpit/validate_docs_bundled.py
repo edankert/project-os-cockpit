@@ -311,6 +311,69 @@ def _acceptance_is_settled(note_id, note_index):
     return mark in _SETTLED_MARKS
 
 
+def _release_version_key(raw):
+    """`2.1.10` -> `(2, 1, 10)`, so `2.1.10` sorts above `2.1.9`.
+
+    A compact restatement of `publication._version_key`. This module is
+    stdlib-only and copied whole into every downstream repo, so it cannot
+    import the package -- the same deliberate duplication `_acceptance_is_settled`
+    and the command-target parser carry, and `tests/test_release_preparing.py`
+    holds the two to the same answers.
+    """
+    parts = []
+    for chunk in re.split(r"[.\-+]", str(raw or "").strip().lstrip("vV")):
+        if chunk.isdigit():
+            parts.append(int(chunk))
+        elif chunk:
+            break
+    return tuple(parts)
+
+
+def _preparing_conflicts(note_index):
+    """Platforms carrying **more than one** release in preparation ([[TASK-0557]]).
+
+    Edwin: *"Let's consider one release at the time only … We can potentially
+    have multiple releases going on at the same time for different platforms."*
+
+    **Two on one platform is the state [[ADR-0037]]'s ledger cannot
+    represent**: one working ledger per platform, and sealing assigns it to a
+    release, so a verdict recorded while two were open would belong to neither
+    by construction. That is why it is an ERROR and not a warning.
+
+    *Preparing* is narrower than `draft`: a draft a shipped version has already
+    overtaken is stale record-keeping, not a release in preparation.
+    `your-trainer` carries `REL-0008` at `draft`, version 2.0.2, with 2.1.6
+    shipped -- counting it would report a conflict that is not one.
+    """
+    releases = []
+    for note_id, entry in (note_index or {}).items():
+        fm = (entry[1] if entry else None) or {}
+        if note_type(fm) != "release":
+            continue
+        releases.append((
+            note_id,
+            str(fm.get("status", "") or "").strip().lower(),
+            _release_version_key(fm.get("version")),
+            str(fm.get("platform", "") or "").strip().lower(),
+            #: **`preparing:` is FRONTMATTER, not a status** (FEAT-0105).
+            #: `publication.preparing` reads this field, and the first cut of
+            #: this rule keyed on `status: draft` alone -- so the validator and
+            #: the library would have disagreed about what *preparing* means,
+            #: which is [[REQ-0059]]'s forbidden shape and the third instance
+            #: found in this phase. Two open drafts nobody has declared for
+            #: ship are a normal repo, not an error.
+            str(fm.get("preparing", "") or "").strip().lower()
+            in ("true", "yes", "1"),
+        ))
+    shipped = max((v for _i, st, v, _p, _q in releases if st == "released"),
+                  default=())
+    by_platform = {}
+    for note_id, status, version, platform, is_preparing in sorted(releases):
+        if is_preparing and status == "draft" and version > shipped:
+            by_platform.setdefault(platform, []).append(note_id)
+    return {p: ids for p, ids in by_platform.items() if len(ids) > 1}
+
+
 def _repo_has_an_acceptance_suite(note_index):
     """Does this repo hold any acceptance check at all? ([[TASK-0523]])
 
@@ -2968,6 +3031,14 @@ def validate(root, report):
     #: rider-facing surface, a phase of work, a repo that ships prose. Said
     #: once, in the note. ([[TASK-0524]] refused to write 33 exceptions it
     #: could not justify; this is where justified ones go.)
+    for _platform, _ids in sorted(_preparing_conflicts(note_index).items()):
+        report.error(
+            "RELEASE-PREPARING",
+            "%s release(s) are preparing for platform '%s' at once (%s); "
+            "ADR-0037's ledger is one per platform, so a verdict recorded now "
+            "would belong to neither -- ship one, or branch"
+            % (len(_ids), _platform or "(all)", ", ".join(_ids)))
+
     if _repo_has_an_acceptance_suite(note_index):
         _covered = _features_covered_by_acceptance(note_index)
         _uncovered = []

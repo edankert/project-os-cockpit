@@ -196,6 +196,12 @@ def _releases(index: "Index") -> list[dict[str, Any]]:
             # When it shipped. Empty on a draft, which is the point — `date:`
             # records when it went live and a drafted note has not.
             "date": str(record.frontmatter.get("date") or "").strip(),
+            #: **Which platform this release ships** ([[TASK-0557]]). Empty
+            #: means all of them — the opt-in rule [[DES-0012]] D4 gives
+            #: release contents and [[ADR-0037]] gives the gate. Ten of
+            #: `your-trainer`'s releases carry `android`; this repo's carry
+            #: nothing, so it is one release for one platform-less world.
+            "platform": str(record.frontmatter.get("platform") or "").strip().lower(),
             #: **Derived from the sealed ledger where there is one**
             #: ([[TASK-0546]], [[ADR-0037]]). A release note listing by hand
             #: what its ledger computes is two encodings of one fact — what
@@ -274,10 +280,67 @@ def preparing(index: "Index") -> dict[str, Any] | None:
     Such a draft is stale record-keeping in the repo that owns it. It is
     reported by :func:`stale_drafts` so it stays visible, and it does not gate.
     """
+    by_platform = preparing_by_platform(index)
+    if not by_platform:
+        return None
+    #: **The thin wrapper the task asked for.** Six call sites read this, and
+    #: a rename touching every consumer in one commit is how the last three
+    #: regressions in this phase were introduced -- so they move one at a
+    #: time. Where exactly one release is preparing, *the* release and *a*
+    #: release are the same thing and every existing caller is correct.
+    #:
+    #: Where more than one is, this returns the first by the order
+    #: `open_releases` already establishes (newest version first). That is a
+    #: state `RELEASE-PREPARING` reports as an ERROR rather than a warning --
+    #: it is what the ledger cannot represent ([[ADR-0037]]: one working
+    #: ledger per platform, and sealing assigns it to a release) -- so the
+    #: arbitrary pick is a stopgap over a corpus the validator refuses,
+    #: never a silent choice a reader could mistake for a decision.
+    ordered = [r for r in open_releases(index) if r["preparing"]]
+    return ordered[0] if ordered else None
+
+
+def preparing_by_platform(index: "Index") -> dict[str, dict[str, Any]]:
+    """The release in preparation **for each platform** ([[TASK-0557]]).
+
+    Edwin, 2026-08-19: *"Let's consider one release at the time only, multiple
+    releases should use git branches anyway. We can potentially have multiple
+    releases going on at the same time for different platforms."*
+
+    **Two concurrent releases on one platform are a branch, not a schema
+    problem**, and that is what keeps [[ADR-0037]]'s ledger intact: one working
+    ledger per platform, and sealing assigns it to a release. If two releases
+    were preparing on one platform, a verdict recorded today would belong to
+    neither by construction.
+
+    A release with **no** `platform:` takes them all -- the same opt-in rule
+    [[DES-0012]] D4 gives release contents. It is keyed under `""`, which is
+    the platform-less world every repo but `your-trainer` lives in.
+
+    Ordered by the `open_releases` order (newest version first), so where a
+    platform has more than one -- the state the validator refuses -- the entry
+    is at least deterministic rather than dict-order.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for release in open_releases(index):
+        if not release["preparing"]:
+            continue
+        out.setdefault(release["platform"], release)
+    return out
+
+
+def preparing_conflicts(index: "Index") -> dict[str, list[str]]:
+    """Platforms with **more than one** release in preparation ([[TASK-0557]]).
+
+    Returned rather than raised: the validator turns it into an error, and a
+    library that raised here would take down every surface that merely wanted
+    to render a page.
+    """
+    seen: dict[str, list[str]] = {}
     for release in open_releases(index):
         if release["preparing"]:
-            return release
-    return None
+            seen.setdefault(release["platform"], []).append(release["id"])
+    return {p: ids for p, ids in seen.items() if len(ids) > 1}
 
 
 def open_releases(index: "Index") -> list[dict[str, Any]]:
