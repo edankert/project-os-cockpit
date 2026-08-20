@@ -67,7 +67,7 @@ Re-measured on the same working tree, only the three `level:` lines differing:
 | loader | items | blocking |
 |---|---|---|
 | **without** an index — what was measured | 579 | 57 → 57 |
-| **with** an index — what the app uses | 581 | **59 → 62** |
+| **with** an index — what the app uses | **581 → 584** | **59 → 62** |
 
 `newly blocking: ['TST-0011', 'TST-0012', 'TST-0013']`. **TST-0013 became one blocking check standing over 107 checkbox rows.**
 
@@ -83,6 +83,8 @@ Edwin authorised applying it on the strength of the false claim, so the edit was
 
 ## Measured before recommending it
 
+> ⛔ **SUPERSEDED AND FALSE.** *"Zero gate impact"* below is wrong — it is **three** checks — and the measurement that produced it could not have detected a change. Retained as the record of the error; see the retraction above. Marked here in its own first line because a heading is a landing target: a reader arriving by link or scroll never sees a banner further up.
+
 Relevelling all three was simulated on a **throwaway copy** of `your-trainer/docs` rather than reasoned about:
 
 ```
@@ -94,6 +96,8 @@ newly blocking: []
 **Zero gate impact.** `acceptance.load` reads the acceptance *directory*, and all three live in `docs/tests/`, so the change moves them in the navigator — out of the flat `Needs you` group and under their tier — and touches nothing the release gate counts. That is exactly the second criterion below and nothing else.
 
 ## Applied 2026-08-20
+
+> ⛔ **SUPERSEDED AND FALSE — and this section is not "the original measurement" either**, so it sat under a heading that did not cover it. The edit described below **was reverted**; all three notes are back at `level: system` and clean against `your-trainer` HEAD. *"The prediction held exactly"* is the error restated, and *"left uncommitted pending Edwin's review"* describes a state that no longer exists on disk.
 
 The edit is three lines, `level: system` → `level: acceptance`, in:
 
@@ -126,3 +130,28 @@ Left **uncommitted in `your-trainer`** pending Edwin's review: a change to that 
 Quarantining the error as the record is right; leaving it in the present tense is the *"earlier correction left standing beside a later one"* pattern this phase has now hit repeatedly. `## Applied 2026-08-20` is also not *"the original measurement"*, so it sits under a heading that does not cover it. Mark both sections as superseded in their own first line, or fold the applied/reverted history into the retraction.
 
 Minor: the retraction table's `items` column reads `581` for the indexed row; with an index the items go 581 → **584**. Only the `blocking` transition is shown.
+
+
+## Re-review findings applied 2026-08-20 — and the numbers no longer reproduce
+
+The second pass's three findings are fixed:
+
+- `## Measured before recommending it` and `## Applied 2026-08-20` now carry **their own** superseded banner in their first line. The collective banner above them was not enough: **a heading is a landing target**, and a reader arriving by link or scroll never sees a warning further up. The second also sat under *"the original measurement"*, which it is not.
+- The retraction table's `items` column showed only the starting value where `blocking` showed a transition. Now **581 → 584**, matching.
+
+### The measurement no longer reproduces, and that is a finding rather than a correction
+
+Re-simulated today on a throwaway copy with an **indexed** loader — the instrument whose absence caused this issue:
+
+```
+BEFORE items=625 blocking=103
+AFTER  items=628 blocking=106      (relevelling the same three notes)
+```
+
+**The +3 transition reproduces exactly** — three notes relevelled, three items, three blocking — so the reviewer's finding about the table is right and the fix stands.
+
+**The absolute numbers do not.** The note records 581 / 59; `your-trainer`'s working tree now measures **625 / 103**, a difference of **+44 in both columns**. That tree carries **692 modified files**.
+
+So 581 / 59 was a true measurement of a corpus that no longer exists on that disk, and this note's figures — like [[FEAT-0131]]'s — describe a basis that has moved underneath them. **No attempt is made here to explain the 44**: identical deltas in both columns suggest 44 notes became acceptance-level and all of them block, but that is a hypothesis, and this phase has been burned four times by hypotheses stated as measurements.
+
+Recorded rather than corrected, because writing `625` into the table would replace one basis-less number with another. **What the table needs is a basis, and what the repo needs is a commit** — the same conclusion FEAT-0131 reached from the other end.
