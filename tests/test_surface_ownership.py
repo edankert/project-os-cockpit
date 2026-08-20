@@ -1257,6 +1257,13 @@ def test_every_id_bearing_type_is_findable_in_the_palette() -> None:
     KNOWN_ABSENT = {
         # Reached by explicit fetch, asserted in the test above.
         "change": "fetched from /api/cockpit/changes",
+        #: **`surface` has no nav home yet, and that is TASK-0516's subject**
+        #: ([[TASK-0514]] defines the type; rendering it is the next task).
+        #: Recorded here rather than given a hasty route: a palette entry
+        #: pointing at a view that does not list surfaces would answer the
+        #: guard without answering the reader, which is the shape this file
+        #: exists to catch.
+        "surface": "type defined by TASK-0514; its nav home is TASK-0516",
         "test": "fetched from /api/cockpit/review-queue",
         # No `id:` field exists on a PLAN.md, so there is nothing to type.
         # Reached by path through its feature.

@@ -65,6 +65,9 @@ counters:
   PHASE: 39
   REQ: 60
   RISK: 7
+  # A place in the product a check's area: names (TASK-0514). No SUR-* note
+  # exists yet: the type is defined, and the first one is TASK-0515.
+  SUR: 1
   REL: 1
   TASK: 575
   TST: 77
@@ -3892,7 +3895,7 @@ metrics:
     features_total: 142
     features_done: 120
     tasks_total: 574
-    tasks_done: 530
+    tasks_done: 531
     tests_total: 43
     tests_passing: 2
     test_cases_total: 182

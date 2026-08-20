@@ -111,6 +111,18 @@ OBLIGATIONS: dict[str, Obligation] = {
     "adr": Obligation(("proposed",), VIEW_INTENT, "Decide"),
     "decision": Obligation(("proposed",), VIEW_INTENT, "Decide"),
     "design": Obligation(("proposed",), VIEW_INTENT, "Accept"),
+    #: **A surface asks for nothing** ([[TASK-0514]]). It is a place in the
+    #: product, not work: it exists until the product stops having it, and
+    #: `retired`/`superseded` are facts rather than obligations. What a surface
+    #: MAKES visible -- that it carries no checks -- is a question about the
+    #: SUITE and belongs to the tests view, which already asks it. An
+    #: obligation here would count the same gap twice on two badges.
+    "surface": NONE(
+        "a surface is a place, not work: it exists until the product stops "
+        "having it. An uncovered surface is a fact about the SUITE, asked "
+        "where the suite is (TASK-0516), not a debt the surface owes.",
+        VIEW_TESTS,
+    ),
     "requirement": Obligation(("draft", "proposed"), VIEW_FEATURES, "Approve"),
     "issue": Obligation(("triage",), VIEW_ISSUES, "Triage"),
     "test": Obligation(
@@ -311,6 +323,7 @@ NOTE_LESS: dict[str, "NoteLessObligation"] = {}
 #: kind of thing it would get wrong on its own.
 KIND_NOUNS: dict[str, tuple[str, str]] = {
     "adr": ("ADR", "ADRs"),
+    "surface": ("surface", "surfaces"),
     "decision": ("decision", "decisions"),
     "design": ("design", "designs"),
     "requirement": ("requirement", "requirements"),

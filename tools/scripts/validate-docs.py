@@ -61,7 +61,7 @@ import sys
 from pathlib import Path
 
 ID_PREFIXES = ("ADR", "CHK", "DES", "FEAT", "ISS", "PHASE", "REQ", "RISK",
-               "REL", "TASK", "TST", "WF")
+               "REL", "SUR", "TASK", "TST", "WF")
 ID_RE = re.compile(r"\b(%s)-(\d{2,})\b" % "|".join(ID_PREFIXES))
 
 COLLECTION_TYPE = {
@@ -76,6 +76,8 @@ COLLECTION_TYPE = {
     "changes": {"change"},
     "decisions": {"adr", "decision"},
     "designs": {"design"},
+    #: A place in the product a check's `area:` names ([[TASK-0514]]).
+    "surfaces": {"surface"},
     "releases": {"release"},
 }
 
@@ -103,6 +105,11 @@ ALLOWED_STATUS = {
     # that, and this one adds none.
     "design": {"draft", "proposed", "accepted", "implemented", "superseded",
                "cancelled"},
+    #: **A surface is not *done*** ([[TASK-0514]]): it exists until the product
+    #: stops having it. `retired` says the place is gone; `superseded` says
+    #: another surface took it over. No new vocabulary -- ADR-0008 collapsed 64
+    #: values to 53 and a new type is not a reason to reopen that.
+    "surface": {"active", "retired", "superseded"},
     # `decision` is an accepted alias for `adr` -- COLLECTION_TYPE has mapped
     # decisions to {"adr", "decision"} all along, but ALLOWED_STATUS never
     # carried the alias. Found by the type-table check added for ISS-0014; one

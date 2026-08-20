@@ -14,6 +14,19 @@ This file defines default allowed values for common fields so multiple agents/LL
 
 Projects may override; if you do, update templates and any automation that assumes these values.
 
+## `kind` (surfaces)
+- `screen` — a place a person navigates to
+- `flow` — a sequence across screens, named because it is walked as one thing
+- `subsystem` — a behaviour with no single screen (sync, licensing, physics)
+- `surface-less` — the honest answer where a check is about the record, the build or the repo rather than the product
+
+A `SUR-*` names a place in the product; a check's `area:` names one of these. **The name is written once, in the surface note, instead of retyped on every check that touches it** — 94 distinct `area:` strings across one repo's 581 checks is what the type exists to end.
+
+## `status` (surfaces)
+- `active`, `retired`, `superseded`
+
+A surface is not *done*: it exists until the product stops having it. `retired` says the place is gone; `superseded` says another surface took it over and names which.
+
 ## `owner` (all notes)
 See `OWNERSHIP.md` for allowed formats and the canonical registry.
 
@@ -46,32 +59,6 @@ Project-defined free text label, but keep it stable. Examples:
 - `unit`, `integration`, `system`, `e2e`, `acceptance`
 - **`acceptance` is the discriminator of the merged type (ADR-0031)**: a test at this level is the thing a person walks — it rests at `status: active`, its verdict is `mark:`, and it carries the acceptance fields below. Everything else on the scale is executable. The field has always been here; since ADR-0031 it carries the distinction the retired `check` type used to.
 - A test moves along the scale rather than between types. **Adding a `command:` to an `acceptance` test is how a walk becomes automated**, and a `passing` test named in another's `covered_by:` settles it (see `TESTING.md` tiers and `../skills/release-verification/SKILL.md`).
-
-## `acceptance:` on a feature (FEAT-0064)
-
-Distinct from the test kind above, and easy to confuse with it: this is a **frontmatter field on a `[[feature]]`**, recording whether a human has accepted the work against its requirements' criteria.
-
-| value | meaning |
-|---|---|
-| absent / `""` | **no gate** — the default, and it stays the default |
-| `requested` | the feature opted in; a human owes it an acceptance run. Stamped at **close-out** by the agent |
-| `accepted` | a completed run stamped it, together with `accepted_by` and `accepted_date` |
-
-**Opt-in, never mandatory.** A gate on the one judgment that cannot be automated becomes a rubber stamp — `PHASE-024`'s framing, and the reason `requested` never blocks an agent's close-out. It keeps the debt visible until a run discharges it.
-
-**The agent asks; it never answers.** An agent may stamp `requested`. Only a completed acceptance run writes `accepted`/`accepted_by`, and that run is loopback-only and human-initiated (`REQ-0026`, `REQ-0028`).
-
-*Locally added ahead of upstream — see the local divergence note in `SYNCING.md` and the upstream proposal that carries it home.*
-
-## `design:` on a feature (FEAT-0070)
-
-Optional. Names the `[[design]]` a feature is built against — *design before code*, made mechanical to the extent it can be.
-
-`DESIGN-GATE` **warns** when a feature has left the pending band (`backlog`, `planned`, `deferred`, `cancelled`, `superseded`) while the design it names was **never accepted**. `accepted`, `implemented` and `superseded` all satisfy it: `accepted → implemented` is the normal progression and `superseded` means a later design replaced one that had been accepted.
-
-That set was narrowed after the first cut fired **five false positives on this corpus immediately** — every one a design that had progressed past `accepted`. A nag that fires wrongly is the fastest way to teach somebody to ignore it, which is also why this warns rather than blocks: the judgment being gated (*is this design right?*) cannot be automated, and a blocking gate on it gets cleared to unblock the build.
-
-*Locally added ahead of upstream, like `acceptance:` above.*
 
 ## `scope` (tests)
 - `feature`, `system`
