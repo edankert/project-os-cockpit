@@ -4579,6 +4579,8 @@ function digestRow(
 interface ScopeTest {
   id: string; title: string; rel: string; status: string;
   last_run: string; manual: boolean; steps: number; stale?: boolean;
+  //: Absent when the note carries no run — see the render site ([[ISS-0229]]).
+  steps_proven?: number;
 }
 
 // `MANUAL_TEST_STALE_DAYS = 60` used to live here — a second staleness rule,
@@ -4757,8 +4759,21 @@ async function fillVerificationPanel(
       const run = document.createElement('button');
       run.type = 'button';
       run.className = 'verification-run';
-      run.textContent = 'Run ▸';
-      run.title = `${test.steps} steps`;
+      //: **How many of those steps stand** ([[ISS-0229]] / [[ISS-0197]]).
+      //: `steps_proven` was emitted on every manual row since ISS-0197 and read
+      //: by nothing, so the sentence that justified computing it — *"a walk
+      //: abandoned at step 60 looked exactly like one nobody had started"* —
+      //: stayed exactly as untrue as before. Found by ISS-0225's guard.
+      //:
+      //: **Absent, not zero, when the note carries no run.** The server omits
+      //: the field entirely in that case, because *"0 of 107 proven"* and
+      //: *"never walked"* are different sentences; `?? null` keeps them apart
+      //: here rather than collapsing both to 0.
+      const proven = test.steps_proven ?? null;
+      run.textContent = proven === null ? 'Run ▸' : `Run ▸ ${proven}/${test.steps}`;
+      run.title = proven === null
+        ? `${test.steps} steps, none walked yet`
+        : `${proven} of ${test.steps} steps proven`;
       run.addEventListener('click', (e) => {
         e.stopPropagation();
         void navigateTo(`~tests/${test.id}/run`);

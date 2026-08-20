@@ -2031,10 +2031,35 @@ def test_no_nav_payload_field_is_sent_and_never_drawn() -> None:
         #: started — and no renderer ever read it. Named here rather than
         #: deleted, because the sentence it was added for is still worth
         #: saying and the fix is to draw it, not to stop sending it
-        #: ([[ISS-0229]]).
-        "steps_proven",
+        #: ([[ISS-0229]]). **Drawn since 2026-08-20** — removed from this set,
+        #: and deleting the live read now fails this test.
+        #:
+        #: **Surfaced when the comment-blindness above was fixed**, which is
+        #: the more interesting half. `review_verdict` is sent on every nav row
+        #: and appears in `renderer.ts` in **two comments and no code** — both
+        #: of which describe reading it as a past *defect*: it is sticky, so a
+        #: row that was ever reviewed reads as reviewed forever ([[ISS-0121]],
+        #: where all ten owed rows were false). The renderer stopped reading it
+        #: deliberately and the server kept sending it.
+        #:
+        #: So unlike `steps_proven`, **the fix here is not to draw it.** It is
+        #: named rather than deleted because the server may still want it for a
+        #: consumer that pairs it with `review_date` — reading the verdict
+        #: ALONE is what ISS-0121 forbids, not reading it at all.
+        "review_verdict",
     }
-    unread = {k for k in emitted - known_unread if k not in src}
+    #: **Comments stripped before the membership test.** `k not in src` was a
+    #: plain substring search over the whole file, so a key merely NAMED in a
+    #: comment read as drawn. Demonstrated 2026-08-20 while closing
+    #: [[ISS-0229]]: deleting the live read of `steps_proven` left the suite
+    #: green, because the comment explaining the fix still contained the word.
+    #: A guard satisfied by its own documentation is the defect this whole
+    #: phase keeps finding, and this one shipped with it.
+    code = "\n".join(
+        ln for ln in src.splitlines()
+        if not ln.lstrip().startswith(("//", "/*", "*"))
+    )
+    unread = {k for k in emitted - known_unread if k not in code}
     assert not unread, (
         f"the nav sends {sorted(unread)} and buildNavRow reads none of them — "
         "data computed, serialised and dropped on the floor")
