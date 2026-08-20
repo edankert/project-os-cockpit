@@ -7,6 +7,9 @@ status: open
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["[[TASK-0363]] cross-check against `note_writes`' callers, 2026-08-20"]
 severity: medium
 component: cockpit
@@ -58,3 +61,13 @@ Recommendation: **option 2**, and take `cover_check` up with [[FEAT-0131]]. `ret
 
 - Found by: [[TASK-0363]] — the read-only guard's `note_writes` cross-check
 - Blocks the execution of: [[TASK-0518]]
+
+## Independent review 2026-08-20 — approved
+
+Fresh context, separate session; same model family, recorded in `reviewed_by`. Reproduced from scratch rather than read.
+
+Walking `_route_post` with `ast` and resolving `note_writes.<fn>` calls per handler gives **19 routes calling `note_writes`, all 19 guarded, none unguarded** — exact.
+
+The reverse walk over all 29 public `note_writes` functions confirms the table. `retire_check` and `cover_check` are the only two with no caller anywhere in `src/`, including inside `note_writes` itself. The four the note sets aside are accounted for as it says: `resolve_note` has 13 internal uses, `next_issue_id` and `next_release_id` one each, `read_design_comments` is called from `cockpit.py` — and every remaining public function is called from `server.py`. The only other references to the two are `tests/test_checks_view.py` and the prose at `ledger.py:318`. "Not a security finding" is right for the reason given, and the options are stated fairly.
+
+**One correction.** `related:` links `[[TASK-0518-Rest-Or-Retire]]`, but that note is `TASK-0518-Review-Tier-Two-For-One-Time-Fixes.md` and its `aliases:` carry only `TASK-0518`. The validator resolves the reference by ID, so nothing errors; a reader clicking it lands nowhere.

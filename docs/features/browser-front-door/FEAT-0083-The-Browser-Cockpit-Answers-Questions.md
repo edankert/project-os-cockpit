@@ -11,6 +11,7 @@ updated: "2026-08-20"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: changes-requested
+review_note: "Second pass 2026-08-20 (fresh context, separate session): criterion 4's stated measurement is wrong and its pin is defeatable — see the review section at the foot of this note."
 source: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]"]
 goal: "Give the LAN reading surface the two read-only surfaces that answer questions — the project overview and the design register — so a tablet gets the current tool rather than the one that existed before PHASE-008."
 requirements: ["[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"]
@@ -52,7 +53,7 @@ Mode 1 has no Overview, no Design and no Review. Two of those three are pure rea
 - [ ] Mode 1 exposes the project overview, rendering the same `/api/cockpit/stats` payload as the shell, with phases and scope rows
 - [ ] Mode 1 exposes the design register and can frame an artifact, with no verdict or capture control present in the DOM
 - [x] A test asserts that every actuating endpoint refuses a non-loopback peer, and it fails if a new one is added without that check — [[TASK-0363]] done 2026-08-20; `tests/test_remote_peer_refusal.py` sends the requests, `test_every_note_mutating_endpoint_requires_loopback` catches the new route
-- [x] Nothing in mode 1 issues a POST to a `note_writes`-backed endpoint — measured: `cockpit.js` fetches exactly two endpoints, `/api/cockpit/tab-state` (POST, runtime-only) and `/api/terminal` (GET); pinned by `test_mode_one_posts_to_nothing_note_backed` against the *guarded set*, not a hand-list
+- [x] Nothing in mode 1 issues a POST to a `note_writes`-backed endpoint — measured **and corrected after review**: `cockpit.js` reaches **five** `/api/` endpoints plus the `/_events` SSE stream (`tab-state`, `terminal`, `cockpit/validation`, `cockpit/nav`, `cockpit/context`), and **exactly one of them is a POST** — `/api/cockpit/tab-state`, which is on the runtime-only open list. No `note_writes`-backed route appears in the client in any form. Pinned by three predicates — no guarded path as a literal, the full endpoint inventory, and a POST count of one
 - [ ] [[RISK-0001]] is re-scanned and updated with what this changed
 
 ## Links
@@ -123,3 +124,23 @@ Criterion 4 is also ticked, and measuring it was the useful part. `cockpit.js` f
 ### One finding, filed
 
 The `note_writes` cross-check run in reverse: `retire_check` and `cover_check` are complete write functions reachable from nothing but `tests/`. Not a security finding — unreachable from the dispatch is unreachable from the LAN. But [[TASK-0518]] asks whether 83 rested checks should retire and there is no way to record the answer. [[ISS-0249]].
+
+## Independent review 2026-08-20 (second pass) — criterion 4's measurement is wrong
+
+### "`cockpit.js` fetches exactly two endpoints" is false, and it is the tick's stated evidence
+
+Measured from the file with comments stripped, mode 1's client reaches at least **five** `/api/` endpoints on load — `/api/cockpit/tab-state` (POST, line 145), `/api/terminal` (line 836), `/api/cockpit/validation` (line 1143, via `fetchJson`), `/api/cockpit/nav` (line 1856) and `/api/cockpit/context` (line 2048) — plus `EventSource("/_events")` (line 1160). The three unlisted ones are unconditional: `mountHealthBadge()` runs at line 2220, `loadLeftPane()` and `loadRightPane()` at lines 684-685.
+
+The test's regex `fetch\("(/api/[^"]+)"` sees only a path literal written directly inside `fetch(`, and this file's own idiom for read APIs is `fetchJson(url)` with the URL built by concatenation. So the property `test_the_browser_client_still_only_talks_to_two_endpoints` claims — *"a ported view that starts calling a read API also shows up here"* — does not hold. Executed: inserting `fetchJson("/api/cockpit/stats")`, which is precisely what [[TASK-0361]] will add, leaves all eight tests green.
+
+### The criterion's substance is true; the pin is weaker than the note says
+
+Checked separately: none of the 19 `note_writes`-backed routes appears in `cockpit.js` in any form, so **nothing in mode 1 posts to a write endpoint today**. What is wrong is the measurement quoted as evidence, and the strength of the guard against that regressing.
+
+`test_mode_one_posts_to_nothing_note_backed` matches whole path literals (`f'"{p}"' in js`). Executed: `var wu = "/api/notes/" + "tick"; fetch(wu, { method: "POST" });` — a POST to a loopback-guarded write endpoint, sitting in the reading surface — passes all eight tests. Concatenated URLs are not a contrived form here: `/api/cockpit/nav?mode=` is built exactly that way a few hundred lines below.
+
+### Criterion 3
+
+"Refuses" is verified: 27 of 32 POST routes answer 403 to a peer at `203.0.113.7` over a real socket, re-measured with an independent fixture, none answering 400. "Fails if a new one is added without that check" holds only for handlers named `_serve_*` — see the review section on [[TASK-0363]], which also carries a blocking finding about a guard that is called and its result ignored.
+
+**Recommended before re-ticking:** restate the baseline as the endpoints actually reached, and widen the inventory to `fetchJson` and concatenated URLs. Asserting on the set of `/api/` literals present in the file, rather than on `fetch(` call sites, would close both findings at once.

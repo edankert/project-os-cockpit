@@ -8,6 +8,9 @@ phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
 owner: user:edwin
 created: 2026-08-09
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 source: ["[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]", "[[RISK-0001-Render-Server-Exposure]]"]
 parent: "[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]"
 effort: S
@@ -79,3 +82,41 @@ Walking `note_writes` callers in reverse: `retire_check` and `cover_check` are c
 ### Why the sibling test is not replaced
 
 Neither subsumes the other, and the failure modes are opposite. Delete this file and a guard can rot into a no-op. Delete the sibling and a new route never appears here at all — this one only tests what the dispatch already routes. Both are kept, and the two enumerations now assert each other.
+
+## Independent review 2026-08-20 — changes requested
+
+Fresh context, separate session; same model family, recorded in `reviewed_by`. The reviewer started from these notes and the diff, and re-executed every claim rather than reading it.
+
+**What reproduced.** 32 POST routes in `_route_post`, every one dispatched on `path == "<literal>"`; 27 guarded, 5 open, and the open set is exactly focus / tab-state / agent-state / agent-hook / dispatch. Driven from a fixture that fakes the peer *differently* from this file's — assigning `client_address` inside `handle_one_request` rather than overriding it as a property — all 27 answered `403 {"ok": false, "error": "mutations are loopback-only"}` and none answered 400, while the five open ones **did** answer 400 to the same empty body. That contrast is what turns "refusal precedes parsing" from an inference into an observation. The headline mutant reproduces exactly in both directions, verdict-vocabulary 400 included. `test_both_parses_of_the_dispatch_agree` was proved able to fire: a branch padded past the regex's 120-character window fails it. The `note_writes` cross-check reproduces at 19 routes, 19 guarded, 0 unguarded.
+
+### Finding 1 (blocking) — the third failure mode the module docstring names is not caught, and it lets a remote write land
+
+The docstring says the sibling test would pass on a handler that "assigned the name to a variable, called it behind a condition that is never true, **or called it and ignored the result**", and offers this file as the answer. Cases 1 and 2 were executed and this file catches both. Case 3 was executed and it does not. In `_serve_note_transition`:
+
+```python
+self._require_loopback()   # MUTANT: called, result ignored
+body = self._read_json_body()
+```
+
+All eight tests in `tests/test_remote_peer_refusal.py` pass, and so does the sibling. A peer at `203.0.113.7` posting `{"id": "ISS-9001", "to": "open", "actor": "user:edwin"}` receives `403 mutations are loopback-only` **and the note on disk goes from `status: triage` to `status: "open"`**. The refusal is real and so is the write, because the guard responds and the handler then carries on.
+
+Every assertion in the file reads a response status, and a status is not the property [[REQ-0027]] states — *"no write endpoint is reachable from a non-loopback peer"* is a claim about the write, not the reply. The sibling already owns the technique that closes this: it checks the five exemptions write nothing under `docs/`. Snapshotting the docs tree around the remote sweep and asserting it is unchanged would fail this mutant.
+
+### Finding 2 (major, inherited) — "a new endpoint that forgets the guard fails by existing" holds only for handlers named `_serve_*`
+
+Both enumerations require `if path == "<literal>"` **and** `self._serve_\w+(`, so they cannot disagree about a route they both miss, and the agreement test cannot see it. Executed: adding
+
+```python
+if path == "/api/notes/backdoor":
+    self._handle_backdoor()
+    return
+```
+
+with an unguarded `_handle_backdoor` that calls `note_writes.stamp_tick` leaves this file green (8 passed) and the sibling green. The two parses do genuinely cross-check the regex's window; "independent" is wider than what they actually check.
+
+### Minor
+
+- **`assert len(guarded) >= 25` is a floor two below the measured 27**, so two routes can leave the domain silently. Nothing asserts that `guarded` and `open` together cover the whole dispatch — which is the assertion Finding 2's mutant would have failed.
+- **Two assertions go vacuous on an empty domain.** With `_post_routes()` forced to `{}`, `test_a_loopback_peer_is_not_refused` and `test_mode_one_posts_to_nothing_note_backed` both pass; the other four fire, so a *total* collapse is loud at file level. A *partial* one is not, and Finding 2 is an instance of exactly that.
+- **The five exemptions are hand-listed twice** — here and as `RUNTIME_ONLY` in the sibling — and unlike the route sets, the two lists are not asserted equal.
+- **`blocks:` is one-sided.** Neither [[TASK-0361]] nor [[TASK-0362]] names TASK-0363 in `depends:` (both list only [[ADR-0010]]), so a reader arriving at either sees no record that it was blocked, or that the blocker cleared.

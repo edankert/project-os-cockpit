@@ -8,6 +8,9 @@ order: 29
 owner: user:edwin
 created: 2026-08-09
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 goal: "Make the browser cockpit a deliberate subset of the same tool rather than an older version of it: one view vocabulary, the question-answering surfaces reachable from both, and every remaining difference traceable to a recorded decision about what the read-only front door is for."
 features:
   - "[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]"
@@ -112,4 +115,15 @@ So it was built and nothing else was. The phase status is **not** flipped to `ac
 
 **What the reader should take from the mismatch.** One `done` task under a `planned` phase means exactly what it looks like: the gate is ready and the work behind it has not begun. When this phase does open, the first two porting tasks ([[TASK-0361]], [[TASK-0362]]) are already unblocked — `blocks:` on TASK-0363 lists them both, and it is now satisfied.
 
-**What did not land, and is not implied by this.** [[REQ-0034]] — the authenticated write path — is untouched. The guard proves the current authorisation model *works*; it does not replace it, and every actuating view still waits on REQ-0034 exactly as the section above says. The eleven reading views are also untouched: the baseline is measured (`cockpit.js` fetches **two** endpoints) and pinned, so their arrival will be visible as movement in a number rather than an assertion that nothing broke.
+**What did not land, and is not implied by this.** [[REQ-0034]] — the authenticated write path — is untouched. The guard proves the current authorisation model *works*; it does not replace it, and every actuating view still waits on REQ-0034 exactly as the section above says. The eleven reading views are also untouched: the baseline is measured and pinned: `cockpit.js` reaches **five** `/api/` endpoints plus the `/_events` SSE stream (`tab-state`, `terminal`, `cockpit/validation`, `cockpit/nav`, `cockpit/context`), and **exactly one of them is a POST** — `/api/cockpit/tab-state`, which is on the runtime-only open list. Their arrival will be visible as movement in that inventory rather than as an assertion that nothing broke — *(the figure first written here was **two**, from a measurement that only saw literals inside `fetch(`; corrected 2026-08-20 after review, and the inventory now reads string literals so the `fetchJson` idiom cannot hide an endpoint)*.
+
+## Independent review 2026-08-20
+
+Fresh context, separate session; same model family, recorded in `reviewed_by`.
+
+**The asymmetry the section above explains holds up.** [[TASK-0363]] `done` under a `planned` phase is the right report: the guard's whole value is being in place before anyone is inconvenienced by it, [[PHASE-037]] is the `active` phase, and `planned` therefore describes this one accurately. No finding there.
+
+Two corrections to the closing paragraph.
+
+- **"`cockpit.js` fetches two endpoints" is not the baseline.** It reaches at least five `/api/` endpoints plus an SSE stream — the measurement behind the number saw only literals written inside `fetch(`, and this file calls its read APIs through `fetchJson` with concatenated URLs. See the review section on [[FEAT-0083]]. The consequence lands squarely on the property this paragraph claims: *"their arrival will be visible as movement in a number"* fails, because a ported view calling a read API the idiomatic way moves nothing. Executed against the exact [[TASK-0361]] case (`fetchJson("/api/cockpit/stats")`): all eight tests stayed green.
+- **"[[TASK-0361]], [[TASK-0362]] are already unblocked" rests on a one-sided link.** TASK-0363's `blocks:` names them both; neither task's `depends:` names TASK-0363 (both list only [[ADR-0010]]). Nothing at the other end records that the block existed, or that it cleared.

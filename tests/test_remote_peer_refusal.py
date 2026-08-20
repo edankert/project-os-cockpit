@@ -44,6 +44,9 @@ SERVER_PY = (
     / "src" / "project_os_cockpit" / "server.py"
 )
 
+#: Called inside dispatch branches but never the handler for one.
+_DISPATCH_HELPERS = frozenset({"_drain_request_body", "_respond_status", "_respond_json"})
+
 #: RFC 5737 TEST-NET-3 — reserved for documentation, routable nowhere.
 REMOTE_PEER = "203.0.113.7"
 
@@ -73,9 +76,16 @@ def _post_routes() -> dict[str, str]:
         if not isinstance(path, str) or not path.startswith("/api/"):
             continue
         for call in ast.walk(node):
+            #: **Any** `self.<method>()` in the branch, not only `_serve_*`.
+            #: The first cut required that prefix and so did the sibling test,
+            #: which meant a handler named anything else was invisible to BOTH
+            #: enumerations — they could not disagree about a route they both
+            #: missed. Found by review, 2026-08-20.
             if (isinstance(call, ast.Call)
                     and isinstance(call.func, ast.Attribute)
-                    and call.func.attr.startswith("_serve_")):
+                    and isinstance(call.func.value, ast.Name)
+                    and call.func.value.id == "self"
+                    and call.func.attr not in _DISPATCH_HELPERS):
                 routes[path] = call.func.attr
                 break
     return routes
@@ -197,8 +207,20 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     A 400 here would be a finding rather than a pass: it would mean the handler
     parsed a remote caller's body before deciding whether to talk to them.
     """
-    guarded, _ = _split()
-    assert len(guarded) >= 25, f"only {len(guarded)} guarded routes found"
+    guarded, open_ = _split()
+    #: **An exact partition, not a floor.** The first cut asserted
+    #: `len(guarded) >= 25` against an actual 27 — two routes could lose their
+    #: guard and the sweep would still "pass" over a quietly smaller domain.
+    #: Review, 2026-08-20.
+    routes = _post_routes()
+    assert set(guarded) | set(open_) == set(routes), (
+        "the partition does not cover the dispatch: "
+        f"{sorted(set(routes) - (set(guarded) | set(open_)))}"
+    )
+    assert (len(guarded), len(open_)) == (27, 5), (
+        f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
+        "That is not automatically wrong — but it must be a deliberate edit here."
+    )
 
     wrong: list[tuple[str, int, str]] = []
     for path in sorted(guarded):
@@ -209,6 +231,54 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
         "these endpoints did NOT refuse a non-loopback peer "
         f"(expected {int(HTTPStatus.FORBIDDEN)}): {wrong}"
     )
+
+
+def test_no_guard_call_has_its_answer_discarded() -> None:
+    """**The failure mode this file's docstring named and did not catch.**
+
+    Found by independent review, 2026-08-20. Change one handler from
+
+        if not self._require_loopback():
+            return
+
+    to a bare `self._require_loopback()` and the guard still *fires* — the peer
+    at `203.0.113.7` still receives `403 mutations are loopback-only` — and the
+    handler carries on and **writes the note anyway**. Refusal real, write real.
+    All eight tests here passed, the sibling passed, all 1965 passed.
+
+    Why every dynamic assertion missed it: they all read a **status code**, and
+    `_require_loopback` responds *before* returning `False`, so the 403 is
+    already on the wire by the time its answer is thrown away. [[REQ-0027]] is
+    about the write, not the reply — and I had been asserting the reply.
+
+    So this is a **different question and therefore a different predicate**
+    ([[REQ-0059]]): not *"does the guard fire?"* but *"is its answer used?"*.
+    Answered statically, because it is a property of the code rather than of a
+    request: a call whose value is discarded is an `ast.Expr` wrapping the
+    call, and there is no other way to spell it.
+
+    Enumerated over every call site, so a new handler is in this domain the
+    moment it is written.
+    """
+    tree = ast.parse(SERVER_PY.read_text(encoding="utf-8"))
+    discarded = [
+        n.lineno for n in ast.walk(tree)
+        if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+        and isinstance(n.value.func, ast.Attribute)
+        and n.value.func.attr == "_require_loopback"
+    ]
+    assert not discarded, (
+        "these `_require_loopback()` calls throw their answer away, so the "
+        f"handler refuses the caller and then writes anyway — server.py lines {discarded}"
+    )
+    #: And the domain is non-empty, so the assertion above cannot pass by
+    #: having nothing to look at.
+    sites = sum(
+        1 for n in ast.walk(tree)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+        and n.func.attr == "_require_loopback"
+    )
+    assert sites == 27, f"expected 27 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:
@@ -317,18 +387,57 @@ def test_mode_one_posts_to_nothing_note_backed() -> None:
     )
 
 
-def test_the_browser_client_still_only_talks_to_two_endpoints() -> None:
-    """A blunt inventory, deliberately.
+def test_the_browser_clients_endpoint_inventory() -> None:
+    r"""The reading surface's whole server-facing footprint, pinned.
 
-    `cockpit.js` fetches exactly `/api/cockpit/tab-state` (POST, the heartbeat
-    on the runtime-only list) and `/api/terminal` (GET, whose socket binds
-    loopback only). Pinning the whole set rather than only the write set means
-    a ported view that starts calling a *read* API also shows up here — not as
-    a failure to fix blindly, but as a line in a diff that says the reading
-    surface grew, which is exactly what [[PHASE-029]] is about to do on purpose.
+    **This test previously asserted a false number.** It read
+    `fetch\("(/api/[^"]+)"` — call sites — and reported that `cockpit.js`
+    reaches *two* endpoints. It reaches **five** plus an SSE stream, because
+    the file's own idiom is `fetchJson(url)`, and the regex could not see
+    through it. The wrong figure was copied into [[FEAT-0083]] criterion 4,
+    the CHG note and [[PHASE-029]] before review caught it.
+
+    So the inventory now reads **string literals**, which is the property that
+    actually holds: an endpoint the client talks to has to appear in the file
+    as text, whatever wrapper carries it.
+
+    The number matters because [[PHASE-029]] is about to move it. Eleven
+    reading views arriving should show up here as a diff, not as silence.
     """
     import re
 
     js = COCKPIT_JS.read_text(encoding="utf-8")
-    endpoints = sorted(set(re.findall(r'fetch\("(/api/[^"]+)"', js)))
-    assert endpoints == ["/api/cockpit/tab-state", "/api/terminal"], endpoints
+    literals = sorted(set(re.findall(r'"(/(?:api|_events)[^"]*)"', js)))
+    assert literals == [
+        "/_events",                   # SSE, read-only
+        "/api/",                      # a prefix test, not a call
+        "/api/cockpit/context",       # read
+        "/api/cockpit/nav?mode=",     # read
+        "/api/cockpit/tab-state",     # POST — runtime-only, on the open list
+        "/api/cockpit/validation",    # read
+        "/api/terminal",              # read; its socket binds loopback only
+    ], literals
+
+
+def test_the_client_makes_exactly_one_post() -> None:
+    """[[FEAT-0083]] criterion 4 from the other side.
+
+    `test_mode_one_posts_to_nothing_note_backed` asks whether any *guarded*
+    path appears in the JS. Review showed that is defeatable by construction —
+    `var u = "/api/notes/" + "tick"` appears nowhere as a whole literal. This
+    asks the blunter question instead: **how many POSTs does the client make
+    at all?** One. Any second POST fails here regardless of how its URL is
+    spelled, which is the property string-matching cannot give.
+
+    Neither test subsumes the other and both are cheap. Stated plainly because
+    the honest limit is worth more than a guard that looks total and is not.
+    """
+    import re
+
+    js = COCKPIT_JS.read_text(encoding="utf-8")
+    posts = re.findall(r'method:\s*"POST"', js)
+    assert len(posts) == 1, (
+        f"the browser cockpit now issues {len(posts)} POSTs; it is the reading "
+        "surface (ADR-0010) and every write belongs behind REQ-0034's "
+        "authenticated path"
+    )
