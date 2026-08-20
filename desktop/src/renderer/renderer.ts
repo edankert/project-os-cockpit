@@ -7339,6 +7339,11 @@ interface ReleasePayload {
   id: string; version: string; status: string; preparing: boolean;
   exists: boolean; title: string; rel: string;
   contents: ReleaseContents;
+  /** Features a person could add — done-but-unshipped, minus what this
+   *  release names and minus anything another open release on the same
+   *  platform claims (TASK-0511). Server-owned: the rule is the one the write
+   *  path refuses on. */
+  contents_candidates?: Array<{ id: string; title?: string; rel?: string }>;
   /** Unsettled acceptance checks covering a feature THIS release carries
    *  (TASK-0504). Scoped to `contents`, unlike `gate`, which counts the whole
    *  repo — 3 rows against a 59-row gate on `your-trainer`. */
@@ -7832,6 +7837,22 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     t.className = 'scoped-row-title';
     t.textContent = String(row.title || '');
     li.append(id, t);
+    //: **Remove is offered only on rows the release NAMES.** A derived row is
+    //: not a choice anybody made, so there is nothing to take back — and a
+    //: remove there would have to name the release's whole contents first,
+    //: silently, which is the jump the warning above exists to make explicit.
+    if (c.kind !== 'derived' && d.status !== 'released') {
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'review-btn is-small';
+      drop.textContent = 'Remove';
+      drop.title = `Hold ${row.id} back from this release`;
+      drop.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        void composeRelease(releaseId, 'remove', String(row.id || ''));
+      });
+      li.appendChild(drop);
+    }
     if (row.rel) {
       li.style.cursor = 'pointer';
       li.addEventListener('click', () => void navigateTo(String(row.rel)));
@@ -7845,6 +7866,60 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     list.appendChild(more);
   }
   section.appendChild(list);
+
+  //: **Compose** ([[TASK-0511]], server half [[TASK-0558]]). Offered only on a
+  //: release that has not shipped: [[ADR-0035]] makes a shipped release's
+  //: contents a fact about the past.
+  //:
+  //: **The first add is a semantic jump, and the page says so.** A release
+  //: naming nothing keeps DERIVED contents ([[REQ-0048]] criterion 4, and
+  //: eleven historical releases depend on it). Naming one feature switches it
+  //: to chosen — so the other rows stop being in it. A control that made that
+  //: switch silently would be the worst kind of convenience.
+  const candidates = d.contents_candidates || [];
+  if (d.status !== 'released' && (candidates.length || c.rows?.length)) {
+    const compose = document.createElement('div');
+    compose.className = 'release-compose';
+    if (c.kind === 'derived') {
+      const warn = document.createElement('p');
+      warn.className = 'meta is-warn';
+      warn.textContent = 'These contents are derived — every unshipped '
+        + 'feature since the last release. Adding one names the release\u2019s '
+        + 'contents explicitly, and the rest stop being in it.';
+      compose.appendChild(warn);
+    }
+    const pick = document.createElement('div');
+    pick.className = 'release-compose-list';
+    for (const cand of candidates.slice(0, 60)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gate-breakdown-part';
+      btn.textContent = `+ ${cand.id}`;
+      btn.title = `Add ${cand.id} — ${cand.title || ''}`;
+      btn.addEventListener('click', () => {
+        void composeRelease(releaseId, 'add', cand.id);
+      });
+      pick.appendChild(btn);
+    }
+    if (candidates.length > 60) {
+      const more = document.createElement('span');
+      more.className = 'meta';
+      more.textContent = `…${candidates.length - 60} more`;
+      pick.appendChild(more);
+    }
+    if (!candidates.length) {
+      const none = document.createElement('p');
+      none.className = 'meta';
+      //: Names what is hiding them: an empty candidate list and a broken one
+      //: look identical, which is the sweep TASK-0318 ran over every pane.
+      none.textContent = 'Nothing left to add — every done-but-unshipped '
+        + 'feature is either already named here or claimed by another open '
+        + 'release on this platform.';
+      compose.appendChild(none);
+    }
+    compose.appendChild(pick);
+    section.appendChild(compose);
+  }
   wrap.appendChild(section);
 
   // ---- what is still owed FOR THOSE CONTENTS (TASK-0504) ---------------
@@ -8383,6 +8458,38 @@ function buildGateSection(
  *  axes of difference against one of similarity is a parameterised component
  *  nobody can read, so the shared thing is the verdict layer rather than the
  *  page. Recorded here rather than left as an open question. */
+/** Add or remove one feature on a preparing release ([[TASK-0511]]).
+ *
+ *  **One write path, and the refusals are the server's.** `release_contents`
+ *  holds all three — shipped is immutable, the id must resolve, and a feature
+ *  cannot be in two open releases on one platform — so this posts and reports
+ *  rather than re-deciding. A rule enforced in the renderer is a rule the
+ *  other front door does not get ([[ISS-0230]]).
+ */
+async function composeRelease(
+  releaseId: string, action: 'add' | 'remove', featureId: string,
+): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  try {
+    const resp = await postJson(
+      `${sidecarBaseUrl}/api/notes/release-contents`,
+      { release: releaseId, action, id: featureId },
+    );
+    if (!resp || resp.ok === false) {
+      showStatus(String(resp?.error || 'could not change the contents'), 'error');
+      return;
+    }
+    showStatus(`${action === 'add' ? 'Added' : 'Removed'} ${featureId}`);
+    //: Repaint from the server rather than patching the DOM: the candidate
+    //: list, the contents and the gate all move together, and three
+    //: hand-patched lists are how two of them come to disagree.
+    await navigateTo(`~release/${releaseId}`);
+  } catch (err) {
+    showStatus(`Could not change the contents: ${String(err)}`, 'error');
+  }
+}
+
+
 async function walkOneCheck(
   item: GateItem, repaint: () => Promise<unknown>,
 ): Promise<void> {

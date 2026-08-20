@@ -750,6 +750,53 @@ def release_item_payload(
     return out
 
 
+def contents_candidates(
+    index: "Index", release_id: str, platform: str = "",
+) -> list[dict[str, Any]]:
+    """Features a person could add to this release ([[TASK-0511]]/[[TASK-0558]]).
+
+    **Without a candidate list the control is a text box, and a text box for an
+    id is how [[ISS-0142]] happened.** The server owns the list because the
+    rule it encodes -- what is already claimed elsewhere -- is the same one
+    `note_writes.release_contents` refuses on, and two implementations of one
+    question is [[REQ-0059]]'s forbidden shape (three instances found in this
+    phase already).
+
+    Done-but-unshipped, minus what this release already names, minus anything
+    claimed by **another open release on the same platform**. Across platforms
+    is not a conflict: a feature is *"more than likely delivered to multiple
+    platforms"* (Edwin), and 25 of `your-trainer`'s features are cross-platform
+    against 45 android-only and 9 ios-only.
+    """
+    here = str(platform or "").strip().lower()
+    claimed: set[str] = set()
+    for other in open_releases(index):
+        if other["id"] == release_id or other["platform"] != here:
+            continue
+        path = index.by_id(other["id"])
+        record = index.get(path) if path is not None else None
+        for ref in ((record.frontmatter.get("features") if record else None) or []):
+            for match in re.finditer(r"FEAT-\d+", str(ref)):
+                claimed.add(match.group(0))
+
+    mine: set[str] = set()
+    path = index.by_id(release_id)
+    record = index.get(path) if path is not None else None
+    for ref in ((record.frontmatter.get("features") if record else None) or []):
+        for match in re.finditer(r"FEAT-\d+", str(ref)):
+            mine.add(match.group(0))
+
+    out: list[dict[str, Any]] = []
+    for row in shipping_in(index, release_id):
+        fid = str(row.get("id") or "")
+        if not fid or fid in mine or fid in claimed:
+            continue
+        out.append({"id": fid, "title": row.get("title") or fid,
+                    "rel": row.get("rel") or ""})
+    out.sort(key=lambda r: str(r["id"]))
+    return out
+
+
 def shipping_in(index: "Index", release_id: str = "") -> list[dict[str, Any]]:
     """The features a release would freeze — the derived done-but-unshipped set.
 
@@ -965,6 +1012,15 @@ def release_payload(
         "title": held["title"] if held else "Next release",
         "rel": held["rel"] if held else "",
         "contents": contents,
+        # **What could be added** (TASK-0511). Server-owned because the rule it
+        # encodes — what another open release on this platform already claims —
+        # is the one `release_contents` refuses on, and two implementations of
+        # one question is REQ-0059's forbidden shape.
+        "contents_candidates": (
+            [] if shipped else contents_candidates(
+                index, held["id"] if held else "",
+                str((held or {}).get("platform") or ""))
+        ),
         # **What is still owed for what this release carries**
         # (TASK-0504). Distinct from `gate`, which counts every
         # unsettled check in the repo: this one is scoped to the

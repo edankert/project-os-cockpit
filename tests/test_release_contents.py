@@ -126,3 +126,91 @@ def test_the_endpoint_is_loopback_only() -> None:
     body = src[i:i + 1800]
     assert "self._require_loopback()" in body
     assert "note_writes.release_contents(" in body
+
+
+# ---- the candidate list and the picker (TASK-0511) -------------------------
+
+RENDERER = (Path(__file__).resolve().parents[1]
+            / "desktop" / "src" / "renderer" / "renderer.ts")
+
+
+def test_a_candidate_is_not_claimed_by_another_release_on_this_platform(
+        tmp_path: Path) -> None:
+    """**Without a candidate list the control is a text box, and a text box for
+    an id is how [[ISS-0142]] happened.**
+
+    The list is server-owned because the rule it encodes — what another open
+    release on this platform already claims — is the same one the write path
+    refuses on, and two implementations of one question is [[REQ-0059]]'s
+    forbidden shape (three instances found in this phase already).
+    """
+    from project_os_cockpit import publication
+
+    docs = _repo(tmp_path, extra=[("REL-0002", "draft", "1.2.0", "android")])
+    ids = [c["id"] for c in
+           publication.contents_candidates(Index.build(docs), "REL-0001", "android")]
+    assert "FEAT-0001" not in ids, "a feature another open release claims is offered"
+
+    #: …and across platforms it is not claimed at all.
+    docs = _repo(tmp_path / "b", extra=[("REL-0002", "draft", "1.2.0", "ios")])
+    ids = [c["id"] for c in
+           publication.contents_candidates(Index.build(docs), "REL-0001", "android")]
+    assert "FEAT-0001" in ids
+
+
+def test_what_the_release_already_names_is_not_a_candidate(tmp_path: Path) -> None:
+    from project_os_cockpit import publication
+
+    docs = _repo(tmp_path, features='["[[FEAT-0001-Thing]]"]')
+    ids = [c["id"] for c in
+           publication.contents_candidates(Index.build(docs), "REL-0001", "android")]
+    assert "FEAT-0001" not in ids
+
+
+def test_the_first_add_is_announced_as_a_semantic_jump() -> None:
+    """**[[REQ-0048]] criterion 4**: *a release naming nothing keeps derived
+    contents*, and eleven historical releases depend on it. Naming one feature
+    switches the release to chosen contents — so the other rows stop being in
+    it. A control that made that switch silently would be the worst kind of
+    convenience, so the page says it before the click.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    i = src.index("const candidates = d.contents_candidates")
+    block = src[i:i + 2400]
+    assert "c.kind === 'derived'" in block, "the derived case is not distinguished"
+    assert "the rest stop being in it" in block, (
+        "the jump from derived to chosen contents is not announced"
+    )
+
+
+def test_compose_is_offered_only_before_a_release_ships() -> None:
+    """[[ADR-0035]]: a shipped release's contents are a fact about the past."""
+    src = RENDERER.read_text(encoding="utf-8")
+    i = src.index("const candidates = d.contents_candidates")
+    assert "d.status !== 'released'" in src[i:i + 700]
+    j = src.index("drop.textContent = 'Remove'")
+    assert "d.status !== 'released'" in src[max(0, j - 700):j]
+
+
+def test_remove_is_offered_only_on_rows_the_release_names() -> None:
+    """A derived row is not a choice anybody made, so there is nothing to take
+    back — and a remove there would have to name the whole contents first,
+    silently, which is the jump the warning exists to make explicit."""
+    src = RENDERER.read_text(encoding="utf-8")
+    j = src.index("drop.textContent = 'Remove'")
+    guard = src[max(0, j - 700):j]
+    assert "c.kind !== 'derived'" in guard, guard[-200:]
+
+
+def test_the_client_re_decides_nothing() -> None:
+    """All three refusals live in `note_writes`. A rule enforced in the
+    renderer is a rule the other front door does not get ([[ISS-0230]])."""
+    src = RENDERER.read_text(encoding="utf-8")
+    i = src.index("async function composeRelease(")
+    body = src[i:i + 1400]
+    assert "/api/notes/release-contents" in body
+    for reimplemented in ("released", "already in", "platform"):
+        assert f"if ({reimplemented}" not in body, (
+            f"the renderer is re-deciding `{reimplemented}` instead of "
+            "reporting the server's refusal"
+        )
