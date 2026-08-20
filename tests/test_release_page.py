@@ -363,3 +363,58 @@ def test_no_gate_group_says_nothing_when_it_is_empty() -> None:
     assert len(headed) >= 2, f"the sweep found {len(headed)} headed groups"
     mute = [c for c in headed if not re.search(r"\bempty\b", c)]
     assert mute == [], mute
+
+
+def test_the_gate_breakdown_is_lossless_and_sums_to_its_list() -> None:
+    """[[TASK-0503]]: *"Replace the sixty-row blocking wall with a breakdown by
+    area… Lossless: the full list stays reachable through the links, and the
+    count in the heading must equal the number of rows behind them."*
+
+    Measured on `your-trainer` 2026-08-20: **59 blocking rows across 17
+    areas**, and the shape is what makes the tally worth drawing —
+    `Trainer Compatibility Verification` holds 20 and `Monetization &
+    Licensing` 11, so two areas are more than half the gate.
+
+    The property asserted here is the one that can silently break: the parts
+    must add up. A breakdown that drops a row is indistinguishable from a
+    shorter gate, which is the direction a release page must never be wrong in.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    body = _body_of(src, "function gateAreaBreakdown(")
+
+    #: Every row is counted exactly once — no filter, no slice, no cap.
+    assert "for (const item of items)" in body, body[:300]
+    for dropping in ("slice(", "filter(", "break;"):
+        assert dropping not in body, (
+            f"`{dropping}` in the tally — the parts must sum to the list, and "
+            "a breakdown that quietly drops rows reads as a shorter gate"
+        )
+    #: And the list itself is still rendered: the tally goes in FRONT of it.
+    gg = _body_of(src, "function gateGroup(")
+    assert "gateAreaBreakdown(items)" in gg
+    assert gg.index("gateAreaBreakdown(items)") < gg.index("gate-rowlist"), (
+        "the breakdown is rendered after the rows, so it is a summary of "
+        "something already scrolled past"
+    )
+    #: Each part addresses the rows it counted, and the filter is in the URL —
+    #: a click-only filter cannot be linked to or reopened (ISS-0203).
+    assert "~checks/area/${encodeURIComponent(area)}" in body
+
+
+def test_the_area_filter_lives_in_the_address() -> None:
+    """The `~checks/area/<area>` route, and the reason it is a route
+    ([[TASK-0503]], on [[ISS-0203]]'s rule).
+
+    Also: the filter is assigned **unconditionally**. Setting it only when
+    non-empty would leave the previous page's area applied to a bare
+    `~checks` — the sticky filter ISS-0203 took off the tier axis.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    assert "~checks\\/area\\/(.+)$" in src or "~checks\\/area" in src, (
+        "no area route — the breakdown's links have nowhere to go"
+    )
+    i = src.index("checkFilters.areas = area")
+    line = src[i:src.index("\n", i)]
+    assert "new Set()" in line, (
+        f"the area filter is not cleared on a bare ~checks: {line!r}"
+    )

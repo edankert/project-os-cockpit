@@ -6110,6 +6110,43 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
    (`cd android && ./gradlew`), so the old cell rendered one distinct value
    across the whole page. The tail is the part that identifies the test, so the
    line wraps rather than truncating. */
+/* TASK-0503: the gate's blocking rows tallied by area, in front of the list
+   rather than instead of it. `your-trainer` puts 59 rows here across 17
+   areas, two of which are more than half of them — the shape is the fact, and
+   a 59-row scroll hides it. Each part opens `~checks/area/<area>`. */
+.gate-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0.7rem;
+}
+.gate-breakdown-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+.gate-breakdown-part:hover {
+  color: var(--text);
+  border-color: currentColor;
+}
+.gate-breakdown-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24ch;
+}
+.gate-breakdown-count {
+  color: var(--text-faint);
+}
+
 .checks-row.is-automated .checks-row-command {
   color: var(--text-muted);
   font-size: 0.85em;

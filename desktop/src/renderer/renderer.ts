@@ -1271,7 +1271,15 @@ async function navigateToInner(
     // destination did not; and because `checkFilters` was click-only, nothing a
     // reader selected survived a navigation. Both are the same missing thing.
     const tierMatch = /^~checks\/tier\/(\d+)$/.exec(normalised);
-    const ok = await renderChecksPage(tierMatch ? tierMatch[1] : '');
+    //: `~checks/area/<area>` — the same move, one axis over ([[TASK-0503]]).
+    //: The gate's breakdown links here, so a part of the tally opens exactly
+    //: the rows it counted. In the ADDRESS for the reason `tier` is: a filter
+    //: that lives in a click cannot be linked to, cannot be reopened by
+    //: back/forward, and does not survive a navigation ([[ISS-0203]]).
+    const areaMatch = /^~checks\/area\/(.+)$/.exec(normalised);
+    const ok = await renderChecksPage(
+      tierMatch ? tierMatch[1] : '',
+      areaMatch ? decodeURIComponent(areaMatch[1]) : '');
     if (ok) commitVirtualPage(normalised, opts);
     return;
   }
@@ -8399,7 +8407,7 @@ function commitVirtualPage(rel: string, opts: { replace?: boolean }): void {
   refreshActiveNavRow();
 }
 
-async function renderChecksPage(tier: string = ''): Promise<boolean> {
+async function renderChecksPage(tier: string = '', area: string = ''): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
@@ -8430,6 +8438,11 @@ async function renderChecksPage(tier: string = ''): Promise<boolean> {
   // A tier in the address preselects it, so the page a navigator row opens is
   // the one the row's label promised.
   checkFilters.tiers = tier ? new Set([tier]) : new Set();
+  //: An area in the address preselects it, the same way a tier does. Set
+  //: unconditionally — assigning only when non-empty would leave a previous
+  //: page's area filter applied to a bare `~checks`, which is the sticky
+  //: filter ISS-0203 removed from the tier axis.
+  checkFilters.areas = area ? new Set([area]) : new Set();
   docView.replaceChildren(buildChecksPage(checksData));
   docView.hidden = false;
   placeholder.hidden = true;
@@ -8875,6 +8888,66 @@ interface GateGroupOptions {
  *  `gateGroup('', '', gate.quiet, gate.rel, releaseId, false, true)` before
  *  this — seven positional values, two of them empty strings and two of them
  *  trailing booleans nobody could name from the call. */
+//: Below this a breakdown is noise: a tally of four rows over a list of four
+//: rows says nothing the list does not. A constant so the threshold is one
+//: decision rather than a literal buried in a condition.
+const GATE_BREAKDOWN_MIN = 8;
+
+/** The gate's blocking rows, tallied by area ([[TASK-0503]]).
+ *
+ *  **The wall was the problem, not the number.** `REL-0013` in `your-trainer`
+ *  renders **59 blocking rows** on the page a person opens to ask *can I
+ *  ship*, and a list that long is read as a mood rather than as work. Measured
+ *  2026-08-20: those 59 fall into **17 areas**, and the shape is not flat —
+ *  `Trainer Compatibility Verification` holds 20 and `Monetization &
+ *  Licensing` 11, so two areas are more than half the gate. That is a fact a
+ *  reader can act on; scrolling 59 rows is not.
+ *
+ *  **Lossless, and the count proves it.** Every part links to
+ *  `~checks/area/<area>`, which opens exactly the rows it counted, and the
+ *  parts sum to the heading — asserted in the suite, because a breakdown whose
+ *  parts do not add up is one that has quietly dropped a row.
+ *
+ *  It goes IN FRONT of the list rather than replacing it, which is what keeps
+ *  it honest: nothing is hidden behind the tally.
+ */
+function gateAreaBreakdown(items: GateItem[]): HTMLElement | null {
+  if (items.length < GATE_BREAKDOWN_MIN) return null;
+  const byArea = new Map<string, number>();
+  for (const item of items) {
+    const area = (item.area || '').trim() || '\u2014';
+    byArea.set(area, (byArea.get(area) || 0) + 1);
+  }
+  //: Largest first — the reader wants the areas that ARE the gate, not an
+  //: alphabet. Ties break on the name so the order is stable between renders.
+  const parts = [...byArea.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const box = document.createElement('div');
+  box.className = 'gate-breakdown';
+  for (const [area, n] of parts) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'gate-breakdown-part';
+    const name = document.createElement('span');
+    name.className = 'gate-breakdown-name';
+    name.textContent = area;
+    const count = document.createElement('span');
+    count.className = 'gate-breakdown-count mono';
+    count.textContent = String(n);
+    chip.append(name, count);
+    chip.title = `${n} blocking check(s) in ${area}`;
+    //: A button, not an anchor: this app navigates through `navigateTo`, and
+    //: an `href` would be a second navigation path for one act.
+    chip.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      void navigateTo(`~checks/area/${encodeURIComponent(area)}`);
+    });
+    box.appendChild(chip);
+  }
+  return box;
+}
+
+
 function gateGroup(opts: GateGroupOptions): HTMLElement {
   const {
     items, rel, releaseId,
@@ -8923,6 +8996,13 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
     none.textContent = empty || 'Nothing here — this group is empty.';
     box.appendChild(none);
     return box;
+  }
+  //: IN FRONT of the rows, never instead of them ([[TASK-0503]]). Only on the
+  //: groups that ask — a breakdown over `Quiet` or `Stale evidence` would be a
+  //: tally of a list nobody is working through right now.
+  if (!withSubjects && !withRerun) {
+    const breakdown = gateAreaBreakdown(items);
+    if (breakdown) box.appendChild(breakdown);
   }
   const rows = document.createElement('ul');
   rows.className = 'scoped-rowlist gate-rowlist';
