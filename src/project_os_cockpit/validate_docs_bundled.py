@@ -2165,6 +2165,48 @@ def validate(root, report):
     except (TypeError, ValueError):
         staleness_days = DEFAULT_STALENESS_DAYS
 
+    # -- STATUS-VALUE-NOTE: a status a type does not allow, checked by walking
+    #    docs/ rather than any index.
+    #
+    #    STATUS-VALUE has always run inside the SNAPSHOT items loop, so it only
+    #    sees notes the snapshot registers. Measured 2026-08-20: 906 of 1438
+    #    typed notes -- 63% -- are unregistered, because retention keeps the
+    #    snapshot to active-and-recent. Four illegal statuses sat on disk in
+    #    that blind spot, three of them `change` notes at `active`, which
+    #    ALLOWED_STATUS has never permitted.
+    #
+    #    **The first fix for this was itself blind**, and it is worth recording
+    #    why. It iterated `note_index`, on the reasoning that the note walk is
+    #    where the notes are -- and `build_note_index` holds 1194 entries and
+    #    **zero** CHG notes, so the check could not see a single one of the
+    #    notes that motivated it. Placing a rule "on the note walk" is not the
+    #    same as placing it where its subjects are; this walks the tree.
+    #
+    #    Same family as FEATURE-UNCOVERED, which read 0 against 88 for exactly
+    #    this reason. STATUS-VALUE stays: the snapshot loop also compares the
+    #    snapshot's copy of a status against the note's (ITEM-STATUS), which
+    #    this cannot do -- it never reads the snapshot.
+    for _p in sorted(docs_dir.rglob("*.md")):
+        #: Templates and bases carry placeholder frontmatter, and every other
+        #: walk in this file skips them (`build_note_index`, and the walks at
+        #: the PLAN and TYPE gates). A template's `status:` is an example, not
+        #: a claim about the project.
+        if "__templates__" in _p.parts or "__bases__" in _p.parts:
+            continue
+        _fm = parse_frontmatter(_p) or {}
+        _nt = note_type(_fm)
+        _st = str(_fm.get("status", "") or "").strip()
+        if not _nt or not _st:
+            continue
+        _allowed = allowed_status.get(_nt)
+        if _allowed and _st not in _allowed:
+            _nid = str(_fm.get("id", "") or "").strip() or _p.name
+            report.error(
+                "STATUS-VALUE-NOTE",
+                "%s status '%s' not allowed for %s (allowed: %s) [%s]" % (
+                    _nid, _st, _nt, ", ".join(sorted(_allowed)),
+                    _p.relative_to(root)))
+
     def emit_for(gate, item_id):
         """report.warn when `item_id` was already violating `gate` at promotion, else report.error."""
         if item_id in grandfathered.get(gate, ()):

@@ -3,7 +3,7 @@ type: "[[change]]"
 id: CHG-20260820
 aliases: ["CHG-20260820"]
 title: "An automated test records no verdict, `tier:` is gone, and the Tests view is six derived sections"
-status: active
+status: merged
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"

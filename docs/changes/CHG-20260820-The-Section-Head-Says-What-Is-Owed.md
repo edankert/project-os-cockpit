@@ -3,7 +3,7 @@ type: "[[change]]"
 id: CHG-20260820-The-Section-Head-Says-What-Is-Owed
 aliases: ["CHG-20260820-The-Section-Head-Says-What-Is-Owed"]
 title: "A tests-view section head states what is outstanding, once, and claims no CI execution"
-status: active
+status: merged
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"

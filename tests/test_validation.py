@@ -21,6 +21,12 @@ TASK-0113 are covered in `test_validation_flags_on_nav_items` below.
 
 from __future__ import annotations
 
+import subprocess
+
+import sys
+
+import re
+
 import json
 import shutil
 import socket
@@ -559,3 +565,77 @@ def test_the_snapshot_observer_actually_fires_on_a_miscased_root(
         "in a different case — which is how every app-spawned sidecar was "
         "watching, so METRICS drift could never clear live (ISS-0072)"
     )
+
+
+# ---- STATUS-VALUE-NOTE (the rule placed where its subjects are) ------------
+
+_VALIDATOR = Path(__file__).resolve().parents[1] / "tools" / "scripts" / "validate-docs.py"
+
+
+def _codes_for(repo: Path) -> list[str]:
+    """Every `[CODE]` the validator emits for `repo`, as a flat list."""
+    out = subprocess.run(
+        [sys.executable, str(_VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True,
+    )
+    return re.findall(r"\[([A-Z][A-Z0-9-]+)\]", out.stdout + out.stderr)
+
+def test_an_illegal_status_is_caught_on_a_note_the_snapshot_never_registers(tmp_path):
+    """`STATUS-VALUE-NOTE` — the rule placed where its subjects are.
+
+    `STATUS-VALUE` runs inside the SNAPSHOT items loop, so it only ever saw
+    notes the snapshot registers. Measured 2026-08-20 in this repo: **906 of
+    1438 typed notes — 63% — are unregistered**, because retention keeps the
+    snapshot to active-and-recent and whole collections are never registered.
+    Four illegal statuses were sitting on disk in that blind spot, three of
+    them `change` notes at `active`, which `ALLOWED_STATUS` has never allowed.
+
+    **The first fix was itself blind**, which is the part worth guarding. It
+    iterated `note_index` — "the note walk", where the notes are — and
+    `build_note_index` holds 1194 entries and **zero** CHG notes. The check
+    could not see one of the notes that motivated it, and `validate-docs: OK`
+    said so cheerfully. Placing a rule *on the note walk* is not the same as
+    placing it *where its subjects are*.
+
+    So this constructs the exact case: a change note, unregistered, illegal
+    status. It is the case both earlier versions missed.
+    """
+    root = tmp_path / "proj"
+    (root / "docs" / "changes").mkdir(parents=True)
+    (root / "SNAPSHOT.yaml").write_text(
+        "version: 1\ncounters: {}\nitems: {}\n", encoding="utf-8")
+    (root / "docs" / "changes" / "CHG-20260101-X.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260101-X\ntitle: "X"\n'
+        'status: active\n---\n\n# X\n', encoding="utf-8")
+
+    codes = _codes_for(root)
+    assert "STATUS-VALUE-NOTE" in codes, (
+        "an unregistered change note at an illegal status was not reported; "
+        f"got {sorted(set(codes))}"
+    )
+
+    #: And the legal value is silent, so the rule discriminates rather than
+    #: simply objecting to change notes.
+    (root / "docs" / "changes" / "CHG-20260101-X.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-20260101-X\ntitle: "X"\n'
+        'status: merged\n---\n\n# X\n', encoding="utf-8")
+    assert "STATUS-VALUE-NOTE" not in _codes_for(root)
+
+
+def test_a_template_placeholder_status_is_not_a_finding(tmp_path):
+    """`docs/__templates__/delegation.md` carries `status: draft` on a
+    `reference`, which allows only `active`/`deprecated`. It is an example, not
+    a claim, and every other walk in the validator skips templates and bases.
+
+    Asserted because the first cut of the rule above did not skip them and
+    reported the template — a false positive that would have been "fixed" by
+    editing a template to satisfy a checker.
+    """
+    root = tmp_path / "proj"
+    (root / "docs" / "__templates__").mkdir(parents=True)
+    (root / "SNAPSHOT.yaml").write_text(
+        "version: 1\ncounters: {}\nitems: {}\n", encoding="utf-8")
+    (root / "docs" / "__templates__" / "thing.md").write_text(
+        '---\ntype: "[[change]]"\nid: CHG-TEMPLATE\ntitle: "T"\n'
+        'status: active\n---\n\n# T\n', encoding="utf-8")
+    assert "STATUS-VALUE-NOTE" not in _codes_for(root)

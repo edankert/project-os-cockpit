@@ -3,7 +3,7 @@ type: "[[change]]"
 id: CHG-20260820-Three-Surfaces-Stop-Overclaiming
 aliases: ["CHG-20260820-Three-Surfaces-Stop-Overclaiming"]
 title: "A section head counts what it holds, an automated area reports no progress, and a gate row is a link rather than a disarmed control"
-status: active
+status: merged
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
