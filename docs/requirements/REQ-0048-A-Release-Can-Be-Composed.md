@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0048
 aliases: ["REQ-0048"]
 title: "A preparing release can be composed from features and phases, and its gate reports what blocks it"
-status: approved
+status: implemented
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 priority: medium
 scope: "release surface"
 implements: "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]"
@@ -30,8 +30,8 @@ Criterion 3 is what makes the picker worth building rather than merely convenien
 
 ## Acceptance criteria
 
-- [ ] Add and remove features and phases from the cockpit.
-- [ ] A phase contributes features; no second encoding.
-- [ ] Named contents scope the gate.
-- [ ] Naming nothing keeps today's behaviour.
-- [ ] Frozen releases refuse.
+- [x] Add and remove features and phases from the cockpit. — evidence: `test_add_then_remove_round_trips`; the endpoint is loopback-only (`test_the_endpoint_is_loopback_only`).
+- [x] A phase contributes features; no second encoding. — evidence: `test_a_phase_contributes_its_features_and_is_not_stored`, `test_a_phase_clash_names_the_feature_not_the_phase`.
+- [x] Named contents scope the gate. — evidence: `test_a_release_that_names_contents_subtracts_from_its_own_gate`; [[ADR-0040]] — selection subtracts, never divides, so a check covering one held-back and one carried feature still gates.
+- [x] Naming nothing keeps today's behaviour. — evidence: `test_nothing_held_back_moves_no_gate`; the invariant eleven historical releases depend on.
+- [x] Frozen releases refuse. — evidence: `test_a_shipped_release_is_immutable`, `test_compose_is_offered_only_before_a_release_ships`.

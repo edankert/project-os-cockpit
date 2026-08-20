@@ -4397,7 +4397,9 @@ def _tests_groups(
     # below those sections, even though I think these sections should be
     # clearly at the forefront."* They are the substance of the view and sat
     # under three flat state groups. Ordering only — no group gains or loses a
-    # member, which is what `test_exactly_one_group_per_test` keeps true.
+    # member, which is what `test_every_test_appears_in_exactly_one_group` keeps
+    # true. (The name `test_exactly_one_group_per_test` was cited here and in
+    # FEAT-0128 for months and has never existed.)
     #
     # `Needs a run` stays above them: it is the one group that is asking, and
     # a view that opens on work owed is the whole of REQ-0047.

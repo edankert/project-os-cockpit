@@ -2859,3 +2859,61 @@ def test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses(
     #: The cause, asserted so a reader does not have to rediscover it.
     assert obligations.NOT_YET_BUILT - obligations.RESTING_STATES == {
         "draft", "planned", "proposed"}
+
+
+def test_the_section_order_is_pinned_and_feature_leads_the_derived_three() -> None:
+    """[[FEAT-0128]] criterion 3, which was ticked against a guard that does
+    not exist.
+
+    The note read *"Feature tests come first — met, and guarded by
+    `test_exactly_one_group_per_test`."* **There is no such test.** The name is
+    a near-miss for `test_every_test_appears_in_exactly_one_group`, which
+    guards a *partition* — every check in exactly one bucket — and says nothing
+    whatever about their order. A source comment in `cockpit.py` cites the same
+    phantom. So the ordering this feature exists to produce was pinned by
+    nothing and could be reversed without a single failure.
+
+    **And the literal criterion is false.** Measured on the fixture that
+    populates every section, the order is:
+
+        needs-you · broken-command · feature · regression · automated · retired
+
+    `feature` is third. Two groups precede it, and both deserve to:
+
+    - `needs-you` leads because [[REQ-0047]] says the view opens on what is
+      owed. That is a requirement, not a preference, and it outranks this one.
+    - `broken-command` is a check that **cannot be executed at all** — broken
+      tooling, not an unwalked subject. Putting a repairable defect above the
+      work is the same argument `needs-you` wins on.
+
+    So what the criterion means — and what Edwin asked for, *"the feature tests
+    are shown below those sections… these sections should be clearly at the
+    forefront"* — is that **feature leads the three derived sections**
+    (`feature` / `regression` / `automated`, [[ADR-0039]]), not that it leads
+    the view. The note is corrected to say that, and this pins both halves:
+    the full order, and the derived-three claim stated separately so a reader
+    can see which one is the feature's actual promise.
+    """
+    from pathlib import Path
+    import tempfile
+
+    from project_os_cockpit.index import Index as _Index
+    from test_ui_vocabulary import _every_section
+
+    docs = _every_section(Path(tempfile.mkdtemp()))
+    order = [g["key"] for g in cockpit._tests_groups(_Index.build(docs))]
+
+    assert order == [
+        "needs-you",        # REQ-0047: the view opens on what is owed
+        "broken-command",   # cannot be executed — tooling defect, not work
+        "feature",          # FEAT-0128: the substance of the view
+        "regression",
+        "automated",        # ADR-0038: records no verdict
+        "retired",
+    ], order
+
+    #: The feature's promise, stated as its own assertion rather than inferred
+    #: from the list above — the derived three in ADR-0039's order, with
+    #: `feature` at the head of them.
+    derived = [k for k in order if k in ("feature", "regression", "automated")]
+    assert derived == ["feature", "regression", "automated"], derived

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0126
 aliases: ["FEAT-0126"]
 title: "A rendered mark is a check mark on every surface, whatever the file stores"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
@@ -26,8 +26,8 @@ The fix is small. What matters is the **guard**: this is the second vocabulary c
 
 ## Acceptance
 
-- [ ] The picker, the canceled-row styling and the gate tooltip all render glyphs.
-- [ ] A guard fails on a raw mark word reaching any surface.
+- [x] The picker, the canceled-row styling and the gate tooltip all render glyphs. — `tests/test_acceptance_marks.py`.
+- [x] A guard fails on a raw mark word reaching any surface. — `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph`.
 
 ## Criteria re-read 2026-08-20
 

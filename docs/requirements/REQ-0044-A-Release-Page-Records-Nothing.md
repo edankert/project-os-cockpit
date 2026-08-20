@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0044
 aliases: ["REQ-0044"]
 title: "A page whose subject is a release reports the gate and records nothing"
-status: approved
+status: implemented
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 priority: high
 scope: "release surface"
 implements: "[[FEAT-0125-The-Release-Page-Reports-What-Holds-It]]"
@@ -29,7 +29,7 @@ The rule is [[ADR-0035]]'s: a release is not the subject of an acceptance check,
 
 ## Acceptance criteria
 
-- [ ] No control on a release page can change a check's mark.
-- [ ] The gate is a verdict plus a breakdown.
-- [ ] Gate rows link to the check.
-- [ ] Open tests for the release's contents are shown.
+- [x] No control on a release page can change a check's mark. — evidence: `test_the_release_page_has_no_write_path_for_a_check`; [[ADR-0035]].
+- [x] The gate is a verdict plus a breakdown. — evidence: `test_the_gate_breakdown_is_lossless_and_sums_to_its_list` (the parts sum to the list, so the breakdown cannot drop a row).
+- [x] Gate rows link to the check. — evidence: `tests/test_release_page.py:243` and `:521` assert the row renders `'scoped-row-id mono ov-typed'` with `dataset.type = 'test'`; `test_the_breakdown_chip_opens_rows_that_exist` proves the target resolves.
+- [x] Open tests for the release's contents are shown. — evidence: `publication._open_tests_for_contents`, filtered on `item.settled`; asserted on both payload and renderer in `tests/test_release_page.py`.

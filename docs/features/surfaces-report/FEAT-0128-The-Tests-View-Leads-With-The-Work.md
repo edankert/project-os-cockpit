@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0128
 aliases: ["FEAT-0128"]
 title: "The tests view opens on what is owed and tracks progress, instead of on 579 rows of inventory"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
@@ -30,14 +30,14 @@ Three changes, none of which removes information:
 
 ## Acceptance
 
-- [ ] Resting is one collapsed line.
-- [ ] Tier sections show a tracking line and expand on demand.
-- [ ] Feature tests come first.
+- [x] Resting is one collapsed line. — the `quiet` group, `default_open: False`; `test_the_quiet_group_is_one_collapsed_line_and_asks_nothing`, and `tests/test_release_page.py` asserts the renderer draws `gate.resting?.length`. Its reachable domain is exactly `{backlog, deferred}` and that gap is [[ISS-0248]], open.
+- [x] Tier sections show a tracking line and expand on demand. — every section head carries its counts via `_section_head_label`, `default_open: False`; `test_the_tracking_line_counts_re_runs_and_stale_ticks_separately`.
+- [x] Feature tests come first — **on the derived-three reading**, `feature · regression · automated`, with `needs-you` ([[REQ-0047]]) and `broken-command` ahead of all three. Pinned by `test_the_section_order_is_pinned_and_feature_leads_the_derived_three`, which fires on a real reorder of `_SECTION_ORDER_INDEX`. See the correction below — this was ticked against a guard that does not exist.
 
 ## Criteria re-read 2026-08-20 — two met, one with a question
 
 - *Tier sections show a tracking line and expand on demand* — met. Every section head carries its count and `default_open: False`.
-- *Feature tests come first* — met, and guarded by `test_exactly_one_group_per_test`.
+- *Feature tests come first* — **met on the reading that matters, and it was guarded by nothing.** `test_exactly_one_group_per_test` **does not exist**; the name is a near-miss for `test_every_test_appears_in_exactly_one_group`, which guards a *partition* (every check in exactly one bucket) and says nothing about order. So this criterion was ticked against a phantom. Measured, the order is `needs-you · broken-command · feature · regression · automated · retired` — `feature` is **third**, and the two ahead of it earn their place: `needs-you` because [[REQ-0047]] says the view opens on what is owed, and `broken-command` because a check that cannot be executed is a tooling defect rather than unwalked work. What the criterion means is that **feature leads the three derived sections** ([[ADR-0039]]), which is Edwin's actual ask. Now pinned both ways by `test_the_section_order_is_pinned_and_feature_leads_the_derived_three`, which fails on a real reordering of `_SECTION_ORDER_INDEX`.
 - *Resting is one collapsed line* — **the mechanism exists and its population is empty in both repos.**
 
 ### The open question

@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0045
 aliases: ["REQ-0045"]
 title: "The mark is stored as a word and displayed as a check mark, and no surface may render the stored form"
-status: approved
+status: implemented
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 priority: medium
 scope: "acceptance surfaces"
 implements: "[[FEAT-0126-A-Rendered-Mark-Is-A-Check-Mark]]"
@@ -30,6 +30,6 @@ Criterion 2 is the one with teeth. Criteria 1 and 3 describe today's fix; the gu
 
 ## Acceptance criteria
 
-- [ ] One map, no direct reads.
-- [ ] A guard on raw words reaching a surface.
-- [ ] Storage unchanged.
+- [x] One map, no direct reads. — evidence: `tests/test_acceptance_marks.py:513` asserts the four tables `MARK_GLYPH` / `MARK_TITLE` / `MARK_CLASS` / `VERDICT_FOR` are the only source, and `:281` pins the map itself.
+- [x] A guard on raw words reaching a surface. — evidence: `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph`.
+- [x] Storage unchanged. — evidence: `test_the_mark_vocabulary_reads_re_check` asserts the mark VALUE `rerun` is untouched: renaming it to fix a label would be a fleet-wide migration, not a label change.

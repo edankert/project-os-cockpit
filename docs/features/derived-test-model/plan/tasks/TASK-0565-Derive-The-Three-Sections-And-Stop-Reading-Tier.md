@@ -35,4 +35,4 @@ tests: []
 
 Precedence is deliberate — an automated regression check is *Automated tests*, because Edwin's question was *does a machine do this* and there is one answer.
 
-The existing `test_exactly_one_group_per_test` guard is the model for the one-section assertion.
+The existing `test_every_test_appears_in_exactly_one_group` guard is the model for the one-section assertion. *(This line named it `test_exactly_one_group_per_test` — a test that has never existed; the same phantom was cited in `cockpit.py` and [[FEAT-0128]]. Corrected 2026-08-20.)*

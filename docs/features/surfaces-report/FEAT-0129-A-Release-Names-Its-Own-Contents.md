@@ -3,10 +3,10 @@ type: "[[feature]]"
 id: FEAT-0129
 aliases: ["FEAT-0129"]
 title: "A release names its own contents — features and phases are chosen, not only derived — and the gate scopes to them"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -29,12 +29,12 @@ The field already exists and is already used: `REL-0001` carries 27 `features:` 
 
 ## Acceptance
 
-- [ ] A preparing release can add and remove features and phases, written to its note.
-- [ ] Adding a phase adds its features, and says so rather than storing a second encoding.
-- [ ] With contents named, the gate reports what blocks *this* release.
-- [ ] A release with no named contents keeps today's derived behaviour.
-- [ ] **One preparing release per platform**, and two on one platform is an error — the state [[ADR-0037]]'s ledger cannot represent, since sealing assigns one working ledger to one release. *Edwin, 2026-08-19: two concurrent releases on a platform are a branch, not a schema problem.*
-- [ ] **A feature in two open releases on the same platform is an error; across platforms it is the normal case.** The obvious version of this rule — any two open releases — is wrong the first time a feature ships to both, which is where it is going ([[ISS-0236]]).
+- [x] A preparing release can add and remove features and phases, written to its note. — `test_add_then_remove_round_trips`, `test_a_shipped_release_is_immutable`, `test_an_unresolvable_id_is_refused`.
+- [x] Adding a phase adds its features, and says so rather than storing a second encoding. — `test_a_phase_contributes_its_features_and_is_not_stored`, `test_a_phase_clash_names_the_feature_not_the_phase`.
+- [x] With contents named, the gate reports what blocks *this* release. — `test_a_release_that_names_contents_subtracts_from_its_own_gate` ([[ADR-0040]]: selection subtracts, never divides).
+- [x] A release with no named contents keeps today's derived behaviour. — `test_nothing_held_back_moves_no_gate`; the invariant eleven historical releases depend on.
+- [x] **One preparing release per platform**, and two on one platform is an error — the state [[ADR-0037]]'s ledger cannot represent, since sealing assigns one working ledger to one release. *Edwin, 2026-08-19: two concurrent releases on a platform are a branch, not a schema problem.* — evidence: `test_two_preparing_on_one_platform_is_an_error`, `test_two_platforms_preparing_at_once_is_fine`, `test_a_release_with_no_platform_is_its_own_key`; the `RELEASE-PREPARING` validator error, `tests/test_release_preparing.py`.
+- [x] **A feature in two open releases on the same platform is an error; across platforms it is the normal case.** The obvious version of this rule — any two open releases — is wrong the first time a feature ships to both, which is where it is going ([[ISS-0236]]). — evidence: `test_the_same_feature_in_two_open_releases_on_one_platform_is_refused`, `test_across_platforms_it_is_the_normal_case`, `test_a_candidate_is_not_claimed_by_another_release_on_this_platform`.
 
 ## Independent review — fourth pass, 2026-08-20
 

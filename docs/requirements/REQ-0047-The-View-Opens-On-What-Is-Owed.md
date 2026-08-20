@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0047
 aliases: ["REQ-0047"]
 title: "The tests view opens on what is owed and what has moved, with the inventory one click away"
-status: approved
+status: implemented
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 priority: medium
 scope: "tests view"
 implements: "[[FEAT-0128-The-Tests-View-Leads-With-The-Work]]"
@@ -29,7 +29,7 @@ The view was built when the corpus had 23 tests, where showing all of them WAS t
 
 ## Acceptance criteria
 
-- [ ] The landing state is not the inventory.
-- [ ] Per-tier walked / re-run / to-walk, derived.
-- [ ] Every collapsed group expands losslessly.
-- [ ] Feature tests lead.
+- [x] The landing state is not the inventory. — evidence: `test_the_nav_leads_with_what_is_owed`; `needs-you` is index 0 in `_SECTION_ORDER_INDEX`.
+- [x] Per-tier walked / re-run / to-walk, derived. — evidence: `test_the_tracking_line_counts_re_runs_and_stale_ticks_separately`; counts come from `_section_head_label`, derived, never stored.
+- [x] Every collapsed group expands losslessly. — evidence: `test_the_lines_count_equals_the_rows_it_expands_to`, `test_the_gate_breakdown_is_lossless_and_sums_to_its_list`, and `test_every_test_appears_in_exactly_one_group` (a partition, so collapsing cannot drop or duplicate a row).
+- [x] Feature tests lead — **among the three derived sections** (`feature` / `regression` / `automated`), with `needs-you` and `broken-command` ahead of all three. Evidence: `test_the_section_order_is_pinned_and_feature_leads_the_derived_three`. See [[FEAT-0128]] — this was previously ticked against a guard that does not exist.

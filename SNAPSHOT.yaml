@@ -139,7 +139,7 @@ items:
     FEAT-0125:
       file: "docs/features/surfaces-report/FEAT-0125-The-Release-Page-Reports-What-Holds-It.md"
       title: "The release page reports what holds the release, and offers no control that changes a check"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0044"]
@@ -148,7 +148,7 @@ items:
     FEAT-0126:
       file: "docs/features/surfaces-report/FEAT-0126-A-Rendered-Mark-Is-A-Check-Mark.md"
       title: "A rendered mark is a check mark on every surface, whatever the file stores"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0045"]
@@ -166,7 +166,7 @@ items:
     FEAT-0128:
       file: "docs/features/surfaces-report/FEAT-0128-The-Tests-View-Leads-With-The-Work.md"
       title: "The tests view opens on what is owed and tracks progress, instead of on 579 rows of inventory"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0047"]
@@ -175,7 +175,7 @@ items:
     FEAT-0129:
       file: "docs/features/surfaces-report/FEAT-0129-A-Release-Names-Its-Own-Contents.md"
       title: "A release names its own contents — features and phases are chosen, not only derived — and the gate scopes to them"
-      status: doing
+      status: done
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0048"]
@@ -2702,7 +2702,7 @@ items:
     REQ-0044:
       file: "docs/requirements/REQ-0044-A-Release-Page-Records-Nothing.md"
       title: "A page whose subject is a release reports the gate and records nothing"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       implements: FEAT-0125
@@ -2710,7 +2710,7 @@ items:
     REQ-0045:
       file: "docs/requirements/REQ-0045-Storage-Is-Words-Display-Is-Glyphs.md"
       title: "The mark is stored as a word and displayed as a check mark, and no surface may render the stored form"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       implements: FEAT-0126
@@ -2726,7 +2726,7 @@ items:
     REQ-0047:
       file: "docs/requirements/REQ-0047-The-View-Opens-On-What-Is-Owed.md"
       title: "The tests view opens on what is owed and what has moved, with the inventory one click away"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       implements: FEAT-0128
@@ -2734,7 +2734,7 @@ items:
     REQ-0048:
       file: "docs/requirements/REQ-0048-A-Release-Can-Be-Composed.md"
       title: "A preparing release can be composed from features and phases, and its gate reports what blocks it"
-      status: approved
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       implements: FEAT-0129
@@ -3893,7 +3893,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 142
-    features_done: 120
+    features_done: 124
     tasks_total: 574
     tasks_done: 534
     tests_total: 43
