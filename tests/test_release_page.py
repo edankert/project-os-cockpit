@@ -529,3 +529,66 @@ def test_the_release_shows_the_tests_owed_for_its_own_contents() -> None:
     assert "every unsettled check in the repo" in block, (
         "the section does not distinguish itself from the gate's count"
     )
+
+
+def test_a_regression_guard_rests_when_its_issue_closes() -> None:
+    """[[TASK-0526]]. Edwin: *"there should be very few tier-2 items active at
+    any given time, so should not overwhelm."*
+
+    `TESTING.md` says Tier 2 is *"kept permanently"* and both are right: the
+    check is **kept**, and it is not **asked about**. So it rests rather than
+    retires — and it wakes on its own if the issue reopens, which is the case
+    a retirement rule could not express.
+
+    **The restriction to the regression section is the whole safety of it**,
+    and is asserted directly: a feature check whose `FEAT-*` is `done` is the
+    ordinary state of every settled feature in the repo, so resting on that
+    would empty the gate rather than quiet it.
+    """
+    from project_os_cockpit import acceptance, obligations
+
+    src = inspect.getsource(acceptance.gate_payload)
+    i = src.index("resting = [")
+    block = src[i:i + 400]
+    assert "section_of(i) == SECTION_REGRESSION" in block, (
+        "the resting rule is not restricted to regression checks — a feature "
+        "check whose FEAT is `done` is the ordinary case, and resting on it "
+        f"would empty the gate: {block[:200]!r}"
+    )
+    assert "ids_are_settled" in block
+
+    #: **`is_done_status`, not the band test** — `band_of("accepted")` is
+    #: `active`, so a band test would never rest a check guarding an `adr` or
+    #: a `requirement`. That is [[ISS-0245]], fixed the same day; this is
+    #: written after it and must not reintroduce it.
+    settled_src = inspect.getsource(obligations.ids_are_settled)
+    #: **The CALL, and the absence of the band test.** Asserting the name
+    #: appears anywhere passes on the `from .cockpit import is_done_status`
+    #: line alone — proved by mutant: swapping the body to
+    #: `statuses.is_completed` left the import, the string, and this guard
+    #: green. A guard satisfied by an import is a guard that tests nothing.
+    assert "is_done_status(subject" in settled_src, (
+        "the settled test does not CALL is_done_status on the subject — it "
+        "would never rest a check guarding an adr, design, reference or "
+        "requirement (ISS-0245)"
+    )
+    assert "is_completed" not in settled_src, (
+        "a band predicate is back in the settled test: `band_of(\"accepted\")` "
+        "is `active`, so the four types whose terminal status is `accepted` "
+        "would never rest (ISS-0245)"
+    )
+    assert "return False" in settled_src.split("if not ids:")[1][:60], (
+        "no ids must not read as rest — absence of evidence is not evidence "
+        "of rest"
+    )
+
+    #: Resting rows leave the displayed groups, and are shown in their own.
+    rsrc = RENDERER.read_text(encoding="utf-8")
+    assert "gate.resting?.length" in rsrc, "the resting group is never rendered"
+    j = rsrc.index("gate.resting?.length")
+    block2 = rsrc[j:j + 800]
+    assert "withSubjects: true" in block2, (
+        "a resting row does not name the issue it is resting on — derived "
+        "silence that cannot be inspected is indistinguishable from a lost row"
+    )
+    assert "Resting" in block2 and "closed" in block2

@@ -3,10 +3,10 @@ type: "[[task]]"
 id: TASK-0526
 aliases: ["TASK-0526"]
 title: "A Tier 2 check goes quiet when the issue it guards is closed, and wakes when the issue reopens"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 parent: "[[FEAT-0131-The-Suite-Is-Refined]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -31,3 +31,35 @@ Depends on [[TASK-0525-Relink-Tier-Two-To-Its-Issue]]: a check cannot rest with 
 - [ ] A Tier 2 check whose `covers:` names a `fixed` issue is quiet.
 - [ ] Reopening the issue wakes it, without an edit to the check.
 - [ ] Nothing is deleted and nothing is hidden — the check is still listed, still counted, still walkable.
+
+## Done 2026-08-20
+
+`obligations.ids_are_settled` plus a `resting` bucket in `gate_payload`, rendered as a collapsed **Resting · N — the issue each guards is closed** group beside `Quiet`.
+
+**Its own group, not folded into `Quiet`.** The two rest for opposite reasons — subject *not built* against subject *finished* — and a reader who cannot tell them apart cannot tell a screen nobody has written from a defect nobody needs to re-check. Every row names the issue and its status, so the silence can be inspected ([[ADR-0028]] decision 5).
+
+### Measured on `your-trainer` (working tree, 2026-08-20)
+
+| | rows |
+|---|---|
+| blocking | 59 |
+| …of those, in the regression section | 14 |
+| …of those, with **every** `ISS-*` closed → **resting** | **11** |
+| displayed gate groups (`New` + `Chronic`) before | 39 |
+| after | **28** |
+
+No resting row appears in a delta group as well — asserted, because a row in two places is [[ISS-0068]] and a row in neither is worse.
+
+### The regression restriction is the whole safety of it, and the mutant proves the number
+
+A feature check whose `FEAT-*` is `done` is the ordinary state of every settled feature in the repo. Dropping `section_of(i) == SECTION_REGRESSION` was executed: **34 rows rest instead of 11** — three times as many, and the gate stops meaning anything. A regression check's subject is the *defect* it guards, and a closed defect is exactly the condition under which nobody needs to re-walk it.
+
+### Two guards, and the second one only worked on the second attempt
+
+`is_done_status`, never the band test — `band_of("accepted")` is `active`, so a band predicate would never rest a check guarding an `adr` or a `requirement`. That is [[ISS-0245]], fixed hours earlier.
+
+**The first version of that guard asserted `"is_done_status" in source` and the mutant passed**, because the `from .cockpit import is_done_status` line satisfies it. A guard satisfied by an *import* tests nothing. It now asserts the **call** and the **absence** of `is_completed`, and the same mutant fails.
+
+### Coverage, stated rather than assumed
+
+This reaches **85 of 158** Tier 2 checks — the ones that name an issue. The other 73 never did ([[TASK-0525]]), so they cannot rest until that research is done. The surface must not read as though it quieted everything it could.

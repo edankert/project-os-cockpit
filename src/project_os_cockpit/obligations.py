@@ -853,6 +853,50 @@ def ids_are_unbuilt(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
     return True
 
 
+import re as _re_ids
+
+#: A bare id inside a ref that may be a wikilink: `[[ISS-0162-Slug]]` -> `ISS-0162`.
+_ID_IN_REF = _re_ids.compile(r"[A-Z]+-\d+")
+
+
+def ids_are_settled(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
+    """Whether **every** subject named is finished ([[TASK-0526]]).
+
+    The mirror of :func:`ids_are_unbuilt`, at the other end of the life. That
+    one rests a check whose subject does not exist yet; this rests one whose
+    subject is done — a Tier 2 regression guard whose issue is closed.
+
+    **Why resting and not retiring.** `TESTING.md` says Tier 2 is *"kept
+    permanently"*; Edwin says *"there should be very few tier-2 items active at
+    any given time"*. Both are right and they are about different things: the
+    check is **kept**, and it is not **asked about**. A rule that retired it
+    could not express the case that makes resting correct — the issue reopens,
+    and the guard wakes on its own with no bookkeeping anywhere.
+
+    **`is_done_status`, not the band test** ([[ISS-0245]]). `band_of("accepted")`
+    is `active`, so a band test would never rest a check guarding an `adr` or a
+    `requirement`. That defect was live in `_verdict_is_owed` until today; this
+    is written after it rather than before.
+
+    `False` for no ids and for any unresolvable one — absence of evidence is not
+    evidence of rest, the same direction `ids_are_unbuilt` fails in.
+    """
+    if not ids:
+        return False
+    from .cockpit import is_done_status
+
+    for note_id in ids:
+        match = _ID_IN_REF.search(str(note_id))
+        resolved = match.group(0) if match else str(note_id)
+        path = index.by_id(resolved)
+        subject = index.get(path) if path is not None else None
+        if subject is None:
+            return False
+        if not is_done_status(subject.note_type, subject.status):
+            return False
+    return True
+
+
 def ids_in_flight(ids: "tuple[str, ...] | list[str]", index: "Index") -> bool:
     """The in-flight rule over bare ids — ADR-0028 decision 3, one copy.
 

@@ -1639,6 +1639,8 @@ interface GatePayload {
   /** Additive to `blocking` — absent for callers that never asked. */
   delta?: GateDelta;
   quiet?: GateItem[];
+  /** Regression guards whose every issue is closed (TASK-0526). */
+  resting?: GateItem[];
   stale?: GateItem[];
 }
 
@@ -8285,6 +8287,36 @@ function buildGateSection(
     det.appendChild(gateGroup({
       items: gate.quiet, rel: gate.rel, releaseId, withSubjects: true,
       withMark: true,
+    }));
+    g.appendChild(det);
+  }
+
+  //: **Resting with its issue** ([[TASK-0526]]). Edwin: *"there should be very
+  //: few tier-2 items active at any given time, so should not overwhelm."*
+  //:
+  //: A regression guard whose every `ISS-*` is closed. Kept, counted, one
+  //: click away — and it **wakes on its own** the moment the issue reopens,
+  //: which is the case a retirement rule could not express and the reason
+  //: this is resting rather than retiring.
+  //:
+  //: Its own group rather than folded into `Quiet`: the two rest for opposite
+  //: reasons — subject not built, subject finished — and a reader who cannot
+  //: tell them apart cannot tell a screen nobody has written from a defect
+  //: nobody needs to re-check.
+  if (gate.resting?.length) {
+    const det = document.createElement('details');
+    det.className = 'release-quiet';
+    const sum = document.createElement('summary');
+    sum.textContent = `Resting · ${gate.resting.length} — the issue each `
+      + 'guards is closed';
+    det.appendChild(sum);
+    //: **No `withMark` here**, unlike `Quiet` and `Stale evidence`. A resting
+    //: row is an UNSETTLED check — it comes out of the blocking set — so its
+    //: mark is as uniform as the four lists it left, and printing it would be
+    //: the [[ISS-0244]] decoration again. What varies, and what a reader needs,
+    //: is the ISSUE it rests on, which `withSubjects` carries.
+    det.appendChild(gateGroup({
+      items: gate.resting, rel: gate.rel, releaseId, withSubjects: true,
     }));
     g.appendChild(det);
   }

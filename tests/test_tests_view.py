@@ -2468,9 +2468,11 @@ def test_no_gate_row_draws_a_mark() -> None:
     #: Where the mark VARIES it survives as a word, on those two groups only.
     assert "withMark" in src, "the Quiet / Stale distinction has been dropped"
     assert src.count("withMark: true") == 2, (
-        "withMark belongs to exactly two groups — Quiet and Stale evidence. "
-        "A stale row is TICKED, which is the whole of what makes it stale; "
-        "the four unsettled lists have nothing to distinguish."
+        "withMark belongs to exactly two groups — Quiet and Stale evidence, "
+        "the only ones whose rows are SETTLED and therefore carry a varying "
+        "mark. A stale row is ticked, which is the whole of what makes it "
+        "stale. Every other list, `Resting` included, is drawn from the "
+        "unsettled set and has nothing to distinguish (ISS-0244)."
     )
 
 

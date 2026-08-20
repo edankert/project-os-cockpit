@@ -361,7 +361,13 @@ def test_the_delta_against_your_trainers_real_tags() -> None:
     assert delta["baseline"] == "v2.1.6", "the newest released tag"
 
     groups = ("new", "chronic", "regressed")
-    total = sum(len(delta[g]) for g in groups) + len(gate["quiet"])
+    #: **`resting` is the third way out of the displayed set** ([[TASK-0526]]):
+    #: a regression guard whose every issue is closed. It joined `quiet` here
+    #: the day it was built, and this line is the reason that was noticed —
+    #: the accounting failed at 48 against 59 rather than the group quietly
+    #: swallowing eleven rows.
+    total = (sum(len(delta[g]) for g in groups)
+             + len(gate["quiet"]) + len(gate["resting"]))
     assert total == len(gate["blocking"]), (
         "every blocking row lands in exactly one group"
     )

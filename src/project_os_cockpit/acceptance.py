@@ -1980,6 +1980,7 @@ def gate_payload(
     # about. Measured on `your-trainer`: 20 of the 60 are section 1.25, whose
     # FEAT-0074 is `backlog` — checks describing a screen that does not exist.
     quiet_rows: list[dict[str, Any]] = []
+    resting_rows: list[dict[str, Any]] = []
     live: list[Item] = list(blocking)
     if index is not None:
         from . import obligations
@@ -1991,6 +1992,37 @@ def gate_payload(
         quiet_rows = [
             _row(i, subjects=obligations.resting_reason(i.refs, index))
             for i in quiet
+        ]
+
+        #: **A regression guard rests with its issue** ([[TASK-0526]]).
+        #: Edwin: *"there should be very few tier-2 items active at any given
+        #: time, so should not overwhelm."*
+        #:
+        #: The mirror of `quiet` at the other end of a subject's life: that
+        #: rests a check whose subject is not built, this rests one whose issue
+        #: is CLOSED. The check is kept and simply not asked about — and it
+        #: wakes on its own if the issue reopens, which is the case a
+        #: retirement rule could not express.
+        #:
+        #: **REGRESSION ONLY, and this restriction is the whole safety of it.**
+        #: A feature check whose `FEAT-*` is `done` is the ordinary state of
+        #: every settled feature in the repo; resting on that would empty the
+        #: gate. A regression check's subject is the DEFECT it guards, and a
+        #: closed defect is exactly the condition under which nobody needs to
+        #: re-walk it. Measured on `your-trainer` 2026-08-20 (working tree):
+        #: 14 of the 59 blocking are regression checks and **11** have all
+        #: their issues closed, so the gate reads 48 rather than 59 -- and the
+        #: 11 are listed, counted and one click away, never silently gone.
+        resting = [
+            i for i in live
+            if section_of(i) == SECTION_REGRESSION
+            and obligations.ids_are_settled(i.refs, index)
+        ]
+        resting_keys = {i.key for i in resting}
+        live = [i for i in live if i.key not in resting_keys]
+        resting_rows = [
+            _row(i, subjects=obligations.resting_reason(i.refs, index))
+            for i in resting
         ]
 
     # --- stale: ticked, but the row says the evidence no longer holds -----
@@ -2077,6 +2109,12 @@ def gate_payload(
         # group that cannot name its subject is indistinguishable from one
         # that lost the row.
         "quiet": quiet_rows,
+        # **Resting with its issue** (TASK-0526). A regression guard whose
+        # every `ISS-*` is closed: kept, counted, listed, not owed — and it
+        # wakes on its own the moment the issue reopens. Separate from `quiet`
+        # because the two rest for opposite reasons (subject not built vs
+        # subject finished) and folding them would lose which.
+        "resting": resting_rows,
         # Neither blocking nor satisfied. 53 of `your-trainer`'s ticked rows
         # are here, which is why its honest blocking number is 113 and its
         # reported one is 60. Whether these should BLOCK is a change to what
