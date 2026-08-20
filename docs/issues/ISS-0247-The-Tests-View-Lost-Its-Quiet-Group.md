@@ -50,12 +50,31 @@ So the predicate fires and the routing throws the answer away.
 
 So the one number that view exists to make honest is inflated by exactly the rows the quiet rule was built to remove. That is [[ADR-0027]]'s complaint — a badge counting what does not need a person — arriving through the section head instead of the badge.
 
-## Why both corpora read zero
+## Corrected within the hour — it is live, not latent, and the obvious fix is wrong
 
-`suppressed_items` returns nothing for either repo today, which is why this survived: **the case cannot be produced from the corpus, so no amount of looking at the app would show it.** It took constructing the input. FEAT-0128's 10-and-3 were real when measured; the population has since emptied, and the emptiness hid the defect rather than being caused by it.
+**This note first said the corpus could not produce the case.** It can: `suppressed_items` returns **3 for `project-os-cockpit` and 4 for `your-trainer`**. My earlier zero came from looking for a *rendered* suppressed group — which `_tests_groups` never builds — and reading its absence as an empty population. The rows have been counted as outstanding all along.
+
+### And adding the bucket is not the fix
+
+Tried, measured, reverted. Routing `_owed_flag(...)["suppressed"]` into a `Quiet` group moves the section heads — `3 of 32 outstanding` becomes `all 29 done` here — and **two of the three rows should not have moved**:
+
+| row | subject | verdict |
+|---|---|---|
+| `TST-0024` | `FEAT-0099` = `backlog` | correctly quiet — nobody owes a check on an unbuilt thing |
+| `TST-0029` | `FEAT-0103` = **`done`** | **shipped and unverified** |
+| `TST-0030` | `FEAT-0103` = **`done`** | **shipped and unverified** |
+
+The in-flight rule suppresses on *not in flight*, and a **terminal** subject is not in flight either. So the bucket would hide exactly the population [[TASK-0523]]'s `FEATURE-UNCOVERED` exists to surface: work that shipped with nothing verifying it.
+
+**That is the same defect this phase keeps finding, one level up** — a rule applied to a population it was not written for. [[ADR-0028]] decision 3 was written about subjects that *do not exist yet*; reusing it for subjects that are *finished* inverts what it means.
+
+### So the real fix is narrower than the group
+
+Quiet must mean **subject not yet built** — `obligations.ids_are_unbuilt`'s question, which the release gate already asks and which returns `backlog`/`planned`/`deferred`/`draft`/`proposed` only. `TST-0029` and `TST-0030` stay outstanding, because they are.
 
 ## Done when
 
-- [ ] `_tests_groups` builds the quiet group, or the comment claiming it does is deleted and [[FEAT-0128]]'s criterion is retired with a reason.
-- [ ] A quiet check is **not** counted in a section head's outstanding number.
-- [ ] Guarded on **constructed** input — a `ready` test covering a `backlog` feature — because neither corpus can produce one, and a guard built on the corpus would pass against this defect forever.
+- [ ] `_tests_groups` builds the quiet group **on `ids_are_unbuilt`, not on `_owed_flag`'s `suppressed`** — the distinction this note's first attempt got wrong.
+- [ ] A check whose subject is **unbuilt** is not counted as outstanding; one whose subject is **done** still is.
+- [ ] Guarded on both cases explicitly — a `ready` test covering a `backlog` feature (quiet) and one covering a `done` feature (**not** quiet). A guard with only the first passes the reverted attempt.
+- [ ] The `nav_payload` comment claiming `tests` builds its own is true, or deleted.

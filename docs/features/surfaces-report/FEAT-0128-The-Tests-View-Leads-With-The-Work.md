@@ -54,4 +54,4 @@ This note recorded **"10 rows in `your-trainer`, 3 here"** when it was written. 
 
 So the criterion is **unmet**, and worse than unmet: the rows are counted as work somebody owes. That is [[ISS-0247]].
 
-Neither corpus can produce the case today, which is why looking at the app would never have shown it — the emptiness hid the defect rather than causing it. The 10-and-3 above were real when measured.
+**Corrected the same day**: the corpus *can* produce it — `suppressed_items` returns 3 here and 4 in `your-trainer`. The zero I first reported was the absence of a rendered group read as an absent population. And the obvious fix is wrong: two of this repo's three rows cover a `done` feature, so bucketing them as quiet would hide shipped-but-unverified work. See [[ISS-0247]].
