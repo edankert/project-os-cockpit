@@ -3,10 +3,10 @@ type: "[[task]]"
 id: TASK-0515
 aliases: ["TASK-0515"]
 title: "Map your-trainer's 76 areas onto a set of 12-15 surfaces, recording each mapping"
-status: doing
+status: done
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 parent: "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -52,3 +52,30 @@ Edwin's axis, not mine: **what drives the target**, with each type carrying its 
 
 - **AI Workout Builder → General Workouts**: it generates for all three target types, so it is not one of them.
 - **HR Zone Lock → HR · Zone Ride**, not Monetization. Under Edwin's axis it is an HR surface carrying a licensing constraint, rather than a paywall wearing an HR name. This reverses my own earlier call.
+
+## Done 2026-08-20 — 94 areas onto 15 surfaces
+
+Edwin approved the 14-surface grouping and asked me to place the remainder. A fifteenth was needed and it is the honest one: **`Not a product surface`** (`kind: surface-less`) for the four checks about test scaffolding and the build rather than about the product. That is a fact about those checks, not a bucket for leftovers.
+
+| | |
+|---|---|
+| `area:` strings before | **94** |
+| surfaces after | **15** |
+| checks re-homed | **579** (the 580th is the directory README, which is not a check) |
+| areas left unplaced | **0** |
+
+Fifteen `SUR-*` notes in `your-trainer/docs/surfaces/`, each stating **what it is** and — the field that does the work — **its boundaries**. Every one names the neighbour it is most likely to absorb: routes against simulation, authoring against execution, Strava against every other integration, the app shell against every feature's own screen.
+
+### Measured with the right instrument, because the last time I did not
+
+The gate is **unchanged**: 581 items, 59 blocking, 20 quiet, 11 resting — before and after, on a throwaway copy first and then on the repo, **with an indexed loader both times**. `_delta_key` is `(tier, name)` and `sort_items` never reads `area:`, so this moves no verdict and no delta.
+
+That check exists because [[ISS-0213]]'s *"zero gate impact"* was measured with an index-less loader that could not have shown one. This is the same claim, made with an instrument that can fail.
+
+### And my verification predicate was wrong, not the data
+
+The pass that looked for stragglers tested whether `area:` began with `SUR-`, and reported 579 failures. The areas carry the surface **title**, which is what `surface_coverage` joins on — every one was correct. A predicate written after the migration, testing for something the migration never produced.
+
+### What this leaves
+
+`area:` is a string that now happens to equal a surface's title. **A check still does not link to a `SUR-*`**, and the join is by name — so renaming a surface silently orphans 91 checks. Closing that is a schema change on the check (`area:` becomes a link), which is [[FEAT-0130]]'s endpoint rather than this task's, and it is stated here so nobody reads the collapse from 94 to 15 as the whole job.
