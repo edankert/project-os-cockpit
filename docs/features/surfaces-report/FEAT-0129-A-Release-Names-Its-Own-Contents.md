@@ -50,3 +50,17 @@ All six criteria trace to mechanisms I have now re-executed:
 6. same-platform clash is an error, cross-platform is normal — 2 mutants, caught, including the per-contributed-feature case that names the member rather than the phase.
 
 Status is `doing` with the boxes unticked, which is right — the criteria are met in mechanism, and nothing here ticked itself.
+
+## Independent review — fifth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. **What was independent: the context** — this pass started from the notes and the diff at `c9c9563` and never saw the author's reasoning. **What was not: the model** — same family as the author, recorded in `reviewed_by` as provenance (ADR-0013). Verdict: **approved**. Every claim below was executed or measured, not read.
+
+All six criteria name tests that exist, pass, and assert the property claimed. I re-executed the mechanisms rather than reading the assertions.
+
+**Mutants, all caught.** On `blocking_minus`: subset→intersection (the mixed cell), the `if not deselected: return base` short-circuit, the no-`covers:` fail-closed clause, and the non-feature-subject clause — four for four against `tests/test_gate_subtraction.py`. On `note_writes.release_contents`: the shipped-release refusal and the same-platform clash refusal, both caught by `tests/test_release_contents.py`.
+
+**Criterion 4 remains the strongest**, and it is the one an author is most tempted to assume: `test_nothing_held_back_moves_no_gate` asserts `blocking_minus(None)` and `blocking_minus(set())` both equal `blocking()`, and the end-to-end test pins `gate("[]") == 2`, `gate('["[[FEAT-0001]]"]') == 1`, `gate(both) == 2` on constructed input — which is the right call, since no repo composes a release yet and a corpus guard here would never fire.
+
+**Criterion 2's test asserts the negative that matters**: `"PHASE-0001" not in raw`, so the phase is genuinely not stored as a second encoding, and the clash message names the member rather than the phase.
+
+**One stale sentence, not a finding against the work:** the fourth-pass section below ends *"Status is `doing` with the boxes unticked, which is right"*. It is now `done` with the boxes ticked — that pass's `approved` was carried into a close-out it did not review. This pass reviews the closed state and approves it.

@@ -9,7 +9,7 @@ created: 2026-08-18
 updated: "2026-08-20"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: approved
+review_verdict: changes-requested
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0045-Storage-Is-Words-Display-Is-Glyphs]]"]
 tasks: ["[[TASK-0505-Route-Three-Sites-Through-Mark-Glyph]]", "[[TASK-0521-One-Verb-Again]]"]
@@ -26,7 +26,7 @@ The fix is small. What matters is the **guard**: this is the second vocabulary c
 
 ## Acceptance
 
-- [x] The picker, the canceled-row styling and the gate tooltip all render glyphs. — `tests/test_acceptance_marks.py`.
+- [x] The picker and the canceled-row styling render glyphs. — `tests/test_acceptance_marks.py`. *(**The clause "and the gate tooltip" is struck, not ticked.** `gateMark` is deleted under [[ISS-0244]], so a gate row has no mark and no tooltip for a glyph to live in — the clause has no subject. The re-read section below said exactly that and the box was then ticked over all three clauses anyway, so the note asserted and denied the same thing on one screen. Striking the clause from the criterion is the fix; ticking it would claim something that does not exist.)*
 - [x] A guard fails on a raw mark word reaching any surface. — `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph`.
 
 ## Criteria re-read 2026-08-20
@@ -47,3 +47,39 @@ Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. R
 That is the right way to handle it: recording it rather than ticking it, since ticking would assert something that no longer exists, and deleting it would erase why. The other three clauses check out — `MARK_GLYPH` at five sites, `.checks-row.is-canceled` carrying the strikethrough, and the `[${…}]`-must-have-a-`MARK_GLYPH[…] ??`-fallback guard.
 
 The note is `doing` with its boxes unticked, which is consistent: nothing was closed on the strength of this re-read.
+
+## Independent review — fifth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. **What was independent: the context** — this pass started from the notes and the diff at `c9c9563` and never saw the author's reasoning. **What was not: the model** — same family as the author, recorded in `reviewed_by` as provenance (ADR-0013). Verdict: **changes-requested**. Every claim below was executed or measured, not read.
+
+**Criterion 1 is ticked in full, including the clause this note says must not be ticked.** The re-read section directly above reads: *"…and the gate tooltip — **superseded by [[ISS-0244]]** … Recorded here rather than ticked, because ticking it would claim something that no longer exists."* The box is now ticked over all three clauses. Both statements are on the same screen and they cannot both stand. The superseded call itself is right; the tick is what needs undoing, or the clause needs striking from the criterion text.
+
+**Criterion 2's guard is narrower than the criterion, and I proved it with the original defect.** ISS-0211's picker bug was `[done]` — bracketed — and that form is caught. The unbracketed form is not. Replacing renderer.ts:2394
+
+```ts
+token.textContent = MARK_GLYPH[choice.mark] ?? `[${choice.mark}]`;   // becomes
+token.textContent = `${choice.mark}`;
+```
+
+puts the raw word `done` back in the mark picker, and the **full suite passes**: `1 failed, 1967 passed, 4 skipped`, where the single failure is `test_desktop_build_is_not_stale` — a `dist/` hash check that fires on *any* renderer edit and says nothing about marks. `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph` matches only ``` `[${…mark…}]` ```, so *"a guard fails on a raw mark word reaching any surface"* is true only of the bracketed form. This is the note whose stated purpose is *"a test that fails when any surface emits a raw mark word is what makes the third time impossible."*
+
+**And a raw mark word reaches a live surface today, on purpose.** renderer.ts:9294 — ``if (withMark && item.mark) bits.push(`marked ${item.mark}`)`` — draws `marked done` / `marked rerun` in the meta line of the release page's `Quiet` and `Stale evidence` groups. [[ISS-0244]] chose that deliberately (*"the meta line wants the value"*), so it is the criterion that is wrong, not the code.
+
+**The fourth-pass section below is now false about its own subject.** It ends *"The note is `doing` with its boxes unticked, which is consistent: nothing was closed on the strength of this re-read."* The note is `done` with every box ticked, and it still carries that pass's `approved` in frontmatter — an approval recorded against a state that no longer exists.
+
+## What the raw-word fix actually bought — 2026-08-20, stated narrowly
+
+Review found `renderer.ts` drawing **`marked done`** on the release page's `Quiet` and `Stale evidence` groups: the stored word, on a live surface, while [[REQ-0045]] c2 was ticked as guarded. The guard only ever checked the **bracketed** form ([[ISS-0211]]'s shape), so an unbracketed raw value walked past it.
+
+It now routes through `markWord()`, which reads `MARK_TITLE`. **The visible text is unchanged for every recognised mark** — `markWord('done')` is `'done'` — and it is worth being exact about that rather than claiming a raw word left the screen:
+
+| mark | before | after |
+|---|---|---|
+| `done` | `marked done` | `marked done` |
+| `pass` | `marked pass` | `marked pass` |
+| `rerun` | `marked rerun` | `marked needs re-run` |
+| *unrecognised* | `marked wibble` | `marked an unrecognised mark` |
+
+**The last row is the whole value.** A surface may now render only vocabulary the code knows; a note carrying an unrecognised `mark:` can no longer echo itself onto a screen. That is what REQ-0045's title is protecting, and [[ISS-0244]]'s deliberate choice to show the *word* on these two groups is untouched — the distinction a reader needs survives, because `MARK_TITLE`'s head differs per mark.
+
+The review's framing was *"it is the criterion that is wrong, not the code."* **Half right**, and the half that matters is the other one: showing a word there is deliberate and correct, but echoing an *arbitrary stored value* was not, and no criterion licensed it. Guarded by `test_no_surface_renders_a_raw_mark_unbracketed_either`, which fails on review's exact mutant, on a revert of this fix, and on `markWord` degenerating into an echo.

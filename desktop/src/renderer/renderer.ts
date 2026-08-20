@@ -2496,6 +2496,16 @@ const MARK_GLYPH: Record<string, string> = {
   ' ': '[\u00a0]', x: '[x]', X: '[X]', '/': '[/]', '~': '[~]',
   '-': '[-]', '!': '[!]', F: '[F]', '?': '[?]',
 };
+/** The mark as ONE word, read off `MARK_TITLE` rather than off the note.
+ *  `'Done — walked and passed.'` -> `'Done'`, lowercased. REQ-0045: the stored
+ *  form is never what a surface renders; an unrecognised mark reports itself as
+ *  unrecognised rather than echoing the value back. */
+function markWord(mark: string): string {
+  const title = MARK_TITLE[mark];
+  if (!title) return 'an unrecognised mark';
+  return title.split('\u2014')[0].trim().toLowerCase();
+}
+
 const MARK_TITLE: Record<string, string> = {
   pass: 'Pass — run, and it held.',
   partial: 'Partial — some clauses hold, some do not. Clears the gate.',
@@ -9290,8 +9300,16 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
     }
     if (withRerun && item.rerun) bits.push(item.rerun);
     //: The mark as a word, on the two groups where it varies ([[ISS-0244]]).
-    //: `MARK_TITLE` is a sentence for a tooltip; the meta line wants the value.
-    if (withMark && item.mark) bits.push(`marked ${item.mark}`);
+    //: **Through the map, never the stored value.** This read
+    //: `marked ${item.mark}` and put the raw word `done` on a live surface —
+    //: exactly what REQ-0045's title forbids, on the release page's Quiet and
+    //: Stale-evidence groups, while REQ-0045 c2 was ticked as guarded. Found
+    //: by independent review 2026-08-20; the guard only checked the BRACKETED
+    //: form, so an unbracketed raw word walked straight past it.
+    //: `MARK_TITLE` is a sentence for a tooltip and its head is the word the
+    //: meta line wants, so one map serves both rather than a second table
+    //: drifting against it ([[ISS-0023]]).
+    if (withMark && item.mark) bits.push(`marked ${markWord(item.mark)}`);
     // `failed` is no longer worth a word in the meta: the row's own mark says
     // it, in the file's own notation, at the left edge where the eye starts.
     a.textContent = bits.filter(Boolean).join(' · ');

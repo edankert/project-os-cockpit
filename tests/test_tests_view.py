@@ -2861,38 +2861,26 @@ def test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses(
         "draft", "planned", "proposed"}
 
 
-def test_the_section_order_is_pinned_and_feature_leads_the_derived_three() -> None:
-    """[[FEAT-0128]] criterion 3, which was ticked against a guard that does
-    not exist.
+def test_the_section_order_is_pinned_on_the_basis_readers_actually_see() -> None:
+    """[[FEAT-0128]] criterion 3 / [[REQ-0047]] criterion 4.
 
-    The note read *"Feature tests come first — met, and guarded by
-    `test_exactly_one_group_per_test`."* **There is no such test.** The name is
-    a near-miss for `test_every_test_appears_in_exactly_one_group`, which
-    guards a *partition* — every check in exactly one bucket — and says nothing
-    whatever about their order. A source comment in `cockpit.py` cites the same
-    phantom. So the ordering this feature exists to produce was pinned by
-    nothing and could be reversed without a single failure.
+    **This test is the second attempt and the first one was the same defect it
+    was written to fix.** The criterion was originally ticked against
+    `test_exactly_one_group_per_test`, which has never existed. The replacement
+    built `_every_section` and asserted `feature · regression · automated` —
+    but that fixture holds no acceptance-level checks, so `_tests_groups` emits
+    the **derived** keys. Measured at HEAD, neither live corpus does:
 
-    **And the literal criterion is false.** Measured on the fixture that
-    populates every section, the order is:
+        project-os-cockpit  ->  tier1, tier2, automated, retired, quiet
+        your-trainer        ->  needs-you, tier1, tier2, tier3, retired
 
-        needs-you · broken-command · feature · regression · automated · retired
+    So the six `tier*` entries in `_SECTION_ORDER_INDEX` were exercised by
+    nothing, and **swapping `tier1` and `tier2` renders Regression above
+    Feature on both real screens with the whole suite green** — the exact
+    reversal this feature exists to prevent. Found by independent review.
 
-    `feature` is third. Two groups precede it, and both deserve to:
-
-    - `needs-you` leads because [[REQ-0047]] says the view opens on what is
-      owed. That is a requirement, not a preference, and it outranks this one.
-    - `broken-command` is a check that **cannot be executed at all** — broken
-      tooling, not an unwalked subject. Putting a repairable defect above the
-      work is the same argument `needs-you` wins on.
-
-    So what the criterion means — and what Edwin asked for, *"the feature tests
-    are shown below those sections… these sections should be clearly at the
-    forefront"* — is that **feature leads the three derived sections**
-    (`feature` / `regression` / `automated`, [[ADR-0039]]), not that it leads
-    the view. The note is corrected to say that, and this pins both halves:
-    the full order, and the derived-three claim stated separately so a reader
-    can see which one is the feature's actual promise.
+    The fix is to assert the property on **both namings**, and on the real
+    corpus rather than only a fixture.
     """
     from pathlib import Path
     import tempfile
@@ -2900,20 +2888,59 @@ def test_the_section_order_is_pinned_and_feature_leads_the_derived_three() -> No
     from project_os_cockpit.index import Index as _Index
     from test_ui_vocabulary import _every_section
 
+    #: ---- 1. the rank table, over both key families -----------------------
+    #: `tier1`/`feature` are the same section under two namings ([[ADR-0039]]
+    #: retired `tier:`; both spellings are still emitted depending on corpus).
+    #: Asserting the PAIRS is what makes a tier-key reorder fail.
+    rank = cockpit._SECTION_ORDER_INDEX
+    for host, derived in (("tier1", "feature"), ("tier2", "regression"),
+                          ("tier3", "automated")):
+        assert rank[host] == rank[derived], (
+            f"{host} and {derived} are one section under two names and must "
+            f"rank together: {rank[host]} vs {rank[derived]}"
+        )
+    assert rank["tier1"] < rank["tier2"] < rank["tier3"], (
+        f"feature work no longer leads the derived three: {rank}"
+    )
+    assert rank["needs-you"] < rank["tier1"], "REQ-0047: what is owed leads"
+
+    #: ---- 2. the fixture, derived naming ----------------------------------
     docs = _every_section(Path(tempfile.mkdtemp()))
     order = [g["key"] for g in cockpit._tests_groups(_Index.build(docs))]
+    assert order == ["needs-you", "broken-command", "feature",
+                     "regression", "automated", "retired"], order
 
-    assert order == [
-        "needs-you",        # REQ-0047: the view opens on what is owed
-        "broken-command",   # cannot be executed — tooling defect, not work
-        "feature",          # FEAT-0128: the substance of the view
-        "regression",
-        "automated",        # ADR-0038: records no verdict
-        "retired",
-    ], order
+    #: ---- 3. THIS REPO, host naming — the screen a reader opens -----------
+    live = [g["key"] for g in
+            cockpit._tests_groups(_Index.build(Path(__file__).parents[1] / "docs"))]
+    ranked = [rank.get(k, 99) for k in live]
+    assert ranked == sorted(ranked), (
+        f"the live tests view is out of order: {list(zip(live, ranked))}"
+    )
+    assert "tier1" in live, (
+        "this repo stopped emitting host keys, so step 3 no longer covers the "
+        "tier entries — re-derive the basis before trusting this test"
+    )
 
-    #: The feature's promise, stated as its own assertion rather than inferred
-    #: from the list above — the derived three in ADR-0039's order, with
-    #: `feature` at the head of them.
-    derived = [k for k in order if k in ("feature", "regression", "automated")]
-    assert derived == ["feature", "regression", "automated"], derived
+
+def test_what_actually_hoists_needs_you_is_the_partition_not_the_index() -> None:
+    """[[REQ-0047]] criterion 1 was cited to `_SECTION_ORDER_INDEX`, and that
+    is not what does the work.
+
+    `_tests_groups` ends `return owed + rest`, partitioned on `needs_human`.
+    Review demonstrated that moving `needs-you` and `broken-command` to ranks
+    8 and 9 changes **nothing** — the partition hoists them regardless. So the
+    index is a tie-breaker within each half, not the mechanism, and a citation
+    naming it describes the wrong cause.
+
+    Both are asserted, separately, because they are two mechanisms and
+    [[REQ-0059]] says one question gets one predicate.
+    """
+    import inspect
+
+    src = inspect.getsource(cockpit._tests_groups)
+    assert "return owed + rest" in src, (
+        "the needs_human partition is gone; REQ-0047 c1 now rests on the "
+        "index alone and its citation must be re-derived"
+    )
+    assert 'g.get("needs_human")' in src

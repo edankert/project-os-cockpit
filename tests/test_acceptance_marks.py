@@ -745,3 +745,64 @@ def test_the_release_page_has_no_write_path_for_a_check() -> None:
         "the gate section reaches walkOneCheck — that is the write path "
         "ADR-0035 removes from any page whose subject is a release"
     )
+
+
+def test_no_surface_renders_a_raw_mark_unbracketed_either() -> None:
+    """[[REQ-0045]]'s title: *"no surface may render the stored form."*
+
+    `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph` guards the
+    **bracketed** shape, because that is how [[ISS-0211]] presented. Review
+    2026-08-20 showed a raw mark reaching a live surface without brackets and
+    walking straight past it:
+
+        bits.push(`marked ${item.mark}`)          // renderer.ts
+
+    drawing **`marked done`** on the release page's Quiet and Stale-evidence
+    groups — the stored word, on screen, while REQ-0045 c2 was ticked as
+    guarded. The criterion was true about the guard and false about the code.
+
+    So this asks the other half: no template may interpolate `.mark` directly
+    into display text. The value must go through `MARK_GLYPH` (the glyph),
+    `MARK_TITLE` (the sentence) or `markWord` (the one-word form) — all three
+    of which are keyed maps, so an unrecognised mark reports itself instead of
+    echoing the note back at the reader.
+    """
+    import re
+
+    src = _renderer_src()
+    #: **Comments stripped first.** The first cut scanned raw source and
+    #: matched the `//:` comment explaining this very defect — the sixth
+    #: over-broad text guard this phase to flag its own prose. A claim has to
+    #: be scoped to the code it is a claim about.
+    code = "\n".join(
+        ln for ln in src.splitlines()
+        if not ln.lstrip().startswith(("//", "/*", "*"))
+    )
+    bad = []
+    for m in re.finditer(r"\$\{[^}]*\.mark\}", code):
+        if "MARK_" in m.group(0) or "markWord" in m.group(0):
+            continue
+        line = code[code.rfind("\n", 0, m.start()) + 1:
+                    code.find("\n", m.end())]
+        #: The one permitted raw render: the `?? [${…}]` fallback beneath a
+        #: `MARK_GLYPH[…]` lookup. An unrecognised mark shows itself in
+        #: brackets, which is the honest failure — hiding it would make a
+        #: mis-keyed map look like a missing row. Narrow to that exact idiom,
+        #: so a bare `${choice.mark}` (review's mutant) still fails.
+        if "MARK_GLYPH[" in line and "??" in line:
+            continue
+        bad.append(m.group(0))
+    assert not bad, (
+        "these interpolate a stored mark straight into display text; route "
+        f"them through MARK_GLYPH / MARK_TITLE / markWord: {bad}"
+    )
+
+    #: And the helper the fix introduced reads the map rather than the value,
+    #: so it cannot become an echo with a longer name.
+    i = src.index("function markWord(")
+    body = src[i:src.index("\n}", i)]
+    assert "MARK_TITLE[mark]" in body, body
+    assert "return mark" not in body, (
+        "markWord echoes the stored value; that is the defect wearing a "
+        "function call"
+    )
