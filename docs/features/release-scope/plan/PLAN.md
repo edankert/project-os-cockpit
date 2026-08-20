@@ -1,6 +1,6 @@
 # Plan — a release says what is in it
 
-[[FEAT-0142-A-Release-Says-What-Is-In-It]], parked in [[PHASE-999-Future]]. **Not scheduled**, and deliberately not broken into tasks yet.
+[[FEAT-0142-A-Release-Says-What-Is-In-It]], in [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]] (Edwin, 2026-08-20 — re-homed from [[PHASE-999-Future]] rather than opening a phase of its own). Still deliberately not broken into tasks: see the gate below.
 
 ## All three questions are answered; one gate remains
 

@@ -8,7 +8,7 @@ order: 999
 owner: user:edwin
 created: 2026-05-23
 updated: "2026-08-20"
-features: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0028-Fleet-Health-Surface]]", "[[FEAT-0029-Cockpit-MCP-Server]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"]
+features: ["[[FEAT-0018-Verification-Health-Surface]]", "[[FEAT-0028-Fleet-Health-Surface]]", "[[FEAT-0029-Cockpit-MCP-Server]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]"]
 ---
 
 # Phase 999: Future / Unphased

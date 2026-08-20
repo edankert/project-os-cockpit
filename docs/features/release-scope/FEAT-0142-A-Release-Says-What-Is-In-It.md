@@ -7,7 +7,7 @@ status: backlog
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["user:edwin"]
 goal: "A person preparing a release can move a feature out of it, or hold one for the next one, from the release page — and the record says which features were CHOSEN rather than which happened to be finished."
 requirements: []

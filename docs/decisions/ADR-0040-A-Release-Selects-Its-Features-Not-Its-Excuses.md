@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
 decision_date: ""
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["Edwin 2026-08-20: 'If we can just have all the features available for the release in the release document at first with a checkbox all new features checked and then the user can uncheck/check some of them if they need to be included, the acceptance tests for the release can then be adjusted based on the selected features.'", "Edwin 2026-08-20: 'on the pre-existing open tsts, yes these are open because of multiple of reasons and happy to re-evaluate them for each release to see if we can resolve them but more than likely they will stay open for this release as well. (for instance I don't have the hardware to test those corner cases)'"]
 supersedes: ""
 superseded: ""
