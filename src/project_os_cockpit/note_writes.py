@@ -1523,6 +1523,123 @@ def create_release(
     }
 
 
+def release_contents(
+    index: Index,
+    release_id: str,
+    *,
+    action: str,
+    feature_id: str,
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Add or remove one feature on a preparing release ([[TASK-0558]]).
+
+    **The write path that did not exist.** A release note has carried
+    `features: [...]` since [[REL-0001]] and nothing has ever written it --
+    composing a release meant editing frontmatter by hand, which is why
+    "what is in this release" has always been a statement about *when work
+    finished* rather than about anything anybody chose ([[ADR-0040]]).
+
+    **`_set_field(quote=False)`, not `_set_block_list`.** The task names the
+    second; it writes a list of MAPS, and `features:` is a flat inline list of
+    wikilinks. The first is the helper already hardened for exactly this shape
+    -- quoting it turns the list into one string, which is
+    [[FEAT-0107]]/[[TASK-0445]]'s defect where a release reported nothing it
+    had verified.
+
+    Three refusals, and the third is the one that is easy to get wrong.
+    """
+    action = (action or "").strip().lower()
+    if action not in ("add", "remove"):
+        raise WriteError(
+            f"action must be 'add' or 'remove', not {action!r}", status=400)
+
+    path = index.by_id(release_id)
+    record = index.get(path) if path is not None else None
+    if record is None or (record.note_type or "") != "release":
+        raise WriteError(
+            f"{release_id} is a "
+            f"{(record.note_type if record else None) or 'note'}, "
+            "not a release",
+            status=409,
+        )
+
+    #: **Refusal 1: a shipped release is immutable** ([[ADR-0035]]). Changing
+    #: what it contained rewrites what it was measured against, and a sealed
+    #: ledger is only worth reading because that cannot happen.
+    status = (record.status or "").strip().lower()
+    if status == "released":
+        raise WriteError(
+            f"{release_id} has shipped; what a released release contained is "
+            "a fact about the past (ADR-0035)",
+            status=409,
+        )
+
+    #: **Refusal 2: the id must resolve.** A text box for an id is how
+    #: [[ISS-0142]] happened, and this is the server half of that lesson --
+    #: the candidate list is the client half.
+    target = index.by_id(feature_id)
+    feature = index.get(target) if target is not None else None
+    if feature is None or (feature.note_type or "") != "feature":
+        raise WriteError(
+            f"{feature_id} is not a feature in this record", status=409)
+
+    #: **Refusal 3, and the obvious version of it is wrong.**
+    #:
+    #: A feature in two open releases **on the same platform** is an error.
+    #: **Across platforms it is the normal case** -- Edwin: *"a feature can be
+    #: (is more than likely) delivered to multiple platforms."* An earlier
+    #: draft of this rule said *any* two open releases and would have been
+    #: wrong the first time a feature shipped to both. Measured in
+    #: `your-trainer`: 45 android features, 9 ios, 25 cross-platform.
+    #:
+    #: Platform comes from the RELEASE, never from the feature -- see
+    #: [[ISS-0236]] for why `platform:` on a feature is a scalar for a
+    #: three-tuple and cannot answer this.
+    if action == "add":
+        from . import publication
+
+        here = str(record.frontmatter.get("platform") or "").strip().lower()
+        for other in publication.open_releases(index):
+            if other["id"] == release_id or other["platform"] != here:
+                continue
+            other_path = index.by_id(other["id"])
+            other_rec = index.get(other_path) if other_path is not None else None
+            named = [str(f) for f in
+                     ((other_rec.frontmatter.get("features") if other_rec else None) or [])]
+            if any(feature_id in n for n in named):
+                raise WriteError(
+                    f"{feature_id} is already in {other['id']}, which is open "
+                    f"for platform {here or '(all)'}; a feature belongs to one "
+                    "release per platform",
+                    status=409,
+                )
+
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {release_id}: {exc}", status=500) from None
+
+    fm_lines, body = _split_frontmatter(raw)
+    current = [str(f) for f in (record.frontmatter.get("features") or [])]
+    #: Compared on the ID inside the wikilink, so `[[FEAT-0085-Slug]]` and a
+    #: bare `FEAT-0085` are the same member. The slug is display, not identity.
+    kept = [f for f in current if feature_id not in f]
+    if action == "add":
+        target_rel = (feature.rel_path or "").rsplit("/", 1)[-1]
+        stem = target_rel[:-3] if target_rel.endswith(".md") else feature_id
+        kept.append(f"[[{stem or feature_id}]]")
+    rendered = "[" + ", ".join(f'"{_yaml_safe(f)}"' for f in kept) + "]"
+    fm_lines = _set_field(fm_lines, "features", rendered, quote=False)
+    fm_lines = _set_field(fm_lines, "updated", _today())
+    _write(path, fm_lines, body)
+    return {
+        "ok": True, "release": release_id, "action": action,
+        "feature": feature_id, "features": kept, "actor": actor,
+    }
+
+
 def mark_released(
     index: Index,
     release_id: str,

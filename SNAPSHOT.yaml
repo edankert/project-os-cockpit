@@ -817,7 +817,7 @@ items:
     TASK-0558:
       file: "docs/features/surfaces-report/plan/tasks/TASK-0558-A-Release-Composes-Its-Contents.md"
       title: "Add and remove a feature on a preparing release, from the release page"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0129
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -3892,7 +3892,7 @@ metrics:
     features_total: 142
     features_done: 120
     tasks_total: 574
-    tasks_done: 527
+    tasks_done: 528
     tests_total: 43
     tests_passing: 2
     test_cases_total: 182

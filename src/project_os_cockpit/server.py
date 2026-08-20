@@ -761,6 +761,10 @@ def _make_handler(
                 self._serve_mark_released()
                 return
 
+            if path == "/api/notes/release-contents":
+                self._serve_release_contents()
+                return
+
             if path == "/api/notes/release-verified":
                 self._serve_release_verified()
                 return
@@ -2474,6 +2478,45 @@ def _make_handler(
                     index,
                     str(body.get("id") or ""),
                     tag=str(body.get("tag") or ""),
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_contents(self) -> None:
+            """``POST /api/notes/release-contents`` — compose a release
+            ([[TASK-0558]]).
+
+            `{release, action: add|remove, id}`. A release note has carried
+            `features:` since [[REL-0001]] and **nothing has ever written it**,
+            so composing one meant editing frontmatter by hand — which is why
+            *what is in this release* has always answered *when work finished*
+            rather than what anybody chose ([[ADR-0040]]).
+
+            Loopback-only like every other write path, and the refusals live in
+            `note_writes` rather than here: a rule enforced at the transport is
+            a rule the next caller does not get.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.release_contents(
+                    index,
+                    str(body.get("release") or ""),
+                    action=str(body.get("action") or ""),
+                    feature_id=str(body.get("id") or ""),
                     actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"])
                            if body.get("mtime") is not None else None),
