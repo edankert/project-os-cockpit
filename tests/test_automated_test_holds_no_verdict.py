@@ -12,9 +12,14 @@ the run that produced a stamped status; with no status they do not merely go
 stale, they lie — `your-trainer` holds **69 exit codes against 2 verdicts**, so
 67 notes assert a failure recorded nowhere else.
 
-Landed at **zero violations**, so it errors from day one rather than taking a
-warning tier — `DECISIONS.md`: a rule whose corpus holds no violations skips the
-warning, because a warning would be the permanent tier ADR-0011 forbids.
+**What landed at zero violations was this repo, not the fleet** — a distinction
+three independent review passes were needed to force. Measured at HEAD across
+every repo carrying a test note: `TEST-AUTOMATED-STATUS` 12,
+`TEST-AUTOMATED-EVIDENCE` 24, `CHECK-SUBJECT` 117, and `ACCEPTANCE-STATUS`
+**0 everywhere**. So only the last errors from day one; the three carrying debt
+are dated to 2026-11-18, because ADR-0011 clause 3 forbids promoting over unpaid
+debt and `DECISIONS.md`'s skip-the-warning rule needs a corpus that is clean
+*everywhere*, not where the author happened to look.
 """
 
 from __future__ import annotations
@@ -141,10 +146,12 @@ def test_a_manual_test_keeps_its_dates(tmp_path: Path) -> None:
 # ------------------------------------------------------------- the landing
 
 def test_the_corpus_holds_no_violations(tmp_path: Path) -> None:
-    """Why this errors on day one instead of warning.
+    """Why the corpus was thought clean — and why that was only this repo.
 
-    Asserted rather than claimed: if the migration had missed a note, the rule
-    would be landing over unpaid debt, which ADR-0011 forbids.
+    Asserted rather than claimed, but the assertion is about
+    `project-os-cockpit` alone. Reading it as a fleet statement is exactly the
+    mistake that dated three rules a review too late; the fleet figures are in
+    the module docstring above.
     """
     out = subprocess.run(
         [sys.executable, str(VALIDATOR), "--repo-root", str(REPO_ROOT)],
@@ -281,40 +288,85 @@ def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
 
 # ------------------------------- the split, cut on what changed (3rd review)
 
-@pytest.mark.parametrize("level,command,status,expected", [
-    # **Newly forbidden by ADR-0038, therefore dated.** A command-bearing note
-    # at `passing`/`failing` was EXEMPT before — that was the whole exception
-    # the widening removes.
-    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "passing", "TEST-AUTOMATED-STATUS"),
-    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "failing", "TEST-AUTOMATED-STATUS"),
-    ("", 'command: "pytest tests/x.py"\n', "passing", "TEST-AUTOMATED-STATUS"),
-    # **Forbidden BEFORE ADR-0038, therefore still a day-one error.** `ready`
-    # with a command was the exception-to-the-exception ADR-0031 kept, because
-    # `ready` is what the `Run` obligation counts and it reaches the badge.
-    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "ready", "ACCEPTANCE-STATUS"),
-    ("level: acceptance\n", "", "passing", "ACCEPTANCE-STATUS"),
-    ("level: acceptance\n", "", "ready", "ACCEPTANCE-STATUS"),
-])
+#: **The whole cross-product, because a six-case sample missed a cell.**
+#:
+#: `level` present/absent x `command` present/absent x four statuses. The
+#: fourth independent review executed all 24 (three of the statuses plus
+#: `active`, at both levels, with and without a command) and found exactly one
+#: disagreement with the note: command-bearing, NOT an acceptance check, at
+#: `ready` had fallen **silent** — it fails `TEST_RUNNER_STATUSES` and the
+#: `elif level == "acceptance"` does not catch it. It had warned one commit
+#: earlier.
+#:
+#: A sample cannot find that. The table can, and every cell is written out
+#: rather than computed, so a rule change has to edit the expectation it
+#: breaks rather than quietly agreeing with itself.
+_SPLIT_MATRIX = [
+    # (level, command, status, code, severity)
+    # --- acceptance checks a person completes: unchanged since ADR-0031 -----
+    ("acceptance", False, "ready",   "ACCEPTANCE-STATUS", "ERROR"),
+    ("acceptance", False, "passing", "ACCEPTANCE-STATUS", "ERROR"),
+    ("acceptance", False, "failing", "ACCEPTANCE-STATUS", "ERROR"),
+    ("acceptance", False, "active",  None,                None),
+    # --- acceptance AND automated ------------------------------------------
+    # `ready` was already an error with a command: it is what the `Run`
+    # obligation counts, so an automated check parked there reaches a badge
+    # nobody can act on (ADR-0027). Dating it would weaken a live rule.
+    ("acceptance", True,  "ready",   "ACCEPTANCE-STATUS",    "ERROR"),
+    # `passing`/`failing` were EXEMPT with a command. That exemption is what
+    # ADR-0038 removes, so these are the dated half.
+    ("acceptance", True,  "passing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("acceptance", True,  "failing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("acceptance", True,  "active",  None,                    None),
+    # --- automated, not an acceptance check: NO rule reached these before ---
+    ("",           True,  "ready",   "TEST-AUTOMATED-STATUS", "WARN"),
+    ("",           True,  "passing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("",           True,  "failing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("",           True,  "active",  None,                    None),
+    # --- a manual test outside the acceptance level: not this rule's business
+    ("",           False, "ready",   None, None),
+    ("",           False, "passing", None, None),
+    ("",           False, "failing", None, None),
+    ("",           False, "active",  None, None),
+]
+
+
+@pytest.mark.parametrize("level,command,status,code,severity", _SPLIT_MATRIX,
+                         ids=lambda v: str(v))
 def test_the_split_follows_what_changed_not_the_level(
-    tmp_path: Path, level: str, command: str, status: str, expected: str,
+    tmp_path: Path, level: str, command: bool, status: str,
+    code: str | None, severity: str | None,
 ) -> None:
     """**Cutting this on `level:` sent 64% of the widened domain to the wrong side.**
 
-    Third independent review, 2026-08-20: the first split branched on
+    The third independent review found the first split branching on
     `level == "acceptance"` first, so a note that is *both* an acceptance check
-    and command-bearing never reached the dated code — 89 of the fleet's 139
-    automated notes erroring on day one over a rule they had no chance to
-    satisfy, in repos that still ship the `run-tests.py` which writes those
-    statuses. ADR-0011 clause 3, and the exact failure the dating existed to
-    avoid.
+    and command-bearing never reached the dated code — erroring on day one over
+    a rule it had no chance to satisfy, in repos that still ship the
+    `run-tests.py` which writes those statuses.
 
-    The line is not `level:`. It is *what ADR-0038 newly forbids*.
+    The line is not `level:`. It is *what ADR-0038 newly forbids*, which is
+    (the rule after) minus (the rule before) — and that difference is not
+    expressible as a single field test, which is why it is tabulated.
     """
-    repo = _repo(tmp_path, status=status, level=level, command=command)
-    codes = _all_codes_for(repo, "TST-0009")
-    assert expected in codes, codes
-    other = {"TEST-AUTOMATED-STATUS", "ACCEPTANCE-STATUS"} - {expected}
-    assert not (other & set(codes)), (codes, "reported under both codes")
+    repo = _repo(
+        tmp_path, status=status,
+        level=("level: %s\n" % level) if level else "",
+        command='command: "pytest tests/x.py"\n' if command else "",
+        extra="" if command or status != "passing" else 'last_verified: "2026-08-01"\nkind: manual\n',
+    )
+    out = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True, timeout=120).stdout
+    lines = [ln for ln in out.splitlines()
+             if "TST-0009" in ln
+             and ("ACCEPTANCE-STATUS" in ln or "TEST-AUTOMATED-STATUS" in ln)]
+    if code is None:
+        assert not lines, ("expected silence", lines)
+        return
+    assert len(lines) == 1, lines
+    assert code in lines[0], lines[0]
+    assert lines[0].startswith(severity), lines[0]
 
 
 def test_nothing_that_errored_before_merely_warns_now(tmp_path: Path) -> None:

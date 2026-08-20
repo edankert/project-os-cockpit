@@ -64,3 +64,11 @@ Third pass, `model:claude-opus-5`, fresh context, a different session from the a
 **The finding is that the split was cut on the wrong field.** `validate_docs_bundled.py:2424` branches on `level == "acceptance"` before it looks at `command:`, so a note that is both reaches `ACCEPTANCE-STATUS` — a **day-one error** — and never the dated code. Constructed and executed: `level: acceptance` + `command:` + `status: passing` is silent under the pre-change validator (`5adcbc8`) and an error under this one. That is the newly-widened behaviour landing without a cutover over what this change's own test module measures as *"89 of the fleet's 139 automated notes: 64% of the domain"*, while every other fleet repo still ships the `run-tests.py` that writes exactly those statuses. Zero everywhere today, so not a breach of ADR-0011 clause 3 — one sync plus one run from being one.
 
 Three docstrings in `tests/test_automated_test_holds_no_verdict.py` (`:15`, `:89`, `:129`) still assert the day-one erroring the fix removed. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections A1 and A2.
+
+## Fourth independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Fourth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all three prior reviewers. Every mutant applied and executed here; every count measured at `HEAD`.
+
+**The recut is the right line and its matrix is not vacuous** — reverting the split to its `level`-first form fails two parametrisations — but it is incomplete. A command-bearing note that is not `level: acceptance`, at `status: ready`, is reported by nothing: silent before ADR-0038, **warned** by the immediately preceding commit, silent again now. All 24 cells of (`level` × `command` × `status`) were executed and that is the only one that does not land where the record says; the six-case matrix omits it, and closing it breaks no test. Zero instances at every fleet `HEAD`, so latent rather than live. The runner guard and the actuator refusal hold for a fourth time. Detail in section H1.
+
+Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.

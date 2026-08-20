@@ -21,7 +21,7 @@ tags: [change, testing, schema]
 
 **A test note that declares a `command:` records that a machine executes it, and nothing about whether it passed.** CI is the verdict. A manual test is unchanged and still records one, because nothing else knows how a person's check went.
 
-**`tier:` is read by no code path.** A check's section is computed: a non-empty `command:` is *Automated tests*, else a `covers:` naming an `ISS-*` is *Regression tests*, else *Feature tests*.
+**No section and no gate decision reads `tier:`.** A check's section is computed: a non-empty `command:` is *Automated tests*, else a `covers:` naming an `ISS-*` is *Regression tests*, else *Feature tests*. *(This line said "read by no code path" until the fourth review; `sort_items`, `_delta_key`, `Suite.tier` and the migration script still read it — [[ISS-0240]].)*
 
 **The Tests view is six sections**, every one derived: `Needs you`, `Feature tests`, `Regression tests`, `Automated tests`, `Broken command`, `Retired`. The eight verdict-state groups are gone.
 
@@ -298,4 +298,97 @@ It is now cut on **what ADR-0038 newly forbids**, which is the honest line:
 ## What is still open, deliberately
 
 [[ISS-0238]] (67 areas naming a deleted document's heading), [[ISS-0240]] (`sort_items`/`_delta_key` read `tier:`; the strip changes 232 of 580 delta keys), and [[ISS-0209]], which bounds what any of this proves: **the acceptance gate executes in no repo that holds a check**.
+
+## Fourth independent review 2026-08-20 — `changes-requested`
+
+Fourth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the three prior reviewers'. Same model family as the author and all three prior passes, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]) — what is independent here is the **context and the session**, not the weights. Every mutant below was applied and executed by this session; every fleet count was measured by this session against `git archive HEAD` copies, never a working tree. Baseline on a clean tree: **1868 passed, 3 skipped**; `validate-docs.sh` OK.
+
+### The third pass's five, verified independently
+
+| # | claim | verdict |
+| --- | --- | --- |
+| 1 | the split is recut on what ADR-0038 newly forbids | **incomplete — a case now falls to silence.** See H1 |
+| 2 | `44` → `117` in all four places | **holds** — 117 reproduced at `your-trainer`'s `HEAD` (44 in its working tree); the surviving `44`s are review-section quotes. One stale decomposition, H3 |
+| 3 | the `PROMOTIONS` comment carries a real fleet measurement | **holds exactly** — re-measured at every fleet `HEAD`: `TEST-AUTOMATED-STATUS` **12** (your-trainer 2, project-os-dev 4, your-health 6), `TEST-AUTOMATED-EVIDENCE` **24** (4/8/12), `ACCEPTANCE-STATUS` **0** everywhere |
+| 4 | the last two stale tier statements are gone | **holds** — `blocking()`'s summary line reads *"Unsettled MANUAL checks"*, and the `cockpit.py` block no longer contradicts itself two lines apart |
+| 5 | REQ-0059 narrowed to what was built | **holds in [[REQ-0059]]** — Statement, criterion `~` and frontmatter `acceptance:` all corrected. Not propagated to this note, H5 |
+
+**The earlier thirteen are intact**, each re-mutated and re-executed by this session: `missing_issue_refs` → `return []` fails `test_every_tier_two_item_names_the_issue_that_created_it`; deleting the `Broken command` routing fails `test_a_broken_command_routes_to_its_own_section` and `test_the_broken_section_asks_for_a_person`; renaming `Needs you` → `Needs a run` fails `test_every_section_label_carries_no_verb`; dropping `swift` from both validator copies fails both parity parametrisations; restoring `_covers_an_issue`'s own regex fails `test_the_navigator_and_the_page_classify_a_note_identically` — still failing after the `fm["level"]` removal, so that removal did not weaken the guard. `fm["level"] = "acceptance"` is confirmed inert: `item_from_note` reads `id`, `tier`, `mark` and `invalidated_by`, and never `level`. The new six-case matrix is non-vacuous: reverting the split to its `level`-first form fails two of its parametrisations.
+
+### H1 — the recut drops a case to silence, and that case was reported one commit ago (blocking)
+
+Enumerated the full cross-product against the validator rather than against the table — `level` ∈ {`acceptance`, absent, `integration`} × `command` ∈ {present, absent} × `status` ∈ {`ready`, `passing`, `failing`, `active`}, 24 cells executed. Twenty-three land where the note says. One does not:
+
+| cell | pre-ADR-0038 (`5adcbc8`) | second pass (`72e2038`) | **current (`5671bcc`)** |
+| --- | --- | --- | --- |
+| command-bearing, **not** `level: acceptance`, at `ready` | *silent* | `WARN [TEST-AUTOMATED-STATUS]` | **silent** |
+
+`newly_forbidden = automated and status in TEST_RUNNER_STATUSES` is `False` for `ready`, and the `elif level == "acceptance"` that follows does not catch a note without that level — so the cell falls out of both branches. [[ADR-0038]]'s Rule is *"a test note that declares a `command:` never holds `ready`, `passing` or `failing`"* over a domain of *"every `TST-*` note whose `command:` is non-empty"*, and this file's own comment sixty lines above says *"the same three statuses are forbidden on both populations, and the rule finally covers the domain it always described."* For `ready` it does not: it covers the `level: acceptance` half only, which is the pre-ADR-0038 domain. The widening is implemented for two of its three statuses.
+
+[[REQ-0058]] criterion 1 is ticked `[x]` — *"the forbidden-status check ranges over `command:` non-empty, not over `level: acceptance` — domain went 89 → 139 notes"* — and for `ready` that is the claim H1 refutes.
+
+**The six-case matrix omits exactly this cell.** It covers (`acceptance`, cmd, `passing`/`failing`), (none, cmd, `passing`), (`acceptance`, cmd, `ready`), (`acceptance`, no cmd, `passing`/`ready`). The seventh case — (none, cmd, `ready`) — is the one that changed, and nothing asserts it in either direction: extending `newly_forbidden` to cover it passes `tests/test_automated_test_holds_no_verdict.py` and `tests/test_tests_view.py` unchanged (104 passed), so the silence is unguarded rather than deliberate.
+
+**Population and severity.** Zero at every fleet `HEAD` today: 50 command-bearing notes fleet-wide (this repo 38, project-os-dev 4, your-health 6, your-trainer 2), **none** of them at `ready`. So this is latent, not live — which is precisely the standing the third pass's A1 had when it was filed blocking, and the direction is the worse one: A1 was a rule biting too hard, this is a rule not biting at all. The `Run` obligation is not affected (`obligations._is_owed` filters test notes through `_is_manual_test`, so a command-bearing note never reaches the badge); the gap is in the validator, which is the conformance mechanism ADR-0038 names.
+
+The prose asserts the closed reading in three places, and each is true only of the `level: acceptance` half: this note's correction table row *"`level: acceptance`, command, at `ready` → error, unchanged"* with the surrounding sentence *"`ready` deliberately does not inherit the cutover: it was already forbidden with a command"* (it was not, without that level); the validator comment's *"What errored before ADR-0038, and still errors on day one"* bullets; and `test_ready_with_a_command_was_already_forbidden_and_still_errors`, whose name generalises past the `level: acceptance` fixture it actually builds.
+
+### H2 — [[ISS-0240]]'s title regressed from the right number to the wrong one (blocking)
+
+The third pass's D1 said, in terms: *"the title is right and the body is off by one"* — title `579`, body `580`, and **579 is right**. The title now reads **`232 of 580`**, and the body still reads `232 of 580`. The correction adopted the number the review identified as wrong.
+
+Measured this session against `your-trainer` at `HEAD`, through this repo's own `acceptance.load`: the suite holds **579** items; stripping `tier:` changes **232** delta identities out of **578** distinct keys; **0** rows change suite position (the body's other figures reproduce exactly). `docs/tests/acceptance/` holds **580** files at `HEAD`, one of them `README.md`. So `580` is a *file* count standing where a *check* count belongs — in the title of the note whose entire subject is measuring against the right basis, and in a list, a backlink and a search result. The `74` was correctly dropped.
+
+### H3 — [[REQ-0060]] criterion 2 keeps the retracted number's decomposition (non-blocking)
+
+The headline is corrected to `117`, and 117 reproduces. The clause after it does not: *"12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`"* sums to **44**, the working-tree figure the same sentence withdraws. Measured at `your-trainer`'s `HEAD`: **85** name nothing and **32** name only provenance. Both validator copies and the test docstring dropped the breakdown rather than restating it, which is why this survives in one place only.
+
+### H4 — three docstrings the third pass enumerated still assert the day-one erroring (non-blocking)
+
+Named in this phase's own transcription of that pass — *"three docstrings in `tests/test_automated_test_holds_no_verdict.py` (`:15`, `:89`, `:129`) still assert the day-one erroring the fix removed"* — and unchanged: `:15` *"Landed at **zero violations**, so it errors from day one rather than taking a warning tier"*, `:104` *"The half that was already law, unchanged — 89 notes' worth"* (those 89 are command-bearing and no longer take this code at `passing`/`failing`), and `:144` *"Why this errors on day one instead of warning"*. They contradict `:277` in the same file, which asserts the opposite and passes: *"the fleet corpus is not clean, so neither may error on day one."* Not claimed as fixed anywhere, and not carried forward as open either.
+
+### H5 — the correction reached [[REQ-0059]] and not this note's own summary (non-blocking)
+
+Line 24, under **What changed**, still reads *"**`tier:` is read by no code path.**"* — the exact sentence REQ-0059 retracted this round — and line 51 repeats *"It stops being read"*. The closing section correctly says REQ-0059 now says *no section or gate decision reads it*, 270 lines below. A cold reader who takes the change note's summary at face value gets the retracted claim; the third pass's G1 was *"two notes describing one fact, disagreeing"*, and after this round the two notes are [[REQ-0059]] and this one.
+
+### H6 — *"89 of the fleet's 139"* is a working-tree figure carried without its basis (non-blocking)
+
+Measured this session: at every fleet `HEAD`, **zero** notes are both `level: acceptance` and command-bearing — the 89 exist only in `your-trainer`'s uncommitted work, where 89 of its 91 automated notes carry that level. The figure appears unqualified in the validator comment at `validate-docs.py:2432`, in `tests/test_automated_test_holds_no_verdict.py:306` and in this note's correction section, while the `PROMOTIONS` comment 1,560 lines above declares *"Measured at HEAD across every repo carrying a test note"*. It is not load-bearing — the dating rests on the 12/24/0 counts, which are correct — and [[ADR-0038]] does record 139 as a dated 2026-08-19 domain measurement. It is flagged because it is the class three passes have corrected, appearing again beside a claim of `HEAD` measurement.
+
+### Verdict
+
+`changes-requested`. **Three of the third pass's five are fully fixed and one of the remaining two is fixed where it was filed** — the `117` correction, the fleet measurement and the stale tier prose all hold under independent re-measurement, REQ-0059 is honestly narrowed, and the thirteen earlier findings survive re-mutation with no sign that this round disturbed them. The recut is also right in shape: cutting on *what ADR-0038 newly forbids* rather than on `level:` is the correct line, and its matrix is not vacuous.
+
+It does not pass because the recut is **incomplete in the direction that is hardest to notice**. A case that the previous commit reported now reports nothing, no test can tell, and the note, the code comment and a test name all describe the closed reading. That is the third consecutive round in which fixing the previous round's findings introduced a new defect, and the second in which the new defect is *a check that cannot fire* — the failure mode this phase exists to remove. H2 is smaller but the same shape: a review said which of two numbers was right, and the number the review rejected is the one that landed.
+
+**Suggested follow-ups**: extend `newly_forbidden` to the whole of `ACCEPTANCE_FORBIDDEN_STATUSES` for command-bearing notes that are not `level: acceptance` (or state in the code why `ready` is deliberately exempt there, and mark [[REQ-0058]] criterion 1 `~` to match), and add the seventh row to the matrix so the cell is asserted either way; correct [[ISS-0240]]'s title and body to `579` (or `578` distinct keys, stating which); repair REQ-0060's decomposition to 85/32; and fold H4, H5 and H6 into one sweep, since they are one class and are enumerated here with line numbers.
+
+---
+
+# Corrected after the fourth independent review, 2026-08-20
+
+**Four passes, all `changes-requested`, twenty-three findings.** This is the current state; everything above is evidence.
+
+## The blocking one, and it was mine again
+
+**Recutting the split, I dropped a case to silence.** `newly_forbidden = automated and status in TEST_RUNNER_STATUSES` excludes `ready`, and the `elif level == "acceptance"` beneath it does not catch a note that is command-bearing but *not* an acceptance check — so **command + `ready` + no level reported nothing at all**, where the previous commit had warned. Third round running in which the new defect is a check that cannot fire.
+
+The clause is now `automated and (status in TEST_RUNNER_STATUSES or level != "acceptance")`, which is *(the rule after ADR-0038) minus (the rule before)* stated exactly. **The six-case sample is replaced by the whole 16-cell cross-product** — level present/absent × command present/absent × four statuses — written out rather than computed, so a rule change must edit the expectation it breaks.
+
+## The denominator, settled rather than picked
+
+ISS-0240's row count was reported as 579, then 580, then 578. All three counted something real: 580 `.md` files in `docs/tests/acceptance/`, 579 of them checks once `README.md` is excluded, and **581** — the population `acceptance.load` actually returns, because two acceptance-level notes live in `docs/tests/` rather than the acceptance directory. 581 is the number the code operates on.
+
+**The `232` figure is withdrawn, not corrected.** Re-measured directly, dropping `tier` from `_delta_key` makes exactly **2** items collide. I could not reproduce 232 by any reading, and a number that cannot be got twice does not belong in a note whose subject is measuring against the right basis. The prerequisite stands on a stronger and certain claim: `_delta_key` is `(tier, name)`, so removing the field **changes the value of all 581 keys**, and a delta computed across that commit matches nothing.
+
+## The rest
+
+- **`REQ-0060`'s breakdown** said 12 + 32, which sums to the withdrawn 44. At HEAD it is **85 naming nothing, 32 naming only provenance**.
+- **Three test docstrings** still asserted day-one erroring, contradicting the file's own later assertion. The module docstring now carries the fleet figures instead of this repo's.
+- **`CHG` line 24** still said *"`tier:` is read by no code path"* — the claim REQ-0059 retracted a round earlier, 270 lines above its own correction.
+- **"89 of 139" now carries its basis**: that is `your-trainer`'s working tree; at every fleet HEAD it is 0. Latent, not live — but every repo except this one still ships the `run-tests.py` that writes those statuses.
+
+## Still open, deliberately
+
+[[ISS-0238]], [[ISS-0240]], and [[ISS-0209]] — which remains the boundary on all of it: **the acceptance gate executes in no repo that holds a check.**
 

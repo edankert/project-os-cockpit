@@ -113,3 +113,15 @@ Third pass, `model:claude-opus-5`, fresh context: a session that had seen neithe
 **Navigability**, asked directly: a reader starting here arrives at the true state — the `~` markers carry both bases and *"Reviewed twice"* states the regression plainly. A reader starting at [[CHG-20260820-The-Suite-Is-The-Verdict]] does not: it ends on the second pass's recommended follow-ups with no section saying what was done, and its section B still describes `missing_issue_refs` as broken in the present tense. One correction section there closes it.
 
 Full detail with line numbers and measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Third independent review*.
+
+## Fourth independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Fourth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any prior reviewer's. Every mutant applied and executed here; every fleet count measured against `git archive HEAD`, never a working tree. Baseline **1868 passed, 3 skipped**, validator OK.
+
+**Three of the third pass's five hold under independent re-measurement, and a fourth holds where it was filed.** `CHECK-SUBJECT` is **117** at `your-trainer`'s `HEAD` and 44 in its working tree, corrected in all four named places. The `PROMOTIONS` comment's fleet figures are exact: `TEST-AUTOMATED-STATUS` **12** (2/4/6), `TEST-AUTOMATED-EVIDENCE` **24** (4/8/12), `ACCEPTANCE-STATUS` **0** everywhere. Both stale tier statements are gone. [[REQ-0059]] is honestly narrowed. **All thirteen earlier findings survive re-mutation** — the `Broken command` routing, the vocabulary rename, the `swift` parity pair, `missing_issue_refs` and the `_covers_an_issue` delegation each fail their guards, the last still failing after the `fm["level"]` removal.
+
+**The blocking finding is that the recut is incomplete in the silent direction.** Cutting the split on *what ADR-0038 newly forbids* is the right line, but `newly_forbidden` tests `status in TEST_RUNNER_STATUSES`, so a command-bearing note that is **not** `level: acceptance` at `status: ready` falls out of both branches and is reported by nothing — warned by the immediately preceding commit, silent before ADR-0038, silent again now. All 24 cells of the cross-product were executed; that one is the only one that does not land where the record says. The six-case matrix omits it, and closing it breaks no test. Zero instances at every fleet `HEAD`, so latent — the same standing on which the third pass's A1 was filed blocking, in the worse direction. Exit criterion 1 and [[REQ-0058]] criterion 1 both state the closed reading.
+
+**And [[ISS-0240]]'s title took the number the third pass rejected**: `232 of 580`, where that pass said 579 is right; measured here, 579 suite items, 578 distinct delta keys, 580 files including `README.md`.
+
+Full detail with line numbers and measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.

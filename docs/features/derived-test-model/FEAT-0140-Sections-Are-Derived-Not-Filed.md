@@ -68,3 +68,11 @@ Third pass, `model:claude-opus-5`, fresh context, a different session from the a
 **Three things remain.** The stale-tier sweep missed `blocking()`'s docstring **summary line** — `acceptance.py:599`, still *"Unsettled Tier 1/2 items"* — and the orphaned `#:` block at `cockpit.py:4302-4327`, which still says *"`tier:` itself is untouched — it is still the field, still the grouping"* two lines above *"**Gone with `tier:`** (ADR-0039)"*. [[ISS-0240]]'s title still carries the 74 its body retracts, and says *579* where the body says *580* (579 is right). And `_covers_an_issue`'s delegation, while correct at its one call site, now answers *"is this in the Regression section"* under a docstring asking *"does this verify a past defect"* — `TST-0017`, `TST-0019` and `TST-0022` in this repo each cover an `ISS-*` and now get `False`, safe only because command-bearing records are routed away before the call. Its `fm["level"] = "acceptance"` is inert; `item_from_note` never reads `level:`.
 
 Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections C1, D1 and F1.
+
+## Fourth independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Fourth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all three prior reviewers. Every mutant applied and executed here; every count measured at `HEAD`.
+
+**Both of this feature's third-pass items are fixed.** `blocking()`'s summary line now reads *"Unsettled MANUAL checks"*, and the `cockpit.py` block no longer says *"`tier:` itself is untouched"* two lines above *"Gone with `tier:`"*. [[REQ-0059]] is narrowed to what was built, with the four live readers named. Under mutation, `missing_issue_refs` still cannot be emptied and `_covers_an_issue` still fails the parity guard when its own regex is restored — including after the `fm["level"]` removal, which is confirmed inert. **The remaining finding is [[ISS-0240]]'s title**, which now reads `232 of 580` where the third pass said 579 is right; measured here, 579 suite items, 578 distinct delta keys and 580 files, one of them `README.md`. And the *"`tier:` is read by no code path"* correction did not reach [[CHG-20260820-The-Suite-Is-The-Verdict]] line 24. Detail in sections H2 and H5.
+
+Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fourth independent review*.

@@ -2431,9 +2431,12 @@ def validate(root, report):
         #:
         #: Third independent review, 2026-08-20: cutting it on `level:` sent a
         #: note that is BOTH `level: acceptance` and command-bearing to the
-        #: day-one code -- 89 of the fleet's 139 automated notes, 64% of the
-        #: widened domain, landing undated over a population every repo but
-        #: this one still has a `run-tests.py` that writes into.
+        #: day-one code -- the acceptance-level half of the automated
+        #: population. That is 89 of the fleet's 139 automated notes in
+        #: `your-trainer`'s WORKING TREE and **0 at every fleet HEAD**, so the
+        #: hazard is latent rather than live -- but every repo except this one
+        #: still ships a `run-tests.py` that writes those statuses, so one
+        #: sync plus one execution is all it takes.
         #:
         #: What errored before ADR-0038, and still errors on day one:
         #:   * `level: acceptance`, no command, any of the three;
@@ -2444,7 +2447,25 @@ def validate(root, report):
         #:   * anything command-bearing at `passing`/`failing`, at any level.
         automated = bool(command)
         if status in ACCEPTANCE_FORBIDDEN_STATUSES:
-            newly_forbidden = automated and status in TEST_RUNNER_STATUSES
+            #: Newly forbidden = what ADR-0038 added, which is (the rule after)
+            #: minus (the rule before). Before, ONLY `level: acceptance`
+            #: mattered, and a command exempted `passing`/`failing` there. So:
+            #:
+            #:   acceptance + command + passing/failing  -- was allowed  -> new
+            #:   NOT acceptance + command + any of three -- had no rule   -> new
+            #:   acceptance + command + ready            -- was an error  -> old
+            #:   acceptance + no command + any           -- was an error  -> old
+            #:
+            #: **The `level != "acceptance"` disjunct is not decoration.** A
+            #: fourth independent review executed all 24 cells and found the
+            #: one this clause was missing: command-bearing, not an acceptance
+            #: check, at `ready` fell to SILENCE -- it fails
+            #: `TEST_RUNNER_STATUSES` and the `elif` below only catches
+            #: acceptance notes. It had warned in the previous commit. A case
+            #: reporting less than it did is worse than one reporting under
+            #: the wrong code.
+            newly_forbidden = automated and (
+                status in TEST_RUNNER_STATUSES or level != "acceptance")
             if newly_forbidden:
                 promotion_emit(report, "TEST-AUTOMATED-STATUS", grandfathered, the_id)(
                     "TEST-AUTOMATED-STATUS",

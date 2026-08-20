@@ -30,7 +30,7 @@ An acceptance check that is not a standing claim about behaviour **must** name t
 ## Acceptance Criteria
 
 - [x] `CHECK-SUBJECT` warns with a cutover of 2026-11-18, and the test asserts the **date exists** — a justification with no cutover is the permanent-warning tier ADR-0011 forbids
-- [~] **Reconciled, and the number was wrong.** Measured at HEAD 2026-08-20: the checkable population is **117**, all in `your-trainer` (an earlier 44 was its working tree) — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`. The 68 figure counted checks with no `ISS-*` *anywhere*, most of which do name a `FEAT-*` and classify correctly. They are carried by the dated promotion rather than by ID: `GRANDFATHERED.yaml` is per-repo, and listing another repo's notes here would exempt nothing where it matters
+- [~] **Reconciled, and the number was wrong.** Measured at HEAD 2026-08-20: the checkable population is **117**, all in `your-trainer` (an earlier 44 was its working tree) — **85** naming nothing and **32** naming only a `PHASE-*`/`TASK-*`. The 68 figure counted checks with no `ISS-*` *anywhere*, most of which do name a `FEAT-*` and classify correctly. They are carried by the dated promotion rather than by ID: `GRANDFATHERED.yaml` is per-repo, and listing another repo's notes here would exempt nothing where it matters
 - [x] A new check naming no subject is reported immediately — `test_a_check_naming_no_subject_is_reported`
 
 ## Notes
@@ -60,3 +60,11 @@ Third pass, `model:claude-opus-5`, fresh context, a different session from the a
 **Criterion 2 was not corrected.** It still reads *"the checkable population is **44**, all in `your-trainer` — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`"*, with no basis and no `HEAD` figure, seventeen lines above this note's own second-pass paragraph saying *"reports **117**, not 44"*. The same 44 also survives in `src/project_os_cockpit/validate_docs_bundled.py:866`, its byte-identical twin `tools/scripts/validate-docs.py:866` — the comment that justifies dating the rule — and `tests/test_automated_test_holds_no_verdict.py:230`. Those are the three places the second pass enumerated, and none of them changed.
 
 The gap is the 74 Tier 3 checks: they carry `covers: []`, all fire this gate, and at `HEAD` none of them carries a `command:`. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section A2.
+
+## Fourth independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Fourth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all three prior reviewers.
+
+**The `117` is correct and independently reproduced**: measured against `your-trainer` at its committed `HEAD` through this repo's validator, `CHECK-SUBJECT` reports **117**, and **44** in its working tree, with zero in every other fleet repo. Scope, criterion, both validator copies and the test docstring all carry it, and the surviving `44`s are quotations inside review sections, which is the right place for them. `PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"` is still asserted.
+
+**The finding is the clause after the number.** Criterion 2 reads *"the checkable population is **117** … — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`"*, and 12 + 32 = **44**: the decomposition belongs to the working-tree figure the same sentence withdraws. Measured at `HEAD`: **85** name nothing and **32** name only provenance. Both validator copies and the test docstring avoided this by dropping the breakdown rather than restating it, so it survives here alone. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section H3.
