@@ -561,6 +561,10 @@ SHAPE_FILE = "file"
 SHAPE_ABSENT = "absent"
 
 
+#: A `FEAT-*` id inside a ref that may be a wikilink.
+_FEAT_IN_REF = re.compile(r"FEAT-\d+")
+
+
 @dataclass
 class Suite:
     path: Path | None = None
@@ -664,6 +668,54 @@ class Suite:
             #
             # Measured against `your-trainer` at HEAD: the gate goes 62 -> 68.
             if subjects is None or not item.refs or (subjects & set(item.refs)):
+                out.append(item)
+        return out
+
+    def blocking_minus(self, deselected: "set[str] | None" = None) -> list[Item]:
+        """The gate when a release has **held features back** ([[TASK-0512]],
+        under [[ADR-0040]]).
+
+        **Selection SUBTRACTS; it never divides.** :meth:`blocking_for` is the
+        divide reading — pass the subjects and get only the checks covering
+        them — and this task was written for that shape before [[ADR-0040]]
+        chose the other one. The difference is not academic: measured on
+        `your-trainer` 2026-08-20 (working tree), 39 of 59 blocking rows cover
+        a `FEAT`, and **36 of those 39 cover a feature the release does not
+        carry**. Dividing takes the gate to about 23 on the first render, by
+        nobody's decision, and empties the `chronic` bucket whose whole purpose
+        is keeping long-carried debt visible.
+
+        So a check is dropped **only** when every subject it names is a feature
+        somebody explicitly held back:
+
+        * no `covers:` at all -> gates (the fail-closed clause :meth:`blocking_for`
+          already carries, for the same reason);
+        * covers an `ISS-*`, `REQ-*` or `PHASE-*` -> gates, untouched by
+          selection, because no feature list speaks for it. 20 of
+          `your-trainer`'s 59 are in that class;
+        * covers a selected feature **and** a deselected one -> gates. Any
+          selected subject is enough, and this is the cell a subtraction rule
+          gets wrong.
+
+        `deselected` empty or `None` means nothing was held back, so this is
+        exactly :meth:`blocking`. **Absence of named contents must not move any
+        existing release's gate**, and that is the invariant the task states.
+        """
+        base = self.blocking()
+        if not deselected:
+            return base
+        out: list[Item] = []
+        for item in base:
+            refs = [str(r) for r in item.refs]
+            if not refs:
+                out.append(item)
+                continue
+            feats = {m.group(0) for r in refs for m in _FEAT_IN_REF.finditer(r)}
+            #: A non-feature subject means selection has nothing to say here.
+            if len(feats) != len(refs) or not feats:
+                out.append(item)
+                continue
+            if not feats <= deselected:
                 out.append(item)
         return out
 
