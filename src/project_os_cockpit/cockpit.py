@@ -3121,6 +3121,8 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
         if _platform_match(r, platform)
     ]
     out: list[dict[str, Any]] = []
+    #: Computed once, outside the loop: `acceptance.load` walks the suite.
+    _surface_counts = surface_coverage(index)
     out.extend(_standing_group(index))
     if designs:
         out.append({"key": "designs", "label": "Designs", "url": None,
@@ -3164,6 +3166,17 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
         # filters the patches each have to restate. Releases sit on `intent`
         # because they are few, permanent and project-level — the same reason
         # decisions and risks are here.
+        #: **Surfaces sit here** ([[TASK-0516]]). Edwin: *"where should they be
+        #: visible, probably in the design?"* -- and the answer holds for the
+        #: reason this whole group exists: the design view carries what BOUNDS
+        #: the project, and a surface is a place the product has, permanent and
+        #: project-level, exactly like a decision or a risk.
+        #:
+        #: A group in this loop rather than a fetch of its own also makes them
+        #: **findable**: the quick corpus is built from nav modes, so one entry
+        #: here answers the palette and the navigator at once -- which is the
+        #: gap [[TASK-0514]] recorded in `KNOWN_ABSENT` and this closes.
+        ("surfaces", "Surfaces", ("surface",)),
         ("releases", "Releases", ("release",)),
         ("workflows", "Workflows", ("workflow",)),
         ("reference", "Reference", ("reference", "architecture", "glossary")),
@@ -3184,9 +3197,27 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
         if not records:
             continue
         records.sort(key=lambda r: (r.note_id or "\uffff", r.rel_path))
+        #: **A surface carrying zero checks is visible ON THE HEAD**
+        #: ([[TASK-0516]]). Edwin: *"a surface with no coverage is the row this
+        #: whole type exists to make possible."*
+        #:
+        #: On the head rather than on the row, and the first attempt is why: it
+        #: went into `subtitle`, which `buildNavRow` documents as **deliberately
+        #: not rendered** -- [[ISS-0225]]'s defect exactly, sent and never
+        #: drawn, reintroduced inside the phase that removed it. The other drawn
+        #: candidate was `progress`, and it is worse: it paints a COMPLETION
+        #: bar, and an uncovered surface has no unfinished work, it has no work.
+        #: The head already carries counts on this pane ([[ISS-0241]]), it is
+        #: drawn, and it needs no renderer change.
+        head = label
+        if key == "surfaces":
+            bare = sum(1 for r in records
+                       if _surface_counts.get(r.note_id or "", 0) == 0)
+            if bare:
+                head = f"{label} · {bare} with no checks"
         out.append({
             "key": key,
-            "label": label,
+            "label": head,
             "url": None,
             "status": None,
             "item_layout": "stacked",
@@ -6049,6 +6080,42 @@ def _pluralise_for_label(type_name: str) -> str:
         "reference": "References",
     }
     return table.get(type_name, type_name.title() + "s")
+
+
+def surface_coverage(index: Index) -> dict[str, int]:
+    """How many acceptance checks name each surface ([[TASK-0516]]).
+
+    **A surface with no coverage is the row this whole type exists to make
+    possible.** Nothing else in the record can state it: an uncovered *feature*
+    is [[TASK-0523]]'s subject, but a place in the product with no checks at
+    all is invisible until surfaces are notes -- there was no row for it to be
+    absent from.
+
+    **Matched on the title, because that is all there is today.** A check
+    carries `area:` as a STRING; making it a `SUR-*` link is [[TASK-0515]]'s
+    mapping and it has not happened. So this joins on the exact name, which is
+    the string the type exists to replace -- and a surface whose title matches
+    no `area:` reads as zero, which is correct rather than a gap in the join:
+    at this moment it genuinely covers nothing.
+    """
+    from . import acceptance as _acc
+
+    counts: dict[str, int] = {}
+    areas: dict[str, int] = {}
+    try:
+        suite = _acc.load(index.docs_root, index=index)
+    except Exception:                                 # pragma: no cover
+        suite = None
+    for item in (suite.items if suite is not None else []):
+        key = str(item.area or "").strip().lower()
+        if key:
+            areas[key] = areas.get(key, 0) + 1
+    for record in index.notes_by_type("surface"):
+        if record.rel_path.startswith("__templates__/"):
+            continue
+        title = str(record.title or "").strip().lower()
+        counts[record.note_id or ""] = areas.get(title, 0)
+    return counts
 
 
 def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:

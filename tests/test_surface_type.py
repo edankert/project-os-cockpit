@@ -92,3 +92,92 @@ def test_the_template_refuses_to_list_its_own_coverage() -> None:
 
 def test_the_two_validator_copies_still_match() -> None:
     assert BUNDLED.read_bytes() == VALIDATOR.read_bytes()
+
+
+# ---- surfaces on the design view (TASK-0516) ------------------------------
+
+def _design_groups(docs: Path) -> dict[str, dict]:
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    return {str(g.get("key")): g
+            for g in cockpit.nav_payload(Index.build(docs), "design")["groups"]}
+
+
+def test_surfaces_have_a_home_on_the_design_view() -> None:
+    """Edwin: *"where should they be visible, probably in the design?"* — and
+    the answer holds for the reason that group exists: the design view carries
+    what **bounds** the project, and a surface is a place the product has,
+    permanent and project-level, exactly like a decision or a risk.
+
+    A group in the constraints loop rather than a fetch of its own is also what
+    makes surfaces **findable** — the quick corpus is built from nav modes, so
+    one entry answers the palette and the navigator at once. That is the gap
+    [[TASK-0514]] recorded in `KNOWN_ABSENT`.
+    """
+    groups = _design_groups(ROOT / "docs")
+    assert "surfaces" in groups, sorted(groups)
+    assert [i["id"] for i in groups["surfaces"]["items"]] == ["SUR-0001"]
+
+
+def test_a_surface_with_no_checks_is_visible_as_such() -> None:
+    """*"A surface with no coverage is the row this whole type exists to make
+    possible."*
+
+    **On the head, not on the row**, and the first attempt is why. It went into
+    `subtitle`, which `buildNavRow` documents as **deliberately not rendered** —
+    [[ISS-0225]]'s defect exactly, sent and never drawn, reintroduced inside the
+    phase that removed it. The other drawn candidate, `progress`, is worse: it
+    paints a *completion* bar, and an uncovered surface has no unfinished work,
+    it has no work at all.
+    """
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    index = Index.build(ROOT / "docs")
+    assert cockpit.surface_coverage(index) == {"SUR-0001": 0}
+    head = str(_design_groups(ROOT / "docs")["surfaces"]["label"])
+    assert head == "Surfaces · 1 with no checks", head
+
+
+def test_the_count_is_not_sent_on_a_field_no_renderer_draws() -> None:
+    """[[ISS-0225]], asserted against the thing that nearly happened: the row
+    must not gain a coverage field, because the two places it could go are
+    undrawn (`subtitle`) or wrong (`progress`).
+    """
+    rows = _design_groups(ROOT / "docs")["surfaces"]["items"]
+    for row in rows:
+        assert "coverage" not in row and "checks" not in row, sorted(row)
+        #: `progress` would render a completion bar over checks that do not
+        #: exist — 0% of nothing, read as unfinished work.
+        assert "progress" not in row, (
+            "a surface row carries `progress`, which paints a completion bar "
+            "for work that does not exist"
+        )
+
+
+def test_a_covered_surface_drops_off_the_head_count(tmp_path: Path) -> None:
+    """The head names only the uncovered ones, so the count moves when the
+    corpus does — constructed, because this repo has exactly one surface and
+    it covers nothing.
+    """
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "surfaces").mkdir(parents=True)
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "surfaces" / "SUR-0001-Ride.md").write_text(
+        '---\ntype: "[[surface]]"\nid: SUR-0001\ntitle: "Ride"\n'
+        'status: active\nkind: screen\n---\n\n# Ride\n', encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0001-C.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nlevel: acceptance\n'
+        'status: active\narea: "Ride"\nmark: todo\ncovers: []\n---\n\n# C\n',
+        encoding="utf-8")
+    index = Index.build(docs)
+    assert cockpit.surface_coverage(index) == {"SUR-0001": 1}
+    groups = {str(g.get("key")): g
+              for g in cockpit.nav_payload(index, "design")["groups"]}
+    assert str(groups["surfaces"]["label"]) == "Surfaces", (
+        "a covered surface is still counted as bare"
+    )
