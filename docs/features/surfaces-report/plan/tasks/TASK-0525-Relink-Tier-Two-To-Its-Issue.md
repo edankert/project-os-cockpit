@@ -7,6 +7,9 @@ status: backlog
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 parent: "[[FEAT-0131-The-Suite-Is-Refined]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -52,7 +55,7 @@ He chose *read each and decide*, with a table to approve before anything is writ
 
 ### They are not regression checks
 
-**All 73 derive to the `feature` section.** [[ADR-0039]] derives a check's section from `covers:`, and **67 of the 73 name a `FEAT-*`** — usually a `TASK-*` beside it. Read, they are feature verification: *Ramp Warmup Rendering*, *Cue Display*, *Cue Auto-Dismiss*, *No Cue in Free Ride*. Not guards over fixed defects.
+**All 73 derive to the `feature` section** — verified 73 of 73. [[ADR-0039]] derives a check's section from `covers:`, and **35 of the 73 name a `FEAT-*`** directly, 15 name only a `TASK-*`, 17 name something else, and 6 name nothing at all *(corrected after independent review: the note first said **67**, which is `73 − 6` — the count naming **any** subject, not the count naming a feature. The load-bearing claim is unaffected, because the section is derived from the absence of an `ISS-*` rather than from the presence of a `FEAT-*`)* — usually a `TASK-*` beside it. Read, they are feature verification: *Ramp Warmup Rendering*, *Cue Display*, *Cue Auto-Dismiss*, *No Cue in Free Ride*. Not guards over fixed defects.
 
 For comparison, the 91 that **do** name an issue derive to `regression` (86) and `automated` (5) — correctly, and by the same rule.
 
@@ -78,3 +81,15 @@ Read, none is a regression guard either — they are empty-state and user-switch
 **Proposed, awaiting approval:** give each the feature it verifies — `FEAT-0002` (rider profiles) for TST-0434/0435, `FEAT-0060` (history) for TST-0436, `FEAT-0007` (device pairing) for TST-0444/0445/0446. That moves them off the fail-closed path into Feature tests. **No issue is invented for any of them.**
 
 Nothing has been written. The table above is the approval this task's own instruction asked for.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **changes-requested**. Every claim below was re-measured or re-executed.
+
+**The premise refutation is correct and reproduces exactly.** At `your-trainer` HEAD: 158 `tier: 2` checks, **85** with an `ISS-*` in `covers:`, **73** without; working tree 164 / 91 / **73**. The basis-independence of 73 is real and is the right thing to have noticed. The excavation recovering 0 of 73 is consistent with a lossless migration.
+
+**The load-bearing claim holds**: all **73** derive to the `feature` section under `ADR-0039` — verified through `section_of` at both bases, 73/73.
+
+**But *"67 of the 73 name a `FEAT-*`"* does not.** Parsed with YAML rather than a regex, at both bases: of the 73, **35** name a `FEAT-*`, 26 name a `TASK-*`, and **6** carry an empty `covers:`. 67 is almost certainly `73 − 6` — the count naming *any* subject — described as though it were the count naming a feature.
+
+That matters because 67 is the number the closure rests on: *"67 of the 73 need nothing"*. The conclusion may well survive on the section derivation, which is verified — but as written the note justifies it with a figure that is not what it says it is, and the reader cannot tell which of the two readings was actually used to decide.

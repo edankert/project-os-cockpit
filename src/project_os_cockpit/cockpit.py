@@ -4083,6 +4083,20 @@ def _test_as_surface(index: Index, record: NoteRecord, days: int) -> dict[str, A
     }
 
 
+def _feat_refs(record: NoteRecord) -> list[str]:
+    """The `FEAT-*` ids a note's `covers:` names ([[ISS-0247]]).
+
+    Only features: the quiet group's label says *no feature in flight*, and a
+    bucket that quieted an issue-covering check under it would be saying
+    something untrue about a row it removed.
+    """
+    return [
+        m.group(0)
+        for ref in (record.frontmatter.get("covers") or [])
+        for m in re.finditer(r"FEAT-\d+", str(ref))
+    ]
+
+
 def _covers_an_issue(record: NoteRecord) -> bool:
     """Does this test verify a past defect rather than current behaviour?
 
@@ -4279,11 +4293,18 @@ def _tests_groups(
         #: [[ADR-0028]] decision 3 is about subjects that do not exist YET.
         #: Reusing it for subjects that are FINISHED inverts what it means, so
         #: this asks the narrower question the release gate already asks.
-        elif record.frontmatter.get("covers") and _obligations.ids_are_unbuilt(
-                [m.group(0)
-                 for ref in (record.frontmatter.get("covers") or [])
-                 for m in re.finditer(r"[A-Z]+-\d+", str(ref))],
-                index):
+        #: **FEAT-shaped subjects only** (independent review, 2026-08-20).
+        #: `NOT_YET_BUILT` contains `deferred`, which is a legal **issue**
+        #: status -- so a regression check covering a `deferred` `ISS-*` landed
+        #: here, under a label reading *"no feature in flight"*, and never
+        #: reached `Regression tests`. That is the same category slip
+        #: [[ISS-0247]] diagnoses at the terminal end, committed at the other.
+        #:
+        #: A check whose subject is an issue is a regression guard; whether
+        #: that issue is deferred is [[TASK-0526]]'s question on the release
+        #: gate, not this bucket's.
+        elif (_feat_refs(record) and not _covers_an_issue(record)
+              and _obligations.ids_are_unbuilt(_feat_refs(record), index)):
             buckets["quiet"].append(record)
         elif _covers_an_issue(record):
             buckets["regression"].append(record)

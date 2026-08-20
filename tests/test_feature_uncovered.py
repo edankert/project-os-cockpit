@@ -169,3 +169,42 @@ def test_the_scaffold_and_the_validator_ask_one_question() -> None:
     )
     assert "acceptance_exception" in validator
     assert "acceptance_exception" in scaffold
+
+
+def test_a_non_acceptance_test_is_not_coverage(tmp_path: Path) -> None:
+    """`_features_covered_by_acceptance` must read `level: acceptance` only.
+
+    **Proved by mutant, by independent review**: dropping the level filter
+    passes every other test in this file and **silences 29 of this repo's 88
+    findings** — a non-acceptance `TST-*` naming a terminal feature would count
+    as coverage, and the rule would report silence on features nothing verifies
+    in the sense it means.
+
+    No fixture constructed this before, which is why the hole survived: every
+    other case here uses an acceptance note or none at all.
+    """
+    docs = tmp_path / "docs"
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (tmp_path / "SNAPSHOT.yaml").write_text(
+        'version: 1\nproject:\n  name: "t"\n  repo_root: "."\n'
+        "counters:\n  FEAT: 1\n  TST: 2\nitems: {}\n", encoding="utf-8")
+    (docs / "features" / "f" / "FEAT-0001-Thing.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "Thing"\n'
+        'status: done\n---\n\n# Thing\n', encoding="utf-8")
+    #: The suite exists, so the rule is switched on…
+    (docs / "tests" / "acceptance" / "TST-0002-Other.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0002\ntitle: "Other"\n'
+        'level: acceptance\nstatus: active\narea: "A"\nmark: todo\n'
+        'covers: []\n---\n\n# Other\n', encoding="utf-8")
+    #: …and this covers the feature but is NOT an acceptance check.
+    (docs / "tests").joinpath("TST-0001-Unit.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "Unit"\n'
+        'status: passing\ncommand: "pytest -q"\n'
+        'covers: ["[[FEAT-0001]]"]\n---\n\n# Unit\n', encoding="utf-8")
+
+    assert _findings(tmp_path) == 1, (
+        "a non-acceptance test is being counted as acceptance coverage, so "
+        "FEATURE-UNCOVERED reports silence on a feature nothing verifies in "
+        "the sense the rule means"
+    )

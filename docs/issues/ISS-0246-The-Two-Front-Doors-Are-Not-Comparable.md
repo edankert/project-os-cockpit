@@ -7,6 +7,9 @@ status: open
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["measured while closing TASK-0511, 2026-08-20"]
 severity: high
 component: cockpit
@@ -40,7 +43,7 @@ So the obligation has been carried, note to note, in a form nobody can discharge
 
 This note first claimed *"[[ADR-0010]] is `proposed` … the decision has never been taken."* **It is `accepted`, `decided_option: "4"`, decided 2026-08-12** — and I asserted otherwise without opening it. Filing an issue about unread premises on an unread premise.
 
-**Option 4 is *parity, gated on an authenticated write path*.** Edwin confirmed parity again on 2026-08-20 when asked, which is consistent rather than new. The ADR's own words: *"The browser cockpit is the reading surface **for now**, and that is a **stage rather than a property**."*
+**Option 4 is *parity, gated on an authenticated write path*.** *(This repo's [[ADR-0010]] — `What the browser cockpit is for`. `project-os-dev` carries a different `ADR-0010`, and an unqualified link resolved to the wrong one for the reviewer; the fleet has two.)* Edwin confirmed parity again on 2026-08-20 when asked, which is consistent rather than new. The ADR's own words: *"The browser cockpit is the reading surface **for now**, and that is a **stage rather than a property**."*
 
 So the twelve-against-two gap is not an undecided question. It is **the decision's own precondition, unmet**:
 
@@ -70,3 +73,16 @@ The real defect stands, narrowed: ***both front doors* has been quoted as though
 - [ ] The decision is taken — [[ADR-0010]] accepted, amended or declined, saying which pages the browser cockpit owes.
 - [ ] Notes that carry a *both front doors* obligation are re-read against it: [[TASK-0511]]'s follow-up is the live one.
 - [ ] Whatever is decided, the rule stops being quoted at pairs where only one side has the surface.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+Re-derived and correct on every point I could check.
+
+- **`ADR-0010` is `accepted`, `decided_option: "4"`** — verified in `docs/decisions/ADR-0010-What-The-Browser-Cockpit-Is-For.md`. The self-correction is right.
+- **The stage decomposition is faithful to option 4**, not read into it. Decision 4 says *"REQ-0034 is the unlock, and it gates PHASE-029"* (the auth write path is the gate); decisions 1–2 grant the Overview and the read-only Design register **now** (the reading views are ungated); decision 3 keeps every actuator mode-3 (the writing surfaces come after). Three stages, each with a sentence in the ADR behind it.
+- **12 against 2 reproduces.** `cockpit.js` implements exactly `~note` and `~root`. `renderer.ts` matches 17 `~` routes, of which the note's 12 are the views; the other five (`~accept`, `~note`, `~root`, `~session`, `~sweep`) are addressing and sub-page routes. The curation is defensible but the note does not say it curated — worth one clause.
+- **The four annotated notes are the right four.** `FEAT-0084`, `TASK-0364`, `TASK-0365` and `REQ-0032` are the live ones; annotating the 21 terminal records would have been the second-encoding defect this phase spent itself removing.
+
+One hazard for a later reader: **there are two different `ADR-0010`s in the fleet** — this repo's *What the browser cockpit is for*, and `project-os-dev`'s *Test status is stamped by execution*. This note links `[[ADR-0010]]` unqualified. I resolved to the wrong one first.

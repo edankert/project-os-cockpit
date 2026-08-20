@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -51,3 +54,19 @@ Platform is read from the **release**, never the feature — [[ISS-0236]] is why
 ### The id is the member; the slug is display
 
 `[[FEAT-0001-Thing]]` and a bare `FEAT-0001` name one feature, so membership compares on the id. A remove that matched the full wikilink would silently no-op against `[[FEAT-0001]]`, which is what eleven historical releases actually contain.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+All three refusals are genuinely guarded. Five mutants executed, every one caught by a named test:
+
+| mutation | caught by |
+|---|---|
+| a shipped release becomes mutable | `test_a_shipped_release_is_immutable` |
+| the platform comparison dropped from the clash check | `test_across_platforms_it_is_the_normal_case` |
+| a phase naming nothing that resolves is accepted | `test_a_phase_naming_nothing_that_resolves_is_refused` |
+| the same-platform clash check neutered | `test_the_same_feature_in_two_open_releases_on_one_platform_is_refused`, `test_a_phase_clash_names_the_feature_not_the_phase` |
+| a phase stored instead of contributing its features | three tests |
+
+The third refusal is the one the note flags as easy to get wrong, and the per-contributed-feature check — refusing on the member that clashes rather than on the phase id — is asserted rather than described. Overriding `_set_block_list` in favour of the wikilink-list helper is right: quoting the list turns it into one string, which is the `FEAT-0107`/`TASK-0445` defect the note cites.

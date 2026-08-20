@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -50,3 +53,13 @@ A type with no instance is a schema nobody has tested, so this is one rather tha
 ### What this does NOT do
 
 **Nothing reads `area:` as a `SUR-*` link yet.** A check still carries the string, and the type is defined beside it. Making the two meet is [[TASK-0515]] (mapping `your-trainer`'s 94 areas onto a set of surfaces) and [[TASK-0516]] (rendering them). This task is the schema, and claiming more would be the overclaiming this phase exists to remove.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+The `SUR-*` type is wired into the validator and the vocabulary is guarded: adding `done` to the surface status set fails `test_the_type_is_wired_into_the_validator` and `test_an_illegal_surface_status_is_refused`. The reasoning for `active`/`retired`/`superseded` — a surface is not *done*, it exists until the product stops having it — is sound, and adding no new vocabulary respects `ADR-0008`.
+
+The join in `surface_coverage` is on the exact title string, and in `your-trainer` it is currently perfect: 15 `SUR-*` titles, 15 `area:` values, no orphan on either side. The docstring is honest that a surface matching no `area:` reads as zero because it genuinely covers nothing.
+
+See `TASK-0515` for the two checks that carry `area: ""` and therefore sit on no surface at all — that is a gap in the migration's reach, not in this type.

@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -58,3 +61,20 @@ Proved against `your-trainer` in both directions:
 | holds back `FEAT-0047`, which carries one | **58** |
 
 **And the first wiring could never fire.** It read `held.get("features")` — and `_releases()` builds `id/title/status/version/date/platform` with **no `features` key**, so `named` was empty every time. The invariant test passed either way; it is the **positive** case that caught it. It reads the note's own frontmatter now, and a guard asserts that against the block rather than the whole function — the frozen branch reads `held.get("features")` legitimately, and a blanket search forbade it.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+Verified end to end, and the override of the task as written was correct rather than convenient. `blocking_for` is the **divide** reading; `ADR-0040` chose subtract, and the two give materially different gates — so implementing the task's stated helper would have shipped a rule the accepted decision rejects. Overriding it and saying so in the note is the right call.
+
+Five mutants executed against `blocking_minus`, every one caught by its named guard:
+
+| mutation | caught by |
+|---|---|
+| `feats <= deselected` → `feats & deselected` (the mixed cell) | `test_the_mixed_cell_still_gates` |
+| drop the non-feature-subject clause | `test_selection_cannot_reach_a_non_feature_subject` |
+| drop a no-`covers:` check instead of gating it | `test_a_check_with_no_subject_always_gates` |
+| remove the `if not deselected: return base` short-circuit | 14 tests (it is load-bearing, not a convenience) |
+
+The end-to-end table reproduces exactly on `your-trainer`: `blocking_minus(None)` = `blocking_minus(set())` = **59**, holding back `FEAT-0047` = **58**. The account of the first wiring that could never fire — `held.get("features")` against a `_releases()` dict with no `features` key — is the same class this phase keeps finding, and it is recorded rather than smoothed.

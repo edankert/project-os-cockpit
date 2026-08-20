@@ -2734,3 +2734,37 @@ def test_the_quiet_group_is_one_collapsed_line_and_asks_nothing() -> None:
     #: Explicitly NOT owed: marking it would put the number back on the
     #: surface it was taken off.
     assert not quiet.get("needs_human")
+
+
+def test_a_regression_check_is_never_quieted_as_a_feature(tmp_path: Path) -> None:
+    """**The category slip at the other end** (independent review, 2026-08-20).
+
+    `NOT_YET_BUILT` contains `deferred`, which is a legal **issue** status. The
+    quiet bucket sat above `_covers_an_issue`, so a regression check covering a
+    `deferred` `ISS-*` landed in `Quiet · no feature in flight` — a label that
+    is untrue about the row it removed — and never reached `Regression tests`.
+
+    [[ISS-0247]] diagnoses exactly this slip at the *terminal* end (a `done`
+    feature is not in flight either). This is the same mistake at the
+    *unbuilt* end, committed in the fix for the first one.
+    """
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "issues").mkdir(parents=True)
+    (docs / "tests").mkdir(parents=True)
+    (docs / "issues" / "ISS-0001-D.md").write_text(
+        '---\ntype: "[[issue]]"\nid: ISS-0001\ntitle: "D"\n'
+        'status: deferred\n---\n\n# D\n', encoding="utf-8")
+    (docs / "tests" / "TST-0001-C.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nstatus: ready\n'
+        'covers: ["[[ISS-0001]]"]\n---\n\n# C\n', encoding="utf-8")
+
+    groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(docs))}
+    where = next((k for k, g in groups.items()
+                  if any(i.get("id") == "TST-0001" for i in g.get("items") or [])), "?")
+    assert where == "regression", (
+        f"a regression check landed in `{where}` — whether the issue it "
+        "guards is deferred is the release gate's question (TASK-0526), not "
+        "this bucket's, and `no feature in flight` is untrue of it"
+    )

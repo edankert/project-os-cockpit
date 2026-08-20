@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -79,3 +82,33 @@ The pass that looked for stragglers tested whether `area:` began with `SUR-`, an
 ### What this leaves
 
 `area:` is a string that now happens to equal a surface's title. **A check still does not link to a `SUR-*`**, and the join is by name — so renaming a surface silently orphans 91 checks. Closing that is a schema change on the check (`area:` becomes a link), which is [[FEAT-0130]]'s endpoint rather than this task's, and it is stated here so nobody reads the collapse from 94 to 15 as the whole job.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+**The gate claim is true, and provably stronger than stated.** Rather than compare two area mappings I collapsed all 579 `area:` values in a copy of the working tree to a single constant and re-measured with an indexed loader: `items=581`, `blocking=59`, and the **blocking key set is byte-identical** (symmetric difference 0). `Item.key` is `number + name` and `number` resolves to the note id, so `area:` cannot move the gate under *any* mapping. `quiet=20` and `resting=11` also reproduce.
+
+Two things the note should carry:
+
+**The 15 surfaces do not partition the suite.** They partition the 579 notes in `docs/tests/acceptance/`. The indexed loader returns **581** items: `TST-0015` and `TST-0018` are `level: acceptance` notes living in `docs/tests/`, and both carry `area: ""`. So the suite holds **16** distinct area values, one of them empty, and two checks sit on no surface at all. That is the same directory-versus-index blind spot that produced `ISS-0213`, surfacing in the migration rather than in a measurement.
+
+**The `Riding` boundary is soft, and the note is right to distrust its own authorship.** Scoring each Riding check's title against the three surfaces' own vocabulary: **16 of the 91** in `Riding — routes` read as another Riding surface (`Multi-Lap Loop`, `DURATION → LAP after first rollover`, `ERG-Fallback Power Ramps Naturally at Ride Start`), **3 of 60** in `— simulation` (`Structured Workout Simulation`, `Elevation Terrain View`), **0 of 72** in `— structured`; and **6** straddle two (`Cockpit slope-mode chip — Route`, `ERG Power Updates on Interval Transition`, `Structured Workout ERG Default`). `Riding — routes` is absorbing in-ride behaviour generally, which is what a catch-all looks like. This is a title heuristic, not a reading of the checks — but it is enough to say the edge between `routes` and `simulation` is not sharp, and `Not a product surface` is a category rather than a place.
+
+Neither affects the gate. Both affect what the `SUR-*` type can claim to be.
+
+## Corrected after independent review — 579 of 581
+
+The fifteen surfaces partition the **`docs/tests/acceptance/` directory**. The indexed loader returns **581**: `TST-0015` and `TST-0018` are `level: acceptance` notes living in `docs/tests/`, and both carry `area: ""`. So **two checks sit on no surface**, and the suite has 16 distinct area values rather than 15.
+
+**That is the ISS-0213 blind spot again** — a directory walk standing in for the indexed corpus — and it is the third time this session the same gap has produced a wrong number. The migration itself is unaffected: those two carried no area before and carry none now. What is wrong is the claim that the mapping is total.
+
+Neither is hard to fix; both need a surface chosen, which is a judgement about what they verify rather than a rule.
+
+## The `Riding` boundary is soft, and the review says so with numbers
+
+Scoring each surface's titles against its own vocabulary, independent review found **16 of the 91** rows on `Riding — routes` reading as another Riding surface, **3 of 60** on `— simulation`, **0 of 72** on `— structured`, and **6** straddling two. `Riding — routes` is absorbing in-ride behaviour generally.
+
+A title heuristic is not a reading of the checks, so this is a signal rather than a verdict — but it points at the split I flagged as the one Edwin would most likely change, and it is the split I made without him. **`Not a product surface` is also a category rather than a place**, which the type's own template calls `surface-less` for exactly that reason.
+
+Left as a finding on the mapping rather than a silent re-cut: re-drawing 91 rows on a heuristic would be inventing a taxonomy while claiming to recover one, which is the error [[TASK-0517]] recorded.

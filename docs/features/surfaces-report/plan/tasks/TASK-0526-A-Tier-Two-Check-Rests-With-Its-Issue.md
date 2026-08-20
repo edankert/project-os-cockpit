@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0131-The-Suite-Is-Refined]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -63,3 +66,13 @@ A feature check whose `FEAT-*` is `done` is the ordinary state of every settled 
 ### Coverage, stated rather than assumed
 
 This reaches **85 of 158** Tier 2 checks — the ones that name an issue. The other 73 never did ([[TASK-0525]]), so they cannot rest until that research is done. The surface must not read as though it quieted everything it could.
+
+## Independent review — third pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`, reviewing `6cc7f72..HEAD`. Verdict: **approved**. Every claim below was re-measured or re-executed.
+
+Every figure reproduces on `your-trainer`'s working tree with an indexed loader: `blocking=59`, `quiet=20`, regression checks among the blocking **14**, of which **11** have every `ISS-*` closed and rest — so the gate reads 48. The dependency ceiling is stated correctly too: 85 of 158 Tier 2 checks name an issue, and the surface says so rather than looking as though it quieted everything it could.
+
+**The safety argument is measured, not asserted.** Dropping `section_of(i) == SECTION_REGRESSION` was re-executed here: **34** rows rest instead of 11 — the note's number exactly — and the mutant is caught by `test_a_regression_guard_rests_when_its_issue_closes`. Replacing `ids_are_settled` with `True` is caught by the same guard.
+
+`ids_are_settled` delegating to `is_done_status` rather than the band test, explicitly because `ISS-0245` had just been found, is the right lesson applied in the right direction.
