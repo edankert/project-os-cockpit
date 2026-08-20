@@ -645,33 +645,43 @@ class Suite:
             # checks are Tier 3, i.e. already retired in practice.
             if section_of(item) not in MANUAL_SECTIONS or item.settled:
                 continue
-            # **Known blind spot, deliberately left in place: see ISS-0208.**
-            # The tier filter above runs BEFORE the fail-closed clause below,
-            # so an unattributed Tier 3 check is dropped before the clause that
-            # exists for exactly that case can see it — `your-trainer` carries
-            # six (TST-0592..0597, `mark: todo`, never walked).
+            # **The blind spot is closed, and closing it was decided rather
+            # than tidied** ([[ADR-0039]], and this is [[ISS-0208]]).
             #
-            # Reversing the order was tried on 2026-08-18 and reverted. It
-            # takes the release gate 60 -> 66 in `your-trainer`, and TESTING.md
-            # says the opposite in as many words: *"Tier 3 tests do not gate
-            # releases (they are verification aids, not requirements)."* Those
-            # six never gated under the tier rule either, so blocking them is
-            # not failing closed — it is a NEW and tighter gate, which is a
-            # decision for a person and not a tidy-up at the end of a session.
+            # This comment used to describe a TIER FILTER running before the
+            # fail-closed clause, so an unattributed Tier 3 check was dropped
+            # before the clause meant for it could see it — `your-trainer`
+            # carries six (TST-0592..0597, `mark: todo`, never completed).
+            # Reversing the order was tried on 2026-08-18 and reverted with the
+            # note that it is *"a NEW and tighter gate, which is a decision for
+            # a person"*, because TESTING.md then said Tier 3 does not gate.
+            #
+            # ADR-0039 is that person's decision. There is no Tier 3: a check a
+            # machine executes carries a `command:`, and one that does not is
+            # manual and owed like any other. **So those six now block**, and
+            # the number moves in the direction the earlier attempt measured.
+            # TESTING.md no longer says otherwise — its Tier 3 section is gone.
+            #
+            # Measured against `your-trainer` at HEAD: the gate goes 62 -> 68.
             if subjects is None or not item.refs or (subjects & set(item.refs)):
                 out.append(item)
         return out
 
     def missing_issue_refs(self) -> list[Item]:
-        """Tier 2 items whose section names no ``ISS-*``.
+        """Regression checks naming no ``ISS-*``.
 
-        TESTING.md: *"Each references the `ISS-*` that created it."* A
-        regression test that cannot say what it regressed against is a Tier 1
-        test filed in the wrong place.
+        TESTING.md: *"`covers:` names the `ISS-*` that created it."* A
+        regression check that cannot say what it regressed against cannot be
+        told from a behaviour claim.
+
+        **Reads the section, not `tier:`** (ADR-0039). Keyed on `tier == 2` it
+        asked a question the corpus had stopped answering; the derived section
+        is the same question over a field that is still written.
         """
         return [
-            i for i in self.tier(2)
-            if not any(r.startswith("ISS-") for r in i.refs)
+            i for i in self.items
+            if section_of(i) == SECTION_REGRESSION
+            and not any(r.startswith("ISS-") for r in i.refs)
         ]
 
 

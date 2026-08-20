@@ -719,14 +719,20 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     sections = ("feature", "regression", "automated")
     for i, name in enumerate(sections, start=1):
         checks = suite.section(name)
-        # The non-acceptance tests deriving to the same section are merged into
-        # it (one section per name), so a section can be present on their
-        # account alone.
-        extra = [r for r in _items(nav_payload(repo_index, mode="tests")["groups"])
-                 if r.get("_section", name) == name] if False else []
         present = f"tier{i}" in groups
-        assert present is bool(checks) or present, (name, sorted(groups))
-        if not present:
+        # **A biconditional, asserted in both directions.** Independent review
+        # caught this half-converted: `assert present is bool(checks) or
+        # present` cannot fail when `present` is true, so the rule its comment
+        # claimed was unasserted in the direction that matters.
+        #
+        # A section can be present on the non-acceptance tests' account alone —
+        # they merge into the same group — so presence implies *checks or
+        # merged rows*, and absence implies neither.
+        merged = [r for r in (groups.get(f"tier{i}", {}).get("items") or [])
+                  if str(r.get("id") or "").upper().startswith("TST-")]
+        if present:
+            assert checks or merged, (name, "present but empty")
+        else:
             assert not checks, (name, len(checks))
 
     #: **Surfaces, not checks** (ISS-0222). Every check is inside exactly one

@@ -14,6 +14,9 @@ requirements: ["[[REQ-0058-An-Automated-Test-Carries-No-Verdict]]", "[[REQ-0059-
 tasks: []
 issues: ["[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]", "[[ISS-0239-The-Runner-Stamps-Failing-On-A-Missing-Device]]"]
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[DES-0012-Tests-In-Two-Flows]]"]
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 tags: [testing, schema]
 ---
 
@@ -43,9 +46,9 @@ Two fields already answer every question this corpus asks about a test — `comm
 ## Exit Criteria
 
 - [x] No note carrying a `command:` holds `ready`, `passing`, `failing`, `last_run:` or `exit_code:` — `ACCEPTANCE-STATUS` widened to the whole domain and `TEST-AUTOMATED-EVIDENCE` added, both erroring from day one because the migration left **zero** violations
-- [x] `tier:` is read by no code path; `GATING_TIERS` and `PERMANENT_TIERS` are gone — every caller moved to `MANUAL_SECTIONS`
+- [~] **Overstated, corrected after independent review.** No *section* and no *gate* decision reads `tier:`, and `GATING_TIERS`/`PERMANENT_TIERS`/`TIER_LABELS` are gone. But `sort_items`, `_delta_key` and the migration script still read it, so the criterion as written was false
 - [x] The three sections are derived identically in both front doors — one predicate, `acceptance.section_of`
-- [x] The gate delta is measured **per repo** — `your-trainer` 68 → 59, `project-os-cockpit` 0 → 0, `your-sudoku` 56 → 56, and the two repos with no suite reported as such
+- [~] **Measured, and measured against the wrong tree.** `your-trainer` 68 → 59 is its WORKING TREE; against `HEAD` it is **62 → 68**, because zero of its acceptance checks carry a `command:` at `HEAD` and six Tier 3 checks enter instead. `project-os-cockpit` 0 → 0 and `your-sudoku` 56 → 56 hold either way. Corrected in [[CHG-20260820]]
 - [x] `TESTING.md` and `STATUSES.md` carry the rules upstream, and the fleet is synced — all 12 project-os repos, committed per repo naming only the three synced paths
 - [x] No UI string contains *run* or *walk* — guarded over the chrome the product writes, deliberately not over note prose it renders
 - [x] Deleting a covering test puts its check back on the list — proved on constructed input in `tests/test_command_targets.py`, with the mutant executed, because the corpus holds **zero** broken commands
@@ -61,4 +64,12 @@ Seventeen tasks, three features, three requirements, two decisions. 1854 tests p
 
 **Left open on purpose**: [[ISS-0238]] — 67 checks still read an `area:` naming a heading in a deleted document, and recovering the real values is excavation across `your-trainer`'s history rather than a migration. [[ISS-0209]] is untouched and bounds what any of this proves: the acceptance gate executes in no repo holding a check.
 
-**Not delivered, and not attempted**: `tier:` still sits in 671 notes. It is read by nothing; removing it is a separate migration, kept separate so a bad derivation stays recoverable.
+**Not delivered, and not attempted**: `tier:` still sits in 671 notes.
+
+**And removing it is not the safe follow-up this note first implied.** Independent review simulated the strip against `your-trainer`: **74 rows change suite position and 232 of 579 delta keys change identity**, so rows would read as removed-and-new across a release tag. `sort_items` and `_delta_key` still read the field. Whoever takes that migration must move both onto a stable key first, or the release delta lies for one cycle.
+
+## Independent review 2026-08-20 — `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
+
+Three of the seven exit criteria do not hold as written. *"`tier:` is read by no code path"* — three paths read it (finding 4). *"The gate delta is measured per repo — `your-trainer` 68 -> 59"* — reproduced exactly against `your-trainer`'s working tree, but against its committed HEAD the same code gives `62 -> 68` with six checks entering, which is the tightening `blocking()`'s own comment says was reverted on 2026-08-18 as needing a person's decision (findings 2 and 3). *"Deleting a covering test puts its check back on the list"* — the resolver is proved; the list is not, and removing the `Broken command` wiring passes all 1854 tests (finding 1). *"No UI string contains run or walk — guarded"* — the guard is vacuous over both labels this phase introduced (finding 5). Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]].

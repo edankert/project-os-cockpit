@@ -97,6 +97,28 @@ def test_the_copies_agree_across_the_real_corpus(copy: Path) -> None:
     assert seen >= 30, f"only {seen} automated notes reached — guard is thinning"
 
 
+@pytest.mark.parametrize("copy", COPIES, ids=lambda p: p.name)
+def test_the_pattern_SETS_agree_not_just_the_answers(copy: Path) -> None:
+    """**The cases prove the shapes; this proves the vocabulary.**
+
+    Independent review, 2026-08-20: dropping `swift` from `_CMD_SOURCE_PATH` in
+    BOTH validator copies, while leaving `command_targets._SOURCE_PATH` alone,
+    passed every case above — because no case names a `.swift` file. Five of
+    the six extensions the resolver recognises are unexercised by the
+    constructed set and by the corpus, which has no iOS command at all.
+
+    Comparing the pattern sets directly closes that: an extension can be added
+    or removed on one side and the pair goes red, whether or not any test
+    happens to name a file of that kind.
+    """
+    module = _load(copy)
+    assert module._CMD_SOURCE_PATH.pattern == ct._SOURCE_PATH.pattern
+    assert module._CMD_JVM_CLASS.pattern == ct._JVM_CLASS.pattern
+    assert tuple(module._CMD_JVM_SUFFIXES) == tuple(ct._JVM_SUFFIXES)
+    assert (module.CMD_RESOLVES, module.CMD_BROKEN, module.CMD_UNCHECKABLE) == (
+        ct.RESOLVES, ct.BROKEN, ct.UNCHECKABLE)
+
+
 def test_the_two_validator_files_are_byte_identical() -> None:
     """They have always been, and nothing enforced it until now.
 

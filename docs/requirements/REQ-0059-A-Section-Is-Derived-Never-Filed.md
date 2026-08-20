@@ -16,6 +16,9 @@ implements: "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]"
 verifies: []
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-The-Tier-Rule]]"]
 tests: []
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 ---
 
 # A section is derived, never filed
@@ -34,3 +37,9 @@ The section a check appears under **must** be computed: `command:` non-empty is 
 ## Notes
 
 Precedence matters and is stated deliberately: `command:` wins over `covers:`, so an automated regression check is *Automated tests* — Edwin, *"it doesn't matter why they were automated"*.
+
+## Independent review 2026-08-20 — `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
+
+`section_of`'s fail-safe direction holds under mutation — flipping the unclassifiable default to `automated` fails 26 tests, and flipping the file shape's Tier 3 to `feature` fails 15 including `test_tier_three_never_gates`. But **`tier:` is still read by three code paths** on note-shape items (`sort_items`, `_delta_key`, `migrate-acceptance-checks._gated`), so this requirement's acceptance is not fully met, and the deferred strip-`tier:` migration would move 74 rows and change 232 delta keys in `your-trainer`. And the derivation's most consequential effect — six unattributed Tier 3 checks entering `your-trainer`'s release gate at its committed HEAD — was neither measured nor reported. Findings 2, 3 and 4 in [[CHG-20260820-The-Suite-Is-The-Verdict]].

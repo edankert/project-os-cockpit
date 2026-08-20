@@ -58,3 +58,16 @@ The surface percentage counts them, so a surface's denominator includes work nob
 **The gate delta, measured per repo before it landed** ([[TASK-0571]]): `your-trainer` **68 → 59**; `project-os-cockpit` 0 → 0; `your-sudoku` 56 → 56; `your-health` and `project-os-dev` hold no suite. That is the nine leaving, and nothing else moving.
 
 An automated check is no longer part of the manual list at all — not discounted within it. [[ADR-0039]] makes `Automated tests` a derived section, and the generated page renders it with no checkbox and no completed fraction.
+
+## Corrected 2026-08-20 after independent review
+
+**The gate delta was measured against `your-trainer`'s WORKING TREE, and the committed record moves the other way.**
+
+| measured against | before | after |
+| --- | --- | --- |
+| working tree (588 uncommitted files) | 68 | **59** — the nine automated checks leave |
+| `HEAD`, i.e. what a fresh clone has | 62 | **68** — six Tier 3 checks *enter* |
+
+**At `HEAD`, zero acceptance checks in `your-trainer` carry a `command:`.** All 89 live only in uncommitted work, so nothing leaves the gate there today. What does happen is the other half of the same rule: `TST-0592`..`TST-0597` are Tier 3, carry no command, and are therefore manual and owed — exactly what [[ADR-0039]] decides, and exactly what `blocking()`'s own comment described on 2026-08-18 as *"a NEW and tighter gate, which is a decision for a person"*. It is that person's decision now; the comment has been corrected to say so.
+
+Both numbers are true of what they measure. Only one of them is true of what ships.

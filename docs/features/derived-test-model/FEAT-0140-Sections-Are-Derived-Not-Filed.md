@@ -16,6 +16,9 @@ release: ""
 acceptance: ""
 design: "[[DES-0012-Tests-In-Two-Flows]]"
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]"]
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 tags: [feature, testing, cockpit]
 ---
 
@@ -45,3 +48,9 @@ A check reached Tier 3 because a person moved it there, and 67 of the 68 that ar
 - [ ] The gate delta is measured per repo before it lands — `your-trainer` 68 open to 59, this repo and `your-sudoku` unchanged
 - [ ] A check whose covering test is deleted appears under `Broken command`, proved on constructed input
 - [ ] No UI string contains *run* or *walk*
+
+## Independent review 2026-08-20 — `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
+
+Findings 2, 3, 4, 5 and 7 in [[CHG-20260820-The-Suite-Is-The-Verdict]]: the gate delta was measured over uncommitted state in `your-trainer` and moves `62 -> 68` against its committed record; `blocking()`'s comment still describes a tier filter that no longer exists; `tier:` is still read by three paths; the `Needs a run` -> `Needs you` rename is unguarded because the group is empty in this corpus; and `test_the_tiers_render_in_the_tests_view` carries a dead line and a degenerate assertion.

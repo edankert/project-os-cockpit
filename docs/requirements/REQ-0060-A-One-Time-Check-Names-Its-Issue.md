@@ -16,6 +16,9 @@ implements: "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]"
 verifies: []
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[project-os-dev#ADR-0011]]"]
 tests: []
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 ---
 
 # A one-time check names its issue
@@ -33,3 +36,9 @@ An acceptance check that is not a standing claim about behaviour **must** name t
 ## Notes
 
 Measured 2026-08-19: 68 of `your-trainer`'s 164 Tier 2 checks name no `ISS-*` anywhere in the note — not in `covers:`, not in the body. Five more name one outside `covers:` and are a scripted repair. Deriving without this rule would silently classify all 68 as behaviour claims and put them back on the list at every overlapping change, which is the behaviour [[ADR-0039]] exists to remove.
+
+## Independent review 2026-08-20 — `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
+
+Not separately refuted. `CHECK-SUBJECT` lands warning-first with a dated cutover, which is what [[project-os-dev#ADR-0011]] clause 3 requires, and the criterion whose count was wrong is marked reconciled rather than ticked — that correction is the right shape. Marked `changes-requested` with its siblings; see [[CHG-20260820-The-Suite-Is-The-Verdict]].

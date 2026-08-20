@@ -117,3 +117,74 @@ def test_the_mutant_is_caught(repo: Path) -> None:
     finally:
         ct._exists = real
     assert ct.resolve("pytest tests/test_absent.py", repo) == ct.BROKEN
+
+
+# ------------------------------------------- the navigator (independent review)
+
+def _corpus(root: Path, *, command: str) -> Path:
+    """A repo with one automated test and the source its command names."""
+    docs = root / "docs" / "tests"
+    docs.mkdir(parents=True)
+    (root / "tests").mkdir(exist_ok=True)
+    (root / "tests" / "present.py").write_text("x = 1\n", encoding="utf-8")
+    (root / "SNAPSHOT.yaml").write_text(
+        "version: 1\ncounters:\n  TST: 2\nitems: {}\n", encoding="utf-8")
+    (docs / "TST-0002-Automated.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0002\ntitle: "an automated test"\n'
+        f'status: active\ncovers: ["[[FEAT-0001]]"]\ncommand: "{command}"\n'
+        "---\n\n# body\n", encoding="utf-8")
+    return root / "docs"
+
+
+def _sections(docs: Path) -> dict[str, list[str]]:
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    out: dict[str, list[str]] = {}
+    for group in cockpit._tests_groups(Index.build(docs)):
+        out[str(group["key"])] = [str(i.get("id")) for i in group["items"]]
+    return out
+
+
+def test_a_broken_command_routes_to_its_own_section(tmp_path: Path) -> None:
+    """**The resolver returning BROKEN is not the same as the reader acting on it.**
+
+    Independent review, 2026-08-20: replacing the `broken-command` branch in
+    `_tests_groups` with an unconditional `automated` append — deleting the
+    section outright — passed all 1854 tests. Every guard was on
+    `command_targets` in isolation, and nothing asserted the navigator routed
+    anything, so the exit criterion *"deleting a covering test puts its check
+    back on the list"* proved a function returned a string.
+
+    This is the criterion, end to end: a check whose covering test is deleted
+    leaves `Automated tests` and lands somewhere a person is asked to look.
+    """
+    docs = _corpus(tmp_path, command="pytest tests/present.py")
+    assert _sections(docs).get("automated") == ["TST-0002"]
+
+    (tmp_path / "tests" / "present.py").unlink()
+    sections = _sections(docs)
+    assert sections.get("broken-command") == ["TST-0002"]
+    assert "TST-0002" not in sections.get("automated", [])
+
+
+def test_the_broken_section_asks_for_a_person(tmp_path: Path) -> None:
+    """It is an obligation, not a category — the only one an automated test
+    can carry, and the reason it exists at all."""
+    from project_os_cockpit import cockpit
+    from project_os_cockpit.index import Index
+
+    docs = _corpus(tmp_path, command="pytest tests/absent.py")
+    groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(docs))}
+    assert groups["broken-command"].get("needs_human") is True
+    assert "automated" not in groups or not groups["automated"]["items"]
+
+
+def test_an_uncheckable_command_stays_automated(tmp_path: Path) -> None:
+    """Five of the fleet's 139 name nothing checkable. They are not broken,
+    and putting them on a list of things to fix would be a lie about five
+    working checks."""
+    docs = _corpus(tmp_path, command="make check")
+    sections = _sections(docs)
+    assert sections.get("automated") == ["TST-0002"]
+    assert "broken-command" not in sections

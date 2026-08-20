@@ -16,6 +16,9 @@ implements: "[[FEAT-0139-The-Suite-Is-The-Verdict]]"
 verifies: []
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]"]
 tests: []
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 ---
 
 # An automated test carries no verdict
@@ -34,3 +37,9 @@ A test note that declares a `command:` **must not** hold `ready`, `passing` or `
 ## Notes
 
 This is not a new constraint. `ACCEPTANCE-STATUS` enforces it today as an error over the 89 automated notes at `level: acceptance` — 64% of the domain — and cannot say why it stops there.
+
+## Independent review 2026-08-20 — `changes-requested`
+
+Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
+
+The runner guard holds under mutation: a status write sneaked back through `open().write()`, evading the `"write_text" not in SCRIPT` string assertion, still fails three tests on byte-identity. The `stamp_test_run` refusal is correct, including the `and not aborted` carve-out — the aborted path writes no `status` and no `last_run`, so it does not stamp a verdict. **No finding against this requirement.** It is marked `changes-requested` only because it shares a change with findings 1-5 below; see the review section of [[CHG-20260820-The-Suite-Is-The-Verdict]].

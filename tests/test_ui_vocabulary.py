@@ -86,18 +86,50 @@ def test_no_nav_label_says_run_or_walk(index: Index, mode: str) -> None:
     assert not offenders, offenders
 
 
-def test_the_group_that_asks_is_called_needs_you(index: Index) -> None:
-    """The name every other view uses (ADR-0025), and no verb at all.
+def _every_section(root: Path) -> Path:
+    """A corpus that populates all six sections at once.
 
-    `Needs a run` was the one place the Tests view differed, and it differed
-    because a more specific name *"says more than needs you"* — which Edwin
-    overruled in favour of consistency.
+    The reason this exists: on this repo `needs-you` and `broken-command` are
+    both empty, empty groups are dropped before rendering, and a guard walking
+    the payload therefore never saw either of the two labels this phase
+    introduced. Independent review renamed `Needs you` back to `Needs a run`
+    and the vocabulary file passed.
     """
-    labels = {g["label"] for g in cockpit.nav_payload(index, mode="tests")["groups"]}
-    assert not any("Needs a run" in x for x in labels)
-    groups = cockpit._tests_groups(index)
-    keys = {g["key"] for g in groups}
-    assert "needs-run" not in keys
+    docs = root / "docs" / "tests"
+    docs.mkdir(parents=True)
+    (root / "tests").mkdir(exist_ok=True)
+    (root / "tests" / "present.py").write_text("x = 1\n", encoding="utf-8")
+    (root / "SNAPSHOT.yaml").write_text(
+        "version: 1\ncounters:\n  TST: 9\nitems: {}\n", encoding="utf-8")
+    notes = {
+        "TST-0001": ('status: ready\ncovers: ["[[FEAT-0001]]"]\n', "owed"),
+        "TST-0002": ('status: active\ncovers: ["[[FEAT-0001]]"]\n', "a feature check"),
+        "TST-0003": ('status: active\ncovers: ["[[ISS-0001]]"]\n', "a regression check"),
+        "TST-0004": ('status: active\ncommand: "pytest tests/present.py"\n', "automated"),
+        "TST-0005": ('status: active\ncommand: "pytest tests/absent.py"\n', "broken"),
+        "TST-0006": ("status: retired\n", "withdrawn"),
+    }
+    for note_id, (extra, title) in notes.items():
+        (docs / f"{note_id}-X.md").write_text(
+            f'---\ntype: "[[test]]"\nid: {note_id}\ntitle: "{title}"\n{extra}---\n\n# body\n',
+            encoding="utf-8")
+    return root / "docs"
+
+
+def test_every_section_label_carries_no_verb(tmp_path: Path) -> None:
+    """All six sections, populated, and every label read off the payload."""
+    from project_os_cockpit.index import Index as _Index
+
+    groups = {g["key"]: g["label"]
+              for g in cockpit._tests_groups(_Index.build(_every_section(tmp_path)))}
+    assert set(groups) == {
+        "needs-you", "feature", "regression",
+        "automated", "broken-command", "retired",
+    }, sorted(groups)
+    assert groups["needs-you"] == "Needs you"
+    assert groups["broken-command"] == "Broken command"
+    for key, label in groups.items():
+        assert not _BANNED.search(label), (key, label)
 
 
 def test_the_mark_vocabulary_reads_re_check(index: Index) -> None:
