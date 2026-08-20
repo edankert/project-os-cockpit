@@ -6101,3 +6101,15 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .checks-area-name { flex: 1 1 auto; min-width: 0; }
 .checks-row-number.is-link { cursor: pointer; }
 .checks-row-number.is-link:hover { text-decoration: underline; }
+
+/* An automated check's row (ADR-0039). It carries the command that executes
+   it where a manual row carries its mark button — the row is a manifest
+   entry, not something to tick. Dimmed because nothing here is owed. */
+.checks-row.is-automated .checks-row-command {
+  color: var(--text-muted);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}

@@ -1589,6 +1589,9 @@ interface GateItem {
   failed?: boolean;
   /** `RE-RUN (TASK-####: reason)` — the tick is stale. */
   rerun?: string;
+  /** What executes it, when a machine does (ADR-0039). Present means the row
+   *  belongs to `Automated tests` and carries no checkbox. */
+  command?: string;
   /** Chronic rows only: the tag this has been unsettled since, and how many
    *  releases were cut over it. "Open since v1.1.0" is a fact; "open since
    *  v1.1.0, 11 releases ago" is a decision. */
@@ -8351,6 +8354,10 @@ interface CheckArea {
 }
 interface CheckTier {
   tier: number; label: string; gating: boolean;
+  /** Does a PERSON complete this section? (ADR-0039) `Automated tests` is a
+   *  manifest, not a list anybody works through: no checkbox, no fraction. */
+  manual?: boolean;
+  section_key?: string;
   total: number; checked: number; reconciled: number; excepted: number;
   unsettled: number; stale: number; areas: CheckArea[];
 }
@@ -8573,9 +8580,18 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     // `26/27 · 1 reconciled`, never `26/26` (ISS-0141): the denominator is
     // what the suite holds, and a check settled by decision is named rather
     // than quietly removed from both halves of the fraction.
-    let label = `${tier.label} · ${tier.checked}/${tier.total}`;
-    if (tier.reconciled) label += ` · ${tier.reconciled} reconciled`;
-    if (tier.stale) label += ` · ${tier.stale} stale`;
+    // **An automated section reports what it holds, not what is owed**
+    // (ADR-0039). `26/27` is a person's progress through a list, and nobody
+    // is progressing through one CI executes. Reporting `0/67` there is the
+    // same lie that put nine automated checks into `your-trainer`'s blocking
+    // 68 (ISS-0237) — a number a reader can only act on by doing something
+    // nobody should do.
+    const manual = tier.manual !== false;
+    let label = manual
+      ? `${tier.label} · ${tier.checked}/${tier.total}`
+      : `${tier.label} · ${tier.total} executed by CI`;
+    if (manual && tier.reconciled) label += ` · ${tier.reconciled} reconciled`;
+    if (manual && tier.stale) label += ` · ${tier.stale} stale`;
     th.textContent = label;
     section.appendChild(th);
     // **No bar on this page** (ISS-0234). The page is worked, not scanned:
@@ -8625,7 +8641,7 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
       // The percentage lives on the heading now (ISS-0234), right-aligned
       // against the name — not on a line of its own beneath it.
       for (const item of area.items) {
-        block.appendChild(buildCheckRow(item));
+        block.appendChild(buildCheckRow(item, manual));
         shown += 1;
       }
       section.appendChild(block);
@@ -8670,9 +8686,10 @@ function checkPercent(items: GateItem[]): HTMLElement {
   return el;
 }
 
-function buildCheckRow(item: GateItem): HTMLElement {
+function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
   const row = document.createElement('div');
   row.className = 'checks-row';
+  if (!manual) row.classList.add('is-automated');
   if (item.stale) row.classList.add('is-stale');
   // Minimal strikes canceled text through — the clearest signal on a long
   // list that a row is not being waited for. It used to key on the rendered
@@ -8682,7 +8699,19 @@ function buildCheckRow(item: GateItem): HTMLElement {
   // silently lost their strikethrough. A dead comparison raises nothing, which
   // is why it outlived the migration that broke it.
   if (MARK_CLASS[item.mark || ' '] === 'canceled') row.classList.add('is-canceled');
-  row.appendChild(checkMark(item));
+  // **No checkbox on a check a machine executes** (ADR-0039). A tickbox beside
+  // something no person runs is an invitation to record a verdict nobody
+  // earned — and the row says what DOES execute it instead, which is the one
+  // fact about it that can go stale.
+  if (manual) {
+    row.appendChild(checkMark(item));
+  } else {
+    const cmd = document.createElement('span');
+    cmd.className = 'checks-row-command mono';
+    cmd.textContent = item.command || 'executed by CI';
+    cmd.title = item.command || '';
+    row.appendChild(cmd);
+  }
 
   // **The number, on the row** (TASK-0513). It used to be carried by the
   // area block's ordering; the list is flat now, so the row says it.

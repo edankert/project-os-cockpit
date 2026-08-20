@@ -1911,6 +1911,11 @@ def _row(item: "Item", **extra: Any) -> dict[str, Any]:
         "verdict_date": item.verdict_date,
         "verdict_reason": item.verdict_reason,
         "automation": item.automation,
+        # **What executes it, so the row can say so instead of drawing a
+        # checkbox** (ADR-0039). The client cannot tell an automated check
+        # from a manual one without this -- which is ISS-0237 exactly, one
+        # layer up from `item_from_note` not reading the field at all.
+        "command": item.command,
         "invalidated_by": {
             "change": item.invalidated.change,
             "reason": item.invalidated.reason,
