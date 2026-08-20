@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["user:edwin"]
 severity: medium
 component: cockpit
@@ -31,9 +34,13 @@ Feature tests · 361/406 completed · 45 todo                    50 · 1 done
 
 **Three.** An automated section reads `Automated tests · 89 executed by CI`. That is a claim about who ran something, derived from nothing but the presence of a `command:` field. The cockpit never looks at a CI run.
 
+> **Basis of every `your-trainer` figure in this note: its WORKING TREE on 2026-08-20, not `HEAD`.** Corrected after independent review, which caught the phase's own recorded lesson being repeated. The difference is not a rounding: at `HEAD` that repo has **581 items, 68 blocking, and ZERO command-bearing checks** — so there is **no automated section there at all**, and the 89 checks, their empty `evidence:`, the nine at `mark: todo` and the shared 22-character command prefix exist only in the 591-file working tree. Its Feature tests head reads `65 of 507 outstanding` at `HEAD` against `49 of 411` in the tree.
+>
+> **The findings do not depend on the basis; the numbers do.** A head that miscounts, a percentage over checks with no result, and a uniform glyph are defects of the code, reproducible on any corpus that has the shape. What the working tree supplies is the *scale*.
+
 ## Evidence
 
-Measured 2026-08-20 against `your-trainer` at HEAD, sidecar on 8801:
+Measured 2026-08-20 in `your-trainer`'s **working tree** (not `HEAD` — see the basis note above), sidecar on 8801:
 
 | head, as rendered | label counts | trailing summary counts |
 |---|---|---|
@@ -98,3 +105,24 @@ See [[CHG-20260820-The-Section-Head-Says-What-Is-Owed]]. Five guards in `tests/t
 | drop the suppression from `cockpit.js` | `..._both_front_doors_read_head_counts` |
 
 The suppression test also asserts the **negative** half — that a non-section group does *not* carry `head_counts` — because that is the half a later simplification flattens: the rule reads like "heads do not need trailing counts" right up until it removes the only count a phase group has.
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+The arithmetic argument is correct and every server-side guard fires: mutants restoring `{checked}/{total} completed · {unchecked} todo`, restoring `executed by CI`, and dropping `head_counts` were each executed and each failed the named test.
+
+**One guard cannot detect what it names.** `test_both_front_doors_read_head_counts` asserts only `"head_counts" in src`. In `desktop/src/renderer/renderer.ts` that token also appears in the `NavGroupData` interface and its JSDoc, so deleting the behaviour — `if (group.head_counts) summaryText = '';` — leaves the test green. Executed: 2 passed. The full suite failed only `test_desktop_build_is_not_stale`, which compares `dist/.source-hash` against the sources and therefore fires on *any* byte change to `renderer.ts` and passes again after `npm run build`. It is a build-freshness check, not a behaviour guard. The `cockpit.js` half is genuinely guarded — deleting its one line removes the only occurrence and the test fails (executed).
+
+**Shared finding — every `at HEAD` measurement in this range is a working-tree measurement.** `your-trainer` carries 591 dirty files under `docs/`. Re-measured against a `git archive HEAD` and a fresh `--shared` clone: tier1 total **496** (not 406), tier2 **85** (not 86), and **zero** command-bearing acceptance checks — so at HEAD that repo emits *no automated section at all* and the 89/9-todo/`evidence: []` population does not exist there. The gate is **68** blocking at HEAD (43 covering a `FEAT`, ten features, 40 out of scope), not 59/39/nine/36. Every figure quoted reproduces exactly against the working tree. No note in this range carries a basis caveat, while `CHG-20260820-The-Suite-Is-The-Verdict` — the note six prior review rounds spent on this exact point — carries 24.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+The guard hole is closed and verified: deleting `if (group.head_counts) summaryText = '';` from the desktop renderer now fails `test_both_front_doors_read_head_counts` (executed). The basis blockquote's numbers are exact.
+
+Two residues, neither blocking:
+
+- **The new guard fails on a pure reformat.** Rewriting the suppression as `if (group.head_counts) {\n  summaryText = '';\n}` — behaviour identical — fails the test (executed). A guard that goes red on formatting is the kind that gets loosened; the sibling `test_the_gate_row_id_is_typed_like_a_feature_row` was rewritten in this very diff for exactly that reason.
+- Line 43 still reads *"Measured 2026-08-20 against `your-trainer` at HEAD"*, which the blockquote above it contradicts. Correcting the sentence is better than disclaiming it.

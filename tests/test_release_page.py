@@ -370,7 +370,9 @@ def test_the_gate_breakdown_is_lossless_and_sums_to_its_list() -> None:
     area… Lossless: the full list stays reachable through the links, and the
     count in the heading must equal the number of rows behind them."*
 
-    Measured on `your-trainer` 2026-08-20: **59 blocking rows across 17
+    Measured on `your-trainer`'s **working tree** on 2026-08-20 (not `HEAD`, where that repo carries zero
+    command-bearing checks and no automated section at all — corrected after
+    independent review): **59 blocking rows across 17
     areas**, and the shape is what makes the tally worth drawing —
     `Trainer Compatibility Verification` holds 20 and `Monetization &
     Licensing` 11, so two areas are more than half the gate.
@@ -382,13 +384,39 @@ def test_the_gate_breakdown_is_lossless_and_sums_to_its_list() -> None:
     src = RENDERER.read_text(encoding="utf-8")
     body = _body_of(src, "function gateAreaBreakdown(")
 
-    #: Every row is counted exactly once — no filter, no slice, no cap.
-    assert "for (const item of items)" in body, body[:300]
-    for dropping in ("slice(", "filter(", "break;"):
-        assert dropping not in body, (
-            f"`{dropping}` in the tally — the parts must sum to the list, and "
-            "a breakdown that quietly drops rows reads as a shorter gate"
+    #: **Every row is counted exactly once**, and the guard is on the loop's
+    #: SHAPE rather than a list of forbidden words (independent review,
+    #: 2026-08-20: `if (!item.area) continue;` slipped straight past the word
+    #: list and the suite stayed green).
+    #:
+    #: The loop body must be a single unconditional accumulation. Anything
+    #: that can skip an iteration — `continue`, an early `return`, a `break`,
+    #: or a slice/filter on the collection — makes the parts stop summing to
+    #: the list, and a breakdown that drops rows is indistinguishable from a
+    #: shorter gate.
+    loop = re.search(r"for \(const item of ([^)]*)\) \{(.*?)\n  \}", body, re.S)
+    assert loop, "the tally is no longer a plain for-of over every item"
+    assert loop.group(1).strip() == "items", (
+        f"the tally iterates something other than the full list: "
+        f"{loop.group(1)!r}"
+    )
+    inner = loop.group(2)
+    for escape in ("continue", "return", "break"):
+        assert not re.search(r"\b%s\b" % escape, inner), (
+            f"`{escape}` inside the tally loop — an iteration that can be "
+            f"skipped is a row that can vanish from the breakdown: {inner!r}"
         )
+    #: Exactly one place increments, so there is no second path to miscount.
+    assert inner.count("byArea.set(") == 1, inner
+    #: **And the increment is UNCONDITIONAL** (re-review 2026-08-20).
+    #: `if (area) byArea.set(...)` has no escape keyword, iterates every item
+    #: and holds exactly one `set(` — and drops the five no-area rows on
+    #: `your-trainer`'s `New` group. Forbidding the escapes was never the
+    #: property; running for every row is.
+    assert not re.search(r"^(?!\s*(?://|\*)).*\bif\b", inner, re.M), (
+        "a branch inside the tally loop — the accumulation must run for every "
+        f"row, not most of them: {inner!r}"
+    )
     #: And the list itself is still rendered: the tally goes in FRONT of it.
     gg = _body_of(src, "function gateGroup(")
     assert "gateAreaBreakdown(items)" in gg
@@ -417,4 +445,40 @@ def test_the_area_filter_lives_in_the_address() -> None:
     line = src[i:src.index("\n", i)]
     assert "new Set()" in line, (
         f"the area filter is not cleared on a bare ~checks: {line!r}"
+    )
+
+
+def test_the_breakdown_chip_opens_rows_that_exist() -> None:
+    """A part that counts rows and then opens nothing is worse than no part at
+    all (independent review, 2026-08-20).
+
+    `gateAreaBreakdown` keyed an absent area under an em-dash and navigated to
+    `~checks/area/%E2%80%94`, while `checkMatches` compares
+    `f.areas.has(item.area || '')`. Five rows on `your-trainer`'s `New` group
+    sat behind a chip that matched **zero** of them — on the one surface whose
+    whole promise is that each part opens exactly what it counted.
+
+    The em-dash is a label applied at render; the key is the raw value, so the
+    two sides of the round trip cannot disagree.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    body = _body_of(src, "function gateAreaBreakdown(")
+    tally = re.search(r"const area = \(item\.area \|\| ''\)\.trim\(\)(.*)?;", body)
+    assert tally, body[:400]
+    assert "\\u2014" not in (tally.group(1) or ""), (
+        "the tally KEY still falls back to an em-dash, so the chip's filter "
+        "will not match the rows it counted"
+    )
+    #: The label may show one; the address must carry the raw key.
+    assert "name.textContent = area || '\\u2014'" in body, (
+        "the empty area has no visible label"
+    )
+    assert "~checks/area/${encodeURIComponent(area)}" in body
+
+    #: And the round trip is asserted against the filter's own comparison, so
+    #: this fails if either side changes independently.
+    m = re.search(r"f\.areas\.has\(item\.area \|\| ''\)", src)
+    assert m, (
+        "checkMatches no longer compares `item.area || ''` — the breakdown's "
+        "key and the filter's key have drifted apart"
     )

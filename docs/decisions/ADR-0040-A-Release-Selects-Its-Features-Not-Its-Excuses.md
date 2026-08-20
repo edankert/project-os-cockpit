@@ -3,25 +3,32 @@ type: "[[adr]]"
 id: ADR-0040
 aliases: ["ADR-0040"]
 title: "A release selects its features, and a check that cannot be walked is excused rather than deselected — scope narrows what a gate is about, it never launders what a gate found"
-status: "proposed"
+status: "accepted"
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
-decision_date: ""
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
+decision_date: 2026-08-20
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["Edwin 2026-08-20: 'If we can just have all the features available for the release in the release document at first with a checkbox all new features checked and then the user can uncheck/check some of them if they need to be included, the acceptance tests for the release can then be adjusted based on the selected features.'", "Edwin 2026-08-20: 'on the pre-existing open tsts, yes these are open because of multiple of reasons and happy to re-evaluate them for each release to see if we can resolve them but more than likely they will stay open for this release as well. (for instance I don't have the hardware to test those corner cases)'"]
 supersedes: ""
 superseded: ""
 related: ["[[FEAT-0142-A-Release-Says-What-Is-In-It]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]"]
 tags: [release, acceptance, conventions]
-decided_option: ""
+decided_option: "2"
 ---
 
 # A release selects its features, and excuses its checks
 
 ## Status
 
-**Proposed**, 2026-08-20. Nothing in [[FEAT-0142]] is built until this is accepted — the same gate [[ADR-0030]], [[ADR-0034]] and [[ADR-0037]] each used.
+**Accepted 2026-08-20** by Edwin, as written and on option 2. [[FEAT-0142]] is unblocked; [[TASK-0511]], [[TASK-0512]], [[TASK-0557]] and [[TASK-0558]] may start.
+
+*(It was `proposed` for the length of one working session. The independent review below returned `changes-requested` on the note — for a basis label on its figures, not for the decision — and states it would approve on that correction. The correction is made in `Context`; the decision it argues for is unchanged, which is the point of separating the two.)*
+
+**The prerequisite in `Consequences` still binds.** `excused` is load-bearing here and no repo in the fleet has ever written one, so [[ISS-0209]] is ordered ahead of the build.
 
 ## Context
 
@@ -31,7 +38,11 @@ Edwin's proposal supplies the act: the release document lists every available fe
 
 The first half is uncontroversial and fits the grain of the system. The second half is a rule about what a gate means, and the measurements say it is a much larger lever than it looks.
 
-### What the gate is actually made of, measured 2026-08-20 on `your-trainer` at HEAD
+> **Basis of every `your-trainer` figure in this note: its WORKING TREE on 2026-08-20, not `HEAD`.** Corrected after independent review, which caught the phase's own recorded lesson being repeated. The difference is not a rounding: at `HEAD` that repo has **581 items, 68 blocking, and ZERO command-bearing checks** — so there is **no automated section there at all**, and the 89 checks, their empty `evidence:`, the nine at `mark: todo` and the shared 22-character command prefix exist only in the 591-file working tree. Its Feature tests head reads `65 of 507 outstanding` at `HEAD` against `49 of 411` in the tree.
+>
+> **The findings do not depend on the basis; the numbers do.** A head that miscounts, a percentage over checks with no result, and a uniform glyph are defects of the code, reproducible on any corpus that has the shape. What the working tree supplies is the *scale*.
+
+### What the gate is actually made of, measured 2026-08-20 in `your-trainer`'s working tree
 
 59 blocking checks:
 
@@ -123,3 +134,31 @@ That is a legitimate decision — behind a flag, or as accepted risk — and an 
 - **`excused` becomes load-bearing, and nothing in the fleet has ever written one.** A repo with no ledger cannot excuse anything, so the re-evaluate-each-release loop Edwin described cannot run in `your-trainer` today. That is a prerequisite, and it belongs to [[ISS-0209]] rather than to this decision.
 - `ISS-0206` — *a check cannot belong to a release* — is answered from the other end: it still does not, and it does not need to. A check belongs to its subject; a release selects subjects; the gate follows.
 - Nothing here weakens [[ADR-0035]]. Scope is written to the release note, which is the release's own record. No write path to a check appears on the release page.
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+**The decision is sound and I would approve it on a one-line correction.** Every figure reproduces exactly against `your-trainer`'s working tree at the pre-relevelling state: 59 blocking; 39 / 18 / 2; nine features; 3 in the 32-feature derived contents carrying 3 checks and 6 outside carrying 36; `FEAT-0074` at `backlog` with 20, and those 20 are the entire `quiet` bucket; five of the six out-of-scope carriers `done`; `docs/releases/ledgers/` present in exactly one of the twelve `SNAPSHOT.yaml`-bearing repos. `18 + 2 = 20` matches *"20 of the 59 are in that class"*.
+
+The two readings are genuinely different — option 1 removes 36 of 39 by nobody's decision and empties `chronic`; option 2 changes nothing until somebody unchecks — so the recommendation follows from the measurement rather than decorating it.
+
+**The correction is the basis label.** *"measured 2026-08-20 on `your-trainer` at HEAD"* is a working-tree measurement. At HEAD: **68** blocking, 43 covering a `FEAT`, **ten** features, **40** checks out of scope. The argument survives intact — 40 of 43 is if anything stronger — which is exactly why the label should be corrected rather than the numbers defended.
+
+Note also that this file currently reads `status: "accepted"` with `decided_option: "2"` in frontmatter while its `## Status` section still reads *"**Proposed**, 2026-08-20. Nothing in FEAT-0142 is built until this is accepted"* and `decision_date:` is empty.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+The basis correction lands and its numbers are exact — re-verified against a `git archive HEAD`: 581 items, 68 blocking, zero command-bearing checks, `65 of 507` against `49 of 411`. My finding was label-only and the decision survived either basis; it now says which basis it used.
+
+**Approving this does NOT settle `test_every_row_of_the_rehoming_table_is_reachable`, and the verdict change must not be read as fixing it.** That test is failing on a real defect it just exposed for the first time, in `_verdict_is_owed`:
+
+- `_verdict_is_owed` (cockpit.py) decides *owed* with `statuses.is_completed(status)`, a **band** predicate. `accepted` sits in the `active` band, so `is_completed("accepted")` is `False`.
+- `cockpit.is_done_status("adr", "accepted")` is `True` — a **per-type** terminal table.
+- The test asserts the two agree. They disagree on exactly four pairs: `adr`, `design`, `reference` and `requirement` at `accepted`.
+
+For any of those, a `changes-requested` verdict is **owed forever** — which is precisely the ISS-0121 sticky-verdict defect `_verdict_is_owed` was written to remove, reappearing on a second axis. It is also two implementations of one predicate, the thing `REQ-0059` forbids and that `_covers_an_issue` was caught doing in an earlier round of this same phase. ADR-0040 is simply the corpus's first note to reach the combination.
+
+Flipping this field to `approved` makes the test green and the defect invisible. **File it before committing this verdict.**

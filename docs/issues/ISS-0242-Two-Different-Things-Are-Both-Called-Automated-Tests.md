@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 source: ["user:edwin"]
 severity: medium
 component: cockpit
@@ -16,6 +19,10 @@ tests: []
 ---
 
 # One name, two populations, and the repo decides which
+
+> **Basis of every `your-trainer` figure in this note: its WORKING TREE on 2026-08-20, not `HEAD`.** Corrected after independent review, which caught the phase's own recorded lesson being repeated. The difference is not a rounding: at `HEAD` that repo has **581 items, 68 blocking, and ZERO command-bearing checks** — so there is **no automated section there at all**, and the 89 checks, their empty `evidence:`, the nine at `mark: todo` and the shared 22-character command prefix exist only in the 591-file working tree. Its Feature tests head reads `65 of 507 outstanding` at `HEAD` against `49 of 411` in the tree.
+>
+> **The findings do not depend on the basis; the numbers do.** A head that miscounts, a percentage over checks with no result, and a uniform glyph are defects of the code, reproducible on any corpus that has the shape. What the working tree supplies is the *scale*.
 
 ## Problem
 
@@ -34,7 +41,7 @@ Because they are **not the same group**. Two builders emit a group called `Autom
 | `head_counts` | absent | `true` |
 | links to | the test note | the generated checks page, filtered to the section |
 
-Measured 2026-08-20 at HEAD. The sections present in each suite:
+Measured 2026-08-20 in the **working tree** (not `HEAD` — see the basis note above). The sections present in each suite:
 
 - `project-os-cockpit` — `feature: 27, regression: 7`. **No automated acceptance checks at all**, so `_acceptance_tier_groups` emits no `tier3` group and the name falls through to the unrelated one.
 - `your-trainer` — `feature: 404, regression: 86, automated: 89`.
@@ -113,3 +120,23 @@ The fixture needed the same care. A `ready` test with a *live* obligation is rou
 - [x] The head counts what the section holds, merged rows included.
 - [x] A section with no acceptance checks gets a section head.
 - [x] Four guards, each proved on a mutant: zeroing the merged count, swapping `is_completed` back to `owed`, disabling the standalone head, and leaking `_head`.
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+The self-correction is the strongest thing here and it is right: the groups merge, and re-measurement confirms every post-fix head — `Feature tests · 3 of 32 outstanding · 1 reconciled`, `Automated tests · 37` in this repo; `49 of 411` and `Automated tests · 91` in `your-trainer`'s working tree (406+5, 89+2).
+
+**`statuses.is_completed` is the right predicate and the reasoning holds.** `_test_as_surface` sets `progress.done = 0 if row['owed'] else 1`, and `owed` is quieted for a `ready` test whose subject is terminal — so the two genuinely differ on this repo's own three `ready` merged rows. Both counting sites read the same raw field (`_test_item` sets `"status": record.status`), so the standalone-head branch and the merge branch cannot disagree. The mutant swapping back to `progress.done` was executed and fails `test_a_ready_test_is_outstanding_not_done`.
+
+**`_head` cannot leak by another path.** `_acceptance_tier_groups` has exactly one caller; every group in the return value passes through the pop; there is no early return. Measured `leaked=[]` on both corpora.
+
+Two corrections: the `Evidence` table's `feature: 404, regression: 86, automated: 89` is `404`, measured `406`; and see the shared basis finding below — at HEAD `your-trainer` is `feature: 496, regression: 85, automated: none`.
+
+**Shared finding — every `at HEAD` measurement in this range is a working-tree measurement.** `your-trainer` carries 591 dirty files under `docs/`. Re-measured against a `git archive HEAD` and a fresh `--shared` clone: tier1 total **496** (not 406), tier2 **85** (not 86), and **zero** command-bearing acceptance checks — so at HEAD that repo emits *no automated section at all* and the 89/9-todo/`evidence: []` population does not exist there. The gate is **68** blocking at HEAD (43 covering a `FEAT`, ten features, 40 out of scope), not 59/39/nine/36. Every figure quoted reproduces exactly against the working tree. No note in this range carries a basis caveat, while `CHG-20260820-The-Suite-Is-The-Verdict` — the note six prior review rounds spent on this exact point — carries 24.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+Basis blockquote present and accurate. The `Evidence` table's *"Measured 2026-08-20 at HEAD"* caption (line 44) is still uncorrected in place, but the blockquote above it now carries the true basis. No new defect found; the merge logic, the predicate choice and the `_head` pop all stood up to re-testing in the first pass and are unchanged.

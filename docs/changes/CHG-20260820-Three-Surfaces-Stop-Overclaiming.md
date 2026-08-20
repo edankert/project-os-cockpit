@@ -7,12 +7,19 @@ status: active
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 related: ["[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[CHG-20260820-The-Section-Head-Says-What-Is-Owed]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]"]
 tags: [change, cockpit, ui]
 ---
 
 # Three surfaces stop overclaiming
+
+> **Basis of every `your-trainer` figure in this note: its WORKING TREE on 2026-08-20, not `HEAD`.** Corrected after independent review, which caught the phase's own recorded lesson being repeated. The difference is not a rounding: at `HEAD` that repo has **581 items, 68 blocking, and ZERO command-bearing checks** — so there is **no automated section there at all**, and the 89 checks, their empty `evidence:`, the nine at `mark: todo` and the shared 22-character command prefix exist only in the 591-file working tree. Its Feature tests head reads `65 of 507 outstanding` at `HEAD` against `49 of 411` in the tree.
+>
+> **The findings do not depend on the basis; the numbers do.** A head that miscounts, a percentage over checks with no result, and a uniform glyph are defects of the code, reproducible on any corpus that has the shape. What the working tree supplies is the *scale*.
 
 ## What changed
 
@@ -52,5 +59,32 @@ Also deleted: the row click handler's `if (ev.target.closest('.acc-mark')) retur
 ## Where
 
 - `src/project_os_cockpit/cockpit.py` — `_section_head_label`, the merge rebuild, the standalone section head.
-- `desktop/src/renderer/renderer.ts` / `.css` — `buildCheckRow`, the area loop, `gateGroup`; `gateMark` deleted.
+- `desktop/src/renderer/renderer.ts` and `desktop/src/renderer/renderer.css` — `buildCheckRow`, the area loop, `gateGroup`; `gateMark` deleted, and the `.gate-mark` rule with it (it was a pre-built hook: the reviewer re-added a glyph using that class and every guard stayed green).
 - `tests/` — nine new guards, three re-anchored.
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+The three before/after rows for this repo were re-derived from `_tests_groups` and are exact. The `progress.done` → `statuses.is_completed` account is correct and both readings are genuinely guarded (mutant executed).
+
+Two guard holes, both in the class this note says it closed:
+
+1. **The mark guards miss a reintroduction that does not reuse the old name.** A `<span class="gate-mark is-static">` carrying `MARK_GLYPH[item.mark]`, prepended to every gate row, passes all 165 guard tests. See `ISS-0244`.
+2. **`test_both_front_doors_read_head_counts` passes with the desktop suppression deleted.** See `ISS-0241`.
+
+*"A text guard failed on its own explanation, twice in one sitting"* is accurate and the comment-line exclusion is the right repair — but it repairs *false alarms*, not *false passes*, and both holes above are the second kind.
+
+**Shared finding — every `at HEAD` measurement in this range is a working-tree measurement.** `your-trainer` carries 591 dirty files under `docs/`. Re-measured against a `git archive HEAD` and a fresh `--shared` clone: tier1 total **496** (not 406), tier2 **85** (not 86), and **zero** command-bearing acceptance checks — so at HEAD that repo emits *no automated section at all* and the 89/9-todo/`evidence: []` population does not exist there. The gate is **68** blocking at HEAD (43 covering a `FEAT`, ten features, 40 out of scope), not 59/39/nine/36. Every figure quoted reproduces exactly against the working tree. No note in this range carries a basis caveat, while `CHG-20260820-The-Suite-Is-The-Verdict` — the note six prior review rounds spent on this exact point — carries 24.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: changes-requested.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+One of the two first-pass holes is closed; the other is not, and the breakdown guard has a new one.
+
+- **Closed**: the desktop `head_counts` suppression is now genuinely guarded (mutant executed, fails).
+- **Open**: a mark can still be put back on every gate row — in the gutter via `li.prepend`, or after the id via a second `li.appendChild` — with all 165 guard tests green. See `ISS-0244`.
+- **New**: the lossless guard still admits a row-dropping tally. See `TASK-0503`.
+
+Residue: the `Where` list still omits `desktop/src/renderer/renderer.css`, which this change also edited.

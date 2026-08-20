@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 source: ["user:edwin"]
 severity: low
 component: cockpit-desktop
@@ -76,3 +79,39 @@ That last failure mode appeared **twice in one sitting** — a text guard trippi
 - [x] Drop the mark on the four unsettled lists; align the id with the features row.
 - [x] Carry the distinction in meta text for `Quiet` and `Stale evidence`.
 - [x] Guards, comment-proof, on both front doors.
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+**The re-anchored guard is not stronger; it is anchored on a different name.** The note argues the guard *"moves up to the row builder … because each removal that anchored on a name left the next one unguarded."* `test_a_gate_row_carries_a_token_and_never_a_control` line-matches the class token `acc-mark`; `test_no_gate_row_draws_a_mark` matches `function gateMark` / `gateMark(`. Both are names.
+
+Mutant executed — prepend to every gate row inside `gateGroup`:
+
+```ts
+const mk = document.createElement('span');
+mk.className = 'gate-mark is-static';
+mk.textContent = MARK_GLYPH[item.mark || ' '] ?? '?';
+li.prepend(mk);
+```
+
+**165 passed.** The mark is back on every row of `Blocking`/`New`/`Chronic`/`Regressed` and nothing fires. `.gate-mark` is still a live CSS rule at `desktop/src/renderer/renderer.css:5700`, so the hook is pre-built and the mutation needs no new styling. A guard on the property claimed — no glyph in the row's gutter — would key on the row builder appending anything before `n`, or on `MARK_GLYPH`/`MARK_CLASS` being read inside `gateGroup`.
+
+Deleting the dead `.acc-mark` clause is right and the `withMark: true` count of exactly two is correct. *"Guards … on both front doors"* is loose: `cockpit.js` renders no gate rows at all, so there is no second door here to guard.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: changes-requested.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+`.gate-mark` is deleted — the right call, and it did close my exact mutant: the `gate-mark` + `MARK_GLYPH` reintroduction now fails `test_a_gate_row_carries_a_token_and_never_a_control` (executed).
+
+**But the guard's own claim is still false, and two fresh mutants walk past it.** The docstring says: *"the FIRST of them is the id. A mark in the gutter has to be appended before the id, and there is no way to do that without failing this."*
+
+The shape check is `re.findall(r"^\s*li\.(append|appendChild)\((.*)$", body)` and then `appends[0]`. Executed against the current tree, both **165 passed**:
+
+1. **The mark is back in the gutter.** `li.prepend(tok)` — `prepend` is not in the regex's alternation, so `appends[0]` is still `n, t, a, ...subjectLinks` and the shape assertion is satisfied while the glyph renders in the left-hand column, which is the literal thing Edwin asked to remove.
+2. **The mark is back at the end of the row.** `li.appendChild(tok)` placed *after* `li.append(n, t, a, …)` — `appends[0]` is unchanged again.
+
+Neither mutant needs the forbidden vocabulary: `tok.textContent = item.mark === 'done' ? '\u2611' : '\u2610'` uses no `MARK_GLYPH`, `MARK_CLASS`, `acc-mark` or `gate-mark`, so the belt-and-braces line does not fire either.
+
+This is the fourth spelling of the same control walking past the fourth name-shaped guard. What would hold: assert on the *complete* child sequence of the `li` — that the only statements adding children are the single `li.append(n, t, a, ...subjectLinks)` — rather than on the first of a filtered list. `prepend`, `insertBefore`, `before` and `replaceChildren` all need to be in scope, or the assertion needs to be that no other add-a-child call exists at all.

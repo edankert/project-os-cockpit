@@ -677,19 +677,44 @@ def test_a_gate_row_carries_a_token_and_never_a_control() -> None:
         "a gate row builds a button — a release page reports the gate and "
         "records nothing (ADR-0035); walking happens where the steps are"
     )
-    #: **Live code, not comments.** Matched line-wise with comment lines
-    #: excluded, because the comment recording *why* the mark went necessarily
-    #: names it — and a guard that fails on its own explanation is a guard
-    #: somebody weakens to make it pass. That happened twice in one sitting
-    #: here; the `markGateRow` check in `test_checks_view` had the same shape
-    #: and was rewritten the same way.
-    drawn = [ln for ln in re.findall(r"^(?!\s*(?://|\*|/\*)).*acc-mark.*$",
-                                     body, re.M)]
-    assert not drawn, (
-        "a gate row is drawing a mark token again. It was uniform on every "
-        "row of the four unsettled lists — those rows are unsettled by "
-        f"construction — and where the mark varies it is a word in the meta "
-        f"line, not a glyph in the gutter (ISS-0244): {drawn}"
+    #: **Anchored on the ROW'S SHAPE, not on class names** (independent review,
+    #: 2026-08-20). The previous version forbade the string `acc-mark` in this
+    #: function. The reviewer re-added a glyph using `gate-mark` — a class
+    #: whose CSS was still live — and every guard here stayed green. A guard
+    #: that names one spelling of a thing is a guard the next spelling walks
+    #: past, which is the third time that has happened on this control.
+    #:
+    #: So the claim is now about what the row IS: the `li` gets exactly the
+    #: children the features row gets, and the FIRST of them is the id. A mark
+    #: in the gutter has to be appended before the id, and there is no way to
+    #: do that without failing this.
+    #: **Exactly one add-a-child call, and it is the whole row.** Re-review
+    #: 2026-08-20 defeated the previous version twice without using any of the
+    #: forbidden vocabulary — `li.prepend(tok)` (not in its `append|appendChild`
+    #: alternation) and an `li.appendChild(tok)` placed *after* the row's own
+    #: `li.append(...)`. Both put a glyph back in the gutter with the suite
+    #: green. Fourth spelling, fourth name-shaped guard, so the claim is now
+    #: about the COUNT of ways a child can arrive rather than about names.
+    adders = re.findall(
+        r"^(?!\s*(?://|\*|/\*)).*\bli\.(append|appendChild|prepend|replaceChildren"
+        r"|insertBefore|insertAdjacentElement|insertAdjacentHTML|innerHTML)\b.*$",
+        body, re.M)
+    assert len(adders) == 1, (
+        "a gate row gains children by more than one route, so the row's shape "
+        f"is no longer fixed by reading one line: {adders}"
+    )
+    call = re.search(r"^\s*li\.append\((.*)\);\s*$", body, re.M)
+    assert call, "the single add-a-child call is not the row's own `li.append(...)`"
+    assert call.group(1).startswith("n, t, a"), (
+        "the gate row's children no longer start with id, title, meta — "
+        f"something is occupying the gutter again (ISS-0244): {call.group(1)!r}"
+    )
+    #: And nothing in the function reaches for the mark vocabulary at all.
+    #: Belt and braces over the shape check, on live code only.
+    live = re.findall(r"^(?!\s*(?://|\*|/\*)).*\b(MARK_GLYPH|MARK_CLASS|acc-mark|gate-mark)\b.*$",
+                      body, re.M)
+    assert not live, (
+        f"a gate row is reaching for the mark vocabulary again: {live}"
     )
     #: The row is still a LINK to the check — the one handler it may carry.
     #: Asserted so "no controls" is not satisfied by making the row inert.

@@ -7,6 +7,9 @@ status: open
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-18"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 severity: medium
 component: docs
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -53,6 +56,31 @@ The remaining three, each read rather than pattern-matched on its name:
 
 **The caveat on TST-0013 is worth more than the level.** It carries **107 checkbox rows** in one note (TST-0011 has 18, TST-0012 has 15). Under [[ADR-0030]] one note is one check, so calling it `level: acceptance` labels a 107-check document as a single acceptance check. The level is still right — the alternative is worse, since `system` routes it to a flat group that contradicts its own title — but the shape is the document-suite [[PHASE-035]] migrated away from, and it should eventually become notes. Noted rather than fixed here: that is a migration, not a field edit.
 
+## RETRACTED 2026-08-20 — the measurement below is wrong and the change is reverted
+
+**The relevel was applied and then undone.** Independent review found that the simulation proving *"zero gate impact"* used an instrument **structurally incapable of showing impact**.
+
+`acceptance.load(docs)` was called **without an index**. Every live surface loads **with** one — `server.py`'s `/api/cockpit/acceptance`, and `publication.release_payload` through `gate_payload(index=index)` — and only the indexed loader resolves a `level: acceptance` note that lives outside `docs/tests/acceptance/`. All three of these do. So the before/after figures could not move, and did not, and were reported as evidence that nothing moved.
+
+Re-measured on the same working tree, only the three `level:` lines differing:
+
+| loader | items | blocking |
+|---|---|---|
+| **without** an index — what was measured | 579 | 57 → 57 |
+| **with** an index — what the app uses | 581 | **59 → 62** |
+
+`newly blocking: ['TST-0011', 'TST-0012', 'TST-0013']`. **TST-0013 became one blocking check standing over 107 checkbox rows.**
+
+Edwin authorised applying it on the strength of the false claim, so the edit was **reverted** rather than kept and re-argued: 581 items and 59 blocking restored, all three back at `level: system`, the files clean in git.
+
+**Two things in the record were wrong and are named rather than tidied away.** The commit message on `d693f7b` says the write was *"refused by the sandbox"*; it was refused, and then applied thirteen minutes later once Edwin granted access, and the message was never amended. And the earlier version of this section presented the index-less figures as *"simulated on a throwaway copy rather than reasoned about"* — the care was real and it was spent on the wrong instrument, which is the more dangerous shape: a measurement that cannot fail looks exactly like a measurement that passed.
+
+**The judgement about the level is unchanged.** These three are acceptance tests by their own words. What is now known is that acting on it costs three blocking checks — and for TST-0013, one blocking check over 107 rows, which argues for splitting it before relevelling it, not for relevelling it as it stands.
+
+## The original measurement, kept as the record of the error
+
+> **Everything from here to the end of `Applied 2026-08-20` is FALSE and describes a state that no longer exists on disk.** It is kept because the shape of the error is the useful part — a measurement that could not fail, read as one that passed — and deleting it would leave the retraction above arguing with nothing. The present tense below is the present tense it was written in; **"Zero gate impact" is wrong (it is three checks), and "Applied" is wrong (it was reverted).** Re-review 2026-08-20 flagged that quarantining without marking is the same defect one level up.
+
 ## Measured before recommending it
 
 Relevelling all three was simulated on a **throwaway copy** of `your-trainer/docs` rather than reasoned about:
@@ -65,7 +93,7 @@ newly blocking: []
 
 **Zero gate impact.** `acceptance.load` reads the acceptance *directory*, and all three live in `docs/tests/`, so the change moves them in the navigator — out of the flat `Needs you` group and under their tier — and touches nothing the release gate counts. That is exactly the second criterion below and nothing else.
 
-## Not yet applied — the data change needs a hand
+## Applied 2026-08-20
 
 The edit is three lines, `level: system` → `level: acceptance`, in:
 
@@ -73,10 +101,28 @@ The edit is three lines, `level: system` → `level: acceptance`, in:
 - `your-trainer/docs/tests/TST-0012-IosBleHardeningAcceptance.md`
 - `your-trainer/docs/tests/TST-0013-IosParityAcceptance.md`
 
-It was attempted and **refused by the sandbox** — writes into a second repository are blocked from this one, which is the right default: a change to `your-trainer`'s record should not arrive as a side effect of work in the cockpit.
+Applied on Edwin's confirmation. **The prediction held exactly**: `579` items and `57` blocking before and after, and all three moved out of the flat `Needs you` group to render as children of their tier — which is the second criterion below, and nothing else moved.
+
+Left **uncommitted in `your-trainer`** pending Edwin's review: a change to that repo's record should be his commit, not a side effect of work in the cockpit.
 
 ## Done when
 
-- [x] Each of the five is assigned a `level:` deliberately, with the reasoning recorded — **done above**; two were already applied, three are decided and pending.
-- [ ] The three edits land in `your-trainer`.
-- [ ] Whatever the outcome, no test's *group* contradicts its own name. Verified for TST-0015/0018 (tier children); pending for the three.
+- [x] Each of the five is assigned a `level:` deliberately, with the reasoning recorded.
+- [ ] **Decide, on the true cost**, whether TST-0011/0012 are relevelled — three blocking checks enter `your-trainer`'s gate.
+- [ ] **TST-0013 is not relevelled as it stands**: 107 checkbox rows behind one blocking check is the document-suite shape [[PHASE-035]] migrated away from. Split first.
+- [x] No test's *group* contradicts its own name — verified for TST-0015/0018; the other three keep the contradiction until the above is settled.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: changes-requested.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+**The retraction is accurate and the revert is real.** Verified independently: all three notes are back at `level: system` and clean against `your-trainer` HEAD; the suite is 581 items / 59 blocking again. The two-loader table is right, `newly blocking: ['TST-0011','TST-0012','TST-0013']` reproduces, the stale `d693f7b` message is named, the status is back to `open`, and the *"Done when"* now requires splitting `TST-0013` first. Naming the instrument rather than the arithmetic is the correct diagnosis.
+
+**But the note is not free of the claim it retracts.** Beneath `## The original measurement, kept as the record of the error` — a heading with no body — sit two sections in the unqualified present tense:
+
+- `## Measured before recommending it` still asserts **"Zero gate impact."**
+- `## Applied 2026-08-20` still asserts *"Applied on Edwin's confirmation. **The prediction held exactly**"* and *"Left uncommitted in `your-trainer` pending Edwin's review"* — describing a state that no longer exists on disk, since the edit was reverted.
+
+Quarantining the error as the record is right; leaving it in the present tense is the *"earlier correction left standing beside a later one"* pattern this phase has now hit repeatedly. `## Applied 2026-08-20` is also not *"the original measurement"*, so it sits under a heading that does not cover it. Mark both sections as superseded in their own first line, or fold the applied/reverted history into the retraction.
+
+Minor: the retraction table's `items` column reads `581` for the indexed row; with an index the items go 581 → **584**. Only the `blocking` transition is shown.

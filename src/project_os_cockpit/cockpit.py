@@ -4592,6 +4592,12 @@ def _section_head_label(head: dict[str, Any]) -> str:
     | `your-trainer` Feature tests | 406 | 5 |
     | `your-trainer` Automated tests | 89 | 2 |
 
+    **The `your-trainer` rows are its WORKING TREE on 2026-08-20, not `HEAD`.**
+    At `HEAD` that repo carries zero command-bearing checks, so it has no
+    automated section at all and its Feature tests total is 507. The defect is
+    basis-independent -- a head built before a merge cannot see what the merge
+    appends -- but the scale comes from the uncommitted migration.
+
     The first row is the one that shows what it costs: this repo's head read
     **`all 27 done`** while three of the five merged rows sat at `ready`. A
     head asserting that everything is finished, over a group holding three
@@ -4715,8 +4721,12 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             #: This read `{total} executed by CI`, which the cockpit derived
             #: from `command:` being present and from nothing else -- it looks
             #: at no CI run, and no fleet workflow executes these AS CHECKS.
-            #: Measured in `your-trainer` at HEAD: all 89 carry `evidence: []`
-            #: and an empty `verdict_date`, and 9 of them are `mark: todo`, so
+            #: Measured in `your-trainer`'s **working tree** on 2026-08-20 --
+            #: **not at `HEAD`**, where that repo carries zero command-bearing
+            #: checks and this branch never runs at all. Corrected after
+            #: independent review: the basis is the phase's own recorded lesson
+            #: and it was repeated here. All 89 carry `evidence: []` and an
+            #: empty `verdict_date`, and 9 are `mark: todo`, so
             #: the phrase told a reader that 89 checks were in hand over a
             #: record holding no result for any of them. That is [[ISS-0237]]
             #: inverted -- it removed a false OBLIGATION, and the fix put a

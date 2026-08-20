@@ -2191,8 +2191,10 @@ def test_an_automated_head_claims_no_ci_execution() -> None:
     """**The count, and nothing about who ran it** ([[ISS-0241]]).
 
     This head said `{total} executed by CI`, derived from `command:` being
-    present and from no observed run anywhere. Measured in `your-trainer` at
-    HEAD on 2026-08-20: all 89 automated acceptance checks carry
+    present and from no observed run anywhere. Measured in `your-trainer`'s
+    **working tree** on 2026-08-20 (not `HEAD`, where that repo carries zero
+    command-bearing checks and no automated section at all — corrected after
+    independent review) on 2026-08-20
     `evidence: []` and an empty `verdict_date`, **nine of them sit at
     `mark: todo`**, and no workflow in that repo executes them as checks —
     `android-tests.yml` runs the underlying gradle tests, and nothing maps a
@@ -2269,13 +2271,38 @@ def test_both_front_doors_read_head_counts() -> None:
     """
     from pathlib import Path as _P
 
+    #: **The SUPPRESSION, not the token** (independent review, 2026-08-20).
+    #: This asserted `"head_counts" in src`, which the field's own declaration
+    #: in `NavGroupData` satisfies — so deleting the behaviour in the renderer
+    #: left the guard green and only the build-staleness check fired, and that
+    #: one clears on any `npm run build`.
+    #:
+    #: Each front door must contain a statement that BLANKS the summary when
+    #: the flag is set. Matched on live code with the assignment present, so a
+    #: mention in a type or a comment cannot satisfy it.
     root = _P(__file__).resolve().parents[1]
-    for rel in ("src/project_os_cockpit/static/cockpit.js",
-                "desktop/src/renderer/renderer.ts"):
+    #: **Reformat-proof** (re-review 2026-08-20): the first version required
+    #: the condition and the assignment on ONE line, so wrapping it in braces
+    #: — a pure reformat — would have failed it. That is the brittleness the
+    #: sibling guard was rewritten to remove, reintroduced in the same diff.
+    #:
+    #: Matched across whitespace and newlines, on a comment-stripped copy, so
+    #: an explanation naming the flag cannot satisfy it and a line break
+    #: cannot break it.
+    import re as _re4
+    targets = {
+        "src/project_os_cockpit/static/cockpit.js":
+            (r"g\.head_counts\b[^;]*?gSummary\s*=\s*(\"\"|'')", "gSummary"),
+        "desktop/src/renderer/renderer.ts":
+            (r"group\.head_counts\b[^;]*?summaryText\s*=\s*(\"\"|'')", "summaryText"),
+    }
+    for rel, (pattern, var) in targets.items():
         src = (root / rel).read_text(encoding="utf-8")
-        assert "head_counts" in src, (
-            f"{rel} never reads `head_counts`, so the count-bearing heads "
-            "still print a second, different-population number there."
+        stripped = _re4.sub(r"(?m)^\s*(//|\*|/\*).*$", "", src)
+        assert _re4.search(pattern, stripped, _re4.S), (
+            f"{rel} declares or mentions `head_counts` but never blanks "
+            f"`{var}` with it, so the count-bearing heads print a second, "
+            "different-population number there."
         )
 
 
@@ -2453,9 +2480,22 @@ def test_the_gate_row_id_is_typed_like_a_feature_row() -> None:
     check carries no positional `number:` — the [[ISS-0219]] fallback — so the
     id on screen is the note's and the row only needed to look like one.
     """
+    #: **The whole function, not a fixed 4000-character window** (independent
+    #: review, 2026-08-20). The window failed the moment the function grew —
+    #: for the wrong reason, reporting a missing class where the truth was
+    #: that the slice ended above it. A guard that fails on unrelated growth
+    #: gets read as noise, and then gets loosened.
     src = _RENDERER.read_text(encoding="utf-8")
-    i = src.index("function gateGroup")
-    body = src[i:i + 4000]
+    i = src.index("function gateGroup(")
+    depth, j = 0, src.index("{", i)
+    for k in range(j, len(src)):
+        if src[k] == "{": depth += 1
+        elif src[k] == "}":
+            depth -= 1
+            if depth == 0:
+                j = k
+                break
+    body = src[i:j + 1]
     assert "'scoped-row-id mono ov-typed'" in body, body[:200]
     assert "n.dataset.type = 'test'" in body
 
@@ -2524,9 +2564,11 @@ def test_no_group_asserts_a_pass_for_a_status_it_does_not_recognise() -> None:
     1. There is no group that asserts a pass. `retired` routes to a band that
        names what it is, and the `else` is `Feature tests` — which claims
        nothing about a verdict.
-    2. **An unrecognised status cannot reach a committed corpus.** `STATUS-VALUE`
+    2. **An unrecognised status cannot reach a committed corpus.** `NOTE-STATUS`
        errors on any value outside the type's allowed set, at pre-commit and in
-       CI. A group for the unrecognised case would be a second, weaker copy of
+       CI. (Named after independent review probed it; `STATUS-VALUE` reads the
+       *snapshot's* statuses and most `TST-*` notes are not snapshot items, so
+       citing it would have pointed at a check that cannot fire here.) A group for the unrecognised case would be a second, weaker copy of
        a check that already fails the commit — and a group nobody may notice is
        exactly the quiet this issue objects to.
     """

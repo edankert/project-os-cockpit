@@ -5693,15 +5693,12 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   font-size: 12px;
   color: var(--text-faint);
 }
-/* The mark is the row's left-hand column and never shrinks — the same rule
-   the id column follows, for the same reason: it is short, fixed, and the
-   title is the part that should shorten. Geometry only: colour, weight and
-   glyph stay with `.acc-mark`, which both surfaces share. */
-.gate-mark {
-  flex: none;
-  margin: 0;
-  font-size: 12px;
-}
+/* **No `.gate-mark`** (ISS-0244, and independent review 2026-08-20). It styled
+   the mark on a release-gate row; the mark is gone, and leaving the rule
+   behind left a PRE-BUILT HOOK — the reviewer re-added a glyph with this exact
+   class and every guard stayed green, because the styling it needed was still
+   here waiting. Dead CSS is not inert: it is the half of a removed feature
+   that makes re-adding the other half look finished. */
 
 /* Tables in the centre pane (ISS-0179). `base.css` styles `.content table`,
    which is the BROWSER cockpit's wrapper class; `#doc-view` carries
@@ -6103,15 +6100,28 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .checks-row-number.is-link:hover { text-decoration: underline; }
 
 /* An automated check's row (ADR-0039). It carries the command that executes
-   it where a manual row carries its mark button — the row is a manifest
-   entry, not something to tick. Dimmed because nothing here is owed. */
+   it INSTEAD OF a checkbox — the row is a manifest entry, not something to
+   tick. Dimmed because nothing here is owed.
+   (The command used to sit in the row's leading slot, where a manual row puts
+   its mark; ISS-0243 moved it under the description and this sentence with
+   it.) */
 /* ISS-0243: under the description, not in the checkbox slot, and NOT clipped
    to 22ch — all 89 of your-trainer's commands share their first 22 characters
    (`cd android && ./gradlew`), so the old cell rendered one distinct value
    across the whole page. The tail is the part that identifies the test, so the
    line wraps rather than truncating. */
+
+.checks-row.is-automated .checks-row-command {
+  color: var(--text-muted);
+  font-size: 0.85em;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 /* TASK-0503: the gate's blocking rows tallied by area, in front of the list
-   rather than instead of it. `your-trainer` puts 59 rows here across 17
+   rather than instead of it. `your-trainer`'s WORKING TREE (2026-08-20, not
+   HEAD, where the gate is 68) puts 59 rows here across 17
    areas, two of which are more than half of them — the shape is the fact, and
    a 59-row scroll hides it. Each part opens `~checks/area/<area>`. */
 .gate-breakdown {
@@ -6145,12 +6155,4 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 }
 .gate-breakdown-count {
   color: var(--text-faint);
-}
-
-.checks-row.is-automated .checks-row-command {
-  color: var(--text-muted);
-  font-size: 0.85em;
-  margin-top: 0.15rem;
-  overflow-wrap: anywhere;
-  white-space: normal;
 }

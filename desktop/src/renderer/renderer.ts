@@ -8881,13 +8881,6 @@ interface GateGroupOptions {
   withMark?: boolean;
 }
 
-/** One group of gate rows. Every group renders through here so four lists
- *  cannot drift into four layouts.
- *
- *  **Named arguments** (ISS-0190). The quiet group's call site read
- *  `gateGroup('', '', gate.quiet, gate.rel, releaseId, false, true)` before
- *  this — seven positional values, two of them empty strings and two of them
- *  trailing booleans nobody could name from the call. */
 //: Below this a breakdown is noise: a tally of four rows over a list of four
 //: rows says nothing the list does not. A constant so the threshold is one
 //: decision rather than a literal buried in a condition.
@@ -8896,7 +8889,8 @@ const GATE_BREAKDOWN_MIN = 8;
 /** The gate's blocking rows, tallied by area ([[TASK-0503]]).
  *
  *  **The wall was the problem, not the number.** `REL-0013` in `your-trainer`
- *  renders **59 blocking rows** on the page a person opens to ask *can I
+ *  renders **59 blocking rows** — its WORKING TREE on 2026-08-20, not HEAD,
+ *  where the gate is 68 — on the page a person opens to ask *can I
  *  ship*, and a list that long is read as a mood rather than as work. Measured
  *  2026-08-20: those 59 fall into **17 areas**, and the shape is not flat —
  *  `Trainer Compatibility Verification` holds 20 and `Monetization &
@@ -8913,9 +8907,16 @@ const GATE_BREAKDOWN_MIN = 8;
  */
 function gateAreaBreakdown(items: GateItem[]): HTMLElement | null {
   if (items.length < GATE_BREAKDOWN_MIN) return null;
+  //: **The key is the RAW area, empty string included** (independent review,
+  //: 2026-08-20). This bucketed an absent area under an em-dash and then
+  //: navigated to `~checks/area/%E2%80%94`, while `checkMatches` compares
+  //: `f.areas.has(item.area || '')` — so the chip opened a filter matching
+  //: **zero** rows, on a page whose whole promise is that every part opens
+  //: exactly what it counted. Five rows on `your-trainer`'s `New` group land
+  //: here. The em-dash is a LABEL now, applied at render, and never a key.
   const byArea = new Map<string, number>();
   for (const item of items) {
-    const area = (item.area || '').trim() || '\u2014';
+    const area = (item.area || '').trim();
     byArea.set(area, (byArea.get(area) || 0) + 1);
   }
   //: Largest first — the reader wants the areas that ARE the gate, not an
@@ -8930,12 +8931,14 @@ function gateAreaBreakdown(items: GateItem[]): HTMLElement | null {
     chip.className = 'gate-breakdown-part';
     const name = document.createElement('span');
     name.className = 'gate-breakdown-name';
-    name.textContent = area;
+    name.textContent = area || '\u2014';
     const count = document.createElement('span');
     count.className = 'gate-breakdown-count mono';
     count.textContent = String(n);
     chip.append(name, count);
-    chip.title = `${n} blocking check(s) in ${area}`;
+    chip.title = area
+      ? `${n} blocking check(s) in ${area}`
+      : `${n} blocking check(s) with no area recorded`;
     //: A button, not an anchor: this app navigates through `navigateTo`, and
     //: an `href` would be a second navigation path for one act.
     chip.addEventListener('click', (ev) => {
@@ -8948,6 +8951,13 @@ function gateAreaBreakdown(items: GateItem[]): HTMLElement | null {
 }
 
 
+/** One group of gate rows. Every group renders through here so four lists
+ *  cannot drift into four layouts.
+ *
+ *  **Named arguments** (ISS-0190). The quiet group's call site read
+ *  `gateGroup('', '', gate.quiet, gate.rel, releaseId, false, true)` before
+ *  this — seven positional values, two of them empty strings and two of them
+ *  trailing booleans nobody could name from the call. */
 function gateGroup(opts: GateGroupOptions): HTMLElement {
   const {
     items, rel, releaseId,
@@ -9000,6 +9010,15 @@ function gateGroup(opts: GateGroupOptions): HTMLElement {
   //: IN FRONT of the rows, never instead of them ([[TASK-0503]]). Only on the
   //: groups that ask — a breakdown over `Quiet` or `Stale evidence` would be a
   //: tally of a list nobody is working through right now.
+  //: On every group that ASKS, which is the four unsettled lists — not just
+  //: the `Blocking` one (independent review, 2026-08-20).
+  //:
+  //: `buildGateSection` draws `Blocking` only in the `else` of
+  //: `if (delta?.comparable)`. `your-trainer` HAS release tags, so it takes
+  //: the other branch and renders `New` / `Chronic` / `Regressed` — meaning
+  //: the surface this was built for never rendered it. The condition was
+  //: right and the reasoning behind it was about a group that repo does not
+  //: draw; eleven of twelve repos have no tag and take the `Blocking` path.
   if (!withSubjects && !withRerun) {
     const breakdown = gateAreaBreakdown(items);
     if (breakdown) box.appendChild(breakdown);

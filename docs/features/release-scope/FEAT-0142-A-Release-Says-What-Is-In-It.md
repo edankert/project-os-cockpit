@@ -7,6 +7,9 @@ status: backlog
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["user:edwin"]
 goal: "A person preparing a release can move a feature out of it, or hold one for the next one, from the release page — and the record says which features were CHOSEN rather than which happened to be finished."
@@ -66,13 +69,17 @@ Two properties it must have, or it rots into the thing it replaced:
 - **Reconciled on render, never written once.** A feature completed after the list was authored appears on it, checked, without anybody re-running anything; an unchecked one is never silently dropped. The release note in this fleet has already drifted once for exactly this reason — it was hand-maintained and nothing reconciled it.
 - **One source, not two.** `publication.py` reads `features:` from frontmatter for a shipped release. The checkbox list is the **working** state; `features:` is written **at the seal**. Two live representations of one fact is how two surfaces come to disagree, and [[ADR-0035]]'s frozen-record guarantee depends on the frozen one having a single moment of authorship.
 
+> **Basis of every `your-trainer` figure in this note: its WORKING TREE on 2026-08-20, not `HEAD`.** Corrected after independent review, which caught the phase's own recorded lesson being repeated. The difference is not a rounding: at `HEAD` that repo has **581 items, 68 blocking, and ZERO command-bearing checks** — so there is **no automated section there at all**, and the 89 checks, their empty `evidence:`, the nine at `mark: todo` and the shared 22-character command prefix exist only in the 591-file working tree. Its Feature tests head reads `65 of 507 outstanding` at `HEAD` against `49 of 411` in the tree.
+>
+> **The findings do not depend on the basis; the numbers do.** A head that miscounts, a percentage over checks with no result, and a uniform glyph are defects of the code, reproducible on any corpus that has the shape. What the working tree supplies is the *scale*.
+
 ## The three open questions, answered
 
 **Q1 — where does the decision live before the release ships?** *Answered:* in the release document, as the checkbox list above, with `features:` written at the seal.
 
 **Q3 — does excluding a feature change the gate?** *Answered by [[ADR-0040]], and not with a plain yes.* **Selection subtracts; it never divides.** Every check gates except one whose `covers:` names *only* deselected features. A check covering both a selected and a deselected feature still gates. A check with no `covers:`, or covering only an `ISS`/`REQ`/`PHASE`, is untouched by selection.
 
-The measurement is why. On `your-trainer` at HEAD, 2026-08-20 — 59 blocking checks: 39 cover a `FEAT`, 18 cover only `ISS`/`PHASE`, 2 carry no `covers:` at all. The 39 land on **nine** features, and **six of those nine (36 checks) are not in this release's 32-feature derived contents**. Scoping the gate *to* the selection would take it from 59 to about 23 on the first render, by nobody's decision, and would empty the `chronic` bucket whose whole purpose is to keep long-carried debt visible.
+The measurement is why. in `your-trainer`'s **working tree** (not `HEAD` — see the basis note above), 2026-08-20 — 59 blocking checks: 39 cover a `FEAT`, 18 cover only `ISS`/`PHASE`, 2 carry no `covers:` at all. The 39 land on **nine** features, and **six of those nine (36 checks) are not in this release's 32-feature derived contents**. Scoping the gate *to* the selection would take it from 59 to about 23 on the first render, by nobody's decision, and would empty the `chronic` bucket whose whole purpose is to keep long-carried debt visible.
 
 **Q2 — what does holding back mean when the feature is already `done`?** *Answered, and it is the sharpest constraint here.* Five of those six out-of-scope carriers are `done` — merged, in the binary, shipping regardless of what any list says. **A checkbox controls what a release is accountable for, never what it contains.** Dropping the checks of a `done` feature is shipping unverified code, not deferring code. Legitimate behind a flag or as accepted risk; an illegitimate convenience otherwise — so the page must distinguish *held for a later release* from *in the build, not verified here*.
 
@@ -107,3 +114,19 @@ Edwin, same day: *"these are open because of multiple of reasons and happy to re
 - Plan: `plan/PLAN.md`
 - Server: `src/project_os_cockpit/publication.py` (`kind: "derived"` / `kind: "frozen"`)
 - Client: `desktop/src/renderer/renderer.ts`, the release contents section
+
+## Independent review — 2026-08-20
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `222e19e..6cc7f72`; the author's reasoning trace was not available to it. Verdict: **changes-requested**.
+
+Scope, mechanism and the three answered questions are consistent with `ADR-0040` and with the code: `publication.release_payload` really does have exactly two modes and no third, and the `derived` contents count is 32 as stated. The acceptance criterion naming the mixed case — *a check covering one selected and one deselected feature* — is the right cell to guard, and the `excused`-not-deselected split is argued from `ADR-0037`'s actual vocabulary rather than asserted.
+
+**Same single correction as `ADR-0040`**: *"On `your-trainer` at HEAD, 2026-08-20 — 59 blocking checks: 39 / 18 / 2 … six of those nine (36 checks)"* is a working-tree measurement. At HEAD it is 68 / 43 / 17 / 8, ten features, 40 out of scope. The conclusion is unaffected.
+
+One live inconsistency to resolve before anything is built: the criterion *"Nothing ships before ADR-0040 is accepted"* now points at a note whose frontmatter says `accepted` and whose body says `Proposed`.
+
+## Independent review — second pass, 2026-08-20
+
+**This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
+
+Basis blockquote present and its figures re-verified. The measurement it rests on reproduces exactly at the stated basis (59 / 39 / 18 / 2, nine features, 3-in / 6-out, `FEAT-0074` `backlog` with 20 = the whole `quiet` bucket, five of six `done`, ledgers in one of twelve repos), and the conclusion holds at HEAD too (40 of 43). Nothing further from me.
