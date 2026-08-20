@@ -7337,6 +7337,13 @@ interface ReleasePayload {
   id: string; version: string; status: string; preparing: boolean;
   exists: boolean; title: string; rel: string;
   contents: ReleaseContents;
+  /** Unsettled acceptance checks covering a feature THIS release carries
+   *  (TASK-0504). Scoped to `contents`, unlike `gate`, which counts the whole
+   *  repo — 3 rows against a 59-row gate on `your-trainer`. */
+  open_tests?: Array<{
+    id?: string; number?: string; name?: string; area?: string;
+    rel?: string; mark?: string; features?: string[];
+  }>;
   gate: GatePayload;
   /** What this release verified — the suite snapshot it shipped against and
    *  any TST notes. From `tests_verified:`, which twelve releases have been
@@ -7837,6 +7844,65 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
   }
   section.appendChild(list);
   wrap.appendChild(section);
+
+  // ---- what is still owed FOR THOSE CONTENTS (TASK-0504) ---------------
+  //
+  // Edwin: *"these should either show a list of open tsts or suggest
+  // something else."*
+  //
+  // Distinct from the gate, and the difference is the whole point: the gate
+  // counts every unsettled check in the repo (59 on `your-trainer`), and this
+  // counts the ones covering a feature the release actually carries (3). The
+  // second is the question a release asks.
+  //
+  // **A list of TST links, the features row's own shape** — no marks, no
+  // controls (ADR-0035, ISS-0244).
+  const openTests = d.open_tests || [];
+  if (openTests.length) {
+    const ot = document.createElement('section');
+    ot.className = 'release-section';
+    const oh = document.createElement('h3');
+    oh.textContent = `Still to check for these contents · ${openTests.length}`;
+    ot.appendChild(oh);
+    const note = document.createElement('p');
+    note.className = 'meta';
+    // Says what it is NOT, because the number beside the gate's is so different
+    // that a reader will otherwise assume one of them is wrong.
+    note.textContent = 'Unsettled checks covering a feature in this release. '
+      + 'The gate above counts every unsettled check in the repo, including '
+      + 'those for features this release does not carry.';
+    ot.appendChild(note);
+    const oul = document.createElement('ul');
+    oul.className = 'scoped-rowlist';
+    for (const row of openTests.slice(0, 40)) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono ov-typed';
+      id.dataset.type = 'test';
+      id.textContent = String(row.number || row.id || '');
+      const t = document.createElement('span');
+      t.className = 'scoped-row-title';
+      t.textContent = String(row.name || '');
+      const meta = document.createElement('span');
+      meta.className = 'verification-meta';
+      meta.textContent = [row.area, (row.features || []).join(', ')]
+        .filter(Boolean).join(' · ');
+      li.append(id, t, meta);
+      if (row.rel) {
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => void navigateTo(`/docs/${row.rel}`));
+      }
+      oul.appendChild(li);
+    }
+    if (openTests.length > 40) {
+      const more = document.createElement('li');
+      more.className = 'meta';
+      more.textContent = `…${openTests.length - 40} more`;
+      oul.appendChild(more);
+    }
+    ot.appendChild(oul);
+    wrap.appendChild(ot);
+  }
 
   // ---- what it verified, what it shipped with, what it published ------
   //

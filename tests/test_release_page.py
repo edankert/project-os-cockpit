@@ -12,6 +12,7 @@ is the assertion that was missing.
 
 from __future__ import annotations
 
+import inspect
 import re
 from pathlib import Path
 
@@ -481,4 +482,50 @@ def test_the_breakdown_chip_opens_rows_that_exist() -> None:
     assert m, (
         "checkMatches no longer compares `item.area || ''` — the breakdown's "
         "key and the filter's key have drifted apart"
+    )
+
+
+def test_the_release_shows_the_tests_owed_for_its_own_contents() -> None:
+    """[[TASK-0504]]. Edwin: *"these should either show a list of open tsts or
+    suggest something else."*
+
+    **The predicate is settledness, not `status:`** — and that is the whole
+    difficulty. An acceptance check sits at `status: active` for its entire
+    life, because the verdict lives in `mark:` and the ledger ([[ADR-0037]]).
+    Filtering on status returns every check covering a release feature,
+    settled or not. Measured on `your-trainer`'s working tree, 2026-08-20:
+    **94 by status, 3 by settledness.** The first is an inventory; only the
+    second is work, and shipping the first would have been a 94-row wall
+    beside a gate that says 59.
+    """
+    from project_os_cockpit import publication
+
+    src = inspect.getsource(publication._open_tests_for_contents)
+    assert "if item.settled:" in src and "continue" in src, (
+        "the open-tests list no longer filters on settledness — a status "
+        "filter returns settled checks too, because an acceptance check is "
+        "`active` for life"
+    )
+    #: Scoped to the release's contents, or it is just the gate again.
+    assert "content_ids" in src and "FEAT-" in src
+
+    #: And the rendered rows are links, not marks (ADR-0035 / ISS-0244).
+    #: Located by its own first line rather than by a containing function:
+    #: the block lives in `renderReleaseItemPage`, and anchoring on
+    #: `renderReleasePage` matched a DIFFERENT, earlier function whose body
+    #: ends well above it — a guard that would have failed for a reason with
+    #: nothing to do with the feature.
+    rsrc = RENDERER.read_text(encoding="utf-8")
+    i = rsrc.index("const openTests = d.open_tests")
+    block = rsrc[i:i + 2600]
+    assert "'scoped-row-id mono ov-typed'" in block, "the id is not a typed link"
+    for control in ("acc-mark", "gate-mark", "MARK_GLYPH", "createElement('button')"):
+        assert control not in block, (
+            f"`{control}` on the open-tests rows — a release page reports and "
+            "records nothing (ADR-0035)"
+        )
+    #: It must say how it differs from the gate: 3 beside 59 reads as a bug
+    #: unless the page explains which population each counts.
+    assert "every unsettled check in the repo" in block, (
+        "the section does not distinguish itself from the gate's count"
     )

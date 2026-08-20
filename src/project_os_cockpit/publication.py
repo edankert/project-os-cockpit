@@ -707,6 +707,56 @@ def shipping_in(index: "Index", release_id: str = "") -> list[dict[str, Any]]:
     return list(unreleased_payload(index).get("items") or [])
 
 
+def _acc_module() -> Any:
+    """Imported lazily, the way every other acceptance reader here does it —
+    `publication` and `acceptance` would otherwise import each other."""
+    from . import acceptance as _acc
+    return _acc
+
+
+def _open_tests_for_contents(
+    index: "Index", content_ids: set[str], suite: Any,
+) -> list[dict[str, Any]]:
+    """The checks still owed **for the features this release actually carries**
+    ([[TASK-0504]]).
+
+    Edwin: *"these should either show a list of open tsts or suggest something
+    else."*
+
+    **The predicate is settledness, not `status:`.** An acceptance check sits
+    at `status: active` for its whole life -- the verdict lives in `mark:` and
+    the ledger ([[ADR-0037]]) -- so filtering on status returns every check
+    that covers a release feature, settled or not. Measured on `your-trainer`'s
+    working tree, 2026-08-20: **94 by status, 3 by settledness.** The first
+    number is an inventory; only the second is work.
+
+    That 3-of-66 is also [[ADR-0040]]'s argument arriving from the other end:
+    the gate is dominated by checks for features this release does not carry.
+    """
+    if not content_ids:
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in suite.items:
+        if item.settled:
+            continue
+        hit = sorted({
+            m.group(0)
+            for ref in item.refs
+            for m in re.finditer(r"FEAT-\d+", str(ref))
+        } & content_ids)
+        if not hit:
+            continue
+        rows.append({
+            "id": item.note_id, "number": item.number, "name": item.name,
+            "area": item.area, "rel": item.rel, "mark": item.mark,
+            "features": hit,
+        })
+    #: Grouped by the feature a reader is thinking about, then by id so the
+    #: order is stable between renders.
+    rows.sort(key=lambda r: (r["features"][0], str(r["id"] or "")))
+    return rows
+
+
 def release_payload(
     project_root: Path, index: "Index", release_id: str = "next",
 ) -> dict[str, Any]:
@@ -852,6 +902,15 @@ def release_payload(
         "title": held["title"] if held else "Next release",
         "rel": held["rel"] if held else "",
         "contents": contents,
+        # **What is still owed for what this release carries**
+        # (TASK-0504). Distinct from `gate`, which counts every
+        # unsettled check in the repo: this one is scoped to the
+        # contents above, which is the question a release asks.
+        "open_tests": _open_tests_for_contents(
+            index,
+            {str(r.get("id") or "") for r in (contents.get("rows") or [])},
+            _acc_module().load(index.docs_root, index=index),
+        ),
         "gate": gate,
         # What this release verified, and what it shipped with unfixed — the
         # two halves Edwin described, both already in the record and read by
