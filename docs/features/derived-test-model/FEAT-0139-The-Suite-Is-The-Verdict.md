@@ -56,3 +56,11 @@ The runner, the actuator refusal and the widened forbidden-status rule all survi
 ## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
 
 Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The runner-writes-nothing guard and the cockpit refusal both survive re-mutation; disabling `TEST-AUTOMATED-EVIDENCE` in both validator copies fails two tests. The finding is that *"zero violations at landing"* holds for this repo and `your-sudoku` and not for `your-trainer` — **4 errors at its `HEAD`, 71 in its working tree**, plus 2 new `ACCEPTANCE-STATUS` errors the widening introduced. See [[REQ-0058]] and [[CHG-20260820-The-Suite-Is-The-Verdict]] section A.
+
+## Third independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Third pass, `model:claude-opus-5`, fresh context, a different session from the author and from both prior reviewers. The runner guard and the actuator refusal hold again under re-mutation, and disabling the new `TEST-AUTOMATED-STATUS` branch in both validator copies fails three tests, so the split is not vacuous.
+
+**The finding is that the split was cut on the wrong field.** `validate_docs_bundled.py:2424` branches on `level == "acceptance"` before it looks at `command:`, so a note that is both reaches `ACCEPTANCE-STATUS` — a **day-one error** — and never the dated code. Constructed and executed: `level: acceptance` + `command:` + `status: passing` is silent under the pre-change validator (`5adcbc8`) and an error under this one. That is the newly-widened behaviour landing without a cutover over what this change's own test module measures as *"89 of the fleet's 139 automated notes: 64% of the domain"*, while every other fleet repo still ships the `run-tests.py` that writes exactly those statuses. Zero everywhere today, so not a breach of ADR-0011 clause 3 — one sync plus one run from being one.
+
+Three docstrings in `tests/test_automated_test_holds_no_verdict.py` (`:15`, `:89`, `:129`) still assert the day-one erroring the fix removed. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections A1 and A2.

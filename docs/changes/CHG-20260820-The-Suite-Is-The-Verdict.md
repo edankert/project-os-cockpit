@@ -180,3 +180,122 @@ So *"exactly what ADR-0039 decides"* is defensible as applying the rule and is n
 Honest rather than cosmetic **for the thing that was corrected**: the `~` markers carry both numbers and their basis, and the table above them lets a reader arrive at `62 → 68` without knowing it in advance. What did not happen is generalising from the finding to its class — three more numbers in this same note, one exit criterion, one requirement criterion and one test docstring still carry measurements taken from 588 uncommitted files, and B is a fresh instance of the defect the whole change is about: a check that reports nothing because its predicate cannot fire.
 
 **Recommended follow-ups**: an `ISS-*` for B (blocking — restore `missing_issue_refs` to a predicate that can return a row, and give it a test that fails when it cannot), one for A (re-measure the three validator counts against `HEAD` and correct [[PHASE-039]] criterion 1, this note and [[REQ-0060]]), one for C (the four surviving statements plus the two orphaned comment blocks), and amendments to [[ISS-0240]] for D and to this note for E.
+
+## Third independent review 2026-08-20 — `changes-requested`
+
+Third pass, `model:claude-opus-5`, from the notes and the diff (`936eb64..72e2038`) in a session that had seen neither the authoring reasoning nor either reviewer's. Same model family as the author and both prior reviewers; different context and different session, which is the gate ([[project-os-dev#ADR-0013]]) — what is independent here is the context, not the weights, and that is recorded so a reader can judge it rather than infer it. Every mutant below was applied and executed by this session. Every count was measured by this session against `git archive HEAD` copies of the fleet repos, never their working trees. Baseline on a clean tree: **1861 passed, 3 skipped**; `validate-docs.sh` OK.
+
+### The six second-pass findings, verified independently
+
+| # | claim | verdict |
+| --- | --- | --- |
+| A / B2 | the widened rule split into two codes, both dated | **partly** — the union is preserved and both codes warn, but the split is cut on `level:` rather than on `command:`, and three of the four places carrying the wrong count were not corrected. See A1/A2 |
+| B / B1 | `missing_issue_refs` is a predicate that can fire | **holds** — `return []` now fails `test_every_tier_two_item_names_the_issue_that_created_it`; **117** at `your-trainer`'s `HEAD`, **44** in its working tree, **0** here, and both figures equal `CHECK-SUBJECT`'s on the same tree |
+| C / B3 | stale tier prose and orphaned comments corrected | **partly** — 4 of 6. See C1 |
+| D / B4 | [[ISS-0240]]'s numbers restated at both bases | **holds in the body** — reproduced exactly: **0** rows move at `HEAD`, **232** delta keys change identity. The title still carries the retracted figure. See D1 |
+| E / B5 | [[ADR-0039]] carries a dated correction at both bases | **holds** — the table is exact: working tree 349/164/68 with 89 commands (17/5/67), `HEAD` 349/158/74 with **0**. The `Feature tests` half of the finding is recorded as a criticism, not as a statement of what the notes now are |
+| F / B6 | `_covers_an_issue` delegates to `section_of` | **holds** — restoring its own regex fails `test_the_navigator_and_the_page_classify_a_note_identically`. Two caveats in F1 |
+
+**The first pass's seven were re-checked and all seven fixes are still intact.** Deleting the `Broken command` routing at `cockpit.py:4217` fails 3 tests (`test_a_broken_command_routes_to_its_own_section`, `test_the_broken_section_asks_for_a_person`, `test_every_section_label_carries_no_verb`). Renaming `Needs you` to `Needs a run` fails the vocabulary guard. Dropping `swift` from both validator copies fails both parity parametrisations. `test_the_tiers_render_in_the_tests_view` carries no dead code and a real biconditional; forcing empty groups to render fails `test_an_empty_group_is_absent_rather_than_zero`. `62 → 68` reproduces exactly at `your-trainer`'s `HEAD` (581 items through the index, entrants `TST-0592`..`TST-0597`), against **62** from the pre-change tree at `5adcbc8` on the same corpus. [[ISS-0240]] exists. The fleet sync is real: 12 repos, `TESTING.md` sha1 `0a8b0cd4` and `STATUSES.md` sha1 `a0c9d5da` in every one, none dirty.
+
+### A1. The split is cut on `level:`, not on `command:`, so 64% of the widened domain still errors on day one
+
+The stated rationale is *"`ACCEPTANCE-STATUS` keeps its day-one error over `level: acceptance` … The command-bearing half is `TEST-AUTOMATED-STATUS`, dated"*. The code (`validate_docs_bundled.py:2424-2438`) branches `if level == "acceptance"` **first**, so a note that is *both* reaches `ACCEPTANCE-STATUS` and never `TEST-AUTOMATED-STATUS`. Constructed and executed, one note carrying `level: acceptance`, `command:` and `status: passing`:
+
+| validator | result |
+| --- | --- |
+| pre-change (`5adcbc8`) | *silent* — `passing`/`failing` were exempt with a `command:`, deliberately, because the runner owned the status |
+| current | `ERROR [ACCEPTANCE-STATUS]`, no cutover |
+
+So the newly-widened behaviour — removing the runner exemption — lands as a **day-one error** for exactly the population ADR-0038 is about, while the identical situation on a note without `level: acceptance` merely warns until 2026-11-18. This file's own module docstring measures that population: *"89 of the fleet's 139 automated notes: 64% of the domain"*. Zero today at every fleet `HEAD` and in every working tree, so ADR-0011 clause 3 is not breached **yet** — but `your-trainer` carries 89 such notes in uncommitted work, and every other fleet repo still ships the old `run-tests.py` that stamps `status:` (measured: 5 `fm_set` sites in `your-trainer`, `your-health`, `project-os-dev` and `project-os`; 0 here). One `run-tests.py` run after the next validator sync makes it non-empty and red, with no cutover to absorb it. That is the same argument the author accepted for the other half.
+
+Secondary: the `ACCEPTANCE-STATUS` message now cites only `(ADR-0031)`. An auditor who hits it on an automated acceptance check is pointed at the decision that did not cause it.
+
+### A2. *"`CHECK-SUBJECT` is 117 not 44"* was not corrected in three of the four places the second pass enumerated
+
+Measured this session — `CHECK-SUBJECT` against `your-trainer`: **117** at `HEAD`, **44** in its working tree. Still carrying the working-tree figure with no basis:
+
+- `src/project_os_cockpit/validate_docs_bundled.py:866` and `tools/scripts/validate-docs.py:866` — *"44 findings at introduction, ALL in `your-trainer` … 12 name nothing at all and 32 name only a `PHASE-*` or a `TASK-*`"*. This is the comment that justifies dating the code, sitting six lines above the block added to correct the same class of error.
+- `tests/test_automated_test_holds_no_verdict.py:230` — *"Measured 2026-08-20: 44 checks in `your-trainer`"*. Named explicitly by the second pass.
+- [[REQ-0060]] criterion 2 — *"the checkable population is **44**"*, still with no `HEAD` figure, seventeen lines above that note's own review paragraph saying *"reports **117**, not 44"*. The note contradicts itself within one screen.
+
+Three more statements in the same test file were left asserting the pre-fix behaviour: the module docstring at `:15` (*"Landed at **zero violations**, so it errors from day one rather than taking a warning tier"*), `:89` (*"The half that was already law, unchanged — 89 notes' worth"* — for those 89 it is precisely **not** unchanged, per A1), and `:129` (*"Why this errors on day one instead of warning"*).
+
+And the new `PROMOTIONS` comment at `:875` claims *"Measured at introduction against every repo rather than against the authoring one"* while citing `your-trainer` and `project-os-cockpit` only. Measured across all 12 repos at `HEAD` this session:
+
+| code | your-trainer | project-os-dev | your-health | fleet total |
+| --- | ---: | ---: | ---: | ---: |
+| `TEST-AUTOMATED-STATUS` | 2 | 4 | 6 | **12** |
+| `TEST-AUTOMATED-EVIDENCE` | 4 | 8 | 12 | **24** |
+| `ACCEPTANCE-STATUS` | 0 | 0 | 0 | **0** |
+
+The debt is 6× what the comment records, and two repos are unmentioned. The `ACCEPTANCE-STATUS` row is the one that matters and it is genuinely clean everywhere, which is what makes A1 a hazard rather than a breach. This is the third consecutive pass at which a claim of fleet-wide measurement rests on two repos.
+
+### C1. Two of the six stale-tier items are untouched, including a docstring's first line
+
+- `acceptance.py:599` — `blocking()`'s **summary line** still reads *"Unsettled Tier 1/2 items — what stops a release."* It is the first of the four statements finding C enumerated, it is the line an IDE tooltip and `help()` show, and the body of the same docstring now explains at length that there are no tiers.
+- `cockpit.py:4302-4327` — the orphaned `#:` block is unchanged. It still opens *"Which suite tiers a checked box is 'done' for"* over no code, and `:4319` *"`tier:` itself is untouched — it is still the field, still the grouping, still what [[ISS-0208]] is about"* still sits two lines above `:4322` *"**Gone with `tier:`** (ADR-0039)"*.
+
+The four rewritten blocks are good and one of them (`blocking_for`'s loop) carries the corrected `62 -> 68` measurement, which reproduces.
+
+### D1. [[ISS-0240]]'s title still asserts the number its body retracts
+
+The body is correct and reproduces exactly. The title is still *"removing the field would move 74 rows and change 232 of 579 delta identities"* — the 74 is the working-tree figure the body withdraws, and a title is what a reader sees in a list, a backlink and a search result. The body also says *"232 of 580"* where the title says 579; the suite holds **579** items at `HEAD` (580 files, one of them `README.md`), so the title is right and the body is off by one, inside the note whose subject is measuring against the right thing.
+
+### F1. The delegation is correct at its one call site and answers a different question everywhere else
+
+Two things a later reader should not have to rediscover:
+
+- **`fm["level"] = "acceptance"` at `cockpit.py:4038` is inert.** `acceptance.item_from_note` never reads `level:` — it returns `None` on a missing `id` and on nothing else. The line reads as a precondition being enforced and enforces nothing.
+- **The function's name and docstring no longer match its answer.** It asks *"Does this test verify a past defect?"* and now returns *"is this in the Regression section"*, and `section_of` puts `command:` first. Measured across the fleet: three notes in **this** repo — `TST-0017` (covers `ISS-0007`), `TST-0019` (`ISS-0023`), `TST-0022` (`ISS-0062`/`ISS-0063`) — do verify a past defect and now get `False`, plus five in `your-trainer`. Harmless today only because `_tests_groups` routes every command-bearing record to `automated`/`broken-command` before line 4191 is reached. A second caller inherits a silent `False` for every automated regression test. Renaming it, or asserting the precondition, closes it; the parity guard does not, because it compares the two readings rather than the question.
+
+### G1. [[REQ-0059]] still asserts as implemented the thing the record says is false
+
+Unchanged from the second pass's finding F: `status: implemented`, frontmatter `acceptance:` carrying *"`tier:` is read by no code path and the tier constants are deleted"*, criterion 2 ticked `[x]`, and a Statement reading *"`tier:` **must not** be read"* — above a review paragraph in the same note listing three readers, and beside [[PHASE-039]], whose identical criterion carries a `~`. Two notes describing one fact, disagreeing.
+
+### G2. The record is navigable from the phase note and not from here
+
+Asked directly, because three passes of corrections have layered onto four notes. A reader who starts at [[PHASE-039]] arrives correctly: the `~` markers carry both bases, *"Reviewed twice, and what the second pass changed"* states the regression plainly, and the two review sections are dated and attributed. [[ADR-0039]]'s correction section is the best of them — it states the wrong basis, gives both tables, and says why the decision is unchanged anyway.
+
+A reader who starts **here**, at the change note — the durable record of what the repo now does — does not. This note ends on the second pass's *"Recommended follow-ups: an `ISS-*` for B (blocking) …"*, and there is no section after it saying what was done. No such `ISS-*` was filed (the issue counter is still at 0240), which is defensible because B was fixed in code instead — but nothing here says so. Section B still reads *"`missing_issue_refs` was made structurally empty by this fix, and nothing can tell"* in the present tense, of a function that has been fixed and now has a non-vacuous guard. The correction pattern the first pass established — a *"Corrected … after independent review"* section — was not repeated for the second.
+
+**What would fix it**, and it is one section rather than a rewrite: a *"Corrected 2026-08-20 after the second independent review"* section here, listing the six with what changed and what did not, in the shape the first correction already uses. The `~`-and-both-bases habit is working; it just has not reached the note a reader lands on first.
+
+### Verdict
+
+`changes-requested`. B1, B4, B5 and B6 are genuinely fixed and their mutants fail — that is four of six, verified by execution rather than on report, and the first pass's seven are all still intact. B2 and B3 are partly done, and B2's remainder is not only prose: A1 is a live rule that errors on day one over the majority of its own domain, contrary to the reasoning the fix was written from. A2, C1, D1 and G1 are each a claim that is still wider than what the code or the corpus supports, which is the failure mode this phase exists to remove.
+
+**Suggested follow-ups**: one `ISS-*` for A1 (decide whether the runner exemption's removal is dated like its sibling or errors deliberately, and say which in the message); one for A2 + C1 + D1 + G1 as a single sweep of the surviving wrong-basis statements, since they are one class and are now enumerated with line numbers; and the correction section described in G2, which is close-out rather than an issue.
+
+---
+
+# Corrected after the third independent review, 2026-08-20
+
+**Three passes, all `changes-requested`, eighteen findings.** Everything above this line is the record of what each pass found; this section is what was done about the second and third. Read this first if you want the current state — the sections above are evidence, not status.
+
+## The one that mattered
+
+**The split of `ACCEPTANCE-STATUS` was cut on the wrong axis.** The second pass's fix put the command-bearing half behind a dated cutover, and the third pass found the branch tested `level == "acceptance"` first — so a note that is *both* an acceptance check and command-bearing never reached the dated code. That is **89 of the fleet's 139 automated notes**, erroring on day one over a rule they had no chance to satisfy, in repos that still ship the `run-tests.py` which writes those very statuses.
+
+It is now cut on **what ADR-0038 newly forbids**, which is the honest line:
+
+| note | before ADR-0038 | now |
+| --- | --- | --- |
+| `level: acceptance`, no command, any of the three | error | `ACCEPTANCE-STATUS`, error — unchanged |
+| `level: acceptance`, command, at `ready` | error | `ACCEPTANCE-STATUS`, error — unchanged |
+| command-bearing at `passing`/`failing`, any level | **allowed** | `TEST-AUTOMATED-STATUS`, warns to 2026-11-18 |
+
+`ready` deliberately does not inherit the cutover: it was already forbidden with a command, because `ready` is what the `Run` obligation counts. Guarded as a matrix in `tests/test_automated_test_holds_no_verdict.py`.
+
+## The rest
+
+- **The `44` that should have been `117`** is corrected in all four places the third pass named — both validator copies, the test docstring, and REQ-0060's scope and criterion. The quotes of it in the review sections above are left standing as evidence of what was found.
+- **The promotion comment now carries a fleet measurement rather than a claim of one**: `TEST-AUTOMATED-STATUS` 12 (your-trainer 2, project-os-dev 4, your-health 6), `TEST-AUTOMATED-EVIDENCE` 24 (4/8/12), `ACCEPTANCE-STATUS` **0 everywhere** — which is precisely why that code keeps its day-one error.
+- **The last two stale tier statements** are gone: `blocking()`'s summary line, and the `cockpit.py` block whose *"`tier:` itself is untouched"* sat two lines above *"Gone with `tier:`"*.
+- **REQ-0059 no longer asserts what the record contradicts.** Its criterion said *"`tier:` is read by no code path"* and was marked `implemented` over four live readers; it now says *no section or gate decision reads it*, which is what was built, with [[ISS-0240]] carrying the rest.
+- **`_covers_an_issue`** dropped an inert `fm["level"] = "acceptance"` and states the narrower question it actually answers.
+
+## What is still open, deliberately
+
+[[ISS-0238]] (67 areas naming a deleted document's heading), [[ISS-0240]] (`sort_items`/`_delta_key` read `tier:`; the strip changes 232 of 580 delta keys), and [[ISS-0209]], which bounds what any of this proves: **the acceptance gate executes in no repo that holds a check**.
+

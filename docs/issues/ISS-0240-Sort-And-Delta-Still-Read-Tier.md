@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0240
 aliases: ["ISS-0240"]
-title: "`sort_items` and `_delta_key` still read `tier:`, so removing the field would move 74 rows and change 232 of 579 delta identities"
+title: "`sort_items` and `_delta_key` still read `tier:`, so removing the field would change 232 of 580 delta identities"
 status: open
 owner: user:edwin
 created: 2026-08-20

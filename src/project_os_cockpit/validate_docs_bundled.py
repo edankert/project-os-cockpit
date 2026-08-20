@@ -863,20 +863,27 @@ PROMOTIONS = {
     # check naming neither cannot be classified and defaults to a behaviour
     # claim, which is the safe direction but is a guess.
     #
-    # 44 findings at introduction, ALL in `your-trainer`, none in the other two
-    # suite repos: 12 name nothing at all and 32 name only a `PHASE-*` or a
-    # `TASK-*` -- provenance, the work the check came out of, rather than the
-    # thing it verifies. That is the same conflation ISS-0235 found between
-    # what a check verifies and where it came from.
+    # **117 findings at introduction**, all in `your-trainer`, none in any
+    # other repo. Measured at HEAD across the fleet; an earlier comment here
+    # said 44, which was that repo's WORKING TREE. They name only a `PHASE-*`
+    # or a `TASK-*`, or nothing -- provenance, the work the check came out of,
+    # rather than the thing it verifies. Same conflation ISS-0235 found.
     #
     # Warned rather than errored on day one for ADR-0011 clause 3: the debt is
     # real, bounded, and one line per note to clear.
     "CHECK-SUBJECT": "2026-11-18",
-    # ADR-0038's two halves. Measured at introduction against every repo
-    # rather than against the authoring one: `your-trainer` at HEAD carries 2
-    # and 4 respectively, and 71 `TEST-AUTOMATED-EVIDENCE` in its working
-    # tree. `project-os-cockpit` carries zero of either, which is what the
-    # first measurement saw and mistook for the fleet.
+    # ADR-0038's two halves. **Measured at HEAD across every repo carrying a
+    # test note**, after two earlier counts here were taken from one repo and
+    # from a working tree:
+    #
+    #   TEST-AUTOMATED-STATUS    12  (your-trainer 2, project-os-dev 4, your-health 6)
+    #   TEST-AUTOMATED-EVIDENCE  24  (4 / 8 / 12)
+    #   ACCEPTANCE-STATUS         0  everywhere -- which is why that code keeps
+    #                                its day-one error, and only the newly
+    #                                forbidden half is dated.
+    #
+    # `project-os-cockpit` carries zero of all three, which is what the first
+    # measurement saw and mistook for the fleet.
     #
     # Dated rather than grandfathered by ID: the debt is one script run per
     # repo (`tools/scripts/migrate-automated-verdicts.py`), and ADR-0011
@@ -2420,21 +2427,37 @@ def validate(root, report):
         #: acceptance`, where the corpus genuinely holds zero and has since
         #: ADR-0031. The command-bearing half is its own code with a dated
         #: cutover.
+        #: **The split is cut on WHAT CHANGED, not on `level:`.**
+        #:
+        #: Third independent review, 2026-08-20: cutting it on `level:` sent a
+        #: note that is BOTH `level: acceptance` and command-bearing to the
+        #: day-one code -- 89 of the fleet's 139 automated notes, 64% of the
+        #: widened domain, landing undated over a population every repo but
+        #: this one still has a `run-tests.py` that writes into.
+        #:
+        #: What errored before ADR-0038, and still errors on day one:
+        #:   * `level: acceptance`, no command, any of the three;
+        #:   * `level: acceptance`, WITH a command, at `ready` -- the
+        #:     exception-to-the-exception ADR-0031 kept, because `ready` is
+        #:     what the `Run` obligation counts and reaches the badge.
+        #: What ADR-0038 newly forbids, and is therefore dated:
+        #:   * anything command-bearing at `passing`/`failing`, at any level.
         automated = bool(command)
         if status in ACCEPTANCE_FORBIDDEN_STATUSES:
-            if level == "acceptance":
+            newly_forbidden = automated and status in TEST_RUNNER_STATUSES
+            if newly_forbidden:
+                promotion_emit(report, "TEST-AUTOMATED-STATUS", grandfathered, the_id)(
+                    "TEST-AUTOMATED-STATUS",
+                    "%s declares a command: and is at status: '%s' -- a machine-executed test holds no "
+                    "verdict and is never owed to a person; CI is its verdict (ADR-0038) (%s)"
+                    % (the_id, status, rel))
+            elif level == "acceptance":
                 emit_for("ACCEPTANCE-STATUS", the_id)(
                     "ACCEPTANCE-STATUS",
                     "%s is at level: acceptance and status: '%s' -- it rests at `active` and holds no "
                     "verdict (ADR-0031). Holding '%s' puts it in front of the review gate and/or the "
                     "Run obligation, which is what ADR-0027 forbids for this population (%s)"
                     % (the_id, status, status, rel))
-            elif automated:
-                promotion_emit(report, "TEST-AUTOMATED-STATUS", grandfathered, the_id)(
-                    "TEST-AUTOMATED-STATUS",
-                    "%s declares a command: and is at status: '%s' -- a machine-executed test holds no "
-                    "verdict and is never owed to a person; CI is its verdict (ADR-0038) (%s)"
-                    % (the_id, status, rel))
 
         #: **A check names what it verifies** (REQ-0060). Without a `FEAT-*` or
         #: an `ISS-*` its section cannot be derived and it defaults to a

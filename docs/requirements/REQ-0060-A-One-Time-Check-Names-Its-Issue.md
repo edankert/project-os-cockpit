@@ -10,7 +10,7 @@ created: 2026-08-19
 updated: "2026-08-20"
 source: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]"]
 priority: medium
-scope: "Acceptance checks authored after the promotion date; 68 pre-existing instances grandfathered by ID."
+scope: "Acceptance checks authored after the promotion date; 117 pre-existing instances at HEAD, all in your-trainer, carried by a dated promotion."
 acceptance: ["The check warns before the promotion date and errors after", "Pre-existing instances are carried by a dated promotion, never by a blanket exemption", "A newly authored check violating this is refused from day one"]
 implements: "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]"
 verifies: []
@@ -30,7 +30,7 @@ An acceptance check that is not a standing claim about behaviour **must** name t
 ## Acceptance Criteria
 
 - [x] `CHECK-SUBJECT` warns with a cutover of 2026-11-18, and the test asserts the **date exists** — a justification with no cutover is the permanent-warning tier ADR-0011 forbids
-- [~] **Reconciled, and the number was wrong.** Measured 2026-08-20: the checkable population is **44**, all in `your-trainer` — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`. The 68 figure counted checks with no `ISS-*` *anywhere*, most of which do name a `FEAT-*` and classify correctly. They are carried by the dated promotion rather than by ID: `GRANDFATHERED.yaml` is per-repo, and listing another repo's notes here would exempt nothing where it matters
+- [~] **Reconciled, and the number was wrong.** Measured at HEAD 2026-08-20: the checkable population is **117**, all in `your-trainer` (an earlier 44 was its working tree) — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`. The 68 figure counted checks with no `ISS-*` *anywhere*, most of which do name a `FEAT-*` and classify correctly. They are carried by the dated promotion rather than by ID: `GRANDFATHERED.yaml` is per-repo, and listing another repo's notes here would exempt nothing where it matters
 - [x] A new check naming no subject is reported immediately — `test_a_check_naming_no_subject_is_reported`
 
 ## Notes
@@ -50,3 +50,13 @@ Second pass, `model:claude-opus-5`, fresh context, different session from both t
 The mechanism holds: warning-first with a dated cutover is what [[project-os-dev#ADR-0011]] clause 3 requires, and `PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"` is asserted. **The corrected count is still the wrong tree.** `CHECK-SUBJECT` measured against `your-trainer` at its committed `HEAD` reports **117**, not 44; 44 is its working tree, the same 588 uncommitted files that produced the gate number this change was correcting. The 44 also appears in [[CHG-20260820-The-Suite-Is-The-Verdict]] and in the docstring of `tests/test_automated_test_holds_no_verdict.py:212`.
 
 The gap is not noise: the 74 Tier 3 checks carry `covers: []` and all fire this gate, and they are the population [[ADR-0039]]'s own table calls *67 automated* — reclassified to `Feature tests` with no grandfather and no promotion date, unlike the 68 Tier 2 checks the ADR carried by ID. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections A and E.
+
+## Third independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Third pass, `model:claude-opus-5`, fresh context, a different session from the author and from both prior reviewers.
+
+**The mechanism holds and the reader now agrees with it.** `CHECK-SUBJECT` warns with a dated cutover, asserted; and `Suite.missing_issue_refs`, which was a tautology for one commit, now reports the same population — measured this session, **117 = 117** at `your-trainer`'s `HEAD` and **44 = 44** in its working tree, **0** here.
+
+**Criterion 2 was not corrected.** It still reads *"the checkable population is **44**, all in `your-trainer` — 12 naming nothing and 32 naming only a `PHASE-*`/`TASK-*`"*, with no basis and no `HEAD` figure, seventeen lines above this note's own second-pass paragraph saying *"reports **117**, not 44"*. The same 44 also survives in `src/project_os_cockpit/validate_docs_bundled.py:866`, its byte-identical twin `tools/scripts/validate-docs.py:866` — the comment that justifies dating the rule — and `tests/test_automated_test_holds_no_verdict.py:230`. Those are the three places the second pass enumerated, and none of them changed.
+
+The gap is the 74 Tier 3 checks: they carry `covers: []`, all fire this gate, and at `HEAD` none of them carries a `command:`. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section A2.

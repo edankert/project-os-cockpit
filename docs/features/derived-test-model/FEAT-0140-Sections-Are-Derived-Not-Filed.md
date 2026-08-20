@@ -58,3 +58,13 @@ Findings 2, 3, 4, 5 and 7 in [[CHG-20260820-The-Suite-Is-The-Verdict]]: the gate
 ## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
 
 Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The `Broken command` wiring is now guarded end to end — deleting the routing branch fails three tests — and the vocabulary and parity guards both fail their mutants. Two findings remain: `missing_issue_refs` became a predicate that can never return a note-shape row (`your-trainer` 73 → 0, `return []` passes the whole suite), and all 74 of `your-trainer`'s Tier 3 checks derive to `Feature tests` — a population [[ADR-0039]] describes as *67 automated* and whose Tier 2 counterpart it grandfathered by ID. See [[REQ-0059]] and [[CHG-20260820-The-Suite-Is-The-Verdict]] sections B and E.
+
+## Third independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Third pass, `model:claude-opus-5`, fresh context, a different session from the author and from both prior reviewers.
+
+**Both of the second pass's findings against this feature are fixed, and I proved each by mutation rather than on report.** `missing_issue_refs` can return a row: `return []` fails `test_every_tier_two_item_names_the_issue_that_created_it`, and measured through the index — the live load path — it reports **117** at `your-trainer`'s `HEAD`, **44** in its working tree and **0** here, each equal to `CHECK-SUBJECT`'s count on the same tree, so *"the validator and this reader agree by construction"* is true rather than hopeful. [[ADR-0039]]'s corrected context table is exact at both bases (working tree 349/164/68 with 89 commands split 17/5/67; `HEAD` 349/158/74 with **0**).
+
+**Three things remain.** The stale-tier sweep missed `blocking()`'s docstring **summary line** — `acceptance.py:599`, still *"Unsettled Tier 1/2 items"* — and the orphaned `#:` block at `cockpit.py:4302-4327`, which still says *"`tier:` itself is untouched — it is still the field, still the grouping"* two lines above *"**Gone with `tier:`** (ADR-0039)"*. [[ISS-0240]]'s title still carries the 74 its body retracts, and says *579* where the body says *580* (579 is right). And `_covers_an_issue`'s delegation, while correct at its one call site, now answers *"is this in the Regression section"* under a docstring asking *"does this verify a past defect"* — `TST-0017`, `TST-0019` and `TST-0022` in this repo each cover an `ISS-*` and now get `False`, safe only because command-bearing records are routed away before the call. Its `fm["level"] = "acceptance"` is inert; `item_from_note` never reads `level:`.
+
+Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections C1, D1 and F1.

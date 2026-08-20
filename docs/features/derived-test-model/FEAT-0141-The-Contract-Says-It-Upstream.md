@@ -53,3 +53,13 @@ Verified independently: all 12 project-os repos carry byte-identical `TESTING.md
 ## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
 
 Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The fleet sync itself is not refuted — the instruction files landed. What the second pass measured is the consequence the sync note does not carry: the two new validator codes are at zero only in the repos whose validator is current, and `your-trainer`'s copy (2026-08-18) holds neither rule, so its **4 + 2 errors** arrive on the next sync rather than never. See [[CHG-20260820-The-Suite-Is-The-Verdict]] section A.
+
+## Third independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Third pass, `model:claude-opus-5`, fresh context, a different session from the author and from both prior reviewers.
+
+**This feature's own deliverable verifies clean, for the second time and measured independently**: 12 repos, `TESTING.md` sha1 `0a8b0cd4` and `STATUSES.md` sha1 `a0c9d5da` in every one, none of the four paths dirty in any repo. No finding against what was synced.
+
+**The finding is what the next sync does, and no note says it.** `tools/scripts/validate-docs.py` is template-owned and syncs through this same mechanism. When it lands downstream it brings `ACCEPTANCE-STATUS`'s widened, undated form with it: a `level: acceptance` note carrying a `command:` at `passing`/`failing` errors from day one, where the pre-change validator was silent. Every fleet repo except this one still ships the `run-tests.py` that writes those statuses (5 `fm_set` sites in `your-trainer`, `your-health`, `project-os-dev` and `project-os`; 0 here), and `your-trainer` carries 89 command-bearing acceptance checks in uncommitted work. The two dated codes are the mild half of this — fleet-wide at `HEAD` they carry **12** and **24**, six times what the `PROMOTIONS` comment records, and two of the three repos holding that debt are unmentioned in it.
+
+Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections A1 and A2.

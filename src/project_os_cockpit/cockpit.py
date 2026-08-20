@@ -4036,11 +4036,23 @@ def _covers_an_issue(record: NoteRecord) -> bool:
     [[REQ-0059]] asked for ONE predicate. Two implementations of it is the
     thing the requirement forbids, written by the same hand as the
     requirement.
+
+    **The question is "is this in the Regression section", which is narrower
+    than the summary line.** A command-bearing note covering an `ISS-*` answers
+    `False` here, because `command:` wins the precedence -- and that is
+    correct, not a gap: `_tests_groups` routes automated records away before
+    this is ever called, so the only records reaching it are the ones for which
+    section and subject coincide. Stated because three notes in this repo
+    (`TST-0017`, `TST-0019`, `TST-0022`) are exactly that shape, and a future
+    caller that skipped the routing would get a surprising answer.
+
+    No `level:` is forced onto the synthetic frontmatter. An earlier version
+    set it, which did nothing -- `item_from_note` never reads the field -- and
+    read as though the classification depended on it.
     """
     fm = dict(record.frontmatter or {})
     fm.setdefault("id", record.note_id or "")
     fm.setdefault("title", record.title or "")
-    fm["level"] = "acceptance"
     item = _acceptance.item_from_note(fm, rel="")
     if item is None:
         return False
@@ -4299,26 +4311,26 @@ _SECTION_ORDER_INDEX: dict[str, int] = {
 }
 
 
-#: Which suite tiers a checked box is "done" for. The Tests navigator folds on
+#: Which sections a checked box is "done" for. The Tests navigator folds on
 #: `status`, so a checklist item borrows the status vocabulary rather than
-#: inventing one — `passing` for a walked step, `ready` for one still owed,
+#: inventing one — `passing` for a completed step, `ready` for one still owed,
 #: `reconciled` for one settled by decision.
 #:
 #: That third value was first emitted from here as a bare string, which is the
 #: ISS-0023 failure exactly: `groupIsSettled` ranks an unrecognised status
-#: **open**, deliberately, so two fully-settled tiers rendered as outstanding
-#: work while their own gate read clear. Found by independent review. It is now
-#: a member of `statuses.BANDS["archived"]` — terminal, and terminal without the
-#: thing having been done — which is what makes every surface agree at once.
-#: **The tier NUMBER is dropped from the label** (Edwin, 2026-08-19: *"let's
-#: drop the Tier 1/2/3 part of it, this has no meaning"*). He is right, and
-#: [[DES-0012]] D3 says why: the numbers name *why a test was created*, not
-#: what it tests, which is exactly why they read oddly beside a surface. The
-#: words they stood for are the part that carries meaning and they stay.
+#: **open**, deliberately, so two fully-settled sections rendered as
+#: outstanding work while their own gate read clear. Found by independent
+#: review. It is now a member of `statuses.BANDS["archived"]` — terminal, and
+#: terminal without the thing having been done — which is what makes every
+#: surface agree at once.
 #:
-#: `tier:` itself is untouched — it is still the field, still the grouping,
-#: still what [[ISS-0208]] is about. Only the label stops leading with a
-#: number nobody can act on.
+#: **This block used to end "`tier:` itself is untouched — it is still the
+#: field, still the grouping"**, two lines above the block that says it is
+#: gone. That was true when only the LABEL dropped its number (Edwin,
+#: 2026-08-19: *"let's drop the Tier 1/2/3 part of it, this has no meaning"*)
+#: and false from the moment ADR-0039 made the section derived. Caught by a
+#: third independent review, which is where a contradiction two lines apart
+#: gets found rather than by reading.
 #: **Gone with `tier:`** (ADR-0039). The three names survive as the labels of
 #: DERIVED sections and live in `acceptance.SECTION_LABELS`, so the navigator
 #: and the generated page cannot disagree about what a section is called. The

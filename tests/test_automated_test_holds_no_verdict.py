@@ -70,7 +70,7 @@ def _codes(repo: Path) -> list[str]:
 
 # ------------------------------------------------------- the widened domain
 
-@pytest.mark.parametrize("status", ["ready", "passing", "failing"])
+@pytest.mark.parametrize("status", ["passing", "failing"])
 def test_an_automated_test_may_not_hold_a_verdict(tmp_path: Path, status: str) -> None:
     """The exemption that is gone: `passing` with a `command:` used to be legal.
 
@@ -82,6 +82,21 @@ def test_an_automated_test_may_not_hold_a_verdict(tmp_path: Path, status: str) -
     """
     repo = _repo(tmp_path, status=status, command='command: "pytest tests/x.py"\n')
     assert "TEST-AUTOMATED-STATUS" in _all_codes_for(repo, "TST-0009")
+
+
+def test_ready_with_a_command_was_already_forbidden_and_still_errors(
+    tmp_path: Path,
+) -> None:
+    """`ready` is not part of the widening and must not inherit its cutover.
+
+    It was already an error with a `command:` before ADR-0038 — `ready` is what
+    the `Run` obligation counts, so an automated check parked there reaches a
+    badge nobody can act on (ADR-0027). Dating it would weaken a live rule
+    under cover of a new one.
+    """
+    repo = _repo(tmp_path, status="ready", level="level: acceptance\n",
+                 command='command: "pytest tests/x.py"\n')
+    assert "ACCEPTANCE-STATUS" in _all_codes_for(repo, "TST-0009")
 
 
 @pytest.mark.parametrize("status", ["ready", "passing", "failing"])
@@ -227,9 +242,10 @@ def _all_codes(repo: Path) -> list[str]:
 def test_a_check_naming_no_subject_is_reported(tmp_path: Path, covers: str) -> None:
     """`covers:` carrying provenance is the same conflation ISS-0235 found.
 
-    Measured 2026-08-20: 44 checks in `your-trainer` and **none** in the other
-    two suite repos — 12 name nothing, 32 name only a `PHASE-*` or a `TASK-*`,
-    which is the work the check came out of rather than the thing it verifies.
+    Measured at HEAD, 2026-08-20: **117** checks in `your-trainer` and none in
+    any other repo. They name only a `PHASE-*` or a `TASK-*`, or nothing —
+    provenance rather than the thing verified. *(An earlier figure of 44 here
+    was that repo's working tree, not its committed record.)*
     """
     assert "CHECK-SUBJECT" in _all_codes(_check_repo(tmp_path, covers=covers))
 
@@ -261,3 +277,53 @@ def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
     # day: the fleet corpus is not clean, so neither may error on day one.
     assert module.PROMOTIONS["TEST-AUTOMATED-STATUS"] == "2026-11-18"
     assert module.PROMOTIONS["TEST-AUTOMATED-EVIDENCE"] == "2026-11-18"
+
+
+# ------------------------------- the split, cut on what changed (3rd review)
+
+@pytest.mark.parametrize("level,command,status,expected", [
+    # **Newly forbidden by ADR-0038, therefore dated.** A command-bearing note
+    # at `passing`/`failing` was EXEMPT before — that was the whole exception
+    # the widening removes.
+    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "passing", "TEST-AUTOMATED-STATUS"),
+    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "failing", "TEST-AUTOMATED-STATUS"),
+    ("", 'command: "pytest tests/x.py"\n', "passing", "TEST-AUTOMATED-STATUS"),
+    # **Forbidden BEFORE ADR-0038, therefore still a day-one error.** `ready`
+    # with a command was the exception-to-the-exception ADR-0031 kept, because
+    # `ready` is what the `Run` obligation counts and it reaches the badge.
+    ("level: acceptance\n", 'command: "pytest tests/x.py"\n', "ready", "ACCEPTANCE-STATUS"),
+    ("level: acceptance\n", "", "passing", "ACCEPTANCE-STATUS"),
+    ("level: acceptance\n", "", "ready", "ACCEPTANCE-STATUS"),
+])
+def test_the_split_follows_what_changed_not_the_level(
+    tmp_path: Path, level: str, command: str, status: str, expected: str,
+) -> None:
+    """**Cutting this on `level:` sent 64% of the widened domain to the wrong side.**
+
+    Third independent review, 2026-08-20: the first split branched on
+    `level == "acceptance"` first, so a note that is *both* an acceptance check
+    and command-bearing never reached the dated code — 89 of the fleet's 139
+    automated notes erroring on day one over a rule they had no chance to
+    satisfy, in repos that still ship the `run-tests.py` which writes those
+    statuses. ADR-0011 clause 3, and the exact failure the dating existed to
+    avoid.
+
+    The line is not `level:`. It is *what ADR-0038 newly forbids*.
+    """
+    repo = _repo(tmp_path, status=status, level=level, command=command)
+    codes = _all_codes_for(repo, "TST-0009")
+    assert expected in codes, codes
+    other = {"TEST-AUTOMATED-STATUS", "ACCEPTANCE-STATUS"} - {expected}
+    assert not (other & set(codes)), (codes, "reported under both codes")
+
+
+def test_nothing_that_errored_before_merely_warns_now(tmp_path: Path) -> None:
+    """A split is an easy place to downgrade a case by accident."""
+    repo = _repo(tmp_path, status="ready", level="level: acceptance\n",
+                 command='command: "pytest tests/x.py"\n')
+    out = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True, timeout=120).stdout
+    line = next(l for l in out.splitlines()
+                if "TST-0009" in l and "ACCEPTANCE-STATUS" in l)
+    assert line.startswith("ERROR"), line

@@ -97,3 +97,19 @@ Second pass, `model:claude-opus-5`, fresh context and a different session from b
 **On the six entrants**: they derive to `Feature tests`, not to anything [[ADR-0039]] contemplates for them. All 74 Tier 3 checks do — a population the ADR's own table calls *67 automated* — and unlike the 68 Tier 2 checks they carry no grandfather and no promotion date. The ADR also says their `area:` values *"are repaired or emptied, not left"*, and this phase closed with them left ([[ISS-0238]]).
 
 Full detail, with the measurements, in [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Third independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Third pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor either prior reviewer's. Same model family as all three, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]) — what is independent is the context, not the weights. Every mutant applied and executed by this session; every count measured against `git archive HEAD` copies of the fleet repos, never their working trees. Baseline **1861 passed, 3 skipped**, validator OK.
+
+**Four of the second pass's six are genuinely fixed and their mutants fail.** `missing_issue_refs` can fire again (`return []` now fails its guard; **117** at `your-trainer`'s `HEAD`, **44** in its working tree, **0** here, and each equals `CHECK-SUBJECT`'s count on the same tree). [[ISS-0240]]'s numbers reproduce exactly — **0** rows move at `HEAD`, **232** delta keys change. [[ADR-0039]]'s corrected table is exact at both bases. `_covers_an_issue` delegates, and restoring its own regex fails the new parity guard. **All seven of the first pass's fixes are still intact**, re-mutated and re-executed.
+
+**Two are partly done, and one of the remainders is a live rule rather than prose.** `ACCEPTANCE-STATUS` and `TEST-AUTOMATED-STATUS` are split on `level:`, not on `command:` — so a `level: acceptance` note carrying a `command:` at `passing` reaches the **day-one error**, which the pre-change validator did not raise at all. That is 89 of the fleet's 139 automated notes by this change's own measurement, and every fleet repo still ships the `run-tests.py` that writes those statuses. The stale-tier sweep left `blocking()`'s docstring **summary line** at *"Unsettled Tier 1/2 items"* and the orphaned `#:` block in `cockpit.py:4302-4327` untouched, still saying *"`tier:` itself is untouched"* two lines above *"Gone with `tier:`"*.
+
+**And the wrong-basis class is not closed.** *"`CHECK-SUBJECT` is 117, not 44"* was corrected in none of the three places the second pass enumerated — the `PROMOTIONS` comment in both validator copies, the test docstring, and [[REQ-0060]] criterion 2. The new `PROMOTIONS` comment claims measurement *"against every repo"* and cites two; fleet-wide at `HEAD` the two dated codes carry **12** and **24**, not 2 and 4.
+
+**Exit criteria**: criterion 1's `[~]` is the right shape but its figure is a two-repo one; the rest hold as written or as marked. [[REQ-0059]] is still `status: implemented` with *"`tier:` is read by no code path"* ticked, which is the criterion this note marked `~`.
+
+**Navigability**, asked directly: a reader starting here arrives at the true state — the `~` markers carry both bases and *"Reviewed twice"* states the regression plainly. A reader starting at [[CHG-20260820-The-Suite-Is-The-Verdict]] does not: it ends on the second pass's recommended follow-ups with no section saying what was done, and its section B still describes `missing_issue_refs` as broken in the present tense. One correction section there closes it.
+
+Full detail with line numbers and measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Third independent review*.

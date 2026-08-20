@@ -596,7 +596,7 @@ class Suite:
         return [i for i in self.items if section_of(i) in MANUAL_SECTIONS]
 
     def blocking(self) -> list[Item]:
-        """Unsettled Tier 1/2 items — what stops a release.
+        """Unsettled MANUAL checks — what stops a release.
 
         `settled`, not `checked`: a reconciled item is a decision the release
         note carries, and blocking on it would make the mark meaningless. An
