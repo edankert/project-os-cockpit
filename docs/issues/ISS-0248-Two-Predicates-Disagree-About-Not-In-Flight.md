@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0248
 aliases: ["ISS-0248"]
 title: "`RESTING_STATES` and `NOT_YET_BUILT` give opposite answers about the same subject, and branch order decides which wins — a check on a `planned` feature is counted as work somebody owes"
-status: open
+status: declined
 owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-20"
@@ -102,3 +102,43 @@ But `ids_are_unbuilt` quantifies over **every** ref, and `TST-0024` is quiet in 
 ### State
 
 Code **unchanged**: `NOT_YET_BUILT` still `{backlog, deferred, draft, planned, proposed}`, one quiet row, suite green. Nothing was committed. The decision is Edwin's again, on numbers that are now right.
+
+## Re-derived 2026-08-20 — DECLINED, the premise was wrong
+
+**The two sets do not answer the same question, and the difference between them is load-bearing rather than a bug.**
+
+### The mechanism, traced end to end
+
+| predicate | quantifier | set |
+|---|---|---|
+| `ids_in_flight` (via `_owed_flag`) | **ANY** subject in flight | `RESTING_STATES` |
+| `ids_are_unbuilt` (the quiet branch) | **ALL** subjects unbuilt | `NOT_YET_BUILT` |
+
+Different quantifiers over different sets, answering different questions — *"is there anything here somebody could act on?"* and *"is every one of these things not yet built?"* That is not [[REQ-0059]]'s one-question-two-implementations. It is two questions.
+
+And `ids_in_flight` carries a third clause this note never accounted for ([[ISS-0202]]): **a `requirement` whose `implements:` names a resting feature does not vote independently**, because a `draft` requirement of a `backlog` feature is the same fact counted twice.
+
+### Why the enumeration said three statuses were unreachable
+
+Because it only ever tested a check with **one** subject. Reproduced:
+
+| shape | `in_flight` | lands |
+|---|---|---|
+| `FEAT@draft` alone | True | `needs-you` |
+| `FEAT@backlog` alone | False | `quiet` |
+| `FEAT@backlog` + two `REQ@draft` **without** `implements:` | True | `needs-you` |
+| `FEAT@backlog` + two `REQ@draft` **with** `implements:` | False | **`quiet`** |
+
+The last row is `TST-0024` exactly. `draft` is unreachable as a *sole* status and **load-bearing in combination**, because `ids_are_unbuilt` is an ALL-quantifier: remove `draft` from `NOT_YET_BUILT` and that row fails the test, leaves `Quiet`, and starts asking somebody to hand-walk a remote-SSH procedure for a feature nobody has started.
+
+`obligations.py` already says so, in the ISS-0202 comment: *"Measured across all twelve repos: this quiets exactly ONE note, `project-os-cockpit`'s TST-0024."* **The answer was written in the code the whole time and neither I nor the independent review read it before filing.**
+
+### Outcome
+
+**Declined. No change to either set.** Narrowing breaks `TST-0024`; widening moves nothing (0 rows in either corpus) and would weaken the ANY rule that keeps four other tests visible, including `your-trainer`'s iOS parity walk.
+
+What was genuinely wrong was **this note's own claim**, and the test that encoded it. `test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses` asserted the reachable domain is `{backlog, deferred}` — true of single-subject checks, false of the corpus — and its docstring told the next reader the other three were dead. Corrected, with the combination case added so the arity error cannot recur.
+
+### The lesson, which is the same one four times today
+
+**An enumeration is only as good as its arity.** Every member of the stated domain was tested, and every case had one subject, so a predicate quantified over *lists* was measured with *singletons*. Testing every member of a domain is not the same as testing every shape of input.

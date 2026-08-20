@@ -2853,10 +2853,17 @@ def test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses(
     corpus, but **24 features sit at `planned` fleet-wide**, so the shape is
     populated.
 
-    This test does not assert the split is *right* — [[ISS-0248]] holds that
-    question, and reconciling the sets is an [[ADR-0028]] decision rather than
-    a patch. It pins the domain the code actually has, so the note and the
-    code cannot drift apart again without something failing.
+    **[[ISS-0248]] was declined on 2026-08-20 and this docstring was part of
+    why it was filed.** "Only two of five can reach it" is true of a check with
+    ONE subject and false of the corpus. `ids_are_unbuilt` is an **ALL**
+    quantifier, so `draft` is load-bearing in combination — see
+    `test_a_draft_subject_is_load_bearing_in_combination` below, which is
+    `TST-0024` reproduced. The two sets serve different quantifiers and neither
+    is wrong; nothing here is a defect to fix.
+
+    What this still usefully pins is the **single-subject** reach, so the
+    sole-subject behaviour cannot change unnoticed. It is deliberately no
+    longer described as the predicate's whole domain.
     """
     from project_os_cockpit.index import Index
     from project_os_cockpit import obligations
@@ -2881,9 +2888,66 @@ def test_the_quiet_buckets_reachable_domain_is_exactly_two_statuses(
         "If this is intended, ISS-0248 has been decided and the note's rule "
         "must be updated with it — the two must not drift apart again."
     )
-    #: The cause, asserted so a reader does not have to rediscover it.
+    #: The cause of the SINGLE-SUBJECT reach, asserted so a reader does not
+    #: have to rediscover it. Not a defect — see the companion test.
     assert obligations.NOT_YET_BUILT - obligations.RESTING_STATES == {
         "draft", "planned", "proposed"}
+
+
+def test_a_draft_subject_is_load_bearing_in_combination(tmp_path: Path) -> None:
+    """`TST-0024` reproduced — the case the single-subject enumeration missed.
+
+    A check covering `FEAT@backlog` plus two `REQ@draft` **that name it in
+    `implements:`** is quiet, because [[ISS-0202]]'s clause stops a requirement
+    voting independently of a resting feature, and then `ids_are_unbuilt` — an
+    **ALL** quantifier — needs `draft` inside `NOT_YET_BUILT` to qualify it.
+
+    **Remove `draft` from that set and this row starts nagging**, which is what
+    narrowing it would have done to the live corpus. That is why [[ISS-0248]]
+    was declined rather than applied.
+
+    The `implements:` half is asserted separately, because without it the same
+    three subjects land in `needs-you` — and that difference is the whole
+    reason a fixture built without it contradicted the real note.
+    """
+    from project_os_cockpit.index import Index
+
+    def build(with_implements: bool) -> str:
+        d = tmp_path / str(with_implements) / "docs"
+        (d / "features" / "f").mkdir(parents=True)
+        (d / "requirements").mkdir()
+        (d / "tests").mkdir()
+        (d / "features" / "f" / "FEAT-0001-U.md").write_text(
+            '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "U"\n'
+            'status: backlog\n---\n\n# U\n', encoding="utf-8")
+        for r in ("REQ-0001", "REQ-0002"):
+            extra = 'implements: "[[FEAT-0001]]"\n' if with_implements else ""
+            (d / "requirements" / f"{r}-U.md").write_text(
+                f'---\ntype: "[[requirement]]"\nid: {r}\ntitle: "U"\n'
+                f'status: draft\n{extra}---\n\n# U\n', encoding="utf-8")
+        (d / "tests" / "TST-0001-C.md").write_text(
+            '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nstatus: ready\n'
+            'level: system\ncovers: ["[[FEAT-0001]]", "[[REQ-0001]]", "[[REQ-0002]]"]'
+            '\n---\n\n# C\n', encoding="utf-8")
+        idx = Index.build(d)
+        #: The trap that made the first fixture contradict the real note: an
+        #: unresolvable subject fails safe to "in flight", so a typo reads as
+        #: a behaviour difference. Assert resolution before asserting anything.
+        for sid in ("FEAT-0001", "REQ-0001", "REQ-0002"):
+            assert idx.by_id(sid) is not None, f"fixture broken: {sid}"
+        groups = {g["key"]: g for g in cockpit._tests_groups(idx)}
+        return next((k for k, g in groups.items()
+                     if any(i.get("id") == "TST-0001"
+                            for i in g.get("items") or [])), "?")
+
+    assert build(True) == "quiet", (
+        "a check whose every subject is unbuilt is nagging; removing `draft` "
+        "from NOT_YET_BUILT does exactly this to TST-0024"
+    )
+    assert build(False) == "needs-you", (
+        "without `implements:` the draft requirements vote independently "
+        "(ISS-0202), so the row is in flight and asks"
+    )
 
 
 def test_the_section_order_is_pinned_on_the_basis_readers_actually_see() -> None:
