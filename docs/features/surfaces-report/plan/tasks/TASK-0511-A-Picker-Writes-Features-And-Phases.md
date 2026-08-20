@@ -42,8 +42,12 @@ A derived row is not a choice anybody made, so there is nothing to take back —
 
 All three refusals stay in `note_writes`. A rule enforced in the renderer is a rule the other front door does not get ([[ISS-0230]]), so this posts and reports, and repaints from the server rather than patching the DOM — the candidate list, the contents and the gate move together, and three hand-patched lists are how two of them come to disagree.
 
-## Still open
+## Both follow-ups resolved, 2026-08-20
 
-**The browser cockpit does not have this control.** [[ISS-0230]]'s lesson is *both front doors, or the difference is decided and recorded* — this records it: the write path is shared and loopback-only, so the browser can gain the same control without new server work, and it is a deliberate follow-up rather than an oversight.
+**A phase now contributes its features** — [[REQ-0048]] criterion 2 is built. The id is expanded at the moment of the click and the **features** are stored, never the phase.
 
-**A phase does not yet contribute its features.** [[REQ-0048]]'s second criterion — *a phase contributes features; no second encoding* — is unbuilt. The write path takes a feature id; adding a phase means expanding it to its features at the moment of the click, which is a decision about whether the expansion is remembered or re-derived, and that has not been made.
+That criterion also answers the question this note left open. *"No second encoding"* means the expansion is **remembered as features**: storing the phase would put a second encoding of membership on the release, and the release would disagree with the phase the first time a feature moved between them. **A phase's members change; what a release contains must not change under it.** Every refusal applies per contributed feature — a phase split across two releases refuses on the *member* that clashes and names it, because refusing on the phase's own id leaves a person with no way to find out what the problem was.
+
+**The browser-cockpit follow-up was wrong, and the correction is [[ISS-0246]].** This note said the browser *"can gain the same control without new server work"*. Measured: the browser cockpit implements **two** virtual pages (`~note`, `~root`); the desktop shell implements **twelve**. There is no release page there to put a control on, so this was never a second call site — it is the twelfth view.
+
+That mis-scoping is not local to this note: *both front doors* has been quoted at pairs where only one side has the surface, and each deferral read as an omission rather than the decision it needs. [[ADR-0010]] is still `proposed` and [[PHASE-029]] still `planned`, which is the actual gap.

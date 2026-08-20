@@ -214,3 +214,84 @@ def test_the_client_re_decides_nothing() -> None:
             f"the renderer is re-deciding `{reimplemented}` instead of "
             "reporting the server's refusal"
         )
+
+
+# ---- a phase contributes its features (REQ-0048 criterion 2) --------------
+
+def _repo_with_phase(tmp: Path) -> Path:
+    docs = _repo(tmp)
+    (docs / "phases").mkdir(parents=True, exist_ok=True)
+    (docs / "phases" / "PHASE-0001-A-Phase.md").write_text(
+        '---\ntype: "[[phase]]"\nid: PHASE-0001\ntitle: "A phase"\n'
+        'status: active\norder: 1\n'
+        'features: ["[[FEAT-0001-Thing]]", "[[FEAT-0002-Thing]]"]\n'
+        '---\n\n# A phase\n', encoding="utf-8")
+    return docs
+
+
+def test_a_phase_contributes_its_features_and_is_not_stored(tmp_path: Path) -> None:
+    """[[REQ-0048]] criterion 2: *a phase contributes features; no second
+    encoding.*
+
+    **That criterion answers the question the plan left open** — whether the
+    expansion is remembered or re-derived. It is remembered **as features**:
+    storing the phase would put a second encoding of membership on the release,
+    and the release would disagree with the phase the first time a feature
+    moved between them. A phase's members change; what a release *contains*
+    must not change under it.
+    """
+    docs = _repo_with_phase(tmp_path)
+    out = note_writes.release_contents(
+        Index.build(docs), "REL-0001", action="add", feature_id="PHASE-0001")
+    assert out["contributed"] == ["FEAT-0001", "FEAT-0002"]
+    assert out["features"] == ["[[FEAT-0001-Thing]]", "[[FEAT-0002-Thing]]"]
+    #: The phase itself is nowhere in the note.
+    raw = (docs / "releases" / "REL-0001-R.md").read_text(encoding="utf-8")
+    assert "PHASE-0001" not in raw, raw[:400]
+
+
+def test_removing_a_phase_removes_what_it_contributed(tmp_path: Path) -> None:
+    docs = _repo_with_phase(tmp_path)
+    note_writes.release_contents(
+        Index.build(docs), "REL-0001", action="add", feature_id="PHASE-0001")
+    out = note_writes.release_contents(
+        Index.build(docs), "REL-0001", action="remove", feature_id="PHASE-0001")
+    assert out["features"] == []
+
+
+def test_a_phase_clash_names_the_feature_not_the_phase(tmp_path: Path) -> None:
+    """A phase whose members are split across two releases must refuse on the
+    **member that clashes** and say which — refusing on the phase's own id
+    would leave a person with no way to find out what the problem was."""
+    docs = _repo_with_phase(tmp_path)
+    (docs / "releases" / "REL-0002-R.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0002\ntitle: "R"\nstatus: draft\n'
+        'version: "1.2.0"\nplatform: "android"\npreparing: true\n'
+        'features: ["[[FEAT-0002-Thing]]"]\n---\n\n# R\n', encoding="utf-8")
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.release_contents(
+            Index.build(docs), "REL-0001", action="add", feature_id="PHASE-0001")
+    assert "FEAT-0002" in exc.value.message, exc.value.message
+    assert "PHASE-0001" not in exc.value.message
+
+
+def test_a_phase_naming_nothing_that_resolves_is_refused(tmp_path: Path) -> None:
+    """Fail-closed: a phase that contributes nothing is a broken link, not an
+    empty add that reports success."""
+    docs = _repo(tmp_path)
+    (docs / "phases").mkdir(parents=True, exist_ok=True)
+    (docs / "phases" / "PHASE-0002-Empty.md").write_text(
+        '---\ntype: "[[phase]]"\nid: PHASE-0002\ntitle: "Empty"\n'
+        'status: active\norder: 2\nfeatures: ["[[FEAT-9999]]"]\n'
+        '---\n\n# Empty\n', encoding="utf-8")
+    with pytest.raises(note_writes.WriteError):
+        note_writes.release_contents(
+            Index.build(docs), "REL-0001", action="add", feature_id="PHASE-0002")
+
+
+def test_a_note_that_is_neither_is_refused(tmp_path: Path) -> None:
+    docs = _repo(tmp_path)
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.release_contents(
+            Index.build(docs), "REL-0001", action="add", feature_id="REL-0001")
+    assert "carries features" in exc.value.message

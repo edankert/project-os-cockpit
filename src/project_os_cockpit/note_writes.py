@@ -1579,10 +1579,45 @@ def release_contents(
     #: [[ISS-0142]] happened, and this is the server half of that lesson --
     #: the candidate list is the client half.
     target = index.by_id(feature_id)
-    feature = index.get(target) if target is not None else None
-    if feature is None or (feature.note_type or "") != "feature":
+    subject = index.get(target) if target is not None else None
+    if subject is None:
         raise WriteError(
-            f"{feature_id} is not a feature in this record", status=409)
+            f"{feature_id} is not in this record", status=409)
+
+    #: **A phase CONTRIBUTES its features; it is not stored** ([[REQ-0048]]
+    #: criterion 2, *"no second encoding"*).
+    #:
+    #: That criterion answers the question the plan left open -- whether the
+    #: expansion is remembered or re-derived. It is **remembered, as
+    #: features**: storing the phase would put a second encoding of membership
+    #: on the release, and the release would then disagree with the phase the
+    #: first time a feature moved between them. A phase's members change; what
+    #: a release contains must not change under it.
+    #:
+    #: So the id is expanded HERE, at the moment of the click, and every
+    #: refusal below applies to each feature it names rather than to the phase.
+    targets: list[tuple[str, Any]] = []
+    if (subject.note_type or "") == "phase":
+        for ref in ((subject.frontmatter.get("features") or [])):
+            for match in re.finditer(r"FEAT-\d+", str(ref)):
+                path_f = index.by_id(match.group(0))
+                rec_f = index.get(path_f) if path_f is not None else None
+                if rec_f is not None and (rec_f.note_type or "") == "feature":
+                    targets.append((match.group(0), rec_f))
+        if not targets:
+            raise WriteError(
+                f"{feature_id} names no feature that resolves, so there is "
+                "nothing for it to contribute",
+                status=409,
+            )
+    elif (subject.note_type or "") == "feature":
+        targets = [(feature_id, subject)]
+    else:
+        raise WriteError(
+            f"{feature_id} is a {(subject.note_type or 'note')}; a release "
+            "carries features, or a phase that contributes them",
+            status=409,
+        )
 
     #: **Refusal 3, and the obvious version of it is wrong.**
     #:
@@ -1607,13 +1642,17 @@ def release_contents(
             other_rec = index.get(other_path) if other_path is not None else None
             named = [str(f) for f in
                      ((other_rec.frontmatter.get("features") if other_rec else None) or [])]
-            if any(feature_id in n for n in named):
-                raise WriteError(
-                    f"{feature_id} is already in {other['id']}, which is open "
-                    f"for platform {here or '(all)'}; a feature belongs to one "
-                    "release per platform",
-                    status=409,
-                )
+            #: Checked per contributed feature, not on the phase: a phase whose
+            #: members are split across two releases must refuse on the member
+            #: that clashes and say which, not on its own id.
+            for fid, _rec in targets:
+                if any(fid in n for n in named):
+                    raise WriteError(
+                        f"{fid} is already in {other['id']}, which is open "
+                        f"for platform {here or '(all)'}; a feature belongs to "
+                        "one release per platform",
+                        status=409,
+                    )
 
     _check_mtime(path, mtime)
     try:
@@ -1625,11 +1664,13 @@ def release_contents(
     current = [str(f) for f in (record.frontmatter.get("features") or [])]
     #: Compared on the ID inside the wikilink, so `[[FEAT-0085-Slug]]` and a
     #: bare `FEAT-0085` are the same member. The slug is display, not identity.
-    kept = [f for f in current if feature_id not in f]
+    kept = [f for f in current
+            if not any(fid in f for fid, _r in targets)]
     if action == "add":
-        target_rel = (feature.rel_path or "").rsplit("/", 1)[-1]
-        stem = target_rel[:-3] if target_rel.endswith(".md") else feature_id
-        kept.append(f"[[{stem or feature_id}]]")
+        for fid, rec_f in targets:
+            rel = (rec_f.rel_path or "").rsplit("/", 1)[-1]
+            stem = rel[:-3] if rel.endswith(".md") else fid
+            kept.append(f"[[{stem or fid}]]")
     rendered = "[" + ", ".join(f'"{_yaml_safe(f)}"' for f in kept) + "]"
     fm_lines = _set_field(fm_lines, "features", rendered, quote=False)
     fm_lines = _set_field(fm_lines, "updated", _today())
@@ -1637,6 +1678,9 @@ def release_contents(
     return {
         "ok": True, "release": release_id, "action": action,
         "feature": feature_id, "features": kept, "actor": actor,
+        #: Which features the id actually moved — one for a feature, N for a
+        #: phase. The caller reports what happened rather than what was asked.
+        "contributed": [fid for fid, _r in targets],
     }
 
 
