@@ -3900,7 +3900,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 142
-    features_done: 126
+    features_done: 127
     tasks_total: 574
     tasks_done: 536
     tests_total: 43

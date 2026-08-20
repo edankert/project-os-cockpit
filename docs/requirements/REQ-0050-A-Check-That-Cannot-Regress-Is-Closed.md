@@ -3,11 +3,11 @@ type: "[[requirement]]"
 id: REQ-0050
 aliases: ["REQ-0050"]
 title: "A check that cannot regress is retired with its reason, and the gate delta is stated before it lands"
-status: draft
+status: implemented
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 priority: medium
 scope: "acceptance suite"
 implements: "[[FEAT-0131-The-Suite-Is-Refined]]"
@@ -31,7 +31,7 @@ Criterion 4 is the guard against doing the easy thing. Tier 3's holding pen can 
 
 ## Acceptance criteria
 
-- [ ] Every retirement names its reason.
-- [ ] Nothing deleted; `retired`.
-- [ ] Gate delta measured and stated first.
-- [ ] Tier 2 justified per check.
+- [x] Every retirement names its reason — **vacuously: nothing was retired.** [[TASK-0518]] decided *no retirements* (Edwin, 2026-08-20) after [[TASK-0525]] read all 73 Tier 2 checks individually, and [[TASK-0517]] **kept** all 60 parking-bay checks with their recovered areas rather than retiring any. Marked as satisfied-because-empty, not as exercised.
+- [x] Nothing deleted; `retired` — no check note was deleted anywhere in this phase, and none was set to `retired` either. The mechanism that made deletion unnecessary is [[TASK-0526]]'s **resting**: a regression guard whose issue is closed is kept, counted, listed, not asked about, and wakes on its own if the issue reopens.
+- [x] Gate delta measured and stated first — [[TASK-0517]] states it **before** landing, as its own header instructs: `your-trainer` 581 items / 59 blocking, unchanged, with an **indexed** loader that can detect a change and reports none. The instrument matters: [[ISS-0213]] was simulated with an index-less loader where the numbers could not move, and that non-result was reported as proof.
+- [x] Tier 2 justified per check — [[TASK-0525]]'s individual read of all 73: **35** name a `FEAT-*`, 15 name only a `TASK-*`, 17 name something else, **6 name nothing**. All 73 derive to `feature`; the 91 that do name an issue derive to `regression` (86) and `automated` (5) by the same rule. The 6 subject-less ones were given the feature they verify on Edwin's approval.
