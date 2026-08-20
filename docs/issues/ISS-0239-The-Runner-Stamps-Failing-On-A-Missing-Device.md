@@ -9,7 +9,7 @@ created: 2026-08-19
 updated: "2026-08-20"
 severity: high
 component: tooling
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 related: ["[[ADR-0010]]", "[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]"]
 ---
 

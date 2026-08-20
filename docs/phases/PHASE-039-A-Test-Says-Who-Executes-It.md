@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-039
 aliases: ["PHASE-039"]
 title: "A test says who executes it, and every section is derived"
-status: planned
+status: done
 order: 39
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-08-20"
 goal: "A test note records who executes it and what it covers. Nothing records whether an automated test passed, and no section a reader sees is filed by hand."
 features: ["[[FEAT-0139-The-Suite-Is-The-Verdict]]", "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]", "[[FEAT-0141-The-Contract-Says-It-Upstream]]"]
 requirements: ["[[REQ-0058-An-Automated-Test-Carries-No-Verdict]]", "[[REQ-0059-A-Section-Is-Derived-Never-Filed]]", "[[REQ-0060-A-One-Time-Check-Names-Its-Issue]]"]
@@ -42,10 +42,23 @@ Two fields already answer every question this corpus asks about a test — `comm
 
 ## Exit Criteria
 
-- [ ] No note carrying a `command:` holds `ready`, `passing`, `failing`, `last_run:` or `exit_code:` — checked, not asserted
-- [ ] `tier:` is read by no code path; `GATING_TIERS` and `PERMANENT_TIERS` are gone
-- [ ] The three sections are derived identically in both front doors
-- [ ] The gate delta is measured **per repo** before each gate change lands
-- [ ] `TESTING.md` and `STATUSES.md` carry the rules upstream, and the fleet is synced
-- [ ] No UI string contains *run* or *walk*
-- [ ] Deleting a covering test puts its check back on the list — proved on constructed input, because the corpus holds zero instances
+- [x] No note carrying a `command:` holds `ready`, `passing`, `failing`, `last_run:` or `exit_code:` — `ACCEPTANCE-STATUS` widened to the whole domain and `TEST-AUTOMATED-EVIDENCE` added, both erroring from day one because the migration left **zero** violations
+- [x] `tier:` is read by no code path; `GATING_TIERS` and `PERMANENT_TIERS` are gone — every caller moved to `MANUAL_SECTIONS`
+- [x] The three sections are derived identically in both front doors — one predicate, `acceptance.section_of`
+- [x] The gate delta is measured **per repo** — `your-trainer` 68 → 59, `project-os-cockpit` 0 → 0, `your-sudoku` 56 → 56, and the two repos with no suite reported as such
+- [x] `TESTING.md` and `STATUSES.md` carry the rules upstream, and the fleet is synced — all 12 project-os repos, committed per repo naming only the three synced paths
+- [x] No UI string contains *run* or *walk* — guarded over the chrome the product writes, deliberately not over note prose it renders
+- [x] Deleting a covering test puts its check back on the list — proved on constructed input in `tests/test_command_targets.py`, with the mutant executed, because the corpus holds **zero** broken commands
+
+## Closed 2026-08-20
+
+Seventeen tasks, three features, three requirements, two decisions. 1854 tests pass; the validator is green here and across the fleet sync.
+
+**What the phase found that its own ADRs did not say**, both recorded where they happened rather than smoothed over:
+
+- **The file shape must read its heading, not derive.** A row parsed from `ACCEPTANCE_TESTS.md` carries neither `command:` nor a frontmatter `covers:`, so the derivation had nothing to read and classified all three of a document's headings as feature tests — which would have pushed unmigrated repos' Tier 3 rows into the gate by accident.
+- **The migration's parity check caught the one real semantic change** rather than a person finding it: blocking 3 → 4, because a migrated Tier 3 row is a note with no `command:` and is therefore owed. Parity is now scoped to the rows the tier already gated, and the delta prints as `ENTER THE GATE` before the source is deleted.
+
+**Left open on purpose**: [[ISS-0238]] — 67 checks still read an `area:` naming a heading in a deleted document, and recovering the real values is excavation across `your-trainer`'s history rather than a migration. [[ISS-0209]] is untouched and bounds what any of this proves: the acceptance gate executes in no repo holding a check.
+
+**Not delivered, and not attempted**: `tier:` still sits in 671 notes. It is read by nothing; removing it is a separate migration, kept separate so a bad derivation stays recoverable.

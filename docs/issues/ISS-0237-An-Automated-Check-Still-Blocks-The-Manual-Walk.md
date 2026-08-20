@@ -9,7 +9,7 @@ created: 2026-08-19
 updated: "2026-08-20"
 severity: high
 component: cockpit-server
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]", "[[TASK-0556-Incomplete-First]]"]
 ---
 
