@@ -7,7 +7,7 @@ status: planned
 order: 29
 owner: user:edwin
 created: 2026-08-09
-updated: 2026-08-09
+updated: "2026-08-20"
 goal: "Make the browser cockpit a deliberate subset of the same tool rather than an older version of it: one view vocabulary, the question-answering surfaces reachable from both, and every remaining difference traceable to a recorded decision about what the read-only front door is for."
 features:
   - "[[FEAT-0083-The-Browser-Cockpit-Answers-Questions]]"
@@ -15,13 +15,44 @@ features:
 requirements:
   - "[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"
   - "[[REQ-0034]]"
-issues: []
+issues: ["[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]"]
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
-related: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[REQ-0013-Cockpit-Three-Pane-Layout]]", "[[RISK-0001-Render-Server-Exposure]]"]
+related: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[REQ-0027]]", "[[RISK-0005]]", "[[REQ-0013-Cockpit-Three-Pane-Layout]]", "[[RISK-0001-Render-Server-Exposure]]"]
 tags: [surfaces, mode-1]
 ---
 
 # One tool, two front doors
+
+## Scoped 2026-08-20 — what parity actually costs, measured
+
+Edwin confirmed **parity** when asked on 2026-08-20, which is [[ADR-0010]]'s existing decision (option 4, accepted 2026-08-12) rather than a new one. This phase has been `planned` and unscoped since; the measurement below is what it is planned *for*.
+
+**Virtual pages implemented in each front door:**
+
+| front door | count | pages |
+|---|---|---|
+| `desktop/src/renderer/renderer.ts` | **12** | `~agents` `~checks` `~design` `~features` `~history` `~inbox` `~issues` `~overview` `~publication` `~release` `~review` `~tests` |
+| `src/project_os_cockpit/static/cockpit.js` | **2** | `~note` `~root` |
+
+The browser cockpit renders **notes and a navigator**. Every view the tool has been about is in the desktop shell alone.
+
+### The eleven that are owed NOW
+
+[[ADR-0010]] gates *writes* on authentication, not reads. These answer a question without changing anything, so nothing blocks them:
+
+`~overview` · `~features` · `~issues` · `~tests` · `~checks` · `~design` · `~history` · `~agents` · `~inbox` · `~publication` · `~review`
+
+### The one that is gated, and why the gate is real
+
+`~release` carries `Mark released`, the seal, and now the contents picker ([[TASK-0511]]/[[TASK-0558]]). [[ADR-0010]]: *"The loopback check is not a safety feature on top of an authorisation model. It **is** the authorisation model."* [[REL-0001]]'s acceptance pass drove every mutation endpoint over the real LAN interface — **ten of ten returned 403 while reads returned 200** ([[REQ-0027]], [[RISK-0005]]).
+
+So the order is: the eleven reading views, then an authenticated write path, then the writing surfaces. Not the other way round, and not all at once.
+
+### What this phase must stop happening
+
+*Both front doors* has been quoted at pairs where only one side has the surface — [[TASK-0511]] deferred its picker as a small follow-up when the page does not exist there and, under the ADR, could not carry a write even if it did. Each deferral reads as an omission rather than as a precondition nobody has met. That is [[ISS-0246]].
+
+
 
 ## Where this came from
 

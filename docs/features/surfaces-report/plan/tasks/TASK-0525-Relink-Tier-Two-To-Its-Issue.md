@@ -6,7 +6,7 @@ title: "Restore the `ISS-*` link on the 73 Tier 2 checks that lost it"
 status: backlog
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 parent: "[[FEAT-0131-The-Suite-Is-Refined]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -45,3 +45,36 @@ Not a restoration — **original research**. For each of 73 checks, decide from 
 ## Consequence for [[TASK-0526]]
 
 A Tier 2 check can only rest with its issue if it names one, so *rest-with-issue* reaches **85 of 158 today** and cannot reach the other 73 until this is done. Not a blocker for building it — the mechanism is [[ADR-0028]]'s in-flight rule and needs no new code — but its coverage must be stated rather than assumed, or the surface will look like it quieted everything it could.
+
+## Read individually 2026-08-20, on Edwin's instruction — and 67 of the 73 need nothing
+
+He chose *read each and decide*, with a table to approve before anything is written. Reading them collapses the task a second time.
+
+### They are not regression checks
+
+**All 73 derive to the `feature` section.** [[ADR-0039]] derives a check's section from `covers:`, and **67 of the 73 name a `FEAT-*`** — usually a `TASK-*` beside it. Read, they are feature verification: *Ramp Warmup Rendering*, *Cue Display*, *Cue Auto-Dismiss*, *No Cue in Free Ride*. Not guards over fixed defects.
+
+For comparison, the 91 that **do** name an issue derive to `regression` (86) and `automated` (5) — correctly, and by the same rule.
+
+So `tier: 2` on these 73 is **dead metadata**. [[ISS-0208]] retired the tier rule and [[ADR-0039]] replaced it with derivation; the section they land in is already right, and the field that said otherwise is the one that stopped being read.
+
+**Assigning an `ISS-*` to a check that verifies a feature would be inventing a defect to justify a tier that no longer exists.** That is the opposite of what this task wanted.
+
+### Six name nothing at all, and they are exactly the six that gate
+
+Of the 73, six carry no `covers:` — and those same six are the only ones blocking, through `blocking_for`'s fail-closed clause (*a check nobody can attribute cannot be discharged by finishing any particular item*).
+
+| id | check | surface |
+|---|---|---|
+| `TST-0434` | Fresh Install Add Rider | Riders & profiles |
+| `TST-0435` | Family Tier Add Rider | Riders & profiles |
+| `TST-0436` | No Sessions Message | History & analytics |
+| `TST-0444` | HRM Reset on User Switch | Hardware |
+| `TST-0445` | HRM Prompt After User Switch | Hardware |
+| `TST-0446` | HRM Reconnect on Switch Back | Hardware |
+
+Read, none is a regression guard either — they are empty-state and user-switch behaviours whose `covers:` was never filled.
+
+**Proposed, awaiting approval:** give each the feature it verifies — `FEAT-0002` (rider profiles) for TST-0434/0435, `FEAT-0060` (history) for TST-0436, `FEAT-0007` (device pairing) for TST-0444/0445/0446. That moves them off the fail-closed path into Feature tests. **No issue is invented for any of them.**
+
+Nothing has been written. The table above is the approval this task's own instruction asked for.

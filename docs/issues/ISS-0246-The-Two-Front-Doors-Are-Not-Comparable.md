@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0246
 aliases: ["ISS-0246"]
-title: "The browser cockpit has two views and the desktop shell has twelve — `both front doors` has been applied as a rule to a pair that was never comparable, and every finding of the form `the browser is missing X` is one instance of that"
+title: "The browser cockpit has two views and the desktop shell has twelve — ADR-0010 decided parity and gated it on an authenticated write path that does not exist, and `both front doors` has been quoted since as though parity already applied"
 status: open
 owner: user:edwin
 created: 2026-08-20
@@ -36,15 +36,32 @@ But the rule has since been reached for repeatedly on things only one door has. 
 
 So the obligation has been carried, note to note, in a form nobody can discharge — and each time it is deferred it reads as an omission rather than as the decision it actually needs.
 
-## The question this is really asking
+## Corrected 2026-08-20 — the decision WAS taken, and I said it was not
 
-**Was two front doors decided, or did it happen?** [[ADR-0010]] is `proposed` and [[PHASE-029]] is `planned` — the decision that would say which pages the browser cockpit owes has never been taken. Three possibilities, and they are genuinely different:
+This note first claimed *"[[ADR-0010]] is `proposed` … the decision has never been taken."* **It is `accepted`, `decided_option: "4"`, decided 2026-08-12** — and I asserted otherwise without opening it. Filing an issue about unread premises on an unread premise.
 
-1. **The browser cockpit is a reader.** Notes and navigation, deliberately — a tablet on the Wi-Fi reads the record; the desktop shell does the work. Then *both front doors* applies to the navigator and to nothing else, and the eleven missing pages are not debt.
-2. **It is a full second front door**, and eleven views are owed. That is a body of work, not a follow-up line, and it should be phased as one.
-3. **Somewhere between**, named page by page.
+**Option 4 is *parity, gated on an authenticated write path*.** Edwin confirmed parity again on 2026-08-20 when asked, which is consistent rather than new. The ADR's own words: *"The browser cockpit is the reading surface **for now**, and that is a **stage rather than a property**."*
 
-Until that is decided, *"the browser cockpit is missing X"* will keep being filed, and keep being true, and keep not being actionable.
+So the twelve-against-two gap is not an undecided question. It is **the decision's own precondition, unmet**:
+
+> *"The loopback check is not a safety feature on top of an authorisation model. It **is** the authorisation model."* — [[REL-0001]]'s acceptance pass drove every mutation endpoint over the real LAN: **ten of ten returned 403 while reads returned 200** ([[REQ-0027]], [[RISK-0005]]).
+
+## What is actually owed, in order
+
+1. **An authenticated write path.** Until a surface can prove *who* is asking, the loopback check cannot be replaced — only removed, which hands every device on the Wi-Fi the ability to transition notes and create files across twelve repos. This is the gate, and nothing below it can start.
+2. **The eleven reading views**, which the ADR does **not** gate: `~overview`, `~features`, `~issues`, `~tests`, `~checks`, `~design`, `~history`, `~agents`, `~inbox`, `~publication`, `~review` answer questions without changing anything. These are owed now, and [[PHASE-029]] is `planned` and empty of them.
+3. **The writing surfaces** — `~release` and the marks, ticks and pickers — after (1).
+
+## What this issue keeps
+
+The real defect stands, narrowed: ***both front doors* has been quoted as though parity already applied.** [[TASK-0511]] deferred its picker as a small follow-up when the picker's page does not exist there and, under the ADR, could not be written there yet even if it did. Each such deferral reads as an omission rather than as a precondition nobody has met.
+
+## Done when
+
+- [x] The decision is found and read. It exists; the error was mine.
+- [ ] [[PHASE-029]] carries the eleven reading views as scoped work rather than an empty `planned`.
+- [ ] Notes carrying a *both front doors* obligation say which stage they are waiting on — the eleven views, or the authenticated write path.
+- [ ] `RISK-0005`'s ten-of-ten measurement is re-run before any write endpoint is offered on a LAN-reachable surface.
 
 ## Done when
 
