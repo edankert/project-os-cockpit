@@ -143,7 +143,7 @@ Basis blockquote present and its figures re-verified. The measurement it rests o
 | 2 — survives reload/restart; a later-completed feature appears checked | **built** | contents live in the note; the derived set is reconciled per render |
 | 3 — subtraction, guarded on the **mixed case** | **built** | `Suite.blocking_minus` under [[ADR-0040]]; `test_the_mixed_cell_still_gates` |
 | 4 — every exclusion carries a **reason**; page reads `N features held back · M checks no longer gating` | **NOT built** | `publication.py:948` computes held-back; no reason field, no summary line |
-| 5 — `chronic` still counts an excluded check | **NOT built** | no evidence anywhere in `publication.py` or the suite |
+| 5 — `chronic` still counts an excluded check | **MET, now guarded** | `delta()` reads `current.blocking()` — the *unsubtracted* list — while the gate reports `blocking_minus`. True by call-ordering; `test_a_deselected_check_stops_blocking_but_keeps_being_counted` now pins it |
 | 6 — shipped contents frozen, no write path to a check | **built** | `test_a_shipped_release_is_immutable`, [[ADR-0035]] intact |
 | 7 — nothing ships before [[ADR-0040]] is accepted | **met** | `status: "accepted"` |
 
@@ -154,3 +154,14 @@ Basis blockquote present and its figures re-verified. The measurement it rests o
 This is not a feature waiting to start. It is a **feature two-thirds delivered under another note's tasks, never reconciled** — which is why it kept reading as untouched. The remaining work is small and specific, and it should be minted as two tasks against these two criteria rather than planned as a build.
 
 It also raises whether FEAT-0142 and [[FEAT-0129]] should be one note. They are not duplicates — 0129 is *"a release can name contents"* and 0142 is *"and the record says why, and what it cost"* — but a reader meeting both cold cannot tell that, and this note's `backlog` status actively misleads. That is a judgement for Edwin, not a tidy-up to perform.
+
+
+### Criterion 5 re-measured — met, and it was true by accident
+
+Looked for rather than assumed. `delta()` computes `blocking = current.blocking()`, the **full** list, while the gate reports `blocking_minus(deselected)`. The two answer different questions, so a held-back check keeps appearing in `chronic` exactly as this criterion requires.
+
+**Correct, and fragile.** Nothing expressed the dependency. Someone tidying `delta()` to *"use the same list as the gate"* would make the chronic bucket shrink whenever a feature is held back — silently, and in the flattering direction. `blocking_minus`'s own docstring names emptying that bucket as the reason [[ADR-0040]] rejected the divide reading, so the hazard was understood and unguarded.
+
+Now guarded on the mechanism and behaviourally, and the mutant — `delta()` switched to `blocking_minus` — fails it.
+
+**So six of seven are met.** The one genuinely outstanding criterion is 4: an exclusion records no **reason**, and the page never reads `N features held back · M checks no longer gating`. That is one task, not a build.

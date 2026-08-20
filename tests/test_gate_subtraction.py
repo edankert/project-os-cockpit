@@ -161,3 +161,45 @@ def test_the_held_back_set_is_read_from_the_note(tmp_path: Path) -> None:
         "the held-back set reads the `_releases()` dict, which carries no "
         "`features` key — so the subtraction can never fire"
     )
+
+
+def test_a_deselected_check_stops_blocking_but_keeps_being_counted(tmp_path: Path) -> None:
+    """[[FEAT-0142]] criterion 5: *"`chronic` still counts an excluded check.
+    It stops blocking; it does not stop being counted."*
+
+    **True today by call-ordering, guarded by nothing until now.** `delta()`
+    computes `blocking = current.blocking()` — the *full* list — while the gate
+    reports `blocking_minus(deselected)`. So the two answer different questions
+    and a held-back check keeps appearing in the delta's buckets.
+
+    That is correct and fragile. Someone tidying `delta()` to "use the same
+    list as the gate" would make the chronic bucket shrink whenever a feature
+    is held back — silently, and in the direction that flatters. [[ADR-0028]]'s
+    chronic count exists precisely so a row that stops blocking does not also
+    stop being *visible*, and `blocking_minus`'s own docstring names emptying
+    it as the reason ADR-0040 rejected the divide reading.
+
+    Asserted on the mechanism rather than on a rendered number: `delta` must
+    take its rows from the unsubtracted suite.
+    """
+    import inspect
+
+    src = inspect.getsource(acceptance.delta)
+    assert "current.blocking()" in src, (
+        "delta() no longer reads the full blocking list; if it now uses "
+        "blocking_minus, every held-back check silently leaves the chronic "
+        "bucket and long-carried debt stops being counted (FEAT-0142 c5)"
+    )
+    assert "blocking_minus" not in src, (
+        "delta() is subtracting; chronic must count what the gate excludes"
+    )
+
+    #: And behaviourally: the same suite, deselected, still yields the row.
+    s = _suite(tmp_path, [("TST-0001", ["FEAT-0001"]), ("TST-0002", ["FEAT-0002"])])
+    assert len(s.blocking_minus({"FEAT-0001"})) == 1, "the gate should drop it"
+    split = acceptance.delta(s, None)
+    counted = {i.note_id for i in split["chronic"]}
+    assert "TST-0001" in counted, (
+        f"the held-back check left the chronic bucket: {sorted(counted)}"
+    )
+    assert len(counted) == 2, counted
