@@ -106,3 +106,66 @@ def test_the_two_validator_copies_stay_identical() -> None:
         "silently does not run in the other, and `validate-docs.sh` runs "
         "`tools/scripts/validate-docs.py`"
     )
+
+
+# ---- the scaffold end of the same rule (TASK-0522) ------------------------
+
+SCAFFOLD = ROOT / "tools" / "skills" / "feature-scaffold" / "SKILL.md"
+FEATURE_TEMPLATE = ROOT / "docs" / "__templates__" / "feature.md"
+
+
+def test_the_scaffold_emits_a_check_by_rule_not_by_judgement() -> None:
+    """[[TASK-0522]]. Step 9 read *"if the feature requires verification"* — a
+    judgement made per feature, at the end, by whoever was tired.
+
+    Measured across the twelve project-os repos on 2026-08-20: **236 features
+    reached a terminal status with no acceptance check covering them.** A rule
+    applied when somebody remembers is not a rule.
+    """
+    src = SCAFFOLD.read_text(encoding="utf-8")
+    assert "plan/tests/TST-####-*.md" in src, (
+        "the scaffold's Outputs no longer name the acceptance check"
+    )
+    step = src[src.index("9. **Emit one acceptance check"):]
+    step = step[:step.index("\n10.")] if "\n10." in step else step
+    assert "This is not conditional" in step
+    #: **The old wording is QUOTED in the new step**, so a bare substring
+    #: search matches the explanation and fails — the over-broad text match
+    #: that has now bitten four guards in this phase. What must not come back
+    #: is the wording as a live INSTRUCTION, which is a step line beginning
+    #: with it rather than a quotation inside one.
+    live = [ln for ln in src.splitlines()
+            if ln.lstrip().startswith(("9.", "- If the feature requires"))
+            and "if the feature requires verification" in ln.lower()
+            and "*" not in ln]
+    assert not live, f"the conditional wording is back as an instruction: {live}"
+    #: The escape is named at the scaffold end too, or the rule is one people
+    #: disable rather than satisfy.
+    assert "acceptance_exception" in step
+
+
+def test_the_feature_template_carries_the_escape() -> None:
+    """Said once, in the note, **at scaffold time when the reason is known** —
+    not at close-out. The field has to exist in the template or the scaffold
+    step points at nothing.
+    """
+    fm = FEATURE_TEMPLATE.read_text(encoding="utf-8")
+    assert "acceptance_exception:" in fm
+    #: Empty by default: filling it is the exception, and a template that
+    #: pre-fills it would make the exception the default.
+    assert 'acceptance_exception: ""' in fm
+
+
+def test_the_scaffold_and_the_validator_ask_one_question() -> None:
+    """The two ends of the work: the scaffold emits or excepts, and
+    `FEATURE-UNCOVERED` warns at close-out for anything that is neither. If
+    they named different fields, a feature could satisfy one and fail the
+    other — [[REQ-0059]]'s shape across a skill and a validator.
+    """
+    scaffold = SCAFFOLD.read_text(encoding="utf-8")
+    validator = VALIDATOR.read_text(encoding="utf-8")
+    assert "FEATURE-UNCOVERED" in scaffold, (
+        "the scaffold does not tell the author what will check this"
+    )
+    assert "acceptance_exception" in validator
+    assert "acceptance_exception" in scaffold

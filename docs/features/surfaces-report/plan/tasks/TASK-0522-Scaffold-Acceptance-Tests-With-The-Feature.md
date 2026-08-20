@@ -3,10 +3,10 @@ type: "[[task]]"
 id: TASK-0522
 aliases: ["TASK-0522"]
 title: "The feature scaffold emits a Tier 1 acceptance test beside PLAN.md"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-20"
 parent: "[[FEAT-0132-Acceptance-Tests-Are-Scaffolded-By-Rule]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -17,3 +17,32 @@ tags: [task]
 Template-owned: lands in `~/Dev/repos/project-os` first (`tools/skills/feature-scaffold/SKILL.md` and the templates) and syncs down. REQ-0051 criterion 5 — the sweep governed one repo and eleven carried on uncovered.
 
 The emitted note is Tier 1 by TESTING.md's own definition: *created when a feature is first implemented*.
+
+## Done 2026-08-20 — upstream first, then synced
+
+`tools/skills/feature-scaffold/SKILL.md` step 9, edited in `~/Dev/repos/project-os` and copied down byte-identical. `acceptance_exception: ""` added to `docs/__templates__/feature.md` in both.
+
+### What changed, and why it is a rule now
+
+Step 9 read *"if the feature requires verification, create `TST-*` notes"*. That is a judgement made per feature, at the end, by whoever was tired — and the corpus says how it went. Measured across the twelve project-os repos, 2026-08-20:
+
+| | features reaching a terminal status with no acceptance check |
+|---|---|
+| all twelve repos | **236** |
+| the three holding a suite | **147** |
+
+**A rule applied when somebody remembers is not a rule.** The scaffold now emits `plan/tests/TST-####-*.md` — `level: acceptance`, `covers: ["[[FEAT-####]]"]`, no `command:` — as an Output rather than a conditional step.
+
+### The escape, at the end where the reason is known
+
+`acceptance_exception:` is in the feature template, empty. Some features never can have a check: an engine with no user-facing surface, a phase of work, a repo that ships prose. Said **once, at scaffold time**, when whoever is creating the feature actually knows why — rather than at close-out, which is where [[TASK-0524]] found 33 features nobody could write a true exception for.
+
+**The two ends now ask one question.** The scaffold emits or excepts; `FEATURE-UNCOVERED` ([[TASK-0523]]) warns at close-out for anything that is neither. A test asserts both name the same field, because a skill and a validator disagreeing about it is [[REQ-0059]]'s shape across two artefacts.
+
+### `FEATURE-UNCOVERED` stays downstream for now
+
+The cockpit's validator is **3213 lines against upstream's 2493** — 720 ahead, not behind. Pushing one rule up while that gap exists would be a partial sync, which is how the `kind:` removal took three passes. The rule is cockpit-local until the validators are reconciled, and that is [[ISS-0209]]'s neighbourhood rather than this task's.
+
+### Two errors of mine, both from moving between repos
+
+The template edit ran **twice against upstream** — the second block inherited the shell's `cd` — so `acceptance_exception:` appeared there twice and downstream not at all. And the guard for the old wording matched **my own quotation of it** inside the new step: the over-broad text match that has now bitten four guards in this phase. It asserts the wording is absent as a live *instruction*, not as a quotation.
