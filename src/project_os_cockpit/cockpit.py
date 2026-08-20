@@ -4603,15 +4603,52 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
         name = tier.get("section_key") or ""
         heading = tier.get("label") or name
         if not tier.get("manual", True):
-            label = f"{heading} · {tier['total']} executed by CI"
+            #: **The count, and no claim about who ran it** ([[ISS-0241]]).
+            #: This read `{total} executed by CI`, which the cockpit derived
+            #: from `command:` being present and from nothing else -- it looks
+            #: at no CI run, and no fleet workflow executes these AS CHECKS.
+            #: Measured in `your-trainer` at HEAD: all 89 carry `evidence: []`
+            #: and an empty `verdict_date`, and 9 of them are `mark: todo`, so
+            #: the phrase told a reader that 89 checks were in hand over a
+            #: record holding no result for any of them. That is [[ISS-0237]]
+            #: inverted -- it removed a false OBLIGATION, and the fix put a
+            #: false ASSURANCE where the obligation had been.
+            #:
+            #: The section is already named `Automated tests`, so the word does
+            #: not appear a second time here; a `done` pill on a card called
+            #: `Done` is what [[ISS-0089]] and [[ISS-0090]] took off the group
+            #: heads, and it should not return through this door.
+            label = f"{heading} · {tier['total']}"
         else:
-            label = f"{heading} · {tier['checked']}/{tier['total']} completed"
+            #: **What is OUTSTANDING, once** ([[ISS-0241]], Edwin's word: not
+            #: `todo`). This head carried `{checked}/{total} completed` and
+            #: `{unchecked} todo` together, and the second is the first
+            #: subtracted -- `unchecked` is `total - checked - reconciled` by
+            #: construction, so no input exists that makes them disagree. A
+            #: number that cannot vary against its neighbour is the neighbour,
+            #: printed again.
+            #:
+            #: The denominator stays. `45 outstanding` on a suite of 406 and on
+            #: a suite of 50 are different situations, and the head is where
+            #: that is legible without opening the section.
+            #:
+            #: **A finished section says so rather than printing a zero.**
+            #: `0 of 27 outstanding` is a sentence about absence; `all 27 done`
+            #: is the fact the reader wants, and it is the one state where the
+            #: total alone is the whole answer.
+            if unchecked:
+                label = f"{heading} · {unchecked} of {tier['total']} outstanding"
+            else:
+                label = f"{heading} · all {tier['total']} done"
+            #: These three SURVIVE, because none of them restates the first.
+            #: `re-check` is an explicit act, `stale` is a tick standing over
+            #: overtaken evidence, `reconciled` is a decision the release note
+            #: carries -- three different things that happened, not one thing
+            #: counted three ways.
             if rerun:
                 label = f"{label} · {rerun} need re-check"
             if stale:
                 label = f"{label} · {stale} stale"
-            if unchecked:
-                label = f"{label} · {unchecked} todo"
             if reconciled:
                 label = f"{label} · {reconciled} reconciled"
         group: dict[str, Any] = {
@@ -4654,6 +4691,23 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             # Nothing is hidden ([[REQ-0047]] criterion 3) — a surface row
             # expands to its checks one click away, and says how many.
             "items": _surface_rows(items, url, tier["tier"], index),
+            # **This head already carries its counts** ([[ISS-0241]]), so the
+            # front ends must not append their own trailing summary to it.
+            #
+            # The two numbers were counting DIFFERENT POPULATIONS: the label
+            # counts CHECKS and `groupHeadSummary` counts the group's nav ROWS,
+            # which here are area surfaces. `your-trainer` read
+            # `Feature tests · 361/406 completed · 45 todo` with `50 · 1 done`
+            # trailing it -- adjacent, both readable as "how many tests are in
+            # here", eight times apart, and nothing on screen explaining which
+            # was which.
+            #
+            # A FLAG rather than a rule the clients infer from the label: the
+            # trailing count is the only count a phase, feature or task group
+            # has, and dropping it there would leave a head that cannot say how
+            # big it is. Only the sections built here are count-bearing, and
+            # only they say so.
+            "head_counts": True,
         }
         # Only the gating tiers ask anything of a person. Tier 3 is a
         # verification aid — TESTING.md is explicit that it does not gate.

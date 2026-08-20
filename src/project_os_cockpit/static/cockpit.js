@@ -1753,6 +1753,12 @@
       var gSummary = namesStateThemselves
         ? String((g.items || []).length || "")
         : groupHeadSummary(g.items || []);
+      // ISS-0241: a head that already carries counts gets no second one.
+      // The label counts CHECKS and this counts nav ROWS — `361/406` beside
+      // `50 · 1 done`, two populations, no way to tell them apart. Read off a
+      // server flag rather than sniffed from the label: every other group's
+      // trailing count is the ONLY count it has, and must survive.
+      if (g.head_counts) gSummary = "";
       if (gSummary) {
         headerChildren.push(el("span", { class: "nav-group-summary", text: gSummary }));
       }

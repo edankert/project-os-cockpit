@@ -854,9 +854,26 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
             assert f"tier{tier}" not in groups
             continue
         group = groups[f"tier{tier}"]
-        walked = sum(1 for i in items if i.checked)
         reconciled = sum(1 for i in items if i.reconciled)
-        assert f"· {walked}/{len(items)}" in group["label"], group["label"]
+        #: The denominator is what the DOCUMENT holds. ISS-0241 changed the
+        #: form of this head — `26/27 completed · 1 todo` became
+        #: `all 27 done · 1 reconciled`, because the todo half was the
+        #: fraction subtracted — but not the thing this test is about: a check
+        #: settled by decision is still one of the 27, named beside the count
+        #: rather than quietly removed from both halves of it.
+        outstanding = sum(
+            1 for i in items if not (i.checked or i.reconciled))
+        automated = any(getattr(i, "command", "") for i in items)
+        if not automated:
+            expected = (f"· {outstanding} of {len(items)} outstanding"
+                        if outstanding else f"· all {len(items)} done")
+            assert expected in group["label"], (expected, group["label"])
+            #: **Never `all 26 done`** — the rounding-down this originally
+            #: fixed, restated against the new wording. The reconciled row
+            #: must not have left the total.
+            if reconciled:
+                assert f"all {len(items) - reconciled} done" not in group["label"], (
+                    group["label"])
         if reconciled:
             assert f"· {reconciled} reconciled" in group["label"], group["label"]
         else:
@@ -1937,14 +1954,26 @@ def test_the_tracking_line_counts_re_runs_and_stale_ticks_separately() -> None:
     )
     # **2, not 1** — the `rerun` row counts here as well as under its own
     # heading, because a check whose tick was cleared is a check somebody has
-    # todo. Asserted deliberately rather than adjusted to match: the first
-    # version of this expected 1, which would have meant a re-run row silently
-    # missing from the count of outstanding work.
-    assert "2 todo" in label, label
-    # Walked is the numerator, and a stale tick still counts as walked: it was.
-    # What is untrue is that the evidence still holds, which is why it is
-    # reported beside the fraction rather than subtracted from it.
-    assert "3/5 completed" in label, label
+    # outstanding. Asserted deliberately rather than adjusted to match: the
+    # first version of this expected 1, which would have meant a re-run row
+    # silently missing from the count of outstanding work.
+    #
+    # **And 5, not 4** — a stale tick is still DONE and stays in the
+    # denominator. What is untrue about it is that its evidence holds, which
+    # is why it is reported beside the count rather than added to it.
+    #
+    # ISS-0241 replaced `3/5 completed · 2 todo` here. The two were one fact:
+    # `unchecked` is `total - checked - reconciled` by construction, so the
+    # pair could not disagree under any input and the second said nothing the
+    # first had not. `outstanding` is Edwin's word for the half that survives.
+    assert "2 of 5 outstanding" in label, label
+    assert "completed" not in label, (
+        f"the derived half is back: {label!r}. A head that prints both the "
+        "completed fraction and the outstanding count prints one number twice."
+    )
+    assert "todo" not in label, (
+        f"`todo` is not the word (ISS-0241, Edwin): {label!r}"
+    )
 
 
 def test_no_nav_payload_field_is_sent_and_never_drawn() -> None:
@@ -2101,3 +2130,140 @@ def test_incomplete_checks_sort_first_whatever_their_ids() -> None:
         "TST-0005", "TST-0009", "TST-0001"], (
         "owed first, then id order inside each band — and a STALE tick is "
         "owed, because it stands over evidence a change overtook")
+
+
+def test_the_section_head_prints_no_number_the_others_already_give() -> None:
+    """**One fact, one number** ([[ISS-0241]]).
+
+    The head carried `{checked}/{total} completed` and `{unchecked} todo`
+    side by side. `unchecked` is `total - checked - reconciled` *by
+    construction*, so no corpus, no mark and no migration could ever make the
+    two disagree — the second number was the first one subtracted and printed
+    again, for the whole of its life.
+
+    Guarded on the DERIVED value rather than on the wording, because wording
+    is what a later edit changes. The suite below is built so that `checked`
+    (12) appears nowhere else it could legitimately come from: the head may
+    say 3 and 15, and if `12` is on it, the arithmetic has come back.
+    """
+    import tempfile
+    rows = [(f"TST-{n:04d}", "done", "") for n in range(1, 13)]
+    rows += [(f"TST-{n:04d}", "todo", "") for n in range(13, 16)]
+    with tempfile.TemporaryDirectory() as td:
+        label = _tier_label(_suite_repo(Path(td), rows))
+
+    assert "3 of 15 outstanding" in label, label
+    assert "12" not in label, (
+        f"the completed count is derivable and back on the head: {label!r}. "
+        "12 is 15 - 3; the head already carries both."
+    )
+
+
+def test_a_finished_section_says_so_rather_than_printing_a_zero() -> None:
+    """`all 27 done`, not `0 of 27 outstanding` ([[ISS-0241]]).
+
+    A zero is a sentence about the absence of work. The reader of a finished
+    section wants the fact, and it is the one state where the total alone is
+    the entire answer.
+    """
+    import tempfile
+    rows = [(f"TST-{n:04d}", "done", "") for n in range(1, 5)]
+    with tempfile.TemporaryDirectory() as td:
+        label = _tier_label(_suite_repo(Path(td), rows))
+
+    assert "all 4 done" in label, label
+    assert "outstanding" not in label, (
+        f"a finished section is reporting an empty obligation: {label!r}"
+    )
+
+
+def test_an_automated_head_claims_no_ci_execution() -> None:
+    """**The count, and nothing about who ran it** ([[ISS-0241]]).
+
+    This head said `{total} executed by CI`, derived from `command:` being
+    present and from no observed run anywhere. Measured in `your-trainer` at
+    HEAD on 2026-08-20: all 89 automated acceptance checks carry
+    `evidence: []` and an empty `verdict_date`, **nine of them sit at
+    `mark: todo`**, and no workflow in that repo executes them as checks —
+    `android-tests.yml` runs the underlying gradle tests, and nothing maps a
+    result back onto a note.
+
+    So the phrase told a reader 89 checks were in hand over a record holding
+    no result for any of them. [[ISS-0237]] inverted: that one removed a false
+    obligation, and its fix left a false assurance standing in its place.
+
+    The word `automated` does not appear either — the section is already
+    called *Automated tests*, and saying it twice is what [[ISS-0089]] took
+    off the group heads.
+    """
+    import tempfile
+    from project_os_cockpit.index import Index
+
+    cmd = 'command: "pytest -q"\n'
+    rows = [("TST-0001", "done", cmd), ("TST-0002", "todo", cmd)]
+    with tempfile.TemporaryDirectory() as td:
+        docs = _suite_repo(Path(td), rows)
+        groups = {str(g.get("key")): g for g in cockpit._tests_groups(Index.build(docs))}
+
+    head = str(groups["tier3"]["label"])
+    assert head == "Automated tests · 2", head
+    assert "CI" not in head, head
+    #: The obligation vocabulary must not reach this head at all: none of these
+    #: words describes a list no person is progressing through (ADR-0039).
+    for owed in ("outstanding", "completed", "todo", "done"):
+        assert owed not in head.lower(), (owed, head)
+
+
+def test_a_count_bearing_head_suppresses_the_trailing_row_count() -> None:
+    """**Two numbers, two populations, adjacent** ([[ISS-0241]]).
+
+    The label counts CHECKS; the front ends append `groupHeadSummary`, which
+    counts the group's nav ROWS — area surfaces here. On `your-trainer` that
+    put `361/406 completed` next to `50 · 1 done`: eight times apart, both
+    readable as *how many tests are in here*, with nothing on screen saying
+    which was which.
+
+    Suppressed by a FLAG from the server, not by either client sniffing its
+    own label. For a phase, feature or task group the trailing count is the
+    only count the head has, and inferring the rule from the text would take
+    it away from them the first time one of those labels happened to contain a
+    digit.
+    """
+    import tempfile
+    from project_os_cockpit.index import Index
+
+    rows = [(f"TST-{n:04d}", "done", "") for n in range(1, 4)]
+    with tempfile.TemporaryDirectory() as td:
+        groups = cockpit._tests_groups(Index.build(_suite_repo(Path(td), rows)))
+
+    counted = [g for g in groups if str(g.get("key", "")).startswith("tier")]
+    assert counted, "no section to check"
+    for g in counted:
+        assert g.get("head_counts") is True, (g.get("key"), g.get("label"))
+
+    #: **And it is not nav-wide.** A head whose label carries no count keeps
+    #: its trailing summary; this is the half of the change that a later
+    #: simplification is most likely to flatten.
+    for g in groups:
+        if not str(g.get("key", "")).startswith("tier"):
+            assert not g.get("head_counts"), (g.get("key"), g.get("label"))
+
+
+def test_both_front_doors_read_head_counts() -> None:
+    """A flag the server sends and neither client reads is a flag that does
+    nothing — the [[ISS-0225]] defect, at group level rather than row level.
+
+    Asserted against both renderers' source because this repo has two front
+    doors ([[PHASE-029]]) and the browser one has shipped a suppression the
+    desktop one did not have before.
+    """
+    from pathlib import Path as _P
+
+    root = _P(__file__).resolve().parents[1]
+    for rel in ("src/project_os_cockpit/static/cockpit.js",
+                "desktop/src/renderer/renderer.ts"):
+        src = (root / rel).read_text(encoding="utf-8")
+        assert "head_counts" in src, (
+            f"{rel} never reads `head_counts`, so the count-bearing heads "
+            "still print a second, different-population number there."
+        )

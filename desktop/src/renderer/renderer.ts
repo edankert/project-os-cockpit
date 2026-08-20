@@ -3747,6 +3747,13 @@ interface NavGroupData {
   item_layout?: string;          // 'stacked' | 'compact' | default
   subgroups?: NavGroupData[];
   default_open?: boolean;
+  /** This head already states its counts in its own label, so no trailing
+   *  summary is appended to it (ISS-0241). The two were counting different
+   *  populations — the label counts CHECKS, `groupHeadSummary` counts nav
+   *  ROWS — which on `your-trainer` put `361/406 completed` next to
+   *  `50 · 1 done`. A flag rather than an inference from the label: for every
+   *  other group the trailing count is the only count it has. */
+  head_counts?: boolean;
   /** This group is what the in-flight rule QUIETED (ADR-0028 / TASK-0425).
    *  Not owed, and not gone: counted on no badge, rendered as one closed
    *  line carrying its reason, and one click from the rows it holds.
@@ -8586,10 +8593,17 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     // same lie that put nine automated checks into `your-trainer`'s blocking
     // 68 (ISS-0237) — a number a reader can only act on by doing something
     // nobody should do.
+    // **The count, and no claim about who ran it** (ISS-0241). This said
+    // `executed by CI`, derived from `command:` being present and from no
+    // observed run — and in `your-trainer` all 89 of the checks it described
+    // carry `evidence: []` and an empty `verdict_date`, nine of them at
+    // `mark: todo`, with no workflow executing them as checks. ISS-0237
+    // inverted: it removed a false obligation, and the fix left a false
+    // assurance standing in its place.
     const manual = tier.manual !== false;
     let label = manual
       ? `${tier.label} · ${tier.checked}/${tier.total}`
-      : `${tier.label} · ${tier.total} executed by CI`;
+      : `${tier.label} · ${tier.total}`;
     if (manual && tier.reconciled) label += ` · ${tier.reconciled} reconciled`;
     if (manual && tier.stale) label += ` · ${tier.stale} stale`;
     th.textContent = label;
@@ -8708,7 +8722,11 @@ function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
   } else {
     const cmd = document.createElement('span');
     cmd.className = 'checks-row-command mono';
-    cmd.textContent = item.command || 'executed by CI';
+    // ISS-0241: `automated` is what this row can honestly say when the
+    // command is missing. The fallback should never fire — a section is
+    // non-manual BECAUSE its checks carry a `command:` — so what it prints
+    // is a statement about broken data, and it must not be a claim about CI.
+    cmd.textContent = item.command || 'automated';
     cmd.title = item.command || '';
     row.appendChild(cmd);
   }
@@ -12046,6 +12064,8 @@ function renderNavGroup(group: NavGroupData, mode: NavMode): HTMLElement | null 
   } else {
     summaryText = groupHeadSummary(items);
   }
+  // ISS-0241: the count-bearing heads say it once, in their label.
+  if (group.head_counts) summaryText = '';
   if (summaryText) {
     const cnt = document.createElement('span');
     cnt.className = 'nav-group-summary'
