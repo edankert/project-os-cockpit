@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0132-Acceptance-Tests-Are-Scaffolded-By-Rule]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -46,3 +49,15 @@ The cockpit's validator is **3213 lines against upstream's 2493** — 720 ahead,
 ### Two errors of mine, both from moving between repos
 
 The template edit ran **twice against upstream** — the second block inherited the shell's `cd` — so `acceptance_exception:` appeared there twice and downstream not at all. And the guard for the old wording matched **my own quotation of it** inside the new step: the over-broad text match that has now bitten four guards in this phase. It asserts the wording is absent as a live *instruction*, not as a quotation.
+
+## Independent review — fifth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+Upstream-first is real, not asserted. `diff -q` reports the scaffold skill **byte-identical** between `~/Dev/repos/project-os/tools/skills/feature-scaffold/SKILL.md` and this repo's copy.
+
+**No duplication upstream, and the field is empty in both templates.** `acceptance_exception:` appears exactly **once** in each of the two feature templates, as `acceptance_exception: ""`, and a corpus-wide sweep of both `docs/__templates__` directories finds it in those two files and nowhere else — so the duplication you caught once has not recurred.
+
+**The scaffold and `FEATURE-UNCOVERED` name the same field**, verified by grep on both sides. That is what makes the escape usable: the rule tells you the field, the scaffold ships it empty, and nothing has to be remembered.
+
+Pre-filling the escape would defeat it — an exception that arrives already written is one nobody chose — and shipping it empty rather than omitting it is the difference between an escape a person finds and one they have to be told about.
