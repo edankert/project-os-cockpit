@@ -3985,7 +3985,6 @@ def manual_test_step_state(body: str) -> dict[str, Any]:
     }
 
 
-_ISS_IN_REF = re.compile(r"\bISS-\d+")
 
 
 def _test_as_surface(index: Index, record: NoteRecord, days: int) -> dict[str, Any]:
@@ -4028,16 +4027,24 @@ def _test_as_surface(index: Index, record: NoteRecord, days: int) -> dict[str, A
 def _covers_an_issue(record: NoteRecord) -> bool:
     """Does this test verify a past defect rather than current behaviour?
 
-    The same question `acceptance.section_of` asks, over a note rather than an
-    `Item`, and it must stay the same question -- a second reading is how the
-    navigator and the generated page come to disagree about what a check is.
+    **Delegates to `acceptance.section_of` rather than asking again.** It
+    carried its own regex and its own reading -- `re.search` here against
+    `re.match` there -- so `covers: ["[[FEAT-0001]] and ISS-0002"]` classified
+    one way in the navigator and the other on the generated page, and swapping
+    the two passed the entire suite. Independent review, 2026-08-20.
 
-    A test naming no `ISS-*` reads as a behaviour claim, which is the safe
-    direction: it stays on the list rather than settling forever.
+    [[REQ-0059]] asked for ONE predicate. Two implementations of it is the
+    thing the requirement forbids, written by the same hand as the
+    requirement.
     """
-    raw = (record.frontmatter or {}).get("covers")
-    values = raw if isinstance(raw, (list, tuple)) else [raw]
-    return any(_ISS_IN_REF.search(str(v or "")) for v in values)
+    fm = dict(record.frontmatter or {})
+    fm.setdefault("id", record.note_id or "")
+    fm.setdefault("title", record.title or "")
+    fm["level"] = "acceptance"
+    item = _acceptance.item_from_note(fm, rel="")
+    if item is None:
+        return False
+    return _acceptance.section_of(item) == _acceptance.SECTION_REGRESSION
 
 
 def _test_item(
@@ -4224,13 +4231,11 @@ def _tests_groups(
             # automated test can carry: nothing is verifying it.
             group["needs_human"] = True
         if key in ("automated", "retired"):
-            # **Collapsed, not deleted** (TASK-0508). Edwin does not think the
-            # Resting section is needed; the distinction it carries is real
-            # (ADR-0028 — "nobody owes this yet" is not "nobody got round to
-            # it") and survives being one line. `resolved` joins it: a retired
-            # test is a fact about the past, not work. So does `verified` —
-            # REQ-0047 criterion 1 says the landing state is not a list of
-            # every test, and 40 passing rows here is the same wall as 579.
+            # **Collapsed, not deleted** (TASK-0508, and REQ-0047 criterion 1:
+            # the landing state is not a list of every test). Neither section
+            # is asking for anything — CI executes one and the other is a fact
+            # about the past — so both survive being one line, and 40 rows
+            # here is the same wall as 579.
             group["default_open"] = False
         out.append(group)
 

@@ -132,3 +132,38 @@ def test_the_two_validator_files_are_byte_identical() -> None:
         "the two validator copies have diverged; copy "
         "src/project_os_cockpit/validate_docs_bundled.py over "
         "tools/scripts/validate-docs.py")
+
+
+def test_the_navigator_and_the_page_classify_a_note_identically() -> None:
+    """**One predicate, asserted rather than intended** ([[REQ-0059]]).
+
+    `cockpit._covers_an_issue` carried its own regex — `re.search` against
+    `acceptance.section_of`'s `re.match` — so a `covers:` entry holding a
+    `FEAT-*` id *and the word* `ISS-0002` classified one way in the navigator
+    and the other on the generated page. Swapping the two readings passed the
+    whole suite; independent review found it by swapping them.
+
+    The shapes below are the ones where the two readings disagree. If
+    `_covers_an_issue` ever stops delegating, this goes red on the first.
+    """
+    from project_os_cockpit import acceptance, cockpit
+
+    class _Rec:
+        def __init__(self, covers):
+            self.frontmatter = {"id": "TST-9100", "title": "x", "covers": covers}
+            self.note_id, self.title = "TST-9100", "x"
+
+    for covers in (
+        ["[[FEAT-0001]] and see also ISS-0002"],   # search says yes, match says no
+        ["ISS-0003"],
+        ["[[ISS-0004]]"],
+        ["[[FEAT-0005]]"],
+        ["[[PHASE-0013]]"],
+        [],
+    ):
+        record = _Rec(covers)
+        item = acceptance.item_from_note(
+            {"id": "TST-9100", "title": "x", "level": "acceptance",
+             "mark": " ", "covers": covers}, rel="x.md")
+        expected = acceptance.section_of(item) == acceptance.SECTION_REGRESSION
+        assert cockpit._covers_an_issue(record) is expected, covers

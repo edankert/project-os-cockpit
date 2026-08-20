@@ -155,3 +155,18 @@ The instruction file is template-owned; canonical is `~/Dev/repos/project-os/too
 - **`GATING_TIERS = (1, 2)` and `PERMANENT_TIERS` go with it.** Gating becomes: an unsettled manual check blocks, an automated one never enters the manual list. That is one rule where there were two constants and a tier test.
 - **68 checks are grandfathered, by ID and with a promotion date.** They are the ones that cannot name the issue they verify. This is debt that cannot grow, because the authoring rule refuses new instances.
 - **A new obligation exists, and it is called `Broken command`**: an automated test whose `command:` no longer resolves. Named by Edwin, 2026-08-19, over *Unwired* — the state has a plain description and does not need an image. Measured 2026-08-19 across all 139 automated notes fleet-wide, **zero** currently fail to resolve — so this cannot be proved from the corpus and must be proved on constructed input, which is [[FEAT-0138]]'s acceptance criterion 4.
+
+## Measurement basis, corrected 2026-08-20 after a second independent review
+
+**Every number in the Context section above was taken from `your-trainer`'s WORKING TREE**, which carried 588 uncommitted files at the time. Against `HEAD` — what a fresh clone has, and what any other machine sees — the corpus is different, and the difference is the whole automated population:
+
+| | Tier 1 | Tier 2 | Tier 3 | carrying a `command:` |
+| --- | ---: | ---: | ---: | ---: |
+| working tree | 349 | 164 | 68 | **89** (17 / 5 / 67) |
+| `HEAD` | 349 | 158 | **74** | **0** |
+
+**At `HEAD` no acceptance check in `your-trainer` is automated at all.** So the sentence *"67 of its 68 members got there that way"* describes uncommitted work, and the release-gate consequence runs the other way: **62 → 68**, six Tier 3 checks entering rather than nine automated ones leaving.
+
+**None of this changes the decision.** The argument was never the count — it was that Tier 3's *label* and its *population* were opposite claims, that filing is what rotted, and that a check a machine executes should be derived rather than moved. Those hold at either basis, and the `HEAD` figures make the second half of the same rule visible instead: 74 one-time checks that nobody automated and nobody completed are owed, which is decision 2 applied to the tier decision 3 retires.
+
+**What it does change is what a reader should expect on landing.** In `your-trainer` today this adds six checks to the gate; it removes nine only once that repo's uncommitted work is committed. Recorded in [[CHG-20260820]] and [[ISS-0240]].

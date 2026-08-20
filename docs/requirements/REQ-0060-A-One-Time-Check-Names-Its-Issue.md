@@ -42,3 +42,11 @@ Measured 2026-08-19: 68 of `your-trainer`'s 164 Tier 2 checks name no `ISS-*` an
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 Not separately refuted. `CHECK-SUBJECT` lands warning-first with a dated cutover, which is what [[project-os-dev#ADR-0011]] clause 3 requires, and the criterion whose count was wrong is marked reconciled rather than ticked — that correction is the right shape. Marked `changes-requested` with its siblings; see [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer.
+
+The mechanism holds: warning-first with a dated cutover is what [[project-os-dev#ADR-0011]] clause 3 requires, and `PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"` is asserted. **The corrected count is still the wrong tree.** `CHECK-SUBJECT` measured against `your-trainer` at its committed `HEAD` reports **117**, not 44; 44 is its working tree, the same 588 uncommitted files that produced the gate number this change was correcting. The 44 also appears in [[CHG-20260820-The-Suite-Is-The-Verdict]] and in the docstring of `tests/test_automated_test_holds_no_verdict.py:212`.
+
+The gap is not noise: the 74 Tier 3 checks carry `covers: []` and all fire this gate, and they are the population [[ADR-0039]]'s own table calls *67 automated* — reclassified to `Feature tests` with no grandfather and no promotion date, unlike the 68 Tier 2 checks the ADR carried by ID. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections A and E.

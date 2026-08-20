@@ -52,3 +52,7 @@ tags: [feature, testing]
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 The runner, the actuator refusal and the widened forbidden-status rule all survive mutation. **What does not is the `Broken command` obligation this feature introduces**: deleting its wiring in `cockpit.py` passes all 1854 tests, and the validator's use of `resolve_command` is unguarded the same way. Finding 1 in [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The runner-writes-nothing guard and the cockpit refusal both survive re-mutation; disabling `TEST-AUTOMATED-EVIDENCE` in both validator copies fails two tests. The finding is that *"zero violations at landing"* holds for this repo and `your-sudoku` and not for `your-trainer` — **4 errors at its `HEAD`, 71 in its working tree**, plus 2 new `ACCEPTANCE-STATUS` errors the widening introduced. See [[REQ-0058]] and [[CHG-20260820-The-Suite-Is-The-Verdict]] section A.

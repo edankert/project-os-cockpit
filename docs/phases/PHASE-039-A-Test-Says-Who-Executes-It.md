@@ -45,13 +45,21 @@ Two fields already answer every question this corpus asks about a test — `comm
 
 ## Exit Criteria
 
-- [x] No note carrying a `command:` holds `ready`, `passing`, `failing`, `last_run:` or `exit_code:` — `ACCEPTANCE-STATUS` widened to the whole domain and `TEST-AUTOMATED-EVIDENCE` added, both erroring from day one because the migration left **zero** violations
+- [~] **Corrected after a second independent review.** True in this repo, and the rules are in place — but *"zero violations, erroring from day one"* was measured here alone. `your-trainer` at `HEAD` carries 2 + 4, so the fleet corpus was not clean and ADR-0011 clause 3 forbade the day-one promotion. The command-bearing half is now its own code, `TEST-AUTOMATED-STATUS`, and both it and `TEST-AUTOMATED-EVIDENCE` warn with a cutover of 2026-11-18
 - [~] **Overstated, corrected after independent review.** No *section* and no *gate* decision reads `tier:`, and `GATING_TIERS`/`PERMANENT_TIERS`/`TIER_LABELS` are gone. But `sort_items`, `_delta_key` and the migration script still read it, so the criterion as written was false
 - [x] The three sections are derived identically in both front doors — one predicate, `acceptance.section_of`
 - [~] **Measured, and measured against the wrong tree.** `your-trainer` 68 → 59 is its WORKING TREE; against `HEAD` it is **62 → 68**, because zero of its acceptance checks carry a `command:` at `HEAD` and six Tier 3 checks enter instead. `project-os-cockpit` 0 → 0 and `your-sudoku` 56 → 56 hold either way. Corrected in [[CHG-20260820]]
 - [x] `TESTING.md` and `STATUSES.md` carry the rules upstream, and the fleet is synced — all 12 project-os repos, committed per repo naming only the three synced paths
 - [x] No UI string contains *run* or *walk* — guarded over the chrome the product writes, deliberately not over note prose it renders
 - [x] Deleting a covering test puts its check back on the list — proved on constructed input in `tests/test_command_targets.py`, with the mutant executed, because the corpus holds **zero** broken commands
+
+## Reviewed twice, and what the second pass changed
+
+**Both passes returned `changes-requested`.** The first found seven; the second verified five of those fixed, found the remaining two only partly done, and found **six more** — including one the first fix introduced.
+
+**The regression worth naming**: moving `missing_issue_refs` off `tier:` made its two clauses contradict, so it returned nothing and `return []` passed the entire suite. `your-trainer` went 73 → 0. That is the exact defect this phase is about — a check reporting nothing because its predicate cannot fire — reintroduced while fixing a review, and it needed a third pair of eyes to see.
+
+**The pattern behind most of the rest**: numbers measured against `your-trainer`'s working tree, which carries 588 uncommitted files. The first pass caught it in the gate delta; the second caught the same error in four more places, including in the note filed to correct it and in [[ADR-0039]]'s own context table. Every one is now stated at both bases.
 
 ## Closed 2026-08-20
 
@@ -73,3 +81,19 @@ Seventeen tasks, three features, three requirements, two decisions. 1854 tests p
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 Three of the seven exit criteria do not hold as written. *"`tier:` is read by no code path"* — three paths read it (finding 4). *"The gate delta is measured per repo — `your-trainer` 68 -> 59"* — reproduced exactly against `your-trainer`'s working tree, but against its committed HEAD the same code gives `62 -> 68` with six checks entering, which is the tightening `blocking()`'s own comment says was reverted on 2026-08-18 as needing a person's decision (findings 2 and 3). *"Deleting a covering test puts its check back on the list"* — the resolver is proved; the list is not, and removing the `Broken command` wiring passes all 1854 tests (finding 1). *"No UI string contains run or walk — guarded"* — the guard is vacuous over both labels this phase introduced (finding 5). Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context and a different session from both the author and the first reviewer; same model family, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]). Every mutant was applied and executed by the reviewing session.
+
+**Five of the seven first-pass findings are genuinely fixed and their mutants now fail.** Reproduced: deleting the `Broken command` routing fails 3 tests; renaming `Needs you` fails the vocabulary guard; dropping `swift` from one side fails parity; `test_the_tiers_render` is a real biconditional. The corrected gate delta reproduces exactly — `62 → 68` at `your-trainer`'s `HEAD`, entrants `TST-0592`..`TST-0597`, zero acceptance checks carrying a `command:`.
+
+**Exit criterion 1 does not hold as written, and it is still ticked `[x]`.** *"both erroring from day one because the migration left zero violations"* is true of this repo and false of the fleet. Measured against `your-trainer` at `HEAD`: `TEST-AUTOMATED-EVIDENCE` **4 errors**, `ACCEPTANCE-STATUS` **2 errors** — and the pre-change validator reports zero on the same corpus, so the widening introduced them. In its working tree `TEST-AUTOMATED-EVIDENCE` is **71**. Not live today only because `your-trainer` carries a validator copy from 2026-08-18 without either rule.
+
+**A new defect was introduced by the review fix itself.** `missing_issue_refs` (`acceptance.py:670-686`) moved off `tier(2)` onto a pair of clauses that are contradictory for a note-shape item, so it can never return one: `your-trainer` **73 → 0**, and replacing its body with `return []` passes the entire suite. Its only consumer, `test_every_tier_two_item_names_the_issue_that_created_it`, can no longer fail. That is the check [[ISS-0173]] and [[PHASE-034]] made honest (158-of-158 → 73-of-158) reporting nothing again.
+
+**Two corrections are themselves incomplete.** Finding 3's stale comment was rewritten in one block; four statements in the same function still assert the tier filter, including the block directly above the line that replaced it. And [[ISS-0240]]'s *"74 rows change suite position"* is a working-tree number — at `HEAD` the strip moves **0** rows, because ids were allocated in document order; only the 232 delta keys hold in both trees.
+
+**On the six entrants**: they derive to `Feature tests`, not to anything [[ADR-0039]] contemplates for them. All 74 Tier 3 checks do — a population the ADR's own table calls *67 automated* — and unlike the 68 Tier 2 checks they carry no grandfather and no promotion date. The ADR also says their `area:` values *"are repaired or emptied, not left"*, and this phase closed with them left ([[ISS-0238]]).
+
+Full detail, with the measurements, in [[CHG-20260820-The-Suite-Is-The-Verdict]].

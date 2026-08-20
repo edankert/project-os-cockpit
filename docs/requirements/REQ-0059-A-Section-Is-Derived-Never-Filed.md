@@ -43,3 +43,13 @@ Precedence matters and is stated deliberately: `command:` wins over `covers:`, s
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 `section_of`'s fail-safe direction holds under mutation — flipping the unclassifiable default to `automated` fails 26 tests, and flipping the file shape's Tier 3 to `feature` fails 15 including `test_tier_three_never_gates`. But **`tier:` is still read by three code paths** on note-shape items (`sort_items`, `_delta_key`, `migrate-acceptance-checks._gated`), so this requirement's acceptance is not fully met, and the deferred strip-`tier:` migration would move 74 rows and change 232 delta keys in `your-trainer`. And the derivation's most consequential effect — six unattributed Tier 3 checks entering `your-trainer`'s release gate at its committed HEAD — was neither measured nor reported. Findings 2, 3 and 4 in [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer.
+
+**A new defect against this requirement was introduced by the review fix.** `missing_issue_refs` was moved off `tier(2)` onto `section_of(i) == SECTION_REGRESSION and not any(r.startswith("ISS-") …)` (`acceptance.py:670-686`). For a note-shape item those clauses are contradictory — `section_of` returns `SECTION_REGRESSION` exactly when a ref matches `^\bISS-\d+`, which implies it starts with `ISS-` — so the method can never return one. Measured on `your-trainer`: **73 → 0**. Replacing the body with `return []` passes the entire suite, and its only consumer, `test_every_tier_two_item_names_the_issue_that_created_it`, can no longer fail. Moving a reader onto the derived section was the right direction; this instance made a live check into a tautology.
+
+**Two further findings.** *"One predicate"* is two readings — `acceptance.section_of` uses `re.match` on normalised refs, `cockpit._covers_an_issue` uses `re.search` on raw frontmatter under a docstring saying they must stay one question; swapping `match` for `search` passes the whole suite. And this note is `status: implemented` with a frontmatter `acceptance:` entry and a Statement both asserting `tier:` is not read, above a review paragraph in the same note saying three paths read it — [[PHASE-039]]'s criterion got a `~`, this one did not.
+
+Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] sections B and F.

@@ -872,6 +872,17 @@ PROMOTIONS = {
     # Warned rather than errored on day one for ADR-0011 clause 3: the debt is
     # real, bounded, and one line per note to clear.
     "CHECK-SUBJECT": "2026-11-18",
+    # ADR-0038's two halves. Measured at introduction against every repo
+    # rather than against the authoring one: `your-trainer` at HEAD carries 2
+    # and 4 respectively, and 71 `TEST-AUTOMATED-EVIDENCE` in its working
+    # tree. `project-os-cockpit` carries zero of either, which is what the
+    # first measurement saw and mistook for the fleet.
+    #
+    # Dated rather than grandfathered by ID: the debt is one script run per
+    # repo (`tools/scripts/migrate-automated-verdicts.py`), and ADR-0011
+    # clause 3 prefers clearing to listing.
+    "TEST-AUTOMATED-STATUS": "2026-11-18",
+    "TEST-AUTOMATED-EVIDENCE": "2026-11-18",
 }
 
 
@@ -2395,17 +2406,35 @@ def validate(root, report):
         # reproduced by independent review: give one migrated note a command:
         # and status: ready and the validator said OK while the badge went
         # 3 -> 4.
+        #: **Two codes, because the two halves carry different debt.**
+        #:
+        #: Independent review, 2026-08-20: this landed as one widened rule
+        #: erroring from day one, on a measurement taken in THIS repo only.
+        #: Against `your-trainer` at HEAD the widened half has **2 errors**
+        #: (`TST-0016`, `TST-0017`) and `TEST-AUTOMATED-EVIDENCE` has **4** --
+        #: so the corpus was not clean and ADR-0011 clause 3 forbids promoting
+        #: over unpaid debt. It was not red there only because that repo runs
+        #: an older copy of this file.
+        #:
+        #: `ACCEPTANCE-STATUS` keeps its day-one error over `level:
+        #: acceptance`, where the corpus genuinely holds zero and has since
+        #: ADR-0031. The command-bearing half is its own code with a dated
+        #: cutover.
         automated = bool(command)
-        if (level == "acceptance" or automated) and status in ACCEPTANCE_FORBIDDEN_STATUSES:
-            emit_for("ACCEPTANCE-STATUS", the_id)(
-                "ACCEPTANCE-STATUS",
-                "%s %s and is at status: '%s' -- it rests at `active` and holds no verdict "
-                "(ADR-0038/ADR-0031). Holding '%s' puts it in front of the review gate and/or the Run "
-                "obligation, which is what ADR-0027 forbids for this population; a machine-executed "
-                "test is never owed to a person and CI is its verdict (%s)"
-                % (the_id,
-                   "declares a command:" if automated else "is at level: acceptance",
-                   status, status, rel))
+        if status in ACCEPTANCE_FORBIDDEN_STATUSES:
+            if level == "acceptance":
+                emit_for("ACCEPTANCE-STATUS", the_id)(
+                    "ACCEPTANCE-STATUS",
+                    "%s is at level: acceptance and status: '%s' -- it rests at `active` and holds no "
+                    "verdict (ADR-0031). Holding '%s' puts it in front of the review gate and/or the "
+                    "Run obligation, which is what ADR-0027 forbids for this population (%s)"
+                    % (the_id, status, status, rel))
+            elif automated:
+                promotion_emit(report, "TEST-AUTOMATED-STATUS", grandfathered, the_id)(
+                    "TEST-AUTOMATED-STATUS",
+                    "%s declares a command: and is at status: '%s' -- a machine-executed test holds no "
+                    "verdict and is never owed to a person; CI is its verdict (ADR-0038) (%s)"
+                    % (the_id, status, rel))
 
         #: **A check names what it verifies** (REQ-0060). Without a `FEAT-*` or
         #: an `ISS-*` its section cannot be derived and it defaults to a
@@ -2433,7 +2462,7 @@ def validate(root, report):
             # nowhere else in the record.
             for field in ("last_run", "exit_code"):
                 if has_value((fm or {}).get(field)):
-                    emit_for("TEST-AUTOMATED-EVIDENCE", the_id)(
+                    promotion_emit(report, "TEST-AUTOMATED-EVIDENCE", grandfathered, the_id)(
                         "TEST-AUTOMATED-EVIDENCE",
                         "%s declares a command: and carries %s:; an automated test records no verdict and no "
                         "evidence of one -- CI is the verdict, and this field outlives the status it used to "

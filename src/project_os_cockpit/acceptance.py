@@ -43,8 +43,6 @@ SUITE_REL = "tests/ACCEPTANCE_TESTS.md"
 #: they must, since the repos migrate one at a time.
 CHECKS_REL = "tests/acceptance"
 
-#: Tiers that block a release. Tier 3 is a verification aid, not a requirement
-
 #: **`GATING_TIERS` and `PERMANENT_TIERS` are gone** (ADR-0039). Both were
 #: `(1, 2)` -- one constant written twice and read as two different questions,
 #: *does this gate a release* and *does this test still apply*. Neither is a
@@ -622,27 +620,29 @@ class Suite:
         attribute cannot be discharged by finishing any particular item, so it
         gates the last item there is: the release. Measured on `your-trainer`
         when this was written, **83 of 579 covered nothing** — 74 of them
-        Tier 3, which does not gate, and **9 Tier 1/2 which do.** Treating an
-        unattributable check as passing would have made those 9 silently
-        unable to block anything the day somebody unticked one.
+        Tier 3 and 9 Tier 1/2.
+
+        **All 83 gate now** ([[ADR-0039]]). The sentence above used to add
+        *"74 of them Tier 3, which does not gate"*; there is no Tier 3, and a
+        one-time check nobody completed and nobody automated is owed like any
+        other. That is the decision, not a side effect — see the comment on
+        the loop below.
 
         `subjects=None` means *every* item, which is the release gate and is
-        why :meth:`blocking` is now this function with the tiers filtered.
+        why :meth:`blocking` is this function over the manual sections.
         """
         out: list[Item] = []
         for item in self.items:
-            # **Lifetime, not level** (ADR-0034 decision 6). `tier` survives as
-            # the answer to *how long is this test expected to live*: Tier 1 and
-            # 2 are permanent, Tier 3 is *"a one-time check for a specific
-            # build, promoted or removed after a verified release"* — TESTING.md
-            # in its own words, and a check that has stopped applying cannot
-            # sensibly hold anything open.
+            # **Who completes it, not what kind it is** (ADR-0039). This
+            # read `tier not in PERMANENT_TIERS`, on the ground that Tier 3 was
+            # *"a one-time check for a specific build"* and a check that had
+            # stopped applying could not sensibly hold anything open.
             #
-            # So this is not the gate asking what KIND of test it is or who runs
-            # it — the two things REQ-0043 forbids. It is asking whether the
-            # test still applies at all, which is prior to gating rather than a
-            # kind of it. Measured: 74 of `your-trainer`'s 83 unattributed
-            # checks are Tier 3, i.e. already retired in practice.
+            # There is no Tier 3. A check a machine executes carries a
+            # `command:` and is not on anybody's list; one that does not is
+            # manual and owed. This is still not the gate asking what KIND of
+            # test it is or who runs it — the two things REQ-0043 forbids —
+            # it is asking whether a PERSON is being asked for anything.
             if section_of(item) not in MANUAL_SECTIONS or item.settled:
                 continue
             # **The blind spot is closed, and closing it was decided rather
@@ -668,20 +668,29 @@ class Suite:
         return out
 
     def missing_issue_refs(self) -> list[Item]:
-        """Regression checks naming no ``ISS-*``.
+        """Manual checks naming no verifiable subject -- no ``FEAT-*``, no ``ISS-*``.
 
-        TESTING.md: *"`covers:` names the `ISS-*` that created it."* A
-        regression check that cannot say what it regressed against cannot be
-        told from a behaviour claim.
+        TESTING.md: *"`covers:` names the `ISS-*` that created it."* A check
+        that cannot say what it verifies cannot be told from one that verifies
+        something else, and it is classified by default rather than by reading.
 
-        **Reads the section, not `tier:`** (ADR-0039). Keyed on `tier == 2` it
-        asked a question the corpus had stopped answering; the derived section
-        is the same question over a field that is still written.
+        **This asked a tautology for one commit and returned nothing** --
+        caught by independent review. Moving it off `tier:` (ADR-0039) had it
+        select `section_of(i) == SECTION_REGRESSION and not any(r.startswith
+        ("ISS-"))`, and the first clause is true *exactly when* some ref starts
+        with `ISS-`, so the two contradict: `your-trainer` went 73 -> 0 and
+        `return []` passed the entire suite. That is the same defect this whole
+        change is about -- a check reporting nothing because its predicate
+        cannot fire -- reintroduced while fixing a review.
+
+        The honest question after the tiers is *which manual check names
+        nothing this can verify*, which is `CHECK-SUBJECT`'s domain, so the
+        validator and this reader agree by construction.
         """
         return [
             i for i in self.items
-            if section_of(i) == SECTION_REGRESSION
-            and not any(r.startswith("ISS-") for r in i.refs)
+            if section_of(i) in MANUAL_SECTIONS
+            and not any(r.startswith(("ISS-", "FEAT-")) for r in i.refs)
         ]
 
 

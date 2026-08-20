@@ -43,3 +43,9 @@ This is not a new constraint. `ACCEPTANCE-STATUS` enforces it today as an error 
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 The runner guard holds under mutation: a status write sneaked back through `open().write()`, evading the `"write_text" not in SCRIPT` string assertion, still fails three tests on byte-identity. The `stamp_test_run` refusal is correct, including the `and not aborted` carve-out — the aborted path writes no `status` and no `last_run`, so it does not stamp a verdict. **No finding against this requirement.** It is marked `changes-requested` only because it shares a change with findings 1-5 below; see the review section of [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer.
+
+The runner and refusal guards hold again: disabling `TEST-AUTOMATED-EVIDENCE` in both validator copies fails `test_evidence_of_a_run_is_refused[last_run]` and `[exit_code]`. **The finding is against criterion 1's landing claim, not the rule.** Measured against `your-trainer` at its committed `HEAD`, this requirement's two codes are not at zero: `TEST-AUTOMATED-EVIDENCE` reports **4 errors** (`TST-0016`, `TST-0017` — `last_run:` and `exit_code:` each) and the widened `ACCEPTANCE-STATUS` reports **2**, where the pre-change validator (`5adcbc8`) reports **0** on the same corpus — so the widening introduced them. In `your-trainer`'s working tree `TEST-AUTOMATED-EVIDENCE` is **71**. *"Zero violations at landing"* is true of `project-os-cockpit` and `your-sudoku` only, because the migration was deliberately not run downstream. Not red today only because `your-trainer`'s validator copy predates both rules. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]] section A.

@@ -54,3 +54,7 @@ A check reached Tier 3 because a person moved it there, and 67 of the 68 that ar
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 Findings 2, 3, 4, 5 and 7 in [[CHG-20260820-The-Suite-Is-The-Verdict]]: the gate delta was measured over uncommitted state in `your-trainer` and moves `62 -> 68` against its committed record; `blocking()`'s comment still describes a tier filter that no longer exists; `tier:` is still read by three paths; the `Needs a run` -> `Needs you` rename is unguarded because the group is empty in this corpus; and `test_the_tiers_render_in_the_tests_view` carries a dead line and a degenerate assertion.
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The `Broken command` wiring is now guarded end to end — deleting the routing branch fails three tests — and the vocabulary and parity guards both fail their mutants. Two findings remain: `missing_issue_refs` became a predicate that can never return a note-shape row (`your-trainer` 73 → 0, `return []` passes the whole suite), and all 74 of `your-trainer`'s Tier 3 checks derive to `Feature tests` — a population [[ADR-0039]] describes as *67 automated* and whose Tier 2 counterpart it grandfathered by ID. See [[REQ-0059]] and [[CHG-20260820-The-Suite-Is-The-Verdict]] sections B and E.

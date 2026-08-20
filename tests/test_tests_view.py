@@ -625,6 +625,22 @@ def test_every_tier_two_item_names_the_issue_that_created_it() -> None:
     suite = acceptance.load(REPO_DOCS)
     assert suite.missing_issue_refs() == []
 
+    # **The predicate must be able to fire**, asserted on constructed input.
+    # Independent review, 2026-08-20: this assertion held over a `return []`,
+    # because moving the reader off `tier:` had made its two clauses
+    # contradict — `your-trainer` went 73 -> 0 and the whole suite stayed
+    # green. A clean corpus cannot tell a working check from a dead one, and
+    # this repo's corpus is clean.
+    named = acceptance.item_from_note(
+        {"id": "TST-9001", "title": "named", "level": "acceptance",
+         "mark": " ", "covers": ["[[ISS-0001]]"]}, rel="x.md")
+    unnamed = acceptance.item_from_note(
+        {"id": "TST-9002", "title": "unnamed", "level": "acceptance",
+         "mark": " ", "covers": ["[[PHASE-0013]]"]}, rel="y.md")
+    probe = acceptance.Suite(path=None, items=[named, unnamed],
+                             shape=acceptance.SHAPE_NOTES, platform="")
+    assert [i.note_id for i in probe.missing_issue_refs()] == ["TST-9002"]
+
 
 # ---- ISS-0173: the suite writes its ids bare -----------------------------
 

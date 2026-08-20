@@ -32,8 +32,10 @@ related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-Th
 
 Independent review simulated the announced follow-up — stripping `tier:` from the 671 notes carrying it — against `your-trainer`:
 
-- **74 rows change suite position.**
-- **232 of 579 delta keys change identity**, so those rows would read as *removed* and *newly added* across a release tag. A release delta reporting 232 spurious changes is one nobody reads.
+- **232 of 580 delta keys change identity**, so those rows would read as *removed* and *newly added* across a release tag. A release delta reporting 232 spurious changes is one nobody reads. This holds at `HEAD` and in the working tree.
+- **Suite position**: 74 rows move — *in the working tree*. At `HEAD` **zero** move, because ids there were allocated in document order, so `(tier, id)` and `(id)` agree. **This note was filed to correct a working-tree measurement and repeated one**; caught by a second independent review.
+
+The delta-key figure is the one that matters, and it is basis-independent.
 
 [[ADR-0039]] deliberately deferred the strip so a bad derivation stayed recoverable. That reasoning holds; what it did not say is that the strip has a prerequisite.
 

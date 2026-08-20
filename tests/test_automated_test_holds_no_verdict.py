@@ -49,6 +49,16 @@ def _repo(tmp_path: Path, *, status="active", level="", command="", extra="") ->
     return tmp_path
 
 
+def _all_codes_for(repo: Path, note_id: str) -> list[str]:
+    """Every code at any severity, so a WARNING is visible to these guards."""
+    out = subprocess.run(
+        [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
+        capture_output=True, text=True, timeout=120).stdout
+    return [ln.split("]")[0].split("[")[1]
+            for ln in out.splitlines()
+            if ln.lstrip().startswith(("ERROR", "WARN")) and "[" in ln and note_id in ln]
+
+
 def _codes(repo: Path) -> list[str]:
     out = subprocess.run(
         [sys.executable, str(VALIDATOR), "--repo-root", str(repo)],
@@ -62,9 +72,16 @@ def _codes(repo: Path) -> list[str]:
 
 @pytest.mark.parametrize("status", ["ready", "passing", "failing"])
 def test_an_automated_test_may_not_hold_a_verdict(tmp_path: Path, status: str) -> None:
-    """The exemption that is gone: `passing` with a `command:` used to be legal."""
+    """The exemption that is gone: `passing` with a `command:` used to be legal.
+
+    **Its own code, with a cutover** — independent review found this landed as
+    a day-one error on a measurement taken in this repo only, while
+    `your-trainer` at HEAD carries two violations. `ACCEPTANCE-STATUS` keeps
+    its day-one error over `level: acceptance`, where the corpus really is
+    clean; the command-bearing half is `TEST-AUTOMATED-STATUS` and warns.
+    """
     repo = _repo(tmp_path, status=status, command='command: "pytest tests/x.py"\n')
-    assert "ACCEPTANCE-STATUS" in _codes(repo)
+    assert "TEST-AUTOMATED-STATUS" in _all_codes_for(repo, "TST-0009")
 
 
 @pytest.mark.parametrize("status", ["ready", "passing", "failing"])
@@ -97,7 +114,7 @@ def test_evidence_of_a_run_is_refused(tmp_path: Path, field: str) -> None:
     repo = _repo(tmp_path, status="active",
                  command='command: "pytest tests/x.py"\n',
                  extra='%s: "1"\n' % field)
-    assert "TEST-AUTOMATED-EVIDENCE" in _codes(repo)
+    assert "TEST-AUTOMATED-EVIDENCE" in _all_codes_for(repo, "TST-0009")
 
 
 def test_a_manual_test_keeps_its_dates(tmp_path: Path) -> None:
@@ -118,7 +135,8 @@ def test_the_corpus_holds_no_violations(tmp_path: Path) -> None:
         [sys.executable, str(VALIDATOR), "--repo-root", str(REPO_ROOT)],
         capture_output=True, text=True, timeout=300).stdout
     offenders = [ln for ln in out.splitlines()
-                 if "ACCEPTANCE-STATUS" in ln or "TEST-AUTOMATED-EVIDENCE" in ln]
+                 if "ACCEPTANCE-STATUS" in ln or "TEST-AUTOMATED-EVIDENCE" in ln
+                 or "TEST-AUTOMATED-STATUS" in ln]
     assert not offenders, offenders
 
 
@@ -239,3 +257,7 @@ def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"
+    # The two ADR-0038 codes are dated for the same reason and on the same
+    # day: the fleet corpus is not clean, so neither may error on day one.
+    assert module.PROMOTIONS["TEST-AUTOMATED-STATUS"] == "2026-11-18"
+    assert module.PROMOTIONS["TEST-AUTOMATED-EVIDENCE"] == "2026-11-18"

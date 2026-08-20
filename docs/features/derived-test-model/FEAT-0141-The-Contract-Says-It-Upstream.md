@@ -49,3 +49,7 @@ tags: [feature, documentation]
 Reviewed by `model:claude-opus-5` from the notes and the diff alone, in a session that never saw the authoring reasoning.
 
 Verified independently: all 12 project-os repos carry byte-identical `TESTING.md` (sha1 `0a8b0cd4`) and `STATUSES.md` (sha1 `a0c9d5da`), and in every repo both files are committed rather than sitting dirty. **No finding against this feature.** Marked `changes-requested` with its siblings; see [[CHG-20260820-The-Suite-Is-The-Verdict]].
+
+## Second independent review 2026-08-20 — `changes-requested` (verdict stands)
+
+Second pass, `model:claude-opus-5`, fresh context, different session from both the author and the first reviewer. The fleet sync itself is not refuted — the instruction files landed. What the second pass measured is the consequence the sync note does not carry: the two new validator codes are at zero only in the repos whose validator is current, and `your-trainer`'s copy (2026-08-18) holds neither rule, so its **4 + 2 errors** arrive on the next sync rather than never. See [[CHG-20260820-The-Suite-Is-The-Verdict]] section A.
