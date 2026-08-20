@@ -12,7 +12,7 @@ component: cockpit
 phase: "[[PHASE-999-Future]]"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[PHASE-039-A-Test-Says-Who-Executes-It]]", "[[CHG-20260820-The-Suite-Is-The-Verdict]]"]
 ---
 
@@ -40,7 +40,9 @@ Measured by rewriting all 581 notes in a throwaway copy of `your-trainer@HEAD` w
 - **232 delta keys change identity. 349 do not.** The 232 are exactly the Tier 2 and Tier 3 checks.
 - Those 232 rows would read as *removed* and *newly added* across a release tag — the "a migration showing up as regressions" failure `test_the_delta_reads_both_shapes_at_their_own_refs` exists to prevent.
 
-**232 is basis-independent**, which is why every review pass that measured it got the same number: it is a count of Tier 2 + Tier 3, and that partition does not move between the working tree and `HEAD`.
+**232 is basis-independent**, which is why every review pass that measured it got the same number: it is a count of Tier 2 + Tier 3, and that partition does not move between the working tree and `HEAD`. Its *composition* does — 158 + 74 at `HEAD` against 164 + 68 in the working tree — and the total does not. Independently confirmed to be exact rather than approximate: **none of the 232 stripped keys collides with a key the baseline already holds**, so every one of them really does read as removed-and-new rather than silently matching something else.
+
+**Suite position is the other reader, and it does not move — at `HEAD`.** `sort_items` keys on `(tier, note_id)`, and stripping the field reorders **0** rows there, because ids were allocated in document order so the two keys agree. In `your-trainer`'s working tree **74** rows move. Both were measured; the `0` is the one that describes a fresh clone.
 
 ### The denominator, settled
 
@@ -85,3 +87,27 @@ Measured by rewriting every note in a throwaway copy of `HEAD` with `^tier:.*$` 
 So *"removing `tier:` changes the value of every one of the 581 keys"* (body) and *"changes every delta key"* (title) are false in the direction that overstates, and *"a delta computed across that commit matches nothing"* is false for the 349 rows that still match. The `2` collisions the withdrawal rests on are real, but they answer the **other** question — what happens when `tier` is dropped from `_delta_key` itself, which is step 2 of *Done when* rather than the strip this paragraph describes.
 
 **The fix is one edit**: restore *"**232** of 581 delta keys change identity, and 349 do not, because a missing `tier:` reads as Tier 1"*, in the title and the body, and drop the withdrawal paragraph. Everything else in this note — the reader table, the denominators, the `0` rows at `HEAD`, the *Done when* list — holds under re-measurement.
+
+## Sixth independent review 2026-08-20 — `approved`
+
+Sixth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the five prior reviewers'. Same model family as the author and every prior pass, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]) — what is independent is the **context and the session**, not the weights, and this session has no memory of authoring any of it. Baseline on a clean tree: **1878 passed, 3 skipped**; `validate-docs.sh` OK.
+
+**The fifth pass's one blocking finding is fixed, and the restored measurement is exact in every particular this pass could test.** Re-measured from scratch — `git archive HEAD` of `your-trainer` into a throwaway tree, `^tier:.*$` deleted from every note, `_delta_key` diffed per `note_id`:
+
+| what was checked | result |
+| --- | --- |
+| notes carrying `tier:` at `HEAD` | **581** — exactly the 579 in `docs/tests/acceptance/` plus the 2 in `docs/tests/` |
+| keys changed by the strip, indexed load (581) | **232** changed, **349** unchanged |
+| keys changed by the strip, directory-only load (579) | **232** changed, **347** unchanged |
+| composition of the 232 at `HEAD` | Tier 2 **158** + Tier 3 **74** — exactly the non-Tier-1 checks |
+| composition in the working tree | Tier 2 **164** + Tier 3 **68** = **232** again, with 349 at Tier 1 — the basis-independence claim holds |
+| cause | `item_from_note` normalises any tier outside `(1, 2, 3)` — including absent and unreadable — to **1** (`acceptance.py:918-922`) |
+
+**One claim tested harder than the note makes it.** *"Those 232 rows would read as removed and newly added"* would be an overstatement if any stripped row landed on a key the baseline already held. **None does**: of the 232 changed keys, **0** collide with a baseline key, so the sentence is exact rather than approximate. (The one duplicate key in the suite, `(1, "import not gated by tier")`, is a Tier 1 pair and is present identically before and after the strip.)
+
+The denominator section, the `_notes_at` asymmetry (`docs/tests/acceptance/` only, `acceptance.py:1392`), the withdrawn-withdrawal record, and the *Done when* list all hold. `test_the_delta_reads_both_shapes_at_their_own_refs` exists at `tests/test_check_migration.py:274`.
+
+### Two non-blocking items, recorded rather than blocked on
+
+1. **The `Suite position` paragraph was deleted in the same edit that restored `232`**, and the fifth pass had listed *"the `0` rows at `HEAD`"* among the things that hold. Measured here, it was true and still is: stripping `tier:` moves **0** rows on both load paths (579 and 581), because ids were allocated in document order. The consequence is that the body now measures only `_delta_key`, while the *What still reads it* table names `sort_items` as the primary sort key with no measurement beside it — so the body reads as though the strip reorders the suite, which at `HEAD` it does not. The fact survives at line 67, but that line says *"the body's `232` and its `0`-at-`HEAD` both reproduce"* and the body no longer carries the second, so the self-reference dangles.
+2. Nothing else in this note is inaccurate. Restoring one sentence — *"stripping the field moves **0** rows of suite position at `HEAD`, against 74 in the working tree"* — closes both halves of item 1 and needs no further review round.

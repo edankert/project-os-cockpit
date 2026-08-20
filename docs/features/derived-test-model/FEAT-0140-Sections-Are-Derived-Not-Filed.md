@@ -18,7 +18,7 @@ design: "[[DES-0012-Tests-In-Two-Flows]]"
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 tags: [feature, testing, cockpit]
 ---
 
@@ -84,3 +84,13 @@ Fifth pass, `model:claude-opus-5`, fresh context, a different session from the a
 **[[ISS-0240]]'s title and body are now wrong in a new way.** The numbers came out of the title, and an absolute quantifier went in: *"removing the field changes every delta key"*, and in the body *"the value of every one of the 581 keys"*. Measured three ways here — 232 keys change and 349 do not, because `item_from_note` defaults an absent `tier:` to **1** (`acceptance.py:917-922`), so every Tier 1 key survives the strip untouched. The withdrawn `232` is the count of Tier 2 + Tier 3 checks and reproduces at `HEAD` on both load paths and in the working tree, which is why it is basis-independent and why three prior passes each measured it. The `2` collisions the withdrawal rests on measure a different operation.
 
 Everything else in this feature's area holds: `missing_issue_refs` cannot be emptied, `section_of`'s derivation is unchanged, and [[REQ-0059]] is honestly narrowed. Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fifth independent review*.
+
+## Sixth independent review 2026-08-20 — `approved`
+
+Sixth pass, `model:claude-opus-5`, fresh context, a different session from the author and from all five prior reviewers. Every mutant applied and executed here; every fleet count taken from `git archive HEAD` copies, never a working tree. Baseline **1878 passed, 3 skipped**, validator OK.
+
+**The fifth pass's finding against [[ISS-0240]] is fixed and the restored number is exact.** Re-measured independently: stripping `tier:` from all 581 notes changes **232** keys and leaves **349**, the 232 being exactly Tier 2 + Tier 3, because `item_from_note` normalises any tier outside `(1, 2, 3)` to 1 (`acceptance.py:918-922`). It reproduces on the directory-only load (232 of 579) and in the working tree (164 + 68 = 232), which is the basis-independence the note claims. No stripped row collides with a baseline key, so *"removed and newly added"* is exact for all 232.
+
+**This feature's own surface is undisturbed.** `missing_issue_refs` re-mutated to `return []` fails `test_every_tier_two_item_names_the_issue_that_created_it`; deleting the `Broken command` routing from `cockpit.py` fails `test_a_broken_command_routes_to_its_own_section` and `test_the_broken_section_asks_for_a_person`; renaming `Needs you` to `Needs a run` fails `test_every_section_label_carries_no_verb`. `section_of`'s derivation is unchanged by this round, which touched only documentation and one test docstring.
+
+One non-blocking item, recorded in [[ISS-0240]]: the edit that restored `232` also deleted the `Suite position` paragraph the fifth pass had listed as holding, leaving a dangling self-reference at that note's line 67. Verified here — the deleted statement was true (0 rows move at `HEAD` on both load paths). Detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Sixth independent review*.

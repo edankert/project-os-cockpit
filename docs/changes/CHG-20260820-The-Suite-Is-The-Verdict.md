@@ -11,7 +11,7 @@ phase: "[[PHASE-039-A-Test-Says-Who-Executes-It]]"
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[FEAT-0139-The-Suite-Is-The-Verdict]]", "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]", "[[FEAT-0141-The-Contract-Says-It-Upstream]]", "[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]", "[[ISS-0239-The-Runner-Stamps-Failing-On-A-Missing-Device]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 tags: [change, testing, schema]
 ---
 
@@ -367,7 +367,7 @@ It does not pass because the recut is **incomplete in the direction that is hard
 
 # Corrected after the fourth independent review, 2026-08-20
 
-**Four passes, all `changes-requested`, twenty-three findings.** This is the current state; everything above is evidence.
+**Four passes, all `changes-requested`, twenty-three findings.** *(Superseded — the current state is the sixth-pass section at the end of this note.)*
 
 ## The blocking one, and it was mine again
 
@@ -433,7 +433,7 @@ A cold reader can reach the true state, but only through this note: [[PHASE-039]
 
 # Corrected after the fifth independent review, 2026-08-20
 
-**Five passes. The fifth found one thing, and it was the fix I made to the fourth.**
+**Five passes. The fifth found one thing, and it was the fix I made to the fourth.** *(Superseded — see the sixth-pass section below.)*
 
 **`232` is restored.** I withdrew it as unreproducible; it reproduces on the first reading. `item_from_note` defaults an absent or unreadable `tier:` to **1** (`acceptance.py:921`), so stripping the field from the notes leaves every Tier 1 key untouched and moves the rest: **232 change, 349 do not**, and the 232 are exactly the Tier 2 and Tier 3 checks. That is why it is basis-independent, and why three separate passes each measured the same number.
 
@@ -446,4 +446,71 @@ Everything else in the fourth-pass round was verified and holds: all 16 cells of
 ## Still open, deliberately
 
 [[ISS-0238]], [[ISS-0240]] — now carrying the right number — and [[ISS-0209]], which remains the boundary on all of it: **the acceptance gate executes in no repo that holds a check.**
+
+## Sixth independent review 2026-08-20 — `approved`
+
+Sixth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the five prior reviewers'. Same model family as the author and every prior pass, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]) — what is independent is the **context and the session**, not the weights, and this session has no memory of authoring any of it. Every mutant below was applied and executed here; every fleet count was taken from `git archive HEAD` copies, never a working tree. Baseline on a clean tree: **1878 passed, 3 skipped**; `validate-docs.sh` OK; the working tree was left byte-identical.
+
+**The section above this one — *Corrected after the fifth independent review* — is the current state, and it is approved.**
+
+### The fifth pass's finding is fixed, and this pass could not shake the restored number
+
+Re-measured from scratch, without reference to how the author or the fifth pass measured it: `git archive HEAD` of `your-trainer` into two throwaway trees, `^tier:.*$` deleted from every `.md` file in one of them, `_delta_key` diffed per `note_id`.
+
+| what was checked | result |
+| --- | --- |
+| files carrying `tier:` at `HEAD` | **581**, and they are exactly the 579 in `docs/tests/acceptance/` plus the 2 in `docs/tests/` — no other note type carries the field |
+| indexed load (581 items) | **232** keys change, **349** do not |
+| directory-only load (579 items) | **232** keys change, **347** do not |
+| composition at `HEAD` | Tier 2 **158** + Tier 3 **74** = 232; the 349 unchanged are all Tier 1 |
+| composition in the working tree | Tier 2 **164** + Tier 3 **68** = **232**, Tier 1 **349** — different composition, same total, which is what basis-independent means here |
+| cause | `item_from_note` normalises any tier outside `(1, 2, 3)` — absent, unreadable, out of range — to **1** (`acceptance.py:918-922`) |
+| suite position | **0** rows move on either load path, confirming the figure the note now omits |
+
+**One claim was tested harder than the note states it.** *"Those 232 rows would read as removed and newly added"* would be an overstatement if a stripped row landed on a key the baseline already held, in which case it would match rather than appear new. Checked: **0 of the 232** collide with a baseline key. The suite's one duplicate key, `(1, "import not gated by tier")`, is a Tier 1 pair present identically before and after the strip. So the sentence is exact.
+
+The rest of [[ISS-0240]] holds: 580 files, 579 once `README.md` is excluded, 581 through `acceptance.load(docs, index)`; the baseline-side asymmetry is real (`_notes_at` `ls-tree`s `docs/tests/acceptance/` only, `acceptance.py:1392`); `test_the_delta_reads_both_shapes_at_their_own_refs` exists at `tests/test_check_migration.py:274`; the withdrawal is recorded as withdrawn in both this note and that one. The `all 24` docstring now reads `= 16 cells`, and `_SPLIT_MATRIX` does hold 16.
+
+### Everything the fifth pass verified, re-proved here independently
+
+| guard | mutant applied | result |
+| --- | --- | --- |
+| the split clause | `newly_forbidden = automated and status in TEST_RUNNER_STATUSES` | fails **exactly one** cell, `[-True-ready-TEST-AUTOMATED-STATUS-WARN]` — the case that had fallen silent |
+| `missing_issue_refs` | body replaced with `return []` | fails `test_every_tier_two_item_names_the_issue_that_created_it` |
+| `Broken command` routing | bucket assignment and label both deleted | fails `test_a_broken_command_routes_to_its_own_section` and `test_the_broken_section_asks_for_a_person` |
+| vocabulary | `Needs you` → `Needs a run` | fails `test_every_section_label_carries_no_verb` |
+| validator parity | one-sided append to `tools/scripts/validate-docs.py` | fails `test_the_two_validator_files_are_byte_identical` |
+
+No mutant survived. Every count in the record that could be re-measured reproduces exactly: `CHECK-SUBJECT` **117** at `your-trainer@HEAD` = **85** naming nothing (83 carrying `covers: []`, 2 carrying no `covers:`) + **32** naming only provenance (17 `PHASE-*`, 15 `TASK-*`); `TEST-AUTOMATED-STATUS` **12** (`your-trainer` 2, `project-os-dev` 4, `your-health` 6); `TEST-AUTOMATED-EVIDENCE` **24** (4 / 8 / 12); `ACCEPTANCE-STATUS` **0** in every repo; `project-os-cockpit` zero of all three, as the `PROMOTIONS` comment says.
+
+### Two non-blocking items — the record describing itself, not the system
+
+Both were introduced by this round, and neither makes a claim about the code false.
+
+1. **[[ISS-0240]]'s `Suite position` paragraph was deleted alongside the withdrawal paragraph.** The fifth pass asked for the withdrawal to go and listed *"the `0` rows at `HEAD`"* among the things that hold; both went. Measured here, the deleted statement was true and remains so: 0 rows move on the 579-item and the 581-item load alike. Two consequences — the body now measures only `_delta_key`, while the *What still reads it* table names `sort_items` as the primary sort key with nothing beside it, so the body reads as though the strip reorders the suite; and line 67 of that note says *"the body's `232` and its `0`-at-`HEAD` both reproduce"* while the body carries only the first. Restoring one sentence closes both.
+2. **The current-state banner points one round back.** *"This is the current state; everything above is evidence"* sits on the **fourth** correction section (line 370); the fifth correction section below it opens on *"Five passes"* and carries no equivalent. The fifth pass tested this convention, endorsed it, and suggested the improvement that would have kept it working; appending a section without moving the banner is what broke it. The exposure is small, because the fourth section's one superseded paragraph was patched in place with a forward pointer — but a reader following the note's own navigation instruction stops before the current state. Line 274 carries the same shape and has been stale since the fourth round.
+
+### Verdict
+
+`approved`. The fifth pass's single blocking finding is fixed and the restored measurement survives every attempt made here to refute it, including one the note did not claim. The code is unchanged this round; every guard bites under mutation; every re-measurable number reproduces exactly. What remains is two sentences of self-description, recorded above so they are not lost, and neither warrants a seventh round to settle.
+
+### What was independent, and what was not
+
+Independent: the context and the session. This pass started from the notes and `git log`/`git show`, never the authoring transcript and never a prior reviewer's; the author was not asked what anything meant; every number above was produced by this session's own commands against throwaway `git archive` trees. Not independent: the model. `model:claude-opus-5`, the same family as the author and all five prior passes, recorded in `reviewed_by` so a reader can weigh it rather than infer it ([[project-os-dev#ADR-0013]] — shared weights correlate capability, shared context correlates commitment, and it is the second this gate exists to break).
+
+---
+
+# Sixth independent review, 2026-08-20 — **approved**
+
+**This section is the current state.** Everything above it is the record of six passes; read it for how the work got here, not for what is true now.
+
+**Verdict `approved` on all nine notes** — `PHASE-039`, `CHG-20260820`, `FEAT-0139/0140/0141`, `REQ-0058/0059/0060` and `ISS-0240`. The fifth pass's single finding (the wrongly-withdrawn `232`) is fixed and independently re-measured: 232 changed / 349 unchanged on the indexed load, 232 / 347 on the directory-only load, composition 158 + 74 at `HEAD` against 164 + 68 in the working tree — same total, different parts, which is what makes it basis-independent. The review also refuted a claim the note had not made: **none of the 232 collides with a baseline key**, so *removed-and-new* is exact rather than approximate.
+
+Every guard bites under mutation — the 16-cell split matrix, `missing_issue_refs`, the `Broken command` routing, the vocabulary labels, and validator-copy parity were each broken deliberately and each failed. Fleet counts reproduce exactly: `TEST-AUTOMATED-STATUS` 12, `TEST-AUTOMATED-EVIDENCE` 24, `CHECK-SUBJECT` 117 = 85 + 32, `ACCEPTANCE-STATUS` 0 everywhere.
+
+**Six passes, twenty-four findings, and three of them were defects introduced while fixing the previous pass** — each the same shape: a check that could not fire. That is the honest summary of what this took.
+
+## Still open, deliberately
+
+[[ISS-0238]] — 67 checks naming a deleted document's heading. [[ISS-0240]] — `sort_items` and `_delta_key` read `tier:`, so the strip has a prerequisite. [[ISS-0209]] — **the acceptance gate executes in no repo that holds a check**, which bounds what any of this proves.
 

@@ -16,7 +16,7 @@ issues: ["[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[DES-0012-Tests-In-Two-Flows]]"]
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
-review_verdict: changes-requested
+review_verdict: approved
 tags: [testing, schema]
 ---
 
@@ -137,3 +137,18 @@ Fifth pass, `model:claude-opus-5`, fresh context: a session that had seen neithe
 **Navigability**, asked directly: a reader starting here reaches the true state only by following the pointer to [[CHG-20260820-The-Suite-Is-The-Verdict]], whose *"Corrected after the fourth independent review"* section says plainly that it is the current state. That works; this note and the three `FEAT-*` notes would carry it better if each review section opened with one line saying whether its findings were later fixed.
 
 Full detail with measurements in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Fifth independent review*.
+
+## Sixth independent review 2026-08-20 — `approved`
+
+Sixth pass, `model:claude-opus-5`, fresh context: a session that had seen neither the authoring reasoning nor any of the five prior reviewers'. Same model family as the author and every prior pass, recorded in `reviewed_by` as provenance ([[project-os-dev#ADR-0013]]); this session has no memory of authoring any of it. Every mutant applied and executed here; every fleet count taken from `git archive HEAD`, never a working tree. Baseline **1878 passed, 3 skipped**, `validate-docs.sh` OK, working tree byte-identical afterwards.
+
+**The one blocking finding of the fifth pass is fixed, and it is fixed correctly.** `232` is restored to [[ISS-0240]]'s title and body with the Tier-1-default cause stated, the erroneous withdrawal is itself recorded as withdrawn in both that note and the change note, the denominator is explained rather than picked, and the *"all 24"* docstring now reads 16. Re-measured here from a throwaway copy of `your-trainer@HEAD`: **232 changed, 349 unchanged**, the 232 being exactly Tier 2 + Tier 3, and **0** of the 232 collide with a baseline key. It reproduces on the directory-only load and in the working tree.
+
+**Nothing the fifth pass verified was disturbed, and this pass re-proved each of it independently.** The `_SPLIT_MATRIX` holds 16 cells and the test suite executes them; restoring `automated and status in TEST_RUNNER_STATUSES` fails exactly the one cell it drops, `[-True-ready-TEST-AUTOMATED-STATUS-WARN]`. `missing_issue_refs` → `return []` fails its guard; deleting the `Broken command` routing fails two tests; `Needs you` → `Needs a run` fails the vocabulary guard; a one-sided edit to either validator copy fails `test_the_two_validator_files_are_byte_identical`. Every count re-measured against `git archive HEAD` reproduces exactly: `CHECK-SUBJECT` **117** in `your-trainer` = **85** naming nothing (83 `covers: []` + 2 with no `covers:`) + **32** naming only provenance (17 `PHASE-*`, 15 `TASK-*`); `TEST-AUTOMATED-STATUS` **12** (2/4/6), `TEST-AUTOMATED-EVIDENCE` **24** (4/8/12), `ACCEPTANCE-STATUS` **0** in every repo.
+
+**Two non-blocking items, recorded rather than blocked on**, both in the record's description of itself rather than in any claim about the system:
+
+1. The edit that restored `232` also deleted [[ISS-0240]]'s `Suite position` paragraph, which the fifth pass had listed among the things that hold. It was true — 0 rows move at `HEAD` on both load paths — and its removal leaves that note's line 67 pointing at a body figure that is no longer there, and the `sort_items` half of the note without a measurement.
+2. The improvement the fifth pass suggested was not taken, and appending a sixth section made it load-bearing: *"This is the current state; everything above is evidence"* still sits on the **fourth** correction section of [[CHG-20260820-The-Suite-Is-The-Verdict]] (line 370), while the fifth correction below it carries no equivalent banner. A cold reader following that instruction stops one round early. The harm is small — the fourth section's one superseded paragraph was patched with a forward pointer — but the convention the fifth pass tested and endorsed now points at the wrong section.
+
+Neither is a defect in the code, in a test, or in any measurement; each is one sentence. Full detail in [[CHG-20260820-The-Suite-Is-The-Verdict]], section *Sixth independent review*.
