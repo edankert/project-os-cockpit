@@ -24,6 +24,8 @@ So there is no new mechanism to build. `covers:` names the issue, the in-flight 
 
 Depends on [[TASK-0525-Relink-Tier-Two-To-Its-Issue]]: a check cannot rest with its issue if it does not name one.
 
+**Measured 2026-08-20, and the dependency is a ceiling rather than a gate.** 85 of 158 Tier 2 checks name an `ISS-*`; the other 73 never did — the pre-migration document's Tier 2 headings split 31-with / 21-without, holding exactly 85 and 73 rows. So this can be built now and will reach **85 of 158**, and the remaining 73 are waiting on original research rather than on a relink. The surface must say which, or it will look like it quieted everything it could.
+
 ## Done when
 
 - [ ] A Tier 2 check whose `covers:` names a `fixed` issue is quiet.
