@@ -386,8 +386,8 @@ def _repo_has_an_acceptance_suite(note_index):
 
     The uncovered-feature rule is meaningless where there is nothing to cover
     WITH. Measured across the twelve `SNAPSHOT.yaml`-bearing repos 2026-08-20:
-    236 terminal features have no acceptance check, and **only three repos hold
-    a suite** -- so 89 of those findings would be scolding repos for not using
+    **220** terminal features have no acceptance check under this rule, and
+    **only three repos hold a suite** -- so 89 of those findings would be scolding repos for not using
     a mechanism they have never adopted.
     """
     for _id, entry in (note_index or {}).items():
@@ -3022,9 +3022,12 @@ def validate(root, report):
     #: [[ADR-0030]]).
     #:
     #: **A warning, and deliberately undated.** [[ADR-0011]] clause 3 forbids
-    #: promoting over debt: 236 terminal features fleet-wide have no acceptance
-    #: check, 147 counting only the three repos that hold a suite, 93 of them
-    #: here. A date would either fail every build on arrival or be moved when
+    #: promoting over debt: **220** terminal features fleet-wide have no
+    #: acceptance check under the rule as it SHIPS (`done` alone), **134**
+    #: counting only the three repos that hold a suite, **88** of them here.
+    #: (236 / 147 / 93 is the same count with `superseded` and `cancelled`
+    #: treated as terminal too -- corrected after independent review, which
+    #: found the note quoting the wide figures beside the narrow one.) A date would either fail every build on arrival or be moved when
     #: it did, and a promotion nobody intends to honour teaches people to
     #: ignore the table. It earns a date when the number is small enough that
     #: one is a promise.

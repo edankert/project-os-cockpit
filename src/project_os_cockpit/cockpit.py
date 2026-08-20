@@ -4083,6 +4083,19 @@ def _test_as_surface(index: Index, record: NoteRecord, days: int) -> dict[str, A
     }
 
 
+def _all_refs(record: NoteRecord) -> list[str]:
+    """Every id a note's `covers:` names, of any type.
+
+    What `ids_are_unbuilt` must be given: *any* built subject makes the row
+    walkable, so a filter that hides one lies to it by omission.
+    """
+    return [
+        m.group(0)
+        for ref in (record.frontmatter.get("covers") or [])
+        for m in re.finditer(r"[A-Z]+-\d+", str(ref))
+    ]
+
+
 def _feat_refs(record: NoteRecord) -> list[str]:
     """The `FEAT-*` ids a note's `covers:` names ([[ISS-0247]]).
 
@@ -4303,8 +4316,25 @@ def _tests_groups(
         #: A check whose subject is an issue is a regression guard; whether
         #: that issue is deferred is [[TASK-0526]]'s question on the release
         #: gate, not this bucket's.
+        #: **All refs to `ids_are_unbuilt`; only the LABEL is feature-shaped**
+        #: (independent review, fourth pass — this bucket's third correction).
+        #:
+        #: Passing `_feat_refs` alone defeated the clause `ids_are_unbuilt`'s
+        #: own docstring states: *"`any` built subject makes the row
+        #: walkable."* A check covering `FEAT@backlog` **and**
+        #: `REQ@implemented` was quieted, because the built requirement was
+        #: invisible to a filter that only looked at features. Neighbouring
+        #: cases were safe by luck — the owed branch fires first — so the leak
+        #: was one shape: a **built non-feature subject paired with an unbuilt
+        #: feature**.
+        #:
+        #: `_feat_refs` still gates entry, because the group's label says *no
+        #: feature in flight* and a row with no feature at all does not belong
+        #: under it; `_covers_an_issue` still excludes regression guards. What
+        #: decides *unbuilt* is the whole subject list, which is the question
+        #: the release gate asks.
         elif (_feat_refs(record) and not _covers_an_issue(record)
-              and _obligations.ids_are_unbuilt(_feat_refs(record), index)):
+              and _obligations.ids_are_unbuilt(_all_refs(record), index)):
             buckets["quiet"].append(record)
         elif _covers_an_issue(record):
             buckets["regression"].append(record)

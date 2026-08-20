@@ -2768,3 +2768,44 @@ def test_a_regression_check_is_never_quieted_as_a_feature(tmp_path: Path) -> Non
         "guards is deferred is the release gate's question (TASK-0526), not "
         "this bucket's, and `no feature in flight` is untrue of it"
     )
+
+
+def test_a_built_non_feature_subject_keeps_a_check_out_of_quiet(tmp_path: Path) -> None:
+    """**The bucket's third correction** (independent review, fourth pass).
+
+    Narrowing the *unbuilt* test to `_feat_refs` defeated the clause
+    `ids_are_unbuilt`'s own docstring states — *"`any` built subject makes the
+    row walkable."* A check covering `FEAT@backlog` **and** `REQ@implemented`
+    was quieted, because the built requirement was invisible to a filter that
+    only looked at features.
+
+    The three cases probed for the previous fix all passed against this leak:
+    it needs a **built non-feature subject paired with an unbuilt feature**,
+    which is a cross-product, not a single axis. Latent — no live instance —
+    and that is exactly why it needed constructing.
+    """
+    from project_os_cockpit.index import Index
+
+    docs = tmp_path / "docs"
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "requirements").mkdir(parents=True)
+    (docs / "tests").mkdir(parents=True)
+    (docs / "features" / "f" / "FEAT-0001-U.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "U"\n'
+        'status: backlog\n---\n\n# U\n', encoding="utf-8")
+    (docs / "requirements" / "REQ-0001-R.md").write_text(
+        '---\ntype: "[[requirement]]"\nid: REQ-0001\ntitle: "R"\n'
+        'status: implemented\n---\n\n# R\n', encoding="utf-8")
+    (docs / "tests" / "TST-0001-C.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0001\ntitle: "C"\nstatus: ready\n'
+        'covers: ["[[FEAT-0001]]", "[[REQ-0001]]"]\n---\n\n# C\n',
+        encoding="utf-8")
+
+    groups = {g["key"]: g for g in cockpit._tests_groups(Index.build(docs))}
+    where = next((k for k, g in groups.items()
+                  if any(i.get("id") == "TST-0001" for i in g.get("items") or [])), "?")
+    assert where != "quiet", (
+        "a check with a BUILT subject was quieted — `ids_are_unbuilt` is "
+        "documented as walkable if ANY subject is built, and a filter that "
+        "hides one lies to it by omission"
+    )

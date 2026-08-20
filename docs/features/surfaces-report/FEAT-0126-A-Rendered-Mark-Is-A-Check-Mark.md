@@ -7,6 +7,9 @@ status: doing
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0045-Storage-Is-Words-Display-Is-Glyphs]]"]
 tasks: ["[[TASK-0505-Route-Three-Sites-Through-Mark-Glyph]]", "[[TASK-0521-One-Verb-Again]]"]
@@ -34,3 +37,13 @@ The fix is small. What matters is the **guard**: this is the second vocabulary c
 - *…the canceled-row styling…* — `.checks-row.is-canceled` carries the strikethrough and the dimming.
 - *…and the gate tooltip* — **superseded by [[ISS-0244]].** `gateMark` is deleted, so a gate row has no mark and therefore no tooltip to render a glyph in. The clause has no subject, not an unmet one. Recorded here rather than ticked, because ticking it would claim something that no longer exists.
 - *A guard fails on a raw mark word reaching any surface* — `test_acceptance_marks.py` asserts every `[${…}]` is guarded by a `MARK_GLYPH[…] ??` fallback.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+**The *superseded, not unmet* call is correct, and I checked it independently rather than taking it.** The clause asks for a glyph in the gate tooltip. `gateMark` is deleted, and the only mark on a gate row now is the **word** `marked ${item.mark}` in the meta line — `MARK_TITLE`, the tooltip sentence, is explicitly not used there (`renderer.ts:128`: *"MARK_TITLE is a sentence for a tooltip; the meta line wants the value"*). So there is no gate-row tooltip left for a glyph to render in. The clause has no subject.
+
+That is the right way to handle it: recording it rather than ticking it, since ticking would assert something that no longer exists, and deleting it would erase why. The other three clauses check out — `MARK_GLYPH` at five sites, `.checks-row.is-canceled` carrying the strikethrough, and the `[${…}]`-must-have-a-`MARK_GLYPH[…] ??`-fallback guard.
+
+The note is `doing` with its boxes unticked, which is consistent: nothing was closed on the strength of this re-read.

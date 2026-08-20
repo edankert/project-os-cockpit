@@ -114,3 +114,25 @@ label: Quiet · no feature in flight
 Two things are wrong with that. The row never reaches `Regression tests`, so the section loses a member on a subject-status condition nothing documents; and it lands under a heading that says *no feature in flight* when the subject is an issue and no feature is involved. `ADR-0028` decision 3 is about subjects that do not exist yet — an issue somebody deferred is a decision, not an unbuilt thing, which is the same category slip the note correctly diagnoses for terminal subjects, at the other end.
 
 Nothing guards it: no test constructs a check covering a non-`FEAT` subject at an unbuilt status. The fix is either to restrict the bucket to `FEAT-*` refs (matching its own label) or to widen the label and say so.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **changes-requested** (supersedes the third-pass verdict above). Re-measured or re-executed, not read.
+
+**The narrowing fixed the leak I reported and introduced a different one. This is the third fix to this bucket and the third to trade one defect for another.**
+
+The three cases probed all behave: `ISS`/`deferred` → `regression`, `FEAT`/`backlog` → `quiet`, `FEAT`/`done` → `feature`. I probed the wider cross-product and found this:
+
+```
+covers FEAT@backlog + REQ@implemented  ->  quiet
+```
+
+A check verifying both an unbuilt feature **and an implemented requirement** is filed under *Quiet · no feature in flight* and removed from the outstanding count. The requirement exists; the check is walkable for that half.
+
+**It is a regression, proved by mutation.** Restoring the pre-fix all-refs reading and re-probing the same case gives `feature` — correctly not quiet. The narrowing to `_feat_refs` defeats the clause `ids_are_unbuilt`'s own docstring states: *"`any` built subject makes the row walkable, which mirrors `ids_in_flight`'s any-in-flight clause."* Passing only the FEAT refs means no non-feature subject, however built, can make the row walkable.
+
+Neighbouring cases are safe only by accident: `+ ISS@open`, `+ PHASE@active` and `+ REQ@draft` all land in `needs-you` because the *owed* branch fires first. The leak is specifically **a terminal or built non-feature subject paired with an unbuilt feature**.
+
+**Latent, not live** — zero instances in either corpus today, so nothing is currently mis-filed. But the guard set does not contain the case, so the next `covers:` pairing a backlog feature with an implemented requirement removes a check from the count silently.
+
+The fix that satisfies both this and my previous finding: keep `not _covers_an_issue(record)` for the label's sake, but pass **all** refs to `ids_are_unbuilt` rather than only the FEAT ones.

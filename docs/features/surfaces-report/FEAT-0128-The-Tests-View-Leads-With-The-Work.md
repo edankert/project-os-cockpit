@@ -7,6 +7,9 @@ status: doing
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 requirements: ["[[REQ-0047-The-View-Opens-On-What-Is-Owed]]"]
 tasks: ["[[TASK-0508-Collapse-Resting-To-A-Line]]", "[[TASK-0509-Tier-Sections-Collapse-To-Tracking-Lines]]", "[[TASK-0510-Feature-Tests-Lead]]", "[[TASK-0513-The-Checks-Page-Is-A-Flat-List-Per-Tier]]", "[[TASK-0520-Group-The-Suite-By-Surface]]", "[[TASK-0549-One-Grouping-Key-And-It-Is-The-Id]]", "[[TASK-0550-The-Nav-Groups-By-Surface]]", "[[TASK-0551-A-Percentage-Where-The-Reader-Is-Working]]", "[[TASK-0552-The-navs-surfaces-get-their-own-address-and-their-ow]]", "[[TASK-0553-A-surface-row-draws-its-progress-and-a-payload-field]]", "[[TASK-0554-A-surface-carries-no-test-status]]", "[[TASK-0555-The-check-id-renders-once-at-the-start-and-is-select]]", "[[TASK-0556-Incomplete-First]]"]
@@ -39,7 +42,7 @@ Three changes, none of which removes information:
 
 ### The open question
 
-The group is built (`cockpit.py`, `key: "suppressed"`, `label: "Quiet · N · no feature in flight"`, `reason: "no feature in flight"`) and [[TASK-0508]] is `done`. But it renders in **neither** corpus today:
+The group is built (`cockpit.py`, key `quiet`, label `Quiet · no feature in flight` — **no count on it**, unlike the other views' `suppressed_group`; `reason: "no feature in flight"`) *(the key and the label were both misdescribed here; corrected on independent review)* and [[TASK-0508]] is `done`. But it renders in **neither** corpus today:
 
 | repo | suppressed groups |
 |---|---|
@@ -55,3 +58,15 @@ This note recorded **"10 rows in `your-trainer`, 3 here"** when it was written. 
 So the criterion was **unmet**, and worse than unmet: the rows were counted as work somebody owes. **Fixed 2026-08-20** — [[ISS-0247]]. The group is built on `ids_are_unbuilt`, and the head moved from `3 of 32 outstanding` to `2 of 31`: one row quieted, and the two covering a `done` feature deliberately left in the count.
 
 **Corrected the same day**: the corpus *can* produce it — `suppressed_items` returns 3 here and 4 in `your-trainer`. The zero I first reported was the absence of a rendered group read as an absent population. And the obvious fix is wrong: two of this repo's three rows cover a `done` feature, so bucketing them as quiet would hide shipped-but-unverified work. See [[ISS-0247]].
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+Criterion 1 now means what it says. The quiet group renders in this repo — `Quiet · no feature in flight`, 1 row — and `Feature tests` reads `2 of 31 outstanding`, exactly the move `ISS-0247` claims. The two rows covering a `done` feature stay counted.
+
+The re-read section is the most valuable thing here: it caught its own zero being read as an empty population rather than an absent group, named the two readings explicitly, and resolved it by constructing the case instead of picking the comfortable one.
+
+Two small inaccuracies in its description of what was built: it says `key: "suppressed"` (the key is `quiet`; `suppressed` is a field on the group) and `label: "Quiet · N · no feature in flight"` (the label carries no count — it is `Quiet · no feature in flight`).
+
+See `ISS-0247` for a leak in *which* rows enter the bucket. It does not affect this criterion, whose subject is that the group exists and collapses.

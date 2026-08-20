@@ -7,6 +7,9 @@ status: backlog
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0131-The-Suite-Is-Refined]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -41,3 +44,11 @@ Not *"which of 158 can be retired"* but: **is there a subset that should retire 
 That is a **per-check judgement about the product**, not a rule, and this task's own line holds: *"No blanket rule. A pass that retires Tier 2 wholesale is indistinguishable from losing the suite ([[REQ-0050]] criterion 4)."*
 
 **Left open for Edwin**, with the population narrowed from 158 to the 83 that rest — and with the note that doing nothing is now a defensible outcome, which it was not before resting existed.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+The re-scoping is justified, not convenient, and the arithmetic is exact. Measured with an indexed loader on `your-trainer`: **86** regression-section checks, **83** with every named `ISS-*` closed. Of the **14** blocking regression checks, **11** rest and **3** name an issue still open — which is precisely when a regression guard should be live.
+
+So `TASK-0526`'s resting genuinely answers the population this task was hunting, and *"the 83 need nothing"* follows from the mechanism rather than from wanting to close the task. Leaving it `backlog` with the population narrowed from 158 to 83, and recording that doing nothing is now defensible, is the honest outcome — a task that closed itself here would have been the convenient one.

@@ -8,6 +8,9 @@ phase: "[[PHASE-029-One-Tool-Two-Front-Doors]]"
 owner: user:edwin
 created: 2026-08-09
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
 source: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]"]
 goal: "Give the LAN reading surface the two read-only surfaces that answer questions — the project overview and the design register — so a tablet gets the current tool rather than the one that existed before PHASE-008."
 requirements: ["[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"]
@@ -38,7 +41,9 @@ Mode 1 has no Overview, no Design and no Review. Two of those three are pure rea
 
 **Out:**
 
-- **The review desk.** Per [[ADR-0010]]: its endpoints refuse non-loopback callers, and a queue of obligations you cannot discharge is worse than no queue. A read-only *digest* of what is owed belongs to [[FEAT-0079]]'s authenticated path, which is designed for it.
+- **The review desk's WRITE half.** Per [[ADR-0010]]: its endpoints refuse non-loopback callers, and a queue of obligations you cannot discharge is worse than no queue. A read-only *digest* of what is owed belongs to [[FEAT-0079]]'s authenticated path, which is designed for it.
+
+  *(**Split 2026-08-20, independent review.** This bullet read *"The review desk"* unqualified and was overturned sixty lines below by `~review` appearing among the eleven owed reading views — an overturned decision left standing in the same note as the decision that overturned it. The later reading is right and the split is the whole point of the stage decomposition: `~review` **reads** what is owed, which nothing gates, while marking and recording go behind the authenticated write path. Reading the queue is not the same act as discharging it, and the original bullet conflated them.)*
 - **Every verdict, tick, capture and test-run control.** Reading a design is reading; judging it is not.
 - **Feature parity as a goal.** [[ADR-0010]] chose subset-by-classification over parity.
 
@@ -84,3 +89,15 @@ The other nine, unplanned until now:
 ### Why the loopback check is not a detail to route around
 
 [[REL-0001]]'s acceptance pass drove every mutation endpoint over the real LAN interface: **ten of ten returned 403 while reads returned 200** ([[REQ-0027]], [[RISK-0005]]). [[ADR-0010]]: *"The loopback check is not a safety feature on top of an authorisation model. It **is** the authorisation model."* There is no authentication anywhere in this tool.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **changes-requested**. Re-measured or re-executed, not read.
+
+The widening is sound and the split is faithful to `ADR-0010` option 4: 12 views, `~release` gated because it composes contents, the other **11** owed as reads, and `~checks`/`~review` split at the view boundary so their write halves stay behind the authenticated path. Decisions 1–3 of the ADR support each part. The 12-against-2 count reproduces (`cockpit.js` implements exactly `~note` and `~root`).
+
+**But an earlier scoping decision is left standing beside the later one that overturns it.** The `## Scope` / **Out** list still reads:
+
+> **The review desk.** Per [[ADR-0010]]: its endpoints refuse non-loopback callers, and a queue of obligations you cannot discharge is worse than no queue.
+
+— unqualified, as current scope. Sixty lines below, `~review` is listed among *"the eleven"* owed reading views, with its acting half deferred. The later reading is the right one; the earlier bullet now contradicts it, and a reader taking the Scope section at face value gets the opposite answer. This is the pattern this phase has been repeatedly bitten by, and the fix is a clause on the Out bullet, not a new section.

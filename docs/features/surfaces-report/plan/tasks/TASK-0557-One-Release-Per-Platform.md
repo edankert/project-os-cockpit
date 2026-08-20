@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -48,3 +51,17 @@ The validator is stdlib-only and copied whole into every downstream repo, so it 
 ### The fixtures were wrong first
 
 They omitted `preparing:` entirely, so `preparing()` returned `None` and two assertions failed for a reason with nothing to do with platforms. A `draft` alone is *open*, not *prepared for ship* — the distinction this function's own docstring opens with, and I did not read it before writing the fixture.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+All three claimed mutants re-run, all three genuine catches by distinctly named tests — no equivalents:
+
+| mutation | caught by |
+|---|---|
+| ignore the `preparing:` field (treat every draft as preparing) | `test_two_open_drafts_nobody_declared_are_not_a_conflict` |
+| ignore the overtaken-version rule | `test_a_draft_a_shipped_version_overtook_is_not_preparing` |
+| collapse every platform to one key | `test_two_platforms_preparing_at_once_is_fine` |
+
+Keying on the `preparing:` frontmatter rather than on `status: draft` is right, and the note is correct that the first cut would have put the validator and `publication.preparing` into `REQ-0059`'s forbidden shape. `your-trainer`'s `REL-0008` at `draft`/2.0.2 behind a shipped 2.1.6 is the case that proves the version clause earns its place.

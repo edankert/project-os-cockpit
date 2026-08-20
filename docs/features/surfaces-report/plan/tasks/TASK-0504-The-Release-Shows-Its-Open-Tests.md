@@ -7,6 +7,9 @@ status: done
 owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-20"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: approved
 parent: "[[FEAT-0125-The-Release-Page-Reports-What-Holds-It]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 tags: [task]
@@ -44,3 +47,11 @@ So the section states what it is *not*, in prose, on the page. A reader who sees
 ### Guarded
 
 `test_the_release_shows_the_tests_owed_for_its_own_contents`, proved on two mutants: dropping the settledness filter (the 94-row wall) and putting a mark class back on the rows. It also anchors on the block's own first line rather than a containing function — the first version anchored on `renderReleasePage` and matched a *different* function ending well above the code, which would have failed for a reason unrelated to the feature.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **approved**. Re-measured or re-executed, not read.
+
+Both numbers reproduce on `your-trainer`'s working tree: the release's derived contents hold **32** features, **94** acceptance checks cover them, and **3** are unsettled. The disclaimer is genuinely rendered — `renderer.ts:7950` emits *"…those for features this release does not carry."* — so the `3`-under-a-gate-of-`59` confusion the note predicts is actually addressed on the page rather than only in the note.
+
+The two-independent-routes argument holds: `ADR-0040` reasoned gate-down (36 of 39 feature-covering blockers outside the contents) and this reasons contents-up to the same 3. I re-derived both and they agree.

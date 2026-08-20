@@ -29,19 +29,19 @@ Needs the once-only exception field first, or the rule has no honest escape and 
 
 The task says *"dated promotion per ADR-0011: warn, then error."* **The date is withheld, and the measurement is why.** Terminal features with no acceptance check, 2026-08-20:
 
-| scope | uncovered, **under the shipped rule** (`status: done`) | under a wider terminal set |
-|---|---|---|
-| all twelve `SNAPSHOT.yaml` repos | **220** | 236 |
-| the three that hold a suite | **134** | 148 |
-| `project-os-cockpit` alone | **88** | 93 |
+| scope | **shipped rule** (`done`) | wide, no `deferred` | wide, with `deferred` |
+|---|---|---|---|
+| all twelve `SNAPSHOT.yaml` repos | **220** | 236 | 237 |
+| the three that hold a suite | **134** | 147 | 148 |
+| `project-os-cockpit` alone | **88** | 93 | 93 |
 
-*(**Corrected after independent review.** The first version of this table read `236 / 147 / 88` — the first two measured with `superseded`, `cancelled` and `deferred` counted as terminal, the third with the rule as it actually ships, which fires on `done` alone. Three rows, two definitions, and only the last matched the code. The direction is conservative and [[project-os-dev#ADR-0011]]'s argument survives at 134, but the number is what sized the decision not to date the promotion, so it had to be the right one.)*
+*(**Corrected twice.** The original read `236 / 147 / 88` — two rows measured with a wider terminal set than the rule uses, one with the rule itself, and only the last matching the code. The first correction then paired **236** with **148**, which is one row from each *wide* variant: 236 goes with 147, and 237 with 148. Three columns now, each internally consistent, with the shipped rule bolded because it is the only one the code produces. [[project-os-dev#ADR-0011]]'s argument survives at **134** — but the number is what sized the decision not to date the promotion, so it had to be right, and it took two passes to make it so.)*
 
-[[project-os-dev#ADR-0011]] clause 3 forbids promoting over debt. A date on 147 findings would either fail every build the day it arrived or be moved when it did — and a promotion nobody intends to honour teaches people to ignore the table, which costs more than this rule is worth. It earns a date when the number is small enough that one is a promise, and that belongs to whoever works it down. `FEATURE-UNCOVERED` is deliberately absent from `PROMOTIONS`, and a test asserts that.
+[[project-os-dev#ADR-0011]] clause 3 forbids promoting over debt. A date on 134 findings would either fail every build the day it arrived or be moved when it did — and a promotion nobody intends to honour teaches people to ignore the table, which costs more than this rule is worth. It earns a date when the number is small enough that one is a promise, and that belongs to whoever works it down. `FEATURE-UNCOVERED` is deliberately absent from `PROMOTIONS`, and a test asserts that.
 
 ### Only where there is something to cover with
 
-Nine of the twelve repos hold no acceptance check at all — that is the 220-to-134 gap. Firing there would scold a repo for not using a mechanism it never adopted.
+Nine of the twelve repos hold no acceptance check at all — that is the 220-to-134 gap under the shipped rule. Firing there would scold a repo for not using a mechanism it never adopted.
 
 ### The exception is what makes it honest
 
@@ -76,3 +76,24 @@ So 236 and 147 are the *wide* measurement and 88 is the *narrow* one — the thr
 The direction is conservative (the ADR-0011 argument holds at 134 as it does at 147), so nothing unsafe follows. But the number sized the promotion decision, and it is not the rule's number.
 
 **A third guard has a hole, and it is live.** `_features_covered_by_acceptance` filters `level == "acceptance"`. Dropping that filter — so any note's `covers:` counts as coverage — passes every targeted test (73 passed). It is not an equivalent mutant: measured, it **silences 29 of this repo's 88 findings**, a third of the rule's output, by treating a non-acceptance `TST-*` as coverage. That is the reports-silence failure mode on the rule this task added. Nothing constructs a fixture with a non-acceptance note whose `covers:` names a terminal feature.
+
+## Independent review — fourth pass, 2026-08-20
+
+Fresh context, separate session, `model:claude-opus-5`. Verdict: **changes-requested** (supersedes the third-pass verdict above). Re-measured or re-executed, not read.
+
+The mixing is now named, the narrow column is primary, and the *"220-to-134 gap"* sentence is corrected. `test_a_non_acceptance_test_is_not_coverage` is a real guard: my level-filter mutant **and** a weaker variant both fail it, applied to both validator copies.
+
+**Two things remain.**
+
+**The wide column is internally inconsistent by one, and your 148 versus my 147 has a definite answer: neither, as paired.** Re-measured across all twelve repos:
+
+| wide set | fleet | three suite repos |
+|---|---|---|
+| `superseded`/`cancelled`/… **without** `deferred` | **236** | **147** |
+| …**with** `deferred` | **237** | **148** |
+
+The table pairs **236** with **148**, which is one row from each variant. The note's own parenthetical says the wide measurement counted *"`superseded`, `cancelled` and `deferred`"* — and under that definition the fleet number is 237, not 236. So the internally consistent wide triple is `236/147/93` or `237/148/93`.
+
+Related: line 40 still sizes the `ADR-0011` argument on *"a date on 147 findings"* while the table above it now says 148, and the number the argument should use is the narrow **134** — three figures for one quantity inside one note.
+
+**The code comment was not corrected.** `tools/scripts/validate-docs.py:3025-3026` and its bundled twin still read *"236 … 147 … 93 of them here"*, and line 389 still says *"236 terminal features"*. That is the uncorrected wide triple sitting in the rule's own source, contradicting this note's now-primary 88.
