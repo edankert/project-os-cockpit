@@ -147,3 +147,9 @@ Fresh-context pass, separate session, `model:claude-opus-5`. Started from the no
 - Warning-with-a-promotion-date is right under ADR-0011 clause 3: 21 `SUR-*` notes is a body of work, not a line edit.
 
 No changes requested.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved, confirming the first-pass verdict.** No first-pass finding attached to this note; this commit added a review section only. `SURFACE-ORPHAN` and the shared `surface_key` normalisation are outside the scope of the seven findings and were not re-litigated here; the first pass's own construction against `test_the_rule_and_the_join_agree_on_normalisation` is recorded above and I did not find cause to reopen it.

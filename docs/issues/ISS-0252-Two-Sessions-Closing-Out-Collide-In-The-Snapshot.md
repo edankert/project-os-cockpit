@@ -105,3 +105,9 @@ Fresh-context pass, separate session, `model:claude-opus-5`. Started from the no
 Correctly left open as an ADR-shaped question: whether concurrent close-out sessions are supported at all. Reporting the collision is not the same as preventing it, and this note says so.
 
 No changes requested.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved, confirming the first-pass verdict.** No first-pass finding attached to this note; this commit added a review section only, and `close-out-commit.sh` is unchanged in `07602db..b635c39`. Not re-litigated in this pass.

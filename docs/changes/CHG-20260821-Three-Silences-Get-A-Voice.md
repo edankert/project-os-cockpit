@@ -2,7 +2,7 @@
 type: "[[change]]"
 id: CHG-20260821-Three-Silences-Get-A-Voice
 review_verdict: changes-requested
-review_response: "2026-08-21: the REVIEW-STALE figure of 43 was two errors agreeing. Corrected to the measured 51 at f5ca55b, with the note that the rule could not see CHG-* notes at all."
+review_response: "2026-08-21: the REVIEW-STALE figure of 43 was two errors agreeing. Corrected to the measured 51 at f5ca55b, with the note that the rule could not see CHG-* notes at all. || Second pass 2026-08-21: the corrected 51 reproduces at f5ca55b. No further change to this note."
 review_response_date: 2026-08-21
 review_date: 2026-08-21
 reviewed_by: model:claude-opus-5
@@ -84,3 +84,11 @@ The two numbers are not the same population and neither confirms the other.
 [[ISS-0253]]'s hand count was itself 49/43 against an actual 56/51, and its breakdown claims *7 merged* — a class the rule can never report, since every `merged` note here is a `CHG`. An undercount and a structurally-blind rule landing on the same integer is exactly the shape this change set was written to remove.
 
 Correct the sentence, or fix `ID_PREFIXES` and restate the number. Detail on [[ISS-0253]].
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**This supersedes the first-pass verdict. The `review_response:` above is accurate**: the 43 was two errors agreeing, and 51 is the measured figure. I reproduced both independently against `git worktree add … f5ca55b`, driving the rule's own predicates (`OWED_VERDICTS`, `REVIEW_TERMINAL_STATUSES`, `has_value`) over the tree: **56** notes carry an owed verdict, **51** of them at a terminal status with no `review_response:`, broken down **30 `done` / 8 `merged` / 4 `implemented` / 9 `fixed`** — exactly the corrected claim. Walking `build_note_index` instead of the files over the same tree yields **43**, missing exactly the 8 `CHG-*` notes and nothing else. The file walk drops nothing that the index walk reported, and `__templates__` / `__bases__` are excluded. The claim is right and the fix is right.
+
+**Finding F (low-medium) — three of the four numbers in that sentence were re-measured and the fourth was carried over unchecked, and the refuted figures survive in three other places.** The corrected `PROMOTIONS` comment reads *"**51 findings in this repo** … 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`, **dating to 2026-08-02**"*. Measured at `f5ca55b`, the earliest `review_date` among those 51 is **2026-07-30**, on six notes — `CHG-20260730-Two-Features-Closed`, `FEAT-0045`, `ISS-0037`, `ISS-0057`, `ISS-0068`, `ISS-0069`. The date came from the original filing and was the one field the re-measurement did not touch. Separately, the refuted breakdown is still asserted in the present tense at `tools/scripts/validate-docs.py:279` — *"the population it describes is 27 `done`, 7 `merged`, 4 `implemented` and 5 `fixed`"* — and the rule's own header comment still says *"49 notes carry `changes-requested`, 43 of them at a terminal status"* and *"Six of the 49 are that"*. Two sites were corrected and four were not, so the file now states both numbers about one population, twenty lines apart.

@@ -417,3 +417,56 @@ def test_no_public_write_in_note_writes_is_unreachable() -> None:
         "these write paths are complete, tested and callable by nothing: %s"
         % ", ".join(unreachable)
     )
+
+
+# ----- surface grouping and the progress bar (TASK-0520) --------------------
+def test_the_page_groups_by_surface_and_not_as_one_flat_list() -> None:
+    """TASK-0520, restoring what TASK-0513 removed.
+    `area:` IS the surface — Tier 1's values in `your-trainer` are *Profile
+    Management*, *Hardware Connectivity*, *Workout Execution*. TASK-0513
+    flattened these headings away while answering a request that was about the
+    LEFT PANE's tier sections, which is the specific mistake this guards.
+    """
+    src = _renderer()
+    body = src[src.index("function paintCheckList("):]
+    body = body[:body.index("\n}\n") + 3]
+    assert "checks-area" in body, (
+        "the surface heading is gone again — `area:` is where a check sits in "
+        "the application, and a flat list of 579 rows answers no question"
+    )
+    assert "for (const area of areas)" in body
+    #: **A percentage on a surface, a bar on a tier** (ISS-0223). A bar
+    #: answers what SHAPE a set has, worth four segments on a card being
+    #: SCANNED; this page is being WORKED, and the rows below the header
+    #: already say in full what the bar summarised.
+    assert "checkPercent(area.items)" in body, "a surface with no progress"
+    #: **No bar on this page at all** (ISS-0234). ISS-0223 replaced the
+    #: surface bar with a percentage and kept the tier's; Edwin removed both.
+    #: The page is worked rather than scanned, and the heading carries the
+    #: number now — so `checkProgress` went with them, as dead code.
+    assert "checkProgress" not in body, "the bar came back"
+def test_a_stale_tick_is_not_drawn_as_done() -> None:
+    """Four segments, because three would lie.
+    A stale tick stands over evidence the record says was overtaken. Counting
+    it as `done` is what made `your-trainer`'s honest blocking number 113
+    against a reported 60, so the bar draws it apart — and the percentage in
+    the title counts only unstale ticks.
+    """
+    src = _renderer()
+    body = src[src.index("function checkPercent("):]
+    body = body[:body.index("\n}\n") + 3]
+    #: The bar drew stale as its own segment; the percentage names it in
+    #: the text instead, because folding it into done is what made
+    #: `your-trainer`'s honest 113 read as a reported 60 (ISS-0234).
+    assert "items.filter((i) => i.stale)" in body
+    assert "stale} stale" in body
+    # The percentage is over `done`, never over `settled`.
+    assert "(done.length / total)" in body, (
+        "the percentage counts stale ticks as run — the one thing this bar "
+        "exists not to do"
+    )
+    #: **The segment-colour assertion went with the segments** (ISS-0234).
+    #: It required four families because a bar HAS four bands; a percentage
+    #: has none, and the one distinction that survived the compression —
+    #: stale apart from done — is asserted above, in both the numerator and
+    #: the text.

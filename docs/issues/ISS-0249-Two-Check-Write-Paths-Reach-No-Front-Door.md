@@ -10,7 +10,7 @@ updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: changes-requested
-review_response: "2026-08-21: test_no_public_write_in_note_writes_is_unreachable counted a substring and was vacuous for 4 of 13 writes, retire_check among them - `_serve_retire_check` contains `retire_check(`. It resolves ast.Call sites now, and the mutant (the real call replaced by a nonexistent one) fails it."
+review_response: "2026-08-21: test_no_public_write_in_note_writes_is_unreachable counted a substring and was vacuous for 4 of 13 writes, retire_check among them - `_serve_retire_check` contains `retire_check(`. It resolves ast.Call sites now, and the mutant (the real call replaced by a nonexistent one) fails it. || Second pass 2026-08-21: the ast.Call fix is confirmed non-vacuous (all 13 writes become reportable when their call sites are broken; the old predicate leaves exactly the 4). Finding A - two live tests deleted by that same rewrite - is restored."
 review_response_date: 2026-08-21
 source: ["[[TASK-0363]] cross-check against `note_writes`' callers, 2026-08-20"]
 severity: medium
@@ -143,3 +143,15 @@ This is the pitfall the phase note names in its own closing section — *"a text
 ### What to change
 
 Count **call sites**, not substrings: parse each caller module with `ast` and look for `ast.Call` whose func is an `ast.Attribute` named `<write>` on `note_writes` (the same technique the test already uses to find the writes, and the one `test_no_guard_call_has_its_answer_discarded` uses for `_require_loopback`). Then re-run against the mutant above and confirm it fails.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**The `review_response:` above is accurate and the fix itself is sound; the verdict is `changes-requested` for what the same commit did to the file the fix lives in.**
+
+**The guard is now real, and it is not vacuous in a new way.** The concern that a 617-name `called` set could swallow everything does not hold. I resolved the write set the same way the test does (13 public functions in `note_writes.py` calling `_write`), then for each name in turn rewrote **every resolved call site** of it across the six caller files to a nonexistent function and recomputed `writes - called`: **all thirteen become reportable**, each from a single real site (`note_writes.<name>(` in `server.py`). Under the old substring predicate the same mutants leave exactly `mark_released`, `release_contents`, `retire_check`, `seal_ledger` unreported — the 4-of-13 the response claims, reproduced independently. Residual, not a defect today: the guard would still pass silently for a *future* write whose name collides with any of the 617 attribute names called in those files.
+
+**Finding A (high) — two live regression guards were deleted by this commit and nothing says so.** `tests/test_checks_view.py` went from 22 test functions to 20: `test_the_page_groups_by_surface_and_not_as_one_flat_list` ([[TASK-0520]] / [[ISS-0223]] / [[ISS-0234]]) and `test_a_stale_tick_is_not_drawn_as_done` ([[ISS-0234]]) are gone, and `grep -rn` over `tests/ src/ docs/` at `b635c39` finds neither name anywhere. They were not retired and they were not failing: `git diff --stat 07602db..b635c39 -- desktop/` is empty, and I re-executed both tests' assertion sets against `renderer.ts` at HEAD — all seven strings (`checks-area`, `for (const area of areas)`, `checkPercent(area.items)`, `checkProgress` absent, `items.filter((i) => i.stale)`, `stale} stale`, `(done.length / total)`) still hold. Both would have passed. Repo-wide `def test_` went 1829 → 1830, because three tests were added in `test_observed_coverage.py`, so the deletion is invisible in the headline. The removed block sits immediately after the rewritten tail of `test_no_public_write_in_note_writes_is_unreachable`, which is consistent with an over-wide edit. This is the phase's own signature defect one step worse than the version it was fixing: not a check that cannot fire, a check that no longer exists.
+
+`test_no_public_write_in_note_writes_is_unreachable` is the last test in the file at `b635c39`; the deleted block followed it at `07602db`. Nothing in this note, in [[PHASE-037]] or in either `CHG-20260821-*` mentions a test removal.

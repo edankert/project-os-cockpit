@@ -2,7 +2,7 @@
 type: "[[issue]]"
 id: ISS-0253
 review_verdict: changes-requested
-review_response: "2026-08-21: REVIEW-STALE walks the docs tree instead of note_index, which held no CHG-* note at all - 8 of the 51 terminal owed verdicts are change notes and every `merged` one is. The filed 49/43 did not reproduce; the measured figure at f5ca55b is 56 owed / 51 terminal (30 done, 8 merged, 4 implemented, 9 fixed) and the note now says so."
+review_response: "2026-08-21: REVIEW-STALE walks the docs tree instead of note_index, which held no CHG-* note at all - 8 of the 51 terminal owed verdicts are change notes and every `merged` one is. The filed 49/43 did not reproduce; the measured figure at f5ca55b is 56 owed / 51 terminal (30 done, 8 merged, 4 implemented, 9 fixed) and the note now says so. || Second pass 2026-08-21: the measurement reproduces exactly (56 owed / 51 terminal; the note_index walk gives 43, missing precisely the 8 CHG-* notes). Finding F fixed - REVIEW_TERMINAL_STATUSES' comment still restated the refuted 27/7/4/5, a third copy of the same unmeasured number, and 'dating to 2026-08-02' was ISS-0253's date rather than the population's (measured: 2026-07-30, six notes)."
 review_response_date: 2026-08-21
 review_date: 2026-08-21
 reviewed_by: model:claude-opus-5
@@ -168,3 +168,11 @@ The promotion comment in `validate-docs.py` inherits the error: it describes the
 1. Add `CHG` to `ID_PREFIXES`, or index change notes by path for this rule — then re-measure and correct **51** (or whatever it then reports) in this note, in the promotion comment, and in the `CHG` note.
 2. Correct the filed breakdown above, or state the basis under which 49/43 was true.
 3. Add a test constructing a terminal `CHG-*` note with an owed verdict. `tests/test_review_stale.py` has no such case, which is why the blind spot survived.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Finding F (low-medium) — the corrected sentence kept one refuted number, and the refuted breakdown survives in three more places.** The `PROMOTIONS` comment now reads *"**51 findings** … 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`, **dating to 2026-08-02**"*. The earliest `review_date` among those 51 is **2026-07-30**, on six notes: `CHG-20260730-Two-Features-Closed`, `FEAT-0045`, `ISS-0037`, `ISS-0057`, `ISS-0068`, `ISS-0069`. Three of the four figures in that sentence were re-measured; the date was carried over from this note's filing. And the numbers this note's own correction calls *"a coincidence of two different errors"* are still asserted in the present tense at `tools/scripts/validate-docs.py:279` (*"the population it describes is 27 `done`, 7 `merged`, 4 `implemented` and 5 `fixed`"*), in the rule's header comment (*"49 notes carry `changes-requested`, 43 of them at a terminal status"*) and twenty lines further down (*"Six of the 49 are that"*). One file now states both populations.
+
+**Note on the rule's live effect.** At `b635c39` the rule still fires on the same 51 notes; the nine `review_response:` adopters are additional owed verdicts stamped by the first pass, not clearances of the 51. `REVIEW-STALE` is a warning until `2026-11-18`, which is why `validate-docs.sh` reports OK.

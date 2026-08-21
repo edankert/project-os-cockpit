@@ -102,3 +102,9 @@ Fresh-context pass, separate session, `model:claude-opus-5`. Started from the no
 The findings on this feature are in the emitter ([[TASK-0543]]), not here.
 
 No changes requested.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved, confirming the first-pass verdict.** No first-pass finding attached to this note, and this commit added only a review section. The declaration half is untouched by the fix commit; the two emitter findings and the guard finding land on [[TASK-0543]], [[FEAT-0138]], [[REQ-0057]] and [[ISS-0249]] rather than here.

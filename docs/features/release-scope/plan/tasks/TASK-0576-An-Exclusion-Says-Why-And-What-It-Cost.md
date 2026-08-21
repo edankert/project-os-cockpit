@@ -98,3 +98,9 @@ Fresh-context pass, separate session, `model:claude-opus-5`. Started from the no
 Scope was held: no write path to a check appeared on the release page, and ADR-0040's subtraction decision was not reopened.
 
 No changes requested.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved, confirming the first-pass verdict.** No first-pass finding attached to this note; this commit added a review section only. Spot-checked against the code: the held-back block exists end to end — `publication._held_back_rows` (reason recorded, and a missing reason reported rather than hidden), the `held_back` key on the payload, and the `N feature(s) held back · M check(s) no longer gating` line at `renderer.ts:7965`, drawn *whenever anything is held back, including on a shipped release*. Guarded by `tests/test_release_held_back.py` and `tests/test_gate_subtraction.py`.

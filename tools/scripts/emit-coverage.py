@@ -84,6 +84,7 @@ def junit_results(path: Path) -> dict[str, bool]:
     so it is absent from this map rather than present and true.
     """
     out: dict[str, bool] = {}
+    skipped: set[str] = set()
     root = ET.parse(path).getroot()
     for case in root.iter("testcase"):
         name = str(case.get("name") or "").strip()
@@ -93,14 +94,21 @@ def junit_results(path: Path) -> dict[str, bool]:
         #: names the function, so the parameter is stripped and every case
         #: must pass for the check to be observed passing.
         base = name.split("[", 1)[0]
-        if any(case.find(tag) is not None for tag in ("skipped",)):
+        if case.find("skipped") is not None:
+            #: **Skipped is observed, and it is not a pass.** `@Ignore` is the
+            #: case FEAT-0138 names beside delete and rename. It is kept
+            #: SEPARATE from absence because the two mean different things: a
+            #: skipped test says *this run declined to produce evidence*, and
+            #: an absent one says *this run was not about that test at all*.
+            skipped.add(base)
             continue
         ok = all(case.find(tag) is None for tag in ("failure", "error"))
         out[base] = out.get(base, True) and ok
-    return out
+    return out, skipped
 
 
-def plan(root: Path, results: dict[str, bool], platform: str):
+def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
+         platform: str):
     """What this run should append: `(passing, failing, stale, current)`.
 
     A check is **observed passing** only when every test declaring it ran and
@@ -153,11 +161,35 @@ def plan(root: Path, results: dict[str, bool], platform: str):
             passing[check] = sorted(seen)
 
     current = _ledger.verdicts(root / "docs", platform)
+    #: **Absence is only evidence when the DECLARATION is gone.**
+    #:
+    #: The first cut invalidated every `method: automated` verdict this run did
+    #: not re-observe, and independent review constructed the consequence: two
+    #: runs on one platform covering different toolchains -- a `.py` suite and
+    #: a `.kt` suite, which are exactly the two this tool exists to serve --
+    #: **retract each other forever**, two ledger entries per run, growing
+    #: without bound. The bug that fixed (a one-off job rename) is smaller than
+    #: the bug it created, which recurs on every run.
+    #:
+    #: So the question is *does any test still declare this check*, not *did
+    #: this run happen to see it*. A test deleted, renamed away or moved out
+    #: takes its declaration with it and the verdict goes; a test that simply
+    #: was not part of this run keeps it.
     stale = sorted(
         check for check, verdict in current.items()
         if verdict.method == "automated"
-        and check not in passing and check not in failing
+        and check not in declared
     )
+    #: A declaring test that RAN and was skipped is a different fact: the run
+    #: reached it and declined to produce evidence, which is `@Ignore`. Every
+    #: declaring test observed, none passing, at least one skipped.
+    for check, tests in sorted(declared.items()):
+        if check in passing or check in failing or check in stale:
+            continue
+        if any(t in skipped for t in tests) and all(
+                t in skipped or t in results for t in tests):
+            stale.append(check)
+    stale = sorted(set(stale))
     return passing, failing, stale, current
 
 
@@ -175,8 +207,9 @@ def main(argv: list[str] | None = None) -> int:
 
     from project_os_cockpit import ledger as _ledger
 
-    results = junit_results(Path(args.junit))
-    passing, failing, stale, current = plan(root, results, args.platform)
+    results, skipped = junit_results(Path(args.junit))
+    passing, failing, stale, current = plan(
+        root, results, skipped, args.platform)
     run = args.run or "the test run"
 
     wrote: list[str] = []
@@ -218,13 +251,14 @@ def main(argv: list[str] | None = None) -> int:
                            invalidated_by=run,
                            reason="covering test failed: %s" % ", ".join(tests))
     for check in stale:
-        wrote.append("invalidate %s (no covering test observed)" % check)
+        wrote.append("invalidate %s (no covering test declares it)" % check)
         if not args.dry_run:
             _ledger.append(root / "docs", args.platform, check=check,
                            invalidated_by=run,
-                           reason="declared covered, and no covering test ran "
-                                  "in this run — the declaration was deleted, "
-                                  "renamed or disabled")
+                           reason="a machine claimed to cover this and no test "
+                                  "declares it any more, or every declaring "
+                                  "test was skipped — the declaration was "
+                                  "deleted, renamed away or disabled")
 
     if not wrote:
         print("emit-coverage: nothing changed (%d check(s) observed passing)"

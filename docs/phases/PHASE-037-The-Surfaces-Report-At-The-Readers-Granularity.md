@@ -11,7 +11,7 @@ updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: changes-requested
-review_response: "2026-08-21: the count was wrong three ways and is now measured - 97 children, and the breakdown adds up. All seven findings across the range are fixed; see the response on each note."
+review_response: "2026-08-21: the count was wrong three ways and is now measured - 97 children, and the breakdown adds up. All seven findings across the range are fixed; see the response on each note. || Second pass 2026-08-21: finding A was mine and is the worst thing in this close-out - fixing finding 1 deleted two live tests from the same file, hidden by a suite total that rose. Restored from 07602db (22 test functions again) and recorded in the closing section rather than tidied away. All seven second-pass findings fixed."
 review_response_date: 2026-08-21
 goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
 features:
@@ -134,6 +134,16 @@ The pattern this phase kept meeting, met three more times on its last day:
 
 And a fourth, in the tooling rather than the product: the declaration scanner **read its own docstring** as a coverage claim, because a `#` comment inside a string satisfies *"is this a comment"*. It uses `tokenize` and `ast` now.
 
+### The close-out's own worst defect: two live guards deleted while fixing a review finding
+
+Fixing the first pass's finding 1 — a test that counted a substring and was vacuous for four of thirteen write paths — **deleted two other tests from the same file.** `test_the_page_groups_by_surface_and_not_as_one_flat_list` and `test_a_stale_tick_is_not_drawn_as_done` were both green, both guarding live renderer behaviour, and both gone at `b635c39`.
+
+The mechanism was a rewrite that replaced *everything from the target function to the end of the file* rather than the function. **The headline hid it**: repo-wide `def test_` went 1829 → 1830, because three tests were added elsewhere in the same commit.
+
+This is [[PHASE-039]]'s recorded lesson one step worse. That phase found three of twenty-four findings were *defects introduced while fixing the previous pass*, each a **check that could not fire**. This is a check that is **not there** — and a suite total that rises is the reason nobody looks. Restored from `07602db`, and `tests/test_checks_view.py` is back to 22 test functions.
+
+Found by the second pass **counting `def test_` across the two commits**, which is the kind of thing only execution finds.
+
 ### What is deliberately not closed
 
 - **[[ISS-0213]]** is `deferred` under [[PHASE-999]]. Its finding was this phase's and is answered; what remains is three lines of data in `your-trainer`, costing three blocking checks, on a repo whose surfaces are in no commit. Edwin's call, on his repo.
@@ -186,3 +196,29 @@ The closing section says **43 notes** were closed still reading `changes-request
 ### On the *"two vocabularies in three copies"* claim
 
 Verified rather than accepted. I broke the **cockpit** side of the surface join (`cockpit.py` `surface_coverage`, dropping `.lower()`) while leaving the validator untouched: `test_the_rule_and_the_join_agree_on_normalisation` failed on `'Riding — routes'`. That guard genuinely drives both copies. The closing section's warning about text assertions is correct — and Finding 3 is that same pitfall committed one file away.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**This supersedes both earlier verdicts on this note. The `review_response:` above is accurate on the count and wrong on the sweep.**
+
+**The count is now right, measured rather than read.** Parsing every note's own `phase:` field across `docs/`: **97** notes name this phase — 11 `feature`, 9 `requirement`, 30 `issue`, 38 `task`, 1 `design`, 5 `change`, and 3 ADR-type (1 `adr` + 2 `decision`) — which sums to 97 and matches the closing line term for term. **All 97 are at a terminal status**; zero exceptions, statuses spanning `done` 48, `fixed` 29, `implemented` 9, `merged` 5, `accepted` 4, `declined` 1, `superseded` 1. The five exit criteria carry code-level evidence and criterion 5's — the one closed on the last day — checks out end to end (`publication._held_back_rows` records a reason and reports an exclusion that has none; `renderer.ts:7965` draws `N feature(s) held back · M check(s) no longer gating`; guarded by `tests/test_release_held_back.py` and `tests/test_gate_subtraction.py`).
+
+**"All seven findings across the range are fixed" is the claim that does not hold.** Six are. The seventh was fixed by a change that opened a worse one, and the same commit deleted two working guards.
+
+**Finding A (high) — two live regression guards were deleted by this commit and nothing says so.** `tests/test_checks_view.py` went from 22 test functions to 20: `test_the_page_groups_by_surface_and_not_as_one_flat_list` ([[TASK-0520]] / [[ISS-0223]] / [[ISS-0234]]) and `test_a_stale_tick_is_not_drawn_as_done` ([[ISS-0234]]) are gone, and `grep -rn` over `tests/ src/ docs/` at `b635c39` finds neither name anywhere. They were not retired and they were not failing: `git diff --stat 07602db..b635c39 -- desktop/` is empty, and I re-executed both tests' assertion sets against `renderer.ts` at HEAD — all seven strings (`checks-area`, `for (const area of areas)`, `checkPercent(area.items)`, `checkProgress` absent, `items.filter((i) => i.stale)`, `stale} stale`, `(done.length / total)`) still hold. Both would have passed. Repo-wide `def test_` went 1829 → 1830, because three tests were added in `test_observed_coverage.py`, so the deletion is invisible in the headline. The removed block sits immediately after the rewritten tail of `test_no_public_write_in_note_writes_is_unreachable`, which is consistent with an over-wide edit. This is the phase's own signature defect one step worse than the version it was fixing: not a check that cannot fire, a check that no longer exists.
+
+**Finding B (high) — removing the `by` key from the invalidation set opened a new silent-rot hole, and it recurs every run.** `plan`'s `stale` set is now every `method: automated` verdict not re-observed in *this* run. Two runs on one platform that observe different subsets — the two toolchains this tool's own docstring puts in scope — therefore retract each other's verdicts forever. Constructed: a temp repo with `TST-0001` declared by a `.py` test and `TST-0002` by a `.kt` test, one platform, alternating pytest/gradle JUnit reports. At `b635c39`: run 1 `pass TST-0001`; run 2 `pass TST-0002` **+ `invalidate TST-0001 (no covering test observed)`**; run 3 `pass TST-0001` **+ `invalidate TST-0002`**; run 4 `pass TST-0002` + `invalidate TST-0001`. Seven ledger entries after four runs, growing by two per run, and at every instant one of the two checks reads as uncovered although a run observed it passing minutes earlier. The identical script against `07602db` gives **two** entries and `nothing changed` from run 3 onward. So the `by` filter was doing real work, and the fix removed it wholesale instead of separating *which machine wrote it* (correctly irrelevant) from *what this run's scope was* (load-bearing). The bug it fixed — a CI-job rename — happens once; the one it created happens on every run. `.github/workflows/observed-coverage.yml` has a single `observe` job today, so this repo does not trigger it: latent, undetected, in the flattering direction, which is the exact shape of the rot the feature exists to end.
+
+**Finding C (medium) — the other half of the `by` removal is guarded by nothing.** The pass-dedup in `main` dropped `and standing.by == args.by` and carries a comment asserting the consequence (*"Keying on it appended one entry per CI-job rename"*). I restored that clause in a clean worktree at `b635c39` and ran the **full** suite: 2051 passed, 5 skipped, and the only two failures are worktree-path artefacts (`test_the_project_id_is_the_directory_name_by_default`, `test_the_header_measures_from_the_instant_not_the_day`). No emitter test noticed. Three of the four behaviour changes in this file are pinned — mutants restoring `verdict.by == by` in `stale`, making the `failing` branch skip non-automated verdicts, and dropping `method == "automated"` from `stale` each fail their named test — and this one is not.
+
+**Findings D–F (medium/low), recorded on the notes that own them:** the change note's impact table still states the retired `by`-scoped behaviour because the note was appended to rather than corrected (`61  0` on `git diff --numstat`); `migrate-acceptance-checks.py` had one of eleven `LEDGER_MOVED_FIELDS` removed under a reason that applies to all eleven; and the corrected `REVIEW-STALE` prose kept *"dating to 2026-08-02"* when the measured earliest `review_date` among the 51 is **2026-07-30**, while three other sites in the same file still assert the refuted 49/43 breakdown.
+
+### On whether this phase is legitimately `done`
+
+**The membership and the criteria say yes.** Nothing is closed over, the arithmetic finally checks, and every criterion has evidence in code rather than in prose. **The section titled *"Three defects found while building, each of them a rule that could not fire"* is what now reads short** — its third entry is the coverage emitter's invalidation set, and the repair for that entry is Finding B. Four, not three, and the fourth was introduced by the fix for the third.
+
+### Independence
+
+Fresh context and a separate session, which is the gate ([[project-os-dev#ADR-0013]]). **Not** independent: the model family — `model:claude-opus-5` authored the work, ran the first pass, and ran this one, recorded in `reviewed_by` so a reader can weigh it rather than infer it. Findings A and C are the kind a shared-model reviewer is *most* at risk of missing (both are absences rather than assertions), and both were found by execution — counting `def test_` across the two commits, and running the full suite against a restored mutant — rather than by reading.

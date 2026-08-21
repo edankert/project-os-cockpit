@@ -365,6 +365,82 @@ def test_a_failing_test_invalidates_a_persons_walk_too(tmp_path: Path) -> None:
     assert ledger.load(tmp_path / "docs", "macos")[0].entries[-1].is_invalidation
 
 
+def test_two_runs_covering_different_toolchains_do_not_retract_each_other(
+        tmp_path: Path) -> None:
+    """**The hole the first fix opened, and it recurs where the one it closed
+    was a one-off.**
+
+    Removing the `--by` filter made `stale` *every automated verdict this run
+    did not re-observe*. Independent review constructed the consequence on the
+    two toolchains this tool exists to serve: a `.py` run and a `.kt` run on
+    one platform retract each other **forever**, two ledger entries per run,
+    growing without bound.
+
+    Absence is only evidence when the **declaration** is gone. A test that was
+    simply not part of this run keeps its verdict.
+    """
+    from project_os_cockpit import ledger
+
+    root = _repo(tmp_path, declares="")
+    (root / "docs" / "tests" / "acceptance" / "TST-0002-C.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0002\ntitle: "Another check"\n'
+        'level: acceptance\nstatus: active\narea: "A"\nmark: todo\n'
+        'covers: ["[[FEAT-0001]]"]\n---\n\n# Another check\n', encoding="utf-8")
+    (root / "tests" / "test_py.py").write_text(
+        "def test_python_side():\n    # Covers: TST-0001\n    assert True\n",
+        encoding="utf-8")
+    (root / "tests" / "Kt.kt").write_text(
+        "fun kotlinSide() {\n    // Covers: TST-0002\n}\n", encoding="utf-8")
+
+    for _ in range(3):
+        _emit(root, _junit(root, {"test_python_side": ""}))
+        _emit(root, _junit(root, {"kotlinSide": ""}))
+
+    entries = ledger.load(root / "docs", "macos")[0].entries
+    assert [e.check for e in entries] == ["TST-0001", "TST-0002"], (
+        "the two runs are retracting each other: %s"
+        % [(e.check, e.is_invalidation) for e in entries]
+    )
+    assert _blocking(root) == set()
+
+
+def test_a_second_machine_saying_pass_adds_nothing(tmp_path: Path) -> None:
+    """The other half of the `--by` removal, which was guarded by nothing:
+    restoring `standing.by == args.by` in the pass-dedup failed no test at all.
+
+    A machine already says pass; a differently-named machine saying pass is
+    not a new fact, and appending one entry per CI-job rename is the growth
+    the event log exists to avoid."""
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    junit = _junit(tmp_path, {"test_the_thing": ""})
+    _emit(tmp_path, junit)
+    out = subprocess.run(
+        [sys.executable, str(EMITTER), "--repo-root", str(tmp_path),
+         "--junit", str(junit), "--platform", "macos",
+         "--by", "ci:renamed", "--run", "run-2"],
+        capture_output=True, text=True, cwd=ROOT)
+    assert "nothing changed" in out.stdout, out.stdout
+    assert len(ledger.load(tmp_path / "docs", "macos")[0].entries) == 1
+
+
+def test_a_run_that_never_reached_the_test_leaves_it_alone(
+        tmp_path: Path) -> None:
+    """Absent from the report is *this run was not about that test*; skipped is
+    *this run reached it and declined to produce evidence*. Only the second is
+    `@Ignore`, and only the second withdraws the verdict."""
+    _repo(tmp_path)
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": ""}))
+    assert _blocking(tmp_path) == set()
+    #: A partial run — one unrelated test — must not touch it.
+    _emit(tmp_path, _junit(tmp_path, {"test_unrelated": ""}))
+    assert _blocking(tmp_path) == set()
+    #: Reached and skipped: withdrawn.
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "skipped"}))
+    assert _blocking(tmp_path) == {"TST-0001"}
+
+
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     from project_os_cockpit import ledger
 

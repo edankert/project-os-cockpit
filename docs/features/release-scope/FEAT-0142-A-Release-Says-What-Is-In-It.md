@@ -209,3 +209,11 @@ The renderer-side assertions are source-text rather than executed, which is a re
 The open question this note raises — whether FEAT-0142 and [[FEAT-0129]] should be one note — is correctly left as Edwin's judgement rather than performed.
 
 No changes requested.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved, confirming the first-pass verdict.** This note carries no first-pass finding and this commit added only a review section to it, so the pass here was a spot-check of the criterion the phase closes on rather than a full re-review.
+
+Criterion 4 — *every exclusion records a reason, and the page says what the selection cost* — is built and reachable, verified in the code rather than from the note: `publication._held_back_reasons` / `_held_back_rows` read `held_back:` off the release note's own frontmatter and **report an exclusion with no recorded reason rather than hiding it**, `publication.py:1005` puts `held_back` on the payload, and `renderer.ts:7965` draws `${heldBack.length} feature(s) held back · ${cost} check(s) no longer gating`. `tests/test_release_held_back.py` and `tests/test_gate_subtraction.py` guard both halves.

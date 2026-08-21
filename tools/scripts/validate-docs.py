@@ -276,8 +276,13 @@ OWED_VERDICTS = frozenset({"changes-requested", "rejected"})
 
 #: Statuses at which the work a verdict judged is FINISHED, across every note
 #: type (ISS-0253). Cross-type by construction -- the population it describes
-#: is 27 `done`, 7 `merged`, 4 `implemented` and 5 `fixed` -- so it cannot be
+#: is 30 `done`, 8 `merged`, 4 `implemented` and 9 `fixed` -- so it cannot be
 #: registered in FLAT_STATUS_TABLES, which pairs one collection with one type.
+#:
+#: *(This comment said 27/7/4/5 for one commit, restating the figures ISS-0253
+#: filed and this file's own PROMOTIONS entry now calls a coincidence of two
+#: errors. Corrected against `git archive f5ca55b` -- and it is the third
+#: place the same unmeasured number had been copied to.)*
 #: `validate_status_tables` therefore asserts each value is legal for at least
 #: one type instead, which is the cross-type form of the same ISS-0011 guard.
 REVIEW_TERMINAL_STATUSES = frozenset({
@@ -1044,9 +1049,12 @@ PROMOTIONS = {
     # A terminal note still carrying `changes-requested` with nothing recorded
     # about what was done (ISS-0253). **51 findings in this repo**, measured at
     # `f5ca55b` after independent review corrected both the filed count and the
-    # rule's own domain: 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`,
-    # dating to 2026-08-02 -- every one a verdict that was true when written
-    # and false as a description of the note today.
+    # rule's own domain: 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`, the
+    # earliest six dated **2026-07-30** -- every one a verdict that was true
+    # when written and false as a description of the note today.
+    #
+    # *(It said "dating to 2026-08-02", which was ISS-0253's date and not this
+    # population's. Measured: 2026-07-30, on six notes.)*
     #
     # The first cut reported 43 and read `note_index`, which holds no `CHG-*`
     # note at all (`ID_PREFIXES` has no `CHG`, and a change note's id is not

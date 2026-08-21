@@ -10,7 +10,7 @@ updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: approved
-review_response: "2026-08-20 (recorded 2026-08-21): all three second-pass findings were applied in 4628aff - each quarantined section carries its own superseded banner in its first line, `## Applied 2026-08-20` no longer sits under a heading that does not cover it, and the retraction table's items column reads 581 -> 584. The +3 transition was re-simulated rather than copied and reproduces exactly; the absolute numbers no longer do, and that is recorded as a finding rather than corrected. A re-review is owed and the verdict is the reviewer's to change."
+review_response: "2026-08-20 (recorded 2026-08-21): all three second-pass findings were applied in 4628aff - each quarantined section carries its own superseded banner in its first line, `## Applied 2026-08-20` no longer sits under a heading that does not cover it, and the retraction table's items column reads 581 -> 584. The +3 transition was re-simulated rather than copied and reproduces exactly; the absolute numbers no longer do, and that is recorded as a finding rather than corrected."
 review_response_date: 2026-08-21
 severity: medium
 component: docs
@@ -189,3 +189,11 @@ Fresh-context pass, separate session, `model:claude-opus-5`. Started from the no
 **The retraction is honest.** The note records that its own 581/59 no longer reproduces and declines to write 625/103 in its place, on the grounds that this would replace one basis-less number with another. That is the right instinct, and it is the one [[PHASE-037]]'s own closing count did not follow.
 
 One observation, not a change request: this note still carries `review_verdict: changes-requested` from 2026-08-20 with no `review_response:`, although `4628aff` applied those findings. It is the clearest available exemplar for the field [[ISS-0253]] introduced, and it is not excluded by that issue's "do not flip the 43" scope, since recording a response is not flipping a verdict. `deferred` is not in `REVIEW_TERMINAL_STATUSES`, so `REVIEW-STALE` will not prompt for it.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**Approved. The `review_response:` above is accurate in every factual claim**, checked against `4628aff` rather than against the sentence: that commit does add a superseded banner to the **first line of each** of the two quarantined sections (`## Measured before recommending it`, `## Applied 2026-08-20`), it does record that one of them sat under a heading that did not cover it, and it does change the retraction table's `items` column from `581` to `581 → 584`, matching the transition the `blocking` column already showed. The re-simulation and the refusal to write `625 / 103` into the table in place of a basis-less `581 / 59` are both recorded as findings rather than papered over.
+
+**One residual, and it is the field's own failure mode.** The response ends *"A re-review is owed and the verdict is the reviewer's to change"*, while the frontmatter three lines above carries `review_verdict: approved` dated `2026-08-21` — written in the same commit. As the designated exemplar for a field introduced to stop verdicts going stale, it shipped carrying a sentence that was false at the moment it was committed. This pass discharges the sentence rather than contradicting it: the re-review it asks for is this one, and the verdict stands at `approved`. The closing clause should go.

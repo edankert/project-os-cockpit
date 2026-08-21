@@ -10,7 +10,7 @@ updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: changes-requested
-review_response: "2026-08-21: the `--by` filter is gone from the invalidation set and the failing branch's asymmetry is documented as the decision it is, with tests constructing a `manual` and a `migration` verdict for both directions."
+review_response: "2026-08-21: the `--by` filter is gone from the invalidation set and the failing branch's asymmetry is documented as the decision it is, with tests constructing a `manual` and a `migration` verdict for both directions. || Second pass 2026-08-21: findings B and C fixed. The pass-dedup's --by removal was guarded by nothing (restoring it failed no test); test_a_second_machine_saying_pass_adds_nothing guards it now."
 review_response_date: 2026-08-21
 parent: "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -147,3 +147,18 @@ The `CHG` note's impact list names neither:
 
 - `tools/instructions/TAXONOMY.md:61`, which still states *"a `passing` test named in another's `covered_by:` settles it"*. This commit deleted `_resolve_coverage`, so that sentence is now false. It is template-owned and present in four fleet repos, so the fix belongs upstream — but it should be *named*.
 - `tools/scripts/migrate-acceptance-checks.py:149`, which still writes `covered_by: []` into every note it emits while `LEDGER_MOVED_FIELDS` refuses the field in any ledger-keeping repo. Pre-existing rather than introduced here, but this change is what strands it, and eight of twelve repos have not migrated.
+
+## Independent review — second pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `07602db..b635c39` — the first pass's findings and the author's reasoning trace were not available to it, only the seven claims as the notes state them. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]): same model as the author and as the first reviewer, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant.
+
+**This supersedes the first-pass verdict. The `review_response:` above is accurate** — the `--by` filter is gone from the invalidation set and the failing branch's asymmetry is documented and guarded, both confirmed by mutants rather than by reading. **The `--by` removal is nonetheless over-wide, and one half of it is unguarded.**
+
+**Finding B (high) — removing the `by` key from the invalidation set opened a new silent-rot hole, and it recurs every run.** `plan`'s `stale` set is now every `method: automated` verdict not re-observed in *this* run. Two runs on one platform that observe different subsets — the two toolchains this tool's own docstring puts in scope — therefore retract each other's verdicts forever. Constructed: a temp repo with `TST-0001` declared by a `.py` test and `TST-0002` by a `.kt` test, one platform, alternating pytest/gradle JUnit reports. At `b635c39`: run 1 `pass TST-0001`; run 2 `pass TST-0002` **+ `invalidate TST-0001 (no covering test observed)`**; run 3 `pass TST-0001` **+ `invalidate TST-0002`**; run 4 `pass TST-0002` + `invalidate TST-0001`. Seven ledger entries after four runs, growing by two per run, and at every instant one of the two checks reads as uncovered although a run observed it passing minutes earlier. The identical script against `07602db` gives **two** entries and `nothing changed` from run 3 onward. So the `by` filter was doing real work, and the fix removed it wholesale instead of separating *which machine wrote it* (correctly irrelevant) from *what this run's scope was* (load-bearing). The bug it fixed — a CI-job rename — happens once; the one it created happens on every run. `.github/workflows/observed-coverage.yml` has a single `observe` job today, so this repo does not trigger it: latent, undetected, in the flattering direction, which is the exact shape of the rot the feature exists to end.
+
+**Finding C (medium) — the other half of the `by` removal is guarded by nothing.** The pass-dedup in `main` dropped `and standing.by == args.by` and carries a comment asserting the consequence (*"Keying on it appended one entry per CI-job rename"*). I restored that clause in a clean worktree at `b635c39` and ran the **full** suite: 2051 passed, 5 skipped, and the only two failures are worktree-path artefacts (`test_the_project_id_is_the_directory_name_by_default`, `test_the_header_measures_from_the_instant_not_the_day`). No emitter test noticed. Three of the four behaviour changes in this file are pinned — mutants restoring `verdict.by == by` in `stale`, making the `failing` branch skip non-automated verdicts, and dropping `method == "automated"` from `stale` each fail their named test — and this one is not.
+
+### What survived refutation
+
+- Three of the four emitter behaviours are honestly pinned; each named mutant fails exactly its named test and no other.
+- `junit_results` handling of a skipped case (absent from the map rather than present-and-true) is unchanged and remains correct for the `@Ignore` case the inversion exists to catch.

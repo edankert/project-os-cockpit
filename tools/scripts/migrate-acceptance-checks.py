@@ -144,13 +144,26 @@ def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int,
     # 6-of-6 false-positive rate on the only corpus it would have run against;
     # `manual` is what every migrated row honestly is until somebody says
     # otherwise, and a wrong `full` would claim coverage that does not exist.
-    #: **`covered_by:` is NOT written any more** (REQ-0057, 2026-08-21). It is
-    #: one of the fields ADR-0037 moved into the ledger, and this repo's
-    #: validator refuses it (`LEDGER-MOVED-FIELD`) — so a migration run here
-    #: would have produced notes that fail the commit that carries them.
-    #: Stranded rather than broken by the removal: it has already run in every
-    #: repo that needed it, and nothing caught it because nothing re-runs it.
-    #: Found by independent review, 2026-08-21.
+    #: **`covered_by:` is NOT written any more** (REQ-0057, 2026-08-21), and
+    #: the distinction against the ten fields still written below is the whole
+    #: reason this comment exists.
+    #:
+    #: `mark`, `verdict_date`, `verdict_reason`, `invalidated_by`,
+    #: `automation`, `burden`, `evidence`, `section`, `ordinal` and
+    #: `migrated_from` are all in `LEDGER_MOVED_FIELDS` too, and they are
+    #: **still emitted on purpose**: that rule refuses them *only in a repo
+    #: that keeps ledgers*, and this script's job is to migrate a repo that
+    #: does not yet. Eight of twelve fleet repos are in exactly that state.
+    #:
+    #: `covered_by:` is different in kind: it left the schema outright. No
+    #: reader resolves it, no writer produces it, and REQ-0057 replaced the
+    #: mechanism rather than relocating it — so writing it would produce a
+    #: field that means nothing anywhere, in any repo, ledgers or not.
+    #:
+    #: *(The first version of this comment justified the removal by the
+    #: validator refusing the field, which proves too much: it refuses ten
+    #: more that this function still writes. Corrected after independent
+    #: review, 2026-08-21.)*
     fm.extend([
         "automation: manual",
         f"covers: [{', '.join(f'\"[[{r}]]\"' for r in item.refs)}]",
