@@ -349,8 +349,21 @@ def test_a_release_row_does_not_call_a_manual_check_automated() -> None:
     assert "if (!manual) row.classList.add('is-automated');" in body
     assert body.count("if (manual && controls) {") == 2, body[:400]
 
-    #: And the release surface derives `manual` from the ITEM.
-    assert "buildCheckRow(item, !item.command, false)" in src
+    #: And the release surface derives `manual` from the ITEM — **checked
+    #: inside the release region**, not as a whole-file substring. A
+    #: whole-file `in src` is satisfied by any comment quoting the string, and
+    #: `renderer.ts` already carries a comment quoting the previous round's
+    #: assertion; the seventh pass reinstated the round-five defect with one
+    #: such comment above it and both tests stayed green.
+    decls = [(m.start(), m.group(1))
+             for m in re.finditer(r"^(?:async )?function (\w+)", src, re.M)]
+    region = ""
+    for n, (start, name) in enumerate(decls):
+        if name == "buildReleaseItemPage":
+            end = decls[n + 1][0] if n + 1 < len(decls) else len(src)
+            region = _code_only(src[start:end])
+    assert region, "buildReleaseItemPage moved"
+    assert "buildCheckRow(item, !item.command, false)" in region
 
 
 def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
@@ -375,8 +388,10 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: DISAPPEARING and never one appearing: independent review added
     #: `buildReleaseChecksPanel` calling `askForMark` and the test passed.
     #: Every top-level function whose name mentions a release is in scope, and
-    #: the discovered set is asserted against the recorded one — so a ninth is
-    #: a deliberate edit here rather than a silent widening of the page.
+    #: the discovered set is asserted against the recorded one — so a **tenth**
+    #: is a deliberate edit here rather than a silent widening of the page.
+    #: (There are nine. The comment said "a ninth" while the list already held
+    #: nine, which is the enumerated version's sentence surviving the rewrite.)
     named = {"mountReleaseGate", "buildGateSection", "composeRelease",
              "holdFeatureBack"}
     subjects = {n for _, n in decls if "elease" in n} | named
@@ -393,8 +408,16 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: window that did not even contain the enclosing function.
     anchor = src.index("const heldBack = c.held_back")
 
+    #: **An enumeration, and it must be maintained.** It is not a property:
+    #: the seventh pass planted `checkMark(item)` on a release surface, and it
+    #: typechecked and left all 18 tests green while the list still named
+    #: `markGateRow(`, which is deleted. Every live route to a check write is
+    #: named here now, and [[ISS-0254]] owns the durable form — a rule over
+    #: the call graph rather than over spellings.
     forbidden = ("askForMark", "walkOneCheck", "/api/notes/mark-check",
-                 "gateMark(", "markGateRow(", "retireCheckRow(")
+                 "/api/notes/retire-check",
+                 "gateMark(", "markGateRow(", "retireCheckRow(",
+                 "checkMark(", "markCheckRow(", "paintCheckList(")
     covered = False
     for n, (start, name) in enumerate(decls):
         if name not in subjects:
@@ -415,8 +438,11 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: nothing else: `buildCheckRow(item, true)`, `(item, manual)` and `(c)`
     #: all passed, and the last is the original defect with one letter
     #: changed. Every call inside a release surface must pass `controls` as a
-    #: literal `false`, which is the property — *this surface offers no
-    #: verdict control* — rather than a way of writing it.
+    #: literal `false`.
+    #:
+    #: **That covers this helper and not the general case.** The `forbidden`
+    #: list above is still an enumeration; [[ISS-0254]] carries the repro and
+    #: the durable form.
     calls = 0
     for n, (start, name) in enumerate(decls):
         if name not in subjects:

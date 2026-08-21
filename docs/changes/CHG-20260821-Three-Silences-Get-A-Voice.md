@@ -59,6 +59,7 @@ The review desk's register rows now read `answered <date>` or `no response recor
 
 - `POST /api/notes/release-contents` with `action: "remove"` and no `reason` now returns **400**.
 - `POST /api/notes/retire-check` exists; the guarded-route count moved 27 → 28.
+- **`~release/<id>/<ITEM-ID>` no longer offers a mark control or a `Retire` button** on its check rows, and no longer labels a manual check `automated`. `buildCheckRow` takes `manual` and `controls` as two parameters: the first is a fact about the item, the second about the surface.
 - Two new validator codes, both warnings until `2026-11-18`: `SURFACE-ORPHAN`, `REVIEW-STALE`.
 - `release_payload().contents.kind` can be `"chosen"`, which it never was before; `contents.held_back` and `gate.deselection` are new keys.
 
@@ -150,3 +151,14 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **Verdict: approved.** Unchanged in `991838e..c4413e3` beyond the appended fifth-pass section, and nothing in the round-five repair touches this note's subject. Its `review_response:` chain is accurate and in order.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This confirms the sixth pass's verdict on this note rather than superseding it** — the sixth pass approved it, and I re-ran its evidence rather than inheriting it.
+
+**Verdict: approved.** Unchanged in `c4413e3..9784205` beyond the appended sixth-pass section, and its three-round response chain is accurate and in order.
+
+**One gap, trivial and worth naming.** *"Behaviour a caller can see"* lists four items and not the one a person would notice first: `~release/<id>/<ITEM-ID>`'s check rows stopped carrying a mark control and a `Retire` button, and then stopped mislabelling themselves `automated`. Both changes are recorded in [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]'s defect list and inside review sections on [[FEAT-0142]] and [[TASK-0576]] — and nowhere a reader asking *what changed for a caller* would look.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.

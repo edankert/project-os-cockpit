@@ -162,3 +162,12 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **Verdict: approved.** Unchanged in `991838e..c4413e3` beyond the appended fifth-pass section. The declaration mechanism this task delivered is exercised by the round-five repair rather than altered by it: `coverage-declarations.py` still finds all seven declarations across three checks, and driving the emitter over a real pytest report resolves every one of them through tier 1.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This confirms the sixth pass's verdict on this note rather than superseding it** — the sixth pass approved it, and I re-ran its evidence rather than inheriting it.
+
+**Verdict: approved.** Untouched in `c4413e3..9784205`. The declaration convention is exercised by this round rather than altered by it: the two new tier tests drive `_resolve` over declarations this scanner produced, and both mutants they catch are consumer-side. Nothing in the round-six repair reaches this note's subject.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.

@@ -9,7 +9,7 @@ created: 2026-08-20
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
-review_verdict: changes-requested
+review_verdict: approved
 review_response: "Fifth pass 2026-08-21: F1 - the release ITEM page carried a live mark control on every check row, which is ADR-0035's subject and this feature's own 'no write path to a check appears on the release page'. Fixed and the guard widened to name the shared row builder; both mutants fail it. || Sixth pass 2026-08-21: F1 and F2 fixed. The guard checked spellings, not the property - buildCheckRow(item, true), (item, manual) and (c) all passed it, and the last is the original defect with one letter changed. It parses every call inside a release surface and requires controls to be a literal false."
 review_response_date: 2026-08-21
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -301,3 +301,14 @@ This falsifies no ticked criterion: *"no write path to a check appears on the re
 **What the widening did close, verified by mutant:** reverting to `buildCheckRow(item)` fails it; planting `retireCheckRow(` inside `buildReleaseItemPage` fails it; adding `function buildReleaseChecksPanel` calling `askForMark` fails it on the discovered-set assertion — so appearance is now caught, which is what the fifth pass asked for. Three for three, including the exact regression it was written for.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This supersedes the sixth pass's verdict on this note.**
+
+**Verdict: approved.** The sixth pass's F1 is fixed and I verified it by rendering: `buildCheckRow(item, !item.command, false)` on a manual check emits `<div class="checks-row">` with no `is-automated`, no `checks-row-command`, no mark and no `Retire`; on a command-bearing check it emits the real command rather than the fallback word. This repo holds **34** checks, **0** with a `command:`, and **67** rows across all 142 features' three lists — so the 67 rows that printed `automated` now print nothing. F2's argument rule is real for `buildCheckRow`: `(item)`, `(item, false)`, `(item, !item.command, true)` and `(item, true, false)` each fail a named guard.
+
+**Two residuals, neither a product defect, both recorded in full on [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]].** First, the guard still admits a live mark control by another route: `s.appendChild(checkMark(item));` planted in `buildReleaseItemPage` **typechecks clean** and leaves all 18 tests in `tests/test_release_held_back.py` green, as does a button calling `markCheckRow(item)` — `checkMark(`, `markCheckRow(` and `paintCheckList(` are absent from `forbidden`, which still names the deleted `markGateRow(`. The code is right — a transitive scan of all nine release surfaces finds exactly one route to a check write, and it is disarmed — but the test's new comment claims the argument rule **is** the property *"this surface offers no verdict control"*, and it is not. Second, `buildCheckRow(item, false, false)` satisfies the argument rule and is caught only by a whole-file substring assertion, so one comment line quoting that string re-admits the round-five defect past both tests — measured both ways.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.

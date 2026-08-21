@@ -286,3 +286,14 @@ Measured: a check observed `pass`, then six consecutive runs in which its declar
 **None of these four blocks the note.** The behaviour is correct in every construction I could build; what is missing is a guard on two rules the code asserts in bold, and a record for a state the run now announces.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This confirms the sixth pass's verdict on this note rather than superseding it** — the sixth pass approved it, and I re-ran its evidence rather than inheriting it.
+
+**Verdict: approved.** The three guards this round added are real and each is the only test in the file that catches its mutant — tier precedence (`test_the_declarations_own_module_beats_a_bare_stem_match`), the tier-1 tie refusal (`test_two_classes_in_the_declarations_module_are_a_refusal`) and the stderr notice (`test_an_unattributable_run_says_so_on_stderr_too`). `plan()`'s docstring returns to matching its own signature. This note's `review_response:` describes the change as *"NOT ATTRIBUTED on stderr"*, which is exactly the size of what changed — see the finding on [[FEAT-0138]], whose entry for the same edit says more.
+
+Loops re-run and entries counted rather than reasoned about: 6×pass → **1**; 4×fail → **0**; `pass`→`fail`→`pass`→`pass` → **3**; `pass` then five skipped → **2**; `pass` then five partial runs → **1**; six alternating → **6**, one per transition. No unbounded growth in any of them.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.

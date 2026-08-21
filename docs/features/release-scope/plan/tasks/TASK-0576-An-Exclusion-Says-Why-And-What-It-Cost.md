@@ -1,7 +1,7 @@
 ---
 type: "[[task]]"
 id: TASK-0576
-review_verdict: changes-requested
+review_verdict: approved
 review_response: "Fifth pass 2026-08-21: this task's fourth criterion was true of the block it added and false of the page it added it to - buildReleaseItemPage rendered markable check rows. Fixed, and the guard is bounded by discovered release surfaces with comments stripped rather than by a character window. || Sixth pass 2026-08-21: F1 and F2 fixed; the ADR-0035 guard is now on the argument rather than on the text, with exactly one legitimate call asserted."
 review_response_date: 2026-08-21
 review_date: 2026-08-21
@@ -186,3 +186,14 @@ This falsifies no ticked criterion: *"no write path to a check appears on the re
 **What the widening did close, verified by mutant:** reverting to `buildCheckRow(item)` fails it; planting `retireCheckRow(` inside `buildReleaseItemPage` fails it; adding `function buildReleaseChecksPanel` calling `askForMark` fails it on the discovered-set assertion — so appearance is now caught, which is what the fifth pass asked for. Three for three, including the exact regression it was written for.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This supersedes the sixth pass's verdict on this note.**
+
+**Verdict: approved.** This task's fourth criterion — no write path to a check on the release page — is now true of the page as well as of the block, and I established it two ways: a transitive scan of every call out of all nine release surfaces finds exactly one route to a check write (`buildReleaseItemPage` → `buildCheckRow`, gated on `manual && controls` with `controls` hard-`false`), and the row was rendered under a DOM shim to confirm the mark button and `Retire` are absent while nothing false is printed in their place. The other criteria hold: a removal with no reason is a 400, the reason lands in `held_back:` beside `features:`, and the page reads `N feature(s) held back · M check(s) no longer gating` from `gate.deselection` rather than from a second count.
+
+**The guard is weaker than its own comment, which is recorded in full on [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]] and does not change this verdict.** `checkMark(item)` and a button calling `markCheckRow(item)` each typecheck clean inside `buildReleaseItemPage` and leave all 18 tests in this file green; and `buildCheckRow(item, false, false)` passes the argument rule, caught only by a whole-file substring that one comment line disarms.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.

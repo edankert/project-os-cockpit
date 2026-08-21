@@ -254,3 +254,12 @@ Measured: a check observed `pass`, then six consecutive runs in which its declar
 **None of these four blocks the note.** The behaviour is correct in every construction I could build; what is missing is a guard on two rules the code asserts in bold, and a record for a state the run now announces.
 
 **Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
+
+
+## Independent review — seventh pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `c4413e3..9784205`, widened to `f5ca55b..9784205` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all six earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. Every figure below was produced by running the code, mutating it, rendering it or counting the tree; none of it by reading a docstring and agreeing with it. **This confirms the sixth pass's verdict on this note rather than superseding it** — the sixth pass approved it, and I re-ran its evidence rather than inheriting it.
+
+**Verdict: approved.** The requirement's substance is unchanged in `c4413e3..9784205`; what landed against it is three guards and a docstring, each verified by mutant. Coverage is still observed rather than declared, and the one state the emitter cannot answer is reported on both streams rather than one. The residual named on [[FEAT-0138]] — that an unattributable run leaves the standing verdict and every surface unchanged — is a gap in the record, not a false claim in this requirement, which asserts only that the state is reported rather than guessed.
+
+**Suite, validator, CI step set — observed, not reported.** `.venv/bin/python -m pytest -q` → **2076 passed, 3 skipped** in 271s. `bash tools/scripts/validate-docs.sh` → `validate-docs: OK`, **zero errors** and 344 warnings. `--as-committed` → *"HEAD passes the full CI step set"*: validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9784205`.
