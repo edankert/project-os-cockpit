@@ -74,36 +74,46 @@ def _scanner():
     return module
 
 
-def junit_results(path: Path) -> "tuple[dict[str, bool], set[str]]":
-    """`({test name: passed}, {test name skipped})` from a JUnit XML report.
+def junit_results(
+    path: Path,
+) -> "tuple[dict[tuple[str, str], bool], set[tuple[str, str]]]":
+    """`({(classname, test): passed}, {(classname, test) skipped})`.
 
-    **Keyed on the bare test name**, which is what the declaration scanner
-    knows: pytest writes `name="test_x"` with the module in `classname`, and
-    gradle writes the method name the same way. A skipped test is *not*
-    observed — it is exactly the `@Ignore` case the inversion exists to catch,
-    so it is absent from this map rather than present and true.
+    Keyed on **both**, because a bare test name is not unique across a suite —
+    see the comment below. pytest writes the module in `classname` and gradle
+    writes the fully-qualified class; either is enough to tell two same-named
+    tests apart.
     """
-    out: dict[str, bool] = {}
-    skipped: set[str] = set()
+    out: dict[tuple[str, str], bool] = {}
+    skipped: set[tuple[str, str]] = set()
     root = ET.parse(path).getroot()
     for case in root.iter("testcase"):
         name = str(case.get("name") or "").strip()
         if not name:
             continue
+        #: **`classname` is read, and not reading it was a live defect.**
+        #: Keying on the bare name ANDed two different tests together: this
+        #: repo has `test_it_does_not_push` in `test_close_out_commit.py`
+        #: (which declares TST-0069) and in `test_observed_coverage.py` (which
+        #: declares nothing), CI runs both into one report, and the
+        #: non-declaring twin failing invalidated the other's verdict. Found by
+        #: independent review, fourth pass, by constructing the shape.
+        where = str(case.get("classname") or "").strip()
         #: pytest parametrisation writes `test_x[param]`; the declaration
         #: names the function, so the parameter is stripped and every case
         #: must pass for the check to be observed passing.
         base = name.split("[", 1)[0]
+        key = (where, base)
         if case.find("skipped") is not None:
             #: **Skipped is observed, and it is not a pass.** `@Ignore` is the
             #: case FEAT-0138 names beside delete and rename. It is kept
             #: SEPARATE from absence because the two mean different things: a
             #: skipped test says *this run declined to produce evidence*, and
             #: an absent one says *this run was not about that test at all*.
-            skipped.add(base)
+            skipped.add(key)
             continue
         ok = all(case.find(tag) is None for tag in ("failure", "error"))
-        out[base] = out.get(base, True) and ok
+        out[key] = out.get(key, True) and ok
     return out, skipped
 
 
@@ -144,9 +154,37 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
     """
     from project_os_cockpit import ledger as _ledger
 
-    declared: dict[str, list[str]] = {}
+    #: Each declaration carries the file it is in, so it can be matched
+    #: against the report's `classname` rather than on the bare name alone.
+    declared: dict[str, list[tuple[str, str]]] = {}
     for decl in _scanner().scan(root):
-        declared.setdefault(decl.check, []).append(decl.test)
+        declared.setdefault(decl.check, []).append((decl.rel, decl.test))
+
+    def _resolve(where: str, test: str) -> "tuple[str, str] | None":
+        """The report key for one declaration, or `None` if the run did not
+        cover it.
+
+        **The `classname` must identify the declaration's own file**, and
+        there is deliberately no fallback to the bare name. A declaration in
+        `tests/test_close_out_commit.py` matches a `classname` of
+        `tests.test_close_out_commit`; a JVM one in `.../com/x/FooTest.kt`
+        matches `com.x.FooTest`; an XCTest one matches its class.
+
+        A bare-name fallback was written first and was wrong on the very case
+        this method exists for: with the declaring test absent and a
+        same-named test from another module present, it was the only
+        candidate, so the fallback matched it. **Not-found is the
+        fail-closed answer** — it emits nothing rather than emitting about a
+        test that declares nothing.
+        """
+        stem = where.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        dotted = where.rsplit(".", 1)[0].replace("/", ".")
+        for cls, name in list(results) + sorted(skipped):
+            if name != test:
+                continue
+            if cls == dotted or cls.endswith("." + stem) or cls == stem:
+                return (cls, name)
+        return None
 
     passing: dict[str, list[str]] = {}
     failing: dict[str, list[str]] = {}
@@ -155,14 +193,18 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
     #: four fifths of an answer, and reporting it as `pass` is the
     #: overclaiming this phase spent itself removing. Independent review
     #: constructed exactly that and watched `pass` come out.
-    for check, tests in sorted(declared.items()):
-        seen = [t for t in tests if t in results]
-        held = [t for t in tests if t in skipped]
-        bad = sorted(t for t in seen if not results[t])
+    resolved: dict[str, list[tuple[str, str] | None]] = {
+        check: [_resolve(where, test) for where, test in tests]
+        for check, tests in sorted(declared.items())
+    }
+    for check, keys in resolved.items():
+        seen = [k for k in keys if k is not None and k in results]
+        held = [k for k in keys if k is not None and k in skipped]
+        bad = sorted(k[1] for k in seen if not results[k])
         if bad:
             failing[check] = bad
         elif seen and not held:
-            passing[check] = sorted(seen)
+            passing[check] = sorted(k[1] for k in seen)
 
     current = _ledger.verdicts(root / "docs", platform)
 
@@ -179,13 +221,19 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
         partial run is not evidence of absence, and treating it as one made a
         `.py` run and a `.kt` run retract each other on every cycle.
         """
-        tests = declared.get(check)
-        if not tests:
+        keys = resolved.get(check)
+        if not keys:
             return True
+        #: **Two invalidations for one check in one run is one too many.**
+        #: A run where one declaring test fails and another is skipped hits
+        #: both branches, and the `failing` loop writes its own entry.
+        #: Independent review mutated this line to `if False:` and watched a
+        #: second `invalidate` appear on the same check in the same run.
         if check in passing or check in failing:
             return False
-        return (any(t in skipped for t in tests)
-                and all(t in skipped or t in results for t in tests))
+        return (any(k in skipped for k in keys if k is not None)
+                and all(k is not None and (k in skipped or k in results)
+                        for k in keys))
 
     #: **Read off `current`, so it appends only when the answer changes.**
     #: The first cut iterated `declared` for the skipped case and consulted

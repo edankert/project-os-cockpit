@@ -18,6 +18,7 @@ contents yet, so the corpus cannot exercise any of this.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -311,11 +312,70 @@ def test_the_remove_control_asks_why() -> None:
     )
 
 
+def _code_only(text: str) -> str:
+    """`text` with comments removed.
+
+    **The guard fired on a comment the first time it was widened**, and the
+    comment was one recording that `markGateRow` had been *deleted* — so the
+    note explaining that a write path is gone read as a write path. Stripping
+    comments is what makes *"no verdict control on a release surface"* a claim
+    about code.
+    """
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"^\s*//.*$", "", text, flags=re.M)
+
+
 def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
-    """[[ADR-0035]] unweakened — [[TASK-0576]]'s fourth criterion. The
-    held-back block draws rows and reasons and offers no verdict control."""
+    """[[ADR-0035]] unweakened — [[TASK-0576]]'s fourth criterion.
+
+    **Scoped to the whole release-page region, not to a window.** The first
+    version read `src[i:i + 2600]` and `renderer.ts` runs 469,293 characters
+    past that anchor — independent review put a live `askForMark` call at
+    anchor + 2621 and the test passed. A universal claim measured over 0.5% of
+    the file is the shape this phase exists to remove.
+
+    The region is every release-page render function, bounded by the next
+    top-level declaration rather than by a character count.
+    """
     src = RENDERER.read_text(encoding="utf-8")
-    i = src.index("const heldBack = c.held_back")
-    block = src[i:i + 2600]
-    for forbidden in ("askForMark", "walkOneCheck", "/api/notes/check"):
-        assert forbidden not in block, forbidden
+    decls = [(m.start(), m.group(1))
+             for m in re.finditer(r"^(?:async )?function (\w+)", src, re.M)]
+    #: **Every function that builds or renders a release surface**, bounded by
+    #: the next top-level declaration. Named rather than pattern-matched, so
+    #: renaming one into existence outside this list is a visible edit here.
+    subjects = {"renderReleasePage", "renderReleaseItemPage",
+                "buildReleasePage", "buildReleaseItemPage",
+                "mountReleaseGate", "buildGateSection", "composeRelease",
+                "holdFeatureBack"}
+    found = {name for _, name in decls} & subjects
+    assert found == subjects, (
+        "the release page's functions moved: missing %s"
+        % sorted(subjects - found)
+    )
+    #: And the block this task added is inside one of them, checked rather
+    #: than assumed — the first version of this test scanned a 2600-character
+    #: window that did not even contain the enclosing function.
+    anchor = src.index("const heldBack = c.held_back")
+
+    forbidden = ("askForMark", "walkOneCheck", "/api/notes/mark-check",
+                 "gateMark(", "markGateRow(")
+    covered = False
+    for n, (start, name) in enumerate(decls):
+        if name not in subjects:
+            continue
+        end = decls[n + 1][0] if n + 1 < len(decls) else len(src)
+        region = _code_only(src[start:end])
+        if start <= anchor < end:
+            covered = True
+        for word in forbidden:
+            assert word not in region, (
+                "%s appears inside %s() — a release page reports, it does not "
+                "record (ADR-0035)" % (word, name)
+            )
+    assert covered, "the held-back block is not inside any release function"
+
+    #: And the two deletions are file-wide, which is the stronger claim: a
+    #: live-looking helper is how the next caller re-acquires the behaviour a
+    #: decision just removed.
+    assert "function gateMark" not in src
+    assert "function markGateRow" not in src

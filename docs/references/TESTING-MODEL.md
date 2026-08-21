@@ -96,6 +96,12 @@ automation: full
 
 ## What the cockpit implements today
 
+> ⛔ **PARTLY SUPERSEDED 2026-08-21 by [[REQ-0057]].** In this section's own first line, because *a heading is a landing target* — the banner on `## The automation path` above does not reach a reader who arrives here.
+>
+> Every mention below of **`covered_by:`**, of **`automation:`** as a coverage claim, of **`_resolve_coverage`**, and of *"Covered by"* as something the cockpit writes describes a mechanism that **no longer exists**. The three properties the Verified section says *"all hold"* held of code that is deleted. A test declares the check in its own source and a run emits the verdict into the ledger.
+>
+> The rest of the section — the six derived tests-view groups, `_is_manual_test`, the two-predicate disagreement, the staleness row and its corpus caveat — is unaffected, and is why this file is kept rather than rewritten.
+
 **Tests view** — six sections, every one of them derived ([[ADR-0039]]):
 
 - `Needs you` — what a person owes, gathered from the sections below.

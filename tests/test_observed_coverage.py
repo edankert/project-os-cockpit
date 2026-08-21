@@ -47,12 +47,19 @@ JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 """
 
 
-def _junit(tmp: Path, cases: dict[str, str]) -> Path:
-    """`{test name: ''|'failure'|'skipped'}` as a JUnit report."""
+def _junit(tmp: Path, cases: dict[str, str], classname: str = "tests.test_thing",
+           classes: "dict[str, str] | None" = None) -> Path:
+    """`{test name: ''|'failure'|'skipped'}` as a JUnit report.
+
+    `classname` defaults to the module the fixture's declaring test lives in,
+    because the emitter matches a declaration against it — a bare name is not
+    unique across a suite, and this repo had a live collision.
+    """
     body = ""
     for name, outcome in cases.items():
         inner = f"<{outcome} message='x'/>" if outcome else ""
-        body += f"<testcase classname='m' name='{name}'>{inner}</testcase>"
+        cls = (classes or {}).get(name, classname)
+        body += f"<testcase classname='{cls}' name='{name}'>{inner}</testcase>"
     path = tmp / "junit.xml"
     path.write_text(JUNIT.format(n=len(cases), cases=body), encoding="utf-8")
     return path
@@ -293,7 +300,8 @@ def test_every_declaring_test_must_pass(tmp_path: Path) -> None:
         "def test_second():\n    # Covers: TST-0001\n    pass\n",
         encoding="utf-8")
     _emit(tmp_path, _junit(tmp_path,
-                           {"test_the_thing": "", "test_second": "failure"}))
+                           {"test_the_thing": "", "test_second": "failure"},
+                           classes={"test_second": "tests.test_two"}))
     assert _blocking(tmp_path) == {"TST-0001"}
 
 
@@ -393,8 +401,8 @@ def test_two_runs_covering_different_toolchains_do_not_retract_each_other(
         "fun kotlinSide() {\n    // Covers: TST-0002\n}\n", encoding="utf-8")
 
     for _ in range(3):
-        _emit(root, _junit(root, {"test_python_side": ""}))
-        _emit(root, _junit(root, {"kotlinSide": ""}))
+        _emit(root, _junit(root, {"test_python_side": ""}, classname="tests.test_py"))
+        _emit(root, _junit(root, {"kotlinSide": ""}, classname="Kt"))
 
     entries = ledger.load(root / "docs", "macos")[0].entries
     assert [e.check for e in entries] == ["TST-0001", "TST-0002"], (
@@ -493,9 +501,78 @@ def test_a_skipped_sibling_is_not_laundered_into_a_pass(
         "def test_second():\n    # Covers: TST-0001\n    pass\n",
         encoding="utf-8")
     out = _emit(tmp_path, _junit(
-        tmp_path, {"test_the_thing": "", "test_second": "skipped"}))
+        tmp_path, {"test_the_thing": "", "test_second": "skipped"},
+        classes={"test_second": "tests.test_two"}))
     assert "pass TST-0001" not in out.stdout, out.stdout
     assert _blocking(tmp_path) == {"TST-0001"}
+
+
+def test_two_tests_with_one_name_are_not_the_same_test(
+        tmp_path: Path) -> None:
+    """**The collision was live in this repo when it was found.**
+    `test_it_does_not_push` existed in `test_close_out_commit.py`, declaring
+    [[TST-0069]], and in `test_observed_coverage.py`, declaring nothing. CI
+    runs both into one report, so the non-declaring twin failing invalidated
+    the other's verdict.
+
+    `classname` is in the XML and was not being read. Now it is: a declaration
+    matches the report entry from **its own file**.
+    """
+    _repo(tmp_path)
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": ""}))
+    assert _blocking(tmp_path) == set()
+
+    #: A same-named test in a different module, failing. It is a different
+    #: test and it says nothing about this check.
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "failure"},
+                           classname="tests.some_other_module"))
+    assert _blocking(tmp_path) == set(), (
+        "a same-named test in another module invalidated this check's verdict"
+    )
+
+
+def test_a_report_that_does_not_name_the_file_emits_nothing(
+        tmp_path: Path) -> None:
+    """Fail-closed, and there is deliberately no bare-name fallback. Two report
+    entries carry the declaring test's name and neither `classname` identifies
+    its file — so the run did not cover it, and the emitter says nothing rather
+    than picking whichever sorted first."""
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    junit = tmp_path / "amb.xml"
+    junit.write_text(
+        "<testsuites><testsuite name='x' tests='2'>"
+        "<testcase classname='a.b' name='test_the_thing'/>"
+        "<testcase classname='c.d' name='test_the_thing'/>"
+        "</testsuite></testsuites>", encoding="utf-8")
+    _emit(tmp_path, junit)
+    assert ledger.load(tmp_path / "docs", "macos")[0].entries == []
+
+
+def test_one_check_gets_at_most_one_invalidation_per_run(
+        tmp_path: Path) -> None:
+    """A run where one declaring test fails and another is skipped hits both
+    branches. The `failing` loop writes the entry; `_withdrawn` must decline.
+
+    Guarded by nothing until independent review mutated that line to
+    `if False:` and watched a second `invalidate` appear on the same check in
+    the same run — passing all 34 tests in this file.
+    """
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    (tmp_path / "tests" / "test_two.py").write_text(
+        "def test_second():\n    # Covers: TST-0001\n    pass\n",
+        encoding="utf-8")
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "", "test_second": ""},
+                           classes={"test_second": "tests.test_two"}))
+    _emit(tmp_path, _junit(
+        tmp_path, {"test_the_thing": "failure", "test_second": "skipped"},
+        classes={"test_second": "tests.test_two"}))
+    entries = ledger.load(tmp_path / "docs", "macos")[0].entries
+    assert len(entries) == 2, [(e.check, e.is_invalidation) for e in entries]
+    assert entries[1].is_invalidation
 
 
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
@@ -507,7 +584,7 @@ def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     assert ledger.load(tmp_path / "docs", "macos")[0].entries == []
 
 
-def test_it_does_not_push(tmp_path: Path) -> None:
+def test_the_emitter_does_not_push(tmp_path: Path) -> None:
     """A commit is local and reversible; a push is publishing. This writes the
     working ledger and stops — landing the entries is a person's commit, like
     every other write in this repo."""
