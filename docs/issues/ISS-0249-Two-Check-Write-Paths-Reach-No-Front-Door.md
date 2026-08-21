@@ -8,8 +8,10 @@ owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
-review_verdict: approved
+review_date: 2026-08-21
+review_verdict: changes-requested
+review_response: "2026-08-21: test_no_public_write_in_note_writes_is_unreachable counted a substring and was vacuous for 4 of 13 writes, retire_check among them - `_serve_retire_check` contains `retire_check(`. It resolves ast.Call sites now, and the mutant (the real call replaced by a nonexistent one) fails it."
+review_response_date: 2026-08-21
 source: ["[[TASK-0363]] cross-check against `note_writes`' callers, 2026-08-20"]
 severity: medium
 component: cockpit
@@ -100,3 +102,44 @@ That is the question this issue found nobody was asking. The loopback enumeratio
 ### Correction applied
 
 `related:` linked `[[TASK-0518-Rest-Or-Retire]]`, a slug that note does not carry. It resolves by ID so nothing errored; a reader clicking it landed nowhere. Now `[[TASK-0518-Review-Tier-Two-For-One-Time-Fixes]]`.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: changes-requested.** The specific fix is correct and well guarded. The *general* guard built beside it — the part this note is proudest of — cannot detect its own subject.
+
+### What holds
+
+- `retire_check` is routed at `POST /api/notes/retire-check` (`server.py:758`), guarded like every other write. The count moved 27 → 28 in both `test_every_guarded_endpoint_refuses_a_remote_peer` and `test_no_guard_call_has_its_answer_discarded`, and the first drives the route **over a real socket** rather than asserting on source.
+- `cover_check` is deleted, pinned by `assert not hasattr(note_writes, "cover_check")` — a runtime assertion, not a text match.
+
+### Finding (high) — `test_no_public_write_in_note_writes_is_unreachable` is vacuous for 4 of 13 write paths
+
+The guard's predicate is:
+
+```python
+unreachable = sorted(name for name in writes if callers.count("%s(" % name) <= 1)
+```
+
+`callers` is the concatenated **text** of six modules, and the count is a raw substring count. The handler for a write is named `_serve_<write>`, and `_serve_retire_check` **contains `retire_check(` as a substring** — twice, at its `def` line and its dispatch line. So the real call is not needed to satisfy the threshold.
+
+Constructed and executed: I replaced `result = note_writes.retire_check(` in `server.py` with a call to a non-existent function, leaving no comment behind. `test_no_public_write_in_note_writes_is_unreachable` **passed**. It also passed when the call was replaced by a bare comment mentioning `retire_check(`.
+
+Simulating the removal of every real `note_writes.<name>(` call, the guard still reports "reachable" for:
+
+| write path | server.py hits | real calls | guard |
+|---|---|---|---|
+| `mark_released` | 3 | 1 | **vacuous** |
+| `release_contents` | 3 | 1 | **vacuous** |
+| `retire_check` | 3 | 1 | **vacuous** |
+| `seal_ledger` | 3 | 1 | **vacuous** |
+
+The remaining nine are genuinely guarded (2 hits, one of which is the definition). **`retire_check` and `release_contents` are the two write paths this very commit is about**, and both are in the vacuous set.
+
+This is the pitfall the phase note names in its own closing section — *"a text assertion passes on a rule whose normalisation is in a comment"* — committed by the guard written to generalise this issue.
+
+### What to change
+
+Count **call sites**, not substrings: parse each caller module with `ast` and look for `ast.Call` whose func is an `ast.Attribute` named `<write>` on `note_writes` (the same technique the test already uses to find the writes, and the one `test_no_guard_call_has_its_answer_discarded` uses for `_require_loopback`). Then re-run against the mutant above and confirm it fails.

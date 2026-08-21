@@ -9,8 +9,10 @@ owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
-review_verdict: approved
+review_date: 2026-08-21
+review_verdict: changes-requested
+review_response: "2026-08-21: the count was wrong three ways and is now measured - 97 children, and the breakdown adds up. All seven findings across the range are fixed; see the response on each note."
+review_response_date: 2026-08-21
 goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
 features:
   - "[[FEAT-0125-The-Release-Page-Reports-What-Holds-It]]"
@@ -107,7 +109,9 @@ Basis blockquote present; the `15 areas` line is resolved on `ISS-0243` (it was 
 
 ## Closed 2026-08-21
 
-**Ninety-five notes name this phase and all ninety-five are resolved.** Eleven features, eight requirements, three ADRs, thirty issues, forty-one tasks, one design, five change notes.
+**Ninety-seven notes name this phase and all ninety-seven are resolved.** Eleven features, nine requirements, three ADR-type notes, thirty issues, thirty-eight tasks, one design, five change notes.
+
+*(**The first version of this line said ninety-five, and its own breakdown summed to ninety-nine.** Neither number was measured — both were typed. Corrected after independent review by counting: `97`, and the breakdown now adds up. This is the phase whose thesis is that a count with no cause beside it is the defect, and whose membership section already says *"the arithmetic is the check the eye is not"*. It said it twice and did it neither time.)*
 
 ### What the last day added, and why it is not a tail
 
@@ -116,7 +120,7 @@ Four of the five exit criteria were met before 2026-08-21. The work done to clos
 - [[TASK-0576]] / [[FEAT-0142]]: an exclusion records **why**, and the page reads `N features held back · M checks no longer gating`. A gate that fell from 59 to 23 with nothing beside it is [[ISS-0241]] and [[ISS-0243]] in a new place.
 - [[FEAT-0138]] / [[REQ-0057]]: **coverage is observed, not declared.** The test declares the check, the run emits, and deleting the covering test puts the check back on the run list by itself. `covered_by:` — a standing claim that had never settled a check in any repo — is removed, and [[REQ-0039]] is superseded.
 - [[ISS-0250]]: `SURFACE-ORPHAN`. A rename silently orphaned every check on a surface, and an orphaned surface was indistinguishable from an untested one.
-- [[ISS-0253]]: `review_response:` and `REVIEW-STALE`. **43 notes** were closed while still reading `changes-requested`, and the rule found exactly that number independently.
+- [[ISS-0253]]: `review_response:` and `REVIEW-STALE`. **51 notes** were closed while still reading `changes-requested`. *(Both this note and the rule first said 43 — the issue's filed count was not re-measured and the rule could not see `CHG-*` notes at all. Two errors agreeing. Corrected after independent review.)*
 - [[ISS-0249]]: `retire_check` is routed; `cover_check` is deleted. And `test_no_public_write_in_note_writes_is_unreachable` now asks the general question — *is every write routed?* — that nothing was asking.
 - [[ISS-0252]]: `close-out-commit.sh` names what it changes in `SNAPSHOT.yaml`'s membership, and the **dangling** case separately, because that is the one that does not self-heal.
 
@@ -140,3 +144,45 @@ And a fourth, in the tooling rather than the product: the declaration scanner **
 ### Two vocabularies now exist in three copies each
 
 `OWED_VERDICTS` (cockpit, validator, renderer) and the surface-title join (cockpit, validator). Both are forced — the validator is stdlib-only and standalone, the renderer is TypeScript — and both are pinned by tests that **drive** the copies over the same inputs rather than matching text in either. A text assertion passes on a rule whose normalisation is in a comment, which is this repo's own recorded mutation-testing pitfall and which bit this phase again on its last day.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: changes-requested.** Four of the five exit criteria hold under refutation, and two of the phase's own new rules do not do what the closing section says they do.
+
+### What survived refutation
+
+- **Criterion 1 holds.** `gateMark` and `markGateRow` are **deleted, not defaulted** — `grep -rn "gateMark\|markGateRow"` over `desktop/src/` and `src/` returns comments and test assertions only, and no `function gateMark` exists anywhere.
+- **Criterion 3 holds, and was verified by construction rather than by reading the loader.** I built a temp repo with an acceptance check at `docs/features/weird/plan/tests/TST-9001-Odd-Home.md` — outside `docs/tests/acceptance/` — and `acceptance.load(docs, index=...)` returned it (`shape: notes`, one item). Routing is by `level:`, not by directory.
+- **Criterion 5's subtraction is honestly guarded.** `delta()` is pinned both on the mechanism *and* behaviourally, and the behavioural half is real (it builds a suite, deselects a feature, and asserts the row survives in `chronic`). The mechanism assertion is source-text, which is normally this repo's recorded pitfall — here it is defensible, because `delta()` takes no deselection argument and a subtracting mutant cannot be expressed without new plumbing.
+- **All 97 children are at a terminal status.** Nothing is closed over. `ISS-0248` is `declined`, which STATUSES.md line 51 lists as resolving.
+
+### Finding 1 — the closing count is wrong three separate ways
+
+*"Ninety-five notes name this phase … Eleven features, eight requirements, three ADRs, thirty issues, forty-one tasks, one design, five change notes."*
+
+Re-counted by parsing every note's own `phase:` field, which is the load-bearing one this note correctly identifies:
+
+| | headline | the note's own breakdown | measured |
+|---|---|---|---|
+| total | **95** | **99** (11+8+3+30+41+1+5) | **97** |
+| requirements | — | 8 | **9** |
+| tasks | — | 41 | **38** |
+
+Features (11), ADRs (3), issues (30), design (1) and change notes (5) are all exact. The claim *"all ninety-five are resolved"* is substantively true — all 97 are — but three different integers appear for one population, and none of them is the population. This note's own words are *"15 + 13 = 28, and the arithmetic is the check the eye is not."*
+
+### Finding 2 — *"the rule found exactly that number independently"* is not independent corroboration
+
+The closing section says **43 notes** were closed still reading `changes-requested` *"and the rule found exactly that number independently."* The two 43s are different populations that coincide.
+
+`ID_PREFIXES` in `tools/scripts/validate-docs.py` line 63 does not contain `CHG`, so `build_note_index` never indexes a change note and `REVIEW-STALE` **cannot fire on one**. Measured against `git archive f5ca55b`: **56** notes carry an owed verdict, **51** at a terminal status, **8** of them `CHG-*`. 51 − 8 = 43. See [[ISS-0253]] for the detail.
+
+### Finding 3 — the ISS-0249 general guard is vacuous for the function ISS-0249 is about
+
+`test_no_public_write_in_note_writes_is_unreachable` counts the raw substring `"<name>("` over concatenated source. `_serve_retire_check` contains `retire_check(`, so the handler's own definition and dispatch line supply two free hits. I replaced the real `note_writes.retire_check(` call with a non-existent function and the guard still passed. Vacuous for **4 of 13** write paths — `mark_released`, `release_contents`, `retire_check`, `seal_ledger`. See [[ISS-0249]].
+
+### On the *"two vocabularies in three copies"* claim
+
+Verified rather than accepted. I broke the **cockpit** side of the surface join (`cockpit.py` `surface_coverage`, dropping `.lower()`) while leaving the validator untouched: `test_the_rule_and_the_join_agree_on_normalisation` failed on `'Riding — routes'`. That guard genuinely drives both copies. The closing section's warning about text assertions is correct — and Finding 3 is that same pitfall committed one file away.

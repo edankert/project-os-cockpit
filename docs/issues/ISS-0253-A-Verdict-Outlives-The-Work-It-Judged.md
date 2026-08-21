@@ -1,6 +1,11 @@
 ---
 type: "[[issue]]"
 id: ISS-0253
+review_verdict: changes-requested
+review_response: "2026-08-21: REVIEW-STALE walks the docs tree instead of note_index, which held no CHG-* note at all - 8 of the 51 terminal owed verdicts are change notes and every `merged` one is. The filed 49/43 did not reproduce; the measured figure at f5ca55b is 56 owed / 51 terminal (30 done, 8 merged, 4 implemented, 9 fixed) and the note now says so."
+review_response_date: 2026-08-21
+review_date: 2026-08-21
+reviewed_by: model:claude-opus-5
 aliases: ["ISS-0253"]
 title: "`review_verdict` is sticky and nothing refreshes it, so 43 notes are closed while still reading `changes-requested` — the record says work was rejected that was fixed weeks ago"
 status: fixed
@@ -18,6 +23,19 @@ tests: []
 # A verdict outlives the work it judged
 
 ## Measured
+
+> ⚠️ **The table below is the count filed on 2026-08-20 and it does not reproduce.** Corrected after independent review, 2026-08-21. Re-measured against `git archive f5ca55b` — the commit immediately before the fix — the figures are **56 owed verdicts, 51 of them terminal**:
+>
+> | status | filed | measured |
+> |---|---|---|
+> | `done` | 27 | **30** |
+> | `merged` | 7 | **8** |
+> | `implemented` | 4 | **4** |
+> | `fixed` | 5 | **9** |
+> | non-terminal | 6 | **5** |
+> | **total / terminal** | 49 / 43 | **56 / 51** |
+>
+> **The finding is unaffected and the arithmetic was wrong**, which is the same shape this note is about: a number stated confidently and never re-counted. The validator now reports 51 and the first version of it reported 43 — *agreeing with the filed figure by coincidence*, because it read `note_index`, which holds no `CHG-*` note at all, and all 8 `merged` findings are change notes. **Two independent errors produced the same number.** See the fix below.
 
 **49 notes carry `review_verdict: changes-requested`.** Of those, **43 are at a terminal status**:
 
@@ -68,9 +86,13 @@ Flipping any of the 43. Every one of them is the reviewer's to change, and this 
 
 **`review_response:` (and `review_response_date:`)** — a second field, beside the verdict, where *"the findings were addressed"* goes. It **does not touch `review_verdict`**, and `test_recording_what_was_done_clears_it` asserts the verdict is still `changes-requested` in the file afterwards. A verdict is the reviewer's; self-clearing it turns an independent gate into a formality, which is the whole reason this issue exists.
 
-**`REVIEW-STALE`** in `tools/scripts/validate-docs.py` — a note at a terminal status carrying an owed verdict with no `review_response:` is reported. It fires on **exactly 43 notes** on the day it landed, which is the number this issue measured by hand, arrived at independently by the rule.
+**`REVIEW-STALE`** in `tools/scripts/validate-docs.py` — a note at a terminal status carrying an owed verdict with no `review_response:` is reported. It fires on **51 notes** at `f5ca55b`.
 
-Warned with a promotion date (`2026-11-18`): clearing it is one honest line per note and that is a body of work, so [[project-os-dev#ADR-0011]] clause 3 forbids erroring over it. **None of the 43 was flipped**, which this issue's *"Not in scope"* names and which stands.
+> **It reported 43 for one commit, and that agreeing with the filed count was a coincidence of two errors.** The rule read `note_index`, and `build_note_index` holds **no `CHG-*` note at all**: `ID_PREFIXES` has no `CHG`, and a change note's id is `CHG-YYYYMMDD-Slug` rather than `CHG-0000`. Eight of the 51 are change notes and **every `merged` one is** — so the rule's own promotion comment described a population it was structurally incapable of producing, and `CHG-*` is one of the two types the review skill names as a *mandatory* trigger. It walks the files now. Found by independent review, 2026-08-21.
+
+Warned with a promotion date (`2026-11-18`): clearing it is one honest line per note and that is a body of work, so [[project-os-dev#ADR-0011]] clause 3 forbids erroring over it. **None of the 51 was flipped**, which this issue's *"Not in scope"* names and which stands.
+
+**The field shipped with nine adopters rather than none.** Independent review noted that a rule producing 51 warnings with no exemplar is a rule nobody can copy. [[ISS-0213]] carries the first — its three second-pass findings were applied in `4628aff` and nothing recorded it — and the eight notes this review round asked changes of carry the rest.
 
 ### The trigger that was deliberately not used
 
@@ -103,3 +125,46 @@ The review desk's register row says `answered <date>` or `no response recorded` 
 ### What this does not do
 
 It does not make a re-review happen. It makes the obligation **countable and visible**, which is the difference between a gap somebody can act on and one nobody had a number for. The 43 are now a list, not a feeling.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: changes-requested.** The mechanism is right and the rule works; the population it claims to describe is not the population it can see, and the filed numbers do not reproduce.
+
+### The rule itself is sound
+
+`review_response:` clearing the finding without touching the verdict is the correct shape, and it is guarded behaviourally. I deleted the `has_value((fm or {}).get("review_response"))` early-continue from `tools/scripts/validate-docs.py`: `test_recording_what_was_done_clears_it` and `test_it_does_not_re_arm_when_the_note_is_edited` both failed. The rejection of an `updated:`-based trigger is argued from measurement rather than taste, and `test_flipping_the_verdict_is_not_how_it_clears` pins the ADR-0011 property.
+
+### Finding 1 (high) — `REVIEW-STALE` structurally cannot fire on a `CHG-*` note
+
+`ID_PREFIXES` (`tools/scripts/validate-docs.py:63`) is `("ADR", "CHK", "DES", "FEAT", "ISS", "PHASE", "REQ", "RISK", "REL", "SUR", "TASK", "TST", "WF")`. There is no `CHG`. `build_note_index` keys off `extract_ids` and `ID_RE`, so **no change note ever enters `note_index`** — I confirmed it directly: `[k for k in idx if k.startswith("CHG")]` is empty.
+
+The 43 the rule reports are 19 `FEAT`, 9 `ISS`, 5 `PHASE`, 4 `REQ`, 6 `TASK`. **Zero change notes, and therefore zero `merged` notes**, because every `merged` note in this corpus is a `CHG`.
+
+This matters beyond arithmetic: a `CHG-*` note is the type `../../tools/skills/independent-review/SKILL.md` names as a *mandatory* review trigger (*"A change carries a `CHG-*` note"*). The rule is blind to the category most likely to carry a verdict.
+
+### Finding 2 (high) — the filed numbers do not reproduce, and the "exactly 43" agreement is a coincidence
+
+This note records *"49 notes carry `review_verdict: changes-requested` … of which 27 are done, 7 merged, 4 implemented and 5 fixed"*. Measured against `git archive f5ca55b` — the exact commit this was filed at:
+
+| | filed here | measured at `f5ca55b` |
+|---|---|---|
+| total owed verdicts | 49 | **56** |
+| at a terminal status | 43 | **51** |
+| `done` / `merged` / `implemented` / `fixed` | 27 / 7 / 4 / 5 | **30 / 8 / 4 / 9** |
+
+51 terminal − 8 `CHG` = **43**, which is what the rule emits. So [[CHG-20260821-Three-Silences-Get-A-Voice]]'s *"it fires on exactly 43 notes, which is the number ISS-0253 measured by hand"* is an undercount agreeing with a structurally-blind rule at the same integer. Nothing was confirmed by it.
+
+The promotion comment in `validate-docs.py` inherits the error: it describes the population as *"27 `done`, 7 `merged`, 4 `implemented` and 5 `fixed`"* — a population the rule **cannot** produce, since it can report no `merged` note at all.
+
+### Finding 3 (low) — the field ships with no exemplar
+
+`grep -rl "^review_response:" docs/` returns **zero** notes. 43 warnings now stand and nothing demonstrates the shape that clears one — including [[ISS-0213]], whose second-pass findings were applied in `4628aff`, hours before this rule landed. Recording a response is not flipping a verdict, so it is not excluded by this note's own "not in scope" clause.
+
+### What to change
+
+1. Add `CHG` to `ID_PREFIXES`, or index change notes by path for this rule — then re-measure and correct **51** (or whatever it then reports) in this note, in the promotion comment, and in the `CHG` note.
+2. Correct the filed breakdown above, or state the basis under which 49/43 was true.
+3. Add a test constructing a terminal `CHG-*` note with an owed verdict. `tests/test_review_stale.py` has no such case, which is why the blind spot survived.

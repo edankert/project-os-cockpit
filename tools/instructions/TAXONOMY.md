@@ -58,7 +58,8 @@ Project-defined free text label, but keep it stable. Examples:
 ## `level` (tests)
 - `unit`, `integration`, `system`, `e2e`, `acceptance`
 - **`acceptance` is the discriminator of the merged type (ADR-0031)**: a test at this level is the thing a person walks — it rests at `status: active`, its verdict is `mark:`, and it carries the acceptance fields below. Everything else on the scale is executable. The field has always been here; since ADR-0031 it carries the distinction the retired `check` type used to.
-- A test moves along the scale rather than between types. **Adding a `command:` to an `acceptance` test is how a walk becomes automated**, and a `passing` test named in another's `covered_by:` settles it (see `TESTING.md` tiers and `../skills/release-verification/SKILL.md`).
+- A test moves along the scale rather than between types. **Adding a `command:` to an `acceptance` test is how a walk becomes automated.**
+- *(Corrected 2026-08-21, project-os-cockpit REQ-0057.* This line used to end *"and a `passing` test named in another's `covered_by:` settles it"*. **`covered_by:` no longer exists**: a standing claim on the check rotted silently — rename or delete the covering test and the note kept asserting coverage while the check left the run list with no signal — and it had never settled a check in any repo, holding `[]` on 671 of 671. The **test** declares the check in its own source and the **run** emits a `method: automated` verdict into the ledger, so deleting the test stops the emission. This file is template-owned; the correction is owed upstream and is made here because a reference that states a removed mechanism is worse than a sync divergence.)*
 
 ## `scope` (tests)
 - `feature`, `system`

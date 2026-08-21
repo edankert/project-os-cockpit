@@ -297,6 +297,74 @@ def test_every_declaring_test_must_pass(tmp_path: Path) -> None:
     assert _blocking(tmp_path) == {"TST-0001"}
 
 
+def test_renaming_the_ci_job_does_not_strand_prior_verdicts(
+        tmp_path: Path) -> None:
+    """**The second time `covered_by:`'s silent rot appeared in this tool.**
+
+    `plan` filtered the invalidation set on `verdict.by == by`, so renaming the
+    CI job made the run stop recognising its own prior claims: delete the
+    covering test, run under a new `--by`, and the output reads *"nothing
+    changed"* while the check stays settled with nothing covering it.
+
+    Found by independent review, 2026-08-21, by constructing exactly this. The
+    identity that matters is *a machine said this*, not *which machine*.
+    """
+    _repo(tmp_path)
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": ""}))
+    assert _blocking(tmp_path) == set()
+
+    (tmp_path / "tests" / "test_thing.py").unlink()
+    out = subprocess.run(
+        [sys.executable, str(EMITTER), "--repo-root", str(tmp_path),
+         "--junit", str(_junit(tmp_path, {"other": ""})),
+         "--platform", "macos", "--by", "ci:renamed", "--run", "run-2"],
+        capture_output=True, text=True, cwd=ROOT)
+    assert "nothing changed" not in out.stdout, out.stdout
+    assert _blocking(tmp_path) == {"TST-0001"}, (
+        "renaming the CI job stranded the verdict it had written — the check "
+        "stayed settled with no covering test in the repo"
+    )
+
+
+def test_a_run_that_observed_nothing_does_not_retract_a_persons_walk(
+        tmp_path: Path) -> None:
+    """`stale` retracts **machine claims only**. A person's `manual` walk and a
+    `migration` backfill are not the emitter's to take back when it observed
+    nothing about them: a run that saw nothing has nothing to say."""
+    from project_os_cockpit import ledger
+
+    for method, by in (("manual", "user:edwin"), ("migration", "migration")):
+        root = _repo(tmp_path / method, declares="")
+        ledger.append(root / "docs", "macos", check="TST-0001", mark="pass",
+                      by=by, method=method, reason="walked it")
+        assert _blocking(root) == set()
+        _emit(root, _junit(root, {"unrelated": ""}))
+        assert _blocking(root) == set(), (
+            f"a run that observed nothing retracted a {method} verdict"
+        )
+        assert len(ledger.load(root / "docs", "macos")[0].entries) == 1
+
+
+def test_a_failing_test_invalidates_a_persons_walk_too(tmp_path: Path) -> None:
+    """**And this asymmetry is the decision.** The run OBSERVED the covering
+    test fail, which is evidence about the check — a walk from March does not
+    survive a machine watching the behaviour break today.
+
+    The docstring claimed the opposite for one commit while the code did this.
+    Independent review constructed the case; the behaviour was right and the
+    sentence was wrong.
+    """
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    ledger.append(tmp_path / "docs", "macos", check="TST-0001", mark="pass",
+                  by="user:edwin", method="manual", reason="walked it")
+    assert _blocking(tmp_path) == set()
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "failure"}))
+    assert _blocking(tmp_path) == {"TST-0001"}
+    assert ledger.load(tmp_path / "docs", "macos")[0].entries[-1].is_invalidation
+
+
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     from project_os_cockpit import ledger
 

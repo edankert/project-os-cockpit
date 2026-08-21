@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
+review_date: 2026-08-21
 review_verdict: approved
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["user:edwin"]
@@ -191,3 +191,21 @@ That is the sixth time in this phase that *a capability existed, was tested, and
 The measurements in this note are `your-trainer`'s **working tree** on 2026-08-20 and that basis is stated in the blockquote above. [[ISS-0209]] still bounds what any of it proves, and `your-trainer` still has no `docs/releases/ledgers/` — so *"the honest alternative to deselecting is unavailable in the repo that needs it"* remains true. That is [[ISS-0209]]'s, not this feature's.
 
 Whether this note and [[FEAT-0129]] should be one note is still Edwin's judgement and is deliberately not performed here.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved.** All seven criteria are met, and the two that were most at risk of being ticked on a pointer were verified by mutant.
+
+- **Criterion 4 is built.** `note_writes.release_contents` refuses a removal with no reason (400). I disabled the refusal (`if False and action == "remove" …`): `test_a_removal_with_no_reason_is_refused` failed. The refusal is in the **write path** rather than the renderer, so the second front door gets it too, which is the right place under [[ISS-0230]].
+- **The cost is the size of the subtraction, not a second count.** I replaced `"checks": len(unsubtracted) - len(blocking)` with `"checks": len(blocking)`: `test_the_cost_is_the_size_of_the_subtraction_not_a_second_count` and `test_nothing_held_back_reports_no_cost` both failed. The three-check fixture is what makes that mutant detectable, and the note says so explicitly — that is a fixture designed against a specific mutant, and it works.
+- **Criterion 5 is pinned two ways and both halves are real.** The behavioural half builds a suite, deselects a feature, and asserts the row survives in `chronic`. The mechanism half is a source assertion, which is normally this repo's recorded pitfall — here it is justified, because `delta()` takes no deselection argument and the subtracting mutant cannot be written without new plumbing.
+- **ADR-0035 is unweakened.** `test_no_write_path_to_a_check_appears_on_the_release_page` scans the held-back block for `askForMark`, `walkOneCheck` and `/api/notes/check`, and `gateMark`/`markGateRow` are absent from the whole renderer.
+
+The renderer-side assertions are source-text rather than executed, which is a real limit — but the payload half (`release_payload`, `gate_payload`) is executed, and that is where the numbers are computed. Noted, not held against the note.
+
+The open question this note raises — whether FEAT-0142 and [[FEAT-0129]] should be one note — is correctly left as Edwin's judgement rather than performed.
+
+No changes requested.

@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-19
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
+review_date: 2026-08-21
 review_verdict: approved
 parent: "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -86,3 +86,19 @@ Three checks, each mapped by reading the check against the test rather than by p
 | [[TST-0069]] | five tests in `test_close_out_commit.py` | one per clause of the check — staged paths, dirty left alone, message from ids, hook run, no push |
 
 **The other 31 are deliberately undeclared.** They are person-facing walks — *open the printed URL, expect the three-pane cockpit* — and inventing a mapping for them would be the assertion this feature exists to remove. An undeclared check stays on the run list, which is the correct and conservative state.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved.** The declaration convention and its scanner hold up.
+
+- `# Covers: TST-####` is findable by one grep, and the scanner uses `tokenize` + `ast` rather than a regex — so a `#` inside a string literal is not a declaration (`test_a_declaration_in_a_string_is_not_a_declaration`), which is the defect the note records catching in its own docstring.
+- A declaration outside a test function, and one naming a check that does not exist, are both refused.
+- `--check` runs in CI as its own cheap job, correctly separated from the macOS observe job.
+- `test_nothing_declares_coverage_in_a_note()` closes the loop from the other side: the convention lives in test source, not in frontmatter.
+
+The findings on this feature are in the emitter ([[TASK-0543]]), not here.
+
+No changes requested.

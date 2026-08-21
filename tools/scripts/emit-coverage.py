@@ -100,7 +100,7 @@ def junit_results(path: Path) -> dict[str, bool]:
     return out
 
 
-def plan(root: Path, results: dict[str, bool], platform: str, by: str):
+def plan(root: Path, results: dict[str, bool], platform: str):
     """What this run should append: `(passing, failing, stale, current)`.
 
     A check is **observed passing** only when every test declaring it ran and
@@ -117,12 +117,22 @@ def plan(root: Path, results: dict[str, bool], platform: str, by: str):
     `test_deleting_the_covering_test_puts_its_check_back_on_the_run_list`,
     which failed on the first run.
 
-    So the question is asked of the standing verdict: *this emitter said a
-    machine covered it — did a machine cover it this time?*
+    So the question is asked of the standing verdict: *a machine claimed to
+    cover this — did a machine cover it this time?*
 
-    **Only this emitter's own verdicts.** A person's `manual` walk and a
-    `migration` backfill are not the emitter's to overturn: it observes runs,
-    and it has observed nothing about those.
+    **`method: automated` and nothing else.** A person's `manual` walk and a
+    `migration` backfill are not the emitter's to retract HERE: it observed
+    nothing about this check in this run, so it can only take back a
+    machine's claim. The `failing` branch is different and deliberately so —
+    see :func:`main`.
+
+    **It does NOT key on `by`.** The first cut did, and independent review
+    reproduced the consequence: rename the CI job and every prior verdict is
+    stranded permanently — the run stops recognising its own claims, the
+    check stays settled with no covering test in the repo, and the output
+    reads *"nothing changed"*. `covered_by:`'s silent rot for the second time
+    in one tool. The identity that matters is *a machine said this*, not
+    *which machine*.
     """
     from project_os_cockpit import ledger as _ledger
 
@@ -145,7 +155,7 @@ def plan(root: Path, results: dict[str, bool], platform: str, by: str):
     current = _ledger.verdicts(root / "docs", platform)
     stale = sorted(
         check for check, verdict in current.items()
-        if verdict.method == "automated" and verdict.by == by
+        if verdict.method == "automated"
         and check not in passing and check not in failing
     )
     return passing, failing, stale, current
@@ -166,8 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     from project_os_cockpit import ledger as _ledger
 
     results = junit_results(Path(args.junit))
-    passing, failing, stale, current = plan(
-        root, results, args.platform, args.by)
+    passing, failing, stale, current = plan(root, results, args.platform)
     run = args.run or "the test run"
 
     wrote: list[str] = []
@@ -175,9 +184,12 @@ def main(argv: list[str] | None = None) -> int:
         standing = current.get(check)
         #: Only when the answer changes. An identical re-append records
         #: nothing and `resolve()` returns the same verdict either way.
+        #:
+        #: **Not keyed on `by` either**, for the same reason `stale` is not:
+        #: a machine already says pass, and a second machine saying pass adds
+        #: no information. Keying on it appended one entry per CI-job rename.
         if (standing is not None and standing.mark == "pass"
-                and standing.method == "automated"
-                and standing.by == args.by):
+                and standing.method == "automated"):
             continue
         wrote.append("pass %s (%s)" % (check, ", ".join(tests)))
         if not args.dry_run:
@@ -185,6 +197,18 @@ def main(argv: list[str] | None = None) -> int:
                            mark="pass", by=args.by, method="automated",
                            reason="observed by %s in %s" % (
                                ", ".join(tests), run))
+    #: **A failing test invalidates whoever wrote the standing verdict**, and
+    #: the asymmetry with `stale` above is a decision rather than an
+    #: oversight. The run OBSERVED the covering test fail, which is evidence
+    #: about the CHECK — a person's walk from March does not survive a
+    #: machine watching the behaviour break today. `stale` retracts only
+    #: machine claims because it observed nothing at all, and a run that saw
+    #: nothing has nothing to say about a person's walk.
+    #:
+    #: The docstring claimed the opposite for one commit while the code did
+    #: this; independent review constructed a `method: manual` verdict and
+    #: watched it be invalidated. The behaviour was right, the sentence was
+    #: wrong, and the sentence is what changed.
     for check, tests in sorted(failing.items()):
         if check not in current:
             continue

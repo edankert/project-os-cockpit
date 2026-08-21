@@ -8,8 +8,10 @@ owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
-review_verdict: changes-requested
+review_date: 2026-08-21
+review_verdict: approved
+review_response: "2026-08-20 (recorded 2026-08-21): all three second-pass findings were applied in 4628aff - each quarantined section carries its own superseded banner in its first line, `## Applied 2026-08-20` no longer sits under a heading that does not cover it, and the retraction table's items column reads 581 -> 584. The +3 transition was re-simulated rather than copied and reproduces exactly; the absolute numbers no longer do, and that is recorded as a finding rather than corrected. A re-review is owed and the verdict is the reviewer's to change."
+review_response_date: 2026-08-21
 severity: medium
 component: docs
 phase: "[[PHASE-999-Future]]"
@@ -172,3 +174,18 @@ What is left is **three lines of data in another repo**, and every one of them w
 `deferred` alone would not resolve it: STATUSES.md is explicit that a deferred child does not clear its phase, and that the relationship rather than the status word must record where the work went. So `phase:` moves to [[PHASE-999]] and the issue is parked there with its judgement intact.
 
 **Nothing here is closed over.** The reasoning table stands, the retraction stands, and the three notes remain at `level: system` in `your-trainer`, clean against its HEAD.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved** — for the deferral and re-homing specifically. This is not a phase closing over unfinished work.
+
+**The mechanism is the documented one.** `STATUSES.md:51` is explicit that `deferred` does **not** resolve an item's place in its parent's scope, and this note does not rely on the status word alone: `phase:` moves to `[[PHASE-999-Future]]`, which is what actually clears `PHASE-CHILDREN` — the same field-over-list principle [[PHASE-037]] establishes elsewhere. The issue was also removed from PHASE-037's `issues:` list, so the hand-curated index and the load-bearing field agree.
+
+**The remaining work is genuinely not this phase's.** Verified rather than accepted: the finding — a reader shown five acceptance tests in a flat list with nothing explaining the difference — was answered by [[FEAT-0127]], and criterion 3 of PHASE-037 now holds under construction (an acceptance check outside `docs/tests/acceptance/` routes by `level:`). What is left is three notes' `level:` in `your-trainer`, costing three blocking checks, plus a 107-row document that must be split before it can be relevelled. That is another repo's data and Edwin's call on his own gate.
+
+**The retraction is honest.** The note records that its own 581/59 no longer reproduces and declines to write 625/103 in its place, on the grounds that this would replace one basis-less number with another. That is the right instinct, and it is the one [[PHASE-037]]'s own closing count did not follow.
+
+One observation, not a change request: this note still carries `review_verdict: changes-requested` from 2026-08-20 with no `review_response:`, although `4628aff` applied those findings. It is the clearest available exemplar for the field [[ISS-0253]] introduced, and it is not excluded by that issue's "do not flip the 43" scope, since recording a response is not flipping a verdict. `deferred` is not in `REVIEW_TERMINAL_STATUSES`, so `REVIEW-STALE` will not prompt for it.

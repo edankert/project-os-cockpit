@@ -144,9 +144,15 @@ def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int,
     # 6-of-6 false-positive rate on the only corpus it would have run against;
     # `manual` is what every migrated row honestly is until somebody says
     # otherwise, and a wrong `full` would claim coverage that does not exist.
+    #: **`covered_by:` is NOT written any more** (REQ-0057, 2026-08-21). It is
+    #: one of the fields ADR-0037 moved into the ledger, and this repo's
+    #: validator refuses it (`LEDGER-MOVED-FIELD`) — so a migration run here
+    #: would have produced notes that fail the commit that carries them.
+    #: Stranded rather than broken by the removal: it has already run in every
+    #: repo that needed it, and nothing caught it because nothing re-runs it.
+    #: Found by independent review, 2026-08-21.
     fm.extend([
         "automation: manual",
-        "covered_by: []",
         f"covers: [{', '.join(f'\"[[{r}]]\"' for r in item.refs)}]",
         "burden: []",
         "evidence: []",

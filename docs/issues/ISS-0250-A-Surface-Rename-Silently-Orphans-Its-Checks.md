@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-20
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-20
+review_date: 2026-08-21
 review_verdict: approved
 source: ["measured while closing FEAT-0130, 2026-08-20"]
 severity: medium
@@ -133,3 +133,17 @@ The validator is stdlib-only and standalone: it cannot import `cockpit.surface_c
 ### What is left, and it is a migration rather than a fix
 
 The join is still a string comparison. **Making `area:` a link is the durable answer** and it is out of scope here for the reason the Evidence already records: `your-trainer`'s fifteen `SUR-*` notes exist **in no commit, ever**, and 579 checks there name areas at a `HEAD` that has zero surfaces. A schema migration cannot start against a corpus that is not committed. When it is, this rule is what will report the gap it leaves.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved.** Every number in this note reproduces exactly, and the guard against the defect the rule could itself commit is the strongest one in this commit.
+
+- **21 distinct names over 34 checks reproduces precisely.** The validator emits 21 `SURFACE-ORPHAN` warnings, and the per-name check counts sum to exactly **34**. That is *every* acceptance check in this repo (34 notes at `type: "[[test]]"` + `level: acceptance`; a 35th `level: acceptance` hit is a code block inside `ADR-0037`). `SUR-0001`'s title — *"The tests view — the suite as sections, and what a person still owes"* — matches no `area:` value, so the 100% orphan rate is correct rather than a join bug.
+- **The two-implementation risk is guarded by driving, not by matching text.** I broke the **cockpit** side only (`cockpit.surface_coverage`, dropping `.lower()`) and left `validate-docs.surface_key` intact: `test_the_rule_and_the_join_agree_on_normalisation` failed on `'Riding — routes'`. Breaking the validator side instead also failed it. This is the correct answer to [[REQ-0059]]'s forbidden shape and it is what the rest of this commit should have copied.
+- **The bundled copy is byte-identical** for the new rule, and `test_the_bundled_copy_carries_the_rule` fired when I mutated only one of the two.
+- Warning-with-a-promotion-date is right under ADR-0011 clause 3: 21 `SUR-*` notes is a body of work, not a line edit.
+
+No changes requested.

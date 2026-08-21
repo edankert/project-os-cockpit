@@ -1,6 +1,9 @@
 ---
 type: "[[task]]"
 id: TASK-0576
+review_verdict: approved
+review_date: 2026-08-21
+reviewed_by: model:claude-opus-5
 aliases: ["TASK-0576"]
 title: "An exclusion says why, and the page says what the selection cost"
 status: done
@@ -79,3 +82,19 @@ It is **reported, not filled in**. The write path refuses a removal without a re
 ### The seal keeps them
 
 A shipped release's `held_back:` is part of what it was measured against: a release whose gate was smaller than the repo's must still say what made it smaller. [[ADR-0035]] is unweakened — that is a fact about the release, not a verdict about a check.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved.** Delivered as scoped, and the two mutants that matter both fail.
+
+- The 4th refusal is real and enforced server-side: disabling `if action == "remove" and not reason:` fails `test_a_removal_with_no_reason_is_refused`.
+- The cost is the subtraction: replacing `len(unsubtracted) - len(blocking)` with `len(blocking)` fails two tests, because the fixture deliberately uses three checks so that 1, 2 and 3 are distinct integers.
+- The renderer draws `${heldBack.length} feature(s) held back · ${cost} check(s) no longer gating` as one sentence, and reads `cost` from `deselection?.checks` rather than recomputing — so the page cannot report a number the gate never produced.
+- A hand-edited `features:` list yields a held-back row with `reason: ""` rather than an invented sentence, guarded by `test_a_hand_edited_exclusion_says_it_has_no_reason`. That is the right refusal.
+
+Scope was held: no write path to a check appeared on the release page, and ADR-0040's subtraction decision was not reopened.
+
+No changes requested.

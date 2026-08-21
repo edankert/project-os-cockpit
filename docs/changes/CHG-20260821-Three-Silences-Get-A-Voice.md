@@ -1,6 +1,11 @@
 ---
 type: "[[change]]"
 id: CHG-20260821-Three-Silences-Get-A-Voice
+review_verdict: changes-requested
+review_response: "2026-08-21: the REVIEW-STALE figure of 43 was two errors agreeing. Corrected to the measured 51 at f5ca55b, with the note that the rule could not see CHG-* notes at all."
+review_response_date: 2026-08-21
+review_date: 2026-08-21
+reviewed_by: model:claude-opus-5
 aliases: ["CHG-20260821-Three-Silences-Get-A-Voice"]
 title: "A held-back feature says why, an orphaned surface is reported, and a verdict nobody answered is counted — three states the record could not express"
 status: merged
@@ -36,7 +41,9 @@ The reverse direction is **not** reported: a surface no check names is the row [
 
 A new frontmatter field — `review_response:` with `review_response_date:` — where the author records **what was done about the findings**, without touching the verdict. `review_verdict` stays the reviewer's; self-clearing it turns an independent gate into a formality.
 
-`REVIEW-STALE` reports a note at a terminal status carrying an owed verdict with no response. It fires on **exactly 43** notes, which is the number [[ISS-0253]] measured by hand. Warned, promoting `2026-11-18`. **None of the 43 was flipped.**
+`REVIEW-STALE` reports a note at a terminal status carrying an owed verdict with no response. It fires on **51** notes at `f5ca55b`. Warned, promoting `2026-11-18`. **None of the 51 was flipped.**
+
+*(It reported 43 for one commit and [[ISS-0253]] had filed 43, and the agreement was a coincidence of two errors: the issue's count was never re-measured, and the rule read `note_index`, which holds no `CHG-*` note — 8 of the 51 are change notes and every `merged` one is. It walks the files now.)*
 
 It deliberately does **not** trigger on `updated:` later than `review_date:` — [[ISS-0007]] records that heuristic re-arming a gate on any edit, and stamping a verdict *is* an edit, so 85 of 103 verdicts in this corpus have `updated <= review_date`.
 
@@ -54,3 +61,26 @@ The review desk's register rows now read `answered <date>` or `no response recor
 - `POST /api/notes/retire-check` exists; the guarded-route count moved 27 → 28.
 - Two new validator codes, both warnings until `2026-11-18`: `SURFACE-ORPHAN`, `REVIEW-STALE`.
 - `release_payload().contents.kind` can be `"chosen"`, which it never was before; `contents.held_back` and `gate.deselection` are new keys.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: changes-requested.** Two of the three sections are accurate; the third repeats a number as independent corroboration when it is not.
+
+### Accurate
+
+- *"21 distinct names over 34 checks"* — reproduces exactly. 21 warnings emitted, per-name counts summing to 34, which is every acceptance check in the repo.
+- The [[ISS-0252]] section is accurate, and the dangling detection fails when mutated.
+- *"None of the 43 was flipped"* — confirmed. `grep` finds no `review_verdict` change on those notes in this diff.
+
+### Finding — *"it fires on exactly 43 notes, which is the number ISS-0253 measured by hand"*
+
+The two numbers are not the same population and neither confirms the other.
+
+`ID_PREFIXES` in `validate-docs.py` has no `CHG`, so `build_note_index` indexes no change note and `REVIEW-STALE` **cannot fire on one**. Measured against `git archive f5ca55b`: **56** owed verdicts, **51** terminal, **8** of them `CHG-*`. 51 − 8 = 43.
+
+[[ISS-0253]]'s hand count was itself 49/43 against an actual 56/51, and its breakdown claims *7 merged* — a class the rule can never report, since every `merged` note here is a `CHG`. An undercount and a structurally-blind rule landing on the same integer is exactly the shape this change set was written to remove.
+
+Correct the sentence, or fix `ID_PREFIXES` and restate the number. Detail on [[ISS-0253]].

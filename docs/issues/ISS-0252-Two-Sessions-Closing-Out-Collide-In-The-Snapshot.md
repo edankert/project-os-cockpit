@@ -1,6 +1,9 @@
 ---
 type: "[[issue]]"
 id: ISS-0252
+review_verdict: approved
+review_date: 2026-08-21
+reviewed_by: model:claude-opus-5
 aliases: ["ISS-0252"]
 title: "Close-out requires naming `SNAPSHOT.yaml` and the snapshot is one hand-curated shared file, so two agent sessions closing out at once interleave in it — three collisions in one afternoon, two of which turned `--as-committed` red"
 status: fixed
@@ -86,3 +89,19 @@ Recorded here rather than acted on: an ADR-shaped decision is Edwin's, and this 
 ### Collision 3 is still the one to learn from
 
 The repair for a stale diagnosis deleted a **valid** registration, and the local check was silent — a snapshot entry with no note is an error, a note with no entry is only a warning, so the asymmetry that caught the first mistake said nothing about the over-correction. `test_a_removed_entry_is_named_too` makes a removal visible for that reason; the asymmetry itself is the open question above.
+
+## Independent review — 2026-08-21
+
+Fresh-context pass, separate session, `model:claude-opus-5`. Started from the notes and the diff `f5ca55b..07602db`; the author's reasoning trace was not available to it. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — same model as the author, recorded in `reviewed_by` as provenance. Every number below was re-measured and every guard re-executed against a constructed mutant rather than read.
+
+
+**Verdict: approved.**
+
+- **The dangling case is genuinely guarded.** I replaced `if hit.returncode != 0:` with `if False:` in `tools/scripts/close-out-commit.sh`; `test_an_entry_whose_note_is_in_no_commit_is_named_as_dangling` failed with the DANGLING line absent. The membership report itself still printed, which is the right split — the two are reported independently.
+- **`git ls-files` resolves correctly.** The script does `cd "$ROOT"` at line 23 before the Python block runs, so the relative `file:` paths are interpreted against the repo root rather than the caller's cwd.
+- **Reports, never refuses** — `test_it_reports_and_never_refuses` pins it, and that is consistent with the existing treatment of dirty files outside scope. A close-out that aborts because a shared file moved is automation people disable.
+- The line-oriented YAML reader is the right call inside a commit-hook path (no PyYAML dependency, degrades to silence on a parse failure).
+
+Correctly left open as an ADR-shaped question: whether concurrent close-out sessions are supported at all. Reporting the collision is not the same as preventing it, and this note says so.
+
+No changes requested.

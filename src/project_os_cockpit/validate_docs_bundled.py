@@ -1042,10 +1042,18 @@ PROMOTIONS = {
     # errored on day one, per ADR-0011 clause 3.
     "SURFACE-ORPHAN": "2026-11-18",
     # A terminal note still carrying `changes-requested` with nothing recorded
-    # about what was done (ISS-0253). **43 findings in this repo at
-    # introduction** -- 27 done, 7 merged, 4 implemented, 5 fixed, dating to
-    # 2026-08-02 -- every one of them a verdict that was true when written and
-    # false as a description of the note today.
+    # about what was done (ISS-0253). **51 findings in this repo**, measured at
+    # `f5ca55b` after independent review corrected both the filed count and the
+    # rule's own domain: 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`,
+    # dating to 2026-08-02 -- every one a verdict that was true when written
+    # and false as a description of the note today.
+    #
+    # The first cut reported 43 and read `note_index`, which holds no `CHG-*`
+    # note at all (`ID_PREFIXES` has no `CHG`, and a change note's id is not
+    # `CHG-0000`). All 8 `merged` findings are change notes, so the rule could
+    # not produce the population this comment described -- and 43 agreeing with
+    # the number ISS-0253 filed by hand was a coincidence of two different
+    # errors. It walks the files now.
     #
     # Clearing it is one `review_response:` line per note, written by the
     # author, saying what was done. That is a body of work and it is exactly
@@ -2893,10 +2901,27 @@ def validate(root, report):
     # stamping a verdict IS an edit, so 85 of 103 verdicts in this corpus have
     # `updated <= review_date`. The discriminator is whether an answer was
     # recorded, which is a fact rather than a proxy for one.
-    for the_id, (path, fm) in sorted(note_index.items()):
-        verdict = str((fm or {}).get("review_verdict") or "").strip().lower()
+    #: **It walks the FILES, not `note_index`** -- and reading the index was a
+    #: rule that could not fire on a whole type. `ID_PREFIXES` has no `CHG`,
+    #: and a change note's id is `CHG-YYYYMMDD-Slug` rather than `CHG-0000`, so
+    #: `build_note_index` holds no change note at all. Measured after the fix:
+    #: **8 of the 51 terminal owed verdicts are `CHG-*`**, and every `merged`
+    #: one is -- so the rule's own promotion comment described a population it
+    #: was structurally incapable of producing.
+    #:
+    #: `CHG-*` is one of the two types `../skills/independent-review/SKILL.md`
+    #: names as a MANDATORY review trigger, which makes it the worst possible
+    #: type to be blind to. Found by independent review, 2026-08-21.
+    for path in sorted((root / "docs").rglob("*.md")):
+        if "__templates__" in path.parts or "__bases__" in path.parts:
+            continue
+        fm = parse_frontmatter(path)
+        if not isinstance(fm, dict):
+            continue
+        verdict = str(fm.get("review_verdict") or "").strip().lower()
         if verdict not in OWED_VERDICTS:
             continue
+        the_id = str(fm.get("id") or "").strip().strip("\"'") or path.stem
         status = str((fm or {}).get("status") or "").strip().lower()
         #: A non-terminal note carrying `changes-requested` is ordinary work in
         #: flight. Six of the 49 are that, and reporting them would say a
@@ -2906,6 +2931,7 @@ def validate(root, report):
         if has_value((fm or {}).get("review_response")):
             continue
         rel = path.relative_to(root).as_posix()
+
         promotion_emit(report, "REVIEW-STALE", grandfathered, the_id)(
             "REVIEW-STALE",
             "%s is '%s' and still carries review_verdict: %s with no review_response:; the verdict was "
