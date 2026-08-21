@@ -3,16 +3,16 @@ type: "[[issue]]"
 id: ISS-0213
 aliases: ["ISS-0213"]
 title: "Five acceptance tests in your-trainer carry `level: system`, so they route to a flat group instead of under their tier"
-status: open
+status: deferred
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: changes-requested
 severity: medium
 component: docs
-phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+phase: "[[PHASE-999-Future]]"
 related: ["[[FEAT-0127-Every-Row-In-The-Tests-View-Is-A-Test]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]"]
 ---
 
@@ -155,3 +155,20 @@ AFTER  items=628 blocking=106      (relevelling the same three notes)
 So 581 / 59 was a true measurement of a corpus that no longer exists on that disk, and this note's figures — like [[FEAT-0131]]'s — describe a basis that has moved underneath them. **No attempt is made here to explain the 44**: identical deltas in both columns suggest 44 notes became acceptance-level and all of them block, but that is a hypothesis, and this phase has been burned four times by hypotheses stated as measurements.
 
 Recorded rather than corrected, because writing `625` into the table would replace one basis-less number with another. **What the table needs is a basis, and what the repo needs is a commit** — the same conclusion FEAT-0131 reached from the other end.
+
+
+## Deferred and re-homed to [[PHASE-999]], 2026-08-21
+
+**The finding was this phase's. The remaining action is not.**
+
+[[PHASE-037]]'s subject is *a surface answering the question its reader did not ask*, and this issue's finding is exactly that: a reader sees five acceptance tests in a flat list and 579 under tiers, with nothing on screen explaining the difference, and the answer is a frontmatter field neither list mentions. That was answered — [[TASK-0506]] and [[TASK-0507]] under [[FEAT-0127]], now `done`.
+
+What is left is **three lines of data in another repo**, and every one of them waits on somebody who is not this phase:
+
+1. **Relevelling `TST-0011`/`TST-0012` costs three blocking checks** in `your-trainer`'s gate. The judgement that they *are* acceptance checks is made and recorded above. Whether to pay that is Edwin's, on his repo.
+2. **`TST-0013` must be split before it is relevelled** — 107 checkbox rows behind one blocking check is the document-suite shape [[PHASE-035]] migrated away from. That is a migration, not a field edit.
+3. **The numbers in this note no longer reproduce and the repo is not committed.** 581/59 was a true measurement of a corpus that no longer exists on that disk; the working tree measures 625/103 against 692 modified files, and `git log --all -- 'docs/surfaces/*'` returns nothing there. *"What the table needs is a basis and what the repo needs is a commit"* — and the commit is not this repo's to make.
+
+`deferred` alone would not resolve it: STATUSES.md is explicit that a deferred child does not clear its phase, and that the relationship rather than the status word must record where the work went. So `phase:` moves to [[PHASE-999]] and the issue is parked there with its judgement intact.
+
+**Nothing here is closed over.** The reasoning table stands, the retraction stands, and the three notes remain at `level: system` in `your-trainer`, clean against its HEAD.

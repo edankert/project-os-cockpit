@@ -3,10 +3,10 @@ type: "[[feature]]"
 id: FEAT-0142
 aliases: ["FEAT-0142"]
 title: "A release says what is in it — the derived set becomes an editable scope, so a feature can be held back without hand-writing the note's frontmatter"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -102,6 +102,8 @@ Edwin, same day: *"these are open because of multiple of reasons and happy to re
 
 ## Acceptance
 
+*(All seven met 2026-08-21. Five landed under [[FEAT-0129]]'s tasks, one was found already true and guarded, and the last is [[TASK-0576]].)*
+
 - A feature can be unchecked in the release being prepared and re-checked, with no hand-editing of frontmatter, and the list is reconciled against the live derived set on every render.
 - The choice survives a reload and a restart, and a feature completed after the list was authored appears on it, checked, without intervention.
 - Unchecking a feature removes **only** checks whose `covers:` names no selected feature; a check with no `covers:` or covering an `ISS`/`REQ`/`PHASE` is unaffected. Guarded by a test built on the mixed case — a check covering one selected and one deselected feature — because that is the cell a subtraction rule gets wrong.
@@ -166,3 +168,26 @@ Looked for rather than assumed. `delta()` computes `blocking = current.blocking(
 Now guarded on the mechanism and behaviourally, and the mutant — `delta()` switched to `blocking_minus` — fails it.
 
 **So six of seven are met.** The one genuinely outstanding criterion is 4: an exclusion records no **reason**, and the page never reads `N features held back · M checks no longer gating`. That is one task, not a build.
+
+
+## Closed 2026-08-21 — the seventh criterion, and two things that were never reachable
+
+[[TASK-0576]] delivered criterion 4: an exclusion records a **reason** in `held_back:` beside `features:` on the release note, the page reads `N feature(s) held back · M check(s) no longer gating`, and the two numbers arrive in one sentence because either alone is the shape this phase exists to remove.
+
+**The count and its cost are read from different places on purpose.** The count is the held-back set; the cost is `len(blocking()) - len(blocking_minus(deselected))`, measured against the same suite the gate reports, so the page cannot show a number the gate never computed. A second traversal is how two surfaces come to disagree.
+
+### Building the reporting half found that the mechanism half was not reachable
+
+Criterion 1 was recorded as **built** on the strength of `note_writes.release_contents` existing with its three refusals. It does exist and it is correct. **Nothing could call the removal.** The renderer offers `Remove` only on `c.kind !== 'derived'`, `publication.release_payload` emitted `derived` for every unshipped release and `frozen` only after the seal, and no third kind was ever produced — so a feature could be added through the front door and never taken back out through it.
+
+That is the sixth time in this phase that *a capability existed, was tested, and no front door reached it* — [[ISS-0249]] is the same finding about `retire_check` and `cover_check`, arrived at from the other end.
+
+`contents.kind` is `chosen` now when a release names its contents, which is also the *"page distinguishes derived rows from chosen rows"* line in this note's own Scope, unbuilt until today.
+
+**And the subtraction could not fire on the page a person opens.** `~release/next` passes the literal `"next"` as `release_id`; `index.by_id("next")` is `None`; `named` came back empty; nothing was ever held back. Fixed to read the resolved release, and guarded.
+
+### What is NOT closed by this
+
+The measurements in this note are `your-trainer`'s **working tree** on 2026-08-20 and that basis is stated in the blockquote above. [[ISS-0209]] still bounds what any of it proves, and `your-trainer` still has no `docs/releases/ledgers/` — so *"the honest alternative to deselecting is unavailable in the repo that needs it"* remains true. That is [[ISS-0209]]'s, not this feature's.
+
+Whether this note and [[FEAT-0129]] should be one note is still Edwin's judgement and is deliberately not performed here.

@@ -152,14 +152,27 @@ def test_the_held_back_set_is_read_from_the_note(tmp_path: Path) -> None:
     #: branch reads exactly that, because a shipped release's contents are its
     #: own hand-written list. Fifth over-broad text match this session — a
     #: claim has to name the code it is a claim about.
-    start = src.index("named = {")
-    block = src[start:src.index("}", start) + 1]
+    start = src.index("named_order: list[str] = []")
+    block = src[start:src.index("named = set(named_order)", start)]
     assert "_rel_rec.frontmatter" in block, (
         f"the held-back set is not read from the release NOTE: {block!r}"
     )
     assert "held.get(" not in block, (
         "the held-back set reads the `_releases()` dict, which carries no "
         "`features` key — so the subtraction can never fire"
+    )
+    #: **And the note it reads is the RESOLVED release** ([[TASK-0576]]).
+    #: `release_payload(..., "next")` is how the page a person actually lands
+    #: on is fetched, and `index.by_id("next")` is `None` — so reading the
+    #: ARGUMENT left `named` empty and the subtraction silently off for the
+    #: one release anybody is preparing. Same class as the defect above: a
+    #: rule that cannot fire, passing every test that does not construct the
+    #: positive case.
+    resolve = src[src.index("_rel_id = "):src.index("named_order: list[str] = []")]
+    assert 'held["id"]' in resolve, resolve
+    assert "index.by_id(release_id)" not in resolve, (
+        "the selection is read off the id the caller typed, which is 'next' "
+        "on the page a person actually opens"
     )
 
 

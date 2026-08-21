@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-037
 aliases: ["PHASE-037"]
 title: "The release page and the tests view report at the granularity the reader is working at"
-status: active
+status: done
 order: 37
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-20"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -24,7 +24,7 @@ features:
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"
   - "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
-issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0213-Acceptance-Tests-Carrying-Level-System]]", "[[ISS-0214-A-Note-Whose-Id-Contradicts-Its-Filename]]", "[[ISS-0222-The-Left-Pane-Groups-By-Tier-And-Nothing-Else]]", "[[ISS-0223-The-Bar-Is-The-Wrong-Instrument-In-The-Editor]]", "[[ISS-0224-The-Positional-Address-Outlived-The-Document]]", "[[ISS-0225-A-Nav-Row-Carries-Data-No-Renderer-Draws]]", "[[ISS-0226-A-Surface-Wears-A-Test-Status]]", "[[ISS-0227-Every-Surface-Links-To-The-Same-Place]]", "[[ISS-0228-The-Test-Id-Renders-Twice-On-A-Row]]", "[[ISS-0229-Steps-Proven-Is-Sent-And-Nothing-Draws-It]]", "[[ISS-0231-The-Surface-Row-Is-Two-Lines-And-Names-The-Wrong-Thing]]", "[[ISS-0232-A-Check-Row-Shows-A-Status-It-Cannot-Hold]]", "[[ISS-0233-Migration-Provenance-Outlives-Its-Migrations]]", "[[ISS-0234-The-Generated-Page-Repeats-Itself]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0245-A-Verdict-On-An-Accepted-Note-Is-Owed-Forever]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[ISS-0247-The-Tests-View-Lost-Its-Quiet-Group]]", "[[ISS-0248-Two-Predicates-Disagree-About-Not-In-Flight]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]", "[[ISS-0250-A-Surface-Rename-Silently-Orphans-Its-Checks]]"]
+issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0214-A-Note-Whose-Id-Contradicts-Its-Filename]]", "[[ISS-0222-The-Left-Pane-Groups-By-Tier-And-Nothing-Else]]", "[[ISS-0223-The-Bar-Is-The-Wrong-Instrument-In-The-Editor]]", "[[ISS-0224-The-Positional-Address-Outlived-The-Document]]", "[[ISS-0225-A-Nav-Row-Carries-Data-No-Renderer-Draws]]", "[[ISS-0226-A-Surface-Wears-A-Test-Status]]", "[[ISS-0227-Every-Surface-Links-To-The-Same-Place]]", "[[ISS-0228-The-Test-Id-Renders-Twice-On-A-Row]]", "[[ISS-0229-Steps-Proven-Is-Sent-And-Nothing-Draws-It]]", "[[ISS-0231-The-Surface-Row-Is-Two-Lines-And-Names-The-Wrong-Thing]]", "[[ISS-0232-A-Check-Row-Shows-A-Status-It-Cannot-Hold]]", "[[ISS-0233-Migration-Provenance-Outlives-Its-Migrations]]", "[[ISS-0234-The-Generated-Page-Repeats-Itself]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0245-A-Verdict-On-An-Accepted-Note-Is-Owed-Forever]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[ISS-0247-The-Tests-View-Lost-Its-Quiet-Group]]", "[[ISS-0248-Two-Predicates-Disagree-About-Not-In-Flight]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]", "[[ISS-0250-A-Surface-Rename-Silently-Orphans-Its-Checks]]", "[[ISS-0251-A-Test-Backdates-A-Shared-Source-File]]", "[[ISS-0252-Two-Sessions-Closing-Out-Collide-In-The-Snapshot]]", "[[ISS-0253-A-Verdict-Outlives-The-Work-It-Judged]]"]
 related: ["[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[PHASE-036-One-Human-Walk]]"]
 tags: [phase]
 ---
@@ -70,13 +70,17 @@ All five are Edwin's, from reading his own repos rather than from an audit — w
 
 `sync-snapshot.py` propagates status and counters; membership is curation it deliberately leaves alone (`CLAUDE.md`), so this is a hand edit and nothing detects the next one. The features list was checked at the same time and is **complete** — 11 named, 11 pointing here.
 
+*(**And it drifted again by three within a day**, exactly as *"nothing detects the next one"* predicted: `ISS-0251`, `ISS-0252` and `ISS-0253` were filed after that correction and named this phase without joining the list. Re-counted at close-out — **30 issue notes name this phase, 30 are listed** — and `ISS-0213` was removed on being re-homed to [[PHASE-999]]. The lesson stands rather than being restated: a hand-curated index beside a machine-checked field drifts in one direction, and only the field is load-bearing.)*
+
 ## Exit criteria
 
-- [ ] **No page whose subject is a release offers a control that changes a check.** [[ADR-0035]]. `gateMark`'s `actionable` parameter is deleted, not defaulted.
-- [ ] **A rendered mark is a glyph on every surface**, guarded by a test that fails if any surface emits a raw word.
-- [ ] **Every row in the tests view is a test** — no retired documents, and every acceptance test routed by its `level:` rather than by which directory it sits in.
-- [ ] **The tests view opens on what is owed.** An inventory is reachable and is not what the reader lands on.
-- [ ] **A release can name its own contents**, and the gate can be scoped to them.
+*Each checked against the code on 2026-08-21, not against memory of it — this phase has recorded five separate occasions on which a state was asserted from a grep and was wrong.*
+
+- [x] **No page whose subject is a release offers a control that changes a check.** `gateMark` is **deleted, not defaulted**, and so is `markGateRow` — both replaced by a comment naming why (*"a live-looking helper is how the next caller re-acquires the behaviour a decision just removed"*). [[ISS-0210]], [[ISS-0244]], [[ADR-0035]]. Re-asserted at close-out by `test_no_write_path_to_a_check_appears_on_the_release_page` over the new held-back block.
+- [x] **A rendered mark is a glyph on every surface**, guarded by `test_no_surface_brackets_a_raw_mark_rather_than_its_glyph` — which fails if any render site reads `mark` directly instead of going through `MARK_GLYPH`. [[FEAT-0126]], [[REQ-0045]] (`implemented`).
+- [x] **Every row in the tests view is a test.** The three `status: retired` run plans are no longer typed as tests ([[ISS-0212]]), and the indexed loader selects on `level: acceptance` over `index.notes_by_type("test")` — **not** on the directory — so an acceptance check outside `docs/tests/acceptance/` routes by its level. [[FEAT-0127]] (`done`), [[REQ-0046]] (`implemented`).
+- [x] **The tests view opens on what is owed.** [[TASK-0556]]: surfaces sorted by percentage incomplete, children incomplete-first, sorted **server-side** so both front doors get it from one place. The inventory is reachable and is not the landing. [[FEAT-0128]], [[REQ-0047]] (`implemented`).
+- [x] **A release can name its own contents, and the gate can be scoped to them.** [[FEAT-0129]] built the naming; [[ADR-0040]] decided that **selection subtracts and never divides**; `Suite.blocking_minus` implements it and `test_the_mixed_cell_still_gates` guards the cell a subtraction rule gets wrong. [[FEAT-0142]] closed the reporting half — an exclusion records a reason and the page says what the selection cost.
 
 ## What this phase must not do
 
@@ -99,3 +103,40 @@ Two corrections inherited from the child notes: *"90% complete across 15 areas"*
 **This supersedes the first-pass verdict above. Current verdict: approved.** Same reviewer, same conditions — fresh context, separate session, `model:claude-opus-5` — re-run against the working tree after the first pass's findings were acted on. Every claim below was re-measured or re-executed rather than read.
 
 Basis blockquote present; the `15 areas` line is resolved on `ISS-0243` (it was true when written). The widening argument and the ledger measurement stood up in the first pass. Corrections are tracked on the child notes.
+
+
+## Closed 2026-08-21
+
+**Ninety-five notes name this phase and all ninety-five are resolved.** Eleven features, eight requirements, three ADRs, thirty issues, forty-one tasks, one design, five change notes.
+
+### What the last day added, and why it is not a tail
+
+Four of the five exit criteria were met before 2026-08-21. The work done to close the fifth was **not** bookkeeping, and every piece of it was the same defect this phase was opened to find — *a state the record could not express, so it was expressed by nothing*:
+
+- [[TASK-0576]] / [[FEAT-0142]]: an exclusion records **why**, and the page reads `N features held back · M checks no longer gating`. A gate that fell from 59 to 23 with nothing beside it is [[ISS-0241]] and [[ISS-0243]] in a new place.
+- [[FEAT-0138]] / [[REQ-0057]]: **coverage is observed, not declared.** The test declares the check, the run emits, and deleting the covering test puts the check back on the run list by itself. `covered_by:` — a standing claim that had never settled a check in any repo — is removed, and [[REQ-0039]] is superseded.
+- [[ISS-0250]]: `SURFACE-ORPHAN`. A rename silently orphaned every check on a surface, and an orphaned surface was indistinguishable from an untested one.
+- [[ISS-0253]]: `review_response:` and `REVIEW-STALE`. **43 notes** were closed while still reading `changes-requested`, and the rule found exactly that number independently.
+- [[ISS-0249]]: `retire_check` is routed; `cover_check` is deleted. And `test_no_public_write_in_note_writes_is_unreachable` now asks the general question — *is every write routed?* — that nothing was asking.
+- [[ISS-0252]]: `close-out-commit.sh` names what it changes in `SNAPSHOT.yaml`'s membership, and the **dangling** case separately, because that is the one that does not self-heal.
+
+### Three defects found while building, each of them a rule that could not fire
+
+The pattern this phase kept meeting, met three more times on its last day:
+
+1. **`Remove` on the release page was unreachable.** It is guarded on `c.kind !== 'derived'` and a test pinned that guard — and `publication.py` never emitted a third kind, so a feature could be added through the front door and never taken back out through it.
+2. **The gate's subtraction could not fire on `~release/next`.** The selection was read with `index.by_id(release_id)`, and `release_id` is the literal `"next"` on the page a person opens.
+3. **The coverage emitter's invalidation set was computed from the declarations**, so deleting the test — which deletes the declaration — removed the check from the set that could be invalidated. `covered_by:`'s silent rot, reproduced inside the tool built to end it. Its test **failed on first run**, which is the only reason it is not still there.
+
+And a fourth, in the tooling rather than the product: the declaration scanner **read its own docstring** as a coverage claim, because a `#` comment inside a string satisfies *"is this a comment"*. It uses `tokenize` and `ast` now.
+
+### What is deliberately not closed
+
+- **[[ISS-0213]]** is `deferred` under [[PHASE-999]]. Its finding was this phase's and is answered; what remains is three lines of data in `your-trainer`, costing three blocking checks, on a repo whose surfaces are in no commit. Edwin's call, on his repo.
+- **[[ISS-0209]]** bounds what any of this proves: the acceptance gate runs in no repo that holds a check. The coverage emitter runs here and nowhere the fleet's data lives, and every note that touches it says so.
+- **The `area:` -> `[[SUR-####]]` schema change** ([[ISS-0250]]) is the durable fix and is a migration across 579 notes in an uncommitted corpus. The validator rule reports the gap it leaves.
+- **Whether concurrent close-out sessions are supported** ([[ISS-0252]]) is an ADR-shaped decision. A lock was measured and does not close the collision it was offered against.
+
+### Two vocabularies now exist in three copies each
+
+`OWED_VERDICTS` (cockpit, validator, renderer) and the surface-title join (cockpit, validator). Both are forced — the validator is stdlib-only and standalone, the renderer is TypeScript — and both are pinned by tests that **drive** the copies over the same inputs rather than matching text in either. A text assertion passes on a rule whose normalisation is in a comment, which is this repo's own recorded mutation-testing pitfall and which bit this phase again on its last day.

@@ -1,0 +1,64 @@
+# Coverage is observed, not declared (FEAT-0138 / TASK-0543).
+#
+# A claim that a machine covers an acceptance check is produced by a RUN. The
+# standing `covered_by:` field it replaces rotted silently: rename, delete or
+# disable the covering test and the note kept asserting coverage while the
+# check left the run list permanently, with no signal.
+#
+# THE LIMIT IS STATED, NOT PAPERED OVER (ISS-0209): the acceptance gate runs in
+# no other repo that holds a check, so this observes `project-os-cockpit` and
+# nowhere the fleet's data lives. It does not claim otherwise.
+#
+# IT DOES NOT PUSH. The emitter writes the working ledger in the workspace and
+# the run reports the diff. A commit is local and reversible; a push is
+# publishing, and in this project publishing is a person clicking something.
+name: observed-coverage
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  declarations:
+    # Cheap, and it is the half that can fail on a doc change: a declaration
+    # naming a check that does not exist is a verdict about nothing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every `Covers:` declaration names a real check, inside a real test
+        run: python3 tools/scripts/coverage-declarations.py --repo-root "$GITHUB_WORKSPACE" --check
+
+  observe:
+    # macOS because the platform comes from the RUN'S TARGET (TASK-0543
+    # criterion 3), and this repo's ledger is `WORKING-macos.json`. Emitting
+    # macos verdicts from a linux runner would be a false statement about
+    # where the evidence came from.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run the suite
+        id: suite
+        continue-on-error: true
+        run: python -m pytest -q --junitxml=junit.xml
+      - name: Emit what the run observed
+        # `always()` because a FAILING run has something to say too: a covering
+        # test that fails invalidates its check's standing verdict, which is
+        # what puts it back on the run list.
+        if: always()
+        run: |
+          python tools/scripts/emit-coverage.py \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --junit junit.xml \
+            --platform macos \
+            --by "ci:observed-coverage" \
+            --run "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Report the ledger diff (never pushed)
+        if: always()
+        run: git --no-pager diff -- docs/releases/ledgers || true
+      - name: Fail if the suite failed
+        if: steps.suite.outcome == 'failure'
+        run: exit 1

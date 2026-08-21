@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0249
 aliases: ["ISS-0249"]
 title: "`retire_check` and `cover_check` are complete write paths that no front door reaches — the answer to TASK-0518 has nowhere to be recorded"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -14,7 +14,7 @@ source: ["[[TASK-0363]] cross-check against `note_writes`' callers, 2026-08-20"]
 severity: medium
 component: cockpit
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-related: ["[[TASK-0518-Rest-Or-Retire]]", "[[FEAT-0131-The-Suite-Is-Refined]]", "[[ADR-0035-A-Release-Page-Reports]]", "[[TASK-0363-The-Read-Only-Guard]]"]
+related: ["[[TASK-0518-Review-Tier-Two-For-One-Time-Fixes]]", "[[FEAT-0131-The-Suite-Is-Refined]]", "[[ADR-0035-A-Release-Page-Reports]]", "[[TASK-0363-The-Read-Only-Guard]]"]
 tests: []
 ---
 
@@ -71,3 +71,32 @@ Walking `_route_post` with `ast` and resolving `note_writes.<fn>` calls per hand
 The reverse walk over all 29 public `note_writes` functions confirms the table. `retire_check` and `cover_check` are the only two with no caller anywhere in `src/`, including inside `note_writes` itself. The four the note sets aside are accounted for as it says: `resolve_note` has 13 internal uses, `next_issue_id` and `next_release_id` one each, `read_design_comments` is called from `cockpit.py` — and every remaining public function is called from `server.py`. The only other references to the two are `tests/test_checks_view.py` and the prose at `ledger.py:318`. "Not a security finding" is right for the reason given, and the options are stated fairly.
 
 **One correction.** `related:` links `[[TASK-0518-Rest-Or-Retire]]`, but that note is `TASK-0518-Review-Tier-Two-For-One-Time-Fixes.md` and its `aliases:` carry only `TASK-0518`. The validator resolves the reference by ID, so nothing errors; a reader clicking it lands nowhere.
+
+
+## Fixed 2026-08-21 — one wired, one deleted, and the general form guarded
+
+**`retire_check` was wired.** `POST /api/notes/retire-check`, loopback-guarded like the other 27, and a `Retire` control beside the mark on `~checks`. The dispatch partition test moved 27 -> 28 deliberately, and the sweep drives the new route over a real socket and requires a 403.
+
+[[TASK-0518]] closed with *"retire nothing today"*, and this note's own recommendation was that the caller should land **with** that decision. It lands now for the reason that task records: *"if the answer here ever changes, there is no button to press."* A decision that changes later must not find that there is nothing to press.
+
+**`cover_check` was deleted**, which is option 3 — and this note named the condition for it: *"the honest option for `cover_check` if the suite is never refined that way."* [[FEAT-0131]] — *the suite is refined* — closed `done` without ever needing it, so it never was. And [[FEAT-0138]]/[[REQ-0057]] end the field it wrote outright: nothing declares coverage in a note.
+
+### The thing found while wiring it, which is this issue's point restated
+
+`retire_check` wrote **`verdict_reason:`** — one of the seven fields [[ADR-0037]] moved into the ledger, and one this repo's validator **refuses** (`LEDGER-MOVED-FIELD`). So the function would have failed the commit it was part of, on its first real use, in a repo that keeps ledgers.
+
+Nothing caught it, and nothing could: the unit tests call it directly and never validate the result, and every other check walks the corpus, which the function had never touched. **An unreachable write path is an untested one however many unit tests it has** — that is a sharper statement than the one this note filed, and it is the one the wiring produced.
+
+The reason goes in the note **body** now (`## Retired <date>`), where a reader sees it.
+
+`promote` went too. It wrote `tier: 3`, and [[ADR-0039]] decided there is no Tier 3 — `tier:` is read by no section and by no gate decision. A parameter whose only effect is a field nothing reads is a lever that moves nothing, and offering it from a front door would have been worse than leaving it unreachable.
+
+### The general form, so the next one is caught by a test
+
+`test_no_public_write_in_note_writes_is_unreachable` (`tests/test_checks_view.py`) walks `note_writes` with `ast`, takes every public function that calls `_write` — **13 of them** — and requires each to be named somewhere other than its own definition.
+
+That is the question this issue found nobody was asking. The loopback enumeration walks the **dispatch**, so a function absent from it is absent from that rule's domain *by construction*: it cannot report what it cannot see. *"Is every write routed?"* is a different question, and it has a test now.
+
+### Correction applied
+
+`related:` linked `[[TASK-0518-Rest-Or-Retire]]`, a slug that note does not carry. It resolves by ID so nothing errored; a reader clicking it landed nowhere. Now `[[TASK-0518-Review-Tier-Two-For-One-Time-Fixes]]`.

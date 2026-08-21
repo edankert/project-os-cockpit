@@ -1174,6 +1174,7 @@ def test_changes_requested_is_not_treated_as_finished() -> None:
     guards both halves: the vocabulary is still complete, and the renderer
     still does not re-derive it.
     """
+    # Covers: TST-0075
     from project_os_cockpit import cockpit
 
     # The vocabulary half — unchanged in meaning, moved in location.

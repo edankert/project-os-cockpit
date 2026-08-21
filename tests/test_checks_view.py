@@ -210,203 +210,193 @@ def test_the_tier_heads_open_the_view_not_a_directory() -> None:
                     assert row["url"].endswith(".md"), row["url"]
                 else:
                     assert row["url"].startswith("~checks/tier/"), row["url"]
-# ---- the automation path (REQ-0039 / ADR-0031) ---------------------------
-def test_a_passing_covering_test_settles_the_check(tmp_path) -> None:
-    """The return on the whole merge, asserted end to end on real notes.
-    Before ADR-0031 this could not happen at all: `automation:` and
-    `covered_by:` were read by one facet and one release stat, and by nothing
-    that could discharge anything. 15 of the 60 checks blocking `your-trainer`
-    said in their own bodies that a machine already covered them, and blocked
-    the release anyway.
+# ---- coverage is OBSERVED, not declared (REQ-0057 / FEAT-0138) -----------
+#
+# `covered_by:` and `cover_check` are GONE. The standing claim rotted silently
+# -- rename, delete or disable the covering test and the note kept asserting
+# coverage while the check left the run list permanently, with no signal -- and
+# the field held nothing on 671 of 671 notes fleet-wide (ISS-0198), so removing
+# it took nothing away.
+#
+# The replacement is proved in `test_observed_coverage.py`: the test declares
+# the check, the run emits, and deleting the test puts the check back on the
+# run list by itself.
+
+
+def test_a_note_can_no_longer_declare_that_a_machine_covers_it(tmp_path) -> None:
+    """[[REQ-0057]] criterion 1, asserted on the mechanism rather than on the
+    corpus being clean today.
+
+    A note carrying `covered_by:` must not settle its own check. It is refused
+    by this repo's validator (`LEDGER-MOVED-FIELD` — the field is one of the
+    seven ADR-0037 moved into the ledger), and the reader is gone: even if one
+    were written by hand, nothing reads it.
     """
     from project_os_cockpit import acceptance
     from project_os_cockpit.index import Index
+
     docs = tmp_path / "docs"
     (docs / "tests" / "acceptance").mkdir(parents=True)
-    (docs / "tests").joinpath("TST-0900-Covering.md").write_text(
+    (docs / "tests" / "TST-0900-Covering.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "The covering test"\n'
         'status: passing\nkind: automated\nlevel: integration\n'
         'command: "pytest -q"\nlast_run: "2026-08-18"\ncovers: []\n---\n\nbody\n',
         encoding="utf-8")
-    check = docs / "tests" / "acceptance" / "TST-0901-Covered.md"
-    def write(covered_by: str, mark: str = " ") -> None:
-        check.write_text(
-            '---\ntype: "[[test]]"\nid: TST-0901\ntitle: "A covered check"\n'
-            f'status: active\nlevel: acceptance\nkind: manual\ntier: 1\n'
-            f'mark: "{mark}"\narea: "Area"\nsection: "1.1"\nordinal: 10\n'
-            f'automation: full\ncovered_by: {covered_by}\ncovers: []\n---\n\nwalk it\n',
-            encoding="utf-8")
-    # Unwalked and uncovered: it blocks, which is the baseline the rest means
-    # nothing without.
-    write("[]")
-    suite = acceptance.load(docs, Index.build(docs))
-    assert len(suite.blocking()) == 1
-    # Unwalked, but a PASSING test covers it: settled, with no human mark.
-    write('["[[TST-0900-Covering]]"]')
-    suite = acceptance.load(docs, Index.build(docs))
-    assert suite.blocking() == [], "a passing covering test must settle the check"
-    assert suite.items[0].mark == "todo", "settling must not write a mark"
-    # The covering test fails: the check re-enters the gate. Decided in
-    # ADR-0031 rather than discovered -- this is what puts a machine-driven
-    # population into the release gate.
-    covering = docs / "tests" / "TST-0900-Covering.md"
-    covering.write_text(covering.read_text().replace("status: passing", "status: failing"), "utf-8")
-    suite = acceptance.load(docs, Index.build(docs))
-    assert len(suite.blocking()) == 1, "a failing covering test must un-settle the check"
-    # `ready` is not "not failing": a covering test that has never run settles
-    # nothing, which is the whole difference between coverage and a promise.
-    covering.write_text(covering.read_text().replace("status: failing", "status: ready"), "utf-8")
-    suite = acceptance.load(docs, Index.build(docs))
-    assert len(suite.blocking()) == 1, "an unrun covering test must not settle anything"
-def test_coverage_cannot_settle_without_an_index() -> None:
-    """A directory read cannot resolve an id, so it must under-settle.
-    The safe direction, and stated as a property rather than left to chance: a
-    reader that guessed `passing` for an unresolvable reference would clear a
-    release gate on a claim nobody checked.
-    """
-    from project_os_cockpit.acceptance import Item
-    item = Item(tier=1, section="1.1", area="Area", name="x", text="x",
-                checked=False, mark="todo",
-                covered_by=("[[TST-0900]]",), covered_by_status=())
-    assert item.settled is False
-def test_coverage_is_all_covers_not_any(tmp_path) -> None:
-    """Two covers, one failing: the check is NOT settled.
-    `any()` settled it, which contradicts the sentence every note about this
-    feature carries — *a failing covering test un-settles the check*. Found by
-    independent review, and the shape of the defect is why the guard exists:
-    the single-cover case, which every other test here uses, passes either way.
-    """
-    from project_os_cockpit import acceptance
-    from project_os_cockpit.index import Index
-    docs = tmp_path / "docs"
-    (docs / "tests" / "acceptance").mkdir(parents=True)
-    for tid, status in (("TST-0900", "passing"), ("TST-0901", "failing")):
-        (docs / "tests" / f"{tid}-C.md").write_text(
-            f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "c"\nstatus: {status}\n'
-            f'kind: automated\nlevel: unit\ncommand: "pytest -q"\n'
-            f'last_run: "2026-08-18"\ncovers: []\n---\n\nb\n', encoding="utf-8")
-    (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 1\nmark: "todo"\narea: "A"\n'
-        'section: "1.1"\nordinal: 10\nautomation: full\n'
-        'covered_by: ["[[TST-0900-C]]", "[[TST-0901-C]]"]\ncovers: []\n---\n\nwalk\n',
+    (docs / "tests" / "acceptance" / "TST-0901-Covered.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0901\ntitle: "A check"\n'
+        'status: active\nlevel: acceptance\nkind: manual\nmark: "todo"\n'
+        'area: "Area"\ncovered_by: ["[[TST-0900-Covering]]"]\ncovers: []\n---\n\nwalk it\n',
         encoding="utf-8")
     suite = acceptance.load(docs, Index.build(docs))
-    assert len(suite.blocking()) == 1, "one failing cover must keep the check in the gate"
-def test_a_manual_covering_test_is_not_coverage(tmp_path) -> None:
-    """A hand-walked test at `passing` must not discharge another check.
-    Coverage means a MACHINE answers it. Accepting a manual `passing` would let
-    one walk launder itself into another's automation — the opposite of what
-    REQ-0039 buys, and reachable today because every migrated acceptance note
-    carries `kind: manual`.
-    """
-    from project_os_cockpit import acceptance
-    from project_os_cockpit.index import Index
-    docs = tmp_path / "docs"
-    (docs / "tests" / "acceptance").mkdir(parents=True)
-    (docs / "tests" / "TST-0900-Manual.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "m"\nstatus: passing\n'
-        'kind: manual\nlevel: system\nlast_verified: "2026-08-18"\ncovers: []\n---\n\nsteps\n',
-        encoding="utf-8")
-    (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "covered"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 1\nmark: "todo"\narea: "A"\n'
-        'section: "1.1"\nordinal: 10\nautomation: full\n'
-        'covered_by: ["[[TST-0900-Manual]]"]\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
-    suite = acceptance.load(docs, Index.build(docs))
-    assert len(suite.blocking()) == 1, "a manual covering test must not settle anything"
-# ---- the write path (TASK-0483 / TASK-0484) -------------------------------
+    assert len(suite.blocking()) == 1, (
+        "a hand-written `covered_by:` still settles a check — the standing "
+        "claim REQ-0057 removes is back"
+    )
+    assert not hasattr(suite.items[0], "covered_by")
+
+
+def test_the_write_path_for_the_standing_claim_is_gone() -> None:
+    """[[ISS-0249]]: `cover_check` was a complete, tested write path that no
+    front door reached, and the capability it offered is one [[FEAT-0138]]
+    ends. [[FEAT-0131]] — *the suite is refined* — closed `done` without ever
+    needing it, which was the condition the issue named for deleting it."""
+    from project_os_cockpit import note_writes
+
+    assert not hasattr(note_writes, "cover_check")
+
+
+# ---- the write path that WAS kept, and is now reachable (ISS-0249) --------
+
 def _write_repo(tmp_path):
-    """A repo with one acceptance check and three candidate covering tests."""
+    """A repo with one acceptance check."""
     from project_os_cockpit.index import Index
     docs = tmp_path / "docs"
     (docs / "tests" / "acceptance").mkdir(parents=True)
-    (docs / "tests" / "TST-0900-Executable.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0900\ntitle: "runnable"\nstatus: passing\n'
-        'kind: automated\nlevel: unit\ncommand: "pytest -q"\nlast_run: "2026-08-18"\n'
-        'covers: []\n---\n\nb\n', encoding="utf-8")
-    (docs / "tests" / "TST-0901-Manual.md").write_text(
-        '---\ntype: "[[test]]"\nid: TST-0901\ntitle: "hand-walked"\nstatus: passing\n'
-        'kind: manual\nlevel: system\nlast_verified: "2026-08-18"\ncovers: []\n---\n\nb\n',
-        encoding="utf-8")
     (docs / "features").mkdir()
     (docs / "features" / "FEAT-0001-Thing.md").write_text(
         '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "t"\nstatus: done\n---\n\nb\n',
         encoding="utf-8")
     (docs / "tests" / "acceptance" / "TST-0902-Covered.md").write_text(
         '---\ntype: "[[test]]"\nid: TST-0902\ntitle: "a check"\nstatus: active\n'
-        'level: acceptance\nkind: manual\ntier: 2\nmark: "done"\nverdict_date: "2026-08-01"\n'
-        'verdict_reason: ""\narea: "A"\nsection: "1.1"\nordinal: 10\n'
-        'automation: manual\ncovered_by: []\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
+        'level: acceptance\nkind: manual\nmark: "done"\nverdict_date: "2026-08-01"\n'
+        'area: "A"\ncovers: []\n---\n\nwalk\n', encoding="utf-8")
     return docs, Index.build(docs)
-def test_covered_by_is_refused_unless_the_test_can_actually_run(tmp_path) -> None:
-    """The refusal that makes the field mean something.
-    `_resolve_coverage` accepts only an executable test, so a link to a manual
-    one would look like coverage on every surface and settle nothing — a claim
-    written into the exact field the gate reads, that the gate is built to
-    ignore. Refusing at the write is the only place it can be caught.
-    """
+
+
+def test_retiring_is_refused_without_a_reason(tmp_path) -> None:
+    """A check that leaves the gate without a reason is indistinguishable from
+    one that was quietly dropped."""
     from project_os_cockpit import note_writes
-    docs, index = _write_repo(tmp_path)
-    with pytest.raises(note_writes.WriteError) as manual:
-        note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0901")
-    assert "declares no command" in str(manual.value)
-    with pytest.raises(note_writes.WriteError) as missing:
-        note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-9999")
-    assert "not in the record" in str(missing.value)
-    with pytest.raises(note_writes.WriteError) as wrong_type:
-        note_writes.cover_check(index, check_id="TST-0902", covered_by="FEAT-0001")
-    assert "not a test" in str(wrong_type.value)
-    with pytest.raises(note_writes.WriteError) as partial:
-        note_writes.cover_check(index, check_id="TST-0902",
-                                covered_by="TST-0900", automation="partial")
-    assert "which part is automated" in str(partial.value)
-def test_covered_by_writes_the_link_the_gate_reads(tmp_path) -> None:
-    """And the round trip: written here, read by `settled` there."""
-    from project_os_cockpit import acceptance, note_writes
-    from project_os_cockpit.index import Index
-    docs, index = _write_repo(tmp_path)
-    out = note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0900")
-    assert out["automation"] == "full"
-    suite = acceptance.load(docs, Index.build(docs))
-    item = suite.items[0]
-    assert item.covered_by, "the field the gate reads must be populated"
-    assert item.covered_by_passing, "a passing executable cover must discharge it"
-def test_promotion_is_refused_without_coverage_and_retirement_keeps_the_verdict(tmp_path) -> None:
-    """Tier 3 is where a check goes when a machine took it over.
-    Promoting one that nothing covers is moving it out of the gating tiers on
-    no evidence — which is the escape hatch, not the lifecycle. And retiring
-    must not erase the mark: a retired check is the record that a behaviour was
-    once walked, which is exactly what somebody wants when the automated test
-    is later deleted as redundant.
-    """
-    from project_os_cockpit import note_writes
-    from project_os_cockpit.index import Index
+
     docs, index = _write_repo(tmp_path)
     with pytest.raises(note_writes.WriteError) as bare:
-        note_writes.retire_check(index, check_id="TST-0902", reason="", promote=True)
+        note_writes.retire_check(index, check_id="TST-0902", reason="")
     assert "must say why" in str(bare.value)
-    with pytest.raises(note_writes.WriteError) as uncovered:
-        note_writes.retire_check(index, check_id="TST-0902",
-                                 reason="covered now", promote=True)
-    assert "covered_by" in str(uncovered.value)
-    note_writes.cover_check(index, check_id="TST-0902", covered_by="TST-0900")
-    index = Index.build(docs)
-    note_writes.retire_check(index, check_id="TST-0902",
-                             reason="TST-0900 covers it", promote=True)
-    # Read as frontmatter, not as a string: whether a scalar is quoted is a
-    # writer's habit, and asserting on it would fail on a cosmetic change while
-    # passing on a semantic one.
+
+
+def test_retiring_keeps_the_verdict_and_records_why(tmp_path) -> None:
+    """**Retiring is deprecation, not erasure.** A retired check is the record
+    that a behaviour was once walked by hand — which is exactly the history
+    somebody wants when the automated test is later deleted as redundant."""
     import frontmatter as _fm
-    note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
-    assert str(note["tier"]) == "3"
-    assert note["mark"] == "done", "promotion must not erase the verdict"
-    note_writes.retire_check(Index.build(docs), check_id="TST-0902",
-                             reason="shipped in v2; TST-0900 owns it")
-    note = _fm.loads((docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
+
+    from project_os_cockpit import note_writes
+    from project_os_cockpit.index import Index
+
+    docs, index = _write_repo(tmp_path)
+    out = note_writes.retire_check(
+        index, check_id="TST-0902", reason="the surface it walks was removed")
+    assert out["status"] == "retired"
+    note = _fm.loads(
+        (docs / "tests" / "acceptance" / "TST-0902-Covered.md").read_text())
     assert note["status"] == "retired"
     assert note["mark"] == "done", "retiring is deprecation, not erasure"
-    assert str(note["verdict_date"]) == "2026-08-01", "the walk's date survives it"
+    assert str(note["verdict_date"]) == "2026-08-01", "the walk's date survives"
+    assert "the surface it walks was removed" in note.content
+    #: **The reason is in the BODY, not `verdict_reason:`.** That field is one
+    #: of the seven ADR-0037 moved into the ledger and this repo's validator
+    #: refuses it — so the previous version wrote a field that would have
+    #: failed the commit it was part of, and nothing caught it because nothing
+    #: called it.
+    assert "verdict_reason" not in note.metadata
+
+    with pytest.raises(note_writes.WriteError):
+        note_writes.retire_check(Index.build(docs), check_id="TST-0902",
+                                 reason="again")
+
+
+def test_promotion_is_gone(tmp_path) -> None:
+    """`promote` wrote `tier: 3`, and [[ADR-0039]] decided there is no Tier 3:
+    `tier:` is read by no section and by no gate decision. A parameter whose
+    only effect is a field nothing reads is a lever that moves nothing."""
+    import inspect
+
+    from project_os_cockpit import note_writes
+
+    assert "promote" not in inspect.signature(note_writes.retire_check).parameters
+
+
+def test_retiring_is_reachable_from_a_front_door(tmp_path) -> None:
+    """[[ISS-0249]]'s whole subject: *is every write routed?* It was not.
+
+    Asserted on the dispatch and on the control, because the defect was
+    precisely that the function, its guards and its unit tests were all fine
+    and nothing could call it.
+    """
+    src = (Path(__file__).resolve().parents[1] / "src" / "project_os_cockpit"
+           / "server.py").read_text(encoding="utf-8")
+    assert 'path == "/api/notes/retire-check"' in src
+    i = src.index("def _serve_retire_check")
+    body = src[i:i + 2200]
+    assert "self._require_loopback()" in body
+    assert "note_writes.retire_check(" in body
+
+    ts = (Path(__file__).resolve().parents[1] / "desktop" / "src" / "renderer"
+          / "renderer.ts").read_text(encoding="utf-8")
+    assert "/api/notes/retire-check" in ts
+    assert "retireCheckRow(item)" in ts
+
+
+def test_no_public_write_in_note_writes_is_unreachable() -> None:
+    """**The general form of [[ISS-0249]]**, so the next one is caught by a
+    test rather than by somebody walking the dispatch in reverse.
+
+    The loopback enumeration walks the DISPATCH, so a function absent from it
+    is absent from that rule's domain by construction — it cannot report what
+    it cannot see. This asks the other question: *is every write routed?*
+    """
+    import ast
+
+    root = Path(__file__).resolve().parents[1] / "src" / "project_os_cockpit"
+    tree = ast.parse((root / "note_writes.py").read_text(encoding="utf-8"))
+    #: A write is a public function that calls `_write`. Reads, id allocators
+    #: and helpers are excluded by that predicate rather than by a list.
+    writes = set()
+    for node in tree.body:
+        if not isinstance(node, ast.FunctionDef) or node.name.startswith("_"):
+            continue
+        for inner in ast.walk(node):
+            if (isinstance(inner, ast.Call)
+                    and isinstance(inner.func, ast.Name)
+                    and inner.func.id == "_write"):
+                writes.add(node.name)
+                break
+    assert writes, "the predicate found no writes at all"
+
+    callers = ""
+    for name in ("server.py", "cockpit.py", "cli.py", "worker.py",
+                 "agent_actions.py", "note_writes.py"):
+        callers += (root / name).read_text(encoding="utf-8")
+    unreachable = sorted(
+        name for name in writes
+        if callers.count("%s(" % name) <= 1        # its own definition
+    )
+    assert unreachable == [], (
+        "these write paths are complete, tested and callable by nothing: %s"
+        % ", ".join(unreachable)
+    )
+
+
 # ----- surface grouping and the progress bar (TASK-0520) --------------------
 def test_the_page_groups_by_surface_and_not_as_one_flat_list() -> None:
     """TASK-0520, restoring what TASK-0513 removed.

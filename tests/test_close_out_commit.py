@@ -66,6 +66,7 @@ def test_it_stages_only_what_it_was_given(repo: Path) -> None:
     A dirty file outside the close-out's scope is somebody else's work in
     progress. It must survive untouched.
     """
+    # Covers: TST-0069 — "named paths staged"
     (repo / "docs" / "ISS-0001-Thing.md").write_text("---\nid: ISS-0001\n---\n", encoding="utf-8")
     (repo / "src" / "unrelated.py").write_text("# someone else's afternoon\n", encoding="utf-8")
 
@@ -85,6 +86,7 @@ def test_it_stages_only_what_it_was_given(repo: Path) -> None:
 
 def test_it_reports_what_it_left_alone(repo: Path) -> None:
     """Silence would look identical to having committed it."""
+    # Covers: TST-0069 — "dirty files elsewhere reported and left alone"
     (repo / "docs" / "a.md").write_text("a\n", encoding="utf-8")
     (repo / "src" / "b.py").write_text("b\n", encoding="utf-8")
     res = _run(repo, "docs")
@@ -95,6 +97,7 @@ def test_it_reports_what_it_left_alone(repo: Path) -> None:
 
 
 def test_the_message_names_the_ids_that_closed(repo: Path) -> None:
+    # Covers: TST-0069 — "the message built from the staged ids"
     (repo / "docs" / "FEAT-0042-Thing.md").write_text("x\n", encoding="utf-8")
     (repo / "docs" / "TASK-0100-Bit.md").write_text("y\n", encoding="utf-8")
     _run(repo, "docs")
@@ -110,6 +113,7 @@ def test_extra_context_reaches_the_subject(repo: Path) -> None:
 
 def test_it_does_not_push(repo: Path, tmp_path: Path) -> None:
     """A commit is local and reversible; a push is publishing."""
+    # Covers: TST-0069 — "and no push"
     bare = tmp_path / "remote.git"
     subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
     subprocess.run(["git", "-C", str(repo), "remote", "add", "origin", str(bare)], check=True)
@@ -137,6 +141,7 @@ def test_it_never_bypasses_the_hook() -> None:
     it should not — the exact bypass the hook's own comment records
     agents having done.
     """
+    # Covers: TST-0069 — "the pre-commit hook run"
     # Assert on the INVOCATION, not on a mention: the script's header
     # explains why the flag is absent, and a substring check would flag
     # that explanation — the false-positive shape ISS-0069 recorded.

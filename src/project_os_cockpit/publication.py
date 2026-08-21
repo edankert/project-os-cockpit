@@ -750,6 +750,84 @@ def release_item_payload(
     return out
 
 
+def _resolve_feature_row(index: "Index", feature_id: str) -> dict[str, Any]:
+    """One chosen row, resolved to a title and a link.
+
+    The frozen branch already did this by hand because emitting the raw
+    frontmatter string rendered `[[FEAT-0085-BleHardening]]` as bracket-wrapped
+    slugs with no titles ([[ISS-0180]]). Chosen contents are the same
+    frontmatter read the same way, so they get the same resolver rather than a
+    second one.
+    """
+    path = index.by_id(feature_id)
+    record = index.get(path) if path is not None else None
+    return {
+        "id": (record.note_id if record else feature_id) or feature_id,
+        "title": (record.title if record else feature_id) or feature_id,
+        "rel": (record.rel_path if record else ""),
+    }
+
+
+def _held_back_reasons(record: "Any | None") -> dict[str, dict[str, str]]:
+    """`held_back:` off the release note, keyed by feature id.
+
+    Written by `note_writes.release_contents` when somebody takes a feature
+    out ([[TASK-0576]]). A hand-edited `features:` list produces held-back
+    features with **no** entry here, which is a real state and is reported as
+    such rather than papered over -- see :func:`_held_back_rows`.
+    """
+    out: dict[str, dict[str, str]] = {}
+    for raw in ((record.frontmatter.get("held_back") if record else None) or []):
+        if not isinstance(raw, dict):
+            continue
+        fid = str(raw.get("id") or "").strip()
+        if not fid:
+            continue
+        out[fid] = {"reason": str(raw.get("reason") or ""),
+                    "date": str(raw.get("date") or "")}
+    return out
+
+
+def _held_back_rows(
+    index: "Index",
+    held_ids: "set[str] | None",
+    derived_rows: list[dict[str, Any]],
+    record: "Any | None",
+) -> list[dict[str, Any]]:
+    """What this release is NOT carrying, and why ([[TASK-0576]]).
+
+    **A count that shrinks with no cause beside it is the defect this phase
+    exists to remove** -- [[ISS-0241]]'s *"89 executed by CI"* and
+    [[ISS-0243]]'s *"90% complete"* are the same sentence about a different
+    number. [[ADR-0040]] chose subtraction over division partly so the gate
+    would stay conservative; this is the other half of that argument, which is
+    that the subtraction must also be **visible**.
+
+    `held_ids` `None` reads the record alone -- the shipped case, where the
+    derived set has moved on and the frontmatter is the only record left.
+
+    **An exclusion with no recorded reason is reported, not hidden.** The
+    write path refuses a removal without one, so an empty `reason` means the
+    `features:` list was hand-edited; saying so is the whole point of the
+    field, and defaulting it to a plausible sentence would be the lie again.
+    """
+    reasons = _held_back_reasons(record)
+    by_id = {str(r.get("id") or ""): r for r in derived_rows}
+    ids = sorted(reasons) if held_ids is None else sorted(held_ids)
+    out: list[dict[str, Any]] = []
+    for fid in ids:
+        row = by_id.get(fid) or _resolve_feature_row(index, fid)
+        entry = reasons.get(fid) or {}
+        out.append({
+            "id": fid,
+            "title": str(row.get("title") or fid),
+            "rel": str(row.get("rel") or ""),
+            "reason": entry.get("reason", ""),
+            "date": entry.get("date", ""),
+        })
+    return out
+
+
 def contents_candidates(
     index: "Index", release_id: str, platform: str = "",
 ) -> list[dict[str, Any]]:
@@ -920,20 +998,64 @@ def release_payload(
             "rows": rows,
             "count": len(rows),
             "since": "",
+            #: **The seal freezes the exclusions too** ([[TASK-0576]]). What a
+            #: release held back, and why, is part of what it was measured
+            #: against -- a shipped release whose gate was smaller than the
+            #: repo's must still say what made it smaller.
+            "held_back": _held_back_rows(
+                index, None, [],
+                index.get(index.by_id(held["id"]))
+                if held and index.by_id(held["id"]) is not None else None),
         }
     else:
         # `unreleased_payload`'s own keys: `items` and `since` (FEAT-0072).
         # Read them rather than inventing near-misses — a second vocabulary
         # for one computation is how two surfaces come to disagree.
         unshipped = unreleased_payload(index)
-        rows = unshipped.get("items") or []
+        derived_rows = unshipped.get("items") or []
         since = unshipped.get("since") or {}
-        contents = {
-            "kind": "derived",
-            "count": int(unshipped.get("count") or 0),
-            "since": since.get("id", "") if isinstance(since, dict) else str(since),
-            "rows": rows,
-        }
+        since_id = since.get("id", "") if isinstance(since, dict) else str(since)
+
+        #: **`held["id"]`, not `release_id`.** The argument is `"next"` on the
+        #: page a person actually lands on, and `index.by_id("next")` is
+        #: `None` — so `named` came back empty and the subtraction below could
+        #: not fire for the one release anybody is preparing. The resolved id
+        #: is the release; the argument is how it was asked for.
+        _rel_id = held["id"] if held else ""
+        _rel_path = index.by_id(_rel_id) if _rel_id else None
+        _rel_rec = index.get(_rel_path) if _rel_path is not None else None
+        named_order: list[str] = []
+        for raw in ((_rel_rec.frontmatter.get("features") if _rel_rec else None) or []):
+            for m in re.finditer(r"FEAT-\d+", str(raw)):
+                if m.group(0) not in named_order:
+                    named_order.append(m.group(0))
+        named = set(named_order)
+
+        #: **CHOSEN is a different kind from DERIVED, and the page has always
+        #: known it** ([[FEAT-0142]] scope: *"the page distinguishes derived
+        #: rows from chosen rows"*). The renderer offers `Remove` only on
+        #: `c.kind !== 'derived'` and has a test pinning that guard — but
+        #: nothing ever emitted a third kind, so the control was unreachable
+        #: and a feature could be added through the front door and never taken
+        #: back out through it. Naming one feature is the semantic jump the
+        #: compose warning announces; this is that jump arriving in the
+        #: payload.
+        if named:
+            rows = [_resolve_feature_row(index, fid) for fid in named_order]
+            contents = {
+                "kind": "chosen",
+                "count": len(rows),
+                "since": since_id,
+                "rows": rows,
+            }
+        else:
+            rows = derived_rows
+            contents = {
+                "kind": "derived",
+                "count": int(unshipped.get("count") or 0),
+                "since": since_id,
+                "rows": rows,
+            }
 
     # A SHIPPED release shows the record as it stood, not today's gate. It
     # verified a snapshot — `ACCEPTANCE_CHECKLIST_v2.1.1` for REL-0012 — and
@@ -957,17 +1079,17 @@ def release_payload(
         #: every time, and the subtraction could never fire -- caught only by
         #: testing the POSITIVE case (a release that names three of its
         #: thirty-two) rather than the invariant, which passed either way.
-        _rel_path = index.by_id(release_id) if release_id else None
-        _rel_rec = index.get(_rel_path) if _rel_path is not None else None
-        named = {
-            m.group(0)
-            for raw in ((_rel_rec.frontmatter.get("features") if _rel_rec else None) or [])
-            for m in re.finditer(r"FEAT-\d+", str(raw))
-        }
+        #:
+        #: **Held back is measured against the DERIVED set**, which is what
+        #: the release would have carried had nobody chosen. `contents.rows`
+        #: is no longer that set once a release names its contents, so reading
+        #: it here would make the held-back set empty exactly when it matters.
         held_back = (
-            {str(r.get("id") or "") for r in (contents.get("rows") or [])} - named
+            {str(r.get("id") or "") for r in derived_rows} - named
             if named else set()
         )
+        contents["held_back"] = _held_back_rows(
+            index, held_back, derived_rows, _rel_rec)
         gate = acceptance.gate_payload(
             index.docs_root,
             index=index,

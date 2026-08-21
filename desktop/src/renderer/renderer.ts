@@ -1642,6 +1642,11 @@ interface GatePayload {
   /** Regression guards whose every issue is closed (TASK-0526). */
   resting?: GateItem[];
   stale?: GateItem[];
+  /** What holding features back cost this gate (TASK-0576). `checks` is the
+   *  size of the subtraction ADR-0040 performs — never a second count of the
+   *  suite. A smaller number with no cause beside it is the defect this
+   *  phase exists to remove. */
+  deselection?: { features: number; checks: number };
 }
 
 async function mountReleaseGate(): Promise<void> {
@@ -4841,6 +4846,12 @@ interface ReviewRegisterReviewed {
   // a terminal status owes nothing. The predicate lives in `cockpit.py`
   // beside the statuses it reads — see `_verdict_is_owed`.
   owed?: boolean;
+  /** What the AUTHOR did about the findings (ISS-0253). The verdict stays the
+   *  reviewer's — `review_response:` is a second field, not a flip — so a
+   *  settled `changes-requested` row can say whether the objection was
+   *  answered or merely outlived. */
+  response?: string;
+  response_date?: string;
 }
 interface ReviewQueuePayload {
   schema_version: number; total: number; groups: ReviewQueueGroup[];
@@ -6486,6 +6497,19 @@ function isOwedVerdict(item: ReviewRegisterReviewed): boolean {
   return item.owed === true;
 }
 
+/** Verdicts that ASKED for something, whatever the note's status now is.
+ *
+ *  Distinct from `isOwedVerdict`, and the difference is [[ISS-0253]]'s whole
+ *  subject: `owed` is server-computed from the note's CURRENT status, so a
+ *  `changes-requested` note that reached `done` is not owed — correctly, since
+ *  the work landed. But the verdict is still on the note, still reading as a
+ *  rejection, and nothing recorded that the findings were addressed. This set
+ *  picks the rows where that distinction can be drawn at all.
+ *
+ *  Mirrors `cockpit.OWED_VERDICTS` and the validator's copy of it.
+ */
+const OWED_VERDICT_WORDS = new Set(['changes-requested', 'rejected']);
+
 // Sourced from note frontmatter, not the store — `_MAX_REQUESTS` trims
 // the store's tail, so a store-backed register would quietly forget.
 function buildReviewedRegister(
@@ -6522,6 +6546,23 @@ function buildReviewedRegister(
     title.title = item.reviewed_by
       ? `${item.title}\nreviewed by ${item.reviewed_by}` : item.title;
     row.append(id, title);
+    //: **A verdict outlives the work it judged** ([[ISS-0253]]). 43 notes
+    //: reached a terminal status still reading `changes-requested`, and a
+    //: reader could not tell a live objection from a settled one — the row
+    //: showed the verdict and nothing about what happened next. This says
+    //: which, on the rows where the distinction exists.
+    if (item.verdict && OWED_VERDICT_WORDS.has(item.verdict)) {
+      const answered = document.createElement('span');
+      answered.className = 'verification-meta';
+      answered.textContent = item.response
+        ? `answered${item.response_date ? ` ${item.response_date}` : ''}`
+        : 'no response recorded';
+      if (!item.response) answered.classList.add('is-warn');
+      //: The response itself on hover rather than in the row: it is a
+      //: sentence, and a row that grows to hold one stops being a row.
+      if (item.response) answered.title = item.response;
+      row.appendChild(answered);
+    }
     const date = document.createElement('span');
     date.className = 'queue-age';
     date.textContent = item.review_date || '';
@@ -7356,9 +7397,17 @@ interface IssueDraft { title: string; body: string; test_id: string }
 // and that had been dead in five places (ISS-0176).
 
 interface ReleaseContents {
+  /** `derived` — nobody chose; `chosen` — the note names its contents;
+   *  `frozen` — it shipped and the list is a fact about the past. */
   kind: string; count: number; since: string;
   rows?: Array<{ id?: string; title?: string; rel?: string }>;
   ids?: string[];
+  /** Features this release is NOT carrying, each with the reason it was held
+   *  back (TASK-0576). An empty `reason` means `features:` was hand-edited —
+   *  said so rather than filled in. */
+  held_back?: Array<{
+    id: string; title?: string; rel?: string; reason?: string; date?: string;
+  }>;
 }
 interface ReleasePayload {
   id: string; version: string; status: string; preparing: boolean;
@@ -7874,7 +7923,7 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
       drop.title = `Hold ${row.id} back from this release`;
       drop.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        void composeRelease(releaseId, 'remove', String(row.id || ''));
+        void holdFeatureBack(releaseId, String(row.id || ''));
       });
       li.appendChild(drop);
     }
@@ -7891,6 +7940,68 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     list.appendChild(more);
   }
   section.appendChild(list);
+
+  //: **What was held back, and what it cost** ([[TASK-0576]], [[FEAT-0142]]
+  //: criterion 4).
+  //:
+  //: A gate that fell from 59 to 23 because somebody deselected six features,
+  //: rendered as *"23 blocking"* with nothing beside it, is [[ISS-0241]] and
+  //: [[ISS-0243]] wearing a new hat: **a number with no recorded cause.**
+  //: [[ADR-0040]] chose subtraction over division so the gate would stay
+  //: conservative; this is the other half of that argument, which is that the
+  //: subtraction must be VISIBLE.
+  //:
+  //: Drawn whenever anything is held back — including on a shipped release,
+  //: whose exclusions are part of what it was measured against.
+  const heldBack = c.held_back || [];
+  if (heldBack.length) {
+    const hb = document.createElement('div');
+    hb.className = 'release-heldback';
+    const hh = document.createElement('p');
+    hh.className = 'meta is-warn';
+    //: The count and its cost in ONE sentence. Two numbers on separate lines
+    //: is how a reader comes to believe one of them explains the other.
+    const cost = d.gate?.deselection?.checks ?? 0;
+    hh.textContent = `${heldBack.length} feature(s) held back · `
+      + `${cost} check(s) no longer gating`;
+    hb.appendChild(hh);
+    const hul = document.createElement('ul');
+    hul.className = 'scoped-rowlist';
+    for (const row of heldBack.slice(0, 40)) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono ov-typed';
+      id.dataset.type = 'feature';
+      id.textContent = shortNoteId(String(row.id || ''));
+      const t = document.createElement('span');
+      t.className = 'scoped-row-title';
+      t.textContent = String(row.title || '');
+      const why = document.createElement('span');
+      why.className = 'verification-meta';
+      //: **An exclusion with no reason says so.** The write path refuses a
+      //: removal without one, so an empty reason means `features:` was
+      //: hand-edited — and inventing a plausible sentence here would be the
+      //: overclaiming this phase spent itself removing.
+      why.textContent = row.reason
+        ? String(row.reason) + (row.date ? ` — ${row.date}` : '')
+        : 'no reason recorded (hand-edited)';
+      if (!row.reason) why.classList.add('is-warn');
+      li.append(id, t, why);
+      if (row.rel) {
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => void navigateTo(String(row.rel)));
+      }
+      hul.appendChild(li);
+    }
+    if (heldBack.length > 40) {
+      const more = document.createElement('li');
+      more.className = 'meta';
+      more.textContent = `…${heldBack.length - 40} more`;
+      hul.appendChild(more);
+    }
+    hb.appendChild(hul);
+    section.appendChild(hb);
+  }
 
   //: **Compose** ([[TASK-0511]], server half [[TASK-0558]]). Offered only on a
   //: release that has not shipped: [[ADR-0035]] makes a shipped release's
@@ -8493,12 +8604,13 @@ function buildGateSection(
  */
 async function composeRelease(
   releaseId: string, action: 'add' | 'remove', featureId: string,
+  reason = '',
 ): Promise<void> {
   if (!sidecarBaseUrl) return;
   try {
     const resp = await postJson(
       `${sidecarBaseUrl}/api/notes/release-contents`,
-      { release: releaseId, action, id: featureId },
+      { release: releaseId, action, id: featureId, reason },
     );
     if (!resp || resp.ok === false) {
       showStatus(String(resp?.error || 'could not change the contents'), 'error');
@@ -8512,6 +8624,30 @@ async function composeRelease(
   } catch (err) {
     showStatus(`Could not change the contents: ${String(err)}`, 'error');
   }
+}
+
+
+/** Hold one feature back, having asked why ([[TASK-0576]]).
+ *
+ *  **The prompt is a convenience; the refusal is the server's.**
+ *  `release_contents` rejects a removal with an empty reason, so a caller
+ *  that skipped this — the other front door, a script, a future control —
+ *  gets the same answer. Cancelling asks for nothing and writes nothing.
+ */
+async function holdFeatureBack(
+  releaseId: string, featureId: string,
+): Promise<void> {
+  const reason = await askForText({
+    title: `Hold ${featureId} back`,
+    detail: 'Why is this feature not going in? The release page shows this '
+      + 'beside the count, so a gate that fell says what made it fall.',
+    placeholder: 'e.g. depends on a backend change that is not deployed',
+    confirm: 'Hold back',
+  });
+  //: `null` is cancel, and an empty string is a person who pressed the button
+  //: with nothing typed. Neither writes.
+  if (reason === null || !reason.trim()) return;
+  await composeRelease(releaseId, 'remove', featureId, reason.trim());
 }
 
 
@@ -8958,6 +9094,23 @@ function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
   if (manual) {
     row.appendChild(checkMark(item));
   }
+  //: **Retire, beside the mark** ([[ISS-0249]]). Offered only on a manual
+  //: check, for the same reason the mark is: a machine-executed check is
+  //: retired by deleting the test that runs it, which is [[FEAT-0138]]'s
+  //: inversion rather than a button.
+  if (manual) {
+    const retire = document.createElement('button');
+    retire.type = 'button';
+    retire.className = 'review-btn is-small checks-row-retire';
+    retire.textContent = 'Retire';
+    retire.title = `Retire ${item.number || item.id} — kept and no longer asked`;
+    retire.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      void retireCheckRow(item);
+    });
+    row.appendChild(retire);
+  }
   //: **The command is NOT in the checkbox slot** ([[ISS-0243]]). Edwin: *"this
   //: details page shows the command as one of the first list items, this
   //: doesn't have enough space there; if we show the command then it should be
@@ -9058,6 +9211,46 @@ function checkMark(item: GateItem): HTMLElement {
     void markCheckRow(item);
   });
   return btn;
+}
+
+/** Retire one check from the view ([[ISS-0249]]).
+ *
+ *  **The lever that existed and had no handle.** `note_writes.retire_check`
+ *  performed TESTING.md's removal path and no route, no control and no CLI
+ *  reached it, so executing [[TASK-0518]]'s decision would have meant
+ *  hand-editing 83 notes — the write [[ADR-0009]] exists to prevent, because a
+ *  hand edit is one the record cannot attribute.
+ *
+ *  [[TASK-0518]] answered *retire nothing today*. The button lands anyway: a
+ *  decision that changes later must not find that there is nothing to press.
+ *
+ *  **Retiring is not deleting** and it is not a verdict. The mark and its date
+ *  survive — a retired check is the record that a behaviour was once walked —
+ *  and this lives on `~checks`, never on a release page ([[ADR-0035]]).
+ */
+async function retireCheckRow(item: GateItem): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  const reason = await askForText({
+    title: `Retire ${item.number || item.id}`,
+    detail: 'Why does this check stop being asked? It is kept, not deleted — '
+      + 'its verdict stays as the record that the behaviour was once walked.',
+    placeholder: 'e.g. the surface it walks was removed in v2.1',
+    confirm: 'Retire',
+  });
+  if (reason === null || !reason.trim()) return;
+  try {
+    const resp = await postJson(`${sidecarBaseUrl}/api/notes/retire-check`,
+                                { id: item.id || item.number,
+                                  reason: reason.trim() });
+    if (!resp || resp.ok === false) {
+      showStatus(String(resp?.error || 'could not retire the check'), 'error');
+      return;
+    }
+    showStatus(`Retired ${item.number || item.id}`);
+    await renderChecksPage();
+  } catch (err) {
+    showStatus(`Could not retire the check: ${String(err)}`, 'error');
+  }
 }
 
 /** Mark one check from the view, then repaint the list around the reader.

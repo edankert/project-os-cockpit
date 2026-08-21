@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0252
 aliases: ["ISS-0252"]
 title: "Close-out requires naming `SNAPSHOT.yaml` and the snapshot is one hand-curated shared file, so two agent sessions closing out at once interleave in it — three collisions in one afternoon, two of which turned `--as-committed` red"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-08-21"
 source: ["hit three times while closing out PHASE-037 alongside a second session, 2026-08-20"]
 severity: medium
 component: tooling
@@ -48,7 +48,41 @@ Two sessions closing out concurrently either both succeed, or the second is told
 
 ## Next Actions
 
-- [ ] Decide whether concurrent sessions are a supported mode at all. If they are not, the cheapest fix is a **lock**: `close-out-commit.sh` takes one, and the second session waits or is told why. If they are, the snapshot needs to stop being a single hand-edited file, which is a much larger change and is [[ADR-0009]]'s territory.
-- [ ] Cheap and independent of that: **`close-out-commit.sh` should report what it is about to stage in `SNAPSHOT.yaml` that the session did not write** — a diff of `items:` membership against `HEAD`, named in the output. Collision 2 was visible in `git diff` and nobody looked.
-- [ ] Consider whether a note with no snapshot entry should stay a warning. It is what made collision 3 invisible — though widening it is `tools/instructions/SNAPSHOT.md`'s retention rule and would fire on every pruned terminal item, so this is a question rather than a proposal.
-- [ ] Whatever is built, **construct the collision and watch the check fire**: two close-outs interleaved, not one.
+- [x] **Built 2026-08-21: `close-out-commit.sh` names what it changes in `SNAPSHOT.yaml`'s `items:` membership** — added, removed, and separately the **dangling** case, in stderr and in the commit message. *"Collision 2 was visible in `git diff` and nobody looked."*
+- [x] **The collision was constructed and the report watched firing.** `tests/test_close_out_snapshot_report.py`: a real git repo, an entry registered against a note that is in no commit, the report naming it `DANGLING`.
+- [~] **A lock does not close collision 1, and that is a measurement rather than a decision.** See below. Whether concurrent sessions are a supported mode remains Edwin's call, and the answer changes nothing about what was built.
+- [~] **Whether a note with no snapshot entry should stay a warning** stays a question. Widening it is `tools/instructions/SNAPSHOT.md`'s retention rule and it would fire on every pruned terminal item — that is a template-owned change with a fleet-wide blast radius and it is not this issue's to make.
+
+
+## Fixed 2026-08-21 — the reporting half, and why the lock is not the other half
+
+### What the script now prints
+
+When `SNAPSHOT.yaml` is among the staged paths, it diffs `items:` membership between `HEAD` and the **index** — what this commit will actually contain — and prints:
+
+```
+close-out-commit: SNAPSHOT.yaml items: membership changed (ISS-0252):
+  added:   PHASE-0040
+  DANGLING (the note is in no commit; --as-committed will fail ITEM-FILE and it does not self-heal):
+    PHASE-0040 -> docs/phases/PHASE-0040-P.md
+```
+
+…and puts the same text in the commit message, so `git log` carries it.
+
+**The dangling case is named separately because it is the one that does not self-heal.** Collision 1 was a metrics mismatch that cleared itself when the other session committed. Collision 2 left a reference that stays dangling until somebody notices, and **the local validator cannot see it**: it reads the working tree, where the note exists. Only the committed state is missing it.
+
+**It reports and never refuses.** A close-out that stops because a shared file moved under it is automation people disable — the same reason dirty files outside the scope are reported and left alone rather than treated as an error. `test_it_reports_and_never_refuses` pins that.
+
+### The lock would not have prevented collision 1, and this is measured rather than argued
+
+Next Action 1 offered a lock as the cheap fix *"if concurrent sessions are not a supported mode"*. Working through it:
+
+**A lock serialises COMMITS. The collision is in the WORKING TREE.** `sync-snapshot.py` computes `metrics.counts` from the files on disk at pre-commit, and the other session's uncommitted edits are on that disk whether or not anybody holds a lock. Collision 1 — `issues_open` computed over another session's unsaved status change — reproduces exactly the same way with a lock in place.
+
+So a lock buys serialised commits and nothing else, and the failure it is offered against is not a commit-ordering failure. **That does not make concurrent sessions a decided question** — it makes the lock the wrong answer to it. If they are unsupported the fix is procedural, not a mutex; if they are supported the snapshot has to stop being one hand-curated file, which is [[project-os-dev#ADR-0009]]'s territory and a much larger change.
+
+Recorded here rather than acted on: an ADR-shaped decision is Edwin's, and this issue closes on the half that is mechanical and unambiguous.
+
+### Collision 3 is still the one to learn from
+
+The repair for a stale diagnosis deleted a **valid** registration, and the local check was silent — a snapshot entry with no note is an error, a note with no entry is only a warning, so the asymmetry that caught the first mistake said nothing about the over-correction. `test_a_removed_entry_is_named_too` makes a removal visible for that reason; the asymmetry itself is the open question above.

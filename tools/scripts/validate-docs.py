@@ -269,6 +269,22 @@ REVIEW_SETTLED_STATUSES = {
     "tests": ("passing",),
 }
 
+#: Verdicts that leave work owed -- a reviewer asked for something (ISS-0253).
+#: Mirrors `cockpit.OWED_VERDICTS`; the two are pinned by
+#: `test_the_validator_and_the_cockpit_agree_on_which_verdicts_owe`.
+OWED_VERDICTS = frozenset({"changes-requested", "rejected"})
+
+#: Statuses at which the work a verdict judged is FINISHED, across every note
+#: type (ISS-0253). Cross-type by construction -- the population it describes
+#: is 27 `done`, 7 `merged`, 4 `implemented` and 5 `fixed` -- so it cannot be
+#: registered in FLAT_STATUS_TABLES, which pairs one collection with one type.
+#: `validate_status_tables` therefore asserts each value is legal for at least
+#: one type instead, which is the cross-type form of the same ISS-0011 guard.
+REVIEW_TERMINAL_STATUSES = frozenset({
+    "done", "fixed", "implemented", "merged", "closed", "cancelled",
+    "superseded", "retired", "released", "accepted", "declined", "passing",
+})
+
 #: Statuses at which an acceptance test never sits, and therefore the exact
 #: gates ADR-0031 relies on staying off. `passing` is the review gate and the
 #: runner-only rule; `ready` is the obligation registry's `Run`. A note at
@@ -606,7 +622,7 @@ _CHECKED_TABLE_NAMES = frozenset({
     "ALLOWED_STATUS", "PHASE_RESOLVED", "PLAN_FOLLOWS_FEATURE", "TERMINAL",
     "TERMINAL_TYPES", "METRIC_STATUS_FILTERS", "METRIC_PREFIX_TYPE",
     "COLLECTION_TYPE", "REVIEW_SETTLED_STATUSES", "FLAT_STATUS_TABLES",
-    "PROMOTIONS", "METRIC_PREFIXES",
+    "PROMOTIONS", "METRIC_PREFIXES", "REVIEW_TERMINAL_STATUSES",
 })
 
 #: Module-level string collections that are deliberately NOT status collections.
@@ -630,6 +646,10 @@ _NON_STATUS_COLLECTIONS = frozenset({
     # Both were caught by this very guard on the day they were added, which is
     # the behaviour ISS-0012 and ISS-0013 paid for.
     "STATUS_FREE_TYPES",
+    # ISS-0253: review VERDICTS, not statuses. `changes-requested` is not a
+    # status of anything and never was -- registering it as one would fail
+    # STATUS-TABLE against every type in ALLOWED_STATUS.
+    "OWED_VERDICTS",
     # ADR-0034: acceptance VERDICTS, not statuses. A walked test's verdict lives
     # in `mark:` precisely so it is not a status -- which is the construction
     # that keeps a suite of several hundred out of the review gate and off a
@@ -735,6 +755,18 @@ def validate_status_tables(report):
     for expected in PLAN_FOLLOWS_FEATURE.values():
         plan_values.update(expected)
     _check_values(report, "PLAN_FOLLOWS_FEATURE values", plan_values, "plan")
+
+    #: **Cross-type, so `_check_values` cannot be used** (ISS-0253).
+    #: REVIEW_TERMINAL_STATUSES spans every note type, and asserting it
+    #: against any single one would report `merged` as an illegal task status.
+    #: The equivalent assertion is that each value is a real status SOMEWHERE
+    #: -- which is what catches the ISS-0011 rename this guard exists for.
+    _every_status = set()
+    for _allowed in ALLOWED_STATUS.values():
+        _every_status.update(_allowed)
+    _unknown = sorted(REVIEW_TERMINAL_STATUSES - _every_status)
+    if _unknown:
+        report.error("STATUS-TABLE", "REVIEW_TERMINAL_STATUSES contains %s, which no type in ALLOWED_STATUS holds; a value was renamed in one status table and not the other -- see ISS-0011" % ", ".join("'%s'" % u for u in _unknown))
 
     for collection, settled in sorted(REVIEW_SETTLED_STATUSES.items()):
         note_types = COLLECTION_TYPE.get(collection)
@@ -1000,6 +1032,27 @@ PROMOTIONS = {
     # clause 3 prefers clearing to listing.
     "TEST-AUTOMATED-STATUS": "2026-11-18",
     "TEST-AUTOMATED-EVIDENCE": "2026-11-18",
+    # A check whose `area:` names no surface (ISS-0250). **21 distinct names
+    # over 34 checks in this repo at introduction**, and zero in the other
+    # eleven -- none of them holds a `SUR-*` note, so the rule is silent there
+    # by its own guard rather than by exemption.
+    #
+    # The debt is one `SUR-*` note per surface, which is TASK-0515's shape and
+    # a body of work rather than a line edit -- so it is dated rather than
+    # errored on day one, per ADR-0011 clause 3.
+    "SURFACE-ORPHAN": "2026-11-18",
+    # A terminal note still carrying `changes-requested` with nothing recorded
+    # about what was done (ISS-0253). **43 findings in this repo at
+    # introduction** -- 27 done, 7 merged, 4 implemented, 5 fixed, dating to
+    # 2026-08-02 -- every one of them a verdict that was true when written and
+    # false as a description of the note today.
+    #
+    # Clearing it is one `review_response:` line per note, written by the
+    # author, saying what was done. That is a body of work and it is exactly
+    # what ADR-0011 clause 3 forbids erroring over on day one. It is NOT
+    # clearable by flipping the verdict, which is the whole reason the issue
+    # exists.
+    "REVIEW-STALE": "2026-11-18",
 }
 
 
@@ -1015,6 +1068,23 @@ def promotion_emit(report, gate, grandfathered, item_id):
 #: Default staleness window for MANUAL verification (ADR-0010 / REQ-0023).
 #: Overridable per repo via `verification.staleness_days` in SNAPSHOT.yaml.
 DEFAULT_STALENESS_DAYS = 90
+
+
+def surface_key(raw):
+    """The join `cockpit.surface_coverage` performs, reproduced ([[ISS-0250]]).
+
+    **The second implementation is forced and therefore guarded.** This file is
+    stdlib-only and standalone -- it cannot import the cockpit -- so the join
+    exists twice, which is [[REQ-0059]]'s forbidden shape unless something pins
+    the two together. `test_the_rule_and_the_join_agree_on_normalisation`
+    drives BOTH over the same strings and requires the same answer, rather than
+    matching text in either.
+
+    One function, used on both sides. Normalising the surface's title one way
+    and the check's `area:` another is the defect the rule exists to report,
+    committed by the rule itself.
+    """
+    return str(raw or "").strip().lower()
 
 
 def _today():
@@ -2731,6 +2801,117 @@ def validate(root, report):
                     "TEST-STALE",
                     "%s was last verified %s, over %d days ago; it no longer satisfies the verification gate (%s)"
                     % (the_id, str((fm or {}).get("last_verified")).strip('"'), staleness_days, rel))
+
+    # -- SURFACE-ORPHAN: a check names a surface that does not exist (ISS-0250)
+    #
+    # `surface_coverage()` joins a surface to its checks on the **lower-cased,
+    # stripped title**. There is no link, no id and no reverse check, so
+    # editing a surface's `title:` moves its count to zero and moves nothing
+    # else -- and **the two states render identically**: a surface with
+    # genuinely no checks and a surface whose checks were orphaned by a rename
+    # both read *"no checks"*. The orphaned one is the more urgent of the two
+    # and is the one the surface tells you least about.
+    #
+    # Measured (ISS-0250, reproduced by independent review): case and
+    # SURROUNDING whitespace survive the join; an em dash retyped as a hyphen
+    # does not, and **8 of `your-trainer`'s 15** surface titles contain an em
+    # dash. `Riding - routes` drops that surface from 91 checks to 0 with no
+    # validator error and no test failure.
+    #
+    # This closes it from the side where the population lives -- `area:` values
+    # naming no surface -- because nothing walked them at all. The other
+    # direction (a surface no check names) is NOT reported: that is the row
+    # FEAT-0130 built the type to produce.
+    #
+    # **Guarded on "this repo has surfaces".** Eleven of twelve fleet repos
+    # hold no `SUR-*` note, and a rule that fires on every check in a repo
+    # that never opted into the type is a rule people turn off.
+    #
+    # **One finding per orphaned NAME, not per check.** A rename orphans every
+    # check on the surface at once; 91 identical errors describe one edit.
+    #
+    # Warned with a promotion date (ADR-0011 clause 3): measured in this repo
+    # 2026-08-21, 21 distinct `area:` values over 34 checks name no surface,
+    # because only `SUR-0001` was ever written. That is real debt and it is one
+    # note per surface to clear -- it is not a reason to ship the rule silent.
+    surface_titles = {}
+    for the_id, (path, fm) in note_index.items():
+        if note_type(fm) != "surface":
+            continue
+        key = surface_key((fm or {}).get("title"))
+        if key:
+            surface_titles.setdefault(key, the_id)
+    if surface_titles:
+        orphans = {}
+        for the_id, (path, fm) in sorted(note_index.items()):
+            if note_type(fm) != "test":
+                continue
+            raw_area = str((fm or {}).get("area") or "").strip()
+            #: An empty `area:` is the un-placed check, not an orphaned one --
+            #: `TST-0015` and `TST-0018` in `your-trainer` are exactly that.
+            if not raw_area or surface_key(raw_area) in surface_titles:
+                continue
+            orphans.setdefault(raw_area, []).append(the_id)
+        for raw_area, ids in sorted(orphans.items()):
+            promotion_emit(report, "SURFACE-ORPHAN", grandfathered, raw_area)(
+                "SURFACE-ORPHAN",
+                "%d check(s) name area: %r and no surface carries that title, so their coverage "
+                "reads as zero and the surface -- if one was renamed -- is indistinguishable from "
+                "one nobody has ever tested; add a SUR-* note with that title, or correct the "
+                "area: (e.g. %s)" % (len(ids), raw_area, ", ".join(ids[:3])))
+
+    # -- REVIEW-STALE: a verdict outlives the work it judged (ISS-0253)
+    #
+    # `review_verdict` is **sticky and nothing refreshes it.** A reviewer
+    # writes `changes-requested`, the findings are acted on -- often within the
+    # hour -- the note reaches `done`/`merged`/`fixed`/`implemented`, and no
+    # mechanism writes a new verdict. Measured 2026-08-20: **49 notes carry
+    # `changes-requested`, 43 of them at a terminal status**, dating back to
+    # 2026-08-02.
+    #
+    # Every one of those is TRUE as a fact about a moment and FALSE as a
+    # description of the note today, and a reader cannot tell a live objection
+    # from a settled one.
+    #
+    # **This is ISS-0121 inverted.** That issue found the field sticky in the
+    # other direction -- a row reviewed once read as reviewed forever, and all
+    # ten owed rows were false -- and the renderer stopped reading the field
+    # alone because of it. The same stickiness is here on the AUTHORING side.
+    #
+    # **The fix is not "the author flips it."** That is exactly what ADR-0011
+    # exists to prevent: a verdict is the reviewer's, and self-clearing it
+    # turns an independent gate into a formality. The gap is that *"the
+    # findings were addressed"* had nowhere to go. `review_response:` is that
+    # place -- the author records what was done, dated, WITHOUT touching the
+    # verdict -- and this rule makes an unanswered verdict visible instead of
+    # silently permanent.
+    #
+    # **It does not re-arm on `updated:`.** The obvious trigger -- `updated:`
+    # later than `review_date:` -- was rejected twice over: ISS-0007 records
+    # that an `updated:`-date heuristic re-arms a gate whenever a note is
+    # edited for any reason, and `cockpit._verdict_is_owed` measured that
+    # stamping a verdict IS an edit, so 85 of 103 verdicts in this corpus have
+    # `updated <= review_date`. The discriminator is whether an answer was
+    # recorded, which is a fact rather than a proxy for one.
+    for the_id, (path, fm) in sorted(note_index.items()):
+        verdict = str((fm or {}).get("review_verdict") or "").strip().lower()
+        if verdict not in OWED_VERDICTS:
+            continue
+        status = str((fm or {}).get("status") or "").strip().lower()
+        #: A non-terminal note carrying `changes-requested` is ordinary work in
+        #: flight. Six of the 49 are that, and reporting them would say a
+        #: reviewer's live objection is a defect in the record.
+        if status not in REVIEW_TERMINAL_STATUSES:
+            continue
+        if has_value((fm or {}).get("review_response")):
+            continue
+        rel = path.relative_to(root).as_posix()
+        promotion_emit(report, "REVIEW-STALE", grandfathered, the_id)(
+            "REVIEW-STALE",
+            "%s is '%s' and still carries review_verdict: %s with no review_response:; the verdict was "
+            "true when written and describes the note today only if nothing was done about it -- record "
+            "what was done in review_response: (the verdict stays the reviewer's, ADR-0011), or ask for "
+            "a fresh pass (%s)" % (the_id, status, verdict, rel))
 
     # -- requirement lifecycle (QUALITY.md; close-out "Requirement advancement")
     def effective_status(the_id):

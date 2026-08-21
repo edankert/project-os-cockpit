@@ -1529,6 +1529,7 @@ def release_contents(
     *,
     action: str,
     feature_id: str,
+    reason: str = "",
     actor: str = "",
     mtime: float | None = None,
 ) -> dict[str, Any]:
@@ -1547,7 +1548,13 @@ def release_contents(
     [[FEAT-0107]]/[[TASK-0445]]'s defect where a release reported nothing it
     had verified.
 
-    Three refusals, and the third is the one that is easy to get wrong.
+    **Four refusals now**, and the fourth is [[TASK-0576]]: a removal must
+    carry a `reason`. Holding a feature back is a decision, and a decision
+    with no recorded cause is exactly the shape this phase spent itself
+    removing -- a number that fell with nothing beside it ([[ISS-0241]],
+    [[ISS-0243]]). The reason lands in `held_back:` on the release note,
+    beside `features:`, so the selection and its cause live in one file and
+    show up in one diff.
     """
     action = (action or "").strip().lower()
     if action not in ("add", "remove"):
@@ -1654,6 +1661,21 @@ def release_contents(
                         status=409,
                     )
 
+    #: **Refusal 4: an exclusion says why** ([[TASK-0576]], [[FEAT-0142]]
+    #: criterion 4). The gate can fall by dozens of checks when a feature is
+    #: held back, and a smaller number with no cause beside it is the defect
+    #: this phase exists to remove. Enforced here rather than in the client
+    #: because a rule enforced in the renderer is a rule the other front door
+    #: does not get ([[ISS-0230]]).
+    reason = str(reason or "").strip()
+    if action == "remove" and not reason:
+        raise WriteError(
+            f"holding {feature_id} back needs a reason — a release whose "
+            "contents shrank with no cause recorded cannot say why its gate "
+            "fell (FEAT-0142 criterion 4)",
+            status=400,
+        )
+
     _check_mtime(path, mtime)
     try:
         raw = path.read_text(encoding="utf-8")
@@ -1673,6 +1695,38 @@ def release_contents(
             kept.append(f"[[{stem or fid}]]")
     rendered = "[" + ", ".join(f'"{_yaml_safe(f)}"' for f in kept) + "]"
     fm_lines = _set_field(fm_lines, "features", rendered, quote=False)
+
+    #: **The reason travels with the selection** ([[TASK-0576]]).
+    #:
+    #: `held_back:` is a list of maps on the release note, one per feature a
+    #: person took out, carrying the reason and the day. Adding a feature back
+    #: RETIRES its entry rather than keeping a historical one: the field
+    #: answers *"why is this not in the release"*, and a feature that is in
+    #: the release has no answer to give. Git holds the history.
+    held_rows: list[dict[str, Any]] = []
+    for raw_row in (record.frontmatter.get("held_back") or []):
+        if not isinstance(raw_row, dict):
+            continue
+        rid = str(raw_row.get("id") or "").strip()
+        if not rid or any(fid == rid for fid, _r in targets):
+            continue
+        held_rows.append({
+            "id": rid,
+            "reason": str(raw_row.get("reason") or ""),
+            "date": str(raw_row.get("date") or ""),
+        })
+    if action == "remove":
+        for fid, _rec_f in targets:
+            held_rows.append({"id": fid, "reason": reason, "date": _today()})
+    held_rows.sort(key=lambda r: str(r["id"]))
+    fm_lines = _set_block_list(fm_lines, "held_back", held_rows)
+    if not held_rows and fm_lines and fm_lines[-1].startswith("held_back:"):
+        #: An empty `_set_block_list` block leaves a bare `held_back:`, which
+        #: YAML reads as `None` rather than as an empty list — so re-adding
+        #: the last held feature would leave a key every reader special-cases.
+        #: `_set_field` cannot do this job: it refuses a key whose next line
+        #: is indented, which is exactly the block being replaced.
+        fm_lines[-1] = "held_back: []"
     fm_lines = _set_field(fm_lines, "updated", _today())
     _write(path, fm_lines, body)
     return {
@@ -1681,6 +1735,8 @@ def release_contents(
         #: Which features the id actually moved — one for a feature, N for a
         #: phase. The caller reports what happened rather than what was asked.
         "contributed": [fid for fid, _r in targets],
+        "held_back": held_rows,
+        "reason": reason,
     }
 
 
@@ -2606,101 +2662,21 @@ def invalidate_check(
     }
 
 
-def cover_check(
-    index: Index,
-    *,
-    check_id: str,
-    covered_by: str,
-    automation: str = "full",
-    reason: str = "",
-    mtime: float | None = None,
-) -> dict[str, Any]:
-    """**Covered by** — record that a machine answers this check (TASK-0483).
-
-    The write half of [[REQ-0039]]. `Item.settled` already reads `covered_by:`
-    and discharges a check whose covering test passes; until now nothing could
-    write the field, so the whole automation path ended at a note somebody had
-    to hand-edit.
-
-    **Refused unless the id resolves to a test that declares a `command:`** —
-    the same discipline *Needs re-run* has, and for a sharper reason. Coverage
-    is a claim that a MACHINE answers this check, and `_resolve_coverage`
-    accepts only an executable test precisely so that one hand-walked note
-    cannot discharge another. A link to something unrunnable would be a claim
-    the gate is built to ignore, written into the field the gate reads: it
-    would look like coverage on every surface and settle nothing.
-
-    **`partial` requires a reason**, exactly as the `/` mark does. "Some of
-    this is automated" without saying which part is the shrug this whole
-    vocabulary exists to refuse.
-    """
-    covered_by = (covered_by or "").strip()
-    if not covered_by:
-        raise WriteError(
-            "covered-by must name the test that covers this check — coverage "
-            "nobody can open is an assertion, not evidence",
-            status=400,
-        )
-    automation = (automation or "").strip().lower() or "full"
-    if automation not in ("full", "partial"):
-        raise WriteError(
-            f"{automation!r} is not a coverage claim; expected 'full' or "
-            "'partial' ('manual' is the absence of coverage, which is what "
-            "clearing the field records)",
-            status=400,
-        )
-    reason = (reason or "").strip()
-    if automation == "partial" and not reason:
-        raise WriteError(
-            "partial coverage must say which part is automated — the same rule "
-            "the `/` mark carries, and for the same reason",
-            status=400,
-        )
-
-    target_path = index.by_id(covered_by)
-    target = index.get(target_path) if target_path is not None else None
-    if target is None:
-        raise WriteError(
-            f"{covered_by} is not in the record — coverage must name a test "
-            "somebody can open",
-            status=400,
-        )
-    if (target.note_type or "") != "test":
-        raise WriteError(
-            f"{covered_by} is a {target.note_type or 'note'}, not a test; only "
-            "a test can cover a check",
-            status=400,
-        )
-    if not str(target.frontmatter.get("command") or "").strip():
-        raise WriteError(
-            f"{covered_by} declares no command:, so nothing can run it — and a "
-            "check is settled by coverage only when a MACHINE answers it. "
-            "Give that test a command:, or walk this check by hand",
-            status=400,
-        )
-
-    path, _ = _require_check(index, check_id)
-    _check_mtime(path, mtime)
-    try:
-        raw = path.read_text(encoding="utf-8")
-    except OSError as exc:                            # pragma: no cover
-        raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
-    fm_lines, body = _split_frontmatter(raw)
-    today = _today()
-    fm_lines = _set_field(fm_lines, "automation", automation)
-    # `quote=False`: this is a YAML LIST, and quoting it writes a string that
-    # parses back as one scalar -- the exact defect TASK-0445 fixed on
-    # `tests_verified:`, where a release reported nothing it had verified.
-    fm_lines = _set_field(
-        fm_lines, "covered_by", f'["[[{target_path.stem}]]"]', quote=False)
-    if reason:
-        fm_lines = _set_field(fm_lines, "verdict_reason", _yaml_safe(reason))
-    fm_lines = _set_field(fm_lines, "updated", today)
-    _write(path, fm_lines, body)
-    return {
-        "id": check_id, "automation": automation,
-        "covered_by": target.note_id, "covered_by_status": target.status,
-    }
+#: **`cover_check` is deleted** ([[ISS-0249]] / [[REQ-0057]]).
+#:
+#: It was a complete, tested write path that **no front door reached** -- 19
+#: routes call `note_writes` and none called this one -- and the capability it
+#: offered is one [[FEAT-0138]] ends: a note does not declare that a machine
+#: covers it. The test declares the check, the run emits, and `covered_by:` is
+#: a validator error.
+#:
+#: [[ISS-0249]] named deletion as the honest option for this function *"if the
+#: suite is never refined that way"*. [[FEAT-0131]] -- the suite is refined --
+#: closed `done` without ever needing it, so it never was.
+#:
+#: Its sibling `retire_check` was kept and WIRED instead, for the opposite
+#: reason: [[TASK-0518]] is somebody asking for retirement, and the answer
+#: changing later must not find a lever that nothing can pull.
 
 
 def retire_check(
@@ -2708,46 +2684,51 @@ def retire_check(
     *,
     check_id: str,
     reason: str,
-    promote: bool = False,
     mtime: float | None = None,
 ) -> dict[str, Any]:
-    """**Promote** and **Retire** — TESTING.md's removal path, made performable.
+    """**Retire** a check — TESTING.md's removal path, made performable, and
+    now reachable ([[ISS-0249]]).
 
     That document has always described a lifecycle nothing could carry out:
-    *"when unit tests are written that cover the same logic, the acceptance
-    test can be moved from Tier 2 to Tier 3 … after the next verified release,
-    remove the Tier 3 test."* No code wrote `tier:`, and until ADR-0031 gave the
-    test type a `retired` status no code could write a terminal one either —
-    which is [[ISS-0178]]'s whole subject.
+    *"after the next verified release, remove the test."* No terminal status
+    existed until [[ADR-0031]] gave the test type `retired`, which is
+    [[ISS-0178]]'s whole subject.
 
     **Retiring is not deleting.** LIFECYCLE.md forbids deleting completed
-    notes, and a retired acceptance test is the record that a behaviour was
-    once walked by hand and is now covered by a machine. That is exactly the
-    history somebody wants when the automated test is later deleted as
-    redundant — the moment the deletion looks safe is the moment that record
-    stops existing.
+    notes, and a retired acceptance check is the record that a behaviour was
+    once walked by hand. That is exactly the history somebody wants when the
+    automated test is later deleted as redundant — the moment the deletion
+    looks safe is the moment that record stops existing.
 
-    **Both transitions are refused without a reason**, and promotion is refused
-    without coverage: Tier 3 is where a check goes when a machine took it over,
-    so promoting one that nothing covers is moving it out of the gate on no
-    evidence at all.
+    **`promote` is gone.** It wrote `tier: 3`, and [[ADR-0039]] decided there
+    is no Tier 3: `tier:` is read by no section and by no gate decision. A
+    parameter whose only effect is a field nothing reads is a lever that moves
+    nothing, and offering it from a front door would be worse than leaving it
+    unreachable.
+
+    **The reason goes in the BODY, not in `verdict_reason:`.** That field is
+    one of the seven [[ADR-0037]] moved into the ledger, and this repo's
+    validator refuses it (`LEDGER-MOVED-FIELD`) — so the previous version of
+    this function wrote a field that would have failed the commit it was part
+    of. Nothing caught it because nothing called it, which is [[ISS-0249]]'s
+    point restated: an unreachable write path is an untested one however many
+    unit tests it has.
+
+    **The mark and its date are left exactly as they are.** A retired check's
+    verdict is the record of what was true when it was last walked, and
+    clearing it would turn a deprecation into an erasure.
     """
     reason = (reason or "").strip()
     if not reason:
         raise WriteError(
-            "retiring or promoting a check must say why — a check that leaves "
-            "the gate without a reason is indistinguishable from one that was "
-            "quietly dropped",
+            "retiring a check must say why — a check that leaves the gate "
+            "without a reason is indistinguishable from one that was quietly "
+            "dropped",
             status=400,
         )
     path, record = _require_check(index, check_id)
-    if promote and not (record.frontmatter.get("covered_by") or []):
-        raise WriteError(
-            f"{check_id} names nothing in covered_by:, so there is no evidence "
-            "a machine took it over — Tier 3 is where a check goes when one "
-            "did, not a way out of the gate",
-            status=400,
-        )
+    if (record.status or "").strip().lower() == "retired":
+        raise WriteError(f"{check_id} is already retired", status=409)
     _check_mtime(path, mtime)
     try:
         raw = path.read_text(encoding="utf-8")
@@ -2755,23 +2736,16 @@ def retire_check(
         raise WriteError(f"cannot read {check_id}: {exc}", status=500) from None
     fm_lines, body = _split_frontmatter(raw)
     today = _today()
-    if promote:
-        # An int in the schema, so unquoted: `tier: "3"` would make every
-        # reader coerce a string that the migration wrote as a number.
-        fm_lines = _set_field(fm_lines, "tier", "3", quote=False)
-    else:
-        fm_lines = _set_field(fm_lines, "status", "retired")
-    # The mark and its date are left exactly as they are. A retired check's
-    # verdict is the record of what was true when it was last walked, and
-    # clearing it would turn a deprecation into an erasure.
-    fm_lines = _set_field(fm_lines, "verdict_reason", _yaml_safe(reason))
+    fm_lines = _set_field(fm_lines, "status", "retired")
     fm_lines = _set_field(fm_lines, "updated", today)
+    body = body.rstrip("\n") + (
+        "\n\n## Retired %s\n\n%s\n" % (today, reason))
     _write(path, fm_lines, body)
     return {
         "id": check_id,
-        "tier": 3 if promote else record.frontmatter.get("tier"),
-        "status": record.status if promote else "retired",
+        "status": "retired",
         "reason": reason,
+        "date": today,
     }
 
 

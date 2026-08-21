@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0250
 aliases: ["ISS-0250"]
 title: "A check names its surface by copying its title, so renaming a surface silently orphans every check on it — and an orphaned surface is indistinguishable from an uncovered one"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -69,8 +69,8 @@ Silent. The only signal is a number changing on a screen nobody is looking at fo
 
 ## Next Actions
 
-- [ ] Decide the shape: a validator rule (`SURFACE-ORPHAN`) reporting an `area:` that names no surface, or the schema change that makes `area:` a `[[SUR-####]]` link. The rule is cheap and catches the same defect from the side where the population lives; the link is the real fix and touches 579 notes in another repo.
-- [ ] Whichever is chosen, construct the rename and **watch the check fire** — an orphan reading as an honest zero is the failure this phase has met eight times.
+- [x] **Decided 2026-08-21: the rule.** `SURFACE-ORPHAN` in `tools/scripts/validate-docs.py`, reporting an `area:` that names no surface, guarded on *"this repo has surfaces"*. The schema change — `area:` becomes a `[[SUR-####]]` link — is still the real fix and is **not** done: it touches 579 notes in a repo whose fifteen surfaces are in no commit, so it is a migration and it needs that repo committed first. Recorded below rather than left implied.
+- [x] **The rename was constructed and the check watched firing.** `tests/test_surface_orphan.py::test_a_renamed_surface_orphans_its_checks_and_the_rule_says_so`: one em dash retyped as a hyphen, three checks, one finding naming the old area.
 
 ## Independent review — fresh-context pass, 2026-08-20 (`b4b9c50` / `4521a7a`)
 
@@ -104,3 +104,32 @@ The **Repro** correctly says *"working tree"*. The **Evidence** bullet — *"Mea
 So *"the corpus is clean right now, which is what makes a day-one error affordable"* holds for the working tree and inverts for the committed state: at `HEAD` that repo has **zero** surfaces and 579 checks whose `area:` values name none of them. A `SURFACE-ORPHAN` rule guarded on *"this repo has surfaces"* would be silent there in CI — not because the corpus is clean, but because the population is invisible.
 
 That does not change the shape of either option in Next Actions, and it is an argument for the rule being guarded on *"this repo has surfaces"* rather than against it. It does mean the affordability argument should be re-measured once those notes are committed.
+
+
+## Fixed 2026-08-21 — the rule, and what it deliberately does not do
+
+**One finding per orphaned NAME, not per check.** A rename orphans every check on the surface at once; 91 identical errors describe one edit and leave a reader unable to tell how many surfaces are broken. The finding names the count and up to three ids.
+
+**Guarded on "this repo has surfaces."** Eleven of twelve fleet repos hold no `SUR-*` note, and a rule that fires on every check in a repo that never opted into the type is a rule people turn off.
+
+**It reports one direction only.** An `area:` naming no surface is a finding; a surface no check names is **not**. That second one is the row [[FEAT-0130]] built the type to produce — *a place in the product nobody has tested* — and reporting it as a defect would make the type's own purpose an error.
+
+**Warned, with a promotion date.** Measured in this repo on the day it landed: **21 distinct `area:` values over 34 checks** name no surface, because only `SUR-0001` was ever written. That is one `SUR-*` note per surface to clear — [[TASK-0515]]'s shape, a body of work rather than a line edit — so [[project-os-dev#ADR-0011]] clause 3 forbids erroring over it. `PROMOTIONS["SURFACE-ORPHAN"] = "2026-11-18"`.
+
+### The second implementation is forced, so it is pinned
+
+The validator is stdlib-only and standalone: it cannot import `cockpit.surface_coverage`, so the join now exists twice, which is [[REQ-0059]]'s forbidden shape unless something ties the two together.
+
+`test_the_rule_and_the_join_agree_on_normalisation` **drives both over the same strings** and requires the same answer — identical, case, surrounding whitespace, em dash retyped as a hyphen, internal double-spacing, a suffix — rather than matching text in either. A text assertion passes on a rule whose `.strip().lower()` is in a comment, which is this repo's own recorded mutation-testing pitfall. Mutating **both copies** to drop `.lower()` fails it; mutating one fails the byte-identity test instead.
+
+### Three mutants, three catches
+
+| mutant | caught by |
+|---|---|
+| the rule stops normalising case | `test_case_and_surrounding_whitespace_survive_both` |
+| the *"this repo has surfaces"* guard is dropped | `test_a_repo_with_no_surfaces_is_silent` |
+| an empty `area:` is reported | `test_an_empty_area_is_not_an_orphan` |
+
+### What is left, and it is a migration rather than a fix
+
+The join is still a string comparison. **Making `area:` a link is the durable answer** and it is out of scope here for the reason the Evidence already records: `your-trainer`'s fifteen `SUR-*` notes exist **in no commit, ever**, and 579 checks there name areas at a `HEAD` that has zero surfaces. A schema migration cannot start against a corpus that is not committed. When it is, this rule is what will report the gap it leaves.

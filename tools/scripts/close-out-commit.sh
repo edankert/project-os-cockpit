@@ -72,6 +72,98 @@ while IFS= read -r f; do
   grep -qxF "$f" <<<"$staged" || outside+="  $f"$'\n'
 done <<<"$dirty_before"
 
+# What this commit changes in SNAPSHOT.yaml's `items:` MEMBERSHIP (ISS-0252).
+#
+# `sync-snapshot.py` propagates status, counters and metrics; **which items the
+# snapshot carries is hand curation it deliberately leaves alone**. So an entry
+# another session wrote by hand sits in the shared file until somebody commits
+# it, and that somebody may not be the session holding its note.
+#
+# Measured 2026-08-20, three collisions in one afternoon closing out PHASE-037
+# alongside a second session. The one that matters: a commit swept in another
+# session's hand-written `PHASE-040:` entry while the note was still untracked,
+# which turned `--as-committed` red with `ITEM-FILE` and **did not self-heal** —
+# a dangling reference stays dangling. It was visible in `git diff` and nobody
+# looked, which is why it is printed here rather than left available.
+#
+# The local validator cannot catch it: it reads the WORKING TREE, where the
+# note exists. Only the committed state is missing it.
+#
+# Reported, never refused. A close-out that stops because a shared file moved
+# under it is automation people disable — the same reason dirty files outside
+# the scope are left alone rather than treated as an error.
+snapshot_report=""
+if grep -qxF "SNAPSHOT.yaml" <<<"$staged" && command -v python3 >/dev/null 2>&1; then
+  snapshot_report="$(
+    git show HEAD:SNAPSHOT.yaml 2>/dev/null > "$ROOT/.git/close-out-head-snapshot.tmp"
+    git show :SNAPSHOT.yaml 2>/dev/null > "$ROOT/.git/close-out-index-snapshot.tmp"
+    python3 - "$ROOT/.git/close-out-head-snapshot.tmp" "$ROOT/.git/close-out-index-snapshot.tmp" <<'PY'
+import re, subprocess, sys
+
+def members(path):
+    """`items:` ids and their `file:`, read line-wise.
+
+    Line-oriented on purpose: this runs inside a commit hook path, must not
+    depend on PyYAML, and a parse failure here has to degrade to silence
+    rather than block a close-out.
+    """
+    out, current, depth = {}, None, None
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return out
+    inside = False
+    for line in text.splitlines():
+        if re.match(r"^items:\s*$", line):
+            inside = True
+            continue
+        if inside and line[:1] not in (" ", "\t", "") and not line.startswith("#"):
+            break
+        if not inside:
+            continue
+        hit = re.match(r"^(\s+)([A-Z]{2,6}-[0-9A-Za-z-]+):\s*$", line)
+        if hit and (depth is None or len(hit.group(1)) == depth):
+            depth = len(hit.group(1))
+            current = hit.group(2)
+            out.setdefault(current, "")
+            continue
+        if current:
+            f = re.match(r"^\s+(?:file|path):\s*\"?([^\"\n]+?)\"?\s*$", line)
+            if f:
+                out[current] = f.group(1)
+    return out
+
+head, index = members(sys.argv[1]), members(sys.argv[2])
+added = sorted(set(index) - set(head))
+removed = sorted(set(head) - set(index))
+lines = []
+if added:
+    lines.append("  added:   " + ", ".join(added))
+if removed:
+    lines.append("  removed: " + ", ".join(removed))
+#: The non-self-healing case, named separately. An entry whose note is not in
+#: the index is a dangling reference the moment this commit lands, and no
+#: later commit by anybody clears it.
+dangling = []
+for item in added:
+    rel = index.get(item) or ""
+    if not rel:
+        continue
+    hit = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel],
+                         capture_output=True)
+    if hit.returncode != 0:
+        dangling.append("%s -> %s" % (item, rel))
+if dangling:
+    lines.append("  DANGLING (the note is in no commit; --as-committed will "
+                 "fail ITEM-FILE and it does not self-heal):")
+    for d in dangling:
+        lines.append("    " + d)
+print("\n".join(lines))
+PY
+  )"
+  rm -f "$ROOT/.git/close-out-head-snapshot.tmp" "$ROOT/.git/close-out-index-snapshot.tmp"
+fi
+
 # Message: the project-os IDs among the staged notes, so the commit says
 # what closed without anyone retyping it.
 ids="$(printf '%s\n' "$staged" \
@@ -85,11 +177,18 @@ while IFS= read -r p; do [[ -n "$p" ]] && body+="  $p"$'\n'; done <<<"$staged"
 if [[ -n "$outside" ]]; then
   body+=$'\n'"Left alone — dirty but outside this close-out's scope:"$'\n'"$outside"
 fi
+if [[ -n "${snapshot_report//[[:space:]]/}" ]]; then
+  body+=$'\n'"SNAPSHOT.yaml items: membership changed by this commit (ISS-0252):"$'\n'"$snapshot_report"$'\n'
+fi
 
 # The pre-commit hook syncs the snapshot and runs the validator. It is
 # the gate; --no-verify would defeat the point and is never used here.
 if git commit -m "$subject" -m "$body"; then
   echo "close-out-commit: committed ${subject}"
+  if [[ -n "${snapshot_report//[[:space:]]/}" ]]; then
+    echo "close-out-commit: SNAPSHOT.yaml items: membership changed (ISS-0252):" >&2
+    printf '%s\n' "$snapshot_report" >&2
+  fi
   if [[ -n "$outside" ]]; then
     echo "close-out-commit: left these dirty files alone (outside scope):" >&2
     printf '%s' "$outside" >&2

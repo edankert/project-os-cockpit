@@ -6,7 +6,7 @@ title: "The testing model — one type, a level scale, and who runs what"
 status: active
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-18
 review_verdict: changes-requested
@@ -68,6 +68,14 @@ Three gates key on statuses an acceptance test does not hold, so all three stay 
 The third is the dangerous one: it is what keeps a self-re-arming suite off a badge nobody could act on ([[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]). Because it is a construction and not a rule, one careless status write disarms it — so `ACCEPTANCE-STATUS` is a validator **error** if an acceptance test holds `ready`/`passing`/`failing`. `passing`/`failing` are excused **only** with a `command:`, since the runner then owns them. **`ready` is never excused**: that is the status the badge counts.
 
 ## The automation path
+
+> ⛔ **SUPERSEDED 2026-08-21 by [[REQ-0057-Coverage-Is-Observed-From-A-Run]] / [[FEAT-0138-Coverage-Is-Observed-Not-Declared]].** Marked in this section's own first line, not only in the banner at the top: a heading is a landing target, and a reader arriving by link or scroll never sees a warning further up.
+>
+> **`covered_by:` and `automation:` are gone, and `note_writes.cover_check` is deleted.** A note no longer declares that a machine covers it. The **test** declares the check — `# Covers: TST-0016` in its own source — and a **run** emits a `method: automated` verdict into the ledger, so deleting the covering test stops the emission and the check reappears on the run list by itself.
+>
+> Everything below was true of the code and **had never once been true of the corpus**: the field held nothing on 671 of 671 checks fleet-wide ([[ISS-0198]]), and the write path that could have filled it was reachable from no front door ([[ISS-0249]]). The six refutations recorded further down are about a mechanism that never settled a single check in any repo.
+>
+> The direction it protected survives and is now structural rather than guarded: a machine's exit code can discharge a person's checkbox and never the reverse, because **only a run emits `method: automated`**.
 
 ```yaml
 covered_by: ["[[TST-0016-Seat-Resolution]]"]

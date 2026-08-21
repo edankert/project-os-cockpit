@@ -207,6 +207,8 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     A 400 here would be a finding rather than a pass: it would mean the handler
     parsed a remote caller's body before deciding whether to talk to them.
     """
+    # Covers: TST-0076 — this test IS the check: it drives every guarded
+    # POST from a peer the server believes is remote and requires 403.
     guarded, open_ = _split()
     #: **An exact partition, not a floor.** The first cut asserted
     #: `len(guarded) >= 25` against an actual 27 — two routes could lose their
@@ -217,7 +219,11 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
         "the partition does not cover the dispatch: "
         f"{sorted(set(routes) - (set(guarded) | set(open_)))}"
     )
-    assert (len(guarded), len(open_)) == (27, 5), (
+    #: **27 -> 28 on 2026-08-21**, deliberately: `/api/notes/retire-check` is
+    #: [[ISS-0249]]'s front door for `retire_check`, a complete and tested
+    #: write path that no route reached. It is guarded like every other write,
+    #: and the sweep below drives it over a real socket.
+    assert (len(guarded), len(open_)) == (28, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -278,7 +284,9 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
         and n.func.attr == "_require_loopback"
     )
-    assert sites == 27, f"expected 27 guard call sites, found {sites}"
+    #: 27 -> 28 on 2026-08-21, deliberately: [[ISS-0249]]'s
+    #: `/api/notes/retire-check`.
+    assert sites == 28, f"expected 28 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:

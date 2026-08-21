@@ -109,6 +109,26 @@ bash tools/scripts/close-out-commit.sh <paths…> [-m "extra context"]
 
 **It does not push, and nothing else does either.** A commit is local and reversible; a push is publishing, and once a forge has cached and indexed it, deleting does not unpublish. Pushing is a person clicking the action on the fleet roll-up, which refuses deploy remotes — one fleet repo's only remote is a server path, and pushing it deploys a live website.
 
+## A verdict is answered, not flipped (ISS-0253)
+
+`review_verdict` is **sticky and nothing refreshes it.** A reviewer writes `changes-requested`, the findings are acted on — often within the hour — the note reaches `done`/`merged`/`fixed`/`implemented`, and no mechanism writes a new verdict. Measured 2026-08-20: **49 notes carried `changes-requested` and 43 of them were at a terminal status**, dating back to 2026-08-02.
+
+**Do not flip somebody else's verdict.** That is what [[project-os-dev#ADR-0011]] exists to prevent: a verdict is the reviewer's, and self-clearing it turns an independent gate into a formality.
+
+**Record what you did instead.** Two frontmatter fields, beside the verdict and never in place of it:
+
+```yaml
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-20
+review_verdict: changes-requested
+review_response: "All three findings applied: banners moved into each quarantined section's first line; the items column now shows 581 -> 584."
+review_response_date: 2026-08-21
+```
+
+The validator reports a terminal note carrying an owed verdict with **no** `review_response:` (`REVIEW-STALE`, warning until 2026-11-18). It does **not** re-arm when the note is edited afterwards — `updated:` later than `review_date:` is the heuristic ISS-0007 removed, and stamping a verdict is itself an edit.
+
+This lives here rather than in `tools/instructions/QUALITY.md` because that file is template-owned and a sync would report the edit as divergence. The field and the rule are proposed upstream; until then they are this project's.
+
 ## Close-out: file what the validator reports and you cannot fix (FEAT-0051)
 
 LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.

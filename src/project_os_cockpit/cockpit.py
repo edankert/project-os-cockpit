@@ -2563,6 +2563,17 @@ def _reviewed_register(index: Index) -> list[dict[str, Any]]:
             "reviewed_by": str(record.frontmatter.get("reviewed_by") or ""),
             "review_date": str(record.frontmatter.get("review_date") or ""),
             "owed": _verdict_is_owed(normalised, record.status, record.note_type),
+            #: **What the author did about it** ([[ISS-0253]]). The verdict is
+            #: sticky and nothing refreshes it: 43 notes reached a terminal
+            #: status still reading `changes-requested`, every one true as a
+            #: fact about a moment and false as a description of the note
+            #: today. `review_response:` is where *"the findings were
+            #: addressed"* goes -- it does NOT touch the verdict, because a
+            #: verdict is the reviewer's and self-clearing it turns an
+            #: independent gate into a formality (ADR-0011).
+            "response": str(record.frontmatter.get("review_response") or ""),
+            "response_date": str(
+                record.frontmatter.get("review_response_date") or ""),
         })
         out.append(item)
     # Most recent first. A note with no `review_date` still lists — it

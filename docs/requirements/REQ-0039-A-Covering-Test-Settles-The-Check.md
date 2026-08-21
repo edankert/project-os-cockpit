@@ -3,11 +3,12 @@ type: "[[requirement]]"
 id: REQ-0039
 aliases: ["REQ-0039"]
 title: "A passing covering test settles the acceptance test it covers — automating a check must discharge it, which is the whole reason for the merge"
-status: implemented
+status: superseded
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-08-21"
+superseded_by: "[[REQ-0057-Coverage-Is-Observed-From-A-Run]]"
 priority: high
 scope: "release gate"
 implements: "[[FEAT-0120-The-Automation-Path]]"
@@ -46,3 +47,16 @@ Independent review corrected the semantics twice before this: coverage is **all*
 ## Advanced 2026-08-18
 
 The fifth criterion is the honest one: **the automation path works and nothing in the fleet uses it yet.** Writing 54 unrunnable test notes to make a number move would have been the opposite of what this requirement asks for.
+
+
+## Superseded 2026-08-21 by [[REQ-0057]]
+
+**Not reversed — inverted.** This requirement said a `passing` covering test settles the check it covers, and that is still true. What changed is **where the claim lives**.
+
+`covered_by:` on the check is a **standing claim**, and it rots silently: rename, delete or `@Ignore` the covering test and the note keeps asserting coverage while the check leaves the run list permanently, with no signal. That is worse than a stale verdict, because a stale verdict still asks.
+
+Under [[REQ-0057]] the **test declares the check** (`# Covers: TST-####`) and the **run emits** a `method: automated` verdict into the ledger. Deleting the test stops the emission and the check reappears on the run list by itself — which is this requirement's intent, made structural instead of asserted.
+
+**It was never exercised.** `covered_by:` held nothing on **671 of 671** checks fleet-wide ([[ISS-0198]]), and the write path that could have filled it (`cover_check`) was reachable from no front door ([[ISS-0249]]). So the mechanism this requirement bought was correct, tested, and had never settled a single check in any repo.
+
+Its direction survives and is now structural rather than guarded: a machine's exit code can discharge a person's checkbox, never the reverse, because **only a run emits `method: automated`**.

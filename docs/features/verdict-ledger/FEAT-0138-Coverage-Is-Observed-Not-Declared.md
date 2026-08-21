@@ -3,10 +3,10 @@ type: "[[feature]]"
 id: FEAT-0138
 aliases: ["FEAT-0138"]
 title: "Coverage is observed, not declared — the test names the check it covers, CI emits the entry, and a deleted test simply stops emitting"
-status: backlog
+status: done
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-20"
+updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-20
 review_verdict: approved
@@ -44,11 +44,11 @@ Under observed coverage that population is exactly the one that works. The 54 cl
 
 ## Acceptance
 
-- [ ] The 203 annotations are extracted and recorded before `automation:` is removed.
-- [ ] A test declares the check it covers, in a form one grep finds.
-- [ ] A CI run appends observed-coverage entries to the working ledger for its platform.
-- [ ] Deleting a covering test puts its check back on the run list within one CI cycle, proved.
-- [ ] Nothing declares coverage in a note.
+- [x] The 203 annotations are extracted and recorded before `automation:` is removed — [[TASK-0541]], 278 checks naming 81 JVM classes, committed.
+- [x] A test declares the check it covers, in a form one grep finds — [[TASK-0542]].
+- [x] A CI run appends observed-coverage entries to the working ledger for its platform — [[TASK-0543]].
+- [x] Deleting a covering test puts its check back on the run list, proved — **in this repo only**; [[ISS-0209]] is unresolved and the limit below is unchanged.
+- [x] Nothing declares coverage in a note — `covered_by:` is out of the reader, the writer and the schema; [[REQ-0039]] is superseded by [[REQ-0057]].
 
 ## Re-homed out of PHASE-038, 2026-08-19
 
@@ -79,3 +79,36 @@ Forcing `PHASE-037` to `done` in a scratch copy of `HEAD` (in the phase note **a
 `sync-snapshot.py` propagates `status` and not `phase`, so the hand edit to `SNAPSHOT.yaml` was required rather than belt-and-braces. Both entries carry `PHASE-037` there.
 
 Nothing in this note claims the feature is started, and nothing in the diff starts it. `status: backlog` is unchanged and correct.
+
+
+## Done 2026-08-21 — the inversion is built, and the limit is unchanged
+
+Three pieces, and each is small:
+
+- **The declaration.** `# Covers: TST-0044` inside the test, one comment prefix per language, findable by `grep -rn "Covers: TST-" .`. No annotation, no library, works in pytest and JVM today ([[TASK-0542]]).
+- **The observation.** JUnit XML from the run — pytest writes it with `--junitxml`, gradle writes it natively — so the toolchain-portability requirement is met by the *report format* rather than by a shared dependency ([[TASK-0543]]).
+- **The emission.** `pass` for a check every declaring test observed passing; an **invalidation** for one whose covering test failed, and for one this emitter previously covered and did not observe at all.
+
+### The third event is the feature
+
+*Delete the covering test and the check reappears on the run list, by itself.* Under the standing claim the note kept asserting coverage and the check left the run list **permanently, with no signal**. Under observed coverage the run stops seeing it and says so.
+
+That is proved by construction and not argued: `test_deleting_the_covering_test_puts_its_check_back_on_the_run_list` settles a check by a run, deletes the test, runs again, and requires the check back in `blocking()`.
+
+**It failed on its first execution**, and the reason is worth keeping: the invalidation set was computed as *declared but not observed*, and deleting the test deletes the declaration too — so the check left the set that could be invalidated and stayed settled forever. `covered_by:`'s silent rot, reproduced inside the tool built to end it. It is read from the **ledger** now.
+
+### `covered_by:` is gone, and it had never worked
+
+Criterion 5 was already true as a description of the corpus — the field held nothing on **671 of 671** checks ([[ISS-0198]]) — and the mechanism that permitted it was intact. Removing it took nothing away and closed the gap:
+
+- `Item.covered_by`, `Item.covered_by_status`, `covered_by_passing` and `_resolve_coverage` are deleted; `settled` is `checked or reconciled or excepted`.
+- `note_writes.cover_check` is deleted ([[ISS-0249]] option 3, on the condition that issue named — [[FEAT-0131]] closed `done` without ever needing it).
+- [[REQ-0039]] is `superseded` by [[REQ-0057]]. Its direction survives and is now **structural**: a machine's exit code can discharge a person's checkbox and never the reverse, because only a run emits `method: automated`.
+
+### What is declared today
+
+Three checks — [[TST-0069]], [[TST-0075]], [[TST-0076]] — each mapped by reading the check against the test. The other 31 are person-facing walks and are **deliberately undeclared**: inventing a mapping for them would be the assertion this feature exists to remove, and an undeclared check stays on the run list, which is the conservative direction.
+
+### The limit, restated because it did not move
+
+[[ISS-0209]]: the acceptance gate runs in **no repo that holds a check**. The emitter runs here and nowhere the fleet's data lives. Criterion 4 is proved in `project-os-cockpit` and the fleet is not covered — the workflow says so in its own header, and nothing in this note claims otherwise.

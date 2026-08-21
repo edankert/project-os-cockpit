@@ -49,7 +49,8 @@ def test_add_then_remove_round_trips(tmp_path: Path) -> None:
     assert 'features: ["[[FEAT-0001-Thing]]"]' in raw, raw[:400]
 
     out = note_writes.release_contents(
-        Index.build(docs), "REL-0001", action="remove", feature_id="FEAT-0001")
+        Index.build(docs), "REL-0001", action="remove", feature_id="FEAT-0001",
+        reason="waiting on a backend deploy")
     assert out["features"] == []
     assert "features: []" in (docs / "releases" / "REL-0001-R.md").read_text()
 
@@ -103,7 +104,8 @@ def test_the_id_is_the_member_not_the_slug(tmp_path: Path) -> None:
     is display; removing on the id must find it either way."""
     docs = _repo(tmp_path, features='["[[FEAT-0001]]"]')
     out = note_writes.release_contents(
-        Index.build(docs), "REL-0001", action="remove", feature_id="FEAT-0001")
+        Index.build(docs), "REL-0001", action="remove", feature_id="FEAT-0001",
+        reason="not this cycle")
     assert out["features"] == []
 
 
@@ -255,7 +257,8 @@ def test_removing_a_phase_removes_what_it_contributed(tmp_path: Path) -> None:
     note_writes.release_contents(
         Index.build(docs), "REL-0001", action="add", feature_id="PHASE-0001")
     out = note_writes.release_contents(
-        Index.build(docs), "REL-0001", action="remove", feature_id="PHASE-0001")
+        Index.build(docs), "REL-0001", action="remove", feature_id="PHASE-0001",
+        reason="the whole phase slips")
     assert out["features"] == []
 
 

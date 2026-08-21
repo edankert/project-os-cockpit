@@ -385,14 +385,15 @@ class Item:
     #: as a release's *confidence*, which is why it is a check property and not
     #: — as first proposed — a feature stat.
     automation: str = ""
-    covered_by: tuple[str, ...] = ()
-    #: The status of each test named in `covered_by:`, resolved through the
-    #: index when one is available. This is what makes automating a check PAY
-    #: (ADR-0031 / REQ-0039): a `passing` covering test settles this one with no
-    #: human mark. Empty when the suite was loaded without an index — a
-    #: directory read cannot resolve an id — so `settled` falls back to the mark
-    #: alone, which is the safe direction: it can only ever under-settle.
-    covered_by_status: tuple[str, ...] = ()
+    #: **`covered_by:` is gone** ([[REQ-0057]], [[FEAT-0138]]). A note no
+    #: longer declares that a machine covers it: the claim rotted silently --
+    #: rename, delete or disable the covering test and the note kept asserting
+    #: coverage while the check left the run list permanently, with no signal.
+    #: The test declares the check now (`# Covers: TST-####`) and the RUN emits
+    #: a `method: automated` verdict into the ledger, so deleting the test
+    #: stops the emission and the check reappears on its own. The field held
+    #: nothing on 671 of 671 notes fleet-wide ([[ISS-0198]]), so removing it
+    #: took nothing away.
     #: What the walker must have to hand. TASK-0449 was cancelled for the
     #: absence of exactly this field, on the finding that inferring it from
     #: prose was 6-of-6 false positives.
@@ -428,52 +429,25 @@ class Item:
         return slugify(self.heading, "-") if self.heading else ""
 
     @property
-    def covered_by_passing(self) -> bool:
-        """A machine already answers this check, and it currently passes.
-
-        The whole return on ADR-0031. Before it, `automation:` and `covered_by:`
-        were read by one facet and one release stat and by nothing that could
-        discharge anything — so 15 of the 60 checks blocking `your-trainer` said
-        in their own bodies that a test already covered them, and blocked the
-        release anyway.
-
-        **`passing`, not "not failing".** An unrun covering test settles
-        nothing: `ready` means defined and never executed, which is exactly the
-        state that must not clear a gate.
-        """
-        # **ALL, not ANY** — and the difference is a check that clears a gate
-        # on partial evidence. Two covers, one passing and one failing, settled
-        # under `any`, which contradicts the sentence every note about this
-        # feature carries: *a failing covering test un-settles the check*.
-        # Found by independent review, unguarded until now.
-        #
-        # An empty tuple is not coverage: `all([])` is True, so the emptiness
-        # check comes first. That is the same fail-closed direction as the
-        # missing-index case.
-        return bool(self.covered_by_status) and all(
-            s == "passing" for s in self.covered_by_status)
-
-    @property
     def settled(self) -> bool:
         """What the gate reads — walked, reconciled, excepted, or **covered**.
 
         Not "done": a reconciled item was never performed and an excepted one
         is being shipped undone, and the tier counts say so separately.
 
-        The fourth clause is ADR-0031's: a `passing` test named in
-        `covered_by:` settles this check without a human mark. The direction is
-        what keeps it safe — a machine's exit code discharges a person's
-        checkbox, never the reverse — so ADR-0010's runner-only rule is
-        untouched.
+        **The fourth clause is gone, and its work moved rather than stopped**
+        ([[REQ-0057]] / [[FEAT-0138]]). ADR-0031's `covered_by:` clause settled
+        a check from a *standing claim in the note*; a machine's coverage is
+        now an **event in the ledger**, so it arrives through `mark`/`checked`
+        like every other verdict and needs no branch here.
 
-        **And a covering test that FAILS un-settles it**, because this reads the
-        live status rather than a remembered one. That is a real consequence and
-        it was decided rather than discovered: it puts a machine-driven
-        population into the release gate, which is the gate and not a badge, so
-        ADR-0027 is untouched too.
+        The direction ADR-0031 protected is unchanged and is now structural: a
+        machine's exit code can discharge a person's checkbox, never the
+        reverse, because only a run emits `method: automated`. And a covering
+        test that fails still un-settles the check — the run appends an
+        invalidation, which clears the standing verdict.
         """
-        return (self.checked or self.reconciled or self.excepted
-                or self.covered_by_passing)
+        return self.checked or self.reconciled or self.excepted
 
     @property
     def stale(self) -> bool:
@@ -1027,7 +1001,6 @@ def item_from_note(
         verdict_reason=str(fm.get("verdict_reason", "") or "").strip(),
         command=str(fm.get("command", "") or "").strip(),
         automation=str(fm.get("automation", "") or "").strip(),
-        covered_by=_as_tuple(fm.get("covered_by")),
         burden=_as_tuple(fm.get("burden")),
         evidence=_as_tuple(fm.get("evidence")),
         migrated_from=str(fm.get("migrated_from", "") or "").strip(),
@@ -1099,49 +1072,6 @@ def load_notes(checks_dir: Path) -> list[Item]:
             items.append(item)
     return sort_items(items)
 
-
-
-def _resolve_coverage(items: "list[Item]", index: "Any") -> "list[Item]":
-    """Fill `covered_by_status` from the index (REQ-0039).
-
-    Resolved at LOAD rather than stored on the note, and that is the whole
-    design: a remembered status is a claim about a run that happened once, and
-    what the gate needs to know is whether the covering test passes **now**. It
-    is also why a failing covering test un-settles the check it covers -- the
-    same read, in the other direction.
-
-    Only an index can do this, so a directory read leaves the tuple empty and
-    `settled` falls back to the mark alone. That direction is deliberate: it can
-    only ever under-settle, which fails a gate closed rather than open.
-    """
-    out: list[Item] = []
-    for item in items:
-        if not item.covered_by:
-            out.append(item)
-            continue
-        statuses: list[str] = []
-        for ref in item.covered_by:
-            # `[[TST-0016-Seat-Resolution]]`, `TST-0016`, or a bare module name.
-            # Only the id form resolves; anything else is a claim the gate
-            # cannot check, which is why the write path refuses it.
-            match = re.search(r"([A-Z]+-\d{2,})", str(ref))
-            path = index.by_id(match.group(1)) if match else None
-            record = index.get(path) if path is not None else None
-            # **Only an EXECUTABLE test counts as coverage.** A manual test at
-            # `passing` is a person's own walk, so accepting it would let one
-            # hand-walked note discharge another -- a walk laundered into
-            # automation, which is the opposite of what REQ-0039 buys. The
-            # covering test must declare a `command:`, which is the same bar
-            # the write path is required to enforce (TASK-0483).
-            status = ""
-            if record is not None:
-                if str(record.frontmatter.get("command") or "").strip():
-                    status = str(record.status or "").strip().lower()
-                else:
-                    status = "not-executable"
-            statuses.append(status)
-        out.append(replace(item, covered_by_status=tuple(statuses)))
-    return out
 
 
 def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item]:
@@ -1266,7 +1196,6 @@ def load(docs_root: Path, index: "Any | None" = None, *,
             is not None
         ]
         if items:
-            items = _resolve_coverage(items, index)
             items = apply_ledger(items, docs_root, platform)
             return Suite(path=checks_dir, items=sort_items(items),
                          shape=SHAPE_NOTES, platform=platform)
@@ -2029,6 +1958,7 @@ def gate_payload(
     #: is the features a release has held back; empty or `None` means nothing
     #: was, and this is exactly `blocking()`. Eleven historical releases depend
     #: on that being true.
+    unsubtracted = suite.blocking()
     blocking = suite.blocking_minus(deselected)
 
     # --- quiet: the subject is not in flight (TASK-0447) ------------------
@@ -2124,6 +2054,16 @@ def gate_payload(
         "platform": suite.platform,
         "rel": suite_rel(suite),
         "blocked": bool(blocking),
+        #: **What the selection cost** ([[TASK-0576]], [[FEAT-0142]] criterion
+        #: 4). A gate that fell from 59 to 23 because somebody held six
+        #: features back, rendered as *"23 blocking"* with nothing beside it,
+        #: is [[ISS-0241]] and [[ISS-0243]] in a new place: a number with no
+        #: recorded cause. `checks` is the SIZE of the subtraction, measured
+        #: against the same suite -- never a second count of it.
+        "deselection": {
+            "features": len(deselected or ()),
+            "checks": len(unsubtracted) - len(blocking),
+        },
         "rule": "A release is blocked while any manual check is unsettled "
                 "(exceptions must be documented in the release note).",
         # The contract's sentence is quoted verbatim above and must stay that

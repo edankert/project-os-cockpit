@@ -755,6 +755,10 @@ def _make_handler(
                 self._serve_mark_check()
                 return
 
+            if path == "/api/notes/retire-check":
+                self._serve_retire_check()
+                return
+
                 return
 
             if path == "/api/notes/release-mark-released":
@@ -2459,6 +2463,51 @@ def _make_handler(
                 return
             self._respond_json({"ok": True, **result})
 
+        def _serve_retire_check(self) -> None:
+            """``POST /api/notes/retire-check`` — the front door
+            [[note_writes.retire_check]] never had ([[ISS-0249]]).
+
+            **A complete, tested write path that nothing could call.** Walking
+            the POST dispatch answered [[TASK-0363]]'s question — 19 routes
+            call `note_writes`, all 19 are loopback-guarded — and the same walk
+            run in reverse answered one nobody had asked: *is every write
+            routed?* It was not. `retire_check` performed TESTING.md's removal
+            path and no route, no control and no CLI reached it, so the
+            decision [[TASK-0518]] was asking for could only have been executed
+            by hand-editing 83 notes, which is the failure [[ADR-0009]] exists
+            to prevent.
+
+            [[TASK-0518]]'s answer was *retire nothing today*. That is why the
+            lever lands now rather than then: a decision that changes later
+            must not find that there is no button to press.
+
+            **It is not a verdict write.** [[ADR-0035]] is untouched: this
+            changes a check's own lifecycle status, and it is reachable from
+            the checks view, never from a release page.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.retire_check(
+                    index,
+                    check_id=str(body.get("id") or ""),
+                    reason=str(body.get("reason") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._respond_json({"ok": True, **result})
+
         def _serve_mark_released(self) -> None:
             """``POST /api/notes/release-mark-released`` — the missing end
             (FEAT-0116 / TASK-0469).
@@ -2517,6 +2566,10 @@ def _make_handler(
                     str(body.get("release") or ""),
                     action=str(body.get("action") or ""),
                     feature_id=str(body.get("id") or ""),
+                    # **A removal must say why** ([[TASK-0576]]). Refused in
+                    # `note_writes`, not here — the other front door gets the
+                    # same refusal for free.
+                    reason=str(body.get("reason") or ""),
                     actor=str(body.get("actor") or ""),
                     mtime=(float(body["mtime"])
                            if body.get("mtime") is not None else None),
