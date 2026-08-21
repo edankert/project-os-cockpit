@@ -1050,11 +1050,14 @@ PROMOTIONS = {
     # about what was done (ISS-0253). **51 findings in this repo**, measured at
     # `f5ca55b` after independent review corrected both the filed count and the
     # rule's own domain: 30 `done`, 8 `merged`, 4 `implemented`, 9 `fixed`, the
-    # earliest six dated **2026-07-30** -- every one a verdict that was true
-    # when written and false as a description of the note today.
+    # earliest **eight** dated **2026-07-30** -- every one a verdict that was
+    # true when written and false as a description of the note today.
     #
     # *(It said "dating to 2026-08-02", which was ISS-0253's date and not this
-    # population's. Measured: 2026-07-30, on six notes.)*
+    # population's; then it said "six", which was a reviewer's figure typed
+    # over a measurement that had printed EIGHT on the same screen. Counted:
+    # 8. Fourth wrong number about one population in one file, and the only
+    # one produced by copying rather than by not measuring.)*
     #
     # The first cut reported 43 and read `note_index`, which holds no `CHG-*`
     # note at all (`ID_PREFIXES` has no `CHG`, and a change note's id is not
@@ -2881,9 +2884,14 @@ def validate(root, report):
     # `review_verdict` is **sticky and nothing refreshes it.** A reviewer
     # writes `changes-requested`, the findings are acted on -- often within the
     # hour -- the note reaches `done`/`merged`/`fixed`/`implemented`, and no
-    # mechanism writes a new verdict. Measured 2026-08-20: **49 notes carry
-    # `changes-requested`, 43 of them at a terminal status**, dating back to
-    # 2026-08-02.
+    # mechanism writes a new verdict. Measured against `git archive f5ca55b`:
+    # **56 notes carry an owed verdict, 51 of them at a terminal status**, the
+    # earliest EIGHT dated 2026-07-30.
+    #
+    # *(ISS-0253 filed 49/43 dating to 2026-08-02, and this comment restated
+    # it. None of the three figures reproduces. The date was the ISSUE's, not
+    # the population's -- see the PROMOTIONS entry for how 43 came to agree
+    # with a number that was also wrong.)*
     #
     # Every one of those is TRUE as a fact about a moment and FALSE as a
     # description of the note today, and a reader cannot tell a live objection
@@ -2932,7 +2940,7 @@ def validate(root, report):
         the_id = str(fm.get("id") or "").strip().strip("\"'") or path.stem
         status = str((fm or {}).get("status") or "").strip().lower()
         #: A non-terminal note carrying `changes-requested` is ordinary work in
-        #: flight. Six of the 49 are that, and reporting them would say a
+        #: flight. **Five of the 56** are that, and reporting them would say a
         #: reviewer's live objection is a defect in the record.
         if status not in REVIEW_TERMINAL_STATUSES:
             continue

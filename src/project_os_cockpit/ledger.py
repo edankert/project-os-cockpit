@@ -315,11 +315,16 @@ def check_evidence(raw: dict[str, Any], *, where: str) -> Evidence:
 def orphan_evidence(ledger: Ledger) -> list[Evidence]:
     """Evidence for a walk nobody recorded.
 
-    The same guard `cover_check` applies to `covered_by:` and for the same
-    reason ([[ISS-0198]]): a claim pointing at nothing reads as backed and is
-    not. Evidence joins by `check` + `date`, so an item whose pair matches no
-    entry is either a typo or proof of a walk that was never written down, and
-    both want a person.
+    **A claim pointing at nothing reads as backed and is not** ([[ISS-0198]]).
+    Evidence joins by `check` + `date`, so an item whose pair matches no entry
+    is either a typo or proof of a walk that was never written down, and both
+    want a person.
+
+    *(This used to say "the same guard `cover_check` applies to `covered_by:`
+    and for the same reason". Both are gone — [[REQ-0057]], 2026-08-21: a note
+    no longer declares that a machine covers it, because a standing claim rots
+    silently and an observed one cannot. The reason survives the function and
+    is stated directly above rather than by reference to a deletion.)*
     """
     pairs = {(e.check, e.date) for e in ledger.entries}
     return [v for v in ledger.evidence if (v.check, v.date) not in pairs]

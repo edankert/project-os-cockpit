@@ -74,8 +74,8 @@ def _scanner():
     return module
 
 
-def junit_results(path: Path) -> dict[str, bool]:
-    """`{test name: passed}` from a JUnit XML report.
+def junit_results(path: Path) -> "tuple[dict[str, bool], set[str]]":
+    """`({test name: passed}, {test name skipped})` from a JUnit XML report.
 
     **Keyed on the bare test name**, which is what the declaration scanner
     knows: pytest writes `name="test_x"` with the module in `classname`, and
@@ -150,46 +150,55 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
 
     passing: dict[str, list[str]] = {}
     failing: dict[str, list[str]] = {}
+    #: **A skipped sibling is not laundered into a pass.** A check covered by
+    #: five tests is covered by all five; four passing and one `@Ignore`d is
+    #: four fifths of an answer, and reporting it as `pass` is the
+    #: overclaiming this phase spent itself removing. Independent review
+    #: constructed exactly that and watched `pass` come out.
     for check, tests in sorted(declared.items()):
         seen = [t for t in tests if t in results]
-        if not seen:
-            continue
+        held = [t for t in tests if t in skipped]
         bad = sorted(t for t in seen if not results[t])
         if bad:
             failing[check] = bad
-        else:
+        elif seen and not held:
             passing[check] = sorted(seen)
 
     current = _ledger.verdicts(root / "docs", platform)
-    #: **Absence is only evidence when the DECLARATION is gone.**
-    #:
-    #: The first cut invalidated every `method: automated` verdict this run did
-    #: not re-observe, and independent review constructed the consequence: two
-    #: runs on one platform covering different toolchains -- a `.py` suite and
-    #: a `.kt` suite, which are exactly the two this tool exists to serve --
-    #: **retract each other forever**, two ledger entries per run, growing
-    #: without bound. The bug that fixed (a one-off job rename) is smaller than
-    #: the bug it created, which recurs on every run.
-    #:
-    #: So the question is *does any test still declare this check*, not *did
-    #: this run happen to see it*. A test deleted, renamed away or moved out
-    #: takes its declaration with it and the verdict goes; a test that simply
-    #: was not part of this run keeps it.
+
+    def _withdrawn(check: str) -> bool:
+        """Has the machine's claim on this check stopped being backed?
+
+        Two ways, and they are different facts:
+
+        * **no test declares it any more** -- deleted, renamed away, moved out;
+        * **every declaring test ran and at least one was skipped** -- the run
+          reached them and declined to produce evidence, which is `@Ignore`.
+
+        A declaring test simply ABSENT from this run's report is neither: a
+        partial run is not evidence of absence, and treating it as one made a
+        `.py` run and a `.kt` run retract each other on every cycle.
+        """
+        tests = declared.get(check)
+        if not tests:
+            return True
+        if check in passing or check in failing:
+            return False
+        return (any(t in skipped for t in tests)
+                and all(t in skipped or t in results for t in tests))
+
+    #: **Read off `current`, so it appends only when the answer changes.**
+    #: The first cut iterated `declared` for the skipped case and consulted
+    #: neither the ledger nor what it had already written -- so an `@Ignore`d
+    #: test produced one invalidation **per run, forever** (an `@Ignore` sits
+    #: for weeks while CI runs on every push), and a check with no verdict at
+    #: all produced invalidations of nothing. Reading `current` closes both:
+    #: an invalidation clears the verdict, so the check leaves this set on the
+    #: next run by construction. Found by independent review, third pass.
     stale = sorted(
         check for check, verdict in current.items()
-        if verdict.method == "automated"
-        and check not in declared
+        if verdict.method == "automated" and _withdrawn(check)
     )
-    #: A declaring test that RAN and was skipped is a different fact: the run
-    #: reached it and declined to produce evidence, which is `@Ignore`. Every
-    #: declaring test observed, none passing, at least one skipped.
-    for check, tests in sorted(declared.items()):
-        if check in passing or check in failing or check in stale:
-            continue
-        if any(t in skipped for t in tests) and all(
-                t in skipped or t in results for t in tests):
-            stale.append(check)
-    stale = sorted(set(stale))
     return passing, failing, stale, current
 
 

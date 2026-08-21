@@ -2718,7 +2718,7 @@ def _is_manual_test(record: NoteRecord) -> bool:
     the moment the first one went.
 
     `automation:` answers *does a machine cover this check* — `full`/`partial`/
-    `manual`, beside `covered_by:` — a claim about **coverage**, not about who
+    `manual`. It was a claim about **coverage**, not about who
     performs the walk. The two were conflated because before ADR-0031 they
     described the same population.
 

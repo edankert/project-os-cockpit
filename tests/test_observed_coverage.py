@@ -441,6 +441,63 @@ def test_a_run_that_never_reached_the_test_leaves_it_alone(
     assert _blocking(tmp_path) == {"TST-0001"}
 
 
+def test_a_skipped_test_invalidates_once_not_once_per_run(
+        tmp_path: Path) -> None:
+    """**The repair for the toolchain hole reopened the same unbounded growth
+    one branch over.**
+
+    The skipped branch iterated `declared` and consulted neither the ledger nor
+    what it had already written, so an `@Ignore`d test produced one
+    invalidation **per run** — and an `@Ignore` sits for weeks while CI runs on
+    every push. Independent review ran it four times and counted four.
+
+    The set is read off `current` now, so an invalidation clears the verdict
+    and the check leaves the set on the next run by construction. The module's
+    own invariant — *it appends only when the answer changes* — holds for this
+    branch too.
+    """
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": ""}))
+    for _ in range(4):
+        _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "skipped"}))
+    entries = ledger.load(tmp_path / "docs", "macos")[0].entries
+    assert len(entries) == 2, [(e.check, e.is_invalidation) for e in entries]
+    assert entries[1].is_invalidation
+    assert _blocking(tmp_path) == {"TST-0001"}
+
+
+def test_a_check_with_no_verdict_is_never_invalidated(tmp_path: Path) -> None:
+    """An invalidation with no standing verdict is an event about nothing.
+    Absence already means owed ([[REQ-0054]]) — and this held for the *absent*
+    case from the start while the *skipped* case wrote three in three runs."""
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    for _ in range(3):
+        _emit(tmp_path, _junit(tmp_path, {"test_the_thing": "skipped"}))
+    assert ledger.load(tmp_path / "docs", "macos")[0].entries == []
+
+
+def test_a_skipped_sibling_is_not_laundered_into_a_pass(
+        tmp_path: Path) -> None:
+    """A check covered by two tests is covered by both. One passing and one
+    `@Ignore`d is half an answer, and `emit-coverage: pass` was what came out.
+
+    `test_every_declaring_test_must_pass` exercised only the *failing* sibling,
+    which is the cell that happened to be right.
+    """
+    _repo(tmp_path)
+    (tmp_path / "tests" / "test_two.py").write_text(
+        "def test_second():\n    # Covers: TST-0001\n    pass\n",
+        encoding="utf-8")
+    out = _emit(tmp_path, _junit(
+        tmp_path, {"test_the_thing": "", "test_second": "skipped"}))
+    assert "pass TST-0001" not in out.stdout, out.stdout
+    assert _blocking(tmp_path) == {"TST-0001"}
+
+
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     from project_os_cockpit import ledger
 
