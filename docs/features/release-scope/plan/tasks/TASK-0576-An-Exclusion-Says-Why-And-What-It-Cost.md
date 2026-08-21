@@ -1,7 +1,9 @@
 ---
 type: "[[task]]"
 id: TASK-0576
-review_verdict: approved
+review_verdict: changes-requested
+review_response: "Fifth pass 2026-08-21: this task's fourth criterion was true of the block it added and false of the page it added it to - buildReleaseItemPage rendered markable check rows. Fixed, and the guard is bounded by discovered release surfaces with comments stripped rather than by a character window."
+review_response_date: 2026-08-21
 review_date: 2026-08-21
 reviewed_by: model:claude-opus-5
 aliases: ["TASK-0576"]
@@ -137,3 +139,24 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **Round three's finding 3 reproduces exactly, every figure.** Driving the rule's own predicates over `git archive f5ca55b`: **56** owed, **51** terminal, **5** non-terminal, `30 done / 8 merged / 4 implemented / 9 fixed`, earliest `review_date` **2026-07-30** on **eight** notes — `CHG-20260730-Two-Features-Closed`, `FEAT-0045`, `ISS-0037`, `ISS-0057`, `ISS-0068`, `ISS-0069`, `PHASE-011`, `PHASE-013`. All 8 `merged` findings are `CHG-*`. The rule reports 51 at HEAD.
 
 **Suite, validator, CI step set, all observed rather than reported.** `2063 passed, 3 skipped` in 269s; `validate-docs: OK`; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `9a75f11`.
+
+
+## Independent review — fifth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `9a75f11..991838e`, widened to `f5ca55b..991838e` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all four earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fourth pass's verdict on this note.**
+
+**Verdict: changes-requested — on the universal sentence, not on what was built.** The held-back block itself is right and I checked it rather than read it: it draws the count and its cost in one line, every row carries its reason, an exclusion with no reason renders *"no reason recorded (hand-edited)"* instead of inventing one, and the block offers no verdict control. The criterion written above it is what fails.
+
+### Finding 1 (high) — "no write path to a check appears on the release page" is false at `991838e`
+
+`renderer.ts:7610`, inside `buildReleaseItemPage`, renders every acceptance-check row of `~release/<id>/<ITEM-ID>` with `s.appendChild(buildCheckRow(item))` and no `manual` argument — so `manual` defaults to `true` and each row gets a `checkMark(item)` button (click → `markCheckRow` → `walkOneCheck` → `askForMark` → `postJson('/api/notes/mark-check', …)`) **and** a `Retire` button (→ `retireCheckRow`). Both change a check. The page is routed at `renderer.ts:1249` off `~release/`, renders in `publication` nav mode, and its rows are real `GateItem`s from `publication.release_item_payload`. The code says it in its own voice at `renderer.ts:7608` — *"The mark control INLINE — the same one the view and the gate wear"* — while `retireCheckRow`'s docstring says the control *"lives on `~checks`, never on a release page ([[ADR-0035]])"*.
+
+**Why the widened guard misses it, established by mutation rather than by reading.** Inserting `void askForMark({});` into each of the eight `subjects` functions fails the test **8/8**. Inserting `wrap.appendChild(buildCheckRow(item));` into the same eight — the exact call the release item page already makes — **passes 8/8**, including into `buildReleasePage`. The guard is one call deep; the live violation is one call deep.
+
+### Finding 2 (medium) — the guard's docstring claims more than the guard does
+
+It says *"The region is every release-page render function"* and *"Named rather than pattern-matched, so renaming one into existence outside this list is a visible edit here."* Constructed: a new `function buildReleaseChecksPanel(items: GateItem[])` calling `askForMark`, inserted before `renderReleasePage` → **17 passed**. `found == subjects` catches only the *disappearance* of one of the eight; a ninth is invisible, and the `^(?:async )?function` scan cannot see an arrow-function surface at all. The functions the release pages delegate row rendering to — `buildCheckRow`, `checkMark`, `gateGroup` — are not in the set, which is the mechanism of Finding 1.
+
+**What is genuinely closed.** The 2600-character window is gone; comments are stripped, so the note recording `markGateRow`'s deletion no longer reads as a write path; the two file-wide `function gateMark` / `function markGateRow` assertions hold; and the anchor really is inside `buildReleasePage`'s region (`covered` is asserted, not assumed). The widening is a real improvement that does not reach the sentence it is cited under.
+
+**Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`.

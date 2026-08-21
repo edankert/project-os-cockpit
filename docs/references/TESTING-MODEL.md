@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-08-18
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
-review_date: 2026-08-18
+review_date: 2026-08-21
 review_verdict: changes-requested
 scope: tests
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
@@ -131,6 +131,8 @@ automation: full
 
 ### Verified against the code, unchanged
 
+> ⛔ **Partly superseded 2026-08-21 by [[REQ-0057]]**, in this heading's own first line. Anything below about `covered_by:`, `automation:` as a coverage claim, `_resolve_coverage` or `note_writes.cover_check` is written in the present tense about code that is **deleted**. *"All three hold"* held; it does not now.
+
 - **`_is_manual_test` precedence** — `cockpit.py:2609`. `command:` first, then `automation`/`kind`/`mode`/`method`, then a Steps section. The order is as documented. (One thing the summary omits: an explicit `automated`/`auto`/`ci` on any of those four keys returns *machine* before the Steps fallback is reached.)
 - **The three gates and `ACCEPTANCE-STATUS`** — `REVIEW_SETTLED_STATUSES = {"tests": ("passing",)}`, `TEST_RUNNER_STATUSES = ("passing","failing")`, `OBLIGATIONS["test"] = Obligation(("ready",), …, "Run")`. `ACCEPTANCE_FORBIDDEN_STATUSES = ("ready","passing","failing")`; with a `command:` the forbidden tuple drops the two runner statuses and keeps `ready`. It is `report.error` unless grandfathered. Exactly as written.
 - **`Item.settled` / `_resolve_coverage`** — all-covers-must-pass (`bool(...) and all(...)`, empty tuple first), executable-only (a cover without `command:` resolves to the literal `not-executable`), resolved at load and never stored. All three hold.
@@ -139,6 +141,8 @@ automation: full
 - **Nothing in the fleet is discharged by automation** — 669 of 669 acceptance notes carry `covered_by: []` (34 + 56 + 579). Verified, and sharper than the note puts it: `cover_check` refuses any test without a `command:`, and **`your-trainer` has exactly 2 tests fleet-eligible to be named** (`LicenseSeatResolverTest`, `Migration34To35Test`). 50 tests carry a `command:` across all twelve repos, 38 of them in this one.
 
 ### Refuted
+
+> ⛔ **Partly superseded 2026-08-21 by [[REQ-0057]]**, in this heading's own first line. Anything below about `covered_by:`, `automation:` as a coverage claim, `_resolve_coverage` or `note_writes.cover_check` is written in the present tense about code that is **deleted**. *"All three hold"* held; it does not now.
 
 1. **"`note_writes.cover_check` writes the link behind four refusals."** It is **six** — empty `covered_by`, an automation value outside `full`/`partial`, `partial` without a reason, an id the index cannot resolve, a target that is not a test, and the `command:` one. (A seventh `raise` is an I/O error.)
 2. **"not one names a `TST-*` id"** — four `your-trainer` acceptance bodies do: `TST-0050`, `TST-0051` (naming TST-0009), `TST-0364` (TST-0010), `TST-0586` (TST-0008). The *point* survives — all four name manual tests, none is a `covered_by:` link — but the sentence is false and this document says it describes what is implemented.
@@ -177,3 +181,14 @@ So `level: acceptance` has been carrying three independent claims: *a person wal
 [[ADR-0034-Three-Axes-Not-One-Word]] supersedes ADR-0033 and separates them — `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates, at any granularity. [[PHASE-036-One-Human-Walk]] carries the work, gated on a measured precondition: **83 of 669 acceptance tests carry an empty `covers:`** and would gate nothing under a derived rule.
 
 **Read every table above as a description of what is implemented today, not as a design.**
+
+
+## Independent review — fifth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `9a75f11..991838e`, widened to `f5ca55b..991838e` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all four earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fourth pass's verdict on this note.**
+
+**Verdict: changes-requested (low).** The fourth pass's finding is **partially** addressed. The new banner is genuinely in `## What the cockpit implements today`'s own first line and it names all four stranded things — `covered_by:`, `automation:` as a coverage claim, `_resolve_coverage`, and *Covered by* as a write the cockpit performs — so the `**Writes** — … *Covered by* and retire` line at 116 and the `automation` filter at 114 are now covered where a reader lands.
+
+**What is still unbannered is the part that asserts the claims in the present tense, under headings of its own.** Line 136, under `### Verified against the code, unchanged`: *"**`Item.settled` / `_resolve_coverage`** — all-covers-must-pass …, executable-only …, resolved at load and never stored. **All three hold.**"* Line 143, under `### Refuted`: *"`note_writes.cover_check` writes the link behind four refusals." It is **six** …"* — present tense about a function that is deleted. The new banner reaches them by naming them, from two headings away; the banner's own argument is that *"a heading is a landing target, and a reader arriving by link or scroll never sees a warning further up"*, and `#verified-against-the-code-unchanged` is a landing target. This is a sentence-level fix on a reference file and it does not block anything.
+
+**Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`.

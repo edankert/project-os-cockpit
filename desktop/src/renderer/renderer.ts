@@ -7605,9 +7605,29 @@ function buildReleaseItemPage(
       s.appendChild(none);
     }
     for (const item of items) {
-      // The mark control INLINE — the same one the view and the gate wear, so
-      // a reader can walk a check from the page that told them it mattered.
-      s.appendChild(buildCheckRow(item));
+      //: **No mark control, and no Retire** ([[ADR-0035]], [[ISS-0210]]).
+      //:
+      //: This read `buildCheckRow(item)` with no second argument, which
+      //: defaults `manual` to `true` — so every check row on
+      //: `~release/<id>/<ITEM-ID>` carried a live mark button posting to
+      //: `/api/notes/mark-check`, and after [[ISS-0249]] a `Retire` button
+      //: beside it. **On a release page.** That is exactly the sixty live
+      //: marks ISS-0210 found and ADR-0035 disarmed, surviving one call
+      //: deeper than anybody looked: `gateMark` and `markGateRow` were
+      //: deleted file-wide and this reached the same dialog through a shared
+      //: row builder.
+      //:
+      //: The comment that used to sit here argued for it — *"the same one
+      //: the view and the gate wear, so a reader can walk a check from the
+      //: page that told them it mattered"* — which is the convenience
+      //: ADR-0035 weighed and rejected: a release page reports, it does not
+      //: record. Walking a check happens on `~checks` and on the check's own
+      //: note, and the row's number still links there.
+      //:
+      //: Found by independent review, fifth pass, 2026-08-21, by planting a
+      //: `buildCheckRow` call in each release function and watching the guard
+      //: pass — the guard was one call deep and so was the violation.
+      s.appendChild(buildCheckRow(item, false));
     }
     wrap.appendChild(s);
   }

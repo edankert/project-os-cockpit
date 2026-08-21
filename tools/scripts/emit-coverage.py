@@ -161,30 +161,53 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
         declared.setdefault(decl.check, []).append((decl.rel, decl.test))
 
     def _resolve(where: str, test: str) -> "tuple[str, str] | None":
-        """The report key for one declaration, or `None` if the run did not
-        cover it.
+        """The report key for one declaration, or `None` when the run did not
+        cover it — or covered it unattributably.
 
-        **The `classname` must identify the declaration's own file**, and
-        there is deliberately no fallback to the bare name. A declaration in
-        `tests/test_close_out_commit.py` matches a `classname` of
-        `tests.test_close_out_commit`; a JVM one in `.../com/x/FooTest.kt`
-        matches `com.x.FooTest`; an XCTest one matches its class.
+        **Three tiers, best first, and a tie in the best tier is a refusal.**
 
-        A bare-name fallback was written first and was wrong on the very case
-        this method exists for: with the declaring test absent and a
-        same-named test from another module present, it was the only
-        candidate, so the fallback matched it. **Not-found is the
-        fail-closed answer** — it emits nothing rather than emitting about a
-        test that declares nothing.
+        1. the `classname` IS the declaration's module, or is nested inside it
+           (`tests.test_x`, and `tests.test_x.TestGroup` for a test in a class);
+        2. the `classname`'s last component is the declaration's file stem,
+           which is the JVM (`com.x.FooTest`) and XCTest shape;
+        3. nothing — the run did not cover it.
+
+        **Tier 1 must be exhausted before tier 2 is consulted.** Two files
+        called `test_thing.py` in different directories both satisfy tier 2 for
+        each other, and the first version took whichever came first in the
+        report — so the same two entries in the other order gave a different
+        answer. Order-dependence in a rule about evidence is not a rule.
+
+        **A tie is `None`, and `None` is not "the test was deleted".** Round
+        four folded unresolvable into *absent from this run*, and wrapping a
+        declaring test in a class silently stopped every emission: pytest
+        writes `classname="tests.test_thing.TestGroup"`, tier 1's equality
+        failed, tier 2's stem test failed, and the output read *"nothing
+        changed"* on every run thereafter. Present-and-unattributable is a
+        third state; it emits nothing in either direction and `main` says so.
         """
         stem = where.rsplit("/", 1)[-1].rsplit(".", 1)[0]
         dotted = where.rsplit(".", 1)[0].replace("/", ".")
-        for cls, name in list(results) + sorted(skipped):
-            if name != test:
-                continue
-            if cls == dotted or cls.endswith("." + stem) or cls == stem:
-                return (cls, name)
-        return None
+        keys = [k for k in list(results) + sorted(skipped) if k[1] == test]
+        exact = [k for k in keys
+                 if k[0] == dotted or k[0].startswith(dotted + ".")]
+        if len(exact) == 1:
+            return exact[0]
+        if exact:
+            return None
+        loose = [k for k in keys
+                 if k[0] == stem or k[0].rsplit(".", 1)[-1] == stem]
+        return loose[0] if len(loose) == 1 else None
+
+    def _ambiguous(where: str, test: str) -> bool:
+        """Present in the report and not attributable to this declaration.
+
+        Reported rather than silent: a run that saw a test it cannot place is
+        a fact about the run, and the whole point of observed coverage is that
+        nothing is asserted about a check nobody watched.
+        """
+        return (_resolve(where, test) is None
+                and any(k[1] == test for k in list(results) + sorted(skipped)))
 
     passing: dict[str, list[str]] = {}
     failing: dict[str, list[str]] = {}
@@ -197,6 +220,11 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
         check: [_resolve(where, test) for where, test in tests]
         for check, tests in sorted(declared.items())
     }
+    unattributable = sorted(
+        "%s (%s in %s)" % (check, test, where)
+        for check, tests in sorted(declared.items())
+        for where, test in tests if _ambiguous(where, test)
+    )
     for check, keys in resolved.items():
         seen = [k for k in keys if k is not None and k in results]
         held = [k for k in keys if k is not None and k in skipped]
@@ -247,7 +275,7 @@ def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
         check for check, verdict in current.items()
         if verdict.method == "automated" and _withdrawn(check)
     )
-    return passing, failing, stale, current
+    return passing, failing, stale, current, unattributable
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -265,8 +293,12 @@ def main(argv: list[str] | None = None) -> int:
     from project_os_cockpit import ledger as _ledger
 
     results, skipped = junit_results(Path(args.junit))
-    passing, failing, stale, current = plan(
+    passing, failing, stale, current, unattributable = plan(
         root, results, skipped, args.platform)
+    for note in unattributable:
+        print("emit-coverage: NOT ATTRIBUTED %s — the run holds a test with "
+              "that name and no classname identifying the declaration's file; "
+              "nothing emitted in either direction" % note)
     run = args.run or "the test run"
 
     wrote: list[str] = []

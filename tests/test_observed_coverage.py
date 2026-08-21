@@ -575,6 +575,108 @@ def test_one_check_gets_at_most_one_invalidation_per_run(
     assert entries[1].is_invalidation
 
 
+def test_a_test_inside_a_class_still_resolves(tmp_path: Path) -> None:
+    """**Round four's fix silently stopped every emission for a class-based
+    test.** pytest writes `classname="tests.test_thing.TestGroup"` for a test
+    in a class; the equality check failed, the stem check failed, and the
+    output read *"nothing changed"* on every run thereafter — the same input
+    had emitted `pass` one commit earlier.
+
+    The module is a **prefix** of the classname now, not an equal.
+    """
+    _repo(tmp_path)
+    _emit(tmp_path, _junit(tmp_path, {"test_the_thing": ""},
+                           classname="tests.test_thing.TestGroup"))
+    assert _blocking(tmp_path) == set()
+
+
+@pytest.mark.parametrize("classname", [
+    "com.x.FooTest",              # gradle, FQCN
+    "FooTest",                    # XCTest, bare class
+    "src.test.kotlin.com.x.FooTest",
+])
+def test_the_jvm_and_xctest_shapes_resolve(tmp_path: Path, classname: str) -> None:
+    """Tier 2: the classname's last component is the declaring file's stem.
+    `.../com/x/FooTest.kt` and `classname="com.x.FooTest"` are the same test."""
+    root = _repo(tmp_path / classname.replace(".", "_"), declares="")
+    (root / "tests" / "FooTest.kt").write_text(
+        "fun aCheck() {\n    // Covers: TST-0001\n}\n", encoding="utf-8")
+    _emit(root, _junit(root, {"aCheck": ""}, classname=classname))
+    assert _blocking(root) == set(), classname
+
+
+def test_two_files_with_one_stem_are_not_order_dependent(
+        tmp_path: Path) -> None:
+    """**Order-dependence in a rule about evidence is not a rule.** Tier 2
+    matched on the file stem alone, so `tests/test_thing.py` and
+    `integration/test_thing.py` satisfied it for each other and the answer
+    depended on which entry the report listed first.
+
+    Tier 1 — the declaration's own module — is exhausted before tier 2 is
+    consulted, so the twin cannot win either way round.
+    """
+    from project_os_cockpit import ledger
+
+    for order in ("declaring-first", "twin-first"):
+        root = _repo(tmp_path / order)
+        cases = {"test_the_thing": ""}
+        classes = {"test_the_thing": "tests.test_thing"}
+        junit = root / "j.xml"
+        entries = [
+            ("tests.test_thing", ""),
+            ("integration.test_thing", "failure"),
+        ]
+        if order == "twin-first":
+            entries.reverse()
+        body = "".join(
+            "<testcase classname='%s' name='test_the_thing'>%s</testcase>"
+            % (cls, f"<{out} message='x'/>" if out else "")
+            for cls, out in entries)
+        junit.write_text(
+            "<testsuites><testsuite name='x' tests='2'>%s</testsuite>"
+            "</testsuites>" % body, encoding="utf-8")
+        _emit(root, junit)
+        marks = [(e.check, e.mark, e.is_invalidation)
+                 for e in ledger.load(root / "docs", "macos")[0].entries]
+        assert marks == [("TST-0001", "pass", False)], (order, marks)
+
+
+def test_a_test_it_cannot_place_is_reported_not_guessed(
+        tmp_path: Path) -> None:
+    """Present-and-unattributable is a third state, and round four gave it no
+    branch — it folded into *absent from this run* and went silent. It emits
+    nothing in either direction and the run says so."""
+    from project_os_cockpit import ledger
+
+    _repo(tmp_path)
+    junit = tmp_path / "amb2.xml"
+    junit.write_text(
+        "<testsuites><testsuite name='x' tests='2'>"
+        "<testcase classname='a.b' name='test_the_thing'/>"
+        "<testcase classname='c.d' name='test_the_thing'/>"
+        "</testsuite></testsuites>", encoding="utf-8")
+    out = _emit(tmp_path, junit)
+    assert "NOT ATTRIBUTED" in out.stdout, out.stdout
+    assert ledger.load(tmp_path / "docs", "macos")[0].entries == []
+
+    #: **And two TIER-2 candidates are equally unattributable.** Both end in
+    #: the declaring file's stem and neither is its module, so a rule that
+    #: took the first would answer differently depending on report order —
+    #: which is the defect one tier up, one tier down.
+    root = _repo(tmp_path / "loose")
+    junit = root / "loose.xml"
+    junit.write_text(
+        "<testsuites><testsuite name='x' tests='2'>"
+        "<testcase classname='x.test_thing' name='test_the_thing'/>"
+        "<testcase classname='y.test_thing' name='test_the_thing'/>"
+        "</testsuite></testsuites>", encoding="utf-8")
+    #: The declaration lives in `tests/test_thing.py`, so tier 1 would be
+    #: `tests.test_thing` — present in neither entry.
+    out = _emit(root, junit)
+    assert "NOT ATTRIBUTED" in out.stdout, out.stdout
+    assert ledger.load(root / "docs", "macos")[0].entries == []
+
+
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     from project_os_cockpit import ledger
 

@@ -343,22 +343,40 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: **Every function that builds or renders a release surface**, bounded by
     #: the next top-level declaration. Named rather than pattern-matched, so
     #: renaming one into existence outside this list is a visible edit here.
-    subjects = {"renderReleasePage", "renderReleaseItemPage",
+    #: **Discovered, not enumerated.** A fixed list catches a function
+    #: DISAPPEARING and never one appearing: independent review added
+    #: `buildReleaseChecksPanel` calling `askForMark` and the test passed.
+    #: Every top-level function whose name mentions a release is in scope, and
+    #: the discovered set is asserted against the recorded one — so a ninth is
+    #: a deliberate edit here rather than a silent widening of the page.
+    named = {"mountReleaseGate", "buildGateSection", "composeRelease",
+             "holdFeatureBack"}
+    subjects = {n for _, n in decls if "elease" in n} | named
+    expected = {"renderReleasePage", "renderReleaseItemPage",
                 "buildReleasePage", "buildReleaseItemPage",
                 "mountReleaseGate", "buildGateSection", "composeRelease",
-                "holdFeatureBack"}
-    found = {name for _, name in decls} & subjects
-    assert found == subjects, (
-        "the release page's functions moved: missing %s"
-        % sorted(subjects - found)
+                "holdFeatureBack", "fillUnreleasedCard"}
+    assert subjects == expected, (
+        "the set of release surfaces changed: %s appeared, %s went"
+        % (sorted(subjects - expected), sorted(expected - subjects))
     )
     #: And the block this task added is inside one of them, checked rather
     #: than assumed — the first version of this test scanned a 2600-character
     #: window that did not even contain the enclosing function.
     anchor = src.index("const heldBack = c.held_back")
 
+    #: **`buildCheckRow(item)` is on this list because the violation was one
+    #: call deeper than the guard.** `~release/<id>/<ITEM-ID>` rendered every
+    #: check row with the default `manual = true`, so each carried a live mark
+    #: button posting to `/api/notes/mark-check` and, after [[ISS-0249]], a
+    #: `Retire` button — the sixty live marks [[ISS-0210]] found, reaching the
+    #: same dialog through a shared row builder while `gateMark` and
+    #: `markGateRow` were deleted file-wide. A guard that names only the
+    #: dialog misses every helper that opens it.
     forbidden = ("askForMark", "walkOneCheck", "/api/notes/mark-check",
-                 "gateMark(", "markGateRow(")
+                 "gateMark(", "markGateRow(", "retireCheckRow(",
+                 "buildCheckRow(item)", "buildCheckRow(item,\n",
+                 "buildCheckRow(row)")
     covered = False
     for n, (start, name) in enumerate(decls):
         if name not in subjects:
@@ -373,6 +391,12 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
                 "record (ADR-0035)" % (word, name)
             )
     assert covered, "the held-back block is not inside any release function"
+
+    #: **And the one legitimate call is asserted positively**, so the rule
+    #: above cannot be satisfied by deleting the row instead of disarming it.
+    assert "buildCheckRow(item, false)" in src, (
+        "the release item page no longer renders its check rows read-only"
+    )
 
     #: And the two deletions are file-wide, which is the stronger claim: a
     #: live-looking helper is how the next caller re-acquires the behaviour a
